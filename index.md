@@ -16,6 +16,8 @@ Thanks for taking an active role in the development of Aggie Experts!
 
 ## Data Used by Aggie Experts
 
+Users own their data.
+
 ## Software used by the Application
 
 Aggie Experts is inspired by the [VIVO software
