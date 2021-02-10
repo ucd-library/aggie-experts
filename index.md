@@ -29,6 +29,7 @@ Thanks for taking an active role in the development of Aggie Experts!
 
 **October 2020** Roll out to the Department of Materials Science and Engineering
 *Data fields:* affiliations, titles, email contact, publications data fields
+
 *Functionalities:*  search, export of publications as RIS file format, for import into MIV
 
 **March 2021** Roll out to the Department of Biological and Agricultural Engineering
