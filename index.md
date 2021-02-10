@@ -23,14 +23,9 @@ Thanks for taking an active role in the development of Aggie Experts!
 
 
 
-## Software used by the Application
+## Infrastructure
 
-Aggie Experts is inspired by the [VIVO software
-tool](https://duraspace.org/vivo/about/) and uses their schema in the
-description of research data.  In addition, exports of the Aggie data will be
-made available in the VIVO schema.
+The overarching principles of building out the Aggie Experts platform are to avoid hosting data locally and to present all content as linked data. The data sources are described in more detail below. Aggie Experts is inspired by the [VIVO software tool](https://duraspace.org/vivo/about/) and uses their schema to represent the data in RDF format. For more information, refer to our [GitHub repository](https://github.com/ucd-library/rp-ucd-deployment).
 
-Aggie Experts uses some data from [Wikidata](https://www.wikidata.org/). In
-particular, Aggie Experts uses data available in Wikidata for the campus
-colleges, departments and campus structure.  The UC Davis Library helps maintain
-the campus departments.
+
+
