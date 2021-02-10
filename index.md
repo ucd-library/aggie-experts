@@ -1,7 +1,5 @@
-[Aggie Experts](https://dev.experts.ucdavis.edu) is a development program to
-make UC Davis researcher data more available.  This repository is primarily a
-source of technical information, and a location to track bugs and issue
-requests.
+# Overview
+[Aggie Experts](https://dev.experts.ucdavis.edu) is a joint pilot project between the Office of the Provost and the UC Davis Library. Its purpose is to create a central registry of UC Davis scholarship produced by faculty, researchers, experts and creators. Aggie Experts can be used as an expertise discovery platform for finding collaborators, mentors and expert opinions, as a showcase of the UC Davis excellence in research, teaching and community service, and as a tool that reduces the administrative load on UC Davis researchers and administrators. In the course of two years (2020-2022) we will be expanding the registry by adding faculty from the College of Engineering and adjusting its functionality based on user feedback.
 
 ## Data Issues
 
