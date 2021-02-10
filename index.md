@@ -12,13 +12,13 @@ above to see all reported issues.
 
 Thanks for taking an active role in the development of Aggie Experts!
 
-## Data Used by Aggie Experts
+## Data Sources for Aggie Experts
 
 * We use the UC Davis identity management system as the source for the scholar’s name, title and unit affiliation. Researchers can change that information in the campus directory listing.
 * Publications metadata is based on scholars’ claims of publications in support of the UC Open Access Policy. Faculty can review with publications they have claimed, and what additional publications are pending review and approval in the California Digital Library instance of Symplectic Elements publication management system.
 * Research subject areas are generated in one of the following manners:
-** The researcher has already selected relevant keywords in the Symplectic Elements publication management system
-** The keywords are extracted from the researchers’ claimed publications, and the ones that occur three or more times are added to their profiles.
+- The researcher has already selected relevant keywords in the Symplectic Elements publication management system
+- The keywords are extracted from the researchers’ claimed publications, and the ones that occur three or more times are added to their profiles.
 
 
 
