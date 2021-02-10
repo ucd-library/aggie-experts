@@ -24,13 +24,17 @@ Click [Issues](https://github.com/ucd-library/aggie-experts-public-issues/issues
 Thanks for taking an active role in the development of Aggie Experts!
 
 ## Schedule
+
 **August 2019** Convene Faculty Advisory Board and establish the parameters for a minimal viable product
+
 **October 2020** Roll out to the Department of Materials Science and Engineering
 *Data fields:* affiliations, titles, email contact, publications data fields
 *Functionalities:*  search, export of publications as RIS file format, for import into MIV
+
 **March 2021** Roll out to the Department of Biological and Agricultural Engineering
 *Data fields:* research areas
 *Functionalities:* improved search
+
 **May 2021** Roll out to the Department of Mechanical and Aerospace Engineering
 *Data fields:* tbd at March meeting
 *Functionalities:* tbd at March meeting
