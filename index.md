@@ -9,9 +9,9 @@ The overarching principles of building out the Aggie Experts platform are to avo
 ## Data Sources for Aggie Experts
 
 * We use the UC Davis identity management system as the source for the scholar’s name, title and unit affiliation. Researchers can change that information in the [campus directory listing](https://org.ucdavis.edu/odr).
-* Publications metadata is based on scholars’ claims of publications in support of the UC Open Access Policy. Faculty can review with publications they have claimed, and what additional publications are pending review and approval in the California Digital Library instance of [Symplectic Elements publication management system](oapolicy.universityofcalifornia.edu/).
+* Publications metadata is based on scholars’ claims of publications in support of the UC Open Access Policy. Faculty can review with publications they have claimed, and what additional publications are pending review and approval in the California Digital Library instance of [Symplectic Elements publication management system](https://oapolicy.universityofcalifornia.edu/).
 * Research subject areas are generated in one of the following manners:
-  * The researcher has already selected relevant keywords in the [Symplectic Elements publication management system](oapolicy.universityofcalifornia.edu/).
+  * The researcher has already selected relevant keywords in the [Symplectic Elements publication management system](https://oapolicy.universityofcalifornia.edu/).
   * The keywords are extracted from the researchers’ claimed publications, and the ones that occur three or more times are added to their profiles.
 
 ## Feedback and Issue Reporting
@@ -19,7 +19,7 @@ The overarching principles of building out the Aggie Experts platform are to avo
 To report an issue or provide feedback go to
 [https://github.com/ucd-library/aggie-experts-public-issues/issues/new/choose](https://github.com/ucd-library/aggie-experts-public-issues/issues/new/choose)
 
-Click [Issues](https://github.com/ucd-library/aggie-experts-public-issues/issues) above to see all reported issues.
+Review [Issues](https://github.com/ucd-library/aggie-experts-public-issues/issues) to see all reported issues.
 
 Thanks for taking an active role in the development of Aggie Experts!
 
@@ -31,7 +31,7 @@ Thanks for taking an active role in the development of Aggie Experts!
 
 *Data fields:* affiliations, titles, email contact, publications
 
-*Functionalities:*  search, export of publications as RIS file format, for import into MIV
+*Functionalities:*  search, export of publications as a RIS file
 
 **March 2021** Roll out to the Department of Biological and Agricultural Engineering
 
