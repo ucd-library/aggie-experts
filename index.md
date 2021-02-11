@@ -14,6 +14,10 @@ The overarching principles of building out the Aggie Experts platform are to avo
   * The researcher has already selected relevant keywords in the [Symplectic Elements publication management system](https://oapolicy.universityofcalifornia.edu/).
   * The keywords are extracted from the researchers’ claimed publications, and the ones that occur three or more times are added to their profiles.
   
+## Data Fields
+
+Activities and contributions to research, teaching and the community are extensive. We work with faculty to choose from the following list of fields for each new iteration of the registry. It is by no means exhaustive, and we are open to additions: Name, Home department, Current position, Additional affiliations, Photo, Research bio, Openness to collaborations, Websites, Courses, Awards, Patents, Grants, Publications, Datasets, Software, Exhibits, Performances, Conference papers, Gray literature, Collaborations, Mentorship, Service. This list exceeds the scope of the pilot and is intended long-term visioning.
+  
 ## Functionalities
 
 A good registry needs to have a good search mechanism. We enable discovery of expertise on campus through researchers’ scholarship reflected in each field we add to the registry. 
