@@ -13,6 +13,12 @@ The overarching principles of building out the Aggie Experts platform are to avo
 * Research subject areas are generated in one of the following manners:
   * The researcher has already selected relevant keywords in the [Symplectic Elements publication management system](https://oapolicy.universityofcalifornia.edu/).
   * The keywords are extracted from the researchers’ claimed publications, and the ones that occur three or more times are added to their profiles.
+  
+## Functionalities
+
+A good registry needs to have a good search mechanism. We enable discovery of expertise on campus through researchers’ scholarship reflected in each field we add to the registry. 
+
+Aggie Experts is intended to function in accordance with the [FAIR data principles](https://www.force11.org/fairprinciples). In many cases faculty are required to provide the same information to the university, grant-funding agencies, and conferences. Exports from Aggie Experts would allow the faculty to reformat their content for those needs and reduce the time spent on administrative work.
 
 ## Feedback and Issue Reporting
 
