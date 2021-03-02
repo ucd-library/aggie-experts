@@ -9,7 +9,7 @@ Claudia Whitfield, Michael Colby
 Alainna Wrigley (California Digital Library), Mahjabeen Yucekul (California Digital Library), Justin Gonder (California Digital Library)
 
 ### Faculty Advisory Board: 
-Ricardo Castro (Associate Dean, College of Engineering), Jiayi Young (Assistant Professor, Design, College of Letters & Sciences), Anuurad Erdembileg (Assistant Dean, School of Medicine), Matt Bishop (Professor, College of Engineering), Michael Rios (College of Agricultural and Environmental Science, Vice-Provost, Public Scholarship and Engagement), Michael Lazzara (Professor, Spanish & Portugese, College of Letters and Science, Associate Vice-Provost, Academic Affairs, Global Affairs)
+Ricardo Castro (Associate Dean, College of Engineering), Jiayi Young (Associate Professor, Design, College of Letters & Sciences), Anuurad Erdembileg (Assistant Dean, School of Medicine), Matt Bishop (Professor, College of Engineering), Michael Rios (College of Agricultural and Environmental Science, Vice-Provost, Public Scholarship and Engagement), Michael Lazzara (Professor, Spanish & Portugese, College of Letters and Science, Associate Vice-Provost, Academic Affairs, Global Affairs)
 
 ### Other contributors
 Dane Nicolas, Kathryn Martin, Lakshmi Shaik
