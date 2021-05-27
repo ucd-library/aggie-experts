@@ -41,6 +41,8 @@ repository](https://github.com/ucd-library/rp-ucd-deployment).
 
 * The keywords are extracted from the researchers’ claimed publications, and the
   ones that occur three or more times are added to their profiles.
+ 
+* The grants data are obtained from the university’s financial data warehouse.
 
 ## Data Fields
 
@@ -98,6 +100,10 @@ Engineering
 
 **May 2021** Roll out to the Department of Mechanical and Aerospace Engineering
 
-*Data fields:* tbd at March meeting
+*Functionalities:* refinement of previous iteration
 
-*Functionalities:* tbd at March meeting
+**TBD**
+
+*Data fields:* grants
+
+*Functionalities:* website plug-in, subject-expertise visualization
