@@ -1,6 +1,6 @@
 # Project Overview
 
-[Aggie Experts](https://dev.experts.ucdavis.edu) is a joint pilot project
+[Aggie Experts](https://rc.experts.ucdavis.edu) is a joint pilot project
 between the Office of the Provost and the UC Davis Library
 [team](team.md). Its
 purpose is to create a central registry of UC Davis scholarship produced by
