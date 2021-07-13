@@ -1,6 +1,6 @@
 # Project Overview
 
-[Aggie Experts](https://dev.experts.ucdavis.edu) is a joint pilot project
+[Aggie Experts](https://rc.experts.ucdavis.edu) is a joint pilot project
 between the Office of the Provost and the UC Davis Library
 [team](team.md). Its
 purpose is to create a central registry of UC Davis scholarship produced by
@@ -35,11 +35,11 @@ repository](https://github.com/ucd-library/rp-ucd-deployment).
 
 * Research subject areas are generated in one of the following manners:
 
-* The researcher has already selected relevant keywords in the [Symplectic
+  * The researcher has already selected relevant keywords in the [Symplectic
   Elements publication management
   system](https://oapolicy.universityofcalifornia.edu/).
 
-* The keywords are extracted from the researchers’ claimed publications, and the
+  * The keywords are extracted from the researchers’ claimed publications, and the
   ones that occur three or more times are added to their profiles.
  
 * The grants data are obtained from the university’s financial data warehouse.
@@ -102,8 +102,12 @@ Engineering
 
 *Functionalities:* refinement of previous iteration
 
-**TBD**
+**July 2021**
 
 *Data fields:* grants
 
-*Functionalities:* website plug-in, subject-expertise visualization
+*Functionalities:* website plug-in
+
+**TBD**
+
+*Functionalities:* subject-expertise visualization
