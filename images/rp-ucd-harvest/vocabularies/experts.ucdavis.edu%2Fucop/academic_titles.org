@@ -1,0 +1,801 @@
+* Title Codes
+:PROPERTIES:
+:header-args:http: :host localhost:3030
+:header-args:sparqlx: :url http://sparql.org/sparql :format text/csv
+:header-args:sparql: :url http://localhost:3030/iam/sparql :format text/csv
+:END:
+
+** CDL Notes
+
+   CDL is using CTO codes for their inclusion, exclusion of users.  Their [[https://docs.google.com/spreadsheets/d/1g25NI6LiOBgNyLJDcTuvPpxd0HXnU1Wy6uFa3xYFRVw/edit#gid=870473825][CTO
+   Filter In]] list shows the CTOs.  My [[https://docs.google.com/spreadsheets/d/1aWsQUyS1GDzwUOjVHnb0YJ-IcpSR_22a0LGgXxu-V80/edit#gid=1276882636][UCD Title codes]] sheet includes a tab
+   from CDL that includes most of the titles, and that's needed to find the
+   difference between our systems.  CDL Points to the [[https://tcs.ucop.edu/tcs/jsp/nonAcademicTitlesSearch.htm][TCS System]] for lookups, as
+   well.
+
+
+** IAM Profiles
+
+Eventually, we want to get all the title codes that make up the Acedemic Senate
+and federation, but first, we want to investigate what makes up the ~isFaculty~
+component of the IAM profiles.  First, let's see what title codes are both in
+and not in the ~isFaculty~ group.
+
+#+BEGIN_SRC sparql
+    PREFIX iam: <http://iam.ucdavis.edu/schema#>
+  select * WHERE {
+  {
+    select ?title (count(*) as ?facultyFalse) WHERE {
+    ?s iam:isEmployee true;
+      iam:isFaculty false;
+      iam:ppsAssociations [ iam:assocRank 1;
+      iam:titleCode ?title ];
+      .
+        {select ?s (max(?rank) as ?max) WHERE {
+            ?s iam:ppsAssociations/iam:assocRank ?rank. } group by ?s having(?max=1) }
+    } group by ?title
+  }
+  {
+    select ?title (count(*) as ?facultyTrue) WHERE {
+    ?s iam:isEmployee true;
+      iam:isFaculty true;
+      iam:ppsAssociations [ iam:assocRank 1;
+      iam:titleCode ?title ];
+      .
+     {select ?s (max(?rank) as ?max) WHERE {
+            ?s iam:ppsAssociations/iam:assocRank ?rank. } group by ?s having(?max=1) }
+    } group by ?title
+  }
+  } order by ?title
+#+END_SRC
+
+#+RESULTS:
+|  title | facultyFalse | facultyTrue |
+|--------+--------------+-------------|
+| 000224 |            2 |           1 |
+| 000320 |            2 |           2 |
+| 000332 |           11 |          14 |
+| 000353 |           41 |           1 |
+| 000547 |           70 |           2 |
+| 000548 |           31 |           1 |
+| 000549 |           10 |           2 |
+| 000658 |            5 |           2 |
+| 000769 |            1 |           1 |
+| 000770 |           33 |           4 |
+| 000771 |          100 |           5 |
+| 000841 |            5 |          12 |
+| 000843 |           19 |          41 |
+| 000845 |            3 |          16 |
+| 001063 |            1 |           8 |
+| 001064 |            1 |           2 |
+| 001065 |            1 |           5 |
+| 001066 |            2 |           4 |
+| 003200 |            1 |          24 |
+| 003202 |            3 |           2 |
+| 003210 |            5 |          12 |
+| 003212 |            1 |           1 |
+| 003220 |           15 |          16 |
+| 003252 |          616 |           8 |
+| 003253 |           21 |           1 |
+| 003254 |           13 |           1 |
+| 003255 |           13 |           2 |
+| 003282 |         1664 |           2 |
+| 003300 |           11 |          32 |
+| 003310 |           11 |          52 |
+| 003311 |            2 |           2 |
+| 003320 |           47 |           8 |
+| 003321 |            3 |           8 |
+| 003390 |            6 |          46 |
+| 003392 |           10 |          78 |
+| 003393 |            1 |          14 |
+| 003394 |           94 |          85 |
+| 003395 |            7 |          14 |
+| 003396 |            2 |           2 |
+| 003403 |            6 |           2 |
+| 003451 |           25 |           1 |
+| 003461 |           62 |           4 |
+| 003475 |            9 |           2 |
+| 003477 |            8 |           4 |
+| 003479 |           14 |          12 |
+| 003494 |            3 |           4 |
+| 003521 |            2 |          12 |
+  | 003570 |          609 |           5 |
+| 003602 |            1 |           8 |
+| 003612 |            4 |          20 |
+| 003800 |            1 |         415 |
+| 003999 |            5 |           1 |
+| 004128 |           42 |           1 |
+| 004137 |            1 |           2 |
+| 004236 |           21 |           1 |
+| 004399 |            7 |           1 |
+| 004502 |            2 |           1 |
+| 004517 |           11 |           2 |
+| 004550 |           10 |           4 |
+| 004564 |           42 |           2 |
+| 004576 |            7 |           1 |
+| 005115 |           44 |           1 |
+| 005781 |            5 |           2 |
+| 006000 |            3 |           1 |
+| 006036 |           13 |           2 |
+| 006039 |          143 |           4 |
+| 006049 |           50 |           2 |
+| 006104 |            5 |           1 |
+| 006147 |           12 |           2 |
+| 006481 |           13 |           1 |
+| 006621 |           15 |           3 |
+| 006783 |            1 |           2 |
+| 007120 |           34 |           2 |
+| 007145 |            7 |           1 |
+| 007552 |           12 |           1 |
+| 007932 |           69 |           5 |
+| 009247 |          142 |           2 |
+| 009455 |            8 |           1 |
+| 009545 |           17 |           1 |
+| 009610 |           54 |           1 |
+| 009611 |          161 |           3 |
+| CWR003 |          154 |           2 |
+| CWR015 |          116 |           8 |
+| CWR019 |            5 |           1 |
+| CWR022 |          183 |          37 |
+
+This is an extension of the above query,  where we include every person's
+position that is ~isFaculty~
+
+#+name: allFaculty positions
+#+begin_src sparql
+  PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fuseki: <http://jena.apache.org/fuseki#>
+PREFIX iam: <http://iam.ucdavis.edu/schema#>
+PREFIX position: <http://experts.ucdavis.edu/position/>
+PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+select ?title ?facultyFalse ?facultyTrue ?label ?cto WHERE {
+{
+  select ?title (count(*) as ?facultyTrue) WHERE {
+  ?s iam:isEmployee true;
+    iam:isFaculty true;
+    iam:ppsAssociations [ iam:assocRank 1;
+    iam:titleCode ?titleCode ];
+    .
+          bind(uri(concat(str(position:),?titleCode)) as ?title)
+   {select ?s (max(?rank) as ?max) WHERE {
+          ?s iam:ppsAssociations/iam:assocRank ?rank. } group by ?s having(?max=1) }
+  } group by ?title
+}
+ OPTIONAL {
+  select ?title (count(*) as ?facultyFalse) WHERE {
+  ?s iam:isEmployee true;
+    iam:isFaculty false;
+    iam:ppsAssociations [ iam:assocRank 1;
+    iam:titleCode ?titleCode ];
+    .
+       bind(uri(concat(str(position:),?titleCode)) as ?title)
+      {select ?s (max(?rank) as ?max) WHERE {
+          ?s iam:ppsAssociations/iam:assocRank ?rank. } group by ?s having(?max=1) }
+  } group by ?title
+}
+  OPTIONAL {
+  SERVICE <http://fuseki:3030/vocabularies/query> {
+    graph ?g {
+      ?title rdfs:label ?label ;
+             ucdrp:cto ?cto;
+            .
+    }
+    }}
+} order by ?title
+#+end_src
+
+#+RESULTS: allFaculty positions
+| title                                      | facultyFalse | facultyTrue | label                          | cto                                        |
+|--------------------------------------------+--------------+-------------+--------------------------------+--------------------------------------------|
+| http://experts.ucdavis.edu/position/000118 |              |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/000224 |            2 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/000293 |              |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/000316 |              |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/000320 |            2 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/000332 |           11 |          14 |                                |                                            |
+| http://experts.ucdavis.edu/position/000353 |           41 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/000547 |           70 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/000548 |           31 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/000549 |           10 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/000658 |            5 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/000769 |            1 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/000770 |           33 |           4 |                                |                                            |
+| http://experts.ucdavis.edu/position/000771 |          100 |           5 |                                |                                            |
+| http://experts.ucdavis.edu/position/000840 |              |           1 | ACADEMIC COORD I-AY            | http://experts.ucdavis.edu/position/CTOS46 |
+| http://experts.ucdavis.edu/position/000841 |            5 |          12 | ACADEMIC COORD I-FY            | http://experts.ucdavis.edu/position/CTOS46 |
+| http://experts.ucdavis.edu/position/000843 |           19 |          41 | ACADEMIC COORD II-FY           | http://experts.ucdavis.edu/position/CTOS46 |
+| http://experts.ucdavis.edu/position/000845 |            3 |          16 | ACADEMIC COORD III-FY          | http://experts.ucdavis.edu/position/CTOS46 |
+| http://experts.ucdavis.edu/position/000855 |              |           2 | ACADEMIC COORD III-FY NEX      | http://experts.ucdavis.edu/position/CTOS46 |
+| http://experts.ucdavis.edu/position/000907 |              |           1 | ACT/INTERIM DIRECTOR           | http://experts.ucdavis.edu/position/CTOS34 |
+| http://experts.ucdavis.edu/position/001000 |              |           5 | DEAN                           | http://experts.ucdavis.edu/position/CTOS21 |
+| http://experts.ucdavis.edu/position/001063 |            1 |           8 | ACADEMIC ADMINISTRATOR III     | http://experts.ucdavis.edu/position/CTOS56 |
+| http://experts.ucdavis.edu/position/001064 |            1 |           2 | ACADEMIC ADMINISTRATOR IV      | http://experts.ucdavis.edu/position/CTOS56 |
+| http://experts.ucdavis.edu/position/001065 |            1 |           5 | ACADEMIC ADMINISTRATOR V       | http://experts.ucdavis.edu/position/CTOS56 |
+| http://experts.ucdavis.edu/position/001066 |            2 |           4 | ACADEMIC ADMINISTRATOR VI      | http://experts.ucdavis.edu/position/CTOS56 |
+| http://experts.ucdavis.edu/position/001067 |              |           8 | ACADEMIC ADMINISTRATOR VII     | http://experts.ucdavis.edu/position/CTOS56 |
+| http://experts.ucdavis.edu/position/001068 |              |           2 | VICE PROVOST                   | http://experts.ucdavis.edu/position/CTOS27 |
+| http://experts.ucdavis.edu/position/001100 |              |         228 | PROF-AY                        | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001108 |              |          15 | VIS PROF                       | http://experts.ucdavis.edu/position/CTO323 |
+| http://experts.ucdavis.edu/position/001110 |              |           1 | PROF-FY                        | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001132 |              |         846 | PROF EMERITUS(WOS)             | http://experts.ucdavis.edu/position/CTO016 |
+| http://experts.ucdavis.edu/position/001143 |              |          92 | PROF-AY-B/E/E                  | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001144 |              |           1 | PROF-FY-B/E/E                  | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001180 |              |          27 | PROF-AY-LAW                    | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001182 |              |           5 | ACT PROF-AY-LAW                | http://experts.ucdavis.edu/position/CTO114 |
+| http://experts.ucdavis.edu/position/001200 |              |         140 | ASSOC PROF-AY                  | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001208 |              |          10 | VIS ASSOC PROF                 | http://experts.ucdavis.edu/position/CTO323 |
+| http://experts.ucdavis.edu/position/001243 |              |          33 | ASSOC PROF-AY-B/E/E            | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001300 |              |          95 | ASST PROF-AY                   | http://experts.ucdavis.edu/position/CTO011 |
+| http://experts.ucdavis.edu/position/001308 |              |          32 | VIS ASST PROF                  | http://experts.ucdavis.edu/position/CTO323 |
+| http://experts.ucdavis.edu/position/001343 |              |          28 | ASST PROF-AY-B/E/E             | http://experts.ucdavis.edu/position/CTO011 |
+| http://experts.ucdavis.edu/position/001450 |              |           2 | PROF OF CLIN-FY                | http://experts.ucdavis.edu/position/CTO317 |
+| http://experts.ucdavis.edu/position/001453 |              |          79 | PROF OF CLIN-HCOMP             | http://experts.ucdavis.edu/position/CTO317 |
+| http://experts.ucdavis.edu/position/001454 |              |          50 | ASSOC PROF OF CLIN-HCOMP       | http://experts.ucdavis.edu/position/CTO317 |
+| http://experts.ucdavis.edu/position/001455 |              |          82 | ASST PROF OF CLIN-HCOMP        | http://experts.ucdavis.edu/position/CTO317 |
+| http://experts.ucdavis.edu/position/001550 |              |          33 | LECT IN SUMMER SESSION         | http://experts.ucdavis.edu/position/CTO357 |
+| http://experts.ucdavis.edu/position/001603 |              |           1 | SR LECT SOE-AY                 | http://experts.ucdavis.edu/position/CTO210 |
+| http://experts.ucdavis.edu/position/001607 |              |          10 | LECT SOE-AY                    | http://experts.ucdavis.edu/position/CTO210 |
+| http://experts.ucdavis.edu/position/001617 |              |           1 | LECT SOE-FY                    | http://experts.ucdavis.edu/position/CTO210 |
+| http://experts.ucdavis.edu/position/001620 |              |          14 | LECT SOE-EMERITUS(WOS)         | http://experts.ucdavis.edu/position/CTO216 |
+| http://experts.ucdavis.edu/position/001621 |              |          28 | SR LECT SOE-EMERITUS (WOS)     | http://experts.ucdavis.edu/position/CTO216 |
+| http://experts.ucdavis.edu/position/001630 |              |          91 | LECT-AY                        | http://experts.ucdavis.edu/position/CTO225 |
+| http://experts.ucdavis.edu/position/001631 |              |          77 | LECT-AY-CONTINUING             | http://experts.ucdavis.edu/position/CTO225 |
+| http://experts.ucdavis.edu/position/001632 |              |          42 | LECT-AY-1/9                    | http://experts.ucdavis.edu/position/CTO225 |
+| http://experts.ucdavis.edu/position/001633 |              |           2 | LECT-AY-1/9-CONTINUING         | http://experts.ucdavis.edu/position/CTO225 |
+| http://experts.ucdavis.edu/position/001634 |              |           3 | LECT-FY                        | http://experts.ucdavis.edu/position/CTO225 |
+| http://experts.ucdavis.edu/position/001636 |              |          44 | LECT-AY-1/10                   | http://experts.ucdavis.edu/position/CTO225 |
+| http://experts.ucdavis.edu/position/001637 |              |           1 | LECT-AY-1/10-CONTINUING        | http://experts.ucdavis.edu/position/CTO225 |
+| http://experts.ucdavis.edu/position/001650 |              |           6 | LECT-MISCELLANEOUS/PART TIME   | http://experts.ucdavis.edu/position/CTO928 |
+| http://experts.ucdavis.edu/position/001680 |              |          15 | LECT PSOE-AY                   | http://experts.ucdavis.edu/position/CTO211 |
+| http://experts.ucdavis.edu/position/001687 |              |           7 | LECT SOE-AY-B/E/E              | http://experts.ucdavis.edu/position/CTO210 |
+| http://experts.ucdavis.edu/position/001688 |              |           6 | LECT PSOE-AY-B/E/E             | http://experts.ucdavis.edu/position/CTO211 |
+| http://experts.ucdavis.edu/position/001699 |              |           3 | RECALL TEACHING NON-SENATE     | http://experts.ucdavis.edu/position/CTO012 |
+| http://experts.ucdavis.edu/position/001701 |              |           3 | RECALL HCOMP                   | http://experts.ucdavis.edu/position/CTO012 |
+| http://experts.ucdavis.edu/position/001702 |              |          10 | RECALL FACULTY                 | http://experts.ucdavis.edu/position/CTO012 |
+| http://experts.ucdavis.edu/position/001712 |              |           4 | VIS ASST PROF-HCOMP            | http://experts.ucdavis.edu/position/CTO323 |
+| http://experts.ucdavis.edu/position/001717 |              |          10 | ASST PROF-HCOMP                | http://experts.ucdavis.edu/position/CTO011 |
+| http://experts.ucdavis.edu/position/001719 |              |          18 | ASSOC PROF-HCOMP               | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001721 |              |          75 | PROF-HCOMP                     | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001724 |              |          12 | ASST PROF IN RES-HCOMP         | http://experts.ucdavis.edu/position/CTO311 |
+| http://experts.ucdavis.edu/position/001725 |              |          13 | ASSOC PROF IN RES-HCOMP        | http://experts.ucdavis.edu/position/CTO311 |
+| http://experts.ucdavis.edu/position/001726 |              |          15 | PROF IN RES-HCOMP              | http://experts.ucdavis.edu/position/CTO311 |
+| http://experts.ucdavis.edu/position/001728 |              |          17 | ASST ADJ PROF-HCOMP            | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/001729 |              |          15 | ASSOC ADJ PROF-HCOMP           | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/001730 |              |           7 | ADJ PROF-HCOMP                 | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/001731 |              |          26 | HS CLIN INSTR-HCOMP            | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/001732 |              |         194 | HS ASST CLIN PROF-HCOMP        | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/001733 |              |         144 | HS ASSOC CLIN PROF-HCOMP       | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/001734 |              |         146 | HS CLIN PROF-HCOMP             | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/001897 |              |          15 | ASST PROF-SFT-VM               | http://experts.ucdavis.edu/position/CTO011 |
+| http://experts.ucdavis.edu/position/001899 |              |          11 | ASSOC PROF-SFT-VM              | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001901 |              |          38 | PROF-SFT-VM                    | http://experts.ucdavis.edu/position/CTO010 |
+| http://experts.ucdavis.edu/position/001908 |              |           1 | ASST ADJ PROF-SFT-VM           | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/001909 |              |           2 | ASSOC ADJ PROF-SFT-VM          | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/001910 |              |           1 | ADJ PROF-SFT-VM                | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/001912 |              |           5 | HS ASST CLIN PROF-SFT-VM       | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/001914 |              |           2 | HS CLIN PROF-SFT-VM            | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/001915 |              |          10 | ASST PROF OF CLIN-SFT-VM       | http://experts.ucdavis.edu/position/CTO317 |
+| http://experts.ucdavis.edu/position/001916 |              |          10 | ASSOC PROF OF CLIN-SFT-VM      | http://experts.ucdavis.edu/position/CTO317 |
+| http://experts.ucdavis.edu/position/001917 |              |           8 | PROF OF CLIN-SFT-VM            | http://experts.ucdavis.edu/position/CTO317 |
+| http://experts.ucdavis.edu/position/001988 |              |           4 | ASSOC RES-FY-B/E/E             | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/001989 |              |           4 | ASST RES-FY-B/E/E              | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/002010 |              |           7 | HS CLIN PROF-FY                | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/002017 |              |         138 | CLIN PROF-VOL                  | http://experts.ucdavis.edu/position/CTO346 |
+| http://experts.ucdavis.edu/position/002030 |              |           6 | HS ASSOC CLIN PROF-FY          | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/002037 |              |          96 | ASSOC CLIN PROF-VOL            | http://experts.ucdavis.edu/position/CTO346 |
+| http://experts.ucdavis.edu/position/002050 |              |           7 | HS ASST CLIN PROF-FY           | http://experts.ucdavis.edu/position/CTO341 |
+| http://experts.ucdavis.edu/position/002057 |              |         335 | ASST CLIN PROF-VOL             | http://experts.ucdavis.edu/position/CTO346 |
+| http://experts.ucdavis.edu/position/002077 |              |         215 | CLIN INSTR-VOL                 | http://experts.ucdavis.edu/position/CTO346 |
+| http://experts.ucdavis.edu/position/002220 |              |           1 | SUPV TEACHER ED-AY             | http://experts.ucdavis.edu/position/CTO357 |
+| http://experts.ucdavis.edu/position/002221 |              |           2 | SUPV TEACHER ED-AY-CONTINUING  | http://experts.ucdavis.edu/position/CTO357 |
+| http://experts.ucdavis.edu/position/003180 |              |           2 | ASSOC RES-FY NEX               | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/003200 |            1 |          24 | RES-FY                         | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/003202 |            3 |           2 | RES (WOS)                      | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/003210 |            5 |          12 | ASSOC RES-FY                   | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/003212 |            1 |           1 | ASSOC RES (WOS)                | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/003220 |           15 |          16 | ASST RES-FY                    | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/003222 |              |           2 | ASST RES (WOS)                 | http://experts.ucdavis.edu/position/CTO541 |
+| http://experts.ucdavis.edu/position/003249 |              |          28 | SENATE EMERITUS (WOS)          | http://experts.ucdavis.edu/position/CTO316 |
+| http://experts.ucdavis.edu/position/003251 |              |           2 | PROF IN RES-FY                 | http://experts.ucdavis.edu/position/CTO311 |
+| http://experts.ucdavis.edu/position/003252 |          616 |           8 | POSTDOC-EMPLOYEE               | http://experts.ucdavis.edu/position/CTO575 |
+| http://experts.ucdavis.edu/position/003253 |           21 |           1 | POSTDOC-FELLOW                 | http://experts.ucdavis.edu/position/CTO575 |
+| http://experts.ucdavis.edu/position/003254 |           13 |           1 | POSTDOC-PAID DIRECT            | http://experts.ucdavis.edu/position/CTO575 |
+| http://experts.ucdavis.edu/position/003255 |           13 |           2 | POSTDOC-EMPLOYEE NEX           | http://experts.ucdavis.edu/position/CTO575 |
+| http://experts.ucdavis.edu/position/003258 |              |          10 | ADJ PROF-AY                    | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003259 |              |          20 | ADJ PROF-FY                    | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003261 |              |           1 | ASSOC PROF IN RES-FY           | http://experts.ucdavis.edu/position/CTO311 |
+| http://experts.ucdavis.edu/position/003268 |              |           1 | ASSOC ADJ PROF-AY              | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003269 |              |          14 | ASSOC ADJ PROF-FY              | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003278 |              |          13 | ASST ADJ PROF-AY               | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003279 |              |           8 | ASST ADJ PROF-FY               | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003282 |         1664 |           2 | GSR-FULL FEE REM               | http://experts.ucdavis.edu/position/CTO436 |
+| http://experts.ucdavis.edu/position/003300 |           11 |          32 | SPECIALIST                     | http://experts.ucdavis.edu/position/CTO551 |
+| http://experts.ucdavis.edu/position/003310 |           11 |          52 | ASSOC SPECIALIST               | http://experts.ucdavis.edu/position/CTO551 |
+| http://experts.ucdavis.edu/position/003311 |            2 |           2 | ASSOC SPECIALIST NEX           | http://experts.ucdavis.edu/position/CTO551 |
+| http://experts.ucdavis.edu/position/003320 |           47 |           8 | ASST SPECIALIST                | http://experts.ucdavis.edu/position/CTO551 |
+| http://experts.ucdavis.edu/position/003321 |            3 |           8 | ASST SPECIALIST NEX            | http://experts.ucdavis.edu/position/CTO551 |
+| http://experts.ucdavis.edu/position/003326 |              |          12 | VIS ASST SPECIALIST NEX        | http://experts.ucdavis.edu/position/CTO553 |
+| http://experts.ucdavis.edu/position/003371 |              |           3 | ASST ADJ PROF-AY-B/E/E         | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003374 |              |           5 | ASSOC ADJ PROF-AY-B/E/E        | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003377 |              |          11 | ADJ PROF-AY-B/E/E              | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003378 |              |           2 | ADJ PROF-FY-B/E/E              | http://experts.ucdavis.edu/position/CTO335 |
+| http://experts.ucdavis.edu/position/003390 |            6 |          46 | PROJ SCIENTIST-FY              | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003391 |              |           4 | PROJ SCIENTIST-FY-B/E/E        | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003392 |           10 |          78 | ASSOC PROJ SCIENTIST-FY        | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003393 |            1 |          14 | ASSOC PROJ SCIENTIST-FY-B/E/E  | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003394 |           94 |          85 | ASST PROJ SCIENTIST-FY         | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003395 |            7 |          14 | ASST PROJ SCIENTIST-FY-B/E/E   | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003396 |            2 |           2 | VIS PROJ SCIENTIST             | http://experts.ucdavis.edu/position/CTO583 |
+| http://experts.ucdavis.edu/position/003403 |            6 |           2 | PROJ SCIENTIST-FY NON REP      | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003451 |           25 |           1 | ASSOC COOP EXT ADVISOR         | http://experts.ucdavis.edu/position/CTO728 |
+| http://experts.ucdavis.edu/position/003461 |           62 |           4 | ASST COOP EXT ADVISOR          | http://experts.ucdavis.edu/position/CTO728 |
+| http://experts.ucdavis.edu/position/003475 |            9 |           2 | ASST SPECIALIST COOP EXT       | http://experts.ucdavis.edu/position/CTO729 |
+| http://experts.ucdavis.edu/position/003477 |            8 |           4 | ASSOC SPECIALIST COOP EXT      | http://experts.ucdavis.edu/position/CTO729 |
+| http://experts.ucdavis.edu/position/003479 |           14 |          12 | SPECIALIST COOP EXT            | http://experts.ucdavis.edu/position/CTO729 |
+| http://experts.ucdavis.edu/position/003487 |              |           2 | PROJ SCIENTIST (WOS)           | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003490 |              |           2 | PROJ SCIENTIST-FY NEX          | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003494 |            3 |           4 | ASST PROJ SCIENTIST-FY NEX     | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003495 |              |           2 | ASST PROJ SCNTST-FY-B/E/E NEX  | http://experts.ucdavis.edu/position/CTO581 |
+| http://experts.ucdavis.edu/position/003521 |            2 |          12 | CONTINUING EDUCATOR II         | http://experts.ucdavis.edu/position/CTO825 |
+| http://experts.ucdavis.edu/position/003522 |              |           2 | CONTINUING EDUCATOR III        | http://experts.ucdavis.edu/position/CTO825 |
+| http://experts.ucdavis.edu/position/003570 |          609 |           5 | TEACHER-UNEX-CONTRACT YR       | http://experts.ucdavis.edu/position/CTO828 |
+| http://experts.ucdavis.edu/position/003574 |              |           2 | TEACHER-UNEX                   | http://experts.ucdavis.edu/position/CTO828 |
+| http://experts.ucdavis.edu/position/003602 |            1 |           8 | LIBRARIAN-CAREER NON REP       | http://experts.ucdavis.edu/position/CTO621 |
+| http://experts.ucdavis.edu/position/003612 |            4 |          20 | LIBRARIAN-CAREER STATUS        | http://experts.ucdavis.edu/position/CTO621 |
+| http://experts.ucdavis.edu/position/003616 |              |          12 | ASSOC LIBRARIAN -CAREER STATUS | http://experts.ucdavis.edu/position/CTO621 |
+| http://experts.ucdavis.edu/position/003800 |            1 |         415 | NON-SENATE ACAD EMERITUS(WOS)  | http://experts.ucdavis.edu/position/CTO928 |
+| http://experts.ucdavis.edu/position/003802 |              |          20 | RECALL NON-FACULTY ACAD        | http://experts.ucdavis.edu/position/CTO928 |
+| http://experts.ucdavis.edu/position/003812 |              |           5 | RECALL NON-FACULTY ACAD NEX    | http://experts.ucdavis.edu/position/CTO928 |
+| http://experts.ucdavis.edu/position/003910 |              |           1 | FACULTY ADMIN TRANSITION LV-FY | http://experts.ucdavis.edu/position/CTO928 |
+| http://experts.ucdavis.edu/position/003999 |            5 |           1 | MISCELLANEOUS                  | http://experts.ucdavis.edu/position/CTO928 |
+| http://experts.ucdavis.edu/position/004128 |           42 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/004137 |            1 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/004236 |           21 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/004399 |            7 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/004502 |            2 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/004517 |           11 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/004550 |           10 |           4 |                                |                                            |
+| http://experts.ucdavis.edu/position/004551 |              |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/004553 |              |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/004564 |           42 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/004576 |            7 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/005115 |           44 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/005780 |              |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/005781 |            5 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/006000 |            3 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/006036 |           13 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/006039 |          143 |           4 |                                |                                            |
+| http://experts.ucdavis.edu/position/006049 |           50 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/006104 |            5 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/006147 |           12 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/006481 |           13 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/006497 |              |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/006621 |           15 |           3 |                                |                                            |
+| http://experts.ucdavis.edu/position/006783 |            1 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/007120 |           34 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/007145 |            7 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/007552 |           12 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/007932 |           69 |           5 |                                |                                            |
+| http://experts.ucdavis.edu/position/009247 |          142 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/009455 |            8 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/009545 |           17 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/009610 |           54 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/009611 |          161 |           3 |                                |                                            |
+| http://experts.ucdavis.edu/position/CWR003 |          154 |           2 |                                |                                            |
+| http://experts.ucdavis.edu/position/CWR015 |          116 |           8 |                                |                                            |
+| http://experts.ucdavis.edu/position/CWR019 |            5 |           1 |                                |                                            |
+| http://experts.ucdavis.edu/position/CWR022 |          183 |          37 |                                |                                            |
+
+
+#+BEGIN_SRC sparql
+  select ?faculty ?title (count(*) as ?cnt) WHERE {
+  #bind(true as ?faculty)
+  bind("006132" as ?title)
+  ?s iam:isEmployee ?emp;
+    iam:isStaff ?staff;
+    iam:isHSEmployee ?hs;
+    iam:isFaculty ?faculty;
+    iam:isExternal ?ext;
+    iam:ppsAssociations [ iam:assocRank 1;
+    iam:titleCode ?title ];
+    .
+  } group by ?faculty ?title
+
+#+END_SRC
+
+#+BEGIN_SRC sparql :format raw :wrap SRC ttl
+PREFIX iam: <http://iam.ucdavis.edu/schema#>
+describe ?s
+WHERE {
+  bind("001063" as ?title)
+  ?s iam:ppsAssociations
+    [  iam:assocRank 1;
+       iam:titleCode ?title ];
+  .
+} LIMIT 5
+#+END_SRC
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+
+<http://iam.ucdavis.edu/1000255656>
+        iam:dFirstName       "Jose" ;
+        iam:dFullName        "Jose M Ballesteros" ;
+        iam:dLastName        "Ballesteros" ;
+        iam:dMiddleName      "M" ;
+        iam:directory        [ iam:displayName  [ iam:nameUcdFlag     "Y" ;
+                                                  iam:nameWwwFlag     "Y" ;
+                                                  iam:preferredFname  "Jose" ;
+                                                  iam:preferredLname  "Ballesteros" ;
+                                                  iam:preferredMname  "M"
+                                                ] ;
+                               iam:listings     [ iam:createDate      "2016-06-29 02:18:26" ;
+                                                  iam:deptCode        "7997" ;
+                                                  iam:deptName        "Graduate Studies" ;
+                                                  iam:deptUcdFlag     "Y" ;
+                                                  iam:deptWwwFlag     "Y" ;
+                                                  iam:device          [ iam:phone         "530-754-9777" ;
+                                                                        iam:phoneUcdFlag  "Y" ;
+                                                                        iam:phoneWwwFlag  "Y" ;
+                                                                        iam:type          "Voice (Land Line)"
+                                                                      ] ;
+                                                  iam:listingOrder    1 ;
+                                                  iam:location        [ iam:addressUcdFlag  "Y" ;
+                                                                        iam:addressWwwFlag  "Y" ;
+                                                                        iam:city            "Davis" ;
+                                                                        iam:state           "CA" ;
+                                                                        iam:street          "2312 Student Community Center" ;
+                                                                        iam:zip             "95616"
+                                                                      ] ;
+                                                  iam:modifyDate      "2020-10-05 10:15:38" ;
+                                                  iam:title           "McNair Director" ;
+                                                  iam:titleUcdFlag    "Y" ;
+                                                  iam:titleWwwFlag    "Y" ;
+                                                  iam:websiteUcdFlag  "Y" ;
+                                                  iam:websiteWwwFlag  "Y"
+                                                ]
+                             ] ;
+        iam:email            "jmballesteros@ucdavis.edu" ;
+        iam:employeeId       "10208676" ;
+        iam:isEmployee       true ;
+        iam:isExternal       false ;
+        iam:isFaculty        true ;
+        iam:isHSEmployee     false ;
+        iam:isStaff          true ;
+        iam:isStudent        false ;
+        iam:modifyDate       "2020-12-11 17:10:01" ;
+        iam:mothraId         "00287937" ;
+        iam:oFirstName       "Jose" ;
+        iam:oFullName        "Jose M Ballesteros" ;
+        iam:oLastName        "Ballesteros" ;
+        iam:oMiddleName      "M" ;
+        iam:ppsAssociations  [ iam:adminBouOrgoid         "F80B657C9EE023A0E0340003BA8A560D" ;
+                               iam:adminDept              "061300" ;
+                               iam:adminDeptAbbreviation  "GRAD DIV" ;
+                               iam:adminDeptDisplayName   "GRADUATE DIVISION" ;
+                               iam:adminDeptOfficialName  "GRADUATE DIVISION" ;
+                               iam:adminIsUCDHS           "N" ;
+                               iam:apptBouOrgoid          "F80B657C9EE023A0E0340003BA8A560D" ;
+                               iam:apptDeptAbbreviation   "GRAD DIV" ;
+                               iam:apptDeptCode           "061300" ;
+                               iam:apptDeptOfficialName   "GRADUATE DIVISION" ;
+                               iam:apptIsUCDHS            "N" ;
+                               iam:assocEndDate           "2022-09-30 00:00:00" ;
+                               iam:assocRank              1 ;
+                               iam:assocStartDate         "2020-09-10 00:00:00" ;
+                               iam:bouOrgoid              "F80B657C9EE023A0E0340003BA8A560D" ;
+                               iam:createDate             "2016-06-28 06:30:52" ;
+                               iam:deptAbbreviation       "GRAD DIV" ;
+                               iam:deptCode               "061300" ;
+                               iam:deptDisplayName        "GRADUATE DIVISION" ;
+                               iam:deptOfficialName       "GRADUATE DIVISION" ;
+                               iam:emplClass              "10" ;
+                               iam:emplPositionNumber     "40216911" ;
+                               iam:isUCDHS                "N" ;
+                               iam:modifyDate             "2020-09-11 14:01:25" ;
+                               iam:percentFulltime        1 ;
+                               iam:positionType           "Regular/Career" ;
+                               iam:positionTypeCode       "2" ;
+                               iam:reportsToEmplID        "40213626" ;
+                               iam:titleCode              "001063" ;
+                               iam:titleDisplayName       "ACADEMIC ADMINISTRATOR III" ;
+                               iam:titleOfficialName      "ACADEMIC ADMINISTRATOR III"
+                             ] ;
+        iam:ppsId            "615616893" ;
+        iam:userID           "zektorsc" ;
+        iam:uuid             "93359" .
+
+<http://iam.ucdavis.edu/1000001794>
+        iam:dFirstName       "Meredith" ;
+        iam:dFullName        "Meredith J Heinig" ;
+        iam:dLastName        "Heinig" ;
+        iam:dMiddleName      "J" ;
+        iam:directory        [ iam:displayName  [ iam:nameUcdFlag     "Y" ;
+                                                  iam:nameWwwFlag     "Y" ;
+                                                  iam:preferredFname  "Meredith" ;
+                                                  iam:preferredLname  "Heinig" ;
+                                                  iam:preferredMname  "J"
+                                                ] ;
+                               iam:listings     [ iam:createDate      "2013-09-20 02:19:20" ;
+                                                  iam:deptUcdFlag     "Y" ;
+                                                  iam:deptWwwFlag     "Y" ;
+                                                  iam:listingOrder    1 ;
+                                                  iam:modifyDate      "2020-10-05 10:15:38" ;
+                                                  iam:titleUcdFlag    "Y" ;
+                                                  iam:titleWwwFlag    "Y" ;
+                                                  iam:websiteUcdFlag  "Y" ;
+                                                  iam:websiteWwwFlag  "Y"
+                                                ]
+                             ] ;
+        iam:email            "mjheinig@ucdavis.edu" ;
+        iam:employeeId       "10217939" ;
+        iam:isEmployee       true ;
+        iam:isExternal       false ;
+        iam:isFaculty        false ;
+        iam:isHSEmployee     false ;
+        iam:isStaff          true ;
+        iam:isStudent        false ;
+        iam:modifyDate       "2020-12-11 17:10:01" ;
+        iam:mothraId         "00004103" ;
+        iam:oFirstName       "Meredith" ;
+        iam:oFullName        "Meredith J Heinig" ;
+        iam:oLastName        "Heinig" ;
+        iam:oMiddleName      "J" ;
+        iam:ppsAssociations  [ iam:adminBouOrgoid         "F80B657C9EF523A0E0340003BA8A560D" ;
+                               iam:adminDept              "030200" ;
+                               iam:adminDeptAbbreviation  "NUTR" ;
+                               iam:adminDeptDisplayName   "NUTRITION" ;
+                               iam:adminDeptOfficialName  "NUTRITION" ;
+                               iam:adminIsUCDHS           "N" ;
+                               iam:apptBouOrgoid          "F80B657C9EF523A0E0340003BA8A560D" ;
+                               iam:apptDeptAbbreviation   "NUTR" ;
+                               iam:apptDeptCode           "030200" ;
+                               iam:apptDeptOfficialName   "NUTRITION" ;
+                               iam:apptIsUCDHS            "N" ;
+                               iam:assocEndDate           "2022-06-30 00:00:00" ;
+                               iam:assocRank              1 ;
+                               iam:assocStartDate         "2020-07-01 00:00:00" ;
+                               iam:bouOrgoid              "F80B657C9EF523A0E0340003BA8A560D" ;
+                               iam:createDate             "2018-10-24 06:30:39" ;
+                               iam:deptAbbreviation       "NUTR" ;
+                               iam:deptCode               "030200" ;
+                               iam:deptDisplayName        "NUTRITION" ;
+                               iam:deptOfficialName       "NUTRITION" ;
+                               iam:emplClass              "10" ;
+                               iam:emplPositionNumber     "40228735" ;
+                               iam:isUCDHS                "N" ;
+                               iam:modifyDate             "2020-08-20 14:00:37" ;
+                               iam:percentFulltime        1 ;
+                               iam:positionType           "Regular/Career" ;
+                               iam:positionTypeCode       "2" ;
+                               iam:titleCode              "001063" ;
+                               iam:titleDisplayName       "ACADEMIC ADMINISTRATOR III" ;
+                               iam:titleOfficialName      "ACADEMIC ADMINISTRATOR III"
+                             ] ;
+        iam:ppsId            "050612464" ;
+        iam:userID           "mjheinig" ;
+        iam:uuid             "24927" .
+
+<http://iam.ucdavis.edu/1000291440>
+        iam:dFirstName       "Jose" ;
+        iam:dFullName        "Jose A Arenas" ;
+        iam:dLastName        "Arenas" ;
+        iam:dMiddleName      "A" ;
+        iam:directory        [ iam:displayName  [ iam:nameUcdFlag     "Y" ;
+                                                  iam:nameWwwFlag     "Y" ;
+                                                  iam:preferredFname  "Jose" ;
+                                                  iam:preferredLname  "Arenas" ;
+                                                  iam:preferredMname  "A"
+                                                ] ;
+                               iam:listings     [ iam:createDate      "2017-07-28 02:25:59" ;
+                                                  iam:deptUcdFlag     "Y" ;
+                                                  iam:deptWwwFlag     "Y" ;
+                                                  iam:listingOrder    1 ;
+                                                  iam:modifyDate      "2020-10-05 10:15:38" ;
+                                                  iam:titleUcdFlag    "Y" ;
+                                                  iam:titleWwwFlag    "Y" ;
+                                                  iam:websiteUcdFlag  "Y" ;
+                                                  iam:websiteWwwFlag  "Y"
+                                                ]
+                             ] ;
+        iam:email            "jaarenas@ucdavis.edu" ;
+        iam:employeeId       "10206645" ;
+        iam:isEmployee       true ;
+        iam:isExternal       false ;
+        iam:isFaculty        true ;
+        iam:isHSEmployee     false ;
+        iam:isStaff          true ;
+        iam:isStudent        false ;
+        iam:modifyDate       "2020-12-11 17:10:01" ;
+        iam:mothraId         "01390502" ;
+        iam:oFirstName       "Jose" ;
+        iam:oFullName        "Jose A Arenas" ;
+        iam:oLastName        "Arenas" ;
+        iam:oMiddleName      "A" ;
+        iam:ppsAssociations  [ iam:adminBouOrgoid         "F80B657C9EE323A0E0340003BA8A560D" ;
+                               iam:adminDept              "040064" ;
+                               iam:adminDeptAbbreviation  "CHICANO ST" ;
+                               iam:adminDeptDisplayName   "CHICANO STUDIES" ;
+                               iam:adminDeptOfficialName  "CHICANO STUDIES" ;
+                               iam:adminIsUCDHS           "N" ;
+                               iam:apptBouOrgoid          "F80B657C9EE323A0E0340003BA8A560D" ;
+                               iam:apptDeptAbbreviation   "CHICANO ST" ;
+                               iam:apptDeptCode           "040064" ;
+                               iam:apptDeptOfficialName   "CHICANO STUDIES" ;
+                               iam:apptIsUCDHS            "N" ;
+                               iam:assocEndDate           "2022-06-30 00:00:00" ;
+                               iam:assocRank              1 ;
+                               iam:assocStartDate         "2019-09-01 00:00:00" ;
+                               iam:bouOrgoid              "F80B657C9EE323A0E0340003BA8A560D" ;
+                               iam:createDate             "2017-07-27 06:30:50" ;
+                               iam:deptAbbreviation       "CHICANO ST" ;
+                               iam:deptCode               "040064" ;
+                               iam:deptDisplayName        "CHICANO STUDIES" ;
+                               iam:deptOfficialName       "CHICANO STUDIES" ;
+                               iam:emplClass              "10" ;
+                               iam:emplPositionNumber     "40225539" ;
+                               iam:isUCDHS                "N" ;
+                               iam:modifyDate             "2019-11-19 11:32:47" ;
+                               iam:percentFulltime        1 ;
+                               iam:positionType           "Regular/Career" ;
+                               iam:positionTypeCode       "2" ;
+                               iam:titleCode              "001063" ;
+                               iam:titleDisplayName       "ACADEMIC ADMINISTRATOR III" ;
+                               iam:titleOfficialName      "ACADEMIC ADMINISTRATOR III"
+                             ] ;
+        iam:ppsId            "878529825" ;
+        iam:userID           "jaarenas" ;
+        iam:uuid             "834112" .
+
+<http://iam.ucdavis.edu/1000259925>
+        iam:dFirstName       "Ryan" ;
+        iam:dFullName        "Ryan Meyer" ;
+        iam:dLastName        "Meyer" ;
+        iam:directory        [ iam:displayName  [ iam:nameUcdFlag     "Y" ;
+                                                  iam:nameWwwFlag     "Y" ;
+                                                  iam:preferredFname  "Ryan" ;
+                                                  iam:preferredLname  "Meyer"
+                                                ] ;
+                               iam:listings     [ iam:createDate      "2018-07-20 02:24:37" ;
+                                                  iam:deptUcdFlag     "Y" ;
+                                                  iam:deptWwwFlag     "Y" ;
+                                                  iam:listingOrder    1 ;
+                                                  iam:modifyDate      "2020-10-05 10:15:38" ;
+                                                  iam:titleUcdFlag    "Y" ;
+                                                  iam:titleWwwFlag    "Y" ;
+                                                  iam:websiteUcdFlag  "Y" ;
+                                                  iam:websiteWwwFlag  "Y"
+                                                ]
+                             ] ;
+        iam:email            "rmmeyer@ucdavis.edu" ;
+        iam:employeeId       "10222342" ;
+        iam:isEmployee       true ;
+        iam:isExternal       false ;
+        iam:isFaculty        true ;
+        iam:isHSEmployee     false ;
+        iam:isStaff          true ;
+        iam:isStudent        false ;
+        iam:modifyDate       "2020-12-11 17:10:01" ;
+        iam:mothraId         "01264080" ;
+        iam:oFirstName       "Ryan" ;
+        iam:oFullName        "Ryan M Meyer" ;
+        iam:oLastName        "Meyer" ;
+        iam:oMiddleName      "Mclaren" ;
+        iam:ppsAssociations  [ iam:adminBouOrgoid         "F80B657C9EF623A0E0340003BA8A560D" ;
+                               iam:adminDept              "040120" ;
+                               iam:adminDeptAbbreviation  "ED" ;
+                               iam:adminDeptDisplayName   "EDUCATION" ;
+                               iam:adminDeptOfficialName  "EDUCATION" ;
+                               iam:adminIsUCDHS           "N" ;
+                               iam:apptBouOrgoid          "F80B657C9EF623A0E0340003BA8A560D" ;
+                               iam:apptDeptAbbreviation   "ED" ;
+                               iam:apptDeptCode           "040120" ;
+                               iam:apptDeptOfficialName   "EDUCATION" ;
+                               iam:apptIsUCDHS            "N" ;
+                               iam:assocEndDate           "2021-06-30 00:00:00" ;
+                               iam:assocRank              1 ;
+                               iam:assocStartDate         "2019-09-01 00:00:00" ;
+                               iam:bouOrgoid              "F80B657C9EF623A0E0340003BA8A560D" ;
+                               iam:createDate             "2019-07-09 06:30:56" ;
+                               iam:deptAbbreviation       "ED" ;
+                               iam:deptCode               "040120" ;
+                               iam:deptDisplayName        "EDUCATION" ;
+                               iam:deptOfficialName       "EDUCATION" ;
+                               iam:emplClass              "10" ;
+                               iam:emplPositionNumber     "40211597" ;
+                               iam:isUCDHS                "N" ;
+                               iam:modifyDate             "2019-09-05 13:06:43" ;
+                               iam:percentFulltime        1 ;
+                               iam:positionType           "Academic" ;
+                               iam:positionTypeCode       "5" ;
+                               iam:titleCode              "001063" ;
+                               iam:titleDisplayName       "ACADEMIC ADMINISTRATOR III" ;
+                               iam:titleOfficialName      "ACADEMIC ADMINISTRATOR III"
+                             ] ;
+        iam:ppsId            "157374760" ;
+        iam:userID           "rmmeyer" ;
+        iam:uuid             "747762" .
+
+<http://iam.ucdavis.edu/1000038336>
+        iam:dFirstName       "Will" ;
+        iam:dFullName        "Will Snyder" ;
+        iam:dLastName        "Snyder" ;
+        iam:directory        [ iam:displayName  [ iam:nameUcdFlag     "Y" ;
+                                                  iam:nameWwwFlag     "Y" ;
+                                                  iam:preferredFname  "Will" ;
+                                                  iam:preferredLname  "Snyder"
+                                                ] ;
+                               iam:listings     [ iam:createDate      "2012-01-25 02:19:30" ;
+                                                  iam:deptCode        "7996" ;
+                                                  iam:deptName        "Grad School of Mgmt" ;
+                                                  iam:deptUcdFlag     "Y" ;
+                                                  iam:deptWwwFlag     "Y" ;
+                                                  iam:device          [ iam:phone         "530-752-7403" ;
+                                                                        iam:phoneUcdFlag  "Y" ;
+                                                                        iam:phoneWwwFlag  "Y" ;
+                                                                        iam:type          "Voice (Land Line)"
+                                                                      ] ;
+                                                  iam:listingOrder    1 ;
+                                                  iam:location        [ iam:addressUcdFlag  "Y" ;
+                                                                        iam:addressWwwFlag  "Y" ;
+                                                                        iam:city            "Davis" ;
+                                                                        iam:state           "CA" ;
+                                                                        iam:street          "3417 Gallagher Hall" ;
+                                                                        iam:zip             "95616"
+                                                                      ] ;
+                                                  iam:modifyDate      "2020-10-05 10:15:38" ;
+                                                  iam:title           "Executive Director" ;
+                                                  iam:titleUcdFlag    "Y" ;
+                                                  iam:titleWwwFlag    "Y" ;
+                                                  iam:websiteUcdFlag  "Y" ;
+                                                  iam:websiteWwwFlag  "Y"
+                                                ]
+                             ] ;
+        iam:email            "wsnyder@ucdavis.edu" ;
+        iam:employeeId       "10222667" ;
+        iam:isEmployee       true ;
+        iam:isExternal       false ;
+        iam:isFaculty        true ;
+        iam:isHSEmployee     false ;
+        iam:isStaff          true ;
+        iam:isStudent        false ;
+        iam:modifyDate       "2020-12-11 17:10:01" ;
+        iam:mothraId         "00824588" ;
+        iam:oFirstName       "Willard" ;
+        iam:oFullName        "Willard Snyder" ;
+        iam:oLastName        "Snyder" ;
+        iam:ppsAssociations  [ iam:adminBouOrgoid         "F80B657C9EF923A0E0340003BA8A560D" ;
+                               iam:adminDept              "061100" ;
+                               iam:adminDeptAbbreviation  "GRAD SCH A" ;
+                               iam:adminDeptDisplayName   "GRADUATE SCHOOL OF MANAGEMENT" ;
+                               iam:adminDeptOfficialName  "GRADUATE SCHOOL OF MANAGEMENT" ;
+                               iam:adminIsUCDHS           "N" ;
+                               iam:apptBouOrgoid          "F80B657C9EF923A0E0340003BA8A560D" ;
+                               iam:apptDeptAbbreviation   "GRAD SCH A" ;
+                               iam:apptDeptCode           "061100" ;
+                               iam:apptDeptOfficialName   "GRADUATE SCHOOL OF MANAGEMENT" ;
+                               iam:apptIsUCDHS            "N" ;
+                               iam:assocRank              1 ;
+                               iam:assocStartDate         "2019-09-01 00:00:00" ;
+                               iam:bouOrgoid              "F80B657C9EF923A0E0340003BA8A560D" ;
+                               iam:createDate             "2014-06-21 09:01:40" ;
+                               iam:deptAbbreviation       "GRAD SCH A" ;
+                               iam:deptCode               "061100" ;
+                               iam:deptDisplayName        "GRADUATE SCHOOL OF MANAGEMENT" ;
+                               iam:deptOfficialName       "GRADUATE SCHOOL OF MANAGEMENT" ;
+                               iam:emplClass              "10" ;
+                               iam:emplPositionNumber     "40212243" ;
+                               iam:isUCDHS                "N" ;
+                               iam:modifyDate             "2019-10-17 08:39:24" ;
+                               iam:percentFulltime        1 ;
+                               iam:positionType           "Academic" ;
+                               iam:positionTypeCode       "5" ;
+                               iam:titleCode              "001063" ;
+                               iam:titleDisplayName       "ACADEMIC ADMINISTRATOR III" ;
+                               iam:titleOfficialName      "ACADEMIC ADMINISTRATOR III"
+                             ] ;
+        iam:ppsId            "169310810" ;
+        iam:userID           "wsnyder" ;
+        iam:uuid             "434105" .
+#+END_SRC

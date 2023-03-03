@@ -1,0 +1,52 @@
+* Adding an HDT file as a persistent graph
+
+If you'd like to add an HDT file as a persistent read-only graph, then you need
+to both load the data, and upload a configuration file for your container.
+
+If you have a persistent disk image `fuseki-data`, then you can copy an HDT file
+directly to that image.
+
+#+begin_src bash
+  docker cp example_graph.hdt fuseki-data:/fuseki/databases
+#+end_src
+
+An alternative would be to create a second volume that holds only the hdt files.
+You might want to do this if you'd like to share that volume with other docker
+containers.   This is okay, as these files are read-only..
+
+#+begin_src bash
+cat <<CONFIG >> example_config.ttl
+@prefix :      <#> .
+@prefix ja:    <http://jena.hpl.hp.com/2005/11/Assembler#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix fuseki: <http://jena.apache.org/fuseki#> .
+@prefix hdt: <http://www.rdfhdt.org/fuseki#> .
+
+# HDT Classes
+hdt:HDTGraph rdfs:subClassOf ja:Graph .
+
+:example_service a fuseki:Service ;
+    rdfs:label                      "Example Service" ;
+    fuseki:name                     "example" ;
+    fuseki:serviceQuery             "query", "sparql" ;
+    fuseki:serviceReadGraphStore    "get" ;
+    fuseki:dataset                   [ a ja:RDFDataset ;
+                                       ja:defaultGraph :example_graph ] ;
+    .
+
+:example_graph a hdt:HDTGraph;
+    rdfs:label "Example HDT Graph" ;
+    hdt:fileName "/fuseki/databases/example_graph.hdt" ;
+
+        # Optional: Keep the HDT and index in memory at all times.
+        # Uses more memory but it is potentially faster because avoids IO.
+        # hdt:keepInMemory "true" ;
+    .
+CONFIG;
+# Then copy this to your image data
+docker cp example_config.ttl fuseki-data:/fuseki/configurations
+
+#+end_src
+
+After running ~docker restart fuseki~ in this case, you will now have a
+read-only additional dataset.
