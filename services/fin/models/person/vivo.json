@@ -1,0 +1,312 @@
+{
+  "dynamic" : false,
+
+  "properties" : {
+
+    "@id" : {
+      "type" : "keyword"
+    },
+
+    "uri" : {
+      "type" : "keyword"
+    },
+
+    "casId" : {
+      "type" : "keyword"
+    },
+
+    "identifier.scheme" : {
+      "type" : "keyword"
+    },
+    "identifier.value" : {
+      "type" : "keyword"
+    },
+
+    "@type" : {
+      "type" : "keyword"
+    },
+
+    "_" : {
+      "type" : "object",
+      "dynamic" : true
+    },
+
+    "abstract" : {
+      "type" : "text"
+    },
+
+    "Authorship.rank" : {
+      "type" : "integer"
+    },
+
+    "Authorship.@id" : {
+      "type" : "keyword"
+    },
+
+    "Authorship.relates.@id" : {
+      "type" : "keyword"
+    },
+
+    "citation.publication" : {
+      "type" : "text"
+    },
+
+    "citation.label" : {
+      "type" : "text"
+    },
+
+    "citation.abstract" : {
+      "type" : "text"
+    },
+
+    "citation.hasSubjectArea.label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "citation.contrib-type" : {
+      "type": "keyword"
+    },
+
+    "hasContactInfo.givenName" : {
+      "type" : "text"
+    },
+
+    "hasContactInfo.middleName" : {
+      "type" : "text"
+    },
+
+    "relates.hasContactInfo.familyName" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : { "type" : "text" }
+      }
+    },
+
+    "relates.hasContactInfo.givenName" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : { "type" : "text" }
+      }
+    },
+
+    "relates.@id" : {
+      "type" : "keyword"
+    },
+
+    "hasContactInfo.title" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "hasContactInfo.hasEmail.email" : {
+      "type" : "keyword"
+    },
+
+    "_.allSubjectArea" : {
+      "type" : "keyword"
+    },
+    "hasSubjectArea.@id" : {
+      "type" : "keyword"
+    },
+    "hasSubjectArea.label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+
+    },
+    "hasSubjectArea.prefLabel" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "_.allResearchArea" : {
+      "type" : "keyword"
+    },
+    "hasResearchArea.@id" : {
+      "type" : "keyword"
+    },
+    "hasResearchArea.label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+    "hasResearchArea.prefLabel" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "issue" : {
+      "type" : "keyword"
+    },
+
+    "hasPublicationVenue.label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "hasPublicationVenue.issn" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        },
+        "firstLetter" : {
+          "type" : "keyword",
+          "normalizer": "first_letter_normalizer"
+        }
+      }
+    },
+
+    "role.relatedBy.label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        },
+        "firstLetter" : {
+          "type" : "keyword",
+          "normalizer": "first_letter_normalizer"
+        }
+      }
+    },
+
+    "role.relatedBy.@type" : {
+      "type" : "keyword"
+    },
+
+    "prefLabel" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        },
+        "firstLetter" : {
+          "type" : "keyword",
+          "normalizer": "first_letter_normalizer"
+        }
+      }
+    },
+
+    "publicationDate" : {
+      "type" : "date"
+    },
+
+    "volume" : {
+      "type" : "keyword"
+    },
+
+    "broader.@id" : {
+      "type" : "keyword"
+    },
+    "broader.label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+    "broader.prefLabel" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "narrower.@id" : {
+      "type" : "keyword"
+    },
+    "narrower.label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+    "narrower.prefLabel" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "assignedBy.label" : {
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "role.relatedBy.sponsorAwardId" :{
+      "type" : "keyword",
+      "fields": {
+        "text" : {
+          "type" : "text"
+        }
+      }
+    },
+
+    "role.relatedBy.grantType" :{
+      "type" : "keyword"
+    },
+
+    "totalAwardAmount" : {
+      "type" : "integer"
+    },
+
+    "dateTimeInterval.start.dateTime" : {
+      "type" : "date"
+    },
+    "dateTimeInterval.end.dateTime" : {
+      "type" : "date"
+    },
+
+    "_acl" : {
+      "type" : "keyword"
+    }
+
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "typeMappers" : [{
+    "id" : "collection",
+    "types" : ["http://schema.org/Collection"],
+    "basePath" : "/collection",
+    "virtualIndirectContainers" : {
+      "links" : {
+        "http://www.w3.org/ns/ldp#hasMemberRelation" : "http://schema.org/hasPart",
+        "http://www.w3.org/ns/ldp#isMemberOfRelation" : "http://schema.org/isPartOf"
+      },
+      "type" : "item"
+    } 
+  }],
+  "default" : {
+    "id" : "item",
+    "basePath" : "/item"
+  }
+}

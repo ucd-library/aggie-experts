@@ -1,0 +1,119 @@
+# Job Run Integration Docks
+# https://cloud.google.com/run/docs/configuring/containers#yaml
+# https://cloud.google.com/workflows/docs/reference/googleapis/run/v1/namespaces.jobs/create
+# https://cloud.google.com/run/docs/reference/rest/v1/Container#execaction
+
+main:
+    params: [args]
+    steps:
+      - init:
+          assign:
+            - location: us-central1
+            - project_id: digital-ucdavis-edu
+            - job_container: gcr.io/ucdlib-pubreg/dams-image-utils
+      - get_pages:
+          call: http.get
+          args:
+              url: ${args.baseUrl + "/ia-reader/getNumPages/" + args.finWorkflowId}
+          result: pdf_info
+      - set_parallelism:
+          assign:
+            - parallelism: ${pdf_info.body.pageCount}
+      - check_parallelism:
+          switch:
+            - condition: ${parallelism > 50}
+              steps:
+                - set_max_parallelism:
+                    assign:
+                      - parallelism: 50
+      - setup_ocr_job:
+          call: googleapis.run.v1.namespaces.jobs.create
+          args:
+              location: ${location}
+              parent: ${"namespaces/" + project_id}
+              body:
+                  apiVersion: run.googleapis.com/v1
+                  metadata:
+                      name: ${"dams-" + args.finWorkflowId}
+                      labels:
+                          cloud.googleapis.com/location: ${location}
+                          project: dams
+                          fin-workflow-name: ${args.gcWorkflowName}
+                          workflow-step: ocr
+                      annotations:
+                          run.googleapis.com/launch-stage: ALPHA
+                  kind: "Job"
+                  spec: 
+                      template:
+                          spec:
+                              parallelism: ${parallelism}
+                              taskCount: ${pdf_info.body.pageCount}
+                              template:
+                                  spec:
+                                      containers:
+                                          - image: ${job_container}
+                                            resources:
+                                                requests:
+                                                    memory: "2Gi"
+                                                    cpu: "1000m"
+                                                limits:
+                                                    memory: "2Gi"
+                                                    cpu: "1000m"
+                                            command: "node"
+                                            args: ${["cli/book-to-ia-reader.js", args.finWorkflowId]}
+                                            # imagePullPolicy: "Always"
+                                      timeoutSeconds: 300
+                                      serviceAccountName: ${"fin-server@" + project_id + ".iam.gserviceaccount.com"}
+          result: create_job_result
+      - ocr_page:
+          call: googleapis.run.v1.namespaces.jobs.run
+          args:
+              name: ${"namespaces/" + project_id + "/jobs/dams-" + args.finWorkflowId}
+              location: ${location}
+          result: job_execution
+      - setup_ocr_finalize_job:
+          call: googleapis.run.v1.namespaces.jobs.create
+          args:
+              location: ${location}
+              parent: ${"namespaces/" + project_id}
+              body:
+                  apiVersion: run.googleapis.com/v1
+                  metadata:
+                      name: ${"dams-" + args.finWorkflowId + "-finalize"}
+                      labels:
+                          cloud.googleapis.com/location: ${location}
+                          project: dams
+                          fin-workflow-name: ${args.gcWorkflowName}
+                          workflow-step: finalize
+                      annotations:
+                          run.googleapis.com/launch-stage: ALPHA
+                  kind: "Job"
+                  spec: 
+                      template:
+                          spec:
+                              template:
+                                  spec:
+                                      containers:
+                                          - image: ${job_container}
+                                            resources:
+                                                requests:
+                                                    memory: "2Gi"
+                                                    cpu: "1000m"
+                                                limits:
+                                                    memory: "2Gi"
+                                                    cpu: "1000m"
+                                            command: "node"
+                                            args: ${["cli/finalize-ia-reader.js", args.finWorkflowId]}
+                                      timeoutSeconds: 300
+                                      serviceAccountName: ${"fin-server@" + project_id + ".iam.gserviceaccount.com"}
+      - finalize_ocr:
+          call: googleapis.run.v1.namespaces.jobs.run
+          args:
+              name: ${"namespaces/" + project_id + "/jobs/dams-" + args.finWorkflowId + "-finalize"}
+              location: ${location}
+          result: job_execution
+
+  # - cleanup:
+  #   call: http.delete
+  #   args:
+  #     url: ${args.baseUrl}/${args.workflowId}

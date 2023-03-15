@@ -1,0 +1,26 @@
+{
+  "defaults" : {
+    "tmpGcsBucket" : "dams-workflow-tmp-space",
+    "gcsBucket" : "dams-client-products",
+    "notifyOnSuccess" : "/svc:reindex"
+  },
+
+  "definitions" : {
+
+    "book-to-ia-reader" : {
+      "type" : "gc-workflow",
+      "data" : {
+        "gcsSubpath" : "ia",
+        "baseUrl" : "{{IMAGE_UTILS_SERVICE_URL}}"
+      }
+    },
+
+    "video-to-stream" : {
+      "type" : "gc-workflow",
+      "data" : {
+        "gcsSubpath" : "streaming"
+      }
+    }
+
+  }
+}

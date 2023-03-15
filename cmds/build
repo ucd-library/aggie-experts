@@ -1,0 +1,92 @@
+#! /bin/bash
+
+function main.cmd() {
+  declare -g -A G=(
+    [dir]="."
+    [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
+    [verbose]=0
+    [exe]=$(basename "$0")
+    [org]=localhost/local-dev/aggie-experts
+    [cache]=latest
+    [fin_name]=localhost/local-dev/fin-base-service
+    [fin_version]=
+    [noop]=
+    )
+
+    local opts;
+    if ! opts=$(${G[shell_getopt]} -o nv:d:f: --long fin:,dir:,noop,version:,help -n "build-fin" -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local defaults=1
+    declare -A CMD;
+    while true; do
+	    case $1 in
+        -d | --dir ) CMD[dir]=$2; shift 2;;
+	      -v | --version) CMD[version]=$2;  shift 2;;
+	      -f | --fin) CMD[fin_version]=$2;  shift 2;;
+        -n | --noop) CMD[noop]="echo"; shift;;
+        -h | --help ) exec pod2text "$0";;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+    # command line over global
+    for i in "${!CMD[@]}"; do
+      [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+    done
+
+    # Now G has all values
+    build
+}
+
+# Fill in G[] with repo defaults
+function repo_G () {
+  G[repo]=$(basename -s .git $(git config --get remote.origin.url))
+  G[branch_name]=$(git branch --show-current)
+  G[tag_name]=$(git tag --points-at HEAD)
+  G[base]=$(git rev-parse --show-toplevel)
+  #G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
+  G[sha]=$(git log -1 --pretty=%h)
+
+  G[ref_name]=${G[tag_name]:-${G[branch_name]}}
+  G[version]=${G[version]:-$(git describe --tags --always --dirty)}
+}
+
+function build() {
+
+  #  declare -p G
+  # Go to repo and get info
+  cd ${G[dir]}
+  repo_G
+
+  G[fin_version]=${G[fin_version]:-$(git --git-dir=fin/.git describe --tags --always --dirty)}
+
+  declare -a services=()
+
+  for service in "${services[@]}"; do
+    local image=${G[org]}/${service}:${G[version]}
+
+    ${G[noop]} docker build \
+           --build-arg FIN_SERVER_IMAGE=${G[fin_name]}:${G[fin_version]} \
+           -t $image \
+           --cache-from ${G[org]}/${image}:${G[cache]} \
+           services/${service}
+  done
+
+# Build base differently for some reason
+
+  local image=${G[org]}/base-service:${G[version]}
+
+  ${G[noop]} docker build \
+             --build-arg FIN_SERVER_IMAGE=${G[fin_name]}:${G[fin_version]} \
+             -t $image \
+             --cache-from ${G[org]}/${image}:${G[cache]} \
+             services/fin
+
+ }
+
+main.cmd "$@"
+exit 0
