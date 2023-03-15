@@ -9,6 +9,7 @@ function main.cmd() {
     [org]=localhost/local-dev/aggie-experts
     [cache]=latest
     [fin_name]=localhost/local-dev/fin-base-service
+    [fin_init]=localhost/local-dev/fin-init
     [fin_version]=
     [noop]=
     )
@@ -64,12 +65,13 @@ function build() {
 
   G[fin_version]=${G[fin_version]:-$(git --git-dir=fin/.git describe --tags --always --dirty)}
 
-  declare -a services=()
+  declare -a services=(init)
 
   for service in "${services[@]}"; do
     local image=${G[org]}/${service}:${G[version]}
 
     ${G[noop]} docker build \
+           --build-arg INIT_BASE=${G[fin_init]}:${G[fin_version]} \
            --build-arg FIN_SERVER_IMAGE=${G[fin_name]}:${G[fin_version]} \
            -t $image \
            --cache-from ${G[org]}/${image}:${G[cache]} \
@@ -83,7 +85,7 @@ function build() {
   ${G[noop]} docker build \
              --build-arg FIN_SERVER_IMAGE=${G[fin_name]}:${G[fin_version]} \
              -t $image \
-             --cache-from ${G[org]}/${image}:${G[cache]} \
+             --cache-from ${G[org]}/base-service:${G[cache]} \
              services/fin
 
  }
