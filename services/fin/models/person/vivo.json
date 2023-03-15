@@ -6,7 +6,6 @@
     "@id" : {
       "type" : "keyword"
     },
-
     "uri" : {
       "type" : "keyword"
     },
@@ -185,10 +184,6 @@
       "fields": {
         "text" : {
           "type" : "text"
-        },
-        "firstLetter" : {
-          "type" : "keyword",
-          "normalizer": "first_letter_normalizer"
         }
       }
     },
@@ -198,10 +193,6 @@
       "fields": {
         "text" : {
           "type" : "text"
-        },
-        "firstLetter" : {
-          "type" : "keyword",
-          "normalizer": "first_letter_normalizer"
         }
       }
     },
@@ -215,10 +206,6 @@
       "fields": {
         "text" : {
           "type" : "text"
-        },
-        "firstLetter" : {
-          "type" : "keyword",
-          "normalizer": "first_letter_normalizer"
         }
       }
     },
