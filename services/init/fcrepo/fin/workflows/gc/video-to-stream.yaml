@@ -1,0 +1,51 @@
+
+main:
+    params: [args]
+    steps:
+      - init:
+          assign:
+            - location: us-central1
+            - project_id: digital-ucdavis-edu
+            - job_container: gcr.io/ucdlib-pubreg/dams-image-utils
+      - setup_video_job:
+          call: googleapis.run.v1.namespaces.jobs.create
+          args:
+              location: ${location}
+              parent: ${"namespaces/" + project_id}
+              body:
+                  apiVersion: run.googleapis.com/v1
+                  metadata:
+                      name: ${"dams-" + args.finWorkflowId}
+                      labels:
+                          cloud.googleapis.com/location: ${location}
+                          project: dams
+                          fin-workflow-name: ${args.gcWorkflowName}
+                          workflow-step: streaming-video
+                      annotations:
+                          run.googleapis.com/launch-stage: ALPHA
+                  kind: "Job"
+                  spec: 
+                      template:
+                          spec:
+                              template:
+                                  spec:
+                                      containers:
+                                          - image: ${job_container}
+                                            resources:
+                                                requests:
+                                                    memory: "8Gi"
+                                                    cpu: "2000m"
+                                                limits:
+                                                    memory: "8Gi"
+                                                    cpu: "2000m"
+                                            command: "node"
+                                            args: ${["cli/video-to-stream.js", args.finWorkflowId]}
+                                      timeoutSeconds: 1800
+                                      serviceAccountName: ${"fin-server@" + project_id + ".iam.gserviceaccount.com"}
+          result: create_job_result
+      - convert_video:
+          call: googleapis.run.v1.namespaces.jobs.run
+          args:
+              name: ${"namespaces/" + project_id + "/jobs/dams-" + args.finWorkflowId}
+              location: ${location}
+          result: job_execution

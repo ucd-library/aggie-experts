@@ -1,0 +1,25 @@
+{
+  "@id": "",
+  "@type": [
+    "http://digital.ucdavis.edu/schema#Service",
+    "http://digital.ucdavis.edu/schema#ProxyService"
+  ],
+  "urlTemplate": "http://gcs:3000{{fcPath}}?svcPath={{svcPath}}",
+  "description": "Access GCS Resources",
+  "identifier": "gcs",
+  "title": "gcs",
+  "@context": {
+    "title": {
+      "@id": "http://purl.org/dc/elements/1.1/title"
+    },
+    "identifier": {
+      "@id": "http://purl.org/dc/elements/1.1/identifier"
+    },
+    "urlTemplate": {
+      "@id": "http://digital.ucdavis.edu/schema#urlTemplate"
+    },
+    "description": {
+      "@id": "http://purl.org/dc/elements/1.1/description"
+    }
+  }
+}
