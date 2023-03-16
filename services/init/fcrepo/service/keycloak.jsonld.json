@@ -9,6 +9,9 @@
   "identifier": "keycloak-oidc",
   "title": "keycloak-oidc",
   "@context": {
+    "url": {
+      "@id": "http://digital.ucdavis.edu/schema#url"
+    },
     "title": {
       "@id": "http://purl.org/dc/elements/1.1/title"
     },
