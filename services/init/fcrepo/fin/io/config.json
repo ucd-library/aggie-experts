@@ -1,18 +1,19 @@
 {
   "typeMappers" : [{
-    "id" : "collection",
-    "types" : ["http://schema.org/Collection"],
-    "basePath" : "/collection",
+    "id" : "work",
+    "types" : ["http://schema.library.ucdavis.edu/work",
+               "http://vivo.ufl.edu/ontology/vivo-ufl/Work"],
+    "basePath" : "/work",
     "virtualIndirectContainers" : {
       "links" : {
-        "http://www.w3.org/ns/ldp#hasMemberRelation" : "http://schema.org/hasPart",
-        "http://www.w3.org/ns/ldp#isMemberOfRelation" : "http://schema.org/isPartOf"
+        "http://www.w3.org/ns/ldp#hasMemberRelation" : "http://schema.org/author",
+        "http://www.w3.org/ns/ldp#isMemberOfRelation" : "http://schema.org/authorOf"
       },
-      "type" : "item"
-    } 
+      "type" : "person"
+    }
   }],
   "default" : {
-    "id" : "item",
-    "basePath" : "/item"
+    "id" : "person",
+    "basePath" : "/person"
   }
 }
