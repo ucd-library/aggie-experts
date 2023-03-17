@@ -8,8 +8,7 @@ function main.cmd() {
     [exe]=$(basename "$0")
     [org]=localhost/local-dev/aggie-experts
     [cache]=latest
-    [fin_name]=localhost/local-dev/fin-base-service
-    [fin_init]=localhost/local-dev/fin-init
+    [fin_org]=localhost/local-dev
     [fin_version]=
     [noop]=
     )
@@ -57,24 +56,26 @@ function repo_G () {
 }
 
 function build() {
-
-  #  declare -p G
-  # Go to repo and get info
-  cd ${G[dir]}
+  cd $(dirname "$0")
   repo_G
+  cd ${G[base]}
 
   G[fin_version]=${G[fin_version]:-$(git --git-dir=fin/.git describe --tags --always --dirty)}
 
-  declare -a services=(init)
+  declare -a services=(init fcrepo)
 
   for service in "${services[@]}"; do
     local image=${G[org]}/${service}:${G[version]}
+    local fin_base=${G[fin_org]}/fin-base-service:${G[fin_version]}
+    local fin_init=${G[fin_org]}/fin-init:${G[fin_version]}
+    local fin_fcrepo=${G[fin_org]}/fin-fcrepo:${G[fin_version]}
 
     ${G[noop]} docker build \
-           --build-arg INIT_BASE=${G[fin_init]}:${G[fin_version]} \
-           --build-arg FIN_SERVER_IMAGE=${G[fin_name]}:${G[fin_version]} \
+           --build-arg INIT_BASE=$fin_init \
+           --build-arg FIN_SERVER_IMAGE=$fin_base \
+           --build-arg FIN_FCREPO_BASE_IMAGE=$fin_fcrepo \
            -t $image \
-           --cache-from ${G[org]}/${image}:${G[cache]} \
+           --cache-from $image \
            services/${service}
   done
 
@@ -83,9 +84,9 @@ function build() {
   local image=${G[org]}/base-service:${G[version]}
 
   ${G[noop]} docker build \
-             --build-arg FIN_SERVER_IMAGE=${G[fin_name]}:${G[fin_version]} \
+             --build-arg FIN_SERVER_IMAGE=$fin_base \
              -t $image \
-             --cache-from ${G[org]}/base-service:${G[cache]} \
+             --cache-from $image \
              services/fin
 
  }
