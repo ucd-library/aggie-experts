@@ -2,59 +2,79 @@ const ioUtils = require('@ucd-lib/fin-api/lib/io/utils.js');
 const jsonld = require('jsonld');
 
 module.exports = async function(path, graph, headers, utils) {
-  let item = {};
+  let item = {"@id": "info:fedora"+path,
+              "@version":1.1,
+              "@graph": graph};
 
-  let container = utils.get(path, graph);
-  let gitsource = utils.get(ioUtils.TYPES.GIT_SOURCE, graph);
+  let frame={
+    "@version":1.1,
+    "@context": {
+      "@vocab": "http://vivoweb.org/ontology/core#",
+      "experts": "http://experts.ucdavis.edu/",
+      "harvest_iam": "http://iam.ucdavis.edu/",
+      "iam": "http://iam.ucdavis.edu/schema#",
+      "obo": "http://purl.obolibrary.org/obo/",
+      "person": "info:fedora/person/",
+      "personx": "http://experts.ucdavis.edu/person/",
+      "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+      "ucdrp": "http://experts.ucdavis.edu/schema#",
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "vivo": "http://vivoweb.org/ontology/core#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "hasContactInfo": {
+        "@id": "obo:ARG_2000028",
+        "@context": {
+          "@vocab": "http://www.w3.org/2006/vcard/ns#",
+          "hasEmail": {
+            "@type": "@id"
+          }
+        }
+      },
+      "name": "rdfs:label"
+    },
+    "@id":{},
+    "@graph":{
+      "@type":"ucdrp:person"
+    },
+    "@embed": "@always",
+    "@omitDefault": true
+  };
 
-  if( !container ) {
-    throw new Error('unknown container: '+path);
-  }
+  let frame_no_graph={
+    "@version":1.1,
+    "@context": {
+      "@vocab": "http://vivoweb.org/ontology/core#",
+      "experts": "http://experts.ucdavis.edu/",
+      "harvest_iam": "http://iam.ucdavis.edu/",
+      "iam": "http://iam.ucdavis.edu/schema#",
+      "obo": "http://purl.obolibrary.org/obo/",
+      "person": "info:fedora/person/",
+      "personx": "http://experts.ucdavis.edu/person/",
+      "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+      "ucdrp": "http://experts.ucdavis.edu/schema#",
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "vivo": "http://vivoweb.org/ontology/core#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "hasContactInfo": {
+        "@id": "obo:ARG_2000028",
+        "@context": {
+          "@vocab": "http://www.w3.org/2006/vcard/ns#",
+          "hasEmail": {
+            "@type": "@id"
+          }
+        }
+      },
+      "name": "rdfs:label"
+    },
+    "@type":"ucdrp:person",
+    "@embed": "@always",
+    "@omitDefault": true
+  };
 
+  let framed = await jsonld.frame(item, frame_no_graph);
+  framed["@id"] = "http://experts.ucdavis.edu"+path;
+  delete framed["@context"];
 
-  utils.init(item, container);
-
-
-  if( !utils.isType(container, 'http://fedora.info/definitions/v4/repository#Resource') ) {
-    throw new Error('invalid type');
-  }
-
-  utils.ns({
-    "fedora" : "http://fedora.info/definitions/v4/repository#",
-    "fast": "http://id.worldcat.org/fast/",
-    "lcna": "http://id.loc.gov/authorities/names/",
-    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-    "schema": "http://schema.org/",
-    "ucdlib": "http://digital.ucdavis.edu/schema#",
-    "premis" : "http://www.loc.gov/premis/rdf/v1#",
-    "ebucore" : "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#"
-  });
-
-  await utils.add({
-    attr : 'name',
-    value : ['rdfs', 'label'],
-    default : ''
-  });
-
-  await utils.add({
-    attr : 'hasContactInfo',
-    value : ['schema', 'hasContactInfo'],
-    type : 'id'
-  });
-
-  await utils.add({
-    attr : 'hasName',
-    value : ['vcard', 'hasName'],
-    type : 'id'
-  });
-
-  utils.stripFinHost(item);
-
-  utils.setYearFromDate(item);
-
-  item._ = {};
-  utils.stripFinHost(headers);
-
-  return item;
+  return framed;
+//  return item;
 }

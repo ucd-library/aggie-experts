@@ -1,0 +1,13 @@
+{
+  "@id": "",
+  "@type": [
+    "http://digital.ucdavis.edu/schema#Service",
+    "http://digital.ucdavis.edu/schema#TransformService"
+  ],
+  "description": "Used for updating Elastic Search indexes when fedora update",
+  "identifier": "es-no-transform",
+  "title": "Elastic Search - No Transform",
+  "@context": {
+    "@vocab": "http://purl.org/dc/elements/1.1/"
+  }
+}
