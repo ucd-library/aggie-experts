@@ -1,0 +1,35 @@
+{
+  "name": "jsonldparser",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "test out jsonLdParser",
+  "main": "app.js",
+  "scripts": {
+    "start": "node ./app.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack app.js dist/bundle.js"
+  },
+  "keywords": [
+    "jsonld","sparql","quadstore","comunica","aggie experts"
+  ],
+  "author": "rakunkel",
+  "license": "MIT",
+  "dependencies": {
+    "@comunica/query-sparql": "^2.6.8",
+    "@rdfjs/fetch-lite": "3.2.1",
+    "classic-level": "^1.2.0",
+    "fs": "^0.0.1-security",
+    "jsonld": "^8.1.1",
+    "jsonld-streaming-parser": "^3.2.0",
+    "memory-level": "^1.0.0",
+    "quadstore": "^11.0.8",
+    "quadstore-comunica": "^3.0.0",
+    "rdf-data-factory": "^1.1.0",
+    "readable-stream": "^4.3.0",
+    "string-to-stream": "^3.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.21",
+    "webpack": "^5.75.0"
+  }
+}
