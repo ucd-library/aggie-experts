@@ -1,4 +1,4 @@
 module.exports = {
-  application : require('./application/index.js'),
+  work : require('./work/index.js'),
   person : require('./person/index.js')
 }
