@@ -2,16 +2,16 @@ const {dataModels} = require('@ucd-lib/fin-service-utils');
 const schema = require('./vivo.json');
 const {FinEsDataModel} = dataModels;
 
-class PersonModel extends FinEsDataModel {
+class WorkModel extends FinEsDataModel {
 
   constructor() {
-    super('person');
+    super('work');
     this.schema = schema;
-    this.transformService = 'es-person-transform';
+    this.transformService = 'es-work-transform';
   }
 
   is(id) {
-    if( id.match(/^\/person\//) ) {
+    if( id.match(/^\/work\//) ) {
       return true;
     }
     return false;
@@ -19,4 +19,4 @@ class PersonModel extends FinEsDataModel {
 
 }
 
-module.exports = new PersonModel();
+module.exports = new WorkModel();
