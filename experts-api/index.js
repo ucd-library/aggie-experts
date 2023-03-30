@@ -2,7 +2,6 @@ import { createReadStream } from 'fs';
 import { JsonLdParser } from "jsonld-streaming-parser";
 import { DataFactory } from 'rdf-data-factory';
 import { Quadstore } from 'quadstore';
-// import { Engine } from 'quadstore-comunica';
 import { QueryEngine } from '@comunica/query-sparql';
 import jsonld from 'jsonld';
 import fs from 'fs';
@@ -31,9 +30,9 @@ let request = https.get('https://iet-ws-stage.ucdavis.edu/api/iam/people/profile
     });
 });
 
-async function processDoc(doc) {
+async function processDoc(docx) {
 
-    // const doc = fs.readFileSync('faculty-sample.json', 'utf8');
+    const doc = fs.readFileSync('faculty-sample.json', 'utf8');
     const docObj = JSON.parse(doc).responseData.results;
     const context = {
         "@Version": 1.1,
@@ -65,6 +64,8 @@ async function processDoc(doc) {
     await qstore.open();
 
     // Import the jsonld into the parser
+    await import_via_put();
+
     async function import_via_put() {
 
         myParser.import(Readable.from(ldJson))
@@ -77,40 +78,25 @@ async function processDoc(doc) {
         async function parsed() {
             console.log('All triples were parsed!');
             const items = await qstore.get({});
-            fs.writeFileSync('quadstore.json', JSON.stringify(items), 'utf8');
-
             qstore_query();
         }
 
     }
-
-    await import_via_put();
 
     async function qstore_query() {
 
         console.log('qstore_query');
 
         const sparql = fs.readFileSync('./construct-vivo.sql', 'utf8');
-        //   const bindingsStream = await engine.queryBindings('SELECT * {graph ?g {?s ?p ?o}}');
-        // const result = await engine.queryQuads(sparql, { sources: [qstore] });
 
         const output = fs.createWriteStream("vivo.jsonld");
-        output.on('finish', () => { console.log('done'); exit(0); });
-        output.on('error', (err) => { console.log(err); exit(1); });
 
         const result = await engine.query(sparql, { sources: [qstore] });
 
         console.log(result.resultType);
-        // const quadArray = await result.toArray();
-        // console.log(quadArray.length);
 
         const { data } = await engine.resultToString(result, 'application/ld+json');
-        // data.on('error', (err) => { console.log(err); exit(1); });
-        // data.on('end', () => { console.log('done'); exit(0); });
-        
 
-        // console.log(Object.prototype.toString.call(data));
-        // data.pipe(process.stdout);
         data.pipe(output);
 
     }
