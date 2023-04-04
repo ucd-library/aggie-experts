@@ -105,7 +105,3 @@ dist
 
 # LevelDB database dir
 db/
-
-# tests
-test/
-.test.js
