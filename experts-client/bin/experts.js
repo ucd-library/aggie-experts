@@ -20,6 +20,12 @@ program
   })
 
 program
+  .option('--iam-auth <key>', 'UC Davis IAM authentication key')
+  .hook('preSubcommand', (command, sub_command) => {
+    process.env.EXPERTS_IAM_AUTH = command.opts().iam-auth;
+  })
+
+program
   .command('import', 'import data into aggie experts')
 //  .command('query', 'query aggie experts')
   .command('test', 'hardcoded test')
