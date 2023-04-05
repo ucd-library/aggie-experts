@@ -4,6 +4,24 @@
     "@id" : {
       "type" : "keyword"
     },
+    "@graph.ISSN" : {
+      "type" : "keyword"
+    },
+    "@graph.publisher" : {
+      "type" : "text"
+    },
+    "@graph.issued" : {
+      "type" : "date"
+    },
+    "@graph.container-title" : {
+      "type" : "text"
+    },
+    "@graph.title" : {
+      "type" : "text"
+    },
+    "@graph.DOI" : {
+      "type" : "text"
+    },
     "@graph.uri" : {
       "type" : "keyword"
     },

@@ -21,7 +21,7 @@
                     <compositeTopic name="fedora" forwardOnly="false">
                         <forwardTo>
                             <queue physicalName="gateway"/>
-                            <queue physicalName="essync"/>
+                            <queue physicalName="dbsync"/>
                             <!-- queue physicalName="gcssync"/ -->
                             <!-- queue physicalName="ucd-lib-client"/ -->
                         </forwardTo>

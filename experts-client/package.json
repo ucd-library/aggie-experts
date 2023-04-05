@@ -1,13 +1,17 @@
 {
-  "name": "jsonldparser",
+  "name": "experts-api",
   "version": "1.0.0",
   "type": "module",
-  "description": "test out jsonLdParser",
+  "description": "Aggie Experts Client API",
   "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
   "scripts": {
-    "start": "node ./index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack index.js dist/bundle.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "experts": "bin/experts.js"
   },
   "keywords": [
     "jsonld",
@@ -22,6 +26,7 @@
     "@comunica/query-sparql": "^2.6.8",
     "@rdfjs/fetch-lite": "3.2.1",
     "classic-level": "^1.2.0",
+    "commander": "^10.0.0",
     "fs": "^0.0.1-security",
     "https": "^1.0.0",
     "jsonld": "^8.1.1",
