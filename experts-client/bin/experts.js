@@ -27,6 +27,7 @@ program
 
 program
   .command('import', 'import data into aggie experts')
+  .command('local-db', 'load/query local database')
 //  .command('query', 'query aggie experts')
   .command('test', 'hardcoded test')
   .command('build', 'build fcrepo files from linked data')
