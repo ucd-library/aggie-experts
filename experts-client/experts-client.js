@@ -5,17 +5,39 @@ import { QueryEngine } from '@comunica/query-sparql';
 import fs from 'fs';
 import { Readable } from 'readable-stream';
 import { ClassicLevel } from 'classic-level';
+import { MemoryLevel } from 'memory-level';
 import fetch from 'node-fetch';
 
+// No defaults in this function
 class localDB {
-    constructor(opts) {
-      console.log('options:',opts);
-//      this.store = new Quadstore({
-//        store: new ClassicLevel('store'),
-//        factory: new DataFactory(),
-//        fetch: fetch,
-      //        queryEngine: new QueryEngine(),
-      //      });
+  constructor(opts) {
+    const defaults = {
+      path: './db',
+      queryEngine: 'sparqljs',
+      level: 'ClassicLevel',
+      level_opts: { valueEncoding: 'json' },
+        };
+
+    this.opts = { ...defaults, ...opts};
+    console.log('options:',this.opts);
+    const backend;
+    switch(this.opts.level) {
+    case 'Classic':
+    case 'ClassicLevel':
+      backend=new ClassicLevel(this.opts.path,this.opts.level_opts);
+      break;
+    case 'MEM'
+    case 'MemoryLevel':
+      backend = new MemoryLevel(this.opts.level_opts);
+      break;
+    default:
+      throw new Error('Unknown level backend');
+    }
+    const parser = new JsonLdParser();
+    const df = new DataFactory();
+    const store = new Quadstore({ backend, dataFactory: df });
+    this.store = store;
+    this.engine = new QueryEngine();
     }
   }
 
