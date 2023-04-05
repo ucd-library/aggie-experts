@@ -23,5 +23,6 @@ program
   .command('import', 'import data into aggie experts')
 //  .command('query', 'query aggie experts')
   .command('test', 'hardcoded test')
+  .command('build', 'build fcrepo files from linked data')
 
 program.parse(process.argv);
