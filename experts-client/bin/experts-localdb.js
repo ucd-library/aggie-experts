@@ -3,9 +3,6 @@ const program = new Command();
 
 import ExpertsClient from '../experts-client.js';
 
-// need to fail if this isn't OK
-const key = process.env.EXPERTS_IAM_AUTH;
-
 const ec = new ExpertsClient(
   {
     localDB: {
@@ -20,7 +17,9 @@ program.command('load <file...>')
     console.log('process:',process.env.EXPERTS_VERBOSE);
     console.log('fin:',process.env.EXPERTS_FIN);
     console.log('Program:',options);
-    console.log('files: %s', files);
+    console.log('file: %s', file);
+    const db=ec.getLocalDB();
+    console.log('db:',db);
 
   });
 

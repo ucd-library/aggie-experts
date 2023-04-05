@@ -7,35 +7,37 @@ import { Readable } from 'readable-stream';
 import { ClassicLevel } from 'classic-level';
 import fetch from 'node-fetch';
 
-class ExpertsClient {
-
-  class localStore {
+class localDB {
     constructor(opts) {
-      console.log(opts);
+      console.log('options:',opts);
 //      this.store = new Quadstore({
 //        store: new ClassicLevel('store'),
 //        factory: new DataFactory(),
 //        fetch: fetch,
-//        queryEngine: new QueryEngine(),
-      });
+      //        queryEngine: new QueryEngine(),
+      //      });
     }
   }
 
-    constructor(options) {
+
+class ExpertsClient {
+
+     constructor(opts) {
       this.doc = '';
-      this.opts=options;
+      this.opts=opts;
       // we probably need to await this though, so not in the constructor?
       //this.store = new localStore(options);
 
-      this.IamEndPoint = opts.IAM.endPoint;
-        this.IamKey = opts.IAM.key
+//      this.IamEndPoint = opts.IAM.endPoint;
+//        this.IamKey = opts.IAM.key
     }
 
-  getLocalStore(options) {
+  getLocalDB(options) {
     if (!this.store) {
-      this.store = new localStore({ ...this.opts.localStore, ...options });
+      this.store = new localDB({ ...this.opts.localDB, ...options });
     }
-    this.store;
+    console.log(this.store);
+    return this.store;
   }
 
     async getIAMProfiles() {
