@@ -21,7 +21,6 @@ program.command('load <file...>')
 
   });
 
-
 program.command('query <file...>')
   .option('-q, --query <query>', 'The query to execute')
   .description('Preform a query on the local database.  Import any supplied files before querying')
@@ -38,8 +37,12 @@ program.command('query <file...>')
     }
     const db = await localDB.create(db_config);
     await db.load(file);
-    const results = await db.query(cli.query);
-
+    const bindingsStream = await db.queryBindings(cli.query);
+    bindingsStream.on('data', (binding) => {
+      for( const [key,value] of binding ) {
+        console.log(`${key.value} = ${value.value}`);
+      }
+    });
   });
 
 program.command('splay <file...>')
