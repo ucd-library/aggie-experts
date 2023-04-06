@@ -55,6 +55,21 @@ export class localDB {
     return db;
   }
 
+  load_put(files) {
+    for (let i=0; i<files.length; i++) {
+      let fn=files[i];
+      console.log("Reading file: "+fn);
+      this.parser.import(fs.createReadStream(fn))
+        .on('error', console.error)
+        .on('end', () => {
+          console.log("Finished reading file: "+fn);
+        })
+        .on('data', data => {
+          this.store.put(data);
+        });
+    }
+  }
+
   async load(files) {
     Array.isArray(files) || (files = [files]);
     console.log('loading files:',files);
@@ -73,11 +88,11 @@ export class localDB {
     return await this.engine.queryBindings(query, { sources: [this.store] });
   }
 
-  async queryBindingsAsJson(query) {
-    const format='application/json';
-    const results= await this.engine.query(query, { sources: [this.store] });
-    return await this.engine.resultToString(results);
+  async queryQuads(query,options) {
+    return await this.engine.queryQuads(query,
+                                        {...{ sources: [this.store] },...options});
   }
+
 }
 
 export default localDB;

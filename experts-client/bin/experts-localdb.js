@@ -6,7 +6,7 @@ const program = new Command();
 import { localDB } from '../experts-client.js';
 
 const db_config = {
-  level: process.env.EXPERTS_LEVEL ?? 'MEM'
+  level: process.env.EXPERTS_LEVEL ?? 'ClassicLevel'
 }
 
 program.option('--source <source...>', 'source file(s) to load');
@@ -20,7 +20,7 @@ program.command('load <file...>')
     await db.load(file);
   });
 
-program.command('query <file...>')
+program.command('query [file...]')
   .option('-q, --query <query>', 'The query to execute')
   .option('-f, --query@ <rq>', 'File containing the query to execute')
   .description('Preform a query on the local database.  Import any supplied files before querying')
@@ -45,7 +45,7 @@ program.command('query <file...>')
     });
   });
 
-program.command('splay <file...>')
+program.command('splay [file...]')
   .option('--bind <bind>', 'select query for binding')
   .option('--bind@ <bind.rq>', 'file containing select query for binding')
   .option('--construct <construct>', 'construct query for each binding')
@@ -64,23 +64,34 @@ program.command('splay <file...>')
     }
     if( ! cli.construct ) {
       if(cli['construct@']) {
-        cli.construct=fs.readFileSync(cli['query@'],{encoding:'utf8',flag:'r'})
+        cli.construct=fs.readFileSync(cli['construct@'],{encoding:'utf8',flag:'r'})
       } else {
         console.error('No constructing query --construct(@) specified')
         process.exit(1);
       }
     }
-    if ( file.length != 0 ) {
     const db = await localDB.create(db_config);
-    await db.load(file);
+    if ( file.length != 0 ) {
+      await db.load(file);
     }
- //    const bindingsStream = await db.queryBindings(cli.query);
-//    bindingsStream.on('data', (binding) => {
-//      for( const [key,value] of binding ) {
-//        console.log(`${key.value} = ${value.value}`);
-//      }
-//    })
-  });
+    const bindingsStream = await db.queryBindings(cli.bind);
+    bindingsStream.on('data', async (bindings) => {
+      console.log('bindings:',bindings.toString());
 
+      const construction = await db.queryQuads(cli.construct,{initialBindings:bindings});
+
+      construction.on('error', (err) => {
+        console.log('construction error:',err);
+      });
+      construction.on('data', (quad) => {
+        console.log('quinn');
+        console.log(quad);
+      });
+      construction.on('end', () => {
+        console.log('construction end');
+      });
+    });
+  }
+);
 
 await program.parseAsync(process.argv);
