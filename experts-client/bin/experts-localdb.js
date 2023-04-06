@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { Command} from 'commander';
 const program = new Command();
 
@@ -8,6 +9,8 @@ const db_config = {
   level: process.env.EXPERTS_LEVEL ?? 'MEM'
 }
 
+program.option('--source <source...>', 'source file(s) to load');
+
 program.command('load <file...>')
   .description('Import jsonld files into the local database')
   .action(async (file,options) => {
@@ -15,14 +18,11 @@ program.command('load <file...>')
     console.log('file: %s', file);
     const db = await localDB.create(db_config);
     await db.load(file);
-    db.match().forEach((quad) => {
-      console.log('q:',quad);
-    });
-
   });
 
 program.command('query <file...>')
   .option('-q, --query <query>', 'The query to execute')
+  .option('-f, --query@ <rq>', 'File containing the query to execute')
   .description('Preform a query on the local database.  Import any supplied files before querying')
   .action(async (file,cli) => {
     console.log('cli:',cli);
@@ -46,11 +46,40 @@ program.command('query <file...>')
   });
 
 program.command('splay <file...>')
-  .requiredOption('--bind_select, -b <select.rq>', 'select query for binding')
-  .requiredOption('--construct, -c <file.rq>', 'construct query for each binding')
+  .option('--bind <bind>', 'select query for binding')
+  .option('--bind@ <bind.rq>', 'file containing select query for binding')
+  .option('--construct <construct>', 'construct query for each binding')
+  .option('--construct@ <construct.rq>', 'file containing construct query for each binding')
   .description('Using a select, and a construct, splay a graph, into individual files.  Any files includes are added to the localdb before the construct is run.')
-  .action((json,options) => {
-    console.log('splay:',options);
+  .action(async (file,cli,command) => {
+    console.log('cli:',cli);
+    console.log('parent_cli:',command.parent.opts());
+    if( ! cli.bind ) {
+      if(cli['bind@']) {
+        cli.bind=fs.readFileSync(cli['query@'],{encoding:'utf8',flag:'r'})
+      } else {
+        console.error('No binding query --bind(@) specified')
+        process.exit(1);
+      }
+    }
+    if( ! cli.construct ) {
+      if(cli['construct@']) {
+        cli.construct=fs.readFileSync(cli['query@'],{encoding:'utf8',flag:'r'})
+      } else {
+        console.error('No constructing query --construct(@) specified')
+        process.exit(1);
+      }
+    }
+    if ( file.length != 0 ) {
+    const db = await localDB.create(db_config);
+    await db.load(file);
+    }
+ //    const bindingsStream = await db.queryBindings(cli.query);
+//    bindingsStream.on('data', (binding) => {
+//      for( const [key,value] of binding ) {
+//        console.log(`${key.value} = ${value.value}`);
+//      }
+//    })
   });
 
 
