@@ -1,48 +1,22 @@
+'use strict';
+import fs from 'fs';
+import { EventEmitter, once } from 'node:events';
+import fetch from 'node-fetch';
+
+// localdb info
 import { JsonLdParser } from "jsonld-streaming-parser";
 import { DataFactory } from 'rdf-data-factory';
 import { Quadstore } from 'quadstore';
 import { QueryEngine } from '@comunica/query-sparql';
-import fs from 'fs';
 import { Readable } from 'readable-stream';
 import { ClassicLevel } from 'classic-level';
 import { MemoryLevel } from 'memory-level';
-import fetch from 'node-fetch';
 
-// No defaults in this function
-class localDB {
-  constructor(opts) {
-    const defaults = {
-      path: './db',
-      queryEngine: 'sparqljs',
-      level: 'ClassicLevel',
-      level_opts: { valueEncoding: 'json' },
-        };
+import localDB from './lib/localDB.js';
 
-    this.opts = { ...defaults, ...opts};
-    console.log('options:',this.opts);
-    const backend;
-    switch(this.opts.level) {
-    case 'Classic':
-    case 'ClassicLevel':
-      backend=new ClassicLevel(this.opts.path,this.opts.level_opts);
-      break;
-    case 'MEM'
-    case 'MemoryLevel':
-      backend = new MemoryLevel(this.opts.level_opts);
-      break;
-    default:
-      throw new Error('Unknown level backend');
-    }
-    const parser = new JsonLdParser();
-    const df = new DataFactory();
-    const store = new Quadstore({ backend, dataFactory: df });
-    this.store = store;
-    this.engine = new QueryEngine();
-    }
-  }
+export { localDB };
 
-
-class ExpertsClient {
+export class ExpertsClient {
 
      constructor(opts) {
       this.doc = '';
@@ -54,11 +28,10 @@ class ExpertsClient {
 //        this.IamKey = opts.IAM.key
     }
 
-  getLocalDB(options) {
+  async getLocalDB(options) {
     if (!this.store) {
-      this.store = new localDB({ ...this.opts.localDB, ...options });
+      this.store = localDB.create({ ...this.opts.localDB, ...options });
     }
-    console.log(this.store);
     return this.store;
   }
 
