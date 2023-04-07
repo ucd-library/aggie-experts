@@ -78,19 +78,23 @@ program.command('splay [file...]')
     bindingsStream.on('data', async (bindings) => {
       console.log('bindings:',bindings.toString());
 
-      const construction = await db.queryQuads(cli.construct,{initialBindings:bindings});
+      //const construction = await db.queryQuads(cli.construct,{initialBindings:bindings});
+      const c = await db.engine.query(cli.construct,{initialBindings:bindings,sources:[db.store]});
+      const {data} = await db.engine.resultToString(c,'application/ld+json');
+      data.pipe(process.stdout);
 
-      construction.on('error', (err) => {
-        console.log('construction error:',err);
-      });
-      construction.on('data', (quad) => {
-        console.log('quinn');
-        console.log(quad);
-      });
-      construction.on('end', () => {
-        console.log('construction end');
-      });
     });
+    //   construction.on('error', (err) => {
+    //     console.log('construction error:',err);
+    //   });
+    //   construction.on('data', (quad) => {
+    //     console.log('quinn');
+    //     console.log(quad);
+    //   });
+    //   construction.on('end', () => {
+    //     console.log('construction end');
+    //   });
+    // });
   }
 );
 
