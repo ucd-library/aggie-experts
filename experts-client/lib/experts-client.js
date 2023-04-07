@@ -65,7 +65,8 @@ export class ExpertsClient {
         
         // create a local database
         const db_config = {
-            level: process.env.EXPERTS_LEVEL ?? 'ClassicLevel'
+            level: process.env.EXPERTS_LEVEL ?? 'ClassicLevel',
+            path: process.env.EXPERTS_PATH ?? './iam_quadstore'
         }
         const db = await localDB.create(db_config);
 
