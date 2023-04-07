@@ -84,17 +84,6 @@ program.command('splay [file...]')
       data.pipe(process.stdout);
 
     });
-    //   construction.on('error', (err) => {
-    //     console.log('construction error:',err);
-    //   });
-    //   construction.on('data', (quad) => {
-    //     console.log('quinn');
-    //     console.log(quad);
-    //   });
-    //   construction.on('end', () => {
-    //     console.log('construction end');
-    //   });
-    // });
   }
 );
 

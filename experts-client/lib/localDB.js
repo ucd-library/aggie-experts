@@ -55,26 +55,23 @@ export class localDB {
     return db;
   }
 
-  load_put(files) {
-    for (let i=0; i<files.length; i++) {
-      let fn=files[i];
-      console.log("Reading file: "+fn);
-      this.parser.import(fs.createReadStream(fn))
-        .on('error', console.error)
-        .on('end', () => {
-          console.log("Finished reading file: "+fn);
-        })
-        .on('data', data => {
-          this.store.put(data);
-        });
-    }
-  }
 
   async load(files) {
     Array.isArray(files) || (files = [files]);
     console.log('loading files:',files);
     return Promise.all(files.map((fn) => {
       console.log("Reading file: "+fn);
+      let stream=this.store.import(this.parser.import(fs.createReadStream(fn)));
+      return once(stream, 'end');
+    }))
+  }
+
+  async load_once(files) {
+    Array.isArray(files) || (files = [files]);
+    console.log('loading files:',files);
+    return Promise.all(files.map((fn) => {
+      console.log("Reading file: "+fn);
+      const json=fs.readFileSync(fn);
       let stream=this.store.import(this.parser.import(fs.createReadStream(fn)));
       return once(stream, 'end');
     }))
