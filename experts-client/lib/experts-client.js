@@ -63,18 +63,12 @@ export class ExpertsClient {
         // Create a jsonld parser
         const myParser = new JsonLdParser();
         
-        // Any implementation of AbstractLevel can be used.
-        const backend = new ClassicLevel('./db', { valueEncoding: 'json' });
-        
-        // Implementation of the RDF/JS DataFactory interface
-        const df = new DataFactory();
-        // Store and query engine are separate modules
-        const qstore = new Quadstore({ backend, dataFactory: df });
-        const engine = new QueryEngine();
-        
-        // Open the store
-        await qstore.open();
-        
+        // create a local database
+        const db_config = {
+            level: process.env.EXPERTS_LEVEL ?? 'ClassicLevel'
+        }
+        const db = await localDB.create(db_config);
+
         // Import the jsonld into the parser
         await import_via_put();
         
@@ -85,12 +79,12 @@ export class ExpertsClient {
             .on('end', () => parsed())
             .on('data', data => {
                 // console.log(data);
-                qstore.put(data);
+                db.store.put(data);
             });
             
             async function parsed() {
                 console.log('All triples were parsed!');
-                // const items = await qstore.get({});
+                // const items = await db.store.get({});
                 await qstore_query();
                 
             }
@@ -103,10 +97,10 @@ export class ExpertsClient {
             
             // const sparql = fs.readFileSync('queries/iam_person_to_vivo.rq', 'utf8');
             // const output = fs.createWriteStream("vivo.jsonld");
-            // const result = await engine.queryQuads(sparql, { sources: [qstore] })
+            // const result = await engine.queryQuads(sparql, { sources: [db.store] })
             
-            const stream = await engine.queryBindings(`
-            PREFIX iam: <http://iam.ucdavis.edu/schema#> select * where {graph ?g {?s iam:userID ?o}}`, { sources: [qstore] });
+            const stream = await db.engine.queryBindings(`
+            PREFIX iam: <http://iam.ucdavis.edu/schema#> select * where {graph ?g {?s iam:userID ?o}}`, { sources: [db.store] });
             stream.on('data', (binding) => {
                 // Obtaining values
                 console.log(binding.toString()); // Quick way to print bindings for testing
