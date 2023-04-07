@@ -22,15 +22,17 @@ program
 
 program
   .option('--iam-auth <key>', 'UC Davis IAM authentication key')
+  .option('--iam-endpoint <endpoint>', 'UC Davis IAM endpoint', 'https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?isFaculty=true')
   .hook('preSubcommand', (command, sub_command) => {
     process.env.EXPERTS_IAM_AUTH = command.opts().iamAuth;
+    process.env.EXPERTS_IAM_ENDPOINT = command.opts().iamEndpoint;
   })
 
 program
   .command('import', 'import data into aggie experts')
   .command('localdb', 'load/query local database')
 //  .command('query', 'query aggie experts')
-  .command('test', 'hardcoded test')
+  .command('iam', 'hardcoded test')
   .command('build', 'build fcrepo files from linked data')
 
 program.parse(process.argv);
