@@ -32,7 +32,7 @@ program
   .command('import', 'import data into aggie experts')
   .command('localdb', 'load/query local database')
 //  .command('query', 'query aggie experts')
-  .command('iam', 'import data from IAM')
+  .command('iam', 'import profiles from IAM')
   .command('build', 'build fcrepo files from linked data')
 
 program.parse(process.argv);
