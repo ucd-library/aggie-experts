@@ -3,7 +3,7 @@
 import {Command} from 'commander';
 const program = new Command();
 import pkg from '../package.json' assert { type: "json" };
-import pkg from '../package.json' assert { type: "json" };
+//import pkg from '../package.json' assert { type: "json" };
 
 program
   .name('experts')
@@ -32,7 +32,7 @@ program
   .command('import', 'import data into aggie experts')
   .command('localdb', 'load/query local database')
 //  .command('query', 'query aggie experts')
-  .command('iam', 'hardcoded test')
+  .command('iam', 'import data from IAM')
   .command('build', 'build fcrepo files from linked data')
 
 program.parse(process.argv);
