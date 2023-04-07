@@ -12,7 +12,7 @@ import { Readable } from 'readable-stream';
 import { ClassicLevel } from 'classic-level';
 import { MemoryLevel } from 'memory-level';
 
-import localDB from './lib/localDB.js';
+import localDB from './localDB.js';
 
 export { localDB };
 
@@ -24,8 +24,8 @@ export class ExpertsClient {
       // we probably need to await this though, so not in the constructor?
       //this.store = new localStore(options);
 
-//      this.IamEndPoint = opts.IAM.endPoint;
-//        this.IamKey = opts.IAM.key
+      this.IamEndPoint = opts.IAM.endPoint;
+      this.IamKey = opts.IAM.key
     }
 
   async getLocalDB(options) {
@@ -36,7 +36,6 @@ export class ExpertsClient {
   }
 
     async getIAMProfiles() {
-        // console.log(this.IamEndPoint + '&key=' +this.IamKey);
         
         const response = await fetch(this.IamEndPoint + '&key=' +this.IamKey);
         if (response.status !== 200) {

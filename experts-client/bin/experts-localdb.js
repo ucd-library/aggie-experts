@@ -3,7 +3,7 @@ import { Command} from 'commander';
 const program = new Command();
 
 //import {ExpertsClient from '../experts-client.js';
-import { localDB } from '../experts-client.js';
+import { localDB } from '../lib/experts-client.js';
 
 const db_config = {
   level: process.env.EXPERTS_LEVEL ?? 'ClassicLevel'
