@@ -16,7 +16,7 @@ class ExpertsClient {
     }
     
     async getIAMProfiles() {
-        console.log(this.IamEndPoint + '&key=' +this.IamKey);
+        // console.log(this.IamEndPoint + '&key=' +this.IamKey);
         
         const response = await fetch(this.IamEndPoint + '&key=' +this.IamKey);
         if (response.status !== 200) {
@@ -44,6 +44,8 @@ class ExpertsClient {
         };
         var ldJson = '{"@context":' + JSON.stringify(context) + ',"@id":"http://iam.ucdavis.edu/", "@graph":' + JSON.stringify(docObj) + '}';
         
+        // fs.writeFileSync('faculty.jsonld', ldJson);
+
         // Create a jsonld parser
         const myParser = new JsonLdParser();
         
@@ -68,12 +70,13 @@ class ExpertsClient {
             .on('error', console.error)
             .on('end', () => parsed())
             .on('data', data => {
+                // console.log(data);
                 qstore.put(data);
             });
             
             async function parsed() {
                 console.log('All triples were parsed!');
-                const items = await qstore.get({});
+                // const items = await qstore.get({});
                 await qstore_query();
                 
             }
@@ -84,17 +87,38 @@ class ExpertsClient {
             
             console.log('qstore_query');
             
-            const sparql = fs.readFileSync('./construct-vivo.sql', 'utf8');
+            const sparql = fs.readFileSync('experts-client/construct-vivo.sql', 'utf8');
             
             const output = fs.createWriteStream("vivo.jsonld");
             
-            const result = await engine.query(sparql, { sources: [qstore] });
+            // const result = await engine.queryQuads(sparql, { sources: [qstore] })
+
+            const stream = await engine.queryBindings(`
+            PREFIX iam: <http://iam.ucdavis.edu/schema#> select * where {graph ?g {?s iam:userID ?o}}`, { sources: [qstore] });
+            // stream.on('data', (bindings) => console.log(bindings)); 
+            stream.on('data', (binding) => {
+                console.log(binding.toString()); // Quick way to print bindings for testing
+                // Obtaining values
+                console.log('loop');
+                console.log(binding.get('s').value);
+            });        
+
+            // console.log(result.resultType);
             
-            console.log(result.resultType);
-            
-            const { data } = await engine.resultToString(result, 'application/ld+json');
-            
-            data.pipe(output);
+            // const data  = await engine.resultToString(result, 'application/ld+json');
+            // var i = 0;
+            // result.on('data', (quad) => {
+            //     // console.log(quad.predicate.value);
+            //     if (quad.predicate.value === 'http://experts.ucdavis.edu/schema#casId') {
+            //         console.log(quad.object.value);
+            //     }
+            // });
+            // result.on('data', (chunk) => {
+            //     console.log(chunk.toString());
+            //     i++;
+            // });
+            // console.log(i);
+            //data.pipe(output);
             
         }
     }

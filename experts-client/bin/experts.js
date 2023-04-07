@@ -2,7 +2,7 @@
 
 import {Command} from 'commander';
 const program = new Command();
-import pkg from '../../package.json' assert { type: "json" };
+import pkg from '../package.json' assert { type: "json" };
 
 program
   .name('experts')
@@ -22,7 +22,7 @@ program
 program
   .option('--iam-auth <key>', 'UC Davis IAM authentication key')
   .hook('preSubcommand', (command, sub_command) => {
-    process.env.EXPERTS_IAM_AUTH = command.opts().iam-auth;
+    process.env.EXPERTS_IAM_AUTH = command.opts().iamAuth;
   })
 
 program
