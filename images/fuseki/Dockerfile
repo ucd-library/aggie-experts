@@ -100,7 +100,7 @@ COPY fuseki $FUSEKI_HOME
 
 # Test the install by testing it's ping resource
 RUN  $FUSEKI_HOME/fuseki-server-hdt & \
-     sleep 2 && \
+     sleep 5 && \
      curl -sS --fail 'http://localhost:3030/$/ping'
 
 # No need to kill Fuseki as our shell will exit after curl

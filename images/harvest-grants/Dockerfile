@@ -4,7 +4,7 @@ ARG ORG
 FROM $ORG/openjdk-sqlcl:$REF_NAME as sqlcl
 FROM $ORG/openjdk-tarql:$REF_NAME as tarql
 
-FROM $ORG/rp-ucd-harvest:$REF_NAME
+FROM $ORG/harvest:$REF_NAME
 
 COPY --from=sqlcl /usr/local/lib/sqlcl /usr/local/lib/sqlcl
 COPY --from=tarql /usr/local/lib/tarql /usr/local/lib/tarql
@@ -29,7 +29,7 @@ COPY fuseki ${FUSEKI_BASE}
 # Setup a place to hold the Makefile data
 RUN mkdir /usr/local/lib/grants
 COPY grants  /usr/local/lib/grants
-COPY /rp-ucd-harvest-grants-entrypoint.sh /
+COPY /harvest-grants-entrypoint.sh /
 
 ENV PATH=$PATH:/usr/local/lib/sqlcl/bin:/usr/local/lib/tarql/bin
 
@@ -37,5 +37,5 @@ VOLUME /home/ucd.process
 WORKDIR /home/ucd.process
 
 # You can override this entrypoint if you use this image as your base image
-ENTRYPOINT ["/rp-ucd-harvest-grants-entrypoint.sh" ]
+ENTRYPOINT ["/harvest-grants-entrypoint.sh" ]
 #ENTRYPOINT ["/usr/bin/make","--file=/usr/local/lib/grants/Makefile" ]

@@ -6,7 +6,7 @@ function main.cmd() {
     [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
     [verbose]=0
     [exe]=$(basename "$0")
-    [org]=localhost/local-dev/aggie-experts
+    [org]=localhost/aggie-experts
     [cache]=latest
     [fin_org]=localhost/local-dev
     [fin_version]=

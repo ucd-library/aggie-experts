@@ -19,7 +19,7 @@ avoid hosting data locally and to present all content as linked data. The data
 sources are described in more detail below. Aggie Experts is inspired by the
 [VIVO software tool](https://duraspace.org/vivo/about/) and uses their schema to
 represent the data in RDF format. For more information, refer to our [GitHub
-repository](https://github.com/ucd-library/rp-ucd-deployment).
+repository](https://github.com/ucd-library/aggie-experts).
 
 ## Data Sources for Aggie Experts
 

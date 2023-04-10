@@ -1,6 +1,6 @@
 #! /bin/bash
 
-. /rp-ucd-harvest-functions.sh
+. /harvest-functions.sh
 
 function exec_mk2() {
   local opts=`getopt -o m: --long mk: -n 'exec mk' -- "$@"`

@@ -19,8 +19,8 @@ A normal way of running this then might be:
          -e UCDID_AUTH=${UCDID_AUTH} \
          -e CDL_AUTH=${CDL_AUTH} \
          --rm \
-         --mount type=bind,source=/home/quinn/ucdi/rp-ucd-harvest-grants/example,target=/home/ucd.process  \
-         -p 3030:3030 local-dev/rp-ucd-harvest-grants:main FIS_LOGIN grants.json.gz grants.hdt
+         --mount type=bind,source=/home/quinn/aggie-test,target=/home/ucd.process  \
+         -p 3030:3030 localhost/aggie-experts/harvest-grants:HEAD FIS_LOGIN grants.json.gz grants.hdt
   #+end_src
 
 Alternatively, we could expect that we are using all HDT files to start up the
@@ -35,8 +35,8 @@ directory of hdt files that we want to use.
          -e UCDID_AUTH=${UCDID_AUTH} \
          -e CDL_AUTH=${CDL_AUTH} \
          --rm \
-         --mount type=bind,source=/home/quinn/ucdi/rp-ucd-harvest-grants/example/databases/hdt,target=/home/ucd.process/databases/hdt  \
-         -p 3030:3030 local-dev/rp-ucd-harvest-grants:main FIS_LOGIN grants.hdt
+         --mount type=bind,source=/home/quinn/aggie-test/databases/hdt,target=/home/ucd.process/databases/hdt  \
+         -p 3030:3030 localhost/aggie-experts/harvest-grants:HEAD FIS_LOGIN grants.hdt
 #+end_src
 
 The following ENVIRONMENTAL VARIABLES are used in this setup
@@ -52,8 +52,8 @@ The following ENVIRONMENTAL VARIABLES are used in this setup
 #+begin_src bash
   docker run  --interactive --tty \
          --rm \
-         --mount type=bind,source=/home/quinn/ucdi/rp-ucd-harvest-grants/example,target=/home/ucd.process \
-         -p 3030:3030 local-dev/rp-ucd-harvest-grants:main server
+         --mount type=bind,source=/home/quinn/aggie-test,target=/home/ucd.process \
+         -p 3030:3030 localhost/aggie-experts/harvest-grants:HEAD server
 #+end_src
 
 
