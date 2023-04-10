@@ -1,0 +1,109 @@
+Here's an example of how to use splay against a sparql endpoint.  In this case
+we're going to use the grants database
+
+#+begin_src bash
+  docker run --publish=127.0.0.1:3030:3030 --name=fuseki --interactive --tty --rm \
+       -v splay_example:/home/ucd.process \
+         localhost/aggie-experts/harvest:HEAD server
+#+end_src
+
+This is how to load in the data into that new database:
+
+#+begin_src bash
+  http --auth=admin:testing123 POST http://localhost:3030/$/datasets dbName==grants dbType==tdb
+#+end_src
+
+And then we can add the grants json file
+
+#+begin_src base
+  file=~/research-profiles/pse/grants.json.gz
+  zcat $file | http POST http://localhost:3030/grants/data Content-Type:application/ld+json
+#+end_src
+
+We are going to splay over every grant.
+
+#+begin_src bash
+    node ../experts-client/bin/experts splay --source=http://localhost:3030/grants/sparql \
+         --bind@ bind.rq --construct@ construct.ru --frame@ grant_frame.jsonld
+#+end_src
+
+#+name: bind
+#+BEGIN_SRC sparql :eval no :noweb yes :format raw :wrap SRC ttl :tangle bind.rq
+  prefix experts: <http://experts.ucdavis.edu/>
+  PREFIX vivo: <http://vivoweb.org/ontology/core#>
+  prefix ucdrp: <http://experts.ucdavis.edu/schema#>
+  select distinct ?uri ?filename
+  WHERE { graph ?g { ?uri a vivo:Grant. }
+    bind(replace(str(?uri),str(experts:),'./') as ?filename) }
+#+END_SRC
+
+If you know that your data is in aggie-experts format, then you know that you
+can get a complete graph by looking at all subejcts matching an ?item or
+hashed. This will be bound with an ?item
+
+#+name: construct_hash
+#+BEGIN_SRC sparql :eval no :noweb yes :format raw :wrap SRC ttl :tangle construct.ru :var construct="construct"
+   $construct { ?s ?p ?o }
+   WHERE {
+     graph ?g {
+     {
+     BIND(?uri AS ?m)
+     ?m a [].
+     ?s a [];
+        ?p ?o.
+     filter(regex(str(?s),concat("^",str(?m),"(#|$)")))
+   } } }
+#+END_SRC
+
+* Example
+
+#+name:frame
+#+begin_src json :eval no :noweb yes :tangle grant_frame.jsonld
+  {
+      "@context": {
+          "@base": "http://experts.ucdavis.edu/",
+          "@vocab": "http://vivoweb.org/ontology/core#",
+          "grant": "http://experts.ucdavis.edu/grant/",
+          "obo": "http://purl.obolibrary.org/obo/",
+          "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+          "ucdrp": "http://experts.ucdavis.edu/schema#",
+          "vivo": "http://vivoweb.org/ontology/core#",
+          "xsd": "http://www.w3.org/2001/XMLSchema#",
+          "directCosts": {
+              "@id": "ucdrp:grantDirectCosts",
+              "@type": "xsd:integer"
+          },
+          "indirectCosts": {
+              "@id": "ucdrp:grantIndirectCosts",
+              "@type": "xsd:integer"
+          },
+          "grantType":{
+              "@id":"ucdrp:grantType",
+              "@type":"@id"
+          },
+          "assignedBy": { "@type":"@id"},
+          "dateTimeInterval": {
+              "@type":"@id",
+              "@context":{
+                  "start":{"@type":"@id"},
+                  "end":{"@type":"@id"},
+                  "dateTimePrecision":{"@type":"@id"}
+              }
+          },
+          "relates": { "@type":"@id",
+                       "@context":{
+                           "role_person_name":{"@id":"ucdrp:role_person_name"},
+                           "inheres_in":{"@id":"obo:RO_000052","@type":"@id"},
+                           "relatedBy":{"@type":"@id"},
+                           "name":{"@id":"rdfs:label"}
+                       }
+                     },
+          "sponsorAwardId": {"@type":"xsd:string"},
+          "totalAwardAmount": {"@type": "xsd:integer"},
+          "name":{"@id":"rdfs:label","@type":"xsd:string"}
+      },
+    "@id":"grant:109652",
+      "@type": "vivo:Grant",
+      "@embed":"@once"
+  }
+#+end_src

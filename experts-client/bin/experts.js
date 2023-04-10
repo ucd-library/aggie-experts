@@ -31,6 +31,7 @@ program
 program
   .command('import', 'import data into aggie experts')
   .command('localdb', 'load/query local database')
+  .command('splay', 'splay linked data into a directory structure')
 //  .command('query', 'query aggie experts')
   .command('iam', 'import profiles from IAM')
   .command('build', 'build fcrepo files from linked data')
