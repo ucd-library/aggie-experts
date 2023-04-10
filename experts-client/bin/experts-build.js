@@ -1,11 +1,12 @@
 import { Command} from 'commander';
 const program = new Command();
 
-program
+program.name('splay')
+  .usage('[options] <file ...>')
   .description('Build Files from linked data')
+  .option('--source <source ...>', 'Specify linked data source. Can be specified multiple times')
   .option('--construct <construct>', 'Construct SPARQL query')
   .option('--select <select>', 'Select SPARQL query')
-
 
 program.parse(process.argv);
 

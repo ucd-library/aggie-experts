@@ -45,46 +45,5 @@ program.command('query [file...]')
     });
   });
 
-program.command('splay [file...]')
-  .option('--bind <bind>', 'select query for binding')
-  .option('--bind@ <bind.rq>', 'file containing select query for binding')
-  .option('--construct <construct>', 'construct query for each binding')
-  .option('--construct@ <construct.rq>', 'file containing construct query for each binding')
-  .description('Using a select, and a construct, splay a graph, into individual files.  Any files includes are added to the localdb before the construct is run.')
-  .action(async (file,cli,command) => {
-    console.log('cli:',cli);
-    console.log('parent_cli:',command.parent.opts());
-    if( ! cli.bind ) {
-      if(cli['bind@']) {
-        cli.bind=fs.readFileSync(cli['query@'],{encoding:'utf8',flag:'r'})
-      } else {
-        console.error('No binding query --bind(@) specified')
-        process.exit(1);
-      }
-    }
-    if( ! cli.construct ) {
-      if(cli['construct@']) {
-        cli.construct=fs.readFileSync(cli['construct@'],{encoding:'utf8',flag:'r'})
-      } else {
-        console.error('No constructing query --construct(@) specified')
-        process.exit(1);
-      }
-    }
-    const db = await localDB.create(db_config);
-    if ( file.length != 0 ) {
-      await db.load(file);
-    }
-    const bindingsStream = await db.queryBindings(cli.bind);
-    bindingsStream.on('data', async (bindings) => {
-      console.log('bindings:',bindings.toString());
-
-      //const construction = await db.queryQuads(cli.construct,{initialBindings:bindings});
-      const c = await db.engine.query(cli.construct,{initialBindings:bindings,sources:[db.store]});
-      const {data} = await db.engine.resultToString(c,'application/ld+json');
-      data.pipe(process.stdout);
-
-    });
-  }
-);
 
 await program.parseAsync(process.argv);
