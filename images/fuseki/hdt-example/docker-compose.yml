@@ -2,7 +2,7 @@
 version: '3'
 services:
   fuseki:
-    image: local-dev/ucdi-jena-fuseki-hdt:${FUSEKI_VERSION:-main}
+    image: localhost/aggie-experts/jena-fuseki-hdt:${FUSEKI_VERSION:-main}
     volumes:
       - ./configuration:/etc/fuseki/configuration
       - ./hdt:/var/lib/fuseki/hdt

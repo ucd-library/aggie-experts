@@ -1,7 +1,7 @@
 ARG REF_NAME
 ARG ORG
 
-FROM ${ORG}/rp-ucd-harvest:${REF_NAME}
+FROM ${ORG}/harvest:${REF_NAME}
 
 # JENA_VERSION, FUSEKI_HOME,FUSEKI_BASE, FUSEKI_JAR  all specified in jena-fuseki-hdt
 
@@ -33,11 +33,11 @@ COPY cdl-elements /usr/local/bin
 COPY harvest /usr/local/lib/harvest/
 
 # Our entrypoint calls the generic VIVO one
-COPY rp-ucd-harvest-person-entrypoint.sh /
+COPY harvest-person-entrypoint.sh /
 
 ENV PATH=${PATH}
 
 # You can override this entrypoint if you use this image as your base image
 #ENTRYPOINT ["/usr/bin/make","--directory=/home/ucd.process/grants" ]
-ENTRYPOINT ["/rp-ucd-harvest-person-entrypoint.sh"]
-CMD ["/bin/echo", "rp-ucd-harvest-person"]
+ENTRYPOINT ["/harvest-person-entrypoint.sh"]
+CMD ["/bin/echo", "harvest-person"]
