@@ -3,14 +3,8 @@ import fs from 'fs';
 import { EventEmitter, once } from 'node:events';
 import fetch from 'node-fetch';
 
-// localdb info
 import { JsonLdParser } from "jsonld-streaming-parser";
-import { DataFactory } from 'rdf-data-factory';
-import { Quadstore } from 'quadstore';
-import { QueryEngine } from '@comunica/query-sparql';
 import { Readable } from 'readable-stream';
-import { ClassicLevel } from 'classic-level';
-import { MemoryLevel } from 'memory-level';
 
 import localDB from './localDB.js';
 
