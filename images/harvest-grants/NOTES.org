@@ -7,9 +7,9 @@ Running on the command-line.
 
 #+begin_src bash
   docker run  --interactive --tty --rm \
-         --mount type=bind,source=/home/quinn/ucdi/test,target=/home/ucd.process/workdir \
+         --mount type=bind,source=/home/quinn/aggie-test,target=/home/ucd.process/workdir \
          --workdir=/home/ucd.process/workdir -p 3030:3030 \
-         local-dev/rp-ucd-harvest-grants:main bash
+         localhost/aggie-experts/harvest-grants:HEAD bash
 #+end_src
 
 #+name: lob-ingest
