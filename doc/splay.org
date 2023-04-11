@@ -5,9 +5,29 @@
   create a localstore of the IAM data.
 
   #+begin_src bash
-    cd aggie-experts
-
+    cd aggie-test
+    alias experts='node ~/aggie-experts/experts-client/bin/experts.js'
+    experts --iam-auth ${IAM_AUTH} iam getIam
   #+end_src
+
+Now we have a quadstore of iam data.  We can test that works using the localdb
+query.
+
+#+begin_src bash
+    experts localdb --quadstore=iam_quadstore query \
+            --query='prefix : <http://iam.ucdavis.edu/schema#> select ?kerb $filename  where { graph ?g { [] :userID ?kerb. bind(concat("person/",?kerb,".jsonld") as ?filename) } } limit 5'
+#+end_src
+
+Then, we can run the splay command:
+
+#+begin_src bash
+  mkdir person
+  experts splay --quadstore=iam_quadstore \
+          --bind='prefix : <http://iam.ucdavis.edu/schema#> select ?kerb $filename  where { graph ?g { [] :userID ?kerb. bind(concat("person/",?kerb,".jsonld") as ?filename) } } limit 5' \
+          --construct@ ~/aggie-experts/experts-client/queries/iam_person_to_vivo.rq
+#+end_src
+
+
 
 * Grants Example
 
