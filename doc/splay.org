@@ -1,3 +1,16 @@
+
+* IAM example
+
+  Let's show how the splay can be used against the IAM example.  First let's
+  create a localstore of the IAM data.
+
+  #+begin_src bash
+    cd aggie-experts
+
+  #+end_src
+
+* Grants Example
+
 Here's an example of how to use splay against a sparql endpoint.  In this case
 we're going to use the grants database
 

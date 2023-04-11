@@ -2,8 +2,8 @@ import fs from 'fs';
 import { Command} from 'commander';
 const program = new Command();
 
-//import {ExpertsClient from '../experts-client.js';
 import { localDB } from '../lib/experts-client.js';
+import { Engine } from 'quadstore-comunica';
 
 const db_config = {
   level: process.env.EXPERTS_LEVEL ?? 'ClassicLevel'
@@ -37,7 +37,8 @@ program.command('query [file...]')
     }
     const db = await localDB.create(db_config);
     await db.load(file);
-    const bindingsStream = await db.queryBindings(cli.query);
+    const q = new Engine(db.store);
+    const bindingsStream = await q.queryBindings(cli.query);
     bindingsStream.on('data', (binding) => {
       for( const [key,value] of binding ) {
         console.log(`${key.value} = ${value.value}`);

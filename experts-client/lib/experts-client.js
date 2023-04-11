@@ -6,6 +6,8 @@ import fetch from 'node-fetch';
 import { JsonLdParser } from "jsonld-streaming-parser";
 import { Readable } from 'readable-stream';
 
+import { QueryEngine } from '@comunica/query-sparql';
+
 import localDB from './localDB.js';
 
 export { localDB };
