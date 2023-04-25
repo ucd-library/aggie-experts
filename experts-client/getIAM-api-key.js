@@ -17,14 +17,7 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 async function main(name = 'projects/326679616213/secrets/ucdavis-iam-api-key') {
   // [START secretmanager_get_secret]
-  /**
-   * TODO(developer): Uncomment these variables before running the sample.
-   */
-  //const name = 'projects/326679616213/secrets/ucdavis-iam-api-key';
-
-  // Imports the Secret Manager library
-//  const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');
-
+  
   // Instantiates a client
   const client = new SecretManagerServiceClient();
 

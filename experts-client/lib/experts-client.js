@@ -7,18 +7,21 @@
  */
 'use strict';
 import fs from 'fs';
-import { EventEmitter, once } from 'node:events';
 import fetch from 'node-fetch';
 
 import { JsonLdParser } from "jsonld-streaming-parser";
 import { Readable } from 'readable-stream';
 import { QueryEngine } from '@comunica/query-sparql';
 
-import { QueryEngine } from '@comunica/query-sparql';
-
 import localDB from './localDB.js';
 
 export { localDB };
+
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+
+// Instantiates a Secrets client
+const client = new SecretManagerServiceClient();
+
 
 /** Exports a class
  * @class
@@ -26,13 +29,35 @@ export { localDB };
  */
 export class ExpertsClient {
     
-    constructor(e,k) {
+    constructor(e) {
         // Simple constructor
         this.IamEndPoint = e;
-        this.IamKey = k;
-        
+        //console.log('contructed with ' + e); 
+        this.IamKey = '';
     }
     
+    async getSecret(name = 'projects/326679616213/secrets/ucdavis-iam-api-key') {
+        const [secret] = await client.getSecret({
+          name: name,
+        });
+        
+        async function accessSecretVersion() {
+          const [version] = await client.accessSecretVersion({
+            name: name + '/versions/latest',
+          });
+          
+          // Extract the payload as a string.
+          const payload = version.payload.data.toString();
+          
+          // WARNING: Do not print the secret in a production environment - this
+          // snippet is showing how to access the secret material.
+        //   console.info(`Payload: ${payload}`);
+          return payload.slice(4);
+        //   console.log('getSecret ' + key);
+        }
+        return await accessSecretVersion();
+    }
+      
     /** Return a local db */
     async getLocalDB(options) {
         if (!this.store) {
@@ -79,7 +104,8 @@ export class ExpertsClient {
             level: process.env.EXPERTS_LEVEL ?? 'ClassicLevel',
             path: process.env.EXPERTS_PATH ?? './iam_quadstore'
         }
-        const db = await localDB.create(db_config);
+        // const db = await this.getLocalDB(db_config);
+        const db = await localDB.create({level:'ClassicLevel',path:'iam_quadstore'});
         
         /** Import the jsonld into the parser */
         await import_via_put();
@@ -89,44 +115,13 @@ export class ExpertsClient {
             
             myParser.import(Readable.from(ldJson))
             .on('error', console.error)
-            .on('end', () => parsed())
+            .on('end', () => console.log('All triples were parsed and added to localdb!')) 
             .on('data', data => {
                 // console.log(data);
                 db.store.put(data);
-            });
-            
-            async function parsed() {
-                console.log('All triples were parsed!');
-                // const items = await db.store.get({});
-                // await qstore_query();
-                const opts = {
-                    bind: 'PREFIX iam: <http://iam.ucdavis.edu/schema#> select ?s ?o where {graph ?g {?s iam:userID ?o}}',
-                    source: db.store,
-                    'construct@': './queries/iam_person_to_vivo.rq',
-                }
-                await splay(opts);
-                
-            }
-            
+            });            
         }
-        
-        async function qstore_query() {
-            const q = new QueryEngine();
-            
-            console.log('qstore_query');
-            
-            // const sparql = fs.readFileSync('queries/iam_person_to_vivo.rq', 'utf8');
-            // const output = fs.createWriteStream("vivo.jsonld");
-            // const result = await engine.queryQuads(sparql, { sources: [db.store] })
-            
-            const stream = await q.queryBindings(`PREFIX iam: <http://iam.ucdavis.edu/schema#> select * where {graph ?g {?s iam:userID ?o}}`, { sources: [db.store] });
-            stream.on('data', (binding) => {
-                // Obtaining values
-                console.log(binding.toString()); // Quick way to print bindings for testing
-                // console.log(binding.get('s').value);
-            });
-            stream.on('end', () => console.log('end of quad stream'));
-        }
+    }
         
         /**
          * @description
@@ -135,7 +130,7 @@ export class ExpertsClient {
          * @returns 
          * 
          */
-        async function splay(cli) {
+    async splay(cli) {
             // usage('[options] <file...>')
             // description('Using a select, and a construct, splay a graph, into individual files.  Any files includes are added to a (potentially new) localdb before the construct is run.')
             // option('--bind <bind>', 'select query for binding')
@@ -168,45 +163,60 @@ export class ExpertsClient {
                 cli.frame=JSON.parse(cli.frame);
             }
             
-            const q = new QueryEngine();
+            let q;
+            let sources=null;
+            if (cli.quadstore) {
+              const db = await localDB.create({level:'ClassicLevel',path:cli.quadstore});
+            //  cli.source=[db];
+              q = new Engine(db.store);
+              sources=null;
+            } else {
+              q = new QueryEngine();
+              sources=cli.source;
+            }
+            
+            const factory=new DataFactory();
             
             const bindingStream=await q.queryBindings(cli.bind,{sources: cli.source})
+            //const bindingStream=await q.queryBindings(cli.bind)
             bindingStream
-            .on('data', async (bindings) => {
+              .on('data', async (bindings) => {
+                let fn=1; // write to stdout by default
+                console.log(bindings.toString());
                 if ( bindings.get('filename') && bindings.get('filename').value) {
-                    const fn=bindings.get('filename').value
-                    const quadStream = await q.queryQuads(cli.construct,{initialBindings:bindings, sources: cli.source});
-                    if (frame) {
-                        const quads = await quadStream.toArray();
-                        console.log(`writing ${fn} with ${quads.length} quads`);
-                        const doc=await jsonld.fromRDF(quads)
-                        const framed=await jsonld.frame(doc,cli.frame,{omitGraph:false,safe:true})
-                        if (bindings.get('uri')) {
-                            framed['@id']=bindings.get('uri').value;
-                        }
-                        fs.writeFileSync(fn,JSON.stringify(framed,null,2));
-                    } else {
-                        const c = await q.query(construct,{initialBindings:bindings,sources: cli.source});
-                        const {data} = await q.resultToString(c,'application/ld+json');
-                        await fs.ensureFile(fn)
-                        const writeStream = fs.createWriteStream(fn);
-                        data.pipe(writeStream);
-                        data.on('end', () => {
-                            console.log('done writing '+fn);
-                        });
-                    }
-                } else {
-                    console.log('no filename');
+                  fn=bindings.get('filename').value
                 }
-            })
-            .on('error', (error) => {
+                let graph = null;
+                if (bindings.get('graph')) {
+                  graph=factory.namedNode(bindings.get('graph').value);
+                }
+            
+                // convert construct to jsonld quads
+                const quadStream = await q.queryQuads(cli.construct,{initialBindings:bindings, sources: cli.source});
+                const quads = await quadStream.toArray();
+                if (graph) {
+                  quads.forEach((quad) => {
+                    quad.graph=graph;
+                  });
+                }
+                console.log(`writing ${fn} with ${quads.length} quads`);
+                let doc=await jsonld.fromRDF(quads)
+            
+                if (frame) {
+                  doc=await jsonld.frame(doc,cli.frame,{omitGraph:false,safe:true})
+                } else {
+                  //      doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
+                }
+                fs.writeFileSync(fn,JSON.stringify(doc,null,2));
+              })
+              .on('error', (error) => {
                 console.error(error);
-            })
-            .on('end', () => {
+              })
+              .on('end', () => {
                 console.log('bindings done');
-            });
-        }
+              });
+            }
+        
     }
-}    
 
 export default ExpertsClient;
