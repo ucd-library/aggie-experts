@@ -1,24 +1,29 @@
 import { Command} from 'commander';
 import ExpertsClient from '../lib/experts-client.js';
 
+console.log('starting experts-iam');
 const program = new Command();
 
 program.command('getIam')
   .description('Import IAM Researcher Profiles')
-  .option('--iam-auth, -a <>', 'API Key for IAM')
-  .option('--endpoint, -e <>', 'Endpoint for IAM', 'https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?isFaculty=true')
   .action(async(options) => {
-    // const key = process.env.EXPERTS_IAM_AUTH;
-    const endPoint = process.env.EXPERTS_IAM_ENDPOINT;
-    const ec = new ExpertsClient(endPoint);
-    async function getIAMSecret() {
-        try {
-            ec.IamKey = await ec.getSecret();
-        }
-        catch (e) { 
-            console.log('getIAMSecret error: ' + e);
-        }
-    }
+
+    console.log('starting getIam');
+    program.parse(process.argv);
+    console.log('getIam');
+    
+    const cli = program.opts();
+    const ec = new ExpertsClient(cli);
+
+    // async function getIAMSecret() {
+    //     try {
+    //         ec.IamKey = await ec.getSecret('projects/326679616213/secrets/ucdavis-iam-api-key');
+    //         ec.fusekiKey = await ec.getSecret('projects/326679616213/secrets/ucdavis-iam-fuseki-key');
+    //     }
+    //     catch (e) { 
+    //         console.log('getIAMSecret error: ' + e);
+    //     }
+    // }
 
     async function getIAMProfiles() {
         console.log('starting getIAMProfiles');
@@ -40,14 +45,23 @@ program.command('getIam')
         }
     }
 
-    // console.log('iamKey: ' + ec.IamKey);
-    await getIAMSecret();
-    console.log('done with getIAMSecret');
-    await getIAMProfiles();
-    console.log('done with getIAMProfiles');
-    await processIAMProfiles();
-    console.log('done with processIAMProfiles');
+    // await getIAMSecret().then(() => {
+    //     console.log('done with getIAMSecret');
+    // });
     
-
+    getIAMProfiles().then(() => {
+        console.log('done with getIAMProfiles');
+    });
+    
+    processIAMProfiles().then(() => {
+        console.log('done with processIAMProfiles');
+    
+    ec.createDataset()
+        .then(() => console.log('dataset created'))
+        
+    ec.createGraph()
+        .then(() => console.log('graph created'));        
+    });
 });
-program.parse(process.argv);
+
+
