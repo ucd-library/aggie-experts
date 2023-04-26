@@ -6,7 +6,11 @@ import { QueryEngine } from '@comunica/query-sparql';
 import { localDB } from '../lib/experts-client.js';
 import { DataFactory } from 'rdf-data-factory';
 
+import ExpertsClient from '../lib/experts-client.js';
 import JsonLdProcessor from 'jsonld';
+
+const ec = new ExpertsClient();
+
 const jsonld=new JsonLdProcessor();
 
  // This could go to our cmdline library, or we subclass
@@ -46,63 +50,6 @@ if (program.args.length > 0) {
 }
 
 const cli = program.opts();
-console.log(cli);
-const bind = str_or_file(cli,'bind',true);
-const construct = str_or_file(cli,'construct',true);
-const frame = str_or_file(cli,'frame',false)
-if (cli.frame) {
-  cli.frame=JSON.parse(cli.frame);
-}
 
-let q;
-let sources=null;
-if (cli.quadstore) {
-  const db = await localDB.create({level:'ClassicLevel',path:cli.quadstore});
-//  cli.source=[db];
-  q = new Engine(db.store);
-  sources=null;
-} else {
-  q = new QueryEngine();
-  sources=cli.source;
-}
+ec.splay(cli);
 
-const factory=new DataFactory();
-
-const bindingStream=await q.queryBindings(cli.bind,{sources: cli.source})
-//const bindingStream=await q.queryBindings(cli.bind)
-bindingStream
-  .on('data', async (bindings) => {
-    let fn=1; // write to stdout by default
-    console.log(bindings.toString());
-    if ( bindings.get('filename') && bindings.get('filename').value) {
-      fn=bindings.get('filename').value
-    }
-    let graph = null;
-    if (bindings.get('graph')) {
-      graph=factory.namedNode(bindings.get('graph').value);
-    }
-
-    // convert construct to jsonld quads
-    const quadStream = await q.queryQuads(cli.construct,{initialBindings:bindings, sources: cli.source});
-    const quads = await quadStream.toArray();
-    if (graph) {
-      quads.forEach((quad) => {
-        quad.graph=graph;
-      });
-    }
-    console.log(`writing ${fn} with ${quads.length} quads`);
-    let doc=await jsonld.fromRDF(quads)
-
-    if (frame) {
-      doc=await jsonld.frame(doc,cli.frame,{omitGraph:false,safe:true})
-    } else {
-      //      doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
-    }
-    fs.writeFileSync(fn,JSON.stringify(doc,null,2));
-  })
-  .on('error', (error) => {
-    console.error(error);
-  })
-  .on('end', () => {
-    console.log('bindings done');
-  });
