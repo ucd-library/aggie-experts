@@ -27,6 +27,7 @@
     "@rdfjs/fetch-lite": "3.2.1",
     "classic-level": "^1.2.0",
     "commander": "^10.0.0",
+    "dotenv": "^16.0.3",
     "fs": "^0.0.1-security",
     "fs-extra": "^11.1.1",
     "https": "^1.0.0",
