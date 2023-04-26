@@ -130,17 +130,16 @@ export class ExpertsClient {
 async createGraph() {
   try {
     
-    fs.writeFileSync('faculty.jsonld', this.jsonld);
-    const stats = fs.statSync("faculty.jsonld");
-    const fileSizeInBytes = stats.size;
-    var faculty = fs.readFileSync('faculty.jsonld', 'utf8');
+    // fs.writeFileSync('faculty.jsonld', this.jsonld);
+    // const stats = fs.statSync("faculty.jsonld");
+    // const fileSizeInBytes = stats.size;
+    // var faculty = fs.readFileSync('faculty.jsonld', 'utf8');
     
     await fetch(this.fusekiEndpoint + '/iam_profiles/data', {
     method: 'POST',
-    body: faculty,
+    body: this.jsonld,
     headers: {
       'Content-Type': 'application/ld+json',
-      'Content-Length': fileSizeInBytes,
       'Authorization': 'Basic ' + this.fusekiPw
     }
   }).then(res => res.text())
@@ -198,43 +197,44 @@ async splay(cli) {
   const factory=new DataFactory();
   
   const bindingStream=await q.queryBindings(cli.bind,{sources: cli.source})
-  //const bindingStream=await q.queryBindings(cli.bind)
-  bindingStream
-  .on('data', async (bindings) => {
-    let fn=1; // write to stdout by default
-    console.log(bindings.toString());
-    if ( bindings.get('filename') && bindings.get('filename').value) {
-      fn=bindings.get('filename').value
-    }
-    let graph = null;
-    if (bindings.get('graph')) {
-      graph=factory.namedNode(bindings.get('graph').value);
-    }
-    
-    // convert construct to jsonld quads
-    const quadStream = await q.queryQuads(cli.construct,{initialBindings:bindings, sources: cli.source});
-    const quads = await quadStream.toArray();
-    if (graph) {
-      quads.forEach((quad) => {
-        quad.graph=graph;
-      });
-    }
-    console.log(`writing ${fn} with ${quads.length} quads`);
-    let doc=await jsonld.fromRDF(quads)
-    
-    if (frame) {
-      doc=await jsonld.frame(doc,cli.frame,{omitGraph:false,safe:true})
-    } else {
-      //      doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
-    }
-    fs.writeFileSync(fn,JSON.stringify(doc,null,2));
-  })
+  bindingStream.on('data', construct_one )
   .on('error', (error) => {
     console.error(error);
   })
   .on('end', () => {
     console.log('bindings done');
   });
+
+async function construct_one(bindings) {
+  await bindingStream.off('data', construct_one);
+  let fn=1; // write to stdout by default
+  if ( bindings.get('filename') && bindings.get('filename').value) {
+    fn=bindings.get('filename').value
+  }
+  let graph = null;
+  if (bindings.get('graph')) {
+    graph=factory.namedNode(bindings.get('graph').value);
+  }
+
+  // convert construct to jsonld quads
+  const quadStream = await q.queryQuads(cli.construct,{initialBindings:bindings, sources: cli.source});
+  const quads = await quadStream.toArray();
+  if (graph) {
+    quads.forEach((quad) => {
+      quad.graph=graph;
+    });
+  }
+  console.log(`writing ${fn} with ${quads.length} quads`);
+  let doc=await jsonld.fromRDF(quads)
+
+  if (frame) {
+    doc=await jsonld.frame(doc,cli.frame,{omitGraph:false,safe:true})
+  } else {
+    //      doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
+  }
+  fs.writeFileSync(fn,JSON.stringify(doc,null,2));
+  await bindingStream.on('data', construct_one);
+}
 }
 
 }
