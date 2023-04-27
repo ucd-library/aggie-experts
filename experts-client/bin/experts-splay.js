@@ -52,4 +52,3 @@ if (program.args.length > 0) {
 const cli = program.opts();
 
 ec.splay(cli);
-

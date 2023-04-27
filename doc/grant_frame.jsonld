@@ -42,10 +42,6 @@
     "totalAwardAmount": {"@type": "xsd:integer"},
     "name":{"@id":"rdfs:label","@type":"xsd:string"}
   },
-  "@id": "grant:109652",
-  "@graph":{
-    "@id": "grant:109652",
-    "@type": "vivo:Grant"
-  },
+  "@type":"vivo:Grant",
   "@embed":"@once"
 }

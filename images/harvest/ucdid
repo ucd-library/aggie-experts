@@ -130,7 +130,7 @@ function main.init() {
 
 
     G[fetch_context]='{"@context": {
-  "@version":1.1,
+  "@version":"1.1",
   "@base":"'${G[base]}'",
   "@vocab":"'${G[base]}'schema#",
   "iamId":"@id",
@@ -206,8 +206,6 @@ function log_assoc() {
       esac
     done
 
-    echo "LOGIT"
-    declare -p G
     declare -n v=$1
     v[exe]="ucdid"
     v[timestamp]="$(date --iso-8601=seconds)"
@@ -384,7 +382,7 @@ function fetch() {
   local envelope=''
   local search=''
   local output
-#  declare -A CMD;
+  declare -A CMD;
   while true; do
 	  case $1 in
       -f | --format) CMD[ucdid_fetch_format]=$2; shift 2;;
@@ -448,7 +446,6 @@ function fetch() {
     case ${mime[${G[ucdid_fetch_format]}]} in
       application/json)
         cat -
-        log_assoc -v logit
         shift;;
       application/ld+json)
 #        logit[jq]=${G[util_jq]}"${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '${G[util_riot]}' --formatted=jsonld --syntax=jsonld'
