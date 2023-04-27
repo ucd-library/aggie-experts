@@ -19,7 +19,7 @@ router.post('/', middleware.finac.esRoles, async (req, res) => {
 });
 
 router.get('/*', middleware.finac.esRoles, async (req, res) => {
-  let id = '/work'+decodeURIComponent(req.path);
+  let id = decodeURIComponent(req.path); // expert/person/1234
 
   if( !id ) {
     return res.json({error: true, message: 'no id sent'});
@@ -36,7 +36,7 @@ router.get('/*', middleware.finac.esRoles, async (req, res) => {
 
     let result = await model.get(id, opts);
     if( !result ) {
-      return res.status(404).send('Unknown work: '+id);
+      return res.status(404).send('Unknown person: '+id);
     }
 
     res.json(result);

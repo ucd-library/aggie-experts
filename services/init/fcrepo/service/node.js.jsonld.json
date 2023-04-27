@@ -1,0 +1,16 @@
+{
+  "@id": "",
+  "@context": {
+    "@vocab": "http://schema.org/",
+    "identifier": {
+      "@id": "http://purl.org/dc/elements/1.1/identifier"
+    }
+  },
+  "@type": [
+    "http://digital.ucdavis.edu/schema#Service",
+    "http://digital.ucdavis.edu/schema#TransformService"
+  ],
+  "description": "Used for updating Elastic Search indexes when fedora update",
+  "identifier": "node",
+  "name": "Elastic Search - Experts Item Node Transform"
+}

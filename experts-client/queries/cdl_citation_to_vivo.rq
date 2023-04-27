@@ -23,6 +23,7 @@ construct {
         cite:genre ?cite_genre;
         cite:status ?status;
 	      ucdrp:lastModifiedDateTime ?lastModifiedDateTime;
+       cite:pagination ?pagination;
        ?field_predicate ?field_value;
        .
 
@@ -44,9 +45,9 @@ construct {
 #                ucdrp:day ?opub_day;
 #                .
 
-  ?work  bibo:pageStart ?begin;
-         bibo:pageEnd ?end;
-         .
+#  ?work  bibo:pageStart ?begin;
+#         bibo:pageEnd ?end;
+#         .
 
   # Authors need citeproc and authorship method.
 	?work vivo:relatedBy ?authorship.
@@ -78,7 +79,7 @@ construct {
               .
 }
 WHERE {
-  bind(?work_binding as ?work)
+#  bind(?work_binding as ?work)
   VALUES(?oap_type ?bibo_type ?cite_type ?cite_genre) {
     ("book" bibo:Book "book" "")
     ("chapter" bibo:Chapter "chapter" "")
@@ -184,7 +185,13 @@ WHERE {
                                  oap:native/oap:field ?field ];
                                                       .
 
-  bind(uri(replace(str(?pub),str(cdl:),str(work:))) as ?work)
+  OPTIONAL {
+    ?pub oap:records/oap:record [ oap:source-name  ?source;
+                                   oap:native/oap:field ?field_name;
+                                   oap:native/oap:text ?doi ].
+    filter(?field_name='doi')
+    }
+  #  bind(uri(replace(str(?pub),str(cdl:),str(work:))) as ?work)
 
   ?field oap:name ?field_name.
 
@@ -262,6 +269,7 @@ WHERE {
     ?field oap:pagination [ oap:begin-page ?begin ; oap:end-page ?end ].
   }
   BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
+  BIND(concat(?start,coalesce(concat('-',?end),'')) AS ?pagination)
 
   # Now we take CDLs preferred term
   OPTIONAL {

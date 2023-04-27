@@ -4,7 +4,7 @@
     "@vocab":"http://schema.library.ucdavis.edu/",
     "experts":"http://experts.ucdavis.edu/",
     "name":"http://schema.org/name",
-    "description":"http://schema.org/description",
+    "description":"http://schema.org/description"
   },
   "@id":"",
   "@type":[ "ConstructQuery" ],
@@ -15,8 +15,8 @@
     "bind":{
       "@id":"#work",
       "@type":"QueryBinding",
-      "cmd:bindName":"work",
-    }
+      "cmd:bindName":"work"
+    },
     "required":true
   }
   ]
