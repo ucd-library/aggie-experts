@@ -33,16 +33,23 @@ export class ExpertsClient {
   
   /**
    * @constructor
+   * Accepts a cli object with options from a commander program.
    */
-  constructor() {
+  constructor(cli = {}) {
+
     console.log('ExpertsClient constructor');
-    this.IamKey = process.env.EXPERTS_IAM_AUTH;
-    this.IamEndPoint = process.env.EXPERTS_IAM_ENDPOINT;
-    this.fusekiPw = process.env.EXPERTS_FUSEKI_AUTH;
-    this.fusekiEndpoint = process.env.EXPERTS_FUSEKI_ENDPOINT;
-    this.fusekiProfileSource = process.env.EXPERTS_FUSEKI_PROFILE_SOURCE;
-    this.profileBind = process.env.EXPERTS_FUSEKI_PROFILE_BIND;
-    this.profileConstruct = process.env.EXPERTS_FUSEKI_PROFILE_CONSTRUCT;
+    console.log(cli);
+
+    // Accept CLI options for these values if they are provided. Defaults are set in the .env file.
+    cli.source ??= [process.env.EXPERTS_FUSEKI_ENDPOINT + process.env.EXPERTS_FUSEKI_PROFILE_SOURCE];
+    cli.bind ??= process.env.EXPERTS_FUSEKI_PROFILE_BIND;
+    cli['construct@'] ??= process.env.EXPERTS_FUSEKI_PROFILE_CONSTRUCT;
+    cli.iamAuth ??= process.env.EXPERTS_IAM_AUTH;
+    cli.iamEndpoint ??= process.env.EXPERTS_IAM_ENDPOINT;
+    cli.fusekiAuth ??= process.env.EXPERTS_FUSEKI_AUTH;
+
+    this.cli = cli;
+
   }
   
   // async getSecret(name) {
@@ -78,7 +85,7 @@ export class ExpertsClient {
   /** Fetch Researcher Profiles from the UCD IAM API */
   async getIAMProfiles() {
     
-    const response = await fetch(this.IamEndPoint + '&key=' +this.IamKey);
+    const response = await fetch(this.cli.iamEndpoint + '&key=' +this.cli.iamAuth);
     if (response.status !== 200) {
       throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
     }
@@ -109,16 +116,15 @@ export class ExpertsClient {
   
   /**
    * create fuseki dataset
-   * http --auth=admin:testing123 POST http://localhost:3030/$/datasets dbName==iam_profiles dbType==tdb
    */
-  async createDataset() {
+  async createDataset(dbName, dbType) {
     try {
-      await fetch( this.fusekiEndpoint + '/$/datasets?dbName=iam_profiles&dbType=tdb', {
+      await fetch( this.cli.iamEndpoint + '/$/datasets?dbName=' + dbName + '&dbType=' + dbType, {
       method: 'POST',
       body: '[]',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + this.fusekiPw
+        'Authorization': 'Basic ' + this.cli.fusekiAuth
       }
     }).then(res => res.text())
     .catch(err => console.log(err));
@@ -127,20 +133,15 @@ export class ExpertsClient {
   }
 }
 
-async createGraph() {
+async createGraph(dataset) {
   try {
-    
-    // fs.writeFileSync('faculty.jsonld', this.jsonld);
-    // const stats = fs.statSync("faculty.jsonld");
-    // const fileSizeInBytes = stats.size;
-    // var faculty = fs.readFileSync('faculty.jsonld', 'utf8');
-    
-    await fetch(this.fusekiEndpoint + '/iam_profiles/data', {
+        
+    await fetch(this.cli.source + '/' + dataset + '/data', {
     method: 'POST',
     body: this.jsonld,
     headers: {
       'Content-Type': 'application/ld+json',
-      'Authorization': 'Basic ' + this.fusekiPw
+      'Authorization': 'Basic ' + this.cli.fusekiAuth
     }
   }).then(res => res.text())
   .catch(err => console.log(err));
@@ -158,7 +159,12 @@ catch (err) {
 * @returns 
 * 
 */
-async splay(cli) {
+async splay(cli = null) {
+
+  // Can be called with a cli object, or will use the cli object from the constructor
+  cli ??= this.cli;
+
+  console.log(cli);
   
   function str_or_file(opt,param,required) {
     if (opt[param]) {

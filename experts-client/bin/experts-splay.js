@@ -9,8 +9,6 @@ import { DataFactory } from 'rdf-data-factory';
 import ExpertsClient from '../lib/experts-client.js';
 import JsonLdProcessor from 'jsonld';
 
-const ec = new ExpertsClient();
-
 const jsonld=new JsonLdProcessor();
 
  // This could go to our cmdline library, or we subclass
@@ -50,6 +48,8 @@ if (program.args.length > 0) {
 }
 
 const cli = program.opts();
+
+const ec = new ExpertsClient(cli);
 
 ec.splay(cli);
 

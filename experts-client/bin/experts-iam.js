@@ -1,40 +1,24 @@
+'use strict';
 import { Command} from 'commander';
 import ExpertsClient from '../lib/experts-client.js';
 
 console.log('starting experts-iam');
 const program = new Command();
-
-program.command('getIam')
-  .description('Import IAM Researcher Profiles')
-  .action(async(options) => {
-
-    console.log('starting getIam');
-    program.parse(process.argv);
-    console.log('getIam');
     
-    const cli = program.opts();
-    const ec = new ExpertsClient(cli);
+async function main() {
 
-    // async function getIAMSecret() {
-    //     try {
-    //         ec.IamKey = await ec.getSecret('projects/326679616213/secrets/ucdavis-iam-api-key');
-    //         ec.fusekiKey = await ec.getSecret('projects/326679616213/secrets/ucdavis-iam-fuseki-key');
-    //     }
-    //     catch (e) { 
-    //         console.log('getIAMSecret error: ' + e);
-    //     }
-    // }
+    const ec = new ExpertsClient();
 
     async function getIAMProfiles() {
         console.log('starting getIAMProfiles');
         try {
             ec.doc = await ec.getIAMProfiles();
-        }   
+        }
         catch (e) {
             console.log('getIAMProfiles error: ' + e);
         }
     }
-
+    
     async function processIAMProfiles() {
         console.log('starting processIAMProfiles');
         try {
@@ -44,24 +28,50 @@ program.command('getIam')
             console.log('processIAMProfiles error: ' + e);
         }
     }
-
-    // await getIAMSecret().then(() => {
-    //     console.log('done with getIAMSecret');
-    // });
     
-    getIAMProfiles().then(() => {
-        console.log('done with getIAMProfiles');
-    });
+    async function createDataset() {
+        console.log('starting createDataset');
+        try {
+            await ec.createDataset('iam-profiles','tdb');
+        }
+        catch (e) {
+            console.log('createDataset error: ' + e);
+        }
+    }
     
-    processIAMProfiles().then(() => {
-        console.log('done with processIAMProfiles');
+    async function createGraph() {
+        console.log('starting createGraph');
+        try {
+            await ec.createGraph('iam-profiles');
+        }
+        catch (e) {
+            console.log('createGraph error: ' + e);
+        }
+    }
     
-    ec.createDataset()
-        .then(() => console.log('dataset created'))
-        
-    ec.createGraph()
-        .then(() => console.log('graph created'));        
-    });
-});
+    async function splay() {
+        console.log('starting splay');
+        try {
+            await ec.splay();
+        }
+        catch (e) {
+            console.log('splay error: ' + e);
+        }
+    }
+    
+    await getIAMProfiles().then(() => console.log('done with getIAMProfiles'));
+    await processIAMProfiles().then(() => console.log('done with processIAMProfiles'));
+    await createDataset().then(() => console.log('done with createDataset'));
+    await createGraph().then(() => console.log('done with createGraph'));
+    await splay().then(() => console.log('done with splay'));
+    
+}
 
+program.name('iam')
+.description('Import IAM Researcher Profiles')
+.option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
+.option('--quadstore <quadstore>', 'Specify a local quadstore.  Cannot be used with the --source option')
+// .action(main);
 
+program.parse(process.argv);
+main();
