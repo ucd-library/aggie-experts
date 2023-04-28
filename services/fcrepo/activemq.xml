@@ -131,7 +131,7 @@
             <transportConnector name="stomp"
                                 uri="stomp://0.0.0.0:${fcrepo.dynamic.stomp.port:61613}"/>
             <!-- FIN ADDED -->
-            <transportConnector name="mqtt" uri="mqtt://0.0.0.0:1883"/>
+            <!-- transportConnector name="mqtt" uri="mqtt://0.0.0.0:1883"/ -->
         </transportConnectors>
 
         <!-- destroy the spring context on shutdown to stop jetty -->

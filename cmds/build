@@ -14,7 +14,7 @@ function main.cmd() {
     )
 
     local opts;
-    if ! opts=$(${G[shell_getopt]} -o nv:d:f: --long fin:,dir:,noop,version:,help -n "build-fin" -- "$@"); then
+    if ! opts=$(${G[shell_getopt]} -o nv:d:f: --long fin_version:,fin_org:,dir:,noop,version:,help -n "build-fin" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -25,7 +25,8 @@ function main.cmd() {
 	    case $1 in
         -d | --dir ) CMD[dir]=$2; shift 2;;
 	      -v | --version) CMD[version]=$2;  shift 2;;
-	      -f | --fin) CMD[fin_version]=$2;  shift 2;;
+	      -f | --fin_version) CMD[fin_version]=$2;  shift 2;;
+	      -f | --fin_org) CMD[fin_org]=$2;  shift 2;;
         -n | --noop) CMD[noop]="echo"; shift;;
         -h | --help ) exec pod2text "$0";;
 	      -- ) shift; break;;
@@ -59,8 +60,6 @@ function build() {
   cd $(dirname "$0")
   repo_G
   cd ${G[base]}
-
-  G[fin_version]=${G[fin_version]:-$(git --git-dir=fin/.git describe --tags --always --dirty)}
 
   declare -a services=(init fcrepo)
 
