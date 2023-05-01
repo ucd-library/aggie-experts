@@ -4,12 +4,12 @@
     "foaf" : "http://xmlns.com/foaf/0.1/"
   },
   "@graph" : [{
-    "@id" : "#authz-public",
+    "@id" : "#authz-cas-read",
     "@type" : ["acl:Authorization"],
     "acl:accessTo" : [{"@id": "."}],
     "acl:default" : [{"@id": "."}],
     "acl:mode" : [{"@id": "acl:Read"}],
-    "acl:agentClass" : [{"@id": "foaf:Agent"}]
+    "acl:agent" : [{"@value": "cas"},{"@value": "viewer"}]
   },{
     "@id" : "#authz",
     "@type" : ["acl:Authorization"],
