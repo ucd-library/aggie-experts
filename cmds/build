@@ -60,7 +60,7 @@ function build() {
   repo_G
   cd ${G[base]}
 
-  declare -a services=(init fcrepo)
+  declare -a services=(init fcrepo base-service)
 
   for service in "${services[@]}"; do
     local image=${G[org]}/${service}:${G[tag]}
@@ -77,15 +77,15 @@ function build() {
            services/${service}
   done
 
-# Build base differently for some reason
+# # Build base differently for some reason
 
-  local image=${G[org]}/base-service:${G[tag]}
+#   local image=${G[org]}/base-service:${G[tag]}#
 
-  ${G[noop]} docker build \
-             --build-arg FIN_SERVER_IMAGE=$fin_base \
-             -t $image \
-             --cache-from $image \
-             services/fin
+#   ${G[noop]} docker build \
+#              --build-arg FIN_SERVER_IMAGE=$fin_base \
+#              -t $image \
+#              --cache-from $image \
+#              services/fin
 
  }
 
