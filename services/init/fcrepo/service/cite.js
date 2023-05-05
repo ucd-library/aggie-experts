@@ -19,7 +19,7 @@ const context = {
     "ISSN":{"@id":"cite:ISSN"},
     "abstract":{"@id":"cite:abstract"},
     "assignedBy": { "@type":"@id"},
-    "authors":{"@id":"cite:authors","@type":"@json"},
+    "author":{"@id":"cite:author","@type":"@json"},
     "available-date":{"@id":"cite:available-date"},
     "collection-number":{"@id":"cite:collection-number"},
     "container-title":{"@id":"cite:container-title"},
@@ -105,7 +105,7 @@ module.exports = async function(path, graph, headers, utils) {
   let framed = await jsonld.frame(item, frame,{omitGraph:false});
 
   if (type==="ucdrp:work") {
-    const authors=[];
+    const author=[];
     framed["@graph"][0]["relatedBy"]
       .sort((a,b)=>a.rank-b.rank)
       .forEach((work)=>{
@@ -120,9 +120,9 @@ module.exports = async function(path, graph, headers, utils) {
               name.given = rel["hasName"]["givenName"];
             }
           }});
-        authors.push(name);
+        author.push(name);
       });
-    framed["@graph"][0]["authors"] = authors;
+    framed["@graph"][0]["author"] = author;
   }
   const cite=framed["@graph"][0];
   ["@id","@type","relatedBy","hasPublicationVenue","lastModifiedTime",

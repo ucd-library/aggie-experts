@@ -1,7 +1,7 @@
 {
-  "name": "ucd-lib-client",
+  "name": "spa",
   "version": "1.0.0",
-  "description": "UC Davis Aggie Experts Client",
+  "description": "UC Davis Aggie Experts Single Page Application",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -21,6 +21,6 @@
     "@ucd-lib/cork-app-build": "^0.4.2",
     "raw-loader": "^4.0.2",
     "webpack": "^5.76.1",
-    "webpack-cli": "^5.0.1"
+    "webpack-cli": "^5.0.2"
   }
 }
