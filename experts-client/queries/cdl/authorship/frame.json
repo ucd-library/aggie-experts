@@ -1,0 +1,13 @@
+{"@context":{
+  "@base":"info:fedora/ark:/87287/d7_cdltest_/relationships/",
+  "person":"http://experts.ucdavis.edu/person/",
+  "cdl":"ark:/87287/d7_cdltest_/",
+  "vivo":"http://vivoweb.org/ontology/core#",
+  "Authorship":"vivo:Authorship",
+  "relates":{"@id":"vivo:relates",
+            "@type":"@id"}
+},
+ "@graph":{
+   "@type":"Authorship"
+ }
+}
