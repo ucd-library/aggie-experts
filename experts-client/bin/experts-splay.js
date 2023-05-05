@@ -10,23 +10,14 @@ import ExpertsClient from '../lib/experts-client.js';
 import JsonLdProcessor from 'jsonld';
 
 const jsonld=new JsonLdProcessor();
-
- // This could go to our cmdline library, or we subclass
-function str_or_file(opt,param,required) {
-  if (opt[param]) {
-    return opt[param];
-  } else if (opt[param+'@']) {
-    opt[param]=fs.readFileSync(opt[param+'@'],'utf8');
-    return opt[param];
-  } else if (required) {
-    console.error('missing required option: '+param+'(@)');
-    process.exit(1);
-  } else {
-    return null;
-  }
-}
-
 const program = new Command();
+
+const fuseki = {
+  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
+  type: 'mem',
+  db: null,
+  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
+}
 
 program.name('splay')
   .usage('[options] <file...>')
@@ -39,17 +30,40 @@ program.name('splay')
   .option('--frame@ <frame.json>', 'file containing frame on the construct')
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
   .option('--quadstore <quadstore>', 'Specify a local quadstore.  Cannot be used with the --source option')
+  .option('--output <output>', 'output directory')
+  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
+  .option('--fuseki.type', 'specify type on --fuseki.isTmp creation', 'mem')
+  .option('--fuseki.url', 'fuseki url', fuseki.url)
+  .option('--fuseki.auth', 'fuseki authorization', fuseki.auth)
+  .option('--fuseki.db=<name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated')
+  .option('--save-tmp', 'Do not remove temporary file', false)
+
 
 program.parse(process.argv);
 
-if (program.args.length > 0) {
-  console.error('local files are not supported yet');
-  process.exit(1);
-}
 
 const cli = program.opts();
+// fusekize cli
+Object.keys(cli).forEach((k)=>{
+  const n=k.replace(/^fuseki./,'')
+  if (n !== k) {
+    cli.fuseki ||= {};
+    cli.fuseki[n]=cli[k];
+    delete cli[k];
+  }});
+
+const files=program.args;
 
 const ec = new ExpertsClient(cli);
+if (cli.fuseki.isTmp) {
+  const fuseki=await ec.mkFusekiTmpDb(cli,files);
+  cli.source ||= [];
+  cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}`);
+}
 
-ec.splay(cli);
+const splayed = await ec.splay(cli)
 
+// Any other value don't delete
+if (splayed && cli.fuseki.isTmp === true && !cli.saveTmp) {
+  const dropped = await ec.dropFusekiDb(cli);
+}
