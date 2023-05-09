@@ -1,0 +1,25 @@
+prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
+prefix cdl: <ark:/87287/d7_cdltest_/>
+prefix experts: <http://experts.ucdavis.edu/>
+prefix oap: <http://oapolicy.universityofcalifornia.edu/>
+prefix person: <http://experts.ucdavis.edu/person/>
+prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
+prefix vivo: <http://vivoweb.org/ontology/core#>
+
+
+select distinct ?relationship ?filename ?graph where {
+  ?relationship :type "publication-user-authorship";
+                :effective-privacy-level "Public";
+                :is-visible "true";
+     :related [ :category "publication";
+                :id ?pub_id; ];
+     :related [ :category "user";
+                :id ?user_id;
+                :object [ :username ?user ]]
+                .
+
+  bind(replace(str(?relationship),str(oap:),"") as ?id)
+  bind(concat(str(cdl:),"relationships/",?id,".jsonld.json") as ?filename)
+  bind(uri(concat("info:fedora/",?filename)) as ?graph)
+  filter(regex(?user,"@ucdavis.edu"))
+}
