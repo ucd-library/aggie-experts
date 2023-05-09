@@ -8,17 +8,20 @@ prefix vivo: <http://vivoweb.org/ontology/core#>
 
 
 select distinct ?relationship ?filename ?graph where {
-  ?relationship :type "publication-user-authorship";
-                :effective-privacy-level "Public";
-                :is-visible "true";
-     :related [ :category "publication";
-                :id ?pub_id; ];
-     :related [ :category "user";
-                :id ?user_id;
-                :object [ :username ?user ]]
-                .
+  graph ?g {
+    ?relationship :type "publication-user-authorship";
+                  :effective-privacy-level "Public";
+                  :is-visible "true";
+                  :related [ :category "publication";
+                             :id ?pub_id; ];
+                                 :related [ :category "user";
+                                            :id ?user_id;
+                                            :object [ :username ?user ]]
+    .
+  }
 
   bind(replace(str(?relationship),str(oap:),"") as ?id)
+#  bind(concat(str(cdl:),?user_id,"/relationships/",?id,".jsonld.json") as ?filename)
   bind(concat(str(cdl:),"relationships/",?id,".jsonld.json") as ?filename)
   bind(uri(concat("info:fedora/",?filename)) as ?graph)
   filter(regex(?user,"@ucdavis.edu"))

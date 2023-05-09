@@ -311,13 +311,14 @@ catch (err) {
       if (graph) {
         // console.log('graph: '+graph.value);
         quads.forEach((quad) => {
-          quad.graph=graph;
+          quad._graph=graph;
         });
       }
       let doc=await jsonld.fromRDF(quads)
 
       if (frame) {
-        cli.frame['@context']['@base']=graph.value;
+        cli.frame['@context'] = (cli.frame['@context'] instanceof Array ? cli.frame['@context'] : [cli.frame['@context']])
+        cli.frame['@context'].push({"@base":graph.value});
         cli.frame['@id']=graph.value;
         doc=await jsonld.frame(doc,cli.frame,{omitGraph:true,safe:true})
         // doc['@id']='';

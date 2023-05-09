@@ -6,21 +6,18 @@ PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
-  ?user a ?emp_type,ucdrp:person,foaf:Person;
+  ?user a ?emp_type,ucdlib:Person;
         rdfs:label ?label;
-        ucdrp:casId ?kerb;
-        ucdrp:identifier ?user_id;
+        ucdlib:identifier ?user_id;
         .
 
-  ?user a ?emp_type,ucdrp:person;
-        rdfs:label ?label;
-        ucdrp:casId ?kerb;
+  ?user a ?emp_type;
         vcard:hasName ?vcard_name;
         .
 
@@ -33,7 +30,7 @@ CONSTRUCT {
 
   ?user obo:ARG_2000028 ?vcard.
   ?vcard a vcard:Individual;
-         ucdrp:identifier ?vid;
+         ucdlib:identifier ?vid;
          vivo:rank ?order;
          vcard:hasName ?vcard_name;
          vcard:hasTitle ?vcard_title;
@@ -52,7 +49,7 @@ CONSTRUCT {
 
   ?vcard_url a vcard:URL;
              vcard:url ?website;
-             ucdrp:urlType ucdrp:URLType_other;
+             ucdlib:urlType ucdlib:URLType_other;
              .
 }
 WHERE {
