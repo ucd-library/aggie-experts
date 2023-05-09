@@ -1,77 +1,71 @@
 'use strict';
-import { Command} from 'commander';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+import { Command } from 'commander';
 import ExpertsClient from '../lib/experts-client.js';
 
 console.log('starting experts-iam');
 const program = new Command();
-    
-async function main() {
 
-    const ec = new ExpertsClient();
+async function main(cli) {
 
-    async function getIAMProfiles() {
-        console.log('starting getIAMProfiles');
-        try {
-            ec.doc = await ec.getIAMProfiles();
-        }
-        catch (e) {
-            console.log('getIAMProfiles error: ' + e);
-        }
-    }
-    
-    async function processIAMProfiles() {
-        console.log('starting processIAMProfiles');
-        try {
-            await ec.processIAMProfiles();
-        }
-        catch (e) {
-            console.log('processIAMProfiles error: ' + e);
-        }
-    }
-    
-    async function createDataset() {
-        console.log('starting createDataset');
-        try {
-            await ec.createDataset('iam-profiles','tdb');
-        }
-        catch (e) {
-            console.log('createDataset error: ' + e);
-        }
-    }
-    
-    async function createGraph() {
-        console.log('starting createGraph');
-        try {
-            await ec.createGraph('iam-profiles');
-        }
-        catch (e) {
-            console.log('createGraph error: ' + e);
-        }
-    }
-    
-    async function splay() {
-        console.log('starting splay');
-        try {
-            await ec.splay();
-        }
-        catch (e) {
-            console.log('splay error: ' + e);
-        }
-    }
-    
-    await getIAMProfiles().then(() => console.log('done with getIAMProfiles'));
-    await processIAMProfiles().then(() => console.log('done with processIAMProfiles'));
-    await createDataset().then(() => console.log('done with createDataset'));
-    await createGraph().then(() => console.log('done with createGraph'));
-    await splay().then(() => console.log('done with splay'));
-    
+  const ec = new ExpertsClient(cli);
+
+  const datasetName = ec.cli.fusekiDataset;
+  // const graphName = 'http://iam.ucdavis.edu/';
+  const fusekiUrl = ec.cli.fusekiEndpoint;
+  const username = ec.cli.fusekiUser;
+  const password = ec.cli.fusekiPW;
+
+  const jsonLdFilePath = '/Users/rogerkunkel/projects/aggie-experts/experts-client/faculty.jsonld';
+
+  console.log('starting getIAMProfiles');
+  await ec.getIAMProfiles();
+  console.log('starting processIAMProfiles');
+  await ec.processIAMProfiles();
+  console.log('starting createDataset');
+  // await ec.createDataset('iam_profiles','tdb');
+  await ec.createDataset(datasetName, fusekiUrl, username, password)
+    .then(() => {
+      console.log(`Dataset '${datasetName}' created successfully.`);
+    })
+    .catch((err) => {
+      console.error(`Failed to create dataset: ${err}`);
+    });
+
+  console.log('starting createGraph');
+
+  await ec.createGraphFromJsonLdFile(datasetName, jsonLdFilePath, fusekiUrl, username, password)
+    .then(() => {
+      console.log(`Graph created successfully in dataset '${datasetName}'.`);
+    })
+    .catch((err) => {
+      console.error(`Failed to create graph: ${err}`);
+    });
+
+  console.log('starting splay');
+  await ec.splay();
+
 }
 
+
 program.name('iam')
-.description('Import IAM Researcher Profiles')
-.option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
-.option('--quadstore <quadstore>', 'Specify a local quadstore.  Cannot be used with the --source option')
-// .action(main);
+  .usage('[options] <file...>')
+  .description('Import IAM Researcher Profiles')
+  .option('--iam-auth <key>', 'UC Davis IAM authentication key')
+  .option('--iam-endpoint <endpoint>', 'UC Davis IAM endpoint')
+  .option('--bind <bind>', 'select query for binding')
+  .option('--bind@ <bind.rq>', 'file containing select query for binding')
+  .option('--construct <construct>', 'construct query for each binding')
+  .option('--construct@ <construct.rq>', 'file containing construct query for each binding')
+  .option('--frame <frame>', 'frame object for each binding')
+  .option('--frame@ <frame.json>', 'file containing frame on the construct')
+  .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
+  .option('--quadstore <quadstore>', 'Specify a local quadstore.  Cannot be used with the --source option')
+
 
 program.parse(process.argv);
-main();
+const cli = program.opts();
+
+await main(cli);

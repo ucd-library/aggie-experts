@@ -17,7 +17,7 @@ import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
 
-const jsonld=new JsonLdProcessor();
+const jsonld = new JsonLdProcessor();
 
 // import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
@@ -33,22 +33,27 @@ export { localDB };
 export class ExpertsClient {
 
   /**
-   * @constructor
-   * Accepts a cli object with options from a commander program.
-   */
-  constructor(cli = {}) {
+  * @constructor
+  * Accepts a cli object with options from a commander program.
+  */
+  constructor(cli) {
 
-    // console.log('ExpertsClient constructor');
     // console.log(cli);
 
-    // Should process.env be part of the library, or the CMD line? and maybe
-    // // Accept CLI options for these values if they are provided. Defaults are set in the .env file.
-    // cli.source ??= [process.env.EXPERTS_FUSEKI_ENDPOINT + process.env.EXPERTS_FUSEKI_PROFILE_SOURCE];
-    // cli.bind ??= process.env.EXPERTS_FUSEKI_PROFILE_BIND;
-    // cli['construct@'] ??= process.env.EXPERTS_FUSEKI_PROFILE_CONSTRUCT;
-    // cli.iamAuth ??= process.env.EXPERTS_IAM_AUTH;
-    // cli.iamEndpoint ??= process.env.EXPERTS_IAM_ENDPOINT;
-    // cli.fusekiAuth ??= process.env.EXPERTS_FUSEKI_AUTH;
+    // console.log('ExpertsClient constructor');
+
+    // This needs to be moved to a config.js class
+    // Accept CLI options for these values if they are provided. Defaults are set in the .env file.
+    cli.iamAuth ??= process.env.EXPERTS_IAM_AUTH;
+    cli.iamEndpoint ??= process.env.EXPERTS_IAM_ENDPOINT;
+    cli.fusekiEndpoint = process.env.EXPERTS_FUSEKI_ENDPOINT;
+    cli.fusekiAuth ??= process.env.EXPERTS_FUSEKI_AUTH;
+    cli.fusekiPW ??= process.env.EXPERTS_FUSEKI_PW;
+    cli.fusekiUser ??= process.env.EXPERTS_FUSEKI_USER;
+    cli.fusekiDataset ??= process.env.EXPERTS_FUSEKI_DATASET;
+    cli.source ??= process.env.EXPERTS_FUSEKI_ENDPOINT + process.env.EXPERTS_FUSEKI_PROFILE_SOURCE + '/sqarql';
+
+    // console.log(cli);
 
     this.cli = cli;
 
@@ -87,11 +92,22 @@ export class ExpertsClient {
   /** Fetch Researcher Profiles from the UCD IAM API */
   async getIAMProfiles() {
 
-    const response = await fetch(this.cli.iamEndpoint + '&key=' +this.cli.iamAuth);
+    const response = await fetch(this.cli.iamEndpoint + '&key=' + this.cli.iamAuth);
+    console.log(this.cli.iamEndpoint + '&key=' + this.cli.iamAuth);
+
+    // console.log(response)
+
     if (response.status !== 200) {
       throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
     }
-    return response.json();
+    else if (response.status === 200) {
+      this.doc = await response.json();
+      if (this.doc.responseData.results == null) {
+        throw new Error(`No profiles returned from IAM.`);
+      }
+    }
+
+    return
 
   }
 
@@ -99,6 +115,7 @@ export class ExpertsClient {
   async processIAMProfiles() {
 
     // const doc = fs.readFileSync('faculty-sample.json', 'utf8');
+    // const docObj = doc;
     const docObj = this.doc.responseData.results;
     const context = {
       "@Version": 1.1,
@@ -114,6 +131,7 @@ export class ExpertsClient {
     };
     this.jsonld = '{"@context":' + JSON.stringify(context) + ',"@id":"http://iam.ucdavis.edu/", "@graph":' + JSON.stringify(docObj) + '}';
 
+    fs.writeFileSync('faculty.jsonld', this.jsonld);
   }
 
   /**
@@ -224,15 +242,77 @@ export class ExpertsClient {
     headers: {
       'Content-Type': 'application/ld+json',
       'Authorization': 'Basic ' + this.cli.fusekiAuth
-    }
-  }).then(res => res.text())
-  .catch(err => console.log(err));
-}
-catch (err) {
-  console.log(err);
-}
-}
 
+  async createDataset(datasetName, fusekiUrl, username, password) {
+
+    const auth = {
+      user: username,
+      pass: password,
+    };
+
+    const url = `${fusekiUrl}/$/datasets`;
+    console.log(url);
+    const body = new URLSearchParams({
+      dbName: datasetName,
+      dbType: 'tdb2',
+    });
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${auth.user}:${auth.pass}`).toString('base64')}`,
+      },
+      body,
+    };
+
+    const response = await fetch(url, options);
+    // console.log(response);
+
+    if (!response.ok) {
+      throw new Error(`Failed to create dataset. Status code: ${response.statusText}`);
+    }
+
+    return await response.text();
+  }
+
+
+
+  async createGraphFromJsonLdFile(datasetName, jsonLdFilePath, fusekiUrl, username, password) {
+    // Read JSON-LD file from file system
+    const jsonLdFileContent = fs.readFileSync(jsonLdFilePath, 'utf-8');
+
+    // Construct URL for uploading the data to the graph
+    // Don't include a graphname to use what's in the jsonld file
+    const url = `${fusekiUrl}/${datasetName}/data`;
+    //   const url = `${fusekiUrl}/${datasetName}/data?graph=${graphName}`;
+
+    // Set authentication options
+    const auth = {
+      user: username,
+      pass: password,
+    };
+
+    // Set request options
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/ld+json',
+        'Authorization': `Basic ${Buffer.from(`${auth.user}:${auth.pass}`).toString('base64')}`,
+      },
+      body: jsonLdFileContent,
+    };
+
+    // Send the request to upload the data to the graph
+    console.log(url);
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      throw new Error(`Failed to create graph. Status code: ${response.status}`);
+    }
+
+    return await response.text();
+  }
 
 /**
 * @description
@@ -257,7 +337,7 @@ catch (err) {
       }
     }
 
-//    console.log(cli);
+    // console.log(cli);
     const bind = str_or_file(cli,'bind',true);
     const construct = str_or_file(cli,'construct',true);
     const frame = str_or_file(cli,'frame',false)
@@ -285,7 +365,7 @@ catch (err) {
         console.error(error);
       })
       .on('end', () => {
-//        console.log('bindings done');
+        // console.log('bindings done');
       });
 
     let binding_count=0;

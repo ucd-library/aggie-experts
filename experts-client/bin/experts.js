@@ -1,8 +1,5 @@
 #! /usr/bin/env node
 
-import * as dotenv from 'dotenv';
-dotenv.config();
-
 import {Command} from 'commander';
 const program = new Command();
 import pkg from '../package.json' assert { type: "json" };
@@ -23,14 +20,6 @@ program
   })
 
 program
-  .option('--iam-auth <key>', 'UC Davis IAM authentication key')
-  .option('--iam-endpoint <endpoint>', 'UC Davis IAM endpoint', 'https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?isFaculty=true')
-  .hook('preSubcommand', (command, sub_command) => {
-    process.env.EXPERTS_IAM_AUTH = command.opts().iamAuth;
-    process.env.EXPERTS_IAM_ENDPOINT = command.opts().iamEndpoint;
-  })
-
-program
   .command('import', 'import data into aggie experts')
   .command('localdb', 'load/query local database')
   .command('splay', 'splay linked data into a directory structure')
@@ -39,3 +28,5 @@ program
   .command('build', 'build fcrepo files from linked data')
 
 program.parse(process.argv);
+
+
