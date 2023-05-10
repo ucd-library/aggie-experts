@@ -73,6 +73,6 @@
     "url":{"@id":"cite:url"},
     "volume":{"@id":"cite:volume"}
   },
-  "@type": "ucdlib:Person",
+  "@graph": {"@type": "ucdlib:Person" },
   "@embed": "@once"
 }

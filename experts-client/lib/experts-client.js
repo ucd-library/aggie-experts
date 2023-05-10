@@ -16,6 +16,7 @@ import localDB from './localDB.js';
 import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
+import path from 'path';
 
 const jsonld=new JsonLdProcessor();
 
@@ -241,7 +242,7 @@ catch (err) {
 * @returns
 *
 */
-  async splay(cli) {
+  async splay(opt) {
 
     function str_or_file(opt,param,required) {
       if (opt[param]) {
@@ -257,29 +258,29 @@ catch (err) {
       }
     }
 
-//    console.log(cli);
-    const bind = str_or_file(cli,'bind',true);
-    const construct = str_or_file(cli,'construct',true);
-    const frame = str_or_file(cli,'frame',false)
-    if (cli.frame) {
-      cli.frame=JSON.parse(cli.frame);
+//    console.log(opt);
+    const bind = str_or_file(opt,'bind',true);
+    const construct = str_or_file(opt,'construct',true);
+    const frame = str_or_file(opt,'frame',false)
+    if (opt.frame) {
+      opt.frame=JSON.parse(opt.frame);
     }
 
     let q;
     let sources=null;
-    if (cli.quadstore) {
-      const db = await localDB.create({level:'ClassicLevel',path:cli.quadstore});
-      //  cli.source=[db];
+    if (opt.quadstore) {
+      const db = await localDB.create({level:'ClassicLevel',path:opt.quadstore});
+      //  opt.source=[db];
       q = new Engine(db.store);
       sources=null;
     } else {
       q = new QueryEngine();
-      sources=cli.source;
+      sources=opt.source;
     }
 
     const factory=new DataFactory();
 
-    const bindingStream=await q.queryBindings(cli.bind,{sources: cli.source})
+    const bindingStream=await q.queryBindings(opt.bind,{sources: opt.source})
     bindingStream.on('data', construct_one )
       .on('error', (error) => {
         console.error(error);
@@ -298,7 +299,11 @@ catch (err) {
       // }
       let fn=1; // write to stdout by default
       if ( bindings.get('filename') && bindings.get('filename').value) {
-        fn=bindings.get('filename').value
+        if (opt.output) {
+          fn=path.join(opt.output,bindings.get('filename').value);
+        } else {
+          fn=bindings.get('filename').value
+        }
       }
       let graph = null;
       if (bindings.get('graph')) {
@@ -306,7 +311,7 @@ catch (err) {
       }
 
       // convert construct to jsonld quads
-      const quadStream = await q.queryQuads(cli.construct,{initialBindings:bindings, sources: cli.source});
+      const quadStream = await q.queryQuads(opt.construct,{initialBindings:bindings, sources: opt.source});
       const quads = await quadStream.toArray();
       if (graph) {
         // console.log('graph: '+graph.value);
@@ -317,14 +322,14 @@ catch (err) {
       let doc=await jsonld.fromRDF(quads)
 
       if (frame) {
-        cli.frame['@context'] = (cli.frame['@context'] instanceof Array ? cli.frame['@context'] : [cli.frame['@context']])
-        cli.frame['@context'].push({"@base":graph.value});
-        cli.frame['@id']=graph.value;
-        doc=await jsonld.frame(doc,cli.frame,{omitGraph:true,safe:true})
+        opt.frame['@context'] = (opt.frame['@context'] instanceof Array ? opt.frame['@context'] : [opt.frame['@context']])
+        opt.frame['@context'].push({"@base":graph.value});
+        opt.frame['@id']=graph.value;
+        doc=await jsonld.frame(doc,opt.frame,{omitGraph:true,safe:true})
         // doc['@id']='';
-        // doc['@context']=["info:fedora/context/experts.json",{"@base":graph.value}];
-        doc['@context']="info:fedora/context/experts.json";
-        //console.log('framed',doc);
+        doc['@context']=[
+          "info:fedora/context/experts.json",
+          {"@base":graph.value}];
       } else {
         //      doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
       }

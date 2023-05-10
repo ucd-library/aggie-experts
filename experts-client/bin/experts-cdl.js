@@ -38,8 +38,6 @@ program.name('cdl')
 program.parse(process.argv);
 
 const ql = await new QueryLibrary().load();
-console.log(ql);
-console.log(ql.getSplay('work'))
 
 // This sbould be a standard function for all cmdline tools
 const cli = program.opts();
@@ -67,12 +65,9 @@ if (cli.fuseki.isTmp) {
 //const authorship = await ec.splay({...cli, ...ql.getSplay('authorship')});
 
 // ['person','work','authorship'].forEach(
- ['person'].forEach(
+['person','work','authorship'].forEach(
    async (n)=>{
-     const cli2 = {...cli, ...ql.getSplay(n)};
-     delete cli2["frame@"];
-//     return await ec.splay({...cli, ...ql.getSplay(n)});
-     return await ec.splay(cli2);
+     return await ec.splay({...cli, ...ql.getSplay(n)});
    });
 
 // Any other value don't delete
