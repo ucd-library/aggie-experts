@@ -1,22 +1,21 @@
 
 * IAM example
 
-  Let's show how the splay can be used against the IAM example.  First let's
-  create a localstore of the IAM data.
+  Let's show how the splay can be used against the IAM example.  This new setup
+  will use a fuseki database base as the endpoint.
 
-  #+begin_src bash
+#+begin_src bash
+  docker run --publish=127.0.0.1:3030:3030 --name=fuseki --interactive --tty --rm \
+       -v splay_example:/home/ucd.process \
+         localhost/aggie-experts/harvest:HEAD server
+#+end_src
+
+#+begin_src bash
     cd aggie-test
     alias experts='node ~/aggie-experts/experts-client/bin/experts.js'
     experts --iam-auth ${IAM_AUTH} iam getIam
-  #+end_src
+ #+end_src
 
-Now we have a quadstore of iam data.  We can test that works using the localdb
-query.
-
-#+begin_src bash
-    experts localdb --quadstore=iam_quadstore query \
-            --query='prefix : <http://iam.ucdavis.edu/schema#> select ?kerb $filename  where { graph ?g { [] :userID ?kerb. bind(concat("person/",?kerb,".jsonld") as ?filename) } } limit 5'
-#+end_src
 
 Then, we can run the splay command:
 
