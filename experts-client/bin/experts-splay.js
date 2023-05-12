@@ -1,6 +1,6 @@
 'use strict';
 import fs from 'fs-extra';
-import { Command} from 'commander';
+import { Command } from 'commander';
 import { Engine } from 'quadstore-comunica';
 import { QueryEngine } from '@comunica/query-sparql';
 import { localDB } from '../lib/experts-client.js';
@@ -9,11 +9,11 @@ import { DataFactory } from 'rdf-data-factory';
 import ExpertsClient from '../lib/experts-client.js';
 import JsonLdProcessor from 'jsonld';
 
-const jsonld=new JsonLdProcessor();
+const jsonld = new JsonLdProcessor();
 const program = new Command();
 
 const fuseki = {
-  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
+  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3033',
   type: 'mem',
   db: null,
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
@@ -44,19 +44,20 @@ program.parse(process.argv);
 
 const cli = program.opts();
 // fusekize cli
-Object.keys(cli).forEach((k)=>{
-  const n=k.replace(/^fuseki./,'')
+Object.keys(cli).forEach((k) => {
+  const n = k.replace(/^fuseki./, '')
   if (n !== k) {
     cli.fuseki ||= {};
-    cli.fuseki[n]=cli[k];
+    cli.fuseki[n] = cli[k];
     delete cli[k];
-  }});
+  }
+});
 
-const files=program.args;
+const files = program.args;
 
 const ec = new ExpertsClient(cli);
 if (cli.fuseki.isTmp) {
-  const fuseki=await ec.mkFusekiTmpDb(cli,files);
+  const fuseki = await ec.mkFusekiTmpDb(cli, files);
   cli.source ||= [];
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}`);
 }
