@@ -16,6 +16,7 @@ import localDB from './localDB.js';
 import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
+import path from 'path';
 
 const jsonld = new JsonLdProcessor();
 
@@ -141,7 +142,7 @@ export class ExpertsClient {
       fuseki.type = fuseki.type || 'mem';
     }
     // just throw the error if it fails
-    const res = await fetch(`${fuseki.url}/\$/datasets`,
+    const res = await fetch(path.join(fuseki.url,'$','datasets'),
       {
         method: 'POST',
         body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
@@ -150,8 +151,14 @@ export class ExpertsClient {
         }
 
       });
-
-    fuseki.files = await this.addToFusekiDb(opt, files);
+    // const text = await res.text();
+    // console.log(text);
+    if (res.status !== 200) {
+      throw new Error(`Did not get an OK from the server. Code: ${res.status}`);
+    }
+    if (files) {
+      fuseki.files = await this.addToFusekiDb(opt, files);
+    }
     return fuseki;
   }
 
