@@ -2,7 +2,7 @@
   "typeMappers" : [
     {
     "id" : "grant",
-    "types" : [ "http://schema.library.ucdavis.edu/grant",
+    "types" : [ "http://schema.library.ucdavis.edu/schema#Grant",
                 "http://vivoweb.org/ontology/core#Grant"
               ],
     "basePath": "/grant",
@@ -10,7 +10,7 @@
   },
     {
     "id" : "person",
-    "types" : [ "http://schema.library.ucdavis.edu/person"
+    "types" : [ "http://schema.library.ucdavis.edu/schema#Person"
               ],
     "basePath": "/person",
     "type" : "experts"
@@ -18,7 +18,7 @@
 
     {
     "id" : "work",
-    "types" : ["http://schema.library.ucdavis.edu/work",
+    "types" : ["http://schema.library.ucdavis.edu/schema#Work",
                "http://vivoweb.org/ontology/core#Work"],
     "basePath" : "/work",
     "virtualIndirectContainers" : {
