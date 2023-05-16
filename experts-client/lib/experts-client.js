@@ -60,28 +60,6 @@ export class ExpertsClient {
 
   }
 
-  // async getSecret(name) {
-  //   const [secret] = await client.getSecret({
-  //     name: name,
-  //   });
-
-  //   async function accessSecretVersion() {
-  //     const [version] = await client.accessSecretVersion({
-  //       name: name + '/versions/latest',
-  //     });
-
-  //     // Extract the payload as a string.
-  //     const payload = version.payload.data.toString();
-
-  //     // WARNING: Do not print the secret in a production environment - this
-  //     // snippet is showing how to access the secret material.
-  //     //   console.info(`Payload: ${payload}`);
-  //     return payload.slice(4);
-  //     //   console.log('getSecret ' + key);
-  //   }
-  //   return await accessSecretVersion();
-  // }
-
   /** Return a local db */
   async getLocalDB(options) {
     if (!this.store) {
@@ -92,7 +70,6 @@ export class ExpertsClient {
 
   /** Fetch Researcher Profiles from the UCD IAM API */
   async getIAMProfiles() {
-
     const response = await fetch(this.cli.iamEndpoint + '&key=' + this.cli.iamAuth);
     console.log(this.cli.iamEndpoint + '&key=' + this.cli.iamAuth);
 
@@ -243,40 +220,14 @@ export class ExpertsClient {
     headers: {
       'Content-Type': 'application/ld+json',
       'Authorization': 'Basic ' + this.cli.fusekiAuth
-
-  async createDataset(datasetName, fusekiUrl, username, password) {
-
-    const auth = {
-      user: username,
-      pass: password,
-    };
-
-    const url = `${fusekiUrl}/$/datasets`;
-    console.log(url);
-    const body = new URLSearchParams({
-      dbName: datasetName,
-      dbType: 'tdb2',
-    });
-
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${Buffer.from(`${auth.user}:${auth.pass}`).toString('base64')}`,
-      },
-      body,
-    };
-
-    const response = await fetch(url, options);
-    // console.log(response);
-
-    if (!response.ok) {
-      throw new Error(`Failed to create dataset. Status code: ${response.statusText}`);
     }
-
-    return await response.text();
+    }).then(res => res.text())
+      .catch(err => console.log(err));
   }
-
+  catch (err) {
+    console.log(err);
+  }
+  }
 
 
   async createGraphFromJsonLdFile(datasetName, jsonLdFilePath, fusekiUrl, username, password) {
@@ -371,6 +322,7 @@ export class ExpertsClient {
 
     let binding_count=0;
 
+
     async function construct_one(bindings) {
       // binding_count++;
       // if (binding_count > 20) {
@@ -385,33 +337,27 @@ export class ExpertsClient {
           fn=bindings.get('filename').value
         }
       }
-      let graph = null;
-      if (bindings.get('graph')) {
-        graph=factory.namedNode(bindings.get('graph').value);
-      }
+      // There can be no graphs in constructs, and LDP imports
+      // let graph = null;
+      // if (bindings.get('graph')) {
+      //   graph=factory.namedNode(bindings.get('graph').value);
+      // }
 
       // convert construct to jsonld quads
       const quadStream = await q.queryQuads(opt.construct,{initialBindings:bindings, sources: opt.source});
       const quads = await quadStream.toArray();
-      if (graph) {
-        // console.log('graph: '+graph.value);
-        quads.forEach((quad) => {
-          quad._graph=graph;
-        });
-      }
+      // if (graph) {
+      //   // console.log('graph: '+graph.value);
+      //   quads.forEach((quad) => {
+      //     quad._graph=graph;
+      //   });
+      // }
       let doc=await jsonld.fromRDF(quads)
 
       if (frame) {
-        opt.frame['@context'] = (opt.frame['@context'] instanceof Array ? opt.frame['@context'] : [opt.frame['@context']])
-        opt.frame['@context'].push({"@base":graph.value});
-        opt.frame['@id']=graph.value;
-        doc=await jsonld.frame(doc,opt.frame,{omitGraph:true,safe:true})
-        // doc['@id']='';
-        doc['@context']=[
-          "info:fedora/context/experts.json",
-          {"@base":graph.value}];
+        doc=await jsonld.frame(doc,opt.frame,{omitGraph:false,safe:true})
       } else {
-        //      doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
+        doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
       }
       console.log(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
@@ -424,6 +370,20 @@ export class ExpertsClient {
     }
     return true;
   }
+
+  /**
+   * @description Modify a frame to include a graph match.  If for whatever reason the document has multiple graphs this will select one. I don't think this is needed
+   * @param doc - jsonld document
+   **/
+  function graphify(doc,frame,graph) {
+    frame['@context'] = (frame['@context'] instanceof Array ? frame['@context'] : [frame['@context']])
+    frame['@context'].push({"@base":graph.value});
+    frame['@id']=graph.value;
+  }
+  doc=await jsonld.frame(doc,opt.frame,{omitGraph:true,safe:true})
+  doc['@context']=[
+    "info:fedora/context/experts.json",
+    {"@base":graph.value}];
 
 }
 

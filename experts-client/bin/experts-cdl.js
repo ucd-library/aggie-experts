@@ -59,15 +59,12 @@ if (cli.fuseki.isTmp) {
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}`);
 }
 
-// splay work
-// const work = await ec.splay({...cli, ...ql.getSplay('work')});
-// authorships
-//const authorship = await ec.splay({...cli, ...ql.getSplay('authorship')});
 
-// ['person','work','authorship'].forEach(
 ['person','work','authorship'].forEach(
-   async (n)=>{
-     return await ec.splay({...cli, ...ql.getSplay(n)});
+  async (n)=>{
+    const splay=ql.getSplay(n);
+     delete splay["frame@"];
+     return await ec.splay({...cli, ...splay});
    });
 
 // Any other value don't delete

@@ -16,7 +16,7 @@
   #+end_src
 
   #+begin_src bash
-    FUSEKI_PASSWORD=testing123 cdl-elements --data=http://localhost:3030/quinn --cache=person users --pubs quinn
+ It    FUSEKI_PASSWORD=testing123 cdl-elements --data=http://localhost:3030/quinn --cache=person users --pubs quinn
   #+end_src
 
   #+RESULTS:
