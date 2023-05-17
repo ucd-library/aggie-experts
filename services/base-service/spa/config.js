@@ -13,7 +13,7 @@ config.client = {
   // TODO: move this to fcrepo
   title : 'Aggie Experts',
   description : 'Aggie Experts is a research networking and expertise discovery tool for UC Davis.',
-  appName : process.env.FIN_APP_NAME || 'ucd-lib-client',
+  appName : process.env.FIN_APP_NAME || 'spa',
   assets : (env === 'prod') ? 'dist' : 'public',
   appRoutes : ['about', 'work', 'person', 'grant'],
   versions : {
