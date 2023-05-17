@@ -450,12 +450,12 @@ function fetch() {
       application/ld+json)
 #        logit[jq]=${G[util_jq]}"${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '${G[util_riot]}' --formatted=jsonld --syntax=jsonld'
         log_assoc -v logit
-        ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=jsonld --syntax=jsonld
+        ${G[util_jq]} "${G[fetch_context]}"' + {"@id":"http://iam.ucdavis.edu/","@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=jsonld --syntax=jsonld
         shift;;
       text/turtle)
 #        logit[jq]=${G[util_jq]}"${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '"${G[util_riot]} --formatted=ttl --syntax=jsonld"
         log_assoc -v logit
-        ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=ttl --syntax=jsonld
+        ${G[util_jq]} "${G[fetch_context]}"' + {"@id":"http://iam.ucdavis.edu/","@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=ttl --syntax=jsonld
         shift;;
       *)
         err 1 ${G[ucid_fetch_format]} is invalid format

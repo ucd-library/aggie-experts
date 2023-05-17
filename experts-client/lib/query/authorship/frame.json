@@ -1,0 +1,19 @@
+{"@context":{
+  "@base":"info:fedora/ark:/87287/d7_cdltest_/relationships/",
+  "person":"http://experts.ucdavis.edu/person/",
+  "cdl":"ark:/87287/d7_cdltest_/",
+  "ucdlib":"http://schema.library.ucdavis.edu/schema#",
+  "vivo":"http://vivoweb.org/ontology/core#",
+  "xsd":"http://www.w3.org/2001/XMLSchema#",
+  "Authorship":"vivo:Authorship",
+  "relates":{"@id":"vivo:relates",
+             "@type":"@id"},
+  "favorite":{
+    "@id":"ucdlib:favorite",
+    "@type":"xsd:boolean"
+  }
+},
+ "@graph":{
+   "@type":"Authorship"
+ }
+}

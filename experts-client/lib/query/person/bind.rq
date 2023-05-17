@@ -1,0 +1,10 @@
+prefix : <http://iam.ucdavis.edu/schema#>
+prefix person: <http://experts.ucdavis.edu/person/>
+select distinct ?kerb ?filename ?graph  where {
+  graph ?g {
+    [] :userID ?kerb.
+    bind(concat("person/",md5(concat(str(?kerb), "@ucdavis.edu"))) as ?id)
+    bind(concat(?id,".jsonld.json") as ?filename)
+    bind(uri(concat("info:fedora/",?id,"/")) as ?graph)
+  }
+}
