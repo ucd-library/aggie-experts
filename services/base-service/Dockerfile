@@ -6,11 +6,11 @@ FROM ${FIN_SERVER_IMAGE}
 ARG OUR_SERVICE_ROOT=./
 
 # # Client Code
-RUN mkdir -p ${FIN_SERVICE_ROOT}/ucd-lib-client
+RUN mkdir -p ${FIN_SERVICE_ROOT}/spa
 
 WORKDIR ${FIN_SERVICE_ROOT}
-COPY ucd-lib-client ucd-lib-client
-WORKDIR ${FIN_SERVICE_ROOT}/ucd-lib-client
+COPY spa spa
+WORKDIR ${FIN_SERVICE_ROOT}/spa
 RUN rm -rf node_modules
 RUN npm ci
 RUN npm link @ucd-lib/fin-service-utils

@@ -1,0 +1,30 @@
+* Aggie Experts
+
+
+** FCREPO Services
+
+   fcrepo services are small functions that can be run on items in Aggie
+   experts. This are used by internal services, but can also be used as
+   debugging tools.  The following services are helpful:
+
+
+*** svc:node
+    This service shows how an item is represented in the elasticsearch
+    documents.  A complete elastic search document is a set of nodes, this only
+    shows the node related to a particular item.
+
+*** svc:cite
+    When applied to a work, this shows that citationstyles json for a work.
+    This should be directly importable into a citation manager like zotero
+
+
+
+** Kibana
+
+
+** Questions / Comments?
+ To report an issue or provide feedback go to [[https://github.com/ucd-library/aggie-experts-public-issues/issues/new/choose][new issues]]
+
+ Click [[https://github.com/ucd-library/aggie-experts-public-issues/issues][Issues]]
+
+ Thanks for taking an active role in the development of Aggie Experts!
