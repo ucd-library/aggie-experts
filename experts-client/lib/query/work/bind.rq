@@ -16,7 +16,8 @@ WHERE {
 
   filter (isiri(?pub))
   bind(replace(str(?pub),str(oap:),"") as ?id)
-  bind(concat(str(cdl:),"work/",?id,".jsonld.json") as ?filename)
+#  bind(concat(str(cdl:),"work/",?id,".jsonld.json") as ?filename)
+  bind(concat("work/",?id,".jsonld.json") as ?filename)
   bind(uri(concat("info:fedora/",?filename)) as ?graph)
   }
 }

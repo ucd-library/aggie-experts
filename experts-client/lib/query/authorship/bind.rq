@@ -7,7 +7,7 @@ prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
 
-select distinct ?relationship ?filename ?graph where {
+select distinct ?relationship ?filename where {
   graph ?g {
     ?relationship :type "publication-user-authorship";
                   :effective-privacy-level "Public";
@@ -21,8 +21,7 @@ select distinct ?relationship ?filename ?graph where {
   }
 
   bind(replace(str(?relationship),str(oap:),"") as ?id)
-#  bind(concat(str(cdl:),?user_id,"/relationships/",?id,".jsonld.json") as ?filename)
-  bind(concat(str(cdl:),"relationships/",?id,".jsonld.json") as ?filename)
-  bind(uri(concat("info:fedora/",?filename)) as ?graph)
+#  bind(concat(str(cdl:),?user_id,"/authorship/",?id,".jsonld.json") as ?filename)
+  bind(concat("authorship/",?id,".jsonld.json") as ?filename)
   filter(regex(?user,"@ucdavis.edu"))
 }

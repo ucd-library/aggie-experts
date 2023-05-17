@@ -29,10 +29,10 @@ program.name('cdl')
   .option('--output <output>', 'output directory')
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
   .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
-  .option('--fuseki.type', 'specify type on --fuseki.isTmp creation', 'mem')
+  .option('--fuseki.type [type]', 'specify type on --fuseki.isTmp creation', 'mem')
   .option('--fuseki.url', 'fuseki url', fuseki.url)
   .option('--fuseki.auth', 'fuseki authorization', fuseki.auth)
-  .option('--fuseki.db=<name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated')
+  .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated')
   .option('--save-tmp', 'Do not remove temporary file', false)
 
 program.parse(process.argv);
@@ -55,16 +55,18 @@ const files=program.args;
 const ec = new ExpertsClient(cli);
 if (cli.fuseki.isTmp) {
   const fuseki=await ec.mkFusekiTmpDb(cli,files);
+  console.log(cli);
   cli.source ||= [];
-  cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}`);
+  cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}/sparql`);
 }
 
 
 ['person','work','authorship'].forEach(
   async (n)=>{
     const splay=ql.getSplay(n);
-     delete splay["frame@"];
-     return await ec.splay({...cli, ...splay});
+    console.log(splay)
+//    delete splay["frame@"];
+    return await ec.splay({...cli, ...splay});
    });
 
 // Any other value don't delete

@@ -52,7 +52,7 @@ export class ExpertsClient {
     cli.fusekiPW ??= process.env.EXPERTS_FUSEKI_PW;
     cli.fusekiUser ??= process.env.EXPERTS_FUSEKI_USER;
     cli.fusekiDataset ??= process.env.EXPERTS_FUSEKI_DATASET;
-    cli.source ??= process.env.EXPERTS_FUSEKI_ENDPOINT + process.env.EXPERTS_FUSEKI_PROFILE_SOURCE + '/sqarql';
+//    cli.source ??= process.env.EXPERTS_FUSEKI_ENDPOINT + process.env.EXPERTS_FUSEKI_PROFILE_SOURCE + '/sqarql';
 
     // console.log(cli);
 
@@ -311,6 +311,7 @@ export class ExpertsClient {
 
     const factory=new DataFactory();
 
+    console.log('bind: '+bind);
     const bindingStream=await q.queryBindings(opt.bind,{sources: opt.source})
     bindingStream.on('data', construct_one )
       .on('error', (error) => {
@@ -321,7 +322,6 @@ export class ExpertsClient {
       });
 
     let binding_count=0;
-
 
     async function construct_one(bindings) {
       // binding_count++;
@@ -337,21 +337,9 @@ export class ExpertsClient {
           fn=bindings.get('filename').value
         }
       }
-      // There can be no graphs in constructs, and LDP imports
-      // let graph = null;
-      // if (bindings.get('graph')) {
-      //   graph=factory.namedNode(bindings.get('graph').value);
-      // }
-
       // convert construct to jsonld quads
       const quadStream = await q.queryQuads(opt.construct,{initialBindings:bindings, sources: opt.source});
       const quads = await quadStream.toArray();
-      // if (graph) {
-      //   // console.log('graph: '+graph.value);
-      //   quads.forEach((quad) => {
-      //     quad._graph=graph;
-      //   });
-      // }
       let doc=await jsonld.fromRDF(quads)
 
       if (frame) {
@@ -375,16 +363,16 @@ export class ExpertsClient {
    * @description Modify a frame to include a graph match.  If for whatever reason the document has multiple graphs this will select one. I don't think this is needed
    * @param doc - jsonld document
    **/
-  function graphify(doc,frame,graph) {
+  async graphify(doc,frame,graph) {
     frame['@context'] = (frame['@context'] instanceof Array ? frame['@context'] : [frame['@context']])
     frame['@context'].push({"@base":graph.value});
     frame['@id']=graph.value;
+
+    doc=await jsonld.frame(doc,opt.frame,{omitGraph:true,safe:true})
+    doc['@context']=[
+      "info:fedora/context/experts.json",
+      {"@base":graph.value}];
+
   }
-  doc=await jsonld.frame(doc,opt.frame,{omitGraph:true,safe:true})
-  doc['@context']=[
-    "info:fedora/context/experts.json",
-    {"@base":graph.value}];
-
 }
-
 export default ExpertsClient;
