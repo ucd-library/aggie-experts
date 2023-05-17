@@ -9,12 +9,12 @@ function main.cmd() {
     [org]=localhost/aggie-experts
     [cache]=latest
     [fin_org]=localhost/local-dev
-    [fin_version]=
+    [fin_tag]=
     [noop]=
     )
 
     local opts;
-    if ! opts=$(${G[shell_getopt]} -o nv:d:f: --long fin:,dir:,noop,version:,help -n "build-fin" -- "$@"); then
+    if ! opts=$(${G[shell_getopt]} -o nv:d:f: --long fin_tag:,fin_org:,dir:,noop,tag:,help -n "build-fin" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -24,8 +24,9 @@ function main.cmd() {
     while true; do
 	    case $1 in
         -d | --dir ) CMD[dir]=$2; shift 2;;
-	      -v | --version) CMD[version]=$2;  shift 2;;
-	      -f | --fin) CMD[fin_version]=$2;  shift 2;;
+	      -v | --tag) CMD[tag]=$2;  shift 2;;
+	      -f | --fin_tag) CMD[fin_tag]=$2;  shift 2;;
+	      -f | --fin_org) CMD[fin_org]=$2;  shift 2;;
         -n | --noop) CMD[noop]="echo"; shift;;
         -h | --help ) exec pod2text "$0";;
 	      -- ) shift; break;;
@@ -45,14 +46,13 @@ function main.cmd() {
 # Fill in G[] with repo defaults
 function repo_G () {
   G[repo]=$(basename -s .git $(git config --get remote.origin.url))
-  G[branch_name]=$(git branch --show-current)
-  G[tag_name]=$(git tag --points-at HEAD)
+#  G[branch_name]=$(git branch --show-current)
+#  G[tag_name]=$(git tag --points-at HEAD)
   G[base]=$(git rev-parse --show-toplevel)
   #G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
   G[sha]=$(git log -1 --pretty=%h)
-
-  G[ref_name]=${G[tag_name]:-${G[branch_name]}}
-  G[version]=${G[version]:-$(git describe --tags --always --dirty)}
+#  G[ref_name]=${G[tag_name]:-${G[branch_name]}}
+  G[tag]=${G[tag]:-$(git describe --tags --always --dirty)}
 }
 
 function build() {
@@ -60,15 +60,13 @@ function build() {
   repo_G
   cd ${G[base]}
 
-  G[fin_version]=${G[fin_version]:-$(git --git-dir=fin/.git describe --tags --always --dirty)}
-
-  declare -a services=(init fcrepo)
+  declare -a services=(init fcrepo base-service)
 
   for service in "${services[@]}"; do
-    local image=${G[org]}/${service}:${G[version]}
-    local fin_base=${G[fin_org]}/fin-base-service:${G[fin_version]}
-    local fin_init=${G[fin_org]}/fin-init:${G[fin_version]}
-    local fin_fcrepo=${G[fin_org]}/fin-fcrepo:${G[fin_version]}
+    local image=${G[org]}/${service}:${G[tag]}
+    local fin_base=${G[fin_org]}/fin-base-service:${G[fin_tag]}
+    local fin_init=${G[fin_org]}/fin-init:${G[fin_tag]}
+    local fin_fcrepo=${G[fin_org]}/fin-fcrepo:${G[fin_tag]}
 
     ${G[noop]} docker build \
            --build-arg INIT_BASE=$fin_init \
@@ -79,15 +77,15 @@ function build() {
            services/${service}
   done
 
-# Build base differently for some reason
+# # Build base differently for some reason
 
-  local image=${G[org]}/base-service:${G[version]}
+#   local image=${G[org]}/base-service:${G[tag]}#
 
-  ${G[noop]} docker build \
-             --build-arg FIN_SERVER_IMAGE=$fin_base \
-             -t $image \
-             --cache-from $image \
-             services/fin
+#   ${G[noop]} docker build \
+#              --build-arg FIN_SERVER_IMAGE=$fin_base \
+#              -t $image \
+#              --cache-from $image \
+#              services/fin
 
  }
 

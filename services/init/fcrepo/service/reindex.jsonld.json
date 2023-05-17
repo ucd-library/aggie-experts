@@ -4,8 +4,8 @@
     "http://digital.ucdavis.edu/schema#Service",
     "http://digital.ucdavis.edu/schema#ProxyService"
   ],
-  "urlTemplate": "http://essync:3000/reindex/{{fcPath}}{{svcPath}}",
-  "description": "Reindex item or collection",
+  "urlTemplate": "http://dbsync:3000/reindex/{{fcPath}}{{svcPath}}",
+  "description": "Reindex containers, crawling children, sending Reindex events on ActiveMQ",
   "identifier": "reindex",
   "title": "reindex",
   "@context": {

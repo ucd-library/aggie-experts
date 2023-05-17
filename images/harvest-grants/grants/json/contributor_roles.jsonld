@@ -1,0 +1,142 @@
+{
+  "@graph": [
+  {
+    "@id" : "ucdrp:ChartOfAccounts_3",
+    "@type" : "ucdrp:ChartOfAccounts",
+    "rdfs:label" : "UCDAVIS"
+  }, {
+    "@id" : "ucdrp:ChartOfAccounts_H",
+    "@type" : "ucdrp:ChartOfAccounts",
+    "rdfs:label" : "UCDAVIS TEACHING HOSPITAL"
+  }, {
+    "@id" : "ucdrp:ChartOfAccounts_L",
+    "@type" : "ucdrp:ChartOfAccounts",
+    "rdfs:label" : "UCDAVIS SYSTEMWIDE PROGRAMS"
+  }, {
+    "@id" : "ucdrp:ChartOfAccounts_M",
+    "@type" : "ucdrp:ChartOfAccounts",
+    "rdfs:label" : "UCDAVIS TEACHING HOSPITAL PLANT"
+  }, {
+    "@id" : "ucdrp:ChartOfAccounts_N",
+    "@type" : "ucdrp:ChartOfAccounts",
+    "rdfs:label" : "UC DAVIS SYSTEMWIDE PROGRAMS PLANT"
+  }, {
+    "@id" : "ucdrp:ChartOfAccounts_P",
+    "@type" : "ucdrp:ChartOfAccounts",
+    "rdfs:label" : "UC DAVIS - PLANT"
+  }, {
+    "@id" : "ucdrp:ChartOfAccounts_S",
+    "@type" : "ucdrp:ChartOfAccounts",
+    "rdfs:label" : "UCDAVIS SCHOOL OF MEDICINE"
+  }, {
+    "@id" : "ucdrp:ChartOfAccounts_UC",
+    "@type" : "ucdrp:ChartOfAccounts",
+    "rdfs:label" : "UNIVERSITY OF CALIFORNIA"
+  }, {
+    "@id" : "ucdrp:GrantCoPrincipalInvestigatorRole",
+    "@type" : "vivo:ResearcherRole",
+    "ucdrp:abbrev" : "COPI",
+    "obo:IAO_0000112" : "The head of a research project is called a Principal Investigator. On occasion, he or she may have one or more Co-Principal Investigators who share with him or her responsibility for participatory conduct of the project.",
+    "rdfs:label" : "Co-Principal Investigator"
+  }, {
+    "@id" : "ucdrp:GrantCoreLeaderRole",
+    "@type" : "vivo:ResearcherRole",
+    "ucdrp:abbrev" : "CLDR",
+    "obo:IAO_0000112" : "Investigator who is designated as the lead for a core, as a component/project in large multi-project proposals like center grants (e.g. Center ABC, with an Administrative Core, an Education Core, and two projects). NIH refers to it as a distinct, reviewable part for which there is a business need to gather detailed information identified in the funding opportunity announcement.",
+    "rdfs:label" : "Core Leader"
+  }, {
+    "@id" : "ucdrp:GrantKeyPersonnelRole",
+    "@type" : "vivo:ResearcherRole",
+    "ucdrp:abbrev" : "KP",
+    "obo:IAO_0000112" : "Umbrella term for an investigator who will contribute / do work on / carry out the proposed project, part of the research team. May also be referred to as a primary contributor or senior personnel. Per NIH: individuals who contribute to the scientific development or execution of a project in a substantive, measurable way, whether or not they receive salaries or compensation under the grant Consultants and those with a postdoctoral role also may be considered senior/key personnel if they meet this definition. Senior/key personnel must devote measurable effort to the project whether or not salaries or compensation are requested. \"Zero percent\" effort or \"as needed\" are not acceptable levels of involvement for those designated as Senior/Key Personnel.",
+    "rdfs:label" : "Key Personnel"
+  }, {
+    "@id" : "ucdrp:GrantOtherRole",
+    "@type" : "vivo:ResearcherRole",
+    "ucdrp:abbrev" : "OTHR",
+    "rdfs:label" : "Researcher"
+  }, {
+    "@id" : "ucdrp:GrantPrincipalInvestigatorRole",
+    "@type" : "vivo:ResearcherRole",
+    "ucdrp:abbrev" : "PI",
+    "obo:IAO_0000112" : "The head of a research project is called a Principal Investigator. On occasion, he or she may have one or more Co-Principal Investigators who share with him or her responsibility for participatory conduct of the project.",
+    "rdfs:label" : "Principal Investigator"
+  }, {
+    "@id" : "ucdrp:GrantProgramDirectorRole",
+    "@type" : "vivo:ResearcherRole",
+    "ucdrp:abbrev" : "PDIR",
+    "obo:IAO_0000112" : "Often used interchangeably with Principal Investigator (PD/PI); the person responsible for the project or program if awarded.",
+    "rdfs:label" : "Program Director"
+  }, {
+    "@id" : "ucdrp:GrantProjectLeaderRole",
+    "@type" : "vivo:ResearcherRole",
+    "ucdrp:abbrev" : "PLDR",
+    "obo:IAO_0000112" : "Investigator who is designated as the lead for a particular component within a multi-project proposal. Project may be used interchangeably with Core as defined above.",
+    "rdfs:label" : "Project Leader"
+  }, {
+    "@id" : "ucdrp:GrantType",
+    "rdfs:label" : "Grant Type"
+  }, {
+    "@id" : "ucdrp:GrantTypeAcademicSupport",
+    "ucdrp:abbrev" : "G",
+    "rdf:type" : {
+      "@id" : "ucdrp:GrantType"
+    },
+    "rdfs:label" : "Academic Support"
+  }, {
+    "@id" : "ucdrp:GrantTypeDefault",
+    "ucdrp:abbrev" : "X",
+    "rdf:type" : {
+      "@id" : "ucdrp:GrantType"
+    },
+    "rdfs:label" : "Default"
+  }, {
+    "@id" : "ucdrp:GrantTypeInstruction",
+    "ucdrp:abbrev" : "A",
+    "rdf:type" : {
+      "@id" : "ucdrp:GrantType"
+    },
+    "rdfs:label" : "Instruction"
+  }, {
+    "@id" : "ucdrp:GrantTypeResearch",
+    "ucdrp:abbrev" : "C",
+    "rdf:type" : {
+      "@id" : "ucdrp:GrantType"
+    },
+    "rdfs:label" : "Research"
+  }, {
+    "@id" : "ucdrp:GrantTypeScholarship",
+    "ucdrp:abbrev" : "S",
+    "rdf:type" : {
+      "@id" : "ucdrp:GrantType"
+    },
+    "rdfs:label" : "Scholarships / Fellowships"
+  }, {
+    "@id" : "ucdrp:GrantTypeService",
+    "ucdrp:abbrev" : "F",
+    "rdf:type" : {
+      "@id" : "ucdrp:GrantType"
+    },
+    "rdfs:label" : "Service / Other"
+  }, {
+    "@id" : "ucdrp:GrantTypeStudentService",
+    "ucdrp:abbrev" : "S",
+    "rdf:type" : {
+      "@id" : "ucdrp:GrantType"
+    },
+    "rdfs:label" : "Student Services"
+  } ],
+  "@id" : "experts:fis/",
+  "@context" : {
+    "xsd" : "http://www.w3.org/2001/XMLSchema#",
+    "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
+    "ucdrp" : "http://experts.ucdavis.edu/schema#",
+    "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "person" : "http://experts.ucdavis.edu/person/",
+    "vivo" : "http://vivoweb.org/ontology/core#",
+    "grant" : "http://experts.ucdavis.edu/grant/",
+    "experts" : "http://experts.ucdavis.edu/",
+    "obo" : "http://purl.obolibrary.org/obo/",
+    "foaf" : "http://xmlns.com/foaf/0.1/"
+  }
+}

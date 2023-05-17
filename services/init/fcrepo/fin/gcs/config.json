@@ -2,23 +2,23 @@
   "sync" : {
     "containers" : [
       {
-        "bucket" : "dams-client-{{DATA_ENV}}",
-        "basePath" : "/application/ucd-lib-client/item",
+        "bucket" : "aggie-experts-{{DATA_ENV}}",
+        "basePath" : "/application/spa/person",
         "direction" : "fcrepo-to-gcs",
         "initDataHydration" : true
       },
       {
-        "bucket" : "dams-client-{{DATA_ENV}}",
-        "basePath" : "/application/ucd-lib-client/collection",
+        "bucket" : "aggie-experts-{{DATA_ENV}}",
+        "basePath" : "/application/spa/work",
         "direction" : "fcrepo-to-gcs",
         "initDataHydration" : true
       }
     ]
   },
   "access" : [
-    { 
-      "bucket" : "dams-client-products",
-      "basePath" : "/item"
+    {
+      "bucket" : "aggie-experts-products",
+      "basePath" : "/person"
     }
   ]
 }

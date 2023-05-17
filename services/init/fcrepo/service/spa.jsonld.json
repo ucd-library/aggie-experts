@@ -1,0 +1,14 @@
+{
+  "@id": "",
+  "@type": [
+    "http://digital.ucdavis.edu/schema#ClientService",
+    "http://digital.ucdavis.edu/schema#Service"
+  ],
+  "url": "http://spa:3000",
+  "description": "This service serves the Aggie Experts Single Page Application.",
+  "identifier": "spa",
+  "title": "Aggie Experts Single Page Application",
+  "@context": {
+    "@base": "http://purl.org/dc/elments/1.1/"
+  }
+}
