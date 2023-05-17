@@ -35,28 +35,13 @@ export class ExpertsClient {
 
   /**
   * @constructor
-  * Accepts a cli object with options from a commander program.
+  * Accepts a opt object with options from a commander program.
   */
-  constructor(cli) {
+  constructor(opt) {
 
-    // console.log(cli);
-
-    // console.log('ExpertsClient constructor');
-
-    // This needs to be moved to a config.js class
-    // Accept CLI options for these values if they are provided. Defaults are set in the .env file.
-    cli.iamAuth ??= process.env.EXPERTS_IAM_AUTH;
-    cli.iamEndpoint ??= process.env.EXPERTS_IAM_ENDPOINT;
-    cli.fusekiEndpoint = process.env.EXPERTS_FUSEKI_ENDPOINT;
-    cli.fusekiAuth ??= process.env.EXPERTS_FUSEKI_AUTH;
-    cli.fusekiPW ??= process.env.EXPERTS_FUSEKI_PW;
-    cli.fusekiUser ??= process.env.EXPERTS_FUSEKI_USER;
-    cli.fusekiDataset ??= process.env.EXPERTS_FUSEKI_DATASET;
-//    cli.source ??= process.env.EXPERTS_FUSEKI_ENDPOINT + process.env.EXPERTS_FUSEKI_PROFILE_SOURCE + '/sqarql';
-
-    // console.log(cli);
-
-    this.cli = cli;
+    console.log(opt);
+    console.log('ExpertsClient constructor');
+    this.opt = opt;
 
   }
 
@@ -70,8 +55,9 @@ export class ExpertsClient {
 
   /** Fetch Researcher Profiles from the UCD IAM API */
   async getIAMProfiles() {
-    const response = await fetch(this.cli.iamEndpoint + '&key=' + this.cli.iamAuth);
-    console.log(this.cli.iamEndpoint + '&key=' + this.cli.iamAuth);
+
+    const response = await fetch(this.opt.iamEndpoint + '&key=' + this.opt.iamAuth);
+    console.log(this.opt.iamEndpoint + '&key=' + this.opt.iamAuth);
 
     // console.log(response)
 
@@ -109,33 +95,14 @@ export class ExpertsClient {
     };
     this.jsonld = '{"@context":' + JSON.stringify(context) + ',"@id":"http://iam.ucdavis.edu/", "@graph":' + JSON.stringify(docObj) + '}';
 
-    fs.writeFileSync('faculty.jsonld', this.jsonld);
-  }
-
-  /**
-   * create fuseki dataset
-   */
-  async createDataset(dbName, dbType) {
-    try {
-      await fetch( this.cli.iamEndpoint + '/$/datasets?dbName=' + dbName + '&dbType=' + dbType, {
-        method: 'POST',
-        body: '[]',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + this.cli.fusekiAuth
-        }
-      }).then(res => res.text())
-        .catch(err => console.log(err));
-    } catch (err) {
-      console.log(err);
-    }
+    // fs.writeFileSync('faculty.jsonld', this.jsonld);
   }
 
   /**
    * This could easily be joined w/ createDataset, and called mkDb and we only specify temp id if we done't have a name
    **/
-  async mkFusekiTmpDb(opt,files) {
-    const fuseki=opt.fuseki;
+  async mkFusekiTmpDb(opt, files) {
+    const fuseki = opt.fuseki;
     if (!fuseki.url) {
       throw new Error('No Fuseki url specified');
     }
@@ -147,22 +114,29 @@ export class ExpertsClient {
     if (fuseki.auth.match(':')) {
       fuseki.auth = Buffer.from(fuseki.auth).toString('base64');
     }
-    if (!fuseki.db ) {
-      fuseki.db=nanoid(5);
-      fuseki.isTmp=true;
-      fuseki.type= fuseki.type || 'mem';
+    if (!fuseki.db) {
+      fuseki.db = nanoid(5);
+      fuseki.isTmp = true;
+      fuseki.type = fuseki.type || 'mem';
     }
     // just throw the error if it fails
-    const res = await fetch(`${fuseki.url}/\$/datasets`,
-                            {
-                              method: 'POST',
-                              body:new URLSearchParams({'dbName': fuseki.db,'dbType': fuseki.type}),
-                              headers: {
-                                'Authorization': `Basic ${fuseki.auth}`
-                              }
-                            });
+    const res = await fetch(path.join(fuseki.url,'$','datasets'),
+      {
+        method: 'POST',
+        body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
+        headers: {
+          'Authorization': `Basic ${fuseki.auth}`
+        }
 
-    fuseki.files = await this.addToFusekiDb(opt,files);
+      });
+    // const text = await res.text();
+    // console.log(text);
+    if (res.status !== 200) {
+      throw new Error(`Did not get an OK from the server. Code: ${res.status}`);
+    }
+    if (files) {
+      fuseki.files = await this.addToFusekiDb(opt, files);
+    }
     return fuseki;
   }
 
@@ -170,27 +144,27 @@ export class ExpertsClient {
    * upload file to fuseki.  We unambiguousely specify the fuseki endpoint.
    And right now, you can't specify a default graph name for the jsonld file.
    */
-  async addToFusekiDb(opt,files) {
-    const fuseki=opt.fuseki;
+  async addToFusekiDb(opt, files) {
+    const fuseki = opt.fuseki;
     files instanceof Array ? files : [files]
     const results = [];
-    for (let i=0; i<files.length; i++) {
+    for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const jsonld=fs.readFileSync(file);
+      // const jsonld = fs.readFileSync(file);
       // Be good to have verbose output better NDJSON for debugging
       const res = await fetch(`${fuseki.url}/${fuseki.db}/data`, {
         method: 'POST',
-        body: jsonld,
+        body: this.jsonld,
         headers: {
           'Authorization': `Basic ${fuseki.auth}`,
           'Content-Type': 'application/ld+json'
         }
       })
       const json = await res.json();
-      const log={
-        file:file,
-        status:res.status,
-        response:json
+      const log = {
+        file: file,
+        status: res.status,
+        response: json
       };
       results.push(log);
     }
@@ -198,61 +172,54 @@ export class ExpertsClient {
   }
 
   async dropFusekiDb(opt) {
-    const fuseki=opt.fuseki;
+    const fuseki = opt.fuseki;
     if ((fuseki.isTmp || opt.force)
-        && (fuseki.url && fuseki.db)) {
+      && (fuseki.url && fuseki.db)) {
       const res = await fetch(`${fuseki.url}/\$/datasets/${fuseki.db}`,
-                              { method: 'DELETE',
-                              headers: {
-                                'Authorization': `Basic ${fuseki.auth}`
-                              }
-                              })
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Basic ${fuseki.auth}`
+          }
+        })
       return res.status;
     }
   }
 
-  async createGraph(dataset) {
-  try {
-
-    await fetch(this.cli.source + '/' + dataset + '/data', {
-    method: 'POST',
-    body: this.jsonld,
-    headers: {
-      'Content-Type': 'application/ld+json',
-      'Authorization': 'Basic ' + this.cli.fusekiAuth
+  async createDataset(opt) {
+    const fuseki = opt.fuseki;
+    if (fuseki.auth.match(':')) {
+      fuseki.auth = Buffer.from(fuseki.auth).toString('base64');
     }
-    }).then(res => res.text())
-      .catch(err => console.log(err));
-  }
-  catch (err) {
-    console.log(err);
-  }
+
+    const res = await fetch(`${fuseki.url}/\$/datasets`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${fuseki.auth}`
+        },
+        body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
+      })
+    return res.status;
   }
 
-
-  async createGraphFromJsonLdFile(datasetName, jsonLdFilePath, fusekiUrl, username, password) {
+  async createGraphFromJsonLdFile(opt) {
+    const fuseki = opt.fuseki;
     // Read JSON-LD file from file system
-    const jsonLdFileContent = fs.readFileSync(jsonLdFilePath, 'utf-8');
+    // const jsonLdFileContent = fs.readFileSync(jsonLdFilePath, 'utf-8');
 
     // Construct URL for uploading the data to the graph
     // Don't include a graphname to use what's in the jsonld file
-    const url = `${fusekiUrl}/${datasetName}/data`;
-    //   const url = `${fusekiUrl}/${datasetName}/data?graph=${graphName}`;
-
-    // Set authentication options
-    const auth = {
-      user: username,
-      pass: password,
-    };
+    const url = `${fuseki.url}/${fuseki.db}/data`;
 
     // Set request options
     const options = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/ld+json',
-        'Authorization': `Basic ${Buffer.from(`${auth.user}:${auth.pass}`).toString('base64')}`,
+        'Authorization': `Basic ${fuseki.auth}`
       },
-      body: jsonLdFileContent,
+      body: this.jsonld,
     };
 
     // Send the request to upload the data to the graph
@@ -266,23 +233,23 @@ export class ExpertsClient {
     return await response.text();
   }
 
-/**
-* @description
-* @param {
-* } cli
-* @returns
-*
-*/
+  /**
+  * @description
+  * @param {
+  * } opt
+  * @returns
+  *
+  */
   async splay(opt) {
 
-    function str_or_file(opt,param,required) {
+    function str_or_file(opt, param, required) {
       if (opt[param]) {
         return opt[param];
-      } else if (opt[param+'@']) {
-        opt[param]=fs.readFileSync(opt[param+'@'],'utf8');
+      } else if (opt[param + '@']) {
+        opt[param] = fs.readFileSync(opt[param + '@'], 'utf8');
         return opt[param];
       } else if (required) {
-        console.error('missing required option: '+param+'(@)');
+        console.error('missing required option: ' + param + '(@)');
         process.exit(1);
       } else {
         return null;
@@ -303,17 +270,16 @@ export class ExpertsClient {
       const db = await localDB.create({level:'ClassicLevel',path:opt.quadstore});
       //  opt.source=[db];
       q = new Engine(db.store);
-      sources=null;
+      sources = null;
     } else {
       q = new QueryEngine();
       sources=opt.source;
     }
 
-    const factory=new DataFactory();
+    const factory = new DataFactory();
 
-    console.log('bind: '+bind);
-    const bindingStream=await q.queryBindings(opt.bind,{sources: opt.source})
-    bindingStream.on('data', construct_one )
+    const bindingStream = await q.queryBindings(opt.bind, { sources: opt.source })
+    bindingStream.on('data', construct_one)
       .on('error', (error) => {
         console.error(error);
       })
@@ -321,7 +287,7 @@ export class ExpertsClient {
         // console.log('bindings done');
       });
 
-    let binding_count=0;
+    let binding_count = 0;
 
     async function construct_one(bindings) {
       // binding_count++;
@@ -349,7 +315,7 @@ export class ExpertsClient {
       }
       console.log(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
-      fs.writeFileSync(fn,JSON.stringify(doc,null,2));
+      fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
       // binding_count--;
       // if (binding_count < 10) {
       //   console.log('too few bindings.  start listening');

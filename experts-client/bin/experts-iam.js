@@ -8,44 +8,36 @@ import ExpertsClient from '../lib/experts-client.js';
 console.log('starting experts-iam');
 const program = new Command();
 
-async function main(cli) {
+const fuseki = {
+  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3033',
+  type: 'mem',
+  db: null,
+  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
+}
 
-  const ec = new ExpertsClient(cli);
 
-  const datasetName = ec.cli.fusekiDataset;
-  // const graphName = 'http://iam.ucdavis.edu/';
-  const fusekiUrl = ec.cli.fusekiEndpoint;
-  const username = ec.cli.fusekiUser;
-  const password = ec.cli.fusekiPW;
+async function main(opt) {
 
-  const jsonLdFilePath = '/Users/rogerkunkel/projects/aggie-experts/experts-client/faculty.jsonld';
+  const ec = new ExpertsClient(opt);
 
   console.log('starting getIAMProfiles');
-  await ec.getIAMProfiles();
+
+  await ec.getIAMProfiles(opt);
+
   console.log('starting processIAMProfiles');
-  await ec.processIAMProfiles();
+  await ec.processIAMProfiles(opt);
+
   console.log('starting createDataset');
-  // await ec.createDataset('iam_profiles','tdb');
-  await ec.createDataset(datasetName, fusekiUrl, username, password)
-    .then(() => {
-      console.log(`Dataset '${datasetName}' created successfully.`);
-    })
-    .catch((err) => {
-      console.error(`Failed to create dataset: ${err}`);
-    });
+  // await ec.createDataset(opt)
+  await ec.mkFusekiTmpDb(opt, './faculty.jsonld');
+  console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
 
   console.log('starting createGraph');
-
-  await ec.createGraphFromJsonLdFile(datasetName, jsonLdFilePath, fusekiUrl, username, password)
-    .then(() => {
-      console.log(`Graph created successfully in dataset '${datasetName}'.`);
-    })
-    .catch((err) => {
-      console.error(`Failed to create graph: ${err}`);
-    });
+  await ec.createGraphFromJsonLdFile(opt);
+  console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
   console.log('starting splay');
-  await ec.splay();
+  await ec.splay(opt);
 
 }
 
@@ -57,15 +49,32 @@ program.name('iam')
   .option('--iam-endpoint <endpoint>', 'UC Davis IAM endpoint')
   .option('--bind <bind>', 'select query for binding')
   .option('--bind@ <bind.rq>', 'file containing select query for binding')
-  .option('--construct <construct>', 'construct query for each binding')
-  .option('--construct@ <construct.rq>', 'file containing construct query for each binding')
+  .option('--construct <construct>', 'construct query for each binding', '/Users/rogerkunkel/projects/aggie-experts/experts-client/queries/iam_person_to_vivo.rq')
+  .option('--construct@ <construct.rq>', 'file containing construct query for each binding', '/Users/rogerkunkel/projects/aggie-experts/experts-client/queries/iam_person_to_vivo.rq')
   .option('--frame <frame>', 'frame object for each binding')
   .option('--frame@ <frame.json>', 'file containing frame on the construct')
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
   .option('--quadstore <quadstore>', 'Specify a local quadstore.  Cannot be used with the --source option')
+  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
+  .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
+  .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
+  .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
+  .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', 'tmpDb')
+  .option('--save-tmp', 'Do not remove temporary file', false)
 
 
 program.parse(process.argv);
-const cli = program.opts();
+const opt = program.opts();
+// fusekize opt
+Object.keys(opt).forEach((k) => {
+  const n = k.replace(/^fuseki./, '')
+  if (n !== k) {
+    opt.fuseki ||= {};
+    opt.fuseki[n] = opt[k];
+    delete opt[k];
+  }
+});
 
-await main(cli);
+console.log('opt', opt);
+
+await main(opt);
