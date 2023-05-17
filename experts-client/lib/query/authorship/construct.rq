@@ -7,29 +7,30 @@ prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
 construct {
-  ?authorship a vivo:Authorship;
+  ?authorship a vivo:Authorship,ucdlib:Authorship;
     ucdlib:favorite ?favorite;
     vivo:relates ?expert,?publication;
     .
 }
 WHERE {
-  ?relationship :type "publication-user-authorship";
-                :effective-privacy-level "Public";
-                :is-visible "true";
-                :last-modified-when ?modified;
-     :related [ :direction "from";
-                :category "publication";
-                :id ?pub_id; ];
-     :related [ :direction "to";
-                :category "user";
-                :id ?user_id;
-                :object [ :username ?user ]]
-                .
-  OPTIONAL {
-	?relationship :is-favourite "true".
+  graph oap: {
+    ?relationship :type "publication-user-authorship";
+                  :effective-privacy-level "Public";
+                  :is-visible "true";
+                  :last-modified-when ?modified;
+                  :related [ :direction "from";
+                             :category "publication";
+                             :id ?pub_id; ];
+                                 :related [ :direction "to";
+                                            :category "user";
+                                            :id ?user_id;
+                                            :object [ :username ?user ]]
+    .
+    OPTIONAL {
+	    ?relationship :is-favourite "true".
     	bind(true as ?favorite)
+    }
   }
-
   bind(uri(replace(str(?relationship),str(oap:),concat(str(cdl:),"relationships/"))) as ?authorship)
 #  bind(uri(concat(str(cdl:),"users/",?user_id)) as ?expert_id)
   bind(uri(concat(str(cdl:),"publications/",?pub_id)) as ?publication)

@@ -45,28 +45,6 @@ export class ExpertsClient {
 
   }
 
-  // async getSecret(name) {
-  //   const [secret] = await client.getSecret({
-  //     name: name,
-  //   });
-
-  //   async function accessSecretVersion() {
-  //     const [version] = await client.accessSecretVersion({
-  //       name: name + '/versions/latest',
-  //     });
-
-  //     // Extract the payload as a string.
-  //     const payload = version.payload.data.toString();
-
-  //     // WARNING: Do not print the secret in a production environment - this
-  //     // snippet is showing how to access the secret material.
-  //     //   console.info(`Payload: ${payload}`);
-  //     return payload.slice(4);
-  //     //   console.log('getSecret ' + key);
-  //   }
-  //   return await accessSecretVersion();
-  // }
-
   /** Return a local db */
   async getLocalDB(options) {
     if (!this.store) {
@@ -225,7 +203,6 @@ export class ExpertsClient {
     return res.status;
   }
 
-
   async createGraphFromJsonLdFile(opt) {
     const fuseki = opt.fuseki;
     // Read JSON-LD file from file system
@@ -279,24 +256,24 @@ export class ExpertsClient {
       }
     }
 
-    console.log(opt);
-    const bind = str_or_file(opt, 'bind', true);
-    const construct = str_or_file(opt, 'construct', true);
-    const frame = str_or_file(opt, 'frame', false)
+    // console.log(opt);
+    const bind = str_or_file(opt,'bind',true);
+    const construct = str_or_file(opt,'construct',true);
+    const frame = str_or_file(opt,'frame',false)
     if (opt.frame) {
-      opt.frame = JSON.parse(opt.frame);
+      opt.frame=JSON.parse(opt.frame);
     }
 
     let q;
-    let sources = null;
+    let sources=null;
     if (opt.quadstore) {
-      const db = await localDB.create({ level: 'ClassicLevel', path: opt.quadstore });
+      const db = await localDB.create({level:'ClassicLevel',path:opt.quadstore});
       //  opt.source=[db];
       q = new Engine(db.store);
       sources = null;
     } else {
       q = new QueryEngine();
-      sources = opt.source;
+      sources=opt.source;
     }
 
     const factory = new DataFactory();
@@ -318,36 +295,23 @@ export class ExpertsClient {
       //   console.log('too many bindings.  Stop listening');
       //   await bindingStream.off('data', construct_one);
       // }
-      let fn = 1; // write to stdout by default
-      if (bindings.get('filename') && bindings.get('filename').value) {
-        fn = bindings.get('filename').value
+      let fn=1; // write to stdout by default
+      if ( bindings.get('filename') && bindings.get('filename').value) {
+        if (opt.output) {
+          fn=path.join(opt.output,bindings.get('filename').value);
+        } else {
+          fn=bindings.get('filename').value
+        }
       }
-      let graph = null;
-      if (bindings.get('graph')) {
-        graph = factory.namedNode(bindings.get('graph').value);
-      }
-
       // convert construct to jsonld quads
-      const quadStream = await q.queryQuads(opt.construct, { initialBindings: bindings, sources: opt.source });
+      const quadStream = await q.queryQuads(opt.construct,{initialBindings:bindings, sources: opt.source});
       const quads = await quadStream.toArray();
-      if (graph) {
-        // console.log('graph: '+graph.value);
-        quads.forEach((quad) => {
-          quad.graph = graph;
-        });
-      }
-      let doc = await jsonld.fromRDF(quads)
+      let doc=await jsonld.fromRDF(quads)
 
       if (frame) {
-        opt.frame['@context']['@base'] = graph.value;
-        opt.frame['@id'] = graph.value;
-        doc = await jsonld.frame(doc, opt.frame, { omitGraph: true, safe: true })
-        // doc['@id']='';
-        // doc['@context']=["info:fedora/context/experts.json",{"@base":graph.value}];
-        doc['@context'] = "info:fedora/context/experts.json";
-        //console.log('framed',doc);
+        doc=await jsonld.frame(doc,opt.frame,{omitGraph:false,safe:true})
       } else {
-        //      doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
+        doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
       }
       console.log(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
@@ -361,6 +325,20 @@ export class ExpertsClient {
     return true;
   }
 
-}
+  /**
+   * @description Modify a frame to include a graph match.  If for whatever reason the document has multiple graphs this will select one. I don't think this is needed
+   * @param doc - jsonld document
+   **/
+  async graphify(doc,frame,graph) {
+    frame['@context'] = (frame['@context'] instanceof Array ? frame['@context'] : [frame['@context']])
+    frame['@context'].push({"@base":graph.value});
+    frame['@id']=graph.value;
 
+    doc=await jsonld.frame(doc,opt.frame,{omitGraph:true,safe:true})
+    doc['@context']=[
+      "info:fedora/context/experts.json",
+      {"@base":graph.value}];
+
+  }
+}
 export default ExpertsClient;

@@ -18,7 +18,7 @@ construct {
         bibo:status ?vivoStatus;
       .
 
-  ?work a ucdrp:work;
+  ?work a ucdrp:Work;
         cite:type ?cite_type;
         cite:genre ?cite_genre;
         cite:status ?status;
@@ -59,7 +59,6 @@ construct {
               .
 
   ?authorship_vcard a vcard:Individual;
-                    vivo:relatedBy ?vcard;
                     vcard:hasName ?authorship_vcard_name;
                     .
 
@@ -78,7 +77,6 @@ construct {
               .
 }
 WHERE {
-  bind(?work_binding as ?work)
   VALUES(?oap_type ?bibo_type ?cite_type ?cite_genre) {
     ("book" bibo:Book "book" "")
     ("chapter" bibo:Chapter "chapter" "")
@@ -178,6 +176,7 @@ WHERE {
       ("volume" cite:volume)
     }
 
+  graph ?g {
   ?pub  oap:type ?oap_type;
         oap:last-modified-when ?lastModifiedWhen;
         oap:records/oap:record [ oap:source-name  ?source;
@@ -270,5 +269,6 @@ WHERE {
                         oap:title ?journal_title
                       ].
     BIND(uri(concat(str(venue:),"urn:issn:",?issn)) as ?journalURI)
+  }
     }
 }

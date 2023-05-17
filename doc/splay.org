@@ -1,3 +1,37 @@
+* Complete Example
+
+
+  We also need to add in our IAM data. Note this may need to change in web
+  environment.
+
+  #+begin_src bash
+    docker run --publish=127.0.0.1:3030:3030 --name=fuseki --interactive --tty --rm \
+         -v splay_example:/home/ucd.process \
+         localhost/aggie-experts/harvest:HEAD server
+  #+end_src
+
+  Then create a space
+  #+begin_src bash
+    http --auth=admin:testing123 POST http://localhost:3030/$/datasets dbName==quinn dbType==tdb
+  #+end_src
+
+  #+begin_src bash
+ It    FUSEKI_PASSWORD=testing123 cdl-elements --data=http://localhost:3030/quinn --cache=person users --pubs quinn
+  #+end_src
+
+  #+RESULTS:
+  | file":"person/users.quinn@ucdavis.edu.000.jsonld | count:"" | http://oapolicy.universityofcalifornia.edu/ | load_jsonld | cdl_elements | 2023-05-08T16:59:40-07:00 |
+
+  #+begin_src bash
+     ucdid --auth=${UCDID_AUTH} fetch profiles --search=email=qjhart@ucdavis.edu --format=jsonld |\
+     http POST http://localhost:3030/quinn/data graph==http://iam.ucdavis.edu Content-Type:application/ld+json
+  #+end_src
+
+  Now, we need to run splay queries for person, authorships, and works.
+for i in 20230502/all/relationships.6[56789]??.jsonld; do echo $i; ae=~/aggie-experts/experts-client; node $ae/bin/experts-splay.js --fuseki.isTmp --bind@=$ae/queries/cdl/authorship/bind.rq --construct@=$ae/queries/cdl/authorship/construct.rq --frame@=$ae/queries/cdl/authorship/frame.json $i >> authorships.out; done
+
+  If we have our grants database, we can add those as well.
+
 
 * IAM example
 
@@ -25,8 +59,6 @@ Then, we can run the splay command:
           --bind='prefix : <http://iam.ucdavis.edu/schema#> select ?kerb $filename  where { graph ?g { [] :userID ?kerb. bind(concat("person/",?kerb,".jsonld") as ?filename) } } limit 5' \
           --construct@ ~/aggie-experts/experts-client/queries/iam_person_to_vivo.rq
 #+end_src
-
-
 
 * Grants Example
 
