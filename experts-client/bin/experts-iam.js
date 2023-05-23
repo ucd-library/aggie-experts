@@ -9,14 +9,16 @@ console.log('starting experts-iam');
 const program = new Command();
 
 const fuseki = {
-  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3033',
+  url: process.env.EXPERTS_FUSEKI_URL || 'http://127.0.0.1:3030',
   type: 'mem',
-  db: null,
+  db: 'tmpDb',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
 }
 
 
 async function main(opt) {
+
+  //  console.log(opt);
 
   const ec = new ExpertsClient(opt);
 
@@ -28,8 +30,8 @@ async function main(opt) {
   await ec.processIAMProfiles(opt);
 
   console.log('starting createDataset');
-  // await ec.createDataset(opt)
-  await ec.mkFusekiTmpDb(opt, './faculty.jsonld');
+  await ec.createDataset(opt)
+  // await ec.mkFusekiTmpDb(opt, './faculty.jsonld');
   console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
 
   console.log('starting createGraph');
@@ -41,16 +43,23 @@ async function main(opt) {
 
 }
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename).replace('/bin', '/lib');
+
 
 program.name('iam')
   .usage('[options] <file...>')
   .description('Import IAM Researcher Profiles')
   .option('--iam-auth <key>', 'UC Davis IAM authentication key')
-  .option('--iam-endpoint <endpoint>', 'UC Davis IAM endpoint')
+  .option('--userId <userId>', 'UC Davis IAM user id')
+  .option('--iam-endpoint <endpoint>', 'UC Davis IAM endpoint', 'https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search')
   .option('--bind <bind>', 'select query for binding')
-  .option('--bind@ <bind.rq>', 'file containing select query for binding')
-  .option('--construct <construct>', 'construct query for each binding', '/Users/rogerkunkel/projects/aggie-experts/experts-client/queries/iam_person_to_vivo.rq')
-  .option('--construct@ <construct.rq>', 'file containing construct query for each binding', '/Users/rogerkunkel/projects/aggie-experts/experts-client/queries/iam_person_to_vivo.rq')
+  .option('--bind@ <bind.rq>', 'file containing select query for binding', __dirname + '/query/person/bind.rq')
+  .option('--construct <construct>', 'construct query for each binding')
+  .option('--construct@ <construct.rq>', 'file containing construct query for each binding', __dirname + '/query/person/construct.rq')
   .option('--frame <frame>', 'frame object for each binding')
   .option('--frame@ <frame.json>', 'file containing frame on the construct')
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
@@ -64,7 +73,9 @@ program.name('iam')
 
 
 program.parse(process.argv);
-const opt = program.opts();
+
+let opt = program.opts();
+
 // fusekize opt
 Object.keys(opt).forEach((k) => {
   const n = k.replace(/^fuseki./, '')
@@ -74,6 +85,12 @@ Object.keys(opt).forEach((k) => {
     delete opt[k];
   }
 });
+
+// console.log(process.env);
+
+opt.iamEndpoint = process.env.EXPERTS_IAM_ENDPOINT;
+opt.iamAuth = process.env.EXPERTS_IAM_AUTH;
+// opt['bind@'] = process.env.EXPERTS_FUSEKI_PROFILE_BIND;
 
 console.log('opt', opt);
 

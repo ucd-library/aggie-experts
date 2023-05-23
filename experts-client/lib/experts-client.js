@@ -6,8 +6,8 @@
 *
 */
 'use strict';
-import * as dotenv from 'dotenv';
-dotenv.config();
+// import * as dotenv from 'dotenv';
+// dotenv.config();
 
 import fs from 'fs-extra';
 import fetch from 'node-fetch';
@@ -38,28 +38,31 @@ export class ExpertsClient {
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
-
-    console.log(opt);
     console.log('ExpertsClient constructor');
     this.opt = opt;
-
   }
 
   /** Return a local db */
   async getLocalDB(options) {
     if (!this.store) {
-      this.store = localDB.create({ ...this.opts.localDB, ...options });
+      this.store = localDB.create({ ...this.opt.localDB, ...options });
     }
     return this.store;
   }
 
   /** Fetch Researcher Profiles from the UCD IAM API */
-  async getIAMProfiles() {
+  async getIAMProfiles(opt) {
 
-    const response = await fetch(this.opt.iamEndpoint + '&key=' + this.opt.iamAuth);
-    console.log(this.opt.iamEndpoint + '&key=' + this.opt.iamAuth);
+    opt.iamEndpoint += '?isFaculty=true';
+    opt.iamEndpoint += '&key=' + opt.iamAuth;
+    // add a single user id to the iam endpoint if specified
+    if (opt.userId != null) {
+      opt.iamEndpoint += '&userId=' + opt.userId;
+    }
 
-    // console.log(response)
+    console.log(opt.iamEndpoint);
+
+    const response = await fetch(opt.iamEndpoint);
 
     if (response.status !== 200) {
       throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
@@ -76,10 +79,8 @@ export class ExpertsClient {
   }
 
   /** Parse returned profiles and store in local db */
-  async processIAMProfiles() {
+  async processIAMProfiles(opt) {
 
-    // const doc = fs.readFileSync('faculty-sample.json', 'utf8');
-    // const docObj = doc;
     const docObj = this.doc.responseData.results;
     const context = {
       "@Version": 1.1,
@@ -95,7 +96,7 @@ export class ExpertsClient {
     };
     this.jsonld = '{"@context":' + JSON.stringify(context) + ',"@id":"http://iam.ucdavis.edu/", "@graph":' + JSON.stringify(docObj) + '}';
 
-    // fs.writeFileSync('faculty.jsonld', this.jsonld);
+    fs.writeFileSync('faculty.jsonld', this.jsonld);
   }
 
   /**
@@ -119,8 +120,11 @@ export class ExpertsClient {
       fuseki.isTmp = true;
       fuseki.type = fuseki.type || 'mem';
     }
+    console.log(fuseki);
+
+
     // just throw the error if it fails
-    const res = await fetch(path.join(fuseki.url,'$','datasets'),
+    const res = await fetch(path.join(fuseki.url, '$', 'datasets'),
       {
         method: 'POST',
         body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
@@ -246,7 +250,7 @@ export class ExpertsClient {
       if (opt[param]) {
         return opt[param];
       } else if (opt[param + '@']) {
-        opt[param] = fs.readFileSync(opt[param + '@'], 'utf8');
+        opt[param] = fs.readFileSync(opt[param + '@'], 'utf8').replace(/\r|\n/g, '');
         return opt[param];
       } else if (required) {
         console.error('missing required option: ' + param + '(@)');
@@ -257,28 +261,32 @@ export class ExpertsClient {
     }
 
     // console.log(opt);
-    const bind = str_or_file(opt,'bind',true);
-    const construct = str_or_file(opt,'construct',true);
-    const frame = str_or_file(opt,'frame',false)
+    const bind = str_or_file(opt, 'bind', true);
+    const construct = str_or_file(opt, 'construct', true);
+    const frame = str_or_file(opt, 'frame', false)
     if (opt.frame) {
-      opt.frame=JSON.parse(opt.frame);
+      opt.frame = JSON.parse(opt.frame);
     }
 
     let q;
-    let sources=null;
+    let sources = null;
     if (opt.quadstore) {
-      const db = await localDB.create({level:'ClassicLevel',path:opt.quadstore});
+      const db = await localDB.create({ level: 'ClassicLevel', path: opt.quadstore });
       //  opt.source=[db];
       q = new Engine(db.store);
       sources = null;
     } else {
       q = new QueryEngine();
-      sources=opt.source;
+      sources = opt.source;
     }
+
 
     const factory = new DataFactory();
 
+    console.log(opt)
     const bindingStream = await q.queryBindings(opt.bind, { sources: opt.source })
+    console.log('bindingStream created')
+
     bindingStream.on('data', construct_one)
       .on('error', (error) => {
         console.error(error);
@@ -295,23 +303,23 @@ export class ExpertsClient {
       //   console.log('too many bindings.  Stop listening');
       //   await bindingStream.off('data', construct_one);
       // }
-      let fn=1; // write to stdout by default
-      if ( bindings.get('filename') && bindings.get('filename').value) {
+      let fn = 1; // write to stdout by default
+      if (bindings.get('filename') && bindings.get('filename').value) {
         if (opt.output) {
-          fn=path.join(opt.output,bindings.get('filename').value);
+          fn = path.join(opt.output, bindings.get('filename').value);
         } else {
-          fn=bindings.get('filename').value
+          fn = bindings.get('filename').value
         }
       }
       // convert construct to jsonld quads
-      const quadStream = await q.queryQuads(opt.construct,{initialBindings:bindings, sources: opt.source});
+      const quadStream = await q.queryQuads(opt.construct, { initialBindings: bindings, sources: opt.source });
       const quads = await quadStream.toArray();
-      let doc=await jsonld.fromRDF(quads)
+      let doc = await jsonld.fromRDF(quads)
 
       if (frame) {
-        doc=await jsonld.frame(doc,opt.frame,{omitGraph:false,safe:true})
+        doc = await jsonld.frame(doc, opt.frame, { omitGraph: false, safe: true })
       } else {
-        doc=await jsonld.expand(doc,{omitGraph:false,safe:true})
+        doc = await jsonld.expand(doc, { omitGraph: false, safe: true })
       }
       console.log(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
@@ -329,15 +337,15 @@ export class ExpertsClient {
    * @description Modify a frame to include a graph match.  If for whatever reason the document has multiple graphs this will select one. I don't think this is needed
    * @param doc - jsonld document
    **/
-  async graphify(doc,frame,graph) {
+  async graphify(doc, frame, graph) {
     frame['@context'] = (frame['@context'] instanceof Array ? frame['@context'] : [frame['@context']])
-    frame['@context'].push({"@base":graph.value});
-    frame['@id']=graph.value;
+    frame['@context'].push({ "@base": graph.value });
+    frame['@id'] = graph.value;
 
-    doc=await jsonld.frame(doc,opt.frame,{omitGraph:true,safe:true})
-    doc['@context']=[
+    doc = await jsonld.frame(doc, opt.frame, { omitGraph: true, safe: true })
+    doc['@context'] = [
       "info:fedora/context/experts.json",
-      {"@base":graph.value}];
+      { "@base": graph.value }];
 
   }
 }
