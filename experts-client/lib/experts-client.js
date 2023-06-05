@@ -17,6 +17,9 @@ import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
 import path from 'path';
+import xml2js from 'xml2js';
+import { readFileSync } from 'fs';
+
 
 const jsonld = new JsonLdProcessor();
 
@@ -52,6 +55,11 @@ export class ExpertsClient {
 
   /** Fetch Researcher Profiles from the UCD IAM API */
   async getIAMProfiles(opt) {
+    /** Fetch Researcher Profiles from the CDL Elements API */
+
+  }
+
+  async getIAMProfiles(opt) {
 
     opt.iamEndpoint += '?isFaculty=true';
     opt.iamEndpoint += '&key=' + opt.iamAuth;
@@ -62,6 +70,7 @@ export class ExpertsClient {
 
     console.log(opt.iamEndpoint);
 
+    // opt.iamEndpoint = encodeURI('https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?key=75b4442-c7e1a-3f77e05-3662178800710&userId=cssmit');
     const response = await fetch(opt.iamEndpoint);
 
     if (response.status !== 200) {
@@ -69,34 +78,24 @@ export class ExpertsClient {
     }
     else if (response.status === 200) {
       this.doc = await response.json();
-      if (this.doc.responseData.results == null) {
+      console.log(this.doc);
+      this.doc = this.doc.responseData.results;
+      if (this.doc == null) {
         throw new Error(`No profiles returned from IAM.`);
       }
     }
-
     return
-
   }
 
   /** Parse returned profiles and store in local db */
-  async processIAMProfiles(opt) {
+  async createJsonLd(opt, contextFile, outputFile, id) {
 
-    const docObj = this.doc.responseData.results;
-    const context = {
-      "@Version": 1.1,
-      "@base": "http://iam.ucdavis.edu/",
-      "@vocab": "http://iam.ucdavis.edu/schema#",
-      "iamId": "@id",
-      "orgOId": "@id",
-      "bouOrgOId": {
-        "@type": "@id"
-      },
-      "iam": "http://iam.ucdavis.edu/schema#",
-      "harvest_iam": "http://iam.ucdavis.edu/"
-    };
-    this.jsonld = '{"@context":' + JSON.stringify(context) + ',"@id":"http://iam.ucdavis.edu/", "@graph":' + JSON.stringify(docObj) + '}';
-
-    fs.writeFileSync('faculty.jsonld', this.jsonld);
+    const docObj = this.doc;
+    const context = JSON.parse(readFileSync(contextFile, 'utf8'));
+    context["@id"] = id;
+    context["@graph"] = docObj;
+    this.jsonld = JSON.stringify(context);
+    fs.writeFileSync(outputFile, this.jsonld);
   }
 
   /**
@@ -280,12 +279,10 @@ export class ExpertsClient {
       sources = opt.source;
     }
 
-
     const factory = new DataFactory();
 
     console.log(opt)
     const bindingStream = await q.queryBindings(opt.bind, { sources: opt.source })
-    console.log('bindingStream created')
 
     bindingStream.on('data', construct_one)
       .on('error', (error) => {
@@ -348,5 +345,33 @@ export class ExpertsClient {
       { "@base": graph.value }];
 
   }
+
+  async getCDLprofiles(opt) {
+
+    // console.log(opt);
+    for (const user of opt.users) {
+
+      const response = await fetch(opt.url + 'users?username=' + user + '@ucdavis.edu&detail=full', {
+        // const response = await fetch(opt.url + 'users?query=blood AND flow'
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + opt.cdlAuth,
+          'Content-Type': 'text/xml'
+        }
+      })
+
+      if (response.status !== 200) {
+        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+      }
+      else if (response.status === 200) {
+        const xml = await response.text();
+        const parser = new xml2js.Parser();
+        this.doc = await parser.parseStringPromise(xml);
+        console.log(this.doc);
+      }
+    }
+    return
+  }
 }
+
 export default ExpertsClient;
