@@ -17,8 +17,9 @@ import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
 import path from 'path';
-import xml2js from 'xml2js';
-import { readFileSync } from 'fs';
+// import xml2js from 'xml2js';
+import parser from 'xml2json';
+// import { readFileSync } from 'fs';
 
 
 const jsonld = new JsonLdProcessor();
@@ -78,7 +79,7 @@ export class ExpertsClient {
     }
     else if (response.status === 200) {
       this.doc = await response.json();
-      console.log(this.doc);
+      // console.log(this.doc);
       this.doc = this.doc.responseData.results;
       if (this.doc == null) {
         throw new Error(`No profiles returned from IAM.`);
@@ -87,15 +88,12 @@ export class ExpertsClient {
     return
   }
 
-  /** Parse returned profiles and store in local db */
-  async createJsonLd(opt, contextFile, outputFile, id) {
+  /** jsonld-ify an JSON object */
+  async createJsonLd(input, context, graphId) {
 
-    const docObj = this.doc;
-    const context = JSON.parse(readFileSync(contextFile, 'utf8'));
-    context["@id"] = id;
-    context["@graph"] = docObj;
-    this.jsonld = JSON.stringify(context);
-    fs.writeFileSync(outputFile, this.jsonld);
+    context["@id"] = graphId;
+    context["@graph"] = input;
+    return context;
   }
 
   /**
@@ -281,7 +279,7 @@ export class ExpertsClient {
 
     const factory = new DataFactory();
 
-    console.log(opt)
+    // console.log(opt)
     const bindingStream = await q.queryBindings(opt.bind, { sources: opt.source })
 
     bindingStream.on('data', construct_one)
@@ -365,9 +363,9 @@ export class ExpertsClient {
       }
       else if (response.status === 200) {
         const xml = await response.text();
-        const parser = new xml2js.Parser();
-        this.doc = await parser.parseStringPromise(xml);
-        console.log(this.doc);
+        this.doc = parser.toJson(xml, { object: true, arrayNotation: false });
+        this.doc = this.doc.feed.entry["api:profile"];
+        // console.log(JSON.stringify(this.doc));
       }
     }
     return
