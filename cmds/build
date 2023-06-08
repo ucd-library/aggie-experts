@@ -8,8 +8,9 @@ function main.cmd() {
     [exe]=$(basename "$0")
     [org]=localhost/aggie-experts
     [cache]=latest
-    [fin_org]=localhost/local-dev
-    [fin_tag]=
+#    [fin_org]=localhost/local-dev
+    [fin_org]=gcr.io/ucdlib-pubreg
+    [fin_tag]=sandbox
     [noop]=
     )
 
@@ -52,10 +53,15 @@ function repo_G () {
   #G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
   G[sha]=$(git log -1 --pretty=%h)
 #  G[ref_name]=${G[tag_name]:-${G[branch_name]}}
-  G[tag]=${G[tag]:-$(git describe --tags --always --dirty)}
+   G[tag]=${G[tag]:-$(git describe --tags --always --dirty)}
 }
 
-function build() {
+function _build_fin() {
+  echo "(cd fin; BRANCH_NAME=${G[fin_tag]} LOCAL_DEV=true devops/build.sh)"
+  (cd fin; BRANCH_NAME=${G[fin_tag]} LOCAL_DEV=true devops/build.sh) 2>&1 >> ${G[dir]}/build.log
+}
+
+function _build_aggie_experts() {
   cd $(dirname "$0")
   repo_G
   cd ${G[base]}
@@ -69,15 +75,14 @@ function build() {
     local fin_fcrepo=${G[fin_org]}/fin-fcrepo:${G[fin_tag]}
 
     ${G[noop]} docker build \
-           --build-arg INIT_BASE=$fin_init \
+            --build-arg FIN_INIT=$fin_init \
            --build-arg FIN_SERVER_IMAGE=$fin_base \
            --build-arg FIN_FCREPO_BASE_IMAGE=$fin_fcrepo \
            -t $image \
            --cache-from $image \
            services/${service}
   done
-
-# # Build base differently for some reason
+  # # Build base differently for some reason
 
 #   local image=${G[org]}/base-service:${G[tag]}#
 
@@ -87,7 +92,47 @@ function build() {
 #              --cache-from $image \
 #              services/fin
 
- }
+
+}
+
+function build() {
+    local opts;
+    if ! opts=$(${G[shell_getopt]} -o n --long=all,aggie-experts,fin,no-aggie-experts,no-fin -n "build" -- "$@"); then
+    echo "Bad build options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+  cd ${G[dir]}
+  repo_G
+
+  declare -A CMD=(
+    [aggie-experts]=1
+    [fin]=
+  );
+    while true; do
+	    case $1 in
+        --all ) CMD[aggie-experts]=1; CMD[fin]=1; shift;;
+        --aggie-experts ) CMD[aggie-experts]=1; shift;;
+        --no-aggie-experts ) CMD[aggie-experts]=; shift;;
+        --fin ) CMD[fin]=1; shift;;
+        --no-fin ) CMD[fin]=; shift;;
+        -n | --noop) CMD[noop]="echo"; shift;;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+    declare -p CMD
+
+    if [[ -n ${CMD[fin]} ]]; then
+      _build_fin
+    fi
+
+    if [[ -n ${CMD[aggie-experts]} ]]; then
+      _build_aggie_experts
+    fi
+
+}
 
 main.cmd "$@"
 exit 0
