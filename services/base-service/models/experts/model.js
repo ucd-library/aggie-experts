@@ -9,9 +9,12 @@ const {FinEsDataModel} = dataModels;
 class ExpertsModel extends FinEsDataModel {
 
   static types = [
-    "http://experts.ucdavis.edu/schema#person",
-    "http://experts.ucdavis.edu/schema#work",
-    "http://experts.ucdavis.edu/schema#authorship",
+//    "http://experts.ucdavis.edu/schema#Person",
+//    "http://experts.ucdavis.edu/schema#Work",
+//    "http://experts.ucdavis.edu/schema#Authorship",
+    "http://schema.library.ucdavis.edu/schema#Person",
+    "http://schema.library.ucdavis.edu/schema#Work",
+    "http://schema.library.ucdavis.edu/schema#Authorship",
     "http://vivoweb.org/ontology/core#Grant",
   ];
 
@@ -29,13 +32,16 @@ class ExpertsModel extends FinEsDataModel {
   is(id,types,workflows) {
     if (typeof types === 'string') types = [types];
     types = types.filter(x => ExpertsModel.types.includes(x));
-    if (types.length === 0) return false;
-    // console.log("is:types",types.join(","));
+    if (types.length === 0) {
+      console.log(`ExpertsModel.is: ${id} is not a valid type`);
+      return false;
+    }
+    console.log(`ExpertsModel.is: ${types.join(",")} is a valid type`);
     return true
-}
+  }
 
-async update(jsonld, index) {
-  await super.update(jsonld, index);
+  async update(jsonld, index) {
+    await super.update(jsonld, index);
 }
 // work update
 // update work,
