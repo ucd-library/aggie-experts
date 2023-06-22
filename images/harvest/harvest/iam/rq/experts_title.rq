@@ -33,6 +33,7 @@ CONSTRUCT {
                 .
 
 } WHERE {
+  graph ?g {
     ?s iam:email ?email;
        iam:userID ?kerb;
        iam:employeeId ?employeeId;
@@ -70,3 +71,4 @@ CONSTRUCT {
 
     bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)
   }
+}
