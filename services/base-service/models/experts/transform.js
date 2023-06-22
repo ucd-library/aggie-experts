@@ -92,7 +92,8 @@ module.exports = async function(path, graph, headers, utils) {
     type = "ucdlib:Work";
   }
   else if (path.match(/^\/person/)) {
-    type = "ucdlib:Person";
+    // This is a temp fix to test graphs in elastic search
+    type = ["ucdlib:Person","ucdlib:Work"];
   }
   else if (path.match(/^\/authorship/)) {
     type = "ucdlib:Authorship";

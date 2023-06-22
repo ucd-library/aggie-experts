@@ -4,38 +4,23 @@
     "@id" : {
       "type" : "keyword"
     },
-    "@graph.ISSN" : {
-      "type" : "keyword"
-    },
-    "@graph.publisher" : {
-      "type" : "text"
-    },
-    "@graph.issued" : {
-      "type" : "date"
-    },
-    "@graph.container-title" : {
-      "type" : "text"
-    },
-    "@graph.title" : {
-      "type" : "text"
-    },
-    "@graph.DOI" : {
-      "type" : "text"
-    },
-    "@graph.uri" : {
-      "type" : "keyword"
-    },
-    "@graph.casId" : {
-      "type" : "keyword"
-    },
-    "@graph.@type" : {
-      "type" : "keyword"
-    },
-    "@graph._.updated" : {
-       "type" : "date"
+    "@graph": {
+      "type": "nested",
+      "properties" : {
+        "ISSN" : {"type" : "keyword" },
+        "publisher" : { "type" : "text" },
+        "issued" : { "type" : "date" },
+        "container-title" : { "type" : "text" },
+        "title" : { "type" : "text" },
+        "DOI" : { "type" : "text" },
+        "uri" : { "type" : "keyword" },
+        "casId" : { "type" : "keyword" },
+        "@id" : { "type" : "keyword" }
+        "identifier" : { "type" : "text" }
+      }
     },
     "roles": {
-       "type": "keyword"
+      "type": "keyword"
     }
   }
 }
