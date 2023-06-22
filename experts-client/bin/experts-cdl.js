@@ -1,6 +1,6 @@
 'use strict';
 import fs from 'fs-extra';
-import { Command} from 'commander';
+import { Command } from 'commander';
 import { Engine } from 'quadstore-comunica';
 import { QueryEngine } from '@comunica/query-sparql';
 import { localDB } from '../lib/experts-client.js';
@@ -42,32 +42,42 @@ const ql = await new QueryLibrary().load();
 // This sbould be a standard function for all cmdline tools
 const cli = program.opts();
 // fusekize cli
-Object.keys(cli).forEach((k)=>{
-  const n=k.replace(/^fuseki./,'')
+Object.keys(cli).forEach((k) => {
+  const n = k.replace(/^fuseki./, '')
   if (n !== k) {
     cli.fuseki ||= {};
-    cli.fuseki[n]=cli[k];
+    cli.fuseki[n] = cli[k];
     delete cli[k];
-  }});
+  }
+});
 
-const files=program.args;
+const files = program.args;
 
 const ec = new ExpertsClient(cli);
 if (cli.fuseki.isTmp) {
-  const fuseki=await ec.mkFusekiTmpDb(cli,files);
+  const fuseki = await ec.mkFusekiTmpDb(cli, files);
   console.log(cli);
   cli.source ||= [];
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}/sparql`);
 }
 
 
-['person','work','authorship'].forEach(
-  async (n)=>{
-    const splay=ql.getSplay(n);
+// ['person','work','authorship'].forEach(
+//   async (n)=>{
+//     const splay=ql.getSplay(n);
+//     console.log(splay)
+// //    delete splay["frame@"];
+//     return await ec.splay({...cli, ...splay});
+//    });
+
+for (const n of ['person', 'work', 'authorship']) {
+  async (n) => {
+    const splay = ql.getSplay(n);
     console.log(splay)
-//    delete splay["frame@"];
-    return await ec.splay({...cli, ...splay});
-   });
+    //    delete splay["frame@"];
+    return await ec.splay({ ...cli, ...splay });
+  }
+};
 
 // Any other value don't delete
 if (cli.fuseki.isTmp === true && !cli.saveTmp) {

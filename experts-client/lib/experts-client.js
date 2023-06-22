@@ -55,10 +55,10 @@ export class ExpertsClient {
   }
 
   /** Fetch Researcher Profiles from the UCD IAM API */
-  async getIAMProfiles(opt) {
-    /** Fetch Researcher Profiles from the CDL Elements API */
+  // async getIAMProfiles(opt) {
+  /** Fetch Researcher Profiles from the CDL Elements API */
 
-  }
+  // }
 
   async getIAMProfiles(opt) {
 
@@ -71,7 +71,7 @@ export class ExpertsClient {
 
     console.log(opt.iamEndpoint);
 
-    // opt.iamEndpoint = encodeURI('https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?key=75b4442-c7e1a-3f77e05-3662178800710&userId=cssmit');
+    opt.iamEndpoint = encodeURI('https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?key=' + opt.iamAuth + '&isFaculty=true');
     const response = await fetch(opt.iamEndpoint);
 
     if (response.status !== 200) {
@@ -293,6 +293,7 @@ export class ExpertsClient {
     let binding_count = 0;
 
     async function construct_one(bindings) {
+      console.log('construct_one');
       // binding_count++;
       // if (binding_count > 20) {
       //   console.log('too many bindings.  Stop listening');
@@ -344,29 +345,30 @@ export class ExpertsClient {
 
   }
 
-  async getCDLprofiles(opt) {
+  async getCDLprofile(opt, user) {
 
     // console.log(opt);
-    for (const user of opt.users) {
 
-      const response = await fetch(opt.url + 'users?username=' + user + '@ucdavis.edu&detail=full', {
-        // const response = await fetch(opt.url + 'users?query=blood AND flow'
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + opt.cdlAuth,
-          'Content-Type': 'text/xml'
-        }
-      })
+    const response = await fetch(opt.url + 'users?username=' + user + '@ucdavis.edu&detail=full', {
+      // const response = await fetch(opt.url + 'users?query=blood AND flow'
+      method: 'GET',
+      headers: {
+        'Authorization': 'Basic ' + opt.cdlAuth,
+        'Content-Type': 'text/xml'
+      }
+    })
 
-      if (response.status !== 200) {
-        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-      }
-      else if (response.status === 200) {
-        const xml = await response.text();
-        this.doc = parser.toJson(xml, { object: true, arrayNotation: false });
-        this.doc = this.doc.feed.entry["api:profile"];
-        // console.log(JSON.stringify(this.doc));
-      }
+    if (response.status !== 200) {
+      throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+    }
+    else if (response.status === 200) {
+      const xml = await response.text();
+      // console.log(xml);
+      this.doc = parser.toJson(xml, { object: true, arrayNotation: false });
+      // console.log(JSON.stringify(this.doc));
+
+      this.doc = this.doc.feed.entry["api:object"];
+      // console.log(JSON.stringify(this.doc));
     }
     return
   }
