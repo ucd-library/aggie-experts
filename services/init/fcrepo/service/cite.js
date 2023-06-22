@@ -84,7 +84,7 @@ module.exports = async function(path, graph, headers, utils) {
   console.log("path:",path);
   let type = "ucdrp:work";
   if (path.match(/^\/work/)) {
-    type = "ucdrp:work";
+    type = "ucdrp:Work";
   }
   else if (path.match(/^\/grant/)) {
     type = "vivo:Grant";
@@ -104,7 +104,7 @@ module.exports = async function(path, graph, headers, utils) {
 
   let framed = await jsonld.frame(item, frame,{omitGraph:false});
 
-  if (type==="ucdrp:work") {
+  if (type==="ucdrp:Work") {
     const author=[];
     framed["@graph"][0]["relatedBy"]
       .sort((a,b)=>a.rank-b.rank)
