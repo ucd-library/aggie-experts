@@ -14,7 +14,7 @@ const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://127.0.0.1:3030',
   type: 'mem',
   db: 'cdl-profiles',
-  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
+  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:**nopass**',
 }
 
 const cdlToken = Buffer.from(process.env.EXPERTS_CDL_AUTH).toString('base64');

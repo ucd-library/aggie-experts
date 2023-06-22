@@ -61,15 +61,6 @@ if (cli.fuseki.isTmp) {
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}/sparql`);
 }
 
-
-// ['person','work','authorship'].forEach(
-//   async (n)=>{
-//     const splay=ql.getSplay(n);
-//     console.log(splay)
-// //    delete splay["frame@"];
-//     return await ec.splay({...cli, ...splay});
-//    });
-
 for (const n of ['person', 'work', 'authorship']) {
   async (n) => {
     const splay = ql.getSplay(n);
