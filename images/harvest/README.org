@@ -1,65 +1,431 @@
-* RP harvester
+* Aggie Expert Harvest
 
- The idea here is create a more agile fuseki/jena system that can be used to
- create the file based inputs for our cloud computing environment.  Multiple
- versions can be started up at any given time, and used to populate the cloud
- based services.  They are not dependant on a centralized fuseki database,
- although they do have some shared read-only databases in the form of HDT files.
+  This image builds and/or serves IAM and grants data in a fuseki endpoint.
 
- +In addition, we hope this can be added to Apache Workflow in order to better+
- manage the task of incrementally adding up the users.  To that end, these are
- developed more for single docker image startup, rather than as part of a docker
- compose constellation.  In addtion, environmental variables are used as a
- primary source of variable exchange.+
+** Environmental Variables
 
- The image uses the standard [[https://jena.apache.org/documentation/fuseki2/fuseki-layout.html][fuseki layout]], FUSEKI_HOME and FUSEKI_BASE.
- This allows us to have the configuration files in the image.  The databases are
- not in their default location, but are instead at: /var/lib/fuseki/databases.
- The fuseki layout file identifies that we need remove the ${FUSEKI_BASE}/system
- and ${FUSEKI_BASE}/system_files to reset the server.  By default, the system runs fuseki as
- a normal user with out root elevation.  This is typically a volume mount that
- is ephemeral for the container's lifespan, but it can be bound to more
- persistent mounts.
+   In most cases, this image needs to be run authorized as a google service
+   account.  These credentials are passed as an enviromental variable
 
- The containers are meant to run their function, and then stop.  However,
- commands allow the system to stay up for debugging purposes.
+   ~GOOGLE_APPLICATION_CREDENTIALS_JSON~ This is a locally defined variable,
+   that is used to activate the gcloud service account, explicitly as ~gcloud
+   auth activate-service-account --key-file=- <<<
+   "${GOOGLE_APPLICATION_CREDENTIALS_JSON}"~.  There is no default value
 
-** Running the setup
+   ~GCS_GRAPH_STORAGE=gs://aggie-experts-sandbox/databases~ The location for
+   reading or writing IAM and GIS graphs.
 
-   #+begin_src bash
-     b=/home/quinn/aggie-test
-     docker run --interactive --tty --rm --workdir=/home/ucd.process/workdir \
-            --mount type=bind,source=b,target=/home/ucd.process/workdir \
-            localhost/aggie-experts/harvest-person:HEAD bash
+
+** Methods of running
+
+   This image can be used to build and/or serve the data.  The HDT context
+   variable controls the source of the IAM/grants data, either ~build~, ~import~
+   or ~stubs~
+
+   The default entrypoint of this image is a Makefile. where you can choose a
+   number of different options.  There is one VOLUME associated with the image,
+   at ~/home/ucd.process~.  This volume can be emphemeral, or persistant.
+
+*** Building the data
+
+    When building a new set of IAM / Grants data, the image will fetch data from
+    both UCD IAM services and UCD FIS grants information. The data is converted
+    into the VIVO schema.  Physically, the data can be formatted as either
+    ~jsonld~ or as a  ~hdt~ file.  This can only be successful when the
+    container is running in the UCD VPN, and will not work in the cloud.
+
+    In addition, the built data can be pushed to the ~$GCS_GRAPH_STORAGE~ cloud
+    bucket.
+
+    A typical invocation might be as shown below, where the VOLUME used to
+    create the data is ephemeral with data creation.
+
+    #+begin_src bash
+      docker run --name iam --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud secrets versions access latest --secret='aggie-expert-data-harvester-key' | jq -c .)"\
+      --interactive --tty --rm  gcr.io/digital-ucdavis-edu/aggie-experts/harvest HDT=build iam.hdt grants.hdt hdt-push
+    #+end_src
+
+    You might instead want to view the data first, before running.  In that
+    case, you might first, create the data, and then start the server.
+
+    #+begin_src bash
+      docker run --name iam -p 3030:3030 --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud secrets versions access latest --secret='aggie-expert-data-harvester-key' | jq -c .)"\
+      --interactive --tty --rm gcr.io/digital-ucdavis-edu/aggie-experts/harvest HDT=build iam.hdt grants.hdt server
+    #+end_src
+
+    If you are satisfied, you can then push the data to the cloud:
+
+    #+begin_src bash
+    docker exec iam  --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud secrets versions access latest --secret='aggie-expert-data-harvester-key' | jq -c .)"\
+    /harvest-entrypoint.sh hdt-push
+    #+end_src
+
+**** grants.hdt
+    Retrieving grants information from the FIS database requires a connection
+    string to the FIS data. There is a JSON representation for that which lives
+    in a google cloud secret ~projects/326679616213/secrets/iet-ws_ucdavis_edu~, that
+    needs to be accessable for the service account that you are using
+
+**** iam.hdt
+     Retrieving IAM data requires access to the IAM server. There is an google
+     cloud secret ~projects/326679616213/secrets/ucdid_auth~ that needs to be
+     accessable from the service account.
+
+
+*** Serving the data
+
+    You can also use this image to serve existing data.  In this case, the
+    container first fetches the data from GCS_GRAPH_STORAGE and the starts the
+    server. This uses the ~HDT=import~ context, which is the default.  This can
+    be run in the cloud or locally.  An example startup for that would be:
+
+    #+begin_src bash
+      docker run --name iam -p 3030:3030 --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud secrets versions access latest --secret='aggie-expert-data-harvester-key' | jq -c .)"\
+      --interactive --tty --rm gcr.io/digital-ucdavis-edu/aggie-experts/harvest:v1.0.0 server
+    #+end_src
+
+    Alternatively, for testing or for examining the most basic shared VIVO data,
+    you can use the ~HDT=stubs~ context.  This will create nearly empty ~iam~
+    and ~experts~ graphs. In that case, you don't need an credentials at all.
+
+    #+begin_src bash
+      docker run --name iam -p 3030:3030 \
+      --interactive --tty --rm gcr.io/digital-ucdavis-edu/aggie-experts/harvest:v1.0.0 HDT=stubs server
+    #+end_src
+
+
+*** Other examples
+
+    You can bind mount to the ~/home/ucd.process~ VOLUME if you'd like a local
+    version of the data. You can also ask for jsonld versions of the build
+    files. This example saves all the intermediate data you might use for
+    testing.
+
+    #+begin_src bash
+      docker run --name=iam --interactive --tty --rm \
+      --mount type=bind,source=/home/quinn/aggie-test,target=/home/ucd.process \
+      gcr.io/digital-ucdavis-edu/aggie-experts/harvest:v1.0.0 HDT=build grants.json
    #+end_src
 
-** Private database
-   One idea is that we can periodically run one item to create our private
-   database and our vocabularies, and then simply mount this volume among all
-   the versions that are using this.  This allows us to have local tdb2 files
-   for our data, so we can more quickly spin up a database.
-*** Indices
+   You can also use the ~bash~ command to skip building or serving, and just
+   investigate the container
 
-    To further improve our setup, we should always add statistics to our
-    databases, especially the ones that are not changing too quickly.
+       #+begin_src bash
+      docker run --name=iam --interactive --tty --rm \
+      --mount type=bind,source=/home/quinn/aggie-test,target=/home/ucd.process \
+      gcr.io/digital-ucdavis-edu/aggie-experts/harvest:v1.0.0 bash
+   #+end_src
+
+
+*** docker-compose.yaml
+
+    This example shows two examples of using the container as a fuseki endpoint
+    server. ~iam~ service imports the data, and the harvester doesn't.  Both
+    endpoints are exposed.
+
+    These examples use a .env file that holds the service account credentials,
+    created with:
+
+    #+begin_src bash
+      echo GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud secrets versions access latest --secret='aggie-expert-data-harvester-key' | jq -c .)" > .env
+    #+end_src
+
+    #+begin_src yaml :tangle docker-compose.yaml
+version: '3'
+
+services:
+  iam:
+    image: gcr.io/digital-ucdavis-edu/aggie-experts/harvest:v1.0.0
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON}
+    volumes:
+      - iam-data:/home/ucd.process
+    ports:
+      - ${IAM_HOST_PORT:-3030}:3030
+    command: hdt-import server
+
+  harvester:
+    image: gcr.io/digital-ucdavis-edu/aggie-experts/harvest:v1.0.0
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON}
+    volumes:
+      - harvester-data:/home/ucd.process
+    ports:
+      - ${HARVESTER_HOST_PORT:-3031}:3030
+    command: stubs server
+
+volumes:
+  iam-data:
+  harvester-data:
+   #+end_src
+
+**** Using the fuseki service
+     :PROPERTIES:
+     :header-args:sparql: :url http://localhost:3031/experts/sparql
+     :END:
+
+     When running, this compose file can be used to show how the service
+     endpoint can be used.  For example, this query (running on the harvester)
+     is requesting all data from the ~http://iam.ucdavis.edu/~ graph running on
+     the IAM server.
+
+     #+begin_src sparql :format raw :wrap SRC ttl
+       PREFIX experts: <http://experts.ucdavis.edu/>
+       PREFIX str: <http://nlp2rdf.lod2.eu/schema/string/>
+       PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+       PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+       PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+       CONSTRUCT {
+         ?s ?p ?o.
+       }
+       #select *
+       WHERE {
+         bind(uri(concat(str(experts:),'person/',MD5('quinn@ucdavis.edu'))) as ?user)
+         SERVICE <http://iam:3030/experts/query> {
+           graph <http://iam.ucdavis.edu/> {
+             ?user a ucdlib:Person .
+             ?s ?p ?o;
+                .
+             filter(regex(str(?s),concat('^',str(?user),'#?')))
+           }
+         }
+       }
+     #+end_src
+
+     #+RESULTS:
+     #+begin_SRC ttl
+     @prefix experts: <http://experts.ucdavis.edu/> .
+     @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+     @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+     @prefix str:     <http://nlp2rdf.lod2.eu/schema/string/> .
+     @prefix ucdlib:  <http://schema.library.ucdavis.edu/schema#> .
+
+     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-title>
+             rdf:type  <http://www.w3.org/2006/vcard/ns#Title> ;
+             <http://www.w3.org/2006/vcard/ns#title>
+                     "Application Development Programmer" .
+
+     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-url>
+             rdf:type        <http://www.w3.org/2006/vcard/ns#URL> ;
+             ucdlib:urlType  ucdlib:URLType_other ;
+             <http://www.w3.org/2006/vcard/ns#url>
+                     "https://www.library.ucdavis.edu/author/quinn-hart/" .
+
+     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#name>
+             rdf:type  <http://www.w3.org/2006/vcard/ns#Name> ;
+             <http://www.w3.org/2006/vcard/ns#familyName>
+                     "Hart" ;
+             <http://www.w3.org/2006/vcard/ns#givenName>
+                     "Quinn" ;
+             <http://www.w3.org/2006/vcard/ns#pronoun>
+                     "he/him" .
+
+     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-pps-1>
+             rdf:type           <http://www.w3.org/2006/vcard/ns#Individual> ;
+             ucdlib:identifier  "pps-1" ;
+             <http://vivoweb.org/ontology/core#rank>
+                     11 ;
+             <http://www.w3.org/2006/vcard/ns#hasEmail>
+                     <email:qjhart@ucdavis.edu> ;
+             <http://www.w3.org/2006/vcard/ns#hasName>
+                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#name> ;
+             <http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit>
+                     <http://experts.ucdavis.edu/dept/pps/060500> ;
+             <http://www.w3.org/2006/vcard/ns#hasTitle>
+                     <http://experts.ucdavis.edu/title/pps/000664> .
+
+     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1>
+             rdf:type           <http://www.w3.org/2006/vcard/ns#Individual> ;
+             ucdlib:identifier  "odr-1" ;
+             <http://vivoweb.org/ontology/core#rank>
+                     1 ;
+             <http://www.w3.org/2006/vcard/ns#hasEmail>
+                     <email:qjhart@ucdavis.edu> ;
+             <http://www.w3.org/2006/vcard/ns#hasName>
+                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#name> ;
+             <http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit>
+                     <http://experts.ucdavis.edu/dept/odr/2132903> ;
+             <http://www.w3.org/2006/vcard/ns#hasTitle>
+                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-title> ;
+             <http://www.w3.org/2006/vcard/ns#hasURL>
+                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-url> .
+
+     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8>
+             rdf:type           <http://vivoweb.org/ontology/core#NonAcademic> , ucdlib:Person ;
+             rdfs:label         "Quinn Hart" ;
+             <http://purl.obolibrary.org/obo/ARG_2000028>
+                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-pps-1> , <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1> ;
+             ucdlib:identifier  "66356b7eec24c51f01e757af2b27ebb8" ;
+             <http://www.w3.org/2006/vcard/ns#hasName>
+                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#name> .
+     #+end_SRC
+
+
+** More info
+  This is a fuseki/jena system that can be used to create the file based inputs
+  for cloud computing environment.  Multiple versions can be started up at any
+  given time, and used to populate the cloud based services.  They are not
+  dependant on a centralized fuseki database, although they do have some shared
+  read-only databases in the form of HDT files.  These can be installed locally,
+  or used as a service in the cloud.
+
+  The image uses the standard [[https://jena.apache.org/documentation/fuseki2/fuseki-layout.html][fuseki layout]], FUSEKI_HOME and FUSEKI_BASE.  This
+  allows us to have the configuration files in the image.  The databases are not
+  in their default location, but are instead at:
+  /home/ucd.process/fuseki/databases.  The fuseki layout file identifies that we
+  need remove the ${FUSEKI_BASE}/system and ${FUSEKI_BASE}/system_files to reset
+  the server.  By default, the system runs fuseki as a normal user without root
+  elevation.  This is typically a volume mount that is ephemeral for the
+  container's lifespan, but it can be bound to more persistent mounts.
+
+*** Data Management TBD
+
+    Here are some potential data management considerations.
+
+**** hdt vs tdb2
+
+     Although hidden, the current build process actually creates TDB2 files as
+     well as hdt.  It's possible that this could be a better methodology for
+     serving the data. In particular, we can add statistics to the TDB files.
 
     The TDB [[https://jena.apache.org/documentation/tdb/optimizer.html][Optimizer]] gives information on creating the statistics to create
     better optimization strategies.
-** Exporting
 
-   #+begin_src bash
-     dc exec fuseki curl http://fuseki:3030/vocabularies/get -H "Accept:application/ld+json" | gzip > vocabularies.json.gz
-   #+end_src
+**** hdt vs json
 
-** IAM example
+     Another alternative is to simply save the data as ~jsonld~ files, and have
+     the import step use ~http~ to post this data into a running server.  One
+     advantage of this is the you could have these data added as seperate greaphs
+     to a TDB file that would be used for the harvesting.  Query optimiation is
+     better and the entire query is in a single tdb file.
 
-   Here is an example of how you might use this container to include add all the
-   IAM faculty to a fuseki instance.  We'll divide this into a few steps, for
-   clarity where we push some of the data off the container for readability.
+     This would also make the ~fuseki~ configuration more simple.
 
-   #+begin_src bash
-     export UCIDID_AUTH=ucd:*secret*
-     docker run --interactive --tty --rm \
-            -e UCDID_AUTH=${UCDID_AUTH} \
-            localhost/aggie-experts/harvest:HEAD server
-   #+end_src
+
+*** Exporting
+
+    Here's a method to export data from your volume using the fuseki server.
+
+    #+begin_src bash
+      dc exec fuseki curl http://fuseki:3030/vocabularies/get -H "Accept:application/ld+json" | gzip > vocabularies.json.gz
+    #+end_src
+
+*** Debugging the data
+    :PROPERTIES:
+    :header-args:sparql: :url http://localhost:3030/experts/sparql
+    :END:
+
+    Under normal operation, the commands used to create the grants database are
+   stand-alone, in that you they can be created without any external files.
+
+   However, there are times when you need to investigate the grants output data,
+   and also have access to some additional data for those investigations.  This
+   image allows one to start up a local fuseki database, so that queries to the
+   grants database can be executed on this dataset.  The image includes some
+   vocabularies for investigation, primarily information about user job titles.
+
+   However, if you are interested in activities for particular users, then you
+   may also need to add in more detailed IAM data.
+
+ #+begin_src sparql :notangle :noweb yes
+   PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
+   PREFIX aeq: <http://experts.ucdavis.edu/queries/schema#>
+   PREFIX afn: <http://jena.apache.org/ARQ/function#>
+   PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
+   PREFIX bibo: <http://purl.org/ontology/bibo/>
+   PREFIX experts: <http://experts.ucdavis.edu/>
+   PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+   PREFIX free: <http://experts.ucdavis.edu/concept/free>
+   PREFIX grant: <http://experts.ucdavis.edu/grant/>
+   PREFIX harvest_iam: <http://iam.ucdavis.edu/>
+   PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
+   PREFIX iam: <http://iam.ucdavis.edu/schema#>
+   PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
+   PREFIX obo: <http://purl.obolibrary.org/obo/>
+   PREFIX person: <http://experts.ucdavis.edu/person/>
+   PREFIX private: <http://experts.ucdavis.edu/private/>
+   PREFIX purl: <http://purl.org/ontology/bibo/>
+   PREFIX q: <http://experts.ucdavis.edu/queries/>
+   PREFIX query: <http://experts.ucdavis.edu/schema/queries/>
+   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+   PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+   PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+   PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+   PREFIX vivo: <http://vivoweb.org/ontology/core#>
+   PREFIX work: <http://experts.ucdavis.edu/work/>
+   PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+   PREFIX position: <http://experts.ucdavis.edu/position/>
+
+   select ?grant_num ?title ?pi_cas ?cas ?positions ?broader_labels
+   ?grant_types ?pi_labels ?pi_positions ?role_names
+   where {
+     {
+       select ?user ?cas
+       (group_concat(DISTINCT ?position_label; separator="|") as ?positions)
+       (GROUP_CONCAT(DISTINCT ?broader_label ; separator="|") as ?broader_labels)
+       WHERE {
+         graph <http://experts.ucdavis.edu/ucop/> {
+           VALUES (?broader ?broader_label) { (position:Senate "SEN") (position:Federation "FED") }
+           ?academic_position a ucdrp:position;
+                              rdfs:label ?position_label;
+                              skos:broader ?broader;
+                              .
+         }
+         graph <http://iam.ucdavis.edu/> {
+           ?user a ucdrp:person;
+                 ucdrp:casId ?cas;
+                 obo:ARG_2000028 ?pps_senate_or_federation;
+                 .
+
+           ?pps_senate_or_federation vcard:hasTitle/ucdrp:titleCode ?title_code;
+                                     .
+           bind(uri(concat(str(position:),?title_code)) as ?academic_position)
+         }
+       } group by ?user ?cas
+     }
+
+     { select ?grant_num ?title ?pi_cas ?user
+       (GROUP_CONCAT(DISTINCT ?grant_type_label ; separator="|") as ?grant_types)
+       (GROUP_CONCAT(DISTINCT ?pi_label ; separator="|") as ?pi_labels)
+       (GROUP_CONCAT(DISTINCT ?pi_title ; separator="|") as ?pi_positions)
+       (GROUP_CONCAT(DISTINCT ?role_name ; separator="|") as ?role_names)
+       WHERE {
+         graph <http://experts.ucdavis.edu/fis/> {
+           ?grant a vivo:Grant;
+                  rdfs:label ?title;
+                  vivo:relates ?pi_role;
+                  vivo:relates ?role;
+                  ucdrp:grantType ?grant_type;
+                  .
+
+           ?pi_role a vivo:PrincipalInvestigatorRole;
+                    obo:RO_000052 ?pi;
+                    .
+
+           ?pi rdfs:label ?pi_label;
+               ucdrp:casId ?pi_cas;
+               .
+
+           OPTIONAL {
+             graph <http://iam.ucdavis.edu/> {
+               ?pi a ucdrp:person;
+                   obo:ARG_2000028/vcard:hasTitle/vcard:title ?pi_title;
+                   .
+             }
+           }
+
+           bind(ucdrp:GrantKeyPersonnelRole as ?role_type)
+           ?role a ?role_type;
+                 obo:RO_000052 ?user;
+                 .
+           ?role_type rdfs:label ?role_name.
+         }
+         bind(replace(str(?grant_type),str(ucdrp:GrantType),"") as ?grant_type_label)
+         bind(replace(str(?grant),str(grant:),"") as ?grant_num)
+         filter(?pi != ?user)
+         filter(regex(str(?role_type),str(ucdrp:)))
+       } group by ?grant_num ?title ?pi_cas ?user
+     }
+   }
+ #+end_src
