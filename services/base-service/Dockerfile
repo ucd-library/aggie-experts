@@ -19,5 +19,10 @@ RUN npm link @ucd-lib/fin-api
 # Models
 WORKDIR ${FIN_SERVICE_ROOT}
 COPY models models
+WORKDIR ${FIN_SERVICE_ROOT}/models
+RUN rm -rf node_modules
+RUN npm ci
+
+WORKDIR ${FIN_SERVICE_ROOT}
 
 CMD [ "bash", "-c", "tail -f /dev/null"]

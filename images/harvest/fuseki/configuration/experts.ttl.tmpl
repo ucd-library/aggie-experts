@@ -86,6 +86,7 @@ tdb2:DatasetTDB2  rdfs:subClassOf  ja:RDFDataset .
     a ja:MemoryModel ;
     .
 
+
 # We use HDT files for these.  If we want access to the TDB files, I Need to think about the
 # best way to do that.  Maybe service would be best.
 
@@ -125,6 +126,10 @@ tdb2:DatasetTDB2  rdfs:subClassOf  ja:RDFDataset .
 :dataset_experts
     a ja:RDFDataset ;
     ja:defaultGraph :mem_experts ;
+    ja:namedGraph [
+        ja:graphName <http://experts.ucdavis.edu/concept/FoR/> ;
+        ja:graph :FoR ;
+        ] ;
     ja:namedGraph [
         ja:graphName <http://experts.ucdavis.edu/ucop/> ;
         ja:graph :positions ;
