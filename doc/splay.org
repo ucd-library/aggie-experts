@@ -47,7 +47,7 @@ for i in 20230502/all/relationships.6[56789]??.jsonld; do echo $i; ae=~/aggie-ex
 #+begin_src bash
     cd aggie-test
     alias experts='node ~/aggie-experts/experts-client/bin/experts.js'
-    experts --iam-auth ${IAM_AUTH} iam getIam
+    experts --iam-auth ${IAM_AUTH} iam
  #+end_src
 
 
