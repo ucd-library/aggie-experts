@@ -25,7 +25,8 @@ async function main(opt) {
   //  console.log(opt);
 
   const ec = new ExpertsClient(opt);
-  const cdlContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
+  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
+  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
 
   console.log('starting createDataset');
   await ec.createDataset(opt)
@@ -34,16 +35,34 @@ async function main(opt) {
   console.log('starting getCDLProfiles');
 
   for (const user of opt.users) {
+    console.log('starting getCDLprofile ' + user);
     await ec.getCDLprofile(opt, user);
-    console.log('starting createJsonLd');
-    let contextObj = JSON.parse(cdlContext);
+    console.log('starting createJsonLd ' + user);
+    let contextObj = JSON.parse(profileContext);
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.doc;
     ec.jsonld = JSON.stringify(contextObj);
     console.log('starting createGraph ' + user);
     await ec.createGraphFromJsonLdFile(opt);
-    fs.writeFileSync('data/' + user + '.jsonld', JSON.stringify(ec.doc, null, 2));
+    fs.writeFileSync('data/' + user + '.jsonld', ec.jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+
+    console.log(ec.doc.id);
+
+    console.log('starting getCDLworks ' + user);
+    await ec.getCDLworks(opt, ec.doc.id);
+    console.log(ec.works);
+    console.log('starting createJsonLd ' + user);
+    contextObj = JSON.parse(worksContext);
+    contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
+    contextObj["@graph"] = ec.works;
+    ec.jsonld = JSON.stringify(contextObj);
+    // console.log(ec.jsonld);
+    console.log('starting works createGraph ' + user);
+    await ec.createGraphFromJsonLdFile(opt);
+    fs.writeFileSync('data/' + user + '-works.jsonld', ec.jsonld);
+    console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+
   };
 
   // console.log('starting splay');

@@ -365,13 +365,37 @@ export class ExpertsClient {
       const xml = await response.text();
       // console.log(xml);
       this.doc = parser.toJson(xml, { object: true, arrayNotation: false });
-      // console.log(JSON.stringify(this.doc));
+      // console.log(this.doc);
 
       this.doc = this.doc.feed.entry["api:object"];
       // console.log(JSON.stringify(this.doc));
     }
     return
   }
+  async getCDLworks(opt, cdlId) {
+
+    // console.log(opt);
+
+    const response = await fetch(opt.url + 'users/' + cdlId + '/publications?detail=full', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Basic ' + opt.cdlAuth,
+        'Content-Type': 'text/xml'
+      }
+    })
+
+    if (response.status !== 200) {
+      throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+    }
+    else if (response.status === 200) {
+      const xml = await response.text();
+      const json = parser.toJson(xml, { object: true, arrayNotation: false });
+      fs.writeFileSync('data/works.json', JSON.stringify(json, null, 2));
+      // this.works = json.feed.entry.["api:object"];
+    }
+    return
+  }
+
 }
 
 export default ExpertsClient;
