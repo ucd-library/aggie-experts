@@ -128,7 +128,7 @@ Object.keys(opt).forEach((k) => {
 opt.iamEndpoint = process.env.EXPERTS_IAM_ENDPOINT;
 opt.iamAuth = process.env.EXPERTS_IAM_AUTH;
 opt.source = [opt.fuseki.url + '/' + opt.fuseki.db];
-opt.users = ['jrmerz'] //, 'jrmerz', 'quinn'];
+opt.users = ['pcronald'] //, 'jrmerz', 'quinn'];
 opt.url = process.env.EXPERTS_CDL_ENDPOINT || 'https://qa-experts.ucdavis.edu';
 opt.cdlAuth = cdlToken;
 

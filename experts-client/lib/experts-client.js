@@ -412,8 +412,12 @@ export class ExpertsClient {
         }
         else {
           // Fetch the next page
-          nextPage = pagination["api:page"][1].href;
-          console.log('nextPage: ' + nextPage);
+          for (let link of pagination["api:page"]) {
+            if (link.position === 'next') {
+              nextPage = link.href;
+              console.log('nextPage: ' + nextPage);
+            }
+          }
         }
       }
     }
