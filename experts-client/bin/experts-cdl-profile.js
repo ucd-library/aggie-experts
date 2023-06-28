@@ -36,7 +36,11 @@ async function main(opt) {
 
   for (const user of opt.users) {
     console.log('starting getCDLprofile ' + user);
-    await ec.getCDLprofile(opt, user);
+
+    const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
+    // Assume a single entry for a user profile
+    ec.doc = entries[0]['api:object'];
+
     console.log('starting createJsonLd ' + user);
     let contextObj = JSON.parse(profileContext);
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
@@ -49,15 +53,18 @@ async function main(opt) {
 
     console.log(ec.doc.id);
 
-    console.log('starting getCDLworks ' + user);
-    await ec.getCDLworks(opt, ec.doc.id);
-    console.log(ec.works);
+    console.log('starting getCDLentries ' + user);
+
+    // fetch publications for user
+    ec.works = await ec.getCDLentries(opt, 'users/' + ec.doc.id + '/publications?detail=ref');
+
     console.log('starting createJsonLd ' + user);
     contextObj = JSON.parse(worksContext);
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.works;
     ec.jsonld = JSON.stringify(contextObj);
     // console.log(ec.jsonld);
+
     console.log('starting works createGraph ' + user);
     await ec.createGraphFromJsonLdFile(opt);
     fs.writeFileSync('data/' + user + '-works.jsonld', ec.jsonld);
@@ -65,8 +72,8 @@ async function main(opt) {
 
   };
 
-  // console.log('starting splay');
-  // await ec.splay(opt);
+  console.log('starting splay');
+  await ec.splay(opt);
 
   // Any other value don't delete
   if (opt.fuseki.isTmp === true && !opt.saveTmp) {
@@ -121,10 +128,10 @@ Object.keys(opt).forEach((k) => {
 opt.iamEndpoint = process.env.EXPERTS_IAM_ENDPOINT;
 opt.iamAuth = process.env.EXPERTS_IAM_AUTH;
 opt.source = [opt.fuseki.url + '/' + opt.fuseki.db];
-opt.users = ['pcronald', 'jrmerz', 'quinn'];
+opt.users = ['jrmerz'] //, 'jrmerz', 'quinn'];
 opt.url = process.env.EXPERTS_CDL_ENDPOINT || 'https://qa-experts.ucdavis.edu';
 opt.cdlAuth = cdlToken;
 
-console.log('opt', opt);
+// console.log('opt', opt);
 
 await main(opt);

@@ -62,12 +62,12 @@ if (cli.fuseki.isTmp) {
 }
 
 for (const n of ['person', 'work', 'authorship']) {
-  async (n) => {
+  (async (n) => {
     const splay = ql.getSplay(n);
     console.log(splay)
     //    delete splay["frame@"];
     return await ec.splay({ ...cli, ...splay });
-  }
+  })();
 };
 
 // Any other value don't delete
