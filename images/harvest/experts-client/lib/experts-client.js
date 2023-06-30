@@ -234,16 +234,7 @@ export class ExpertsClient {
     return await response.text();
   }
 
-  /**
-  * @description
-  * @param {
-  * } opt
-  * @returns
-  *
-  */
-  async splay(opt) {
-
-    function str_or_file(opt, param, required) {
+  static str_or_file(opt, param, required) {
       if (opt[param]) {
         return opt[param];
       } else if (opt[param + '@']) {
@@ -257,10 +248,67 @@ export class ExpertsClient {
       }
     }
 
+  /**
+  * @description
+  * @param {
+  * } opt
+  * @returns
+  *
+  */
+  async insert(opt) {
+    const bind = ExpertsClient.str_or_file(opt, 'bind', true);
+    const insert = ExpertsClient.str_or_file(opt, 'insert', true);
+
+    const q = new QueryEngine();
+    const sources = opt.source;
+
+    const bindingStream = await q.queryBindings(opt.bind, { sources })
+
+    bindingStream.on('data', insert_one)
+      .on('error', (error) => {
+        console.error(error);
+      })
+      .on('end', () => {
+        // console.log('bindings done');
+      });
+
+    async function insert_one(bindings) {
+      // if opt.bindings, add them to bindings
+      if (opt.bindings) {
+        for (const [key, value] of opt.bindings) {
+          bindings.set(key,value);
+        }
+      }
+      // comunica's initialBindings function doesn't work,
+      //so this is a sloppy workaround
+      let insert=opt.insert;
+      for (const [ key, value ] of bindings) {
+        console.log(key.value + ' = ' + value.value);
+        if (value.termType === 'Literal') {
+          insert=insert.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+        } else if (value.termType === 'NamedNode') {
+          insert=insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+        }
+      }
+      await q.queryVoid(insert, { sources: opt.source });
+//    await q.queryVoid(insert, { initialBindings: bindings, sources: opt.source });
+    }
+
+    return true;
+  }
+
+  /**
+  * @description
+  * @param {
+  * } opt
+  * @returns
+  *
+  */
+  async splay(opt) {
     // console.log(opt);
-    const bind = str_or_file(opt, 'bind', true);
-    const construct = str_or_file(opt, 'construct', true);
-    const frame = str_or_file(opt, 'frame', false)
+    const bind = ExpertsClient.str_or_file(opt, 'bind', true);
+    const construct = ExpertsClient.str_or_file(opt, 'construct', true);
+    const frame = ExpertsClient.str_or_file(opt, 'frame', false)
     if (opt.frame) {
       opt.frame = JSON.parse(opt.frame);
     }

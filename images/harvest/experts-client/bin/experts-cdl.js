@@ -3,11 +3,15 @@ import fs from 'fs-extra';
 import { Command } from 'commander';
 import { Engine } from 'quadstore-comunica';
 import { QueryEngine } from '@comunica/query-sparql';
-import { localDB } from '../lib/experts-client.js';
 import { DataFactory } from 'rdf-data-factory';
+import { BindingsFactory } from '@comunica/bindings-factory';
+import { localDB } from '../lib/experts-client.js';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
+
+const DF = new DataFactory();
+const BF = new BindingsFactory();
 
 const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
@@ -28,6 +32,7 @@ program.name('cdl')
   .description('Using a select, and a construct, splay a graph, into individual files.  Any files includes are added to a (potentially new) localdb before the construct is run.')
   .option('--output <output>', 'output directory')
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
+  .option('--experts-service <experts-service>', 'Experts Sparql Endpoint','http://localhost:3000/experts/sparql')
   .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
   .option('--fuseki.type [type]', 'specify type on --fuseki.isTmp creation', 'mem')
   .option('--fuseki.url', 'fuseki url', fuseki.url)
@@ -61,7 +66,16 @@ if (cli.fuseki.isTmp) {
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}/sparql`);
 }
 
-for (const n of ['person', 'work', 'authorship']) {
+// Import IAM data
+cli.bindings=BF.fromRecord(
+  {EXPERTS_SERVICE__: DF.namedNode(cli.expertsService)}
+);
+const iam = ql.getQuery('insert_iam','InsertQuery');
+await ec.insert({...cli,...iam});
+console.log('inserted');
+
+//for (const n of ['person', 'work', 'authorship']) {
+for (const n of []) {
   (async (n) => {
     const splay = ql.getSplay(n);
     console.log(splay)
