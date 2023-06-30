@@ -19,6 +19,7 @@ import { nanoid } from 'nanoid';
 import path from 'path';
 // import xml2js from 'xml2js';
 import parser from 'xml2json';
+import { count } from 'console';
 // import { readFileSync } from 'fs';
 
 
@@ -409,33 +410,85 @@ export class ExpertsClient {
 
   }
 
-  async getCDLprofile(opt, user) {
+  // async getCDLprofile(opt, user) {
 
-    // console.log(opt);
+  //   // console.log(opt);
 
-    const response = await fetch(opt.url + 'users?username=' + user + '@ucdavis.edu&detail=full', {
-      // const response = await fetch(opt.url + 'users?query=blood AND flow'
-      method: 'GET',
-      headers: {
-        'Authorization': 'Basic ' + opt.cdlAuth,
-        'Content-Type': 'text/xml'
+  //   const response = await fetch(opt.url + 'users?username=' + user + '@ucdavis.edu&detail=full', {
+  //     // const response = await fetch(opt.url + 'users?query=blood AND flow'
+  //     method: 'GET',
+  //     headers: {
+  //       'Authorization': 'Basic ' + opt.cdlAuth,
+  //       'Content-Type': 'text/xml'
+  //     }
+  //   })
+
+  //   if (response.status !== 200) {
+  //     throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+  //   }
+  //   else if (response.status === 200) {
+  //     const xml = await response.text();
+  //     // console.log(xml);
+  //     this.doc = parser.toJson(xml, { object: true, arrayNotation: false });
+  //     // console.log(this.doc);
+
+  //     this.doc = this.doc.feed.entry["api:object"];
+  //     // console.log(JSON.stringify(this.doc));
+  //   }
+  //   return
+  // }
+
+  // Generic function to get all the entries from a CDL collection
+  async getCDLentries(opt, path) {
+
+    var lastPage = false
+    var results = [];
+    var nextPage = opt.url + path;
+
+    while (!lastPage) {
+      const response = await fetch(nextPage, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + opt.cdlAuth,
+          'Content-Type': 'text/xml'
+        }
+      })
+
+      if (response.status !== 200) {
+        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+        break;
       }
-    })
+      else if (response.status === 200) {
+        const xml = await response.text();
+        // convert the xml atom feed to json
+        const json = parser.toJson(xml, { object: true, arrayNotation: false });
 
-    if (response.status !== 200) {
-      throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-    }
-    else if (response.status === 200) {
-      const xml = await response.text();
-      // console.log(xml);
-      this.doc = parser.toJson(xml, { object: true, arrayNotation: false });
-      // console.log(JSON.stringify(this.doc));
+        // add the entries to the results array
+        results = results.concat(json.feed.entry);
+        // console.log('results.length: ' + results.length);
 
-      this.doc = this.doc.feed.entry["api:object"];
-      // console.log(JSON.stringify(this.doc));
+        // inspect the pagination to see if there are more pages
+        const pagination = json.feed['api:pagination'];
+        if (pagination["results-count"] < 25) {
+          // This is the last page
+          lastPage = true;
+          break;
+        }
+        else {
+          // Fetch the next page
+          for (let link of pagination["api:page"]) {
+            if (link.position === 'next') {
+              nextPage = link.href;
+              // console.log('nextPage: ' + nextPage);
+            }
+          }
+        }
+      }
     }
-    return
+
+    return results;
   }
+
 }
 
 export default ExpertsClient;

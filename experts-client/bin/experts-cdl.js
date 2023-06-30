@@ -75,7 +75,6 @@ const iam = ql.getQuery('insert_iam','InsertQuery');
 await ec.insert({...cli,...iam});
 
 for (const n of ['person', 'work', 'authorship']) {
-//for (const n of []) {
   (async (n) => {
     const splay = ql.getSplay(n);
     //    delete splay["frame@"];

@@ -11,7 +11,7 @@ console.log('starting experts-iam');
 const program = new Command();
 
 const fuseki = {
-  url: process.env.EXPERTS_FUSEKI_URL || 'http://127.0.0.1:3030',
+  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   type: 'mem',
   db: 'cdl-profiles',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:**nopass**',
@@ -25,7 +25,8 @@ async function main(opt) {
   //  console.log(opt);
 
   const ec = new ExpertsClient(opt);
-  const cdlContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
+  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
+  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
 
   console.log('starting createDataset');
   await ec.createDataset(opt)
@@ -34,16 +35,50 @@ async function main(opt) {
   console.log('starting getCDLProfiles');
 
   for (const user of opt.users) {
-    await ec.getCDLprofile(opt, user);
-    console.log('starting createJsonLd');
-    let contextObj = JSON.parse(cdlContext);
+    console.log('starting getCDLprofile ' + user);
+
+    const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
+    // Assume a single entry for a user profile
+    ec.doc = [];
+    ec.doc.push(entries[0]['api:object']);
+
+    console.log('starting createJsonLd ' + user);
+    let contextObj = JSON.parse(profileContext);
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.doc;
     ec.jsonld = JSON.stringify(contextObj);
     console.log('starting createGraph ' + user);
     await ec.createGraphFromJsonLdFile(opt);
-    fs.writeFileSync('data/' + user + '.jsonld', JSON.stringify(ec.doc, null, 2));
+    fs.writeFileSync('data/' + user + '.jsonld', ec.jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+
+    console.log('starting getCDLentries ' + user + '-' + ec.doc[0].id);
+
+    // fetch publications for user
+    ec.works = [];
+    let works = await ec.getCDLentries(opt, 'users/' + ec.doc[0].id + '/publications?detail=full');
+    for (let work of works) {
+      let related = [];
+      if (work['api:relationship']['api:related']) {
+        related.push(work['api:relationship']['api:related']);
+      }
+      related.push({ direction: 'to', id: ec.doc[0].id, category: 'user' });
+      work['api:relationship']['api:related'] = related;
+      ec.works.push(work['api:relationship']);
+    }
+
+    console.log('starting createJsonLd ' + user);
+    contextObj = JSON.parse(worksContext);
+    contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
+    contextObj["@graph"] = ec.works;
+    ec.jsonld = JSON.stringify(contextObj);
+    // console.log(ec.jsonld);
+
+    console.log('starting works createGraph ' + user);
+    await ec.createGraphFromJsonLdFile(opt);
+    fs.writeFileSync('data/' + user + '-works.jsonld', ec.jsonld);
+    console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+
   };
 
   // console.log('starting splay');
@@ -63,11 +98,10 @@ const __dirname = dirname(__filename).replace('/bin', '/lib');
 
 
 program.name('cdl-profile')
-  .usage('[options] <file...>')
-  .description('Import CDL Researcher Profiles')
+  .usage('[options] <userId...>')
+  .description('Import CDL Researcher Profiles and Works')
   .option('--iam-auth <key>', 'UC Davis CDL authentication key')
-  .option('--userId <userId>', 'UC Davis CDL user id')
-  .option('--iam-endpoint <endpoint>', 'UC Davis IAM endpoint', 'https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search')
+  .requiredOption('--userId <userId>', 'UC Davis CDL user ids')
   .option('--cdl-endpoint <endpoint>', 'CDL Elements endpoint', 'https://qa-experts.ucdavis.edu')
   .option('--bind <bind>', 'select query for binding')
   .option('--bind@ <bind.rq>', 'file containing select query for binding', __dirname + '/query/person/bind-cdl.rq')
@@ -102,7 +136,7 @@ Object.keys(opt).forEach((k) => {
 opt.iamEndpoint = process.env.EXPERTS_IAM_ENDPOINT;
 opt.iamAuth = process.env.EXPERTS_IAM_AUTH;
 opt.source = [opt.fuseki.url + '/' + opt.fuseki.db];
-opt.users = ['pcronald', 'jrmerz', 'quinn'];
+opt.users = opt.userId.split(',');
 opt.url = process.env.EXPERTS_CDL_ENDPOINT || 'https://qa-experts.ucdavis.edu';
 opt.cdlAuth = cdlToken;
 
