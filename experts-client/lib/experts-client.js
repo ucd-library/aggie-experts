@@ -401,7 +401,7 @@ export class ExpertsClient {
 
         // add the entries to the results array
         results = results.concat(json.feed.entry);
-        console.log('results.length: ' + results.length);
+        // console.log('results.length: ' + results.length);
 
         // inspect the pagination to see if there are more pages
         const pagination = json.feed['api:pagination'];
@@ -415,7 +415,7 @@ export class ExpertsClient {
           for (let link of pagination["api:page"]) {
             if (link.position === 'next') {
               nextPage = link.href;
-              console.log('nextPage: ' + nextPage);
+              // console.log('nextPage: ' + nextPage);
             }
           }
         }
@@ -424,17 +424,6 @@ export class ExpertsClient {
 
     return results;
   }
-
-  // async getPubIds(entries) {
-  //   let ids = [];
-  //   for (let entry of entries) {
-  //     if (entry['api:relationship'] === 'publication') {
-  //     ids.push(entry['api:id']);
-  //   }
-  //   return ids;
-  // }
-
-
 
 }
 
