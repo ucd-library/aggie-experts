@@ -85,7 +85,8 @@ WHERE {
   BIND(xsd:integer(?indirect_costs) AS ?indirect_costs_i)
 
   BIND(URI(CONCAT(str(ucdrp:), "ChartOfAccounts_", ?fin_coa_cd)) as ?fin_coa_code)
-	BIND(URI(CONCAT(str(experts:), "person/", md5(?prncpl_nm))) as ?person)
+  BIND(md5(concat(?prncpl_nm,'@ucdavis.edu')) AS ?user_id)
+	BIND(URI(CONCAT(str(experts:), "person/", ?user_id)) as ?person)
 	BIND(URI(CONCAT(str(experts:), "funding_org/", ?agency_nbr)) as ?funding_org)
 
 	BIND(URI(CONCAT(str(?grant), "#subAwardOf_", md5(?fpt_agency_nbr))) as ?from_grant)

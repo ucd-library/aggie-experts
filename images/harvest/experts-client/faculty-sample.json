@@ -1,0 +1,187 @@
+{
+  "responseDetails": "",
+  "responseStatus": 0,
+  "responseData": {
+    "results": [
+      {
+        "iamId": "1000000459",
+        "mothraId": "00002698",
+        "ppsId": "012755195",
+        "employeeId": "10216825",
+        "studentId": null,
+        "bannerPIdM": null,
+        "externalId": null,
+        "oFirstName": "Bruce",
+        "oMiddleName": "D",
+        "oLastName": "Hammock",
+        "oFullName": "Bruce D Hammock",
+        "oSuffix": null,
+        "dFirstName": "Bruce",
+        "dMiddleName": null,
+        "dLastName": "Hammock",
+        "dSuffix": null,
+        "dFullName": "Bruce Hammock",
+        "isEmployee": true,
+        "isHSEmployee": false,
+        "isFaculty": true,
+        "isStudent": false,
+        "isStaff": false,
+        "isExternal": false,
+        "privacyCode": null,
+        "modifyDate": "2020-12-11 17:10:01",
+        "email": "bdhammock@ucdavis.edu",
+        "campus_email": null,
+        "hs_email": null,
+        "ppsAssociations": [
+          {
+            "deptCode": "030302",
+            "deptOfficialName": "ENTOMOLOGY/NEMATOLOGY",
+            "deptDisplayName": "ENTOMOLOGY/NEMATOLOGY",
+            "deptAbbreviation": "ENT/NEMA",
+            "isUCDHS": "N",
+            "bouOrgoid": "F80B657C9EF523A0E0340003BA8A560D",
+            "adminDept": "030302",
+            "adminDeptOfficialName": "ENTOMOLOGY/NEMATOLOGY",
+            "adminDeptDisplayName": "ENTOMOLOGY/NEMATOLOGY",
+            "adminDeptAbbreviation": "ENT/NEMA",
+            "adminIsUCDHS": "N",
+            "adminBouOrgoid": "F80B657C9EF523A0E0340003BA8A560D",
+            "apptDeptCode": "030302",
+            "apptDeptOfficialName": "ENTOMOLOGY/NEMATOLOGY",
+            "apptDeptAbbreviation": "ENT/NEMA",
+            "apptIsUCDHS": "N",
+            "apptBouOrgoid": "F80B657C9EF523A0E0340003BA8A560D",
+            "assocRank": 1,
+            "assocStartDate": "2019-10-01 00:00:00",
+            "assocEndDate": null,
+            "titleCode": "001110",
+            "titleOfficialName": "PROF-FY",
+            "titleDisplayName": "PROF-FY",
+            "positionTypeCode": "5",
+            "positionType": "Academic",
+            "percentFulltime": 0.46,
+            "createDate": "2020-08-31 11:32:56",
+            "modifyDate": null,
+            "emplClass": "9",
+            "emplPositionNumber": "40227681",
+            "reportsToEmplID": "40213342"
+          },
+          {
+            "deptCode": "030302",
+            "deptOfficialName": "ENTOMOLOGY/NEMATOLOGY",
+            "deptDisplayName": "ENTOMOLOGY/NEMATOLOGY",
+            "deptAbbreviation": "ENT/NEMA",
+            "isUCDHS": "N",
+            "bouOrgoid": "F80B657C9EF523A0E0340003BA8A560D",
+            "adminDept": "030302",
+            "adminDeptOfficialName": "ENTOMOLOGY/NEMATOLOGY",
+            "adminDeptDisplayName": "ENTOMOLOGY/NEMATOLOGY",
+            "adminDeptAbbreviation": "ENT/NEMA",
+            "adminIsUCDHS": "N",
+            "adminBouOrgoid": "F80B657C9EF523A0E0340003BA8A560D",
+            "apptDeptCode": "030302",
+            "apptDeptOfficialName": "ENTOMOLOGY/NEMATOLOGY",
+            "apptDeptAbbreviation": "ENT/NEMA",
+            "apptIsUCDHS": "N",
+            "apptBouOrgoid": "F80B657C9EF523A0E0340003BA8A560D",
+            "assocRank": 2,
+            "assocStartDate": "2019-10-01 00:00:00",
+            "assocEndDate": null,
+            "titleCode": "003000",
+            "titleOfficialName": "AGRON AES",
+            "titleDisplayName": "AGRON AES",
+            "positionTypeCode": "2",
+            "positionType": "Regular/Career",
+            "percentFulltime": 0.54,
+            "createDate": "2020-08-31 11:32:56",
+            "modifyDate": "2020-08-31 11:34:54",
+            "emplClass": "10",
+            "emplPositionNumber": "40227680",
+            "reportsToEmplID": "40213342"
+          }
+        ],
+        "sisAssociations": null,
+        "directory": {
+          "displayName": {
+            "preferredFname": "Bruce",
+            "preferredMname": null,
+            "preferredLname": "Hammock",
+            "preferredSuffix": null,
+            "nameWwwFlag": "Y",
+            "nameUcdFlag": "Y"
+          },
+          "listings": [
+            {
+              "listingOrder": 1,
+              "deptCode": "8062",
+              "deptName": "Entomology and Nematology",
+              "deptWwwFlag": "Y",
+              "deptUcdFlag": "Y",
+              "title": "Professor",
+              "titleWwwFlag": "Y",
+              "titleUcdFlag": "Y",
+              "website": null,
+              "websiteWwwFlag": "Y",
+              "websiteUcdFlag": "Y",
+              "location": [
+                {
+                  "street": "90 Briggs Hall",
+                  "city": "Davis",
+                  "state": "CA",
+                  "zip": "95616",
+                  "addressWwwFlag": "Y",
+                  "addressUcdFlag": "Y"
+                }
+              ],
+              "device": [
+                {
+                  "phone": "530-752-7519",
+                  "type": "Voice (Land Line)",
+                  "phoneWwwFlag": "Y",
+                  "phoneUcdFlag": "Y"
+                }
+              ],
+              "createDate": "2006-07-13 11:41:42",
+              "modifyDate": "2020-10-05 10:15:38"
+            },
+            {
+              "listingOrder": 2,
+              "deptCode": "8321",
+              "deptName": "M.I.N.D. Institute",
+              "deptWwwFlag": "Y",
+              "deptUcdFlag": "Y",
+              "title": "Professor",
+              "titleWwwFlag": "Y",
+              "titleUcdFlag": "Y",
+              "website": null,
+              "websiteWwwFlag": "Y",
+              "websiteUcdFlag": "Y",
+              "location": [
+                {
+                  "street": "90 Briggs Hall",
+                  "city": "Davis",
+                  "state": "CA",
+                  "zip": "95616",
+                  "addressWwwFlag": "Y",
+                  "addressUcdFlag": "Y"
+                }
+              ],
+              "device": [
+                {
+                  "phone": "530-752-7519",
+                  "type": "Voice (Land Line)",
+                  "phoneWwwFlag": "N",
+                  "phoneUcdFlag": "N"
+                }
+              ],
+              "createDate": "2006-07-13 11:41:42",
+              "modifyDate": "2020-10-05 10:15:38"
+            }
+          ]
+        },
+        "uuid": "28255",
+        "userID": "fzhammoc"
+      }
+    ]
+  }
+}

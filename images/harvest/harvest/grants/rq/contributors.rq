@@ -35,7 +35,7 @@ WHERE {
 #    ("ACCT-COPI" ucdrp:GrantAccountManagerRole vivo:ResearcherRole)
     }
 	BIND(URI(CONCAT(str(grant:), ?cgprpsl_nbr)) AS ?grant)
-	BIND(URI(CONCAT(str(?grant), "#role", md5(?prncpl_nm),"-",?grant_role)) AS ?role)
-	BIND(URI(CONCAT(str(person:), md5(?prncpl_nm))) as ?person)
-
+  BIND(md5(concat(?prncpl_nm,'@ucdavis.edu')) AS ?user_id)
+	BIND(URI(CONCAT(str(?grant), "#role",?user_id,"-",?grant_role)) AS ?role)
+	BIND(URI(CONCAT(str(person:), ?user_id)) as ?person)
 }

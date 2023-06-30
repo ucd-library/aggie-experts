@@ -429,3 +429,57 @@ volumes:
      }
    }
  #+end_src
+
+
+** Person Build
+
+   This is a temporary
+
+   #+begin_src bash
+     cdl-elements login --auth=$(gcloud --project=digital-ucdavis-edu secrets versions access latest --secret=cdl_elements_json | jq -r '.[] | select(.["@id"]=="oapolicy") |  .auth.raw_auth')
+     users=quinn
+     for i in $users; do
+         c=cache/$i;
+         mkdir -p $c;
+         cdl-elements -v --cache=$c  users --pubs $i;
+         http http://localhost:3030/experts/sparql Content-Type:application/sparql-query Accept:application/ld+json <<<"
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+CONSTRUCT { ?s ?p ?o.} WHERE {
+      bind(uri(concat(str(experts:),'person/',MD5('${i}@ucdavis.edu'))) as ?user)
+      graph <http://iam.ucdavis.edu/> {
+        ?user a ucdlib:Person . ?s ?p ?o.
+        filter(regex(str(?s),concat('^',str(?user),'#?')))
+      }}" > $c/iam.jsonld
+      mkdir -p fcrepo/$i;
+      node /usr/local/lib/experts-client/bin/experts-cdl.js --output=fcrepo-$i  --fuseki.isTmp --fuseki.db=$i --save-tmp $c/*.jsonld
+     done
+   #+end_src
+
+      #+begin_src bash
+        for i in $for_sure $rand; do
+            echo $i; c=cache/$i;
+            mkdir fcrepo-$i;
+            node ~/aggie-experts/experts-client/bin/experts-cdl.js --output=fcrepo-$i  --fuseki.isTmp --fuseki.db=$i --save-tmp $c/*.jsonld
+        done
+   #+end_src
+
+
+   docker run -p 3030:3030 --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud
+   secrets versions access latest --secret='aggie-expert-data-harvester-key' |
+   jq -c .)" --interactive --tty --rm
+   localhost/aggie-experts/harvest:docker-build HDT=import server
+
+
+   node
+   ~/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/bin/experts-splay.js
+   --source http://localhost:3030/pcronald/sparql
+   --bind@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/person/bind.rq
+   --construct@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/person/construct.rq
+   --frame@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/person/frame.json
+   --output=fcrepo-pcronald
+
+   node
+   ~/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/bin/experts-cdl
+   --output=fcrepo-pcronald --fuseki.isTmp --fuseki.db=pcronald --save-tmp
+   pcronald/*.jsonld

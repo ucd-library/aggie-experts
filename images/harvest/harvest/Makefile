@@ -35,7 +35,7 @@ server:: server_startup ## Run the server
 	${FUSEKI_HOME}/fuseki-server-hdt
 
 server_bg: server_startup
-	nohup ${FUSEKI_HOME}/fuseki-server-hdt
+	nohup ${FUSEKI_HOME}/fuseki-server-hdt &
 
 #
 # gcloud import/export
@@ -60,8 +60,8 @@ iam.hdt:${FUSEKI_BASE}/databases/hdt/iam.hdt ## Import iam.hdt file (HDT=import)
 grants.hdt:${FUSEKI_BASE}/databases/hdt/grants.hdt ## Import grants.hdt file (HDT=import)
 
 ${FUSEKI_BASE}/databases/hdt/grants.hdt ${FUSEKI_BASE}/databases/hdt/iam.hdt:${FUSEKI_BASE}/databases/hdt/%.hdt:
-	[[ -d databases/hdt/$* ]] || mkdir -p databases/hdt/$*
-	gsutil rsync -r ${hdt-bucket}/hdt/${*}* databases/hdt/$*
+	[[ -d databases/hdt ]] || mkdir -p databases/hdt
+	gsutil rsync -r ${hdt-bucket}/hdt/ databases/hdt/
 
 endif
 
@@ -131,8 +131,7 @@ endef
 
 sqlcl:=sqlcl -S "$(call fis_login)"
 
-interactive:
-	sqlcl "$(call fis_login)"
+interactive:	sqlcl "$(call fis_login)"
 
 clean::                  # Remove all generated files
 	rm contributors.csv  fin_coa.csv  funding_agencies.csv  grants.csv  organizations.csv
