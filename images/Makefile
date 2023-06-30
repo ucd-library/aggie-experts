@@ -54,8 +54,6 @@ openjdk-tarql:: openjdk
 fuseki:: openjdk hdt-java
 
 harvest::fuseki openjdk-sqlcl openjdk-tarql
-harvest-grants::fuseki openjdk-sqlcl openjdk-tarql
-harvest-person::fuseki
 
 define build-local
 $(warning build-local $1)

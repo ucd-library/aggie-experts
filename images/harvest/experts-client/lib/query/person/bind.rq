@@ -1,0 +1,10 @@
+prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
+prefix person: <http://experts.ucdavis.edu/person/>
+PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
+select distinct (?username as ?USERNAME__) ?filename where {
+  graph harvest_oap: {
+    [] :username ?username.
+    bind(concat("person/",md5(?username)) as ?id)
+    bind(concat(?id,".jsonld.json") as ?filename)
+  }
+}
