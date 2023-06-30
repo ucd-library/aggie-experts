@@ -78,6 +78,7 @@ construct {
               .
 }
 WHERE {
+  graph cdl: {
   VALUES(?oap_type ?bibo_type ?cite_type ?cite_genre) {
     ("book" bibo:Book "book" "")
     ("chapter" bibo:Chapter "chapter" "")
@@ -98,22 +99,21 @@ WHERE {
 
   # Get every field_name
   {
-    select ?pub ?field_name (min(?p) as ?priority)
+    select ?field_name (min(?p) as ?priority)
     WHERE {
       VALUES (?source ?p) {
         ("verified-manual" 1)("epmc" 2)("pubmed" 3)("scopus" 4)("wos" 5)("wos-lite" 6)
         ("crossref" 7)("dimensions" 8)("arxiv" 9)("orcid" 10)("dblp" 11)("cinii-english" 12)
         ("repec" 13)("figshare" 14)("cinii-japanese" 15)("manual" 16)("dspace" 17) }
 
-      ?pub oap:records/oap:record [ oap:source-name  ?source;
+      ?PUB__ oap:records/oap:record [ oap:source-name  ?source;
                                      oap:native/oap:field/oap:name ?field_name ].
-    } group by ?pub ?field_name
+    } group by ?field_name
   }
   VALUES (?source ?priority) {
     ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
     ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
     ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
-
 
  # these are the fields to check
  VALUES(?field_name ?field_predicate) {
@@ -177,25 +177,25 @@ WHERE {
       ("volume" cite:volume)
     }
 
-  graph ?g {
-  ?pub  oap:type ?oap_type;
+  ?PUB__  oap:type ?oap_type;
         oap:last-modified-when ?lastModifiedWhen;
         oap:records/oap:record [ oap:source-name  ?source;
                                  oap:native/oap:field ?field ];
                                                       .
+    bind(uri(replace(str(?PUB__),str(cdl:),str(work:))) as ?work)
 
   OPTIONAL {
-    ?pub oap:records/oap:record [ oap:source-name  ?source;
+    ?PUB__ oap:records/oap:record [ oap:source-name  ?source;
                                    oap:native/oap:field ?field_name;
                                    oap:native/oap:text ?doi ].
     filter(?field_name='doi')
     }
-  #  bind(uri(replace(str(?pub),str(cdl:),str(work:))) as ?work)
+#    bind(uri(replace(str(?PUB__),str(cdl:),str(work:))) as ?work)
 
   ?field oap:name ?field_name.
 
   OPTIONAL {
-    ?pub oap:type ?oap_type;
+    ?PUB__ oap:type ?oap_type;
          .
     }
   OPTIONAL {
@@ -272,7 +272,7 @@ WHERE {
 
   # Now we take CDLs preferred term
   OPTIONAL {
-    ?pub oap:journal [
+    ?PUB__ oap:journal [
                         oap:issn ?issn;
                         oap:title ?journal_title
                       ].

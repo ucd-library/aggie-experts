@@ -110,7 +110,9 @@ export class ExpertsClient {
     // You can still specify a db name if you want, otherwise we'll generate a
     // random one
     if (fuseki.auth.match(':')) {
-      fuseki.auth = Buffer.from(fuseki.auth).toString('base64');
+      fuseki.authBasic = Buffer.from(fuseki.auth).toString('base64');
+    } else {
+      fuseki.authBasic = fuseki.auth;
     }
     if (!fuseki.db) {
       fuseki.db = nanoid(5);
@@ -126,7 +128,7 @@ export class ExpertsClient {
         method: 'POST',
         body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`
+          'Authorization': `Basic ${fuseki.authBasic}`
         }
 
       });
@@ -151,13 +153,13 @@ export class ExpertsClient {
     const results = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      // const jsonld = fs.readFileSync(file);
+      const jsonld = fs.readFileSync(file);
       // Be good to have verbose output better NDJSON for debugging
       const res = await fetch(`${fuseki.url}/${fuseki.db}/data`, {
         method: 'POST',
-        body: this.jsonld,
+        body: jsonld,
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`,
+          'Authorization': `Basic ${fuseki.authBasic}`,
           'Content-Type': 'application/ld+json'
         }
       })
@@ -180,7 +182,7 @@ export class ExpertsClient {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Basic ${fuseki.auth}`
+            'Authorization': `Basic ${fuseki.authBasic}`
           }
         })
       return res.status;
@@ -190,14 +192,16 @@ export class ExpertsClient {
   async createDataset(opt) {
     const fuseki = opt.fuseki;
     if (fuseki.auth.match(':')) {
-      fuseki.auth = Buffer.from(fuseki.auth).toString('base64');
+      fuseki.authBasic = Buffer.from(fuseki.auth).toString('base64');
+    } else {
+      fuseki.authBasic = fuseki.auth;
     }
 
     const res = await fetch(`${fuseki.url}/\$/datasets`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`
+          'Authorization': `Basic ${fuseki.authBasic}`
         },
         body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
       })
@@ -216,9 +220,9 @@ export class ExpertsClient {
     // Set request options
     const options = {
       method: 'POST',
-      headers: {
+        headers: {
         'Content-Type': 'application/ld+json',
-        'Authorization': `Basic ${fuseki.auth}`
+        'Authorization': `Basic ${fuseki.authBasic}`
       },
       body: this.jsonld,
     };
@@ -234,20 +238,11 @@ export class ExpertsClient {
     return await response.text();
   }
 
-  /**
-  * @description
-  * @param {
-  * } opt
-  * @returns
-  *
-  */
-  async splay(opt) {
-
-    function str_or_file(opt, param, required) {
+  static str_or_file(opt, param, required) {
       if (opt[param]) {
         return opt[param];
       } else if (opt[param + '@']) {
-        opt[param] = fs.readFileSync(opt[param + '@'], 'utf8').replace(/\r|\n/g, '');
+        opt[param] = fs.readFileSync(opt[param + '@'], 'utf8');
         return opt[param];
       } else if (required) {
         console.error('missing required option: ' + param + '(@)');
@@ -257,10 +252,67 @@ export class ExpertsClient {
       }
     }
 
+  /**
+  * @description
+  * @param {
+  * } opt
+  * @returns
+  *
+  */
+  async insert(opt) {
+    const bind = ExpertsClient.str_or_file(opt, 'bind', true);
+    const insert = ExpertsClient.str_or_file(opt, 'insert', true);
+
+    const q = new QueryEngine();
+    const sources = opt.source;
+
+    const bindingStream = await q.queryBindings(opt.bind, { sources })
+
+    bindingStream.on('data', insert_one)
+      .on('error', (error) => {
+        console.error(error);
+      })
+      .on('end', () => {
+        // console.log('bindings done');
+      });
+
+    async function insert_one(bindings) {
+      // if opt.bindings, add them to bindings
+      if (opt.bindings) {
+        for (const [key, value] of opt.bindings) {
+          bindings=bindings.set(key,value);
+        }
+      }
+      // comunica's initialBindings function doesn't work,
+      //so this is a sloppy workaround
+      let insert=opt.insert;
+      for (const [ key, value ] of bindings) {
+        if (value.termType === 'Literal') {
+          insert=insert.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+        } else if (value.termType === 'NamedNode') {
+          insert=insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+        }
+      }
+      const update=opt.source[0].replace(/sparql$/, 'update');
+      await q.queryVoid(insert, { sources: [update], httpAuth: opt.fuseki.auth });
+//    await q.queryVoid(insert, { initialBindings: bindings, sources: opt.source });
+    }
+
+    return true;
+  }
+
+  /**
+  * @description
+  * @param {
+  * } opt
+  * @returns
+  *
+  */
+  async splay(opt) {
     // console.log(opt);
-    const bind = str_or_file(opt, 'bind', true);
-    const construct = str_or_file(opt, 'construct', true);
-    const frame = str_or_file(opt, 'frame', false)
+    const bind = ExpertsClient.str_or_file(opt, 'bind', true);
+    const construct = ExpertsClient.str_or_file(opt, 'construct', true);
+    const frame = ExpertsClient.str_or_file(opt, 'frame', false)
     if (opt.frame) {
       opt.frame = JSON.parse(opt.frame);
     }
@@ -293,7 +345,7 @@ export class ExpertsClient {
     let binding_count = 0;
 
     async function construct_one(bindings) {
-      console.log('construct_one');
+      // console.log('construct_one');
       // binding_count++;
       // if (binding_count > 20) {
       //   console.log('too many bindings.  Stop listening');
@@ -306,9 +358,21 @@ export class ExpertsClient {
         } else {
           fn = bindings.get('filename').value
         }
+        bindings=bindings.delete('filename');
       }
+      // comunica's initialBindings function doesn't work,
+      //so this is a sloppy workaround
+      let construct=opt.construct;
+      for (const [ key, value ] of bindings) {
+        if (value.termType === 'Literal') {
+          construct=construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+        } else if (value.termType === 'NamedNode') {
+          construct=construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+        }
+      }
+      const quadStream = await q.queryQuads(construct, { sources: opt.source });
+//      const quadStream = await q.queryQuads(construct, { initialBindings: bindings, sources: opt.source });
       // convert construct to jsonld quads
-      const quadStream = await q.queryQuads(opt.construct, { initialBindings: bindings, sources: opt.source });
       const quads = await quadStream.toArray();
       let doc = await jsonld.fromRDF(quads)
 

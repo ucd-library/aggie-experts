@@ -17,22 +17,22 @@ CONSTRUCT {
   ?iam_s ?iam_p ?iam_o.
 
   # This adds the CDL information
-  ?user a ucdlib:Person, foaf:Person;
+  ?person_id a ucdlib:Person, foaf:Person;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
                ucdlib:oapolicyId ?oapolicy_id;
                ?field_predicate ?field_value;
                .
 
-  ?user ucdlib:identifier ?identifier_oapolicy_id.
+  ?person_id ucdlib:identifier ?identifier_oapolicy_id.
   ?identifier_oapolicy_id a ucdlib:Identifier;
                           ucdlib:scheme "oapolicy";
                           ucdlib:value  ?oapolicy_id;
                           .
 
-  ?user ?id_pred ?id_value.
+  ?person_id ?id_pred ?id_value.
 
-  ?user ucdlib:identifier ?assoc_identifier.
+  ?person_id ucdlib:identifier ?assoc_identifier.
   ?assoc_identifier a ucdlib:Identifier;
                     ucdlib:scheme ?assoc_scheme;
                     ucdlib:value  ?assoc_value;
@@ -62,40 +62,40 @@ CONSTRUCT {
              .
 
   # Research Areas
-  ?user vivo:hasResearchArea ?concept.
-  ?concept vivo:ResearchAreaOf ?user.
+  ?person_id vivo:hasResearchArea ?concept.
+  ?concept vivo:ResearchAreaOf ?person_id.
 }
 WHERE {
-  bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
+  bind(uri(concat(str(person:),MD5(?username))) as ?user)
   graph <http://iam.ucdavis.edu/> {
     ?user a ucdlib:Person .
     ?iam_s ?iam_p ?iam_o;
            .
     filter(regex(str(?iam_s),concat('^',str(?user),'#?')))
   }
-  GRAPH <http://oapolicy.universityofcalifornia.edu/> {
+  GRAPH harvest_oap: {
   ?cdl_id oap:category "user";
         oap:is-public "true";
         oap:is-login-allowed "true";
-        oap:username ?USERNAME__;
+        oap:username ?username;
         oap:last-name ?ln;
         oap:first-name ?fn;
         oap:user-identifier-associations ?assoc;
         .
 
-  bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
+  bind(uri(concat(str(person:),MD5(?username))) as ?person_id)
   bind(concat(?fn," ",?ln) as ?name)
-  bind(uri(concat(str(?user),"#vcard-oap-1")) as ?vcard)
+  bind(uri(concat(str(?person_id),"#vcard-oap-1")) as ?vcard)
   bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
 
   ?assoc oap:user-id ?oapolicy_id.
-  bind(uri(concat(str(?user),"#oapolicyId")) as ?identifier_oapolicy_id)
+  bind(uri(concat(str(?person_id),"#oapolicyId")) as ?identifier_oapolicy_id)
 
   OPTIONAL {
     values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
     ?assoc oap:user-identifier-association [ oap:field-value  ?assoc_value ; oap:scheme ?assoc_scheme ].
   }
-  bind(uri(concat(str(?user),"#identifier-",?assoc_scheme,"-",?assoc_value)) as ?assoc_identifier)
+  bind(uri(concat(str(?person_id),"#identifier-",?assoc_scheme,"-",?assoc_value)) as ?assoc_identifier)
 
   OPTIONAL {
     values (?oap_scheme ?id_pred) {
@@ -158,5 +158,4 @@ WHERE {
     bind(true as ?keyword_list)
     }
   bind(coalesce(?keyword_list,false) as ?user_supplied_concepts)
-  }
-}
+}}

@@ -7,7 +7,7 @@ prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
 #describe ?pub
-select ?pub ?filename ?graph
+select (?pub as ?PUB__) ?filename
 WHERE {
   graph ?g {
     ?pub :category "publication";
@@ -15,7 +15,7 @@ WHERE {
          :ever-approved "true";
 
   filter (isiri(?pub))
-  bind(replace(str(?pub),str(oap:),"") as ?id)
+  bind(replace(str(?pub),str(oap:),"ark:/87287/d7mh2m/publication/") as ?id)
 #  bind(concat(str(cdl:),"work/",?id,".jsonld.json") as ?filename)
   bind(concat("work/",?id,".jsonld.json") as ?filename)
   bind(uri(concat("info:fedora/",?filename)) as ?graph)

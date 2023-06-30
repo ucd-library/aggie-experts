@@ -32,6 +32,10 @@ export class queryLibrary {
       "@context":{
         "@vocab":"http://schema.library.ucdavis.edu/schema#",
         "experts":"http://experts.ucdavis.edu/",
+        "insert@" : {
+          "@id":"insert@",
+          "@type":"@id"
+        },
         "frame@" : {
           "@id":"frame@",
           "@type":"@id"
@@ -45,7 +49,7 @@ export class queryLibrary {
           "@type":"@id"
         }
       },
-      "@type":"SplayQuery"
+      "@type":["SplayQuery","InsertQuery"]
     };
     const doc=await jsonld.frame(querydb,frame,{omitGraph:false,safe:false});
     // console.log(doc);
@@ -62,6 +66,19 @@ export class queryLibrary {
     }
     return null;
   }
+
+  getQuery(name,type=null) {
+    const id=path.join(__dirname, 'query', '/', name);
+    for(let i=0;i<this.query['@graph'].length;i++) {
+      if((this.query['@graph'][i]['@id']===id)) { // &&
+//         (type===null || this.query['@graph'][i]['@type']===type)) {
+          return this.query['@graph'][i];
+        }
+    }
+    return null;
+  }
+
+
 }
 
 export default queryLibrary;

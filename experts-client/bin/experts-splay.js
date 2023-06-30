@@ -7,6 +7,7 @@ import { localDB } from '../lib/experts-client.js';
 import { DataFactory } from 'rdf-data-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
+import QueryLibrary from '../lib/query-library.js';
 import JsonLdProcessor from 'jsonld';
 
 const jsonld = new JsonLdProcessor();
@@ -31,6 +32,7 @@ program.name('splay')
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
   .option('--quadstore <quadstore>', 'Specify a local quadstore.  Cannot be used with the --source option')
   .option('--output <output>', 'output directory')
+  .option('--splay <splay>', 'splay type')
   .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
   .option('--fuseki.type', 'specify type on --fuseki.isTmp creation', 'mem')
   .option('--fuseki.url', 'fuseki url', fuseki.url)
@@ -41,6 +43,7 @@ program.name('splay')
 
 program.parse(process.argv);
 
+const ql = await new QueryLibrary().load();
 
 const cli = program.opts();
 // fusekize cli
@@ -62,7 +65,12 @@ if (cli.fuseki.isTmp) {
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}`);
 }
 
-const splayed = await ec.splay(cli)
+let splay={}
+if (cli.splay) {
+  splay = ql.getSplay(cli.splay);
+}
+
+const splayed = await ec.splay({...splay,...cli})
 
 // Any other value don't delete
 if (splayed && cli.fuseki.isTmp === true && !cli.saveTmp) {
