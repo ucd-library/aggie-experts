@@ -110,7 +110,9 @@ export class ExpertsClient {
     // You can still specify a db name if you want, otherwise we'll generate a
     // random one
     if (fuseki.auth.match(':')) {
-      fuseki.auth = Buffer.from(fuseki.auth).toString('base64');
+      fuseki.authBasic = Buffer.from(fuseki.auth).toString('base64');
+    } else {
+      fuseki.authBasic = fuseki.auth;
     }
     if (!fuseki.db) {
       fuseki.db = nanoid(5);
@@ -126,7 +128,7 @@ export class ExpertsClient {
         method: 'POST',
         body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`
+          'Authorization': `Basic ${fuseki.authBasic}`
         }
 
       });
@@ -157,7 +159,7 @@ export class ExpertsClient {
         method: 'POST',
         body: jsonld,
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`,
+          'Authorization': `Basic ${fuseki.authBasic}`,
           'Content-Type': 'application/ld+json'
         }
       })
@@ -180,7 +182,7 @@ export class ExpertsClient {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Basic ${fuseki.auth}`
+            'Authorization': `Basic ${fuseki.authBasic}`
           }
         })
       return res.status;
@@ -190,14 +192,16 @@ export class ExpertsClient {
   async createDataset(opt) {
     const fuseki = opt.fuseki;
     if (fuseki.auth.match(':')) {
-      fuseki.auth = Buffer.from(fuseki.auth).toString('base64');
+      fuseki.authBasic = Buffer.from(fuseki.auth).toString('base64');
+    } else {
+      fuseki.authBasic = fuseki.auth;
     }
 
     const res = await fetch(`${fuseki.url}/\$/datasets`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`
+          'Authorization': `Basic ${fuseki.authBasic}`
         },
         body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
       })
@@ -218,7 +222,7 @@ export class ExpertsClient {
       method: 'POST',
         headers: {
         'Content-Type': 'application/ld+json',
-        'Authorization': `Basic ${fuseki.auth}`
+        'Authorization': `Basic ${fuseki.authBasic}`
       },
       body: this.jsonld,
     };
@@ -276,21 +280,21 @@ export class ExpertsClient {
       // if opt.bindings, add them to bindings
       if (opt.bindings) {
         for (const [key, value] of opt.bindings) {
-          bindings.set(key,value);
+          bindings=bindings.set(key,value);
         }
       }
       // comunica's initialBindings function doesn't work,
       //so this is a sloppy workaround
       let insert=opt.insert;
       for (const [ key, value ] of bindings) {
-        console.log(key.value + ' = ' + value.value);
         if (value.termType === 'Literal') {
           insert=insert.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
         } else if (value.termType === 'NamedNode') {
           insert=insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-      await q.queryVoid(insert, { sources: opt.source });
+      const update=opt.source[0].replace(/sparql$/, 'update');
+      await q.queryVoid(insert, { sources: [update], httpAuth: opt.fuseki.auth });
 //    await q.queryVoid(insert, { initialBindings: bindings, sources: opt.source });
     }
 
