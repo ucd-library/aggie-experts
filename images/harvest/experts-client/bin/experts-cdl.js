@@ -5,7 +5,6 @@ import { Engine } from 'quadstore-comunica';
 import { QueryEngine } from '@comunica/query-sparql';
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
-import { localDB } from '../lib/experts-client.js';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
@@ -29,7 +28,7 @@ const program = new Command();
 
 program.name('cdl')
   .usage('[options] <file...>')
-  .description('Using a select, and a construct, splay a graph, into individual files.  Any files includes are added to a (potentially new) localdb before the construct is run.')
+  .description('Using a select, and a construct, splay a graph, into individual files.  Any files includes are added to a (potentially new) dataset before the construct is run.')
   .option('--output <output>', 'output directory')
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint','http://localhost:3030/experts/sparql')
@@ -61,26 +60,30 @@ const files = program.args;
 const ec = new ExpertsClient(cli);
 if (cli.fuseki.isTmp) {
   const fuseki = await ec.mkFusekiTmpDb(cli, files);
-  console.log(cli);
+  //console.log(cli);
   cli.source ||= [];
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}/sparql`);
 }
 
-// Import IAM data
-cli.bindings=BF.fromRecord(
-  {EXPERTS_SERVICE__: DF.namedNode(cli.expertsService)}
-);
-const iam = ql.getQuery('insert_iam','InsertQuery');
+async function getIamThenSplay(files, cli) {
+  // Import IAM data
+  cli.bindings=BF.fromRecord(
+    {EXPERTS_SERVICE__: DF.namedNode(cli.expertsService)}
+  );
+  const iam = ql.getQuery('insert_iam','InsertQuery');
 
-await ec.insert({...cli,...iam});
+  await ec.insert({...cli,...iam});
 
-for (const n of ['person', 'work', 'authorship']) {
-  (async (n) => {
-    const splay = ql.getSplay(n);
-    //    delete splay["frame@"];
-    return await ec.splay({ ...cli, ...splay });
-  })(n);
- };
+  for (const n of ['person', 'work', 'authorship']) {
+    await (async (n) => {
+      const splay = ql.getSplay(n);
+      //    delete splay["frame@"];
+      return await ec.splay({ ...cli, ...splay });
+    })(n);
+  };
+}
+
+await getIamThenSplay(files, cli);
 
 // Any other value don't delete
 if (cli.fuseki.isTmp === true && !cli.saveTmp) {

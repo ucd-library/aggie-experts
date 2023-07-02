@@ -12,7 +12,6 @@
 import fs from 'fs-extra';
 import fetch from 'node-fetch';
 import { QueryEngine } from '@comunica/query-sparql';
-import localDB from './localDB.js';
 import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
@@ -22,12 +21,10 @@ import parser from 'xml2json';
 import { count } from 'console';
 // import { readFileSync } from 'fs';
 
-
 const jsonld = new JsonLdProcessor();
 
 // import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-
-export { localDB };
+import readablePromiseQueue from './readablePromiseQueue.js';
 
 // Instantiates a Secrets client
 // const client = new SecretManagerServiceClient();
@@ -43,16 +40,8 @@ export class ExpertsClient {
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
-    console.log('ExpertsClient constructor');
+//    console.log('ExpertsClient constructor');
     this.opt = opt;
-  }
-
-  /** Return a local db */
-  async getLocalDB(options) {
-    if (!this.store) {
-      this.store = localDB.create({ ...this.opt.localDB, ...options });
-    }
-    return this.store;
   }
 
   /** Fetch Researcher Profiles from the UCD IAM API */
@@ -70,7 +59,7 @@ export class ExpertsClient {
       opt.iamEndpoint += '&userId=' + opt.userId;
     }
 
-    console.log(opt.iamEndpoint);
+//    console.log(opt.iamEndpoint);
 
     opt.iamEndpoint = encodeURI('https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?key=' + opt.iamAuth + '&isFaculty=true');
     const response = await fetch(opt.iamEndpoint);
@@ -120,7 +109,7 @@ export class ExpertsClient {
       fuseki.isTmp = true;
       fuseki.type = fuseki.type || 'mem';
     }
-    console.log(fuseki);
+//    console.log(fuseki);
 
 
     // just throw the error if it fails
@@ -229,7 +218,7 @@ export class ExpertsClient {
     };
 
     // Send the request to upload the data to the graph
-    console.log(url);
+//    console.log(url);
     const response = await fetch(url, options);
 
     if (!response.ok) {
@@ -253,7 +242,7 @@ export class ExpertsClient {
       }
     }
 
-  /**
+    /**
   * @description
   * @param {
   * } opt
@@ -267,17 +256,7 @@ export class ExpertsClient {
     const q = new QueryEngine();
     const sources = opt.source;
 
-    const bindingStream = await q.queryBindings(opt.bind, { sources })
-
-    bindingStream.on('data', insert_one)
-      .on('error', (error) => {
-        console.error(error);
-      })
-      .on('end', () => {
-        // console.log('bindings done');
-      });
-
-    async function insert_one(bindings) {
+    async function insertBoundConstruct(bindings) {
       // if opt.bindings, add them to bindings
       if (opt.bindings) {
         for (const [key, value] of opt.bindings) {
@@ -295,11 +274,14 @@ export class ExpertsClient {
         }
       }
       const update=opt.source[0].replace(/sparql$/, 'update');
-      await q.queryVoid(insert, { sources: [update], httpAuth: opt.fuseki.auth });
-//    await q.queryVoid(insert, { initialBindings: bindings, sources: opt.source });
+      return q.queryVoid(insert, { sources: [update], httpAuth: opt.fuseki.auth });
     }
 
-    return true;
+    const bindingStream = q.queryBindings(opt.bind, { sources })
+
+    const queue=new readablePromiseQueue(bindingStream,insertBoundConstruct,
+                                         {name:'insert',max_promises:1});
+    return queue.execute({via:'start'});
   }
 
   /**
@@ -318,40 +300,13 @@ export class ExpertsClient {
       opt.frame = JSON.parse(opt.frame);
     }
 
-    let q;
-    let sources = null;
-    if (opt.quadstore) {
-      const db = await localDB.create({ level: 'ClassicLevel', path: opt.quadstore });
-      //  opt.source=[db];
-      q = new Engine(db.store);
-      sources = null;
-    } else {
-      q = new QueryEngine();
-      sources = opt.source;
-    }
-
+    const q = new QueryEngine();
+    const sources = opt.source;
     const factory = new DataFactory();
 
     // console.log(opt)
-    const bindingStream = await q.queryBindings(opt.bind, { sources: opt.source })
 
-    bindingStream.on('data', construct_one)
-      .on('error', (error) => {
-        console.error(error);
-      })
-      .on('end', () => {
-        // console.log('bindings done');
-      });
-
-    let binding_count = 0;
-
-    async function construct_one(bindings) {
-      // console.log('construct_one');
-      // binding_count++;
-      // if (binding_count > 20) {
-      //   console.log('too many bindings.  Stop listening');
-      //   await bindingStream.off('data', construct_one);
-      // }
+    async function constructRecord(bindings) {
       let fn = 1; // write to stdout by default
       if (bindings.get('filename') && bindings.get('filename').value) {
         if (opt.output) {
@@ -372,11 +327,11 @@ export class ExpertsClient {
         }
       }
       const quadStream = await q.queryQuads(construct, { sources: opt.source });
-//      const quadStream = await q.queryQuads(construct, { initialBindings: bindings, sources: opt.source });
+      //      const quadStream = await q.queryQuads(construct, { initialBindings: bindings, sources: opt.source });
+
       // convert construct to jsonld quads
       const quads = await quadStream.toArray();
       let doc = await jsonld.fromRDF(quads)
-
       if (frame) {
         doc = await jsonld.frame(doc, opt.frame, { omitGraph: false, safe: true })
       } else {
@@ -385,13 +340,13 @@ export class ExpertsClient {
       console.log(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
-      // binding_count--;
-      // if (binding_count < 10) {
-      //   console.log('too few bindings.  start listening');
-      //   await bindingStream.on('data', construct_one);
-      // }
     }
-    return true;
+
+    const bindingStream = q.queryBindings(opt.bind, { sources: opt.source })
+    const queue=new readablePromiseQueue(bindingStream,constructRecord,
+                                         {name:'insert',max_promises:5});
+    return queue.execute({via:'start'});
+
   }
 
   /**
@@ -410,35 +365,13 @@ export class ExpertsClient {
 
   }
 
-  // async getCDLprofile(opt, user) {
-
-  //   // console.log(opt);
-
-  //   const response = await fetch(opt.url + 'users?username=' + user + '@ucdavis.edu&detail=full', {
-  //     // const response = await fetch(opt.url + 'users?query=blood AND flow'
-  //     method: 'GET',
-  //     headers: {
-  //       'Authorization': 'Basic ' + opt.cdlAuth,
-  //       'Content-Type': 'text/xml'
-  //     }
-  //   })
-
-  //   if (response.status !== 200) {
-  //     throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-  //   }
-  //   else if (response.status === 200) {
-  //     const xml = await response.text();
-  //     // console.log(xml);
-  //     this.doc = parser.toJson(xml, { object: true, arrayNotation: false });
-  //     // console.log(this.doc);
-
-  //     this.doc = this.doc.feed.entry["api:object"];
-  //     // console.log(JSON.stringify(this.doc));
-  //   }
-  //   return
-  // }
-
-  // Generic function to get all the entries from a CDL collection
+  /**
+   * @description Generic function to get all the entries from a CDL collection
+   * @param {
+   * } opt
+   * @returns
+   *
+   */
   async getCDLentries(opt, path) {
 
     var lastPage = false
