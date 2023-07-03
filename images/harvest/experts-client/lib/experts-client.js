@@ -12,21 +12,19 @@
 import fs from 'fs-extra';
 import fetch from 'node-fetch';
 import { QueryEngine } from '@comunica/query-sparql';
-import localDB from './localDB.js';
 import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
 import path from 'path';
 // import xml2js from 'xml2js';
 import parser from 'xml2json';
+import { count } from 'console';
 // import { readFileSync } from 'fs';
 
-
-const jsonld = new JsonLdProcessor();
+const jp = new JsonLdProcessor();
 
 // import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-
-export { localDB };
+import readablePromiseQueue from './readablePromiseQueue.js';
 
 // Instantiates a Secrets client
 // const client = new SecretManagerServiceClient();
@@ -42,16 +40,8 @@ export class ExpertsClient {
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
-    console.log('ExpertsClient constructor');
+//    console.log('ExpertsClient constructor');
     this.opt = opt;
-  }
-
-  /** Return a local db */
-  async getLocalDB(options) {
-    if (!this.store) {
-      this.store = localDB.create({ ...this.opt.localDB, ...options });
-    }
-    return this.store;
   }
 
   /** Fetch Researcher Profiles from the UCD IAM API */
@@ -69,7 +59,7 @@ export class ExpertsClient {
       opt.iamEndpoint += '&userId=' + opt.userId;
     }
 
-    console.log(opt.iamEndpoint);
+//    console.log(opt.iamEndpoint);
 
     opt.iamEndpoint = encodeURI('https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?key=' + opt.iamAuth + '&isFaculty=true');
     const response = await fetch(opt.iamEndpoint);
@@ -110,14 +100,16 @@ export class ExpertsClient {
     // You can still specify a db name if you want, otherwise we'll generate a
     // random one
     if (fuseki.auth.match(':')) {
-      fuseki.auth = Buffer.from(fuseki.auth).toString('base64');
+      fuseki.authBasic = Buffer.from(fuseki.auth).toString('base64');
+    } else {
+      fuseki.authBasic = fuseki.auth;
     }
     if (!fuseki.db) {
       fuseki.db = nanoid(5);
       fuseki.isTmp = true;
       fuseki.type = fuseki.type || 'mem';
     }
-    console.log(fuseki);
+//    console.log(fuseki);
 
 
     // just throw the error if it fails
@@ -126,7 +118,7 @@ export class ExpertsClient {
         method: 'POST',
         body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`
+          'Authorization': `Basic ${fuseki.authBasic}`
         }
 
       });
@@ -157,7 +149,7 @@ export class ExpertsClient {
         method: 'POST',
         body: jsonld,
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`,
+          'Authorization': `Basic ${fuseki.authBasic}`,
           'Content-Type': 'application/ld+json'
         }
       })
@@ -180,7 +172,7 @@ export class ExpertsClient {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Basic ${fuseki.auth}`
+            'Authorization': `Basic ${fuseki.authBasic}`
           }
         })
       return res.status;
@@ -190,21 +182,23 @@ export class ExpertsClient {
   async createDataset(opt) {
     const fuseki = opt.fuseki;
     if (fuseki.auth.match(':')) {
-      fuseki.auth = Buffer.from(fuseki.auth).toString('base64');
+      fuseki.authBasic = Buffer.from(fuseki.auth).toString('base64');
+    } else {
+      fuseki.authBasic = fuseki.auth;
     }
 
     const res = await fetch(`${fuseki.url}/\$/datasets`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${fuseki.auth}`
+          'Authorization': `Basic ${fuseki.authBasic}`
         },
         body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
       })
     return res.status;
   }
 
-  async createGraphFromJsonLdFile(opt) {
+  async createGraphFromJsonLdFile(jsonld,opt) {
     const fuseki = opt.fuseki;
     // Read JSON-LD file from file system
     // const jsonLdFileContent = fs.readFileSync(jsonLdFilePath, 'utf-8');
@@ -218,13 +212,13 @@ export class ExpertsClient {
       method: 'POST',
         headers: {
         'Content-Type': 'application/ld+json',
-        'Authorization': `Basic ${fuseki.auth}`
+        'Authorization': `Basic ${fuseki.authBasic}`
       },
-      body: this.jsonld,
+      body: jsonld,
     };
 
     // Send the request to upload the data to the graph
-    console.log(url);
+//    console.log(url);
     const response = await fetch(url, options);
 
     if (!response.ok) {
@@ -234,16 +228,7 @@ export class ExpertsClient {
     return await response.text();
   }
 
-  /**
-  * @description
-  * @param {
-  * } opt
-  * @returns
-  *
-  */
-  async splay(opt) {
-
-    function str_or_file(opt, param, required) {
+  static str_or_file(opt, param, required) {
       if (opt[param]) {
         return opt[param];
       } else if (opt[param + '@']) {
@@ -257,48 +242,71 @@ export class ExpertsClient {
       }
     }
 
+    /**
+  * @description
+  * @param {
+  * } opt
+  * @returns
+  *
+  */
+  async insert(opt) {
+    const bind = ExpertsClient.str_or_file(opt, 'bind', true);
+    const insert = ExpertsClient.str_or_file(opt, 'insert', true);
+
+    const q = new QueryEngine();
+    const sources = opt.source;
+
+    async function insertBoundConstruct(bindings) {
+      // if opt.bindings, add them to bindings
+      if (opt.bindings) {
+        for (const [key, value] of opt.bindings) {
+          bindings=bindings.set(key,value);
+        }
+      }
+      // comunica's initialBindings function doesn't work,
+      //so this is a sloppy workaround
+      let insert=opt.insert;
+      for (const [ key, value ] of bindings) {
+        if (value.termType === 'Literal') {
+          insert=insert.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+        } else if (value.termType === 'NamedNode') {
+          insert=insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+        }
+      }
+      const update=opt.source[0].replace(/sparql$/, 'update');
+      return q.queryVoid(insert, { sources: [update], httpAuth: opt.fuseki.auth });
+    }
+
+    const bindingStream = q.queryBindings(opt.bind, { sources })
+
+    const queue=new readablePromiseQueue(bindingStream,insertBoundConstruct,
+                                         {name:'insert',max_promises:1});
+    return queue.execute({via:'start'});
+  }
+
+  /**
+  * @description
+  * @param {
+  * } opt
+  * @returns
+  *
+  */
+  async splay(opt) {
     // console.log(opt);
-    const bind = str_or_file(opt, 'bind', true);
-    const construct = str_or_file(opt, 'construct', true);
-    const frame = str_or_file(opt, 'frame', false)
+    const bind = ExpertsClient.str_or_file(opt, 'bind', true);
+    const construct = ExpertsClient.str_or_file(opt, 'construct', true);
+    const frame = ExpertsClient.str_or_file(opt, 'frame', false)
     if (opt.frame) {
       opt.frame = JSON.parse(opt.frame);
     }
 
-    let q;
-    let sources = null;
-    if (opt.quadstore) {
-      const db = await localDB.create({ level: 'ClassicLevel', path: opt.quadstore });
-      //  opt.source=[db];
-      q = new Engine(db.store);
-      sources = null;
-    } else {
-      q = new QueryEngine();
-      sources = opt.source;
-    }
-
+    const q = new QueryEngine();
+    const sources = opt.source;
     const factory = new DataFactory();
 
     // console.log(opt)
-    const bindingStream = await q.queryBindings(opt.bind, { sources: opt.source })
 
-    bindingStream.on('data', construct_one)
-      .on('error', (error) => {
-        console.error(error);
-      })
-      .on('end', () => {
-        // console.log('bindings done');
-      });
-
-    let binding_count = 0;
-
-    async function construct_one(bindings) {
-      // console.log('construct_one');
-      // binding_count++;
-      // if (binding_count > 20) {
-      //   console.log('too many bindings.  Stop listening');
-      //   await bindingStream.off('data', construct_one);
-      // }
+    async function constructRecord(bindings) {
       let fn = 1; // write to stdout by default
       if (bindings.get('filename') && bindings.get('filename').value) {
         if (opt.output) {
@@ -319,26 +327,26 @@ export class ExpertsClient {
         }
       }
       const quadStream = await q.queryQuads(construct, { sources: opt.source });
-//      const quadStream = await q.queryQuads(construct, { initialBindings: bindings, sources: opt.source });
+      //      const quadStream = await q.queryQuads(construct, { initialBindings: bindings, sources: opt.source });
+
       // convert construct to jsonld quads
       const quads = await quadStream.toArray();
-      let doc = await jsonld.fromRDF(quads)
-
+      let doc = await jp.fromRDF(quads)
       if (frame) {
-        doc = await jsonld.frame(doc, opt.frame, { omitGraph: false, safe: true })
+        doc = await jp.frame(doc, opt.frame, { omitGraph: false, safe: true })
       } else {
-        doc = await jsonld.expand(doc, { omitGraph: false, safe: true })
+        doc = await jp.expand(doc, { omitGraph: false, safe: true })
       }
       console.log(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
-      // binding_count--;
-      // if (binding_count < 10) {
-      //   console.log('too few bindings.  start listening');
-      //   await bindingStream.on('data', construct_one);
-      // }
     }
-    return true;
+
+    const bindingStream = q.queryBindings(opt.bind, { sources: opt.source })
+    const queue=new readablePromiseQueue(bindingStream,constructRecord,
+                                         {name:'splay',max_promises:5});
+    return queue.execute({via:'start'});
+
   }
 
   /**
@@ -350,40 +358,80 @@ export class ExpertsClient {
     frame['@context'].push({ "@base": graph.value });
     frame['@id'] = graph.value;
 
-    doc = await jsonld.frame(doc, opt.frame, { omitGraph: true, safe: true })
+    doc = await jp.frame(doc, opt.frame, { omitGraph: true, safe: true })
     doc['@context'] = [
       "info:fedora/context/experts.json",
       { "@base": graph.value }];
 
   }
 
-  async getCDLprofile(opt, user) {
+  /**
+   * @description Generic function to get all the entries from a CDL collection
+   * @param {
+   * } opt
+   * @returns
+   *
+   */
+  async getCDLentries(opt, query) {
+    const cdl = opt.cdl;
+    var lastPage = false
+    var results = [];
+    var nextPage = path.join(cdl.url, query)
 
-    // console.log(opt);
+    if (cdl.auth.match(':')) {
+      cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
+    } else {
+      cdl.authBasic = cdl.auth;
+    }
 
-    const response = await fetch(opt.url + 'users?username=' + user + '@ucdavis.edu&detail=full', {
-      // const response = await fetch(opt.url + 'users?query=blood AND flow'
-      method: 'GET',
-      headers: {
-        'Authorization': 'Basic ' + opt.cdlAuth,
-        'Content-Type': 'text/xml'
+    console.log(`getting ${nextPage}`);
+    while (!lastPage) {
+      //console.log(`getting ${nextPage}`);
+      const response = await fetch(nextPage, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + cdl.authBasic,
+          'Content-Type': 'text/xml'
+        }
+      })
+
+      if (response.status !== 200) {
+        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+        break;
       }
-    })
+      else if (response.status === 200) {
+        const xml = await response.text();
+        // convert the xml atom feed to json
+        const json = parser.toJson(xml, { object: true, arrayNotation: false });
 
-    if (response.status !== 200) {
-      throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-    }
-    else if (response.status === 200) {
-      const xml = await response.text();
-      // console.log(xml);
-      this.doc = parser.toJson(xml, { object: true, arrayNotation: false });
-      // console.log(JSON.stringify(this.doc));
+        // add the entries to the results array
+        if (json.feed.entry) {
+          results = results.concat(json.feed.entry);
+          //results.push(json.feed.entry);
+        }
 
-      this.doc = this.doc.feed.entry["api:object"];
-      // console.log(JSON.stringify(this.doc));
+        // inspect the pagination to see if there are more pages
+        const pagination = json.feed['api:pagination'];
+        if (pagination["results-count"] < 25) {
+          // This is the last page
+          lastPage = true;
+          break;
+        }
+        else {
+          // Fetch the next page
+          for (let link of pagination["api:page"]) {
+            if (link.position === 'next') {
+              nextPage = link.href;
+              // console.log('nextPage: ' + nextPage);
+            }
+          }
+        }
+      }
     }
-    return
+
+    return results;
   }
+
 }
 
 export default ExpertsClient;
