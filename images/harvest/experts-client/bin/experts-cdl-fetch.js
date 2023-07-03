@@ -5,36 +5,67 @@ dotenv.config();
 import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
+
+import { DataFactory } from 'rdf-data-factory';
+import { BindingsFactory } from '@comunica/bindings-factory';
+
 import ExpertsClient from '../lib/experts-client.js';
+import QueryLibrary from '../lib/query-library.js';
+
+const DF = new DataFactory();
+const BF = new BindingsFactory();
+
+const ql = await new QueryLibrary().load();
 
 console.log('starting experts-iam');
 const program = new Command();
 
+// This also reads data from .env file via dotenv
 const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   type: 'mem',
   db: 'cdl-profiles',
-  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:**nopass**',
-}
+  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
+};
 
-const cdlToken = Buffer.from(process.env.EXPERTS_CDL_AUTH).toString('base64');
-
+const cdl = {
+  url: process.env.EXPERTS_CDL_URL || 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+  auth: process.env.EXPERTS_CDL_AUTH || 'ucd:**nopass**',
+};
 
 async function main(opt) {
 
   //  console.log(opt);
 
   const ec = new ExpertsClient(opt);
-  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
-  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
 
-  console.log('starting createDataset');
-  await ec.createDataset(opt)
-  console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
+  const context={
+    "@context":{
+      "@base":"http://oapolicy.universityofcalifornia.edu/",
+      "@vocab":"http://oapolicy.universityofcalifornia.edu/vocab#",
+      "oap":"http://oapolicy.universityofcalifornia.edu/vocab#",
+      "api":"http://oapolicy.universityofcalifornia.edu/vocab#",
+      "id":{"@type":"@id","@id":"@id"},
+      "field-name":"api:field-name",
+      "field-number":"api:field-number",
+      "$t":"api:field-value",
+      "api:person": { "@container": "@list" },
+      "api:first-name": { "@container": "@list"}
+    }};
 
-  console.log('starting getCDLProfiles');
+//  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
+//  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
 
-  for (const user of opt.users) {
+  if (opt.fuseki.isTmp) {
+    //console.log('starting createDataset');
+    const fuseki = await ec.mkFusekiTmpDb(opt);
+    //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
+    opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
+  }
+
+  const users = program.args;
+
+  for (const user of users) {
     console.log('starting getCDLprofile ' + user);
 
     const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
@@ -43,13 +74,15 @@ async function main(opt) {
     ec.doc.push(entries[0]['api:object']);
 
     console.log('starting createJsonLd ' + user);
-    let contextObj = JSON.parse(profileContext);
+    let contextObj = context;
+    // delete contextObj['@context']['id']; as a test
+    //delete contextObj['@context']['id'];
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.doc;
-    ec.jsonld = JSON.stringify(contextObj);
+    let jsonld = JSON.stringify(contextObj);
     console.log('starting createGraph ' + user);
-    await ec.createGraphFromJsonLdFile(opt);
-    fs.writeFileSync('data/' + user + '.jsonld', ec.jsonld);
+    await ec.createGraphFromJsonLdFile(jsonld,opt);
+    fs.writeFileSync(path.join(opt.output, user + '.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
     console.log('starting getCDLentries ' + user + '-' + ec.doc[0].id);
@@ -68,21 +101,34 @@ async function main(opt) {
     }
 
     console.log('starting createJsonLd ' + user);
-    contextObj = JSON.parse(worksContext);
+    contextObj = context;
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.works;
-    ec.jsonld = JSON.stringify(contextObj);
+    jsonld = JSON.stringify(contextObj);
     // console.log(ec.jsonld);
 
     console.log('starting works createGraph ' + user);
-    await ec.createGraphFromJsonLdFile(opt);
-    fs.writeFileSync('data/' + user + '-works.jsonld', ec.jsonld);
+    await ec.createGraphFromJsonLdFile(jsonld,opt);
+    fs.writeFileSync(path.join(opt.output, user + '-works.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
   };
 
-  // console.log('starting splay');
-  // await ec.splay(opt);
+
+  opt.bindings=BF.fromRecord(
+    {EXPERTS_SERVICE__: DF.namedNode(opt.expertsService)}
+  );
+  const iam = ql.getQuery('insert_iam','InsertQuery');
+
+  await ec.insert({...opt,...iam});
+
+  for (const n of ['person', 'work', 'authorship']) {
+    await (async (n) => {
+      const splay = ql.getSplay(n);
+      //    delete splay["frame@"];
+      return await ec.splay({ ...opt, ...splay });
+    })(n);
+  };
 
   // Any other value don't delete
   if (opt.fuseki.isTmp === true && !opt.saveTmp) {
@@ -98,19 +144,13 @@ const __dirname = dirname(__filename).replace('/bin', '/lib');
 
 
 program.name('cdl-profile')
-  .usage('[options] <userId...>')
+  .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
-  .option('--iam-auth <key>', 'UC Davis CDL authentication key')
-  .requiredOption('--userId <userId>', 'UC Davis CDL user ids')
-  .option('--cdl-endpoint <endpoint>', 'CDL Elements endpoint', 'https://qa-experts.ucdavis.edu')
-  .option('--bind <bind>', 'select query for binding')
-  .option('--bind@ <bind.rq>', 'file containing select query for binding', __dirname + '/query/person/bind-cdl.rq')
-  .option('--construct <construct>', 'construct query for each binding')
-  .option('--construct@ <construct.rq>', 'file containing construct query for each binding', __dirname + '/query/person/construct.rq')
-  .option('--frame <frame>', 'frame object for each binding')
-  .option('--frame@ <frame.json>', 'file containing frame on the construct')
-  .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
-  .option('--quadstore <quadstore>', 'Specify a local quadstore.  Cannot be used with the --source option')
+  .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
+  .option('--output <output>', 'output directory')
+  .option('--cdl.url <url>', 'Specify CDL endpoint',cdl.url)
+  .option('--cdl.auth <user:password>', 'Specify CDL authorization',cdl.auth)
+  .option('--experts-service <experts-service>', 'Experts Sparql Endpoint','http://localhost:3030/experts/sparql')
   .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
@@ -133,13 +173,14 @@ Object.keys(opt).forEach((k) => {
   }
 });
 
-opt.iamEndpoint = process.env.EXPERTS_IAM_ENDPOINT;
-opt.iamAuth = process.env.EXPERTS_IAM_AUTH;
-opt.source = [opt.fuseki.url + '/' + opt.fuseki.db];
-opt.users = opt.userId.split(',');
-opt.url = process.env.EXPERTS_CDL_ENDPOINT || 'https://qa-experts.ucdavis.edu';
-opt.cdlAuth = cdlToken;
-
-console.log('opt', opt);
+// make cdl_info as object
+Object.keys(opt).forEach((k) => {
+  const n = k.replace(/^cdl\./, '')
+  if (n !== k) {
+    opt.cdl ||= {};
+    opt.cdl[n] = opt[k];
+    delete opt[k];
+  }
+});
 
 await main(opt);

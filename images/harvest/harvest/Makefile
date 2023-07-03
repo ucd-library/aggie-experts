@@ -199,3 +199,9 @@ iam.json.gz:${iam.tdb2}
 
 $(eval $(call tdb2hdt,iam))
 endif
+
+##
+# Person fetching
+##
+
+#$(gcloud secrets versions access latest --secret=cdl_elements_json | jq -r '.[] | select(.["@id"]=="oapolicy") | .auth.raw_auth')

@@ -26,7 +26,7 @@ const cdl = {
 
 const program = new Command();
 
-program.name('cdl')
+program.name('experts-cdl')
   .usage('[options] <file...>')
   .description('Using a select, and a construct, splay a graph, into individual files.  Any files includes are added to a (potentially new) dataset before the construct is run.')
   .option('--output <output>', 'output directory')
@@ -65,25 +65,20 @@ if (cli.fuseki.isTmp) {
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}/sparql`);
 }
 
-async function getIamThenSplay(files, cli) {
-  // Import IAM data
-  cli.bindings=BF.fromRecord(
-    {EXPERTS_SERVICE__: DF.namedNode(cli.expertsService)}
-  );
-  const iam = ql.getQuery('insert_iam','InsertQuery');
+cli.bindings=BF.fromRecord(
+  {EXPERTS_SERVICE__: DF.namedNode(cli.expertsService)}
+);
+const iam = ql.getQuery('insert_iam','InsertQuery');
 
-  await ec.insert({...cli,...iam});
+await ec.insert({...cli,...iam});
 
-  for (const n of ['person', 'work', 'authorship']) {
-    await (async (n) => {
-      const splay = ql.getSplay(n);
-      //    delete splay["frame@"];
-      return await ec.splay({ ...cli, ...splay });
-    })(n);
-  };
-}
-
-await getIamThenSplay(files, cli);
+for (const n of ['person', 'work', 'authorship']) {
+  await (async (n) => {
+    const splay = ql.getSplay(n);
+    //    delete splay["frame@"];
+    return await ec.splay({ ...cli, ...splay });
+  })(n);
+};
 
 // Any other value don't delete
 if (cli.fuseki.isTmp === true && !cli.saveTmp) {

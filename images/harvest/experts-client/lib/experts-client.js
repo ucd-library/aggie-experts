@@ -21,7 +21,7 @@ import parser from 'xml2json';
 import { count } from 'console';
 // import { readFileSync } from 'fs';
 
-const jsonld = new JsonLdProcessor();
+const jp = new JsonLdProcessor();
 
 // import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import readablePromiseQueue from './readablePromiseQueue.js';
@@ -198,7 +198,7 @@ export class ExpertsClient {
     return res.status;
   }
 
-  async createGraphFromJsonLdFile(opt) {
+  async createGraphFromJsonLdFile(jsonld,opt) {
     const fuseki = opt.fuseki;
     // Read JSON-LD file from file system
     // const jsonLdFileContent = fs.readFileSync(jsonLdFilePath, 'utf-8');
@@ -214,7 +214,7 @@ export class ExpertsClient {
         'Content-Type': 'application/ld+json',
         'Authorization': `Basic ${fuseki.authBasic}`
       },
-      body: this.jsonld,
+      body: jsonld,
     };
 
     // Send the request to upload the data to the graph
@@ -331,11 +331,11 @@ export class ExpertsClient {
 
       // convert construct to jsonld quads
       const quads = await quadStream.toArray();
-      let doc = await jsonld.fromRDF(quads)
+      let doc = await jp.fromRDF(quads)
       if (frame) {
-        doc = await jsonld.frame(doc, opt.frame, { omitGraph: false, safe: true })
+        doc = await jp.frame(doc, opt.frame, { omitGraph: false, safe: true })
       } else {
-        doc = await jsonld.expand(doc, { omitGraph: false, safe: true })
+        doc = await jp.expand(doc, { omitGraph: false, safe: true })
       }
       console.log(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
@@ -344,7 +344,7 @@ export class ExpertsClient {
 
     const bindingStream = q.queryBindings(opt.bind, { sources: opt.source })
     const queue=new readablePromiseQueue(bindingStream,constructRecord,
-                                         {name:'insert',max_promises:5});
+                                         {name:'splay',max_promises:5});
     return queue.execute({via:'start'});
 
   }
@@ -358,7 +358,7 @@ export class ExpertsClient {
     frame['@context'].push({ "@base": graph.value });
     frame['@id'] = graph.value;
 
-    doc = await jsonld.frame(doc, opt.frame, { omitGraph: true, safe: true })
+    doc = await jp.frame(doc, opt.frame, { omitGraph: true, safe: true })
     doc['@context'] = [
       "info:fedora/context/experts.json",
       { "@base": graph.value }];
@@ -372,17 +372,25 @@ export class ExpertsClient {
    * @returns
    *
    */
-  async getCDLentries(opt, path) {
-
+  async getCDLentries(opt, query) {
+    const cdl = opt.cdl;
+    console.log(cdl);
     var lastPage = false
     var results = [];
-    var nextPage = opt.url + path;
+    var nextPage = path.join(cdl.url, query)
 
+    if (cdl.auth.match(':')) {
+      cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
+    } else {
+      cdl.authBasic = cdl.auth;
+    }
+
+    console.log(`getting ${nextPage}`);
     while (!lastPage) {
       const response = await fetch(nextPage, {
         method: 'GET',
         headers: {
-          'Authorization': 'Basic ' + opt.cdlAuth,
+          'Authorization': 'Basic ' + cdl.authBasic,
           'Content-Type': 'text/xml'
         }
       })
