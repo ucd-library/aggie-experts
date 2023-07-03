@@ -13,7 +13,7 @@ const program = new Command();
 const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://127.0.0.1:3030',
   type: 'mem',
-  db: 'iam_profiles',
+  db: 'experts-rk',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
 }
 
@@ -30,7 +30,6 @@ async function main(opt) {
 
   console.log('starting createJsonLd');
   const iamContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'iam-profile.json'));
-  // const profilesLd = await ec.createJsonLd(ec.doc, JSON.parse(iamContext), 'http://iam.ucdavis.edu/');
   let contextObj = JSON.parse(iamContext);
   contextObj["@id"] = 'http://iam.ucdavis.edu/';
   contextObj["@graph"] = ec.doc;
@@ -46,9 +45,6 @@ async function main(opt) {
   console.log('starting createGraph');
   await ec.createGraphFromJsonLdFile(opt);
   console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
-
-  // console.log('starting splay');
-  // await ec.splay(opt);
 
   // Any other value don't delete
   if (opt.fuseki.isTmp === true && !opt.saveTmp) {
