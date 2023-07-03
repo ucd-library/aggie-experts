@@ -50,7 +50,8 @@ async function main(opt) {
       "field-number":"api:field-number",
       "$t":"api:field-value",
       "api:person": { "@container": "@list" },
-      "api:first-name": { "@container": "@list"}
+      "api:first-names-X": { "@container": "@list"},
+      "api:web-address": { "@container": "@list" }
     }};
 
 //  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
