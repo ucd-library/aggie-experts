@@ -5,6 +5,7 @@ dotenv.config();
 import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
+import { nanoid } from 'nanoid';
 
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
@@ -57,16 +58,19 @@ async function main(opt) {
 //  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
 //  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
 
-  if (opt.fuseki.isTmp) {
-    //console.log('starting createDataset');
-    const fuseki = await ec.mkFusekiTmpDb(opt);
-    //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
-    opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
-  }
 
   const users = program.args;
 
   for (const user of users) {
+
+    if (opt.fuseki.isTmp) {
+      //console.log('starting createDataset');
+      opt.fuseki.db=user+'-'+nanoid(5);
+      const fuseki = await ec.mkFusekiTmpDb(opt);
+      //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
+      opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
+    }
+
     console.log('starting getCDLprofile ' + user);
 
     const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
@@ -91,12 +95,15 @@ async function main(opt) {
     // fetch publications for user
     ec.works = [];
     let works = await ec.getCDLentries(opt, 'users/' + ec.doc[0].id + '/publications?detail=full');
+    fs.writeFileSync(path.join(opt.output, user + '-raw-work.json'),JSON.stringify(works));
+
     for (let work of works) {
       let related = [];
-      if (work['api:relationship']['api:related']) {
+      if (work['api:relationship'] && work['api:relationship']['api:related']) {
         related.push(work['api:relationship']['api:related']);
       }
       related.push({ direction: 'to', id: ec.doc[0].id, category: 'user' });
+      work['api:relationship'] ||={};
       work['api:relationship']['api:related'] = related;
       ec.works.push(work['api:relationship']);
     }
@@ -113,27 +120,25 @@ async function main(opt) {
     fs.writeFileSync(path.join(opt.output, user + '-works.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
-  };
+    opt.bindings=BF.fromRecord(
+      {EXPERTS_SERVICE__: DF.namedNode(opt.expertsService)}
+    );
+    const iam = ql.getQuery('insert_iam','InsertQuery');
 
+    await ec.insert({...opt,...iam});
 
-  opt.bindings=BF.fromRecord(
-    {EXPERTS_SERVICE__: DF.namedNode(opt.expertsService)}
-  );
-  const iam = ql.getQuery('insert_iam','InsertQuery');
+    for (const n of ['person', 'work', 'authorship']) {
+      await (async (n) => {
+        const splay = ql.getSplay(n);
+        //    delete splay["frame@"];
+        return await ec.splay({ ...opt, ...splay });
+      })(n);
+    };
 
-  await ec.insert({...opt,...iam});
-
-  for (const n of ['person', 'work', 'authorship']) {
-    await (async (n) => {
-      const splay = ql.getSplay(n);
-      //    delete splay["frame@"];
-      return await ec.splay({ ...opt, ...splay });
-    })(n);
-  };
-
-  // Any other value don't delete
-  if (opt.fuseki.isTmp === true && !opt.saveTmp) {
-    const dropped = await ec.dropFusekiDb(opt);
+    // Any other value don't delete
+    if (opt.fuseki.isTmp === true && !opt.saveTmp) {
+      const dropped = await ec.dropFusekiDb(opt);
+    }
   }
 }
 

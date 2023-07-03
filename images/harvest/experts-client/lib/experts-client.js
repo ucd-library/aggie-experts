@@ -374,7 +374,6 @@ export class ExpertsClient {
    */
   async getCDLentries(opt, query) {
     const cdl = opt.cdl;
-    console.log(cdl);
     var lastPage = false
     var results = [];
     var nextPage = path.join(cdl.url, query)
@@ -387,6 +386,7 @@ export class ExpertsClient {
 
     console.log(`getting ${nextPage}`);
     while (!lastPage) {
+      //console.log(`getting ${nextPage}`);
       const response = await fetch(nextPage, {
         method: 'GET',
         headers: {
@@ -405,8 +405,10 @@ export class ExpertsClient {
         const json = parser.toJson(xml, { object: true, arrayNotation: false });
 
         // add the entries to the results array
-        results = results.concat(json.feed.entry);
-        // console.log('results.length: ' + results.length);
+        if (json.feed.entry) {
+          results = results.concat(json.feed.entry);
+          //results.push(json.feed.entry);
+        }
 
         // inspect the pagination to see if there are more pages
         const pagination = json.feed['api:pagination'];
