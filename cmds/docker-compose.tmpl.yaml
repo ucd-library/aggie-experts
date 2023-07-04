@@ -1,0 +1,256 @@
+version: '3'
+
+services:
+  gateway:
+    image: &BASE ${ORG}/base-service:${TAG}
+    volumes:
+      - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-../service-account.json}:/etc/fin/service-account.json
+      - &DEV_MOUNT_FIN_SERVICES ./aggie-experts/fin/services/fin:/fin/services
+      - &DEV_MOUNT_FIN_API ./aggie-experts/fin-api:/fin/api
+      - &DEV_MOUNT_MODELS ./aggie-experts/services/fin/models:/fin/services/models
+    ports:
+      - ${HOST_PORT:-3000}:3001
+    env_file:
+      - .env
+    depends_on:
+      - fcrepo
+      - redis
+      - elasticsearch
+    restart: unless-stopped
+    command: npm run gateway
+    # command: bash -c 'tail -f /dev/null'
+
+  ###
+  # Fedora Repository
+  ###
+  fcrepo:
+    image: ${ORG}/fcrepo:${TAG}
+    env_file:
+      - .env
+    ports:
+      - ${FCREPO_HOST_PORT:-8080}:8080
+    # Example for change logging.  Note, don't forget to still include the fcrepo.properties file location!
+    # See: https://wiki.lyrasis.org/display/FEDORA6x/Logging
+    # environment:
+    #  - CATALINA_OPTS=-Dfcrepo.log.auth=DEBUG -Dfcrepo.config.file=/etc/fin/fcrepo.properties
+    volumes:
+      - fedora-data:/usr/local/tomcat/fcrepo-home/data
+      - *SERVICE_ACCOUNT
+      - &DEV_MOUNT_ACTIVEMQ ./aggie-experts/services/fcrepo/activemq.xml:/usr/local/tomcat/webapps/fcrepo/WEB-INF/classes/config/activemq.xml
+      - &DEV_MOUNT_FCREPO_PROPERTIES ./aggie-experts/fin/services/fcrepo/fcrepo.properties:/etc/fin/fcrepo.properties
+      - &DEV_MOUNT_ROOT_AUTH ./aggie-experts/fin/services/fcrepo/root-authorization.ttl:/etc/fin/root-authorization.ttl
+
+  ###
+  # Fedora Postgres Service
+  ###
+  postgres:
+    image: ${FIN_ORG}/fin-postgres:${FIN_TAG}
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  init:
+    image: ${ORG}/init:${TAG}
+    volumes:
+      - &DEV_MOUNT_INIT_POSTGRES ./aggie-experts/services/init/postgres:/etc/ucdlib-service-init/postgres
+      - &DEV_MOUNT_INIT_FCREPO ./aggie-experts/services/init/fcrepo:/etc/ucdlib-service-init/fcrepo
+      - &DEV_MOUNT_DOCKER_RUN ./aggie-experts/services/init/docker-run.sh:/docker-run.sh
+
+  redis:
+    image: redis:3.2
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    depends_on:
+      - fcrepo
+
+  api:
+    image: *BASE
+    volumes:
+      - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_FIN_SERVICES
+      - *DEV_MOUNT_FIN_API
+      - *DEV_MOUNT_MODELS
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    command: npm run api
+  # command: bash -c 'tail -f /dev/null'
+
+  finac:
+    image: *BASE
+    env_file:
+      - .env
+    volumes:
+      - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_FIN_SERVICES
+      - *DEV_MOUNT_FIN_API
+    restart: unless-stopped
+    command: node fin-ac/index.js
+    # command: bash -c 'tail -f /dev/null'
+
+  spa:
+    image: *BASE
+    volumes:
+      - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_FIN_SERVICES
+      - *DEV_MOUNT_FIN_API
+      - &DEV_MOUNT_CLIENT ./aggie-experts/services/fin/spa:/fin/services/spa
+    depends_on:
+      - elasticsearch
+    command: node spa/index.js
+    # command: bash -c 'tail -f /dev/null'
+
+  ###
+  # External Database Sync Services
+  ###
+  dbsync:
+    image: *BASE
+    env_file:
+      - .env
+    volumes:
+      - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_FIN_SERVICES
+      - *DEV_MOUNT_FIN_API
+      - *DEV_MOUNT_MODELS
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    command: npm run dbsync
+    # command: bash -c 'tail -f /dev/null'
+
+  ###
+  # ES Index Management Service
+  ###
+  es-index-management:
+    image: *BASE
+    volumes:
+      - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_FIN_SERVICES
+      - *DEV_MOUNT_FIN_API
+      - *DEV_MOUNT_MODELS
+    env_file:
+      - .env
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    command: npm run es-index-management
+
+
+  # ###
+  # # GCS - Sccess & Sync
+  # ###
+  # gcs:
+  #   image: *BASE
+  #   volumes:
+  #      - *SERVICE_ACCOUNT
+  #    - *SERVICE_ACCOUNT
+  #    - *DEV_MOUNT_FIN_SERVICES
+  #    - *DEV_MOUNT_FIN_API
+  #    - *DEV_MOUNT_MODELS
+  #   depends_on:
+  #     - gateway
+  #   command: npm run gcs
+  #   # command: bash -c 'tail -f /dev/null'
+
+  ###
+  # Search
+  ###
+  elasticsearch:
+    image: ${FIN_ORG}/fin-elastic-search:${FIN_TAG}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    depends_on:
+      - fcrepo
+    # command: bash -c 'tail -f /dev/null'
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.4.3
+    ports:
+      - ${KIBANA_HOST_PORT:-5601}:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - xpack.security.enabled=false
+      - telemetry.enabled=false
+    depends_on:
+      - elasticsearch
+
+  # ###
+  # # Fin Workflows
+  # ###
+  # workflow:
+  #   image: *BASE
+  #   volumes:
+      # - *SERVICE_ACCOUNT
+      # - *DEV_MOUNT_FIN_SERVICES
+  #   depends_on:
+  #     - gateway
+  #   # command: bash -c 'tail -f /dev/null'
+
+  ###
+  # OIDC AuthenticationService
+  ###
+  oidc:
+    image: *BASE
+    env_file:
+      - .env
+    volumes:
+      - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_FIN_SERVICES
+      - *DEV_MOUNT_FIN_API
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    # command: bash -c 'tail -f /dev/null'
+    command: npm run oidc
+
+  # keycloak container only enabled with deploy --dev
+  keycloak:
+    image: ${ORG}/keycloak:${TAG}
+    environment:
+      KC_HEALTH_ENABLED: 1
+      KC_METRICS_ENABLED: 1
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres/postgres
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_HOSTNAME: localhost
+      KC_LOCAL_DEV_REALM: ${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}
+      KC_SSODEV_OIDC_SECRET: ${KC_SSODEV_OIDC_SECRET:-***ssodev_oidc_secret_missing***}
+      KC_SSODEV_OIDC_CLIENT_ID: ${KC_SSODEV_OIDC_CLIENT_ID:-***ssdev_client_id_missing***}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-***app_client_id_missing***}
+      OIDC_SECRET: ${OIDC_SECRET:-***client_secret_missing***}
+      OIDC_BASE_URL: ${OIDC_BASE_URL:-https://keycloak:8443/realms/${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}}
+
+    ports:
+      - 8081:8080
+      - 8443:8443
+    command: ["start-dev --import-realm"]
+
+  pg-rest:
+    image: ${FIN_ORG}/fin-pg-rest:${FIN_TAG}
+    volumes:
+      - *SERVICE_ACCOUNT
+    # command: bash -c "tail -f /dev/null"
+
+###
+# Docker data volumes
+###
+volumes:
+  fedora-data:
+    driver: local
+  pg-data:
+    driver: local
+  es-data:
+    driver: local
+  redis-data:
+    driver: local

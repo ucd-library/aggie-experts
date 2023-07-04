@@ -1,0 +1,21 @@
+{
+  "project":"aggie-experts",
+  "deploy":"${G[deploy]}",
+  "fin":{
+    "org":"gcr.io/ucdlib-pubreg",
+    "tag":"sandbox"
+  },
+  "aggie-experts":{
+    "org":"gcr.io/digital_ucdavise_edu",
+    "tag":"v1.0.1"
+  },
+  "git":{
+    "base":"$(${G[git]} rev-parse --show-toplevel)",
+    "home":"${HOME}",
+    "git":"${G[git]}",
+    "repo":"$(basename -s .git $(${G[git]} config --get remote.origin.url))",
+    "branch_name":"$(${G[git]} branch --show-current)",
+    "tag_name":"$(${G[git]} tag --points-at HEAD)",
+    "sha":"$(${G[git]} log -1 --pretty=%h)"
+  }
+}

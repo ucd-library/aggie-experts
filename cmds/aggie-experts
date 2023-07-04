@@ -1,0 +1,165 @@
+#! /bin/bash
+
+# These Global Variables are the defaults values for the current setup.
+declare -g -A G=(
+  [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/config.json"
+  [jq]="."
+  [deploy]=dev
+  [fin_org]=gcr.io/ucdlib-pubreg
+  [fin_tag]=sandbox
+  # mounts
+  [mount]=
+  # Below you probably don't need to change
+  [dir]="."
+  [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
+  [verbose]=0
+  [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+  [cache]=latest
+  [tmpl]=docker-compose.tmpl
+  [keycloak]=auth
+  [noop]=
+);
+
+#G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
+#G[env_secret]=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:${G[deploy]}" | jq -r '.[0].name'))
+
+
+#https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
+function expand(){
+  local line lineEscaped
+  while IFS= read -r line || [[ -n $line ]]; do  # the `||` clause ensures that the last line is read even if it doesn't end with \n
+    # Escape ALL chars. that could trigger an expansion..
+#    IFS= read -r -d '' lineEscaped < <(printf %s "$line" | tr '`([$' '\1\2\3\4')
+    IFS= read -r -d '' lineEscaped < <(printf %s "$line")
+    # ... then selectively reenable ${ references
+#    lineEscaped=${lineEscaped//$'\4'\{/\$\{}
+#    lineEscaped=${lineEscaped//$'\4\2'/\$\(}
+    # Finally, escape embedded double quotes to preserve them.
+    lineEscaped=${lineEscaped//\"/\\\"}
+    eval "printf '%s\n' \"$lineEscaped\"" | tr '\1\2\3\4' '`([$'
+  done
+}
+
+function G() {
+  expand < ${G[config]} | jq "${G[jq]}" | jq -r "$1"
+}
+
+function build() {
+  // Build aggie-experts
+  declare -a services=(init fcrepo base-service)
+
+    for service in "${services[@]}"; do
+      local image=${G[org]}/${service}:${G[tag]}
+      local fin_base=${G[fin_org]}/fin-base-service:${G[fin_tag]}
+      local fin_init=${G[fin_org]}/fin-init:${G[fin_tag]}
+      local fin_fcrepo=${G[fin_org]}/fin-fcrepo:${G[fin_tag]}
+
+      ${G[noop]} docker build \
+                 --build-arg FIN_INIT=$fin_init \
+                 --build-arg FIN_SERVER_IMAGE=$fin_base \
+                 --build-arg FIN_FCREPO_BASE_IMAGE=$fin_fcrepo \
+                 -t $image \
+                 --cache-from $image \
+                 services/${service}
+    done
+
+    if [[ "${G[keycloak]}" = "local" ]]; then
+      for service in "keycloak"; do
+        local image=${G[org]}/${service}:${G[tag]}
+        local latest=${G[org]}/${service}:latest
+
+        ${G[noop]} docker build \
+                   --build-arg FIN_REPO_TAG=${G[ref_name]} \
+                   --build-arg FIN_SERVER_REPO_HASH=${G[sha]} \
+                   -t $image -t $latest \
+                   --cache-from ${G[org]}/${service}:${G[cache]} \
+                   ${service}
+      done
+    fi
+}
+
+function env() {
+  gcloud secrets versions access latest --secret=${G[env_secret]}
+  for i in tag org fin_tag fin_org; do
+    local u=${i^^}
+    echo "${u}=${G[$i]}"
+  done
+}
+
+function compose() {
+  if [[ "${G[deploy]}" = "dev" ]]; then
+    ${G[noop]} cat ${G[tmpl]} |
+      if [[ "$G[keycloak]" != "local" ]]; then
+        yq 'del(.services.keycloak)'
+       else
+        cat
+      fi |
+      if [[ "$G[models]" =~ "models" ]]; then
+        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
+      else
+        cat
+      fi |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_SERVICES" or alias=="DEV_MOUNT_FIN_SERVICES"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_API" or alias=="DEV_MOUNT_FIN_API"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_ACTIVEMQ" or alias=="DEV_MOUNT_ACTIVEMQ"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_FCREPO_PROPERTIES" or alias=="DEV_MOUNT_FCREPO_PROPERTIES"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_ROOT_AUTH" or alias=="DEV_MOUNT_ROOT_AUTH"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_POSTGRES" or alias=="DEV_MOUNT_INIT_POSTGRES"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_DOCKER_RUN" or alias=="DEV_DOCKER_RUN"))'
+  else
+    ${G[noop]} cat ${G[tmpl]} | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
+  fi
+}
+
+function main.cmd() {
+  local opts;
+
+  if ! opts=$(${G[shell_getopt]} -o nv:d: --long jq:,dev,keycloak:,mount:,fin_tag:,fin_org:,dir:,noop,tag:,help -n "deploy" -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local defaults=1
+    declare -A CMD;
+    while true; do
+	    case $1 in
+        -d | --dir ) CMD[dir]=$2; shift 2;;
+        --jq) CMD[jq]=$2; shift 2;;
+        --dev ) CMD[deploy]=dev; shift;;
+	      -v | --tag) CMD[tag]=$2;  shift 2;;
+	      --fin_tag) CMD[fin_tag]=$2;  shift 2;;
+	      --fin_org) CMD[fin_org]=$2;  shift 2;;
+        --keycloak ) CMD[keycloak]=$2; shift 2 ;;
+        --mount ) CMD[mount]=$2; shift 2 ;;
+        -n | --noop) CMD[noop]="echo"; shift;;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+    # command line over global
+    for i in "${!CMD[@]}"; do
+      [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+    done
+
+    local cmd=$1
+    shift;
+    case $cmd in
+	    build | compose | env ) # API requests
+	      $cmd "$@";
+	      ;;
+      config ) G "$@" ;;
+      G ) G "$@" ;;
+      expand ) expand <${G[config]} ;;
+      foo ) echo "quinn $(G .git.repo) is Great" ;;
+      declare ) # informational requests
+        declare -p G;
+        ;;
+	    *)
+	      echo "BROKEN"
+	  ;;
+    esac
+}
+main.cmd "$@"
+exit $?
