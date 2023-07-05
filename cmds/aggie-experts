@@ -101,22 +101,19 @@ function env() {
 
   echo "ORG=$org"
   echo "TAG=$tag"
+  echo "FIN_ORG=$(G .fin.org)"
+  echo "FIN_TAG=$(G .fin.tag)"
 
-  for i in fin.tag fin.org; do
-    local u=${i^^}
-    echo "${u}=$(G .${i})"
-  done
 }
 
 function compose() {
   local deploy=$(G .deploy)
   local keycloak=$(G .keycloak)
   local models=$(G .models)
-  local N=${G[noop]}
   local tmpl=$(G .deploy.template)
 
   if [[ "$deploy" = "dev" ]]; then
-    $N cat $tmpl |
+    cat $tmpl |
       if [[ "$keycloak" != "local" ]]; then
         yq 'del(.services.keycloak)'
        else
@@ -136,9 +133,26 @@ function compose() {
       yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_DOCKER_RUN" or alias=="DEV_DOCKER_RUN"))'
   else
-    $N cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
+    cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
   fi
 }
+
+function setup() {
+  local N=${G[noop]};
+
+  if [[ -n $N ]]; then
+    echo "#===== .env  =====#"
+    env
+    echo "#===== docker-compose.yaml =====#"
+    compose
+  else
+    echo "#===== .env  =====#"
+    env | tee .env
+    echo "#===== docker-compose.yaml =====#"
+    compose | tee docker-compose.yaml
+  fi
+}
+
 
 function main.cmd() {
   local opts;
@@ -172,16 +186,19 @@ function main.cmd() {
         echo "now ${G[jq]}"
       else
         case $cmd in
-	        build | compose | env ) # API requests
+	        build | compose | env | setup ) # API requests
 	          $cmd "$@";
 	          ;;
+
           config ) G "$@" ;;
-        G ) G "$@" ;;
-        expand ) expand <${G[config]} ;;
-        foo ) echo "quinn $(G .git.repo) is Great" ;;
-        declare ) # informational requests
-          declare -p G;
-          ;;
+
+          G ) G "$@" ;;
+
+          expand ) expand <${G[config]} ;;
+
+          declare ) # informational requests
+            declare -p G;
+            ;;
         *) echo "Unknown command: $cmd"; exit 1;;
         esac
       fi
