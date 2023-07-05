@@ -4,19 +4,12 @@
 declare -g -A G=(
   [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/config.json"
   [jq]="."
-  [deploy]=dev
-  [fin_org]=gcr.io/ucdlib-pubreg
-  [fin_tag]=sandbox
-  # mounts
-  [mount]=
+  [env]=dev
   # Below you probably don't need to change
+  [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dir]="."
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
-  [verbose]=0
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-  [cache]=latest
-  [tmpl]=docker-compose.tmpl
-  [keycloak]=auth
   [noop]=
 );
 
@@ -44,57 +37,92 @@ function G() {
   expand < ${G[config]} | jq "${G[jq]}" | jq -r "$1"
 }
 
+
 function build() {
-  // Build aggie-experts
+  local org
+  local tag
+  local N=${G[noop]};
+
+  if [[ "$(G .env)" == "dev" ]]; then
+    echo "You can only build in dev environment"
+    exit 1
+  fi
+  echo "env: $(G .env)"
+
   declare -a services=(init fcrepo base-service)
+  if [[ "$(G .git.tag)" =~ "dirty" ]]; then
+    org=localhost/aggie-experts
+    tag=dirty
+  else
+    org=$(G .experts.org)
+    tag=$(G .experts.tag)
+  fi
 
-    for service in "${services[@]}"; do
-      local image=${G[org]}/${service}:${G[tag]}
-      local fin_base=${G[fin_org]}/fin-base-service:${G[fin_tag]}
-      local fin_init=${G[fin_org]}/fin-init:${G[fin_tag]}
-      local fin_fcrepo=${G[fin_org]}/fin-fcrepo:${G[fin_tag]}
 
-      ${G[noop]} docker build \
-                 --build-arg FIN_INIT=$fin_init \
-                 --build-arg FIN_SERVER_IMAGE=$fin_base \
-                 --build-arg FIN_FCREPO_BASE_IMAGE=$fin_fcrepo \
-                 -t $image \
-                 --cache-from $image \
-                 services/${service}
+  for service in "${services[@]}"; do
+    local image=$org/${service}:$tag
+    local fin_base=$(G .fin.org)/fin-base-service:$(G .fin.tag)
+    local fin_init=$(G .fin.org)/fin-init:$(G .fin.tag)
+    local fin_fcrepo=$(G .fin.org)/fin-fcrepo:$(G .fin.tag)
+
+    $N docker build \
+       --build-arg FIN_INIT=$fin_init \
+       --build-arg FIN_SERVER_IMAGE=$fin_base \
+       --build-arg FIN_FCREPO_BASE_IMAGE=$fin_fcrepo \
+       -t $image \
+       --cache-from $image \
+       services/${service}
+  done
+
+  if [[ "$(G .keycloak)" = "local" ]]; then
+    for service in "keycloak"; do
+      local image=localhost/aggie-experts/${service}:dirty
+
+      $N docker build \
+         --build-arg FIN_REPO_TAG=${G[ref_name]} \
+         --build-arg FIN_SERVER_REPO_HASH=${G[sha]} \
+         -t $image  \
+         --cache-from $image \
+         ${service}
     done
-
-    if [[ "${G[keycloak]}" = "local" ]]; then
-      for service in "keycloak"; do
-        local image=${G[org]}/${service}:${G[tag]}
-        local latest=${G[org]}/${service}:latest
-
-        ${G[noop]} docker build \
-                   --build-arg FIN_REPO_TAG=${G[ref_name]} \
-                   --build-arg FIN_SERVER_REPO_HASH=${G[sha]} \
-                   -t $image -t $latest \
-                   --cache-from ${G[org]}/${service}:${G[cache]} \
-                   ${service}
-      done
-    fi
+  fi
 }
 
 function env() {
-  gcloud secrets versions access latest --secret=${G[env_secret]}
-  for i in tag org fin_tag fin_org; do
+  #  gcloud secrets versions access latest --secret=${G[env_secret]}
+
+  if [[ "$(G .env)" == "dev" ]]; then
+    org=localhost/aggie-experts
+    tag=dirty
+  else
+    org=$(G .experts.org)
+    tag=$(G .experts.tag)
+  fi
+
+  echo "ORG=$org"
+  echo "TAG=$tag"
+
+  for i in fin.tag fin.org; do
     local u=${i^^}
-    echo "${u}=${G[$i]}"
+    echo "${u}=$(G .${i})"
   done
 }
 
 function compose() {
-  if [[ "${G[deploy]}" = "dev" ]]; then
-    ${G[noop]} cat ${G[tmpl]} |
-      if [[ "$G[keycloak]" != "local" ]]; then
+  local deploy=$(G .deploy)
+  local keycloak=$(G .keycloak)
+  local models=$(G .models)
+  local N=${G[noop]}
+  local tmpl=$(G .deploy.template)
+
+  if [[ "$deploy" = "dev" ]]; then
+    $N cat $tmpl |
+      if [[ "$keycloak" != "local" ]]; then
         yq 'del(.services.keycloak)'
        else
         cat
       fi |
-      if [[ "$G[models]" =~ "models" ]]; then
+      if [[ "$models" =~ "models" ]]; then
         yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
       else
         cat
@@ -108,14 +136,14 @@ function compose() {
       yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_DOCKER_RUN" or alias=="DEV_DOCKER_RUN"))'
   else
-    ${G[noop]} cat ${G[tmpl]} | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
+    $N cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
   fi
 }
 
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d: --long jq:,dev,keycloak:,mount:,fin_tag:,fin_org:,dir:,noop,tag:,help -n "deploy" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d: --long jq:,noop,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -124,14 +152,8 @@ function main.cmd() {
     declare -A CMD;
     while true; do
 	    case $1 in
-        -d | --dir ) CMD[dir]=$2; shift 2;;
         --jq) CMD[jq]=$2; shift 2;;
-        --dev ) CMD[deploy]=dev; shift;;
-	      -v | --tag) CMD[tag]=$2;  shift 2;;
-	      --fin_tag) CMD[fin_tag]=$2;  shift 2;;
-	      --fin_org) CMD[fin_org]=$2;  shift 2;;
-        --keycloak ) CMD[keycloak]=$2; shift 2 ;;
-        --mount ) CMD[mount]=$2; shift 2 ;;
+        --dev ) CMD[env]=dev; shift;;
         -n | --noop) CMD[noop]="echo"; shift;;
 	      -- ) shift; break;;
 	      *) shift; break;
@@ -143,23 +165,27 @@ function main.cmd() {
       [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
     done
 
-    local cmd=$1
-    shift;
-    case $cmd in
-	    build | compose | env ) # API requests
-	      $cmd "$@";
-	      ;;
-      config ) G "$@" ;;
-      G ) G "$@" ;;
-      expand ) expand <${G[config]} ;;
-      foo ) echo "quinn $(G .git.repo) is Great" ;;
-      declare ) # informational requests
-        declare -p G;
-        ;;
-	    *)
-	      echo "BROKEN"
-	  ;;
-    esac
+    for cmd in "$@"; do
+      shift;
+      if [[ "$cmd" =~ ^\. ]]; then
+        G[jq]="${G[jq]}|$cmd"
+        echo "now ${G[jq]}"
+      else
+        case $cmd in
+	        build | compose | env ) # API requests
+	          $cmd "$@";
+	          ;;
+          config ) G "$@" ;;
+        G ) G "$@" ;;
+        expand ) expand <${G[config]} ;;
+        foo ) echo "quinn $(G .git.repo) is Great" ;;
+        declare ) # informational requests
+          declare -p G;
+          ;;
+        *) echo "Unknown command: $cmd"; exit 1;;
+        esac
+      fi
+    done
 }
 main.cmd "$@"
 exit $?

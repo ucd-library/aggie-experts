@@ -1,21 +1,27 @@
 {
   "project":"aggie-experts",
-  "deploy":"${G[deploy]}",
+  "env":"${G[env]}",
+  "debug":{
+   "config":"${G[config]}",
+    "jq":"$(sed -e 's/"/\\"/g' <<<${G[jq]})"
+  },
+  "deploy": {
+    "template":"${G[base]}/docker-template.yaml",
+    "keycloak":"auth",
+    "mount":""
+  },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"sandbox"
+    "tag":"2.0.3"
   },
-  "aggie-experts":{
-    "org":"gcr.io/digital_ucdavise_edu",
+  "experts":{
+    "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
     "tag":"v1.0.1"
   },
   "git":{
     "base":"$(${G[git]} rev-parse --show-toplevel)",
-    "home":"${HOME}",
-    "git":"${G[git]}",
     "repo":"$(basename -s .git $(${G[git]} config --get remote.origin.url))",
     "branch_name":"$(${G[git]} branch --show-current)",
-    "tag_name":"$(${G[git]} tag --points-at HEAD)",
-    "sha":"$(${G[git]} log -1 --pretty=%h)"
+    "tag":"$(${G[git]} describe --tags --always --dirty)"
   }
 }
