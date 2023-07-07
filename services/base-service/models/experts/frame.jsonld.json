@@ -1,7 +1,4 @@
-const ioUtils = require('@ucd-lib/fin-api/lib/io/utils.js');
-const jsonld = require('jsonld');
-//    "@vocab": "http://vivoweb.org/ontology/core#",
-const context = {
+{
   "@version": 1.1,
   "@context": {
     "@base": "http://experts.ucdavis.edu/",
@@ -34,14 +31,19 @@ const context = {
     },
     "directCosts": { "@id": "vivo:grantDirectCosts" },
     "edition":{"@id":"cite:edition"},
-    "email":{"@id":"vivo:hasEmail","@type":"@id"},
+    "email":{"@id":"vcard:hasEmail","@type":"@id"},
     "eissn":{"@id":"cite:eissn"},
     "familyName":{"@id":"vcard:familyName"},
     "genre":{"@id":"cite:genre"},
     "givenName":{"@id":"vcard:givenName"},
     "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
-    "contactInfo": { "@id":"obo:ARG_2000028", "@type":"@id" },
-    "name":{"@id":"vcard:hasName"},
+    "contactInfo": {
+      "@id":"obo:ARG_2000028",
+      "@type":"@id",
+      "@context":{
+        "name":{"@id":"vcard:hasName","@type":"@id"}
+      }
+    },
     "organization": {
       "@id":"vcard:hasOrganizationalUnit",
       "@type":"@id",
@@ -66,14 +68,14 @@ const context = {
     "language":{"@id":"cite:language"},
     "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime","@type":"xsd:dateTime"},
     "license":{"@id":"cite:license"},
-    "name":{"@id":"rdfs:label"},
+    "label":{"@id":"rdfs:label"},
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
     "pagination":{"@id":"cite:pagination"},
     "pronouns":{"@id":"ucdlib:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
-    "rank":{"@id":"vivo:rank"},
+    "rank":{"@id":"vivo:rank","@type":"xsd:integer"},
     "relatedBy":{
       "@id":"vivo:relatedBy",
       "@type":"@id"
@@ -95,69 +97,7 @@ const context = {
     "type":{"@id":"cite:type"},
     "url":{"@id":"cite:url"},
     "volume":{"@id":"cite:volume"}
-  }
-}
-
-module.exports = async function(path, graph, headers, utils) {
-  let item = {"@id": "info:fedora"+path,
-              "@version":1.1,
-              "@graph": graph};
-
-  console.log("path:",path);
-  let type = ["ucdlib:Person","ucdlib:Work","ucdlib:Authorship","vivo:Grant"];
-  if (path.match(/^\/work/)) {
-    type = "ucdlib:Work";
-  }
-  else if (path.match(/^\/person/)) {
-    // This is a temp fix to test graphs in elastic search
-    type = ["ucdlib:Person","ucdlib:Work"];
-  }
-  else if (path.match(/^\/authorship/)) {
-    type = "ucdlib:Authorship";
-  }
-  else if (path.match(/^\/grant/)) {
-    type = "vivo:Grant";
-  }
-
-  let frame={
-    ...context,
-    "@type":type,
-    "@embed":"@once"
-  };
-
-  // Make this a named graph, currently this doesn't work,
-  //frame["@id"] = "info:fedora"+path;
-  //frame["@graph"] = { "@type":frame["@type"] };
-  //delete frame["@type"];
-
-  let framed = await jsonld.frame(item, frame,{omitGraph:false});
-
-  if (type==="ucdlib:Work"
-      && framed?.["@graph"]?.[0]?.["relatedBy"]) {
-    const author=[];
-    let relatedBy = framed["@graph"][0]["relatedBy"];
-    if (!Array.isArray(relatedBy)) {
-      relatedBy = [relatedBy];
-    }
-    relatedBy
-      .sort((a,b)=>a.rank-b.rank)
-      .forEach((work)=>{
-        const name={};
-        work.relates.forEach((rel)=>{
-          if ((rel["@type"]==="vcard:Individual") && (rel["hasName"])) {
-            console.log("rel:",rel);
-            if (rel["hasName"]["familyName"]) {
-              name.family = rel["hasName"]["familyName"];
-            }
-            if (rel["hasName"]["givenName"]) {
-              name.given = rel["hasName"]["givenName"];
-            }
-          }});
-        author.push(name);
-      });
-    framed["@graph"][0]["author"] = author;
-  }
-  framed["@id"] = "http://experts.ucdavis.edu"+path;
-  framed["@context"] = "info:fedora/context/experts.json";
-  return framed;
+  },
+  "@embed": "@always",
+  "@type": ["ucdlib:Person","ucdlib:Work","ucdlib:Grant"]
 }

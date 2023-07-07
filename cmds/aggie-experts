@@ -1,7 +1,8 @@
-#! /bin/bash
+#!/usr/bin/env bash
 
 # These Global Variables are the defaults values for the current setup.
 declare -g -A G=(
+  [project]="aggie-experts"
   [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/config.json"
   [jq]="."
   [env]=dev
@@ -13,8 +14,8 @@ declare -g -A G=(
   [noop]=
 );
 
-#G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
-#G[env_secret]=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:${G[deploy]}" | jq -r '.[0].name'))
+G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
+G[env_secret]=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:${G[env]}" | jq -r '.[0].name'))
 
 
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
@@ -43,7 +44,7 @@ function build() {
   local tag
   local N=${G[noop]};
 
-  if [[ "$(G .env)" == "dev" ]]; then
+  if [[ "$(G .env)" != "dev" ]]; then
     echo "You can only build in dev environment"
     exit 1
   fi
@@ -89,7 +90,7 @@ function build() {
 }
 
 function env() {
-  #  gcloud secrets versions access latest --secret=${G[env_secret]}
+  gcloud secrets versions access latest --secret=${G[env_secret]}
 
   if [[ "$(G .env)" == "dev" ]]; then
     org=localhost/aggie-experts

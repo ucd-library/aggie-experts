@@ -1,9 +1,17 @@
 {
-  "project":"aggie-experts",
+  "project":"${G[project]}",
   "env":"${G[env]}",
   "debug":{
-   "config":"${G[config]}",
+    "config":"${G[config]}",
+    "gcloud_user":"${G[gcloud_user]}",
+    "env_secret":"${G[env_secret]}",
     "jq":"$(sed -e 's/"/\\"/g' <<<${G[jq]})"
+  },
+  "gcloud":{
+    "user":"${G[gcloud_user]}",
+    "secrets": {
+      "env":"${G[env_secret]}"
+    }
   },
   "deploy": {
     "template":"${G[base]}/docker-template.yaml",
