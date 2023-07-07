@@ -48,7 +48,6 @@ function build() {
     echo "You can only build in dev environment"
     exit 1
   fi
-  echo "env: $(G .env)"
 
   declare -a services=(init fcrepo base-service)
   if [[ "$(G .git.tag)" =~ "dirty" ]]; then
@@ -108,22 +107,22 @@ function env() {
 }
 
 function compose() {
-  local deploy=$(G .deploy)
+  local env=$(G .env)
   local keycloak=$(G .keycloak)
-  local models=$(G .models)
+  local mount=$(G .deploy.mount)
   local tmpl=$(G .deploy.template)
 
-  if [[ "$deploy" = "dev" ]]; then
+  if [[ "$env" = "dev" ]]; then
     cat $tmpl |
       if [[ "$keycloak" != "local" ]]; then
         yq 'del(.services.keycloak)'
        else
         cat
       fi |
-      if [[ "$models" =~ "models" ]]; then
-        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
-      else
+      if [[ "$mount" =~ "models" ]]; then
         cat
+      else
+        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
       fi |
       yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_SERVICES" or alias=="DEV_MOUNT_FIN_SERVICES"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_API" or alias=="DEV_MOUNT_FIN_API"))' |
@@ -184,7 +183,6 @@ function main.cmd() {
       shift;
       if [[ "$cmd" =~ ^\. ]]; then
         G[jq]="${G[jq]}|$cmd"
-        echo "now ${G[jq]}"
       else
         case $cmd in
 	        build | compose | env | setup ) # API requests
