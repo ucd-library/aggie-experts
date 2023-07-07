@@ -6,8 +6,6 @@
 *
 */
 'use strict';
-// import * as dotenv from 'dotenv';
-// dotenv.config();
 
 import fs from 'fs-extra';
 import fetch from 'node-fetch';
@@ -16,14 +14,11 @@ import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
 import path from 'path';
-// import xml2js from 'xml2js';
 import parser from 'xml2json';
 import { count } from 'console';
-// import { readFileSync } from 'fs';
 
 const jp = new JsonLdProcessor();
 
-// import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import readablePromiseQueue from './readablePromiseQueue.js';
 
 // Instantiates a Secrets client
@@ -59,9 +54,7 @@ export class ExpertsClient {
       opt.iamEndpoint += '&userId=' + opt.userId;
     }
 
-    //    console.log(opt.iamEndpoint);
-
-    opt.iamEndpoint = encodeURI('https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?key=' + opt.iamAuth + '&isFaculty=true');
+    opt.iamEndpoint = encodeURI(opt.iamEndpoint + '?key=' + opt.iamAuth + '&isFaculty=true');
     const response = await fetch(opt.iamEndpoint);
 
     if (response.status !== 200) {
@@ -221,6 +214,9 @@ export class ExpertsClient {
     //    console.log(url);
     const response = await fetch(url, options);
 
+    console.log(response);
+
+    // Check if the request was successful
     if (!response.ok) {
       throw new Error(`Failed to create graph. Status code: ${response.status}`);
     }

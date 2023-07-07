@@ -25,7 +25,7 @@ const program = new Command();
 const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   type: 'mem',
-  db: 'cdl-profiles',
+  db: null,
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
 };
 
@@ -40,24 +40,25 @@ async function main(opt) {
 
   const ec = new ExpertsClient(opt);
 
-  const context = {
-    "@context": {
-      "@base": "http://oapolicy.universityofcalifornia.edu/",
-      "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "id": { "@type": "@id", "@id": "@id" },
-      "field-name": "api:field-name",
-      "field-number": "api:field-number",
-      "$t": "api:field-value",
-      "api:person": { "@container": "@list" },
-      "api:first-names-X": { "@container": "@list" },
-      "api:web-address": { "@container": "@list" }
-    }
-  };
+  // const context = {
+  //   "@context": {
+  //     "@Version": "1.1",
+  //     "@base": "http://iam.ucdavis.edu/",
+  //     "@vocab": "http://iam.ucdavis.edu/schema#",
+  //     "iamId": "@id",
+  //     "orgOId": "@id",
+  //     "bouOrgOId": {
+  //       "@type": "@id"
+  //     },
+  //     "iam": "http://iam.ucdavis.edu/schema#",
+  //     "harvest_iam": "http://iam.ucdavis.edu/"
+  //   },
+  //   "@id": "",
+  //   "@graph": []
+  // };
 
-  //  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
-  //  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
+  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
+  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
 
   const users = program.args;
 
@@ -79,12 +80,14 @@ async function main(opt) {
     ec.doc.push(entries[0]['api:object']);
 
     console.log('starting createJsonLd ' + user);
-    let contextObj = context;
+    let contextObj = JSON.parse(profileContext);
 
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.doc;
+
     let jsonld = JSON.stringify(contextObj);
     console.log('starting createGraph ' + user);
+
     await ec.createGraphFromJsonLdFile(jsonld, opt);
 
     // fs.writeFileSync(path.join(opt.output, user + '.jsonld'), jsonld);
@@ -109,12 +112,13 @@ async function main(opt) {
     }
 
     console.log('starting createJsonLd ' + user);
-    contextObj = context;
+    contextObj = JSON.parse(worksContext);
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.works;
     jsonld = JSON.stringify(contextObj);
 
     console.log('starting works createGraph ' + user);
+
     await ec.createGraphFromJsonLdFile(jsonld, opt);
 
     // fs.writeFileSync(path.join(opt.output, user + '-works.jsonld'), jsonld);
@@ -157,7 +161,7 @@ program.name('cdl-profile')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
-  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
+  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', true)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
