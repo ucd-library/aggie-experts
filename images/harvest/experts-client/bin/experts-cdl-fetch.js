@@ -12,13 +12,16 @@ import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
+import GoogleSecret from '../lib/googleSecret.js';
 
 const DF = new DataFactory();
 const BF = new BindingsFactory();
 
 const ql = await new QueryLibrary().load();
+const gs = new GoogleSecret();
 
 console.log('starting experts-cdl-fetch');
+
 const program = new Command();
 
 // This also reads data from .env file via dotenv
@@ -31,34 +34,38 @@ const fuseki = {
 
 const cdl = {
   url: process.env.EXPERTS_CDL_URL || 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-  auth: process.env.EXPERTS_CDL_AUTH || 'ucd:**nopass**',
+  auth: null,
 };
 
 async function main(opt) {
 
-  //  console.log(opt);
+  // get the secret JSON
+  let secretResp = await gs.getSecret('projects/326679616213/secrets/cdl_elements_json');
+  let secretJson = JSON.parse(secretResp);
+  for (const entry of secretJson) {
+    if (entry['@id'] == 'qa-oapolicy') {
+      opt.cdl.auth = entry.auth.raw_auth;
+    }
+  }
 
   const ec = new ExpertsClient(opt);
 
-  // const context = {
-  //   "@context": {
-  //     "@Version": "1.1",
-  //     "@base": "http://iam.ucdavis.edu/",
-  //     "@vocab": "http://iam.ucdavis.edu/schema#",
-  //     "iamId": "@id",
-  //     "orgOId": "@id",
-  //     "bouOrgOId": {
-  //       "@type": "@id"
-  //     },
-  //     "iam": "http://iam.ucdavis.edu/schema#",
-  //     "harvest_iam": "http://iam.ucdavis.edu/"
-  //   },
-  //   "@id": "",
-  //   "@graph": []
-  // };
-
-  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
-  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
+  const context = {
+    "@context": {
+      "@Version": "1.1",
+      "@base": "http://iam.ucdavis.edu/",
+      "@vocab": "http://iam.ucdavis.edu/schema#",
+      "iamId": "@id",
+      "orgOId": "@id",
+      "bouOrgOId": {
+        "@type": "@id"
+      },
+      "iam": "http://iam.ucdavis.edu/schema#",
+      "harvest_iam": "http://iam.ucdavis.edu/"
+    },
+    "@id": "",
+    "@graph": []
+  };
 
   const users = program.args;
 
@@ -80,7 +87,7 @@ async function main(opt) {
     ec.doc.push(entries[0]['api:object']);
 
     console.log('starting createJsonLd ' + user);
-    let contextObj = JSON.parse(profileContext);
+    let contextObj = context;
 
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.doc;
@@ -112,7 +119,7 @@ async function main(opt) {
     }
 
     console.log('starting createJsonLd ' + user);
-    contextObj = JSON.parse(worksContext);
+    contextObj = context;
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.works;
     jsonld = JSON.stringify(contextObj);

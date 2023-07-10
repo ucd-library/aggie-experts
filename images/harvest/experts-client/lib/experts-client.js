@@ -214,7 +214,7 @@ export class ExpertsClient {
     //    console.log(url);
     const response = await fetch(url, options);
 
-    console.log(response);
+    // console.log(response);
 
     // Check if the request was successful
     if (!response.ok) {
@@ -265,7 +265,7 @@ export class ExpertsClient {
       const response = await fetch(url, options);
 
       if (!response.ok) {
-        console.log(response);
+        // console.log(response);
         throw new Error(`Failed to execute update. Status code: ${response.status}`);
       }
 
@@ -413,6 +413,9 @@ export class ExpertsClient {
     } else {
       cdl.authBasic = cdl.auth;
     }
+    // console.log('IN getCDLentries')
+    // console.log(cdl.auth)
+    // console.log(cdl.authBasic)
 
     console.log(`getting ${nextPage}`);
     while (!lastPage) {
