@@ -1,0 +1,208 @@
+#!/usr/bin/env bash
+
+# These Global Variables are the defaults values for the current setup.
+declare -g -A G=(
+  [project]="aggie-experts"
+  [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/config.json"
+  [jq]="."
+  [env]=dev
+  # Below you probably don't need to change
+  [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+  [dir]="."
+  [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
+  [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+  [noop]=
+);
+
+G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
+G[env_secret]=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:${G[env]}" | jq -r '.[0].name'))
+
+
+#https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
+function expand(){
+  local line lineEscaped
+  while IFS= read -r line || [[ -n $line ]]; do  # the `||` clause ensures that the last line is read even if it doesn't end with \n
+    # Escape ALL chars. that could trigger an expansion..
+#    IFS= read -r -d '' lineEscaped < <(printf %s "$line" | tr '`([$' '\1\2\3\4')
+    IFS= read -r -d '' lineEscaped < <(printf %s "$line")
+    # ... then selectively reenable ${ references
+#    lineEscaped=${lineEscaped//$'\4'\{/\$\{}
+#    lineEscaped=${lineEscaped//$'\4\2'/\$\(}
+    # Finally, escape embedded double quotes to preserve them.
+    lineEscaped=${lineEscaped//\"/\\\"}
+    eval "printf '%s\n' \"$lineEscaped\"" | tr '\1\2\3\4' '`([$'
+  done
+}
+
+function G() {
+  expand < ${G[config]} | jq "${G[jq]}" | jq -r "$1"
+}
+
+
+function build() {
+  local org
+  local tag
+  local N=${G[noop]};
+
+  if [[ "$(G .env)" != "dev" ]]; then
+    echo "You can only build in dev environment"
+    exit 1
+  fi
+
+  declare -a services=(init fcrepo base-service)
+  if [[ "$(G .git.tag)" =~ "dirty" ]]; then
+    org=localhost/aggie-experts
+    tag=dirty
+  else
+    org=$(G .experts.org)
+    tag=$(G .experts.tag)
+  fi
+
+
+  for service in "${services[@]}"; do
+    local image=$org/${service}:$tag
+    local fin_base=$(G .fin.org)/fin-base-service:$(G .fin.tag)
+    local fin_init=$(G .fin.org)/fin-init:$(G .fin.tag)
+    local fin_fcrepo=$(G .fin.org)/fin-fcrepo:$(G .fin.tag)
+
+    $N docker build \
+       --build-arg FIN_INIT=$fin_init \
+       --build-arg FIN_SERVER_IMAGE=$fin_base \
+       --build-arg FIN_FCREPO_BASE_IMAGE=$fin_fcrepo \
+       -t $image \
+       --cache-from $image \
+       services/${service}
+  done
+
+  if [[ "$(G .keycloak)" = "local" ]]; then
+    for service in "keycloak"; do
+      local image=localhost/aggie-experts/${service}:dirty
+
+      $N docker build \
+         --build-arg FIN_REPO_TAG=${G[ref_name]} \
+         --build-arg FIN_SERVER_REPO_HASH=${G[sha]} \
+         -t $image  \
+         --cache-from $image \
+         ${service}
+    done
+  fi
+}
+
+function env() {
+  gcloud secrets versions access latest --secret=${G[env_secret]}
+
+  if [[ "$(G .env)" == "dev" ]]; then
+    org=localhost/aggie-experts
+    tag=dirty
+  else
+    org=$(G .experts.org)
+    tag=$(G .experts.tag)
+  fi
+
+  echo "ORG=$org"
+  echo "TAG=$tag"
+  echo "FIN_ORG=$(G .fin.org)"
+  echo "FIN_TAG=$(G .fin.tag)"
+
+}
+
+function compose() {
+  local env=$(G .env)
+  local keycloak=$(G .keycloak)
+  local mount=$(G .deploy.mount)
+  local tmpl=$(G .deploy.template)
+
+  if [[ "$env" = "dev" ]]; then
+    cat $tmpl |
+      if [[ "$keycloak" != "local" ]]; then
+        yq 'del(.services.keycloak)'
+       else
+        cat
+      fi |
+      if [[ "$mount" =~ "models" ]]; then
+        cat
+      else
+        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
+         fi |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_CLIENT" or alias=="DEV_MOUNT_CLIENT"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_SERVICES" or alias=="DEV_MOUNT_FIN_SERVICES"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_API" or alias=="DEV_MOUNT_FIN_API"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_ACTIVEMQ" or alias=="DEV_MOUNT_ACTIVEMQ"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_FCREPO_PROPERTIES" or alias=="DEV_MOUNT_FCREPO_PROPERTIES"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_ROOT_AUTH" or alias=="DEV_MOUNT_ROOT_AUTH"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_POSTGRES" or alias=="DEV_MOUNT_INIT_POSTGRES"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))' |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_DOCKER_RUN" or alias=="DEV_DOCKER_RUN"))'
+  else
+    cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
+  fi
+}
+
+function setup() {
+  local N=${G[noop]};
+
+  if [[ -n $N ]]; then
+    echo "#===== .env  =====#"
+    env
+    echo "#===== docker-compose.yaml =====#"
+    compose
+  else
+    echo "#===== .env  =====#"
+    env | tee .env
+    echo "#===== docker-compose.yaml =====#"
+    compose | tee docker-compose.yaml
+  fi
+}
+
+
+function main.cmd() {
+  local opts;
+
+  if ! opts=$(${G[shell_getopt]} -o nv:d: --long jq:,noop,help -n "aggie-experts" -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local defaults=1
+    declare -A CMD;
+    while true; do
+	    case $1 in
+        --jq) CMD[jq]=$2; shift 2;;
+        --dev ) CMD[env]=dev; shift;;
+        -n | --noop) CMD[noop]="echo"; shift;;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+    # command line over global
+    for i in "${!CMD[@]}"; do
+      [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+    done
+
+    for cmd in "$@"; do
+      shift;
+      if [[ "$cmd" =~ ^\. ]]; then
+        G[jq]="${G[jq]}|$cmd"
+      else
+        case $cmd in
+	        build | compose | env | setup ) # API requests
+	          $cmd "$@";
+	          ;;
+
+          config ) G "$@" ;;
+
+          G ) G "$@" ;;
+
+          expand ) expand <${G[config]} ;;
+
+          declare ) # informational requests
+            declare -p G;
+            ;;
+        *) echo "Unknown command: $cmd"; exit 1;;
+        esac
+      fi
+    done
+}
+main.cmd "$@"
+exit $?
