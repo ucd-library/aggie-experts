@@ -123,7 +123,8 @@ function compose() {
         cat
       else
         yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
-      fi |
+         fi |
+      yq 'del(.. | select(anchor=="DEV_MOUNT_CLIENT" or alias=="DEV_MOUNT_CLIENT"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_SERVICES" or alias=="DEV_MOUNT_FIN_SERVICES"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_API" or alias=="DEV_MOUNT_FIN_API"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_ACTIVEMQ" or alias=="DEV_MOUNT_ACTIVEMQ"))' |
