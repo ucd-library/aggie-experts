@@ -99,5 +99,5 @@
     "volume":{"@id":"cite:volume"}
   },
   "@embed": "@always",
-  "@type": ["ucdlib:Person","ucdlib:Work","ucdlib:Grant"]
+  "@type": ["ucdlib:Person","ucdlib:Work","ucdlib:Grant","ucdlib:Authorship"]
 }

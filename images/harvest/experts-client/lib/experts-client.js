@@ -412,6 +412,7 @@ export class ExpertsClient {
         // inspect the pagination to see if there are more pages
         const pagination = json.feed['api:pagination'];
         // Fetch the next page
+        nextPage = null;
         for (let link of pagination["api:page"]) {
           if (link.position === 'next') {
             nextPage = link.href;

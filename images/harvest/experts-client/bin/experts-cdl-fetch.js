@@ -55,10 +55,6 @@ async function main(opt) {
       "api:web-address": { "@container": "@list" }
     }};
 
-//  const profileContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-no-map-id.json'));
-//  const worksContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'cdl-map-id.json'));
-
-
   const users = program.args;
 
   for (const user of users) {
