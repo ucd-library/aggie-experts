@@ -1,0 +1,145 @@
+* Aggie Experts Elasticsearch documents
+
+  Aggie Experts elastic search documents are the JSON documents that are stored
+  within elasticsearch, and which are the standard documents searched in aggie
+  experts.  These differ from their LDP counterparts in that they include more
+  information then a single LDP node,  for example a person's document includes
+  detailed information about the citations they have authored, not just a link
+  to the work.
+
+** Basic format
+
+   The elastic search documents are valid jsonld files with a special context
+   file that simplifies the names of all the properties of the file.
+
+   The ~@id~ is the document identifier, the ~@graph~ contains multiple nodes of
+   information. There is one node that has the same identifier as the graph.
+   This is the root node for the document.  Every node should have an ~@id~ and
+   most also have ~@types~.  Below is an example of a typical document.
+
+   #+begin_src json
+     {
+         "@context":"https://schema.library.ucdavis.edu/context/experts.json",
+         "@id":"http://experts.ucdavis.edu/person/quinn",
+         "@graph":[
+             { "@id":"http://experts.ucdavis.edu/person/quinn",
+               "@type":["Person", "Non-acedemic"],
+               "identifiers" : [ "https://orcid.org/XXX" ],
+               "name" : {"family-name": "Hart"
+                         "given-name": "Quinn" }
+             },
+             { "@id":"http://experts.ucdavis.edu/authorship/foo",
+               "@type":["Authored"],
+               "favorite": true,
+               "title":"Evapotranspiration in California"
+             },
+             { "@id":"http://experts.ucdavis.edu//foo",
+               "@type":["PrincipalInvestor"],
+               "title":"Evap"
+             }
+     ]}
+   #+end_src
+
+   Root nodes can be of ~@type~, ~Person~, ~Work~, and ~Grant~.
+
+*** Identifiers
+
+  Nodes, especially root nodes, can have a `identifier` property.  In linked data this is a
+  `schema:identifier`.  Identifiers should all be standardized to a known
+  cataloging.  URNs, URIs and other labeled schemes eg arks and DOIs are good
+  examples.  An identifier should uniquely identify the node.
+
+  All identifiers are public, though they don't need to resolve to public URLs.
+
+  Aggie experts has arks for individual CDL elements.  I have minted the ARK
+  `ark:/87287/d7mh2m` for UC Davis CDL Elements, and we will use the ark: suffix
+  scheme to identify CDL components.  We will use the standard API endpoints for
+  inspiration on the names.
+
+  For example, although we identify `person`, the elements API uses `user`.  So
+  the CDL specific identifier for Quinn Hart will be
+  `ark:/87287/d7mh2m/user/42956`.
+
+  Any other identifying ark: or other PIDs can be added as required.
+
+*** Types
+
+    The ~@types~ ~Person~,~Work~, and ~Grant~ should only occur in the root
+    nodes of the documents.
+
+
+** Specfic Types
+*** Person
+
+**** Identifiers
+
+  Expected identifiers for person include:
+
+  *ORCID* - We use the standard URI for this, eg:
+  `https://orcid.org/0000-0001-9829-8914` Note that ORCID uses https: as their
+  identifier of choice.
+
+  *CDL ARK* - use `ark:/87287/d7mh2m/user/[number]` as in
+  `ark:/87287/d7mh2m/user/42956` We will mint a new ark: everytime numbering
+  changes
+
+  *email* - If email is public via ODR, we will add campus emails as in
+  `email:qjhart@ucdavis.edu`
+
+  Other identifiers, https://www.webofscience.com/wos/author/record/M-4572-2018,
+  http://www.scopus.com/authid/detail.url?authorId=6506365550 are *TBD*
+
+
+**** Example
+
+  #+begin_src json
+    {
+  "@context" : "http://schema.library.ucdavis.edu/context/aggie_experts.json",
+  "@id" : "/person/66356b7eec24c51f01e757af2b27ebb8",
+  "@graph":[
+  {
+    "@id" : "http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8",
+    "identifier": [
+       "https://orcid.org/0000-0001-9829-8914",
+       "ark:/87287/d7mh2m/user/42956",
+       "email:qjhart@ucdavis.edu",
+       "http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8"
+    ]
+  }]
+  }
+  #+end_src
+
+*** Work
+    Works specify scholarly research.  The focus of this is currently on
+    citations.
+
+**** Identifiers
+  Works can have `DOIs` and the CDL element `ark:` DOIs are case insenstive, but
+  should be in upper-case in the identifier property.  If a work has a DOI, we
+  will use that as the `@id` in Aggie Experts, if it doesn't then we'll use the
+  CDL `ark` identifier.
+
+**** Example
+
+  An example of a work is shown below:
+
+  #+begin_src json
+  {
+  "@context" : "http://schema.library.ucdavis.edu/context/aggie_experts.json",
+  "@id" : "/work/DOI:10.1080/10286600802003500",
+  "@graph":[
+  {
+    "@id" : "http://experts.ucdavis.edu//work/DOI:10.1080/10286600802003500",
+    "identifier": [
+       "ark:/87287/d7mh2m/publication/1442289",
+       "DOI:10.1080/10286600802003500"
+    ]
+  }]
+  }#+end_src
+*** Grant
+**** Identifiers
+
+  Grants are still TBD.  Right now, we have loads of grants that come from the
+  old system.  We *could* mint another `ark:` for those, which may be required,
+  since moving forward, we'll need another `ark:` for the new grants.  We are
+  generating alot of arks: in that case.

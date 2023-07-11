@@ -3,7 +3,6 @@ import fs from 'fs-extra';
 import { Command } from 'commander';
 import { Engine } from 'quadstore-comunica';
 import { QueryEngine } from '@comunica/query-sparql';
-import { localDB } from '../lib/experts-client.js';
 import { DataFactory } from 'rdf-data-factory';
 
 import ExpertsClient from '../lib/experts-client.js';

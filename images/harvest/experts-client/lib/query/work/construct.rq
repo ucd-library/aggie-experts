@@ -1,12 +1,12 @@
-PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX venue: <http://experts.ucdavis.edu/venue/>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
@@ -18,11 +18,11 @@ construct {
         bibo:status ?vivoStatus;
       .
 
-  ?work a ucdrp:Work;
+  ?work a ucdlib:Work;
         cite:type ?cite_type;
         cite:genre ?cite_genre;
         cite:status ?status;
-	      ucdrp:lastModifiedDateTime ?lastModifiedDateTime;
+	      ucdlib:lastModifiedDateTime ?lastModifiedDateTime;
        cite:pagination ?pagination;
        ?field_predicate ?field_value;
        .
@@ -31,18 +31,18 @@ construct {
 #         cite:issued ?work_pubdate;
          .
 
-#  ?work_pubdate ucdrp:year ?pub_year;
-#                ucdrp:month ?pub_month;
-#                ucdrp:day ?pub_day;
+#  ?work_pubdate ucdlib:year ?pub_year;
+#                ucdlib:month ?pub_month;
+#                ucdlib:day ?pub_day;
 #                .
 
 #  ?work  cite:date-available ?opub_datestr;
 #         cite:date-available ?work_opubdate;
 #         .
 
-#  ?work_opubdate ucdrp:year ?opub_year;
-#                ucdrp:month ?opub_month;
-#                ucdrp:day ?opub_day;
+#  ?work_opubdate ucdlib:year ?opub_year;
+#                ucdlib:month ?opub_month;
+#                ucdlib:day ?opub_day;
 #                .
 
 #  ?work  bibo:pageStart ?begin;
@@ -52,7 +52,7 @@ construct {
   # Authors need citeproc and authorship method.
 	?work vivo:relatedBy ?authorship.
 
-  ?authorship a vivo:Authorship,ucdrp:authorship;
+  ?authorship a vivo:Authorship;
               vivo:rank ?authorRank;
               vivo:relates ?work;
               vivo:relates ?author_link;
@@ -83,18 +83,18 @@ WHERE {
     ("book" bibo:Book "book" "")
     ("chapter" bibo:Chapter "chapter" "")
     ("conference" vivo:ConferencePaper "paper-conference" "")
-    ("dataset" ucdrp:work "dataset" "")
-    ("internet-publication" ucdrp:work "webpage" "")
+    ("dataset" ucdlib:work "dataset" "")
+    ("internet-publication" ucdlib:work "webpage" "")
     ("journal-article" bibo:AcademicArticle "article-journal" "")
-    ("media" ucdrp:work "article" "media")
-    ("other" ucdrp:work "article" "other")
-    ("poster" ucdrp:work "speech" "poster")
-    ("preprint" ucdrp:PrePrint "article" "preprint" )
-    ("presentation" ucdrp:work "speech" "presentation")
-    ("report" ucdrp:work "report" "")
-    ("scholarly-edition" ucdrp:work "manuscript" "scholarly-edition")
-    ("software" ucdrp:work "software" "")
-    ("thesis-dissertation" ucdrp:work "thesis" "disseration")
+    ("media" ucdlib:work "article" "media")
+    ("other" ucdlib:work "article" "other")
+    ("poster" ucdlib:work "speech" "poster")
+    ("preprint" ucdlib:PrePrint "article" "preprint" )
+    ("presentation" ucdlib:work "speech" "presentation")
+    ("report" ucdlib:work "report" "")
+    ("scholarly-edition" ucdlib:work "manuscript" "scholarly-edition")
+    ("software" ucdlib:work "software" "")
+    ("thesis-dissertation" ucdlib:work "thesis" "disseration")
   }
 
   # Get every field_name
@@ -139,7 +139,7 @@ WHERE {
       #("field-citation-ratio" cite:)
       #("filed-date" cite:)
       #("finish-date" cite:)
-      ("is-open-access" ucdrp:is-open-access)
+      ("is-open-access" ucdlib:is-open-access)
       ("isbn-10" cite:ISBN)
       ("isbn-13" cite:ISBN)
       ("issn" cite:ISSN)
@@ -182,7 +182,8 @@ WHERE {
         oap:records/oap:record [ oap:source-name  ?source;
                                  oap:native/oap:field ?field ];
                                                       .
-    bind(uri(replace(str(?PUB__),str(cdl:),str(work:))) as ?work)
+#    bind(uri(replace(str(?PUB__),str(cdl:),str(work:))) as ?work)
+    bind(uri(replace(str(?PUB__),str(cdl:),concat(str(experts:),"work/ark:/87287/d7mh2m/publication/"))) as ?work)
 
   OPTIONAL {
     ?PUB__ oap:records/oap:record [ oap:source-name  ?source;
