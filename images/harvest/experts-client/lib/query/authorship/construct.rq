@@ -1,7 +1,6 @@
 prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
-prefix cdl: <ark:/87287/d7_cdltest_/>
 prefix experts: <http://experts.ucdavis.edu/>
-prefix oap: <http://oapolicy.universityofcalifornia.edu/>
+prefix cdl: <http://oapolicy.universityofcalifornia.edu/>
 prefix person: <http://experts.ucdavis.edu/person/>
 prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
@@ -14,7 +13,7 @@ construct {
     .
 }
 WHERE {
-  graph oap: {
+  graph cdl: {
     ?RELATIONSHIP__ :type "publication-user-authorship";
                   :effective-privacy-level "Public";
                   :is-visible "true";
@@ -33,7 +32,7 @@ WHERE {
     	bind(true as ?favorite)
     }
   }
-  bind(uri(replace(str(?RELATIONSHIP__),str(oap:),concat(str(cdl:),"relationships/"))) as ?authorship)
-  bind(uri(concat(str(cdl:),"publication/",replace(str(?pub),str(oap:),""))) as ?publication)
+  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),concat(str(cdl:),"relationships/"))) as ?authorship)
+  bind(uri(replace(str(?pub),str(cdl:),concat(str(experts:),"work/ark:/87287/d7mh2m/publication/"))) as ?publication)
   bind(uri(concat(str(person:),md5(?username))) as ?expert)
 }

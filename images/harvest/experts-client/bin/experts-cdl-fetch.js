@@ -50,22 +50,21 @@ async function main(opt) {
 
   const ec = new ExpertsClient(opt);
 
-  const context = {
-    "@context": {
-      "@Version": "1.1",
-      "@base": "http://iam.ucdavis.edu/",
-      "@vocab": "http://iam.ucdavis.edu/schema#",
-      "iamId": "@id",
-      "orgOId": "@id",
-      "bouOrgOId": {
-        "@type": "@id"
-      },
-      "iam": "http://iam.ucdavis.edu/schema#",
-      "harvest_iam": "http://iam.ucdavis.edu/"
-    },
-    "@id": "",
-    "@graph": []
-  };
+
+  const context={
+    "@context":{
+      "@base":"http://oapolicy.universityofcalifornia.edu/",
+      "@vocab":"http://oapolicy.universityofcalifornia.edu/vocab#",
+      "oap":"http://oapolicy.universityofcalifornia.edu/vocab#",
+      "api":"http://oapolicy.universityofcalifornia.edu/vocab#",
+      "id":{"@type":"@id","@id":"@id"},
+      "field-name":"api:field-name",
+      "field-number":"api:field-number",
+      "$t":"api:field-value",
+      "api:person": { "@container": "@list" },
+      "api:first-names-X": { "@container": "@list"},
+      "api:web-address": { "@container": "@list" }
+    }};
 
   const users = program.args;
 

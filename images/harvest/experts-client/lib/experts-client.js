@@ -417,9 +417,8 @@ export class ExpertsClient {
     // console.log(cdl.auth)
     // console.log(cdl.authBasic)
 
-    console.log(`getting ${nextPage}`);
-    while (!lastPage) {
-      //console.log(`getting ${nextPage}`);
+    while (nextPage) {
+      console.log(`getting ${nextPage}`);
       const response = await fetch(nextPage, {
         method: 'GET',
         headers: {
@@ -445,19 +444,14 @@ export class ExpertsClient {
 
         // inspect the pagination to see if there are more pages
         const pagination = json.feed['api:pagination'];
-        if (pagination["results-count"] <= 25) {
-          // This is the last page
-          lastPage = true;
-          break;
-        }
-        else {
-          // Fetch the next page
-          nextPage = null
-          for (let link of pagination["api:page"]) {
-            if (link.position === 'next') {
-              nextPage = link.href;
-              // console.log('nextPage: ' + nextPage);
-            }
+
+        // Fetch the next page
+        nextPage = null;
+        for (let link of pagination["api:page"]) {
+          if (link.position === 'next') {
+            nextPage = link.href;
+            // console.log('nextPage: ' + nextPage);
+
           }
           if (!nextPage) {
             lastPage = true;

@@ -41,6 +41,7 @@ class ExpertsModel extends FinEsDataModel {
   }
 
   async update(jsonld, index) {
+    console.log('ExpertsModel update');
     await super.update(jsonld, index);
 }
 // work update

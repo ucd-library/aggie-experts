@@ -1,26 +1,42 @@
 {
+  "@version": 1.1,
   "@context": {
     "@base": "http://experts.ucdavis.edu/",
-    "@vocab": "http://vivoweb.org/ontology/core#",
     "bibo":"http://purl.org/ontology/bibo/",
     "cite": "http://citationstyles.org/schema/",
     "grant": "http://experts.ucdavis.edu/grant/",
     "obo": "http://purl.obolibrary.org/obo/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-    "schema": "http://schema.org/",
     "ucdlib": "http://schema.library.ucdavis.edu/schema#",
     "vcard":"http://www.w3.org/2006/vcard/ns#",
     "vivo": "http://vivoweb.org/ontology/core#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
-
     "DOI": {"@id":"cite:DOI"},
     "ISBN": {"@id":"cite:ISBN"},
     "ISSN":{"@id":"cite:ISSN"},
     "abstract":{"@id":"cite:abstract"},
-    "assignedBy": { "@type":"@id"},
+    "assignedBy": { "@id":"vivo:assigndBy","@type":"@id"},
     "author":{"@id":"cite:author","@type":"@json"},
     "available-date":{"@id":"cite:available-date"},
     "collection-number":{"@id":"cite:collection-number"},
+    "container-title":{"@id":"cite:container-title"},
+    "dateTimeInterval": {
+      "@id":"vivo:dateTimeInterval",
+      "@type":"@id",
+      "@context":{
+        "start":{"@id":"vivo:start","@type":"@id"},
+        "end":{"@id":"vivo:end","@type":"@id"},
+        "dateTimePrecision":{"@id":"vivo:dateTimePrecision","@type":"@id"}
+      }
+    },
+    "directCosts": { "@id": "vivo:grantDirectCosts" },
+    "edition":{"@id":"cite:edition"},
+    "email":{"@id":"vcard:hasEmail","@type":"@id"},
+    "eissn":{"@id":"cite:eissn"},
+    "familyName":{"@id":"vcard:familyName"},
+    "genre":{"@id":"cite:genre"},
+    "givenName":{"@id":"vcard:givenName"},
+    "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
     "contactInfo": {
       "@id":"obo:ARG_2000028",
       "@type":"@id",
@@ -28,28 +44,21 @@
         "name":{"@id":"vcard:hasName","@type":"@id"}
       }
     },
-    "container-title":{"@id":"cite:container-title"},
-    "dateTimeInterval": { "@type":"@id",
-                          "@context":{
-                            "start":{"@type":"@id"},
-                            "end":{"@type":"@id"},
-                            "dateTimePrecision":{"@type":"@id"}
-                          }
-                        },
-    "directCosts": { "@id": "vivo:grantDirectCosts" },
-    "edition":{"@id":"cite:edition"},
-    "eissn":{"@id":"cite:eissn"},
-    "familyName":{"@id":"vcard:familyName"},
-    "genre":{"@id":"cite:genre"},
-    "givenName":{"@id":"vcard:givenName"},
-    "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
-    "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
-    "hasName":{"@id":"vcard:hasName","@type":"@id"},
-    "hasOrganizationalUnit":{"@id":"vcard:hasOrganizationalUnit","@type":"@id"},
+    "organization": {
+      "@id":"vcard:hasOrganizationalUnit",
+      "@type":"@id",
+      "@context":{
+        "title":{"@id":"vcard:title"}
+      }
+    },
+    "hasTitle": {
+      "@id":"vcard:hasTitle",
+      "@type":"@id",
+      "@context":{
+        "title":{"@id":"vcard:title"}
+      }
+    },
     "hasPublicationVenue":{"@id":"vivo:hasPublicationVenue","@type":"@id"},
-    "hasResearchArea":{"@id":"vivo:hasResearchArea","@type":"@id" },
-    "hasTitle":{"@id":"vcard:hasTitle","@type":"@id"},
-    "identifier":{"@id":"schema:identifier"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "is-open-access":{"@id":"ucdlib:is-open-access"},
     "issue":{"@id":"cite:issue"},
@@ -59,36 +68,36 @@
     "language":{"@id":"cite:language"},
     "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime","@type":"xsd:dateTime"},
     "license":{"@id":"cite:license"},
-    "name":{"@id":"rdfs:label"},
+    "label":{"@id":"rdfs:label"},
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
     "pagination":{"@id":"cite:pagination"},
-    "Person":{"@id":"ucdlib:Person","@type":"@id"},
-    "pronouns":{"@id":"vcard:pronouns"},
+    "pronouns":{"@id":"ucdlib:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
     "rank":{"@id":"vivo:rank","@type":"xsd:integer"},
-    "relatedBy":{"@type":"@id",
-                 "@id":"vivo:relatedBy"
-                },
-    "relates": { "@type":"@id",
-                 "@context":{
-                   "role_person_name":{"@id":"ucdlib:role_person_name"},
-                   "inheres_in":{"@id":"obo:RO_000052","@type":"@id"},
-                   "relatedBy":{"@type":"@id"},
-                   "name":{"@id":"rdfs:label"}
-                 }
-               },
-    "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
+    "relatedBy":{
+      "@id":"vivo:relatedBy",
+      "@type":"@id"
+    },
+    "relates": {
+      "@id":"vivo:relates",
+      "@type":"@id",
+      "@context":{
+        "role_person_name":{"@id":"ucdlib:role_person_name"},
+        "inheres_in":{"@id":"obo:RO_000052","@type":"@id"},
+        "relatedBy":{"@id":"vivo:relatedBy","@type":"@id"},
+        "name":{"@id":"rdfs:label"}
+      }
+    },
     "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
     "status":{"@id":"cite:status"},
     "title":{"@id":"cite:title"},
     "totalAwardAmount": {"@id": "vivo:totaAwardAmount"},
     "type":{"@id":"cite:type"},
     "url":{"@id":"cite:url"},
-      "volume":{"@id":"cite:volume"},
-      "Work":"ucdlib:Work"
+    "volume":{"@id":"cite:volume"}
   },
-  "@type": ["Person","Work"],
-  "@embed": "@once"
+  "@embed": "@always",
+  "@type": ["ucdlib:Person","ucdlib:Work","ucdlib:Grant","ucdlib:Authorship"]
 }

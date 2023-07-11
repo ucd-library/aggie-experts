@@ -7,6 +7,7 @@
     "grant": "http://experts.ucdavis.edu/grant/",
     "obo": "http://purl.obolibrary.org/obo/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "schema": "http://schema.org/",
     "ucdlib": "http://schema.library.ucdavis.edu/schema#",
     "vcard":"http://www.w3.org/2006/vcard/ns#",
     "vivo": "http://vivoweb.org/ontology/core#",
@@ -20,6 +21,13 @@
     "author":{"@id":"cite:author","@type":"@json"},
     "available-date":{"@id":"cite:available-date"},
     "collection-number":{"@id":"cite:collection-number"},
+    "contactInfo": {
+      "@id":"obo:ARG_2000028",
+      "@type":"@id",
+      "@context":{
+        "name":{"@id":"vcard:hasName","@type":"@id"}
+      }
+    },
     "container-title":{"@id":"cite:container-title"},
     "dateTimeInterval": { "@type":"@id",
                           "@context":{
@@ -35,8 +43,13 @@
     "genre":{"@id":"cite:genre"},
     "givenName":{"@id":"vcard:givenName"},
     "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
-    "hasName":{"@id":"vcard:hasName"},
+    "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
+    "hasName":{"@id":"vcard:hasName","@type":"@id"},
+    "hasOrganizationalUnit":{"@id":"vcard:hasOrganizationalUnit","@type":"@id"},
     "hasPublicationVenue":{"@id":"vivo:hasPublicationVenue","@type":"@id"},
+    "hasResearchArea":{"@id":"vivo:hasResearchArea","@type":"@id" },
+    "hasTitle":{"@id":"vcard:hasTitle","@type":"@id"},
+    "identifier":{"@id":"schema:identifier"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "is-open-access":{"@id":"ucdlib:is-open-access"},
     "issue":{"@id":"cite:issue"},
@@ -50,9 +63,11 @@
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
     "pagination":{"@id":"cite:pagination"},
+    "Person":{"@id":"ucdlib:Person","@type":"@id"},
+    "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
-    "rank":{"@id":"vivo:rank"},
+    "rank":{"@id":"vivo:rank","@type":"xsd:integer"},
     "relatedBy":{"@type":"@id",
                  "@id":"vivo:relatedBy"
                 },
@@ -64,6 +79,7 @@
                    "name":{"@id":"rdfs:label"}
                  }
                },
+    "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
     "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
     "status":{"@id":"cite:status"},
     "title":{"@id":"cite:title"},
