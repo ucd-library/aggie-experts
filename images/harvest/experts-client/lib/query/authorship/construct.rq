@@ -1,15 +1,18 @@
 prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
 prefix experts: <http://experts.ucdavis.edu/>
 prefix cdl: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 prefix person: <http://experts.ucdavis.edu/person/>
 prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
 construct {
-  ?authorship a vivo:Authorship,ucdlib:Authorship;
+  ?authorship a vivo:Authorship;
               ucdlib:favorite ?favorite;
               ucdlib:is-visible true;
               vivo:relates ?expert,?publication;
+              vivo:rank ?user_rank;
     .
 }
 WHERE {
@@ -17,22 +20,54 @@ WHERE {
     ?RELATIONSHIP__ :type "publication-user-authorship";
                   :effective-privacy-level "Public";
                   :is-visible "true";
-                  :last-modified-when ?modified;
+                  :type ?type;
                   :related ?pub;
                   :related ?user;
                   .
-    ?pub :category "publication";
-         .
+
     ?user :category "user";
           :username ?username;
           .
+
+    ?pub :category "publication";
+         .
+
+    # Get authors from priority source
+    {
+    select ?pub (min(?p) as ?author_priority)
+    WHERE {
+      VALUES (?source ?p) {
+    ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
+    ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
+    ("cinii-english" 12)("repec" 13)("figshare" 14)
+    ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+
+      ?pub oap:records/oap:record [ oap:source-name  ?source;
+                                    oap:native/oap:field/oap:name "authors" ].
+    } group by ?pub
+  }
+  VALUES (?source ?author_priority) {
+    ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
+    ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
+    ("cinii-english" 12)("repec" 13)("figshare" 14)
+    ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+
+    ?pub oap:records/oap:record [ oap:source-name  ?source;
+                                  oap:native/oap:field ?field ].
+
+    ?field oap:name "authors";
+           oap:people/oap:person [ list:index(?pos ?elem) ] .
+
+    ?elem oap:links/oap:link ?user.
+    BIND(?pos+1 AS ?user_rank)
+
 
     OPTIONAL {
 	    ?RELATIONSHIP__ :is-favourite "true".
     	bind(true as ?favorite)
     }
   }
-  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),concat(str(cdl:),"relationships/"))) as ?authorship)
-  bind(uri(replace(str(?pub),str(cdl:),concat(str(experts:),"work/ark:/87287/d7mh2m/publication/"))) as ?publication)
+  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/relationship/"))) as ?authorship)
+  bind(uri(replace(str(?pub),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/publication/"))) as ?publication)
   bind(uri(concat(str(person:),md5(?username))) as ?expert)
 }
