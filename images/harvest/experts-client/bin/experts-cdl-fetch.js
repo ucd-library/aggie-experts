@@ -34,7 +34,7 @@ const fuseki = {
 
 const cdl = {
   url: process.env.EXPERTS_CDL_URL || 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-  auth: process.env.EXPERTS_CDL_AUTH || 'ucd:**nopass**',,
+  auth: process.env.EXPERTS_CDL_AUTH || 'ucd:**nopass**',
 };
 
 async function main(opt) {
