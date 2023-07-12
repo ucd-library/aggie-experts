@@ -12,20 +12,23 @@ import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
+import GoogleSecret from '../lib/googleSecret.js';
 
 const DF = new DataFactory();
 const BF = new BindingsFactory();
 
 const ql = await new QueryLibrary().load();
+const gs = new GoogleSecret();
 
-console.log('starting experts-iam');
+console.log('starting experts-cdl-fetch');
+
 const program = new Command();
 
 // This also reads data from .env file via dotenv
 const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   type: 'mem',
-  db: 'cdl-profiles',
+  db: null,
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
 };
 
@@ -36,9 +39,17 @@ const cdl = {
 
 async function main(opt) {
 
-  //  console.log(opt);
+  // get the secret JSON
+  let secretResp = await gs.getSecret('projects/326679616213/secrets/cdl_elements_json');
+  let secretJson = JSON.parse(secretResp);
+  for (const entry of secretJson) {
+    if (entry['@id'] == 'oapolicy') {
+      opt.cdl.auth = entry.auth.raw_auth;
+    }
+  }
 
   const ec = new ExpertsClient(opt);
+
 
   const context={
     "@context":{
@@ -61,7 +72,7 @@ async function main(opt) {
 
     if (opt.fuseki.isTmp) {
       //console.log('starting createDataset');
-      opt.fuseki.db=user+'-'+nanoid(5);
+      opt.fuseki.db = user + '-' + nanoid(5);
       const fuseki = await ec.mkFusekiTmpDb(opt);
       //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
       opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
@@ -76,14 +87,16 @@ async function main(opt) {
 
     console.log('starting createJsonLd ' + user);
     let contextObj = context;
-    // delete contextObj['@context']['id']; as a test
-    //delete contextObj['@context']['id'];
+
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.doc;
+
     let jsonld = JSON.stringify(contextObj);
     console.log('starting createGraph ' + user);
-    await ec.createGraphFromJsonLdFile(jsonld,opt);
-    fs.writeFileSync(path.join(opt.output, user + '.jsonld'), jsonld);
+
+    await ec.createGraphFromJsonLdFile(jsonld, opt);
+
+    // fs.writeFileSync(path.join(opt.output, user + '.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
     console.log('starting getCDLentries ' + user + '-' + ec.doc[0].id);
@@ -91,7 +104,7 @@ async function main(opt) {
     // fetch publications for user
     ec.works = [];
     let works = await ec.getCDLentries(opt, 'users/' + ec.doc[0].id + '/publications?detail=full');
-    fs.writeFileSync(path.join(opt.output, user + '-raw-work.json'),JSON.stringify(works));
+    // fs.writeFileSync(path.join(opt.output, user + '-raw-work.json'), JSON.stringify(works));
 
     for (let work of works) {
       let related = [];
@@ -99,7 +112,7 @@ async function main(opt) {
         related.push(work['api:relationship']['api:related']);
       }
       related.push({ direction: 'to', id: ec.doc[0].id, category: 'user' });
-      work['api:relationship'] ||={};
+      work['api:relationship'] ||= {};
       work['api:relationship']['api:related'] = related;
       ec.works.push(work['api:relationship']);
     }
@@ -109,19 +122,20 @@ async function main(opt) {
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
     contextObj["@graph"] = ec.works;
     jsonld = JSON.stringify(contextObj);
-    // console.log(ec.jsonld);
 
     console.log('starting works createGraph ' + user);
-    await ec.createGraphFromJsonLdFile(jsonld,opt);
-    fs.writeFileSync(path.join(opt.output, user + '-works.jsonld'), jsonld);
+
+    await ec.createGraphFromJsonLdFile(jsonld, opt);
+
+    // fs.writeFileSync(path.join(opt.output, user + '-works.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
-    opt.bindings=BF.fromRecord(
-      {EXPERTS_SERVICE__: DF.namedNode(opt.expertsService)}
+    opt.bindings = BF.fromRecord(
+      { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
     );
-    const iam = ql.getQuery('insert_iam','InsertQuery');
+    const iam = ql.getQuery('insert_iam', 'InsertQuery');
 
-    await ec.insert({...opt,...iam});
+    await ec.insert({ ...opt, ...iam });
 
     for (const n of ['person', 'work', 'authorship']) {
       await (async (n) => {
@@ -150,10 +164,10 @@ program.name('cdl-profile')
   .description('Import CDL Researcher Profiles and Works')
   .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
   .option('--output <output>', 'output directory')
-  .option('--cdl.url <url>', 'Specify CDL endpoint',cdl.url)
-  .option('--cdl.auth <user:password>', 'Specify CDL authorization',cdl.auth)
-  .option('--experts-service <experts-service>', 'Experts Sparql Endpoint','http://localhost:3030/experts/sparql')
-  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
+  .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
+  .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
+  .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
+  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', true)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)

@@ -6,8 +6,6 @@
 *
 */
 'use strict';
-// import * as dotenv from 'dotenv';
-// dotenv.config();
 
 import fs from 'fs-extra';
 import fetch from 'node-fetch';
@@ -16,14 +14,11 @@ import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
 import { nanoid } from 'nanoid';
 import path from 'path';
-// import xml2js from 'xml2js';
 import parser from 'xml2json';
 import { count } from 'console';
-// import { readFileSync } from 'fs';
 
 const jp = new JsonLdProcessor();
 
-// import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import readablePromiseQueue from './readablePromiseQueue.js';
 
 // Instantiates a Secrets client
@@ -40,7 +35,7 @@ export class ExpertsClient {
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
-//    console.log('ExpertsClient constructor');
+    //    console.log('ExpertsClient constructor');
     this.opt = opt;
   }
 
@@ -59,9 +54,7 @@ export class ExpertsClient {
       opt.iamEndpoint += '&userId=' + opt.userId;
     }
 
-//    console.log(opt.iamEndpoint);
-
-    opt.iamEndpoint = encodeURI('https://iet-ws-stage.ucdavis.edu/api/iam/people/profile/search?key=' + opt.iamAuth + '&isFaculty=true');
+    opt.iamEndpoint = encodeURI(opt.iamEndpoint + '?key=' + opt.iamAuth + '&isFaculty=true');
     const response = await fetch(opt.iamEndpoint);
 
     if (response.status !== 200) {
@@ -109,7 +102,7 @@ export class ExpertsClient {
       fuseki.isTmp = true;
       fuseki.type = fuseki.type || 'mem';
     }
-//    console.log(fuseki);
+    //    console.log(fuseki);
 
 
     // just throw the error if it fails
@@ -198,7 +191,7 @@ export class ExpertsClient {
     return res.status;
   }
 
-  async createGraphFromJsonLdFile(jsonld,opt) {
+  async createGraphFromJsonLdFile(jsonld, opt) {
     const fuseki = opt.fuseki;
     // Read JSON-LD file from file system
     // const jsonLdFileContent = fs.readFileSync(jsonLdFilePath, 'utf-8');
@@ -210,7 +203,7 @@ export class ExpertsClient {
     // Set request options
     const options = {
       method: 'POST',
-        headers: {
+      headers: {
         'Content-Type': 'application/ld+json',
         'Authorization': `Basic ${fuseki.authBasic}`
       },
@@ -218,9 +211,12 @@ export class ExpertsClient {
     };
 
     // Send the request to upload the data to the graph
-//    console.log(url);
+    //    console.log(url);
     const response = await fetch(url, options);
 
+    // console.log(response);
+
+    // Check if the request was successful
     if (!response.ok) {
       throw new Error(`Failed to create graph. Status code: ${response.status}`);
     }
@@ -228,21 +224,22 @@ export class ExpertsClient {
     return await response.text();
   }
 
-  static str_or_file(opt, param, required) {
-      if (opt[param]) {
-        return opt[param];
-      } else if (opt[param + '@']) {
-        opt[param] = fs.readFileSync(opt[param + '@'], 'utf8');
-        return opt[param];
-      } else if (required) {
-        console.error('missing required option: ' + param + '(@)');
-        process.exit(1);
-      } else {
-        return null;
-      }
-    }
 
-    /**
+  static str_or_file(opt, param, required) {
+    if (opt[param]) {
+      return opt[param];
+    } else if (opt[param + '@']) {
+      opt[param] = fs.readFileSync(opt[param + '@'], 'utf8');
+      return opt[param];
+    } else if (required) {
+      console.error('missing required option: ' + param + '(@)');
+      process.exit(1);
+    } else {
+      return null;
+    }
+  }
+
+  /**
   * @description
   * @param {
   * } opt
@@ -250,6 +247,31 @@ export class ExpertsClient {
   *
   */
   async insert(opt) {
+
+    async function execFusekiUpdate(opt, query) {
+      const fuseki = opt.fuseki;
+      const url = `${fuseki.url}/${fuseki.db}/update`;
+
+      // Set request options
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/sparql-update',
+          'Authorization': `Basic ${fuseki.authBasic}`
+        },
+        body: query,
+      };
+
+      const response = await fetch(url, options);
+
+      if (!response.ok) {
+        // console.log(response);
+        throw new Error(`Failed to execute update. Status code: ${response.status}`);
+      }
+
+      return await response.text();
+    }
+
     const bind = ExpertsClient.str_or_file(opt, 'bind', true);
     const insert = ExpertsClient.str_or_file(opt, 'insert', true);
 
@@ -260,37 +282,45 @@ export class ExpertsClient {
       // if opt.bindings, add them to bindings
       if (opt.bindings) {
         for (const [key, value] of opt.bindings) {
-          bindings=bindings.set(key,value);
+          bindings = bindings.set(key, value);
         }
       }
       // comunica's initialBindings function doesn't work,
       //so this is a sloppy workaround
-      let insert=opt.insert;
-      for (const [ key, value ] of bindings) {
+      let insert = opt.insert;
+      for (const [key, value] of bindings) {
         if (value.termType === 'Literal') {
-          insert=insert.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+          insert = insert.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
         } else if (value.termType === 'NamedNode') {
-          insert=insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+          insert = insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-      const update=opt.source[0].replace(/sparql$/, 'update');
-      return q.queryVoid(insert, { sources: [update], httpAuth: opt.fuseki.auth });
+
+      opt.insert = insert;
+      const update = opt.source[0].replace(/sparql$/, 'update');
+
+      const promise = execFusekiUpdate(opt, insert);
+      // const promise = q.queryVoid(insert, { sources: [update], httpAuth: opt.fuseki.auth });
+
+      return promise;
+
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources })
+    const bindingStream = q.queryBindings(opt.bind, { sources, fetch: fetch })
 
-    const queue=new readablePromiseQueue(bindingStream,insertBoundConstruct,
-                                         {name:'insert',max_promises:1});
-    return queue.execute({via:'start'});
+    const queue = new readablePromiseQueue(bindingStream, insertBoundConstruct,
+      { name: 'insert', max_promises: 10 });
+    return queue.execute({ via: 'start' });
   }
 
+
   /**
-  * @description
-  * @param {
-  * } opt
-  * @returns
-  *
-  */
+* @description
+* @param {
+* } opt
+* @returns
+*
+*/
   async splay(opt) {
     // console.log(opt);
     const bind = ExpertsClient.str_or_file(opt, 'bind', true);
@@ -314,16 +344,16 @@ export class ExpertsClient {
         } else {
           fn = bindings.get('filename').value
         }
-        bindings=bindings.delete('filename');
+        bindings = bindings.delete('filename');
       }
       // comunica's initialBindings function doesn't work,
       //so this is a sloppy workaround
-      let construct=opt.construct;
-      for (const [ key, value ] of bindings) {
+      let construct = opt.construct;
+      for (const [key, value] of bindings) {
         if (value.termType === 'Literal') {
-          construct=construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+          construct = construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
         } else if (value.termType === 'NamedNode') {
-          construct=construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+          construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
       const quadStream = await q.queryQuads(construct, { sources: opt.source });
@@ -343,9 +373,9 @@ export class ExpertsClient {
     }
 
     const bindingStream = q.queryBindings(opt.bind, { sources: opt.source })
-    const queue=new readablePromiseQueue(bindingStream,constructRecord,
-                                         {name:'splay',max_promises:5});
-    return queue.execute({via:'start'});
+    const queue = new readablePromiseQueue(bindingStream, constructRecord,
+      { name: 'splay', max_promises: 5 });
+    return queue.execute({ via: 'start' });
 
   }
 
@@ -383,6 +413,9 @@ export class ExpertsClient {
     } else {
       cdl.authBasic = cdl.auth;
     }
+    // console.log('IN getCDLentries')
+    // console.log(cdl.auth)
+    // console.log(cdl.authBasic)
 
     while (nextPage) {
       console.log(`getting ${nextPage}`);
@@ -411,12 +444,18 @@ export class ExpertsClient {
 
         // inspect the pagination to see if there are more pages
         const pagination = json.feed['api:pagination'];
+
         // Fetch the next page
         nextPage = null;
         for (let link of pagination["api:page"]) {
           if (link.position === 'next') {
             nextPage = link.href;
             // console.log('nextPage: ' + nextPage);
+
+          }
+          if (!nextPage) {
+            lastPage = true;
+            break;
           }
         }
       }
