@@ -25,6 +25,7 @@
   "dependencies": {
     "@comunica/bindings-factory": "^2.7.0",
     "@comunica/query-sparql": "^2.7.1",
+    "@google-cloud/secret-manager": "^4.2.2",
     "@rdfjs/fetch-lite": "3.2.1",
     "classic-level": "^1.2.0",
     "commander": "^10.0.0",
@@ -32,6 +33,7 @@
     "fs": "^0.0.1-security",
     "fs-extra": "^11.1.1",
     "https": "^1.0.0",
+    "json-query": "^2.2.2",
     "jsonld": "^8.1.1",
     "jsonld-streaming-parser": "^3.2.0",
     "memory-level": "^1.0.0",

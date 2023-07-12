@@ -6,21 +6,43 @@ import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
 import ExpertsClient from '../lib/experts-client.js';
+import GoogleSecret from '../lib/googleSecret.js';
+
 
 console.log('starting experts-iam');
 const program = new Command();
 
 const fuseki = {
-  url: process.env.EXPERTS_FUSEKI_URL || 'http://127.0.0.1:3030',
+  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   type: 'mem',
   db: 'experts-rk',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
 }
 
+const context = {
+  "@context": {
+    "@base": "http://oapolicy.universityofcalifornia.edu/",
+    "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "id": { "@type": "@id", "@id": "@id" },
+    "field-name": "api:field-name",
+    "field-number": "api:field-number",
+    "$t": "api:field-value",
+    "api:person": { "@container": "@list" },
+    "api:first-names-X": { "@container": "@list" },
+    "api:web-address": { "@container": "@list" }
+  }
+};
+
 
 async function main(opt) {
 
   //  console.log(opt);
+
+  const gs = new GoogleSecret();
+  opt.iamAuth = await gs.getSecret('projects/326679616213/secrets/ucdid_auth');
+  console.log(opt.iamAuth);
 
   const ec = new ExpertsClient(opt);
 
@@ -29,8 +51,7 @@ async function main(opt) {
   await ec.getIAMProfiles(opt);
 
   console.log('starting createJsonLd');
-  const iamContext = await fs.readFile(path.join(__dirname, '..', 'lib', 'context', 'iam-profile.json'));
-  let contextObj = JSON.parse(iamContext);
+  let contextObj = context;
   contextObj["@id"] = 'http://iam.ucdavis.edu/';
   contextObj["@graph"] = ec.doc;
 
@@ -43,7 +64,7 @@ async function main(opt) {
   console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
 
   console.log('starting createGraph');
-  await ec.createGraphFromJsonLdFile(opt);
+  await ec.createGraphFromJsonLdFile(ec.jsonld, opt);
   console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
   // Any other value don't delete
@@ -97,8 +118,6 @@ Object.keys(opt).forEach((k) => {
 
 // console.log(process.env);
 
-opt.iamEndpoint = process.env.EXPERTS_IAM_ENDPOINT;
-opt.iamAuth = process.env.EXPERTS_IAM_AUTH;
 opt.source = [opt.fuseki.url + '/' + opt.fuseki.db];
 
 console.log('opt', opt);
