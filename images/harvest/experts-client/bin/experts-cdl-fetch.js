@@ -33,8 +33,8 @@ const fuseki = {
 };
 
 const cdl = {
-  url: process.env.EXPERTS_CDL_URL || 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-  auth: null,
+  url: process.env.EXPERTS_CDL_URL || 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+  auth: process.env.EXPERTS_CDL_AUTH || 'ucd:**nopass**',,
 };
 
 async function main(opt) {
@@ -43,7 +43,7 @@ async function main(opt) {
   let secretResp = await gs.getSecret('projects/326679616213/secrets/cdl_elements_json');
   let secretJson = JSON.parse(secretResp);
   for (const entry of secretJson) {
-    if (entry['@id'] == 'qa-oapolicy') {
+    if (entry['@id'] == 'oapolicy') {
       opt.cdl.auth = entry.auth.raw_auth;
     }
   }
