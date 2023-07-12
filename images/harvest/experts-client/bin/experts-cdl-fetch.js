@@ -28,12 +28,11 @@ const program = new Command();
 const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   type: 'mem',
-  db: null,
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
 };
 
 const cdl = {
-  url: process.env.EXPERTS_CDL_URL || 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+  url: process.env.EXPERTS_CDL_URL || 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
   auth: process.env.EXPERTS_CDL_AUTH || 'ucd:**nopass**',
 };
 
@@ -43,7 +42,7 @@ async function main(opt) {
   let secretResp = await gs.getSecret('projects/326679616213/secrets/cdl_elements_json');
   let secretJson = JSON.parse(secretResp);
   for (const entry of secretJson) {
-    if (entry['@id'] == 'oapolicy') {
+    if (entry['@id'] == 'qa-oapolicy') {
       opt.cdl.auth = entry.auth.raw_auth;
     }
   }
@@ -51,20 +50,21 @@ async function main(opt) {
   const ec = new ExpertsClient(opt);
 
 
-  const context={
-    "@context":{
-      "@base":"http://oapolicy.universityofcalifornia.edu/",
-      "@vocab":"http://oapolicy.universityofcalifornia.edu/vocab#",
-      "oap":"http://oapolicy.universityofcalifornia.edu/vocab#",
-      "api":"http://oapolicy.universityofcalifornia.edu/vocab#",
-      "id":{"@type":"@id","@id":"@id"},
-      "field-name":"api:field-name",
-      "field-number":"api:field-number",
-      "$t":"api:field-value",
+  const context = {
+    "@context": {
+      "@base": "http://oapolicy.universityofcalifornia.edu/",
+      "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "id": { "@type": "@id", "@id": "@id" },
+      "field-name": "api:field-name",
+      "field-number": "api:field-number",
+      "$t": "api:field-value",
       "api:person": { "@container": "@list" },
-      "api:first-names-X": { "@container": "@list"},
+      "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
-    }};
+    }
+  };
 
   const users = program.args;
 
@@ -103,8 +103,8 @@ async function main(opt) {
 
     // fetch publications for user
     ec.works = [];
-    let works = await ec.getCDLentries(opt, 'users/' + ec.doc[0].id + '/publications?detail=full');
-    // fs.writeFileSync(path.join(opt.output, user + '-raw-work.json'), JSON.stringify(works));
+    let works = await ec.getCDLentries(opt, 'users/' + ec.doc[0].id + '/relationships?detail=full');
+    fs.writeFileSync(path.join('data', user + '-raw-work.json'), JSON.stringify(works));
 
     for (let work of works) {
       let related = [];
@@ -172,7 +172,7 @@ program.name('cdl-profile')
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
   .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
-  .option('--save-tmp', 'Do not remove temporary file', false)
+  .option('--save-tmp', 'Do not remove temporary file', true)
 
 
 program.parse(process.argv);
