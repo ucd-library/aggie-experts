@@ -10,6 +10,10 @@
       "@id":"frame@",
       "@type":"@id"
     },
+    "context@" : {
+      "@id":"context@",
+      "@type":"@id"
+    },
     "construct@" : {
       "@id":"construct@",
       "@type":"@id"
@@ -35,6 +39,7 @@
       "@id":"work",
       "@type":"SplayQuery",
       "frame@":"work/frame.json",
+      "context@" : "context.json",
       "construct@" : "work/construct.rq",
       "bind@" : "work/bind.rq"
     },
@@ -42,6 +47,7 @@
       "@id":"authorship",
       "@type":"SplayQuery",
       "frame@":"authorship/frame.json",
+      "context@" : "context.json",
       "construct@" : "authorship/construct.rq",
       "bind@" : "authorship/bind.rq"
     },
@@ -49,6 +55,7 @@
       "@id":"person",
       "@type":"SplayQuery",
       "frame@":"person/frame.json",
+      "context@" : "context.json",
       "construct@" : "person/construct.rq",
       "bind@" : "person/bind.rq"
     }

@@ -40,6 +40,10 @@ export class queryLibrary {
           "@id":"frame@",
           "@type":"@id"
         },
+        "context@" : {
+          "@id":"context@",
+          "@type":"@id"
+        },
         "construct@" : {
           "@id":"construct@",
           "@type":"@id"
