@@ -32,20 +32,23 @@ const fuseki = {
 };
 
 const cdl = {
-  url: process.env.EXPERTS_CDL_URL || 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-  auth: process.env.EXPERTS_CDL_AUTH || 'ucd:**nopass**',
+  url: '',
+  auth: '',
+  secretpath: '',
 };
 
 async function main(opt) {
 
   // get the secret JSON
-  let secretResp = await gs.getSecret('projects/326679616213/secrets/cdl_elements_json');
+  let secretResp = await gs.getSecret(opt.cdl.secretpath);
   let secretJson = JSON.parse(secretResp);
   for (const entry of secretJson) {
-    if (entry['@id'] == 'qa-oapolicy') {
+    if (entry['@id'] == opt.cdl.authname) {
       opt.cdl.auth = entry.auth.raw_auth;
     }
   }
+
+  // console.log('opt', opt);
 
   const ec = new ExpertsClient(opt);
 
@@ -81,15 +84,16 @@ async function main(opt) {
     console.log('starting getCDLprofile ' + user);
 
     const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
-    // Assume a single entry for a user profile
-    ec.doc = [];
-    ec.doc.push(entries[0]['api:object']);
+    // Assume a single entry for a user profile, but it's an array
+    ec.profile = entries;
+
+    let cdlId = ec.profile[0]["api:object"].id;
 
     console.log('starting createJsonLd ' + user);
     let contextObj = context;
 
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-    contextObj["@graph"] = ec.doc;
+    contextObj["@graph"] = ec.profile;
 
     let jsonld = JSON.stringify(contextObj);
     console.log('starting createGraph ' + user);
@@ -99,19 +103,19 @@ async function main(opt) {
     // fs.writeFileSync(path.join(opt.output, user + '.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
-    console.log('starting getCDLentries ' + user + '-' + ec.doc[0].id);
+    console.log('starting getCDLentries ' + user + '-' + cdlId);
 
     // fetch publications for user
     ec.works = [];
-    let works = await ec.getCDLentries(opt, 'users/' + ec.doc[0].id + '/relationships?detail=full');
-    fs.writeFileSync(path.join('data', user + '-raw-work.json'), JSON.stringify(works));
+    let works = await ec.getCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full');
+    // fs.writeFileSync(path.join('data', user + '-raw-work.json'), JSON.stringify(works));
 
     for (let work of works) {
       let related = [];
       if (work['api:relationship'] && work['api:relationship']['api:related']) {
         related.push(work['api:relationship']['api:related']);
       }
-      related.push({ direction: 'to', id: ec.doc[0].id, category: 'user' });
+      related.push({ direction: 'to', id: cdlId, category: 'user' });
       work['api:relationship'] ||= {};
       work['api:relationship']['api:related'] = related;
       ec.works.push(work['api:relationship']);
@@ -127,24 +131,26 @@ async function main(opt) {
 
     await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-    // fs.writeFileSync(path.join(opt.output, user + '-works.jsonld'), jsonld);
+    fs.writeFileSync(path.join('data', user + '-works.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
-    opt.bindings = BF.fromRecord(
-      { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
-    );
-    const iam = ql.getQuery('insert_iam', 'InsertQuery');
+    if (!opt.nosplay) {
 
-    await ec.insert({ ...opt, ...iam });
+      opt.bindings = BF.fromRecord(
+        { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
+      );
+      const iam = ql.getQuery('insert_iam', 'InsertQuery');
 
-    for (const n of ['person', 'work', 'authorship']) {
-      await (async (n) => {
-        const splay = ql.getSplay(n);
-        //    delete splay["frame@"];
-        return await ec.splay({ ...opt, ...splay });
-      })(n);
-    };
+      await ec.insert({ ...opt, ...iam });
 
+      for (const n of ['person', 'work', 'authorship']) {
+        await (async (n) => {
+          const splay = ql.getSplay(n);
+          //    delete splay["frame@"];
+          return await ec.splay({ ...opt, ...splay });
+        })(n);
+      };
+    }
     // Any other value don't delete
     if (opt.fuseki.isTmp === true && !opt.saveTmp) {
       const dropped = await ec.dropFusekiDb(opt);
@@ -172,7 +178,9 @@ program.name('cdl-profile')
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
   .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
-  .option('--save-tmp', 'Do not remove temporary file', true)
+  .option('--save-tmp', 'Do not remove temporary file', false)
+  .option('--environment <env>', 'specify environment', 'development')
+  .option('--nosplay', 'skip splay', false)
 
 
 program.parse(process.argv);
@@ -199,4 +207,16 @@ Object.keys(opt).forEach((k) => {
   }
 });
 
+if (opt.environment === 'development') {
+  opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
+  opt.cdl.authname = 'qa-oapolicy';
+  opt.cdl.secretpath = 'projects/326679616213/secrets/cdl_elements_json';
+}
+else if (opt.environment === 'production') {
+  opt.cdl.url = 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
+  opt.cdl.authname = 'oapolicy';
+  opt.cdl.secretpath = 'projects/326679616213/secrets/cdl_elements_json';
+}
+
+// console.log('opt', opt);
 await main(opt);
