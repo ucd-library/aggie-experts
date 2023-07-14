@@ -156,7 +156,9 @@
        "DOI:10.1080/10286600802003500"
     ]
   }]
-  }#+end_src
+  }
+  #+end_src
+
 *** Grant
 **** Identifiers
 
