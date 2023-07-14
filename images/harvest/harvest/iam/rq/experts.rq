@@ -1,11 +1,10 @@
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX schema: <http://schema.org/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
@@ -14,7 +13,9 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 CONSTRUCT {
   ?user a ?emp_type,ucdlib:Person;
         rdfs:label ?label;
-        ucdlib:identifier ?user_id;
+        schema:identifier ?user_identifier;
+        ucdlib:userId ?kerb;
+        ucdlib:employeeId ?employee_id;
         .
 
   ?user a ?emp_type;
@@ -25,12 +26,12 @@ CONSTRUCT {
                  vcard:givenName ?fname;
                  vcard:middleName ?mname;
                  vcard:familyName ?lname;
-                 vcard:pronoun ?pronoun;
+                 vcard:pronouns ?pronoun;
                  .
 
   ?user obo:ARG_2000028 ?vcard.
   ?vcard a vcard:Individual;
-         ucdlib:identifier ?vid;
+#         ucdlib:identifier ?vid;
          vivo:rank ?order;
          vcard:hasName ?vcard_name;
          vcard:hasTitle ?vcard_title;
@@ -57,11 +58,11 @@ WHERE {
   graph harvest_iam: {
     ?s iam:email ?default_email;
        iam:userID ?kerb;
+       iam:employeeId ?employee_id;
        iam:dLastName ?iam_lname;
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty;
        .
-    bind(concat(?kerb,"@ucdavis.edu") as ?username)
 
     OPTIONAL { ?s iam:dMiddleName ?iam_mname . }
     OPTIONAL {
@@ -82,7 +83,10 @@ WHERE {
     bind(coalesce(?better_lname,?iam_lname) as ?lname)
     bind(?better_mname as ?mname)
     bind(coalesce(?better_mlabel,concat(?fname," ",?lname)) as ?label)
+
+    bind(concat(?kerb,"@ucdavis.edu") as ?username)
     bind(md5(?username) as ?user_id)
+    bind(concat('person:'?user_id) as ?user_identifier)
     bind(uri(concat(str(person:),?user_id)) as ?user)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
     bind(uri(concat(str(?user),"#name")) as ?vcard_name)

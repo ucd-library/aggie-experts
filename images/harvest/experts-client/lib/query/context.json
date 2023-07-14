@@ -4,7 +4,7 @@
     "@vocab": "http://vivoweb.org/ontology/core#",
     "bibo":"http://purl.org/ontology/bibo/",
     "cite": "http://citationstyles.org/schema/",
-    "fedora": "http://fedora.info/definitions/v4/repository#",
+    "fedora": "http://XXXXX_fedora.info/definitions/v4/repository#",
     "obo": "http://purl.obolibrary.org/obo/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "schema": "http://schema.org/",
@@ -17,6 +17,7 @@
     "DOI": {"@id":"cite:DOI"},
     "ISBN": {"@id":"cite:ISBN"},
     "ISSN":{"@id":"cite:ISSN"},
+    "Person":{"@id":"ucdlib:Person","@type":"@id"},
     "Work":"ucdlib:Work",
     "abstract":{"@id":"cite:abstract"},
     "assignedBy": { "@type":"@id"},
@@ -27,7 +28,10 @@
       "@id":"obo:ARG_2000028",
       "@type":"@id",
       "@context":{
-        "name":{"@id":"vcard:hasName","@type":"@id"}
+        "name":{"@id":"vcard:hasName","@type":"@id"},
+        "familyName":{"@id":"vcard:familyName"},
+        "givenName":{"@id":"vcard:givenName"},
+        "pronouns":{"@id":"vcard:pronoun"}
       }
     },
     "container-title":{"@id":"cite:container-title"},
@@ -51,7 +55,7 @@
     "hasPublicationVenue":{"@id":"vivo:hasPublicationVenue","@type":"@id"},
     "hasResearchArea":{"@id":"vivo:hasResearchArea","@type":"@id" },
     "hasTitle":{"@id":"vcard:hasTitle","@type":"@id"},
-    "identifier":{"@id":"schema:identifier"},
+    "Xidentifier":{"@id":"schema:Xidentifier"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "is-open-access":{"@id":"ucdlib:is-open-access"},
     "is-visible":{"@id":"ucdlib:is-visible","@type":"xsd:boolean"},
@@ -66,7 +70,6 @@
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
     "pagination":{"@id":"cite:pagination"},
-    "Person":{"@id":"ucdlib:Person","@type":"@id"},
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},

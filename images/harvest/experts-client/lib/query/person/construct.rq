@@ -1,4 +1,5 @@
 PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX fedora: <http://fedora.info/definitions/v4/repository#>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
@@ -17,7 +18,7 @@ CONSTRUCT {
   ?iam_s ?iam_p ?iam_o.
 
   # This adds the CDL information
-  ?user a ucdlib:Person;
+  ?user a ucdlib:Person, fedora:ArchivalGroup;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
                schema:identifier ?oapolicy_ark,?user_id;

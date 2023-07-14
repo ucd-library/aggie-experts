@@ -7,6 +7,21 @@
   detailed information about the citations they have authored, not just a link
   to the work.
 
+  A note on identifiers: Whenever we need to reference an identifier that was
+  generated in another system, and that system doesn't have a methodology for
+  uniqueness, our default setup is to mint and ark: for that particular system.
+  This allows us to identify each individual system, and then use ark: paths to
+  identify individual items.  Typically, we make a new ark for each system.
+  Some examples are:
+
+  | ark:              | system           | example                          | see         |
+  |-------------------+------------------+----------------------------------+-------------|
+  | ark:/87287/d7nh2m | CDL Elements     | ark:/87287/d7mh2m/user/[number]  | [[*Identifiers][Identifiers]] |
+  | ark:/87287/d7gt0q | DAFIS Grants     | ark:/87287/d7gt0q/grant/[number] | [[*Identifiers][Identifiers]] |
+  | ark:/87287/d7c08j | Aggie Enterprise | ark:/87287/d7c08j/grant/[id]     | [[*Identifiers][Identifiers]] |
+  |                   |                  |                                  |             |
+
+
 ** Basic format
 
    The elastic search documents are valid jsonld files with a special context
@@ -79,16 +94,22 @@
   `https://orcid.org/0000-0001-9829-8914` Note that ORCID uses https: as their
   identifier of choice.
 
-  *CDL ARK* - use `ark:/87287/d7mh2m/user/[number]` as in
+  *CDL ARK* - use ~ark:/87287/d7mh2m/user/[number]~ as in
   `ark:/87287/d7mh2m/user/42956` We will mint a new ark: everytime numbering
   changes
 
   *email* - If email is public via ODR, we will add campus emails as in
-  `email:qjhart@ucdavis.edu`
+  ~email:qjhart@ucdavis.edu~
 
   Other identifiers, https://www.webofscience.com/wos/author/record/M-4572-2018,
   http://www.scopus.com/authid/detail.url?authorId=6506365550 are *TBD*
 
+***** Referential Identifiers
+
+   *Aggie Enterprise* - The grants information from the Aggie Enterprise system
+   references UC Davis users via their UC Path employeeId.  In private experts
+   databases, these values are hashed with ~md5()~.  They are discouraged in public
+   databases.
 
 **** Example
 
@@ -139,7 +160,22 @@
 *** Grant
 **** Identifiers
 
-  Grants are still TBD.  Right now, we have loads of grants that come from the
-  old system.  We *could* mint another `ark:` for those, which may be required,
-  since moving forward, we'll need another `ark:` for the new grants.  We are
-  generating alot of arks: in that case.
+  Grants come from 3 distinct locations.  We have grant information that was
+  generated from the DAFIS decision support queries; Grants from the Aggie
+  Enterprise system, and grants that come from the CDL elements system.  Note
+  that it's expected that grants generated from DAFIS and Aggie Enterprise will
+  also be referenced in the CDL elements, so they will have two identifiers.  In
+  that case, the
+
+  *DAFIS* - Use ~ark:/87287/d7gt0q~ as the base for grants that were recovered
+  from the DAFIS system via the purpose built SQL query.  We add ~grant/~ plus
+  the DAFIS local grant number for the identifier,
+  eg. ~ark:/87287/d7gt0q/grant/1~
+
+  *Aggie Enterprise* - Use ~ark:/87287/d7c08j~ for grants from the Aggie
+  Enterprise system. Add ~grant/[id]~ as the path, as in:
+  ~ark:/87287/d7c08j/grant/K337D88~
+
+  *CDL Elements* - Use ~ark:/87287/d7nh2m/grant/[number]~ to reference CDL
+  Elements identifiers.  Some, but not all CDL Elements grants will use either
+  of the above identifiers as their local ids.
