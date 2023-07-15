@@ -418,9 +418,6 @@ export class ExpertsClient {
     } else {
       cdl.authBasic = cdl.auth;
     }
-    // console.log('IN getCDLentries')
-    // console.log(cdl.auth)
-    // console.log(cdl.authBasic)
 
     while (nextPage) {
       console.log(`getting ${nextPage}`);
