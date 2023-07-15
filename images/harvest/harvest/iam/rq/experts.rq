@@ -13,9 +13,8 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 CONSTRUCT {
   ?user a ?emp_type,ucdlib:Person;
         rdfs:label ?label;
-        schema:identifier ?user_identifier;
+        schema:identifier ?user_identifier,?aggie_ark;
         ucdlib:userId ?kerb;
-        ucdlib:employeeId ?employee_id;
         .
 
   ?user a ?emp_type;
@@ -86,8 +85,9 @@ WHERE {
 
     bind(concat(?kerb,"@ucdavis.edu") as ?username)
     bind(md5(?username) as ?user_id)
-    bind(concat('person:'?user_id) as ?user_identifier)
+    bind(concat('person/',?user_id) as ?user_identifier)
     bind(uri(concat(str(person:),?user_id)) as ?user)
+    bind(concat('ark:/87287/d7c08j/',md5(concat('employeeId/',?employee_id))) as ?aggie_ark)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
     bind(uri(concat(str(?user),"#name")) as ?vcard_name)
   }

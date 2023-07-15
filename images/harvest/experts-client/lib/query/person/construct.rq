@@ -87,7 +87,7 @@ WHERE {
     bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
 
     ?assoc oap:user-id ?oapolicy_id.
-    bind(concat('ark:/87287/d7mh2m',?oapolicy_id) as ?oapolicy_ark)
+    bind(concat('ark:/87287/d7mh2m/user/',?oapolicy_id) as ?oapolicy_ark)
     bind(uri(concat(str(?user),"#oapolicyId")) as ?identifier_oapolicy_id)
 
     OPTIONAL {
