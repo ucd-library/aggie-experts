@@ -8,6 +8,7 @@ import { Command } from 'commander';
 import ExpertsClient from '../lib/experts-client.js';
 import GoogleSecret from '../lib/googleSecret.js';
 
+const gs = new GoogleSecret();
 
 console.log('starting experts-iam');
 const program = new Command();
@@ -35,18 +36,40 @@ const context = {
   }
 };
 
+const iam = {
+  url: '',
+  auth: '',
+  secretpath: '',
+};
 
 async function main(opt) {
 
   //  console.log(opt);
 
-  const gs = new GoogleSecret();
-  opt.iamAuth = await gs.getSecret('projects/326679616213/secrets/ucdid_auth');
-  console.log(opt.iamAuth);
+  // get the secret JSON
+  let secretResp = await gs.getSecret(opt.iam.secretpath);
+  let secretJson = JSON.parse(secretResp);
+  for (const entry of secretJson) {
+    if (entry['@id'] == opt.iam.authname) {
+      opt.iam.auth = entry.auth.raw_auth.split(':')[1];
+    }
+  }
 
   const ec = new ExpertsClient(opt);
 
-  await ec.getIAMProfiles(opt);
+  opt.users = program.args;
+
+  if (opt.users.length === 0) {
+    if (opt.staff) {
+      await ec.getIAMProfiles(opt, 'staff');
+    }
+    if (opt.faculty) {
+      await ec.getIAMProfiles(opt, 'faculty');
+    }
+  }
+  else {
+    await ec.getIAMProfiles(opt, 'users');
+  }
 
   console.log('starting createJsonLd');
   let contextObj = context;
@@ -61,11 +84,11 @@ async function main(opt) {
   await ec.createDataset(opt);
   console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
 
-//  This part should use are (now standard) insert_iam query.
+  //  This part should use are (now standard) insert_iam query.
 
-//  console.log('starting createGraph');
-//  await ec.createGraphFromJsonLdFile(ec.jsonld, opt);
-//  console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+  //  console.log('starting createGraph');
+  //  await ec.createGraphFromJsonLdFile(ec.jsonld, opt);
+  //  console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
   // Any other value don't delete
   if (opt.fuseki.isTmp === true && !opt.saveTmp) {
@@ -82,18 +105,23 @@ const __dirname = dirname(__filename).replace('/bin', '/lib');
 
 program.name('experts-iam')
   .usage('[options] <experts...>')
-// If we have any casId's, on the cmdline, then we assumed --no-staff and --no-faculty and only process those casId's
+  // If we have any casId's, on the cmdline, then we assumed --no-staff and --no-faculty and only process those casId's
   .description('Import IAM Researcher Profiles')
   .option('--environment <env>', 'specify environment', 'production')
-// IAM endpoint and auth are now in Google Secret Manager, and a function of the environment.
-  .option('--staff', 'Include staff',true)
-// Whether to download all staff
-  .option('--faculty', 'Include faculty',true)
-// Whether to download all faculty
+
+  // IAM endpoint and auth are now in Google Secret Manager, and a function of the environment.
+  .option('--iam.url <url>', 'Specify CDL endpoint', iam.url)
+  .option('--iam.auth <user:password>', 'Specify CDL authorization', iam.auth)
+
+  // Whether to download all staff
+  .option('--no-staff', 'Do not include staff')
+  // Whether to download all faculty
+  .option('--no-faculty', 'Do not include faculty')
+
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
   .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
-// Fuseki type, defaults to tdb for sure for IAM.
+  // Fuseki type, defaults to tdb for sure for IAM.
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
   .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
@@ -114,10 +142,32 @@ Object.keys(opt).forEach((k) => {
   }
 });
 
+// make iam_info as object
+Object.keys(opt).forEach((k) => {
+  const n = k.replace(/^iam\./, '')
+  if (n !== k) {
+    opt.iam ||= {};
+    opt.iam[n] = opt[k];
+    delete opt[k];
+  }
+});
+
 // console.log(process.env);
 
 opt.source = [opt.fuseki.url + '/' + opt.fuseki.db];
 
 console.log('opt', opt);
+
+if (opt.environment === 'development') {
+  opt.iam.url = 'https://iet-ws-stage.ucdavis.edu/api/iam/';
+  opt.iam.authname = 'iet-ws-stage';
+  opt.iam.secretpath = 'projects/326679616213/secrets/ucdid_auth';
+}
+else if (opt.environment === 'production') {
+  opt.iam.url = 'https://iet-ws.ucdavis.edu/api/iam/';
+  opt.iam.authname = 'iet-ws';
+  opt.iam.secretpath = 'projects/326679616213/secrets/ucdid_auth';
+}
+
 
 await main(opt);
