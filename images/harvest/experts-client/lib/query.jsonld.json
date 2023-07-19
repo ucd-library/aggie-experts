@@ -35,6 +35,11 @@
      "bind@":"person/bind.rq",
      "insert@":"grants/insert.ru"
     },
+    {"@id":"insert_enterprise_grants",
+     "@type":"InsertQuery",
+     "bind@":"person/bind.rq",
+     "insert@":"enterprise_grants/insert.ru"
+    },
     {
       "@id":"work",
       "@type":"SplayQuery",
