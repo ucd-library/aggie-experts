@@ -38,6 +38,38 @@ function G() {
   expand < ${G[config]} | jq "${G[jq]}" | jq -r "$1"
 }
 
+function prune() {
+  local N=${G[noop]};
+  declare -a services=(init fcrepo base-service)
+  if [[ "$(G .git.tag)" =~ "dirty" ]]; then
+    org=localhost/aggie-experts
+    tag=dirty
+  else
+    org=$(G .experts.org)
+    tag=$(G .experts.tag)
+  fi
+
+  local fin_rm=$(docker image list --format=json | jq -r "select(.Repository | test(\"fin-\")) | (select(.Repository | test(\"$(G .fin.org)\") | not),select(.Tag != \"$(G .fin.tag)\")) | .Repository+\":\"+.Tag")
+
+  local experts_rm=$(docker image list --format=json | jq -r 'select(.Repository | test("aggie-experts")) | (select(.Repository | test("init$")),select(.Repository | test("fcrepo$")),select(.Repository | test("base-service"))) | select(.Tag != "dirty") | .Repository+":"+.Tag')
+
+  if [[ -n $N ]]; then
+    echo "#===== rm fin =====#"
+    echo "$fin_rm"
+  echo "#===== rm experts =====#"
+    echo "$experts_rm"
+  else
+    docker image rm $fin_rm $experts_rm
+  fi
+
+# Remove all fin- images not in our current desird.
+
+#  for service in "fin-base-service fin-init fin-fcrepo"; do
+#    docker rmi -f ${org}/${service}:${tag}
+#  done
+#  for service in "${services[@]}"; do
+#    local image=$org/${service}:$tag
+}
 
 function build() {
   local org
@@ -186,7 +218,7 @@ function main.cmd() {
         G[jq]="${G[jq]}|$cmd"
       else
         case $cmd in
-	        build | compose | env | setup ) # API requests
+	        prune | build | compose | env | setup ) # API requests
 	          $cmd "$@";
 	          ;;
 
