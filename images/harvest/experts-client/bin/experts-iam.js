@@ -77,8 +77,8 @@ async function main(opt) {
   contextObj["@graph"] = ec.doc;
 
   ec.jsonld = JSON.stringify(contextObj);
-  const outputFile = path.join(__dirname, '..', 'data', 'iam-profiles.jsonld');
-  await fs.writeFile(outputFile, ec.jsonld, 'utf8');
+  // const outputFile = path.join(__dirname, '..', 'data', 'iam-profiles.jsonld');
+  // await fs.writeFile(outputFile, ec.jsonld, 'utf8');
 
   console.log('starting createDataset');
   await ec.createDataset(opt);
@@ -86,9 +86,9 @@ async function main(opt) {
 
   //  This part should use are (now standard) insert_iam query.
 
-  //  console.log('starting createGraph');
-  //  await ec.createGraphFromJsonLdFile(ec.jsonld, opt);
-  //  console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+  console.log('starting createGraph');
+  await ec.createGraphFromJsonLdFile(ec.jsonld, opt);
+  console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
   // Any other value don't delete
   if (opt.fuseki.isTmp === true && !opt.saveTmp) {
