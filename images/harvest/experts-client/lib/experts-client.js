@@ -371,8 +371,7 @@ export class ExpertsClient {
       const quads = await quadStream.toArray();
       let doc = await jp.fromRDF(quads)
       if (frame) {
-        //        doc = await jp.frame(doc, opt.frame, { omitGraph: false, safe: true })
-        doc = await jp.frame(doc, opt.frame, { omitGraph: true, safe: true })
+        doc = await jp.frame(doc, opt.frame, { omitGraph: false, safe: true })
       } else {
         doc = await jp.expand(doc, { omitGraph: false, safe: true })
       }
