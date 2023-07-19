@@ -74,7 +74,7 @@ async function main(opt) {
   console.log('starting createJsonLd');
   let contextObj = context;
   contextObj["@id"] = 'http://iam.ucdavis.edu/';
-  contextObj["@graph"] = ec.doc;
+  contextObj["@graph"] = ec.experts;
 
   ec.jsonld = JSON.stringify(contextObj);
   // const outputFile = path.join(__dirname, '..', 'data', 'iam-profiles.jsonld');
