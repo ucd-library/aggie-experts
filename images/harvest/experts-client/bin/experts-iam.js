@@ -15,7 +15,7 @@ const program = new Command();
 
 const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
-  type: 'mem',
+  type: 'tdb2',
   db: 'experts-rk',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
 }
@@ -126,6 +126,9 @@ program.name('experts-iam')
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
   .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
   .option('--save-tmp', 'Do not remove temporary file', false)
+  .option('--environment <env>', 'specify environment', 'production')
+  .option('--nosplay', 'skip splay', false)
+
 
 
 program.parse(process.argv);
