@@ -1,10 +1,9 @@
+PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
-PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX fedora: <http://fedora.info/definitions/v4/repository#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
-PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -19,7 +18,7 @@ construct {
         bibo:status ?vivoStatus;
         .
 
-  ?work a ucdlib:Work,fedora:ArchivalGroup;
+  ?work a ucdlib:Work;
         cite:type ?cite_type;
         cite:genre ?cite_genre;
         cite:status ?status;
@@ -89,8 +88,8 @@ WHERE {
           ("cinii-english" 12)("repec" 13)("figshare" 14)
           ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
 
-        ?PUB__ oap:records/oap:record [ oap:source-name  ?source;
-                                        oap:native/oap:field/oap:name ?field_name ].
+        ?PUB__ :records/:record [ :source-name  ?source;
+                                        :native/:field/:name ?field_name ].
       } group by ?field_name
     }
     VALUES (?source ?priority) {
@@ -161,29 +160,29 @@ WHERE {
       ("volume" cite:volume)
     }
 
-    ?PUB__  oap:type ?oap_type;
-            oap:last-modified-when ?lastModifiedWhen;
-            oap:records/oap:record [ oap:source-name  ?source;
-                                     oap:native/oap:field ?field ];
+    ?PUB__  :type ?oap_type;
+            :last-modified-when ?lastModifiedWhen;
+            :records/:record [ :source-name  ?source;
+                                     :native/:field ?field ];
                                                           .
     bind(uri(replace(str(?PUB__),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/publication/"))) as ?work)
 
     OPTIONAL {
-      ?PUB__ oap:records/oap:record [ oap:source-name  ?source;
-                                      oap:native/oap:field ?field_name;
-                                      oap:native/oap:text ?doi ].
+      ?PUB__ :records/:record [ :source-name  ?source;
+                                      :native/:field ?field_name;
+                                      :native/:text ?doi ].
       filter(?field_name='doi')
     }
     #    bind(uri(replace(str(?PUB__),str(cdl:),str(work:))) as ?work)
 
-    ?field oap:name ?field_name.
+    ?field :name ?field_name.
 
     OPTIONAL {
-      ?PUB__ oap:type ?oap_type;
+      ?PUB__ :type ?oap_type;
              .
     }
     OPTIONAL {
-      ?field oap:text ?field_value ;
+      ?field :text ?field_value ;
       .
     }
     # This is a tricky way to add in some optional extensntion from the field_names above.
@@ -193,21 +192,21 @@ WHERE {
         ( "Published online" bibo:published )
         ( "Accepted" bibo:accepted )
       }
-      ?field oap:text ?status.
+      ?field :text ?status.
       filter(?field_name="publication-status")
     }
 
     #Authors are combined lists of people
     OPTIONAL {
-      ?field oap:people/oap:person [ list:index(?pos ?elem) ] .
+      ?field :people/:person [ list:index(?pos ?elem) ] .
       BIND(?pos+1 AS ?authorRank)
       #We are not putting in links until an authorship is made
-      #OPTIONAL { ?elem oap:links/oap:link ?author_link.}
+      #OPTIONAL { ?elem :links/:link ?author_link.}
       OPTIONAL {
-		    ?elem oap:last-name ?authorFamilyName .
+		    ?elem :last-name ?authorFamilyName .
       }
       OPTIONAL {
-        ?elem oap:first-names ?authorGivenName .
+        ?elem :first-names ?authorGivenName .
 	    }
     }
     #	BIND(uri(concat(replace(str(?work),str(work:),str(authorship:)),"-",str(?authorRank))) as ?authorship)
@@ -216,14 +215,14 @@ WHERE {
     #	BIND(uri(concat(str(?authorship_vcard),"-name")) as ?authorship_vcard_name)
 
     OPTIONAL {
-      ?field oap:date ?pub_date.
-      ?pub_date oap:year ?pub_year.
+      ?field :date ?pub_date.
+      ?pub_date :year ?pub_year.
       filter(?field_name="publication-date" )
       OPTIONAL {
-        ?pub_date oap:month ?pub_m_raw.
+        ?pub_date :month ?pub_m_raw.
         BIND(concat("-",IF(xsd:integer(?pub_m_raw) < 10, CONCAT("0", ?pub_m_raw), ?pub_m_raw)) AS ?pub_month)
         OPTIONAL {
-          ?pub_date oap:day ?pub_d_raw.
+          ?pub_date :day ?pub_d_raw.
           BIND(concat("-",IF(xsd:integer(?pub_d_raw) < 10, CONCAT("0", ?pub_d_raw), ?pub_d_raw)) AS ?pub_day)
         }
       }
@@ -232,14 +231,14 @@ WHERE {
     BIND(uri(concat(str(?work),"#",?pub_datestr)) as ?work_pubdate)
 
     OPTIONAL {
-      ?field oap:date ?opub_date.
-      ?opub_date oap:year ?opub_year.
+      ?field :date ?opub_date.
+      ?opub_date :year ?opub_year.
       filter(?field_name="online-publication-date" )
       OPTIONAL {
-        ?opub_date oap:month ?opub_m_raw.
+        ?opub_date :month ?opub_m_raw.
         BIND(concat("-",IF(xsd:integer(?opub_m_raw) < 10, CONCAT("0", ?opub_m_raw), ?opub_m_raw)) AS ?opub_month)
         OPTIONAL {
-          ?opub_date oap:day ?opub_d_raw.
+          ?opub_date :day ?opub_d_raw.
           BIND(concat("-",IF(xsd:integer(?opub_d_raw) < 10, CONCAT("0", ?opub_d_raw), ?opub_d_raw)) AS ?opub_day)
         }
       }
@@ -248,16 +247,16 @@ WHERE {
     BIND(uri(concat(str(?work),"#",?opub_datestr)) as ?work_opubdate)
 
     OPTIONAL {
-      ?field oap:pagination [ oap:begin-page ?begin ; oap:end-page ?end ].
+      ?field :pagination [ :begin-page ?begin ; :end-page ?end ].
     }
     BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
     BIND(concat(?start,coalesce(concat('-',?end),'')) AS ?pagination)
 
     # Now we take CDLs preferred term
     OPTIONAL {
-      ?PUB__ oap:journal [
-                           oap:issn ?issn;
-                           oap:title ?journal_title
+      ?PUB__ :journal [
+                           :issn ?issn;
+                           :title ?journal_title
                          ].
       BIND(uri(concat(str(venue:),"urn:issn:",?issn)) as ?journalURI)
     }

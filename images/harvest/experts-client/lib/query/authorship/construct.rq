@@ -1,11 +1,11 @@
-prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
-prefix experts: <http://experts.ucdavis.edu/>
-prefix cdl: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
-prefix person: <http://experts.ucdavis.edu/person/>
-prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
-prefix vivo: <http://vivoweb.org/ontology/core#>
+PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
 
 construct {
   ?authorship a vivo:Authorship;

@@ -1,4 +1,5 @@
 {
+  "@version": 1.1,
   "@context": {
     "@base": "http://experts.ucdavis.edu/",
     "@vocab": "http://vivoweb.org/ontology/core#",
@@ -12,11 +13,14 @@
     "vcard":"http://www.w3.org/2006/vcard/ns#",
     "vivo": "http://vivoweb.org/ontology/core#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
-
     "ArchivalGroup":"fedora:ArchivalGroup",
+    "Authorship":"vivo:Authorship",
     "DOI": {"@id":"cite:DOI"},
     "ISBN": {"@id":"cite:ISBN"},
     "ISSN":{"@id":"cite:ISSN"},
+    "Name":{"@id":"vcard:Name"},
+    "Title":{"@id":"vcard:Title"},
+    "URL":{"@id":"vcard:URL"},
     "Work":"ucdlib:Work",
     "abstract":{"@id":"cite:abstract"},
     "assignedBy": { "@type":"@id"},
@@ -27,7 +31,11 @@
       "@id":"obo:ARG_2000028",
       "@type":"@id",
       "@context":{
-        "name":{"@id":"vcard:hasName","@type":"@id"}
+        "name":{"@id":"vcard:hasName","@type":"@id"},
+        "familyName":{"@id":"vcard:familyName"},
+        "givenName":{"@id":"vcard:givenName"},
+        "title":{"@id":"vcard:title"},
+        "url":{"@id":"vcard:url"}
       }
     },
     "container-title":{"@id":"cite:container-title"},
@@ -51,10 +59,11 @@
     "hasPublicationVenue":{"@id":"vivo:hasPublicationVenue","@type":"@id"},
     "hasResearchArea":{"@id":"vivo:hasResearchArea","@type":"@id" },
     "hasTitle":{"@id":"vcard:hasTitle","@type":"@id"},
+    "hasURL":{"@id":"vcard:hasURL","@type":"@id"},
     "identifier":{"@id":"schema:identifier"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "is-open-access":{"@id":"ucdlib:is-open-access"},
-    "is-visible":{"@id":"ucdlib:is-visible","@type":"xsd:boolean"},
+    "is-visible":{"@id":"ucdlib:is-visible"},
     "issue":{"@id":"cite:issue"},
     "issued":{"@id":"cite:issued"},
     "keyword":{"@id":"cite:keyword"},
@@ -70,7 +79,7 @@
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
-    "rank":{"@id":"vivo:rank","@type":"xsd:integer"},
+    "rank":{"@id":"vivo:rank"},
     "relatedBy":{"@type":"@id",
                  "@id":"vivo:relatedBy"
                 },
@@ -90,5 +99,8 @@
     "type":{"@id":"cite:type"},
     "url":{"@id":"cite:url"},
     "volume":{"@id":"cite:volume"}
-  }
+  },
+  "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
+  "@embed": "@always",
+  "@type": ["Person","Work","Grant","Authorship"]
 }
