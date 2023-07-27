@@ -16,11 +16,11 @@
   "deploy": {
     "template":"${G[base]}/docker-template.yaml",
     "keycloak":"auth",
-    "mount":""
+    "dev_mount":"models,init-fcrepo"
   },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.1.1"
+    "tag":"2.2.2"
   },
   "experts":{
     "org":"gcr.io/digital_ucdavis_edu/aggie-experts",

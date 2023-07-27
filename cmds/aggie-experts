@@ -141,7 +141,7 @@ function env() {
 function compose() {
   local env=$(G .env)
   local keycloak=$(G .keycloak)
-  local mount=$(G .deploy.mount)
+  local mount=$(G .deploy.dev_mount)
   local tmpl=$(G .deploy.template)
 
   if [[ "$env" = "dev" ]]; then
@@ -155,7 +155,12 @@ function compose() {
         cat
       else
         yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
-         fi |
+      fi |
+      if [[ "$mount" =~ "init-fcrepo" ]]; then
+        cat
+      else
+        yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
+      fi |
       yq 'del(.. | select(anchor=="DEV_MOUNT_CLIENT" or alias=="DEV_MOUNT_CLIENT"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_SERVICES" or alias=="DEV_MOUNT_FIN_SERVICES"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_FIN_API" or alias=="DEV_MOUNT_FIN_API"))' |
@@ -163,7 +168,6 @@ function compose() {
       yq 'del(.. | select(anchor=="DEV_MOUNT_FCREPO_PROPERTIES" or alias=="DEV_MOUNT_FCREPO_PROPERTIES"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_ROOT_AUTH" or alias=="DEV_MOUNT_ROOT_AUTH"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_POSTGRES" or alias=="DEV_MOUNT_INIT_POSTGRES"))' |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))' |
       yq 'del(.. | select(anchor=="DEV_MOUNT_DOCKER_RUN" or alias=="DEV_DOCKER_RUN"))'
   else
     cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'

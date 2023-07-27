@@ -69,6 +69,7 @@ services:
     image: *BASE
     volumes:
       - *SERVICE_ACCOUNT
+
       - *DEV_MOUNT_FIN_SERVICES
       - *DEV_MOUNT_FIN_API
       - *DEV_MOUNT_MODELS
