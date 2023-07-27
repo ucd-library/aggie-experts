@@ -36,7 +36,7 @@ router.get('/*', middleware.finac.esRoles, async (req, res) => {
 
     let result = await model.get(id, opts);
     if( !result ) {
-      return res.status(404).send('Unknown person: '+id);
+      return res.status(404).send('Unknown id: '+id);
     }
 
     res.json(result);
