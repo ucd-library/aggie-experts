@@ -30,16 +30,17 @@ mkfile_path := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 dest:=local
 org.local:=localhost/aggie-experts
-org.cloud:=gcr.io/ucdlib-pubreg
+org.cloud:=gcr.io/digital-ucdavis-edu/aggie-experts
+ref.cloud:=v1.0.1
 
 repo:=$(shell basename -s .git $$(git config --get remote.origin.url))
 branch:=$(shell git rev-parse --abbrev-ref HEAD)
-tag:=$(shell git tag --points-at HEAD)
+tag:=$(shell tag=$$(git describe --tags --always --dirty); if [[ $${tag} =~ "dirty" ]]; then echo "dirty"; else echo $${tag}; fi)
 base:=$(shell git rev-parse --show-toplevel)
 gcloud.user:=$(shell gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
 sha:=$(shell git log -1 --pretty=%h)
 
-images:=openjdk fuseki harvest harvest-grants harvest-person openjdk-tarql openjdk-sqlcl hdt-java
+images:=openjdk fuseki openjdk-tarql openjdk-sqlcl hdt-java
 
 INFO::
 	@pod2usage -exit 0 ${MAKEFILE_LIST}
@@ -53,7 +54,15 @@ openjdk-sqlcl:: openjdk
 openjdk-tarql:: openjdk
 fuseki:: openjdk hdt-java
 
-harvest::fuseki openjdk-sqlcl openjdk-tarql
+harvest::
+	export DOCKER_BUILDKIT=1;\
+	docker build \
+	     --build-arg BUILDKIT_INLINE_CACHE=1 \
+	     --build-arg ORG=${org.cloud} --build-arg REF_NAME=${ref.cloud}\
+	     -t ${org.${dest}}/harvest:${tag} ${base}/images/harvest
+
+clean::
+	docker image rm $$(docker image list --format=json | jq -r 'select(.Repository=="${org.${dest}}/harvest") | .Repository+":"+.Tag' ) || true
 
 define build-local
 $(warning build-local $1)
@@ -72,6 +81,8 @@ $1::
 	docker tag ${org.${dest}}/$1:${branch} ${org.${dest}}/$1:${tag}
 endif
 
+clean::
+	docker image rm $$$$(docker image list --format=json | jq -r 'select(.Repository=="${org.${dest}}/$1") | .Repository+":"+.Tag' ) || true
 endef
 
 #$(warning build-cloud $1)

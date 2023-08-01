@@ -4,10 +4,15 @@
     "@id" : {
       "type" : "keyword"
     },
+    "_.updated" : {
+      "type" : "date"
+    },
     "@graph": {
       "type": "nested",
       "properties" : {
         "@id" : { "type" : "keyword" },
+        "relates" : {"type" : "keyword" },
+        "@type" : { "type" : "keyword" },
         "identifier" : {
           "type" : "text",
           "fields": {
@@ -26,12 +31,12 @@
                 }
               }
             },
-            "hasTitle":{
+            "hasTitleQQ":{
               "properties" : {
                 "title" : { "type" : "text" }
               }
             },
-            "organization":{
+            "organizationXX":{
               "properties" : {
                 "title" : { "type" : "text" }
               }

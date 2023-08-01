@@ -20,12 +20,14 @@ router.post('/', middleware.finac.esRoles, async (req, res) => {
 
 router.get('/*', middleware.finac.esRoles, async (req, res) => {
   let id = decodeURIComponent(req.path); // expert/person/1234
+  id=id.replace(/^\//, '');
 
   if( !id ) {
     return res.json({error: true, message: 'no id sent'});
   }
 
   try {
+    // Need to review ES FIN get
     let opts = {
       seo : (req.query.seo || req.query.schema) ? true : false,
       admin : req.query.admin ? true : false,
@@ -34,9 +36,10 @@ router.get('/*', middleware.finac.esRoles, async (req, res) => {
       roles : req.esRoles
     }
 
-    let result = await model.get(id, opts);
+    //    let result = await model.get(id, opts);
+    let result = await model.get(id);
     if( !result ) {
-      return res.status(404).send('Unknown person: '+id);
+      return res.status(404).send('Unknown id: '+id);
     }
 
     res.json(result);

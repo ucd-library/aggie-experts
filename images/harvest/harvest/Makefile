@@ -116,7 +116,7 @@ endef
 tables:=organizations contributors fin_coa grants funding_agencies
 csv:=$(patsubst %,fis/%.csv,${tables})
 grants.ttl:=$(patsubst %,fis/%.ttl,${tables})
-const_ttl:=${mkfile_path}/grants/ttl/contributor_roles.ttl
+const_jsonld:=${mkfile_path}/grants/json/contributor_roles.jsonld
 
 grants.tdb2:=databases/grants
 grants.hdt:=${FUSEKI_BASE}/databases/hdt/grants.hdt
@@ -152,9 +152,10 @@ ${grants.ttl}:fis/%.ttl:fis/%.csv ${mkfile_path}/grants/rq/%.rq
 	tarql ${mkfile_path}/grants/rq/$*.rq $< > $@
 
 ${grants.tdb2}:graph:=http://experts.ucdavis.edu/fis/
-${grants.tdb2}:${grants.ttl} ${const_ttl}
+${grants.tdb2}:${grants.ttl} ${const_jsonld}
 	mkdir -p ${grants.tdb2};
-	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl} ${const_ttl}
+	tdb2.tdbloader --loc=${grants.tdb2} ${const_jsonld}
+	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl}
 	touch ${grants.tdb2}
 
 grants.json.gz:${grants.tdb2}
