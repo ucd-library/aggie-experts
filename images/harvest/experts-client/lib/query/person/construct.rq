@@ -1,6 +1,8 @@
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
 PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX fedora: <http://fedora.info/definitions/v4/repository#>
+PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX person: <http://experts.ucdavis.edu/person/>
@@ -16,7 +18,7 @@ CONSTRUCT {
   ?iam_s ?iam_p ?iam_o.
 
   # This adds the CDL information
-  ?user a ucdlib:Person;
+  ?user a ucdlib:Person, fedora:ArchivalGroup;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
                schema:identifier ?oapolicy_ark,?user_id;
@@ -85,8 +87,8 @@ WHERE {
     bind(uri(concat(str(?user),"#vcard-oap-1")) as ?vcard)
     bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
 
-    ?assoc :user-id ?oapolicy_id.
-    bind(concat('ark:/87287/d7mh2m',?oapolicy_id) as ?oapolicy_ark)
+    ?assoc oap:user-id ?oapolicy_id.
+    bind(concat('ark:/87287/d7mh2m/user/',?oapolicy_id) as ?oapolicy_ark)
     bind(uri(concat(str(?user),"#oapolicyId")) as ?identifier_oapolicy_id)
 
     OPTIONAL {
