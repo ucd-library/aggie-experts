@@ -3,70 +3,270 @@
   Aggie Experts elastic search documents are the JSON documents that are stored
   within elasticsearch, and which are the standard documents searched in aggie
   experts.  These differ from their LDP counterparts in that they include more
-  information then a single LDP node,  for example a person's document includes
+  information then a single LDP node. For example a person's document includes
   detailed information about the citations they have authored, not just a link
   to the work.
 
+  Elastic search documents are managed incrementally, with updates happening
+  when relevant documents are added to or changed on the LDP.
+
+  This document describes overall basic format of the elastic search documents;
+  various important identifiers, and types.  Then, the representation of each
+  type are described in more detail.
+
+  Finally, the workflow for how nodes are combined into the elasticsearch
+  document via our updating methodology is described in detail.
+
 ** Basic format
 
-   The elastic search documents are valid jsonld files with a special context
-   file that simplifies the names of all the properties of the file.
+   All elastic search documents are valid jsonld files with a ~@context~ that
+   simplifies the names of the properties of the file. In addition, the JSON-LD
+   data is framed so that many minor are embedded into larger objects.
+   Informally, we call these larger objects nodes.  In the elastic search
+   document, all ~nodes~ are are stored in the ~@graph~.  Nodes have their own
+   ~@ids~ and ~@types~, the ~@ids~ describe the same object,  though they have
+   different amounts of specificity based on the document they are in.  Any
+   additional information outside the ~@graph~ is not expected to be often
+   searched by an regular user of the site.
 
-   The ~@id~ is the document identifier, the ~@graph~ contains multiple nodes of
-   information. There is one node that has the same identifier as the graph.
-   This is the root node for the document.  Every node should have an ~@id~ and
-   most also have ~@types~.  Below is an example of a typical document.
+   One main reason the data is organized this way, is that we used *nested*
+   indices in elastic search, where each node in the ~@graph~ is searched as
+   it's own entity, though hits respond with the document.
 
+   Here is an example of a typical document:
    #+begin_src json
      {
          "@context":"https://schema.library.ucdavis.edu/context/experts.json",
+         "_id":"person/quinn",
          "@id":"http://experts.ucdavis.edu/person/quinn",
          "@graph":[
              { "@id":"http://experts.ucdavis.edu/person/quinn",
                "@type":["Person", "Non-acedemic"],
                "identifiers" : [ "https://orcid.org/XXX" ],
-               "name" : {"family-name": "Hart"
-                         "given-name": "Quinn" }
+               "contactInfo": {
+                   "name" : {"family-name": "Hart"
+                             "given-name": "Quinn" }
+               }
              },
-             { "@id":"http://experts.ucdavis.edu/authorship/foo",
+             { "@id":["ark:/.../relationship/123","ark:/.../work/evap"],
                "@type":["Authored"],
                "favorite": true,
-               "title":"Evapotranspiration in California"
+               "rank":2,
+               "title":"Evapotranspiration in California",
+               "container-title": "California Agriculture"
+               "authors": [{"family-name":"Muir",{"given-name":"John"},
+                           {"family-name":"Hart",{"given-name":"QJ"}]
              },
-             { "@id":"http://experts.ucdavis.edu//foo",
-               "@type":["PrincipalInvestor"],
-               "title":"Evap"
+             { "@id":["ark:/..../relationship/456","ark:/..../grant/CA-water"],
+               "@type":["PrincipalInvestigator"],
+               "title":"Evapotranspiration Grant"
              }
-     ]}
+         ]
+     }
    #+end_src
 
-   Root nodes can be of ~@type~, ~Person~, ~Work~, and ~Grant~.
+   The node in the graph that shares the "@id" with the document we call the
+   root node.  Root nodes can be of ~@type~, ~Person~, ~Work~, ~Grant~, and
+   ~Relationship~.  ~Relationships~ are documents in the index, but not often
+   surfaced to a user, although they are combined with other nodes in other
+   documents.
+
+   Root nodes are the JSON-LD representation of the corresponding LDP node for
+   that particular type.  Other nodes are added to the document on LDP events.
+   For example, in the above example, the original ~Person~ document, was
+   decorated with a node corresponding to one ~Work~ and one ~Grant~ that were
+   also added to the system, and connected to the user via ~Relationships~.
 
 *** Identifiers
 
-  Nodes, especially root nodes, can have a `identifier` property.  In linked data this is a
-  `schema:identifier`.  Identifiers should all be standardized to a known
-  cataloging.  URNs, URIs and other labeled schemes eg arks and DOIs are good
-  examples.  An identifier should uniquely identify the node.
+    In addition to ~@ids~, nodes can also have an ~identifier~ property.  In
+  linked data this is a ~schema:identifier~ property.  All ~@id~s and
+  ~identifier~s should all be standardized to a known cataloging system.  URNs,
+  URIs and other labeled schemes eg ~ark:~s and ~DOI~s are good examples.  An
+  identifier should uniquely identify the node.
 
   All identifiers are public, though they don't need to resolve to public URLs.
 
-  Aggie experts has arks for individual CDL elements.  I have minted the ARK
-  `ark:/87287/d7mh2m` for UC Davis CDL Elements, and we will use the ark: suffix
-  scheme to identify CDL components.  We will use the standard API endpoints for
-  inspiration on the names.
+    A note on identifiers: Whenever we need to reference an identifier that was
+  generated in another system, and that system doesn't have a methodology for
+  uniqueness, our default setup is to mint and ark: for that particular system.
+  This allows us to identify each individual system, and then use ark: paths to
+  identify individual items.  Typically, we make a new ark for each system.
+  Some examples are:
 
-  For example, although we identify `person`, the elements API uses `user`.  So
-  the CDL specific identifier for Quinn Hart will be
-  `ark:/87287/d7mh2m/user/42956`.
+  | ark:              | system           | example                                | see         |
+  |-------------------+------------------+----------------------------------------+-------------|
+  | ark:/87287/d7nh2m | CDL Elements     | ark:/87287/d7mh2m/user/[number]        | [[*Identifiers][Identifiers]] |
+  | ark:/87287/d7gt0q | DAFIS Grants     | ark:/87287/d7gt0q/grant/[number]       | [[*Identifiers][Identifiers]] |
+  | ark:/87287/d7c08j | Aggie Enterprise | ark:/87287/d7c08j/grant/[id]           | [[*Identifiers][Identifiers]] |
+  | ark:/87287/d7c08j | Aggie Enterprise | ark:/87287/d7c08j/md5(employeeId/[id]) |             |
 
-  Any other identifying ark: or other PIDs can be added as required.
+
+
+  ~ark:/87287/d7mh2m~ arks are for UC Davis CDL Elements; and the suffix scheme
+  to identify CDL components, uses the standard API endpoints for inspiration on
+  the names.  For example, although we identify a person, the elements API uses
+  the term ~user~.  So the CDL specific identifier for Quinn Hart will be
+  ~ark:/87287/d7mh2m/user/42956~.
+
+  ~ark:/87287/d7gt0q~ identify grants archived from UC Davis' old grants
+  information system
+
+  ~ark:/87287/d7c08j~ identify grants, users and potentially  other objects in
+  the new UC Davis Aggie Enterprise system.
 
 *** Types
 
-    The ~@types~ ~Person~,~Work~, and ~Grant~ should only occur in the root
-    nodes of the documents.
+    The ~@types~: ~Person~, ~Work~, ~Grant~, and ~Relationship~ are the main
+    types. ~Relationships~ are further broken down.
 
+*** JSON-LD
+
+    Nodes can describe persons, works, or grants.  Some of the properties
+    overlap, and others are only used by a single type.  The context creates
+    properties without prefixes.  Properties also identify whether they are a
+    URN, or a literal, and their ~xsd:type~, as well where appropriate.
+
+    Properties that are experimental retain a prefix in their name to help
+    separate them from the production properties.
+
+**** Context
+
+     The "official" context will be found at
+     http://schema.library.ucdavis.edu/experts/context.json.
+
+     The example below may not be the most current version,
+
+     #+name: experts_context
+     #+begin_src json
+       {
+           "@version": 1.1,
+           "@context": {
+               "@base": "http://experts.ucdavis.edu/",
+               "@vocab": "http://vivoweb.org/ontology/core#",
+               "bibo":"http://purl.org/ontology/bibo/",
+               "cite": "http://citationstyles.org/schema/",
+               "fedora": "http://fedora.info/definitions/v4/repository#",
+               "obo": "http://purl.obolibrary.org/obo/",
+               "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+               "schema": "http://schema.org/",
+               "ucdlib": "http://schema.library.ucdavis.edu/schema#",
+               "vcard":"http://www.w3.org/2006/vcard/ns#",
+               "vivo": "http://vivoweb.org/ontology/core#",
+               "xsd": "http://www.w3.org/2001/XMLSchema#",
+               "ArchivalGroup":"fedora:ArchivalGroup",
+               "Authorship":"vivo:Authorship",
+               "DOI": {"@id":"cite:DOI"},
+               "ISBN": {"@id":"cite:ISBN"},
+               "ISSN":{"@id":"cite:ISSN"},
+               "Name":{"@id":"vcard:Name"},
+               "Title":{"@id":"vcard:Title"},
+               "URL":{"@id":"vcard:URL"},
+               "Work":"ucdlib:Work",
+               "abstract":{"@id":"cite:abstract"},
+               "assignedBy": { "@type":"@id"},
+               "author":{"@id":"cite:author"},
+               "available-date":{"@id":"cite:available-date"},
+               "collection-number":{"@id":"cite:collection-number"},
+               "contactInfo": {
+                   "@id":"obo:ARG_2000028",
+                   "@type":"@id",
+                   "@context":{
+                       "name":{"@id":"vcard:hasName","@type":"@id"},
+                       "familyName":{"@id":"vcard:familyName"},
+                       "givenName":{"@id":"vcard:givenName"},
+                       "title":{"@id":"vcard:title"},
+                       "url":{"@id":"vcard:url"}
+                   }
+               },
+               "container-title":{"@id":"cite:container-title"},
+               "dateTimeInterval": { "@type":"@id",
+                                     "@context":{
+                                         "start":{"@type":"@id"},
+                                         "end":{"@type":"@id"},
+                                         "dateTimePrecision":{"@type":"@id"}
+                                     }
+                                   },
+               "directCosts": { "@id": "vivo:grantDirectCosts" },
+               "edition":{"@id":"cite:edition"},
+               "eissn":{"@id":"cite:eissn"},
+               "familyName":{"@id":"cite:familyName"},
+               "genre":{"@id":"cite:genre"},
+               "givenName":{"@id":"cite:givenName"},
+               "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
+               "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
+               "hasName":{"@id":"vcard:hasName","@type":"@id"},
+               "hasOrganizationalUnit":{"@id":"vcard:hasOrganizationalUnit","@type":"@id"},
+               "hasPublicationVenue":{"@id":"vivo:hasPublicationVenue","@type":"@id"},
+               "hasResearchArea":{"@id":"vivo:hasResearchArea","@type":"@id" },
+               "hasTitle":{"@id":"vcard:hasTitle","@type":"@id"},
+               "hasURL":{"@id":"vcard:hasURL","@type":"@id"},
+               "identifier":{"@id":"schema:identifier"},
+               "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
+               "is-open-access":{"@id":"ucdlib:is-open-access"},
+               "is-visible":{"@id":"ucdlib:is-visible"},
+               "issue":{"@id":"cite:issue"},
+               "issued":{"@id":"cite:issued"},
+               "keyword":{"@id":"cite:keyword"},
+               "label":{"@id":"rdfs:label"},
+               "language":{"@id":"cite:language"},
+               "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime","@type":"xsd:dateTime"},
+               "license":{"@id":"cite:license"},
+               "name":{"@id":"rdfs:label"},
+               "medium":{"@id":"cite:medium"},
+               "note":{"@id":"cite:note"},
+               "pagination":{"@id":"cite:pagination"},
+               "Person":{"@id":"ucdlib:Person","@type":"@id"},
+               "pronouns":{"@id":"vcard:pronouns"},
+               "publisher":{"@id":"cite:publisher"},
+               "publisher-place":{"@id":"cite:publisher-place"},
+               "rank":{"@id":"vivo:rank"},
+               "relatedBy":{"@type":"@id",
+                            "@id":"vivo:relatedBy"
+                           },
+               "relates": { "@type":"@id",
+                            "@context":{
+                                "role_person_name":{"@id":"ucdlib:role_person_name"},
+                                "inheres_in":{"@id":"obo:RO_000052","@type":"@id"},
+                                "relatedBy":{"@type":"@id"},
+                                "name":{"@id":"rdfs:label"}
+                            }
+                          },
+               "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
+               "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
+               "status":{"@id":"cite:status"},
+               "title":{"@id":"cite:title"},
+               "totalAwardAmount": {"@id": "vivo:totaAwardAmount"},
+               "type":{"@id":"cite:type"},
+               "url":{"@id":"cite:url"},
+               "volume":{"@id":"cite:volume"}
+           }
+       }
+     #+end_src
+
+
+**** Frame
+
+     Every document uses the same frame as well.  The frame mostly controls what
+     types are made the root type.  The "official" frame will be found at
+     http://schema.library.ucdavis.edu/experts/frame.json.
+
+     Below is a recent frame.  The contactInfo has special @embedding so that
+     names are replicated accross multiple vcards.
+
+     #+name: experts_frame
+     #+begin_src json
+       {
+           "@version": 1.1,
+           "@context":"https://schema.library.ucdavis.edu/experts/context.json",
+           "contactInfo": {
+               "@embed":"@always",
+               "@omitDefault":true,
+               "@default":"@null" },
+           "@embed": "@always",
+           "@type": ["Person","Work","Grant","Relationship","Authorship"]
+       }
+     #+end_src
 
 ** Specfic Types
 *** Person
@@ -75,30 +275,53 @@
 
   Expected identifiers for person include:
 
+  *eduroam* - In Aggie Experts, we use one-direction hash function of a users'
+  eduroam identifier as our default identifier.  This allows agents that know a
+  users' eduroam identifier to discover the user, but does not show a users
+  eduroam identifier.  At UCDavis, users' eduroam identifiers are their userID
+  (or casID) suffixed with ~@ucdavis.edu~.  Notionally, a user is identified as
+  ~"http://experts.ucdavis.edu/person/" + md5(userId + "@ucdavis.edu")~
+
   *ORCID* - We use the standard URI for this, eg:
   `https://orcid.org/0000-0001-9829-8914` Note that ORCID uses https: as their
   identifier of choice.
 
+<<<<<<< HEAD
+  *UC Davis Aggie Enterprise*: Aggie Enterprise uses UC Path identifiers for
+  users. We use a one-dimensional function to map this to a public identifier.
+  This allows agents with knowledge of a users' Aggie Enterprise identifier to
+  find that user, but disallows public discovery of a users' identifier.
+
   *CDL ARK* - use `ark:/87287/d7mh2m/user/[number]` as in
+=======
+  *CDL ARK* - use ~ark:/87287/d7mh2m/user/[number]~ as in
+>>>>>>> qh-construct
   `ark:/87287/d7mh2m/user/42956` We will mint a new ark: everytime numbering
   changes
 
   *email* - If email is public via ODR, we will add campus emails as in
-  `email:qjhart@ucdavis.edu`
+  ~email:qjhart@ucdavis.edu~
 
   Other identifiers, https://www.webofscience.com/wos/author/record/M-4572-2018,
   http://www.scopus.com/authid/detail.url?authorId=6506365550 are *TBD*
 
+***** Referential Identifiers
+
+   *Aggie Enterprise* - The grants information from the Aggie Enterprise system
+   references UC Davis users via their UC Path employeeId.  In private experts
+   databases, these values are hashed with ~md5()~.  They are discouraged in public
+   databases.
 
 **** Example
 
   #+begin_src json
     {
   "@context" : "http://schema.library.ucdavis.edu/context/aggie_experts.json",
-  "@id" : "/person/66356b7eec24c51f01e757af2b27ebb8",
+  "_id" : "person/66356b7eec24c51f01e757af2b27ebb8",
+  "@id" : "person/66356b7eec24c51f01e757af2b27ebb8",
   "@graph":[
   {
-    "@id" : "http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8",
+    "@id" : "person/66356b7eec24c51f01e757af2b27ebb8",
     "identifier": [
        "https://orcid.org/0000-0001-9829-8914",
        "ark:/87287/d7mh2m/user/42956",
@@ -135,11 +358,75 @@
        "DOI:10.1080/10286600802003500"
     ]
   }]
-  }#+end_src
+  }
+  #+end_src
+
 *** Grant
 **** Identifiers
 
+<<<<<<< HEAD
   Grants are still TBD.  Right now, we have loads of grants that come from the
   old system.  We *could* mint another `ark:` for those, which may be required,
   since moving forward, we'll need another `ark:` for the new grants.  We are
   generating alot of arks: in that case.
+** Document Updates
+
+   As described above, elasticsarch documents are incrementally updated when new
+   records are added to the system.  Events include; insertions, updates, and
+   deletions.  In addition, the generation of the documents is not sensitive to
+   the order in which records are added to the LDP.  For example, it does not
+   matter the order of adding a person, relationship and work to the system.
+   When all three are added, the Person's record will include reference to the
+   authored work, and the Work record will include
+
+*** Helpful endpoints
+
+   Aggie Experts includes methods to access particular document information.
+
+**** Services
+
+***** Transform
+
+      The transform service provides access to the root node for any valid type
+      with in the Aggie Experts system.  For example
+      [[http://localhost/fcrepo/rest/person/66356b7eec24c51f01e757af2b27ebb8/svc:node][/person/66356b7eec24c51f01e757af2b27ebb8/svc:node]] responds with the root
+      node for Quinn Hart.  These nodes are the direct transform of the LDP node
+      corresponding to the
+      http://localhost/fcrepo/rest/person/66356b7eec24c51f01e757af2b27ebb8
+      location.
+
+
+***** Experts API
+
+      The API endpoint provides access to the complete elastic search records.
+      Elastic search documents include the root node, as well as nodes that are
+      added when supporting documents are added to the LDP. For example,
+      [[http://localhost/api/experts/person/66356b7eec24c51f01e757af2b27ebb8][/api/experts/person/66356b7eec24c51f01e757af2b27ebb8]] provides access to a
+      complete record for qjhart@ucdavis.edu
+
+
+      #+begin_src bash
+        doc=http://localhost/api/experts/person/66356b7eec24c51f01e757af2b27ebb8
+        http $doc | jq '._source["@graph"][]["@id"]'
+      #+end_src
+=======
+  Grants come from 3 distinct locations.  We have grant information that was
+  generated from the DAFIS decision support queries; Grants from the Aggie
+  Enterprise system, and grants that come from the CDL elements system.  Note
+  that it's expected that grants generated from DAFIS and Aggie Enterprise will
+  also be referenced in the CDL elements, so they will have two identifiers.  In
+  that case, the
+
+  *DAFIS* - Use ~ark:/87287/d7gt0q~ as the base for grants that were recovered
+  from the DAFIS system via the purpose built SQL query.  We add ~grant/~ plus
+  the DAFIS local grant number for the identifier,
+  eg. ~ark:/87287/d7gt0q/grant/1~
+
+  *Aggie Enterprise* - Use ~ark:/87287/d7c08j~ for grants from the Aggie
+  Enterprise system. Add ~grant/[id]~ as the path, as in:
+  ~ark:/87287/d7c08j/grant/K337D88~
+
+  *CDL Elements* - Use ~ark:/87287/d7nh2m/grant/[number]~ to reference CDL
+  Elements identifiers.  Some, but not all CDL Elements grants will use either
+  of the above identifiers as their local ids.
+>>>>>>> qh-construct

@@ -21,9 +21,6 @@ const jp = new JsonLdProcessor();
 
 import readablePromiseQueue from './readablePromiseQueue.js';
 
-// Instantiates a Secrets client
-// const client = new SecretManagerServiceClient();
-
 /** Exports a class
 * @class
 * @classdesc Aggie Experts Client API provide methods to import and access Aggie Experts data.
@@ -37,36 +34,42 @@ export class ExpertsClient {
   constructor(opt) {
     //    console.log('ExpertsClient constructor');
     this.opt = opt;
+    this.experts = [];
   }
 
-  /** Fetch Researcher Profiles from the UCD IAM API */
-  // async getIAMProfiles(opt) {
-  /** Fetch Researcher Profiles from the CDL Elements API */
+  async getIAMProfiles(opt, scope) {
 
-  // }
-
-  async getIAMProfiles(opt) {
-
-    opt.iamEndpoint += '?isFaculty=true';
-    opt.iamEndpoint += '&key=' + opt.iamAuth;
-    // add a single user id to the iam endpoint if specified
-    if (opt.userId != null) {
-      opt.iamEndpoint += '&userId=' + opt.userId;
+    let url = encodeURI(opt.iam.url + 'people/profile/search?key=' + opt.iam.auth);
+    // add a user(cas) id(s) to the iam endpoint if specified
+    if (scope === 'users' && opt.users.length > 0) {
+      url += '&userId=' + opt.users;
+    }
+    // if no specified users, then add the staff or the faculty flag
+    else if (scope === 'faculty') {
+      url += '&isFaculty=true';
+    }
+    else if (scope === 'staff') {
+      url += '&isStaff=true';
+    }
+    else {
+      throw new Error(`No IAM query scope specified.`);
+      return
     }
 
-    opt.iamEndpoint = encodeURI(opt.iamEndpoint + '?key=' + opt.iamAuth + '&isFaculty=true');
-    const response = await fetch(opt.iamEndpoint);
+    console.log(url);
+
+    const response = await fetch(url);
 
     if (response.status !== 200) {
       throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
     }
     else if (response.status === 200) {
-      this.doc = await response.json();
+      let respJson = await response.json();
       // console.log(this.doc);
-      this.doc = this.doc.responseData.results;
-      if (this.doc == null) {
+      if (respJson == null) {
         throw new Error(`No profiles returned from IAM.`);
       }
+      this.experts = this.experts.concat(respJson.responseData.results);
     }
     return
   }

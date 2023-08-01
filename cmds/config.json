@@ -16,15 +16,15 @@
   "deploy": {
     "template":"${G[base]}/docker-template.yaml",
     "keycloak":"auth",
-    "mount":""
+    "dev_mount":"models"
   },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.0.3"
+    "tag":"2.2.3"
   },
   "experts":{
     "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
-    "tag":"v1.0.1"
+    "tag":"v1.1.0"
   },
   "git":{
     "base":"$(${G[git]} rev-parse --show-toplevel)",
