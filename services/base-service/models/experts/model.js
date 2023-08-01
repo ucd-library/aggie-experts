@@ -1,12 +1,13 @@
-const {dataModels} = require('@ucd-lib/fin-service-utils');
+// Can use this to get the fin configuration
+const {config} = require('@ucd-lib/fin-service-utils');
 const schema = require('./vivo.json');
-const {FinEsDataModel} = dataModels;
+const FinEsNestedModel = require('./fin-es-nested-model');
 
 /**
  * @class ExpertsModel
  * @description Base class for Aggie Experts data models.
  */
-class ExpertsModel extends FinEsDataModel {
+class ExpertsModel extends FinEsNestedModel {
 
   static Types = ['Person','Work','Grant','Authorship'];
 
@@ -25,196 +26,180 @@ class ExpertsModel extends FinEsDataModel {
     // Every model has the same index
     this.readIndexAlias = 'experts-read';
     this.writeIndexAlias = 'experts-write';
-    // Elasticsearch client is in super class as this.client
 
   }
 
+  /**
+   * @method is
+   * @description Determines if this model can handle the given file based on
+   * it's type.
+   */
   is(id,types,workflows) {
     if (typeof types === 'string') types = [types];
-    console.log('types',types);
     types = types.filter(x => ExpertsModel.types.includes(x));
     if (types.length === 0) {
-      console.log(`ExpertsModel.is: ${id} is not a valid type`);
+//      console.log(`ExpertsModel.is: ${id} is not a valid type`);
       return false;
     }
-    console.log(`ExpertsModel.is: ${types.join(",")} is a valid type`);
+//    console.log(`ExpertsModel.is: ${types.join(",")} is a valid type`);
     return true
   }
 
-  async esSearchGraph(query,index) {
-    //      const options={debug:true,admin:true};
-    const options={};
-    return this.esSearch(
-        {
-          query: {
-            nested:{
-              path: "@graph",
-              query: query
-            }
-          }
-        });
-
-  }
-
-  // The path where you would expect to find a particular id.  It only localizes
-  // experts.ucdaivs.edu ids, otherwise, they are unchanged (arks:,dois: etc)
-  expected_path(id) {
-    return id.replace('http://experts.ucdavis.edu/','');
-  }
-
-  // The index to the node in the graph that corresponds to the path_id, as
-  // shown in the jsonld["@id"] location.  This searches for a graph with a
-  // matching identifier.
-  get_main_graph_record_index(jsonld) {
-    const local_path = this.expected_path(jsonld['@id']);
-    let main_graph_record_index = undefined;
-    let types = []
-    console.log(`jsonld ${jsonld['@id']} has ${jsonld['@graph'].length} records`);
-    for(let i=0; i<jsonld['@graph'].length; i++) {
-      let node = jsonld['@graph'][i];
-      console.log(i,"->",node['@id']);
-      if (local_path===node['@id']) {
-        console.log("Found main record index",i);
-        main_graph_record_index = i;
-        let types = this.get_node_types(node);
-        if (types.length > 0) {
-          break;
-        }
-      }
-    }
-    return main_graph_record_index;
-  }
-
-  get_node_types(node) {
+  /**
+   * @method experts_node_type
+   * @description Get the experts node type for the given type
+   * @param {String} node
+   */
+  experts_node_type(node) {
     let types;
     // Look for valid type in index
     types=node['@type'];
+    // console.log(`experts_node_type: ${types}`);
     if (typeof types === 'string') types = [types];
     types = types.filter(x => ExpertsModel.Types.includes(x));
-    return types;
+    if (types.length > 1)
+      throw new Error(`update: ${jsonld['@id']} has multiple types: ${types.join(",")}`);
+    return types?.[0];
   }
 
-  get(id,opts) {
-    id=id.replace(/^\//,'');
-    console.log(`ExpertsModel.get(${id})`);
-    console.log(`opts`,opts);
-    console.log(super.get);
-    return super.get(id,opts);
+  /**
+   * @method snippet
+   * @description returns searchable snippet of a node
+   * by elasticsearch.
+   */
+  snippet(node) {
+    const type = this.experts_node_type(node);
+    const snippet = {
+      'Work': ["DOI","abstract","container-title","publisher",
+               "title","type","url","hasPublicationVenue"],
+      'Person': ["identifier","orcidId","name","contactInfo"]
+    };
+
+    // If Person, only add best contactInfo
+    if (type === 'Person') {
+      if (node.contactInfo) {
+        let best=node.contactInfo.sort((a,b) => {
+          (a['vivo:rank'] || 100) - (b['vivo:rank'] || 100)})[0];
+        ['hasOrganizationalUnit','hasTitle','vcard:hasURL','vivo:rank'].forEach(x => delete best[x]);
+        node.contactInfo = [best];
+      }
+    }
+
+    // Now select some of the fields.
+    let s = {};
+    snippet[type].forEach((key) => {
+      if (node[key]) {
+        s[key] = node[key];
+      }
+    });
+    return s;
   }
 
-  async update(jsonld, index) {
-
+  async update(jsonld) {
     console.log(`ExpertsModel.update(${jsonld['@id']})`);
+    await this.update_or_create_main_node_doc(jsonld);
 
-    // Update the main graph ~/fin/services/fin/node-utils/lib/data-models/elastic-search/
-    await super.update(jsonld, index);
+    const root_node= this.get_main_graph_node(jsonld);
+    const type = this.experts_node_type(root_node);
+    // This is the '@type' for the new snippet on a main record
+    const snip_type = {'Work':'Authored',
+                       'Person':'Author'};
 
-    const main_record_index= this.get_main_graph_record_index(jsonld);
-    const node=jsonld['@graph'][main_record_index];
-    const types = this.get_node_types(node);
+    if (type === 'Person' || type === 'Work') {
+      // Add this as a snippet to any related main nodes
+      let authorships= await this.esMatchNode({
+        '@type': 'Authorship', 'relates': jsonld['@id'] });
 
-    if (types.includes('Work')) {
-      // get all authorships for work (by work id)
-      const work=jsonld['@graph'][main_record_index];
+      // console.log(`ExpertsModel.update authorships`,authorships);
 
-      let authorships= await this.esSearchGraph(
-        { bool: {
-          must: [
-            { term: { '@graph.@type': { value:'Authorship' } } },
-            { term: { '@graph.relates': { value: local_path } } }
-          ]
-        } },index);
-      if (authorships.hits && authorships.hits.hits) {
-        //console.log('authorships length',authorships.hits.hits.length);
-        for (let i=0; i<authorships.hits.hits.length; i++) {
-          let authorship = authorships.hits.hits[i]._source;
-          let node={};
-          ["DOI","abstract","container-title","publisher","title","type","url","hasPublicationVenue"].forEach((key) => {
-            if (work[key]) {
-              node[key]=work[key];
-            }
-          });
-          node={
-            ...node,
-            ...authorship['@graph'][0]
-          };
-          let relates=node.relates.filter(x => x !== local_path);
-          console.log('relates',relates);
-          delete node.relates;
-          console.log('Adding node',JSON.stringify(node,null,2));
-          for (let j=0;j<relates.length; j++) {
-            console.log('to work (',j,')',relates[j]);
-            await this.update({"@id":relates[j],
-                               "@graph": node},index);
-            console.log('updated')
+      const snip= this.snippet(root_node);
+      for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {
+        let authorship = authorships.hits.hits[i]._source?.['@graph']?.[0] || {};
+        //console.log(`authorship[${i}]: ${authorship['@id']}`);
+        const node={
+          ...snip,
+          ...authorship,
+          '@type': snip_type[type]
+        };
+        delete node.relates;
+        let relates=authorship.relates.filter(x => x !== jsonld['@id']);
+        // There should be just one relates left
+        for (let j=0;j<relates.length; j++) {
+          console.log(`Adding ${node["@id"]} <=> ${relates[j]}`);
+          try {
+            let related=await this.get(relates[j])
+            related=this.get_main_graph_node(related['_source']);
+            const related_snip=this.snippet(related);
+            const related_node= {
+              ...related_snip,
+              ...authorship,
+              '@type': snip_type[this.experts_node_type(related)]
+            };
+            delete related_snip.relates;
+
+            // Add the new snippet to the related node
+            await this.update_graph_node(relates[j],node)
+
+            // We need to add the related snippet of this back to our root node as well
+            await this.update_graph_node(jsonld['@id'],related_node);
+          } catch (e) {
+            console.log(`${relates[j]} not found`);
           }
         }
       }
     }
-    // Update a Person record
-    if (types.includes('Person')) {
-      // Need to get the important subset of the person
-      let best=jsonld['@graph'][main_record_index].contactInfo.sort((a,b) => {
-        (a['vivo:rank'] || 100) - (b['vivo:rank'] || 100)})[0];
-      ['hasOrganizationalUnit','hasTitle','vcard:hasURL','vivo:rank'].forEach(x => delete best[x]);
-      // get all authorships for person (by person id)
-      let authorships= await this.esSearchGraph(
-        { bool: {
-          must: [
-            { term: { '@graph.@type': { value:'Authorship' } } },
-            { term: { '@graph.relates': { value: local_path } } }
-          ]
-        } },index);
-      console.log('authorships',authorships);
-      if (authorships.hits && authorships.hits.hits) {
-        //console.log('authorships length',authorships.hits.hits.length);
-        for (let i=0; i<authorships.hits.hits.length; i++) {
-          let authorship = authorships.hits.hits[i]._source;
-          // console.log('authorship',authorship);
-          let node={
-            "identifier":jsonld['@graph'][main_record_index]['identifier'],
-            "orcidId": jsonld['@graph'][main_record_index]['orcidId'],
-            "name": jsonld['@graph'][main_record_index]['name'],
-            "contactInfo": [ best ],
-            ...authorship['@graph'][0]
-          };
-          let relates=node.relates.filter(x => x !== local_path);
-          console.log('relates',relates);
-          delete node.relates;
-          console.log('Adding node',JSON.stringify(node,null,2));
-          for (let j=0;j<relates.length; j++) {
-            console.log('to work (',j,')',relates[j]);
-            await this.update({"@id":relates[j],
-                               "@graph": node},index);
-            console.log('updated')
+    else if (type === 'Authorship') {
+      let have={};
+      // Get the work and the Person via the Authorship.relates
+      for(let i=0; i<root_node?.relates?.length || 0; i++) {
+        let relates = root_node.relates[i];
+        try {
+          // console.log(`ExpertsModel.update: ${relates}`);
+          let related = await this.get(relates);
+          related=this.get_main_graph_node(related['_source']);
+          let type = this.experts_node_type(related);
+          if (type === 'Person' || type === 'Work') {
+            have[type] = { id:relates, node:related };
+          }
+          // console.log('ExpertsModel.have:',have);
+        } catch (e) {
+          console.log(`Authorship: ${relates} is not Person or Work`);
+        }
+        if (have.Person && have.Work) {
+          console.log(`${have.Person.id} <=> ${have.Work.id}`);
+          // Add Work as snippet to Person
+          {
+            const node = {
+              ...this.snippet(have.Work.node),
+              ...root_node,
+              '@type': 'Authored'
+            };
+            delete node.relates;
+            // console.log(`${have.Person.id} Authored ${have.Work.id}`);
+            const response = await this.update_graph_node(have.Person.id,node)
+          }
+          {
+            const node = {
+              ...this.snippet(have.Person.node),
+              ...root_node,
+              '@type': 'Author'
+            };
+            delete node.relates;
+            // console.log(`${have.Work.id} Author ${have.Person.id}`);
+            const response = await this.update_graph_node(have.Work.id,node)
           }
         }
       }
-    }
-    if (types.includes('Grant')) {
+    } else if (type === 'Grant') {
       console.log('Grantify');
-// grant update
-// update grant
 // fetch persons by grant connections
 // persons.forEach(person => {
 // add grant to person / person to grant if exists
 // })
-    }
-    if (types.includes('Authorship')) {
-      console.log('Authorshipify');
-      console.log(jsonld['@graph'][main_record_index]);
-// authorship update
-// update authorship
-// fetch person by authorship.person / fetch work by authorship.work
-// if person exists, update person with authorship / citation
-// if work exists, update work with authorship / citation
-// })
+      console.log(root_node);
+    } else {
+      console.log(`ExpertsModel.update: ${jsonld['@id']} has unknown type: ${type}`);
     }
   }
 }
-
-// This exports the class, not an instance of the class, unlike the other models
-//module.exports = {
-//  ExpertsModel: ExpertsModel
-//};
 module.exports = new ExpertsModel();

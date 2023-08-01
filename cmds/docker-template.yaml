@@ -4,7 +4,7 @@ services:
   gateway:
     image: &BASE ${ORG}/base-service:${TAG}
     volumes:
-      - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-../service-account.json}:/etc/fin/service-account.json
+      - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-./service-account.json}:/etc/fin/service-account.json
       - &DEV_MOUNT_FIN_SERVICES ./fin/services/fin:/fin/services
       - &DEV_MOUNT_FIN_API ./fin-api:/fin/api
       - &DEV_MOUNT_MODELS ./services/base-service/models:/fin/services/models
@@ -52,10 +52,13 @@ services:
 
   init:
     image: ${ORG}/init:${TAG}
+    env_file:
+      - .env
     volumes:
       - &DEV_MOUNT_INIT_POSTGRES ./services/init/postgres:/etc/ucdlib-service-init/postgres
       - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo:/etc/ucdlib-service-init/fcrepo
       - &DEV_MOUNT_DOCKER_RUN ./services/init/docker-run.sh:/docker-run.sh
+      - *SERVICE_ACCOUNT
 
   redis:
     image: redis:3.2
@@ -67,9 +70,10 @@ services:
 
   api:
     image: *BASE
+    env_file:
+      - .env
     volumes:
       - *SERVICE_ACCOUNT
-
       - *DEV_MOUNT_FIN_SERVICES
       - *DEV_MOUNT_FIN_API
       - *DEV_MOUNT_MODELS
@@ -78,7 +82,6 @@ services:
     restart: unless-stopped
     command: npm run api
   # command: bash -c 'tail -f /dev/null'
-
   finac:
     image: *BASE
     env_file:
