@@ -35,7 +35,7 @@
         "familyName":{"@id":"vcard:familyName"},
         "givenName":{"@id":"vcard:givenName"},
         "name":{"@id":"vcard:hasName","@type":"@id"},
-        "pronouns":{"@id":"vcard:pronoun"}
+        "pronouns":{"@id":"vcard:pronoun"},
         "title":{"@id":"vcard:title"},
         "url":{"@id":"vcard:url"}
       }
