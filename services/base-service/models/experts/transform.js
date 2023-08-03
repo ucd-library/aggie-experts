@@ -24,11 +24,16 @@ module.exports = async function(path, graph, headers, utils) {
   //delete frame["@type"];
   let framed = await jsonld.frame(item, frame,{omitGraph:false});
 
-  // alter the author(s) by rank
+  // alter the author(s) by rank, always an array as well.
   if (framed["@graph"]?.[0]?.["author"]) {
-    framed["@graph"][0]["author"]=
-      framed["@graph"][0]["author"]
-      .sort((a,b)=>a.rank-b.rank)
+//    console.log("framed author", typeof framed["@graph"][0]["author"]);
+    if (typeof framed["@graph"][0]["author"] !== 'array') {
+      framed["@graph"][0]["author"] = [ framed["@graph"][0]["author"] ];
+    } else {
+      framed["@graph"][0]["author"]=
+        framed["@graph"][0]["author"]
+        .sort((a,b)=>a.rank-b.rank)
+    }
   }
   framed["@id"] = path.replace(/^\//,"");
   framed["@context"] = "info:fedora/context/experts.json";
