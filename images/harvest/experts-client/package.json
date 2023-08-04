@@ -11,7 +11,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "experts": "bin/experts.js"
+    "experts": "bin/experts.js",
+    "experts-iam": "bin/experts-iam.js"
   },
   "keywords": [
     "jsonld",

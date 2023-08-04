@@ -1,15 +1,48 @@
 ARG REF_NAME
 ARG ORG
 
-FROM $ORG/openjdk-sqlcl:$REF_NAME as sqlcl
-FROM $ORG/openjdk-tarql:$REF_NAME as tarql
+# Build sqlcl, tarql seperately, but use FUSEKI as base image
+FROM $ORG/fuseki:$REF_NAME as more
 
+#The Oracle SQL developer CLI.  This is a java tool that provides
+#a command-line interface to Oracle Services.
+ENV SQLCL_VERSION=21.4.1.17.1458
+
+USER root
+RUN set -x ; mkdir -p /tmp/builder && \
+    cd /tmp/builder && \
+    curl -L https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-${SQLCL_VERSION}.zip -o sqlcl.zip && \
+    unzip ./sqlcl.zip && \
+    mkdir /usr/local/lib/sqlcl && mv sqlcl/lib /usr/local/lib/sqlcl && \
+    mkdir /usr/local/lib/sqlcl/bin && mv sqlcl/bin/sql /usr/local/lib/sqlcl/bin/sqlcl && \
+    chmod ug+x /usr/local/lib/sqlcl/bin/sqlcl && \
+    ls -al /usr/local/lib/sqlcl/bin/sqlcl && \
+    cd .. && rm -rf builder
+
+# Now build tarql
+ENV TARQL_VERSION="1.2"
+USER root
+RUN set -x ; mkdir -p /tmp/builder && \
+    cd /tmp/builder && \
+    curl -L https://github.com/tarql/tarql/releases/download/v${TARQL_VERSION}/tarql-${TARQL_VERSION}.tar.gz -o ./tarql.tar.gz && \
+    tar xzf ./tarql.tar.gz && \
+    rm tarql.tar.gz && \
+    mv tarql-${TARQL_VERSION} tarql && \
+    rm tarql/bin/tarql.bat tarql/README.md && \
+    find . && \
+    echo JAVA_HOME=${JAVA_HOME} && \
+    chmod ug+x ./tarql/bin/tarql && \
+    cat ./tarql/bin/tarql && \
+    ls -al ./tarql/bin && \
+    mv tarql /usr/local/lib && cd /usr/local/lib/tarql && rm -rf builder
+
+# Now build fuseki
 FROM $ORG/fuseki:$REF_NAME
 
 USER root
 
-COPY --from=sqlcl /usr/local/lib/sqlcl /usr/local/lib/sqlcl
-COPY --from=tarql /usr/local/lib/tarql /usr/local/lib/tarql
+COPY --from=more /usr/local/lib/sqlcl /usr/local/lib/sqlcl
+COPY --from=more /usr/local/lib/tarql /usr/local/lib/tarql
 
 # Updating experts-client for downloads will eliminate the need for
 # build-essential httpie, xmlstarlet
@@ -46,26 +79,26 @@ COPY fuseki ${FUSEKI_HOME}
 COPY ucdid /usr/local/bin
 RUN chmod +x /usr/local/bin/ucdid
 
-# Setup a place to hold the Makefile data
-RUN mkdir /usr/local/lib/harvest
-COPY harvest /usr/local/lib/harvest
-
 # Copy over cdl-elements
 COPY cdl-elements /usr/local/bin
 RUN chmod +x /usr/local/bin/cdl-elements
 # XML2JSON
 RUN cd /tmp && npm install -g xml2json --unsafe-perm
 
-
 # COPY over experts-client source code
 COPY experts-client /usr/local/lib/experts-client
-RUN cd /usr/local/lib/experts-client && npm ci
+RUN cd /usr/local/lib/experts-client && npm install -g
+
+# Setup a place to hold the Makefile data
+RUN mkdir /usr/local/lib/harvest
+COPY harvest /usr/local/lib/harvest
 
 # Add startup file
 COPY /harvest-entrypoint.sh /
 
 # Add sqlcl and tarql to bin
 ENV PATH=$PATH:/usr/local/lib/sqlcl/bin:/usr/local/lib/tarql/bin
+ENV JAVA_OPTS="-Xmx8g"
 
 VOLUME /home/ucd.process
 WORKDIR /home/ucd.process

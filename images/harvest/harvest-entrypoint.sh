@@ -1,9 +1,14 @@
 #! /bin/bash
 
-# Get init_local_user
-. /openjdk-functions.sh
-
-init_local_user
+function init_local_user() {
+  local uid=$(id -u)
+  if [[ "$uid" = 0 ]]; then
+    uid=${LOCAL_USER_ID:-9001}
+    useradd --create-home --shell /bin/bash --uid ${uid} ucd.process
+    export HOME=/home/ucd.process
+    chown -R ucd.process:ucd.process /home/ucd.process
+  fi
+}
 
 function gcloud_auth() {
   if [[ -n ${GOOGLE_APPLICATION_CREDENTIALS_JSON} ]]; then
@@ -12,6 +17,8 @@ function gcloud_auth() {
     echo "GOOGLE_APPLICATION_CREDENTIALS_JSON is not set"
   fi
 }
+
+init_local_user
 
 uid=$(id -u)
 if [[ ${uid} = 0 ]]; then

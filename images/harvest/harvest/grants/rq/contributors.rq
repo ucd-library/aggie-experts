@@ -1,41 +1,38 @@
+PREFIX : <ark:/87287/d7gt0q/schema#>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX grant: <http://experts.ucdavis.edu/grant/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX grant: <ark:/87287/d7gt0q/grant/>
+PREFIX kfs: <ark:/87287/d7gt0q/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 
 CONSTRUCT {
 	?grant vivo:relates ?role.
 
   ?role a ?vivo_role, ?ucd_role;
-		vivo:relatedBy ?grant ;
-	  obo:RO_000052 ?person ;
-  ucdrp:role_person_name ?person_nm;
-  rdfs:label ?person_nm;
-  .
+	        vivo:relatedBy ?grant;
+	       obo:RO_000052 ?person;
+        rdfs:label ?role_label;
+        .
 
-  ?person a ucdrp:person;
-          rdfs:label ?person_nm;
-          ucdrp:casId ?prncpl_nm;
-          vivo:relatedBy ?grant;
-          obo:RO_000053 ?role;
+  ?person obo:RO_000053 ?role;
           .
 }
 WHERE {
   VALUES (?grant_role ?ucd_role ?vivo_role) {
-    ("PDIR" ucdrp:GrantProgramDirectorRole vivo:LeaderRole)
-    ("KP" ucdrp:GrantKeyPersonnelRole vivo:ResearcherRole)
-    ("OTHR" ucdrp:GrantOtherRole vivo:ResearcherRole)
-    ("PLDR" ucdrp:GrantProjectLeaderRole vivo:LeaderRole)
-    ("COPI" ucdrp:GrantCoPrincipalInvestigatorRole vivo:CoPrincipalInvestigatorRole)
-    ("PI" ucdrp:GrantPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole )
-    ("CLDR" ucdrp:GrantCoreLeaderRole vivo:ResearcherRole)
-#    ("ACCT-COPI" ucdrp:GrantAccountManagerRole vivo:ResearcherRole)
+    ("PDIR" :GrantProgramDirectorRole vivo:LeaderRole)
+    ("KP" :GrantKeyPersonnelRole vivo:ResearcherRole)
+    ("OTHR" :GrantOtherRole vivo:ResearcherRole)
+    ("PLDR" :GrantProjectLeaderRole vivo:LeaderRole)
+    ("COPI" :GrantCoPrincipalInvestigatorRole vivo:CoPrincipalInvestigatorRole)
+    ("PI" :GrantPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole )
+    ("CLDR" :GrantCoreLeaderRole vivo:ResearcherRole)
+#    ("ACCT-COPI" :GrantAccountManagerRole vivo:ResearcherRole)
     }
 	BIND(URI(CONCAT(str(grant:), ?cgprpsl_nbr)) AS ?grant)
   BIND(md5(concat(?prncpl_nm,'@ucdavis.edu')) AS ?user_id)
-	BIND(URI(CONCAT(str(?grant), "#role",?user_id,"-",?grant_role)) AS ?role)
+	BIND(URI(CONCAT(str(?grant), "#role-",?user_id,"-",?grant_role)) AS ?role)
 	BIND(URI(CONCAT(str(person:), ?user_id)) as ?person)
+  BIND(CONCAT(?person_nm, " (", ?grant_role, ")") AS ?role_label)
 }
