@@ -1,14 +1,17 @@
-PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX vivo: <http://vivoweb.org/ontology/core#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX : <ark:/87287/d7gt0q/schema#>
+PREFIX grant: <ark:/87287/d7gt0q/grant/>
+PREFIX kfs: <ark:/87287/d7gt0q/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+
 CONSTRUCT {
-	?funding_org
-		a vivo:FundingOrganization ;
-	  rdfs:label ?AGENCY;
+	?funding_org a vivo:FundingOrganization;
+	            rdfs:label ?AGENCY;
+             .
 }
 #FROM
 #	<file:grants.csv>
 WHERE {
-	BIND(URI(CONCAT(str(experts:), "funding_org/", ?CG_AGENCY_NBR)) as ?funding_org)
+	BIND(URI(CONCAT(str(kfs:), "funding_org/", ?CG_AGENCY_NBR)) as ?funding_org)
 }

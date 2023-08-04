@@ -51,3 +51,14 @@
    /etc/fuseki/configuation location.
 
    See the [[file:hdt-example][hdt-example]] directory for an example configuration
+
+** OpenJDK
+
+   The openjdk stage of the build was inspired by
+https://github.com/EKGF/debian-openjdk-python3-awscli which I found primarily
+because they have sparql style tools as well.
+
+The above project references a comparison of Alpine to Debian for this image due
+to these two articles:
+- https://pythonspeed.com/articles/base-image-python-docker-images/
+- https://pythonspeed.com/articles/alpine-docker-python/

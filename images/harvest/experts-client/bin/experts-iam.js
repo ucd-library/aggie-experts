@@ -16,7 +16,7 @@ const program = new Command();
 const fuseki = {
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   type: 'tdb2',
-  db: 'experts-rk',
+  db: 'iam',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
 }
 
@@ -119,17 +119,13 @@ program.name('experts-iam')
   .option('--no-faculty', 'Do not include faculty')
 
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
-  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
+  .option('--fuseki.isTmp', 'create a temporary store, add files. Any option means do not remove on completion', false)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
   // Fuseki type, defaults to tdb for sure for IAM.
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
   .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
   .option('--save-tmp', 'Do not remove temporary file', false)
-  .option('--environment <env>', 'specify environment', 'production')
-  .option('--nosplay', 'skip splay', false)
-
-
 
 program.parse(process.argv);
 

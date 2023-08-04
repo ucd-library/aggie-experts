@@ -151,7 +151,7 @@ grants.ttl:${grants.ttl}
 ${grants.ttl}:fis/%.ttl:fis/%.csv ${mkfile_path}/grants/rq/%.rq
 	tarql ${mkfile_path}/grants/rq/$*.rq $< > $@
 
-${grants.tdb2}:graph:=http://experts.ucdavis.edu/fis/
+${grants.tdb2}:graph:=ark:/87287/d7gt0q/
 ${grants.tdb2}:${grants.ttl} ${const_jsonld}
 	mkdir -p ${grants.tdb2};
 	tdb2.tdbloader --loc=${grants.tdb2} ${const_jsonld}

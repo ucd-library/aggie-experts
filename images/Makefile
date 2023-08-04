@@ -40,26 +40,14 @@ base:=$(shell git rev-parse --show-toplevel)
 gcloud.user:=$(shell gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
 sha:=$(shell git log -1 --pretty=%h)
 
-images:=openjdk fuseki openjdk-tarql openjdk-sqlcl hdt-java
+images:=fuseki harvest
 
 INFO::
 	@pod2usage -exit 0 ${MAKEFILE_LIST}
 
 .PHONY::${images}
 
-images: ${images}
-
-# This is where you set any other dependancies
-openjdk-sqlcl:: openjdk
-openjdk-tarql:: openjdk
-fuseki:: openjdk hdt-java
-
-harvest::
-	export DOCKER_BUILDKIT=1;\
-	docker build \
-	     --build-arg BUILDKIT_INLINE_CACHE=1 \
-	     --build-arg ORG=${org.cloud} --build-arg REF_NAME=${ref.cloud}\
-	     -t ${org.${dest}}/harvest:${tag} ${base}/images/harvest
+harvest::fuseki
 
 clean::
 	docker image rm $$(docker image list --format=json | jq -r 'select(.Repository=="${org.${dest}}/harvest") | .Repository+":"+.Tag' ) || true
