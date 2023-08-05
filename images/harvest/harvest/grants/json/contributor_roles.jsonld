@@ -1,142 +1,137 @@
 {
   "@graph": [
   {
-    "@id" : "ucdrp:ChartOfAccounts_3",
-    "@type" : "ucdrp:ChartOfAccounts",
+    "@id" : "k:ChartOfAccounts_3",
+    "@type" : "k:ChartOfAccounts",
     "rdfs:label" : "UCDAVIS"
   }, {
-    "@id" : "ucdrp:ChartOfAccounts_H",
-    "@type" : "ucdrp:ChartOfAccounts",
+    "@id" : "k:ChartOfAccounts_H",
+    "@type" : "k:ChartOfAccounts",
     "rdfs:label" : "UCDAVIS TEACHING HOSPITAL"
   }, {
-    "@id" : "ucdrp:ChartOfAccounts_L",
-    "@type" : "ucdrp:ChartOfAccounts",
+    "@id" : "k:ChartOfAccounts_L",
+    "@type" : "k:ChartOfAccounts",
     "rdfs:label" : "UCDAVIS SYSTEMWIDE PROGRAMS"
   }, {
-    "@id" : "ucdrp:ChartOfAccounts_M",
-    "@type" : "ucdrp:ChartOfAccounts",
+    "@id" : "k:ChartOfAccounts_M",
+    "@type" : "k:ChartOfAccounts",
     "rdfs:label" : "UCDAVIS TEACHING HOSPITAL PLANT"
   }, {
-    "@id" : "ucdrp:ChartOfAccounts_N",
-    "@type" : "ucdrp:ChartOfAccounts",
+    "@id" : "k:ChartOfAccounts_N",
+    "@type" : "k:ChartOfAccounts",
     "rdfs:label" : "UC DAVIS SYSTEMWIDE PROGRAMS PLANT"
   }, {
-    "@id" : "ucdrp:ChartOfAccounts_P",
-    "@type" : "ucdrp:ChartOfAccounts",
+    "@id" : "k:ChartOfAccounts_P",
+    "@type" : "k:ChartOfAccounts",
     "rdfs:label" : "UC DAVIS - PLANT"
   }, {
-    "@id" : "ucdrp:ChartOfAccounts_S",
-    "@type" : "ucdrp:ChartOfAccounts",
+    "@id" : "k:ChartOfAccounts_S",
+    "@type" : "k:ChartOfAccounts",
     "rdfs:label" : "UCDAVIS SCHOOL OF MEDICINE"
   }, {
-    "@id" : "ucdrp:ChartOfAccounts_UC",
-    "@type" : "ucdrp:ChartOfAccounts",
+    "@id" : "k:ChartOfAccounts_UC",
+    "@type" : "k:ChartOfAccounts",
     "rdfs:label" : "UNIVERSITY OF CALIFORNIA"
   }, {
-    "@id" : "ucdrp:GrantCoPrincipalInvestigatorRole",
+    "@id" : "k:GrantCoPrincipalInvestigatorRole",
     "@type" : "vivo:ResearcherRole",
-    "ucdrp:abbrev" : "COPI",
+    "k:abbrev" : "COPI",
     "obo:IAO_0000112" : "The head of a research project is called a Principal Investigator. On occasion, he or she may have one or more Co-Principal Investigators who share with him or her responsibility for participatory conduct of the project.",
     "rdfs:label" : "Co-Principal Investigator"
   }, {
-    "@id" : "ucdrp:GrantCoreLeaderRole",
+    "@id" : "k:GrantCoreLeaderRole",
     "@type" : "vivo:ResearcherRole",
-    "ucdrp:abbrev" : "CLDR",
+    "k:abbrev" : "CLDR",
     "obo:IAO_0000112" : "Investigator who is designated as the lead for a core, as a component/project in large multi-project proposals like center grants (e.g. Center ABC, with an Administrative Core, an Education Core, and two projects). NIH refers to it as a distinct, reviewable part for which there is a business need to gather detailed information identified in the funding opportunity announcement.",
     "rdfs:label" : "Core Leader"
   }, {
-    "@id" : "ucdrp:GrantKeyPersonnelRole",
+    "@id" : "k:GrantKeyPersonnelRole",
     "@type" : "vivo:ResearcherRole",
-    "ucdrp:abbrev" : "KP",
+    "k:abbrev" : "KP",
     "obo:IAO_0000112" : "Umbrella term for an investigator who will contribute / do work on / carry out the proposed project, part of the research team. May also be referred to as a primary contributor or senior personnel. Per NIH: individuals who contribute to the scientific development or execution of a project in a substantive, measurable way, whether or not they receive salaries or compensation under the grant Consultants and those with a postdoctoral role also may be considered senior/key personnel if they meet this definition. Senior/key personnel must devote measurable effort to the project whether or not salaries or compensation are requested. \"Zero percent\" effort or \"as needed\" are not acceptable levels of involvement for those designated as Senior/Key Personnel.",
     "rdfs:label" : "Key Personnel"
   }, {
-    "@id" : "ucdrp:GrantOtherRole",
+    "@id" : "k:GrantOtherRole",
     "@type" : "vivo:ResearcherRole",
-    "ucdrp:abbrev" : "OTHR",
+    "k:abbrev" : "OTHR",
     "rdfs:label" : "Researcher"
   }, {
-    "@id" : "ucdrp:GrantPrincipalInvestigatorRole",
+    "@id" : "k:GrantPrincipalInvestigatorRole",
     "@type" : "vivo:ResearcherRole",
-    "ucdrp:abbrev" : "PI",
+    "k:abbrev" : "PI",
     "obo:IAO_0000112" : "The head of a research project is called a Principal Investigator. On occasion, he or she may have one or more Co-Principal Investigators who share with him or her responsibility for participatory conduct of the project.",
     "rdfs:label" : "Principal Investigator"
   }, {
-    "@id" : "ucdrp:GrantProgramDirectorRole",
+    "@id" : "k:GrantProgramDirectorRole",
     "@type" : "vivo:ResearcherRole",
-    "ucdrp:abbrev" : "PDIR",
+    "k:abbrev" : "PDIR",
     "obo:IAO_0000112" : "Often used interchangeably with Principal Investigator (PD/PI); the person responsible for the project or program if awarded.",
     "rdfs:label" : "Program Director"
   }, {
-    "@id" : "ucdrp:GrantProjectLeaderRole",
+    "@id" : "k:GrantProjectLeaderRole",
     "@type" : "vivo:ResearcherRole",
-    "ucdrp:abbrev" : "PLDR",
+    "k:abbrev" : "PLDR",
     "obo:IAO_0000112" : "Investigator who is designated as the lead for a particular component within a multi-project proposal. Project may be used interchangeably with Core as defined above.",
     "rdfs:label" : "Project Leader"
   }, {
-    "@id" : "ucdrp:GrantType",
+    "@id" : "k:GrantType",
     "rdfs:label" : "Grant Type"
   }, {
-    "@id" : "ucdrp:GrantTypeAcademicSupport",
-    "ucdrp:abbrev" : "G",
+    "@id" : "k:GrantTypeAcademicSupport",
+    "k:abbrev" : "G",
     "rdf:type" : {
-      "@id" : "ucdrp:GrantType"
+      "@id" : "k:GrantType"
     },
     "rdfs:label" : "Academic Support"
   }, {
-    "@id" : "ucdrp:GrantTypeDefault",
-    "ucdrp:abbrev" : "X",
+    "@id" : "k:GrantTypeDefault",
+    "k:abbrev" : "X",
     "rdf:type" : {
-      "@id" : "ucdrp:GrantType"
+      "@id" : "k:GrantType"
     },
     "rdfs:label" : "Default"
   }, {
-    "@id" : "ucdrp:GrantTypeInstruction",
-    "ucdrp:abbrev" : "A",
+    "@id" : "k:GrantTypeInstruction",
+    "k:abbrev" : "A",
     "rdf:type" : {
-      "@id" : "ucdrp:GrantType"
+      "@id" : "k:GrantType"
     },
     "rdfs:label" : "Instruction"
   }, {
-    "@id" : "ucdrp:GrantTypeResearch",
-    "ucdrp:abbrev" : "C",
+    "@id" : "k:GrantTypeResearch",
+    "k:abbrev" : "C",
     "rdf:type" : {
-      "@id" : "ucdrp:GrantType"
+      "@id" : "k:GrantType"
     },
     "rdfs:label" : "Research"
   }, {
-    "@id" : "ucdrp:GrantTypeScholarship",
-    "ucdrp:abbrev" : "S",
+    "@id" : "k:GrantTypeScholarship",
+    "k:abbrev" : "S",
     "rdf:type" : {
-      "@id" : "ucdrp:GrantType"
+      "@id" : "k:GrantType"
     },
     "rdfs:label" : "Scholarships / Fellowships"
   }, {
-    "@id" : "ucdrp:GrantTypeService",
-    "ucdrp:abbrev" : "F",
+    "@id" : "k:GrantTypeService",
+    "k:abbrev" : "F",
     "rdf:type" : {
-      "@id" : "ucdrp:GrantType"
+      "@id" : "k:GrantType"
     },
     "rdfs:label" : "Service / Other"
   }, {
-    "@id" : "ucdrp:GrantTypeStudentService",
-    "ucdrp:abbrev" : "S",
+    "@id" : "k:GrantTypeStudentService",
+    "k:abbrev" : "S",
     "rdf:type" : {
-      "@id" : "ucdrp:GrantType"
+      "@id" : "k:GrantType"
     },
     "rdfs:label" : "Student Services"
   } ],
-  "@id" : "experts:fis/",
+  "@id" : "ark:/87287/d7gt0q/",
   "@context" : {
     "xsd" : "http://www.w3.org/2001/XMLSchema#",
     "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
-    "ucdrp" : "http://experts.ucdavis.edu/schema#",
+    "k" : "ark:/87287/d7gt0q/schema#",
     "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-    "person" : "http://experts.ucdavis.edu/person/",
-    "vivo" : "http://vivoweb.org/ontology/core#",
-    "grant" : "http://experts.ucdavis.edu/grant/",
-    "experts" : "http://experts.ucdavis.edu/",
-    "obo" : "http://purl.obolibrary.org/obo/",
-    "foaf" : "http://xmlns.com/foaf/0.1/"
+    "vivo" : "http://vivoweb.org/ontology/core#"
   }
 }

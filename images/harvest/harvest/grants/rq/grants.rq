@@ -17,7 +17,7 @@ CONSTRUCT {
  	    vivo:totalAwardAmount ?grant_amount_i;
  	    vivo:assignedBy ?funding_org;
  	    vivo:relates ?person,?admin_role,?admin_department;
-	    vivo:dateTimeIntervalq ?grant_duration;
+	    vivo:dateTimeInterval ?grant_duration;
      vivo:grantDirectCosts ?direct_costs_i;
      ucdlib:subAwardOf ?from_grant;
  	   ucdlib:grantIndirectCosts ?indirect_costs_i;

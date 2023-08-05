@@ -23,8 +23,7 @@
     "tag":"2.2.3"
   },
   "experts":{
-    "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
-    "tag":"v1.1.0"
+    "org":"gcr.io/digital_ucdavis_edu/aggie-experts"
   },
   "git":{
     "base":"$(${G[git]} rev-parse --show-toplevel)",
