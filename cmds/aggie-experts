@@ -46,7 +46,7 @@ function prune() {
     tag=dirty
   else
     org=$(G .experts.org)
-    tag=$(G .experts.tag)
+    tag=$(G .git.tag)
   fi
 
   local fin_rm=$(docker image list --format=json | jq -r "select(.Repository | test(\"fin-\")) | (select(.Repository | test(\"$(G .fin.org)\") | not),select(.Tag != \"$(G .fin.tag)\")) | .Repository+\":\"+.Tag")
@@ -87,9 +87,8 @@ function build() {
     tag=dirty
   else
     org=$(G .experts.org)
-    tag=$(G .experts.tag)
+    tag=$(G .git.tag)
   fi
-
 
   for service in "${services[@]}"; do
     local image=$org/${service}:$tag
