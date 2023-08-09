@@ -17,6 +17,7 @@ declare -g -A G=(
 G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
 G[env_secret]=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:${G[env]}" | jq -r '.[0].name'))
 
+G[service_account]=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:service-account" | jq -r '.[0].name'))
 
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand(){
@@ -137,6 +138,10 @@ function env() {
 
 }
 
+function service_account() {
+  gcloud secrets versions access latest --secret=${G[service_account]}
+}
+
 function compose() {
   local env=$(G .env)
   local keycloak=$(G .keycloak)
@@ -181,11 +186,15 @@ function setup() {
     env
     echo "#===== docker-compose.yaml =====#"
     compose
+    echo "#===== service-account =====#"
+    service_account
   else
     echo "#===== .env  =====#"
     env | tee .env
     echo "#===== docker-compose.yaml =====#"
     compose | tee docker-compose.yaml
+    echo "#===== service-account =====#"
+    service_account | tee service-account.json
   fi
 }
 
