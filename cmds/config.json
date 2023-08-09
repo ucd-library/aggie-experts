@@ -9,18 +9,23 @@
   },
   "gcloud":{
     "user":"${G[gcloud_user]}",
+    "gcs":{
+      "bucket":"aggie-experts-fcrepo-${G[env]}",
+      "subscription":"local-dev"
+    },
     "secrets": {
-      "env":"${G[env_secret]}"
+      "env":"${G[env_secret]}",
+      "service-account":"${G[service_account]}"
     }
   },
   "deploy": {
     "template":"${G[base]}/docker-template.yaml",
     "keycloak":"auth",
-    "dev_mount":"models"
+    "dev_mount":"models,init-fcrepo"
   },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.2.3"
+    "tag":"2.2.5"
   },
   "experts":{
     "org":"gcr.io/digital_ucdavis_edu/aggie-experts"

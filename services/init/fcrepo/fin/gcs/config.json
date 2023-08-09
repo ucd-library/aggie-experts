@@ -1,24 +1,10 @@
 {
   "sync" : {
-    "containers" : [
-      {
-        "bucket" : "aggie-experts-{{DATA_ENV}}",
-        "basePath" : "/application/spa/person",
-        "direction" : "fcrepo-to-gcs",
-        "initDataHydration" : true
-      },
-      {
-        "bucket" : "aggie-experts-{{DATA_ENV}}",
-        "basePath" : "/application/spa/work",
-        "direction" : "fcrepo-to-gcs",
-        "initDataHydration" : true
-      }
-    ]
-  },
-  "access" : [
-    {
-      "bucket" : "aggie-experts-products",
-      "basePath" : "/person"
-    }
-  ]
+    "containers" : [{
+      "bucket" : "aggie-experts-fcrepo-{{GCS_BUCKET_ENV}}",
+      "basePath" : "/",
+      "direction" : "gcs-to-fcrepo",
+      "initDataHydration" : true
+    }]
+  }
 }

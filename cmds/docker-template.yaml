@@ -145,18 +145,21 @@ services:
   # ###
   # # GCS - Sccess & Sync
   # ###
-  # gcs:
-  #   image: *BASE
-  #   volumes:
-  #      - *SERVICE_ACCOUNT
-  #    - *SERVICE_ACCOUNT
-  #    - *DEV_MOUNT_FIN_SERVICES
-  #    - *DEV_MOUNT_FIN_API
-  #    - *DEV_MOUNT_MODELS
-  #   depends_on:
-  #     - gateway
-  #   command: npm run gcs
-  #   # command: bash -c 'tail -f /dev/null'
+  gcs:
+    image: *BASE
+    environment:
+      - GCS_BUCKET_ENV=${GCS_BUCKET_ENV:-mini}
+    env_file:
+      - .env
+    volumes:
+      - *SERVICE_ACCOUNT
+#      - *DEV_MOUNT_FIN_SERVICES
+#      - *DEV_MOUNT_FIN_API
+#      - *DEV_MOUNT_MODELS
+    depends_on:
+      - gateway
+    command: npm run gcs
+    # command: bash -c 'tail -f /dev/null'
 
   ###
   # Search
