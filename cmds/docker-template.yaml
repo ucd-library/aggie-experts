@@ -56,7 +56,7 @@ services:
       - .env
     volumes:
       - &DEV_MOUNT_INIT_POSTGRES ./services/init/postgres:/etc/ucdlib-service-init/postgres
-      - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo:/etc/ucdlib-service-init/fcrepo
+      - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
       - &DEV_MOUNT_DOCKER_RUN ./services/init/docker-run.sh:/docker-run.sh
       - *SERVICE_ACCOUNT
 
@@ -100,7 +100,7 @@ services:
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_FIN_SERVICES
       - *DEV_MOUNT_FIN_API
-      - &DEV_MOUNT_CLIENT ./services/fin/spa:/fin/services/spa
+      - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
     depends_on:
       - elasticsearch
     command: node spa/index.js
