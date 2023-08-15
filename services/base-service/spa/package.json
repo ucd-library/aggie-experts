@@ -5,22 +5,21 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dist": "cd client && ./dist.sh",
-    "build": "cd client && ./build.sh",
-    "watch": "cd client && ./watch.sh",
-    "analyze-bundle": "cd client && webpack --profile --json webpack-dist.config.js > stats.json && webpack-bundle-analyzer -m server stats.json"
+    "watch": "cd client && webpack --config webpack-watch.config.js --watch",
+    "dist": "webpack --config webpack-dist.config.js"
   },
   "author": "qjhart@ucdavis.edu",
   "license": "MIT",
-  "dependencies": {
-    "@ucd-lib/spa-router-middleware": "^0.2.1"
-  },
   "devDependencies": {
-    "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/plugin-proposal-decorators": "^7.21.0",
-    "@ucd-lib/cork-app-build": "^0.4.2",
-    "raw-loader": "^4.0.2",
-    "webpack": "^5.76.1",
-    "webpack-cli": "^5.0.2"
+    "@ucd-lib/cork-app-build": "^0.3.0",
+    "webpack": "^5.72.0",
+    "webpack-cli": "^4.9.2"
+  },
+  "dependencies": {
+    "@ucd-lib/cork-app-load": "^0.3.2",
+    "@ucd-lib/spa-router-middleware": "^0.2.1",
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "nodemon": "^2.0.15"
   }
 }
