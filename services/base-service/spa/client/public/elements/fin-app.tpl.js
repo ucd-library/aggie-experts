@@ -34,13 +34,27 @@ return html`
 
     <ucd-theme-search-popup>
       <ucd-theme-search-form
-        @search="e => console.log(e.detail.searchTerm)">
+        @search="${e => console.log(e.detail.searchTerm)}">
       </ucd-theme-search-form>
     </ucd-theme-search-popup>
 
-    <ucd-theme-quick-links title="Sign In" style-modifiers="highlight">
-      <!-- <a href="#">Login</a> -->
+<!--
+    <ucd-theme-quick-links
+        title="My Account"
+        style-modifiers="highlight"
+        @item-click="${e => console.log('@item-click', e.detail)}"
+        @toggle="${e => console.log('@toggle', e.detail)}">
+      <a href="/auth/login?redirectUrl=/">Login</a>
+    </ucd-theme-quick-links> -->
+
+    <ucd-theme-quick-links
+        title="Sign In"
+        style-modifiers="highlight"
+        @item-click="${e => console.log('@item-click', e.detail)}"
+        @toggle="${e => console.log('@toggle', e.detail)}">
+      <a href="/auth/login?redirectUrl=/">Login</a>
     </ucd-theme-quick-links>
+
 
   </ucd-theme-header>
   <div class="main-content">
