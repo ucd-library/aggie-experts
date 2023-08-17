@@ -52,6 +52,11 @@ return html`
         <!-- <iron-icon icon="fin-icons:search" class="search-icon" slot="button-content"></iron-icon> -->
 
       </app-search-box>
+
+      <div style="padding-top: 1.5rem;">
+        <a href="/fcrepo/rest" style="color: white;">Explore Fedora</a> <span style="color: white; padding-left: 0.3rem"> (must be signed in)</span>
+
+      </div>
     </div>
   </div>
 
