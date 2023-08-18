@@ -81,13 +81,13 @@ vivo:ResearcherRole 21561
   ?grant vivo:relates ?pi_role.
 	?pi_role a vivo:PrincipalInvestigatorRole, ucdrp:GrantPrincipalInvestigatorRole;
 		        vivo:relatedBy ?grant;
-	        obo:RO_000052 ?person;
+	        obo:RO_0000052 ?person;
          ucdrp:role_person_name ?person_nm;
          rdfs:label ?person_nm;
        .
 
   ?person vivo:relatedBy ?grant;
-	        obo:RO_000053 ?pi_role;
+	        obo:RO_0000053 ?pi_role;
          ucdrp:casId ?prncpl_nm;
          .
 
