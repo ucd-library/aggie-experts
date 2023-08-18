@@ -5,7 +5,7 @@ FROM ${FIN_SERVER_IMAGE}
 
 ARG OUR_SERVICE_ROOT=./
 
-# # Client Code
+# Client Code
 RUN mkdir -p ${FIN_SERVICE_ROOT}/spa
 
 WORKDIR ${FIN_SERVICE_ROOT}

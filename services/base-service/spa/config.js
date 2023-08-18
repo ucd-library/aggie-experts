@@ -15,7 +15,7 @@ config.client = {
   description : 'Aggie Experts is a research networking and expertise discovery tool for UC Davis.',
   appName : process.env.FIN_APP_NAME || 'spa',
   assets : (env === 'prod') ? 'dist' : 'public',
-  appRoutes : ['about', 'work', 'person', 'grant'],
+  appRoutes : ['home', 'work', 'person', 'grant', 'subject'],
   versions : {
     bundle : clientPackageVersion,
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')
