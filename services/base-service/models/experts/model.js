@@ -9,8 +9,6 @@ const FinEsNestedModel = require('./fin-es-nested-model');
  */
 class ExpertsModel extends FinEsNestedModel {
 
-  static Types = ['Person','Work','Grant','Authorship'];
-
   static types = [
     "http://schema.library.ucdavis.edu/schema#Person",
     "http://schema.library.ucdavis.edu/schema#Work",
@@ -19,11 +17,11 @@ class ExpertsModel extends FinEsNestedModel {
     "http://vivoweb.org/ontology/core#Grant",
   ];
 
-  constructor() {
-    super('experts');
+  constructor(name='experts') {
+    super(name);
     this.schema = schema;  // Common schema for all experts data models
     this.transformService = "node";
-    // Every model has the same index
+
     this.readIndexAlias = 'experts-read';
     this.writeIndexAlias = 'experts-write';
 
@@ -36,7 +34,7 @@ class ExpertsModel extends FinEsNestedModel {
    */
   is(id,types,workflows) {
     if (typeof types === 'string') types = [types];
-    types = types.filter(x => ExpertsModel.types.includes(x));
+    types = types.filter(x => this.constructor.types.includes(x));
     if (types.length === 0) {
 //      console.log(`ExpertsModel.is: ${id} is not a valid type`);
       return false;
@@ -51,12 +49,13 @@ class ExpertsModel extends FinEsNestedModel {
    * @param {String} node
    */
   experts_node_type(node) {
+    const Types = ['Person','Work','Grant','Relationship','Authorship'];
     let types;
     // Look for valid type in index
     types=node['@type'];
     // console.log(`experts_node_type: ${types}`);
     if (typeof types === 'string') types = [types];
-    types = types.filter(x => ExpertsModel.Types.includes(x));
+    types = types.filter(x => Types.includes(x));
     if (types.length > 1)
       throw new Error(`update: ${jsonld['@id']} has multiple types: ${types.join(",")}`);
     return types?.[0];
@@ -148,6 +147,7 @@ class ExpertsModel extends FinEsNestedModel {
         }
       }
     }
+    // Remove Later
     else if (type === 'Authorship') {
       let have={};
       // Get the work and the Person via the Authorship.relates
