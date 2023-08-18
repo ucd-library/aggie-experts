@@ -87,7 +87,7 @@
     "relates": { "@type":"@id",
                  "@context":{
                    "role_person_name":{"@id":"ucdlib:role_person_name"},
-                   "inheres_in":{"@id":"obo:RO_000052","@type":"@id"},
+                   "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
                    "relatedBy":{"@type":"@id"},
                    "name":{"@id":"rdfs:label"}
                  }

@@ -47,6 +47,7 @@ hdt-bucket:=${GCS_GRAPH_STORAGE}
 
 hdt-push: ## Push the HDT files to the GCS bucket
 	gsutil rsync -r databases/hdt ${hdt-bucket}/hdt
+	gsutil rsync fis_csv.tar.gz ${hdt-bucket}/tar
 
 hdt-pull: ## Pull HDT files from GCS_GRAPH_STORAGE
 	[[ -d databases/hdt ]] || mkdir -p databases/hdt
@@ -109,14 +110,14 @@ $1.hdt:${$1.tdb2} ${$1.hdt}
 ${$1.hdt}:${$1.tdb2}
 	@[[ -d $(dir ${$1.hdt}) ]] || mkdir -p $(dir ${$1.hdt}); \
 	rm -f ${$1.hdt}*;\
-	tdb2.tdbdump --loc=${$1.tdb2} | rdf2hdt.sh -rdftype nquad -index -  ${$1.hdt}
+	tdb2.tdbdump --loc=${$1.tdb2} | grep '\<$2\>...\.$' | rdf2hdt.sh -rdftype nquad -index -  ${$1.hdt}
 
 endef
 
 tables:=organizations contributors fin_coa grants funding_agencies
 csv:=$(patsubst %,fis/%.csv,${tables})
 grants.ttl:=$(patsubst %,fis/%.ttl,${tables})
-const_jsonld:=${mkfile_path}/grants/json/contributor_roles.jsonld
+const_jsonld:=$(patsubst %,${mkfile_path}/grants/json/%.jsonld,contributor_roles)
 
 grants.tdb2:=databases/grants
 grants.hdt:=${FUSEKI_BASE}/databases/hdt/grants.hdt
@@ -142,9 +143,15 @@ dist-clean:: clean       # Remove all generated files and databases
 
 csv:${csv}               # Generate CSV files from FIS
 
+fis_csv.tar.gz: ${csv}
+	tar -czf $@ $^
+
 ${csv}:fis/%.csv:${mkfile_path}/grants/sql/%.sql
 	[[ -d $(dir $@) ]] || mkdir -p $(dir $@)
 	${sqlcl} < $< > $@
+
+aggie_enterprise_imports.ttl:${mkfile_path}/grants/csv/aggie_enterprise_imports.csv
+	tarql ${mkfile_path}/grants/rq/aggie_enterprise_imports.rq $< > $@
 
 grants.ttl:${grants.ttl}
 
@@ -155,13 +162,16 @@ ${grants.tdb2}:graph:=ark:/87287/d7gt0q/
 ${grants.tdb2}:${grants.ttl} ${const_jsonld}
 	mkdir -p ${grants.tdb2};
 	tdb2.tdbloader --loc=${grants.tdb2} ${const_jsonld}
-	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl}
+	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl} aggie_enterprise_imports.ttl
+	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/archive.ru
+	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/amount0.ru
+	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/too_late.ru
 	touch ${grants.tdb2}
 
 grants.json.gz:${grants.tdb2}
 	tdb2.tdbdump --loc=${grants.tdb2} --output=jsonld | gzip > $@
 
-$(eval $(call tdb2hdt,grants))
+$(eval $(call tdb2hdt,grants,ark:/87287/d7gt0q/))
 
 endif
 
@@ -198,8 +208,8 @@ ${iam.tdb2}:iam/faculty.jsonld iam/staff.jsonld
 iam.json.gz:${iam.tdb2}
 	tdb2.tdbdump --loc=${iam.tdb2} --output=jsonld | gzip > $@
 
-$(eval $(call tdb2hdt,iam))
-endif
+$(eval $(call tdb2hdt,iam,http://iam.ucdavis.edu/))
+ endif
 
 ##
 # Person fetching

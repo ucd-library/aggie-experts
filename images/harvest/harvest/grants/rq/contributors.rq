@@ -12,11 +12,11 @@ CONSTRUCT {
 
   ?role a ?vivo_role, ?ucd_role;
 	        vivo:relatedBy ?grant;
-	       obo:RO_000052 ?person;
+	       obo:RO_0000052 ?person;
         rdfs:label ?role_label;
         .
 
-  ?person obo:RO_000053 ?role;
+  ?person obo:RO_0000053 ?role;
           .
 }
 WHERE {

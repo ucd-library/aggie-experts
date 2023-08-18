@@ -400,7 +400,7 @@ volumes:
                   .
 
            ?pi_role a vivo:PrincipalInvestigatorRole;
-                    obo:RO_000052 ?pi;
+                    obo:RO_0000052 ?pi;
                     .
 
            ?pi rdfs:label ?pi_label;
@@ -417,7 +417,7 @@ volumes:
 
            bind(ucdrp:GrantKeyPersonnelRole as ?role_type)
            ?role a ?role_type;
-                 obo:RO_000052 ?user;
+                 obo:RO_0000052 ?user;
                  .
            ?role_type rdfs:label ?role_name.
          }

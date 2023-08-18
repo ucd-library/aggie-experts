@@ -4,6 +4,7 @@ services:
   gateway:
     image: &BASE ${ORG}/base-service:${TAG}
     volumes:
+      - fedora-data:/data
       - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-./service-account.json}:/etc/fin/service-account.json
       - &DEV_MOUNT_FIN_SERVICES ./fin/services/fin:/fin/services
       - &DEV_MOUNT_FIN_API ./fin-api:/fin/api

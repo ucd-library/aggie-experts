@@ -16,7 +16,7 @@ WHERE {
       bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
       ?grant a vivo:Grant;
              ?p ?o;
-             vivo:relates/obo:RO_000052 ?user;
+             vivo:relates/obo:RO_0000052 ?user;
              .
       OPTIONAL {
         ?grant vivo:dateTimeInterval ?duration.
@@ -31,7 +31,7 @@ WHERE {
       OPTIONAL {
         ?grant vivo:relates ?relates.
         ?relates ?rp ?ro.
-        filter ( EXISTS { ?relates a vivo:AdminRole. } || EXISTS { ?relates obo:RO_000052 ?user .} )
+        filter ( EXISTS { ?relates a vivo:AdminRole. } || EXISTS { ?relates obo:RO_0000052 ?user .} )
       }
     }
   }

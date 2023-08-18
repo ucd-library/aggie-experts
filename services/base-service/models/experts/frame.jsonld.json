@@ -26,6 +26,7 @@
     "assignedBy": { "@type":"@id"},
     "author":{"@id":"cite:author"},
     "available-date":{"@id":"cite:available-date"},
+    "bearer-of":{"@id":"obo:RO_0000053","@type":"@id"},
     "collection-number":{"@id":"cite:collection-number"},
     "contactInfo": {
       "@id":"obo:ARG_2000028",
@@ -86,7 +87,7 @@
     "relates": { "@type":"@id",
                  "@context":{
                    "role_person_name":{"@id":"ucdlib:role_person_name"},
-                   "inheres_in":{"@id":"obo:RO_000052","@type":"@id"},
+                   "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
                    "relatedBy":{"@type":"@id"},
                    "name":{"@id":"rdfs:label"}
                  }

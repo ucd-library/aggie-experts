@@ -1,0 +1,11 @@
+PREFIX : <http://schema.library.ucdavis.edu/schema#>
+
+CONSTRUCT {
+  ?grant
+   :kfs_proposal_nbr ?KFS_PROPOSAL_NUMBER;
+   :oracle_award_nbr ?ORACLE_AWARD_NUMBER;
+   .
+} WHERE {
+  BIND(URI(CONCAT("ark:/87287/d7gt0q/grant/", ?KFS_PROPOSAL_NUMBER)) AS ?grant)
+  BIND(?ORACLE_AWARD_NUMBER as ?award)
+}
