@@ -1,4 +1,5 @@
 module.exports = {
-  experts: require('./experts/index.js')
-  relationships: require('./relationships/index.js')
+  person: require('./person/index.js'),
+  work: require('./work/index.js'),
+  relationship: require('./relationship/index.js')
 }

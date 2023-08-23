@@ -56,7 +56,7 @@ class FinEsNestedModel extends FinEsDataModel {
    * @param {Object} options : options for get (like _source:false)
    */
   async get(id,options) {
-    // console.log(`FinEsNestedModel.get(${id})`);
+    console.log(`FinEsNestedModel.get(${id}) on ${this.readIndexAlias}`);
     return this.client.get(
       {
         ...{
