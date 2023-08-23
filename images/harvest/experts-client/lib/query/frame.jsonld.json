@@ -5,7 +5,7 @@
     "@vocab": "http://vivoweb.org/ontology/core#",
     "bibo":"http://purl.org/ontology/bibo/",
     "cite": "http://citationstyles.org/schema/",
-    "fedora": "http://XXXXX_fedora.info/definitions/v4/repository#",
+    "fedora": "http://fedora.info/definitions/v4/repository#",
     "obo": "http://purl.obolibrary.org/obo/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "schema": "http://schema.org/",
@@ -19,7 +19,6 @@
     "ISBN": {"@id":"cite:ISBN"},
     "ISSN":{"@id":"cite:ISSN"},
     "Name":{"@id":"vcard:Name"},
-    "Person":{"@id":"ucdlib:Person","@type":"@id"},
     "Title":{"@id":"vcard:Title"},
     "URL":{"@id":"vcard:URL"},
     "Work":"ucdlib:Work",
@@ -27,15 +26,15 @@
     "assignedBy": { "@type":"@id"},
     "author":{"@id":"cite:author"},
     "available-date":{"@id":"cite:available-date"},
+    "bearer-of":{"@id":"obo:RO_0000053","@type":"@id"},
     "collection-number":{"@id":"cite:collection-number"},
     "contactInfo": {
       "@id":"obo:ARG_2000028",
       "@type":"@id",
       "@context":{
+        "name":{"@id":"vcard:hasName","@type":"@id"},
         "familyName":{"@id":"vcard:familyName"},
         "givenName":{"@id":"vcard:givenName"},
-        "name":{"@id":"vcard:hasName","@type":"@id"},
-        "pronouns":{"@id":"vcard:pronoun"},
         "title":{"@id":"vcard:title"},
         "url":{"@id":"vcard:url"}
       }
@@ -77,10 +76,11 @@
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
     "pagination":{"@id":"cite:pagination"},
+    "Person":{"@id":"ucdlib:Person","@type":"@id"},
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
-    "rank":{"@id":"vivo:rank"},
+    "rank":{"@id":"vivo:rank","@type":"xsd:integer"},
     "relatedBy":{"@type":"@id",
                  "@id":"vivo:relatedBy"
                 },
