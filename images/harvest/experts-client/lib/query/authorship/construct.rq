@@ -10,7 +10,7 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 construct {
   ?authorship a vivo:Authorship;
               ucdlib:favorite ?favorite;
-              ucdlib:is-visible true;
+              ucdlib:is-visible ?visible;
               vivo:relates ?expert,?publication;
               vivo:rank ?user_rank;
     .
@@ -19,7 +19,7 @@ WHERE {
   graph cdl: {
     ?RELATIONSHIP__ :type "publication-user-authorship";
                   :effective-privacy-level "Public";
-                  :is-visible "true";
+                  :is-visible ?visible;
                   :type ?type;
                   :related ?pub;
                   :related ?user;
