@@ -83,7 +83,7 @@ function build() {
   fi
 
   declare -a services=(init fcrepo base-service)
-  if [[ "$(G .git.tag)" =~ "dirty" ]]; then
+  if [[ "$(G .git.tag)" =~ "dirty" || "$(G .env)" == "dev" ]]; then
     org=localhost/aggie-experts
     tag=dirty
   else
@@ -206,7 +206,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d: --long jq:,noop,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d: --long env:,jq:,noop,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -216,7 +216,7 @@ function main.cmd() {
     while true; do
 	    case $1 in
         --jq) CMD[jq]=$2; shift 2;;
-        --dev ) CMD[env]=dev; shift;;
+        --env ) CMD[env]=$2; shift 2;;
         -n | --noop) CMD[noop]="echo"; shift;;
 	      -- ) shift; break;;
 	      *) shift; break;
