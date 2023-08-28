@@ -9,15 +9,15 @@ import md5 from 'md5';
 import { Command } from 'commander';
 import { nanoid } from 'nanoid';
 
-import { DataFactory } from 'rdf-data-factory';
-import { BindingsFactory } from '@comunica/bindings-factory';
+// import { DataFactory } from 'rdf-data-factory';
+// import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
 import GoogleSecret from '../lib/googleSecret.js';
 
-const DF = new DataFactory();
-const BF = new BindingsFactory();
+// const DF = new DataFactory();
+// const BF = new BindingsFactory();
 
 const ql = await new QueryLibrary().load();
 const gs = new GoogleSecret();
@@ -50,10 +50,7 @@ async function main(opt) {
     }
   }
 
-  // console.log('opt', opt);
-
   const ec = new ExpertsClient(opt);
-
 
   const context = {
     "@context": {

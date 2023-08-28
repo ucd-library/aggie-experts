@@ -521,7 +521,7 @@ export class ExpertsClient {
         if (jquery !== null) {
 
           // jq query to get the id, proprietary-id, and username
-          console.log(jquery);
+          // console.log(jquery);
 
           await jq.run(jquery, resultArray, { input: 'json', output: 'compact' })
             .then((output) => {
