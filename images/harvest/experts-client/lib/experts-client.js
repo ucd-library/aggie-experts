@@ -9,6 +9,7 @@
 
 import fs from 'fs-extra';
 import fetch from 'node-fetch';
+import jq from 'node-jq';
 import { QueryEngine } from '@comunica/query-sparql';
 import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
@@ -202,6 +203,8 @@ export class ExpertsClient {
     // Construct URL for uploading the data to the graph
     // Don't include a graphname to use what's in the jsonld file
     const url = `${fuseki.url}/${fuseki.db}/data`;
+
+    console.log(url);
 
     // Set request options
     const options = {
@@ -404,12 +407,12 @@ export class ExpertsClient {
   }
 
   /**
-   * @description Generic function to get all the entries from a CDL collection
-   * @param {
-   * } opt
-   * @returns
-   *
-   */
+ * @description Generic function to get all the entries from a CDL collection
+ * @param {
+  * } opt
+  * @returns
+  *
+  */
   async getCDLentries(opt, query) {
     const cdl = opt.cdl;
     var lastPage = false
@@ -462,6 +465,99 @@ export class ExpertsClient {
             lastPage = true;
             break;
           }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * @description Generic function to get all the entries from a CDL collection
+   * @param {
+   * } opt
+   * @returns
+   *
+   */
+  async getCDLusers(opt, query, jquery) {
+    const cdl = opt.cdl;
+    var lastPage = false
+    var results = [];
+    var resultArray = [];
+    var nextPage = path.join(cdl.url, query)
+
+    if (cdl.auth.match(':')) {
+      cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
+    } else {
+      cdl.authBasic = cdl.auth;
+    }
+
+    while (nextPage) {
+      resultArray = [];
+      console.log(`getting ${nextPage}`);
+      const response = await fetch(nextPage, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + cdl.authBasic,
+          'Content-Type': 'text/xml'
+        }
+      })
+
+      if (response.status !== 200) {
+        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+        break;
+      }
+      else if (response.status === 200) {
+        const xml = await response.text();
+        // convert the xml atom feed to json
+        const json = parser.toJson(xml, { object: true, arrayNotation: false });
+        // console.log(json);
+
+        // make sure we have an array of entries
+        if (json.feed.entry) {
+          resultArray = resultArray.concat(json.feed.entry);
+        }
+
+        if (jquery !== null) {
+
+          // jq query to get the id, proprietary-id, and username
+          console.log(jquery);
+
+          await jq.run(jquery, resultArray, { input: 'json', output: 'compact' })
+            .then((output) => {
+              for (const line of output.split('\n')) {
+                if (line) {
+                  results.push(JSON.parse(line));
+                }
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error.message);
+            });
+        }
+        else {
+          results = results.concat(json.feed.entry);
+        }
+
+
+        // inspect the pagination to see if there are more pages
+        const pagination = json.feed['api:pagination'];
+        // console.log(pagination);
+
+        // Fetch the next page
+        nextPage = null;
+        if (pagination["api:page"] instanceof Array) {
+          for (let link of pagination["api:page"]) {
+            // console.log(link);
+            if (link.position === 'next') {
+              nextPage = link.href;
+              // console.log('nextPage: ' + nextPage);
+            }
+          }
+        }
+        if (!nextPage) {
+          lastPage = true;
+          break;
         }
       }
     }
