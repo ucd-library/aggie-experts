@@ -52,6 +52,7 @@ async function main(opt) {
 
   const ec = new ExpertsClient(opt);
 
+
   const context = {
     "@context": {
       "@base": "http://oapolicy.universityofcalifornia.edu/",
@@ -59,12 +60,6 @@ async function main(opt) {
       "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
       "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
       "id": { "@type": "@id", "@id": "@id" },
-      "field-name": "api:field-name",
-      "field-number": "api:field-number",
-      "$t": "api:field-value",
-      "api:person": { "@container": "@list" },
-      "api:first-names-X": { "@container": "@list" },
-      "api:web-address": { "@container": "@list" }
     }
   };
 
@@ -80,7 +75,18 @@ async function main(opt) {
 
   console.log('starting CDL users fetch');
 
-  const entries = await ec.getCDLusers(opt, 'users?ids=' + users + '&detail=ref&per-page=1000', '.[]["api:object"]|{id,"proprietary-id",username}');
+  var uquery = '';
+  if (users.length > 0) {
+    uquery = 'users?ids=' + users + '&detail=ref&per-page=1000';
+  }
+  else if (opt.cdl.groups) {
+    uquery = 'users?groups=' + opt.cdl.groups + '&detail=ref&per-page=1000';
+  }
+  else {
+    uquery = 'users?detail=ref&per-page=1000';
+  }
+
+  const entries = await ec.getCDLusers(opt, uquery, '.[]["api:object"]|{id,"proprietary-id",username}');
   ec.experts = entries;
 
   // MD5 hash of the user's email address and UCPath ID
@@ -94,6 +100,7 @@ async function main(opt) {
     delete entry['proprietary-id'];
     delete entry['username'];
   }
+  console.log(opt);
 
   console.log('starting createJsonLd');
   let contextObj = context;
@@ -129,6 +136,7 @@ program.name('cdl-profile')
   .option('--output <output>', 'output directory', path.join(__dirname, '../data'))
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
+  .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', true)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
@@ -174,5 +182,5 @@ else if (opt.environment === 'production') {
   opt.cdl.secretpath = 'projects/326679616213/secrets/cdl_elements_json';
 }
 
-// console.log('opt', opt);
+console.log('opt', opt);
 await main(opt);
