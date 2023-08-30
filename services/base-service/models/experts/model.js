@@ -1,5 +1,5 @@
 // Can use this to get the fin configuration
-const {config} = require('@ucd-lib/fin-service-utils');
+const {config, models } = require('@ucd-lib/fin-service-utils');
 const schema = require('./vivo.json');
 const FinEsNestedModel = require('./fin-es-nested-model');
 
@@ -81,6 +81,20 @@ class ExpertsModel extends FinEsNestedModel {
    */
   snippet(node) {
     return node;
+  }
+
+  /**
+   * @method get_model
+   * @description returns a model for a given type
+   */
+  async get_model(model) {
+    const method=model+'Model';
+    if (!(method in this)) {
+      this.method = (await models.get(model)).model;
+//      console.log(`get_model: ${model} not found, loading...`);
+    }
+//    console.log(`get_model: ${model} found`,this.method);
+    return this.method;
   }
 
   async update(jsonld) {

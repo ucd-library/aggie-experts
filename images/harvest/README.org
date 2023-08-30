@@ -331,7 +331,6 @@ volumes:
    PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
    PREFIX aeq: <http://experts.ucdavis.edu/queries/schema#>
    PREFIX afn: <http://jena.apache.org/ARQ/function#>
-   PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
    PREFIX bibo: <http://purl.org/ontology/bibo/>
    PREFIX experts: <http://experts.ucdavis.edu/>
    PREFIX foaf: <http://xmlns.com/foaf/0.1/>

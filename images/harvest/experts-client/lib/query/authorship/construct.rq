@@ -18,7 +18,6 @@ construct {
 WHERE {
   graph cdl: {
     ?RELATIONSHIP__ :type "publication-user-authorship";
-                  :effective-privacy-level "Public";
                   :is-visible ?visible;
                   :type ?type;
                   :related ?pub;
