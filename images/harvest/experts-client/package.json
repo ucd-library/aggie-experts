@@ -1,5 +1,5 @@
 {
-  "name": "experts-api",
+  "name": "experts-client",
   "version": "1.0.0",
   "type": "module",
   "description": "Aggie Experts Client API",
@@ -11,8 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "experts": "bin/experts.js",
-    "experts-iam": "bin/experts-iam.js"
+    "experts": "bin/experts.js"
   },
   "keywords": [
     "jsonld",
@@ -37,6 +36,7 @@
     "json-query": "^2.2.2",
     "jsonld": "^8.1.1",
     "jsonld-streaming-parser": "^3.2.0",
+    "md5": "^2.3.0",
     "memory-level": "^1.0.0",
     "nanoid": "^4.0.2",
     "node-fetch": "^3.3.1",
