@@ -87,7 +87,7 @@ async function main(opt) {
     // Assume a single entry for a user profile, but it's an array
     ec.profile = entries;
 
-    let cdlId = ec.profile[0]["api:object"].id;
+    let cdlId = entries[0]["api:object"].id;
 
     console.log('starting createJsonLd ' + user);
     let contextObj = context;
@@ -131,7 +131,7 @@ async function main(opt) {
 
     await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-    fs.writeFileSync(path.join('data', user + '-works.jsonld'), jsonld);
+    // fs.writeFileSync(path.join('data', user + '-works.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
     if (!opt.nosplay) {
