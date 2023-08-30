@@ -209,10 +209,7 @@ WHERE {
         ?elem :first-names ?authorGivenName .
 	    }
     }
-    #	BIND(uri(concat(replace(str(?work),str(work:),str(authorship:)),"-",str(?authorRank))) as ?authorship)
 	  BIND(uri(concat(str(?work),"#",str(?authorRank))) as ?authorship)
-    #	BIND(uri(concat(str(?authorship),"-vcard")) as ?authorship_vcard)
-    #	BIND(uri(concat(str(?authorship_vcard),"-name")) as ?authorship_vcard_name)
 
     OPTIONAL {
       ?field :date ?pub_date.

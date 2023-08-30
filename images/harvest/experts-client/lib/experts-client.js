@@ -455,12 +455,6 @@ export class ExpertsClient {
         for (let link of pagination["api:page"]) {
           if (link.position === 'next') {
             nextPage = link.href;
-            // console.log('nextPage: ' + nextPage);
-
-          }
-          if (!nextPage) {
-            lastPage = true;
-            break;
           }
         }
       }

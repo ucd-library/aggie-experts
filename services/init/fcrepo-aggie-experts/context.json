@@ -52,7 +52,7 @@
     "pagination":{"@id":"cite:pagination"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
-    "rank":{"@id":"vivo:rank"},
+    "rank":{"@id":"vivo:rank","@type":"xsd:integer"},
     "relatedBy":{"@type":"@id",
                  "@id":"vivo:relatedBy"
                 },
