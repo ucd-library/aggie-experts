@@ -56,7 +56,7 @@ class FinEsNestedModel extends FinEsDataModel {
    * @param {Object} options : options for get (like _source:false)
    */
   async get(id,options) {
-    // console.log(`FinEsNestedModel.get(${id})`);
+    //console.log(`FinEsNestedModel.get(${id}) on ${this.readIndexAlias}`);
     return this.client.get(
       {
         ...{
@@ -149,8 +149,6 @@ class FinEsNestedModel extends FinEsDataModel {
     if (doc['@id'] != doc['@graph'][0]['@id']) {
       throw new Error(`update_or_create_main_node_doc: document ${doc['@id']}, @id does not match @graph[0]['@id']`);
     }
-    //
-    doc['@graph'][0]['is_main_node'] = true;
 
     return this.client.index({
       index : this.writeIndexAlias,
