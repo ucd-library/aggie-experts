@@ -1,5 +1,5 @@
 {
-  "name": "experts-api",
+  "name": "experts-client",
   "version": "1.0.0",
   "type": "module",
   "description": "Aggie Experts Client API",
@@ -11,8 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "experts": "bin/experts.js",
-    "experts-iam": "bin/experts-iam.js"
+    "experts": "bin/experts.js"
   },
   "keywords": [
     "jsonld",
@@ -41,7 +40,6 @@
     "memory-level": "^1.0.0",
     "nanoid": "^4.0.2",
     "node-fetch": "^3.3.1",
-    "node-jq": "^4.0.1",
     "quadstore": "^11.0.8",
     "quadstore-comunica": "=3.0.0",
     "rdf-data-factory": "^1.1.0",

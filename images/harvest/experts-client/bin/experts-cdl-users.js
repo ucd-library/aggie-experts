@@ -4,7 +4,6 @@ dotenv.config();
 
 import path from 'path';
 import fs from 'fs-extra';
-import jq from 'node-jq';
 import md5 from 'md5';
 import { Command } from 'commander';
 import { nanoid } from 'nanoid';
@@ -55,11 +54,11 @@ async function main(opt) {
 
   const context = {
     "@context": {
-      "@base": "http://oapolicy.universityofcalifornia.edu/",
-      "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "id": { "@type": "@id", "@id": "@id" },
+      "@base": "http://experts.ucdavis.edu/",
+      "@vocab": "http://vivoweb.org/ontology/core#",
+      "person": "http://experts.ucdavis.edu/person/",
+      "schema": "http://schema.org/",
+      "identifier": { "@id": "schema:identifier" },
     }
   };
 
@@ -76,7 +75,10 @@ async function main(opt) {
   console.log('starting CDL users fetch');
 
   var uquery = '';
-  if (users.length > 0) {
+  if (opt.username) {
+    uquery = 'users?username=' + opt.username + '&detail=ref&per-page=1000';
+  }
+  else if (users.length > 0) {
     uquery = 'users?ids=' + users + '&detail=ref&per-page=1000';
   }
   else if (opt.cdl.groups) {
@@ -86,27 +88,28 @@ async function main(opt) {
     uquery = 'users?detail=ref&per-page=1000';
   }
 
-  const entries = await ec.getCDLusers(opt, uquery, '.[]["api:object"]|{id,"proprietary-id",username}');
-  ec.experts = entries;
+  // const entries = await ec.getCDLusers(opt, uquery, '.[]["api:object"]|{id,"proprietary-id",username}');
+  const entries = await ec.getCDLentries(opt, uquery);
+
+  var personArray = [];
 
   // MD5 hash of the user's email address and UCPath ID
-  for (const entry of ec.experts) {
-    entry['@id'] = 'person:' + md5(entry['proprietary-id']);
-    entry['identifiers'] = ["ark:/87287/d7mh2m/user/" + entry['id'],
+  for (let entry of entries) {
+    entry = entry['api:object'];
+    let person = {};
+    person['@id'] = 'person:' + md5(entry['proprietary-id']);
+    person['identifiers'] = ["ark:/87287/d7mh2m/user/" + entry['id'],
     "ark:/87287/d7c08j/" + md5(entry['username']),
-    entry['username']]
-    // remove unneeded fields
-    delete entry['id'];
-    delete entry['proprietary-id'];
-    delete entry['username'];
+    "mailto:" + entry['username']];
+    personArray.push(person);
   }
-  console.log(opt);
+
 
   console.log('starting createJsonLd');
   let contextObj = context;
 
   contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-  contextObj["@graph"] = ec.experts;
+  contextObj["@graph"] = personArray;
 
   let jsonld = JSON.stringify(contextObj);
   console.log('starting createGraph');
@@ -134,6 +137,7 @@ program.name('cdl-profile')
   .description('Import CDL users list into Fuseki')
   .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
   .option('--output <output>', 'output directory', path.join(__dirname, '../data'))
+  .option('--username <username>', 'Specify CDL username')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
@@ -182,5 +186,5 @@ else if (opt.environment === 'production') {
   opt.cdl.secretpath = 'projects/326679616213/secrets/cdl_elements_json';
 }
 
-console.log('opt', opt);
+// console.log('opt', opt);
 await main(opt);
