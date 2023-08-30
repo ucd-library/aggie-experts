@@ -1,6 +1,0 @@
-construct { ?s ?p ?o } WHERE {
-	graph graph: {
-    ?s ?p ?o.
-    minus { graph minus: { ?s ?p ?o. } }
-  }
-} order by ?p ?s ?o

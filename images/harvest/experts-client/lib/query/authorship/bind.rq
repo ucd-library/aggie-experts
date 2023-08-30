@@ -9,8 +9,8 @@ prefix vivo: <http://vivoweb.org/ontology/core#>
 select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
   graph ?g {
     ?relationship :type "publication-user-authorship";
-                  :effective-privacy-level "Public";
-                  :is-visible "true";
+#                  :effective-privacy-level "Public";
+#                  :is-visible "true";
                   :related ?pub;
                   :related ?user;
                   .
