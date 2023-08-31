@@ -100,7 +100,6 @@ async function main(opt) {
 
     await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-    // fs.writeFileSync(path.join(opt.output, user + '.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
     console.log('starting getCDLentries ' + user + '-' + cdlId);
@@ -108,7 +107,6 @@ async function main(opt) {
     // fetch publications for user
     ec.works = [];
     let works = await ec.getCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full');
-    // fs.writeFileSync(path.join('data', user + '-raw-work.json'), JSON.stringify(works));
 
     for (let work of works) {
       let related = [];
@@ -131,8 +129,6 @@ async function main(opt) {
 
     await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-    fs.ensureDirSync('data');
-    fs.writeFileSync(path.join('data', user + '-works.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
     if (!opt.nosplay) {

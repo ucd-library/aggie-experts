@@ -116,8 +116,14 @@ async function main(opt) {
 
   await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-  fs.ensureDirSync('data');
-  fs.writeFileSync(path.join('data', 'users.jsonld'), jsonld);
+  if (opt.output === '-') {
+    // write to std out
+    console.log(jsonld);
+  }
+  else if (opt.output) {
+    fs.writeFileSync(opt.output, jsonld);
+  }
+
   console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
   // Any other value don't delete
@@ -137,7 +143,7 @@ program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL users list into Fuseki')
   .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
-  .option('--output <output>', 'output directory', path.join(__dirname, '../data'))
+  .option('--output <output>', 'output directory')
   .option('--username <username>', 'Specify CDL username')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)

@@ -77,9 +77,13 @@ async function main(opt) {
   contextObj["@graph"] = ec.experts;
 
   ec.jsonld = JSON.stringify(contextObj);
-  // const outputFile = path.join(__dirname, '..', 'data', 'iam-profiles.jsonld');
-  fs.ensureDirSync('data');
-  // await fs.writeFile(outputFile, ec.jsonld, 'utf8');
+  if (opt.output === '-') {
+    // write to std out
+    console.log(ec.jsonld);
+  }
+  else if (opt.output) {
+    fs.writeFileSync(opt.output, ec.jsonld);
+  }
 
   console.log('starting createDataset');
   await ec.createDataset(opt);
@@ -120,6 +124,7 @@ program.name('experts-iam')
   .option('--no-faculty', 'Do not include faculty')
 
   .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
+  .option('--output <output>', 'output directory')
   .option('--fuseki.isTmp', 'create a temporary store, add files. Any option means do not remove on completion', false)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
   // Fuseki type, defaults to tdb for sure for IAM.
@@ -156,7 +161,7 @@ Object.keys(opt).forEach((k) => {
 
 opt.source = [opt.fuseki.url + '/' + opt.fuseki.db];
 
-console.log('opt', opt);
+// console.log('opt', opt);
 
 if (opt.environment === 'development') {
   opt.iam.url = 'https://iet-ws-stage.ucdavis.edu/api/iam/';
