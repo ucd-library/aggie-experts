@@ -6,6 +6,7 @@ PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 construct {
   ?authorship a vivo:Authorship;
@@ -18,12 +19,13 @@ construct {
 WHERE {
   graph cdl: {
     ?RELATIONSHIP__ :type "publication-user-authorship";
-                  :is-visible ?visible;
+                  :is-visible ?visible_str;
                   :type ?type;
                   :related ?pub;
                   :related ?user;
                   .
 
+    bind(xsd:boolean(?visible_str) as ?visible)
     ?user :category "user";
           :username ?username;
           .
@@ -58,7 +60,7 @@ WHERE {
            oap:people/oap:person [ list:index(?pos ?elem) ] .
 
     ?elem oap:links/oap:link ?user.
-    BIND(?pos+1 AS ?user_rank)
+    BIND(xsd:integer(?pos+1) AS ?user_rank)
 
 
     OPTIONAL {
