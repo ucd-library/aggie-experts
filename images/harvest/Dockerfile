@@ -87,7 +87,7 @@ RUN cd /tmp && npm install -g xml2json --unsafe-perm
 
 # COPY over experts-client source code
 COPY experts-client /usr/local/lib/experts-client
-RUN cd /usr/local/lib/experts-client && npm install -g
+RUN cd /usr/local/lib/experts-client && npm ci && npm install -g
 
 # Setup a place to hold the Makefile data
 RUN mkdir /usr/local/lib/harvest
