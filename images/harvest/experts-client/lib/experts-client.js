@@ -203,6 +203,8 @@ export class ExpertsClient {
     // Don't include a graphname to use what's in the jsonld file
     const url = `${fuseki.url}/${fuseki.db}/data`;
 
+    console.log(url);
+
     // Set request options
     const options = {
       method: 'POST',
@@ -404,12 +406,12 @@ export class ExpertsClient {
   }
 
   /**
-   * @description Generic function to get all the entries from a CDL collection
-   * @param {
-   * } opt
-   * @returns
-   *
-   */
+ * @description Generic function to get all the entries from a CDL collection
+ * @param {
+  * } opt
+  * @returns
+  *
+  */
   async getCDLentries(opt, query) {
     const cdl = opt.cdl;
     var lastPage = false
@@ -452,9 +454,12 @@ export class ExpertsClient {
 
         // Fetch the next page
         nextPage = null;
-        for (let link of pagination["api:page"]) {
-          if (link.position === 'next') {
-            nextPage = link.href;
+
+        if (pagination["api:page"] instanceof Array) {
+          for (let link of pagination["api:page"]) {
+            if (link.position === 'next') {
+              nextPage = link.href;
+            }
           }
         }
       }
@@ -462,7 +467,6 @@ export class ExpertsClient {
 
     return results;
   }
-
 }
 
 export default ExpertsClient;

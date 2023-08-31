@@ -24,6 +24,7 @@ program
   .command('splay', 'splay linked data into a directory structure')
   //  .command('query', 'query aggie experts')
   .command('iam', 'import profiles from IAM')
-  .command('cdl', 'import profiles from IAM')
+  .command('cdl', 'import profiles from CDL')
+  .command('cdl-users', 'import user ids from CDL')
 
 program.parse(process.argv);

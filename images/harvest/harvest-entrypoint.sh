@@ -23,7 +23,7 @@ init_local_user
 uid=$(id -u)
 if [[ ${uid} = 0 ]]; then
   # Don't cd, because users may want to set their own workdir
-  setpriv --reuid=ucd.process --init-groups -- bash -c 'gcloud auth activate-service-account --project=digital-ucdavis-edu --key-file=- <<< "${GOOGLE_APPLICATION_CREDENTIALS_JSON}"'
+  setpriv --reuid=ucd.process --init-groups -- bash -c 'if [[ -n ${GOOGLE_APPLICATION_CREDENTIALS_JSON} ]]; then gcloud auth activate-service-account --project=digital-ucdavis-edu --key-file=- <<< "${GOOGLE_APPLICATION_CREDENTIALS_JSON}"; echo ${GOOGLE_APPLICATION_CREDENTIALS_JSON} > /home/ucd.process/.config/gcloud/application_default_credentials.json; fi;'
   exec setpriv --reuid=ucd.process --init-groups make --file=/usr/local/lib/harvest/Makefile "$@"
 else
   exec make --file=/usr/local/lib/harvest/Makefile "$@"
