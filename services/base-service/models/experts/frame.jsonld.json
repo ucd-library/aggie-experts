@@ -80,7 +80,7 @@
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
-    "rank":{"@id":"vivo:rank","@type":"xsd:integer"},
+    "rank":{"@id":"vivo:rank"},
     "relatedBy":{"@type":"@id",
                  "@id":"vivo:relatedBy"
                 },
