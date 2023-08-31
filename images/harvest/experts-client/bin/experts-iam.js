@@ -78,6 +78,7 @@ async function main(opt) {
 
   ec.jsonld = JSON.stringify(contextObj);
   // const outputFile = path.join(__dirname, '..', 'data', 'iam-profiles.jsonld');
+  fs.ensureDirSync('data');
   // await fs.writeFile(outputFile, ec.jsonld, 'utf8');
 
   console.log('starting createDataset');

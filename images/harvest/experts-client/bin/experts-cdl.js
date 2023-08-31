@@ -131,7 +131,8 @@ async function main(opt) {
 
     await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-    // fs.writeFileSync(path.join('data', user + '-works.jsonld'), jsonld);
+    fs.ensureDirSync('data');
+    fs.writeFileSync(path.join('data', user + '-works.jsonld'), jsonld);
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
     if (!opt.nosplay) {
