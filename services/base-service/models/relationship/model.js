@@ -30,11 +30,6 @@ class RelationshipModel extends ExpertsModel {
 
     const root_node= this.get_main_graph_node(jsonld);
 
-    if (root_node.visible === false) {
-      console.log(`RelationshipModel.update(${jsonld['@id']}) - not visible`);
-      return;
-    }
-
     let have={};
     // Get the work and the Person via the Authorship.relates
     const personModel= await this.get_model('person');
@@ -68,27 +63,34 @@ class RelationshipModel extends ExpertsModel {
         }
       }
       if (have.Person && have.Work) {
-        console.log(`${have.Person.id} <=> ${have.Work.id}`);
         // Add Work as snippet to Person
-        {
-          const node = {
-            ...this.snippet(have.Work.node),
-            ...root_node,
-            '@type': 'Authored'
-          };
-          delete node.relates;
-          // console.log(`${have.Person.id} Authored ${have.Work.id}`);
-          const response = await personModel.update_graph_node(have.Person.id,node)
-        }
-        {
-          const node = {
-            ...this.snippet(have.Person.node),
-            ...root_node,
-            '@type': 'Author'
-          };
-          delete node.relates;
-          // console.log(`${have.Work.id} Author ${have.Person.id}`);
-          const response = await workModel.update_graph_node(have.Work.id,node)
+        console.log(root_node);
+        if (root_node['is-visible'] === true || root_node['is-visible'] === 'true') {
+          console.log(`${have.Person.id} <=> ${have.Work.id}`);
+          {
+            const node = {
+              ...workModel.snippet(have.Work.node),
+              ...this.snippet(root_node),
+              '@type': 'Authored'
+            };
+            delete node.relates;
+            // console.log(`${have.Person.id} Authored ${have.Work.id}`);
+            await personModel.update_graph_node(have.Person.id,node,root_node['is-visible']);
+          }
+          {
+            const node = {
+              ...personModel.snippet(have.Person.node),
+              ...this.snippet(root_node),
+              '@type': 'Author'
+            };
+            delete node.relates;
+            // console.log(`${have.Work.id} Author ${have.Person.id}`);
+            await workModel.update_graph_node(have.Work.id,node,root_node['is-visible']);
+          }
+        } else {
+          console.log(`${have.Person.id} X=X ${have.Work.id}`);
+          await personModel.delete_graph_node(have.Person.id,root_node);
+          await workModel.delete_graph_node(have.Work.id,root_node);
         }
       }
     }

@@ -80,6 +80,7 @@ class ExpertsModel extends FinEsNestedModel {
    * by elasticsearch.  Default is to return whole node.
    */
   snippet(node) {
+    delete node['_'];
     return node;
   }
 

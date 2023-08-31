@@ -89,16 +89,15 @@ class FinEsNestedModel extends FinEsDataModel {
     throw new Error(`get_main_graph_node: Unable to find main graph node for ${doc['@id']}`);
   }
 
-
-  /**
-   * @method update_graph_node
-   * @description Update one node of the @graph of a document. The document must exist.
+    /**
+   * @method delete_graph_node
+   * @description delete one node of the @graph of a document. The document must exist.
    * @param {String} document_id
-   * @param {Object} node_to_update
+   * @param {Object} node : node to delete, uses node["@id"] for deletion
    *
    * @returns {Promise} : Elasticsearch response Promise
    */
-  async update_graph_node(document_id, node_to_update) {
+  async delete_graph_node(document_id, node_to_delete) {
     return this.client.update({
       index: this.writeIndexAlias,
       id : document_id,
@@ -106,11 +105,38 @@ class FinEsNestedModel extends FinEsDataModel {
       // refresh : 'wait_for',
       script : {
         source : `
-   ctx._source['@graph'].removeIf((Map item) -> { item['@id'] == params.node['@id'] });
-   ctx._source['@graph'].add(params.node);`,
-        params : {node: node_to_update}
+   ctx._source['@graph'].removeIf((Map item) -> { item['@id'] == params.node['@id'] });`,
+         params : {node: node_to_delete}
       }
     });
+  }
+
+  /**
+   * @method update_graph_node
+   * @description Update one node of the @graph of a document. The document must exist.
+   * @param {String} document_id
+   * @param {Object} node_to_update
+   * @param {Boolean} is_visible : true if the node is visible, Delete node if false
+   *
+   * @returns {Promise} : Elasticsearch response Promise
+   */
+  async update_graph_node(document_id, node_to_update, is_visible=true) {
+     if (is-visible === true || is-visible === 'true') {
+      return this.client.update({
+        index: this.writeIndexAlias,
+        id : document_id,
+        retry_on_conflict : this.UPDATE_RETRY_COUNT,
+        // refresh : 'wait_for',
+        script : {
+          source : `
+   ctx._source['@graph'].removeIf((Map item) -> { item['@id'] == params.node['@id'] });
+   ctx._source['@graph'].add(params.node);`,
+          params : {node: node_to_update}
+        }
+      });
+    } else {
+      return this.delete_graph_node(document_id, node_to_update);
+    }
   }
 
   /**
