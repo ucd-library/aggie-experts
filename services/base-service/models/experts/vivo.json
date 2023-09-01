@@ -13,6 +13,8 @@
         "@id" : { "type" : "keyword" },
         "relates" : {"type" : "keyword" },
         "@type" : { "type" : "keyword" },
+        "is-visible" : { "type" : "boolean" },
+        "rank" : { "type" : "integer" },
         "identifier" : {
           "type" : "text",
           "fields": {
@@ -31,12 +33,12 @@
                 }
               }
             },
-            "hasTitleQQ":{
+            "hasTitle":{
               "properties" : {
                 "title" : { "type" : "text" }
               }
             },
-            "organizationXX":{
+            "organization":{
               "properties" : {
                 "title" : { "type" : "text" }
               }

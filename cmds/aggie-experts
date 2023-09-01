@@ -84,7 +84,7 @@ function build() {
     org=$(G .experts.org)
     tag=$(G .git.tag)
   fi
-  declare -a services=(init base-service)
+  declare -a services=( init base-service )
   if [[ "$(G .git.tag)" =~ "dirty" && "$(G .env)" != "dev" ]]; then
     echo "Cannot build dirty image in non-dev environment"
     exit 1

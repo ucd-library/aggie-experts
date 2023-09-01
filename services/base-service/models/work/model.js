@@ -35,8 +35,8 @@ class WorkModel extends ExpertsModel {
       let authorship = authorships.hits.hits[i]._source?.['@graph']?.[0] || {};
       //console.log(`authorship[${i}]: ${authorship['@id']}`);
       const authored={
-        ...root_node,
-        ...authorship,
+        ...this.snippet(root_node),
+        ...relationshipModel.snippet(authorship),
         '@type': 'Authored',
       };
       delete authored.relates;
@@ -45,22 +45,26 @@ class WorkModel extends ExpertsModel {
         throw new Error(`Expected 1 relates, got ${relates.length}`);
       }
       for (let j=0;j<relates.length; j++) {
-        console.log(`${this.constructor.name} add ${authored["@id"]} => ${relates[j]}`);
         try {
           let person=await personModel.get(relates[j])
           person=this.get_main_graph_node(related['_source']);
           const author = {
             ...personModel.snippet(person),
-            ...authorship,
+            ...relationshipModel.snippet(authorship),
             '@type': 'Author'
           };
           delete author.relates;
 
-          // Authored(work) is added to Person
-          await personModel.update_graph_node(relates[j],authored)
+          if (authorship['is-visible']) {
+            console.log(`${jsonld["@id"]} <=> ${relates[j]}`);
+          } else {
+            console.log(`${jsonld["@id"]} X=X ${relates[j]}`);
+          }
 
+          // Authored(work) is added to Person
+          await personModel.update_graph_node(relates[j],authored,authorship['is-visible']);
           // Author(person) is added to Work
-          await this.update_graph_node(jsonld['@id'],author)
+          await this.update_graph_node(jsonld['@id'],author,authorship['is-visible']);
         } catch (e) {
           console.log(`${relates[j]} not found`);
         }

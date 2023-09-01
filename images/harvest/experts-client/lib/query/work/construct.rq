@@ -244,10 +244,13 @@ WHERE {
     BIND(uri(concat(str(?work),"#",?opub_datestr)) as ?work_opubdate)
 
     OPTIONAL {
-      ?field :pagination [ :begin-page ?begin ; :end-page ?end ].
+      ?field :pagination [ :begin-page ?begin ].
+      OPTIONAL {
+        ?field :pagination [ :end-page ?end ].
+      }
     }
     BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
-    BIND(concat(?start,coalesce(concat('-',?end),'')) AS ?pagination)
+    BIND(concat(?begin,coalesce(concat('-',?end),'')) AS ?pagination)
 
     # Now we take CDLs preferred term
     OPTIONAL {

@@ -56,12 +56,20 @@ WHERE {
     ?pub oap:records/oap:record [ oap:source-name  ?source;
                                   oap:native/oap:field ?field ].
 
-    ?field oap:name "authors";
-           oap:people/oap:person [ list:index(?pos ?elem) ] .
-
-    ?elem oap:links/oap:link ?user.
-    BIND(xsd:integer(?pos+1) AS ?user_rank)
-
+    OPTIONAL {
+      ?field oap:name "authors";
+             oap:people/oap:person [ list:index(?pos ?elem) ] .
+	    ?elem oap:links/oap:link ?user.
+    }
+    # get any rank?
+    OPTIONAL {
+    ?pub oap:records/oap:record/oap:native/oap:field ?any_link.
+       ?any_link oap:name "authors";
+          	oap:people/oap:person [ list:index(?any_pos ?any_elem) ] .
+    ?any_elem oap:links/oap:link ?user.
+    }
+    # Prefer the rank from the priority source, this could have multiple values
+    BIND(coalesce(?pos,?any_pos)+1 as ?user_rank)
 
     OPTIONAL {
 	    ?RELATIONSHIP__ :is-favourite "true".

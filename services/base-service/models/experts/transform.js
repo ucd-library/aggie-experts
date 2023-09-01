@@ -26,13 +26,11 @@ module.exports = async function(path, graph, headers, utils) {
 
   // alter the author(s) by rank, always an array as well.
   if (framed["@graph"]?.[0]?.["author"]) {
-//    console.log("framed author", typeof framed["@graph"][0]["author"]);
-    if (typeof framed["@graph"][0]["author"] !== 'array') {
+    console.log("framed author isArray", Array.isArray(framed["@graph"][0]["author"]));
+    if (! Array.isArray(framed["@graph"][0]["author"])) {
       framed["@graph"][0]["author"] = [ framed["@graph"][0]["author"] ];
     } else {
-      framed["@graph"][0]["author"]=
-        framed["@graph"][0]["author"]
-        .sort((a,b)=>a.rank-b.rank)
+      framed["@graph"][0]["author"].sort((a,b)=>a["rank"]-b["rank"])
     }
   }
   framed["@id"] = path.replace(/^\//,"");
