@@ -121,7 +121,7 @@ class FinEsNestedModel extends FinEsDataModel {
    * @returns {Promise} : Elasticsearch response Promise
    */
   async update_graph_node(document_id, node_to_update, is_visible=true) {
-     if (is-visible === true || is-visible === 'true') {
+     if (is_visible === true || is_visible === 'true') {
       return this.client.update({
         index: this.writeIndexAlias,
         id : document_id,
