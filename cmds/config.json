@@ -25,10 +25,11 @@
    },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.2.7"
+    "tag":"2.3.0"
   },
   "experts":{
-    "org":"gcr.io/digital_ucdavis_edu/aggie-experts"
+    "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
+    "tag":"$(${G[git]} describe --tags --always --dirty)"
   },
   "git":{
     "base":"$(${G[git]} rev-parse --show-toplevel)",

@@ -25,7 +25,7 @@ services:
   # Fedora Repository
   ###
   fcrepo:
-    image: ${ORG}/fcrepo:${TAG}
+    image: ${FIN_ORG}/fin-fcrepo:${FIN_TAG}
     env_file:
       - .env
     ports:
@@ -68,6 +68,16 @@ services:
     restart: unless-stopped
     depends_on:
       - fcrepo
+
+  ###
+  # RabbitMQ - for messaging
+  ###
+  rabbitmq:
+    image: ${FIN_ORG}/fin-rabbitmq:${FIN_TAG}
+    ports:
+      - 15672:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
 
   api:
     image: *BASE
@@ -261,4 +271,6 @@ volumes:
   es-data:
     driver: local
   redis-data:
+    driver: local
+  rabbitmq-data:
     driver: local
