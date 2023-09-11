@@ -13,10 +13,6 @@ services:
       - ${HOST_PORT:-3000}:3001
     env_file:
       - .env
-    depends_on:
-      - fcrepo
-      - redis
-      - elasticsearch
     restart: unless-stopped
     command: npm run gateway
     # command: bash -c 'tail -f /dev/null'
@@ -66,8 +62,6 @@ services:
     volumes:
       - redis-data:/data
     restart: unless-stopped
-    depends_on:
-      - fcrepo
 
   ###
   # RabbitMQ - for messaging
@@ -88,8 +82,6 @@ services:
       - *DEV_MOUNT_FIN_SERVICES
       - *DEV_MOUNT_FIN_API
       - *DEV_MOUNT_MODELS
-    depends_on:
-      - elasticsearch
     restart: unless-stopped
     command: npm run api
   # command: bash -c 'tail -f /dev/null'
@@ -112,8 +104,6 @@ services:
       - *DEV_MOUNT_FIN_SERVICES
       - *DEV_MOUNT_FIN_API
       - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
-    depends_on:
-      - elasticsearch
     command: node spa/index.js
     # command: bash -c 'tail -f /dev/null'
 
@@ -129,8 +119,6 @@ services:
       - *DEV_MOUNT_FIN_SERVICES
       - *DEV_MOUNT_FIN_API
       - *DEV_MOUNT_MODELS
-    depends_on:
-      - gateway
     restart: unless-stopped
     command: npm run dbsync
     # command: bash -c 'tail -f /dev/null'
@@ -147,8 +135,6 @@ services:
       - *DEV_MOUNT_MODELS
     env_file:
       - .env
-    depends_on:
-      - gateway
     restart: unless-stopped
     command: npm run es-index-management
 
@@ -167,8 +153,6 @@ services:
 #      - *DEV_MOUNT_FIN_SERVICES
 #      - *DEV_MOUNT_FIN_API
 #      - *DEV_MOUNT_MODELS
-    depends_on:
-      - gateway
     command: npm run gcs
     # command: bash -c 'tail -f /dev/null'
 
@@ -184,8 +168,6 @@ services:
     volumes:
       - es-data:/usr/share/elasticsearch/data
     restart: unless-stopped
-    depends_on:
-      - fcrepo
     # command: bash -c 'tail -f /dev/null'
 
   kibana:
@@ -197,8 +179,6 @@ services:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - xpack.security.enabled=false
       - telemetry.enabled=false
-    depends_on:
-      - elasticsearch
 
   # ###
   # # Fin Workflows
@@ -208,8 +188,6 @@ services:
   #   volumes:
       # - *SERVICE_ACCOUNT
       # - *DEV_MOUNT_FIN_SERVICES
-  #   depends_on:
-  #     - gateway
   #   # command: bash -c 'tail -f /dev/null'
 
   ###
@@ -223,8 +201,6 @@ services:
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_FIN_SERVICES
       - *DEV_MOUNT_FIN_API
-    depends_on:
-      - gateway
     restart: unless-stopped
     # command: bash -c 'tail -f /dev/null'
     command: npm run oidc
