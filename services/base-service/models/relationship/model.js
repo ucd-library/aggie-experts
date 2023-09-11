@@ -39,9 +39,9 @@ class RelationshipModel extends ExpertsModel {
       try {
         // Is this a Person?
         // console.log(`get ${relates}`);
-        let related = await personModel.get(relates);
+        let related = await personModel.client_get(relates);
         // console.log(`got ${related}`);
-        related=this.get_main_graph_node(related['_source']);
+        related=this.get_main_graph_node(related);
         // This part is removed when we split the indices
         let type = this.experts_node_type(related);
         if (type !== 'Person') {
@@ -51,8 +51,8 @@ class RelationshipModel extends ExpertsModel {
       } catch (e) {
         try {
           // Is this a Work?
-          let related = await workModel.get(relates);
-          related=this.get_main_graph_node(related['_source']);
+          let related = await workModel.client_get(relates);
+          related=this.get_main_graph_node(related);
           let type = this.experts_node_type(related);
           if (type !== 'Work') {
             throw new Error(`RelationshipModel.update(${jsonld['@id']}) - ${relates} is not a Work`);
@@ -64,7 +64,7 @@ class RelationshipModel extends ExpertsModel {
       }
       if (have.Person && have.Work) {
         // Add Work as snippet to Person
-        console.log(root_node);
+        // console.log(root_node);
         if (root_node['is-visible'] === true || root_node['is-visible'] === 'true') {
           console.log(`${have.Person.id} <=> ${have.Work.id}`);
           {

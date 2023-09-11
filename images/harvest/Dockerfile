@@ -7,7 +7,7 @@ FROM $ORG/fuseki:$REF_NAME as more
 #The Oracle SQL developer CLI.  This is a java tool that provides
 #a command-line interface to Oracle Services.
 ENV SQLCL_VERSION=21.4.1.17.1458
-
+https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-23.2.0.178.1027.zip
 USER root
 RUN set -x ; mkdir -p /tmp/builder && \
     cd /tmp/builder && \
@@ -87,7 +87,7 @@ RUN cd /tmp && npm install -g xml2json --unsafe-perm
 
 # COPY over experts-client source code
 COPY experts-client /usr/local/lib/experts-client
-RUN cd /usr/local/lib/experts-client && npm ci && npm install -g
+RUN cd /usr/local/lib/experts-client && npm install && npm install -g
 
 # Setup a place to hold the Makefile data
 RUN mkdir /usr/local/lib/harvest

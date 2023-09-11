@@ -60,6 +60,7 @@ class PersonModel extends ExpertsModel {
     // Update all Works with this Person as well
     let authorships= await relationshipModel.esMatchNode({ 'relates': jsonld['@id'] });
 
+    console.log(authorships);
     for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {
       let authorship = authorships.hits.hits[i]._source?.['@graph']?.[0] || {};
       console.log(`authorship[${i}]: ${authorship['@id']}`);
@@ -80,13 +81,13 @@ class PersonModel extends ExpertsModel {
       related_work: for (let j=0;j<relates.length; j++) {
         let work;
         try {
-          work=await workModel.get(relates[j])
+          work=await workModel.client_get(relates[j])
         } catch (e) {
           console.log(`${relates[j]} not found`);
           break related_work;
         }
 
-        work=this.get_main_graph_node(work['_source']);
+        work=this.get_main_graph_node(work);
         const authored = {
           ...workModel.snippet(work),
           ...authorship,

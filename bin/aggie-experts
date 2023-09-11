@@ -3,12 +3,11 @@
 # These Global Variables are the defaults values for the current setup.
 declare -g -A G=(
   [project]="aggie-experts"
-  [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/config.json"
+  [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../config.json"
   [jq]="."
   [env]=dev
   # Below you probably don't need to change
-  [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-  [dir]="."
+  [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/.."
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [noop]=
@@ -193,14 +192,13 @@ function setup() {
     service_account
   else
     echo "#===== .env  =====#"
-    env | tee .env
+    env | tee ${G[base]}.env
     echo "#===== docker-compose.yaml =====#"
-    compose | tee docker-compose.yaml
+    compose | tee ${G[base]}/docker-compose.yaml
     echo "#===== service-account =====#"
-    service_account | tee service-account.json
+    service_account | tee ${G[base]}/service-account.json
   fi
 }
-
 
 function main.cmd() {
   local opts;

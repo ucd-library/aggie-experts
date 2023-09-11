@@ -45,9 +45,9 @@ class WorkModel extends ExpertsModel {
         throw new Error(`Expected 1 relates, got ${relates.length}`);
       }
       for (let j=0;j<relates.length; j++) {
-        try {
-          let person=await personModel.get(relates[j])
-          person=this.get_main_graph_node(related['_source']);
+//        try {
+          let person=await personModel.client_get(relates[j])
+          person=this.get_main_graph_node(person);
           const author = {
             ...personModel.snippet(person),
             ...relationshipModel.snippet(authorship),
@@ -65,9 +65,9 @@ class WorkModel extends ExpertsModel {
           await personModel.update_graph_node(relates[j],authored,authorship['is-visible']);
           // Author(person) is added to Work
           await this.update_graph_node(jsonld['@id'],author,authorship['is-visible']);
-        } catch (e) {
-          console.log(`${relates[j]} not found`);
-        }
+//        } catch (e) {
+//          console.log(`${relates[j]} not found`);
+//        }
       }
     }
   }

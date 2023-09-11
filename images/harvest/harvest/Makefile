@@ -47,7 +47,7 @@ hdt-bucket:=${GCS_GRAPH_STORAGE}
 
 hdt-push: ## Push the HDT files to the GCS bucket
 	gsutil rsync -r databases/hdt ${hdt-bucket}/hdt
-	gsutil rsync fis_csv.tar.gz ${hdt-bucket}/tar
+	gsutil rsync -r tar ${hdt-bucket}/tar
 
 hdt-pull: ## Pull HDT files from GCS_GRAPH_STORAGE
 	[[ -d databases/hdt ]] || mkdir -p databases/hdt
@@ -110,7 +110,7 @@ $1.hdt:${$1.tdb2} ${$1.hdt}
 ${$1.hdt}:${$1.tdb2}
 	@[[ -d $(dir ${$1.hdt}) ]] || mkdir -p $(dir ${$1.hdt}); \
 	rm -f ${$1.hdt}*;\
-	tdb2.tdbdump --loc=${$1.tdb2} | grep '\<$2\>...\.$' | rdf2hdt.sh -rdftype nquad -index -  ${$1.hdt}
+	tdb2.tdbdump --loc=${$1.tdb2} | grep '<$2> \.$$' | rdf2hdt.sh -rdftype nquad -index -  ${$1.hdt}
 
 endef
 
@@ -143,14 +143,16 @@ dist-clean:: clean       # Remove all generated files and databases
 
 csv:${csv}               # Generate CSV files from FIS
 
-fis_csv.tar.gz: ${csv}
+tar/fis_csv.tar.gz: ${csv}
+	[[ -d tar ]] || mkdir -p tar
 	tar -czf $@ $^
 
 ${csv}:fis/%.csv:${mkfile_path}/grants/sql/%.sql
 	[[ -d $(dir $@) ]] || mkdir -p $(dir $@)
 	${sqlcl} < $< > $@
 
-aggie_enterprise_imports.ttl:${mkfile_path}/grants/csv/aggie_enterprise_imports.csv
+fis/aggie_enterprise_imports.ttl:${mkfile_path}/grants/csv/aggie_enterprise_imports.csv
+	[[ -d $(dir $@) ]] || mkdir -p $(dir $@)
 	tarql ${mkfile_path}/grants/rq/aggie_enterprise_imports.rq $< > $@
 
 grants.ttl:${grants.ttl}
@@ -159,10 +161,10 @@ ${grants.ttl}:fis/%.ttl:fis/%.csv ${mkfile_path}/grants/rq/%.rq
 	tarql ${mkfile_path}/grants/rq/$*.rq $< > $@
 
 ${grants.tdb2}:graph:=ark:/87287/d7gt0q/
-${grants.tdb2}:${grants.ttl} ${const_jsonld}
+${grants.tdb2}:${grants.ttl} ${const_jsonld} fis/aggie_enterprise_imports.ttl
 	mkdir -p ${grants.tdb2};
 	tdb2.tdbloader --loc=${grants.tdb2} ${const_jsonld}
-	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl} aggie_enterprise_imports.ttl
+	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl} fis/aggie_enterprise_imports.ttl
 	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/archive.ru
 	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/amount0.ru
 	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/too_late.ru
@@ -183,7 +185,7 @@ iam.tdb2:=databases/iam
 iam.hdt:=${FUSEKI_BASE}/databases/hdt/iam.hdt
 
 define ucdid_auth
-$$(gcloud --project=digital-ucdavis-edu secrets versions access latest --secret=ucdid_auth)
+$$(gcloud --project=digital-ucdavis-edu secrets versions access latest --secret=ucdid_auth | jq -r '.[] | select(.["@id"]=="iet-ws") | .auth.raw_auth')
 endef
 
 .PHONY: iam.hdt

@@ -25,7 +25,7 @@
    },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.3.0"
+    "tag":"2.3.1"
   },
   "experts":{
     "org":"gcr.io/digital_ucdavis_edu/aggie-experts",

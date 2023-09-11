@@ -33,7 +33,8 @@ class FinEsNestedModel extends FinEsDataModel {
               path: "@graph",
               query: query
             }
-          }
+          },
+          size: 10000
         });
   }
 
@@ -55,9 +56,9 @@ class FinEsNestedModel extends FinEsDataModel {
    * @param {String} id : _id of document to get
    * @param {Object} options : options for get (like _source:false)
    */
-  async get(id,options) {
-    //console.log(`FinEsNestedModel.get(${id}) on ${this.readIndexAlias}`);
-    return this.client.get(
+  async client_get(id,options) {
+    // console.log(`FinEsNestedModel.client_get(${id}) on ${this.readIndexAlias}`);
+    const result = await this.client.get(
       {
         ...{
           index: this.readIndexAlias,
@@ -66,8 +67,86 @@ class FinEsNestedModel extends FinEsDataModel {
         },
         ...options
       }
-      )
+    )
+    return result._source;
     }
+
+    /**
+   * @method get
+   * @description get a object by id
+   *
+   * @param {String} id @graph.identifier or @graph.@id
+   *
+   * @returns {Promise} resolves to elasticsearch result
+   */
+  async get(id, opts={}, index) {
+    let _source_excludes = true;
+    if( opts.admin ) _source_excludes = false;
+    else if( opts.compact ) _source_excludes = 'compact';
+
+    let identifier = id.replace(/^\//, '').split('/');
+    identifier.shift();
+    identifier = identifier.join('/');
+    console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
+
+    let result= await this.client.get(
+      {
+        index: this.readIndexAlias,
+        id: identifier,
+        _source: true,
+	      _source_excludes: _source_excludes
+      }
+    );
+
+
+    if( result ) {
+      result = result._source;
+      //if( opts.compact ) this.utils.compactAllTypes(result);
+      //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
+    } else {
+      return null;
+    }
+
+    if( opts.admin === true ) {
+      try {
+        let response = await api.metadata({
+          path : id,
+          host : config.gateway.host
+        });
+        if( response.data.statusCode === 200 ) {
+          result.fcrepo = JSON.parse(response.data.body);
+        } else {
+          result.fcrepo = {
+            error: true,
+            body : response.data.body,
+            statusCode : response.data.statusCode
+          }
+        }
+      } catch(e) {
+        result.fcrepo = {
+          error: true,
+          message : e.message,
+          stack : e.stack
+        }
+      }
+
+      try {
+        result.dbsync = {};
+        let response = await this.pg.query('select * from dbsync.update_status where path = $1', [id]);
+        if( response.rows.length ) result.dbsync[id] = response.rows[0];
+
+        response = await this.pg.query('select * from dbsync.update_status where path = $1', [id+'/fcr:metadata']);
+        if( response.rows.length ) result.dbsync[id+'/fcr:metadata'] = response.rows[0];
+      } catch(e) {
+        result.dbsync = {
+          message : e.message,
+          stack : e.stack
+        }
+      }
+    }
+
+    return result;
+  }
 
   /**
    * @method get_main_graph_node
