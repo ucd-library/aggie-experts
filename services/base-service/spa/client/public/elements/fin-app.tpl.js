@@ -28,10 +28,10 @@ return html`
     prevent-fixed>
 
     <ucd-theme-primary-nav>
-      <a href=#>People</a>
-      <a href="#">Subjects</a>
+      <a href="/researcher">Researcher</a>
+      <a href="/subject">Subjects</a>
       <a href="/work">Works</a>
-      <a href="#">Grants</a>
+      <a href="/grant">Grants</a>
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>

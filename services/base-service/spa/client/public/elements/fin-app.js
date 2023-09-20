@@ -34,6 +34,10 @@ export default class FinApp extends Mixin(LitElement)
     this.render = render.bind(this);
   }
 
+  async firstUpdated() {
+    this._onAppStateUpdate(await this.AppStateModel.get());
+  }
+
   /**
    * @method _onAppStateUpdate
    * @description bound to AppStateModel app-state-update event
@@ -41,7 +45,6 @@ export default class FinApp extends Mixin(LitElement)
    * @param {Object} e
    */
    async _onAppStateUpdate(e) {
-    debugger;
     if ( e.location.query && e.location.query.s !== undefined ) {
       this.isSearch = true;
       this.textQuery = e.location.query.s;

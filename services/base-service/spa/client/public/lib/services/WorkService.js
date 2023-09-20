@@ -12,7 +12,7 @@ class WorkService extends BaseService {
 
   get(id) {
     return this.request({
-      url : `${this.baseUrl}${id}`,
+      url : `${this.baseUrl}/${id}`,
       checkCached : () => this.store.getWork(id),
       onLoading : request => this.store.setWorkLoading(id, request),
       onLoad : result => this.store.setWorkLoaded(id, result.body),

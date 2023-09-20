@@ -37,19 +37,12 @@ return html`
 
     .main-content {
       width: 60%;
-      /* width: 53.5rem; */
       margin: 0 auto;
       padding-top: 2.38rem;
     }
 
     .hero-text {
-      /* display: flex; */
-      width: 89.1875rem;
       padding: 2.625rem 2.625rem 4.1875rem 2.625rem;
-      /* align-items: flex-start;
-      align-content: flex-start; */
-      /* gap: 1.1875rem 1.25rem; */
-      /* flex-wrap: wrap; */
     }
 
     .article span {
@@ -148,7 +141,7 @@ return html`
         <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><path d="M249.6 471.5c10.8 3.8 22.4-4.1 22.4-15.5V78.6c0-4.2-1.6-8.4-5-11C247.4 52 202.4 32 144 32C93.5 32 46.3 45.3 18.1 56.1C6.8 60.5 0 71.7 0 83.8V454.1c0 11.9 12.8 20.2 24.1 16.5C55.6 460.1 105.5 448 144 448c33.9 0 79 14 105.6 23.5zm76.8 0C353 462 398.1 448 432 448c38.5 0 88.4 12.1 119.9 22.6c11.3 3.8 24.1-4.6 24.1-16.5V83.8c0-12.1-6.8-23.3-18.1-27.6C529.7 45.3 482.5 32 432 32c-58.4 0-103.4 20-123 35.6c-3.3 2.6-5 6.8-5 11V456c0 11.4 11.7 19.3 22.4 15.5z"/></svg>
         <span>ARTICLE</span>
         </div>
-        <h1>Publication Name</h1>
+        <h1>${this.publicationName}</h1>
         <h4 class="authors">
           <span><a href="">Author UCD</a></span>,
           <span>Author</span>,
@@ -188,18 +181,11 @@ return html`
 
       <div class="abstract">
         <h4>Abstract</h4>
-        <p>
-          Poop on grasses lick the plastic bag i like big cats and i can not lie lick plastic bags.
-          Mewl for food at 4am good now the other hand, too disappear for four days and return
-          home with an expensive injury; bite the vet, and purrrrrr you are a captive audience while
-          sitting on the toilet, pet me try to hold own back foot to clean it but foot reflexively
-          kicks you in face, go into a rage and bite own foot, hard let me in let me out let me in
-          let me out let me in let me out who broke this door anyway . Chew on cable pee in the shoe
-          jump launch to pounce upon little yarn mouse, bare fangs at toy run hide in litter box
-          until treats are fed ignore the human until she needs to get up, then climb on her lap and
-          sprawl so missing until dinner time wack the mini furry mouse meow loudly just to annoy
-          owners.
-        </p>
+        <ucdlib-md>
+          <ucdlib-md-content>
+            ${this.abstract}
+          </ucdlib-md-content>
+        </ucdlib-md>
       </div>
 
       <div class="published">
