@@ -1,14 +1,17 @@
 import { html } from 'lit';
 
+import { sharedStyles } from '../styles/shared-styles';
+
 export function render() {
 return html`
   <style>
+    ${sharedStyles}
     :host {
       display: block;
     }
 
     .hero-main {
-      background: url('../images/ae-header.png');
+      background: url('../images/ae-watercolor-feature.jpg');
       width: 100%;
       min-height: 500px;
       display: flex;
@@ -21,15 +24,10 @@ return html`
 
     .color-light {
       color: white;
-
-      /* TODO move styles to common import */
-      font-size: 1.78rem;
     }
 
     h1 {
-      /* TODO move styles to common import */
-      color: #FFBF00;  /* ucd-gold-100 */
-      font-size: 2.5rem;
+      color: var(--color-aggie-gold);
       margin-bottom: 0.5rem;
     }
 

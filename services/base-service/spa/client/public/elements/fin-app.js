@@ -3,9 +3,17 @@ import {render} from "./fin-app.tpl.js";
 
 // import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js'
 import '../elements/pages/app-home.js';
+import '../elements/pages/app-work.js';
 
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
+
+import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js';
+import '@ucd-lib/theme-elements/brand/ucd-theme-primary-nav/ucd-theme-primary-nav.js';
+import '@ucd-lib/theme-elements/brand/ucd-theme-search-popup/ucd-theme-search-popup.js';
+import '@ucd-lib/theme-elements/brand/ucd-theme-search-form/ucd-theme-search-form.js';
+import '@ucd-lib/theme-elements/brand/ucd-theme-quick-links/ucd-theme-quick-links.js';
+import '@ucd-lib/theme-elements/ucdlib/ucdlib-pages/ucdlib-pages.js';
 
 export default class FinApp extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -33,6 +41,7 @@ export default class FinApp extends Mixin(LitElement)
    * @param {Object} e
    */
    async _onAppStateUpdate(e) {
+    debugger;
     if ( e.location.query && e.location.query.s !== undefined ) {
       this.isSearch = true;
       this.textQuery = e.location.query.s;
@@ -42,7 +51,7 @@ export default class FinApp extends Mixin(LitElement)
       this.isSearch = false;
     }
 
-    let page = e.page;
+    let page = e.location.page;
     if( this.page === page ) return;
     this.page = page;
 

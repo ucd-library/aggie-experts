@@ -1,5 +1,6 @@
 import { html, css } from 'lit';
 
+import { sharedStyles } from './styles/shared-styles';
 
 export function styles() {
   const elementStyles = css`
@@ -9,6 +10,7 @@ export function styles() {
   `;
 
   return [
+    sharedStyles,
     elementStyles
   ];
 }
@@ -28,7 +30,7 @@ return html`
     <ucd-theme-primary-nav>
       <a href=#>People</a>
       <a href="#">Subjects</a>
-      <a href="#">Works</a>
+      <a href="/work">Works</a>
       <a href="#">Grants</a>
     </ucd-theme-primary-nav>
 
@@ -61,19 +63,18 @@ return html`
     <ucdlib-pages
       selected="${this.page}"
       selectedAttribute="visible">
-    <div id="loading" ?hidden="${this.page}">
-      <img src="/images/logos/logo-icon.svg" style="max-width: 128px" />
-      <div class="loading-dots">
-        <h1 class="dot one">.</h1>
-        <h1 class="dot two">.</h1>
-        <h1 class="dot three">.</h1>
+      <div id="loading" ?hidden="${this.page}">
+        <img src="/images/logos/logo-icon.svg" style="max-width: 128px" />
+        <div class="loading-dots">
+          <h1 class="dot one">.</h1>
+          <h1 class="dot two">.</h1>
+          <h1 class="dot three">.</h1>
+        </div>
       </div>
-    </div>
-    <app-home id="home"></app-home>
-    <app-work id="work"></app-work>
-    <app-person id="person"></app-person>
-    <app-grant id="grant"></app-grant>
-  </ucdlib-pages>
-</div>
-
+      <app-home id="home"></app-home>
+      <app-work id="work"></app-work>
+      <app-person id="person"></app-person>
+      <app-grant id="grant"></app-grant>
+    </ucdlib-pages>
+  </div>
 `;}
