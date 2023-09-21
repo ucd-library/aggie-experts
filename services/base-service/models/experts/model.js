@@ -9,7 +9,6 @@ const FinEsNestedModel = require('./fin-es-nested-model');
  */
 class ExpertsModel extends FinEsNestedModel {
 
-
   static types = [
     "http://schema.library.ucdavis.edu/schema#Person",
     "http://schema.library.ucdavis.edu/schema#Work",
@@ -22,21 +21,7 @@ class ExpertsModel extends FinEsNestedModel {
     super(name);
     this.schema = schema;  // Common schema for all experts data models
 
-    // Object.defineProperty(this, "Person", {
-    //   value: new PersonModel(),
-    //   writable: false, // This makes the property read-only
-    //   enumerable: true,
-    //   configurable: false // This prevents reconfiguration of the property
-    // });
-
-    // Object.defineProperty(this, "Work", {
-    //   value: ExpertsModel.Work,
-    //   writable: false, // This makes the property read-only
-    //   enumerable: true,
-    //   configurable: false // This prevents reconfiguration of the property
-    // });
-
-       this.transformService = "node";
+    this.transformService = "node";
   }
 
   /**
@@ -101,5 +86,10 @@ class ExpertsModel extends FinEsNestedModel {
   async update(jsonld) {
     throw new Error(`${this.constructor.name}.update(${jsonld['@id']}) not implemented`);
   }
+
+  async remove(jsonld) {
+    throw new Error(`${this.constructor.name}.delete(${jsonld['@id']}) not implemented`);
+  }
+
 }
 module.exports = ExpertsModel;
