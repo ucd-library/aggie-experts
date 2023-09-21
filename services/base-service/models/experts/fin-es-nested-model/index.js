@@ -1,5 +1,7 @@
 const {config, dataModels} = require('@ucd-lib/fin-service-utils');
 const {FinEsDataModel} = dataModels;
+const FinNestedSearch = require('./fin-nested-search.js');
+const default_text_weights = require('./default-text-weights.json');
 
 /**
  * @class FinEsNestedModel
@@ -18,6 +20,32 @@ class FinEsNestedModel extends FinEsDataModel {
   constructor(modelName) {
     super(modelName);
     }
+
+
+  weights() {
+    return default_text_weights;
+  }
+
+  /**
+   * @method _getNestedSearch
+   * @description return a new instance of FinNestedSearch
+   * @returns {FinNestedSearch}
+   */
+  elastic_search_query() {
+    const query = {
+      filters : [],
+      text : 'quinn',
+      textFields : default_text_weights,
+      facets : [],
+      offset : 0,
+      sort : ['_score',
+              { 'node.name.raw' : 'asc' }
+             ],
+    };
+    return FinNestedSearch.searchDocumentToEsBody(query);
+
+  }
+
 
   /**
    * @method esSearchGraph

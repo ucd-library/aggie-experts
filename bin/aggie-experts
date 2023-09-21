@@ -192,7 +192,7 @@ function setup() {
     service_account
   else
     echo "#===== .env  =====#"
-    env | tee ${G[base]}.env
+    env | tee ${G[base]}/.env
     echo "#===== docker-compose.yaml =====#"
     compose | tee ${G[base]}/docker-compose.yaml
     echo "#===== service-account =====#"
