@@ -1,0 +1,21 @@
+[
+  "doi.text^10",
+  "hasContactInfo.familyName.text^9",
+  "hasContactInfo.givenName^8",
+  "hasContactInfo.middleName^8",
+  "hasSubjectArea.label.text^3",
+  "abstract^1",
+  "hasContactInfo.title.text",
+  "hasResearchArea.label.text^1",
+  "hasPublicationVenue.issn^1",
+  "hasPublicationVenue.label.text^1",
+  "citation.label^10",
+  "assignedBy.label.text",
+  "sponsorAwardId.text^2",
+  "relates.hasContactInfo.familyName^10",
+  "relates.hasContactInfo.givenName^10",
+  "assignedBy.label^10",
+  "role.relatedBy.label.text^11",
+  "role.relatedBy.sponsorAwardId.text^5",
+  "label.text^7"
+  ]
