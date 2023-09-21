@@ -22,7 +22,7 @@ module.exports = (app) => {
     isRoot : true,
 
     // array of root paths.  ie appRoutes = ['foo', 'bar'] to server /foo/* /bar/*
-    // appRoutes : config.appRoutes,
+    appRoutes : config.client.appRoutes,
 
     // options for express.static(dir, opts)
     static : {
