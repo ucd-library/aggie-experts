@@ -10,12 +10,11 @@ if( process.env.APP_VERSION ) {
 }
 
 config.client = {
-  // TODO: move this to fcrepo
   title : 'Aggie Experts',
   description : 'Aggie Experts is a research networking and expertise discovery tool for UC Davis.',
   appName : process.env.FIN_APP_NAME || 'spa',
   assets : (env === 'prod') ? 'dist' : 'public',
-  appRoutes : ['home', 'work', 'person', 'grant', 'subject'],
+  appRoutes : ['home', 'work', 'researcher', 'grant'],
   versions : {
     bundle : clientPackageVersion,
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')

@@ -9,21 +9,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^6.1.1",
-    "@polymer/app-route": "^3.0.2",
-    "@polymer/iron-dropdown": "^3.0.1",
-    "@polymer/iron-icons": "^3.0.1",
-    "@polymer/iron-pages": "^3.0.1",
-    "@polymer/polymer": "^3.4.1",
     "@ucd-lib/cork-app-load": "^0.3.2",
-    "@ucd-lib/cork-app-state": "^1.0.5",
-    "@ucd-lib/cork-app-utils": "^4.4.0",
-    "@ucd-lib/theme-elements": "^1.2.3",
+    "@ucd-lib/cork-app-state": "^2.0.1",
+    "@ucd-lib/cork-app-utils": "^5.1.1",
+    "@ucd-lib/theme-elements": "^1.2.6",
     "@ucd-lib/theme-sass": "^5.0.16",
     "dompurify": "^2.3.6",
-    "lit": "^2.2.2",
-    "lit-element": "^3.2.0",
-    "marked": "^4.0.14",
-    "query-string": "^7.1.1"
+    "lit": "^2.8.0",
+    "lit-element": "^3.3.3"
   }
 }
