@@ -3,7 +3,8 @@ import {render} from "./fin-app.tpl.js";
 
 // import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js'
 import '../elements/pages/app-home.js';
-import '../elements/pages/app-work.js';
+// import '../elements/pages/app-work.js';
+import '../elements/pages/app-person.js';
 
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";

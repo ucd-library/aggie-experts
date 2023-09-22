@@ -28,10 +28,10 @@ return html`
     prevent-fixed>
 
     <ucd-theme-primary-nav>
-      <a href="/researcher">Researcher</a>
-      <a href="/subject">Subjects</a>
-      <a href="/work">Works</a>
-      <a href="/grant">Grants</a>
+      <a href="/experts">Experts</a>
+      <!-- <a href="/subject">Subjects</a> -->
+      <!-- <a href="/work">Works</a> -->
+      <!-- <a href="/grant">Grants</a> -->
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>
@@ -72,9 +72,9 @@ return html`
         </div>
       </div>
       <app-home id="home"></app-home>
-      <app-work id="work"></app-work>
-      <app-person id="person"></app-person>
-      <app-grant id="grant"></app-grant>
+      <!-- <app-work id="work"></app-work> -->
+      <app-person id="experts"></app-person>
+      <!-- <app-grant id="grant"></app-grant> -->
     </ucdlib-pages>
   </div>
 `;}
