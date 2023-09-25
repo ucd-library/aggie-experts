@@ -332,7 +332,9 @@ export class ExpertsClient {
     const frame = ExpertsClient.str_or_file(opt, 'frame', false)
     const context = ExpertsClient.str_or_file(opt, 'context', false)
     if (opt.frame) {
-      opt.frame = JSON.parse(opt.frame);
+      if (typeof opt.frame === 'string') {
+        opt.frame = JSON.parse(opt.frame);
+      }
       if (opt.context) {
         const context = JSON.parse(opt.context);
         opt.context = JSON.parse(opt.context);

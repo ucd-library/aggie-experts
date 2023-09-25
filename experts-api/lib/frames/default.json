@@ -32,10 +32,7 @@
       "@id":"obo:ARG_2000028",
       "@type":"@id",
       "@context":{
-        "name":{"@id":"vcard:hasName","@type":"@id"},
-        "familyName":{"@id":"vcard:familyName"},
-        "givenName":{"@id":"vcard:givenName"},
-        "title":{"@id":"vcard:title"},
+        "name":{"@id":"vcard:title"},
         "url":{"@id":"vcard:url"}
       }
     },
@@ -50,13 +47,28 @@
     "directCosts": { "@id": "vivo:grantDirectCosts" },
     "edition":{"@id":"cite:edition"},
     "eissn":{"@id":"cite:eissn"},
-    "familyName":{"@id":"cite:familyName"},
+    "family":{"@id":"cite:familyName"},
     "favorite":{"@id":"ucdlib:favorite","@type":"xsd:boolean"},
     "genre":{"@id":"cite:genre"},
-    "givenName":{"@id":"cite:givenName"},
+    "given":{"@id":"cite:givenName"},
     "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
     "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
-    "hasName":{"@id":"vcard:hasName","@type":"@id"},
+    "hasName": {
+      "@id": "vcard:hasName",
+      "@type": "@id",
+      "@context": {
+        "family": {
+          "@id": "vcard:familyName"
+        },
+        "given": {
+          "@id": "vcard:givenName"
+        },
+        "middle": {
+          "@id": "vcard:middleName"
+        }
+
+      }
+    },
     "hasOrganizationalUnit":{"@id":"vcard:hasOrganizationalUnit"},
     "hasPublicationVenue":{"@id":"vivo:hasPublicationVenue","@type":"@id"},
     "hasResearchArea":{"@id":"vivo:hasResearchArea","@type":"@id" },
