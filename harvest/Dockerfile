@@ -1,8 +1,8 @@
-ARG REF_NAME
+ARG TAG
 ARG ORG
 
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
-FROM $ORG/fuseki:$REF_NAME as more
+FROM $ORG/fuseki:$TAG as more
 
 #The Oracle SQL developer CLI.  This is a java tool that provides
 #a command-line interface to Oracle Services.
@@ -35,8 +35,12 @@ RUN set -x ; mkdir -p /tmp/builder && \
     ls -al ./tarql/bin && \
     mv tarql /usr/local/lib && cd /usr/local/lib/tarql && rm -rf builder
 
-# Now build fuseki
-FROM $ORG/fuseki:$REF_NAME
+
+# Experts API is shared
+FROM $ORG/experts-api:$TAG as api
+
+# Now build from fuseki
+FROM $ORG/fuseki:$TAG
 
 USER root
 
@@ -84,9 +88,14 @@ RUN chmod +x /usr/local/bin/cdl-elements
 # XML2JSON
 RUN cd /tmp && npm install -g xml2json --unsafe-perm
 
-# COPY over experts-client source code
-COPY experts-client /usr/local/lib/experts-client
-RUN cd /usr/local/lib/experts-client && npm install && npm install -g
+
+# COPY over experts-api source code
+ARG AE_API=/usr/local/lib/aggie-experts/experts-api
+ARG AE_CLIENT=/usr/local/lib/experts-client
+COPY --from=api ${AE_API} ${AE_API}
+COPY experts-client ${AE_CLIENT}
+WORKDIR ${AE_CLIENT}
+RUN npm link @ucd-lib/experts-api ${AE_API} &&  npm install && npm install -g
 
 # Setup a place to hold the Makefile data
 RUN mkdir /usr/local/lib/harvest

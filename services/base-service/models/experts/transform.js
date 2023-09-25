@@ -1,6 +1,5 @@
 const ioUtils = require('@ucd-lib/fin-api/lib/io/utils.js');
 const jsonld = require('jsonld');
-const context = require('./frame.jsonld.json');
 const expand=jsonld.expand;
 
 module.exports = async function(path, graph, headers, utils) {
@@ -12,9 +11,10 @@ module.exports = async function(path, graph, headers, utils) {
   // frame, burt for now, we just assume there is only one.  The @id would match
   // the ide of the path, modified to not include the server, and then possibly
   // adding the httpL://experts.ucdavis.edu/moniker.
+  const  { frames } = await import('@ucd-lib/experts-api')
 
   let frame={
-    ...context,
+    ...frames.default,
     "@embed":"@once"
   };
 

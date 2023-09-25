@@ -1,0 +1,29 @@
+{
+  "name": "@ucd-lib/experts-api",
+  "version": "1.1.0",
+  "type": "module",
+  "description": "Aggie Experts API.  Code for the Aggie Experts API",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "create-docs": "jsdoc2md --configure jsdoc.json lib/api.js > README.md"
+  },
+  "author": "rakunkel",
+  "license": "MIT",
+  "keywords": [
+    "jsonld",
+    "aggie experts"
+  ],
+  "dependencies": {
+    "@google-cloud/secret-manager": "^4.2.2"
+  },
+  "devDependencies": {
+    "jsdoc-babel": "^0.5.0",
+    "jsdoc-to-markdown": "^8.0.0",
+    "nodemon": "^2.0.21",
+    "webpack": "^5.75.0"
+  }
+}
