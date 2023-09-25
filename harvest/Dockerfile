@@ -93,9 +93,10 @@ RUN cd /tmp && npm install -g xml2json --unsafe-perm
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api
 ARG AE_CLIENT=/usr/local/lib/experts-client
 COPY --from=api ${AE_API} ${AE_API}
+RUN cd ${AE_API} && npm link
 COPY experts-client ${AE_CLIENT}
 WORKDIR ${AE_CLIENT}
-RUN npm link @ucd-lib/experts-api ${AE_API} &&  npm install && npm install -g
+RUN npm link @ucd-lib/experts-api && npm install && npm install -g
 
 # Setup a place to hold the Makefile data
 RUN mkdir /usr/local/lib/harvest
