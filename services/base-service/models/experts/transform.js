@@ -32,7 +32,7 @@ module.exports = async function(path, graph, headers, utils) {
     } else {
       framed["@graph"][0]["author"].sort((a,b)=>a["rank"]-b["rank"])
     }
-  }
+   }
   framed["@id"] = path.replace(/^\//,"");
   framed["@context"] = "info:fedora/context/experts.json";
   return framed;
