@@ -110,7 +110,7 @@ $1.hdt:${$1.tdb2} ${$1.hdt}
 ${$1.hdt}:${$1.tdb2}
 	@[[ -d $(dir ${$1.hdt}) ]] || mkdir -p $(dir ${$1.hdt}); \
 	rm -f ${$1.hdt}*;\
-	tdb2.tdbdump --loc=${$1.tdb2} | grep '<$2> \.$$' | rdf2hdt.sh -rdftype nquad -index -  ${$1.hdt}
+	tdb2.tdbdump --loc=${$1.tdb2} | grep '<$2> \.$$$$' | rdf2hdt.sh -rdftype nquad -index -  ${$1.hdt}
 
 endef
 
@@ -200,7 +200,8 @@ iam/faculty.in.jsonld:
 	ucdid --auth="$(call ucdid_auth)" fetch --format=jsonld --search=isFaculty=true profiles > $@
 
 iam/faculty.jsonld iam/staff.jsonld:%.jsonld:%.in.jsonld ${mkfile_path}/iam/rq/experts.rq
-	arq --query=${mkfile_path}/iam/rq/experts.rq --results=jsonld --data=$*.in.jsonld > $@
+	arq --query=${mkfile_path}/iam/rq/experts.rq --results=jsonld --data=$*.in.jsonld |\
+	jq '. + {"@id":"ark:/87287/d7c08j/"}' > $@
 
 ${iam.tdb2}:files:=iam/faculty.jsonld iam/staff.jsonld
 ${iam.tdb2}:iam/faculty.jsonld iam/staff.jsonld
@@ -210,7 +211,7 @@ ${iam.tdb2}:iam/faculty.jsonld iam/staff.jsonld
 iam.json.gz:${iam.tdb2}
 	tdb2.tdbdump --loc=${iam.tdb2} --output=jsonld | gzip > $@
 
-$(eval $(call tdb2hdt,iam,http://iam.ucdavis.edu/))
+$(eval $(call tdb2hdt,iam,ark:/87287/d7c08j/))
  endif
 
 ##

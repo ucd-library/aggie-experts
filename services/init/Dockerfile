@@ -1,5 +1,8 @@
-ARG FIN_INIT
-FROM ${FIN_INIT}
+ARG FIN_ORG
+ARG FIN_TAG
+FROM ${FIN_ORG}/fin-init:${FIN_TAG}
+
+RUN cd /fin/services && npm rebuild
 
 COPY fcrepo-aggie-experts /etc/ucdlib-service-init/fcrepo-aggie-experts
 
