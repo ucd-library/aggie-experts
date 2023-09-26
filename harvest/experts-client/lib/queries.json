@@ -6,10 +6,6 @@
       "@id":"insert@",
       "@type":"@id"
     },
-    "frame@" : {
-      "@id":"frame@",
-      "@type":"@id"
-    },
     "context@" : {
       "@id":"context@",
       "@type":"@id"
@@ -43,21 +39,18 @@
     {
       "@id":"work",
       "@type":"SplayQuery",
-      "frame@":"frame.jsonld.json",
       "construct@" : "work/construct.rq",
       "bind@" : "work/bind.rq"
     },
     {
       "@id":"authorship",
       "@type":"SplayQuery",
-      "frame@":"frame.jsonld.json",
       "construct@" : "authorship/construct.rq",
       "bind@" : "authorship/bind.rq"
     },
     {
       "@id":"person",
       "@type":"SplayQuery",
-      "frame@":"frame.jsonld.json",
       "construct@" : "person/construct.rq",
       "bind@" : "person/bind.rq"
     }
