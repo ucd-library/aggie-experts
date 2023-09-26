@@ -76,5 +76,72 @@ return html`
       <app-person id="experts"></app-person>
       <!-- <app-grant id="grant"></app-grant> -->
     </ucdlib-pages>
+    <div class="footer site-frame">
+      <ucdlib-site-footer>
+        <ucdlib-site-footer-column header="Aggie Experts">
+          <ul>
+            <!-- <li><a href="/browse/collections">Collections</a></li>
+            <li><a href="/search">Items</a></li>
+            <!-- <li><a href="">FAQ</a></li> -->
+          </ul>
+        </ucdlib-site-footer-column>
+        <ucdlib-site-footer-column header="Library Info">
+          <ul>
+            <li>
+              <a
+                href="https://library.ucdavis.edu/special-collections/"
+                target="_blank"
+                rel="noopener"
+                >Archives and Special Collections</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://library.ucdavis.edu/library/"
+                target="_blank"
+                rel="noopener"
+                >Visit the Library</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://library.ucdavis.edu/news/"
+                target="_blank"
+                rel="noopener"
+                >Library News</a
+              >
+            </li>
+            <li>
+              <a
+                href="http://give.ucdavis.edu/ULIB"
+                target="_blank"
+                rel="noopener"
+                >Give to the Library</a
+              >
+            </li>
+          </ul>
+        </ucdlib-site-footer-column>
+        <ucdlib-site-footer-column header="Account">
+          <ul>
+            <li><app-auth-footer></app-auth-footer></li>
+            <li class="fin-admin" ?hidden="${!this.isAdmin}">
+              <a href="/fin/admin/${this.pathInfo.length > 1 ? '#path-info' + this.pathInfo : ''}">Fin Admin</a>
+            </li>
+          </ul>
+        </ucdlib-site-footer-column>
+        <div insert-into="below-address" ?hidden="${this.showVersion}">
+          <div><b>Build Information</b></div>
+          <div>App Version: ${this.appVersion}</div>
+          <div>Build Time: ${this.localBuildTime}</div>
+          <div>Build Number: ${this.buildNum}</div>
+          <div>Client Env: ${this.clientEnv}</div>
+          <div>Fin App Version: ${this.finAppVersion}</div>
+          <div>Fin Branch Name: ${this.finBranchName}</div>
+          <div>Fin Repo Tag: ${this.finRepoTag}</div>
+          <div>Fin Server Image: ${this.finServerImage}</div>
+          <div>Fin Server Repo Hash: ${this.finServerRepoHash}</div>
+        </div>
+      </ucdlib-site-footer>
+    </div>
   </div>
 `;}

@@ -219,6 +219,11 @@ return html`
       align-items: center;
     }
 
+    inf {
+      vertical-align: super;
+      font-size: .8rem;
+    }
+
   </style>
 
   <div class="content">
@@ -301,7 +306,7 @@ return html`
         <a href=""
           style="padding-top: 0.2rem; padding-bottom: 0.2rem; margin-top: 3rem;"
           @click="${this._downloadRIS}"
-          class="btn">Download RIS (TODO REMOVE)</a>
+          class="btn">Download RIS</a>
       </div>
       <div class="works-abbreviated" ?hidden="${this.citations.length === 0}">
         <div class="works-heading">
@@ -313,7 +318,7 @@ return html`
           (cite) => html`
             <h4 style="margin: 1.19rem 0;">${cite.issued?.['date-parts']?.[0]}</h4>
             <div class="work">
-              <h5>${cite.title}</h5>
+              <h5>${unsafeHTML(cite.title)}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${cite.type}</span>
                 <span style="padding: 0 .75rem; color: var(--black, #000); font-family: Proxima Nova; font-size: 1.1875rem; font-style: normal; font-weight: 700; line-height: 1.92125rem; text-transform: uppercase;">.</span>

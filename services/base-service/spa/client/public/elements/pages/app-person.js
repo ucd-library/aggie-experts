@@ -101,14 +101,15 @@ export default class AppPerson extends Mixin(LitElement)
   loadCitationPromise(doi) {
     return new Promise((resolve, reject) => {
       Cite.async(doi).then(citation => {
-
-        // works mostly for citations
+        let originalTitle = citation.data[0].title;
+        citation.data[0].title = ''; // apa citation shouldn't include title in ui
         let apa = citation.format('bibliography', {
           format: 'html',
           template: 'apa',
           lang: 'en-US'
         });
 
+        citation.data[0].title = originalTitle;
         let ris = citation.format('ris', {
           format: 'html',
           template: 'apa',
@@ -139,7 +140,10 @@ export default class AppPerson extends Mixin(LitElement)
       // this.citationDois.map(doi => this.loadCitationPromise(doi))
       citations.map((cite, index) => {
         let dateParts = cite.issued.split('-');
+
+        // TODO remove, just testing special <inf> markup
         let title = index === 0 ? 'Novel structural aspects of Sb<inf>2</inf>O<inf>3</inf>-B<inf>2</inf>O <inf>3</inf> glasses' : cite.title;
+
         let newCite = {
           DOI: cite.DOI,
           ISSN: cite.ISSN,
