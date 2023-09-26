@@ -16,6 +16,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 CONSTRUCT {
   # This  just copies IAM info
   ?iam_s ?iam_p ?iam_o.
+  ?iam_o vcard:title ?iam_o_title.
 
   # This adds the CDL information
   ?user a ucdlib:Person;
@@ -44,6 +45,7 @@ CONSTRUCT {
          vcard:hasName ?vcard_name;
          vcard:hasEmail ?vcard_email;
          vcard:hasURL ?vcard_web;
+         ucdlib:isPreferred false;
          .
 
   ?vcard_name a vcard:Name;
@@ -51,11 +53,10 @@ CONSTRUCT {
               vcard:familyName ?ln;
               .
 
-  ?vcard_web a vcard:URL;
+  ?vcard_web a vcard:URL, ?web_type;
              vcard:url ?web_url;
              vivo:rank ?web_rank;
-             rdfs:label ?web_label;
-             ucdlib:urlType ?web_type;
+             vcard:title ?web_label;
              .
 
   # Research Areas
@@ -67,8 +68,11 @@ WHERE {
   bind(concat('person:',MD5(?USERNAME__)) as ?user_id)
   graph <http://iam.ucdavis.edu/> {
     ?user a ucdlib:Person .
-    ?iam_s ?iam_p ?iam_o;
-           .
+    ?iam_s ?iam_p ?iam_o.
+    # This is soo hacky,
+    OPTIONAL {
+      ?iam_o vcard:title ?iam_o_title.
+    }
     filter(regex(str(?iam_s),concat('^',str(?user),'#?')))
     filter(?iam_p != ucdlib:userId)
   }
@@ -130,7 +134,7 @@ WHERE {
               .
 
         bind(?pos as ?web_rank)
-        bind(uri(concat(str(ucdlib:),"URLType_",?web_type_text)) as ?web_type)
+        bind(uri(concat(str(ucdlib:),"URL_",?web_type_text)) as ?web_type)
       }
       values (?field_name ?field_predicate ) {
         ("overview" vivo:overview)

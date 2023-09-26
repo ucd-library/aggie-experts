@@ -33,7 +33,8 @@
       "@type":"@id",
       "@context":{
         "name":{"@id":"vcard:title"},
-        "url":{"@id":"vcard:url"}
+        "url":{"@id":"vcard:url"},
+        "isPreferred":{"@id":"ucdlib:isPreferred","@type":"xsd:boolean"}
       }
     },
     "container-title":{"@id":"cite:container-title"},
