@@ -12,7 +12,7 @@ import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
-import GoogleSecret from '../lib/googleSecret.js';
+import { GoogleSecret } from '@ucd-lib/experts-api';
 
 const DF = new DataFactory();
 const BF = new BindingsFactory();
@@ -143,7 +143,6 @@ async function main(opt) {
       for (const n of ['person', 'work', 'authorship']) {
         await (async (n) => {
           const splay = ql.getSplay(n);
-          //    delete splay["frame@"];
           return await ec.splay({ ...opt, ...splay });
         })(n);
       };

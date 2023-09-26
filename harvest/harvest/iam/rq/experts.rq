@@ -30,13 +30,13 @@ CONSTRUCT {
 
   ?user obo:ARG_2000028 ?vcard.
   ?vcard a vcard:Individual;
-#         ucdlib:identifier ?vid;
          vivo:rank ?order;
          vcard:hasName ?vcard_name;
          vcard:hasTitle ?vcard_title;
          vcard:hasOrganizationalUnit ?vcard_unit;
          vcard:hasEmail ?email_uri;
          vcard:hasURL ?vcard_url;
+         ucdlib:isPreferred ?is_preferred;
          .
 
   ?vcard_title a vcard:Title;
@@ -93,7 +93,7 @@ WHERE {
   }
   OPTIONAL {
     {
-      select ?s ?vid ?vcard_unit ?title ?dept ?order ?website ?title_email
+      select ?s ?vid ?vcard_unit ?title ?dept ?order ?website ?title_email ?is_preferred
       WHERE { graph harvest_iam: {
         ?s iam:directory ?dir .
         ?dir iam:listings ?list.
@@ -115,12 +115,13 @@ WHERE {
                   .
           }
           bind(concat("odr-",str(?order)) as ?vid)
+          bind(true as ?is_preferred)
         }
         bind(uri(concat(str(experts:),"dept/odr/",?deptCode)) as ?vcard_unit)
       }}
     }
     UNION {
-      select ?s ?vid ?vcard_unit ?ucd_title ?title ?dept ?order ?use_default_email
+      select ?s ?vid ?vcard_unit ?ucd_title ?title ?dept ?order ?use_default_email ?is_preferred
       where { graph harvest_iam: {
         ?s iam:ppsAssociations [iam:assocRank ?a_order;
                                iam:titleOfficialName ?otitle;
@@ -128,10 +129,15 @@ WHERE {
                                iam:deptCode ?deptCode;
                                iam:deptOfficialName ?dept ];
                                                     .
+        OPTIONAL {
+          ?s iam:directory/iam:listings/iam:title [].
+          bind(true as ?has_odr)
+        }
         bind(replace(?otitle," -.*","") as ?title)
         bind(xsd:integer(?a_order)+10 as ?order)
         bind(concat("pps-",str(?a_order)) as ?vid)
         bind(true as ?use_default_email)
+        bind(coalesce((! ?has_odr),true) as ?is_preferred)
         bind(uri(concat(str(experts:),"dept/pps/",?deptCode)) as ?vcard_unit)
         bind(uri(concat(str(experts:),"title/pps/",?titleCode)) as ?ucd_title)
       }

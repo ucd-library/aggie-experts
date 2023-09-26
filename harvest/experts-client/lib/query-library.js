@@ -9,6 +9,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import JsonLdProcessor from 'jsonld';
+import { frames } from '@ucd-lib/experts-api';
 
 import * as url from 'url';
 const __filename = url.fileURLToPath(import.meta.url);
@@ -22,22 +23,18 @@ export class queryLibrary {
 
   async load() {
     const jsonld = new JsonLdProcessor();
-    const querydb=fs.readJsonSync(path.join(__dirname, 'query.jsonld.json'));
+    const querydb=fs.readJsonSync(path.join(__dirname, 'queries.json'));
     querydb['@context'] = (querydb['@context'] instanceof Array ? querydb['@context'] : [querydb['@context']])
     querydb['@context'].push({"@base":path.join(__dirname, 'query', '/')});
     //const expand = await jsonld.expand(querydb);
     //console.log(JSON.stringify(expand,2));
-    const frame={
+    const query_frame={
       "@version": 1.1,
       "@context":{
         "@vocab":"http://schema.library.ucdavis.edu/schema#",
         "experts":"http://experts.ucdavis.edu/",
         "insert@" : {
           "@id":"insert@",
-          "@type":"@id"
-        },
-        "frame@" : {
-          "@id":"frame@",
           "@type":"@id"
         },
         "context@" : {
@@ -55,17 +52,17 @@ export class queryLibrary {
       },
       "@type":["SplayQuery","InsertQuery"]
     };
-    const doc=await jsonld.frame(querydb,frame,{omitGraph:false,safe:false});
-    // console.log(doc);
-    this.query=doc;
+    const doc=await jsonld.frame(querydb,query_frame,{omitGraph:false,safe:false});
+    this.queries=doc['@graph'];
     return this;
   }
 
   getSplay(splayName) {
     const id=path.join(__dirname, 'query', '/', splayName);
-    for(let i=0;i<this.query['@graph'].length;i++) {
-      if(this.query['@graph'][i]['@id']===id) {
-        return this.query['@graph'][i];
+    for(let i=0;i<this.queries.length;i++) {
+      if(this.queries[i]['@id']===id) {
+        this.queries[i].frame=frames.default;
+        return this.queries[i];
       }
     }
     return null;
@@ -73,10 +70,10 @@ export class queryLibrary {
 
   getQuery(name,type=null) {
     const id=path.join(__dirname, 'query', '/', name);
-    for(let i=0;i<this.query['@graph'].length;i++) {
-      if((this.query['@graph'][i]['@id']===id)) { // &&
-//         (type===null || this.query['@graph'][i]['@type']===type)) {
-          return this.query['@graph'][i];
+    for(let i=0;i<this.queries.length;i++) {
+      if((this.queries[i]['@id']===id)) { // &&
+//         (type===null || this.queries[i]['@type']===type)) {
+          return this.queries[i];
         }
     }
     return null;
