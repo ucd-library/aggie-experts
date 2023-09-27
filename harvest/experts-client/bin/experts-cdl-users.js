@@ -58,48 +58,74 @@ async function main(opt) {
       "@vocab": "http://vivoweb.org/ontology/core#",
       "person": "http://experts.ucdavis.edu/person/",
       "schema": "http://schema.org/",
+      "ucdlib": "http://schema.library.ucdavis.edu/schema#",
       "identifier": { "@id": "schema:identifier" },
+      "proprietary_id": { "@id": "ucdlib:proprietary_id" },
     }
   };
 
   const users = program.args;
 
   if (opt.fuseki.isTmp) {
-    //console.log('starting createDataset');
+    console.log('starting createDataset');
     opt.fuseki.db = 'users-' + nanoid(5);
     const fuseki = await ec.mkFusekiTmpDb(opt);
-    //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
+    console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
     opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
   }
 
   console.log('starting CDL users fetch');
 
-  var uquery = '';
+  var uquery = 'users?detail=ref&per-page=1000';
   if (opt.username) {
-    uquery = 'users?username=' + opt.username + '&detail=ref&per-page=1000';
+    uquery += '&username=' + opt.username;
   }
   else if (users.length > 0) {
-    uquery = 'users?ids=' + users + '&detail=ref&per-page=1000';
+    uquery += '&ids=' + users;
   }
   else if (opt.cdl.groups) {
-    uquery = 'users?groups=' + opt.cdl.groups + '&detail=ref&per-page=1000';
+    uquery += '&groups=' + opt.cdl.groups;
   }
-  else {
-    uquery = 'users?detail=ref&per-page=1000';
+
+  if (opt.cdl.affected) {
+    // We need the date in XML ISO format
+    var date = new Date();
+    date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
+    uquery += '&affected-since=' + date.toISOString();
   }
+  else if (opt.cdl.modified) {
+    // We need the date in XML ISO format
+    var date = new Date();
+    date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
+    uquery += '&modified-since=' + date.toISOString();
+  }
+  console.log('uquery', uquery);
+  //return;
+
 
   // const entries = await ec.getCDLusers(opt, uquery, '.[]["api:object"]|{id,"proprietary-id",username}');
   const entries = await ec.getCDLentries(opt, uquery);
 
   var personArray = [];
 
+  // if just a user list is requested, output and exit
+  if (opt.userList) {
+    for (let entry of entries) {
+      entry = entry['api:object'];
+      personArray.push(entry['username'].substring(0, entry['username'].indexOf('@')));
+    }
+    console.log(personArray.join(' '));
+    return;
+  }
+
   // MD5 hash of the user's email address and UCPath ID
   for (let entry of entries) {
     entry = entry['api:object'];
     let person = {};
-    person['@id'] = 'person:' + md5(entry['proprietary-id']);
+    person['@id'] = 'person:' + md5(entry['username']);
+    person['proprietary_id'] = entry['proprietary-id'];
     person['identifiers'] = ["ark:/87287/d7mh2m/user/" + entry['id'],
-    "ark:/87287/d7c08j/" + md5(entry['username']),
+    "ark:/87287/d7c08j/" + md5(entry['proprietary-id']),
     "mailto:" + entry['username']];
     personArray.push(person);
   }
@@ -135,6 +161,7 @@ async function main(opt) {
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { exit } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename).replace('/bin', '/lib');
 
@@ -148,6 +175,8 @@ program.name('cdl-profile')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
+  .option('--cdl.affected <affected>', 'affected since')
+  .option('--cdl.modified <modified>', 'modified since')
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', true)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
@@ -156,6 +185,7 @@ program.name('cdl-profile')
   .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
   .option('--save-tmp', 'Do not remove temporary file', false)
   .option('--environment <env>', 'specify environment', 'production')
+  .option('--userList', 'output list of usernames', false)
 
 
 program.parse(process.argv);
