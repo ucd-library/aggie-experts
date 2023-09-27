@@ -261,32 +261,23 @@ return html`
       <div class="roles-websites">
         <div class="roles">
           <h4>Roles</h4>
-          <div class="role">
+          ${this.roles.map(
+          (role) => html`
+            <div class="role">
             <div>
-              <p class="title-dept">Title, Department</p>
+              <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
             <div class="link-row">
               <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-              <span><a href="">website.ucdavis.edu/~name</a></span>
+              <span><a href="${role.websiteUrl}">${role.websiteUrl}</a></span>
             </div>
             <div class="link-row">
               <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
-              <span><a href="">email@ucdavis.edu</a></span>
+              <span><a href="mailto:${role.email}">${role.email}</a></span>
             </div>
           </div>
-          <div class="role">
-            <div>
-              <p class="title-dept">Title, Department</p>
-            </div>
-            <div class="link-row">
-              <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-              <span><a href="">website.ucdavis.edu/~name</a></span>
-            </div>
-            <div class="link-row">
-              <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
-              <span><a href="">email@ucdavis.edu</a></span>
-            </div>
-          </div>
+          `
+        )}
         </div>
 
         <div class="websites">
@@ -299,15 +290,24 @@ return html`
             <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon>
             <span><a href="https://www.scopus.com/authid/detail.uri?authorId=${this.scopusId}">Scopus</a></span>
           </div>
+
+          ${this.websites.map(
+          (site) => html`
+          <div class="link-row">
+            <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
+            <span><a href="${site.hasURL['cite:url']}">${site.hasURL.label}</a></span>
+          </div>
+          `
+        )}
         </div>
       </div>
 
-      <div style="display: flex; flex-direction: row-reverse;">
+      <!-- <div style="display: flex; flex-direction: row-reverse;">
         <a href=""
           style="padding-top: 0.2rem; padding-bottom: 0.2rem; margin-top: 3rem;"
           @click="${this._downloadRIS}"
           class="btn">Download RIS</a>
-      </div>
+      </div> -->
       <div class="works-abbreviated" ?hidden="${this.citations.length === 0}">
         <div class="works-heading">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
@@ -322,7 +322,7 @@ return html`
               <div class="work-details">
                 <span style="min-width: fit-content;">${cite.type}</span>
                 <span style="padding: 0 .75rem; color: var(--black, #000); font-family: Proxima Nova; font-size: 1.1875rem; font-style: normal; font-weight: 700; line-height: 1.92125rem; text-transform: uppercase;">.</span>
-                ${unsafeHTML(cite.apa.replace(cite.title+'. ', ''))}
+                ${unsafeHTML(cite.apa)}
               </div>
             </div>
             <br>

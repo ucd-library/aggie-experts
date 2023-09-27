@@ -63,13 +63,13 @@ export default class FinApp extends Mixin(LitElement)
       this.textQuery = "";
       this.isSearch = false;
     }
+    window.scrollTo(0, 0);
 
     let page = e.location.page;
     if( this.page === page ) return;
     this.page = page;
     this.pathInfo = e.location.pathname.split('/media')[0];
 
-    window.scrollTo(0, 0);
     this.firstAppStateUpdate = false;
   }
 

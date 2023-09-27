@@ -20,8 +20,10 @@ export default class AppPerson extends Mixin(LitElement)
       personName : { type : String },
       introduction : { type : String },
       showMoreAboutMeLink : { type : Boolean },
+      roles : { type : Array },
       orcId : { type : String },
       scopusId : { type : String },
+      websites : { type : Array },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
     }
@@ -36,8 +38,10 @@ export default class AppPerson extends Mixin(LitElement)
     this.personName = '';
     this.introduction = '';
     this.showMoreAboutMeLink = false;
+    this.roles = [];
     this.orcId = '';
     this.scopusId = '';
+    this.websites = [];
 
     this.citations = [];
     this.citationsDisplayed = [];
@@ -63,6 +67,8 @@ export default class AppPerson extends Mixin(LitElement)
     // TEMP hack
     this.personId = 'person/66356b7eec24c51f01e757af2b27ebb8';
     await this.PersonModel.get(this.personId);
+
+    window.scrollTo(0, 0);
   }
 
   /**
@@ -85,14 +91,23 @@ export default class AppPerson extends Mixin(LitElement)
     this.personName = graphRoot.name;
 
     // max 500 characters, unless 'show me more' is clicked
-    // TODO hack, remove, just testing longer intros
+    // TODO hack, remove, just testing longer intro
     this.introduction = graphRoot.overview + graphRoot.overview;
     this.showMoreAboutMeLink = this.introduction.length > 500;
 
-    // TODO roles, title/dept/website/email
+    this.roles = graphRoot.contactInfo?.filter(c => c['vivo:isPreferred'] === 'true').map(c => {
+      return {
+        title : c.hasTitle?.label,
+        department : c.hasOrganizationalUnit?.label,
+        email : c.hasEmail.replace('email:', ''),
+        websiteUrl : c.hasURL?.['cite:url']
+      }
+    });
 
     this.orcId = graphRoot.orcidId;
     this.scopusId = graphRoot.scopusId;
+
+    this.websites = graphRoot.contactInfo?.filter(c => (!c['vivo:isPreferred'] || c['vivo:isPreferred'] === 'false') && c['vivo:rank'] === 20 && c.hasURL);
 
     // TEMP hack for testing citationjs
     await this._loadCitations();
@@ -192,22 +207,22 @@ export default class AppPerson extends Mixin(LitElement)
     this.requestUpdate();
   }
 
-  _downloadRIS(e) {
-    e.preventDefault();
+  // _downloadRIS(e) {
+  //   e.preventDefault();
 
-    let text = this.citations.map(c => c.ris).join('\n');
-    let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
-    let url = URL.createObjectURL(blob);
-    console.log('url', url)
+  //   let text = this.citations.map(c => c.ris).join('\n');
+  //   let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+  //   let url = URL.createObjectURL(blob);
+  //   console.log('url', url)
 
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'data.txt');
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  //   const link = document.createElement('a');
+  //   link.setAttribute('href', url);
+  //   link.setAttribute('download', 'data.txt');
+  //   link.style.display = 'none';
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  // }
 
   _seeAllWorks(e) {
     e.preventDefault();
