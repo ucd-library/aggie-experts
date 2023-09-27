@@ -14,6 +14,7 @@
     "@ucd-lib/cork-app-utils": "^5.1.1",
     "@ucd-lib/theme-elements": "^1.2.6",
     "@ucd-lib/theme-sass": "^5.0.16",
+    "citation-js": "^0.6.9",
     "dompurify": "^2.3.6",
     "lit": "^2.8.0",
     "lit-element": "^3.3.3"
