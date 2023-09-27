@@ -13,7 +13,7 @@ import { nanoid } from 'nanoid';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
-import GoogleSecret from '../lib/googleSecret.js';
+import { GoogleSecret } from '@ucd-lib/experts-api';
 
 // const DF = new DataFactory();
 // const BF = new BindingsFactory();
