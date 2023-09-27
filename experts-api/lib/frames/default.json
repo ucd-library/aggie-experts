@@ -24,7 +24,20 @@
     "Work":"ucdlib:Work",
     "abstract":{"@id":"cite:abstract"},
     "assignedBy": { "@type":"@id"},
-    "author":{"@id":"cite:author"},
+    "author":{
+      "@id":"cite:author",
+      "@context": {
+        "family": {
+          "@id": "cite:family"
+        },
+        "given": {
+          "@id": "cite:given"
+        },
+        "middle": {
+          "@id": "cite:middle"
+        }
+      }
+    },
     "available-date":{"@id":"cite:available-date"},
     "bearer-of":{"@id":"obo:RO_0000053","@type":"@id"},
     "collection-number":{"@id":"cite:collection-number"},
@@ -48,10 +61,8 @@
     "directCosts": { "@id": "vivo:grantDirectCosts" },
     "edition":{"@id":"cite:edition"},
     "eissn":{"@id":"cite:eissn"},
-    "family":{"@id":"cite:familyName"},
     "favorite":{"@id":"ucdlib:favorite","@type":"xsd:boolean"},
     "genre":{"@id":"cite:genre"},
-    "given":{"@id":"cite:givenName"},
     "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
     "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
     "hasName": {
