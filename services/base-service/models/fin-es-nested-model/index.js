@@ -1,7 +1,6 @@
 const {config, dataModels} = require('@ucd-lib/fin-service-utils');
 const {FinEsDataModel} = dataModels;
 const FinNestedSearch = require('./fin-nested-search.js');
-const default_text_weights = require('./default-text-weights.json');
 
 /**
  * @class FinEsNestedModel
@@ -21,49 +20,32 @@ class FinEsNestedModel extends FinEsDataModel {
     super(modelName);
     }
 
+  /**
+   * @method render
+   * @description return an ES ready nested search using a template
+   * @returns string
+   */
+  render(params) {
+    const opts = {
+      text:"",
+      from:0,
+      size:10,
+      ...params
+    }
+    // Later, we will should move this to real templates
+    const q = this.query_template.script.source.query;
+    // This is not flexible
+    q.from=opts.from;
+    q.size=opts.size;
+    q.nested.query["multi-match"].query=opts.text;
 
-  weights() {
-    return default_text_weights;
+    return q;
   }
 
-  /**
-   * @method _getNestedSearch
-   * @description return a new instance of FinNestedSearch
-   * @returns {FinNestedSearch}
-   */
-  elastic_search_query() {
-    const query = {
-      filters : [],
-      text : 'quinn',
-      textFields : default_text_weights,
-      facets : [],
-      offset : 0,
-      sort : ['_score',
-              { 'node.name.raw' : 'asc' }
-             ],
-    };
-    return FinNestedSearch.searchDocumentToEsBody(query);
-
-  }
-
-
-  /**
-   * @method esSearchGraph
-   * @description Perform a nested graph search of the given query.
-   * @param {String} query
-   */
-  async esSearchGraph(query) {
-    const options={};
-    return this.esSearch(
-        {
-          query: {
-            nested:{
-              path: "@graph",
-              query: query
-            }
-          },
-          size: 10000
-        });
+  async search(params) {
+    const q = render(params);
+    let result = await this.esSearch(q, {admin: options.admin}, this.readIndexAlias);
+    return result;
   }
 
   async esMatchNode(matches) {
@@ -75,7 +57,16 @@ class FinEsNestedModel extends FinEsDataModel {
         must.push({"term": t});
       }
     }
-    return this.esSearchGraph({bool: {must: must}});
+    return this.esSearch(
+        {
+          query: {
+            nested:{
+              path: "@graph",
+              query: {bool: {must: must}}
+            }
+          },
+          size: 10000
+        });
   }
 
   /**
