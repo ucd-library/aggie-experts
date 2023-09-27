@@ -108,6 +108,7 @@ export default class AppPerson extends Mixin(LitElement)
 
     let websites = graphRoot.contactInfo?.filter(c => (!c['ucdlib:isPreferred'] || c['ucdlib:isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
     websites.forEach(w => {
+      if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
       this.websites.push(...w.hasURL);
     });
 
