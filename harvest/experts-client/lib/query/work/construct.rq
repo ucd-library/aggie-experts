@@ -30,8 +30,8 @@ construct {
   ?work  cite:author ?authorship.
 
   ?authorship vivo:rank ?authorRank;
-              cite:familyName ?authorFamilyName;
-              cite:givenName ?authorGivenName;
+              cite:family ?authorFamilyName;
+              cite:given ?authorGivenName;
               .
 
   # cite:issued ?work_pubdate.

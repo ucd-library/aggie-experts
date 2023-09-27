@@ -143,6 +143,8 @@ async function main(opt) {
       for (const n of ['person', 'work', 'authorship']) {
         await (async (n) => {
           const splay = ql.getSplay(n);
+          // While we test, remove frame
+          delete splay['frame'];
           return await ec.splay({ ...opt, ...splay });
         })(n);
       };
