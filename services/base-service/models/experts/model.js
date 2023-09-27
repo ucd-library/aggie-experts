@@ -74,8 +74,7 @@ class ExpertsModel extends FinEsNestedModel {
 
   // set the default query template
   async put_template() {
-    console.log('client',this.client);
-    const result = await this.client.put_script('default', this.query_template);
+    const result = await this.client.putScript(this.query_template);
     console.log(`default query template: ${result}`);
     return result;
   }
