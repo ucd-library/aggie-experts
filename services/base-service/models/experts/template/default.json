@@ -36,9 +36,8 @@
           "score_mode": "sum"
         }
       },
-      "_source": ["@id","name"],
-      "sort" : ["_score",
-                { "name" : "asc" }
+      "_source": ["@id"],
+      "sort" : ["_score"
                ],
       "from": "{{from}}{{^from}}0{{/from}}",
       "size": "{{size}}{{^size}}10{{/size}}"
