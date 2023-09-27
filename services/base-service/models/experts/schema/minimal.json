@@ -1,0 +1,74 @@
+{
+  "dynamic" : false,
+  "properties" : {
+    "@id" : {
+      "type" : "keyword"
+    },
+    "_.updated" : {
+      "type" : "date"
+    },
+    "@graph": {
+      "type": "nested",
+      "properties" : {
+        "@id" : { "type" : "keyword" },
+        "relates" : {"type" : "keyword" },
+        "@type" : { "type" : "keyword" },
+        "is-visible" : { "type" : "boolean" },
+        "identifier" : {
+          "type" : "text",
+          "fields": {
+            "kw": {
+              "type":  "keyword"
+            }
+          }
+        },
+        "contactInfo" : {
+          "properties" : {
+            "hasEmail" : { "type" : "text" },
+            "hasTitle":{
+              "properties" : {
+                "name" : { "type" : "text" }
+              }
+            },
+            "hasOrganizationalUnit":{
+              "properties" : {
+                "name" : { "type" : "text" }
+              }
+            },
+            "hasName" : {
+              "properties" : {
+                "family" : { "type" : "text" },
+                "middle" : { "type" : "text" },
+                "given" : { "type" : "text" }
+              }
+            },
+            "hasURL": {
+              "properties" : {
+                "name" : { "type" : "text" },
+                "url" : { "type" : "text",
+                          "fields": {
+                            "kw": {
+                              "type":  "keyword"
+                            }
+                          }
+                        }
+              }
+            }
+          }
+        },
+        "name" : { "type" : "text" },
+        "orcidId" : { "type": "text", "fields" : { "kw": { "type" : "keyword" } } },
+        "overview" : { "type" : "text" },
+        "DOI" : { "type" : "text" },
+        "abstract" : { "type" : "text" },
+        "container-title" : { "type" : "text" },
+        "publisher" : { "type" : "text" },
+        "issued" : { "type" : "date" },
+        "title" : { "type" : "text" }
+      }
+    },
+    "roles": {
+      "type": "keyword"
+    }
+  }
+}

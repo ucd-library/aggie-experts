@@ -1,7 +1,8 @@
 // Can use this to get the fin configuration
 const {config, models } = require('@ucd-lib/fin-service-utils');
-const schema = require('./vivo.json');
-const FinEsNestedModel = require('./fin-es-nested-model');
+const schema = require('./schema/minimal.json');
+const FinEsNestedModel = require('../fin-es-nested-model');
+const query_template = require('./template/default.json');
 
 /**
  * @class ExpertsModel
@@ -9,19 +10,21 @@ const FinEsNestedModel = require('./fin-es-nested-model');
  */
 class ExpertsModel extends FinEsNestedModel {
 
+  // Experts Model never matches
   static types = [
-    "http://schema.library.ucdavis.edu/schema#Person",
-    "http://schema.library.ucdavis.edu/schema#Work",
-    "http://schema.library.ucdavis.edu/schema#Authorship",
-    "http://vivoweb.org/ontology/core#Authorship",
-    "http://vivoweb.org/ontology/core#Grant",
+//    "http://schema.library.ucdavis.edu/schema#Person",
+//    "http://schema.library.ucdavis.edu/schema#Work",
+//    "http://schema.library.ucdavis.edu/schema#Authorship",
+//    "http://vivoweb.org/ontology/core#Authorship",
+//    "http://vivoweb.org/ontology/core#Grant",
   ];
 
   constructor(name='experts') {
+
     super(name);
     this.schema = schema;  // Common schema for all experts data models
-
     this.transformService = "node";
+    this.query_template = query_template;
   }
 
   /**
@@ -68,6 +71,15 @@ class ExpertsModel extends FinEsNestedModel {
     delete node['_'];
     return node;
   }
+
+  // set the default query template
+  async put_template() {
+    console.log('client',this.client);
+    const result = await this.client.put_script('default', this.query_template);
+    console.log(`default query template: ${result}`);
+    return result;
+  }
+
 
   /**
    * @method get_model
