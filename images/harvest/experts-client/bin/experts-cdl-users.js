@@ -13,7 +13,7 @@ import { nanoid } from 'nanoid';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
-import { GoogleSecret } from '@ucd-lib/experts-api';
+import GoogleSecret from '../lib/googleSecret.js';
 
 // const DF = new DataFactory();
 // const BF = new BindingsFactory();
@@ -142,14 +142,7 @@ async function main(opt) {
 
   await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-  if (opt.output === '-') {
-    // write to std out
-    console.log(jsonld);
-  }
-  else if (opt.output) {
-    fs.writeFileSync(opt.output, jsonld);
-  }
-
+  fs.writeFileSync('users.jsonld', jsonld);
   console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
 
   // Any other value don't delete
