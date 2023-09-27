@@ -1,17 +1,32 @@
 const router = require('express').Router();
-const {middleware} = require('@ucd-lib/fin-service-utils');
-const HomeModel = require('./model.js');
+const ExpertsModel = require('../experts/model.js');
 const utils = require('../utils.js')
 
+const home = new ExpertsModel();
 
-const home = new HomeModel();
-
-router.get('/default_text_weights', async (req, res) => {
-  res.send(home.weights());
+router.get('/render', async (req, res) => {
+  const query = req.query.text;
+  const opts = {};
+  if (req.query.size) { opts.size = req.query.size; }
+  if (req.query.from) { opts.from = req.query.from; }
+  res.send(await home.render(query, opts));
 });
 
-router.get('/search_body', async (req, res) => {
-  res.send(home.elastic_search_query());
+router.get('/search', async (req, res) => {
+  const query = req.query.text;
+  const opts = {};
+  if (req.query.size) { opts.size = req.query.size; }
+  if (req.query.from) { opts.from = req.query.from; }
+  res.send(await home.search(query, opts));
+});
+
+router.get('/put_template', async (req, res) => {
+  console.log("put_template");
+    res.send(await home.put_template());
+});
+
+router.get('/hello', (req, res) => {
+    res.send("World");
 });
 
 module.exports = router;
