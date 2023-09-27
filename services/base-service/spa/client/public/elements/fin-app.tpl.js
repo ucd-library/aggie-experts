@@ -28,7 +28,7 @@ return html`
     prevent-fixed>
 
     <ucd-theme-primary-nav>
-      <a href="/experts">Experts</a>
+      <a href="/person">Experts</a>
       <!-- <a href="/subject">Subjects</a> -->
       <!-- <a href="/work">Works</a> -->
       <!-- <a href="/grant">Grants</a> -->
@@ -73,7 +73,7 @@ return html`
       </div>
       <app-home id="home"></app-home>
       <!-- <app-work id="work"></app-work> -->
-      <app-person id="experts"></app-person>
+      <app-person id="person"></app-person>
       <!-- <app-grant id="grant"></app-grant> -->
     </ucdlib-pages>
     <div class="footer site-frame">

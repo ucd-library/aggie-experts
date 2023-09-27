@@ -219,10 +219,10 @@ return html`
       align-items: center;
     }
 
-    inf {
-      vertical-align: super;
+    /* inf {
+      vertical-align: sub;
       font-size: .8rem;
-    }
+    } */
 
   </style>
 
@@ -295,7 +295,7 @@ return html`
           (site) => html`
           <div class="link-row">
             <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-            <span><a href="${site.hasURL['cite:url']}">${site.hasURL.label}</a></span>
+            <span><a href="${site.url}">${site.name}</a></span>
           </div>
           `
         )}

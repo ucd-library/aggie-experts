@@ -50,7 +50,7 @@ export default class AppPerson extends Mixin(LitElement)
   }
 
   async firstUpdated() {
-    if( this.personId && this.personId === 'person/66356b7eec24c51f01e757af2b27ebb8' ) return;
+    // if( this.personId && this.personId === 'person/66356b7eec24c51f01e757af2b27ebb8' ) return;
 
     this._onAppStateUpdate(await this.AppStateModel.get());
   }
@@ -62,10 +62,10 @@ export default class AppPerson extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'experts' ) return;
+    if( e.location.page !== 'person' ) return;
 
-    // TEMP hack
-    this.personId = 'person/66356b7eec24c51f01e757af2b27ebb8';
+    this.personId = e.location.pathname.substr(1);
+    // this.personId = 'person/66356b7eec24c51f01e757af2b27ebb8';
     await this.PersonModel.get(this.personId);
 
     window.scrollTo(0, 0);
@@ -91,23 +91,25 @@ export default class AppPerson extends Mixin(LitElement)
     this.personName = graphRoot.name;
 
     // max 500 characters, unless 'show me more' is clicked
-    // TODO hack, remove, just testing longer intro
-    this.introduction = graphRoot.overview + graphRoot.overview;
+    this.introduction = graphRoot.overview;
     this.showMoreAboutMeLink = this.introduction.length > 500;
 
-    this.roles = graphRoot.contactInfo?.filter(c => c['vivo:isPreferred'] === 'true').map(c => {
+    this.roles = graphRoot.contactInfo?.filter(c => c['ucdlib:isPreferred'] === true).map(c => {
       return {
-        title : c.hasTitle?.label,
-        department : c.hasOrganizationalUnit?.label,
+        title : c.hasTitle?.name,
+        department : c.hasOrganizationalUnit?.name,
         email : c.hasEmail.replace('email:', ''),
-        websiteUrl : c.hasURL?.['cite:url']
+        websiteUrl : c.hasURL?.['url']
       }
     });
 
     this.orcId = graphRoot.orcidId;
     this.scopusId = graphRoot.scopusId;
 
-    this.websites = graphRoot.contactInfo?.filter(c => (!c['vivo:isPreferred'] || c['vivo:isPreferred'] === 'false') && c['vivo:rank'] === 20 && c.hasURL);
+    let websites = graphRoot.contactInfo?.filter(c => (!c['ucdlib:isPreferred'] || c['ucdlib:isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
+    websites.forEach(w => {
+      this.websites.push(...w.hasURL);
+    });
 
     // TEMP hack for testing citationjs
     await this._loadCitations();
@@ -157,7 +159,7 @@ export default class AppPerson extends Mixin(LitElement)
         let dateParts = cite.issued.split('-');
 
         // TODO remove, just testing special <inf> markup
-        let title = index === 0 ? 'Novel structural aspects of Sb<inf>2</inf>O<inf>3</inf>-B<inf>2</inf>O <inf>3</inf> glasses' : cite.title;
+        // let title = index === 0 ? 'Novel structural aspects of Sb<inf>2</inf>O<inf>3</inf>-B<inf>2</inf>O <inf>3</inf> glasses' : cite.title;
 
         let newCite = {
           DOI: cite.DOI,
@@ -168,7 +170,7 @@ export default class AppPerson extends Mixin(LitElement)
           name: cite.name,
           publisher: cite.publisher,
           rank: cite.rank,
-          title,//: cite.title,
+          title: cite.title,
           type: cite.type,
           volume: cite.volume,
           '@id': cite['@id'],
