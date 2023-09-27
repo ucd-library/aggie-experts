@@ -185,7 +185,7 @@ program.name('cdl-profile')
   .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
   .option('--save-tmp', 'Do not remove temporary file', false)
   .option('--environment <env>', 'specify environment', 'production')
-  .option('--user-list', 'output list of usernames', false)
+  .option('--userList', 'output list of usernames', false)
 
 
 program.parse(process.argv);
