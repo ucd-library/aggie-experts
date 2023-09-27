@@ -328,7 +328,7 @@ return html`
             <br>
           `
         )}
-        <div class="see-all-works" @click="${this._seeAllWorks}">
+        <div class="see-all-works" ?hidden= "${this.citations.length < 11}" @click="${this._seeAllWorks}">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
           <span>SEE ALL ${this.citations.length} WORKS</span>
         </div>
