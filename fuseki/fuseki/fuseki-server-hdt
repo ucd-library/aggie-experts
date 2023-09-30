@@ -75,7 +75,7 @@ then
    CP="${CP}:${FUSEKI_BASE}/extra/*"
 fi
 
-JVM_ARGS=${JVM_ARGS:--Xmx4G}
+JVM_ARGS=${JVM_ARGS:--Xmx8G}
 
 ## Logging
 # Setting log4j2 with some other file.
