@@ -92,13 +92,13 @@ export default class AppPerson extends Mixin(LitElement)
 
     // max 500 characters, unless 'show me more' is clicked
     this.introduction = graphRoot.overview;
-    this.showMoreAboutMeLink = this.introduction.length > 500;
+    this.showMoreAboutMeLink = this?.introduction?.length > 500;
 
     this.roles = graphRoot.contactInfo?.filter(c => c['ucdlib:isPreferred'] === true).map(c => {
       return {
         title : c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.name,
-        email : c.hasEmail.replace('email:', ''),
+        email : c?.hasEmail?.replace('email:', ''),
         websiteUrl : c.hasURL?.['url']
       }
     });
@@ -154,7 +154,7 @@ export default class AppPerson extends Mixin(LitElement)
     //   }
     // }
 
-    this.citations = await Promise.all(
+    let citationResults = await Promise.allSettled(
       // this.citationDois.map(doi => this.loadCitationPromise(doi))
       citations.map((cite, index) => {
         let dateParts = cite.issued.split('-');
@@ -194,6 +194,8 @@ export default class AppPerson extends Mixin(LitElement)
         return this.loadCitationPromise(newCite);
       })
     );
+
+    this.citations = citationResults.map(c => c.value);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;

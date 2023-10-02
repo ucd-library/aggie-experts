@@ -5,6 +5,7 @@ import {render} from "./fin-app.tpl.js";
 import '../elements/pages/app-home.js';
 // import '../elements/pages/app-work.js';
 import '../elements/pages/app-person.js';
+import '../elements/pages/app-search.js';
 
 import '../elements/components/site/ucdlib-site-footer.js';
 import '../elements/components/site/ucdlib-site-footer-column.js';
