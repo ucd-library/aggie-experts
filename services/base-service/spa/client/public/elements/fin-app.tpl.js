@@ -75,6 +75,7 @@ return html`
       <app-home id="home"></app-home>
       <!-- <app-work id="work"></app-work> -->
       <app-person id="person"></app-person>
+      <app-person-works id="works"></app-person-works>
       <app-search id="search"></app-search>
     </ucdlib-pages>
     <div class="footer site-frame">

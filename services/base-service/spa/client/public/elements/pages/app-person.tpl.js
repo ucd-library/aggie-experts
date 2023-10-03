@@ -225,15 +225,27 @@ return html`
       margin: .5rem 0;
     }
 
-    .work-details {
-      display: flex;
-      align-items: center;
+    .work-details .dot {
+      padding: 0 0.25rem;
+      color: var(--black, #000);
+      font-family: Proxima Nova;
+      font-size: 1.1875rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 1.92125rem;
+      text-transform: uppercase;
+      position: relative;
+      bottom: 0.25rem;
     }
 
     /* inf {
       vertical-align: sub;
       font-size: .8rem;
     } */
+
+    .csl-bib-body, .csl-entry {
+      display: inline;
+    }
 
   </style>
 
@@ -332,7 +344,7 @@ return html`
               <h5>${unsafeHTML(cite.title)}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${cite.type}</span>
-                <span style="padding: 0 .75rem; color: var(--black, #000); font-family: Proxima Nova; font-size: 1.1875rem; font-style: normal; font-weight: 700; line-height: 1.92125rem; text-transform: uppercase;">.</span>
+                <span class="dot">.</span>
                 ${unsafeHTML(cite.apa)}
               </div>
             </div>

@@ -40,8 +40,6 @@ export default class AppPerson extends Mixin(LitElement)
   }
 
   async firstUpdated() {
-    // if( this.personId && this.personId === 'person/66356b7eec24c51f01e757af2b27ebb8' ) return;
-
     this._onAppStateUpdate(await this.AppStateModel.get());
   }
 
@@ -104,10 +102,16 @@ export default class AppPerson extends Mixin(LitElement)
       this.websites.push(...w.hasURL);
     });
 
-    // TEMP hack for testing citationjs
     await this._loadCitations();
+
+    // this will be used by app-person-works component
+    e.payload.citations = this.citations;
   }
 
+  /**
+   * @method _reset
+   * @description clear all page data, called on connected and when personId changes
+   */
   _reset() {
     this.person = {};
     this.personName = '';
@@ -117,14 +121,21 @@ export default class AppPerson extends Mixin(LitElement)
     this.orcId = '';
     this.scopusId = '';
     this.websites = [];
-
     this.citations = [];
     this.citationsDisplayed = [];
   }
 
-  loadCitationPromise(doi) {
+  /**
+   * @method _loadCitationPromise
+   * @description load ciation using citation-js
+   *
+   * @param {String} citation citation object
+   *
+   * @return {Promise}
+   */
+  _loadCitationPromise(citation) {
     return new Promise((resolve, reject) => {
-      Cite.async(doi).then(citation => {
+      Cite.async(citation).then(citation => {
         let originalTitle = citation.data[0].title;
         citation.data[0].title = ''; // apa citation shouldn't include title in ui
         let apa = citation.format('bibliography', {
@@ -149,24 +160,17 @@ export default class AppPerson extends Mixin(LitElement)
     });
   }
 
+  /**
+   * @method _loadCitations
+   * @description load citations for person async
+   */
   async _loadCitations() {
-    // this.citationDois = [];
-
     let citations = this.person['@graph'].filter(g => g.issued);
     citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]))
-    // for( let element of citations ) {
-    //   if( element.DOI ) {
-    //     this.citationDois.push(element.DOI);
-    //   }
-    // }
 
     let citationResults = await Promise.allSettled(
-      // this.citationDois.map(doi => this.loadCitationPromise(doi))
       citations.map((cite, index) => {
         let dateParts = cite.issued.split('-');
-
-        // TODO remove, just testing special <inf> markup
-        // let title = index === 0 ? 'Novel structural aspects of Sb<inf>2</inf>O<inf>3</inf>-B<inf>2</inf>O <inf>3</inf> glasses' : cite.title;
 
         let newCite = {
           DOI: cite.DOI,
@@ -197,7 +201,7 @@ export default class AppPerson extends Mixin(LitElement)
           pagination: cite.pagination,
           // status: cite.status, // breaks publish date
         };
-        return this.loadCitationPromise(newCite);
+        return this._loadCitationPromise(newCite);
       })
     );
 
@@ -235,10 +239,14 @@ export default class AppPerson extends Mixin(LitElement)
   //   document.body.removeChild(link);
   // }
 
+  /**
+   * @method _seeAllWorks
+   * @description load page to list all works
+   */
   _seeAllWorks(e) {
     e.preventDefault();
 
-    // TODO things
+    this.AppStateModel.setLocation('/works/'+this.personId);
   }
 
 }
