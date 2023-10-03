@@ -34,17 +34,7 @@ export default class AppPerson extends Mixin(LitElement)
     this._injectModel('AppStateModel', 'PersonModel');
 
     this.personId = '';
-    this.person = {};
-    this.personName = '';
-    this.introduction = '';
-    this.showMoreAboutMeLink = false;
-    this.roles = [];
-    this.orcId = '';
-    this.scopusId = '';
-    this.websites = [];
-
-    this.citations = [];
-    this.citationsDisplayed = [];
+    this._reset();
 
     this.render = render.bind(this);
   }
@@ -63,12 +53,13 @@ export default class AppPerson extends Mixin(LitElement)
    */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'person' ) return;
-
-    this.personId = e.location.pathname.substr(1);
-    // this.personId = 'person/66356b7eec24c51f01e757af2b27ebb8';
-    await this.PersonModel.get(this.personId);
-
     window.scrollTo(0, 0);
+
+    let personId = e.location.pathname.substr(1);
+    if( personId === this.personId ) return;
+
+    this._reset();
+    this._onPersonUpdate(await this.PersonModel.get(personId));
   }
 
   /**
@@ -79,6 +70,7 @@ export default class AppPerson extends Mixin(LitElement)
    */
   async _onPersonUpdate(e) {
     if( e.state !== 'loaded' ) return;
+    if( e.id === this.personId ) return;
 
     this.personId = e.id;
     this.person = e.payload;
@@ -114,6 +106,20 @@ export default class AppPerson extends Mixin(LitElement)
 
     // TEMP hack for testing citationjs
     await this._loadCitations();
+  }
+
+  _reset() {
+    this.person = {};
+    this.personName = '';
+    this.introduction = '';
+    this.showMoreAboutMeLink = false;
+    this.roles = [];
+    this.orcId = '';
+    this.scopusId = '';
+    this.websites = [];
+
+    this.citations = [];
+    this.citationsDisplayed = [];
   }
 
   loadCitationPromise(doi) {
