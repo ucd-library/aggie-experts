@@ -35,6 +35,26 @@ return html`
       width: 80%;
       margin: 0 auto;
     }
+
+    .content h1 {
+      padding-top: 2rem;
+    }
+
+    .content .sub-heading {
+      font-size: 1.7rem;
+    }
+
+    .content.flex {
+      display: flex;
+      align-items: center;
+      margin-top: 4rem;
+      margin-bottom: 4rem;
+    }
+
+    app-search-box {
+      max-width: 600px;
+      padding-top: 2rem;
+    }
   </style>
 
   <div class="hero-main site-frame">
@@ -47,17 +67,15 @@ return html`
         id="searchBox"
         @search="${this._onSearch}"
         placeholder="search">
-        <!-- <iron-icon icon="fin-icons:search" class="search-icon" slot="button-content"></iron-icon> -->
-
       </app-search-box>
-
-      <div style="padding-top: 1.5rem;">
-        <a href="/fcrepo/rest" style="color: white;">Explore Fedora</a> <span style="color: white; padding-left: 0.3rem"> (must be signed in)</span>
-
+    </div>
+  </div>
+  <div class="site-frame">
+    <div class="content flex">
+      <div class="stub" style="background-color: #C4C4C4; height: 400px; width: 50%"></div>
+      <div class="sub-heading h4" style="padding: 2rem; width: 50%">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ac nulla ex.
       </div>
     </div>
   </div>
-
-
-
 `;}
