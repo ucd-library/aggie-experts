@@ -1,4 +1,5 @@
 import { html } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 import { sharedStyles } from '../styles/shared-styles';
 
@@ -80,15 +81,33 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.personName}</span>
         </div>
-        <h1>${this.citationsCount || 0} Works</h1>
+        <h1>${this.citations.length || 0} Works</h1>
       </div>
     </div>
 
     <div class="main-content">
-      <div class="return-to-profile" ?hidden= "${this.citations.length < 11}" @click="${this._seeAllWorks}">
+      <div class="return-to-profile" @click="${this._returnToProfile}">
         <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-left"></ucdlib-icon>
         <span>RETURN TO PROFILE</span>
       </div>
+
+
+      ${this.citationsDisplayed.map(
+      (cite) => html`
+        <h4 style="margin: 1.19rem 0;">${cite.issued?.['date-parts']?.[0]}</h4>
+        <div class="work">
+          <h5>${unsafeHTML(cite.title)}</h5>
+          <div class="work-details">
+            <span style="min-width: fit-content;">${cite.type}</span>
+            <span class="dot">.</span>
+            ${unsafeHTML(cite.apa)}
+          </div>
+        </div>
+        <br>
+      `
+      )}
     </div>
+
+
   </div>
 `;}

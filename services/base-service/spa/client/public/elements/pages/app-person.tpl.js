@@ -243,8 +243,13 @@ return html`
       font-size: .8rem;
     } */
 
+    .work-details span {
+      line-height: var(--lh-html);
+    }
+
     .csl-bib-body, .csl-entry {
       display: inline;
+      line-height: var(--lh-html);
     }
 
   </style>
