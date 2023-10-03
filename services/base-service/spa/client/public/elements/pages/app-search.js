@@ -66,7 +66,11 @@ export default class AppSearch extends Mixin(LitElement)
   _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
-    this.searchTerm = e.location.fullpath.replace('/search/', '');
+    let searchTerm = e.location.fullpath.replace('/search/', '');
+    if( searchTerm === this.searchTerm ) return;
+
+    this.searchTerm = searchTerm;
+    this._onSearch({ detail: this.searchTerm });
   }
 
   /**
