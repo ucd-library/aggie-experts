@@ -1,5 +1,7 @@
 import { LitElement} from 'lit';
+
 import render from './search-box.tpl.js';
+
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../utils/app-icons';
 
@@ -11,23 +13,20 @@ export class AppSearchBox extends LitElement {
 
   static get properties() {
     return {
-      placeholder : {
-        type : String,
-        value : ''
-      },
-      browse : {
-        type : Object,
-        observer : '_onBrowseOptionsChange',
-        value : () => ({})
-      }
+      placeholder : { type : String },
+      isGold : { type : Boolean, attribute : 'is-gold' },
+      searchRounded : { type : Boolean, attribute : 'search-rounded' },
+      searchTerm : { type : String, attribute : 'search-term' }
     };
   }
 
   constructor() {
     super();
     this.render = render.bind(this);
-    this.placeholder = "";
-    this.searchValue = "";
+    this.placeholder = '';
+    this.isGold = false;
+    this.searchRounded = false;
+    this.searchTerm = '';
   }
 
   /**
@@ -54,7 +53,7 @@ export class AppSearchBox extends LitElement {
    *
    */
   _handleChange(e){
-    this.searchValue = e.target.value;
+    this.searchTerm = e.target.value;
   }
 
   /**
@@ -68,7 +67,7 @@ export class AppSearchBox extends LitElement {
       new CustomEvent(
         'search',
         {
-          detail: this.searchValue,
+          detail: this.searchTerm,
           bubbles: true,
           composed: true
         }
@@ -87,34 +86,6 @@ export class AppSearchBox extends LitElement {
     if( e.which !== 13 ) return;
     this._handleChange(e);
     this._fireSearch();
-  }
-
-  /**
-   * @method _onBrowseOptionsChange
-   * @description Browse Options are created and added to the
-   * browse button.
-   *
-   */
-  _onBrowseOptionsChange() {
-    this.$.select.innerHTML = '';
-
-    var option = document.createElement('option');
-    option.value = 'Browse';
-    option.textContent = 'Browse';
-    option.setAttribute('selected', 'selected');
-    this.$.select.appendChild(option);
-
-    option = document.createElement('option');
-    option.value = '';
-    option.textContent = 'All Items';
-    this.$.select.appendChild(option);
-
-    for( let key in this.browse ) {
-      option = document.createElement('option');
-      option.textContent = this.browse[key];
-      option.value = key;
-      this.$.select.appendChild(option);
-    }
   }
 
 }

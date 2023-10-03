@@ -118,18 +118,16 @@ return html`
     }
 
     .seperator {
-      /* border-top: 4px dotted var(--color-sage); */
       display: block;
       height: 4px;
       border: 0;
       border-top: 4px dotted var(--color-aggie-gold);
-      /* margin: 1em 0; */
       padding: 0;
       margin: 0.625rem 0;
     }
 
-    .roles-websites h4 {
-      margin: 0.7rem 0;
+    .about-me.seperator {
+      padding-bottom: 0.7rem;
     }
 
     .roles-websites .link-row {
@@ -140,6 +138,10 @@ return html`
 
     .roles-websites .link-row span {
       padding-left: 0.625rem;
+    }
+
+    .introduction {
+      padding-bottom: 2.375rem;
     }
 
     .introduction h4 {
@@ -167,11 +169,18 @@ return html`
 
     .roles-websites {
       display: flex;
-      padding-top: 2.375rem;
+      /* padding-top: 2.375rem; */
     }
 
     .roles-websites .roles {
       width: 50%;
+      padding-right: 1rem;
+    }
+
+    .roles-websites .roles h4,
+    .roles-websites .websites h4  {
+      padding-top: 0;
+      margin-top: 0;
     }
 
     .roles-websites ucdlib-icon {
@@ -184,6 +193,7 @@ return html`
 
     .roles-websites .role {
       padding-bottom: 1rem;
+      overflow: hidden;
     }
 
     .works-abbreviated {
@@ -207,6 +217,7 @@ return html`
 
     .works-abbreviated .seperator {
       border-top: 4px dotted var(--color-sage);
+      padding-bottom: .33rem;
     }
 
     .works-abbreviated .work h5 {
@@ -214,15 +225,32 @@ return html`
       margin: .5rem 0;
     }
 
-    .work-details {
-      display: flex;
-      align-items: center;
+    .work-details .dot {
+      padding: 0 0.25rem;
+      color: var(--black, #000);
+      font-family: Proxima Nova;
+      font-size: 1.1875rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 1.92125rem;
+      text-transform: uppercase;
+      position: relative;
+      bottom: 0.25rem;
     }
 
     /* inf {
       vertical-align: sub;
       font-size: .8rem;
     } */
+
+    .work-details span {
+      line-height: var(--lh-html);
+    }
+
+    .csl-bib-body, .csl-entry {
+      display: inline;
+      line-height: var(--lh-html);
+    }
 
   </style>
 
@@ -242,9 +270,9 @@ return html`
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
       </div>
-      <hr class="seperator">
+      <hr class="about-me seperator">
 
-      <div class="introduction">
+      <div class="introduction" ?hidden="${!this.introduction}">
         <h4>Introduction</h4>
         <ucdlib-md>
           <ucdlib-md-content>
@@ -259,7 +287,7 @@ return html`
       </div>
 
       <div class="roles-websites">
-        <div class="roles">
+        <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles</h4>
           ${this.roles.map(
           (role) => html`
@@ -267,11 +295,11 @@ return html`
             <div>
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <div class="link-row">
+            <div class="link-row" ?hidden="${!role.websiteUrl}">
               <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
               <span><a href="${role.websiteUrl}">${role.websiteUrl}</a></span>
             </div>
-            <div class="link-row">
+            <div class="link-row" ?hidden="${!role.email}">
               <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
               <span><a href="mailto:${role.email}">${role.email}</a></span>
             </div>
@@ -280,7 +308,7 @@ return html`
         )}
         </div>
 
-        <div class="websites">
+        <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId}">
           <h4>Websites</h4>
           <div class="link-row" ?hidden="${!this.orcId}">
             <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
@@ -321,7 +349,7 @@ return html`
               <h5>${unsafeHTML(cite.title)}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${cite.type}</span>
-                <span style="padding: 0 .75rem; color: var(--black, #000); font-family: Proxima Nova; font-size: 1.1875rem; font-style: normal; font-weight: 700; line-height: 1.92125rem; text-transform: uppercase;">.</span>
+                <span class="dot">.</span>
                 ${unsafeHTML(cite.apa)}
               </div>
             </div>

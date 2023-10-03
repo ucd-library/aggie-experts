@@ -1,4 +1,4 @@
-/* 
+/*
  * STYLES FOR THE UC DAVIS CAMPUS THEME
  * DEPENDENT ON FELLOW CSS CUSTOM PROPERTIES FILE
 */
@@ -18,6 +18,9 @@ body, html {
 /* body {
   position: relative;
 } */
+h5 {
+  font-size: 1rem;
+}
 
 @media screen and (min-width: 768px) {
   body, html {
@@ -134,11 +137,11 @@ a:active {
 a:focus {
   color: var(--color-a-focus);
 }
-h1 > a, .h1 > a, 
-h2 > a, .h2 > a, 
-h3 > a, .h3 > a, 
-h4 > a, .h4 > a, 
-h5 > a, .h5 > a, 
+h1 > a, .h1 > a,
+h2 > a, .h2 > a,
+h3 > a, .h3 > a,
+h4 > a, .h4 > a,
+h5 > a, .h5 > a,
 h6 > a, .h6 > a {
   text-decoration: underline;
   color: inherit;

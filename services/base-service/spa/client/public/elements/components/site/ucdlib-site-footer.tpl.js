@@ -50,7 +50,8 @@ export function styles() {
       display: block;
       margin-bottom: 0;
     }
-    ucdlib-site-footer-column a {
+    ucdlib-site-footer-column a,
+    ucdlib-site-footer-column span {
       display: block;
       padding: var(--spacing-half);
     }
@@ -137,6 +138,10 @@ export function styles() {
       }
       h2 {
         margin-left: 0;
+        padding-top: 1.5rem;
+      }
+      .lib-logo-container {
+        padding-top: 1.5rem;
       }
     }
   `;
@@ -149,8 +154,7 @@ export function render() {
         <div id="address-column">
           <div class="lib-logo-container">
             <a href="https://library.ucdavis.edu" target="_blank"
-              >${this._renderLibraryLogo()}</a
-            >
+              >${this._renderLibraryLogo()}</a>
           </div>
           <address>
             UC Davis Library <br />
@@ -159,9 +163,8 @@ export function render() {
             Davis, CA 95616 <br /><br />
             <a href="tel:+1-530-752-8792" class="underline">530-752-8792</a
             ><br /><br />
-            <a href="mailto:library@ucdavis.edu" class="underline"
-              >library@ucdavis.edu</a
-            >
+            <a href="mailto:experts@ucdavis.edu" class="underline"
+              >experts@ucdavis.edu</a>
           </address>
           <div id="below-address" shadow-anchor="below-address"></div>
         </div>
