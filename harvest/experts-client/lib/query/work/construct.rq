@@ -25,6 +25,7 @@ construct {
         cite:pagination ?pagination;
         ?field_predicate ?field_value;
         cite:issued ?pub_datestr;
+        cite:date-available ?pub_odatestr;
         .
 
   ?work  cite:author ?authorship.
@@ -33,21 +34,6 @@ construct {
               cite:family ?authorFamilyName;
               cite:given ?authorGivenName;
               .
-
-  # cite:issued ?work_pubdate.
-  # ?work_pubdate ucdlib:year ?pub_year;
-  #               ucdlib:month ?pub_month;
-  #               ucdlib:day ?pub_day;
-  #               .
-
-  # ?work  cite:date-available ?opub_datestr;
-  #        cite:date-available ?work_opubdate;
-  #        .
-
-  # ?work_opubdate ucdlib:year ?opub_year;
-  #                ucdlib:month ?opub_month;
-  #                ucdlib:day ?opub_day;
-  #                .
 
   # This needs to be stored as a journal
   ?work vivo:hasPublicationVenue ?journalURI .
@@ -102,7 +88,7 @@ WHERE {
     VALUES(?field_name ?field_predicate) {
       ("doi" bibo:doi)
       ("abstract" cite:abstract)
-      ("acceptance-date" cite:issued)
+      #("acceptance-date" cite:issued)
       #("addresses" cite:)
       #("altmetric-attention-score" cite:)
       #("associated-identifiers" cite:)
@@ -127,7 +113,7 @@ WHERE {
       ("isbn-13" cite:ISBN)
       ("issn" cite:ISSN)
       ("issue" cite:issue)
-      ("journal" cite:container-title)
+      ("journal" cite:container-title)sr
       ("keywords" cite:keyword)
       ("language" cite:language)
       #("location" cite:)
@@ -225,7 +211,6 @@ WHERE {
       }
       BIND(CONCAT(?pub_year, COALESCE(?pub_month, ""), COALESCE(?pub_day, "")) AS ?pub_datestr)
     }
-    BIND(uri(concat(str(?work),"#",?pub_datestr)) as ?work_pubdate)
 
     OPTIONAL {
       ?field :date ?opub_date.
@@ -241,7 +226,6 @@ WHERE {
       }
       BIND(CONCAT(?opub_year, COALESCE(?opub_month, ""), COALESCE(?opub_day, "")) AS ?opub_datestr)
     }
-    BIND(uri(concat(str(?work),"#",?opub_datestr)) as ?work_opubdate)
 
     OPTIONAL {
       ?field :pagination [ :begin-page ?begin ].
