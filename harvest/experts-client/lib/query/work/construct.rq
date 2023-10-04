@@ -68,6 +68,13 @@ WHERE {
     {
       select ?field_name (min(?p) as ?priority)
       WHERE {
+        # This first guard prevents a source from being used if there are multiple records
+        {
+          select ?source (count(*) as ?srccnt) WHERE {
+            ?PUB__ :records/:record [ :source-name  ?source;
+                                      :native [] ].
+          } group by ?source having (?srccnt=1)
+        }
         VALUES (?source ?p) {
           ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
           ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
@@ -113,7 +120,7 @@ WHERE {
       ("isbn-13" cite:ISBN)
       ("issn" cite:ISSN)
       ("issue" cite:issue)
-      ("journal" cite:container-title)sr
+      ("journal" cite:container-title)
       ("keywords" cite:keyword)
       ("language" cite:language)
       #("location" cite:)
@@ -141,7 +148,6 @@ WHERE {
       #("start-date" cite:)
       ("thesis-type" cite:genre) # Hopefully cite:type set correctly
       ("title" cite:title)
-      ("title" rdfs:label) # Simple label as well
       #("types" cite:genre) Handled elsewhere
       ("volume" cite:volume)
     }
@@ -153,27 +159,16 @@ WHERE {
                                                           .
     bind(uri(replace(str(?PUB__),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/publication/"))) as ?work)
 
-    OPTIONAL {
-      ?PUB__ :records/:record [ :source-name  ?source;
-                                      :native/:field ?field_name;
-                                      :native/:text ?doi ].
-      filter(?field_name='doi')
-    }
-    #    bind(uri(replace(str(?PUB__),str(cdl:),str(work:))) as ?work)
 
     ?field :name ?field_name.
 
-    OPTIONAL {
-      ?PUB__ :type ?oap_type;
-             .
-    }
     OPTIONAL {
       ?field :text ?field_value ;
       .
     }
     # This is a tricky way to add in some optional extensntion from the field_names above.
     OPTIONAL {
-      VALUES (?status ?vivoStatus) {
+       VALUES (?status ?vivoStatus) {
         ( "Published" bibo:published )
         ( "Published online" bibo:published )
         ( "Accepted" bibo:accepted )
