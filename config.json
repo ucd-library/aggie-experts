@@ -1,6 +1,38 @@
 {
   "project":"${G[project]}",
   "env":"${G[env]}",
+  "envs": {
+    "dev":{
+      "mount":"models,init-fcrepo,spa",
+      "org":"localhost/aggie-experts",
+      "tag":"dirty"
+    },
+    "sandbox":{
+      "mount":"",
+      "org":"localhost/aggie-experts",
+      "tag":"$(${G[git]} describe --tags --always --dirty)"
+    },
+    "test":{
+      "mount":"",
+      "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
+      "tag":"$(${G[git]} describe --tags --always --dirty)"
+    },
+    "build":{
+      "mount":"",
+      "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
+      "tag":"$(${G[git]} describe --tags --always --dirty)"
+    },
+    "prod":{
+      "mount":"",
+      "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
+      "tag":"$(${G[git]} describe --tags --always --dirty)"
+    }
+  },
+  "template":"${G[base]}/docker-template.yaml",
+  "fin":{
+    "org":"gcr.io/ucdlib-pubreg",
+    "tag":"2.3.1"
+  },
   "debug":{
     "config":"${G[config]}",
     "gcloud_user":"${G[gcloud_user]}",
@@ -19,22 +51,11 @@
     }
   },
   "deploy": {
-    "template":"${G[base]}/docker-template.yaml",
-    "keycloak":"auth",
-    "dev_mount":"models,init-fcrepo,spa"
-   },
-  "fin":{
-    "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.3.1"
-  },
-  "experts":{
-    "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
-    "tag":"$(${G[git]} describe --tags --always --dirty)"
+    "keycloak":"auth"
   },
   "git":{
     "base":"$(${G[git]} rev-parse --show-toplevel)",
     "repo":"$(basename -s .git $(${G[git]} config --get remote.origin.url))",
-    "branch_name":"$(${G[git]} branch --show-current)",
-    "tag":"$(${G[git]} describe --tags --always --dirty)"
+    "branch_name":"$(${G[git]} branch --show-current)"
   }
 }

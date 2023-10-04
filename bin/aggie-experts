@@ -13,10 +13,7 @@ declare -g -A G=(
   [noop]=
 );
 
-G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
-G[env_secret]=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:${G[env]}" | jq -r '.[0].name'))
-
-G[service_account]=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:service-account" | jq -r '.[0].name'))
+#G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
 
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand(){
@@ -35,19 +32,15 @@ function expand(){
 }
 
 function G() {
-  expand < ${G[config]} | jq "${G[jq]}" | jq -r "$1"
+  expand < ${G[config]} | jq "${G[jq]}" | jq -r "$*"
 }
 
 function prune() {
   local N=${G[noop]};
   declare -a services=(init fcrepo base-service)
-  if [[ "$(G .git.tag)" =~ "dirty" ]]; then
-    org=localhost/aggie-experts
-    tag=dirty
-  else
-    org=$(G .experts.org)
-    tag=$(G .git.tag)
-  fi
+
+  local org=$(G .org // .envs.${G[env]}.org)
+  local tag=$(G .tag // .envs.${G[env]}.tag)
 
   local fin_rm=$(docker image list --format=json | jq -r "select(.Repository | test(\"fin-\")) | (select(.Repository | test(\"$(G .fin.org)\") | not),select(.Tag != \"$(G .fin.tag)\")) | .Repository+\":\"+.Tag")
 
@@ -79,18 +72,28 @@ function build() {
   local fin_org=$(G .fin.org)
   local fin_tag=$(G .fin.tag)
 
-  if [[ "$(G .env)" =~ "dev" ]]; then
-    org=localhost/aggie-experts
-    tag=dirty
-  else
-    org=$(G .experts.org)
-    tag=$(G .git.tag)
-  fi
+  local org=$(G .org // .envs.${G[env]}.org)
+  local tag=$(G .tag // .envs.${G[env]}.tag)
 
-  if [[ "$(G .git.tag)" =~ "dirty" && "$(G .env)" != "dev" ]]; then
-    echo "Cannot build dirty image in non-dev environment"
-    exit 1
-  fi
+  case ${G[env]} in
+    dev) ;; # Always build
+    test | sandbox )
+      if [[ "$tag" =~ "dirty" ]]; then
+        >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
+        exit 1
+      fi
+      ;;
+    prod )
+      if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
+        >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
+        exit 1
+      fi
+      ;;
+    *)
+      >&2 echo "Unknown env=${G[env]}"
+      exit 1
+      ;;
+  esac
 
   cd ${G[base]}
 
@@ -104,7 +107,8 @@ function build() {
        --build-arg FIN_ORG=${fin_org} --build-arg FIN_TAG=${fin_tag} \
        --build-arg ORG=${org} --build-arg TAG=${tag} \
        -t $image \
-       --cache-from $image ${i}
+       --cache-from localhost/aggie-experts/${n}:dirty ${i}
+
   done
 
   if [[ "$(G .keycloak)" = "local" ]]; then
@@ -121,33 +125,89 @@ function build() {
   fi
 }
 
-function env() {
-  gcloud secrets versions access latest --secret=${G[env_secret]}
+function push() {
+  local N=${G[noop]};
+  local org=$(G .org // .envs.${G[env]}.org)
+  local tag=$(G .tag // .envs.${G[env]}.tag)
 
-  if [[ "$(G .env)" == "dev" ]]; then
-    org=localhost/aggie-experts
-    tag=dirty
-  else
-    org=$(G .experts.org)
-    tag=$(G .experts.tag)
-  fi
+  case ${G[env]} in
+    dev) ;; # Always build
+    test | sandbox )
+      if [[ "$tag" =~ "dirty" ]]; then
+        >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
+        exit 1
+      fi
+      ;;
+    prod )
+      if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
+        >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
+        exit 1
+      fi
+      ;;
+    *)
+      >&2 echo "Unknown env=${G[env]}"
+      exit 1
+      ;;
+  esac
+
+  for i in experts-api fuseki harvest services/base-service services/init; do
+    local n=$(basename $i)
+    local image=$org/${n}:$tag
+
+    $N docker push ${image}
+  done
+}
+
+function env() {
+
+  local org=$(G .org // .envs.${G[env]}.org)"
+  local tag=$(G .tag // .envs.${G[env]}.tag)"
+
+    case ${G[env]} in
+    dev) ;; # Always compose
+    sandbox | test )
+      if [[ "$tag" =~ "dirty" ]]; then
+        >&2 echo "Clean tags only in ${G[env]} .env file, $tag fails"
+        exit 1
+      fi
+      ;;
+    prod )
+      if [[ "$tag" =~ "-" ]]; then
+        >&2 echo "Annotated tags only in ${G[env]} .env file, $tag fails"
+        exit 1
+      fi
+      ;;
+    *)
+      >&2 echo "Unknown environment: ${G[env]}"
+      exit 1
+      ;;
+  esac
+
+  local secret=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:$(G .env))" | jq -r '.[0].name'))
+
+  gcloud secrets versions access latest --secret="$secret"
 
   echo "ORG=$org"
   echo "TAG=$tag"
   echo "FIN_ORG=$(G .fin.org)"
   echo "FIN_TAG=$(G .fin.tag)"
-
 }
 
 function service_account() {
-  gcloud secrets versions access latest --secret=${G[service_account]}
+  local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:service-account" | jq -r '.[0].name'))
+
+  gcloud secrets versions access latest --secret="$service_account"
 }
 
 function compose() {
   local env=$(G .env)
   local keycloak=$(G .keycloak)
-  local mount=$(G .deploy.dev_mount)
-  local tmpl=$(G .deploy.template)
+  local tmpl=$(G .template)
+
+  local org=$(G .org // .envs.${G[env]}.org)
+  local tag=$(G .tag // .envs.${G[env]}.tag)
+  local mounts=$(G .mounts // .envs.${G[env]}.mounts)
+
 
   if [[ "$env" = "dev" ]]; then
     cat $tmpl |
@@ -156,17 +216,17 @@ function compose() {
        else
         cat
       fi |
-      if [[ "$mount" =~ "models" ]]; then
+      if [[ "$mounts" =~ "models" ]]; then
         cat
       else
         yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
       fi |
-      if [[ "$mount" =~ "init-fcrepo" ]]; then
+      if [[ "$mounts" =~ "init-fcrepo" ]]; then
         cat
       else
         yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
       fi |
-      if [[ "$mount" =~ "spa" ]]; then
+      if [[ "$mounts" =~ "spa" ]]; then
         cat
       else
         yq 'del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
@@ -195,12 +255,20 @@ function setup() {
     service_account
   else
     echo "#===== .env  =====#"
-    env | tee ${G[base]}/.env
+    env > ${G[base]}/.env
     echo "#===== docker-compose.yaml =====#"
-    compose | tee ${G[base]}/docker-compose.yaml
+    compose > ${G[base]}/docker-compose.yaml
     echo "#===== service-account =====#"
-    service_account | tee ${G[base]}/service-account.json
+    service_account > ${G[base]}/service-account.json
   fi
+
+  local mounts=$(G .mounts // .envs.${G[env]}.mounts)
+  if [[ -n $mounts ]]; then
+    >&2 echo "#======MOUNTS=======#"
+    >&2 echo "mounts=$mounts"
+    >&2 echo "WARN: You have mounts, be sure to run `npm install` where required"
+  fi
+
 }
 
 function main.cmd() {
@@ -216,7 +284,7 @@ function main.cmd() {
     while true; do
 	    case $1 in
         --jq) CMD[jq]=$2; shift 2;;
-        --env ) CMD[env]=$2; shift 2;;
+        --env) CMD[env]=$2; shift 2;;
         -n | --noop) CMD[noop]="echo"; shift;;
 	      -- ) shift; break;;
 	      *) shift; break;
@@ -228,28 +296,37 @@ function main.cmd() {
       [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
     done
 
+    # Read .configuration paramters
+    while [[ "$1" =~ ^\..*=.* ]]; do
+      local cmd="$(sed -e 's/=\(.*\)$/="\1"/' <<<"$1")"
+      G[jq]="${G[jq]}|$cmd"
+      G[env]=$(G .env) # Fix global if set that way
+      shift
+    done
+    # Now command(s)
     for cmd in "$@"; do
-      shift;
-      if [[ "$cmd" =~ ^\. ]]; then
-        G[jq]="${G[jq]}|$cmd"
-      else
-        case $cmd in
-	        prune | build | compose | env | setup ) # API requests
-	          $cmd "$@";
-	          ;;
+      shift
+      case $cmd in
+	      prune | build | compose | env | setup ) # API requests
+	        $cmd
+	        ;;
 
-          config ) G "$@" ;;
+        config | G )
+          G "$@" ;
+          exit 0
+          ;;
 
-          G ) G "$@" ;;
+        expand )
+          expand <${G[config]}
+          exit 0
+          ;;
 
-          expand ) expand <${G[config]} ;;
-
-          declare ) # informational requests
-            declare -p G;
-            ;;
+        declare ) # informational requests
+          declare -p G;
+          exit 0
+          ;;
         *) echo "Unknown command: $cmd"; exit 1;;
-        esac
-      fi
+      esac
     done
 }
 main.cmd "$@"
