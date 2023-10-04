@@ -29,6 +29,7 @@ return html`
       font-weight: 700;
       line-height: 2.5rem;
       padding-right: .7rem;
+      padding-left: .7rem;
     }
     svg {
       width: 20.22471911px;

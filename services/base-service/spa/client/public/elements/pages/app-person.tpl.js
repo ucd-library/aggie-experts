@@ -34,7 +34,7 @@ return html`
     }
 
     .main-content {
-      width: 60%;
+      width: 53.5rem;
       margin: 0 auto;
       padding-top: 2.38rem;
     }
@@ -156,6 +156,10 @@ return html`
       cursor: pointer;
     }
 
+    .see-all-works {
+      padding-bottom: 2rem;
+    }
+
     .introduction .more-about-me span,
     .works-abbreviated .see-all-works span {
       padding-left: .5rem;
@@ -250,6 +254,22 @@ return html`
     .csl-bib-body, .csl-entry {
       display: inline;
       line-height: var(--lh-html);
+    }
+
+    @media (max-width: 992px) {
+      .main-content {
+        width: 90%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .roles-websites {
+        display: block;
+      }
+
+      .roles-websites .roles {
+        width: 100%;
+      }
     }
 
   </style>

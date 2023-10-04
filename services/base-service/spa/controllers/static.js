@@ -32,7 +32,7 @@ module.exports = (app) => {
 
     // do you want to manually handle 404 for requests to unknown resources
     // this lets you render your own 404 page using the index.html
-    enable404 : false,
+    enable404 : true,
 
     getConfig : async (req, res, next) => {
     //   let user;
