@@ -251,8 +251,7 @@ class FinEsNestedModel extends FinEsDataModel {
       index : this.writeIndexAlias,
       id : doc['@id'],
       body: {
-        '@id': doc['@id'],
-        '@graph': doc['@graph'],
+        ...doc,
         roles: roles}
     });
   }
