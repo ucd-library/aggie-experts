@@ -130,7 +130,8 @@ export default class AppPerson extends Mixin(LitElement)
     let citations = this.person['@graph'].filter(g => g.issued);
 
     try {
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]))
+      // sort by issued date desc, then by title asc
+      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
       let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
@@ -138,7 +139,7 @@ export default class AppPerson extends Mixin(LitElement)
       citations = citations.filter(c => typeof c.issued === 'string');
     }
 
-    citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]))
+    citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     let citationResults = await generateCitations(citations);
 
     this.citations = citationResults.map(c => c.value);
