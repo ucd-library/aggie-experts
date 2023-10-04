@@ -35,7 +35,7 @@ export function styles() {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
-      margin-top: var(--spacing-sm);
+      /* margin-top: var(--spacing-sm); */
     }
     #section-columns > * {
       margin: 0 var(--spacing-default) var(--spacing-default);
