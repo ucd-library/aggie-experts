@@ -3,7 +3,6 @@ import {render} from "./app-search.tpl.js";
 
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
-
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
 import "../components/search-box";

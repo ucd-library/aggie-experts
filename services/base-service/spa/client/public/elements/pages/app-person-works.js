@@ -3,6 +3,7 @@ import {render} from "./app-person-works.tpl.js";
 
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
+import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
 import { generateCitations } from '../utils/citation.js';
 
@@ -16,6 +17,8 @@ export default class AppPersonWorks extends Mixin(LitElement)
       personName : { type : String },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      paginationTotal : { type : Number },
+      currentPage : { type : Number },
     }
   }
 
@@ -28,12 +31,26 @@ export default class AppPersonWorks extends Mixin(LitElement)
     this.personName = '';
     this.citations = [];
     this.citationsDisplayed = [];
+    this.paginationTotal = 1;
+    this.currentPage = 1;
+    this.resultsPerPage = 20;
 
     this.render = render.bind(this);
   }
 
   async firstUpdated() {
     this._onAppStateUpdate(await this.AppStateModel.get());
+  }
+
+  willUpdate() {
+    // hack, pagination links too wide
+    let pagination = this.shadowRoot.querySelector('ucd-theme-pagination');
+    if( !pagination ) return;
+
+    let pageLinks = pagination.shadowRoot.querySelectorAll('.pager__item a') || [];
+    pageLinks.forEach(link => {
+      link.style.padding = '0.25rem';
+    });
   }
 
   /**
@@ -75,36 +92,55 @@ export default class AppPersonWorks extends Mixin(LitElement)
    * @method _loadCitations
    * @description load citations for person async
    */
-    async _loadCitations() {
-      let citations = this.person['@graph'].filter(g => g.issued);
+  async _loadCitations() {
+    let citations = this.person['@graph'].filter(g => g.issued);
 
-      try {
-        citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]))
-      } catch (error) {
-        let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-        if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
+    try {
+      // sort by issued date desc, then by title asc
+      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    } catch (error) {
+      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
+      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
 
-        citations = citations.filter(c => typeof c.issued === 'string');
-      }
-
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]))
-      let citationResults = await generateCitations(citations);
-
-      this.citations = citationResults.map(c => c.value);
-
-      // also remove issued date from citations if not first displayed on page from that year
-      let lastPrintedYear;
-      this.citations.forEach((cite, i) => {
-        let newIssueDate = cite.issued?.['date-parts']?.[0];
-        if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.['date-parts']?.[0] || lastPrintedYear === newIssueDate ) ) {
-          delete cite.issued;
-          lastPrintedYear = newIssueDate;
-        }
-      });
-      this.citationsDisplayed = this.citations.slice(0, 20);
-
-      this.requestUpdate();
+      citations = citations.filter(c => typeof c.issued === 'string');
     }
+
+    citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    let citationResults = await generateCitations(citations);
+
+    this.citations = citationResults.map(c => c.value);
+
+    // also remove issued date from citations if not first displayed on page from that year
+    let lastPrintedYear;
+    this.citations.forEach((cite, i) => {
+      let newIssueDate = cite.issued?.['date-parts']?.[0];
+      if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.['date-parts']?.[0] || lastPrintedYear === newIssueDate ) ) {
+        delete cite.issued;
+        lastPrintedYear = newIssueDate;
+      }
+    });
+    this.citationsDisplayed = this.citations.slice(0, 20);
+    this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+
+    this.requestUpdate();
+  }
+
+  /**
+   * @method _onPaginationChange
+   * @description bound to click events of the pagination element
+   *
+   * @param {Object} e click|keyup event
+   */
+  _onPaginationChange(e) {
+    e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
+    let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
+    if( maxIndex > this.citations.length ) maxIndex = this.citations.length;
+
+    this.citationsDisplayed = this.citations.slice(e.detail.startIndex, maxIndex);
+    this.currentPage = e.detail.page;
+    window.scrollTo(0, 0);
+  }
+
 
   /**
    * @method _returnToProfile
