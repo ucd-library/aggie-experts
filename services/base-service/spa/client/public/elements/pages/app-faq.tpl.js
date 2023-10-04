@@ -10,6 +10,28 @@ return html`
       display: block;
     }
 
+    .faq-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      height: 75px;
+      border-bottom: solid 1px #E5E5E5;
+    }
+
+    .faq-header .faq-label {
+      color: var(--ucd-blue-100, #022851);
+      font-size: 2.5rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 2.5rem;
+      padding-right: .7rem;
+      padding-left: .7rem;
+    }
+    svg {
+      width: 20.22471911px;
+      height: 75px;
+    }
+
     .faq .section {
       display: block;
       width: 53.5rem;
@@ -28,10 +50,22 @@ return html`
     }
 
   </style>
+
+  <div class="faq-header">
+    <div class="faq-label">Help</div>
+    <div style="display: flex; height: 75px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
+        <path d="M21.6 0L0 89H24V0H21.6Z" fill="#DBEAF7"/>
+      </svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none" style="position: relative; left: -1px">
+        <path d="M2.4 89L24 0H0V89H2.4Z" fill="#DBEAF7"/>
+      </svg>
+    </div>
+  </div>
 <div class="faq container top">
   <div class="section">
-    <h1>FAQ</h1>
 
+    <h3>About Aggie Experts</h3>
     <ucd-theme-list-accordion>
       <li>What is Aggie Experts?</li>
       <li>
@@ -45,13 +79,29 @@ return html`
       <li>
         The project is currently in its pilot phase. We are doing incremental addition of departments from the College of Engineering. Aggie Experts profiles, data and functionality will be changing rapidly in 2020-21.
       </li>
-      <li>Why are there so few profiles in the registry?</li>
-      <li>
-        We are currently piloting Aggie Experts, and incrementally adding departments from the College of Engineering. After each deployment we solicit feedback, conduct a review and improve the system.
-      </li>
       <li>How often do you update the data in the registry?</li>
       <li>
         At this stage we will update the data in the registry weekly. As the project progresses, we will implement nightly updates. Grants data are updated quarterly.
+      </li>
+      <li>What sources do you use for my publications?</li>
+      <li>
+        We are using the Publication Management System adopted by the California Digital Library in support of the UC Open Access policy. The sources used are Dimensions, Scopus, Crossref, Web of Science (Lite), Europe PubMed Central, PubMed, eScholarship, arXiv, RePEc, SSRN, DBLP, CiNii EN, CiNii JP, figshare.com (limited) and Google Books.
+      </li>
+      <li>What sources do you use for my grants? Why can't I edit the grant records?</li>
+      <li>
+        We receive the data from the university's financial warehouse. They have been reconciled with UCOP records
+        of awards to UC Davis and are considered the official university record. As such they cannot be edited.
+        We are considering adding fields for user-generated data in the future, to clarify items such as the
+        original source of a subaward.
+      </li>
+    </ucd-theme-list-accordion>
+
+
+    <h3>Managing Your Profile</h3>
+    <ucd-theme-list-accordion>
+      <li>Why are there so few profiles in the registry?</li>
+      <li>
+        We are currently piloting Aggie Experts, and incrementally adding departments from the College of Engineering. After each deployment we solicit feedback, conduct a review and improve the system.
       </li>
       <li>How do I export data?</li>
       <li>
@@ -101,10 +151,6 @@ return html`
         <img class="fw" src="${this.imgPath}ae-profile-edit-keywords-and-privacy.jpg" alt="Go to profile screenshot">
         <p>You will be able to edit the “About” section there, which includes websites you would like to link to from Aggie Experts. In one of the future iterations of Aggie Experts we plan to bring in research overviews, if you have provided such to the university for public view. If you choose to populate them directly in the Publication Management System, it will make the overview upload easier.</p>
       </li>
-      <li>What sources do you use for my publications?</li>
-      <li>
-        We are using the Publication Management System adopted by the California Digital Library in support of the UC Open Access policy. The sources used are Dimensions, Scopus, Crossref, Web of Science (Lite), Europe PubMed Central, PubMed, eScholarship, arXiv, RePEc, SSRN, DBLP, CiNii EN, CiNii JP, figshare.com (limited) and Google Books.
-      </li>
       <li>Why are there so few / no publications in my registry entry?</li>
       <li>
         Most likely you have not claimed your publications in the Publication Management System we are using as a data source. Please, refer to “<a @click="${this._jumpTo}" data-jump-to="change-pub" href="#change-pub">How do I edit my publication record?</a>” to enrich your publication list.
@@ -135,15 +181,6 @@ return html`
         <img class="fw" src="${this.imgPath}ae-publications-claim-identifiers.jpg" alt="Find Identifiers screenshot">
         <p>You can also contact us for assistance with further refining the search parameters for your publications if you are missing a significant number or if you have a lot of publications that are not yours in your pending queue.</p>
       </li>
-
-      <li>What sources do you use for my grants? Why can't I edit the grant records?</li>
-      <li>
-        We receive the data from the university's financial warehouse. They have been reconciled with UCOP records
-        of awards to UC Davis and are considered the official university record. As such they cannot be edited.
-        We are considering adding fields for user-generated data in the future, to clarify items such as the
-        original source of a subaward.
-      </li>
-
       <li>How do I change the visibility of the fields in my profile?</li>
       <li>
         <p>You have granular control over the visibility of the fields in your profile.
@@ -157,7 +194,6 @@ return html`
           If you change the visibility of the entire profile, Aggie Experts not display any information about you, including your name.
         </p>
       </li>
-
       <li id="visible-publication">How do I change the visibility of a publication?</li>
       <li>
         <p>Log into your UC Publication Management System <a href="https://oapolicy.universityofcalifornia.edu/">account</a> and go to “Edit my profile” </p>

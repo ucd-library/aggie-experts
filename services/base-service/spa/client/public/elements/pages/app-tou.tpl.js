@@ -18,6 +18,28 @@ return html`
     margin: 0 auto;
   }
 
+  .tou-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    height: 75px;
+    border-bottom: solid 1px #E5E5E5;
+  }
+
+  .tou-header .tou-label {
+    color: var(--ucd-blue-100, #022851);
+    font-size: 2.5rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 2.5rem;
+    padding-right: .7rem;
+    padding-left: .7rem;
+  }
+  svg {
+    width: 20.22471911px;
+    height: 75px;
+  }
+
   @media (max-width: 992px) {
     .tou .section {
       width: 90%;
@@ -25,10 +47,21 @@ return html`
   }
 
 </style>
+
+<div class="tou-header">
+  <div class="tou-label">Terms Of Use</div>
+  <div style="display: flex; height: 75px;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
+      <path d="M21.6 0L0 89H24V0H21.6Z" fill="#DBEAF7"/>
+    </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none" style="position: relative; left: -1px">
+      <path d="M2.4 89L24 0H0V89H2.4Z" fill="#DBEAF7"/>
+    </svg>
+  </div>
+</div>
+
 <div class="tou container top">
   <div class="section">
-    <h1>Terms of Use</h1>
-
     <h3>Disclaimers</h3>
 
     <p>This UC Davis Library - Research Registry website contains
