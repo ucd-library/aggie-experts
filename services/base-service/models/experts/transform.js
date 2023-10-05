@@ -45,12 +45,12 @@ module.exports = async function(path, graph, headers, utils) {
       }
 
       framed["@type"] = "Work";
-      name= `${root?.title} § ${root?.issued} · ${root?.["container-title"]} · ${root?.author?.[0]?.family}`;
+      name= `${root?.title} § ${root?.issued} · ${root?.["container-title"]} · ${root?.author?.[0]?.family} · DOI:${root?.DOI}`;
       if (root?.author?.length > 1) {
         name += " et al";
       }
       framed["name"] = name;
-      ["title","issued","container-title","author"].forEach((key)=>{
+      ["title","issued","container-title","author","DOI","type"].forEach((key)=>{
         if (root?.[key]) {
           framed[key] = root[key];
         }
@@ -62,8 +62,8 @@ module.exports = async function(path, graph, headers, utils) {
 
       // Order the vcards, and get the first one
       let contact
-      let emails=[];
-      let websites=[];
+      let hasEmail=[];
+      let hasURL=[];
       if (root["contactInfo"]) {
         if (! Array.isArray(root["contactInfo"])) {
           root["contactInfo"] = [ root["contactInfo"] ];
@@ -71,20 +71,14 @@ module.exports = async function(path, graph, headers, utils) {
           root["contactInfo"].sort((a,b)=>a["rank"]-b["rank"])
         }
         contact = root["contactInfo"]?.[0];
-        // get the websites
+        // get the hasURL
         root["contactInfo"].forEach((info)=>{
           if (info.hasEmail) {
-            emails=emails.concat(info.hasEmail);
+            hasEmail=hasEmail.concat(info.hasEmail);
           }
 
           if (info?.hasURL) {
-            if (! Array.isArray(info.hasURL)) {
-              websites.push(info.hasURL.url);
-            } else {
-              info["hasURL"].forEach((has)=>{
-                websites.push(has.url);
-              });
-            }
+            hasURL=hasURL.concat(info.hasURL);
           }
         });
       }
@@ -92,15 +86,17 @@ module.exports = async function(path, graph, headers, utils) {
       name= `${contact?.hasName?.family}, ${contact?.hasName?.given} § ${contact?.hasTitle?.name} · ${contact?.hasOrganizationalUnit?.name}`;
       framed["name"] = name;
 
-      if (websites.length > 0) {
-        framed["website"] = websites;
+      framed["contactInfo"] = {};
+
+      if (hasURL.length > 0) {
+        framed.contactInfo["hasURL"] = hasURL;
       }
 
-      framed["hasEmail"] = emails?.[0];
+      framed.contactInfo["hasEmail"] = hasEmail?.[0];
 
       ["hasName","hasTitle","hasOrganizationalUnit"].forEach((key)=>{
         if (contact[key]) {
-          framed[key] = contact[key];
+          framed.contactInfo[key] = contact[key];
         }
       });
       break;
