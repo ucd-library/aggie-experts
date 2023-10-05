@@ -8,7 +8,7 @@
           "path": "@graph",
           "query": {
             "multi_match": {
-              "query": "{{text}}",
+              "query": "evapotranspiration",
               "fields": [
                 "@graph.DOI^10",
                 "@graph.abstract^5",
@@ -31,14 +31,25 @@
             }
           },
           "inner_hits": {
-            "_source": ["@graph.@type", "@graph.name" ]
+            "_source": [
+              "@graph.@type",
+              "@graph.name",
+              "@graph.author",
+              "@graph.title",
+              "@graph.issued",
+              "@graph.container-title",
+              "@graph.type"
+            ]
           },
           "score_mode": "sum"
         }
       },
-      "_source": ["@id"],
-      "sort" : ["_score"
-               ],
+      "_source": [
+        "@id","@type","name","contactInfo","title","issued","container-title","type","DOI"
+      ],
+      "sort": [
+        "_score"
+      ],
       "from": "{{from}}{{^from}}0{{/from}}",
       "size": "{{size}}{{^size}}10{{/size}}"
     },
