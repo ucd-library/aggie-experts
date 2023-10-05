@@ -8,7 +8,7 @@
           "path": "@graph",
           "query": {
             "multi_match": {
-              "query": "evapotranspiration",
+              "query": "{{q}}",
               "fields": [
                 "@graph.DOI^10",
                 "@graph.abstract^5",
