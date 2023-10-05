@@ -2,7 +2,6 @@
 const {config, models } = require('@ucd-lib/fin-service-utils');
 const schema = require('./schema/minimal.json');
 const FinEsNestedModel = require('../fin-es-nested-model');
-const query_template = require('./template/default.json');
 
 /**
  * @class ExpertsModel
@@ -72,12 +71,55 @@ class ExpertsModel extends FinEsNestedModel {
     return node;
   }
 
-  // set the default query template
-  async put_template() {
-    const result = await this.client.putScript(this.query_template);
-    console.log(`default query template: ${result}`);
+  /** vvvv TEMPLATE SEARCH vvvv **/
+  /**
+   * @method render
+   * @description return an ES ready nested search using a template
+   * @returns string
+   */
+  async render(opts) {
+    params = {
+      size:10,
+      from:0,
+      ...opts.params
+    }
+    // convert page to from if from is not set
+    if (params.from === 0 && params.page > 0) {
+      params.from = (params.page - 1) * params.size;
+    }
+
+    const options = {
+      id: (opts.id)?opts.id:"default",
+      params
+    }
+    // Check if template exists, install if not
+    try {
+      const result = await this.client.getScript({id:options.id});
+//      console.log(`render: template ${options.id} exists`);
+    } catch (err) {
+      const template = require(`./template/${options.id}.json`);
+      const result = await this.client.putScript(template);
+    }
+
+    const template = await client.renderSearchTemplate(options);
+    return template;
+  }
+
+  async search(params) {
+    const q = render(params);
+    let result = await this.esSearch(q, {admin: options.admin}, this.readIndexAlias);
+    // Later, we will should move this to real templates
+    const q = this.query_template.script.source.query;
+    // This is not flexible
+    q.from=opts.from;
+    q.size=opts.size;
+    q.nested.query["multi-match"].query=opts.text;
+
+    await res=this.client.search(options);
     return result;
   }
+  /** ^^^^TEMPLATE SEARCH^^^^ **/
+
 
 
   /**
