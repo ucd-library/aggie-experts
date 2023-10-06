@@ -2,23 +2,43 @@ const router = require('express').Router();
 const ExpertsModel = require('../experts/model.js');
 const utils = require('../utils.js')
 
-const home = new ExpertsModel();
+const experts = new ExpertsModel();
 
 router.get('/render', async (req, res) => {
-  const query = req.query.text;
-  const opts = {};
-  if (req.query.size) { opts.size = req.query.size; }
-  if (req.query.from) { opts.from = req.query.from; }
-  res.send(await home.render(query, opts));
+  const params = {};
+  ["size","page","q"].forEach((key) => {
+    if (req.query[key]) { params[key] = req.query[key]; }
+  });
+  opts = {
+    index: "person-read",
+    id: "default",
+    params
+  };
+  try {
+  const template = await experts.render(opts);
+    res.send(template);
+  } catch (err) {
+    res.status(400).send('Invalid request');
+  }
 });
 
 router.get('/', async (req, res) => {
-  const query = req.query.text;
-  const opts = {};
+  const params = {};
   ["size","page","q"].forEach((key) => {
-    if (req.query[key]) { opts[key] = req.query[key]; }
+    if (req.query[key]) { params[key] = req.query[key]; }
   });
-  res.send(await home.search(query, opts));
+  opts = {
+    index: "person-read",
+    id: "default",
+    params
+  };
+  try {
+    const template = await experts.search(opts);
+    res.send(template);
+  } catch (err) {
+    console.log('search/',err);
+    res.status(400).send('Invalid request');
+  }
 });
 
 router.get('/hello', (req, res) => {

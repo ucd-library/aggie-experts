@@ -23,7 +23,6 @@ class ExpertsModel extends FinEsNestedModel {
     super(name);
     this.schema = schema;  // Common schema for all experts data models
     this.transformService = "node";
-    this.query_template = query_template;
   }
 
   /**
@@ -80,51 +79,61 @@ class ExpertsModel extends FinEsNestedModel {
    * @returns object
    */
   common_parms(in_params) {
-    params = {
+    const params = {
       size:10,
       from:0,
       ...in_params
     }
     // convert page to from if from is not set
     if (params.from === 0 && params.page > 0) {
-      params.from = (params.page - 1) * params.size;
+      params.from = (prams.page - 1) * params.size;
     }
     return params;
   }
 
+  async verify_template(options) {
+    // Check if template exists, install if not
+    try {
+      const result = await this.client.getScript({id:options.id});
+      console.log(`render: template ${options.id} exists`);
+    } catch (err) {
+      console.log(`render: template ${options.id} does not exist`);
+      const template = require(`./template/${options.id}.json`);
+      const result = await this.client.putScript(template);
+    }
+    return true;
+  }
   /**
    * @method render
    * @description return an ES ready nested search using a template
    * @returns string
    */
   async render(opts) {
-    opts.params = this.common_parms(opts.params);
+    const params = this.common_parms(opts.params);
 
     const options = {
       id: (opts.id)?opts.id:"default",
       params
     }
     // Check if template exists, install if not
-    try {
-      const result = await this.client.getScript({id:options.id});
-//      console.log(`render: template ${options.id} exists`);
-    } catch (err) {
-      const template = require(`./template/${options.id}.json`);
-      const result = await this.client.putScript(template);
-    }
+    await this.verify_template(options);
 
-    const template = await client.renderSearchTemplate(options);
+    const template = await this.client.renderSearchTemplate(options);
     return template;
   }
 
   async search(opts) {
-    opts.params = this.common_parms(opts.params);
+
+    const params = this.common_parms(opts.params);
 
     const options = {
       id: (opts.id)?opts.id:"default",
       index: "person-read",
       params
     }
+    // Check if template exists, install if not
+    await this.verify_template(options);
+
     const res=await this.client.searchTemplate(options);
     return res;
   }
