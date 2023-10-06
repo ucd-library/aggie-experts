@@ -103,6 +103,27 @@ class ExpertsModel extends FinEsNestedModel {
     }
     return true;
   }
+
+  compact_search_results(results) {
+    const compact = {
+      total: results.hits.total.value
+    }
+    const hits=[];
+    for (const hit of results.hits.hits) {
+      const source = hit._source;
+      const in_hits = hit?.inner_hits?.["@graph"].hits.hits;
+      const inner_hits = [];
+      if (in_hits) {
+        for (const in_hit of in_hits) {
+          inner_hits.push(in_hit._source);
+        }
+      }
+      source._inner_hits = inner_hits;
+      hits.push(source);
+    }
+    compact.hits = hits;
+    return compact;
+  }
   /**
    * @method render
    * @description return an ES ready nested search using a template
@@ -135,7 +156,7 @@ class ExpertsModel extends FinEsNestedModel {
     await this.verify_template(options);
 
     const res=await this.client.searchTemplate(options);
-    return res;
+    return this.compact_search_results(res);
   }
   /** ^^^^TEMPLATE SEARCH^^^^ **/
 
