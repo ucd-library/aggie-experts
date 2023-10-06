@@ -85,8 +85,8 @@ class ExpertsModel extends FinEsNestedModel {
       ...in_params
     }
     // convert page to from if from is not set
-    if (params.from === 0 && params.page > 0) {
-      params.from = (prams.page - 1) * params.size;
+    if (params.from === 0 && params.page > 1) {
+      params.from = (params.page - 1) * params.size;
     }
     return params;
   }
@@ -104,8 +104,9 @@ class ExpertsModel extends FinEsNestedModel {
     return true;
   }
 
-  compact_search_results(results) {
+  compact_search_results(results,params) {
     const compact = {
+      params,
       total: results.hits.total.value
     }
     const hits=[];
@@ -156,7 +157,7 @@ class ExpertsModel extends FinEsNestedModel {
     await this.verify_template(options);
 
     const res=await this.client.searchTemplate(options);
-    return this.compact_search_results(res);
+    return this.compact_search_results(res,params);
   }
   /** ^^^^TEMPLATE SEARCH^^^^ **/
 
