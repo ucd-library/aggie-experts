@@ -8,7 +8,7 @@
           "path": "@graph",
           "query": {
             "multi_match": {
-              "query": "evapotranspiration",
+              "query": "{{q}}",
               "fields": [
                 "@graph.DOI^10",
                 "@graph.abstract^5",
@@ -45,7 +45,9 @@
         }
       },
       "_source": [
-        "@id","@type","name","contactInfo","title","issued","container-title","type","DOI"
+        "@id","@type","name",
+        "contactInfo",
+        "title","issued","container-title","type","DOI"
       ],
       "sort": [
         "_score"
@@ -54,7 +56,7 @@
       "size": "{{size}}{{^size}}10{{/size}}"
     },
     "params": {
-      "text": "My query string"
+      "q": "My query string"
     }
   }
 }
