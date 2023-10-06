@@ -72,21 +72,33 @@ class ExpertsModel extends FinEsNestedModel {
   }
 
   /** vvvv TEMPLATE SEARCH vvvv **/
+
+
+  /**
+   * @method common_parms
+   * @description fixup parms for template searches
+   * @returns object
+   */
+  common_parms(in_params) {
+    params = {
+      size:10,
+      from:0,
+      ...in_params
+    }
+    // convert page to from if from is not set
+    if (params.from === 0 && params.page > 0) {
+      params.from = (params.page - 1) * params.size;
+    }
+    return params;
+  }
+
   /**
    * @method render
    * @description return an ES ready nested search using a template
    * @returns string
    */
   async render(opts) {
-    params = {
-      size:10,
-      from:0,
-      ...opts.params
-    }
-    // convert page to from if from is not set
-    if (params.from === 0 && params.page > 0) {
-      params.from = (params.page - 1) * params.size;
-    }
+    opts.params = this.common_parms(opts.params);
 
     const options = {
       id: (opts.id)?opts.id:"default",
@@ -105,18 +117,16 @@ class ExpertsModel extends FinEsNestedModel {
     return template;
   }
 
-  async search(params) {
-    const q = render(params);
-    let result = await this.esSearch(q, {admin: options.admin}, this.readIndexAlias);
-    // Later, we will should move this to real templates
-    const q = this.query_template.script.source.query;
-    // This is not flexible
-    q.from=opts.from;
-    q.size=opts.size;
-    q.nested.query["multi-match"].query=opts.text;
+  async search(opts) {
+    opts.params = this.common_parms(opts.params);
 
-    await res=this.client.search(options);
-    return result;
+    const options = {
+      id: (opts.id)?opts.id:"default",
+      index: "person-read",
+      params
+    }
+    const res=await this.client.searchTemplate(options);
+    return res;
   }
   /** ^^^^TEMPLATE SEARCH^^^^ **/
 

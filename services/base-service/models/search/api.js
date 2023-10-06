@@ -12,17 +12,13 @@ router.get('/render', async (req, res) => {
   res.send(await home.render(query, opts));
 });
 
-router.get('/search', async (req, res) => {
+router.get('/', async (req, res) => {
   const query = req.query.text;
   const opts = {};
-  if (req.query.size) { opts.size = req.query.size; }
-  if (req.query.from) { opts.from = req.query.from; }
+  ["size","page","q"].forEach((key) => {
+    if (req.query[key]) { opts[key] = req.query[key]; }
+  });
   res.send(await home.search(query, opts));
-});
-
-router.get('/put_template', async (req, res) => {
-  console.log("put_template");
-    res.send(await home.put_template());
 });
 
 router.get('/hello', (req, res) => {
