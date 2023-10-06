@@ -76,6 +76,9 @@ function build() {
   local tag
   local N=${G[noop]};
 
+  local fin_org=$(G .fin.org)
+  local fin_tag=$(G .fin.tag)
+
   if [[ "$(G .env)" =~ "dev" ]]; then
     org=localhost/aggie-experts
     tag=dirty
@@ -83,25 +86,25 @@ function build() {
     org=$(G .experts.org)
     tag=$(G .git.tag)
   fi
-  declare -a services=( init base-service )
+
   if [[ "$(G .git.tag)" =~ "dirty" && "$(G .env)" != "dev" ]]; then
     echo "Cannot build dirty image in non-dev environment"
     exit 1
   fi
 
-  for service in "${services[@]}"; do
-    local image=$org/${service}:$tag
-    local fin_base=$(G .fin.org)/fin-base-service:$(G .fin.tag)
-    local fin_init=$(G .fin.org)/fin-init:$(G .fin.tag)
-    local fin_fcrepo=$(G .fin.org)/fin-fcrepo:$(G .fin.tag)
+  cd ${G[base]}
 
+  for i in experts-api fuseki harvest services/base-service services/init; do
+    local n=$(basename $i)
+    local image=$org/${n}:$tag
+
+    export DOCKER_BUILDKIT=1
     $N docker build \
-       --build-arg FIN_INIT=$fin_init \
-       --build-arg FIN_SERVER_IMAGE=$fin_base \
-       --build-arg FIN_FCREPO_BASE_IMAGE=$fin_fcrepo \
+	     --build-arg BUILDKIT_INLINE_CACHE=1 \
+       --build-arg FIN_ORG=${fin_org} --build-arg FIN_TAG=${fin_tag} \
+       --build-arg ORG=${org} --build-arg TAG=${tag} \
        -t $image \
-       --cache-from $image \
-       services/${service}
+       --cache-from $image ${i}
   done
 
   if [[ "$(G .keycloak)" = "local" ]]; then

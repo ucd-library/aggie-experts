@@ -1,0 +1,166 @@
+PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX fedora: <http://fedora.info/definitions/v4/repository#>
+PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX schema: <http://schema.org/>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  # This  just copies IAM info
+  ?iam_s ?iam_p ?iam_o.
+  ?iam_o vcard:title ?iam_o_title.
+
+  # This adds the CDL information
+  ?user a ucdlib:Person;
+               rdfs:label ?name;
+               obo:ARG_2000028 ?vcard;
+               schema:identifier ?oapolicy_ark,?user_id;
+               ?field_predicate ?field_value;
+               .
+
+  ?user ?id_pred ?id_value.
+
+#  ?user ucdlib:identifier ?identifier_oapolicy_id.
+#  ?identifier_oapolicy_id a ucdlib:Identifier;
+#                          ucdlib:scheme "oapolicy";
+#                          ucdlib:value  ?oapolicy_id;
+#                          .
+
+#  ?user ucdlib:identifier ?assoc_identifier.
+#  ?assoc_identifier a ucdlib:Identifier;
+#                    ucdlib:scheme ?assoc_scheme;
+#                    ucdlib:value  ?assoc_value;
+#                    .
+
+  ?vcard a vcard:Individual;
+         vivo:rank 20;
+         vcard:hasName ?vcard_name;
+         vcard:hasEmail ?vcard_email;
+         vcard:hasURL ?vcard_web;
+         ucdlib:isPreferred false;
+         .
+
+  ?vcard_name a vcard:Name;
+              vcard:givenName ?fn;
+              vcard:familyName ?ln;
+              .
+
+  ?vcard_web a vcard:URL, ?web_type;
+             vcard:url ?web_url;
+             vivo:rank ?web_rank;
+             vcard:title ?web_label;
+             .
+
+  # Research Areas
+  ?user vivo:hasResearchArea ?concept.
+  ?concept vivo:researchAreaOf ?user.
+}
+WHERE {
+  bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
+  bind(concat('person:',MD5(?USERNAME__)) as ?user_id)
+  graph <http://iam.ucdavis.edu/> {
+    ?user a ucdlib:Person .
+    ?iam_s ?iam_p ?iam_o.
+    # This is soo hacky,
+    OPTIONAL {
+      ?iam_o vcard:title ?iam_o_title.
+    }
+    filter(regex(str(?iam_s),concat('^',str(?user),'#?')))
+    filter(?iam_p != ucdlib:userId)
+  }
+  GRAPH <http://oapolicy.universityofcalifornia.edu/> {
+  ?cdl_id :category "user";
+        :is-public "true";
+        :is-login-allowed "true";
+        :username ?USERNAME__;
+        :last-name ?ln;
+        :first-name ?fn;
+        :user-identifier-associations ?assoc;
+        .
+
+    bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
+    bind(concat(?fn," ",?ln) as ?name)
+    bind(uri(concat(str(?user),"#vcard-oap-1")) as ?vcard)
+    bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
+
+    ?assoc :user-id ?oapolicy_id.
+    bind(concat('ark:/87287/d7mh2m/user/',?oapolicy_id) as ?oapolicy_ark)
+    bind(uri(concat(str(?user),"#oapolicyId")) as ?identifier_oapolicy_id)
+
+    OPTIONAL {
+      values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
+      ?assoc :user-identifier-association [ :field-value  ?assoc_value ; :scheme ?assoc_scheme ].
+    }
+    bind(uri(concat(str(?user),"#identifier-",?assoc_scheme,"-",?assoc_value)) as ?assoc_identifier)
+
+    OPTIONAL {
+      values (?oap_scheme ?id_pred) {
+        ("researcherid" vivo:researcherId)
+        ("orcid" vivo:orcidId)
+        ("scopus-author-id" vivo:scopusId) }
+      ?assoc :user-identifier-association [ :field-value  ?id_value ; :scheme ?oap_scheme ].
+  }
+
+    OPTIONAL {
+      ?cdl_id :records/:record/:native ?native.
+      OPTIONAL {
+        ?native :field [ :name "email-addresses";
+                            :type "email-address-list";
+                            :email-addresses [
+                                                  :email-address [
+                                                                      :address ?email;
+                                                                      :privacy "public";
+                                                                    ]
+                                                ]
+                          ].
+      }
+      OPTIONAL {
+        ?native :field [ :name "personal-websites";
+                            :web-addresses/:web-address [ list:index(?pos ?elem) ]
+                          ].
+
+        ?elem :label ?web_label;
+              :privacy "public";
+              :type ?web_type_text;
+              :url ?web_url;
+              .
+
+        bind(?pos as ?web_rank)
+        bind(uri(concat(str(ucdlib:),"URL_",?web_type_text)) as ?web_type)
+      }
+      values (?field_name ?field_predicate ) {
+        ("overview" vivo:overview)
+        ("research-interests" ucdlib:researchInterests)
+        ("teaching-summary" ucdlib:teachingSummary)
+      }
+      ?native :field [ :name ?field_name;
+                          :text [ :field-value ?field_value;
+                                     :privacy "public"; ]
+                        ].
+    }
+    bind(uri(concat('email:',str(?email))) as ?vcard_email)
+    bind(uri(concat(str(?vcard),"-web-",str(?pos))) as ?vcard_web)
+
+  OPTIONAL {
+    values (?scheme ?vocab) { ("for" FoR:) }
+       ?cdl_id :all-labels [
+                           :type "keyword-list";
+                           :keywords/:keyword [
+                                                      :field-value ?value;
+                                                      :scheme ?scheme;
+                                                    ]
+                         ].
+    bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
+    bind(true as ?keyword_list)
+    }
+  bind(coalesce(?keyword_list,false) as ?user_supplied_concepts)
+  }
+}

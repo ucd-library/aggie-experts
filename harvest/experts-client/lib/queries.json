@@ -1,0 +1,58 @@
+{
+  "@context":{
+    "@vocab":"http://schema.library.ucdavis.edu/schema#",
+    "experts":"http://experts.ucdavis.edu/",
+    "insert@" : {
+      "@id":"insert@",
+      "@type":"@id"
+    },
+    "context@" : {
+      "@id":"context@",
+      "@type":"@id"
+    },
+    "construct@" : {
+      "@id":"construct@",
+      "@type":"@id"
+    },
+    "bind@" : {
+      "@id":"bind@",
+      "@type":"@id"
+    }
+  },
+  "@id":"queries",
+  "@graph":[
+    {"@id":"insert_iam",
+     "@type":"InsertQuery",
+     "bind@":"person/bind.rq",
+     "insert@":"iam/insert.ru"
+    },
+    {"@id":"insert_grants",
+     "@type":"InsertQuery",
+     "bind@":"person/bind.rq",
+     "insert@":"grants/insert.ru"
+    },
+    {"@id":"insert_enterprise_grants",
+     "@type":"InsertQuery",
+     "bind@":"person/bind.rq",
+     "insert@":"enterprise_grants/insert.ru"
+    },
+    {
+      "@id":"work",
+      "@type":"SplayQuery",
+      "construct@" : "work/construct.rq",
+      "bind@" : "work/bind.rq"
+    },
+    {
+      "@id":"authorship",
+      "@type":"SplayQuery",
+      "construct@" : "authorship/construct.rq",
+      "bind@" : "authorship/bind.rq"
+    },
+    {
+      "@id":"person",
+      "@type":"SplayQuery",
+      "construct@" : "person/construct.rq",
+      "bind@" : "person/bind.rq"
+    }
+  ]
+}

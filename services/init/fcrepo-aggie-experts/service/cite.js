@@ -16,8 +16,8 @@ module.exports = async function(path, graph, headers, utils) {
       .sort((a,b)=>a.rank-b.rank)
       .forEach((a)=>{
         const name={};
-        if (a.familyName) name.familyName=a.familyName;
-        if (a.givenName) name.givenName=a.givenName;
+        if (a.family) name.family=a.family;
+        if (a.given) name.given=a.given;
         author.push(name);
       });
     framed["@graph"][0]["author"] = author;

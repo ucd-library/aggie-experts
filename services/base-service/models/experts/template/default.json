@@ -1,0 +1,62 @@
+{
+  "id":"default",
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "nested": {
+          "path": "@graph",
+          "query": {
+            "multi_match": {
+              "query": "{{q}}",
+              "fields": [
+                "@graph.DOI^10",
+                "@graph.abstract^5",
+                "@graph.contactInfo.hasEmail^10",
+                "@graph.contactInfo.hasName.family^10",
+                "@graph.contactInfo.hasName.given^5",
+                "@graph.contactInfo.hasName.middle^5",
+                "@graph.contactInfo.hasTitle.name^5",
+                "@graph.contactInfo.hasURL.name^5",
+                "@graph.contactInfo.hasOrganizationalUnit.name^5",
+                "@graph.name^10",
+                "@graph.orcidId.kw^10",
+                "@graph.overview^5",
+                "@graph.abstract^5",
+                "@graph.identifier.kw^10",
+                "@graph.container-title^5",
+                "@graph.publisher^5",
+                "@graph.title^10"
+              ]
+            }
+          },
+          "inner_hits": {
+            "_source": [
+              "@graph.@type",
+              "@graph.name",
+              "@graph.author",
+              "@graph.title",
+              "@graph.issued",
+              "@graph.container-title",
+              "@graph.type"
+            ]
+          },
+          "score_mode": "sum"
+        }
+      },
+      "_source": [
+        "@id","@type","name",
+        "contactInfo",
+        "title","issued","container-title","type","DOI"
+      ],
+      "sort": [
+        "_score"
+      ],
+      "from": "{{from}}{{^from}}0{{/from}}",
+      "size": "{{size}}{{^size}}10{{/size}}"
+    },
+    "params": {
+      "q": "My query string"
+    }
+  }
+}

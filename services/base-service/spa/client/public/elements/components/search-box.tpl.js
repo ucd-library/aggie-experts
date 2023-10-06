@@ -1,6 +1,4 @@
 import { html } from "lit";
-// import { classMap } from 'lit/directives/class-map';
-// import { styleMap } from 'lit/directives/style-map';
 
 export default function render() {
   return html`
@@ -8,10 +6,16 @@ export default function render() {
       :host {
         display: block;
       }
+
+      [hidden] {
+        display: none !important;
+      }
+
       .root {
         display: flex;
         align-items: center;
       }
+
       input {
         width: 100%;
         box-sizing: border-box;
@@ -25,6 +29,7 @@ export default function render() {
           sans-serif;
         font-weight: 500;
       }
+
       input::placeholder {
         color: var(--color-aggie-blue-70);
       }
@@ -38,6 +43,19 @@ export default function render() {
         padding: 0 10px;
         border-radius: 0;
         cursor: pointer;
+      }
+
+      button.rounded {
+        border-radius: 50%;
+        position: relative;
+        right: 61px;
+        background-color: var(--color-aggie-blue-80);
+        width: 50px;
+        height: 50px;
+      }
+
+      button.rounded ucdlib-icon {
+        fill: white;
       }
 
       button:hover > ::slotted(*) {
@@ -57,20 +75,47 @@ export default function render() {
       #input {
         border-radius: unset;
       }
+
+      input.gold {
+        background: var(--ucd-gold-40, #FFF4D2);
+      }
     </style>
-    <div class="root search-bar">
-      <div class="search-container" style="flex:1">
+
+    <div class="root search-bar" ?hidden="${this.searchRounded}">
+      <div class="search-container" style="flex: 1; display: flex;">
         <input
           id="input"
+          class="${this.isGold ? 'gold' : ''}"
           type="text"
           @keyup="${this._onKeyUp}"
           placeholder="${this.placeholder}"
           @change="${this._handleChange}"
+          .value="${this.searchTerm}"
         />
       </div>
-      <button @click="${this._fireSearch}" class="search-button">
-        <ucdlib-icon icon="ucdlib-dams:fa-search"></ucdlib-icon>
+      <button @click="${this._fireSearch}" class="search-button ${this.searchRounded ? 'rounded' : ''}">
+        <ucdlib-icon icon="ucdlib-experts:fa-search"></ucdlib-icon>
       </button>
+    </div>
+
+    <div class="root search-bar-block" ?hidden="${!this.searchRounded}">
+      <div class="search-container-block" style="display: block; width: 100%; position: relative">
+        <input
+          id="input"
+          class="${this.isGold ? 'gold' : ''}"
+          type="text"
+          @keyup="${this._onKeyUp}"
+          placeholder="${this.placeholder}"
+          @change="${this._handleChange}"
+          .value="${this.searchTerm}"
+        />
+        <button @click="${this._fireSearch}"
+          class="search-button ${this.searchRounded ? 'rounded' : ''}"
+          style="position: absolute; top: 5.5px; right: 0.5rem;">
+          <ucdlib-icon icon="ucdlib-experts:fa-search"></ucdlib-icon>
+        </button>
+      </div>
+
     </div>
   `;
 }
