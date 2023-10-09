@@ -19,10 +19,12 @@ export default class AppPerson extends Mixin(LitElement)
       person : { type : Object },
       personName : { type : String },
       introduction : { type : String },
+      researchInterests : { type : String },
       showMoreAboutMeLink : { type : Boolean },
       roles : { type : Array },
       orcId : { type : String },
       scopusId : { type : String },
+      researcherId : { type : String },
       websites : { type : Array },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
@@ -95,6 +97,8 @@ export default class AppPerson extends Mixin(LitElement)
     this.introduction = graphRoot.overview;
     this.showMoreAboutMeLink = this?.introduction?.length > 500;
 
+    this.researchInterests = graphRoot.researchInterests;
+
     this.roles = graphRoot.contactInfo?.filter(c => c['ucdlib:isPreferred'] === true).map(c => {
       return {
         title : c.hasTitle?.name,
@@ -106,6 +110,7 @@ export default class AppPerson extends Mixin(LitElement)
 
     this.orcId = graphRoot.orcidId;
     this.scopusId = graphRoot.scopusId;
+    this.researcherId = graphRoot.researcherId;
 
     let websites = graphRoot.contactInfo?.filter(c => (!c['ucdlib:isPreferred'] || c['ucdlib:isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
     websites.forEach(w => {
@@ -128,6 +133,7 @@ export default class AppPerson extends Mixin(LitElement)
     this.roles = [];
     this.orcId = '';
     this.scopusId = '';
+    this.researcherId = '';
     this.websites = [];
     this.citations = [];
     this.citationsDisplayed = [];
@@ -171,45 +177,28 @@ export default class AppPerson extends Mixin(LitElement)
     this.requestUpdate();
   }
 
-
-/**
+  /**
    * @method _downloadWorks
    * @description bound to click events of download button in works list
    *
    * @param {Object} e click|keyup event
    */
-_downloadWorks(e) {
-  e.preventDefault();
+  _downloadWorks(e) {
+    e.preventDefault();
 
-  let text = this.citations.map(c => c.ris).join('\n');
-  let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
-  let url = URL.createObjectURL(blob);
-  console.log('url', url)
+    let text = this.citations.map(c => c.ris).join('\n');
+    let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+    let url = URL.createObjectURL(blob);
+    console.log('url', url)
 
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', 'data.txt');
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-  // _downloadRIS(e) {
-  //   e.preventDefault();
-
-  //   let text = this.citations.map(c => c.ris).join('\n');
-  //   let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
-  //   let url = URL.createObjectURL(blob);
-  //   console.log('url', url)
-
-  //   const link = document.createElement('a');
-  //   link.setAttribute('href', url);
-  //   link.setAttribute('download', 'data.txt');
-  //   link.style.display = 'none';
-  //   document.body.appendChild(link);
-  //   link.click();
-  //   document.body.removeChild(link);
-  // }
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'data.txt');
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
   /**
    * @method _seeAllWorks
@@ -234,7 +223,6 @@ _downloadWorks(e) {
 
     this.AppStateModel.setLocation('/works-edit/'+this.personId);
   }
-
 
 }
 

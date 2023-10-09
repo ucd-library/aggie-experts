@@ -152,11 +152,13 @@ return html`
       padding-left: 0.625rem;
     }
 
-    .introduction {
+    .introduction,
+    .research-interests {
       padding-bottom: 2.375rem;
     }
 
-    .introduction h4 {
+    .introduction h4,
+    .research-interests h4 {
       margin-bottom: 0;
       margin-top: 0;
     }
@@ -329,6 +331,16 @@ return html`
         </div>
       </div>
 
+      <div class="research-interests" ?hidden="${!this.researchInterests}">
+        <h4>Research Interests</h4>
+        <ucdlib-md>
+          <ucdlib-md-content>
+            ${this.researchInterests}
+          </ucdlib-md-content>
+        </ucdlib-md>
+      </div>
+
+
       <div class="roles-websites">
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editRoles}></ucdlib-icon></h4>
@@ -351,7 +363,7 @@ return html`
         )}
         </div>
 
-        <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId}">
+        <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
           <h4>Websites <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editWebsites}></ucdlib-icon></h4>
           <div class="link-row" ?hidden="${!this.orcId}">
             <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
@@ -360,6 +372,10 @@ return html`
           <div class="link-row" ?hidden="${!this.scopusId}">
             <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon>
             <span><a href="https://www.scopus.com/authid/detail.uri?authorId=${this.scopusId}">Scopus</a></span>
+          </div>
+          <div class="link-row" ?hidden="${!this.researcherId}">
+            <ucdlib-icon icon="ucdlib-experts:ai-clarivate"></ucdlib-icon>
+            <span><a href="https://www.webofscience.com/wos/author/record/${this.researcherId}">Clarivate</a></span>
           </div>
 
           ${this.websites.map(
