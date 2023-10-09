@@ -7,6 +7,10 @@ export function styles() {
     :host {
       display: block;
     }
+
+    [hidden] {
+      display: none !important;
+    }
   `;
 
   return [
@@ -74,32 +78,36 @@ return html`
       </div>
       <app-home id="home"></app-home>
       <!-- <app-work id="work"></app-work> -->
-      <app-person id="person"></app-person>
-      <app-person-works id="works"></app-person-works>
+      <app-person id="person" @show-404="${(e) => this.page = '404'}"></app-person>
+      <app-person-works id="works" @show-404="${(e) => this.page = '404'}"></app-person-works>
+      <app-person-works-edit id="works-edit" @show-404="${(e) => this.page = '404'}"></app-person-works-edit>
       <app-search id="search"></app-search>
+      <app-faq id="faq"></app-faq>
+      <app-tou id="termsofuse"></app-tou>
     </ucdlib-pages>
+
+    <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
+
     <div class="footer site-frame">
       <ucdlib-site-footer>
         <ucdlib-site-footer-column header="Need Help?">
           <ul>
             <li>
               <a
-                href="/"
-                target="_blank"
+                href="/faq"
                 rel="noopener"
                 >Frequently Asked Questions</a>
             </li>
             <li>
               <a
-                href="/"
+                href="https://github.com/ucd-library/aggie-experts-public-issues/issues/new/choose"
                 target="_blank"
                 rel="noopener"
                 >Report Issue</a>
             </li>
             <li>
               <a
-                href="/"
-                target="_blank"
+                href="mailto:experts@library.ucdavis.edu"
                 rel="noopener"
                 >Contact Us</a>
             </li>
@@ -109,8 +117,7 @@ return html`
           <ul>
             <li>
               <a
-                href="/"
-                target="_blank"
+                href="/termsofuse"
                 rel="noopener"
                 >Terms of Use</a>
             </li>

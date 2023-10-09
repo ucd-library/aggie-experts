@@ -3,7 +3,6 @@ import {render} from "./app-search.tpl.js";
 
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
-
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
 import "../components/search-box";
@@ -83,9 +82,11 @@ export default class AppSearch extends Mixin(LitElement)
     // let searchDoc = this.RecordModel.emptySearchDocument();
     // this.RecordModel.setTextFilter(searchDoc, e.detail);
     // this.RecordModel.setSearchLocation(searchDoc);
+    if( !e.detail.length ) return;
 
     // update url
     this.searchTerm = e.detail;
+
     this.AppStateModel.setLocation(`/search/${this.searchTerm}`);
 
     // TODO hit api

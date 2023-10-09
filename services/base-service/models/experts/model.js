@@ -2,7 +2,6 @@
 const {config, models } = require('@ucd-lib/fin-service-utils');
 const schema = require('./schema/minimal.json');
 const FinEsNestedModel = require('../fin-es-nested-model');
-const query_template = require('./template/default.json');
 
 /**
  * @class ExpertsModel
@@ -24,7 +23,6 @@ class ExpertsModel extends FinEsNestedModel {
     super(name);
     this.schema = schema;  // Common schema for all experts data models
     this.transformService = "node";
-    this.query_template = query_template;
   }
 
   /**
@@ -72,12 +70,97 @@ class ExpertsModel extends FinEsNestedModel {
     return node;
   }
 
-  // set the default query template
-  async put_template() {
-    const result = await this.client.putScript(this.query_template);
-    console.log(`default query template: ${result}`);
-    return result;
+  /** vvvv TEMPLATE SEARCH vvvv **/
+
+
+  /**
+   * @method common_parms
+   * @description fixup parms for template searches
+   * @returns object
+   */
+  common_parms(in_params) {
+    const params = {
+      size:10,
+      from:0,
+      ...in_params
+    }
+    // convert page to from if from is not set
+    if (params.from === 0 && params.page > 1) {
+      params.from = (params.page - 1) * params.size;
+    }
+    return params;
   }
+
+  async verify_template(options) {
+    // Check if template exists, install if not
+    try {
+      const result = await this.client.getScript({id:options.id});
+      console.log(`render: template ${options.id} exists`);
+    } catch (err) {
+      console.log(`render: template ${options.id} does not exist`);
+      const template = require(`./template/${options.id}.json`);
+      const result = await this.client.putScript(template);
+    }
+    return true;
+  }
+
+  compact_search_results(results,params) {
+    const compact = {
+      params,
+      total: results.hits.total.value
+    }
+    const hits=[];
+    for (const hit of results.hits.hits) {
+      const source = hit._source;
+      const in_hits = hit?.inner_hits?.["@graph"].hits.hits;
+      const inner_hits = [];
+      if (in_hits) {
+        for (const in_hit of in_hits) {
+          inner_hits.push(in_hit._source);
+        }
+      }
+      source._inner_hits = inner_hits;
+      hits.push(source);
+    }
+    compact.hits = hits;
+    return compact;
+  }
+  /**
+   * @method render
+   * @description return an ES ready nested search using a template
+   * @returns string
+   */
+  async render(opts) {
+    const params = this.common_parms(opts.params);
+
+    const options = {
+      id: (opts.id)?opts.id:"default",
+      params
+    }
+    // Check if template exists, install if not
+    await this.verify_template(options);
+
+    const template = await this.client.renderSearchTemplate(options);
+    return template;
+  }
+
+  async search(opts) {
+
+    const params = this.common_parms(opts.params);
+
+    const options = {
+      id: (opts.id)?opts.id:"default",
+      index: "person-read",
+      params
+    }
+    // Check if template exists, install if not
+    await this.verify_template(options);
+
+    const res=await this.client.searchTemplate(options);
+    return this.compact_search_results(res,params);
+  }
+  /** ^^^^TEMPLATE SEARCH^^^^ **/
+
 
 
   /**

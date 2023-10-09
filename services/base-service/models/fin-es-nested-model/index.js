@@ -1,6 +1,7 @@
 const {config, dataModels} = require('@ucd-lib/fin-service-utils');
 const {FinEsDataModel} = dataModels;
-const FinNestedSearch = require('./fin-nested-search.js');
+
+//const FinNestedSearch = require('./fin-nested-search.js');
 
 /**
  * @class FinEsNestedModel
@@ -19,34 +20,6 @@ class FinEsNestedModel extends FinEsDataModel {
   constructor(modelName) {
     super(modelName);
     }
-
-  /**
-   * @method render
-   * @description return an ES ready nested search using a template
-   * @returns string
-   */
-  render(params) {
-    const opts = {
-      text:"",
-      from:0,
-      size:10,
-      ...params
-    }
-    // Later, we will should move this to real templates
-    const q = this.query_template.script.source.query;
-    // This is not flexible
-    q.from=opts.from;
-    q.size=opts.size;
-    q.nested.query["multi-match"].query=opts.text;
-
-    return q;
-  }
-
-  async search(params) {
-    const q = render(params);
-    let result = await this.esSearch(q, {admin: options.admin}, this.readIndexAlias);
-    return result;
-  }
 
   async esMatchNode(matches) {
     const must=[];
@@ -278,8 +251,7 @@ class FinEsNestedModel extends FinEsDataModel {
       index : this.writeIndexAlias,
       id : doc['@id'],
       body: {
-        '@id': doc['@id'],
-        '@graph': doc['@graph'],
+        ...doc,
         roles: roles}
     });
   }

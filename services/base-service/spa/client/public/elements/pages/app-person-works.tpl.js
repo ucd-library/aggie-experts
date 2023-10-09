@@ -20,7 +20,7 @@ return html`
     }
 
     .hero-main {
-      background: url('../images/watercolor-sage-solid.jpg') no-repeat center center;
+      background: url('/images/watercolor-sage-solid.jpg') no-repeat center center;
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
@@ -67,9 +67,42 @@ return html`
     }
 
     .main-content {
-      width: 60%;
+      width: 53.5rem;
       margin: 0 auto;
       padding-top: 2.38rem;
+    }
+
+    .csl-bib-body, .csl-entry {
+      display: inline;
+      line-height: var(--lh-html);
+    }
+
+    .main-content .work h5 {
+      color: var(--color-aggie-blue-80);
+      margin: 0.5rem 0;
+    }
+
+    .work-details .dot {
+      padding: 0 0.25rem;
+      color: var(--black, #000);
+      font-family: Proxima Nova;
+      font-size: 1.1875rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 1.92125rem;
+      text-transform: uppercase;
+      position: relative;
+      bottom: 0.25rem;
+    }
+
+    ucd-theme-pagination {
+      padding-bottom: 1rem;
+    }
+
+    @media (max-width: 992px) {
+      .main-content {
+        width: 90%;
+      }
     }
 
   </style>
@@ -94,7 +127,7 @@ return html`
 
       ${this.citationsDisplayed.map(
       (cite) => html`
-        <h4 style="margin: 1.19rem 0;">${cite.issued?.['date-parts']?.[0]}</h4>
+        <h3 style="margin: 1.19rem 0;">${cite.issued?.['date-parts']?.[0]}</h3>
         <div class="work">
           <h5>${unsafeHTML(cite.title)}</h5>
           <div class="work-details">
@@ -106,6 +139,14 @@ return html`
         <br>
       `
       )}
+
+      <ucd-theme-pagination
+        ?hidden="${this.paginationTotal < 2}"
+        current-page=${this.currentPage}
+        max-pages=${this.paginationTotal}
+        @page-change=${this._onPaginationChange}
+        xs-screen>
+      </ucd-theme-pagination>
     </div>
 
 

@@ -11,7 +11,7 @@ return html`
     }
 
     .hero-main {
-      background: url('../images/ae-watercolor-feature.jpg');
+      background: url('/images/ae-watercolor-feature.jpg');
       width: 100%;
       min-height: 500px;
       display: flex;
