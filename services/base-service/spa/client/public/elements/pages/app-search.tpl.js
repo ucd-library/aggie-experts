@@ -97,6 +97,21 @@ return html`
       padding: 0.25rem;
     }
 
+    .btn--invert:before {
+      content: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%221em%22%20viewBox%3D%220%200%20640%20512%22%3E%3C!--!%20Font%20Awesome%20Free%206.4.2%20by%20%40fontawesome%20-%20https%3A%2F%2Ffontawesome.com%20License%20-%20https%3A%2F%2Ffontawesome.com%2Flicense%20(Commercial%20License)%20Copyright%202023%20Fonticons%2C%20Inc.%20--%3E%3Cpath%20fill%3D%22%2373ABDD%22%20d%3D%22M144%20480C64.5%20480%200%20415.5%200%20336c0-62.8%2040.2-116.2%2096.2-135.9c-.1-2.7-.2-5.4-.2-8.1c0-88.4%2071.6-160%20160-160c59.3%200%20111%2032.2%20138.7%2080.2C409.9%20102%20428.3%2096%20448%2096c53%200%2096%2043%2096%2096c0%2012.2-2.3%2023.8-6.4%2034.6C596%20238.4%20640%20290.1%20640%20352c0%2070.7-57.3%20128-128%20128H144zm79-167l80%2080c9.4%209.4%2024.6%209.4%2033.9%200l80-80c9.4-9.4%209.4-24.6%200-33.9s-24.6-9.4-33.9%200l-39%2039V184c0-13.3-10.7-24-24-24s-24%2010.7-24%2024V318.1l-39-39c-9.4-9.4-24.6-9.4-33.9%200s-9.4%2024.6%200%2033.9z%22%2F%3E%3C%2Fsvg%3E");
+      width: 2em;
+      position: relative;
+      left: 0.2rem;
+      /* transition: 0.2s all ease-in; */
+    }
+
+    .btn--invert {
+      width: 135px;
+      border-color: var(--color-aggie-blue-50);
+      padding: .5rem 1.5rem .5rem .5rem;
+      font-size: 1rem;
+    }
+
     @media (max-width: 992px) {
       .search-content {
         width: 90%;
@@ -129,9 +144,7 @@ return html`
     <div class="search-results-heading">
       <div class="results-count">${this.searchResults.length} result${this.searchResults === 1 ? '' : 's'} for "${this.searchTerm}"</div>
       <div class="download">
-        <a href=""
-          @click="${this._downloadClicked}"
-          class="btn download">Download</a>
+        <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
       </div>
     </div>
 

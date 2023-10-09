@@ -6,6 +6,7 @@ import '../elements/pages/app-home.js';
 // import '../elements/pages/app-work.js';
 import '../elements/pages/app-person.js';
 import '../elements/pages/app-person-works.js';
+import '../elements/pages/app-person-works-edit.js';
 import '../elements/pages/app-search.js';
 import '../elements/pages/app-404.js';
 import '../elements/pages/app-faq.js';

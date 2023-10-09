@@ -20,7 +20,7 @@ return html`
     }
 
     .hero-main {
-      background: url('../images/watercolor-sage-solid.jpg') no-repeat center center;
+      background: url('/images/watercolor-sage-solid.jpg') no-repeat center center;
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
@@ -80,6 +80,23 @@ return html`
     .main-content .work h5 {
       color: var(--color-aggie-blue-80);
       margin: 0.5rem 0;
+    }
+
+    .work-details .dot {
+      padding: 0 0.25rem;
+      color: var(--black, #000);
+      font-family: Proxima Nova;
+      font-size: 1.1875rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 1.92125rem;
+      text-transform: uppercase;
+      position: relative;
+      bottom: 0.25rem;
+    }
+
+    ucd-theme-pagination {
+      padding-bottom: 1rem;
     }
 
     @media (max-width: 992px) {

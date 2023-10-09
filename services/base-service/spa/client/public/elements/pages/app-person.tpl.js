@@ -16,7 +16,7 @@ return html`
     }
 
     .hero-main {
-      background: url('../images/watercolor-gold-solid.jpg') no-repeat center center;
+      background: url('/images/watercolor-gold-solid.jpg') no-repeat center center;
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
@@ -66,6 +66,18 @@ return html`
       margin-bottom: 0;
       padding-bottom: 0;
       color: var(--color-aggie-blue);
+    }
+
+    .hero-main h1 ucdlib-icon,
+    .roles-websites h4 ucdlib-icon {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      min-width: 17px;
+      min-height: 17px;
+      fill: var(--color-aggie-blue-80);
+      cursor: pointer;
+      padding-left: .25rem;
     }
 
     .authors a {
@@ -202,6 +214,7 @@ return html`
 
     .works-abbreviated {
       padding-top: 2.56rem;
+      padding-bottom: 2rem;
     }
 
     .works-abbreviated .see-all-works ucdlib-icon {
@@ -211,6 +224,7 @@ return html`
     .works-abbreviated .works-heading {
       display: flex;
       align-items: center;
+      justify-content: space-between;
     }
 
     .works-abbreviated .works-heading ucdlib-icon {
@@ -240,6 +254,15 @@ return html`
       text-transform: uppercase;
       position: relative;
       bottom: 0.25rem;
+    }
+
+    .works-abbreviated .works-heading .works-edit-download ucdlib-icon {
+      fill: var(--color-aggie-blue-80);
+      width: 15px;
+      height: 15px;
+      min-width: 17px;
+      min-height: 17px;
+      cursor: pointer;
     }
 
     /* inf {
@@ -281,7 +304,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>EXPERT</span>
         </div>
-        <h1>${this.personName}</h1>
+        <h1>${this.personName} <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editName}></ucdlib-icon></h1>
       </div>
     </div>
 
@@ -308,7 +331,7 @@ return html`
 
       <div class="roles-websites">
         <div class="roles" ?hidden="${!this.roles.length}">
-          <h4>Roles</h4>
+          <h4>Roles <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editRoles}></ucdlib-icon></h4>
           ${this.roles.map(
           (role) => html`
             <div class="role">
@@ -329,7 +352,7 @@ return html`
         </div>
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId}">
-          <h4>Websites</h4>
+          <h4>Websites <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editWebsites}></ucdlib-icon></h4>
           <div class="link-row" ?hidden="${!this.orcId}">
             <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
             <span><a href="https://orcid.org/${this.orcId}">${this.orcId}</a></span>
@@ -358,8 +381,14 @@ return html`
       </div> -->
       <div class="works-abbreviated" ?hidden="${this.citations.length === 0}">
         <div class="works-heading">
-          <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
-          <h2>${this.citations.length} Works</h2>
+          <div style="display: flex; align-items: center;">
+            <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
+            <h2>${this.citations.length} Works</h2>
+          </div>
+          <div class="works-edit-download" style="display: flex; align-items: center;">
+            <ucdlib-icon style="margin-right: 1rem;" icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editWorks}></ucdlib-icon>
+            <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down" ?hidden="${!this.canEdit}" @click=${this._downloadWorks}></ucdlib-icon>
+          </div>
         </div>
         <hr class="seperator">
         ${this.citationsDisplayed.map(

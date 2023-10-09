@@ -26,6 +26,7 @@ export default class AppPerson extends Mixin(LitElement)
       websites : { type : Array },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      canEdit : { type : Boolean }
     }
   }
 
@@ -57,7 +58,17 @@ export default class AppPerson extends Mixin(LitElement)
     if( personId === this.personId ) return;
 
     this._reset();
-    this._onPersonUpdate(await this.PersonModel.get(personId));
+
+    try {
+      let person = await this.PersonModel.get(personId);
+      this._onPersonUpdate(person);
+    } catch (error) {
+      console.warn('person ' + personId + ' not found, throwing 404');
+
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+    }
   }
 
   /**
@@ -120,6 +131,7 @@ export default class AppPerson extends Mixin(LitElement)
     this.websites = [];
     this.citations = [];
     this.citationsDisplayed = [];
+    this.canEdit = true;
   }
 
   /**
@@ -135,8 +147,8 @@ export default class AppPerson extends Mixin(LitElement)
     } catch (error) {
       let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-
-      citations = citations.filter(c => typeof c.issued === 'string');
+      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
     }
 
     citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
@@ -185,6 +197,21 @@ export default class AppPerson extends Mixin(LitElement)
 
     this.AppStateModel.setLocation('/works/'+this.personId);
   }
+
+  _editName(e) {}
+  _editRoles(e) {}
+  _editWebsites(e) {}
+
+  /**
+   * @method _editWorks
+   * @description load page to list all works in edit mode
+   */
+  _editWorks(e) {
+    e.preventDefault();
+
+    this.AppStateModel.setLocation('/works-edit/'+this.personId);
+  }
+
 
 }
 

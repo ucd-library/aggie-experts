@@ -62,52 +62,43 @@ return html`
 
 <div class="tou container top">
   <div class="section">
-    <h3>Disclaimers</h3>
+    <p>
+      All data are provided as-is. Only data from authoritative sources is added, but as no source is truly comprehensive,
+      neither the accuracy nor completeness of scholarship representation is guaranteed.
+      <br><br>
+      Additional parties may query and retrieve Aggie Experts data under the conditions outlined in <strong>"Permitted Use"</strong> below except
+      for any third-party content that may be subject to copyright. UC Davis reserves the right to modify these Terms as needed.
+    </p>
 
-    <p>This UC Davis Library - Research Registry website contains
-    material&mdash;text information, publication citations, links, and
-    images&mdash;provided by The Regents of the University of California, Davis
-    campus and by various third parties, both individuals and organizations,
-    commercial and otherwise. To the extent copyrightable, the information
-    presented on the VIVO website and available as Resource Description
-    Framework (RDF) data from VIVO at The Regents of the University of
-    California, Davis campus is intended for public use and is distributed under
-    the terms of the <a href="http://creativecommons.org/licenses/by-nc/4.0/"
-    target="_blank" rel="noopener" title="creative commons">Creative Commons CC-BY-NC 4.0</a>
-    license which allows you to copy, distribute, display and make derivatives
-    of this information for non-commercial use only provided you give credit to
-    The Regents of the University of California, Davis campus. Any
-    non-copyrightable information is available to you under a <a
-    href="http://creativecommons.org/publicdomain/zero/1.0/" target="_blank"
-    rel="noopener" title="cco waiver">CC0 waiver</a>.  However, source documents, images or web
-    pages attached to or linked from VIVO may contain copyrighted information
-    and should only be used or distributed under terms included with each source
-    or in accordance with the principles of fair use.  </p>
+    <h3>1. Permitted Uses</h3>
+    <ol style="list-style: lower-roman;">
+      <li>
+        API queries for retrieval of publicly visible data for personal, scholarly, and UCOP- and UC Davis-specific
+        administrative use, including API access by third parties, both commercial and non-commercial, academic and non-academic.
+      </li>
+      <li>
+        Application development based on retrieval of publicly visible data for personal, scholarly, and UCOP- and UC Davis-specific
+        administrative use, including applications developed by third parties, both commercial and non-commercial, academic and non-academic.
+      </li>
+      <li>
+        Additional access to public data to which a researcher has restricted visibility may be granted to UC Davis and UCOP users after review.
+        UC Davis administrators will be granted access to restricted visibility data within the scope of their organizational assignment.
+        Visibility-restricted public data may not be shared further without approval.
+      </li>
+    </ol>
 
-    <h3>Disclaimer of Liability</h3>
+    <h3>2. Prohibited Uses</h3>
+    <p>
+      Sale and monetization of data or derivatives of data obtained from Aggie Experts through any methods and any format by third parties.
+    </p>
 
-    <p>The Regents of the University of California, Davis campus makes no
-    warranty, expressed or implied, including the warranties of merchantability
-    and fitness for a particular purpose, or assumes any legal liability or
-    responsibility for the accuracy, completeness, currency or usefulness of any
-    material displayed or distributed through the UC Davis Library - Research
-    Registry website or represents that its use would not infringe privately
-    owned rights.  The Regents of the University of California, Davis campus
-    disclaims all warranties with regard to the information provided. Any
-    reliance upon such information is at your own risk. In no event will The
-    Regents of the University of California, Davis campus be liable to you for
-    any damages or losses whatsoever resulting from or caused by the UC Davis
-    Library - Research Registry website or its contents.</p>
-
-    <h3>Disclaimer of Endorsement</h3>
-
-    <p>Reference herein to any specific commercial product, process, or service
-    by trade name, trademark, manufacturer, or otherwise, does not necessarily
-    constitute or imply its endorsement or recommendation by The Regents of the
-    University of California, Davis campus. The views and opinions of authors
-    expressed herein do not necessarily state or reflect those of The Regents of
-    the University of California, Davis campus and shall not be used for
-    advertising or product endorsement purposes.</p>
+    <h3>3. Extended Uses</h3>
+    <p>
+      For uses extending beyond the ones explicitly permitted, but not prohibited, contact the Aggie Expert Data Custodian to request a review.
+      The Aggie Experts data custodians and the Data Steward (to be identified) will consult with stakeholders,
+      such as the Academic Senate as appropriate. The Provost and Executive Vice Chancellor, as the Data Trustee, will have final approval.
+      A log of all requests and decisions will be maintained for three years from the date when the request was made.
+    </p>
   </div>
 </div>
 `;}
