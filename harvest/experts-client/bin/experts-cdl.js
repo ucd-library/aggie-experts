@@ -6,6 +6,8 @@ import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
 import { nanoid } from 'nanoid';
+// import JSONStream from 'JSONStream';
+import { Transform, Readable, Writable } from 'stream';
 
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
@@ -71,49 +73,47 @@ async function main(opt) {
 
   const users = program.args;
 
-  // Step 1: Get Usernames from CDL using any cmd line args
   var uquery = 'users?detail=ref&per-page=1000';
   var sinceFilter = '';
 
-  if (opt.username) {
-    uquery += '&username=' + opt.username;
-  }
-  else if (opt.cdl.groups) {
-    uquery += '&groups=' + opt.cdl.groups;
-  }
+  // Step 1: Get Usernames from CDL using any cmd line args if no users specified
+  if (users.length === 0) {
 
-  if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
-    // We need the date in XML ISO format
-    var date = new Date();
-    date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
-    sinceFilter = '&affected-since=' + date.toISOString();
-    uquery += sinceFilter;
+    if (opt.username) {
+      uquery += '&username=' + opt.username;
+    }
+    else if (opt.cdl.groups) {
+      uquery += '&groups=' + opt.cdl.groups;
+    }
+
+    if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
+      // We need the date in XML ISO format
+      var date = new Date();
+      date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
+      sinceFilter = '&affected-since=' + date.toISOString();
+      uquery += sinceFilter;
+    }
+    else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
+      // We need the date in XML ISO format
+      var date = new Date();
+      date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
+      sinceFilter = '&modified-since=' + date.toISOString();
+      uquery += sinceFilter;
+    }
+    console.log('uquery', uquery);
+
+    // Get the users from CDL that meet the criteria
+    const entries = await ec.getCDLentries(opt, uquery);
+
+    // Add them to the users array
+    for (let entry of entries) {
+      entry = entry['api:object'];
+      users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
+    }
+
+    console.log(users.join(' '));
+    console.log(users.length + ' users found');
   }
-  else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
-    // We need the date in XML ISO format
-    var date = new Date();
-    date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
-    sinceFilter = '&modified-since=' + date.toISOString();
-    uquery += sinceFilter;
-  }
-  console.log('uquery', uquery);
-  // return;
-
-  // Get the users from CDL that meet the criteria
-  const entries = await ec.getCDLentries(opt, uquery);
-
-  // Add them to the users array
-  for (let entry of entries) {
-    entry = entry['api:object'];
-    users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
-  }
-
-
-  console.log(users.join(' '));
-  console.log(users.length + ' users found');
-  // const usrs = users.slice(0, 5);
-  // console.log(usrs.join(' '));
-  // return;
 
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
@@ -139,6 +139,7 @@ async function main(opt) {
     console.log('starting createJsonLd ' + user + '-' + cdlId);
 
     // Create the JSON-LD for the user profile
+    var relationshipsContext = JSON.stringify(context);
     let contextObj = context;
 
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
@@ -153,37 +154,10 @@ async function main(opt) {
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
     console.log('starting getCDLentries ' + user + '-' + cdlId);
 
-    // fetch all relations for user. Note that the may be grants, etc.
-    ec.works = [];
+    // Step 3: Get User Relationships from CDL
 
-    let works = await ec.getCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full' + sinceFilter);
-
-
-    for (let work of works) {
-      let related = [];
-      if (work['api:relationship'] && work['api:relationship']['api:related']) {
-        related.push(work['api:relationship']['api:related']);
-      }
-      related.push({ direction: 'to', id: cdlId, category: 'user' });
-      work['api:relationship'] ||= {};
-      work['api:relationship']['api:related'] = related;
-      ec.works.push(work['api:relationship']);
-    }
-
-    console.log(ec.works.length + ' works found for ' + user);
-
-    console.log('starting createJsonLd ' + user);
-    contextObj = context;
-    contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-    contextObj["@graph"] = ec.works;
-    jsonld = JSON.stringify(contextObj);
-
-    console.log('starting works createGraph ' + user);
-
-    await ec.createGraphFromJsonLdFile(jsonld, opt);
-    fs.writeFileSync(path.join(__dirname, '../data', user + '.jsonld'), jsonld);
-
-    console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+    // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
+    await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
 
     if (!opt.nosplay) {
 
@@ -222,6 +196,8 @@ program.name('cdl-profile')
   .description('Import CDL Researcher Profiles and Works')
   .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
   .option('--output <output>', 'output directory')
+  .option('--username <username>', 'Specify CDL username')
+  .option('--userId <userId>', 'Specify CDL ID')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
   .option('--cdl.affected <affected>', 'affected since')
