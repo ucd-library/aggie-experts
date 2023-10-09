@@ -171,6 +171,29 @@ export default class AppPerson extends Mixin(LitElement)
     this.requestUpdate();
   }
 
+
+/**
+   * @method _downloadWorks
+   * @description bound to click events of download button in works list
+   *
+   * @param {Object} e click|keyup event
+   */
+_downloadWorks(e) {
+  e.preventDefault();
+
+  let text = this.citations.map(c => c.ris).join('\n');
+  let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+  let url = URL.createObjectURL(blob);
+  console.log('url', url)
+
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'data.txt');
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
   // _downloadRIS(e) {
   //   e.preventDefault();
 

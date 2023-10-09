@@ -188,7 +188,6 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
       });
     }
 
-    debugger;
     let text = downloads.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
