@@ -82,9 +82,11 @@ export default class AppSearch extends Mixin(LitElement)
     // let searchDoc = this.RecordModel.emptySearchDocument();
     // this.RecordModel.setTextFilter(searchDoc, e.detail);
     // this.RecordModel.setSearchLocation(searchDoc);
+    if( !e.detail.length ) return;
 
     // update url
     this.searchTerm = e.detail;
+
     this.AppStateModel.setLocation(`/search/${this.searchTerm}`);
 
     // TODO hit api

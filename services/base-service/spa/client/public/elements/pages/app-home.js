@@ -36,8 +36,7 @@ export default class AppHome extends Mixin(LitElement)
     // this.RecordModel.setSearchLocation(searchDoc);
 
     // TODO determine search payload we need to send, how complicated should url params be?
-    this.AppStateModel.setLocation('/search/'+e.detail);
-
+    if( e.detail.length ) this.AppStateModel.setLocation('/search/'+e.detail);
   }
 
 }
