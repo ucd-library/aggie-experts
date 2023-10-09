@@ -66,7 +66,16 @@ export default class AppPersonWorks extends Mixin(LitElement)
     let personId = e.location.pathname.replace('/works/', '');
     if( personId === this.personId ) return;
 
-    this._onPersonUpdate(await this.PersonModel.get(personId));
+    try {
+      let person = await this.PersonModel.get(personId);
+      this._onPersonUpdate(person);
+    } catch (error) {
+      console.warn('person ' + personId + ' not found, throwing 404');
+
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+    }
   }
 
   /**
@@ -101,8 +110,9 @@ export default class AppPersonWorks extends Mixin(LitElement)
     } catch (error) {
       let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
+      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
 
-      citations = citations.filter(c => typeof c.issued === 'string');
+      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
     }
 
     citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
@@ -114,7 +124,7 @@ export default class AppPersonWorks extends Mixin(LitElement)
     let lastPrintedYear;
     this.citations.forEach((cite, i) => {
       let newIssueDate = cite.issued?.['date-parts']?.[0];
-      if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.['date-parts']?.[0] || lastPrintedYear === newIssueDate ) ) {
+      if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.['date-parts']?.[0] || lastPrintedYear === newIssueDate ) && i % 20 !== 0 ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
       }

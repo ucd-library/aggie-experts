@@ -78,8 +78,9 @@ return html`
       </div>
       <app-home id="home"></app-home>
       <!-- <app-work id="work"></app-work> -->
-      <app-person id="person"></app-person>
-      <app-person-works id="works"></app-person-works>
+      <app-person id="person" @show-404="${(e) => this.page = '404'}"></app-person>
+      <app-person-works id="works" @show-404="${(e) => this.page = '404'}"></app-person-works>
+      <app-person-works-edit id="works-edit" @show-404="${(e) => this.page = '404'}"></app-person-works-edit>
       <app-search id="search"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
