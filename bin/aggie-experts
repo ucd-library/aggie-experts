@@ -539,9 +539,7 @@ function main.cmd() {
     done
 
     # Fix mount if exists
-    if [[ -n ${G[mount]} ]]; then
-      G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
-    fi
+    G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
 
     # Read .configuration paramters
     while [[ "$1" =~ ^\..*=.* ]]; do
