@@ -6,8 +6,6 @@ services:
     volumes:
       - fedora-data:/data
       - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-./service-account.json}:/etc/fin/service-account.json
-      - &DEV_MOUNT_FIN_SERVICES ./fin/services/fin:/fin/services
-      - &DEV_MOUNT_FIN_API ./fin-api:/fin/api
       - &DEV_MOUNT_MODELS ./services/base-service/models:/fin/services/models
     ports:
       - ${HOST_PORT:-3000}:3001
@@ -33,9 +31,9 @@ services:
     volumes:
       - fedora-data:/usr/local/tomcat/fcrepo-home/data
       - *SERVICE_ACCOUNT
-      - &DEV_MOUNT_ACTIVEMQ ./services/fcrepo/activemq.xml:/usr/local/tomcat/webapps/fcrepo/WEB-INF/classes/config/activemq.xml
-      - &DEV_MOUNT_FCREPO_PROPERTIES ./fin/services/fcrepo/fcrepo.properties:/etc/fin/fcrepo.properties
-      - &DEV_MOUNT_ROOT_AUTH ./fin/services/fcrepo/root-authorization.ttl:/etc/fin/root-authorization.ttl
+      #- &DEV_MOUNT_FCREPO_ACTIVEMQ ./services/fcrepo/activemq.xml:/usr/local/tomcat/webapps/fcrepo/WEB-INF/classes/config/activemq.xml
+      #- &DEV_MOUNT_FCREPO_PROPERTIES ./fin/services/fcrepo/fcrepo.properties:/etc/fin/fcrepo.properties
+      #- &DEV_MOUNT_FCREPO_ROOT_AUTH ./fin/services/fcrepo/root-authorization.ttl:/etc/fin/root-authorization.ttl
 
   ###
   # Fedora Postgres Service
@@ -52,9 +50,8 @@ services:
     env_file:
       - .env
     volumes:
-      - &DEV_MOUNT_INIT_POSTGRES ./services/init/postgres:/etc/ucdlib-service-init/postgres
+      #- &DEV_MOUNT_INIT_POSTGRES ./services/init/postgres:/etc/ucdlib-service-init/postgres
       - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
-      - &DEV_MOUNT_DOCKER_RUN ./services/init/docker-run.sh:/docker-run.sh
       - *SERVICE_ACCOUNT
 
   redis:
@@ -79,8 +76,6 @@ services:
       - .env
     volumes:
       - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_FIN_SERVICES
-      - *DEV_MOUNT_FIN_API
       - *DEV_MOUNT_MODELS
     restart: unless-stopped
     command: npm run api
@@ -91,8 +86,6 @@ services:
       - .env
     volumes:
       - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_FIN_SERVICES
-      - *DEV_MOUNT_FIN_API
     restart: unless-stopped
     command: node fin-ac/index.js
     # command: bash -c 'tail -f /dev/null'
@@ -101,8 +94,6 @@ services:
     image: *BASE
     volumes:
       - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_FIN_SERVICES
-      - *DEV_MOUNT_FIN_API
       - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
     command: node spa/index.js
     # command: bash -c 'tail -f /dev/null'
@@ -116,8 +107,6 @@ services:
       - .env
     volumes:
       - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_FIN_SERVICES
-      - *DEV_MOUNT_FIN_API
       - *DEV_MOUNT_MODELS
     restart: unless-stopped
     command: npm run dbsync
@@ -130,8 +119,6 @@ services:
     image: *BASE
     volumes:
       - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_FIN_SERVICES
-      - *DEV_MOUNT_FIN_API
       - *DEV_MOUNT_MODELS
     env_file:
       - .env
@@ -150,9 +137,6 @@ services:
       - .env
     volumes:
       - *SERVICE_ACCOUNT
-#      - *DEV_MOUNT_FIN_SERVICES
-#      - *DEV_MOUNT_FIN_API
-#      - *DEV_MOUNT_MODELS
     command: npm run gcs
     # command: bash -c 'tail -f /dev/null'
 
@@ -187,7 +171,6 @@ services:
   #   image: *BASE
   #   volumes:
       # - *SERVICE_ACCOUNT
-      # - *DEV_MOUNT_FIN_SERVICES
   #   # command: bash -c 'tail -f /dev/null'
 
   ###
@@ -199,8 +182,6 @@ services:
       - .env
     volumes:
       - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_FIN_SERVICES
-      - *DEV_MOUNT_FIN_API
     restart: unless-stopped
     # command: bash -c 'tail -f /dev/null'
     command: npm run oidc

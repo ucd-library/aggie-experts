@@ -1,11 +1,50 @@
 {
   "project":"${G[project]}",
   "env":"${G[env]}",
+  "envs": {
+    "dev":{
+      "mount":"spa",
+      "org":"localhost/aggie-experts",
+      "tag":"dirty",
+      "branch":"!^(dev|main)",
+      "host":"!(experts.library.ucdavis.edu)"
+    },
+    "clean":{
+      "org":"localhost/aggie-experts",
+      "tag":"$(${G[git]} describe --always --dirty)",
+      "branch":"!^(dev|main)",
+      "host":"!(experts.library.ucdavis.edu)"
+    },
+    "sandbox":{
+      "org":"localhost/aggie-experts",
+      "tag":"$(${G[git]} describe --always --dirty)",
+      "branch":".*",
+      "host":"experts.library.ucdavis.edu"
+    },
+    "test":{
+      "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
+      "tag":"$(${G[git]} describe --always --dirty)",
+      "host":"^(blue|gold).experts.library.ucdavis.edu",
+      "branch":"(dev|main)"
+    },
+    "build":{
+      "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
+      "tag":"$(${G[git]} describe --always --dirty)"
+    },
+    "prod":{
+      "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
+      "tag":"$(${G[git]} describe --always --dirty)",
+      "host":"experts.library.ucdavis.edu)",
+      "branch":"main"
+    }
+  },
+  "template":"${G[base]}/docker-template.yaml",
+  "fin":{
+    "org":"gcr.io/ucdlib-pubreg",
+    "tag":"2.3.1"
+  },
   "debug":{
-    "config":"${G[config]}",
-    "gcloud_user":"${G[gcloud_user]}",
-    "env_secret":"${G[env_secret]}",
-    "jq":"$(sed -e 's/"/\\"/g' <<<${G[jq]})"
+    "config":"${G[config]}"
   },
   "gcloud":{
     "user":"${G[gcloud_user]}",
@@ -14,27 +53,15 @@
       "subscription":"local-dev"
     },
     "secrets": {
-      "env":"${G[env_secret]}",
       "service-account":"${G[service_account]}"
     }
   },
   "deploy": {
-    "template":"${G[base]}/docker-template.yaml",
-    "keycloak":"auth",
-    "dev_mount":"models,init-fcrepo,spa"
-   },
-  "fin":{
-    "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.3.1"
-  },
-  "experts":{
-    "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
-    "tag":"$(${G[git]} describe --tags --always --dirty)"
+    "keycloak":"auth"
   },
   "git":{
     "base":"$(${G[git]} rev-parse --show-toplevel)",
     "repo":"$(basename -s .git $(${G[git]} config --get remote.origin.url))",
-    "branch_name":"$(${G[git]} branch --show-current)",
-    "tag":"$(${G[git]} describe --tags --always --dirty)"
+    "branch":"$(${G[git]} branch --show-current)"
   }
 }
