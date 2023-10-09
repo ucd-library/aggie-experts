@@ -47,38 +47,12 @@ class Citation {
   async generateCitations(citations) {
     let citationResults = await Promise.allSettled(
       citations.map((cite, index) => {
-        let dateParts = cite.issued.split('-');
-
-        let newCite = {
-          DOI: cite.DOI,
-          ISSN: cite.ISSN,
-          author: cite.author,
-          'container-title': cite['container-title'],
-          language: cite.language,
-          name: cite.name,
-          publisher: cite.publisher,
-          rank: cite.rank,
-          title: cite.title,
-          type: cite.type,
-          volume: cite.volume,
-          '@id': cite['@id'],
-          '@type': cite['@type'],
-          abstract: cite.abstract,
-          'bibo:doi': cite['bibo:doi'],
-          // 'bibo:status': cite['bibo:status'],
-          eissn: cite.eissn,
-          genre: cite.genre,
-          hasPublicationVenue: cite.hasPublicationVenue,
-          'is-visible': cite['is-visible'],
-          // issued: cite.issued, // '2017-02' // date is expected to be in array of date-parts
-          issued: {
-            'date-parts': dateParts
-          },
-          // medium: cite.medium, // shows [Undetermined] for first record of Quinns
-          pagination: cite.pagination,
-          // status: cite.status, // breaks publish date
-        };
-        return generateCitationPromise(newCite);
+        cite.issued = cite.issued.split('-');
+        // explicitly remove troublemakers
+        ["status","medium"].forEach(key => {
+          delete cite[key];
+        });
+        return generateCitationPromise(cite);
       })
     );
     return citationResults;
