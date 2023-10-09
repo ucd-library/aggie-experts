@@ -32,7 +32,6 @@ export class ExpertsClient {
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
-    //    console.log('ExpertsClient constructor');
     this.opt = opt;
     this.experts = [];
   }
@@ -201,7 +200,7 @@ export class ExpertsClient {
     // Don't include a graphname to use what's in the jsonld file
     const url = `${fuseki.url}/${fuseki.db}/data`;
 
-    console.log(url);
+    console.log('posting to ' + url);
 
     // Set request options
     const options = {
@@ -214,7 +213,6 @@ export class ExpertsClient {
     };
 
     // Send the request to upload the data to the graph
-    console.log(url);
     const response = await fetch(url, options);
 
     // console.log(response);
@@ -481,7 +479,7 @@ export class ExpertsClient {
   async getPostCDLentries(opt, query, cdlId, context) {
     const cdl = opt.cdl;
     var lastPage = false
-    var results = [];
+    var results, entries = [];
     var nextPage = path.join(cdl.url, query)
     var count = 0;
 
@@ -493,6 +491,8 @@ export class ExpertsClient {
 
     while (nextPage) {
       results = [];
+      entries = [];
+
       console.log(`getting ${nextPage}`);
       const response = await fetch(nextPage, {
         method: 'GET',
@@ -519,7 +519,8 @@ export class ExpertsClient {
           throw new Error(`No entries returned from CDL.`);
         }
 
-        for (let work of json.feed.entry) {
+        entries = entries.concat(json.feed.entry);
+        for (let work of entries) {
           let related = [];
           if (work['api:relationship'] && work['api:relationship']['api:related']) {
             related.push(work['api:relationship']['api:related']);

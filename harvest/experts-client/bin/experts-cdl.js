@@ -6,8 +6,6 @@ import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
 import { nanoid } from 'nanoid';
-// import JSONStream from 'JSONStream';
-import { Transform, Readable, Writable } from 'stream';
 
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
