@@ -128,6 +128,7 @@
     "volume":{"@id":"cite:volume"}
   },
   "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
+  "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "@embed": "@always",
   "@type": ["Person","Work","Grant","Authorship"]
 }

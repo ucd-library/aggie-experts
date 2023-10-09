@@ -1,0 +1,9 @@
+{
+  "@context" : {
+    "schema" : "http://schema.org/"
+  },
+  "@graph" : [{
+    "@id" : "ark:/87287/d7mh2m/publication",
+    "schema:name" : "CDL Relationship information"
+  }]
+}
