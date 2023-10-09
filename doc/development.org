@@ -16,7 +16,7 @@ and some associated pointers.
 
 Tags are very important in the development process.  Aggie Experts tags are almost
 always based on the following git command ~tag="$(git describe --always
---dirty)".  See the docs for more information, but with the exception of ~dev~
+--dirty)"~.  See the docs for more information, but with the exception of ~dev~
 stage, tags *always* refer to a specific commit.  test and production stages
 need to be set to a specific annotated tag.
 

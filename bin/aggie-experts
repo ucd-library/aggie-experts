@@ -510,7 +510,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:l --long env:,jq:,list-mounts,mount:,unstaged-ok,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long env:,jq:,list-mounts,mount:,unstaged-ok,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -524,6 +524,10 @@ function main.cmd() {
         -l | --list-mounts) CMD[list-mounts]=1; shift;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
+        -h | --help)
+          pod2text $0
+          exit 0
+          ;;
 	      -- ) shift; break;;
 	      *) shift; break;
       esac
@@ -554,7 +558,7 @@ function main.cmd() {
     for cmd in "$@"; do
       shift
       case $cmd in
-	      prune | build | compose | env | setup ) # API requests
+	      build | setup | prune ) # API requests
 	        $cmd
 	        ;;
 
