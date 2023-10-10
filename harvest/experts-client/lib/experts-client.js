@@ -515,34 +515,33 @@ export class ExpertsClient {
         const json = parser.toJson(xml, { object: true, arrayNotation: false });
 
         // add the entries to the results array
-        if (!json.feed.entry) {
-          throw new Error(`No entries returned from CDL.`);
-        }
+        if (json.feed.entry) {
 
-        entries = entries.concat(json.feed.entry);
-        for (let work of entries) {
-          let related = [];
-          if (work['api:relationship'] && work['api:relationship']['api:related']) {
-            related.push(work['api:relationship']['api:related']);
+          entries = entries.concat(json.feed.entry);
+          for (let work of entries) {
+            let related = [];
+            if (work['api:relationship'] && work['api:relationship']['api:related']) {
+              related.push(work['api:relationship']['api:related']);
+            }
+            related.push({ direction: 'to', id: cdlId, category: 'user' });
+            work['api:relationship'] ||= {};
+            work['api:relationship']['api:related'] = related;
+            results.push(work['api:relationship']);
           }
-          related.push({ direction: 'to', id: cdlId, category: 'user' });
-          work['api:relationship'] ||= {};
-          work['api:relationship']['api:related'] = related;
-          results.push(work['api:relationship']);
+
+          // Create the JSON-LD for the user relationships
+          // save a text version of the context object
+          let contextObj = context;
+
+          contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
+          contextObj["@graph"] = results;
+
+          let jsonld = JSON.stringify(contextObj);
+          console.log('posting relationships of ' + cdlId);
+
+          // Insert into our local Fuseki
+          await this.createGraphFromJsonLdFile(jsonld, opt);
         }
-
-        // Create the JSON-LD for the user relationships
-        // save a text version of the context object
-        let contextObj = context;
-
-        contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-        contextObj["@graph"] = results;
-
-        let jsonld = JSON.stringify(contextObj);
-        console.log('posting relationships of ' + cdlId);
-
-        // Insert into our local Fuseki
-        await this.createGraphFromJsonLdFile(jsonld, opt);
 
         // inspect the pagination to see if there are more pages
         const pagination = json.feed['api:pagination'];
