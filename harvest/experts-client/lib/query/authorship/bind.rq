@@ -1,4 +1,5 @@
 prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
 prefix cdl: <ark:/87287/d7_cdltest_/>
 prefix experts: <http://experts.ucdavis.edu/>
 prefix oap: <http://oapolicy.universityofcalifornia.edu/>
@@ -7,6 +8,24 @@ prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
 select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
+    VALUES(?oap_type ?cite_include ?bibo_type ?cite_type ?cite_genre) {
+      ("book" true bibo:Book "book" "")
+      ("chapter" true bibo:Chapter "chapter" "")
+      ("conference" true vivo:ConferencePaper "paper-conference" "")
+      ("journal-article" true bibo:AcademicArticle "article-journal" "")
+      # false
+      ("dataset" false ucdlib:Work "dataset" "")
+      ("internet-publication" false ucdlib:Work "webpage" "")
+      ("media" false ucdlib:Work "article" "media")
+      ("other" false ucdlib:Work "article" "other")
+      ("poster" false ucdlib:Work "speech" "poster")
+      ("preprint" false ucdlib:Preprint "article" "preprint" )
+      ("presentation" false ucdlib:Work "speech" "presentation")
+      ("report" false ucdlib:Work "report" "")
+      ("scholarly-edition" false ucdlib:Work "manuscript" "scholarly-edition")
+      ("software" false ucdlib:Work "software" "")
+      ("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
+    }
   graph ?g {
     ?relationship :type "publication-user-authorship";
 #                  :effective-privacy-level "Public";
@@ -15,6 +34,7 @@ select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
                   :related ?user;
                   .
     ?pub :category "publication";
+         :type ?oap_type;
          .
     ?user :category "user";
           :username ?username;
@@ -24,4 +44,5 @@ select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
   bind(replace(str(?relationship),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
   bind(concat(?id,".jsonld.json") as ?filename)
   filter(regex(?username,"@ucdavis.edu"))
+  filter(?cite_include = true)
 }

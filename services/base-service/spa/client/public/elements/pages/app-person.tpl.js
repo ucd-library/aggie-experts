@@ -16,7 +16,7 @@ return html`
     }
 
     .hero-main {
-      background: url('../images/watercolor-gold-solid.jpg') no-repeat center center;
+      background: url('/images/watercolor-gold-solid.jpg') no-repeat center center;
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
@@ -34,7 +34,7 @@ return html`
     }
 
     .main-content {
-      width: 60%;
+      width: 53.5rem;
       margin: 0 auto;
       padding-top: 2.38rem;
     }
@@ -66,6 +66,18 @@ return html`
       margin-bottom: 0;
       padding-bottom: 0;
       color: var(--color-aggie-blue);
+    }
+
+    .hero-main h1 ucdlib-icon,
+    .roles-websites h4 ucdlib-icon {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      min-width: 17px;
+      min-height: 17px;
+      fill: var(--color-aggie-blue-80);
+      cursor: pointer;
+      padding-left: .25rem;
     }
 
     .authors a {
@@ -118,18 +130,16 @@ return html`
     }
 
     .seperator {
-      /* border-top: 4px dotted var(--color-sage); */
       display: block;
       height: 4px;
       border: 0;
       border-top: 4px dotted var(--color-aggie-gold);
-      /* margin: 1em 0; */
       padding: 0;
       margin: 0.625rem 0;
     }
 
-    .roles-websites h4 {
-      margin: 0.7rem 0;
+    .about-me.seperator {
+      padding-bottom: 0.7rem;
     }
 
     .roles-websites .link-row {
@@ -142,7 +152,13 @@ return html`
       padding-left: 0.625rem;
     }
 
-    .introduction h4 {
+    .introduction,
+    .research-interests {
+      padding-bottom: 2.375rem;
+    }
+
+    .introduction h4,
+    .research-interests h4 {
       margin-bottom: 0;
       margin-top: 0;
     }
@@ -152,6 +168,10 @@ return html`
       display: flex;
       align-items: center;
       cursor: pointer;
+    }
+
+    .see-all-works {
+      padding-bottom: 2rem;
     }
 
     .introduction .more-about-me span,
@@ -167,11 +187,18 @@ return html`
 
     .roles-websites {
       display: flex;
-      padding-top: 2.375rem;
+      /* padding-top: 2.375rem; */
     }
 
     .roles-websites .roles {
       width: 50%;
+      padding-right: 1rem;
+    }
+
+    .roles-websites .roles h4,
+    .roles-websites .websites h4  {
+      padding-top: 0;
+      margin-top: 0;
     }
 
     .roles-websites ucdlib-icon {
@@ -184,10 +211,12 @@ return html`
 
     .roles-websites .role {
       padding-bottom: 1rem;
+      overflow: hidden;
     }
 
     .works-abbreviated {
       padding-top: 2.56rem;
+      padding-bottom: 2rem;
     }
 
     .works-abbreviated .see-all-works ucdlib-icon {
@@ -197,6 +226,7 @@ return html`
     .works-abbreviated .works-heading {
       display: flex;
       align-items: center;
+      justify-content: space-between;
     }
 
     .works-abbreviated .works-heading ucdlib-icon {
@@ -207,6 +237,7 @@ return html`
 
     .works-abbreviated .seperator {
       border-top: 4px dotted var(--color-sage);
+      padding-bottom: .33rem;
     }
 
     .works-abbreviated .work h5 {
@@ -214,15 +245,57 @@ return html`
       margin: .5rem 0;
     }
 
-    .work-details {
-      display: flex;
-      align-items: center;
+    .work-details .dot {
+      padding: 0 0.25rem;
+      color: var(--black, #000);
+      font-family: Proxima Nova;
+      font-size: 1.1875rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 1.92125rem;
+      text-transform: uppercase;
+      position: relative;
+      bottom: 0.25rem;
+    }
+
+    .works-abbreviated .works-heading .works-edit-download ucdlib-icon {
+      fill: var(--color-aggie-blue-80);
+      width: 15px;
+      height: 15px;
+      min-width: 17px;
+      min-height: 17px;
+      cursor: pointer;
     }
 
     /* inf {
       vertical-align: sub;
       font-size: .8rem;
     } */
+
+    .work-details span {
+      line-height: var(--lh-html);
+    }
+
+    .csl-bib-body, .csl-entry {
+      display: inline;
+      line-height: var(--lh-html);
+    }
+
+    @media (max-width: 992px) {
+      .main-content {
+        width: 90%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .roles-websites {
+        display: block;
+      }
+
+      .roles-websites .roles {
+        width: 100%;
+      }
+    }
 
   </style>
 
@@ -233,7 +306,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>EXPERT</span>
         </div>
-        <h1>${this.personName}</h1>
+        <h1>${this.personName} <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editName}></ucdlib-icon></h1>
       </div>
     </div>
 
@@ -242,9 +315,9 @@ return html`
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
       </div>
-      <hr class="seperator">
+      <hr class="about-me seperator">
 
-      <div class="introduction">
+      <div class="introduction" ?hidden="${!this.introduction}">
         <h4>Introduction</h4>
         <ucdlib-md>
           <ucdlib-md-content>
@@ -258,20 +331,30 @@ return html`
         </div>
       </div>
 
+      <div class="research-interests" ?hidden="${!this.researchInterests}">
+        <h4>Research Interests</h4>
+        <ucdlib-md>
+          <ucdlib-md-content>
+            ${this.researchInterests}
+          </ucdlib-md-content>
+        </ucdlib-md>
+      </div>
+
+
       <div class="roles-websites">
-        <div class="roles">
-          <h4>Roles</h4>
+        <div class="roles" ?hidden="${!this.roles.length}">
+          <h4>Roles <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editRoles}></ucdlib-icon></h4>
           ${this.roles.map(
           (role) => html`
             <div class="role">
             <div>
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <div class="link-row">
+            <div class="link-row" ?hidden="${!role.websiteUrl}">
               <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
               <span><a href="${role.websiteUrl}">${role.websiteUrl}</a></span>
             </div>
-            <div class="link-row">
+            <div class="link-row" ?hidden="${!role.email}">
               <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
               <span><a href="mailto:${role.email}">${role.email}</a></span>
             </div>
@@ -280,8 +363,8 @@ return html`
         )}
         </div>
 
-        <div class="websites">
-          <h4>Websites</h4>
+        <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
+          <h4>Websites <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editWebsites}></ucdlib-icon></h4>
           <div class="link-row" ?hidden="${!this.orcId}">
             <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
             <span><a href="https://orcid.org/${this.orcId}">${this.orcId}</a></span>
@@ -289,6 +372,10 @@ return html`
           <div class="link-row" ?hidden="${!this.scopusId}">
             <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon>
             <span><a href="https://www.scopus.com/authid/detail.uri?authorId=${this.scopusId}">Scopus</a></span>
+          </div>
+          <div class="link-row" ?hidden="${!this.researcherId}">
+            <ucdlib-icon icon="ucdlib-experts:ai-clarivate"></ucdlib-icon>
+            <span><a href="https://www.webofscience.com/wos/author/record/${this.researcherId}">Clarivate</a></span>
           </div>
 
           ${this.websites.map(
@@ -310,8 +397,14 @@ return html`
       </div> -->
       <div class="works-abbreviated" ?hidden="${this.citations.length === 0}">
         <div class="works-heading">
-          <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
-          <h2>${this.citations.length} Works</h2>
+          <div style="display: flex; align-items: center;">
+            <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
+            <h2>${this.citations.length} Works</h2>
+          </div>
+          <div class="works-edit-download" style="display: flex; align-items: center;">
+            <ucdlib-icon style="margin-right: 1rem;" icon="ucdlib-experts:fa-pen-to-square" ?hidden="${!this.canEdit}" @click=${this._editWorks}></ucdlib-icon>
+            <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down" ?hidden="${!this.canEdit}" @click=${this._downloadWorks}></ucdlib-icon>
+          </div>
         </div>
         <hr class="seperator">
         ${this.citationsDisplayed.map(
@@ -321,7 +414,7 @@ return html`
               <h5>${unsafeHTML(cite.title)}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${cite.type}</span>
-                <span style="padding: 0 .75rem; color: var(--black, #000); font-family: Proxima Nova; font-size: 1.1875rem; font-style: normal; font-weight: 700; line-height: 1.92125rem; text-transform: uppercase;">.</span>
+                <span class="dot">.</span>
                 ${unsafeHTML(cite.apa)}
               </div>
             </div>

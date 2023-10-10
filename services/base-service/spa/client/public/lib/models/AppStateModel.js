@@ -24,6 +24,14 @@ class AppStateModelImpl extends AppStateModel {
     return super.set(update);
   }
 
+  /**
+   * @method show404Page
+   * @description set the app state to the virtual 404 page
+   */
+  show404Page() {
+    this.set({page: '404'});
+  }
+
 }
 
 module.exports = new AppStateModelImpl();

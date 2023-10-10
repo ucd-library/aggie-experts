@@ -8,7 +8,7 @@ import '@ucd-lib/theme-elements/ucdlib/ucdlib-md/ucdlib-md.js';
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../utils/app-icons.js';
 
-import Cite from 'citation-js';
+import { generateCitations } from '../utils/citation.js';
 
 export default class AppPerson extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -19,13 +19,16 @@ export default class AppPerson extends Mixin(LitElement)
       person : { type : Object },
       personName : { type : String },
       introduction : { type : String },
+      researchInterests : { type : String },
       showMoreAboutMeLink : { type : Boolean },
       roles : { type : Array },
       orcId : { type : String },
       scopusId : { type : String },
+      researcherId : { type : String },
       websites : { type : Array },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      canEdit : { type : Boolean }
     }
   }
 
@@ -34,24 +37,12 @@ export default class AppPerson extends Mixin(LitElement)
     this._injectModel('AppStateModel', 'PersonModel');
 
     this.personId = '';
-    this.person = {};
-    this.personName = '';
-    this.introduction = '';
-    this.showMoreAboutMeLink = false;
-    this.roles = [];
-    this.orcId = '';
-    this.scopusId = '';
-    this.websites = [];
-
-    this.citations = [];
-    this.citationsDisplayed = [];
+    this._reset();
 
     this.render = render.bind(this);
   }
 
   async firstUpdated() {
-    // if( this.personId && this.personId === 'person/66356b7eec24c51f01e757af2b27ebb8' ) return;
-
     this._onAppStateUpdate(await this.AppStateModel.get());
   }
 
@@ -63,12 +54,23 @@ export default class AppPerson extends Mixin(LitElement)
    */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'person' ) return;
-
-    this.personId = e.location.pathname.substr(1);
-    // this.personId = 'person/66356b7eec24c51f01e757af2b27ebb8';
-    await this.PersonModel.get(this.personId);
-
     window.scrollTo(0, 0);
+
+    let personId = e.location.pathname.substr(1);
+    if( personId === this.personId ) return;
+
+    this._reset();
+
+    try {
+      let person = await this.PersonModel.get(personId);
+      this._onPersonUpdate(person);
+    } catch (error) {
+      console.warn('person ' + personId + ' not found, throwing 404');
+
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+    }
   }
 
   /**
@@ -79,6 +81,7 @@ export default class AppPerson extends Mixin(LitElement)
    */
   async _onPersonUpdate(e) {
     if( e.state !== 'loaded' ) return;
+    if( e.id === this.personId ) return;
 
     this.personId = e.id;
     this.person = e.payload;
@@ -92,19 +95,22 @@ export default class AppPerson extends Mixin(LitElement)
 
     // max 500 characters, unless 'show me more' is clicked
     this.introduction = graphRoot.overview;
-    this.showMoreAboutMeLink = this.introduction.length > 500;
+    this.showMoreAboutMeLink = this?.introduction?.length > 500;
+
+    this.researchInterests = graphRoot.researchInterests;
 
     this.roles = graphRoot.contactInfo?.filter(c => c['ucdlib:isPreferred'] === true).map(c => {
       return {
         title : c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.name,
-        email : c.hasEmail.replace('email:', ''),
+        email : c?.hasEmail?.replace('email:', ''),
         websiteUrl : c.hasURL?.['url']
       }
     });
 
     this.orcId = graphRoot.orcidId;
     this.scopusId = graphRoot.scopusId;
+    this.researcherId = graphRoot.researcherId;
 
     let websites = graphRoot.contactInfo?.filter(c => (!c['ucdlib:isPreferred'] || c['ucdlib:isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
     websites.forEach(w => {
@@ -112,94 +118,55 @@ export default class AppPerson extends Mixin(LitElement)
       this.websites.push(...w.hasURL);
     });
 
-    // TEMP hack for testing citationjs
     await this._loadCitations();
   }
 
-  loadCitationPromise(doi) {
-    return new Promise((resolve, reject) => {
-      Cite.async(doi).then(citation => {
-        let originalTitle = citation.data[0].title;
-        citation.data[0].title = ''; // apa citation shouldn't include title in ui
-        let apa = citation.format('bibliography', {
-          format: 'html',
-          template: 'apa',
-          lang: 'en-US'
-        });
-
-        citation.data[0].title = originalTitle;
-        let ris = citation.format('ris', {
-          format: 'html',
-          template: 'apa',
-          lang: 'en-US'
-        });
-
-        resolve({
-          ...citation.data[0],
-          apa,
-          ris
-        });
-      })
-    });
+  /**
+   * @method _reset
+   * @description clear all page data, called on connected and when personId changes
+   */
+  _reset() {
+    this.person = {};
+    this.personName = '';
+    this.introduction = '';
+    this.showMoreAboutMeLink = false;
+    this.roles = [];
+    this.orcId = '';
+    this.scopusId = '';
+    this.researcherId = '';
+    this.websites = [];
+    this.citations = [];
+    this.citationsDisplayed = [];
+    this.canEdit = true;
   }
 
+  /**
+   * @method _loadCitations
+   * @description load citations for person async
+   */
   async _loadCitations() {
-    // this.citationDois = [];
-
     let citations = this.person['@graph'].filter(g => g.issued);
-    citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]))
-    // for( let element of citations ) {
-    //   if( element.DOI ) {
-    //     this.citationDois.push(element.DOI);
-    //   }
-    // }
 
-    this.citations = await Promise.all(
-      // this.citationDois.map(doi => this.loadCitationPromise(doi))
-      citations.map((cite, index) => {
-        let dateParts = cite.issued.split('-');
+    try {
+      // sort by issued date desc, then by title asc
+      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    } catch (error) {
+      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
+      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
+      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+    }
 
-        // TODO remove, just testing special <inf> markup
-        // let title = index === 0 ? 'Novel structural aspects of Sb<inf>2</inf>O<inf>3</inf>-B<inf>2</inf>O <inf>3</inf> glasses' : cite.title;
+    citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    let citationResults = await generateCitations(citations);
 
-        let newCite = {
-          DOI: cite.DOI,
-          ISSN: cite.ISSN,
-          author: cite.author,
-          'container-title': cite['container-title'],
-          language: cite.language,
-          name: cite.name,
-          publisher: cite.publisher,
-          rank: cite.rank,
-          title: cite.title,
-          type: cite.type,
-          volume: cite.volume,
-          '@id': cite['@id'],
-          '@type': cite['@type'],
-          abstract: cite.abstract,
-          'bibo:doi': cite['bibo:doi'],
-          // 'bibo:status': cite['bibo:status'],
-          eissn: cite.eissn,
-          genre: cite.genre,
-          hasPublicationVenue: cite.hasPublicationVenue,
-          'is-visible': cite['is-visible'],
-          // issued: cite.issued, // '2017-02' // date is expected to be in array of date-parts
-          issued: {
-            'date-parts': dateParts
-          },
-          // medium: cite.medium, // shows [Undetermined] for first record of Quinns
-          pagination: cite.pagination,
-          // status: cite.status, // breaks publish date
-        };
-        return this.loadCitationPromise(newCite);
-      })
-    );
+    this.citations = citationResults.map(c => c.value);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     this.citations.forEach((cite, i) => {
       let newIssueDate = cite.issued?.['date-parts']?.[0]
-      if( i > 0 && newIssueDate === this.citations[i-1].issued?.['date-parts']?.[0] || lastPrintedYear === newIssueDate ) {
+      if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.['date-parts']?.[0] || lastPrintedYear === newIssueDate ) ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
       }
@@ -210,27 +177,51 @@ export default class AppPerson extends Mixin(LitElement)
     this.requestUpdate();
   }
 
-  // _downloadRIS(e) {
-  //   e.preventDefault();
+  /**
+   * @method _downloadWorks
+   * @description bound to click events of download button in works list
+   *
+   * @param {Object} e click|keyup event
+   */
+  _downloadWorks(e) {
+    e.preventDefault();
 
-  //   let text = this.citations.map(c => c.ris).join('\n');
-  //   let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
-  //   let url = URL.createObjectURL(blob);
-  //   console.log('url', url)
+    let text = this.citations.map(c => c.ris).join('\n');
+    let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+    let url = URL.createObjectURL(blob);
+    console.log('url', url)
 
-  //   const link = document.createElement('a');
-  //   link.setAttribute('href', url);
-  //   link.setAttribute('download', 'data.txt');
-  //   link.style.display = 'none';
-  //   document.body.appendChild(link);
-  //   link.click();
-  //   document.body.removeChild(link);
-  // }
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'data.txt');
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
+  /**
+   * @method _seeAllWorks
+   * @description load page to list all works
+   */
   _seeAllWorks(e) {
     e.preventDefault();
 
-    // TODO things
+    this.AppStateModel.setLocation('/works/'+this.personId);
+  }
+
+  _editName(e) {}
+  _editRoles(e) {}
+  _editWebsites(e) {}
+
+  /**
+   * @method _editWorks
+   * @description load page to list all works in edit mode
+   */
+  _editWorks(e) {
+    e.preventDefault();
+
+    this.AppStateModel.setLocation('/works-edit/'+this.personId);
   }
 
 }
