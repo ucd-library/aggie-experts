@@ -69,6 +69,7 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     let personId = e.location.pathname.replace('/works-edit/', '');
+    if( !personId ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( personId === this.personId ) return;
 
     try {

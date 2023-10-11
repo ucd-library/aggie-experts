@@ -65,6 +65,7 @@ export default class AppPersonWorks extends Mixin(LitElement)
     console.log('in works page onAppStateUpdate');
 
     let personId = e.location.pathname.replace('/works/', '');
+    if( !personId ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( personId === this.personId ) return;
 
     try {
