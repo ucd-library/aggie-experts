@@ -26,35 +26,6 @@ class PersonStore extends BaseStore {
   }
 
   /**
-   * Search
-   */
-  setSearchLoading(searchDocument, request) {
-    this._setSearchState({
-      state : this.STATE.LOADING,
-      request, searchDocument
-    })
-  }
-
-  setSearchLoaded(searchDocument, payload) {
-    this._setSearchState({
-      state : this.STATE.LOADED,
-      searchDocument, payload
-    })
-  }
-
-  setSearchError(searchDocument, error) {
-    this._setSearchState({
-      state : this.STATE.ERROR,
-      searchDocument, error
-    })
-  }
-
-  _setSearchState(state) {
-    this.data.search = state;
-    this.emit(this.events.PERSON_SEARCH_UPDATE, this.data.search);
-  }
-
-  /**
    * Get
    */
   setPersonLoading(id, promise) {
@@ -82,9 +53,6 @@ class PersonStore extends BaseStore {
   }
 
   _setPersonState(state) {
-    if( state.state === this.STATE.LOADED ) {
-      // TODO any extra data translation?
-    }
     this.data.byId[state.id] = state;
     this.emit(this.events.PERSON_UPDATE, state);
   }

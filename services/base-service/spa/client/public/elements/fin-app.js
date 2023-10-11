@@ -2,15 +2,15 @@ import { LitElement } from 'lit';
 import {render} from "./fin-app.tpl.js";
 
 // import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js'
-import '../elements/pages/app-home.js';
-// import '../elements/pages/app-work.js';
-import '../elements/pages/app-person.js';
-import '../elements/pages/app-person-works.js';
-import '../elements/pages/app-person-works-edit.js';
-import '../elements/pages/app-search.js';
-import '../elements/pages/app-404.js';
-import '../elements/pages/app-faq.js';
-import '../elements/pages/app-tou.js';
+import '../elements/pages/home/app-home.js';
+// import '../elements/pages/work/app-work.js';
+import '../elements/pages/person/app-person.js';
+import '../elements/pages/person/app-person-works.js';
+import '../elements/pages/person/app-person-works-edit.js';
+import '../elements/pages/search/app-search.js';
+import '../elements/pages/404/app-404.js';
+import '../elements/pages/faq/app-faq.js';
+import '../elements/pages/termsofuse/app-tou.js';
 
 import '../elements/components/site/ucdlib-site-footer.js';
 import '../elements/components/site/ucdlib-site-footer-column.js';

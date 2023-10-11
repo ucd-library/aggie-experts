@@ -36,18 +36,6 @@ class PersonModel extends BaseModel {
     return this.store.getPerson(id);
   }
 
-  /**
-   * @method search
-   * @description search for person
-   *
-   * @param {Object} searchDocument es search document
-   *
-   * @returns {Promise} resolves to a person search result
-  */
-  search(searchDocument) {
-    return this.service.search(searchDocument);
-  }
-
 }
 
 module.exports = new PersonModel();

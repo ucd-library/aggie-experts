@@ -46,7 +46,12 @@ export default function render() {
 
       .search-result-sub-text {
         padding-left: 36.406px;
+        /* text-transform: lowercase; */
       }
+
+      /* .search-result-sub-text::first-letter {
+        text-transform: uppercase;
+      } */
 
       .search-result-matches {
         padding-left: 36.406px;
@@ -89,7 +94,7 @@ export default function render() {
         <span class="search-matches">Search matches:</span>
           <a href="">${this.result.numberOfGrants} grants</a>
           <span class="dot-separator">.</span>
-          <a href="">${this.result.numberOfWorks} works</a>
+          <a href="/works/${this.result.id}">${this.result.numberOfWorks} works</a>
       </div>
     </div>
   `;
