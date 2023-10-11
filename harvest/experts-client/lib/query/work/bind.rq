@@ -30,7 +30,7 @@ WHERE {
     }
   graph ?g {
     ?pub :category "publication";
-         : type ?oap_type;
+         :type ?oap_type;
          :is-public "true";
          :ever-approved "true";
 
