@@ -1,0 +1,39 @@
+import { LitElement } from 'lit';
+import {render} from "./app-home.tpl.js";
+
+// sets globals Mixin and EventInterface
+import "@ucd-lib/cork-app-utils";
+
+import "../../components/search-box";
+
+export default class AppHome extends Mixin(LitElement)
+  .with(LitCorkUtils) {
+
+  static get properties() {
+    return {
+      // page: { type: String },
+      // imageSrc: { type: String },
+      // imageAltText: { type: String },
+    }
+  }
+
+  constructor() {
+    super();
+    this._injectModel('AppStateModel');
+
+    this.render = render.bind(this);
+  }
+
+  /**
+   * @method _onSearch
+   * @description called from the search box button is clicked or
+   * the enter key is hit. search
+   * @param {Object} e
+   */
+  _onSearch(e) {
+    if( e.detail?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.trim());
+  }
+
+}
+
+customElements.define('app-home', AppHome);
