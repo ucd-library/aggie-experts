@@ -100,32 +100,46 @@ WHERE {
 
     # Get every field_name by priority
     {
-      select ?pub ?field_name (min(?p) as ?priority)
+      select ?pub ?field_name (min(?score) as ?min_score)
       WHERE {
-        # This first guard prevents a source from being used if there are multiple records
-        {
-          select ?pub ?source (count(*) as ?srccnt) WHERE {
-            ?pub :records/:record [ :source-name  ?source;
-                                      :native [] ].
-          } group by ?pub ?source having (?srccnt=1)
-        }
         VALUES (?source ?p) {
           ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
           ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
           ("cinii-english" 12)("repec" 13)("figshare" 14)
-          ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+          (	"cinii-japanese" 15)("manual" 16)("dspace" 17) }
 
-        ?pub :records/:record [ :source-name  ?source;
-                                        :native/:field/:name ?field_name ].
-      } group by ?pub ?field_name
+        ?pub :records/:record ?record.
+        ?record :source-name  ?source;
+                :native/:field/:name ?field_name;
+                .
+        OPTIONAL {
+          ?record :native/:field/:name "doi".
+          bind(-10 as ?boost)
+        }
+        bind(coalesce(?boost,0)+?p as ?score)
+      }  group by ?pub ?field_name
     }
-    VALUES (?source ?priority) {
-      ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
-      ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
-      ("cinii-english" 12)("repec" 13)("figshare" 14)
-      ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+    # Now get the corresponding ?record w/ that low score
+    {
+      select ?pub (min(?record) as ?field_record) ?field_name ?min_score
+      WHERE {
+        VALUES (?source ?p) {
+          ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
+          ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
+          ("cinii-english" 12)("repec" 13)("figshare" 14)
+          (	"cinii-japanese" 15)("manual" 16)("dspace" 17) }
 
-        # these are the fields to check
+        ?pub :records/:record ?record.
+        ?record :source-name  ?source.
+        OPTIONAL {
+          ?record :native/:field/:name "doi".
+          bind(-10 as ?boost)
+        }
+        bind(coalesce(?boost,0)+?p as ?min_score)
+      } group by ?pub ?field_name ?min_score
+    }
+
+    # these are the fields to check
     VALUES(?field_name ?field_predicate) {
       ("doi" bibo:doi)
       ("abstract" cite:abstract)
@@ -188,9 +202,10 @@ WHERE {
 
     ?pub oap:type ?oap_type;
          :last-modified-when ?lastModifiedWhen;
-         :records/:record [ :source-name  ?source;
-                            :native/:field ?field ];
-                                           .
+         :records/:record ?field_record;
+         .
+
+    ?field_record :native/:field ?field.
 
     ?field :name ?field_name.
 
