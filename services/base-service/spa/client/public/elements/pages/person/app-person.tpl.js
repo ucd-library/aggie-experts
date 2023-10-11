@@ -500,10 +500,14 @@ return html`
             <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
             <span><a href="https://orcid.org/${this.orcId}">${this.orcId}</a></span>
           </div>
-          <div class="link-row" ?hidden="${!this.scopusId}">
-            <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon>
-            <span><a href="https://www.scopus.com/authid/detail.uri?authorId=${this.scopusId}">Scopus</a></span>
-          </div>
+          ${this.scopusIds.map(
+          (scopusId) => html`
+            <div class="link-row" ?hidden="${!scopusId}">
+              <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon>
+              <span><a href="https://www.scopus.com/authid/detail.uri?authorId=${scopusId}">Scopus</a></span>
+            </div>
+            `
+          )}
           <div class="link-row" ?hidden="${!this.researcherId}">
             <ucdlib-icon icon="ucdlib-experts:ai-clarivate"></ucdlib-icon>
             <span><a href="https://www.webofscience.com/wos/author/record/${this.researcherId}">Clarivate</a></span>

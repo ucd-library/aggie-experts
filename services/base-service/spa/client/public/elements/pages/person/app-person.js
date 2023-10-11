@@ -24,7 +24,7 @@ export default class AppPerson extends Mixin(LitElement)
       showMoreAboutMeLink : { type : Boolean },
       roles : { type : Array },
       orcId : { type : String },
-      scopusId : { type : String },
+      scopusIds : { type : Array },
       researcherId : { type : String },
       websites : { type : Array },
       citations : { type : Array },
@@ -96,7 +96,7 @@ export default class AppPerson extends Mixin(LitElement)
     let graphRoot = this.person['@graph'].filter(item => item['@id'] === this.personId)[0];
 
     console.log('app-person person graphRoot', graphRoot);
-    this.personName = graphRoot.name;
+    this.personName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
     // max 500 characters, unless 'show me more' is clicked
     this.introduction = graphRoot.overview;
@@ -114,7 +114,7 @@ export default class AppPerson extends Mixin(LitElement)
     });
 
     this.orcId = graphRoot.orcidId;
-    this.scopusId = graphRoot.scopusId;
+    this.scopusIds = Array.isArray(graphRoot.scopusId) ? graphRoot.scopusId : [graphRoot.scopusId];
     this.researcherId = graphRoot.researcherId;
 
     let websites = graphRoot.contactInfo?.filter(c => (!c['ucdlib:isPreferred'] || c['ucdlib:isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
@@ -137,7 +137,7 @@ export default class AppPerson extends Mixin(LitElement)
     this.showMoreAboutMeLink = false;
     this.roles = [];
     this.orcId = '';
-    this.scopusId = '';
+    this.scopusIds = [];
     this.researcherId = '';
     this.websites = [];
     this.citations = [];
@@ -177,6 +177,16 @@ export default class AppPerson extends Mixin(LitElement)
       if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
+      }
+    });
+
+    // update doi links to be anchor tags
+    this.citations.forEach(cite => {
+      if( cite.DOI && cite.apa ) {
+        // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
+        cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
+                  + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
+                  + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
       }
     });
 
