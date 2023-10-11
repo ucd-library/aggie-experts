@@ -1,22 +1,82 @@
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX venue: <http://experts.ucdavis.edu/venue/>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 construct {
   ?authorship a vivo:Authorship;
               ucdlib:favorite ?favorite;
               ucdlib:is-visible ?visible;
-              vivo:relates ?expert,?publication;
+              vivo:relates ?expert,?work;
               vivo:rank ?user_rank;
-    .
+              .
+
+  # Now the actual work as well
+  ?work a ?bibo_type;
+        bibo:status ?vivoStatus;
+        .
+
+  ?work a ucdlib:Work;
+        cite:type ?cite_type;
+        cite:genre ?cite_genre;
+        cite:status ?status;
+        cite:pagination ?pagination;
+        ?field_predicate ?field_value;
+        cite:issued ?pub_datestr;
+        cite:date-available ?pub_odatestr;
+        .
+
+  ?work  cite:author ?author.
+
+  ?author vivo:rank ?authorRank;
+          cite:family ?authorFamilyName;
+          cite:given ?authorGivenName;
+          .
+
+  # This needs to be stored as a journal
+  ?work vivo:hasPublicationVenue ?journalURI .
+  # This needs adding via indirect link
+  #     ?journalURI vivo:publicationVenueFor ?experts_work_id .
+
+  ?journalURI rdfs:label ?journal_title;
+              vivo:issn ?issn;
+              .
 }
 WHERE {
+  # These are the work types as defined by CDL
+  VALUES(?oap_type ?cite_include ?bibo_type ?cite_type ?cite_genre) {
+    ("book" true bibo:Book "book" "")
+    ("chapter" true bibo:Chapter "chapter" "")
+    ("conference" true vivo:ConferencePaper "paper-conference" "")
+    ("journal-article" true bibo:AcademicArticle "article-journal" "")
+    # false
+    #("dataset" false ucdlib:Work "dataset" "")
+    #("internet-publication" false ucdlib:Work "webpage" "")
+    #("media" false ucdlib:Work "article" "media")
+    #("other" false ucdlib:Work "article" "other")
+    #("poster" false ucdlib:Work "speech" "poster")
+    #("preprint" false ucdlib:Preprint "article" "preprint" )
+    #("presentation" false ucdlib:Work "speech" "presentation")
+    #("report" false ucdlib:Work "report" "")
+    #("scholarly-edition" false ucdlib:Work "manuscript" "scholarly-edition")
+    #("software" false ucdlib:Work "software" "")
+    #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
+  }
+  # Filter out MinorWorks
+  #filter(?cite_include = true)
+
   graph cdl: {
     ?RELATIONSHIP__ :type "publication-user-authorship";
                   :is-visible ?visible_str;
@@ -24,59 +84,207 @@ WHERE {
                   :related ?pub;
                   :related ?user;
                   .
+    OPTIONAL {
+	    ?RELATIONSHIP__ :is-favourite "true".
+    	bind(true as ?favorite)
+    }
 
     bind(xsd:boolean(?visible_str) as ?visible)
     ?user :category "user";
           :username ?username;
           .
 
+    # This needs to include grants later
     ?pub :category "publication";
          .
 
-    # Get authors from priority source
+    # Get every field_name by priority
     {
-    select ?pub (min(?p) as ?author_priority)
-    WHERE {
-      VALUES (?source ?p) {
-    ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
-    ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
-    ("cinii-english" 12)("repec" 13)("figshare" 14)
-    ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+      select ?pub ?field_name (min(?p) as ?priority)
+      WHERE {
+        # This first guard prevents a source from being used if there are multiple records
+        {
+          select ?pub ?source (count(*) as ?srccnt) WHERE {
+            ?pub :records/:record [ :source-name  ?source;
+                                      :native [] ].
+          } group by ?pub ?source having (?srccnt=1)
+        }
+        VALUES (?source ?p) {
+          ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
+          ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
+          ("cinii-english" 12)("repec" 13)("figshare" 14)
+          ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
 
-      ?pub oap:records/oap:record [ oap:source-name  ?source;
-                                    oap:native/oap:field/oap:name "authors" ].
-    } group by ?pub
-  }
-  VALUES (?source ?author_priority) {
-    ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
-    ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
-    ("cinii-english" 12)("repec" 13)("figshare" 14)
-    ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
-
-    ?pub oap:records/oap:record [ oap:source-name  ?source;
-                                  oap:native/oap:field ?field ].
-
-    OPTIONAL {
-      ?field oap:name "authors";
-             oap:people/oap:person [ list:index(?pos ?elem) ] .
-	    ?elem oap:links/oap:link ?user.
+        ?pub :records/:record [ :source-name  ?source;
+                                        :native/:field/:name ?field_name ].
+      } group by ?pub ?field_name
     }
-    # get any rank?
+    VALUES (?source ?priority) {
+      ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
+      ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
+      ("cinii-english" 12)("repec" 13)("figshare" 14)
+      ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+
+        # these are the fields to check
+    VALUES(?field_name ?field_predicate) {
+      ("doi" bibo:doi)
+      ("abstract" cite:abstract)
+      #("acceptance-date" cite:issued)
+      #("addresses" cite:)
+      #("altmetric-attention-score" cite:)
+      #("associated-identifiers" cite:)
+      #("author-url" cite:) # Was bib:uri
+      ("authors" cite:EXPANDED) # This gets expanded below
+      #("c-eschol-id" cite:) # Was bibo:identifier, should be a specific esscholarship identifier
+      #("c-uci-id" cite:)
+      #("c-ucsf-id" cite:)
+      #("collections" cite:)
+      #("confidential" cite:)
+      ("doi" cite:DOI)
+      ("edition" cite:edition)
+      #("editors" cite:)
+      ("eissn" cite:eissn)
+      #("embargo-release-date" cite:)
+      ("external-identifiers" cite:)
+      #("field-citation-ratio" cite:)
+      #("filed-date" cite:)
+      #("finish-date" cite:)
+      ("is-open-access" ucdlib:is-open-access)
+      ("isbn-10" cite:ISBN)
+      ("isbn-13" cite:ISBN)
+      ("issn" cite:ISSN)
+      ("issue" cite:issue)
+      ("journal" cite:container-title)
+      ("keywords" cite:keyword)
+      ("language" cite:language)
+      #("location" cite:)
+      ("medium" cite:medium)
+      ("name-of-conference" cite:container-title)
+      ("notes" cite:note)
+      ("number" cite:collection-number)
+      ("oa-location-url" cite:url)
+      ("online-publication-date" cite:available-date) # EXPANDED below
+      ("pagination" cite:pagination) #EXPANDED below
+      ("parent-title" cite:container-title)
+      #("pii" cite:)
+      ("place-of-publication" cite:publisher-place)
+      ("public-url" cite:url)
+      ("publication-date" cite:issued) # EXPANDED below
+      ("publication-status" cite:status) #EXPANDED below
+      ("publisher" cite:publisher)
+      ("publisher-licence" cite:license)
+      #("publisher-url" cite:)
+      #("record-created-at-source-date" cite:)
+      #("record-made-public-at-source-date" cite:)
+      #("relative-citation-ratio" cite:)
+      #("repository-status" cite:)
+      ("series" cite:collection-number)
+      #("start-date" cite:)
+      ("thesis-type" cite:genre) # Hopefully cite:type set correctly
+      ("title" cite:title)
+      #("types" cite:genre) Handled elsewhere
+      ("volume" cite:volume)
+    }
+
+    ?pub oap:type ?qoap_type;
+         :last-modified-when ?lastModifiedWhen;
+         :records/:record [ :source-name  ?source;
+                            :native/:field ?field ];
+                                           .
+
+    ?field :name ?field_name.
+
     OPTIONAL {
-    ?pub oap:records/oap:record/oap:native/oap:field ?any_link.
-       ?any_link oap:name "authors";
-          	oap:people/oap:person [ list:index(?any_pos ?any_elem) ] .
-    ?any_elem oap:links/oap:link ?user.
+      ?field :text ?field_value ;
+      .
+    }
+    # This is a tricky way to add in some optional extensntion from the field_names above.
+    OPTIONAL {
+       VALUES (?status ?vivoStatus) {
+        ( "Published" bibo:published )
+        ( "Published online" bibo:published )
+        ( "Accepted" bibo:accepted )
+      }
+      ?field :text ?status.
+      filter(?field_name="publication-status")
+    }
+
+    #Authors are combined lists of people
+    OPTIONAL {
+      ?field :people/:person [ list:index(?pos ?elem) ] .
+      BIND(?pos+1 AS ?authorRank)
+      OPTIONAL {
+	      ?elem :links/:link ?user.   # This is the link to the relationship user
+        bind(?pos as ?user_pos)
+      }
+      #We are not putting in links until an authorship is made
+      #OPTIONAL { ?elem :links/:link ?author_link.}
+      OPTIONAL {
+		    ?elem :last-name ?authorFamilyName .
+      }
+      OPTIONAL {
+        ?elem :first-names ?authorGivenName .
+	    }
+    }
+	  BIND(uri(concat(str(?work),"#",str(?authorRank))) as ?author)
+
+    # If ?user_rank not in the preferred source, we need to get it from the other sources
+    OPTIONAL {
+    ?pub :records/:record/:native/:field ?any_link.
+       ?any_link :name "authors";
+          	:people/:person [ list:index(?any_user_pos ?any_elem) ] .
+    ?any_elem :links/:link ?user.
     }
     # Prefer the rank from the priority source, this could have multiple values
-    BIND(coalesce(?pos,?any_pos)+1 as ?user_rank)
+    BIND(coalesce(?user_pos,?any_user_pos)+1 as ?user_rank)
 
     OPTIONAL {
-	    ?RELATIONSHIP__ :is-favourite "true".
-    	bind(true as ?favorite)
+      ?field :date ?pub_date.
+      ?pub_date :year ?pub_year.
+      filter(?field_name="publication-date" )
+      OPTIONAL {
+        ?pub_date :month ?pub_m_raw.
+        BIND(concat("-",IF(xsd:integer(?pub_m_raw) < 10, CONCAT("0", ?pub_m_raw), ?pub_m_raw)) AS ?pub_month)
+        OPTIONAL {
+          ?pub_date :day ?pub_d_raw.
+          BIND(concat("-",IF(xsd:integer(?pub_d_raw) < 10, CONCAT("0", ?pub_d_raw), ?pub_d_raw)) AS ?pub_day)
+        }
+      }
+      BIND(CONCAT(?pub_year, COALESCE(?pub_month, ""), COALESCE(?pub_day, "")) AS ?pub_datestr)
+    }
+
+    OPTIONAL {
+      ?field :date ?opub_date.
+      ?opub_date :year ?opub_year.
+      filter(?field_name="online-publication-date" )
+      OPTIONAL {
+        ?opub_date :month ?opub_m_raw.
+        BIND(concat("-",IF(xsd:integer(?opub_m_raw) < 10, CONCAT("0", ?opub_m_raw), ?opub_m_raw)) AS ?opub_month)
+        OPTIONAL {
+          ?opub_date :day ?opub_d_raw.
+          BIND(concat("-",IF(xsd:integer(?opub_d_raw) < 10, CONCAT("0", ?opub_d_raw), ?opub_d_raw)) AS ?opub_day)
+        }
+      }
+      BIND(CONCAT(?opub_year, COALESCE(?opub_month, ""), COALESCE(?opub_day, "")) AS ?opub_datestr)
+    }
+
+    OPTIONAL {
+      ?field :pagination [ :begin-page ?begin ].
+      OPTIONAL {
+        ?field :pagination [ :end-page ?end ].
+      }
+    }
+    BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
+    BIND(concat(?begin,coalesce(concat('-',?end),'')) AS ?pagination)
+
+    # Now we take CDLs preferred term
+    OPTIONAL {
+      ?pub :journal [ :issn ?issn; :title ?journal_title ].
+      BIND(uri(concat(str(venue:),"urn:issn:",?issn)) as ?journalURI)
     }
   }
+  # EXPERTS ids
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/relationship/"))) as ?authorship)
-  bind(uri(replace(str(?pub),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/publication/"))) as ?publication)
+  bind(uri(replace(str(?pub),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/publication/"))) as ?work)
   bind(uri(concat(str(person:),md5(?username))) as ?expert)
 }
