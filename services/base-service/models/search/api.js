@@ -6,7 +6,7 @@ const experts = new ExpertsModel();
 
 router.get('/render', async (req, res) => {
   const params = {};
-  ["size","page","q"].forEach((key) => {
+  ["inner_hit_size","size","page","q"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
@@ -24,7 +24,7 @@ router.get('/render', async (req, res) => {
 
 router.get('/', async (req, res) => {
   const params = {};
-  ["size","page","q"].forEach((key) => {
+  ["inner_hit_size","size","page","q"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
