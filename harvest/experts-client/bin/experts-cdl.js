@@ -48,8 +48,6 @@ async function main(opt) {
     }
   }
 
-  // console.log('opt', opt);
-
   const ec = new ExpertsClient(opt);
 
 
@@ -86,16 +84,12 @@ async function main(opt) {
 
     if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
       // We need the date in XML ISO format
-      var date = new Date();
-      date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
-      sinceFilter = '&affected-since=' + date.toISOString();
+      sinceFilter = '&affected=' + opt.cdl.affected;
       uquery += sinceFilter;
     }
     else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
       // We need the date in XML ISO format
-      var date = new Date();
-      date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
-      sinceFilter = '&modified-since=' + date.toISOString();
+      sinceFilter = '&modified=' + opt.cdl.modified;
       uquery += sinceFilter;
     }
     console.log('uquery', uquery);
@@ -109,82 +103,84 @@ async function main(opt) {
       users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
     }
 
-    console.log(users.join(' '));
+    // console.log(users.join(' '));
     console.log(users.length + ' users found');
   }
 
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
+    try {
+      if (opt.fuseki.isTmp) {
+        // Create a random db name if not specified
+        opt.fuseki.db = user + '-' + nanoid(5);
+        const fuseki = await ec.mkFusekiTmpDb(opt);
+        opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
+      }
 
-    if (opt.fuseki.isTmp) {
-      // Create a random db name if not specified
-      //console.log('starting createDataset');
-      opt.fuseki.db = user + '-' + nanoid(5);
-      const fuseki = await ec.mkFusekiTmpDb(opt);
-      //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
-      opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
-    }
+      console.log('starting getCDLprofile ' + user);
 
-    console.log('starting getCDLprofile ' + user);
+      // Get a full profile for the user
+      const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
 
-    // Get a full profile for the user
-    const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
-    // Assume a single entry for a user profile, but it's an array
-    ec.profile = entries;
+      // Assume a single entry for a user profile, but it's an array
+      ec.profile = entries;
 
-    let cdlId = entries[0]["api:object"].id;
+      let cdlId = entries[0]["api:object"].id;
 
-    console.log('starting createJsonLd ' + user + '-' + cdlId);
+      console.log('starting createJsonLd ' + user + '-' + cdlId);
 
-    // Create the JSON-LD for the user profile
-    var relationshipsContext = JSON.stringify(context);
-    let contextObj = context;
+      // Create the JSON-LD for the user profile
+      var relationshipsContext = JSON.stringify(context);
+      let contextObj = context;
 
-    contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-    contextObj["@graph"] = ec.profile;
+      contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
+      contextObj["@graph"] = ec.profile;
 
-    let jsonld = JSON.stringify(contextObj);
-    console.log('starting createGraph ' + user);
+      let jsonld = JSON.stringify(contextObj);
 
-    // Insert into our local Fuseki
-    await ec.createGraphFromJsonLdFile(jsonld, opt);
+      console.log('starting createGraph ' + user);
 
-    console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
-    console.log('starting getCDLentries ' + user + '-' + cdlId);
+      // Insert into our local Fuseki
+      await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-    // Step 3: Get User Relationships from CDL
+      console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+      console.log('starting getCDLentries ' + user + '-' + cdlId);
 
-    // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
-    await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
+      // Step 3: Get User Relationships from CDL
 
-    if (!opt.nosplay) {
+      // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
+      await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
 
-      opt.bindings = BF.fromRecord(
-        { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
-      );
-      const iam = ql.getQuery('insert_iam', 'InsertQuery');
+      if (!opt.nosplay) {
+        // Step 4: Splay the User Profile and Relationships to create vivo jsonld files
+        opt.bindings = BF.fromRecord(
+          { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
+        );
+        const iam = ql.getQuery('insert_iam', 'InsertQuery');
 
-      await ec.insert({ ...opt, ...iam });
+        await ec.insert({ ...opt, ...iam });
 
-      for (const n of ['person', 'work', 'authorship']) {
-        await (async (n) => {
-          const splay = ql.getSplay(n);
-          // While we test, remove frame
-          delete splay['frame'];
-          return await ec.splay({ ...opt, ...splay });
-        })(n);
-      };
-    }
-    // Any other value don't delete
-    if (opt.fuseki.isTmp === true && !opt.saveTmp) {
-      const dropped = await ec.dropFusekiDb(opt);
-    }
+        for (const n of ['person', 'work', 'authorship']) {
+          await (async (n) => {
+            const splay = ql.getSplay(n);
+            // While we test, remove frame
+            delete splay['frame'];
+            return await ec.splay({ ...opt, ...splay });
+          })(n);
+        };
+      }
+      // Any other value don't delete
+      if (opt.fuseki.isTmp === true && !opt.saveTmp) {
+        const dropped = await ec.dropFusekiDb(opt);
+      }
+    } catch { continue; }
   }
 }
 
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { nextTick } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename).replace('/bin', '/lib');
 

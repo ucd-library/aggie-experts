@@ -371,9 +371,11 @@ export class ExpertsClient {
       const quads = await quadStream.toArray();
       let doc = await jp.fromRDF(quads)
       if (frame) {
-        doc = await jp.frame(doc, opt.frame, { omitGraph: false, safe: true, ordered: true });
+        // doc = await jp.frame(doc, opt.frame, { omitGraph: false, safe: true, ordered: true });
+        doc = await jp.frame(doc, opt.frame, { omitGraph: false, safe: false, ordered: true });
       } else {
-        doc = await jp.expand(doc, { omitGraph: false, safe: true, ordered: true });
+        // doc = await jp.expand(doc, { omitGraph: false, safe: true, ordered: true });
+        doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
       }
       console.log(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
@@ -397,6 +399,7 @@ export class ExpertsClient {
     frame['@id'] = graph.value;
 
     doc = await jp.frame(doc, opt.frame, { omitGraph: true, safe: true })
+    // doc = await jp.frame(doc, opt.frame, { omitGraph: true, safe: false })
     doc['@context'] = [
       "info:fedora/context/experts.json",
       { "@base": graph.value }];
