@@ -77,10 +77,7 @@ async function main(opt) {
   // Step 1: Get Usernames from CDL using any cmd line args if no users specified
   if (users.length === 0) {
 
-    if (opt.username) {
-      uquery += '&username=' + opt.username;
-    }
-    else if (opt.cdl.groups) {
+    if (opt.cdl.groups) {
       uquery += '&groups=' + opt.cdl.groups;
     }
 
@@ -194,8 +191,6 @@ program.name('cdl-profile')
   .description('Import CDL Researcher Profiles and Works')
   .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
   .option('--output <output>', 'output directory')
-  .option('--username <username>', 'Specify CDL username')
-  .option('--userId <userId>', 'Specify CDL ID')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
   .option('--cdl.affected <affected>', 'affected since')
