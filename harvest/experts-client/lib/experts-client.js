@@ -32,7 +32,6 @@ export class ExpertsClient {
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
-    //    console.log('ExpertsClient constructor');
     this.opt = opt;
     this.experts = [];
   }
@@ -196,14 +195,12 @@ export class ExpertsClient {
 
   async createGraphFromJsonLdFile(jsonld, opt) {
     const fuseki = opt.fuseki;
-    // Read JSON-LD file from file system
-    // const jsonLdFileContent = fs.readFileSync(jsonLdFilePath, 'utf-8');
 
     // Construct URL for uploading the data to the graph
     // Don't include a graphname to use what's in the jsonld file
     const url = `${fuseki.url}/${fuseki.db}/data`;
 
-    console.log(url);
+    console.log('posting to ' + url);
 
     // Set request options
     const options = {
@@ -216,14 +213,13 @@ export class ExpertsClient {
     };
 
     // Send the request to upload the data to the graph
-    //    console.log(url);
     const response = await fetch(url, options);
 
     // console.log(response);
 
     // Check if the request was successful
     if (!response.ok) {
-      throw new Error(`Failed to create graph. Status code: ${response.status}`);
+      throw new Error(`Failed to create graph. Status code: ${response.status}` + response.statusText);
     }
 
     return await response.text();
@@ -419,6 +415,7 @@ export class ExpertsClient {
     var lastPage = false
     var results = [];
     var nextPage = path.join(cdl.url, query)
+    var count = 0;
 
     if (cdl.auth.match(':')) {
       cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
@@ -441,14 +438,15 @@ export class ExpertsClient {
         break;
       }
       else if (response.status === 200) {
+
         const xml = await response.text();
+        count++;
         // convert the xml atom feed to json
         const json = parser.toJson(xml, { object: true, arrayNotation: false });
 
         // add the entries to the results array
         if (json.feed.entry) {
           results = results.concat(json.feed.entry);
-          //results.push(json.feed.entry);
         }
 
         // inspect the pagination to see if there are more pages
@@ -468,6 +466,100 @@ export class ExpertsClient {
     }
 
     return results;
+  }
+
+
+  /**
+ * @description Generic function to get all the entries from a CDL collection and post them to a fuseki endpoint
+ * @param {
+  * } opt
+  * @returns
+  *
+  */
+  async getPostCDLentries(opt, query, cdlId, context) {
+    const cdl = opt.cdl;
+    var lastPage = false
+    var results, entries = [];
+    var nextPage = path.join(cdl.url, query)
+    var count = 0;
+
+    if (cdl.auth.match(':')) {
+      cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
+    } else {
+      cdl.authBasic = cdl.auth;
+    }
+
+    while (nextPage) {
+      results = [];
+      entries = [];
+
+      console.log(`getting ${nextPage}`);
+      const response = await fetch(nextPage, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + cdl.authBasic,
+          'Content-Type': 'text/xml'
+        }
+      })
+
+      if (response.status !== 200) {
+        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+        break;
+      }
+      else if (response.status === 200) {
+
+        const xml = await response.text();
+        count++;
+
+        // convert the xml atom feed to json
+        const json = parser.toJson(xml, { object: true, arrayNotation: false });
+
+        // add the entries to the results array
+        if (json.feed.entry) {
+
+          entries = entries.concat(json.feed.entry);
+          for (let work of entries) {
+            let related = [];
+            if (work['api:relationship'] && work['api:relationship']['api:related']) {
+              related.push(work['api:relationship']['api:related']);
+            }
+            related.push({ direction: 'to', id: cdlId, category: 'user' });
+            work['api:relationship'] ||= {};
+            work['api:relationship']['api:related'] = related;
+            results.push(work['api:relationship']);
+          }
+
+          // Create the JSON-LD for the user relationships
+          // save a text version of the context object
+          let contextObj = context;
+
+          contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
+          contextObj["@graph"] = results;
+
+          let jsonld = JSON.stringify(contextObj);
+          console.log('posting relationships of ' + cdlId);
+
+          // Insert into our local Fuseki
+          await this.createGraphFromJsonLdFile(jsonld, opt);
+        }
+
+        // inspect the pagination to see if there are more pages
+        const pagination = json.feed['api:pagination'];
+
+        // Fetch the next page
+        nextPage = null;
+
+        if (pagination["api:page"] instanceof Array) {
+          for (let link of pagination["api:page"]) {
+            if (link.position === 'next') {
+              nextPage = link.href;
+            }
+          }
+        }
+      }
+    }
+
+    return;
   }
 }
 

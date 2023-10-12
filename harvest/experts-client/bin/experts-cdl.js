@@ -71,9 +71,53 @@ async function main(opt) {
 
   const users = program.args;
 
+  var uquery = 'users?detail=ref&per-page=1000';
+  var sinceFilter = '';
+
+  // Step 1: Get Usernames from CDL using any cmd line args if no users specified
+  if (users.length === 0) {
+
+    if (opt.username) {
+      uquery += '&username=' + opt.username;
+    }
+    else if (opt.cdl.groups) {
+      uquery += '&groups=' + opt.cdl.groups;
+    }
+
+    if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
+      // We need the date in XML ISO format
+      var date = new Date();
+      date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
+      sinceFilter = '&affected-since=' + date.toISOString();
+      uquery += sinceFilter;
+    }
+    else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
+      // We need the date in XML ISO format
+      var date = new Date();
+      date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
+      sinceFilter = '&modified-since=' + date.toISOString();
+      uquery += sinceFilter;
+    }
+    console.log('uquery', uquery);
+
+    // Get the users from CDL that meet the criteria
+    const entries = await ec.getCDLentries(opt, uquery);
+
+    // Add them to the users array
+    for (let entry of entries) {
+      entry = entry['api:object'];
+      users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
+    }
+
+    console.log(users.join(' '));
+    console.log(users.length + ' users found');
+  }
+
+  // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
 
     if (opt.fuseki.isTmp) {
+      // Create a random db name if not specified
       //console.log('starting createDataset');
       opt.fuseki.db = user + '-' + nanoid(5);
       const fuseki = await ec.mkFusekiTmpDb(opt);
@@ -83,13 +127,17 @@ async function main(opt) {
 
     console.log('starting getCDLprofile ' + user);
 
+    // Get a full profile for the user
     const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
     // Assume a single entry for a user profile, but it's an array
     ec.profile = entries;
 
     let cdlId = entries[0]["api:object"].id;
 
-    console.log('starting createJsonLd ' + user);
+    console.log('starting createJsonLd ' + user + '-' + cdlId);
+
+    // Create the JSON-LD for the user profile
+    var relationshipsContext = JSON.stringify(context);
     let contextObj = context;
 
     contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
@@ -98,38 +146,16 @@ async function main(opt) {
     let jsonld = JSON.stringify(contextObj);
     console.log('starting createGraph ' + user);
 
+    // Insert into our local Fuseki
     await ec.createGraphFromJsonLdFile(jsonld, opt);
 
     console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
-
     console.log('starting getCDLentries ' + user + '-' + cdlId);
 
-    // fetch publications for user
-    ec.works = [];
-    let works = await ec.getCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full');
+    // Step 3: Get User Relationships from CDL
 
-    for (let work of works) {
-      let related = [];
-      if (work['api:relationship'] && work['api:relationship']['api:related']) {
-        related.push(work['api:relationship']['api:related']);
-      }
-      related.push({ direction: 'to', id: cdlId, category: 'user' });
-      work['api:relationship'] ||= {};
-      work['api:relationship']['api:related'] = related;
-      ec.works.push(work['api:relationship']);
-    }
-
-    console.log('starting createJsonLd ' + user);
-    contextObj = context;
-    contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-    contextObj["@graph"] = ec.works;
-    jsonld = JSON.stringify(contextObj);
-
-    console.log('starting works createGraph ' + user);
-
-    await ec.createGraphFromJsonLdFile(jsonld, opt);
-
-    console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+    // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
+    await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
 
     if (!opt.nosplay) {
 
@@ -168,10 +194,15 @@ program.name('cdl-profile')
   .description('Import CDL Researcher Profiles and Works')
   .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
   .option('--output <output>', 'output directory')
+  .option('--username <username>', 'Specify CDL username')
+  .option('--userId <userId>', 'Specify CDL ID')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
+  .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
+  .option('--cdl.affected <affected>', 'affected since')
+  .option('--cdl.modified <modified>', 'modified since')
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
-  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', true)
+  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
   .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
