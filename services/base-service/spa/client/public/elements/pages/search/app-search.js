@@ -19,6 +19,7 @@ export default class AppSearch extends Mixin(LitElement)
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       totalResultsCount : { type : Number },
+      rawSearchData : { type : Object },
     }
   }
 
@@ -33,6 +34,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.currentPage = 1;
     this.resultsPerPage = 20;
     this.totalResultsCount = 0;
+    this.rawSearchData = {};
 
     this.render = render.bind(this);
   }
@@ -89,17 +91,13 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.currentPage = 1;
 
-    // /api/search?q=evapotranspiration&page=2&size=2
     await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage);
-    // handle in _onSearchUpdate(e)
-
-    // this.paginationTotal = Math.ceil(this.searchResults.length / this.resultsPerPage);
-
-    // this.displayedResults = this.searchResults.slice(0, this.resultsPerPage);
   }
 
   _onSearchUpdate(e) {
     if( e.state !== 'loaded' ) return;
+    this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
+
     console.log('\''+ this.searchTerm +'\''+ ' results: ', e.payload);
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let id = r['@id'];
@@ -108,6 +106,7 @@ export default class AppSearch extends Mixin(LitElement)
       let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type'] === 'Authored') || []).length;
 
       // let numberOfGrants = (r['_inner_hits']['@graph'].hits.hits.filter(h => h['@type'] === 'IP') || []).length;
+      let numberOfGrants = 0; // TODO implement grants when ready
 
       return {
         position: index+1,
@@ -115,13 +114,12 @@ export default class AppSearch extends Mixin(LitElement)
         name,
         subtitle,
         numberOfWorks,
-        // numberOfGrants
+        numberOfGrants
       }
     });
 
     this.totalResultsCount = e.payload.total;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
-    // this.requestUpdate();
   }
 
   /**
@@ -167,20 +165,49 @@ export default class AppSearch extends Mixin(LitElement)
    */
   _downloadClicked(e) {
     e.preventDefault();
-    console.log('download clicked');
 
-    //   let text = this.citations.map(c => c.ris).join('\n');
-    //   let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
-    //   let url = URL.createObjectURL(blob);
-    //   console.log('url', url)
+    let selectedPersons = [];
+    let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
+    resultRows.forEach(row => {
+      let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
+      if( checkbox?.checked ) {
+        selectedPersons.push(row.result.id);
+      }
+    });
 
-    //   const link = document.createElement('a');
-    //   link.setAttribute('href', url);
-    //   link.setAttribute('download', 'data.txt');
-    //   link.style.display = 'none';
-    //   document.body.appendChild(link);
-    //   link.click();
-    //   document.body.removeChild(link);
+    if( !selectedPersons.length ) return;
+
+    let body = [];
+    (this.rawSearchData?.hits || []).forEach(result => {
+      if( selectedPersons.includes(result['@id']) ) {
+        body.push([
+          '"' + result.name?.split('§')?.[0]?.trim() + '"',                           // name
+          '"' + result.contactInfo?.hasEmail?.replace('email:','')?.trim() + '"',     // email
+          '"' + 'https://sandbox.experts.library.ucdavis.edu/' + result['@id'] + '"', // landing page
+          '"' + (result.contactInfo?.hasURL || []).map(w => w.url).join(';') + '"',   // websites
+          '"' + result.contactInfo?.hasTitle?.name?.trim() + '"',                     // role
+          '"' + result.contactInfo?.hasOrganizationalUnit?.name?.trim() + '"',        // department
+        ]);
+      }
+    });
+    if( !body.length ) return;
+
+    let headers = ['name', 'email', 'landing page', 'websites', 'role', 'department'];
+    let text = headers.join(',') + '\n';
+    body.forEach(row => {
+      text += row.join(',') + '\n';
+    });
+
+    let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+    let url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'data.csv');
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
 }

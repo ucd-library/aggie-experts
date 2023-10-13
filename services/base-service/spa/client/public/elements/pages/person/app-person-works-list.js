@@ -1,14 +1,13 @@
 import { LitElement } from 'lit';
-import {render} from "./app-person-works-edit.tpl.js";
+import {render} from "./app-person-works-list.tpl.js";
 
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
-import '../../components/modal-overlay.js';
 
 import { generateCitations } from '../../utils/citation.js';
 
-export default class AppPersonWorksEdit extends Mixin(LitElement)
+export default class AppPersonWorksList extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
   static get properties() {
@@ -20,8 +19,6 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
       citationsDisplayed : { type : Array },
       paginationTotal : { type : Number },
       currentPage : { type : Number },
-      allSelected : { type : Boolean },
-      showModal : { type : Boolean }
     }
   }
 
@@ -37,8 +34,6 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 20;
-    this.allSelected = false;
-    this.showModal = false;
 
     this.render = render.bind(this);
   }
@@ -65,10 +60,11 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'works-edit' ) return;
+    if( e.location.page !== 'works' ) return;
     window.scrollTo(0, 0);
+    console.log('in works page onAppStateUpdate');
 
-    let personId = e.location.pathname.replace('/works-edit/', '');
+    let personId = e.location.pathname.replace('/works/', '');
     if( !personId ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( personId === this.personId ) return;
 
@@ -92,10 +88,10 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
    */
   async _onPersonUpdate(e) {
     if( e.state !== 'loaded' ) return;
-    if( this.AppStateModel.location.page !== 'works-edit' ) return;
-
+    if( this.AppStateModel.location.page !== 'works' ) return;
     if( e.id === this.personId ) return;
 
+    console.log('in works page onPersonUpdate');
     this.personId = e.id;
     this.person = JSON.parse(JSON.stringify(e.payload));
 
@@ -111,6 +107,7 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
    */
   async _loadCitations() {
     let citations = this.person['@graph'].filter(g => g.issued);
+    console.log('in works page loadCitations');
 
     try {
       // sort by issued date desc, then by title asc
@@ -137,6 +134,17 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
         lastPrintedYear = newIssueDate;
       }
     });
+
+    // update doi links to be anchor tags
+    this.citations.forEach(cite => {
+      if( cite.DOI && cite.apa ) {
+        // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
+        cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
+                  + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
+                  + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
+      }
+    });
+
     this.citationsDisplayed = this.citations.slice(0, 20);
     this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
 
@@ -159,74 +167,6 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
   }
 
-  /**
-   * @method _selectAllChecked
-   * @description bound to click events of Select All checkbox
-   *
-   * @param {Object} e click|keyup event
-   */
-  _selectAllChecked(e) {
-    this.allSelected = e.currentTarget.checked;
-    let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-    checkboxes.forEach(checkbox => {
-      checkbox.checked = this.allSelected;
-    });
-  }
-
-  /**
-   * @method _downloadClicked
-   * @description bound to click events of download button
-   *
-   * @param {Object} e click|keyup event
-   */
-  _downloadClicked(e) {
-    e.preventDefault();
-
-    // if this.allSelected, download all citations
-    // else filter by checked checkboxes and download those citations
-    let downloads = [];
-    if( this.allSelected ) {
-      downloads = this.citations;
-    } else {
-      let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-      checkboxes.forEach((checkbox, i) => {
-        if( checkbox.checked ) downloads.push(this.citations[i]);
-      });
-    }
-
-    let text = downloads.map(c => c.ris).join('\n');
-    let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
-    let url = URL.createObjectURL(blob);
-    console.log('url', url)
-
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'data.txt');
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  /**
-   * @method _hideWork
-   * @description show modal with link to hide work
-   */
-  _hideWork(e) {
-    this.modalTitle = 'Hide Work';
-    this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
-    this.showModal = true;
-  }
-
-  /**
-   * @method _rejectWork
-   * @description show modal with link to reject work
-   */
-  _rejectWork(e) {
-    this.modalTitle = 'Reject Work';
-    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
-    this.showModal = true;
-  }
 
   /**
    * @method _returnToProfile
@@ -241,4 +181,4 @@ export default class AppPersonWorksEdit extends Mixin(LitElement)
 
 }
 
-customElements.define('app-person-works-edit', AppPersonWorksEdit);
+customElements.define('app-person-works-list', AppPersonWorksList);

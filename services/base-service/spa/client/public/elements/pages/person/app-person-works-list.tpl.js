@@ -3,6 +3,8 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 import { sharedStyles } from '../../styles/shared-styles';
 
+import utils from '../../../lib/utils';
+
 export function render() {
 return html`
   <style>
@@ -131,7 +133,7 @@ return html`
         <div class="work">
           <h5>${unsafeHTML(cite.title)}</h5>
           <div class="work-details">
-            <span style="min-width: fit-content;">${cite.type}</span>
+            <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
             <span class="dot">.</span>
             ${unsafeHTML(cite.apa)}
           </div>

@@ -5,6 +5,8 @@ import { sharedStyles } from '../../styles/shared-styles';
 
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 
+import utils from '../../../lib/utils';
+
 export function render() {
 return html`
   <style>
@@ -302,7 +304,7 @@ return html`
             <div class="work">
               <h5>${unsafeHTML(cite.title)}</h5>
               <div class="work-details">
-                <span style="min-width: fit-content;">${cite.type}</span>
+                <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">.</span>
                 ${unsafeHTML(cite.apa)}
               </div>
