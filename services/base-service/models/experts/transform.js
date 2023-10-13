@@ -19,9 +19,6 @@ module.exports = async function(path, graph, headers, utils) {
   };
 
   // Make this a named graph, currently this doesn't work,
-  //frame["@id"] = "info:fedora"+path;
-  //frame["@graph"] = { "@type":frame["@type"] };
-  //delete frame["@type"];
   let framed = await jsonld.frame(item, frame,{omitGraph:false});
 
   // now we need to promote some items to the top level

@@ -7,6 +7,7 @@ services:
       - fedora-data:/data
       - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-./service-account.json}:/etc/fin/service-account.json
       - &DEV_MOUNT_MODELS ./services/base-service/models:/fin/services/models
+      - &DEV_MOUNT_MODELS_API ./experts-api:/experts-api
     ports:
       - ${HOST_PORT:-3000}:3001
     env_file:
@@ -77,6 +78,7 @@ services:
     volumes:
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_MODELS
+      - *DEV_MOUNT_MODELS_API
     restart: unless-stopped
     command: npm run api
   # command: bash -c 'tail -f /dev/null'
@@ -108,6 +110,7 @@ services:
     volumes:
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_MODELS
+      - *DEV_MOUNT_MODELS_API
     restart: unless-stopped
     command: npm run dbsync
     # command: bash -c 'tail -f /dev/null'
@@ -119,7 +122,6 @@ services:
     image: *BASE
     volumes:
       - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_MODELS
     env_file:
       - .env
     restart: unless-stopped

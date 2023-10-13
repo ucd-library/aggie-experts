@@ -35,10 +35,10 @@ class ExpertsModel extends FinEsNestedModel {
     if (typeof types === 'string') types = [types];
     types = types.filter(x => this.constructor.types.includes(x));
     if (types.length === 0) {
-      console.log(`${this.constructor.name}.is: ${id} is not a valid type`);
+      console.log(`!${this.constructor.name}.is`);
       return false;
     }
-    console.log(`${this.constructor.name}.is: ${types.join(",")} is a valid type`);
+    console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
     return true
   }
 

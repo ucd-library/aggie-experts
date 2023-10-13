@@ -239,7 +239,7 @@ class FinEsNestedModel extends FinEsDataModel {
   async update_or_create_main_node_doc(doc) {
     // ensure the document exists
     const roles = await this.getAccessRoles(doc);
-
+    console.log(`update_or_create_main_node_doc: document ${doc['@id']}, @graph.length=${doc['@graph'].length}`);
     if (doc['@graph'].length != 1) {
       throw new Error(`update_or_create_main_node_doc: document ${doc['@id']}, @graph.length=${doc['@graph'].length} != 1`);
     }

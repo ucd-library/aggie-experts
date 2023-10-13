@@ -36,7 +36,7 @@
         "middle": {
           "@id": "cite:middle"
         },
-        "rankx":{"@id":"vivo:rank", "@type":"xsd:integer"}
+        "rank":{"@id":"vivo:rank"}
       }
     },
     "available-date":{"@id":"cite:available-date"},
@@ -49,7 +49,7 @@
         "name":{"@id":"vcard:title"},
         "url":{"@id":"vcard:url"},
         "isPreferred":{"@id":"ucdlib:isPreferred","@type":"xsd:boolean"},
-        "rank":{"@id":"vivo:rank","@type":"xsd:integer"}
+        "rank":{"@id":"vivo:rank"}
       }
     },
     "container-title":{"@id":"cite:container-title"},
@@ -79,8 +79,7 @@
         },
         "middle": {
           "@id": "vcard:middleName"
-        },
-        "rank":{"@id":"vivo:rank","@type":"xsd:integer"}
+        }
       }
     },
     "hasOrganizationalUnit":{"@id":"vcard:hasOrganizationalUnit"},
