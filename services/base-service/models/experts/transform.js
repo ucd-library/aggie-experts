@@ -83,9 +83,6 @@ module.exports = async function(path, graph, headers, utils) {
         });
       }
 
-      name= `${contact?.hasName?.family}, ${contact?.hasName?.given} § ${contact?.hasTitle?.name} · ${contact?.hasOrganizationalUnit?.name}`;
-      framed["name"] = name;
-
       framed["contactInfo"] = {};
 
       if (hasURL.length > 0) {
@@ -94,11 +91,14 @@ module.exports = async function(path, graph, headers, utils) {
 
       framed.contactInfo["hasEmail"] = hasEmail?.[0];
 
-      ["hasName","hasTitle","hasOrganizationalUnit"].forEach((key)=>{
+      ["name","hasName","hasTitle","hasOrganizationalUnit"].forEach((key)=>{
         if (contact[key]) {
           framed.contactInfo[key] = contact[key];
         }
       });
+      if (framed.contactInfo.name) {
+        framed.name = framed.contactInfo.name;
+      }
       break;
     }
   });

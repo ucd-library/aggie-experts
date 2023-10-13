@@ -36,7 +36,7 @@
         "middle": {
           "@id": "cite:middle"
         },
-        "rankx":{"@id":"vivo:rank", "@type":"xsd:integer"}
+        "XrankX":{"@id":"vivo:rank", "@type":"xsd:integer"}
       }
     },
     "available-date":{"@id":"cite:available-date"},
@@ -46,10 +46,15 @@
       "@id":"obo:ARG_2000028",
       "@type":"@id",
       "@context":{
-        "name":{"@id":"vcard:title"},
+        "hasTitle":{"@id":"vcard:hasTitle",
+                    "@context":{
+                      "title":{"@id":"vcard:title"}
+                    }
+                   },
+        "name":{"@id":"schema:name"},
         "url":{"@id":"vcard:url"},
         "isPreferred":{"@id":"ucdlib:isPreferred","@type":"xsd:boolean"},
-        "rank":{"@id":"vivo:rank","@type":"xsd:integer"}
+        "XrankX":{"@id":"vivo:rank","@type":"xsd:integer"}
       }
     },
     "container-title":{"@id":"cite:container-title"},
@@ -79,8 +84,7 @@
         },
         "middle": {
           "@id": "vcard:middleName"
-        },
-        "rank":{"@id":"vivo:rank","@type":"xsd:integer"}
+        }
       }
     },
     "hasOrganizationalUnit":{"@id":"vcard:hasOrganizationalUnit"},
@@ -102,7 +106,7 @@
     "name":{"@id":"rdfs:label"},
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
-    "pagination":{"@id":"cite:pagination"},
+    "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
