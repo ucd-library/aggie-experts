@@ -42,6 +42,60 @@ class ExpertsModel extends FinEsNestedModel {
     return true
   }
 
+    /**
+   * @method get_nodes_by_type
+   * @description Return the node(s) in the graph that corresponds to the '@type'
+   * @param {String} doc :  document
+   * @param {Object or Array} type : type, or array of types to match
+   *
+   * @returns {Array} : nodes in the graph that match by type
+   **/
+  get_nodes_by_type(doc,want_types) {
+    const nodes = [];
+    if (typeof want_types === 'string') want_types = [want_types];
+    for(let i=0; i<doc['@graph'].length; i++) {
+      let node = doc['@graph'][i];
+      let types= node.["@type"];
+      types = types.filter(x => want_types.includes(x));
+      if (types.length > 0) {
+        nodes.push(node);
+      }
+    }
+    return nodes;
+  }
+
+  /**
+   * @method get_expected_node_by_type
+   * @description Return single/expected node in the graph that corresponds to the '@type'
+   * @param {String} doc :  document
+   * @param {Object or Array} type : type, or array of types to match
+   *
+   * @returns {Object} : node in the graph matched by type
+   * @error {Error} : if no node in the graph matches the type, or if more than one node matches the type
+   **/
+  get_expected_node_by_type(doc,want_types) {
+    const nodes = this.get_nodes_by_type(doc,want_types);
+    if (nodes.length === 0) {
+      throw new Error(`get_expected_node_by_type: Unable to find node in ${doc['@id']} with type ${want_types.join(",")}`);
+    }
+    if (nodes.length > 1) {
+      throw new Error(`get_expected_node_by_type: Found multiple nodes in ${doc['@id']} with type ${want_types.join(",")}`);
+    }
+    return nodes[0];
+  }
+
+  /**
+   * @method get_expected_model_node
+   * @description Return single/expected node in the graph that corresponds to the '@type' of the model
+   * @param {Object} doc :  document
+   * @returns {Object} : node in the graph matched by type
+   * @error {Error} : if no node in the graph matches the type, or if more than one node matches the type
+   **/
+  get_expected_model_node(doc) {
+    const types = this.constructor.types;
+    return this.get_expected_node_by_type(doc,types);
+  }
+
   /**
    * @method experts_node_type
    * @description Get the experts node type for the given type
@@ -69,6 +123,43 @@ class ExpertsModel extends FinEsNestedModel {
     delete node['_'];
     return node;
   }
+
+  /**
+   * @method promote_node_to_doc
+   * @description Promotes some node fields to document fields
+   * @param {Object} node
+   * @returns {Object} : document
+   **/
+  promote_node_to_doc(node) {
+    const doc = {
+      "@id": node['@id'],
+      name: node['name'],
+      "@graph": [node]
+    };
+    return doc;
+  }
+
+  /**
+   * @method update_or_create_doc_from_graph_node
+   * @description Update main @node of a document. Create if document does not exist.
+   * @param {String} document_id
+   * @param {Object} node_to_update
+   *
+   * @returns {Promise} : Elasticsearch response Promise
+   */
+  async update_or_create_doc_from_graph_node(node) {
+    const doc = this.promote_node_to_doc(node);
+    const roles = await this.getAccessRoles(doc);
+
+    return this.client.index({
+      index : this.writeIndexAlias,
+      id : doc['@id'],
+      body: {
+        ...doc,
+        roles: roles}
+    });
+  }
+
 
   /** vvvv TEMPLATE SEARCH vvvv **/
 

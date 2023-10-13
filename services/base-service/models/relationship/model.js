@@ -20,16 +20,32 @@ class RelationshipModel extends ExpertsModel {
   }
 
   /**
+   * @method promote_node_to_doc
+   * @description Promote the given node to a document. Return node components to be included in the document.
+   * @param {Object} node :  node to promote
+   * @returns {Object} : document object
+   **/
+  promote_node_to_doc(node) {
+    const doc = {
+      '@id': node['@id'],
+      '@type': node['@type'],
+      '@graph': [node]
+    };
+
+    /**
    * @method update
    * @description Update Elasticsearch with the given data.
    */
 
   async update(jsonld) {
     console.log(`RelationshipModel.update(${jsonld['@id']})`);
-    await this.update_or_create_main_node_doc(jsonld);
 
-    const root_node= this.get_main_graph_node(jsonld);
+    const root_node= this.get_expected_model_node(jsonld);
+    const doc = this.promote_node_to_doc(root_node);
+    doc['@graph']=jsonld['@graph'];
+    await this.update_or_create_main_node_doc(doc);
 
+// Start Here
     let have={};
     // Get the work and the Person via the Authorship.relates
     const personModel= await this.get_model('person');
@@ -51,6 +67,7 @@ class RelationshipModel extends ExpertsModel {
       } catch (e) {
         try {
           // Is this a Work?
+          // get node of work type
           let related = await workModel.client_get(relates);
           related=this.get_main_graph_node(related);
           let type = this.experts_node_type(related);
@@ -84,13 +101,10 @@ class RelationshipModel extends ExpertsModel {
               '@type': 'Author'
             };
             delete node.relates;
-            // console.log(`${have.Work.id} Author ${have.Person.id}`);
-            await workModel.update_graph_node(have.Work.id,node,root_node['is-visible']);
           }
         } else {
           console.log(`${have.Person.id} X=X ${have.Work.id}`);
           await personModel.delete_graph_node(have.Person.id,root_node);
-          await workModel.delete_graph_node(have.Work.id,root_node);
         }
       }
     }

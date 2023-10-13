@@ -140,7 +140,8 @@ class FinEsNestedModel extends FinEsDataModel {
     return result;
   }
 
-  /**
+
+    /**
    * @method get_main_graph_node
    * @description Return the node in the graph that corresponds to the '@id'
    * @param {String} doc :  document
@@ -254,22 +255,6 @@ class FinEsNestedModel extends FinEsDataModel {
         ...doc,
         roles: roles}
     });
-  }
-
-  /**
-   * @method update
-   * @description update the document in elasticsearch.  This method will
-   * update the document in elasticsearch using the data passed to the
-   * constructor.  It will also update the document in the database.
-   *
-   * @returns {Promise} resolves to elasticsearch response
-   */
-  async update(document_id, doc) {
-    if (doc['@graph'][0]['@id']==document_id) {
-      return this.update_or_create_main_doc_doc(doc);
-    } else {
-      return this.update_graph_node_if_document_exists(document_id,doc);
-    }
   }
 
     /**
