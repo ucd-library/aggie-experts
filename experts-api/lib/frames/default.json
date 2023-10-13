@@ -46,14 +46,9 @@
       "@id":"obo:ARG_2000028",
       "@type":"@id",
       "@context":{
-        "hasTitle":{"@id":"vcard:hasTitle",
-                    "@context":{
-                      "title":{"@id":"vcard:title"}
-                    }
-                   },
         "name":{"@id":"schema:name"},
         "url":{"@id":"vcard:url"},
-        "isPreferred":{"@id":"ucdlib:isPreferred","@type":"xsd:boolean"},
+        "isPreferred":{"@id":"ucdlib:isPreferred"},
         "XrankX":{"@id":"vivo:rank","@type":"xsd:integer"}
       }
     },
@@ -87,10 +82,20 @@
         }
       }
     },
-    "hasOrganizationalUnit":{"@id":"vcard:hasOrganizationalUnit"},
+    "hasOrganizationalUnit":{
+      "@id":"vcard:hasOrganizationalUnit",
+      "@context":{
+        "name":{"@id":"vcard:title"}
+      }
+    },
     "hasPublicationVenue":{"@id":"vivo:hasPublicationVenue","@type":"@id"},
     "hasResearchArea":{"@id":"vivo:hasResearchArea","@type":"@id" },
-    "hasTitle":{"@id":"vcard:hasTitle"},
+    "hasTitle":{
+      "@id":"vcard:hasTitle",
+      "@context":{
+        "name":{"@id":"vcard:title"}
+      }
+    },
     "hasURL":{"@id":"vcard:hasURL","@type":"@id"},
     "identifier":{"@id":"schema:identifier"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
