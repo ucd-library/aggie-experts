@@ -281,12 +281,12 @@ return html`
       <div class="works-results" style="padding-bottom: 2.5rem;">
         <div class="select-all">
           <label for="select-all">Select All</label>
-          <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAllChecked}">
+          <input type="checkbox" id="select-all" name="select-all" value="select-all" ?checked="${this.allSelected}" @click="${this._selectAllChecked}">
         </div>
 
         ${this.citationsDisplayed.map(
         (cite, index) => html`
-          <h3 class="${index === 0 || index % 20 === 0 ? 'first' : ''}">${cite.issued?.[0]}</h3>
+          <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h3>
           <hr class="work-seperator">
           <div style="display: flex; justify-content: space-between;">
             <div class="hide-delete-btn-group">
@@ -310,7 +310,7 @@ return html`
               </div>
             </div>
             <div class="select-checkbox">
-              <input type="checkbox" id="select-${index}" name="select-${index}" value="select-${index}" @click="${this._selectChecked}">
+              <input type="checkbox" data-id="${cite['@id']}" id="select-${index}" name="select-${index}" value="select-${index}" @click="${this._selectChecked}">
             </div>
           </div>
         `

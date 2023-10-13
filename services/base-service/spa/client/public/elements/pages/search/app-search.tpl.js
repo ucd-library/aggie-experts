@@ -3,12 +3,14 @@ import { html } from 'lit';
 import { sharedStyles } from '../../styles/shared-styles';
 
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
+import formsCss from '@ucd-lib/theme-sass/2_base_class/_forms.css';
 
 export function render() {
 return html`
   <style>
     ${sharedStyles}
     ${buttonsCss}
+    ${formsCss}
 
     :host {
       display: block;
@@ -34,6 +36,22 @@ return html`
     svg {
       width: 20.22471911px;
       height: 75px;
+    }
+
+    select {
+      background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjYiIHZpZXdCb3g9IjAgMCA4IDYiIGZpbGw9Im5vbmUiPgo8cGF0aCBkPSJNMCAwSDhMNCA2TDAgMFoiIGZpbGw9IiMxMzYzOUUiLz4KPC9zdmc+);
+      background-position-y: 13px;
+      background-position: right 10px center;
+      background-size: 8px 8px;
+      background-repeat: no-repeat;
+      background-color: transparent;
+      appearance: none;
+      -webkit-border-radius: 0px;
+      padding: 5px 25px 5px 10px;
+      font-size: .9rem;
+      color: #666;
+      border-color: var(--color-aggie-blue-60);
+      margin-right: .3rem;
     }
 
     .search-content {
@@ -70,6 +88,18 @@ return html`
       border-top: 1px solid var(--color-aggie-blue-40);
       padding: 0;
       margin: 1.19rem 0;
+    }
+
+    .select-page-size {
+      padding-top: .6rem;
+    }
+
+    .select-page-size span {
+      color: var(--other-h-3-gray, #666);
+      font-size: 1.03875rem;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 1.625rem; /* 156.438% */
     }
 
     .select-all {
@@ -112,6 +142,12 @@ return html`
       font-size: 1rem;
     }
 
+    .search-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
     @media (max-width: 992px) {
       .search-content {
         width: 90%;
@@ -149,9 +185,21 @@ return html`
     </div>
 
     <div class="search-results">
-      <div class="select-all">
-        <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
-        <label for="select-all">Select All</label>
+      <div class="search-heading">
+        <div class="select-page-size">
+          <select name="page-size" id="page-size" @change="${this._onPageSizeChange}">
+            <option value="25" ?selected="${this.resultsPerPage === 25}">25</option>
+            <option value="50" ?selected="${this.resultsPerPage === 50}">50</option>
+            <option value="100" ?selected="${this.resultsPerPage === 100}">100</option>
+          </select>
+
+          <span>items per page</span>
+        </div>
+        <div class="select-all">
+          <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
+          <label for="select-all">Select All</label>
+        </div>
+
       </div>
       <hr class="search-seperator">
 

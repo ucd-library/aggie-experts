@@ -32,7 +32,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.displayedResults = [];
     this.paginationTotal = 1;
     this.currentPage = 1;
-    this.resultsPerPage = 20;
+    this.resultsPerPage = 25;
     this.totalResultsCount = 0;
     this.rawSearchData = {};
 
@@ -72,6 +72,19 @@ export default class AppSearch extends Mixin(LitElement)
     if( searchTerm === this.searchTerm ) return;
 
     this.searchTerm = searchTerm;
+    this._onSearch({ detail: this.searchTerm });
+  }
+
+  /**
+   * @method _onPageSizeChange
+   * @description bound to change events of the page size select element
+   *
+   * @param {Object} e
+   *
+   */
+  _onPageSizeChange(e) {
+    this.resultsPerPage = e.currentTarget.value;
+
     this._onSearch({ detail: this.searchTerm });
   }
 

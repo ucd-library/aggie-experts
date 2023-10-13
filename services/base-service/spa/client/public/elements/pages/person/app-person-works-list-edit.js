@@ -21,7 +21,9 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       allSelected : { type : Boolean },
-      showModal : { type : Boolean }
+      showModal : { type : Boolean },
+      downloads : { type : Array },
+      resultsPerPage : { type : Number },
     }
   }
 
@@ -29,6 +31,12 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
     super();
     this._injectModel('AppStateModel', 'PersonModel');
 
+    this._reset();
+
+    this.render = render.bind(this);
+  }
+
+  _reset() {
     this.personId = '';
     this.person = {};
     this.personName = '';
@@ -36,11 +44,13 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
     this.citationsDisplayed = [];
     this.paginationTotal = 1;
     this.currentPage = 1;
-    this.resultsPerPage = 20;
+    this.resultsPerPage = 25;
     this.allSelected = false;
     this.showModal = false;
+    this.downloads = [];
 
-    this.render = render.bind(this);
+    let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
+    if( selectAllCheckbox ) selectAllCheckbox.checked = false;
   }
 
   async firstUpdated() {
@@ -65,7 +75,11 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'works-edit' ) return;
+    if( e.location.page !== 'works-edit' ) {
+      this._reset();
+      return;
+    }
+
     window.scrollTo(0, 0);
 
     let personId = e.location.pathname.replace('/works-edit/', '');
@@ -108,9 +122,11 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
   /**
    * @method _loadCitations
    * @description load citations for person async
+   *
+   * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
-  async _loadCitations() {
-    let citations = this.person['@graph'].filter(g => g.issued);
+  async _loadCitations(all=false) {
+    let citations = JSON.parse(JSON.stringify(this.person['@graph'].filter(g => g.issued)));
 
     try {
       // sort by issued date desc, then by title asc
@@ -123,23 +139,25 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
     }
 
-    citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    let citationResults = await generateCitations(citations);
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
 
-    this.citations = citationResults.map(c => c.value);
+    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
+    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+
+    this.citationsDisplayed = citationResults.map(c => c.value);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
-    this.citations.forEach((cite, i) => {
+    this.citationsDisplayed.forEach((cite, i) => {
       let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % 20 !== 0 ) {
+      if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
       }
     });
 
     // update doi links to be anchor tags
-    this.citations.forEach(cite => {
+    this.citationsDisplayed.forEach(cite => {
       if( cite.DOI && cite.apa ) {
         // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
         cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
@@ -148,8 +166,10 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
       }
     });
 
-    this.citationsDisplayed = this.citations.slice(0, 20);
     this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+
+    console.log('this.citations', this.citations);
+    console.log('this.citationsDisplayed', this.citationsDisplayed);
 
     this.requestUpdate();
   }
@@ -160,13 +180,33 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
    *
    * @param {Object} e click|keyup event
    */
-  _onPaginationChange(e) {
+  async _onPaginationChange(e) {
+    this.allSelected = true;
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
     if( maxIndex > this.citations.length ) maxIndex = this.citations.length;
 
-    this.citationsDisplayed = this.citations.slice(e.detail.startIndex, maxIndex);
     this.currentPage = e.detail.page;
+    await this._loadCitations();
+
+    // loop over checkboxes to see if any are checked
+    let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
+    checkboxes.forEach(checkbox => {
+      if( this.downloads.includes(checkbox.dataset.id) ) {
+        checkbox.checked = true;
+      } else {
+        checkbox.checked = false;
+        this.allSelected = false;
+      }
+    });
+
+    let selectAllCheckbox = this.shadowRoot.querySelector('#select-all');
+    if( selectAllCheckbox && !this.allSelected ) {
+      selectAllCheckbox.checked = false;
+    } else if( selectAllCheckbox ) {
+      selectAllCheckbox.checked = true;
+    }
+
     window.scrollTo(0, 0);
   }
 
@@ -181,7 +221,33 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
     let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
     checkboxes.forEach(checkbox => {
       checkbox.checked = this.allSelected;
+      if( this.allSelected ) {
+        if( !this.downloads.includes(checkbox.dataset.id) ) this.downloads.push(checkbox.dataset.id);
+      } else {
+        this.downloads = this.downloads.filter(d => d !== checkbox.dataset.id);
+      }
     });
+  }
+
+  /**
+   * @method _selectAllChecked
+   * @description bound to click events of Select checkboxes
+   *
+   * @param {Object} e click|keyup event
+   */
+  _selectChecked(e) {
+    let id = e.currentTarget.dataset.id;
+
+    if( e.currentTarget.checked ) {
+      this.downloads.push(id);
+    } else {
+      this.downloads = this.downloads.filter(d => d !== id);
+      this.allSelected = false;
+      let selectAllCheckbox = this.shadowRoot.querySelector('#select-all');
+      if( selectAllCheckbox ) {
+        selectAllCheckbox.checked = false;
+      }
+    }
   }
 
   /**
@@ -190,20 +256,11 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
    *
    * @param {Object} e click|keyup event
    */
-  _downloadClicked(e) {
+  async _downloadClicked(e) {
     e.preventDefault();
+    await this._loadCitations(true);
 
-    // if this.allSelected, download all citations
-    // else filter by checked checkboxes and download those citations
-    let downloads = [];
-    if( this.allSelected ) {
-      downloads = this.citations;
-    } else {
-      let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-      checkboxes.forEach((checkbox, i) => {
-        if( checkbox.checked ) downloads.push(this.citations[i]);
-      });
-    }
+    let downloads = this.citationsDisplayed.filter(c => this.downloads.includes(c['@id']));
 
     let text = downloads.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });

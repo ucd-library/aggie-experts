@@ -33,7 +33,7 @@ export default class AppPersonWorksList extends Mixin(LitElement)
     this.citationsDisplayed = [];
     this.paginationTotal = 1;
     this.currentPage = 1;
-    this.resultsPerPage = 20;
+    this.resultsPerPage = 25;
 
     this.render = render.bind(this);
   }
@@ -104,10 +104,11 @@ export default class AppPersonWorksList extends Mixin(LitElement)
   /**
    * @method _loadCitations
    * @description load citations for person async
+   *
+   * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
-  async _loadCitations() {
-    let citations = this.person['@graph'].filter(g => g.issued);
-    console.log('in works page loadCitations');
+  async _loadCitations(all=false) {
+    let citations = JSON.parse(JSON.stringify(this.person['@graph'].filter(g => g.issued)));
 
     try {
       // sort by issued date desc, then by title asc
@@ -120,23 +121,25 @@ export default class AppPersonWorksList extends Mixin(LitElement)
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
     }
 
-    citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    let citationResults = await generateCitations(citations);
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
 
-    this.citations = citationResults.map(c => c.value);
+    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
+    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+
+    this.citationsDisplayed = citationResults.map(c => c.value);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
-    this.citations.forEach((cite, i) => {
+    this.citationsDisplayed.forEach((cite, i) => {
       let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % 20 !== 0 ) {
+      if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
       }
     });
 
     // update doi links to be anchor tags
-    this.citations.forEach(cite => {
+    this.citationsDisplayed.forEach(cite => {
       if( cite.DOI && cite.apa ) {
         // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
         cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
@@ -145,7 +148,6 @@ export default class AppPersonWorksList extends Mixin(LitElement)
       }
     });
 
-    this.citationsDisplayed = this.citations.slice(0, 20);
     this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
 
     this.requestUpdate();
@@ -157,13 +159,13 @@ export default class AppPersonWorksList extends Mixin(LitElement)
    *
    * @param {Object} e click|keyup event
    */
-  _onPaginationChange(e) {
+  async _onPaginationChange(e) {
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
     if( maxIndex > this.citations.length ) maxIndex = this.citations.length;
 
-    this.citationsDisplayed = this.citations.slice(e.detail.startIndex, maxIndex);
     this.currentPage = e.detail.page;
+    await this._loadCitations();
     window.scrollTo(0, 0);
   }
 
