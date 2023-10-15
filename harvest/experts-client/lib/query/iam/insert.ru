@@ -1,8 +1,11 @@
 PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX iam: <http://iam.ucdavis.edu/>
 PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX schema: <http://schema.org/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-PREFIX iam: <http://iam.ucdavis.edu/>
+
 insert { graph iam: { ?s ?p ?o. ?o vcard:title ?title } } where {
   SERVICE ?EXPERTS_SERVICE__ {
     bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
@@ -12,4 +15,32 @@ insert { graph iam: { ?s ?p ?o. ?o vcard:title ?title } } where {
       filter(regex(str(?s),concat('^',str(?user),'#?')))
     }
   }
-}
+};
+# Now we need to add our vcard name for each IAM user
+insert { graph iam: { ?vcard schema:name ?vcard_label; } } where {
+    bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
+    graph iam: {
+      ?user obo:ARG_2000028 ?vcard .
+      ?vcard vcard:hasName ?vcard_name .
+
+      ?vcard_name vcard:familyName ?ln .
+
+      optional {
+        ?vcard_name vcard:givenName ?fn .
+      }
+      optional {
+        ?vcard vcard:hasTitle/vcard:title ?title .
+      }
+      optional {
+        ?vcard vcard:hasOrganizationalUnit/vcard:title ?dept .
+      }
+
+      bind(coalesce(concat(" § ",?title,coalesce(concat(", ",?dept),"")),
+                    "") as ?title_dept)
+
+      bind(concat(
+                  concat(?ln,coalesce(concat(", ",?fn),"")),
+                  coalesce(?title_dept,"")
+                  ) as ?vcard_label)
+    }
+};

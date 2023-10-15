@@ -42,6 +42,7 @@ CONSTRUCT {
 
   ?vcard a vcard:Individual;
          vivo:rank 20;
+         schema:name ?vcard_label;
          vcard:hasName ?vcard_name;
          vcard:hasEmail ?vcard_email;
          vcard:hasURL ?vcard_web;
@@ -85,6 +86,14 @@ WHERE {
         :first-name ?fn;
         :user-identifier-associations ?assoc;
         .
+
+    OPTIONAL {
+      ?cdl_id :position ?title.
+    }
+    OPTIONAL {
+      ?cdl_id :department ?dept.
+    }
+
 
     bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
     bind(concat(?fn," ",?ln) as ?name)
@@ -148,6 +157,14 @@ WHERE {
     }
     bind(uri(concat('email:',str(?email))) as ?vcard_email)
     bind(uri(concat(str(?vcard),"-web-",str(?pos))) as ?vcard_web)
+    bind(coalesce(concat(" § ",?title,coalesce(concat(", ",?dept),"")),
+                  "") as ?title_dept)
+
+    bind(concat(
+                concat(?ln,coalesce(concat(", ",?fn),"")),
+                coalesce(?title_dept,"")
+                ) as ?vcard_label)
+
 
   OPTIONAL {
     values (?scheme ?vocab) { ("for" FoR:) }

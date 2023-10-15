@@ -437,6 +437,7 @@ function setup() {
         cat
       else
         yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
+        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS_API" or alias=="DEV_MOUNT_MODELS_API"))'
       fi |
       if [[ "$mount" =~ "init-fcrepo" ]]; then
         cat
@@ -458,19 +459,31 @@ function setup() {
 }
   function setup_files() {
     if [[ -n $N ]]; then
-      echo "#===== .env  =====#"
-      env_file
-      echo "#===== docker-compose.yaml =====#"
-      compose
-      echo "#===== service-account =====#"
-      service_account
+      if [[ -n ${G[setup_env]} ]] ; then
+        echo "#===== .env  =====#"
+        env_file
+      fi
+      if [[ -n ${G[setup_compose]} ]] ; then
+        echo "#===== docker-compose.yaml =====#"
+        compose
+      fi
+      if [[ -n ${G[setup_service_account]} ]] ; then
+        echo "#===== service-account =====#"
+        service_account
+      fi
     else
-      >&2 echo ".env"
-      env_file > ${G[base]}/.env
-      >&2 echo "docker-compose.yaml"
-      compose > ${G[base]}/docker-compose.yaml
-      >&2 echo "service-account.json"
-      service_account > ${G[base]}/service-account.json
+      if [[ -n ${G[setup_env]} ]] ; then
+        >&2 echo ".env"
+        env_file > ${G[base]}/.env
+      fi
+      if [[ -n ${G[setup_compose]} ]] ; then
+        >&2 echo "docker-compose.yaml"
+        compose > ${G[base]}/docker-compose.yaml
+      fi
+      if [[ -n ${G[setup_service_account]} ]] ; then
+        >&2 echo "service-account.json"
+        service_account > ${G[base]}/service-account.json
+      fi
     fi
   }
 
@@ -510,17 +523,25 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long env:,jq:,list-mounts,mount:,unstaged-ok,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
 
-    declare -A CMD;
+    declare -A CMD=(
+      [setup_env]=1
+      [setup_compose]=1
+      [setup_service_account]=1
+      [unstaged_ok]=
+    )
 
     while true; do
 	    case $1 in
         --env) CMD[env]=$2; shift 2;;
         --mount) CMD[mount]=$2; shift 2;;
+        --no-env) CMD[setup_env]=; shift;;
+        --no-compose) CMD[setup_compose]=; shift;;
+        --no-service-account) CMD[setup_service_account]=; shift;;
         -l | --list-mounts) CMD[list-mounts]=1; shift;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
