@@ -63,6 +63,7 @@
     "directCosts": { "@id": "vivo:grantDirectCosts" },
     "edition":{"@id":"cite:edition"},
     "eissn":{"@id":"cite:eissn"},
+    "Expert":{"@id":"ucdlib:Expert","@type":"@id"},
     "favorite":{"@id":"ucdlib:favorite","@type":"xsd:boolean"},
     "genre":{"@id":"cite:genre"},
     "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },

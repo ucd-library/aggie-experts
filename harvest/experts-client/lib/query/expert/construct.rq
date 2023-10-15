@@ -19,7 +19,7 @@ CONSTRUCT {
   ?iam_o vcard:title ?iam_o_title.
 
   # This adds the CDL information
-  ?user a ucdlib:Person;
+  ?user a ucdlib:Person,ucdlib:Expert;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
                schema:identifier ?oapolicy_ark,?user_id;

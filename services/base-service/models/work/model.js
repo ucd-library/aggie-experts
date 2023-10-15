@@ -1,12 +1,12 @@
 // Can use this to get the fin configuration
 //const {config} = require('@ucd-lib/fin-service-utils');
-const ExpertsModel = require('../experts/model.js');
+const BaseModel = require('../base/model.js');
 
 /**
  * @class WorkModel
  * @description Base class for Aggie Experts data models.
  */
-class WorkModel extends ExpertsModel {
+class WorkModel extends BaseModel {
 
   static types = [
     "http://schema.library.ucdavis.edu/schema#Work"
@@ -16,58 +16,80 @@ class WorkModel extends ExpertsModel {
     super(name);
   }
 
+  snippet(node) {
+    let snip=super.snippet(node);
+    snip.work_id=node['@id'];
+    return snip;
+  }
+
+  /**
+   * @method promote_node_to_doc
+   * @description Promotes some node fields to document fields
+   * @param {Object} node
+   * @returns {Object} : document
+   **/
+  promote_node_to_doc(node) {
+    const doc = {
+      "@id": node['@id'],
+      "@graph": [node]
+    };
+
+    doc["@type"] = "Work";
+    ["name","title","issued","container-title","author","DOI","type"].forEach((key)=>{
+      if (node?.[key]) {
+        doc[key] = node[key];
+      }
+    });
+
+    return doc;
+  }
+
+
   /**
    * @method update
    * @description Update Elasticsearch with the given data.
    */
-  async update(jsonld) {
-    console.log(`${this.constructor.name}.update(${jsonld['@id']})`);
-    await this.update_or_create_main_node_doc(jsonld);
-    const root_node= this.get_main_graph_node(jsonld);
+  async update(transformed) {
+    const root_node= this.get_expected_model_node(transformed);
+    const doc = this.promote_node_to_doc(root_node);
+    logger.info(`${this.constructor.name}.update(${doc['@id']})`);
 
-    const relationshipModel=await this.get_model('relationship');
+    const authorshipModel=await this.get_model('authorship');
     const personModel=await this.get_model('person');
     // Update all Authors with this work as well
-    let authorships= await relationshipModel.esMatchNode({
-      '@type': 'Authorship', 'relates': jsonld['@id'] });
+    let authorship = authorshipModel.get_expected_model_node(transformed);
 
-    for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {
-      let authorship = authorships.hits.hits[i]._source?.['@graph']?.[0] || {};
-      //console.log(`authorship[${i}]: ${authorship['@id']}`);
-      const authored={
-        ...this.snippet(root_node),
-        ...relationshipModel.snippet(authorship),
-        '@type': 'Authored',
-      };
-      delete authored.relates;
-      let relates=authorship.relates.filter(x => x !== jsonld['@id']);
+    if (authorship['is-visible']) {
+      let relates=authorship.relates.filter(x => x !== doc['@id']);
       if (relates.length != 1) {
         throw new Error(`Expected 1 relates, got ${relates.length}`);
       }
-      for (let j=0;j<relates.length; j++) {
-//        try {
-          let person=await personModel.client_get(relates[j])
-          person=this.get_main_graph_node(person);
-          const author = {
-            ...personModel.snippet(person),
-            ...relationshipModel.snippet(authorship),
-            '@type': 'Author'
-          };
-          delete author.relates;
+      const person_id=relates[0];
+      let person=await personModel.client_get(person_id);
+      person=this.get_expected_model_node(person);
+      const author = {
+        ...personModel.snippet(person),
+        ...relationshipModel.snippet(authorship),
+        '@type': 'Author'
+      };
+      delete author.relates;
 
-          if (authorship['is-visible']) {
-            console.log(`${jsonld["@id"]} <=> ${relates[j]}`);
-          } else {
-            console.log(`${jsonld["@id"]} X=X ${relates[j]}`);
-          }
-
-          // Authored(work) is added to Person
-          await personModel.update_graph_node(relates[j],authored,authorship['is-visible']);
-          // Author(person) is added to Work
-          await this.update_graph_node(jsonld['@id'],author,authorship['is-visible']);
-//        } catch (e) {
-//          console.log(`${relates[j]} not found`);
-//        }
+      logger.info(`${doc["@id"]} ==> ${person_id}`);
+      // Author(person) is added/delete to Work
+      await this.update_or_create_main_node_doc(doc);
+      await this.update_graph_node(doc['@id'],author,authorship['is-visible']);
+    } else {
+      try {
+        await this.delete_graph_node(doc['@id'],authorship);
+        // If work is authorless, remove it
+        let work=await this.client_get(doc['@id']);
+        const authors=this.get_nodes_by_type(work,'Author');
+        if (authors.length == 0) {
+          logger.info(`${doc['@id']} ==> <DELETED>`);
+          await this.delete(doc['@id']);
+        }
+      } catch (e) {
+        logger.info(`${doc["@id"]} !=> ${authorship['@id']}`);
       }
     }
   }

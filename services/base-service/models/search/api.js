@@ -1,8 +1,8 @@
 const router = require('express').Router();
-const ExpertsModel = require('../experts/model.js');
+const BaseModel = require('../base/model.js');
 const utils = require('../utils.js')
 
-const experts = new ExpertsModel();
+const experts = new BaseModel();
 
 router.get('/render', async (req, res) => {
   const params = {};
