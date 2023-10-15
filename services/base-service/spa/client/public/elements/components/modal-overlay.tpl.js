@@ -77,6 +77,13 @@ export default function render() {
         margin-left: .6rem;
       }
 
+      .footer-buttons a.btn--primary {
+        padding-top: 0;
+        padding-bottom: 0;
+        margin-left: 0.5rem;
+        font-size: .9rem;
+      }
+
       @media (max-width: 600px) {
         .overlay .footer-section {
           display: block;
@@ -107,7 +114,7 @@ export default function render() {
         <div class="footer-section">
           <div class="footer-buttons">
             <button class="btn btn--invert" @click="${this._onCancel}">Cancel</button>
-            <button class="btn btn--primary" @click="${this._onSave}" disabled>TODO</button>
+            <a href="https://oapolicy.universityofcalifornia.edu/" class="btn btn--primary" @click="${this._onSave}">${this.title}</a>
           </div>
         </div>
       </div>

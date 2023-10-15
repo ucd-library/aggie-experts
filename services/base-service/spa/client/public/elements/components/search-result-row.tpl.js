@@ -86,15 +86,15 @@ export default function render() {
           <h4><a href="/${this.result.id}">${this.result.name}</a></h4>
         </div>
         <div class="search-result-download">
-          <input type="checkbox" id="select-all" name="select-all" value="select-all">
+          <input type="checkbox" id="select-${this.result.id}" name="select-${this.result.id}" value="select-${this.result.id}">
         </div>
       </div>
       <div class="search-result-sub-text">${this.result.subtitle}</div>
       <div class="search-result-matches">
         <span class="search-matches">Search matches:</span>
-          <a href="">${this.result.numberOfGrants} grants</a>
+          <span>${this.result.numberOfGrants} grants</span>
           <span class="dot-separator">.</span>
-          <a href="/works/${this.result.id}">${this.result.numberOfWorks} works</a>
+          <span>${this.result.numberOfWorks} works</span>
       </div>
     </div>
   `;
