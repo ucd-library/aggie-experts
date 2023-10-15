@@ -104,7 +104,7 @@ export default class AppPerson extends Mixin(LitElement)
 
     this.researchInterests = graphRoot.researchInterests;
 
-    this.roles = graphRoot.contactInfo?.filter(c => c['ucdlib:isPreferred'] === true).map(c => {
+    this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true).map(c => {
       return {
         title : c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.name,
@@ -117,7 +117,7 @@ export default class AppPerson extends Mixin(LitElement)
     this.scopusIds = Array.isArray(graphRoot.scopusId) ? graphRoot.scopusId : [graphRoot.scopusId];
     this.researcherId = graphRoot.researcherId;
 
-    let websites = graphRoot.contactInfo?.filter(c => (!c['ucdlib:isPreferred'] || c['ucdlib:isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
+    let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
     websites.forEach(w => {
       if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
       this.websites.push(...w.hasURL);
