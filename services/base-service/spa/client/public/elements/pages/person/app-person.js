@@ -104,7 +104,7 @@ export default class AppPerson extends Mixin(LitElement)
 
     this.researchInterests = graphRoot.researchInterests;
 
-    this.roles = graphRoot.contactInfo?.filter(c => c['ucdlib:isPreferred'] === true).map(c => {
+    this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true).map(c => {
       return {
         title : c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.name,
@@ -117,7 +117,7 @@ export default class AppPerson extends Mixin(LitElement)
     this.scopusIds = Array.isArray(graphRoot.scopusId) ? graphRoot.scopusId : [graphRoot.scopusId];
     this.researcherId = graphRoot.researcherId;
 
-    let websites = graphRoot.contactInfo?.filter(c => (!c['ucdlib:isPreferred'] || c['ucdlib:isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
+    let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
     websites.forEach(w => {
       if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
       this.websites.push(...w.hasURL);
@@ -146,14 +146,17 @@ export default class AppPerson extends Mixin(LitElement)
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
+    this.resultsPerPage = 25;
   }
 
   /**
    * @method _loadCitations
    * @description load citations for person async
+   *
+   * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
-  async _loadCitations() {
-    let citations = this.person['@graph'].filter(g => g.issued);
+  async _loadCitations(all=false) {
+    let citations = JSON.parse(JSON.stringify(this.person['@graph'].filter(g => g.issued)));
 
     try {
       // sort by issued date desc, then by title asc
@@ -165,23 +168,23 @@ export default class AppPerson extends Mixin(LitElement)
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
     }
 
-    citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    let citationResults = await generateCitations(citations);
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.resultsPerPage));
 
-    this.citations = citationResults.map(c => c.value);
+    this.citationsDisplayed = citationResults.map(c => c.value);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
-    this.citations.forEach((cite, i) => {
+    this.citationsDisplayed.forEach((cite, i) => {
       let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === this.citations[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) ) {
+      if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
       }
     });
 
     // update doi links to be anchor tags
-    this.citations.forEach(cite => {
+    this.citationsDisplayed.forEach(cite => {
       if( cite.DOI && cite.apa ) {
         // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
         cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
@@ -189,9 +192,6 @@ export default class AppPerson extends Mixin(LitElement)
                   + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
       }
     });
-
-    console.log('app-person this.citations', this.citations);
-    this.citationsDisplayed = this.citations.slice(0, 10);
 
     this.requestUpdate();
   }
@@ -202,13 +202,13 @@ export default class AppPerson extends Mixin(LitElement)
    *
    * @param {Object} e click|keyup event
    */
-  _downloadWorks(e) {
+  async _downloadWorks(e) {
     e.preventDefault();
+    await this._loadCitations(true);
 
-    let text = this.citations.map(c => c.ris).join('\n');
+    let text = this.citationsDisplayed.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
-    console.log('url', url)
 
     const link = document.createElement('a');
     link.setAttribute('href', url);

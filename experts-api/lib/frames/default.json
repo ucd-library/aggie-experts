@@ -36,7 +36,7 @@
         "middle": {
           "@id": "cite:middle"
         },
-        "rank":{"@id":"vivo:rank"}
+        "XrankX":{"@id":"vivo:rank", "@type":"xsd:integer"}
       }
     },
     "available-date":{"@id":"cite:available-date"},
@@ -46,10 +46,10 @@
       "@id":"obo:ARG_2000028",
       "@type":"@id",
       "@context":{
-        "name":{"@id":"vcard:title"},
+        "name":{"@id":"schema:name"},
         "url":{"@id":"vcard:url"},
-        "isPreferred":{"@id":"ucdlib:isPreferred","@type":"xsd:boolean"},
-        "rank":{"@id":"vivo:rank"}
+        "isPreferred":{"@id":"ucdlib:isPreferred"},
+        "XrankX":{"@id":"vivo:rank","@type":"xsd:integer"}
       }
     },
     "container-title":{"@id":"cite:container-title"},
@@ -82,26 +82,36 @@
         }
       }
     },
-    "hasOrganizationalUnit":{"@id":"vcard:hasOrganizationalUnit"},
+    "hasOrganizationalUnit":{
+      "@id":"vcard:hasOrganizationalUnit",
+      "@context":{
+        "name":{"@id":"vcard:title"}
+      }
+    },
     "hasPublicationVenue":{"@id":"vivo:hasPublicationVenue","@type":"@id"},
     "hasResearchArea":{"@id":"vivo:hasResearchArea","@type":"@id" },
-    "hasTitle":{"@id":"vcard:hasTitle"},
+    "hasTitle":{
+      "@id":"vcard:hasTitle",
+      "@context":{
+        "name":{"@id":"vcard:title"}
+      }
+    },
     "hasURL":{"@id":"vcard:hasURL","@type":"@id"},
     "identifier":{"@id":"schema:identifier"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "is-open-access":{"@id":"ucdlib:is-open-access"},
-    "is-visible":{"@id":"ucdlib:is-visible","@type":"xsd:boolean"},
+    "is-visible":{"@id":"ucdlib:is-visible"},
     "issue":{"@id":"cite:issue"},
     "issued":{"@id":"cite:issued"},
     "keyword":{"@id":"cite:keyword"},
     "label":{"@id":"rdfs:label"},
     "language":{"@id":"cite:language"},
-    "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime","@type":"xsd:dateTime"},
+    "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime"},
     "license":{"@id":"cite:license"},
     "name":{"@id":"rdfs:label"},
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
-    "pagination":{"@id":"cite:pagination"},
+    "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
