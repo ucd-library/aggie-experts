@@ -22,6 +22,7 @@ RUN rm -rf node_modules
 RUN npm ci
 RUN npm link @ucd-lib/fin-service-utils
 RUN npm link @ucd-lib/fin-api
+RUN npm run dist
 
 # COPY over experts-api source code
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api
