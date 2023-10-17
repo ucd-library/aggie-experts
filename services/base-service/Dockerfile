@@ -18,10 +18,12 @@ RUN mkdir -p ${FIN_SERVICE_ROOT}/spa
 WORKDIR ${FIN_SERVICE_ROOT}
 COPY spa spa
 WORKDIR ${FIN_SERVICE_ROOT}/spa
-RUN rm -rf node_modules
-RUN npm ci
-RUN npm link @ucd-lib/fin-service-utils
-RUN npm link @ucd-lib/fin-api
+RUN find . -name node_modules -type d | xargs rm -rf
+RUN npm ci && \
+    (cd client/public && npm ci) && \
+    npm link @ucd-lib/fin-service-utils && \
+    npm link @ucd-lib/fin-api &&\
+    npm run dist
 
 # COPY over experts-api source code
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api
