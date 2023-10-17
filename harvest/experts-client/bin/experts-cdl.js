@@ -37,6 +37,29 @@ const cdl = {
   secretpath: '',
 };
 
+async function temp_get_qa_grants(orig_opt,user,cdlId,context,ec) {
+  console.log('starting temp_get_qa_grants ' + user + '-' + cdlId);
+  const grant_id_types="2,12,43,44,94,95,96,97,116,117,118,119,120,121,122,123,124,125,126,133,134,135,136,137,138,139,140,141"
+  const opt={
+    ...orig_opt,
+    cdl: {
+      url:'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+      authname:'qa-oapolicy',
+      secretpath:'projects/326679616213/secrets/cdl_elements_json'
+    }
+  }
+  let secretResp = await gs.getSecret(opt.cdl.secretpath);
+  let secretJson = JSON.parse(secretResp);
+  for (const entry of secretJson) {
+    if (entry['@id'] == opt.cdl.authname) {
+      opt.cdl.auth = entry.auth.raw_auth;
+    }
+  }
+
+  await ec.getPostCDLentries(opt, `users/${cdlId}/relationships?detail=full&types=${grant_id_types}`, cdlId, context);
+}
+
+
 async function main(opt) {
 
   // get the secret JSON
@@ -120,6 +143,8 @@ async function main(opt) {
       const fuseki = await ec.mkFusekiTmpDb(opt);
       //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
       opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
+    } else if (opt.fuseki.db) {
+      opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
     }
 
     console.log('starting getCDLprofile ' + user);
@@ -154,8 +179,11 @@ async function main(opt) {
     // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
     await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
 
-    if (!opt.nosplay) {
+    // Step 3a: Get User Grants from CDL (qa-oapolicy only)
+    await temp_get_qa_grants(opt,user,cdlId,context,ec);
 
+    if (!opt.nosplay) {
+      console.log('splay')
       opt.bindings = BF.fromRecord(
         { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
       );

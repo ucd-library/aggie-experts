@@ -480,7 +480,7 @@ export class ExpertsClient {
     const cdl = opt.cdl;
     var lastPage = false
     var results, entries = [];
-    var nextPage = path.join(cdl.url, query)
+    var nextPage = `${cdl.url}/${query}`
     var count = 0;
 
     if (cdl.auth.match(':')) {
@@ -538,6 +538,8 @@ export class ExpertsClient {
 
           let jsonld = JSON.stringify(contextObj);
           console.log('posting relationships of ' + cdlId);
+
+          fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
 
           // Insert into our local Fuseki
           await this.createGraphFromJsonLdFile(jsonld, opt);

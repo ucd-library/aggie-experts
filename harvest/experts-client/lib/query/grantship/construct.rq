@@ -1,0 +1,127 @@
+PREFIX api: <http://purl.org/linked-data/api/vocab#>
+PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
+PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX cite: <http://citationstyles.org/schema/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX venue: <http://experts.ucdavis.edu/venue/>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX work: <http://experts.ucdavis.edu/work/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+construct {
+  ?grantee a ucdlib:Grantee,?type;
+           ucdlib:favorite ?favorite;
+           ucdlib:is-visible ?visible;
+           vivo:relates ?expert,?work;
+           vivo:rank ?user_rank;
+           .
+
+  ?grant a ucdlib:Grant,vivo:Grant;
+         ?field_predicate ?field_text;
+         ?field_predicate ?field_money;
+         ?field_predicate ?field_datestr;
+         .
+}
+WHERE {
+
+  graph cdl: {
+    ?RELATIONSHIP__
+    :is-visible ?visible_str;
+    :type ?type;
+    :related ?g;
+    :related ?user;
+    .
+    OPTIONAL {
+	    ?RELATIONSHIP__ :is-favourite "true".
+    	bind(true as ?favorite)
+    }
+
+    bind(xsd:boolean(?visible_str) as ?visible)
+    ?user :category "user";
+          :username ?username;
+          .
+
+    # This needs to include grants later
+    ?g :category "grant";
+       .
+
+    # We only use one source for grants
+    {
+      select ?g (min(?id) as ?source_id)
+      WHERE {
+        ?g :records/:record ?record.
+        ?record :source-name  ?source;
+                :source-id ?id;
+                .
+      }  group by ?g
+    }
+    # Now get the corresponding ?record w/ that low score, I'm calling it field_record even though it's currently the same for all
+ 	  ?g :records/:record ?record.
+    ?field_record :source-name  ?source;
+                  :source-id ?wanted_source_id;
+                  .
+
+    # these are the fields to check
+    VALUES(?field_name ?field_type ?field_predicate) {
+      ("title" "text" cite:title)
+      ("amount" "money" vivo:totalGrantAmount)
+      ("start-date" "date" vivo:start-date)
+      ("end-date" "date" vivo:end-date)
+
+    }
+
+    ?g oap:type ?oap_type;
+       :last-modified-when ?lastModifiedWhen;
+       :records/:record ?field_record;
+       .
+
+    ?field_record :native/:field ?field.
+
+    OPTIONAL {
+      ?field :name ?field_name;
+             :type "text";
+             :type ?field_type ;
+      :text ?field_text ;
+      .
+    }
+    OPTIONAL {
+      ?field :name ?field_name;
+             :type "money";
+             :type ?field_type;
+             :money/:field-value ?field_money;
+             .
+    }
+
+    OPTIONAL {
+      ?field :name ?field_name;
+             :type "date";
+             :type ?field_type;
+             :date ?date.
+
+      ?date :year ?year.
+      #filter(?field_name="publication-date" )
+      OPTIONAL {
+        ?date :month ?m_raw.
+        BIND(concat("-",IF(xsd:integer(?m_raw) < 10, CONCAT("0", ?m_raw), ?m_raw)) AS ?month)
+        OPTIONAL {
+          ?date :day ?d_raw.
+          BIND(concat("-",IF(xsd:integer(?d_raw) < 10, CONCAT("0", ?d_raw), ?d_raw)) AS ?day)
+        }
+      }
+      BIND(CONCAT(?year, COALESCE(?month, ""), COALESCE(?day, "")) AS ?field_datestr)
+    }
+
+  }
+  # EXPERTS ids
+  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/relationship/"))) as ?grantee)
+  bind(uri(replace(str(?g),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/grant/"))) as ?grant)
+  bind(uri(concat(str(person:),md5(?username))) as ?expert)
+}
