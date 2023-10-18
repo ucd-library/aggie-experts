@@ -1,0 +1,129 @@
+<html>
+  <head>
+    <title>UC Davis - Researcher Profiles</title>
+    <style>
+      body, html {
+        font-family      : proxima-nova,"Lucida Grande","Lucida Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+        font-size        : 16px;
+        font-weight      : 400;
+        line-height      : calc(16px * 1.625);
+        margin           : 0;
+        padding          : 0;
+        max-width        : 100vw;
+    }
+      #masthead {
+        color: #fff;
+        display: flex;
+        align-items: center;
+        background-size: 100%;
+        width: 100%;
+        height: 50px;
+        background-image: url('/images/rainbow-bar.png');
+      }
+      .container {
+        width: calc(100% - 30px);
+        margin-left: 15px;
+        margin-right: 15px;
+      }
+      #app-header-content {
+        background-color: #fff;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      #nav-left {
+        display: flex;
+        align-items: center;
+      }
+      h1 {
+        color: #022851;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      h1 small {
+        color: #6884A3;
+        font-weight: 400;
+        font-size: 22px;
+        font-style: italic;
+      }
+      #hero {
+        min-height: calc(100vh - 130px);
+        background-color: #E5E5E5;
+        background-image: url('/images/login.jpg');
+        width: 100%;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        padding-top: 20px;
+      }
+      .film {
+        padding: 30px;
+        background-color: rgba(255, 255, 255, 0.8);
+        max-width: 490px;
+      }
+      .text-top {
+        margin-bottom: 20px;
+      }
+      .login {
+        margin-top: 24px;
+        background-color: #022851;
+        color: fff;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-block;
+        padding: 8px 18px;
+      }
+
+      @media (min-width: 600px) {
+        #hero {
+          min-height: calc(100vh - 160px);
+        }
+        #hero {
+          padding-top: 50px;
+        }
+        .film {
+          padding: 50px;
+        }
+        .container {
+          margin-right: auto;
+          margin-left: auto;
+          max-width: 580px; } }
+
+      @media (min-width: 992px) {
+        .container {
+          margin-right: auto;
+          margin-left: auto;
+          max-width: 970px; } }
+    </style>
+  </head>
+  <body>
+    <div id="masthead">
+        <div class="container"><a href="https://ucdavis.edu">
+          <img class="logo" alt="Logo" src="/images/logo-ucd.svg"></a>
+        </div>
+    </div>
+
+    <div id="app-header-content" class="container flex app-header-content">
+      <h1>Research Registry <small>Prototype</small></h1>
+      <div></div>
+    </div>
+    <div id="hero">
+      <div class="container">
+        <div class="film">
+          <div class="text-top">
+            The <strong>UC Davis Research Registry</strong> is a research-focused discovery tool that enables collaboration among scholars of all disciplines.
+          </div>
+          <div>
+            To access the registry, login using your UC Davis credentials
+          </div>
+          <a class="login" href="/auth/login">Log in with UC Davis CAS</a>
+        </div>
+      </div>
+
+
+    </div>
+
+
+  </body>
+</html>
