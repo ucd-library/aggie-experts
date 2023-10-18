@@ -3,6 +3,7 @@ import {render} from "./fin-app.tpl.js";
 
 // import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js'
 import '../elements/pages/home/app-home.js';
+import '../elements/pages/browse/app-browse.js';
 // import '../elements/pages/work/app-work.js';
 import '../elements/pages/person/app-person.js';
 import '../elements/pages/person/app-person-works-list.js';
@@ -90,6 +91,16 @@ export default class FinApp extends Mixin(LitElement)
     this.pathInfo = e.location.pathname.split('/media')[0];
 
     this.firstAppStateUpdate = false;
+  }
+
+  /**
+   * @method _onSearch
+   * @description called from the search box button is clicked or
+   * the enter key is hit. search
+   * @param {Object} e
+   */
+  _onSearch(e) {
+    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.searchTerm.trim());
   }
 
 }

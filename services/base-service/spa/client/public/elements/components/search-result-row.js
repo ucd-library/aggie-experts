@@ -13,7 +13,8 @@ export class SearchResultRow extends LitElement {
 
   static get properties() {
     return {
-      result : { type : Object }
+      result : { type : Object },
+      hideCheckbox : { type : Boolean, attribute : 'hide-checkbox' },
     };
   }
 
@@ -22,6 +23,7 @@ export class SearchResultRow extends LitElement {
     this.render = render.bind(this);
 
     this.result = {};
+    this.hideCheckbox = false;
   }
 
   firstUpdated() {
