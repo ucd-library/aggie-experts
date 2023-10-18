@@ -3,7 +3,7 @@
     "schema" : "http://schema.org/"
   },
   "@graph" : [{
-    "@id" : "",
+    "@id" : "http://schema.library.ucdavis.edu/schema#Expert",
     "schema:name" : "Aggie Experts People"
   }]
 }
