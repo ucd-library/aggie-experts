@@ -13,11 +13,15 @@ module.exports = async (app) => {
   app.all('/', (req, res, next) => {
     let user = req.get('x-fin-user');
     console.log('----------------------------------------------------------- user', user);
+    console.log('!user', !user);
+    console.log('!user[\'preferred_username\']', !user['preferred_username']);
     if( !user || !user['preferred_username'] ) {
+      console.log('sending login.html');
       res.sendFile(assetsDir + '/login.html');
       return;
     }
 
+    console.log('sending next() / index.html');
     next();
   });
 
