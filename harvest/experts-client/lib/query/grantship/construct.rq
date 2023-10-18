@@ -1,28 +1,20 @@
-PREFIX uc: <http://ucuenca.edu.ec/ontology#>
-PREFIX api: <http://purl.org/linked-data/api/vocab#>
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
-PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX list: <http://jena.apache.org/ARQ/list#>
-PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-PREFIX venue: <http://experts.ucdavis.edu/venue/>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
-PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX kfs: <ark:/87287/d7gt0q/schema#>
 
 construct {
   ?grantee a ucdlib:Grantee, ?role, ?vivo_role;
            ucdlib:favorite ?favorite;
            ucdlib:is-visible ?visible;
-           ucdlib:type_id ?type_id;
-           ucdlib:type ?type;
+#           ucdlib:type_id ?type_id;
+#           ucdlib:type ?type;
            vivo:relates ?expert,?work;
            vivo:rank ?user_rank;
            .
@@ -30,15 +22,27 @@ construct {
   ?grant a ucdlib:Grant,vivo:Grant;
          ?field_predicate ?field_text;
          ?field_predicate ?field_money;
+         ucdlib:GrantType ?grant_type;
+         vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          .
 
-  ?interval ?field_predicate ?field_date;
+  ?grant_type a vivo:GrantType;
+              rdfs:label ?funding_type_label;
+              .
+
+  ?funder a vivo:FundingOrganization;
+          rdfs:label ?funder_label;
+          .
+
+  ?interval a vivo:DateTimeInterval;
+            ?field_predicate ?field_date;
             .
+
   ?field_date a vivo:DateTimeValue;
               vivo:dateTimePrecision ?precision;
               vivo:dateTime ?field_datestr;
-    .
+              .
 }
 WHERE {
 
@@ -60,22 +64,22 @@ WHERE {
            VALUES (?role ?type_id ?vivo_role ) {
 #       (:GrantOtherRole "138" "Researcher on" )
 #       (:GrantProjectLeaderRole "118" "Project Lead of")
-       (ucdlib:GrantCoPrincipalInvestigatorRole "116" vivo:CoPrincipalInvestigatorRole)
+       (kfs:GrantCoPrincipalInvestigatorRole "116" vivo:CoPrincipalInvestigatorRole)
 #       (:GrantProgramDirectorRole "137" "Program Director of")
 #       (:GrantCoreLeaderRole "119" "Co leader on")
 #       (:GrantKeyPersonnelRole "97" "Senior personal of")
-       (ucdlib:GrantPrincipalInvestigatorRole "43" vivo:PrincipalInvestigatorRole)
+       (kfs:GrantPrincipalInvestigatorRole "43" vivo:PrincipalInvestigatorRole)
      }
 
 #        VALUES (?grant_role ?ucd_role ?vivo_role) {
-#    ("PDIR" :GrantProgramDirectorRole vivo:LeaderRole)
-#    ("KP" :GrantKeyPersonnelRole vivo:ResearcherRole)
-##    ("OTHR" :GrantOtherRole vivo:ResearcherRole)
-#    ("PLDR" :GrantProjectLeaderRole vivo:LeaderRole)
-#    ("COPI" :GrantCoPrincipalInvestigatorRole vivo:CoPrincipalInvestigatorRole)
-#    ("PI" :GrantPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole )
-#    ("CLDR" :GrantCoreLeaderRole vivo:ResearcherRole)
-##    ("ACCT-COPI" :GrantAccountManagerRole vivo:ResearcherRole)
+#    ("PDIR" kfs:GrantProgramDirectorRole vivo:LeaderRole)
+#    ("KP" kfs:GrantKeyPersonnelRole vivo:ResearcherRole)
+##    ("OTHR" kfs:GrantOtherRole vivo:ResearcherRole)
+#    ("PLDR" kfs:GrantProjectLeaderRole vivo:LeaderRole)
+#    ("COPI" kfs:GrantCoPrincipalInvestigatorRole vivo:CoPrincipalInvestigatorRole)
+#    ("PI" kfs:GrantPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole )
+#    ("CLDR" kfs:GrantCoreLeaderRole vivo:ResearcherRole)
+##    ("ACCT-COPI" kfs:GrantAccountManagerRole vivo:ResearcherRole)
 #    }
 
     }
@@ -98,7 +102,8 @@ WHERE {
                 .
       }  group by ?g
     }
-    # Now get the corresponding ?record w/ that low score, I'm calling it field_record even though it's currently the same for all
+    # Now get the corresponding ?record w/ that low score,
+    # I'm calling it field_record even though it's currently the same for all
  	  ?g :records/:record ?record.
     ?field_record :source-name  ?source;
                   :source-id ?wanted_source_id;
@@ -106,14 +111,16 @@ WHERE {
 
     # these are the fields to check
     VALUES(?field_name ?field_type ?field_predicate) {
-      ("title" "text" cite:title)
-      ("amount" "money" vivo:totalGrantAmount)
+      ("title" "text" rdfs:label)
+      ("amount" "money" vivo:totalAwardAmount)
       ("start-date" "date" vivo:start)
       ("end-date" "date" vivo:end)
-
+      ("funder-reference" "text" vivo:sponsorAwardId)
+      ("funding-type" "special" ucdlib:none)
+      ("funder-name" "special" ucdlib:none)
     }
 
-    ?g oap:type ?oap_type;
+    ?g :type ?oap_type;
        :last-modified-when ?lastModifiedWhen;
        :records/:record ?field_record;
        .
@@ -133,6 +140,32 @@ WHERE {
              :type ?field_type;
              :money/:field-value ?field_money;
              .
+    }
+
+    # Funding type is a special case
+    OPTIONAL {
+      values (?grant_type ?funding_type_label) {
+        (kfs:GrantTypeAcademicSupport "Academic Support" )
+        (kfs:GrantTypeDefault "Default" )
+        (kfs:GrantTypeInstruction "Instruction" )
+        (kfs:GrantTypeResearch "Research" )
+        (kfs:GrantTypeService "Service / Other" )
+        (kfs:GrantTypeScholarship "Scholarships / Fellowships" )
+        (kfs:GrantTypeStudentService "Student Services" )
+
+        ?field :name "funding-type";
+             :type "text";
+             :text ?funding_type_label;
+             .
+      }
+
+    # Funder name is a special case
+    OPTIONAL {
+      ?field :name "funder-name";
+             :type "text";
+             :text ?funder_label;
+             .
+      bind('unknown-funder' as ?funder_ref)
     }
 
     OPTIONAL {
@@ -162,7 +195,12 @@ WHERE {
   # EXPERTS ids
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grantee)
   bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
-    bind(uri(concat(str(person:),md5(?username))) as ?expert)
+  bind(uri(concat(str(person:),md5(?username))) as ?expert)
+
+  # If funder_ref, then we make a special funder until REMS comes
+  bind(uri(concat(str(?grant),'#',?funder_ref)) as ?funder)
+
+
   bind(uri(concat(str(?grant),'#',?duration)) as ?interval)
   bind(uri(concat(str(?grant),'#',?interval_name)) as ?field_date)
 }
