@@ -14,7 +14,7 @@
     "vivo": "http://vivoweb.org/ontology/core#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "ArchivalGroup":"fedora:ArchivalGroup",
-    "Authorship":"vivo:Authorship",
+    "Authorship":"ucdlib:Authorship",
     "DOI": {"@id":"cite:DOI"},
     "ISBN": {"@id":"cite:ISBN"},
     "ISSN":{"@id":"cite:ISSN"},
@@ -132,13 +132,14 @@
     "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
     "status":{"@id":"cite:status"},
     "title":{"@id":"cite:title"},
-    "totalAwardAmount": {"@id": "vivo:totaAwardAmount"},
+    "totalAwardAmount": {"@id": "vivo:totalAwardAmount"},
     "type":{"@id":"cite:type"},
     "url":{"@id":"cite:url"},
     "volume":{"@id":"cite:volume"}
   },
   "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
+  "relates": { "@embed":"@never" },
   "@embed": "@always",
   "@type": ["Person","Work","Grant","Authorship"]
 }

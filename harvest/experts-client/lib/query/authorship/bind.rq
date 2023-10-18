@@ -43,5 +43,5 @@ select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
 
   bind(replace(str(?relationship),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
   filter(regex(?username,"@ucdavis.edu"))
-  bind(concat(md5(?username),"/",?id,".jsonld.json") as ?filename)
+  bind(concat("expert/",md5(?username),"/",?id,".jsonld.json") as ?filename)
 }

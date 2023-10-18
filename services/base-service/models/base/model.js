@@ -59,7 +59,7 @@ class BaseModel extends FinEsDataModel {
     if (typeof want_types === 'string') want_types = [want_types];
     for(let i=0; i<doc['@graph'].length; i++) {
       let node = doc['@graph'][i];
-      let types= node.["@type"];
+      let types= node["@type"];
       types = types.filter(x => want_types.includes(x));
       if (types.length > 0) {
         nodes.push(node);
@@ -96,7 +96,7 @@ class BaseModel extends FinEsDataModel {
    * @error {Error} : if no node in the graph matches the type, or if more than one node matches the type
    **/
   get_expected_model_node(doc) {
-    const types = this.constructor.types;
+    const types = this.constructor.transformed_types;
     return this.get_expected_node_by_type(doc,types);
   }
 
@@ -469,13 +469,12 @@ class BaseModel extends FinEsDataModel {
     if (doc['@id'] != doc['@graph'][0]['@id']) {
       throw new Error(`update_or_create_main_node_doc: document ${doc['@id']}, @id does not match @graph[0]['@id']`);
     }
-
+    // No idea what roles do
+    doc.roles = roles;
     return this.client.index({
       index : this.writeIndexAlias,
       id : doc['@id'],
-      body: {
-        ...doc,
-        roles: roles}
+      document: doc
     });
   }
 

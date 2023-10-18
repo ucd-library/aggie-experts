@@ -5,7 +5,7 @@ PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -16,7 +16,7 @@ PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 construct {
-  ?authorship a vivo:Authorship;
+  ?authorship a vivo:Authorship, ucdlib:Authorship;
               ucdlib:favorite ?favorite;
               ucdlib:is-visible ?visible;
               vivo:relates ?expert,?work;
@@ -299,5 +299,5 @@ WHERE {
   # EXPERTS ids
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/relationship/"))) as ?authorship)
   bind(uri(replace(str(?pub),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/publication/"))) as ?work)
-  bind(uri(concat(str(person:),md5(?username))) as ?expert)
+  bind(uri(concat(str(expert:),md5(?username))) as ?expert)
 }

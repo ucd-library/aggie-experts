@@ -1,5 +1,5 @@
 // Can use this to get the fin configuration
-//const {config} = require('@ucd-lib/fin-service-utils');
+const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 
 /**
@@ -8,13 +8,11 @@ const BaseModel = require('../base/model.js');
  */
 class AuthorshipModel extends BaseModel {
 
+  static transformed_types = [ 'Authorship' ];
   static types = [
-    "http://schema.library.ucdavis.edu/schema#Authorship",
-    "http://vivoweb.org/ontology/core#Authorship",
-    "http://vivoweb.org/ontology/core#Relationship"
-  ];
+    "http://vivoweb.org/ontology/core#Authorship" ];
 
-  constructor(name='relationship') {
+  constructor(name='authorship') {
     super(name);
   }
 
@@ -42,23 +40,24 @@ class AuthorshipModel extends BaseModel {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
     logger.info(`AuthorshipModel.update(${doc['@id']})`);
+    console.log(doc);
     await this.update_or_create_main_node_doc(doc);
 
     const have_part={};
-    // Get the work and the Person via the Authorship.relates
-    const personModel= await this.get_model('person');
+    // Get the work and the Expert via the Authorship.relates
+    const expertModel= await this.get_model('expert');
     const workModel= await this.get_model('work');
-    // The root_node is the Authorship node, pointers to Person and Work (which is now another node)
+    // The root_node is the Authorship node, pointers to Expert and Work (which is now another node)
     for(let i=0; i<root_node?.relates?.length || 0; i++) {
       let relates = root_node.relates[i];
       try {
-        // Is this a Person?
-        let related = await personModel.client_get(relates);
+        // Is this a Expert?
+        let related = await expertModel.client_get(relates);
         let type = this.experts_node_type(related);
-        if (type !== 'Person') {
-          throw new Error(`AuthorshipModel.update(${doc['@id']}) - ${relates} is not a Person`);
+        if (type !== 'Expert') {
+          throw new Error(`AuthorshipModel.update(${doc['@id']}) - ${relates} is not a Expert`);
         }
-        have_part['Person'] = {id:relates,node:related };
+        have_part['Expert'] = {id:relates,node:related };
       } catch (e) {
         try {
           // Is this included Work?
@@ -71,14 +70,14 @@ class AuthorshipModel extends BaseModel {
           }
           have_part['Work'] = {id:relates,node:related };
         } catch(e) {
-          logger.warn(`AuthorshipModel.update(${relates} is not a Person or Work`);
+          logger.warn(`AuthorshipModel.update(${relates} is not a Expert or Work`);
         }
       }
-      if (have_part.Person && have_part.Work) {
-        // Add Work as snippet to Person
+      if (have_part.Expert && have_part.Work) {
+        // Add Work as snippet to Expert
         // console.log(root_node);
         if (root_node['is-visible'] === true || root_node['is-visible'] === 'true') {
-          logger.info(`${have_part.Person.id} ==> ${have_part.Work.id}`);
+          logger.info(`${have_part.Expert.id} ==> ${have_part.Work.id}`);
           {
             const node = {
               ...workModel.snippet(have_part.Work.node),
@@ -86,12 +85,12 @@ class AuthorshipModel extends BaseModel {
               '@type': 'Authored',
             };
             delete node.relates;
-            // console.log(`${have_part.Person.id} Authored ${have_part.Work.id}`);
-            await personModel.update_graph_node(have_part.Person.id,node,root_node['is-visible']);
+            // console.log(`${have_part.Expert.id} Authored ${have_part.Work.id}`);
+            await expertModel.update_graph_node(have_part.Expert.id,node,root_node['is-visible']);
           }
         } else {
-          logger.info(`${have_part.Person.id} !=> ${have_part.Work.id}`);
-          await personModel.delete_graph_node(have_part.Person.id,root_node);
+          logger.info(`${have_part.Expert.id} !=> ${have_part.Work.id}`);
+          await expertModel.delete_graph_node(have_part.Expert.id,root_node);
         }
       }
     }

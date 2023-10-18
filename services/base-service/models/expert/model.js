@@ -1,5 +1,5 @@
 // Can use this to get the fin configuration
-//const {config} = require('@ucd-lib/fin-service-utils');
+const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 
 /**
@@ -8,6 +8,7 @@ const BaseModel = require('../base/model.js');
  */
 class ExpertModel extends BaseModel {
 
+  static transformed_types = [ 'Expert' ];
   static types = [
     "http://schema.library.ucdavis.edu/schema#Expert",
   ];
@@ -93,7 +94,7 @@ class ExpertModel extends BaseModel {
       }
     });
     if (doc.contactInfo.name) {
-      doc.name = framed.contactInfo.name;
+      doc.name = doc.contactInfo.name;
     }
 
     return doc;
@@ -113,7 +114,7 @@ class ExpertModel extends BaseModel {
     const authorshipModel=await this.get_model('authorship');
     const workModel=await this.get_model('work');
 
-    // Update all Works with this Person as well
+    // Update all Works with this Expert as well
     let authorships= await authorshipModel.esMatchNode({ 'relates': doc['@id'] });
 
     for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {

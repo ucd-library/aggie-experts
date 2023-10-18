@@ -24,6 +24,7 @@ module.exports = async function(path, graph, headers, utils) {
   // Order authors by rank
   if (! Array.isArray(framed["@graph"])) {
     framed["@graph"]= [ framed["@graph"] ];
+  }
 
   framed["@graph"]?.forEach((node)=>{
     // alter the author(s) by rank, always an array as well.

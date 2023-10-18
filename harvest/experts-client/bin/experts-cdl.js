@@ -162,11 +162,11 @@ async function main(opt) {
 
       await ec.insert({ ...opt, ...iam });
 
-      for (const n of ['person','authorship']) {
+      for (const n of ['expert','authorship']) {
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
-          delete splay['frame'];
+          // delete splay['frame'];
           return await ec.splay({ ...opt, ...splay });
         })(n);
       };

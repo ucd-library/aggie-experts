@@ -122,7 +122,7 @@ async function main(opt) {
   for (let entry of entries) {
     entry = entry['api:object'];
     let person = {};
-    person['@id'] = 'person:' + md5(entry['username']);
+    person['@id'] = 'expert:' + md5(entry['username']);
     person['proprietary_id'] = entry['proprietary-id'];
     person['identifiers'] = ["ark:/87287/d7mh2m/user/" + entry['id'],
     "ark:/87287/d7c08j/" + md5(entry['proprietary-id']),

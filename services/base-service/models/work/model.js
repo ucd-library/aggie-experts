@@ -1,5 +1,5 @@
 // Can use this to get the fin configuration
-//const {config} = require('@ucd-lib/fin-service-utils');
+const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 
 /**
@@ -7,6 +7,8 @@ const BaseModel = require('../base/model.js');
  * @description Base class for Aggie Experts data models.
  */
 class WorkModel extends BaseModel {
+
+  static transformed_types = [ 'Work' ];
 
   static types = [
     "http://schema.library.ucdavis.edu/schema#Work"
@@ -55,27 +57,28 @@ class WorkModel extends BaseModel {
     logger.info(`${this.constructor.name}.update(${doc['@id']})`);
 
     const authorshipModel=await this.get_model('authorship');
-    const personModel=await this.get_model('person');
+    const expertModel=await this.get_model('expert');
     // Update all Authors with this work as well
     let authorship = authorshipModel.get_expected_model_node(transformed);
 
     if (authorship['is-visible']) {
       let relates=authorship.relates.filter(x => x !== doc['@id']);
       if (relates.length != 1) {
+        console.log("ERROR: doc['@id']="+doc['@id']+" relates="+JSON.stringify(relates));
         throw new Error(`Expected 1 relates, got ${relates.length}`);
       }
-      const person_id=relates[0];
-      let person=await personModel.client_get(person_id);
-      person=this.get_expected_model_node(person);
+      const expert_id=relates[0];
+      let expert=await expertModel.client_get(expert_id);
+      expert=this.get_expected_model_node(expert);
       const author = {
-        ...personModel.snippet(person),
+        ...expertModel.snippet(expert),
         ...relationshipModel.snippet(authorship),
         '@type': 'Author'
       };
       delete author.relates;
 
-      logger.info(`${doc["@id"]} ==> ${person_id}`);
-      // Author(person) is added/delete to Work
+      logger.info(`${doc["@id"]} ==> ${expert_id}`);
+      // Author(expert) is added/delete to Work
       await this.update_or_create_main_node_doc(doc);
       await this.update_graph_node(doc['@id'],author,authorship['is-visible']);
     } else {
