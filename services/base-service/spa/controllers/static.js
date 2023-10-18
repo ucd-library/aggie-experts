@@ -12,6 +12,7 @@ module.exports = async (app) => {
   // make sure we are logged in
   app.all('/', (req, res, next) => {
     let user = req.get('x-fin-user');
+    if( typeof user === 'string' ) user = JSON.parse(user);
     console.log('----------------------------------------------------------- user', user);
     console.log('typeof user', typeof user);
     console.log('!user', !user);
