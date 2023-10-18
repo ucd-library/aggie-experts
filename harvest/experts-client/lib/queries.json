@@ -23,17 +23,17 @@
   "@graph":[
     {"@id":"insert_iam",
      "@type":"InsertQuery",
-     "bind@":"expert/bind.rq",
+     "bind@":"person/bind.rq",
      "insert@":"iam/insert.ru"
     },
     {"@id":"insert_grants",
      "@type":"InsertQuery",
-     "bind@":"expert/bind.rq",
+     "bind@":"person/bind.rq",
      "insert@":"grants/insert.ru"
     },
     {"@id":"insert_enterprise_grants",
      "@type":"InsertQuery",
-     "bind@":"expert/bind.rq",
+     "bind@":"person/bind.rq",
      "insert@":"enterprise_grants/insert.ru"
     },
     {
@@ -49,10 +49,10 @@
       "bind@" : "authorship/bind.rq"
     },
     {
-      "@id":"expert",
+      "@id":"person",
       "@type":"SplayQuery",
-      "construct@" : "expert/construct.rq",
-      "bind@" : "expert/bind.rq"
+      "construct@" : "person/construct.rq",
+      "bind@" : "person/bind.rq"
     }
   ]
 }

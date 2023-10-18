@@ -1,3 +1,4 @@
+PREFIX uc: <http://ucuenca.edu.ec/ontology#>
 PREFIX api: <http://purl.org/linked-data/api/vocab#>
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
@@ -17,9 +18,11 @@ PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 construct {
-  ?grantee a ucdlib:Grantee,?type;
+  ?grantee a ucdlib:Grantee, ?role, ?vivo_role;
            ucdlib:favorite ?favorite;
            ucdlib:is-visible ?visible;
+           ucdlib:type_id ?type_id;
+           ucdlib:type ?type;
            vivo:relates ?expert,?work;
            vivo:rank ?user_rank;
            .
@@ -27,8 +30,15 @@ construct {
   ?grant a ucdlib:Grant,vivo:Grant;
          ?field_predicate ?field_text;
          ?field_predicate ?field_money;
-         ?field_predicate ?field_datestr;
+         vivo:dateTimeInterval ?interval;
          .
+
+  ?interval ?field_predicate ?field_date;
+            .
+  ?field_date a vivo:DateTimeValue;
+              vivo:dateTimePrecision ?precision;
+              vivo:dateTime ?field_datestr;
+    .
 }
 WHERE {
 
@@ -36,14 +46,39 @@ WHERE {
     ?RELATIONSHIP__
     :is-visible ?visible_str;
     :type ?type;
+    :type-id ?type_id;
     :related ?g;
     :related ?user;
     .
+
     OPTIONAL {
 	    ?RELATIONSHIP__ :is-favourite "true".
     	bind(true as ?favorite)
     }
 
+    OPTIONAL {
+           VALUES (?role ?type_id ?vivo_role ) {
+#       (:GrantOtherRole "138" "Researcher on" )
+#       (:GrantProjectLeaderRole "118" "Project Lead of")
+       (ucdlib:GrantCoPrincipalInvestigatorRole "116" vivo:CoPrincipalInvestigatorRole)
+#       (:GrantProgramDirectorRole "137" "Program Director of")
+#       (:GrantCoreLeaderRole "119" "Co leader on")
+#       (:GrantKeyPersonnelRole "97" "Senior personal of")
+       (ucdlib:GrantPrincipalInvestigatorRole "43" vivo:PrincipalInvestigatorRole)
+     }
+
+#        VALUES (?grant_role ?ucd_role ?vivo_role) {
+#    ("PDIR" :GrantProgramDirectorRole vivo:LeaderRole)
+#    ("KP" :GrantKeyPersonnelRole vivo:ResearcherRole)
+##    ("OTHR" :GrantOtherRole vivo:ResearcherRole)
+#    ("PLDR" :GrantProjectLeaderRole vivo:LeaderRole)
+#    ("COPI" :GrantCoPrincipalInvestigatorRole vivo:CoPrincipalInvestigatorRole)
+#    ("PI" :GrantPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole )
+#    ("CLDR" :GrantCoreLeaderRole vivo:ResearcherRole)
+##    ("ACCT-COPI" :GrantAccountManagerRole vivo:ResearcherRole)
+#    }
+
+    }
     bind(xsd:boolean(?visible_str) as ?visible)
     ?user :category "user";
           :username ?username;
@@ -73,8 +108,8 @@ WHERE {
     VALUES(?field_name ?field_type ?field_predicate) {
       ("title" "text" cite:title)
       ("amount" "money" vivo:totalGrantAmount)
-      ("start-date" "date" vivo:start-date)
-      ("end-date" "date" vivo:end-date)
+      ("start-date" "date" vivo:start)
+      ("end-date" "date" vivo:end)
 
     }
 
@@ -107,21 +142,27 @@ WHERE {
              :date ?date.
 
       ?date :year ?year.
-      #filter(?field_name="publication-date" )
+      BIND(vivo:yearPrecision AS ?year_precision)
       OPTIONAL {
         ?date :month ?m_raw.
         BIND(concat("-",IF(xsd:integer(?m_raw) < 10, CONCAT("0", ?m_raw), ?m_raw)) AS ?month)
+        BIND(vivo:yearMonthPrecision AS ?month_precision)
         OPTIONAL {
           ?date :day ?d_raw.
           BIND(concat("-",IF(xsd:integer(?d_raw) < 10, CONCAT("0", ?d_raw), ?d_raw)) AS ?day)
+          BIND(vivo:yearMonthDayPrecision AS ?day_precision)
         }
       }
       BIND(CONCAT(?year, COALESCE(?month, ""), COALESCE(?day, "")) AS ?field_datestr)
+      BIND('duration' as ?duration)
+      BIND(?field_name as ?interval_name)
+      BIND(coalesce(?day_precision,?month_precision,?year_precision) as ?precision)
     }
-
   }
   # EXPERTS ids
-  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/relationship/"))) as ?grantee)
-  bind(uri(replace(str(?g),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/grant/"))) as ?grant)
-  bind(uri(concat(str(person:),md5(?username))) as ?expert)
+  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grantee)
+  bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
+    bind(uri(concat(str(person:),md5(?username))) as ?expert)
+  bind(uri(concat(str(?grant),'#',?duration)) as ?interval)
+  bind(uri(concat(str(?grant),'#',?interval_name)) as ?field_date)
 }
