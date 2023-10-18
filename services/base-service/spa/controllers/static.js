@@ -13,6 +13,7 @@ module.exports = async (app) => {
   app.all('/', (req, res, next) => {
     let user = req.get('x-fin-user');
     console.log('----------------------------------------------------------- user', user);
+    console.log('typeof user', typeof user);
     console.log('!user', !user);
     console.log('!user[\'preferred_username\']', !user['preferred_username']);
     if( !user || !user['preferred_username'] ) {
