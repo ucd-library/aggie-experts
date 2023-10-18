@@ -12,6 +12,7 @@ module.exports = async (app) => {
   // make sure we are logged in
   app.all('/', (req, res, next) => {
     let user = req.get('x-fin-user');
+    console.log('----------------------------------------------------------- user', user);
     if( !user || !user['preferred_username'] ) {
       res.sendFile(assetsDir + '/login.html');
       return;
