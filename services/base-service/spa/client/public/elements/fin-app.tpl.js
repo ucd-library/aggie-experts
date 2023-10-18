@@ -32,7 +32,7 @@ return html`
     prevent-fixed>
 
     <ucd-theme-primary-nav>
-      <!-- <a href="/person">Experts</a> -->
+      <a href="/browse/person">Experts</a>
       <!-- <a href="/subject">Subjects</a> -->
       <!-- <a href="/work">Works</a> -->
       <!-- <a href="/grant">Grants</a> -->
@@ -40,7 +40,7 @@ return html`
 
     <ucd-theme-search-popup>
       <ucd-theme-search-form
-        @search="${e => console.log(e.detail.searchTerm)}">
+        @search="${this._onSearch}">
       </ucd-theme-search-form>
     </ucd-theme-search-popup>
 
@@ -77,6 +77,7 @@ return html`
         </div>
       </div>
       <app-home id="home"></app-home>
+      <app-browse id="browse"></app-browse>
       <!-- <app-work id="work"></app-work> -->
       <app-person id="person" @show-404="${(e) => this.page = '404'}"></app-person>
       <app-person-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-person-works-list>
