@@ -94,45 +94,41 @@ async function main(opt) {
 
   const users = program.args;
 
-  var uquery = 'users?detail=ref&per-page=1000';
-  var sinceFilter = '';
+  if (opt.fetch) {
+    // Step 1: Get Usernames from CDL using any cmd line args if no users specified
+    if (users.length === 0 && opt.cdl.groups) {
+      var uquery = `users?detail=ref&per-page=1000&groups=${opt.cdl.groups}`;
+      var sinceFilter = '';
 
-  // Step 1: Get Usernames from CDL using any cmd line args if no users specified
-  if (users.length === 0) {
+      if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
+        // We need the date in XML ISO format
+        var date = new Date();
+        date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
+        sinceFilter = '&affected-since=' + date.toISOString();
+        uquery += sinceFilter;
+      }
+      else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
+        // We need the date in XML ISO format
+        var date = new Date();
+        date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
+        sinceFilter = '&modified-since=' + date.toISOString();
+        uquery += sinceFilter;
+      }
+      console.log('uquery', uquery);
 
-    if (opt.cdl.groups) {
-      uquery += '&groups=' + opt.cdl.groups;
+      // Get the users from CDL that meet the criteria
+      const entries = await ec.getCDLentries(opt, uquery);
+
+      // Add them to the users array
+      for (let entry of entries) {
+        entry = entry['api:object'];
+        users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
+      }
+
+      console.log(users.join(' '));
+      console.log(users.length + ' users found');
     }
-
-    if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
-      // We need the date in XML ISO format
-      var date = new Date();
-      date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
-      sinceFilter = '&affected-since=' + date.toISOString();
-      uquery += sinceFilter;
-    }
-    else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
-      // We need the date in XML ISO format
-      var date = new Date();
-      date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
-      sinceFilter = '&modified-since=' + date.toISOString();
-      uquery += sinceFilter;
-    }
-    console.log('uquery', uquery);
-
-    // Get the users from CDL that meet the criteria
-    const entries = await ec.getCDLentries(opt, uquery);
-
-    // Add them to the users array
-    for (let entry of entries) {
-      entry = entry['api:object'];
-      users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
-    }
-
-    console.log(users.join(' '));
-    console.log(users.length + ' users found');
   }
-
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
 
@@ -145,42 +141,47 @@ async function main(opt) {
       opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
     } else if (opt.fuseki.db) {
       opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
+      ec.authFuseki(opt);
+    } else {
+      throw new Error('No Fuseki db specified');
     }
 
-    console.log('starting getCDLprofile ' + user);
+    if (opt.fetch) {
+      console.log('starting getCDLprofile ' + user);
 
-    // Get a full profile for the user
-    const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
-    // Assume a single entry for a user profile, but it's an array
-    ec.profile = entries;
+      // Get a full profile for the user
+      const entries = await ec.getCDLentries(opt, 'users?username=' + user + '@ucdavis.edu&detail=full');
+      // Assume a single entry for a user profile, but it's an array
+      ec.profile = entries;
 
-    let cdlId = entries[0]["api:object"].id;
+      let cdlId = entries[0]["api:object"].id;
 
-    console.log('starting createJsonLd ' + user + '-' + cdlId);
+      console.log('starting createJsonLd ' + user + '-' + cdlId);
 
-    // Create the JSON-LD for the user profile
-    var relationshipsContext = JSON.stringify(context);
-    let contextObj = context;
+      // Create the JSON-LD for the user profile
+      var relationshipsContext = JSON.stringify(context);
+      let contextObj = context;
 
-    contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-    contextObj["@graph"] = ec.profile;
+      contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
+      contextObj["@graph"] = ec.profile;
 
-    let jsonld = JSON.stringify(contextObj);
-    console.log('starting createGraph ' + user);
+      let jsonld = JSON.stringify(contextObj);
+      console.log('starting createGraph ' + user);
 
-    // Insert into our local Fuseki
-    await ec.createGraphFromJsonLdFile(jsonld, opt);
+      // Insert into our local Fuseki
+      await ec.createGraphFromJsonLdFile(jsonld, opt);
 
-    console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
-    console.log('starting getCDLentries ' + user + '-' + cdlId);
+      console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+      console.log('starting getCDLentries ' + user + '-' + cdlId);
 
-    // Step 3: Get User Relationships from CDL
+      // Step 3: Get User Relationships from CDL
 
-    // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
-    await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
+      // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
+      await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
 
-    // Step 3a: Get User Grants from CDL (qa-oapolicy only)
-    await temp_get_qa_grants(opt,user,cdlId,context,ec);
+      // Step 3a: Get User Grants from CDL (qa-oapolicy only)
+      await temp_get_qa_grants(opt,user,cdlId,context,ec);
+    }
 
     if (!opt.nosplay) {
       console.log('splay')
@@ -191,7 +192,7 @@ async function main(opt) {
 
       await ec.insert({ ...opt, ...iam });
 
-      for (const n of ['person', 'work', 'authorship']) {
+      for (const n of ['person', 'work', 'authorship', 'grantee']) {
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
@@ -233,6 +234,7 @@ program.name('cdl-profile')
   .option('--save-tmp', 'Do not remove temporary file', false)
   .option('--environment <env>', 'specify environment', 'production')
   .option('--nosplay', 'skip splay', false)
+  .option('--no-fetch', 'fetch the data', false)
 
 
 program.parse(process.argv);

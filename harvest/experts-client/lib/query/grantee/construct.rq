@@ -13,7 +13,7 @@ construct {
   ?grantee a ucdlib:Grantee, ?role, ?vivo_role;
            ucdlib:favorite ?favorite;
            ucdlib:is-visible ?visible;
-#           ucdlib:type_id ?type_id;
+#           ucdlib:type_id ?tid;
 #           ucdlib:type ?type;
            vivo:relates ?expert,?work;
            vivo:rank ?user_rank;
@@ -50,7 +50,7 @@ WHERE {
     ?RELATIONSHIP__
     :is-visible ?visible_str;
     :type ?type;
-    :type-id ?type_id;
+    :type-id ?tid;
     :related ?g;
     :related ?user;
     .
@@ -61,7 +61,7 @@ WHERE {
     }
 
     OPTIONAL {
-           VALUES (?role ?type_id ?vivo_role ) {
+           VALUES (?role ?tid ?vivo_role ) {
 #       (:GrantOtherRole "138" "Researcher on" )
 #       (:GrantProjectLeaderRole "118" "Project Lead of")
        (kfs:GrantCoPrincipalInvestigatorRole "116" vivo:CoPrincipalInvestigatorRole)
@@ -152,12 +152,12 @@ WHERE {
         (kfs:GrantTypeService "Service / Other" )
         (kfs:GrantTypeScholarship "Scholarships / Fellowships" )
         (kfs:GrantTypeStudentService "Student Services" )
-
-        ?field :name "funding-type";
+      }
+      ?field :name "funding-type";
              :type "text";
              :text ?funding_type_label;
              .
-      }
+    }
 
     # Funder name is a special case
     OPTIONAL {
