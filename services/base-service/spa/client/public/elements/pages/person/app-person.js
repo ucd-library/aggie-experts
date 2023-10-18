@@ -212,7 +212,7 @@ export default class AppPerson extends Mixin(LitElement)
 
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'data.txt');
+    link.setAttribute('download', 'works.ris');
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();

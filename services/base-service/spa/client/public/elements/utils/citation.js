@@ -1,4 +1,5 @@
 import Cite from 'citation-js';
+import { parse } from '@citation-js/date';
 
 class Citation {
   /**
@@ -19,18 +20,23 @@ class Citation {
           template: 'apa',
           lang: 'en-US'
         });
-
         citation.data[0].title = originalTitle;
+
+        // ris format expects date-parts structure
+        let originalIssued = citation.data[0].issued;
+        citation.data[0].issued = parse(originalIssued);
+
         let ris = citation.format('ris', {
           format: 'html',
           template: 'apa',
           lang: 'en-US'
         });
+        citation.data[0].issued = originalIssued.split('-');
 
         resolve({
           ...citation.data[0],
           apa,
-          ris
+          ris,
         });
       })
     });
@@ -47,7 +53,6 @@ class Citation {
   async generateCitations(citations) {
     let citationResults = await Promise.allSettled(
       citations.map((cite, index) => {
-        cite.issued = cite.issued.split('-');
         // explicitly remove troublemakers
         ["status","medium"].forEach(key => {
           delete cite[key];
