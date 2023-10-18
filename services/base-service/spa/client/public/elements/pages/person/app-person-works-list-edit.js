@@ -267,9 +267,11 @@ export default class AppPersonWorksListEdit extends Mixin(LitElement)
     let url = URL.createObjectURL(blob);
     console.log('url', url)
 
+    console.log('downloads', downloads);
+
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'data.txt');
+    link.setAttribute('download', 'works.ris');
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
