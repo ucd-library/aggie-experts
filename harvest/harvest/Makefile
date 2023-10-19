@@ -132,7 +132,8 @@ endef
 
 sqlcl:=sqlcl -S "$(call fis_login)"
 
-interactive:	sqlcl "$(call fis_login)"
+interactive:
+	${sqlcl}
 
 clean::                  # Remove all generated files
 	rm contributors.csv  fin_coa.csv  funding_agencies.csv  grants.csv  organizations.csv
