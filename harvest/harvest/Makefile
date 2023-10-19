@@ -166,9 +166,9 @@ ${grants.tdb2}:${grants.ttl} ${const_jsonld} fis/aggie_enterprise_imports.ttl
 	mkdir -p ${grants.tdb2};
 	tdb2.tdbloader --loc=${grants.tdb2} ${const_jsonld}
 	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl} fis/aggie_enterprise_imports.ttl
-	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/archive.ru
-	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/amount0.ru
-	tdb2.tdbupdate --loc=${grants.tdb2} --query=${mkfile_path}/grants/ru/too_late.ru
+	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/archive.ru
+	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/amount0.ru
+	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/too_late.ru
 	touch ${grants.tdb2}
 
 grants.json.gz:${grants.tdb2}
