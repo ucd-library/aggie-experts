@@ -247,7 +247,7 @@ class BaseModel extends FinEsDataModel {
 
     const options = {
       id: (opts.id)?opts.id:"default",
-      index: "person-read",
+      index: "expert-read",
       params
     }
     // Check if template exists, install if not

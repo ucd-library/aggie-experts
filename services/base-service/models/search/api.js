@@ -10,7 +10,7 @@ router.get('/render', async (req, res) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
-    index: "person-read",
+    index: "expert-read",
     id: "default",
     params
   };
@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
-    index: "person-read",
+    index: "expert-read",
     id: "default",
     params
   };
