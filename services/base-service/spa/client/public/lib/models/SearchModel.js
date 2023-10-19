@@ -20,7 +20,7 @@ class SearchModel extends BaseModel {
    * @param {Number} page page number, defaults to 1
    * @param {Number} size number of results per page, defaults to 10
    *
-   * @returns {Promise} resolves to person
+   * @returns {Promise} resolves to expert
    */
   async search(searchTerm, page=1, size=10) {
     let state = this.store.search(searchTerm, page, size);
