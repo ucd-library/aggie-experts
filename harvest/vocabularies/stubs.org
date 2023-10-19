@@ -11,18 +11,18 @@ We create a stub grants hdt file if the grants data doesn't exist.
 
 #+name: grants
 #+BEGIN_SRC sparql :no-tangle :format raw :wrap "SRC ttl :tangle grant_stub.ttl"
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
   construct {
-  [] ucdrp:graph <http://experts.ucdavis.edu/FIS/>.
+  [] ucdlib:graph <http://experts.ucdavis.edu/FIS/>.
   }
   WHERE {}
 #+END_SRC
 
 #+RESULTS: grants
 #+begin_SRC ttl :tangle grant_stub.ttl
-@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix ucdlib: <http://experts.ucdavis.edu/schema#> .
 
-[ ucdrp:graph  <http://experts.ucdavis.edu/fis/> ]
+[ ucdlib:graph  <http://experts.ucdavis.edu/fis/> ]
  .
 #+end_SRC
 

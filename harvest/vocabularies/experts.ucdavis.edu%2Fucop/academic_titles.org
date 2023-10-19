@@ -147,7 +147,7 @@ position that is ~isFaculty~
 PREFIX fuseki: <http://jena.apache.org/fuseki#>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX position: <http://experts.ucdavis.edu/position/>
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 select ?title ?facultyFalse ?facultyTrue ?label ?cto WHERE {
 {
   select ?title (count(*) as ?facultyTrue) WHERE {
@@ -177,7 +177,7 @@ select ?title ?facultyFalse ?facultyTrue ?label ?cto WHERE {
   SERVICE <http://fuseki:3030/vocabularies/query> {
     graph ?g {
       ?title rdfs:label ?label ;
-             ucdrp:cto ?cto;
+             ucdlib:cto ?cto;
             .
     }
     }}

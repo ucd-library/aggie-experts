@@ -10,7 +10,7 @@ insert { graph iam: { ?s ?p ?o. ?o vcard:title ?title } } where {
   SERVICE ?EXPERTS_SERVICE__ {
     bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
     graph iam: {
-      ?user a ucdlib:Person . ?s ?p ?o.
+      ?user a ucdlib:Expert . ?s ?p ?o.
       optional { ?o vcard:title ?title }
       filter(regex(str(?s),concat('^',str(?user),'#?')))
     }

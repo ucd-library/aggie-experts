@@ -79,16 +79,16 @@ vivo:ResearcherRole 21561
 ``` sparql
 # This is now in the contributors section
   ?grant vivo:relates ?pi_role.
-	?pi_role a vivo:PrincipalInvestigatorRole, ucdrp:GrantPrincipalInvestigatorRole;
+	?pi_role a vivo:PrincipalInvestigatorRole, ucdlib:GrantPrincipalInvestigatorRole;
 		        vivo:relatedBy ?grant;
 	        obo:RO_0000052 ?person;
-         ucdrp:role_person_name ?person_nm;
+         ucdlib:role_person_name ?person_nm;
          rdfs:label ?person_nm;
        .
 
   ?person vivo:relatedBy ?grant;
 	        obo:RO_0000053 ?pi_role;
-         ucdrp:casId ?prncpl_nm;
+         ucdlib:casId ?prncpl_nm;
          .
 
 # Then in the where clause

@@ -37,11 +37,11 @@
    #+begin_src json
      {
          "@context":"https://schema.library.ucdavis.edu/context/experts.json",
-         "_id":"person/quinn",
-         "@id":"http://experts.ucdavis.edu/person/quinn",
+         "_id":"expert/quinn",
+         "@id":"http://experts.ucdavis.edu/expert/quinn",
          "@graph":[
-             { "@id":"http://experts.ucdavis.edu/person/quinn",
-               "@type":["Person", "Non-acedemic"],
+             { "@id":"http://experts.ucdavis.edu/expert/quinn",
+               "@type":["Expert", "Non-acedemic"],
                "identifiers" : [ "https://orcid.org/XXX" ],
                "contactInfo": {
                    "name" : {"family-name": "Hart"
@@ -66,14 +66,14 @@
    #+end_src
 
    The node in the graph that shares the "@id" with the document we call the
-   root node.  Root nodes can be of ~@type~, ~Person~, ~Work~, ~Grant~, and
+   root node.  Root nodes can be of ~@type~, ~Expert~, ~Work~, ~Grant~, and
    ~Relationship~.  ~Relationships~ are documents in the index, but not often
    surfaced to a user, although they are combined with other nodes in other
    documents.
 
    Root nodes are the JSON-LD representation of the corresponding LDP node for
    that particular type.  Other nodes are added to the document on LDP events.
-   For example, in the above example, the original ~Person~ document, was
+   For example, in the above example, the original ~Expert~ document, was
    decorated with a node corresponding to one ~Work~ and one ~Grant~ that were
    also added to the system, and connected to the user via ~Relationships~.
 
@@ -107,7 +107,7 @@
 
   ~ark:/87287/d7mh2m~ arks are for UC Davis CDL Elements; and the suffix scheme
   to identify CDL components, uses the standard API endpoints for inspiration on
-  the names.  For example, although we identify a person, the elements API uses
+  the names.  For example, although we identify a expert, the elements API uses
   the term ~user~.  So the CDL specific identifier for Quinn Hart will be
   ~ark:/87287/d7mh2m/user/42956~.
 
@@ -119,12 +119,12 @@
 
 *** Types
 
-    The ~@types~: ~Person~, ~Work~, ~Grant~, and ~Relationship~ are the main
+    The ~@types~: ~Expert~, ~Work~, ~Grant~, and ~Relationship~ are the main
     types. ~Relationships~ are further broken down.
 
 *** JSON-LD
 
-    Nodes can describe persons, works, or grants.  Some of the properties
+    Nodes can describe experts, works, or grants.  Some of the properties
     overlap, and others are only used by a single type.  The context creates
     properties without prefixes.  Properties also identify whether they are a
     URN, or a literal, and their ~xsd:type~, as well where appropriate.
@@ -159,23 +159,23 @@
                "@omitDefault":true,
                "@default":"@null" },
            "@embed": "@always",
-           "@type": ["Person","Work","Grant","Relationship","Authorship"]
+           "@type": ["Expert","Work","Grant","Relationship","Authorship"]
        }
      #+end_src
 
 ** Specfic Types
-*** Person
+*** Expert
 
 **** Identifiers
 
-  Expected identifiers for person include:
+  Expected identifiers for expert include:
 
   *eduroam* - In Aggie Experts, we use one-direction hash function of a users'
   eduroam identifier as our default identifier.  This allows agents that know a
   users' eduroam identifier to discover the user, but does not show a users
   eduroam identifier.  At UCDavis, users' eduroam identifiers are their userID
   (or casID) suffixed with ~@ucdavis.edu~.  Notionally, a user is identified as
-  ~"http://experts.ucdavis.edu/person/" + md5(userId + "@ucdavis.edu")~
+  ~"http://experts.ucdavis.edu/expert/" + md5(userId + "@ucdavis.edu")~
 
   *ORCID* - We use the standard URI for this, eg:
   `https://orcid.org/0000-0001-9829-8914` Note that ORCID uses https: as their
@@ -208,16 +208,16 @@
   #+begin_src json
     {
   "@context" : "http://schema.library.ucdavis.edu/context/aggie_experts.json",
-  "_id" : "person/66356b7eec24c51f01e757af2b27ebb8",
-  "@id" : "person/66356b7eec24c51f01e757af2b27ebb8",
+  "_id" : "expert/66356b7eec24c51f01e757af2b27ebb8",
+  "@id" : "expert/66356b7eec24c51f01e757af2b27ebb8",
   "@graph":[
   {
-    "@id" : "person/66356b7eec24c51f01e757af2b27ebb8",
+    "@id" : "expert/66356b7eec24c51f01e757af2b27ebb8",
     "identifier": [
        "https://orcid.org/0000-0001-9829-8914",
        "ark:/87287/d7mh2m/user/42956",
        "email:qjhart@ucdavis.edu",
-       "http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8"
+       "http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8"
     ]
   }]
   }
@@ -283,8 +283,8 @@
    records are added to the system.  Events include; insertions, updates, and
    deletions.  In addition, the generation of the documents is not sensitive to
    the order in which records are added to the LDP.  For example, it does not
-   matter the order of adding a person, relationship and work to the system.
-   When all three are added, the Person's record will include reference to the
+   matter the order of adding a expert, relationship and work to the system.
+   When all three are added, the Expert's record will include reference to the
    authored work, and the Work record will include
 
 *** Helpful endpoints
@@ -297,10 +297,10 @@
 
       The transform service provides access to the root node for any valid type
       with in the Aggie Experts system.  For example
-      [[http://localhost/fcrepo/rest/person/66356b7eec24c51f01e757af2b27ebb8/svc:node][/person/66356b7eec24c51f01e757af2b27ebb8/svc:node]] responds with the root
+      [[http://localhost/fcrepo/rest/expert/66356b7eec24c51f01e757af2b27ebb8/svc:node][/expert/66356b7eec24c51f01e757af2b27ebb8/svc:node]] responds with the root
       node for Quinn Hart.  These nodes are the direct transform of the LDP node
       corresponding to the
-      http://localhost/fcrepo/rest/person/66356b7eec24c51f01e757af2b27ebb8
+      http://localhost/fcrepo/rest/expert/66356b7eec24c51f01e757af2b27ebb8
       location.
 
 
@@ -309,11 +309,11 @@
       The API endpoint provides access to the complete elastic search records.
       Elastic search documents include the root node, as well as nodes that are
       added when supporting documents are added to the LDP. For example,
-      [[http://localhost/api/experts/person/66356b7eec24c51f01e757af2b27ebb8][/api/experts/person/66356b7eec24c51f01e757af2b27ebb8]] provides access to a
+      [[http://localhost/api/experts/expert/66356b7eec24c51f01e757af2b27ebb8][/api/experts/expert/66356b7eec24c51f01e757af2b27ebb8]] provides access to a
       complete record for qjhart@ucdavis.edu
 
 
       #+begin_src bash
-        doc=http://localhost/api/experts/person/66356b7eec24c51f01e757af2b27ebb8
+        doc=http://localhost/api/experts/expert/66356b7eec24c51f01e757af2b27ebb8
         http $doc | jq '._source["@graph"][]["@id"]'
       #+end_src

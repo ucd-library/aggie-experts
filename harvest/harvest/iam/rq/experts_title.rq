@@ -5,23 +5,23 @@
 #  data as well.
 
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
-  ?user a ?emp_type, ucdrp:person;
+  ?user a ?emp_type, ucdlib:Expert;
           rdfs:label ?label;
-          ucdrp:casId ?kerb;
-          ucdrp:employeeId ?employeeId;
+          ucdlib:casId ?kerb;
+          ucdlib:employeeId ?employeeId;
           vcard:hasName ?vcard_name;
   .
 
@@ -66,7 +66,7 @@ CONSTRUCT {
     bind(coalesce(?better_mlabel,concat(?fname," ",?lname)) as ?label)
 
     bind(md5(?kerb) as ?user_id)
-    bind(uri(concat(str(person:),?user_id)) as ?user)
+    bind(uri(concat(str(expert:),?user_id)) as ?user)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
 
     bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)

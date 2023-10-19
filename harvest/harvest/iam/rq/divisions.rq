@@ -3,12 +3,12 @@ PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX iam:   <http://iam.ucdavis.edu/schema#>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 
 CONSTRUCT {
-	?iam_org a foaf:Organization,vivo:Division,ucdrp:organization;
+	?iam_org a foaf:Organization,vivo:Division,ucdlib:Organization;
           rdfs:label ?name;
           vivo:abbreviation ?abbrev;
           .

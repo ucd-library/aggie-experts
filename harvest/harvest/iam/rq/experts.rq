@@ -2,7 +2,7 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX schema: <http://schema.org/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -11,7 +11,7 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
-  ?user a ?emp_type,ucdlib:Person;
+  ?user a ?emp_type,ucdlib:Expert;
         rdfs:label ?label;
         schema:identifier ?user_identifier,?aggie_ark;
         ucdlib:userId ?kerb;
@@ -85,8 +85,8 @@ WHERE {
 
     bind(concat(?kerb,"@ucdavis.edu") as ?username)
     bind(md5(?username) as ?user_id)
-    bind(concat('person/',?user_id) as ?user_identifier)
-    bind(uri(concat(str(person:),?user_id)) as ?user)
+    bind(concat('expert/',?user_id) as ?user_identifier)
+    bind(uri(concat(str(expert:),?user_id)) as ?user)
     bind(concat('ark:/87287/d7c08j/',md5(concat('employeeId/',?employee_id))) as ?aggie_ark)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
     bind(uri(concat(str(?user),"#name")) as ?vcard_name)

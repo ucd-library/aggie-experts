@@ -20,7 +20,7 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX position: <http://experts.ucdavis.edu/position/>
-PREFIX ucdrp:   <http://experts.ucdavis.edu/schema#>
+PREFIX ucdlib:   <http://schema.library.ucdavis.edu/schema#>
 PREFIX vivo:  <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 #+END_SRC
@@ -140,16 +140,16 @@ issues with other agencies.
           skos:inScheme position: ;
           .
 
-        position:CTO a skos:Concept, ucdrp:CTO;
+        position:CTO a skos:Concept, ucdlib:CTO;
             rdfs:label "Class Title Outline";
           skos:prefLabel "Class Title Outline";
           skos:inScheme position: ;
           .
 
-        ?id a skos:Concept, vivo:Position, ucdrp:position, ucdrp:Academic;
+        ?id a skos:Concept, vivo:Position, ucdlib:Position, ucdlib:Academic;
           rdfs:label ?title;
-          ucdrp:identifier ?sys_loc;
-          ucdrp:cto ?cto_id;
+          ucdlib:identifier ?sys_loc;
+          ucdlib:cto ?cto_id;
           skos:prefLabel ?title;
           skos:broader ?cto_id;
           skos:broader ?senate_id;
@@ -184,7 +184,7 @@ issues with other agencies.
         bind(URI(concat(str(position:),"CTO",?cto)) as ?cto_id)
         bind(URI(concat(str(position:),?code6)) as ?id)
         bind(URI(concat(str(position:),'Academic')) as ?academic_id)
-        bind(URI(concat(str(ucdrp:),?system_local)) as ?sys_loc)
+        bind(URI(concat(str(ucdlib:),?system_local)) as ?sys_loc)
 
   }
 #+END_SRC

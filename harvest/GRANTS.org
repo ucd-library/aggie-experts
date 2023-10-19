@@ -34,7 +34,7 @@ Running on the command-line.
       {
       SERVICE <http://fuseki:3030/vocabularies/query> {
         VALUES (?broader ?broader_label) { (position:Senate "SEN") (position:Federation "FED") }
-      ?position a ucdrp:position;
+      ?position a ucdlib:Position;
                rdfs:label ?position_label;
                 skos:broader ?broader;
                 .
@@ -44,7 +44,7 @@ Running on the command-line.
              vivo:relates ?pi_role;
              vivo:relates ?role;
   #           vivo:relates <http://experts.ucdavis.edu/organization/024020>;
-             ucdrp:grantType ?grant_type;
+             ucdlib:grantType ?grant_type;
              .
 
       ?pi_role a vivo:PrincipalInvestigatorRole;
@@ -52,34 +52,34 @@ Running on the command-line.
             .
 
       ?pi rdfs:label ?pi_label;
-          ucdrp:casId ?pi_cas;
+          ucdlib:casId ?pi_cas;
           .
 
       OPTIONAL {
         ?pi  obo:ARG_2000028/vcard:hasTitle/vcard:title ?pi_title;
       }
 
-      bind(ucdrp:GrantKeyPersonnelRole as ?role_type)
+      bind(ucdlib:GrantKeyPersonnelRole as ?role_type)
       ?role a ?role_type;
             obo:RO_0000052 ?user;
             .
       ?role_type rdfs:label ?role_name.
 
-      ?user a ucdrp:person;
-            ucdrp:casId ?cas;
+      ?user a ucdlib:Expert;
+            ucdlib:casId ?cas;
             obo:ARG_2000028 ?pps_eng;
             obo:ARG_2000028 ?pps_senate_or_federation;
             .
 
-          ?pps_eng vcard:hasOrganizationalUnit/ucdrp:apptBouOrgoid harvest_iam:F80B657C9EFC23A0E0340003BA8A560D ;
+          ?pps_eng vcard:hasOrganizationalUnit/ucdlib:apptBouOrgoid harvest_iam:F80B657C9EFC23A0E0340003BA8A560D ;
           .
 
-      ?pps_senate_or_federation vcard:hasTitle/ucdrp:titleCode ?title_code;
+      ?pps_senate_or_federation vcard:hasTitle/ucdlib:titleCode ?title_code;
                  .
       bind(uri(concat(str(position:),?title_code)) as ?pps_position)
-      bind(replace(str(?grant_type),str(ucdrp:GrantType),"") as ?grant_type_label)
+      bind(replace(str(?grant_type),str(ucdlib:GrantType),"") as ?grant_type_label)
       filter(?pps_position=?position)
       filter(?pi != ?user)
-      filter(regex(str(?role_type),str(ucdrp:)))
+      filter(regex(str(?role_type),str(ucdlib:)))
     }} group by ?grant ?pi_cas ?cas limit 100
 #+end_src
