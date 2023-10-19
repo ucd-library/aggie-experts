@@ -83,13 +83,12 @@ export class ExpertsClient {
   }
 
   /**
-   * This could easily be joined w/ createDataset, and called mkDb and we only specify temp id if we done't have a name
+   * @method authFuseki
+   * @description Authenticate to Fuseki server.  Sets authBasic property.
+   * @param {object} opt - Options object
    **/
-  async mkFusekiTmpDb(opt, files) {
-    const fuseki = opt.fuseki;
-    if (!fuseki.url) {
-      throw new Error('No Fuseki url specified');
-    }
+  authFuseki(opt) {
+    const fuseki=opt.fuseki;
     if (!fuseki.auth) {
       throw new Error('No Fuseki auth specified');
     }
@@ -100,6 +99,17 @@ export class ExpertsClient {
     } else {
       fuseki.authBasic = fuseki.auth;
     }
+  }
+
+  /**
+   * This could easily be joined w/ createDataset, and called mkDb and we only specify temp id if we done't have a name
+   **/
+  async mkFusekiTmpDb(opt, files) {
+    const fuseki = opt.fuseki;
+    if (!fuseki.url) {
+      throw new Error('No Fuseki url specified');
+    }
+    authFuseki(opt);
     if (!fuseki.db) {
       fuseki.db = nanoid(5);
       fuseki.isTmp = true;
@@ -481,7 +491,7 @@ export class ExpertsClient {
     const cdl = opt.cdl;
     var lastPage = false
     var results, entries = [];
-    var nextPage = path.join(cdl.url, query)
+    var nextPage = `${cdl.url}/${query}`
     var count = 0;
 
     if (cdl.auth.match(':')) {
@@ -539,6 +549,8 @@ export class ExpertsClient {
 
           let jsonld = JSON.stringify(contextObj);
           console.log('posting relationships of ' + cdlId);
+
+          fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
 
           // Insert into our local Fuseki
           await this.createGraphFromJsonLdFile(jsonld, opt);

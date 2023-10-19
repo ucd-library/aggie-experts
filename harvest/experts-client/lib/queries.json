@@ -49,6 +49,12 @@
       "bind@" : "authorship/bind.rq"
     },
     {
+      "@id":"grantee",
+      "@type":"SplayQuery",
+      "construct@" : "grantee/construct.rq",
+      "bind@" : "grantee/bind.rq"
+    },
+    {
       "@id":"expert",
       "@type":"SplayQuery",
       "construct@" : "expert/construct.rq",
