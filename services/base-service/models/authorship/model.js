@@ -58,19 +58,16 @@ class AuthorshipModel extends BaseModel {
         }
         have_part['Expert'] = {id:relates,node:related };
       } catch (e) {
-        try {
-          // Is this included Work?
-          let related = workModel.get_expected_model_node(transformed);
-          let type = this.experts_node_type(related);
-          if (relates !== related[0])
-            throw new Error(`AuthorshipModel.update(${relates} not included in doc`);
-          if (type !== 'Work') {
-            throw new Error(`AuthorshipModel.update(${relates} is not a Work`);
-          }
-          have_part['Work'] = {id:relates,node:related };
-        } catch(e) {
-          logger.warn(`AuthorshipModel.update(${relates} is not a Expert or Work`);
+        // Is this included Work?
+        let related = workModel.get_expected_model_node(transformed);
+        let type = this.experts_node_type(related);
+        if (relates !== related['@id']) {
+          throw new Error(`AuthorshipModel.update(${relates} not included in doc`);
         }
+        if (type !== 'Work') {
+          throw new Error(`AuthorshipModel.update(${relates} is not a Work`);
+        }
+        have_part['Work'] = {id:relates,node:related };
       }
       if (have_part.Expert && have_part.Work) {
         // Add Work as snippet to Expert

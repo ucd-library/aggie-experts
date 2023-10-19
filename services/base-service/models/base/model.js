@@ -60,6 +60,7 @@ class BaseModel extends FinEsDataModel {
     for(let i=0; i<doc['@graph'].length; i++) {
       let node = doc['@graph'][i];
       let types= node["@type"];
+      if (typeof types === 'string') types = [types];
       types = types.filter(x => want_types.includes(x));
       if (types.length > 0) {
         nodes.push(node);
@@ -106,7 +107,7 @@ class BaseModel extends FinEsDataModel {
    * @param {String} node
    */
   experts_node_type(node) {
-    const Types = ['Person','Work','Grant','Grantee','Authorship'];
+    const Types = ['Expert','Work','Grant','Grantee','Authorship'];
     let types;
     // Look for valid type in index
     types=node['@type'];
@@ -462,7 +463,7 @@ class BaseModel extends FinEsDataModel {
   async update_or_create_main_node_doc(doc) {
     // ensure the document exists
     const roles = await this.getAccessRoles(doc);
-    console.log(`update_or_create_main_node_doc: document ${doc['@id']}, @graph.length=${doc['@graph'].length}`);
+    //console.log(`update_or_create_main_node_doc: document ${doc['@id']}, @graph.length=${doc['@graph'].length}`);
     if (doc['@graph'].length != 1) {
       throw new Error(`update_or_create_main_node_doc: document ${doc['@id']}, @graph.length=${doc['@graph'].length} != 1`);
     }
