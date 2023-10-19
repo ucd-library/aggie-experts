@@ -69,10 +69,10 @@ class WorkModel extends BaseModel {
       }
       const expert_id=relates[0];
       let expert=await expertModel.client_get(expert_id);
-      expert=this.get_expected_model_node(expert);
+      expert=expertModel.get_expected_model_node(expert);
       const author = {
         ...expertModel.snippet(expert),
-        ...relationshipModel.snippet(authorship),
+        ...authorshipModel.snippet(authorship),
         '@type': 'Author'
       };
       delete author.relates;
