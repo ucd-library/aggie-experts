@@ -1,5 +1,5 @@
 {
-  "id":"default",
+  "id": "default",
   "script": {
     "lang": "mustache",
     "source": {
@@ -39,16 +39,31 @@
               "@graph.title",
               "@graph.issued",
               "@graph.container-title",
-              "@graph.type"
+              "@graph.type",
+              "@graph.ISSN",
+              "@graph.abstract",
+              "@graph.genre",
+              "@graph.issued",
+              "@graph.status",
+              "@graph.rank",
+              "@graph.ISBN",
+              "@graph.volume",
+              "@graph.page"
             ]
           },
           "score_mode": "sum"
         }
       },
       "_source": [
-        "@id","@type","name",
+        "@id",
+        "@type",
+        "name",
         "contactInfo",
-        "title","issued","container-title","type","DOI"
+        "title",
+        "issued",
+        "container-title",
+        "type",
+        "DOI"
       ],
       "sort": [
         "_score"
