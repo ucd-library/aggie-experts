@@ -39,7 +39,18 @@
               "@graph.title",
               "@graph.issued",
               "@graph.container-title",
-              "@graph.type"
+              "@graph.type",
+              "@graph.ISSN",
+              "@graph.abstract",
+              "@graph.genre",
+              "@graph.issued",
+              "@graph.status",
+              "@graph['bibo:status']",
+              "@graph.rank",
+              "@graph['ucdlib:is-visible']",
+              "@graph.ISBN",
+              "@graph.volume",
+              "@graph.page"
             ]
           },
           "score_mode": "sum"
