@@ -5,7 +5,7 @@ PREFIX fedora: <http://fedora.info/definitions/v4/repository#>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX schema: <http://schema.org/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -19,7 +19,7 @@ CONSTRUCT {
   ?iam_o vcard:title ?iam_o_title.
 
   # This adds the CDL information
-  ?user a vivo:Person,ucdlib:Expert;
+  ?user a vivo:Expert,ucdlib:Expert;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
                schema:identifier ?oapolicy_ark,?user_id;
@@ -65,10 +65,10 @@ CONSTRUCT {
   ?concept vivo:researchAreaOf ?user.
 }
 WHERE {
-  bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
-  bind(concat('person:',MD5(?USERNAME__)) as ?user_id)
+  bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
+  bind(concat('expert:',MD5(?USERNAME__)) as ?user_id)
   graph <http://iam.ucdavis.edu/> {
-    ?user a ucdlib:Person .
+    ?user a ucdlib:Expert .
     ?iam_s ?iam_p ?iam_o.
     # This is soo hacky,
     OPTIONAL {
@@ -95,7 +95,7 @@ WHERE {
     }
 
 
-    bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
+    bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
     bind(concat(?fn," ",?ln) as ?name)
     bind(uri(concat(str(?user),"#vcard-oap-1")) as ?vcard)
     bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)

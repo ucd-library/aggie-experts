@@ -19,7 +19,7 @@ router.post('/', middleware.finac.esRoles, async (req, res) => {
 });
 
 router.get('/*', middleware.finac.esRoles, async (req, res) => {
-  let id = decodeURIComponent(req.path); // expert/person/1234
+  let id = decodeURIComponent(req.path); // expert/expert/1234
   id=id.replace(/^\//, '');
 
   if( !id ) {

@@ -3,7 +3,7 @@ PREFIX bibo: <http://purl.org/ontology/bibo/>
 prefix cdl: <ark:/87287/d7_cdltest_/>
 prefix experts: <http://experts.ucdavis.edu/>
 prefix oap: <http://oapolicy.universityofcalifornia.edu/>
-prefix person: <http://experts.ucdavis.edu/person/>
+prefix expert: <http://experts.ucdavis.edu/expert/>
 prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 

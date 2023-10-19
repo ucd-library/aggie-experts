@@ -1,4 +1,4 @@
-PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX experts: <http://experts.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
@@ -13,7 +13,7 @@ insert graph fis: {
 WHERE {
   SERVICE ?EXPERTS_SERVICE__ {
     graph fis: {
-      bind(uri(concat(str(person:),MD5(?USERNAME__))) as ?user)
+      bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
       ?grant a vivo:Grant;
              ?p ?o;
              vivo:relates/obo:RO_0000052 ?user;

@@ -56,7 +56,7 @@ async function main(opt) {
     "@context": {
       "@base": "http://experts.ucdavis.edu/",
       "@vocab": "http://vivoweb.org/ontology/core#",
-      "person": "http://experts.ucdavis.edu/person/",
+      "expert": "http://experts.ucdavis.edu/expert/",
       "schema": "http://schema.org/",
       "ucdlib": "http://schema.library.ucdavis.edu/schema#",
       "identifier": { "@id": "schema:identifier" },
@@ -106,28 +106,28 @@ async function main(opt) {
   // const entries = await ec.getCDLusers(opt, uquery, '.[]["api:object"]|{id,"proprietary-id",username}');
   const entries = await ec.getCDLentries(opt, uquery);
 
-  var personArray = [];
+  var expertArray = [];
 
   // if just a user list is requested, output and exit
   if (opt.userList) {
     for (let entry of entries) {
       entry = entry['api:object'];
-      personArray.push(entry['username'].substring(0, entry['username'].indexOf('@')));
+      expertArray.push(entry['username'].substring(0, entry['username'].indexOf('@')));
     }
-    console.log(personArray.join(' '));
+    console.log(expertArray.join(' '));
     return;
   }
 
   // MD5 hash of the user's email address and UCPath ID
   for (let entry of entries) {
     entry = entry['api:object'];
-    let person = {};
-    person['@id'] = 'expert:' + md5(entry['username']);
-    person['proprietary_id'] = entry['proprietary-id'];
-    person['identifiers'] = ["ark:/87287/d7mh2m/user/" + entry['id'],
+    let expert = {};
+    expert['@id'] = 'expert:' + md5(entry['username']);
+    expert['proprietary_id'] = entry['proprietary-id'];
+    expert['identifiers'] = ["ark:/87287/d7mh2m/user/" + entry['id'],
     "ark:/87287/d7c08j/" + md5(entry['proprietary-id']),
     "mailto:" + entry['username']];
-    personArray.push(person);
+    expertArray.push(expert);
   }
 
 
@@ -135,7 +135,7 @@ async function main(opt) {
   let contextObj = context;
 
   contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-  contextObj["@graph"] = personArray;
+  contextObj["@graph"] = expertArray;
 
   let jsonld = JSON.stringify(contextObj);
   console.log('starting createGraph');
