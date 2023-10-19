@@ -35,8 +35,7 @@
         },
         "middle": {
           "@id": "cite:middle"
-        },
-        "XrankX":{"@id":"vivo:rank", "@type":"xsd:integer"}
+        }
       }
     },
     "available-date":{"@id":"cite:available-date"},
@@ -48,9 +47,8 @@
       "@context":{
         "name":{"@id":"schema:name"},
         "url":{"@id":"vcard:url"},
-        "isPreferred":{"@id":"ucdlib:isPreferred"},
-        "XrankX":{"@id":"vivo:rank","@type":"xsd:integer"}
-      }
+        "isPreferred":{"@id":"ucdlib:isPreferred"}
+       }
     },
     "container-title":{"@id":"cite:container-title"},
     "dateTimeInterval": { "@type":"@id",
@@ -97,7 +95,13 @@
         "name":{"@id":"vcard:title"}
       }
     },
-    "hasURL":{"@id":"vcard:hasURL","@type":"@id"},
+    "hasURL":{
+      "@id":"vcard:hasURL",
+      "@type":"@id",
+      "@context":{
+        "name":{"@id":"vcard:title"}
+      }
+    },
     "identifier":{"@id":"schema:identifier"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "is-open-access":{"@id":"ucdlib:is-open-access"},
@@ -117,6 +121,7 @@
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
+    "rank":{"@id":"vivo:rank"},
     "relatedBy":{"@type":"@id",
                  "@id":"vivo:relatedBy"
                 },
@@ -139,7 +144,7 @@
   },
   "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
-  "relates": { "@embed":"@never" },
+  "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
   "@embed": "@always",
-  "@type": ["Person","Work","Grant","Authorship"]
+  "@type": ["Expert","Work","Grant","Authorship"]
 }

@@ -40,7 +40,6 @@ class AuthorshipModel extends BaseModel {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
     logger.info(`AuthorshipModel.update(${doc['@id']})`);
-    console.log(doc);
     await this.update_or_create_main_node_doc(doc);
 
     const have_part={};

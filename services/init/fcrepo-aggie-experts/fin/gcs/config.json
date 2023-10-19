@@ -1,7 +1,7 @@
 {
   "sync" : {
     "containers" : [{
-      "bucket" : "aggie-experts-fcrepo-{{GCS_BUCKET_ENV}}",
+      "bucket" : "{{GCS}}",
       "basePath" : "/",
       "direction" : "gcs-to-fcrepo",
       "initDataHydration" : true

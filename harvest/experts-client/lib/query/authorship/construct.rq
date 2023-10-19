@@ -32,7 +32,7 @@ construct {
         cite:type ?cite_type;
         cite:genre ?cite_genre;
         cite:status ?status;
-        cite:pagination ?pagination;
+        cite:page ?page;
         ?field_predicate ?field_value;
         cite:issued ?pub_datestr;
         cite:date-available ?pub_odatestr;
@@ -178,7 +178,7 @@ WHERE {
       ("number" cite:collection-number)
       ("oa-location-url" cite:url)
       ("online-publication-date" cite:available-date) # EXPANDED below
-      ("pagination" cite:pagination) #EXPANDED below
+      ("pagination" cite:page) #EXPANDED below
       ("parent-title" cite:container-title)
       #("pii" cite:)
       ("place-of-publication" cite:publisher-place)
@@ -288,7 +288,7 @@ WHERE {
       }
     }
     BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
-    BIND(concat(?begin,coalesce(concat('-',?end),'')) AS ?pagination)
+    BIND(concat(?begin,coalesce(concat('-',?end),'')) AS ?page)
 
     # Now we take CDLs preferred term
     OPTIONAL {

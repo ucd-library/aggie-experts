@@ -166,7 +166,7 @@ async function main(opt) {
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
-          // delete splay['frame'];
+          delete splay['frame'];
           return await ec.splay({ ...opt, ...splay });
         })(n);
       };

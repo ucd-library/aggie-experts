@@ -383,6 +383,7 @@ function setup() {
   function env_file() {
     local org="$(G .org // .envs.${G[env]}.org)"
     local tag="$(G .tag // .envs.${G[env]}.tag)"
+    local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
 
     local deploy
     case ${G[env]} in
@@ -406,10 +407,11 @@ function setup() {
 
     gcloud secrets versions access latest --secret="$secret"
 
-    echo "ORG=$org"
-    echo "TAG=$tag"
     echo "FIN_ORG=$(G .fin.org)"
     echo "FIN_TAG=$(G .fin.tag)"
+    echo "ORG=$org"
+    echo "TAG=$tag"
+    echo "GCS=$gcs"
   }
   function service_account() {
   local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:service-account" | jq -r '.[0].name'))
@@ -523,7 +525,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -539,6 +541,7 @@ function main.cmd() {
 	    case $1 in
         --env) CMD[env]=$2; shift 2;;
         --mount) CMD[mount]=$2; shift 2;;
+        --gcs) CMD[gcs]=$2; shift 2;;
         --no-env) CMD[setup_env]=; shift;;
         --no-compose) CMD[setup_compose]=; shift;;
         --no-service-account) CMD[setup_service_account]=; shift;;
@@ -561,6 +564,11 @@ function main.cmd() {
 
     # Fix mount if exists
     G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
+
+    # Add gcs if exists
+    if [[ -n ${G[gcs]} ]]; then
+      G[jq]="${G[jq]}|.gcs=\"${G[gcs]}\""
+    fi
 
     # Read .configuration paramters
     while [[ "$1" =~ ^\..*=.* ]]; do
