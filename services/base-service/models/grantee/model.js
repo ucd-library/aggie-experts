@@ -1,14 +1,14 @@
 // Can use this to get the fin configuration
 //const {config} = require('@ucd-lib/fin-service-utils');
-//const BaseModel = require('../base/model.js');
-const ExpertsModel = require('../experts/model.js');
+const BaseModel = require('../base/model.js');
 
 /**
  * @class GranteeModel
  * @description Base class for Aggie Experts data models.
  */
-//class GranteeModel extends BaseModel {
-class GranteeModel extends ExpertsModel {
+class GranteeModel extends BaseModel {
+
+  static transformed_types = [ 'Grantee' ];
 
   static types = [
     "http://schema.library.ucdavis.edu/schema#Grantee"

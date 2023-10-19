@@ -145,6 +145,8 @@ async function main(opt) {
       throw new Error('No Fuseki db specified');
     }
 
+    console.log('starting getCDLentries ' + user);
+    console.log('opt', opt);
     if (opt.fetch) {
       console.log('starting getCDLprofile ' + user);
 
@@ -182,7 +184,7 @@ async function main(opt) {
       await temp_get_qa_grants(opt,user,cdlId,context,ec);
     }
 
-    if (!opt.nosplay) {
+    if (opt.splay) {
       console.log('splay')
       opt.bindings = BF.fromRecord(
         { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
@@ -191,7 +193,7 @@ async function main(opt) {
 
       await ec.insert({ ...opt, ...iam });
 
-          for (const n of ['expert', 'authorship', 'grantee']) {
+      for (const n of ['expert', 'authorship', 'grantee']) {
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
@@ -232,8 +234,8 @@ program.name('cdl-profile')
   .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
   .option('--save-tmp', 'Do not remove temporary file', false)
   .option('--environment <env>', 'specify environment', 'production')
-  .option('--nosplay', 'skip splay', false)
-  .option('--no-fetch', 'fetch the data', false)
+  .option('--no-splay', 'splay data', true)
+  .option('--no-fetch', 'fetch the data', true)
 
 
 program.parse(process.argv);

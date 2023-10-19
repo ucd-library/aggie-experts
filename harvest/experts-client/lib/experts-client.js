@@ -109,7 +109,7 @@ export class ExpertsClient {
     if (!fuseki.url) {
       throw new Error('No Fuseki url specified');
     }
-    authFuseki(opt);
+    this.authFuseki(opt);
     if (!fuseki.db) {
       fuseki.db = nanoid(5);
       fuseki.isTmp = true;
