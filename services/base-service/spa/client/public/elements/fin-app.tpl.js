@@ -32,7 +32,7 @@ return html`
     prevent-fixed>
 
     <ucd-theme-primary-nav>
-      <a href="/browse/person">Experts</a>
+      <a href="/browse/expert">Experts</a>
       <!-- <a href="/subject">Subjects</a> -->
       <!-- <a href="/work">Works</a> -->
       <!-- <a href="/grant">Grants</a> -->
@@ -79,9 +79,9 @@ return html`
       <app-home id="home"></app-home>
       <app-browse id="browse"></app-browse>
       <!-- <app-work id="work"></app-work> -->
-      <app-person id="person" @show-404="${(e) => this.page = '404'}"></app-person>
-      <app-person-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-person-works-list>
-      <app-person-works-list-edit id="works-edit" @show-404="${(e) => this.page = '404'}"></app-person-works-list-edit>
+      <app-expert id="expert" @show-404="${(e) => this.page = '404'}"></app-expert>
+      <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
+      <app-expert-works-list-edit id="works-edit" @show-404="${(e) => this.page = '404'}"></app-expert-works-list-edit>
       <app-search id="search"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
