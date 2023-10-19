@@ -3,7 +3,7 @@ let {Registry} = require('@ucd-lib/cork-app-utils');
 const models =  {
   AppStateModel : require('./models/AppStateModel'),
   WorkModel : require('./models/WorkModel'),
-  PersonModel : require('./models/PersonModel'),
+  ExpertModel : require('./models/ExpertModel'),
   SearchModel : require('./models/SearchModel'),
 };
 
