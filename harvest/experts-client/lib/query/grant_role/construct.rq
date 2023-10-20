@@ -19,16 +19,14 @@ construct {
            vivo:rank ?user_rank;
            .
 
-  ?grant a ucdlib:Grant,vivo:Grant;
+  ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
          ?field_predicate ?field_text;
          ?field_predicate ?field_money;
-         ucdlib:GrantType ?grant_type;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          .
 
-  ?grant_type a vivo:GrantType;
-              rdfs:label ?funding_type_label;
+  ?grant_type rdfs:label ?funding_type_label;
               .
 
   ?funder a vivo:FundingOrganization;
@@ -145,13 +143,13 @@ WHERE {
     # Funding type is a special case
     OPTIONAL {
       values (?grant_type ?funding_type_label) {
-        (kfs:GrantTypeAcademicSupport "Academic Support" )
-        (kfs:GrantTypeDefault "Default" )
-        (kfs:GrantTypeInstruction "Instruction" )
-        (kfs:GrantTypeResearch "Research" )
-        (kfs:GrantTypeService "Service / Other" )
-        (kfs:GrantTypeScholarship "Scholarships / Fellowships" )
-        (kfs:GrantTypeStudentService "Student Services" )
+        (ucdlib:Grant_AcademicSupport "Academic Support" )
+        (ucdlib:Grant_Default "Default" )
+        (ucdlib:Grant_Instruction "Instruction" )
+        (ucdlib:Grant_Research "Research" )
+        (ucdlib:Grant_Service "Service / Other" )
+        (ucdlib:Grant_Scholarship "Scholarships / Fellowships" )
+        (ucdlib:Grant_StudentService "Student Services" )
       }
       ?field :name "funding-type";
              :type "text";

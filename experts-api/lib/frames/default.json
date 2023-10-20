@@ -58,7 +58,14 @@
     "Expert":{"@id":"ucdlib:Expert","@type":"@id"},
     "favorite":{"@id":"ucdlib:favorite","@type":"xsd:boolean"},
     "genre":{"@id":"cite:genre"},
-    "Grant":{"@id":"vivo:Grant","@type":"@id"},
+    "GrantX":{"@id":"vivo:GrantX","@type":"@id"},
+    "Grant": {
+      "@id":"vivo:Grant",
+      "@type":"@id",
+      "@context": {
+        "foo":{ "@reverse":"vivo:relates"}
+      }
+    },
     "Grantee":{"@id":"ucdlib:Grantee","@type":"@id"},
     "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
     "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
@@ -125,7 +132,8 @@
     "relatedBy":{"@type":"@id",
                  "@id":"vivo:relatedBy"
                 },
-    "relates": { "@type":"@id",
+    "relatesX": { "@id":"vivo:relatesX",
+                  "@type":"@id",
                  "@context":{
                    "role_person_name":{"@id":"ucdlib:role_person_name"},
                    "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
@@ -148,11 +156,13 @@
   "Grant": {
     "@embed":"@always",
     "@omitDefault":true,
-    "@default":"@null"
+    "@default":"@null",
+    "foo" : { "@embed":"@always", "@omitDefault":true, "@default":"@null" }
   },
   "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
+  "hasRelation": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
   "@embed": "@always",
   "@type": ["Expert","Work","Grant","Authorship","GrantRole"]
 }

@@ -53,9 +53,9 @@ class GrantRoleModel extends BaseModel {
     for(let i=0; i<root_node?.relates?.length || 0; i++) {
       let relates = root_node.relates[i];
       try {
-        // Is this a Expert?
         let related = await expertModel.client_get(relates);
         let type = this.experts_node_type(related);
+        // Is this a Expert?
         if (type !== 'Expert') {
           throw new Error(`GrantRoleModel.update(${doc['@id']}) - ${relates} is not a Expert`);
         }
@@ -65,33 +65,33 @@ class GrantRoleModel extends BaseModel {
         let related = grantModel.get_expected_model_node(transformed);
         let type = this.experts_node_type(related);
         if (relates !== related['@id']) {
-          throw new Error(`GrantRoleModel.update ${relates} not included in doc`);
-          if (type !== 'Grant') {
-            throw new Error(`GrantRoleModel.update ${relates} is not a Grant`);
-          }
-          have_part['Grant'] = {id:relates,node:related };
+          throw new Error(`GrantRoleModel.update ${relates} !== ${related['@id']}`);
         }
-      }
-      if (have_part.Expert && have_part.Grant) {
-        // Add Grant as snippet to Expert
-        // console.log(root_node);
-        if (root_node['is-visible'] === true || root_node['is-visible'] === 'true') {
-          logger.info(`${have_part.Expert.id} ==> ${have_part.Grant.id}`);
-          {
-            const node = {
-              ...grantModel.snippet(have_part.Grant.node),
-              ...this.snippet(root_node),
-              '@type': 'Grantee',
-            };
-            delete node.relates;
-            // console.log(`${have_part.Expert.id} Authored ${have_part.Grant.id}`);
-            await expertModel.update_graph_node(have_part.Expert.id,node,root_node['is-visible']);
-          }
-        } else {
-          logger.info(`${have_part.Expert.id} !=> ${have_part.Grant.id}`);
-          await expertModel.delete_graph_node(have_part.Expert.id,root_node);
+        if (type !== 'Grant') {
+          throw new Error(`GrantRoleModel.update ${relates} is not a Grant`);
         }
+        have_part['Grant'] = {id:relates,node:related };
       }
+    }
+    if (have_part.Expert && have_part.Grant) {
+      // Add Grant as snippet to Expert
+      // console.log(root_node);
+      if (root_node['is-visible'] === true || root_node['is-visible'] === 'true') {
+        logger.info(`${have_part.Expert.id} ==> ${have_part.Grant.id}`);
+        const node = {
+          ...grantModel.snippet(have_part.Grant.node),
+          ...this.snippet(root_node),
+          '@type': 'Grantee',
+        };
+        delete node.relates;
+        // console.log(`${have_part.Expert.id} Authored ${have_part.Grant.id}`);
+        await expertModel.update_graph_node(have_part.Expert.id,node,root_node['is-visible']);
+      } else {
+        logger.info(`${have_part.Expert.id} !=> ${have_part.Grant.id}`);
+        await expertModel.delete_graph_node(have_part.Expert.id,root_node);
+      }
+    } else {
+      logger.info(`GrantRoleModel.update(${doc['@id']}) - not all parts found`,have_part);
     }
   }
 }
