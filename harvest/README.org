@@ -180,10 +180,10 @@ volumes:
        }
        #select *
        WHERE {
-         bind(uri(concat(str(experts:),'person/',MD5('quinn@ucdavis.edu'))) as ?user)
+         bind(uri(concat(str(experts:),'expert/',MD5('quinn@ucdavis.edu'))) as ?user)
          SERVICE <http://iam:3030/experts/query> {
            graph <http://iam.ucdavis.edu/> {
-             ?user a ucdlib:Person .
+             ?user a ucdlib:Expert .
              ?s ?p ?o;
                 .
              filter(regex(str(?s),concat('^',str(?user),'#?')))
@@ -200,18 +200,18 @@ volumes:
      @prefix str:     <http://nlp2rdf.lod2.eu/schema/string/> .
      @prefix ucdlib:  <http://schema.library.ucdavis.edu/schema#> .
 
-     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-title>
+     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-title>
              rdf:type  <http://www.w3.org/2006/vcard/ns#Title> ;
              <http://www.w3.org/2006/vcard/ns#title>
                      "Application Development Programmer" .
 
-     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-url>
+     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-url>
              rdf:type        <http://www.w3.org/2006/vcard/ns#URL> ;
              ucdlib:urlType  ucdlib:URLType_other ;
              <http://www.w3.org/2006/vcard/ns#url>
                      "https://www.library.ucdavis.edu/author/quinn-hart/" .
 
-     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#name>
+     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#name>
              rdf:type  <http://www.w3.org/2006/vcard/ns#Name> ;
              <http://www.w3.org/2006/vcard/ns#familyName>
                      "Hart" ;
@@ -220,7 +220,7 @@ volumes:
              <http://www.w3.org/2006/vcard/ns#pronoun>
                      "he/him" .
 
-     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-pps-1>
+     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#vcard-pps-1>
              rdf:type           <http://www.w3.org/2006/vcard/ns#Individual> ;
              ucdlib:identifier  "pps-1" ;
              <http://vivoweb.org/ontology/core#rank>
@@ -228,13 +228,13 @@ volumes:
              <http://www.w3.org/2006/vcard/ns#hasEmail>
                      <email:qjhart@ucdavis.edu> ;
              <http://www.w3.org/2006/vcard/ns#hasName>
-                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#name> ;
+                     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#name> ;
              <http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit>
                      <http://experts.ucdavis.edu/dept/pps/060500> ;
              <http://www.w3.org/2006/vcard/ns#hasTitle>
                      <http://experts.ucdavis.edu/title/pps/000664> .
 
-     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1>
+     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1>
              rdf:type           <http://www.w3.org/2006/vcard/ns#Individual> ;
              ucdlib:identifier  "odr-1" ;
              <http://vivoweb.org/ontology/core#rank>
@@ -242,22 +242,22 @@ volumes:
              <http://www.w3.org/2006/vcard/ns#hasEmail>
                      <email:qjhart@ucdavis.edu> ;
              <http://www.w3.org/2006/vcard/ns#hasName>
-                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#name> ;
+                     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#name> ;
              <http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit>
                      <http://experts.ucdavis.edu/dept/odr/2132903> ;
              <http://www.w3.org/2006/vcard/ns#hasTitle>
-                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-title> ;
+                     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-title> ;
              <http://www.w3.org/2006/vcard/ns#hasURL>
-                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-url> .
+                     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1-url> .
 
-     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8>
-             rdf:type           <http://vivoweb.org/ontology/core#NonAcademic> , ucdlib:Person ;
+     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8>
+             rdf:type           <http://vivoweb.org/ontology/core#NonAcademic> , ucdlib:Expert ;
              rdfs:label         "Quinn Hart" ;
              <http://purl.obolibrary.org/obo/ARG_2000028>
-                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-pps-1> , <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1> ;
+                     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#vcard-pps-1> , <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#vcard-odr-1> ;
              ucdlib:identifier  "66356b7eec24c51f01e757af2b27ebb8" ;
              <http://www.w3.org/2006/vcard/ns#hasName>
-                     <http://experts.ucdavis.edu/person/66356b7eec24c51f01e757af2b27ebb8#name> .
+                     <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#name> .
      #+end_SRC
 
 
@@ -341,7 +341,7 @@ volumes:
    PREFIX iam: <http://iam.ucdavis.edu/schema#>
    PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
    PREFIX obo: <http://purl.obolibrary.org/obo/>
-   PREFIX person: <http://experts.ucdavis.edu/person/>
+   PREFIX expert: <http://experts.ucdavis.edu/expert/>
    PREFIX private: <http://experts.ucdavis.edu/private/>
    PREFIX purl: <http://purl.org/ontology/bibo/>
    PREFIX q: <http://experts.ucdavis.edu/queries/>
@@ -349,7 +349,7 @@ volumes:
    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-   PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+   PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
    PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
    PREFIX vivo: <http://vivoweb.org/ontology/core#>
    PREFIX work: <http://experts.ucdavis.edu/work/>
@@ -366,18 +366,18 @@ volumes:
        WHERE {
          graph <http://experts.ucdavis.edu/ucop/> {
            VALUES (?broader ?broader_label) { (position:Senate "SEN") (position:Federation "FED") }
-           ?academic_position a ucdrp:position;
+           ?academic_position a ucdlib:Position;
                               rdfs:label ?position_label;
                               skos:broader ?broader;
                               .
          }
          graph <http://iam.ucdavis.edu/> {
-           ?user a ucdrp:person;
-                 ucdrp:casId ?cas;
+           ?user a ucdlib:Expert;
+                 ucdlib:casId ?cas;
                  obo:ARG_2000028 ?pps_senate_or_federation;
                  .
 
-           ?pps_senate_or_federation vcard:hasTitle/ucdrp:titleCode ?title_code;
+           ?pps_senate_or_federation vcard:hasTitle/ucdlib:titleCode ?title_code;
                                      .
            bind(uri(concat(str(position:),?title_code)) as ?academic_position)
          }
@@ -395,7 +395,7 @@ volumes:
                   rdfs:label ?title;
                   vivo:relates ?pi_role;
                   vivo:relates ?role;
-                  ucdrp:grantType ?grant_type;
+                  ucdlib:grantType ?grant_type;
                   .
 
            ?pi_role a vivo:PrincipalInvestigatorRole;
@@ -403,34 +403,34 @@ volumes:
                     .
 
            ?pi rdfs:label ?pi_label;
-               ucdrp:casId ?pi_cas;
+               ucdlib:casId ?pi_cas;
                .
 
            OPTIONAL {
              graph <http://iam.ucdavis.edu/> {
-               ?pi a ucdrp:person;
+               ?pi a ucdlib:Expert;
                    obo:ARG_2000028/vcard:hasTitle/vcard:title ?pi_title;
                    .
              }
            }
 
-           bind(ucdrp:GrantKeyPersonnelRole as ?role_type)
+           bind(ucdlib:GrantKeyExpertnelRole as ?role_type)
            ?role a ?role_type;
                  obo:RO_0000052 ?user;
                  .
            ?role_type rdfs:label ?role_name.
          }
-         bind(replace(str(?grant_type),str(ucdrp:GrantType),"") as ?grant_type_label)
+         bind(replace(str(?grant_type),str(ucdlib:GrantType),"") as ?grant_type_label)
          bind(replace(str(?grant),str(grant:),"") as ?grant_num)
          filter(?pi != ?user)
-         filter(regex(str(?role_type),str(ucdrp:)))
+         filter(regex(str(?role_type),str(ucdlib:)))
        } group by ?grant_num ?title ?pi_cas ?user
      }
    }
  #+end_src
 
 
-** Person Build
+** Expert Build
 
    This is a temporary
 
@@ -445,9 +445,9 @@ volumes:
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 CONSTRUCT { ?s ?p ?o.} WHERE {
-      bind(uri(concat(str(experts:),'person/',MD5('${i}@ucdavis.edu'))) as ?user)
+      bind(uri(concat(str(experts:),'expert/',MD5('${i}@ucdavis.edu'))) as ?user)
       graph <http://iam.ucdavis.edu/> {
-        ?user a ucdlib:Person . ?s ?p ?o.
+        ?user a ucdlib:Expert . ?s ?p ?o.
         filter(regex(str(?s),concat('^',str(?user),'#?')))
       }}" > $c/iam.jsonld
       mkdir -p fcrepo/$i;
@@ -473,9 +473,9 @@ CONSTRUCT { ?s ?p ?o.} WHERE {
    node
    ~/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/bin/experts-splay.js
    --source http://localhost:3030/pcronald/sparql
-   --bind@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/person/bind.rq
-   --construct@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/person/construct.rq
-   --frame@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/person/frame.json
+   --bind@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/expert/bind.rq
+   --construct@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/expert/construct.rq
+   --frame@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/expert/frame.json
    --output=fcrepo-pcronald
 
    node

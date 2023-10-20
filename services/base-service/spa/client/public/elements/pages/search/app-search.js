@@ -180,20 +180,20 @@ export default class AppSearch extends Mixin(LitElement)
   _downloadClicked(e) {
     e.preventDefault();
 
-    let selectedPersons = [];
+    let selectedExperts = [];
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
     resultRows.forEach(row => {
       let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
       if( checkbox?.checked ) {
-        selectedPersons.push(row.result.id);
+        selectedExperts.push(row.result.id);
       }
     });
 
-    if( !selectedPersons.length ) return;
+    if( !selectedExperts.length ) return;
 
     let body = [];
     (this.rawSearchData?.hits || []).forEach(result => {
-      if( selectedPersons.includes(result['@id']) ) {
+      if( selectedExperts.includes(result['@id']) ) {
         body.push([
           '"' + result.name?.split('§')?.[0]?.trim() + '"',                           // name
           '"' + result.contactInfo?.hasEmail?.replace('email:','')?.trim() + '"',     // email

@@ -52,7 +52,6 @@ async function main(opt) {
 
   const ec = new ExpertsClient(opt);
 
-
   const context = {
     "@context": {
       "@base": "http://oapolicy.universityofcalifornia.edu/",
@@ -163,7 +162,7 @@ async function main(opt) {
 
       await ec.insert({ ...opt, ...iam });
 
-      for (const n of ['person', 'work', 'authorship']) {
+      for (const n of ['expert','authorship']) {
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame

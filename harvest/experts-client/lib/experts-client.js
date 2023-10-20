@@ -32,6 +32,7 @@ export class ExpertsClient {
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
+    //    console.log('ExpertsClient constructor');
     this.opt = opt;
     this.experts = [];
   }

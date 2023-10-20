@@ -10,10 +10,10 @@ PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX position: <http://experts.ucdavis.edu/position/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -21,7 +21,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 CONSTRUCT {
   ?user obo:ARG_2000028 ?vcard.
   ?vcard a vcard:Individual;
-         ucdrp:identifier ?vid;
+         ucdlib:identifier ?vid;
          vivo:rank ?order ;
     vcard:hasName ?vcard_name;
     vcard:hasTitle ?vcard_title;
@@ -31,13 +31,13 @@ CONSTRUCT {
     .
 
     ?vcard_title a vcard:Title;
-                 ucdrp:titleCode ?title_code;
+                 ucdlib:titleCode ?title_code;
                  vcard:title ?title;
                  .
 
   ?vcard_unit a vcard:Organization;
-              ucdrp:apptBouOrgoid ?appt_bou;
-              ucdrp:dept ?dept;
+              ucdlib:apptBouOrgoid ?appt_bou;
+              ucdlib:dept ?dept;
               vcard:title ?dept_name;
               .
     ?vcard_email a vcard:Email;
@@ -45,7 +45,7 @@ CONSTRUCT {
                  .
     ?vcard_url a vcard:URL;
                vcard:url ?website;
-               ucdrp:urlType ucdrp:URLType_other;
+               ucdlib:urlType ucdlib:URLType_other;
                .
 
 } WHERE {
@@ -99,7 +99,7 @@ CONSTRUCT {
       }
     }
     bind(md5(?kerb) as ?user_id)
-    bind(uri(concat(str(person:),?user_id)) as ?user)
+    bind(uri(concat(str(expert:),?user_id)) as ?user)
     bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)
     bind(uri(concat(str(?user),"#vcard-",?vid)) as ?vcard)
 

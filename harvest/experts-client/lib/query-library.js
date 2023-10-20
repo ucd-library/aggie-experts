@@ -61,7 +61,6 @@ export class queryLibrary {
     const id=path.join(__dirname, 'query', '/', splayName);
     for(let i=0;i<this.queries.length;i++) {
       if(this.queries[i]['@id']===id) {
-        this.queries[i].frame=frames.default;
         return this.queries[i];
       }
     }

@@ -30,7 +30,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX scopus: <http://experts.ucdavis.edu/oap/scopus/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX ucd:   <http://experts.ucdavis.edu/schema#>
-PREFIX ucdrp: <http://experts.library.ucdavis.edu/individual/>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vitro: <http://vitro.mannlib.cornell.edu/ns/vitro/0.7#>
 PREFIX vivo:  <http://vivoweb.org/ontology/core#>
@@ -1540,7 +1540,7 @@ WHERE {
       ?oap_user oap:category "user";
               oap:username ?username;
               .
-      bind(IRI(concat(str(ucdrp:),replace(?username,"@ucdavis.edu",""))) as ?expert)
+      bind(IRI(concat(str(expert:),replace(?username,"@ucdavis.edu",""))) as ?expert)
       bind(IRI(concat(str(FoR:),replace(?for," .*",""))) as ?keyword)
 
 	}
@@ -1687,7 +1687,7 @@ WHERE {
           ?oap_user oap:category "user";
                     oap:username ?username;
            .
-          bind(IRI(concat(str(ucdrp:),replace(?username,"@ucdavis.edu",""))) as ?expert)
+          bind(IRI(concat(str(expert:),replace(?username,"@ucdavis.edu",""))) as ?expert)
           bind(IRI(concat(str(free:),md5(?term))) as ?keyword)
           filter(?scheme != "for")
         }

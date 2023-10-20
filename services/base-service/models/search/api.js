@@ -1,8 +1,8 @@
 const router = require('express').Router();
-const ExpertsModel = require('../experts/model.js');
+const BaseModel = require('../base/model.js');
 const utils = require('../utils.js')
 
-const experts = new ExpertsModel();
+const experts = new BaseModel();
 
 router.get('/render', async (req, res) => {
   const params = {};
@@ -10,7 +10,7 @@ router.get('/render', async (req, res) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
-    index: "person-read",
+    index: "expert-read",
     id: "default",
     params
   };
@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
-    index: "person-read",
+    index: "expert-read",
     id: "default",
     params
   };

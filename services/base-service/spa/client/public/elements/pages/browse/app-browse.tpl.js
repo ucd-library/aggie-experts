@@ -9,9 +9,9 @@ export default function render() {
     </style>
 
     <app-browse-by
-      id="person"
+      id="expert"
       label="Experts"
-      ?hidden="${this.page !== "/browse/person"}">
+      ?hidden="${this.page !== "/browse/expert"}">
     </app-browse-by>
     <!-- TODO -->
   `;
