@@ -426,12 +426,18 @@ function setup() {
   local org=$(G .org // .envs.${G[env]}.org)
   local tag=$(G .tag // .envs.${G[env]}.tag)
   local mount=$(G .mount // .envs.${G[env]}.mount)
+  local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
 
 
   if [[ "$env" = "dev" ]]; then
     cat $tmpl |
       if [[ "$keycloak" != "local" ]]; then
         yq 'del(.services.keycloak)'
+       else
+        cat
+      fi |
+      if [[ -n "$gcs" ]]; then
+        yq 'del(.services.gcs)'
        else
         cat
       fi |
