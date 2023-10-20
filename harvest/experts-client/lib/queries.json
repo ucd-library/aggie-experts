@@ -49,10 +49,10 @@
       "bind@" : "authorship/bind.rq"
     },
     {
-      "@id":"grantee",
+      "@id":"grant_role",
       "@type":"SplayQuery",
-      "construct@" : "grantee/construct.rq",
-      "bind@" : "grantee/bind.rq"
+      "construct@" : "grant_role/construct.rq",
+      "bind@" : "grant_role/bind.rq"
     },
     {
       "@id":"expert",

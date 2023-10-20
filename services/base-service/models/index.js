@@ -4,5 +4,5 @@ module.exports = {
   work: require('./work/index.js'),
   authorship: require('./authorship/index.js'),
   grant: require('./grant/index.js'),
-  grantee: require('./grantee/index.js')
+  grant_role: require('./grant_role/index.js')
 }

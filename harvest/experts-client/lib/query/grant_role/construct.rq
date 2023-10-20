@@ -10,12 +10,12 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX kfs: <ark:/87287/d7gt0q/schema#>
 
 construct {
-  ?grantee a ucdlib:Grantee, ?role, ?vivo_role;
+  ?grant_role a ucdlib:GrantRole, ?role, ?vivo_role;
            ucdlib:favorite ?favorite;
            ucdlib:is-visible ?visible;
 #           ucdlib:type_id ?tid;
 #           ucdlib:type ?type;
-           vivo:relates ?expert,?work;
+           vivo:relates ?expert,?grant;
            vivo:rank ?user_rank;
            .
 
@@ -193,7 +193,7 @@ WHERE {
     }
   }
   # EXPERTS ids
-  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grantee)
+  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
   bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
   bind(uri(concat(str(person:),md5(?username))) as ?expert)
 

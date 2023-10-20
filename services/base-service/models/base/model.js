@@ -107,7 +107,7 @@ class BaseModel extends FinEsDataModel {
    * @param {String} node
    */
   experts_node_type(node) {
-    const Types = ['Expert','Work','Grant','Grantee','Authorship'];
+    const Types = ['Expert','Work','Grant','GrantRole','Authorship'];
     let types;
     // Look for valid type in index
     types=node['@type'];

@@ -1,5 +1,6 @@
 // Can use this to get the fin configuration
 //const {config} = require('@ucd-lib/fin-service-utils');
+const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 
 /**

@@ -145,8 +145,6 @@ async function main(opt) {
       throw new Error('No Fuseki db specified');
     }
 
-    console.log('starting getCDLentries ' + user);
-    console.log('opt', opt);
     if (opt.fetch) {
       console.log('starting getCDLprofile ' + user);
 
@@ -193,7 +191,7 @@ async function main(opt) {
 
       await ec.insert({ ...opt, ...iam });
 
-      for (const n of ['expert', 'authorship', 'grantee']) {
+      for (const n of ['expert', 'authorship', 'grant_role']) {
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame

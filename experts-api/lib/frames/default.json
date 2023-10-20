@@ -60,6 +60,7 @@
     "genre":{"@id":"cite:genre"},
     "Grant":{"@id":"vivo:Grant","@type":"@id"},
     "Grantee":{"@id":"ucdlib:Grantee","@type":"@id"},
+    "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
     "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
     "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
     "hasName": {
@@ -153,5 +154,5 @@
   "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
   "@embed": "@always",
-  "@type": ["Expert","Work","Grant","Authorship","Grantee"]
+  "@type": ["Expert","Work","Grant","Authorship","GrantRole"]
 }
