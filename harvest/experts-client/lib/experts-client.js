@@ -550,7 +550,8 @@ export class ExpertsClient {
           let jsonld = JSON.stringify(contextObj);
           console.log('posting relationships of ' + cdlId);
 
-          fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
+          // Bad writing here
+          //fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
 
           // Insert into our local Fuseki
           await this.createGraphFromJsonLdFile(jsonld, opt);

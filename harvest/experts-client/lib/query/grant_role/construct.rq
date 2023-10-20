@@ -1,7 +1,7 @@
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -195,7 +195,7 @@ WHERE {
   # EXPERTS ids
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
   bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
-  bind(uri(concat(str(person:),md5(?username))) as ?expert)
+  bind(uri(concat(str(expert:),md5(?username))) as ?expert)
 
   # If funder_ref, then we make a special funder until REMS comes
   bind(uri(concat(str(?grant),'#',?funder_ref)) as ?funder)
