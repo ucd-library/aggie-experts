@@ -11,7 +11,7 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
-	?grant a vivo:Grant;
+	?grant a ucdlib:Grant,vivo:Grant,?grant_class;
 	      rdfs:label ?title;
 	     vivo:sponsorAwardId ?grantor_award_id;
  	    vivo:totalAwardAmount ?grant_amount_i;
@@ -21,7 +21,6 @@ CONSTRUCT {
      vivo:grantDirectCosts ?direct_costs_i;
      ucdlib:subAwardOf ?from_grant;
  	   ucdlib:grantIndirectCosts ?indirect_costs_i;
-     ucdlib:grantType ?grant_class;
      .
 
   ?grant_duration a vivo:DateTimeInterval;

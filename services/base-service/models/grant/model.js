@@ -20,17 +20,6 @@ class GrantModel extends BaseModel {
   }
 
   /**
-   * @method snippet
-   * @description returns searchable snippet of a node
-   * by elasticsearch.  Default is to return whole node.
-   */
-  snippet(node) {
-    let snip=super.snippet(node);
-    snip.grantType=node['@type'];
-    return snip;
-  }
-
-  /**
    * @method update
    * @description Update Elasticsearch with the given data.
    */

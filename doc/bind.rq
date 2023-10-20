@@ -1,7 +1,0 @@
-prefix experts: <http://experts.ucdavis.edu/>
-PREFIX vivo: <http://vivoweb.org/ontology/core#>
-select distinct ?uri ?filename
-WHERE { graph ?g { ?uri a vivo:Grant.
-}
-  bind(replace(str(?uri),str(experts:),'./') as ?filename)
-} order by ?uri

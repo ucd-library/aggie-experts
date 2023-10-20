@@ -74,21 +74,15 @@ class GrantRoleModel extends BaseModel {
       }
     }
     if (have_part.Expert && have_part.Grant) {
-      // Add Grant as snippet to Expert
-      // console.log(root_node);
+      // Add Grant as snippet to Expert, relationship is in Grant
+      const node = grantModel.snippet(have_part.Grant.node)
       if (root_node['is-visible'] === true || root_node['is-visible'] === 'true') {
         logger.info(`${have_part.Expert.id} ==> ${have_part.Grant.id}`);
-        const node = {
-          ...grantModel.snippet(have_part.Grant.node),
-          ...this.snippet(root_node),
-          '@type': 'Grantee',
-        };
-        delete node.relates;
         // console.log(`${have_part.Expert.id} Authored ${have_part.Grant.id}`);
         await expertModel.update_graph_node(have_part.Expert.id,node,root_node['is-visible']);
       } else {
         logger.info(`${have_part.Expert.id} !=> ${have_part.Grant.id}`);
-        await expertModel.delete_graph_node(have_part.Expert.id,root_node);
+        await expertModel.delete_graph_node(have_part.Expert.id,node);
       }
     } else {
       logger.info(`GrantRoleModel.update(${doc['@id']}) - not all parts found`,have_part);

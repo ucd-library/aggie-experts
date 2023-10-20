@@ -58,17 +58,11 @@
     "Expert":{"@id":"ucdlib:Expert","@type":"@id"},
     "favorite":{"@id":"ucdlib:favorite","@type":"xsd:boolean"},
     "genre":{"@id":"cite:genre"},
-    "GrantX":{"@id":"vivo:GrantX","@type":"@id"},
     "Grant": {
-      "@id":"vivo:Grant",
-      "@type":"@id",
-      "@context": {
-        "foo":{ "@reverse":"vivo:relates"}
-      }
+      "@id":"ucdlib:Grant",
+      "@type":"@id"
     },
-    "Grantee":{"@id":"ucdlib:Grantee","@type":"@id"},
     "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
-    "grantType":{ "@id":"ucdlib:grantType", "@type":"@id" },
     "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
     "hasName": {
       "@id": "vcard:hasName",
@@ -129,10 +123,11 @@
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
     "rank":{"@id":"vivo:rank"},
-    "relatedBy":{"@type":"@id",
-                 "@id":"vivo:relatedBy"
-                },
-    "relatesX": { "@id":"vivo:relatesX",
+    "relatedByX":{"@type":"@id",
+                 "@id":"vivo:relatedByX"
+                 },
+    "relatedBy":{"@reverse":"vivo:relates"},
+    "relates": { "@id":"vivo:relates",
                   "@type":"@id",
                  "@context":{
                    "role_person_name":{"@id":"ucdlib:role_person_name"},
@@ -156,13 +151,12 @@
   "Grant": {
     "@embed":"@always",
     "@omitDefault":true,
-    "@default":"@null",
-    "foo" : { "@embed":"@always", "@omitDefault":true, "@default":"@null" }
+    "@default":"@null"
   },
   "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
-  "hasRelation": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
+  "relatedBy": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
   "@embed": "@always",
   "@type": ["Expert","Work","Grant","Authorship","GrantRole"]
 }
