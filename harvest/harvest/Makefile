@@ -15,13 +15,15 @@ INFO::
 	echo HDT:=${HDT};\
 	echo GCS_GRAPH_STORAGE:=${GCS_GRAPH_STORAGE}
 
-.PHONY:bash server server_bg
-
+.PHONY:bash server server_bg noop
 
 INFO:: ## Server Commands
 
 bash:  ## Run a bash shell in the container
 	export FUSEKI_BASE="${FUSEKI_BASE}"; bash
+
+noop:  ## Run a bash shell in the container
+	export FUSEKI_BASE="${FUSEKI_BASE}"; bash -c 'tail -f /dev/null'
 
 .PHONY: server_startup
 

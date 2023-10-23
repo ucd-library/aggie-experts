@@ -67,7 +67,6 @@ async function main(opt) {
   const users = program.args;
 
   if (opt.fuseki.isTmp) {
-    console.log('starting createDataset');
     opt.fuseki.db = 'users-' + nanoid(5);
     const fuseki = await ec.mkFusekiTmpDb(opt);
     console.log(`Dataset '${opt.fuseki.db}' created successfully.`);

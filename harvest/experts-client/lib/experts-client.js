@@ -102,7 +102,8 @@ export class ExpertsClient {
   }
 
   /**
-   * This could easily be joined w/ createDataset, and called mkDb and we only specify temp id if we done't have a name
+   * This could easily be joined w/ createDataset, and called mkDb and we only
+   * specify temp id if we done't have a name
    **/
   async mkFusekiTmpDb(opt, files) {
     const fuseki = opt.fuseki;
@@ -110,13 +111,26 @@ export class ExpertsClient {
       throw new Error('No Fuseki url specified');
     }
     this.authFuseki(opt);
+    // set a temporary db name if we don't have one
     if (!fuseki.db) {
       fuseki.db = nanoid(5);
       fuseki.isTmp = true;
       fuseki.type = fuseki.type || 'mem';
     }
-    //    console.log(fuseki);
 
+    try {
+      const res = await fetch(
+        `${fuseki.url}/\$/datasets/${fuseki.db}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Basic ${fuseki.authBasic}`
+          }
+        })
+    } catch (e) {
+        console.log(`${fuseki.url}/\$/datasets/${fuseki.db} does not exist`);
+        console.log(e);
+      }
 
     // just throw the error if it fails
     const res = await fetch(path.join(fuseki.url, '$', 'datasets'),
@@ -172,8 +186,7 @@ export class ExpertsClient {
 
   async dropFusekiDb(opt) {
     const fuseki = opt.fuseki;
-    if ((fuseki.isTmp || opt.force)
-      && (fuseki.url && fuseki.db)) {
+    if (fuseki.isTmp && fuseki.url && fuseki.db) {
       const res = await fetch(`${fuseki.url}/\$/datasets/${fuseki.db}`,
         {
           method: 'DELETE',
