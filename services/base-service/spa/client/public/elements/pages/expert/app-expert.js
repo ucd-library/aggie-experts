@@ -29,10 +29,15 @@ export default class AppExpert extends Mixin(LitElement)
       websites : { type : Array },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      grants : { type : Array },
+      grantsActiveDisplayed : { type : Array },
+      grantsCompletedDisplayed : { type : Array },
       canEdit : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
-      showModal : { type : Boolean }
+      showModal : { type : Boolean },
+      grantsPerPage : { type : Number },
+      worksPerPage : { type : Number },
     }
   }
 
@@ -124,6 +129,46 @@ export default class AppExpert extends Mixin(LitElement)
     });
 
     await this._loadCitations();
+
+    // TODO parse grant data
+    let fakeGrants = [{
+      "id" : "ark:/87287/d7gt0q/grant/1",
+      "category" : "grant",
+      "type" : "c-davis",
+      "url" : "",
+      "institution-reference" : "ark:/87287/d7gt0q/grant/1",
+      "title" : "WORKER HEALTH & SAFETY SPECIALIZED DATA AND LITERATURE RESEARCH",
+      "funding-type" : "Default",
+      "start-date" : "2014-08-10",
+      "end-date" : "2027-04-11",
+      "c-ucop-sponsor" : "http://rems.ucop.edu/sponsor/6320",
+      "funder-name" : "CALIFORNIA DEPARTMENT OF PESTICIDE REGULATION",
+      "funder-reference" : "04-0061C",
+      "amount-value" : "22600",
+      "amount-currency-code" : "USD",
+      "visible" : "TRUE"
+    },
+    {
+      "id" : "ark:/87287/d7gt0q/grant/2",
+      "category" : "grant",
+      "type" : "c-davis",
+      "url" : "",
+      "institution-reference" : "ark:/87287/d7gt0q/grant/1",
+      "title" : "NUM DOS NUM DOS",
+      "funding-type" : "Default",
+      "start-date" : "2014-12-10",
+      "end-date" : "2020-02-28",
+      "c-ucop-sponsor" : "http://rems.ucop.edu/sponsor/6320",
+      "funder-name" : "CALIFORNIA DEPARTMENT OF AG REGULATION",
+      "funder-reference" : "24-1111F",
+      "amount-value" : "424242",
+      "amount-currency-code" : "USD",
+      "visible" : "TRUE"
+    }];
+
+    this.grants = fakeGrants;
+    this.grantsActiveDisplayed = fakeGrants.slice(0,1); // this.grantsPerPage);
+    this.grantsCompletedDisplayed = fakeGrants.slice(1,2); // this.grantsPerPage);
   }
 
   /**
@@ -142,11 +187,16 @@ export default class AppExpert extends Mixin(LitElement)
     this.websites = [];
     this.citations = [];
     this.citationsDisplayed = [];
+    this.grants = [];
+    this.grantsActiveDisplayed = [];
+    this.grantsCompletedDisplayed = [];
     this.canEdit = true;
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
     this.resultsPerPage = 25;
+    this.grantsPerPage = 1; // 5;
+    this.worksPerPage = 10;
   }
 
   /**
@@ -169,7 +219,7 @@ export default class AppExpert extends Mixin(LitElement)
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.resultsPerPage));
+    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
 
@@ -220,6 +270,16 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _seeAllGrants
+   * @description load page to list all grants
+   */
+  _seeAllGrants(e) {
+    e.preventDefault();
+
+    this.AppStateModel.setLocation('/grants/'+this.expertId);
+  }
+
+  /**
    * @method _seeAllWorks
    * @description load page to list all works
    */
@@ -234,9 +294,19 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit websites
    */
   _editWebsites(e) {
-    this.modalTitle = 'Edit Websites';
-    this.modalContent = `<p>Websites are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
+    this.modalTitle = 'Edit Links';
+    this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
+  }
+
+  /**
+   * @method _editGrants
+   * @description load page to list all grants in edit mode
+   */
+  _editGrants(e) {
+    e.preventDefault();
+
+    this.AppStateModel.setLocation('/grants-edit/'+this.expertId);
   }
 
   /**

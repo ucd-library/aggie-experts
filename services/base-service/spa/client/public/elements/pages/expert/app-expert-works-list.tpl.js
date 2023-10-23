@@ -97,6 +97,12 @@ return html`
       bottom: 0.25rem;
     }
 
+    .work-item ucdlib-icon {
+      fill: var(--color-sage);
+      margin-top: 0.5rem;
+      padding-right: 1rem;
+    }
+
     ucd-theme-pagination {
       padding-bottom: 1rem;
     }
@@ -126,16 +132,18 @@ return html`
         <span>RETURN TO PROFILE</span>
       </div>
 
-
       ${this.citationsDisplayed.map(
       (cite) => html`
         <h3 style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
-        <div class="work">
-          <h5>${unsafeHTML(cite.title)}</h5>
-          <div class="work-details">
-            <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
-            <span class="dot">.</span>
-            ${unsafeHTML(cite.apa.replace('(n.d.). ', ''))}
+        <div class="work-item" style="display: flex;">
+          <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
+          <div class="work">
+            <h5>${unsafeHTML(cite.title)}</h5>
+            <div class="work-details">
+              <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
+              <span class="dot">.</span>
+              ${unsafeHTML(cite.apa.replace('(n.d.). ', ''))}
+            </div>
           </div>
         </div>
         <br>

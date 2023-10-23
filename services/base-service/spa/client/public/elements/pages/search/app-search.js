@@ -9,6 +9,9 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.
 import "../../components/search-box";
 import "../../components/search-result-row";
 
+import utils from '../../../lib/utils';
+import { generateCitations } from '../../utils/citation.js';
+
 export default class AppSearch extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
@@ -177,36 +180,93 @@ export default class AppSearch extends Mixin(LitElement)
    *
    * @param {Object} e click|keyup event
    */
-  _downloadClicked(e) {
+  async _downloadClicked(e) {
     e.preventDefault();
 
-    let selectedExperts = [];
+    let selectedPersons = [];
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
     resultRows.forEach(row => {
       let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
       if( checkbox?.checked ) {
-        selectedExperts.push(row.result.id);
+        selectedPersons.push(row.result.id);
       }
     });
 
-    if( !selectedExperts.length ) return;
+    if( !selectedPersons.length ) return;
+
+
+    // TODO extra columns needed
+    // Type of result (person, work, grant)
+    // expert's name
+    // type of field in which the keyword appears + field content
+    // role in relation to the field
+              // (e.g. if the field is the title/abstract of a publication, list whether this is a first or last author;
+              // if it is a grant, list the role; no role is needed for subject keywords and bios)
+    // AE profile landing page
+    // expert's website
+    // expert's email
+    console.log('this.rawSearchData?.hits', this.rawSearchData?.hits);
 
     let body = [];
-    (this.rawSearchData?.hits || []).forEach(result => {
-      if( selectedExperts.includes(result['@id']) ) {
+    let hits = (this.rawSearchData?.hits || []);
+    for( let h = 0; h < hits.length; h++ ) {
+      let result = hits[h];
+
+      if( selectedPersons.includes(result['@id']) ) {
+        console.log('selectedPersons', result);
+
         body.push([
-          '"' + result.name?.split('§')?.[0]?.trim() + '"',                           // name
-          '"' + result.contactInfo?.hasEmail?.replace('email:','')?.trim() + '"',     // email
+          '"expert"',                                                                 // type of result
+          '"' + result.name?.split('§')?.[0]?.trim() + '"',                           // experts name
+          '""', // appears in / content
+          '""', // role relation
           '"' + 'https://sandbox.experts.library.ucdavis.edu/' + result['@id'] + '"', // landing page
-          '"' + (result.contactInfo?.hasURL || []).map(w => w.url).join(';') + '"',   // websites
-          '"' + result.contactInfo?.hasTitle?.name?.trim() + '"',                     // role
-          '"' + result.contactInfo?.hasOrganizationalUnit?.name?.trim() + '"',        // department
+          '"' + (result.contactInfo?.hasURL || []).map(w => w.url).join('; ') + '"',   // websites
+          '"' + result.contactInfo?.hasEmail?.replace('email:','')?.trim() + '"',     // email
+
+          // no longer needed?
+          // '"' + result.contactInfo?.hasTitle?.name?.trim() + '"',                     // role
+          // '"' + result.contactInfo?.hasOrganizationalUnit?.name?.trim() + '"',        // department
         ]);
+
+        let innerHits = (result['_inner_hits'] || []).filter(h => h['@type'] === 'Authored');
+
+        let citationResults;
+        if( innerHits.length ) citationResults = await generateCitations(innerHits, 'text', false, true);
+        if( citationResults.length ) citationResults = citationResults.map(c => c.value || '');
+
+        for( let ih = 0; ih < citationResults.length; ih++ ) {
+          let inner = citationResults[ih];
+
+          let firstAuthor = inner.author?.[0];
+          let lastAuthor = inner.author?.[inner.author?.length-1];
+
+          let authorsString = result.name?.split('§')?.[0]?.trim();
+          if( firstAuthor ) {
+            authorsString += ('; ' + firstAuthor.family + ', ' + firstAuthor.given);
+          }
+          if( lastAuthor ) {
+            authorsString += ('; ' + lastAuthor.family + ', ' + lastAuthor.given);
+          }
+
+          console.log('citationResults', citationResults)
+
+          body.push([
+            '"work"',                                   // type of result
+            '"NA"',                                     // experts name
+            '"' + utils.getCitationType(inner.type) + ' - ' + inner.apa + '"',    // appears in / content
+            '"' + authorsString + '"',                  // role relation
+            '"NA"',                                     // landing page
+            '"NA"',                                     // websites
+            '"NA"'                                      // email
+          ]);
+        }
       }
-    });
+    }
+
     if( !body.length ) return;
 
-    let headers = ['name', 'email', 'landing page', 'websites', 'role', 'department'];
+    let headers = ['type of result', 'experts name', 'appears in / content', 'role relation', 'landing page', 'websites', 'email'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
