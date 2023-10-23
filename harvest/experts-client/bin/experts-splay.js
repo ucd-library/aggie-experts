@@ -61,7 +61,7 @@ const files = program.args;
 
 const ec = new ExpertsClient(cli);
 if (cli.fuseki.isTmp) {
-  const fuseki = await ec.mkFusekiTmpDb(cli, files);
+  const fuseki = await ec.createDataset(cli, files);
   cli.source ||= [];
   cli.source.unshift(`${cli.fuseki.url}/${cli.fuseki.db}`);
 }

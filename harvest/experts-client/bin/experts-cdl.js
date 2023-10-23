@@ -133,9 +133,8 @@ async function main(opt) {
 
     if (opt.fuseki.isTmp) {
       // Create a random db name if not specified
-      //console.log('starting createDataset');
-      opt.fuseki.db = user + '-' + nanoid(5);
-      const fuseki = await ec.mkFusekiTmpDb(opt);
+      opt.fuseki.db ||= user + '-' + nanoid(5);
+      const fuseki = await ec.createDataset(opt);
       //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
       opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
     } else if (opt.fuseki.db) {
@@ -226,10 +225,10 @@ program.name('cdl-profile')
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
-  .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
+  .option('--fuseki.type <type>', 'specify type on dataset creation', 'tdb')
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
-  .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
+  .option('--fuseki.db <name>', 'specify db. If not specified, will create a new temporary dataset and  a random db is generated', fuseki.db)
   .option('--save-tmp', 'Do not remove temporary file', false)
   .option('--environment <env>', 'specify environment', 'production')
   .option('--no-splay', 'splay data', true)

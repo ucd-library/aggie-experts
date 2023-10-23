@@ -68,7 +68,7 @@ async function main(opt) {
 
   if (opt.fuseki.isTmp) {
     opt.fuseki.db = 'users-' + nanoid(5);
-    const fuseki = await ec.mkFusekiTmpDb(opt);
+    const fuseki = await ec.createDataset(opt);
     console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
     opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
   }

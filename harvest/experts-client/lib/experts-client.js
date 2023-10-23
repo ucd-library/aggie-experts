@@ -105,7 +105,7 @@ export class ExpertsClient {
    * This could easily be joined w/ createDataset, and called mkDb and we only
    * specify temp id if we done't have a name
    **/
-  async mkFusekiTmpDb(opt, files) {
+  async createDataset(opt, files) {
     const fuseki = opt.fuseki;
     if (!fuseki.url) {
       throw new Error('No Fuseki url specified');
@@ -118,34 +118,31 @@ export class ExpertsClient {
       fuseki.type = fuseki.type || 'mem';
     }
 
-    try {
-      const res = await fetch(
-        `${fuseki.url}/\$/datasets/${fuseki.db}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Basic ${fuseki.authBasic}`
-          }
-        })
-    } catch (e) {
-        console.log(`${fuseki.url}/\$/datasets/${fuseki.db} does not exist`);
-        console.log(e);
-      }
-
-    // just throw the error if it fails
-    const res = await fetch(path.join(fuseki.url, '$', 'datasets'),
+    const db=`${fuseki.url}/\$/datasets/${fuseki.db}`
+    const res = await fetch(
+      db,
       {
-        method: 'POST',
-        body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
+        method: 'GET',
         headers: {
           'Authorization': `Basic ${fuseki.authBasic}`
         }
-
       });
-    // const text = await res.text();
-    // console.log(text);
-    if (res.status !== 200) {
-      throw new Error(`Did not get an OK from the server. Code: ${res.status}`);
+    if (res.ok) {
+      console.log(`${db} exists`);
+    } else {
+      // just throw the error if it fails
+      const res = await fetch(
+        `${fuseki.url}/\$/datasets`,
+        {
+          method: 'POST',
+          body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
+          headers: {
+            'Authorization': `Basic ${fuseki.authBasic}`
+          }
+        });
+      if (!res.ok) {
+        throw new Error(`Create db ${db} failed . Code: ${res.status}`);
+      }
     }
     if (files) {
       fuseki.files = await this.addToFusekiDb(opt, files);
@@ -196,25 +193,6 @@ export class ExpertsClient {
         })
       return res.status;
     }
-  }
-
-  async createDataset(opt) {
-    const fuseki = opt.fuseki;
-    if (fuseki.auth.match(':')) {
-      fuseki.authBasic = Buffer.from(fuseki.auth).toString('base64');
-    } else {
-      fuseki.authBasic = fuseki.auth;
-    }
-
-    const res = await fetch(`${fuseki.url}/\$/datasets`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${fuseki.authBasic}`
-        },
-        body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
-      })
-    return res.status;
   }
 
   async createGraphFromJsonLdFile(jsonld, opt) {
