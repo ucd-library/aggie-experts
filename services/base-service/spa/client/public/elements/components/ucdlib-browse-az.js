@@ -79,7 +79,6 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
   }
 
   parseLocation() {
-    debugger;
     this.url = window.location.origin + window.location.pathname;
     this.urlParams = new URLSearchParams(window.location.search);
     this.sort = this.urlParams.get(this.keySort) || this.defaultSort;
