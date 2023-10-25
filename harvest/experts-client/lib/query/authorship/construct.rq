@@ -35,7 +35,7 @@ construct {
         cite:page ?page;
         ?field_predicate ?field_value;
         cite:issued ?pub_datestr;
-        cite:date-available ?pub_odatestr;
+        cite:date-available ?opub_datestr;
         .
 
   ?work  cite:author ?author.

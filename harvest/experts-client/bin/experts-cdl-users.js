@@ -12,13 +12,12 @@ import { nanoid } from 'nanoid';
 // import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
-import QueryLibrary from '../lib/query-library.js';
+import FusekiClient from '../lib/fuseki-client.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
 
 // const DF = new DataFactory();
 // const BF = new BindingsFactory();
 
-const ql = await new QueryLibrary().load();
 const gs = new GoogleSecret();
 
 console.log('starting experts-cdl-fetch');
@@ -26,11 +25,14 @@ console.log('starting experts-cdl-fetch');
 const program = new Command();
 
 // This also reads data from .env file via dotenv
-const fuseki = {
+const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
-  type: 'mem',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-};
+  type: 'tdb',
+  replace: false,
+  'delete': false,
+  db: 'experts'
+});
 
 const cdl = {
   url: '',
@@ -66,12 +68,7 @@ async function main(opt) {
 
   const users = program.args;
 
-  if (opt.fuseki.isTmp) {
-    opt.fuseki.db = 'users-' + nanoid(5);
-    const fuseki = await ec.createDataset(opt);
-    console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
-    opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
-  }
+  opt.db=await fuseki.createDb(fuseki.db);
 
   console.log('starting CDL users fetch');
 
@@ -139,7 +136,7 @@ async function main(opt) {
   let jsonld = JSON.stringify(contextObj);
   console.log('starting createGraph');
 
-  await ec.createGraphFromJsonLdFile(jsonld, opt);
+  await opt.db.createGraphFromJsonLdFile(jsonld);
 
   if (opt.output === '-') {
     // write to std out
@@ -149,12 +146,8 @@ async function main(opt) {
     fs.writeFileSync(opt.output, jsonld);
   }
 
-  console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+  console.log(`Graph created successfully in dataset '${fuseki.db}'.`);
 
-  // Any other value don't delete
-  if (opt.fuseki.isTmp === true && !opt.saveTmp) {
-    const dropped = await ec.dropFusekiDb(opt);
-  }
 }
 
 // Trick for getting __dirname in ES6 modules
@@ -168,7 +161,6 @@ const __dirname = dirname(__filename).replace('/bin', '/lib');
 program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL users list into Fuseki')
-  .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
   .option('--output <output>', 'output directory')
   .option('--username <username>', 'Specify CDL username')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
@@ -177,12 +169,10 @@ program.name('cdl-profile')
   .option('--cdl.affected <affected>', 'affected since')
   .option('--cdl.modified <modified>', 'modified since')
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
-  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', true)
-  .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
+  .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
-  .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
-  .option('--save-tmp', 'Do not remove temporary file', false)
+  .option('--fuseki.db <name>', 'specify fuseki db', fuseki.db)
   .option('--environment <env>', 'specify environment', 'production')
   .option('--userList', 'output list of usernames', false)
 
@@ -195,8 +185,7 @@ let opt = program.opts();
 Object.keys(opt).forEach((k) => {
   const n = k.replace(/^fuseki./, '')
   if (n !== k) {
-    opt.fuseki ||= {};
-    opt.fuseki[n] = opt[k];
+    fuseki[n] = opt[k];
     delete opt[k];
   }
 });

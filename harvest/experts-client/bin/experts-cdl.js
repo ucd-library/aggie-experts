@@ -12,6 +12,7 @@ import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
+import FusekiClient from '../lib/fuseki-client.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
 
 const DF = new DataFactory();
@@ -20,16 +21,17 @@ const BF = new BindingsFactory();
 const ql = await new QueryLibrary().load();
 const gs = new GoogleSecret();
 
-console.log('starting experts-cdl-fetch');
-
 const program = new Command();
 
 // This also reads data from .env file via dotenv
-const fuseki = {
+const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
-  type: 'mem',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-};
+  type: 'tdb',
+  db: 'CAS',
+  replace: true,
+  'delete': false
+});
 
 const cdl = {
   url: '',
@@ -61,7 +63,6 @@ async function temp_get_qa_grants(orig_opt,user,cdlId,context,ec) {
 
 
 async function main(opt) {
-
   // get the secret JSON
   let secretResp = await gs.getSecret(opt.cdl.secretpath);
   let secretJson = JSON.parse(secretResp);
@@ -113,7 +114,6 @@ async function main(opt) {
         sinceFilter = '&modified-since=' + date.toISOString();
         uquery += sinceFilter;
       }
-      console.log('uquery', uquery);
 
       // Get the users from CDL that meet the criteria
       const entries = await ec.getCDLentries(opt, uquery);
@@ -128,20 +128,19 @@ async function main(opt) {
       console.log(users.length + ' users found');
     }
   }
+
+  let db
+  // If fuseki.db is const, then create it
+  if (fuseki.db !== 'CAS' && fuseki.db !== 'CAS-XXXX') {
+    db = await fuseki.createDb(fuseki.db);
+  }
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
-
-    if (opt.fuseki.isTmp) {
-      // Create a random db name if not specified
-      opt.fuseki.db ||= user + '-' + nanoid(5);
-      const fuseki = await ec.createDataset(opt);
-      //console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
-      opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
-    } else if (opt.fuseki.db) {
-      opt.source = [`${opt.fuseki.url}/${opt.fuseki.db}/sparql`];
-      ec.authFuseki(opt);
-    } else {
-      throw new Error('No Fuseki db specified');
+    let dbname
+    if (fuseki.db==='CAS-XX' || fuseki.db==='CAS') {
+      dbname = user+(fuseki.db==='CAS-XX'?'-'+nanoid(2):'');
+      db = await fuseki.createDb(dbname);
+      console.log(`Dataset '${dbname}' created successfully.`);
     }
 
     if (opt.fetch) {
@@ -167,14 +166,15 @@ async function main(opt) {
       console.log('starting createGraph ' + user);
 
       // Insert into our local Fuseki
-      await ec.createGraphFromJsonLdFile(jsonld, opt);
+      await db.createGraphFromJsonLdFile(jsonld);
 
-      console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
+      console.log(`Graph created successfully in dataset '${dbname}'.`);
       console.log('starting getCDLentries ' + user + '-' + cdlId);
 
       // Step 3: Get User Relationships from CDL
 
       // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
+      opt.db=db
       await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
 
       // Step 3a: Get User Grants from CDL (qa-oapolicy only)
@@ -182,26 +182,25 @@ async function main(opt) {
     }
 
     if (opt.splay) {
-      console.log('splay')
-      opt.bindings = BF.fromRecord(
+      const bindings = BF.fromRecord(
         { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
       );
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
 
-      await ec.insert({ ...opt, ...iam });
+      await ec.insert({ ...iam, bindings, db });
 
       for (const n of ['expert', 'authorship', 'grant_role']) {
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
-          return await ec.splay({ ...opt, ...splay });
+          return await ec.splay({ ...splay,bindings, db });
         })(n);
       };
     }
     // Any other value don't delete
-    if (opt.fuseki.isTmp === true && !opt.saveTmp) {
-      const dropped = await ec.dropFusekiDb(opt);
+    if (fuseki.delete === true ) {
+      const dropped = await fuseki.dropDb(db);
     }
   }
 }
@@ -216,7 +215,6 @@ const __dirname = dirname(__filename).replace('/bin', '/lib');
 program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
-  .option('--source <source...>', 'Specify linked data source. Used instead of --fuseki')
   .option('--output <output>', 'output directory')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
@@ -224,12 +222,14 @@ program.name('cdl-profile')
   .option('--cdl.modified <modified>', 'modified since')
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
-  .option('--fuseki.isTmp', 'create a temporary store, and files to it, and unshift to sources before splay.  Any option means do not remove on completion', false)
-  .option('--fuseki.type <type>', 'specify type on dataset creation', 'tdb')
+  .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
-  .option('--fuseki.db <name>', 'specify db. If not specified, will create a new temporary dataset and  a random db is generated', fuseki.db)
-  .option('--save-tmp', 'Do not remove temporary file', false)
+  .option('--fuseki.db <name>', 'specify db. There are two special names; CAS which uses a new database w/ the users CAS identifier and CAS-XXXX which uses a database with the users CAS plus a random id.', fuseki.db)
+  .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki["delete"])
+  .option('--no-fuseki.delete')
+  .option('--fuseki.replace', 'Replace the fuseki.db (delete before import)', true)
+  .option('--no-fuseki.replace')
   .option('--environment <env>', 'specify environment', 'production')
   .option('--no-splay', 'splay data', true)
   .option('--no-fetch', 'fetch the data', true)
@@ -243,8 +243,7 @@ let opt = program.opts();
 Object.keys(opt).forEach((k) => {
   const n = k.replace(/^fuseki./, '')
   if (n !== k) {
-    opt.fuseki ||= {};
-    opt.fuseki[n] = opt[k];
+    fuseki[n] = opt[k];
     delete opt[k];
   }
 });

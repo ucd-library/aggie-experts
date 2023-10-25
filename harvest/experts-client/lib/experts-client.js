@@ -56,8 +56,6 @@ export class ExpertsClient {
       return
     }
 
-    console.log(url);
-
     const response = await fetch(url);
 
     if (response.status !== 200) {
@@ -80,151 +78,6 @@ export class ExpertsClient {
     context["@id"] = graphId;
     context["@graph"] = input;
     return context;
-  }
-
-  /**
-   * @method authFuseki
-   * @description Authenticate to Fuseki server.  Sets authBasic property.
-   * @param {object} opt - Options object
-   **/
-  authFuseki(opt) {
-    const fuseki=opt.fuseki;
-    if (!fuseki.auth) {
-      throw new Error('No Fuseki auth specified');
-    }
-    // You can still specify a db name if you want, otherwise we'll generate a
-    // random one
-    if (fuseki.auth.match(':')) {
-      fuseki.authBasic = Buffer.from(fuseki.auth).toString('base64');
-    } else {
-      fuseki.authBasic = fuseki.auth;
-    }
-  }
-
-  /**
-   * This could easily be joined w/ createDataset, and called mkDb and we only
-   * specify temp id if we done't have a name
-   **/
-  async createDataset(opt, files) {
-    const fuseki = opt.fuseki;
-    if (!fuseki.url) {
-      throw new Error('No Fuseki url specified');
-    }
-    this.authFuseki(opt);
-    // set a temporary db name if we don't have one
-    if (!fuseki.db) {
-      fuseki.db = nanoid(5);
-      fuseki.isTmp = true;
-      fuseki.type = fuseki.type || 'mem';
-    }
-
-    const db=`${fuseki.url}/\$/datasets/${fuseki.db}`
-    const res = await fetch(
-      db,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Basic ${fuseki.authBasic}`
-        }
-      });
-    if (res.ok) {
-      console.log(`${db} exists`);
-    } else {
-      // just throw the error if it fails
-      const res = await fetch(
-        `${fuseki.url}/\$/datasets`,
-        {
-          method: 'POST',
-          body: new URLSearchParams({ 'dbName': fuseki.db, 'dbType': fuseki.type }),
-          headers: {
-            'Authorization': `Basic ${fuseki.authBasic}`
-          }
-        });
-      if (!res.ok) {
-        throw new Error(`Create db ${db} failed . Code: ${res.status}`);
-      }
-    }
-    if (files) {
-      fuseki.files = await this.addToFusekiDb(opt, files);
-    }
-    return fuseki;
-  }
-
-  /**
-   * upload file to fuseki.  We unambiguousely specify the fuseki endpoint.
-   And right now, you can't specify a default graph name for the jsonld file.
-   */
-  async addToFusekiDb(opt, files) {
-    const fuseki = opt.fuseki;
-    files instanceof Array ? files : [files]
-    const results = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const jsonld = fs.readFileSync(file);
-      // Be good to have verbose output better NDJSON for debugging
-      const res = await fetch(`${fuseki.url}/${fuseki.db}/data`, {
-        method: 'POST',
-        body: jsonld,
-        headers: {
-          'Authorization': `Basic ${fuseki.authBasic}`,
-          'Content-Type': 'application/ld+json'
-        }
-      })
-      const json = await res.json();
-      const log = {
-        file: file,
-        status: res.status,
-        response: json
-      };
-      results.push(log);
-    }
-    return results;
-  }
-
-  async dropFusekiDb(opt) {
-    const fuseki = opt.fuseki;
-    if (fuseki.isTmp && fuseki.url && fuseki.db) {
-      const res = await fetch(`${fuseki.url}/\$/datasets/${fuseki.db}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Basic ${fuseki.authBasic}`
-          }
-        })
-      return res.status;
-    }
-  }
-
-  async createGraphFromJsonLdFile(jsonld, opt) {
-    const fuseki = opt.fuseki;
-
-    // Construct URL for uploading the data to the graph
-    // Don't include a graphname to use what's in the jsonld file
-    const url = `${fuseki.url}/${fuseki.db}/data`;
-
-    console.log('posting to ' + url);
-
-    // Set request options
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/ld+json',
-        'Authorization': `Basic ${fuseki.authBasic}`
-      },
-      body: jsonld,
-    };
-
-    // Send the request to upload the data to the graph
-    const response = await fetch(url, options);
-
-    // console.log(response);
-
-    // Check if the request was successful
-    if (!response.ok) {
-      throw new Error(`Failed to create graph. Status code: ${response.status}` + response.statusText);
-    }
-
-    return await response.text();
   }
 
 
@@ -250,36 +103,10 @@ export class ExpertsClient {
   *
   */
   async insert(opt) {
-
-    async function execFusekiUpdate(opt, query) {
-      const fuseki = opt.fuseki;
-      const url = `${fuseki.url}/${fuseki.db}/update`;
-
-      // Set request options
-      const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/sparql-update',
-          'Authorization': `Basic ${fuseki.authBasic}`
-        },
-        body: query,
-      };
-
-      const response = await fetch(url, options);
-
-      if (!response.ok) {
-        // console.log(response);
-        throw new Error(`Failed to execute update. Status code: ${response.status}`);
-      }
-
-      return await response.text();
-    }
-
     const bind = ExpertsClient.str_or_file(opt, 'bind', true);
     const insert = ExpertsClient.str_or_file(opt, 'insert', true);
 
     const q = new QueryEngine();
-    const sources = opt.source;
 
     async function insertBoundConstruct(bindings) {
       // if opt.bindings, add them to bindings
@@ -298,18 +125,12 @@ export class ExpertsClient {
           insert = insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-
       opt.insert = insert;
-      const update = opt.source[0].replace(/sparql$/, 'update');
-
-      const promise = execFusekiUpdate(opt, insert);
-      // const promise = q.queryVoid(insert, { sources: [update], httpAuth: opt.fuseki.auth });
-
+      const promise = opt.db.update(insert);
       return promise;
-
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources, fetch: fetch })
+    const bindingStream = q.queryBindings(opt.bind, { sources:[opt.db.source()] })
 
     const queue = new readablePromiseQueue(bindingStream, insertBoundConstruct,
       { name: 'insert', max_promises: 10 });
@@ -341,7 +162,6 @@ export class ExpertsClient {
     }
 
     const q = new QueryEngine();
-    const sources = opt.source;
     const factory = new DataFactory();
 
     // console.log(opt)
@@ -366,8 +186,7 @@ export class ExpertsClient {
           construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-      const quadStream = await q.queryQuads(construct, { sources: opt.source });
-      //      const quadStream = await q.queryQuads(construct, { initialBindings: bindings, sources: opt.source });
+      const quadStream = await q.queryQuads(construct, { sources: [opt.db.source()] });
 
       // convert construct to jsonld quads
       const quads = await quadStream.toArray();
@@ -382,7 +201,7 @@ export class ExpertsClient {
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources: opt.source })
+    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()],fetch })
     const queue = new readablePromiseQueue(bindingStream, constructRecord,
       { name: 'splay', max_promises: 5 });
     return queue.execute({ via: 'start' });
@@ -472,7 +291,7 @@ export class ExpertsClient {
 
 
   /**
- * @description Generic function to get all the entries from a CDL collection and post them to a fuseki endpoint
+ * @description Generic function to get all the entries from a CDL collection and post them to a fuseki database
  * @param {
   * } opt
   * @returns
@@ -480,6 +299,7 @@ export class ExpertsClient {
   */
   async getPostCDLentries(opt, query, cdlId, context) {
     const cdl = opt.cdl;
+    const db = opt.db;
     var lastPage = false
     var results, entries = [];
     var nextPage = `${cdl.url}/${query}`
@@ -544,8 +364,8 @@ export class ExpertsClient {
           // Bad writing here
           //fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
 
-          // Insert into our local Fuseki
-          await this.createGraphFromJsonLdFile(jsonld, opt);
+          // Insert into our local Fuseki DB
+          await db.createGraphFromJsonLdFile(jsonld);
         }
 
         // inspect the pagination to see if there are more pages
