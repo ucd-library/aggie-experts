@@ -20,11 +20,15 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this.id = '';
     this.displayedResults = [];
 
-    this._injectModel('AppStateModel');
+    this._injectModel('AppStateModel', 'SearchModel');
   }
 
   async firstUpdated() {
     this.displayedResults = [1,2,3,4,5,6,7,8,9,10];
+    // TEMP HACK just hit search api and parts hits (ignore inner_hits)
+    // ie /api/search?q=s
+
+
     this._onAppStateUpdate(await this.AppStateModel.get());
   }
 

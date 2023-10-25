@@ -8,6 +8,8 @@ import '../elements/pages/browse/app-browse.js';
 import '../elements/pages/expert/app-expert.js';
 import '../elements/pages/expert/app-expert-works-list.js';
 import '../elements/pages/expert/app-expert-works-list-edit.js';
+import '../elements/pages/expert/app-expert-grants-list.js';
+import '../elements/pages/expert/app-expert-grants-list-edit.js';
 import '../elements/pages/search/app-search.js';
 import '../elements/pages/404/app-404.js';
 import '../elements/pages/faq/app-faq.js';

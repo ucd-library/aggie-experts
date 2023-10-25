@@ -202,8 +202,7 @@ return html`
       </li>
       <li>How do I delete my profile?</li>
       <li>
-        Log into the UC Publication Management System account and go to your <a href="https://oapolicy.universityofcalifornia.edu/">account</a>
-        (for step-by-step instructions, see <a href="https://docs.google.com/document/d/1CXT7R9pe2oSrr3xO76jVong0uLJR2btbbs_GtZ9Rt3I/edit#bookmark=kix.jq4kurgdxx8q">here</a>).
+        Log into the UC Publication Management System account and go to "Edit My Profile".
         Under "Profile privacy", switch the settings from "Public" to "Internal". After the data are
         refreshed, Aggie Experts will not display any information about you, including your name.
       </li>

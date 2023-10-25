@@ -82,6 +82,8 @@ return html`
       <app-expert id="expert" @show-404="${(e) => this.page = '404'}"></app-expert>
       <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
       <app-expert-works-list-edit id="works-edit" @show-404="${(e) => this.page = '404'}"></app-expert-works-list-edit>
+      <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
+      <app-expert-grants-list-edit id="grants-edit" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list-edit>
       <app-search id="search"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>

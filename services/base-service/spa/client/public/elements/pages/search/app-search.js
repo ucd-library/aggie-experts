@@ -9,6 +9,9 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.
 import "../../components/search-box";
 import "../../components/search-result-row";
 
+import utils from '../../../lib/utils';
+import { generateCitations } from '../../utils/citation.js';
+
 export default class AppSearch extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
@@ -118,9 +121,7 @@ export default class AppSearch extends Mixin(LitElement)
       let name = r.name?.split('§')?.shift()?.trim();
       let subtitle = r.name?.split('§')?.pop()?.trim();
       let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type'] === 'Authored') || []).length;
-
-      // let numberOfGrants = (r['_inner_hits']['@graph'].hits.hits.filter(h => h['@type'] === 'IP') || []).length;
-      let numberOfGrants = 0; // TODO implement grants when ready
+      let numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 
       return {
         position: index+1,
@@ -177,36 +178,245 @@ export default class AppSearch extends Mixin(LitElement)
    *
    * @param {Object} e click|keyup event
    */
-  _downloadClicked(e) {
+  async _downloadClicked(e) {
     e.preventDefault();
 
-    let selectedExperts = [];
+    let selectedPersons = [];
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
     resultRows.forEach(row => {
       let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
       if( checkbox?.checked ) {
-        selectedExperts.push(row.result.id);
+        selectedPersons.push(row.result.id);
       }
     });
 
-    if( !selectedExperts.length ) return;
+    if( !selectedPersons.length ) return;
+
+    // format tbd
+    this._tempDownloadFormatVE(selectedPersons);
+    // this._tempDownloadFormatQH(selectedPersons);
+  }
+
+  async _tempDownloadFormatVE(selectedPersons) {
+    // download in proposed format from Vessela
+
+    // TODO extra columns needed
+    // Type of result (person, work, grant)
+    // expert's name
+    // type of field in which the keyword appears + field content
+    // role in relation to the field
+              // (e.g. if the field is the title/abstract of a publication, list whether this is a first or last author;
+              // if it is a grant, list the role; no role is needed for subject keywords and bios)
+    // AE profile landing page
+    // expert's website
+    // expert's email
+    console.log('this.rawSearchData?.hits', this.rawSearchData?.hits);
 
     let body = [];
-    (this.rawSearchData?.hits || []).forEach(result => {
-      if( selectedExperts.includes(result['@id']) ) {
-        body.push([
-          '"' + result.name?.split('§')?.[0]?.trim() + '"',                           // name
-          '"' + result.contactInfo?.hasEmail?.replace('email:','')?.trim() + '"',     // email
-          '"' + 'https://sandbox.experts.library.ucdavis.edu/' + result['@id'] + '"', // landing page
-          '"' + (result.contactInfo?.hasURL || []).map(w => w.url).join(';') + '"',   // websites
-          '"' + result.contactInfo?.hasTitle?.name?.trim() + '"',                     // role
-          '"' + result.contactInfo?.hasOrganizationalUnit?.name?.trim() + '"',        // department
-        ]);
+    let hits = (this.rawSearchData?.hits || []);
+    for( let h = 0; h < hits.length; h++ ) {
+      let result = hits[h];
+
+      if( selectedPersons.includes(result['@id']) ) {
+        console.log('selectedPersons', result);
+
+        let innerHits = (result['_inner_hits'] || []).filter(h => h['@type'] === 'Authored');
+
+        let citationResults;
+        if( innerHits.length ) citationResults = await generateCitations(innerHits, 'text', false, true);
+        if( citationResults.length ) citationResults = citationResults.map(c => c.value || '');
+
+        // persons
+        for( let ih = 0; ih < citationResults.length; ih++ ) {
+          let inner = citationResults[ih];
+
+          // need to compare result?.contactInfo?.hasName?. family+given to inner author?. family+given
+
+          // identify author exactly, vs family+given which might not be unique
+          // use inner.rank to identify first/last author in authors array
+          let expertRank = inner.rank;
+
+          let firstAuthor = (
+              expertRank === 1 &&
+              inner.author.length > 1
+            ) ? 'First author' : '';
+          let lastAuthor = (
+              expertRank === inner.author?.length &&
+              inner.author.length > 1
+            ) ? 'Last author' : '';
+          let onlyAuthor = inner.author?.length === 1 ? 'Only author' : '';
+          let role = onlyAuthor || firstAuthor || lastAuthor || 'Author';
+
+          let landingPage = onlyAuthor.length ? 'https://sandbox.experts.library.ucdavis.edu/' + result['@id'] : 'NA';
+          let websites = onlyAuthor.length ? (result.contactInfo?.hasURL || []).map(w => w.url).join('; ') : 'NA';
+
+          // TODO websites should be filtered
+          /*
+          let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
+          websites.forEach(w => {
+            if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
+            this.websites.push(...w.hasURL);
+          });
+          */
+
+
+          let email = onlyAuthor.length ? result.contactInfo?.hasEmail?.replace('email:','')?.trim() : 'NA';
+
+          body.push([
+            '"expert"',
+            '"' + result.name?.split('§')?.[0]?.trim() + '"',                   // experts name
+            '"' + utils.getCitationType(inner.type) + ' - ' + inner.apa + '"',  // appears in / content
+            `"${role}"`,                                                        // role relation
+            `"${landingPage}"`,                                                 // landing page
+            `"${websites}"`,                                                    // websites
+            `"${email}"`,                                                       // email
+
+            // no longer needed?
+            // '"' + result.contactInfo?.hasTitle?.name?.trim() + '"',                  // role
+            // '"' + result.contactInfo?.hasOrganizationalUnit?.name?.trim() + '"',     // department
+          ]);
+
+          console.log('citationResults', citationResults)
+        }
+
+        // works
+        for( let ih = 0; ih < citationResults.length; ih++ ) {
+          let inner = citationResults[ih];
+
+          body.push([
+            '"work"',
+            '"NA"',                           // experts name
+            '"' + utils.getCitationType(inner.type) + ' - ' + inner.apa + '"',  // appears in / content
+            '"NA"',                                                             // role relation
+            '"NA"',                                                             // landing page
+            '"NA"',                                                             // websites
+            '"NA"',                                                             // email
+          ]);
+        }
       }
-    });
+    }
+
     if( !body.length ) return;
 
-    let headers = ['name', 'email', 'landing page', 'websites', 'role', 'department'];
+    let headers = ['type of result', 'experts name', 'appears in / content', 'role', 'landing page', 'websites', 'email'];
+    let text = headers.join(',') + '\n';
+    body.forEach(row => {
+      text += row.join(',') + '\n';
+    });
+
+    let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+    let url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'data.csv');
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  async _tempDownloadFormatQH(selectedPersons) {
+    // download in proposed format from Quinn
+
+    console.log('this.rawSearchData?.hits', this.rawSearchData?.hits);
+
+    let body = [];
+    let hits = (this.rawSearchData?.hits || []);
+    for( let h = 0; h < hits.length; h++ ) {
+      let result = hits[h];
+
+      if( selectedPersons.includes(result['@id']) ) {
+        console.log('selectedPersons', result);
+
+        let innerHits = (result['_inner_hits'] || []).filter(h => h['@type'] === 'Authored');
+
+        let citationResults;
+        if( innerHits.length ) citationResults = await generateCitations(innerHits, 'text', false, true);
+        if( citationResults.length ) citationResults = citationResults.map(c => c.value || '');
+
+        // persons
+        for( let ih = 0; ih < citationResults.length; ih++ ) {
+          let inner = citationResults[ih];
+
+          // identify author exactly, vs family+given which might not be unique
+          // use inner.rank to identify first/last author in authors array
+          let expertRank = inner.rank;
+
+          let firstAuthor = (
+              expertRank === 1 &&
+              inner.author.length > 1
+            ) ? 'First author' : '';
+          let lastAuthor = (
+              expertRank === inner.author?.length &&
+              inner.author.length > 1
+            ) ? 'Last author' : '';
+          let onlyAuthor = inner.author?.length === 1 ? 'Only author' : '';
+          let role = onlyAuthor || firstAuthor || lastAuthor || 'Author';
+
+          let landingPage = onlyAuthor.length ? 'https://sandbox.experts.library.ucdavis.edu/' + result['@id'] : 'NA';
+          let websites = onlyAuthor.length ? (result.contactInfo?.hasURL || []).map(w => w.url).join('; ') : 'NA';
+
+          // TODO websites should be filtered
+          /*
+          let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
+          websites.forEach(w => {
+            if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
+            this.websites.push(...w.hasURL);
+          });
+          */
+
+
+          let email = onlyAuthor.length ? result.contactInfo?.hasEmail?.replace('email:','')?.trim() : 'NA';
+
+
+          body.push([
+            '"expert"',                                                         // type of result
+            // expert
+            // expert_link
+            // name
+            // credit
+            // link
+            // websites
+            // email
+
+
+            // old
+            '"' + result.name?.split('§')?.[0]?.trim() + '"',                   // experts name
+            '"' + utils.getCitationType(inner.type) + ' - ' + inner.apa + '"',  // appears in / content
+            `"${role}"`,                                                        // role relation
+            `"${landingPage}"`,                                                 // landing page
+            `"${websites}"`,                                                    // websites
+            `"${email}"`,                                                       // email
+
+            // no longer needed?
+            // '"' + result.contactInfo?.hasTitle?.name?.trim() + '"',                  // role
+            // '"' + result.contactInfo?.hasOrganizationalUnit?.name?.trim() + '"',     // department
+          ]);
+
+          console.log('citationResults', citationResults)
+        }
+
+        // works
+        for( let ih = 0; ih < citationResults.length; ih++ ) {
+          let inner = citationResults[ih];
+
+          body.push([
+            '"work"',
+            '"NA"',                           // experts name
+            '"' + utils.getCitationType(inner.type) + ' - ' + inner.apa + '"',  // appears in / content
+            '"NA"',                                                             // role relation
+            '"NA"',                                                             // landing page
+            '"NA"',                                                             // websites
+            '"NA"',                                                             // email
+          ]);
+        }
+      }
+    }
+
+    if( !body.length ) return;
+
+    let headers = ['type of result', 'expert', 'expert_link', 'name', 'credit', 'link', 'websites', 'email'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
