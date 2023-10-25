@@ -91,12 +91,12 @@ RUN chmod +x /usr/local/bin/cdl-elements
 # XML2JSON
 RUN cd /tmp && npm install -g xml2json --unsafe-perm
 
-
 # COPY over experts-api source code
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api
-ARG AE_CLIENT=/usr/local/lib/experts-client
 COPY --from=api ${AE_API} ${AE_API}
 RUN cd ${AE_API} && npm link
+
+ARG AE_CLIENT=/usr/local/lib/experts-client
 COPY experts-client ${AE_CLIENT}
 WORKDIR ${AE_CLIENT}
 RUN npm link @ucd-lib/experts-api && npm install && npm install -g

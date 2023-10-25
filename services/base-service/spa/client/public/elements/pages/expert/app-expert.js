@@ -10,6 +10,7 @@ import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
 import { generateCitations } from '../../utils/citation.js';
+import utils from '../../../lib/utils';
 
 export default class AppExpert extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -29,10 +30,15 @@ export default class AppExpert extends Mixin(LitElement)
       websites : { type : Array },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      grants : { type : Array },
+      grantsActiveDisplayed : { type : Array },
+      grantsCompletedDisplayed : { type : Array },
       canEdit : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
-      showModal : { type : Boolean }
+      showModal : { type : Boolean },
+      grantsPerPage : { type : Number },
+      worksPerPage : { type : Number },
     }
   }
 
@@ -124,6 +130,12 @@ export default class AppExpert extends Mixin(LitElement)
     });
 
     await this._loadCitations();
+
+    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    this.grants = utils.parseGrants(grants);
+
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
   }
 
   /**
@@ -142,11 +154,16 @@ export default class AppExpert extends Mixin(LitElement)
     this.websites = [];
     this.citations = [];
     this.citationsDisplayed = [];
+    this.grants = [];
+    this.grantsActiveDisplayed = [];
+    this.grantsCompletedDisplayed = [];
     this.canEdit = true;
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
     this.resultsPerPage = 25;
+    this.grantsPerPage = 5;
+    this.worksPerPage = 10;
   }
 
   /**
@@ -169,7 +186,7 @@ export default class AppExpert extends Mixin(LitElement)
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.resultsPerPage));
+    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
 
@@ -220,6 +237,16 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _seeAllGrants
+   * @description load page to list all grants
+   */
+  _seeAllGrants(e) {
+    e.preventDefault();
+
+    this.AppStateModel.setLocation('/grants/'+this.expertId);
+  }
+
+  /**
    * @method _seeAllWorks
    * @description load page to list all works
    */
@@ -234,9 +261,19 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit websites
    */
   _editWebsites(e) {
-    this.modalTitle = 'Edit Websites';
-    this.modalContent = `<p>Websites are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
+    this.modalTitle = 'Edit Links';
+    this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
+  }
+
+  /**
+   * @method _editGrants
+   * @description load page to list all grants in edit mode
+   */
+  _editGrants(e) {
+    e.preventDefault();
+
+    this.AppStateModel.setLocation('/grants-edit/'+this.expertId);
   }
 
   /**

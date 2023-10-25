@@ -173,17 +173,20 @@ return html`
     }
 
     .introduction .more-about-me,
+    .grants-abbreviated .see-all-grants,
     .works-abbreviated .see-all-works {
       display: flex;
       align-items: center;
       cursor: pointer;
     }
 
+    .see-all-grants,
     .see-all-works {
       padding-bottom: 2rem;
     }
 
     .introduction .more-about-me span,
+    .grants-abbreviated .see-all-grants span,
     .works-abbreviated .see-all-works span {
       padding-left: .5rem;
       font-weight: bold;
@@ -228,14 +231,28 @@ return html`
       padding-bottom: 2rem;
     }
 
+    .grants-abbreviated {
+      padding-top: 2.56rem;
+    }
+
     .works-abbreviated .see-all-works ucdlib-icon {
       fill: var(--color-sage);
     }
 
+    .grants-abbreviated .see-all-grants ucdlib-icon {
+      fill: var(--color-thiebaud-icing);
+    }
+
+    .grants-abbreviated .grants-heading,
     .works-abbreviated .works-heading {
       display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+
+    .grants-abbreviated .grants-heading ucdlib-icon {
+      fill: var(--color-thiebaud-icing);
+      height: 2.2rem;
     }
 
     .works-abbreviated .works-heading ucdlib-icon {
@@ -244,16 +261,23 @@ return html`
       height: 2.2rem;
     }
 
+    .grants-abbreviated .seperator {
+      border-top: 4px dotted var(--color-thiebaud-icing);
+      padding-bottom: .33rem;
+    }
+
     .works-abbreviated .seperator {
       border-top: 4px dotted var(--color-sage);
       padding-bottom: .33rem;
     }
 
+    .grants-abbreviated .grant h5,
     .works-abbreviated .work h5 {
       color: var(--color-aggie-blue-80);
       margin: .5rem 0;
     }
 
+    .grant-details .dot,
     .work-details .dot {
       padding: 0 0.25rem;
       color: var(--black, #000);
@@ -267,6 +291,7 @@ return html`
       bottom: 0.25rem;
     }
 
+    .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon,
     .works-abbreviated .works-heading .works-edit-download ucdlib-icon {
       fill: var(--color-aggie-blue-80);
       width: 15px;
@@ -349,23 +374,27 @@ return html`
       right: 5px;
     }
 
+    .tooltip.edit-grants:before,
     .tooltip.edit-works:before {
       width: 80px;
       bottom: 30px;
       right: -20px;
     }
 
+    .tooltip.edit-grants:after,
     .tooltip.edit-works:after {
       bottom: 20px;
       right: 22px;
     }
 
+    .tooltip.download-all-grants:before,
     .tooltip.download-all-works:before {
       width: 145px;
       bottom: 30px;
       right: -70px;
     }
 
+    .tooltip.download-all-grants:after,
     .tooltip.download-all-works:after {
       bottom: 20px;
       right: 5px;
@@ -488,9 +517,9 @@ return html`
         </div>
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
-          <h4>Websites
+          <h4>Links
             <span style="position: relative;">
-              <span class="tooltip edit-websites" data-text="Edit websites">
+              <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
                   ?hidden="${!this.canEdit}"
                   @click=${this._editWebsites}>
@@ -526,12 +555,72 @@ return html`
         </div>
       </div>
 
-      <!-- <div style="display: flex; flex-direction: row-reverse;">
-        <a href=""
-          style="padding-top: 0.2rem; padding-bottom: 0.2rem; margin-top: 3rem;"
-          @click="${this._downloadRIS}"
-          class="btn">Download RIS</a>
-      </div> -->
+      <div class="grants-abbreviated" ?hidden="${this.grants.length === 0}">
+        <div class="grants-heading">
+          <div style="display: flex; align-items: center;">
+            <ucdlib-icon class="file-invoice-dollar" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
+            <h2>${this.grants.length} Grants</h2>
+          </div>
+          <div class="grants-edit-download" style="display: flex; align-items: center;">
+            <span style="position: relative;">
+              <span class="tooltip edit-grants" data-text="Edit grants">
+                <ucdlib-icon style="margin-right: 1rem;"
+                  icon="ucdlib-experts:fa-pen-to-square"
+                  ?hidden="${!this.canEdit}"
+                  @click=${this._editGrants}>
+                </ucdlib-icon>
+              </span>
+            </span>
+
+            <span style="position: relative;">
+              <span class="tooltip download-all-grants" data-text="Download all grants">
+                <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
+                  ?hidden="${!this.canEdit}"
+                  @click=${this._downloadGrants}>
+                </ucdlib-icon>
+              </span>
+            </span>
+          </div>
+        </div>
+        <hr class="seperator">
+        ${this.grantsActiveDisplayed.map(
+          (grant, index) => html`
+            <h4 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h4>
+            <div class="grant">
+              <h5>${unsafeHTML(grant.name)}</h5>
+              <div class="grant-details">
+                <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
+                <span class="dot">.</span>
+                <span style="min-width: fit-content;">${grant.role}</span>
+                <span class="dot">.</span>
+                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
+              </div>
+            </div>
+            <br>
+          `
+        )}
+        ${this.grantsCompletedDisplayed.map(
+          (grant, index) => html`
+            <h4 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h4>
+            <div class="grant">
+              <h5>${unsafeHTML(grant.name)}</h5>
+              <div class="grant-details">
+                <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
+                <span class="dot">.</span>
+                <span style="min-width: fit-content;">${grant.role}</span>
+                <span class="dot">.</span>
+                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
+              </div>
+            </div>
+            <br>
+          `
+        )}
+        <div class="see-all-grants" ?hidden= "${this.grants.length < this.grantsPerPage + 1}" @click="${this._seeAllGrants}">
+          <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
+          <span>SEE ALL ${this.grants.length} GRANTS</span>
+        </div>
+      </div>
+
       <div class="works-abbreviated" ?hidden="${this.citations.length === 0}">
         <div class="works-heading">
           <div style="display: flex; align-items: center;">
@@ -568,13 +657,13 @@ return html`
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">.</span>
-                ${unsafeHTML(cite.apa.replace('(n.d.). ', ''))}
+                ${unsafeHTML(cite.apa.replace('(n.d.). ', '').replace('(n.d.).', ''))}
               </div>
             </div>
             <br>
           `
         )}
-        <div class="see-all-works" ?hidden= "${this.citations.length < 11}" @click="${this._seeAllWorks}">
+        <div class="see-all-works" ?hidden= "${this.citations.length < this.worksPerPage + 1}" @click="${this._seeAllWorks}">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
           <span>SEE ALL ${this.citations.length} WORKS</span>
         </div>

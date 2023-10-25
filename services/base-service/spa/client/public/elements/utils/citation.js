@@ -1,5 +1,5 @@
 import Cite from 'citation-js';
-import { parse } from '@citation-js/date';
+import { parse, format } from '@citation-js/date';
 
 class Citation {
   /**
@@ -7,24 +7,44 @@ class Citation {
    * @description load ciation using citation-js
    *
    * @param {String} citation citation object
+   * @param {String} format citation format, defaults to html
+   * @param {Boolean} hideApaTitle hide the title in the apa citation, defaults to tru
+   * @param {Boolean} showDateInApa show date in the apa citation, defaults to false
    *
    * @return {Promise}
    */
-  generateCitationPromise(citation) {
+  generateCitationPromise(citation, format='html', hideApaTitle=true, showDateInApa=false) {
     return new Promise((resolve, reject) => {
       Cite.async(citation).then(citation => {
-        let originalTitle = citation.data[0].title;
-        citation.data[0].title = ''; // apa citation shouldn't include title in ui
-        let apa = citation.format('bibliography', {
-          format: 'html',
-          template: 'apa',
-          lang: 'en-US'
-        });
-        citation.data[0].title = originalTitle;
-
-        // ris format expects date-parts structure
         let originalIssued = citation.data[0].issued;
-        citation.data[0].issued = parse(originalIssued);
+        if( showDateInApa ) {
+          citation.data[0].issued = parse(originalIssued);
+        }
+
+        let apa;
+        if( hideApaTitle ) {
+          let originalTitle = citation.data[0].title;
+          citation.data[0].title = ''; // apa citation shouldn't include title in ui
+
+          apa = citation.format('bibliography', {
+            format,
+            template: 'apa',
+            lang: 'en-US'
+          });
+
+          citation.data[0].title = originalTitle;
+        } else {
+          apa = citation.format('bibliography', {
+            format,
+            template: 'apa',
+            lang: 'en-US'
+          });
+        }
+
+        // ris format expects date-parts structure, regardless if apa is showing date or not
+        if( !showDateInApa ) {
+          citation.data[0].issued = parse(originalIssued);
+        }
 
         let ris = citation.format('ris', {
           format: 'html',
@@ -47,17 +67,20 @@ class Citation {
    * @description load citations using citation-js from list of fcrepo citations
    *
    * @param {Array} citations
+   * @param {String} format citation format, defaults to html
+   * @param {Boolean} hideApaTitle hide the title in the apa citation, defaults to true
+   * @param {Boolean} showDateInApa show date in the apa citation, defaults to false
    *
    * @return {Array} citations
    */
-  async generateCitations(citations) {
+  async generateCitations(citations, format='html', hideApaTitle=true, showDateInApa=false) {
     let citationResults = await Promise.allSettled(
       citations.map((cite, index) => {
         // explicitly remove troublemakers
         ["status","medium"].forEach(key => {
           delete cite[key];
         });
-        return generateCitationPromise(cite);
+        return generateCitationPromise(cite, format, hideApaTitle, showDateInApa);
       })
     );
     return citationResults;
