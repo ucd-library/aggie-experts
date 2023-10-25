@@ -121,9 +121,7 @@ export default class AppSearch extends Mixin(LitElement)
       let name = r.name?.split('§')?.shift()?.trim();
       let subtitle = r.name?.split('§')?.pop()?.trim();
       let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type'] === 'Authored') || []).length;
-
-      // let numberOfGrants = (r['_inner_hits']['@graph'].hits.hits.filter(h => h['@type'] === 'IP') || []).length;
-      let numberOfGrants = 0; // TODO implement grants when ready
+      let numberOfGrants = (r['_inner_hits']?.filter(h => h['@type'].includes('Grant')) || []).length;
 
       return {
         position: index+1,
