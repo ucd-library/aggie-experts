@@ -6,19 +6,22 @@ import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
 import ExpertsClient from '../lib/experts-client.js';
-import GoogleSecret from '../lib/googleSecret.js';
+import FusekiClient from '../lib/fuseki-client.js';
+import { GoogleSecret } from '@ucd-lib/experts-api';
 
 const gs = new GoogleSecret();
 
 console.log('starting experts-iam');
 const program = new Command();
 
-const fuseki = {
+const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
-  type: 'tdb2',
-  db: 'iam',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-}
+  type: 'tdb',
+  replace: false,
+  'delete': false,
+  db: 'experts'
+});
 
 const context = {
   "@context": {
@@ -85,20 +88,15 @@ async function main(opt) {
     fs.writeFileSync(opt.output, ec.jsonld);
   }
 
-  console.log('starting createDataset');
-  await ec.createDataset(opt);
-  console.log(`Dataset '${opt.fuseki.db}' created successfully.`);
+  console.log('starting createFusekiDb');
+  const db=await fuseki.createDb(fuseki.db);
+  console.log(`Dataset '${fuseki.db}' created successfully.`);
 
   //  This part should use are (now standard) insert_iam query.
 
   console.log('starting createGraph');
-  await ec.createGraphFromJsonLdFile(ec.jsonld, opt);
-  console.log(`Graph created successfully in dataset '${opt.fuseki.db}'.`);
-
-  // Any other value don't delete
-  if (opt.fuseki.isTmp === true && !opt.saveTmp) {
-    const dropped = await ec.dropFusekiDb(opt);
-  }
+  await db.createGraphFromJsonLdFile(ec.jsonld);
+  console.log(`Graph created successfully in dataset '${fuseki.db}'.`);
 }
 
 // Trick for getting __dirname in ES6 modules
@@ -122,16 +120,11 @@ program.name('experts-iam')
   .option('--no-staff', 'Do not include staff')
   // Whether to download all faculty
   .option('--no-faculty', 'Do not include faculty')
-
-  .option('--source <source...>', 'Specify linked data source. Can be specified multiple times')
   .option('--output <output>', 'output directory')
-  .option('--fuseki.isTmp', 'create a temporary store, add files. Any option means do not remove on completion', false)
-  .option('--fuseki.type <type>', 'specify type on --fuseki.isTmp creation', 'tdb')
-  // Fuseki type, defaults to tdb for sure for IAM.
+  .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
-  .option('--fuseki.db <name>', 'specify db on --fuseki.isTmp creation.  If not specified, a random db is generated', fuseki.db)
-  .option('--save-tmp', 'Do not remove temporary file', false)
+  .option('--fuseki.db <name>', 'specify fuseki db', fuseki.db)
 
 program.parse(process.argv);
 
@@ -141,8 +134,8 @@ let opt = program.opts();
 Object.keys(opt).forEach((k) => {
   const n = k.replace(/^fuseki./, '')
   if (n !== k) {
-    opt.fuseki ||= {};
-    opt.fuseki[n] = opt[k];
+    fuseki ||= {};
+    fuseki[n] = opt[k];
     delete opt[k];
   }
 });
@@ -157,12 +150,6 @@ Object.keys(opt).forEach((k) => {
   }
 });
 
-// console.log(process.env);
-
-opt.source = [opt.fuseki.url + '/' + opt.fuseki.db];
-
-// console.log('opt', opt);
-
 if (opt.environment === 'development') {
   opt.iam.url = 'https://iet-ws-stage.ucdavis.edu/api/iam/';
   opt.iam.authname = 'iet-ws-stage';
@@ -173,6 +160,5 @@ else if (opt.environment === 'production') {
   opt.iam.authname = 'iet-ws';
   opt.iam.secretpath = 'projects/326679616213/secrets/ucdid_auth';
 }
-
 
 await main(opt);
