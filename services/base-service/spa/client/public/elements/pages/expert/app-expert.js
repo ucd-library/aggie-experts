@@ -10,6 +10,7 @@ import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
 import { generateCitations } from '../../utils/citation.js';
+import utils from '../../../lib/utils';
 
 export default class AppExpert extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -130,45 +131,11 @@ export default class AppExpert extends Mixin(LitElement)
 
     await this._loadCitations();
 
-    // TODO parse grant data
-    let fakeGrants = [{
-      "id" : "ark:/87287/d7gt0q/grant/1",
-      "category" : "grant",
-      "type" : "c-davis",
-      "url" : "",
-      "institution-reference" : "ark:/87287/d7gt0q/grant/1",
-      "title" : "WORKER HEALTH & SAFETY SPECIALIZED DATA AND LITERATURE RESEARCH",
-      "funding-type" : "Default",
-      "start-date" : "2014-08-10",
-      "end-date" : "2027-04-11",
-      "c-ucop-sponsor" : "http://rems.ucop.edu/sponsor/6320",
-      "funder-name" : "CALIFORNIA DEPARTMENT OF PESTICIDE REGULATION",
-      "funder-reference" : "04-0061C",
-      "amount-value" : "22600",
-      "amount-currency-code" : "USD",
-      "visible" : "TRUE"
-    },
-    {
-      "id" : "ark:/87287/d7gt0q/grant/2",
-      "category" : "grant",
-      "type" : "c-davis",
-      "url" : "",
-      "institution-reference" : "ark:/87287/d7gt0q/grant/1",
-      "title" : "NUM DOS NUM DOS",
-      "funding-type" : "Default",
-      "start-date" : "2014-12-10",
-      "end-date" : "2020-02-28",
-      "c-ucop-sponsor" : "http://rems.ucop.edu/sponsor/6320",
-      "funder-name" : "CALIFORNIA DEPARTMENT OF AG REGULATION",
-      "funder-reference" : "24-1111F",
-      "amount-value" : "424242",
-      "amount-currency-code" : "USD",
-      "visible" : "TRUE"
-    }];
+    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    this.grants = utils.parseGrants(grants);
 
-    this.grants = fakeGrants;
-    this.grantsActiveDisplayed = fakeGrants.slice(0,1); // this.grantsPerPage);
-    this.grantsCompletedDisplayed = fakeGrants.slice(1,2); // this.grantsPerPage);
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
   }
 
   /**
@@ -195,7 +162,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalContent = '';
     this.showModal = false;
     this.resultsPerPage = 25;
-    this.grantsPerPage = 1; // 5;
+    this.grantsPerPage = 5;
     this.worksPerPage = 10;
   }
 

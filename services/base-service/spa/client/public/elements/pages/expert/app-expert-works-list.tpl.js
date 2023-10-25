@@ -142,7 +142,7 @@ return html`
             <div class="work-details">
               <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
               <span class="dot">.</span>
-              ${unsafeHTML(cite.apa.replace('(n.d.). ', ''))}
+              ${unsafeHTML(cite.apa.replace('(n.d.). ', '').replace('(n.d.).', ''))}
             </div>
           </div>
         </div>

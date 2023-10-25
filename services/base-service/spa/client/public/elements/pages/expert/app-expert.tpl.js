@@ -584,32 +584,32 @@ return html`
         </div>
         <hr class="seperator">
         ${this.grantsActiveDisplayed.map(
-          (grant) => html`
-            <h4 style="margin: 1.19rem 0;">Active</h4>
+          (grant, index) => html`
+            <h4 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h4>
             <div class="grant">
-              <h5>${unsafeHTML(grant.title)}</h5>
+              <h5>${unsafeHTML(grant.name)}</h5>
               <div class="grant-details">
-                <span style="min-width: fit-content;">${grant['start-date'].substr(0, 4)} - ${grant['end-date'].substr(0, 4)}</span>
+                <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
-                <span style="min-width: fit-content;">${grant.type}</span>
+                <span style="min-width: fit-content;">${grant.role}</span>
                 <span class="dot">.</span>
-                <span style="min-width: fit-content;">Awarded by ${grant['funder-name']}</span>
+                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
             <br>
           `
         )}
         ${this.grantsCompletedDisplayed.map(
-          (grant) => html`
-            <h4 style="margin: 1.19rem 0;">Completed</h4>
+          (grant, index) => html`
+            <h4 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h4>
             <div class="grant">
-              <h5>${unsafeHTML(grant.title)}</h5>
+              <h5>${unsafeHTML(grant.name)}</h5>
               <div class="grant-details">
-                <span style="min-width: fit-content;">${grant['start-date'].substr(0, 4)} - ${grant['end-date'].substr(0, 4)}</span>
+                <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
-                <span style="min-width: fit-content;">${grant.type}</span>
+                <span style="min-width: fit-content;">${grant.role}</span>
                 <span class="dot">.</span>
-                <span style="min-width: fit-content;">Awarded by ${grant['funder-name']}</span>
+                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
             <br>
@@ -657,7 +657,7 @@ return html`
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">.</span>
-                ${unsafeHTML(cite.apa.replace('(n.d.). ', ''))}
+                ${unsafeHTML(cite.apa.replace('(n.d.). ', '').replace('(n.d.).', ''))}
               </div>
             </div>
             <br>

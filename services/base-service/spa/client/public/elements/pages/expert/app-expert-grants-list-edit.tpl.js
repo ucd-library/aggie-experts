@@ -286,7 +286,7 @@ return html`
 
         ${this.grantsActiveDisplayed.map(
         (grant, index) => html`
-          <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">Active</h3>
+          <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}"><span ?hidden="${index > 0}">Active</span></h3>
           <hr class="grant-seperator">
           <div style="display: flex; justify-content: space-between; padding-bottom: 1.19rem;">
             <div class="hide-delete-btn-group">
@@ -302,13 +302,13 @@ return html`
               </span>
             </div>
             <div class="grant">
-              <h5>${unsafeHTML(grant.title)}</h5>
+              <h5>${unsafeHTML(grant.name)}</h5>
               <div class="grant-details">
-                <span style="min-width: fit-content;">${grant['start-date'].substr(0, 4)} - ${grant['end-date'].substr(0, 4)}</span>
+                <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
-                <span style="min-width: fit-content;">${grant.type}</span>
+                <span style="min-width: fit-content;">${grant.role}</span>
                 <span class="dot">.</span>
-                <span style="min-width: fit-content;">Awarded by ${grant['funder-name']}</span>
+                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
             <div class="select-checkbox">
@@ -320,7 +320,7 @@ return html`
 
         ${this.grantsCompletedDisplayed.map(
         (grant, index) => html`
-          <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}" style="padding-top: 1.19rem;">Completed</h3>
+          <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}" style="padding-top: 1.19rem;"><span ?hidden="${index > 0}">Completed</span></h3>
           <hr class="grant-seperator">
           <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;">
             <div class="hide-delete-btn-group">
@@ -336,13 +336,13 @@ return html`
               </span>
             </div>
             <div class="grant">
-              <h5>${unsafeHTML(grant.title)}</h5>
+              <h5>${unsafeHTML(grant.name)}</h5>
               <div class="grant-details">
-                <span style="min-width: fit-content;">${grant['start-date'].substr(0, 4)} - ${grant['end-date'].substr(0, 4)}</span>
+                <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
-                <span style="min-width: fit-content;">${grant.type}</span>
+                <span style="min-width: fit-content;">${grant.role}</span>
                 <span class="dot">.</span>
-                <span style="min-width: fit-content;">Awarded by ${grant['funder-name']}</span>
+                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
             <div class="select-checkbox">

@@ -134,18 +134,18 @@ return html`
 
 
       ${this.grantsActiveDisplayed.map(
-      (grant) => html`
-        <h3 style="margin: 1.19rem 0;">Active</h3>
+      (grant, index) => html`
+        <h3 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
         <div class="grant-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
           <div class="grant">
-            <h5>${unsafeHTML(grant.title)}</h5>
+            <h5>${unsafeHTML(grant.name)}</h5>
             <div class="grant-details">
-              <span style="min-width: fit-content;">${grant['start-date'].substr(0, 4)} - ${grant['end-date'].substr(0, 4)}</span>
+              <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
               <span class="dot">.</span>
-              <span style="min-width: fit-content;">${grant.type}</span>
+              <span style="min-width: fit-content;">${grant.role}</span>
               <span class="dot">.</span>
-              <span style="min-width: fit-content;">Awarded by ${grant['funder-name']}</span>
+              <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
             </div>
           </div>
         </div>
@@ -154,18 +154,18 @@ return html`
       )}
 
       ${this.grantsCompletedDisplayed.map(
-      (grant) => html`
-        <h3 style="margin: 1.19rem 0;">Completed</h3>
+      (grant, index) => html`
+        <h3 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h3>
         <div class="grant-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
           <div class="grant">
-            <h5>${unsafeHTML(grant.title)}</h5>
+            <h5>${unsafeHTML(grant.name)}</h5>
             <div class="grant-details">
-              <span style="min-width: fit-content;">${grant['start-date'].substr(0, 4)} - ${grant['end-date'].substr(0, 4)}</span>
+              <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
               <span class="dot">.</span>
-              <span style="min-width: fit-content;">${grant.type}</span>
+              <span style="min-width: fit-content;">${grant.role}</span>
               <span class="dot">.</span>
-              <span style="min-width: fit-content;">Awarded by ${grant['funder-name']}</span>
+              <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
             </div>
           </div>
         </div>
