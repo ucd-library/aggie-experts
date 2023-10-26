@@ -436,7 +436,7 @@ function setup() {
        else
         cat
       fi |
-      if [[ -n "$gcs" ]]; then
+      if [[ -z "$gcs" ]]; then
         yq 'del(.services.gcs)'
        else
         cat

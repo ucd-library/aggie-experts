@@ -216,7 +216,9 @@ class BaseModel extends FinEsDataModel {
           inner_hits.push(in_hit._source);
         }
       }
-      source._inner_hits = inner_hits;
+      if (inner_hits.length > 0) {
+        source._inner_hits = inner_hits;
+      }
       hits.push(source);
     }
     compact.hits = hits;

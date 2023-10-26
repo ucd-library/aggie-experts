@@ -1,4 +1,5 @@
 module.exports = {
+  browse: require('./browse/index.js'),
   search: require('./search/index.js'),
   expert: require('./expert/index.js'),
   work: require('./work/index.js'),
