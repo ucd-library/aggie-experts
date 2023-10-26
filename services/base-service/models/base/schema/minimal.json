@@ -37,9 +37,23 @@
             },
             "hasName" : {
               "properties" : {
-                "family" : { "type" : "text" },
+                "family" : {
+                  "type" : "text",
+                  "fields": {
+                    "kw": {
+                      "type":  "keyword"
+                    }
+                  }
+                },
                 "middle" : { "type" : "text" },
-                "given" : { "type" : "text" }
+                "given" : {
+                  "type" : "text",
+                  "fields": {
+                    "kw": {
+                      "type":  "keyword"
+                    }
+                  }
+                }
               }
             },
             "hasURL": {
@@ -58,9 +72,23 @@
         },
         "hasName" : {
           "properties" : {
-            "family" : { "type" : "text" },
+            "family" : {
+              "type" : "text",
+              "fields": {
+                "kw": {
+                  "type":  "keyword"
+                }
+              }
+            },
             "middle" : { "type" : "text" },
-            "given" : { "type" : "text" }
+            "given" : {
+              "type" : "text",
+              "fields": {
+                "kw": {
+                  "type":  "keyword"
+                }
+              }
+            }
           }
         },
         "name" : { "type" : "text" },
