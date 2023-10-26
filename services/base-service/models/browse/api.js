@@ -5,7 +5,10 @@ const utils = require('../utils.js')
 const experts = new BaseModel();
 
 router.get('/render', async (req, res) => {
-  const params = {};
+  const params =
+        {
+          size:25
+        };
   ["size","page","p"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
@@ -23,7 +26,13 @@ router.get('/render', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
-  const params = {};
+  const params = {
+    size: 25
+  };
+  ["size","page","p"].forEach((key) => {
+    if (req.query[key]) { params[key] = req.query[key]; }
+  });
+  };
   ["size","page","p"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
