@@ -71,7 +71,6 @@ declare -g -A G=(
   [project]="aggie-experts"
   [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../config.json"
   [jq]="."
-  [env]=dev
   # Below you probably don't need to change
   [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/.."
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
@@ -85,7 +84,7 @@ function G() {
   expand < ${G[config]} | jq "${G[jq]}" | jq -r "$*"
 }
 
-: <<='cut'
+: <<'=cut'
 =pod
 
 =head1 COMMANDS
@@ -114,6 +113,71 @@ be used to clean up the local docker environment.
 
 =cut
 
+: <<'=cut'
+=pod
+
+=head2 guess_env
+
+Guess the environment based on the hostname and git tag
+
+=cut
+function guess_env() {
+  local this_host=$(hostname --fqdn)
+  local envs=()
+  local tag=$(${G[git]} describe --always --dirty)
+
+  for e in $(G '.envs|keys[]' ); do
+    local env_host=$(G ".envs.${e}.host")
+    if [[ "$env_host" = "null" ]]; then
+      continue
+    fi
+     if [[ "$env_host" =~ ^! ]]; then
+      env_host=${env_host#!}
+      if ! [[ "$this_host" =~ "$env_host" ]]; then
+        envs+=($e)
+      fi
+    else
+      if [[ "$this_host" =~ "$env_host" ]]; then
+        envs+=($e)
+      fi
+    fi
+  done
+
+  # If only one match, return that, otherwise try describe
+  local d_envs=()
+  for e in "${envs[@]}"; do
+    case $e in
+      dev)
+        d_envs+=($e)
+        ;;
+      clean|sandbox|build)
+        if ! [[ "$tag" =~ "dirty" ]]; then
+          d_envs+=($e)
+        fi
+        ;;
+      test|prod)
+        if ! [[ "$tag" =~ "-" ]]; then
+          d_envs+=($e)
+        fi
+        ;;
+    esac
+  done
+  if [[ ${#d_envs[@]} == 1 ]]; then
+    echo ${d_envs[0]}
+  else
+    echo ${d_envs[@]}
+    exit 1;
+  fi
+}
+
+: <<'=cut'
+=pod
+
+=head2 test_env
+
+Tests the environment, with respect to the hostname and git tag.
+
+=cut
 function test_env() {
   local env=$(G .env)
   local tag=$(G .tag // .envs.${G[env]}.tag)
@@ -178,6 +242,7 @@ function test_env() {
     fi
   }
 
+  echo -n "Testing environment: ${G[env]} ... "
   case ${G[env]} in
     dev)
       branch
@@ -206,6 +271,8 @@ function test_env() {
       exit 1
       ;;
   esac
+  echo "OK"
+
 }
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand(){
@@ -568,30 +635,46 @@ function main.cmd() {
       [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
     done
 
-    # Fix mount if exists
-    G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
-
-    # Add gcs if exists
-    if [[ -n ${G[gcs]} ]]; then
-      G[jq]="${G[jq]}|.gcs=\"${G[gcs]}\""
-    fi
-
     # Read .configuration paramters
     while [[ "$1" =~ ^\..*=.* ]]; do
       local cmd="$(sed -e 's/=\(.*\)$/="\1"/' <<<"$1")"
       G[jq]="${G[jq]}|$cmd"
-      G[env]=$(G .env) # Fix global if set that way
       shift
     done
-
-    # test environment
-    test_env
 
     # Now command(s)
     for cmd in "$@"; do
       shift
       case $cmd in
 	      build | setup | prune ) # API requests
+
+          # Guess env if not supplied
+          if [[ -z ${G[env]} ]]; then
+            G[env]=$(guess_env)
+          fi
+
+          test_env
+          # Fix mount if exists
+          G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
+
+          # Add gcs if exists
+          if [[ -n ${G[gcs]} ]]; then
+            G[jq]="${G[jq]}|.gcs=\"${G[gcs]}\""
+          fi
+
+	        $cmd
+	        ;;
+
+        guess_env ) # API requests
+	        $cmd
+	        ;;
+
+        test_env ) # API requests
+          # Guess env if not supplied
+          if [[ -z ${G[env]} ]]; then
+            G[env]=$(guess_env)
+          fi
+
 	        $cmd
 	        ;;
 
