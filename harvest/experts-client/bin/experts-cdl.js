@@ -185,17 +185,24 @@ async function main(opt) {
       const bindings = BF.fromRecord(
         { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
       );
-      const iam = ql.getQuery('insert_iam', 'InsertQuery');
-
-      await ec.insert({ ...iam, bindings, db });
-
+      try {
+        const iam = ql.getQuery('insert_iam', 'InsertQuery');
+        await ec.insert({ ...iam, bindings, db });
+      } catch (e) {
+        console.error(`insert_iam error ${e}, during insert user ${user}`);
+      }
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        await (async (n) => {
-          const splay = ql.getSplay(n);
-          // While we test, remove frame
-          delete splay['frame'];
-          return await ec.splay({ ...splay,bindings, db });
-        })(n);
+        try {
+          await (async (n) => {
+            const splay = ql.getSplay(n);
+            // While we test, remove frame
+            delete splay['frame'];
+            return await ec.splay({ ...splay,output:opt.output,bindings, db });
+          })(n);
+        } catch (e) {
+          console.error(`splay error ${e}, during ${n} user ${user}`);
+        }
+
       };
     }
     // Any other value don't delete
