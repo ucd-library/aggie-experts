@@ -28,13 +28,13 @@ RUN npm ci && \
 # COPY over experts-api source code
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api
 COPY --from=api ${AE_API} ${AE_API}
-RUN (cd ${AE_API} && npm link)
+RUN cd ${AE_API} && npm link
 
 # Models
 WORKDIR ${FIN_SERVICE_ROOT}
 COPY models models
 WORKDIR ${FIN_SERVICE_ROOT}/models
-RUN mv package-lock.json package-lock.json- && npm link @ucd-lib/experts-api && npm install
+RUN rm -f package-lock.json && npm link @ucd-lib/experts-api && npm install
 
 WORKDIR ${FIN_SERVICE_ROOT}
 
