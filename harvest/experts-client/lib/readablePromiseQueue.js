@@ -29,7 +29,7 @@ export class readablePromiseQueue {
 
     await new Promise((resolve, reject) => {
       this.readable.on('end', () => {
-        Promise.all(this.queue)
+        Promise.allSettled(this.queue)
           .then( results => {
             console.log(`${this.name} promises finished`);
             resolve(results); })
