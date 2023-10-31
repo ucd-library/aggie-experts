@@ -62,7 +62,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'works' ) return;
     window.scrollTo(0, 0);
-    console.log('in works page onAppStateUpdate');
 
     let expertId = e.location.pathname.replace('/works/', '');
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
@@ -91,7 +90,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     if( this.AppStateModel.location.page !== 'works' ) return;
     if( e.id === this.expertId ) return;
 
-    console.log('in works page onExpertUpdate');
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
 

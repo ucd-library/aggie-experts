@@ -15,6 +15,7 @@ export class SearchResultRow extends LitElement {
     return {
       result : { type : Object },
       hideCheckbox : { type : Boolean, attribute : 'hide-checkbox' },
+      hideSearchMatches : { type : Boolean, attribute : 'hide-search-matches' },
     };
   }
 
@@ -24,12 +25,8 @@ export class SearchResultRow extends LitElement {
 
     this.result = {};
     this.hideCheckbox = false;
+    this.hideSearchMatches = false;
   }
-
-  firstUpdated() {
-    console.log('search-result-row.result', this.result);
-  }
-
 
 }
 customElements.define('app-search-result-row', SearchResultRow);

@@ -168,9 +168,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
 
-    console.log('this.citations', this.citations);
-    console.log('this.citationsDisplayed', this.citationsDisplayed);
-
     this.requestUpdate();
   }
 
@@ -265,9 +262,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let text = downloads.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
-    console.log('url', url)
-
-    console.log('downloads', downloads);
 
     const link = document.createElement('a');
     link.setAttribute('href', url);

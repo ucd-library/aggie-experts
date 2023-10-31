@@ -96,12 +96,10 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
-    console.log('app-expert expert payload', this.expert);
 
     // update page data
     let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
 
-    console.log('app-expert expert graphRoot', graphRoot);
     this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
     // max 500 characters, unless 'show me more' is clicked
@@ -136,6 +134,13 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
+
+    // throw errors if any citations/grants have is-visible:false
+    let invalidCitations = this.citations.filter(c => !c['is-visible']);
+    let invalidGrants = this.grants.filter(g => !g.relatedBy?.['is-visible']);
+
+    if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
+    if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);
   }
 
   /**
