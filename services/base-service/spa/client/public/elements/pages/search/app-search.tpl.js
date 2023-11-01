@@ -205,7 +205,7 @@ return html`
 
       ${this.displayedResults.map(
         (result) => html`
-          <app-search-result-row search-result="${result.position}" .result=${result} hide-search-matches></app-search-result-row>
+          <app-search-result-row search-result="${result.position}" .result=${result}></app-search-result-row>
           <hr class="search-seperator">
         `
       )}
