@@ -457,10 +457,10 @@ function setup() {
       dev | clean )
         deploy=dev
         ;;
-      sandbox )
+      sandbox | test)
         deploy=sandbox
         ;;
-      test | prod )
+      prod )
         deploy=prod
         ;;
       *)
@@ -470,7 +470,7 @@ function setup() {
     esac
 
 
-    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:$deploy" | jq -r '.[0].name'))
+    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.deploy:$deploy" | jq -r '.[0].name'))
 
     gcloud secrets versions access latest --secret="$secret"
 
@@ -481,7 +481,7 @@ function setup() {
     echo "GCS=$gcs"
   }
   function service_account() {
-  local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:service-account" | jq -r '.[0].name'))
+  local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.type:service-account-key" | jq -r '.[0].name'))
 
   gcloud secrets versions access latest --secret="$service_account"
 }
