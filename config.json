@@ -38,7 +38,7 @@
     "prod":{
       "org":"gcr.io/digital_ucdavis_edu/aggie-experts",
       "tag":"$(${G[git]} describe --always --dirty)",
-      "host":"experts.library.ucdavis.edu)",
+      "host":"experts.library.ucdavis.edu",
       "branch":"main",
       "gcs":"aggie-experts-fcrepo-prod"
     }
