@@ -61,7 +61,10 @@ export default class AppBrowseBy extends Mixin(LitElement)
     }
 
     this.id = e.location.path[2];
-    if( this.id ) this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage);
+    if( this.id ) {
+      this.currentPage = 1;
+      this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage);
+    }
   }
 
   /**
