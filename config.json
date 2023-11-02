@@ -8,27 +8,28 @@
       "tag":"dirty",
       "branch":"!^(dev|main)",
       "host":"!(experts.library.ucdavis.edu)",
-      "gcs":"aggie-experts-fcrepo-dev"
+      "gcs":"fcrepo-dev",
+      "gcs-subscription":"local-dev"
     },
     "clean":{
       "org":"localhost/aggie-experts",
       "tag":"$(${G[git]} describe --always --dirty)",
       "branch":"!^(dev|main)",
       "host":"!(experts.library.ucdavis.edu)",
-      "gcs":"aggie-experts-fcrepo-dev"
+      "gcs":"fcrepo-dev"
     },
     "sandbox":{
       "org":"localhost/aggie-experts",
       "tag":"$(${G[git]} describe --always --dirty)",
       "branch":".*",
       "host":"experts.library.ucdavis.edu",
-      "gcs":"aggie-experts-fcrepo-sandbox"
+      "gcs":"fcrepo-sandbox"
     },
     "test":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
       "tag":"$(${G[git]} describe --always --dirty)",
       "host":"^(blue|gold).experts.library.ucdavis.edu",
-      "gcs":"aggie-experts-fcrepo-prod",
+      "gcs":"fcrepo-prod",
       "branch":"(dev|main)"
     },
     "build":{
@@ -40,7 +41,7 @@
       "tag":"$(${G[git]} describe --always --dirty)",
       "host":"experts.library.ucdavis.edu",
       "branch":"main",
-      "gcs":"aggie-experts-fcrepo-prod"
+      "gcs":"fcrepo-prod"
     }
   },
   "template":"${G[base]}/docker-template.yaml",
@@ -50,16 +51,6 @@
   },
   "debug":{
     "config":"${G[config]}"
-  },
-  "gcloud":{
-    "user":"${G[gcloud_user]}",
-    "gcs":{
-      "bucket":"aggie-experts-fcrepo-${G[env]}",
-      "subscription":"local-dev"
-    },
-    "secrets": {
-      "service-account":"${G[service_account]}"
-    }
   },
   "deploy": {
     "keycloak":"auth"

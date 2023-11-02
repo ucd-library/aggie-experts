@@ -78,8 +78,6 @@ declare -g -A G=(
   [dry-run]=
 );
 
-#G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
-
 function G() {
   expand < ${G[config]} | jq "${G[jq]}" | jq -r "$*"
 }
@@ -651,6 +649,10 @@ function main.cmd() {
           # Guess env if not supplied
           if [[ -z ${G[env]} ]]; then
             G[env]=$(guess_env)
+            if [[ $? -ne 0 ]]; then
+              >&2 echo "ERROR: Unable to guess one env: $G[env]"
+              exit 1
+            fi
           fi
 
           test_env
