@@ -7,9 +7,6 @@ const path = require('path');
 
 const app = express();
 
-// allow images to be served
-// app.use(express.static(path.join(__dirname, 'client', 'public', 'images')));
-
 // parse cookies and add compression
 // app.use(cookieParser());
 // app.use(compression());

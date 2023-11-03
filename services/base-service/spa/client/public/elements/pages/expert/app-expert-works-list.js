@@ -65,7 +65,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
 
     let expertId = e.location.pathname.replace('/works/', '');
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
-    if( expertId === this.expertId ) return;
 
     try {
       let expert = await this.ExpertModel.get(expertId);
@@ -88,7 +87,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
   async _onExpertUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'works' ) return;
-    if( e.id === this.expertId ) return;
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
@@ -107,7 +105,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
-
+    console.log('in _loadCitations');
     try {
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
@@ -176,6 +174,10 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    */
   _returnToProfile(e) {
     e.preventDefault();
+
+    // reset data to first page of results
+    this.currentPage = 1;
+
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 

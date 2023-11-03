@@ -120,8 +120,8 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
 
     this.currentPage = e.detail.page;
 
-    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []); //.slice(e.detail.startIndex, maxIndex);
-    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []); //.slice(e.detail.startIndex - this.grantsActiveDisplayed.length, maxIndex - this.grantsActiveDisplayed.length);
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []);
 
     let grantsActiveCount = this.grantsActiveDisplayed.length;
     let grantsCompletedCount = this.grantsCompletedDisplayed.length;
@@ -152,6 +152,14 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
    */
   _returnToProfile(e) {
     e.preventDefault();
+
+    // reset data to first page of results
+    this.currentPage = 1;
+    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    this.grants = utils.parseGrants(grants);
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
+
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 

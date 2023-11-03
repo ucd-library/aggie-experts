@@ -326,6 +326,14 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   _returnToProfile(e) {
     e.preventDefault();
+
+    // reset data to first page of results
+    this.currentPage = 1;
+    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    this.grants = utils.parseGrants(grants);
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
+
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 
