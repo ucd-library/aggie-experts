@@ -60,7 +60,11 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'works' ) return;
+    if( e.location.page !== 'works' ) {
+      // reset data to first page of results
+      this.currentPage = 1;
+      return;
+    }
     window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.replace('/works/', '');
