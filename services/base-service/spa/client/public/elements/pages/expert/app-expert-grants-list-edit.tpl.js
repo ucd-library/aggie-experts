@@ -233,14 +233,6 @@ return html`
       opacity: 1;
     }
 
-    .tooltip.reject-grant:before {
-      right: -25px;
-    }
-
-    .tooltip.reject-grant:after {
-      right: 21px;
-    }
-
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
@@ -295,11 +287,6 @@ return html`
                   <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._hideGrant}></ucdlib-icon>
                 </span>
               </span>
-              <span style="position: relative;">
-                <span class="tooltip reject-grant" data-text="Reject grant">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectGrant}></ucdlib-icon>
-                </span>
-              </span>
             </div>
             <div class="grant">
               <h5>${unsafeHTML(grant.name)}</h5>
@@ -327,11 +314,6 @@ return html`
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
                   <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._hideGrant}></ucdlib-icon>
-                </span>
-              </span>
-              <span style="position: relative;">
-                <span class="tooltip reject-grant" data-text="Reject grant">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectGrant}></ucdlib-icon>
                 </span>
               </span>
             </div>

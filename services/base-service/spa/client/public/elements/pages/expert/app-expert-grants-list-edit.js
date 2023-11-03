@@ -6,7 +6,6 @@ import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import '../../components/modal-overlay.js';
 
-import { generateCitations } from '../../utils/citation.js';
 import utils from '../../../lib/utils';
 
 export default class AppExpertGrantsListEdit extends Mixin(LitElement)
@@ -119,68 +118,13 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
-    await this._loadCitations();
-
     let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
-  }
 
-  /**
-   * @method _loadCitations
-   * @description load citations for expert async
-   *
-   * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
-   */
-  async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
-
-    try {
-      // sort by issued date desc, then by title asc
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
-
-      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-    }
-
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-
-    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
-
-    this.citationsDisplayed = citationResults.map(c => c.value);
-
-    // also remove issued date from citations if not first displayed on page from that year
-    let lastPrintedYear;
-    this.citationsDisplayed.forEach((cite, i) => {
-      let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
-        delete cite.issued;
-        lastPrintedYear = newIssueDate;
-      }
-    });
-
-    // update doi links to be anchor tags
-    this.citationsDisplayed.forEach(cite => {
-      if( cite.DOI && cite.apa ) {
-        // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
-        cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
-                  + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
-                  + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
-      }
-    });
-
-    this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
-
-    console.log('this.citations', this.citations);
-    console.log('this.citationsDisplayed', this.citationsDisplayed);
-
-    this.requestUpdate();
+    this.paginationTotal = Math.ceil(this.grants.length / this.resultsPerPage);
   }
 
   /**
@@ -193,10 +137,30 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.allSelected = true;
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
-    if( maxIndex > this.citations.length ) maxIndex = this.citations.length;
+    if( maxIndex > this.grants.length ) maxIndex = this.grants.length;
 
     this.currentPage = e.detail.page;
-    await this._loadCitations();
+
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []); //.slice(e.detail.startIndex, maxIndex);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []); //.slice(e.detail.startIndex - this.grantsActiveDisplayed.length, maxIndex - this.grantsActiveDisplayed.length);
+
+    let grantsActiveCount = this.grantsActiveDisplayed.length;
+    let grantsCompletedCount = this.grantsCompletedDisplayed.length;
+
+    // if first page, load grantsActive under this.resultsPerPage and remaining from grantsCompleted
+    // else if second page+, remove grants from active and completed in order
+    if( this.currentPage === 1 ) {
+      this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(0, this.resultsPerPage);
+      this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
+    } else {
+      let currentIndex = this.resultsPerPage * (this.currentPage - 1);
+      this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(currentIndex, this.resultsPerPage);
+
+      // TODO broken..
+      // what if active grants are 50?
+      // what if 0 active grants and 50 completed grants?
+      this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(currentIndex - grantsActiveCount, currentIndex - grantsActiveCount + this.resultsPerPage);
+    }
 
     // loop over checkboxes to see if any are checked
     let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
@@ -267,20 +231,77 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   async _downloadClicked(e) {
     e.preventDefault();
-    await this._loadCitations(true);
 
-    let downloads = this.citationsDisplayed.filter(c => this.downloads.includes(c['@id']));
+    // The download csv should contain
+    //   Title : dl.name
+    //   Funding Agency : dl.awardedBy
+    //   Grant id : dl.sponsorAwardId
+    //   Start date : dl.dateTimeInterval.start.dateTime
+    //   End date : dl.dateTimeInterval.end.dateTime
+    //   Type of Grant : dl.role
+    //   List of contributors (role) {separate contributors by ";"}
+
+    /*
+    {
+    "assignedBy": {
+        "@type": "FundingOrganization",
+        "name": "CALIFORNIA DEPARTMENT OF WATER RESOURCES",
+        "@id": "ark:/87287/d7mh2m/grant/4344862#unknown-funder"
+    },
+    "dateTimeInterval": {
+        "@type": "DateTimeInterval",
+        "start": {
+            "dateTime": "2014-07-30",
+            "@type": "DateTimeValue",
+            "@id": "ark:/87287/d7mh2m/grant/4344862#start-date",
+            "dateTimePrecision": "vivo:yearMonthDayPrecision"
+        },
+        "end": {
+            "dateTime": "2017-07-29",
+            "@type": "DateTimeValue",
+            "@id": "ark:/87287/d7mh2m/grant/4344862#end-date",
+            "dateTimePrecision": "vivo:yearMonthDayPrecision"
+        },
+        "@id": "ark:/87287/d7mh2m/grant/4344862#duration"
+    },
+    "@type": [
+        "Grant",
+        "vivo:Grant"
+    ],
+    "totalAwardAmount": "181353",
+    "name": "SIMETAW and Cal-SIMETAW Upgrade",
+    "@id": "ark:/87287/d7mh2m/grant/4344862",
+    "relatedBy": {
+        "relates": [
+            "expert/66356b7eec24c51f01e757af2b27ebb8",
+            "ark:/87287/d7mh2m/grant/4344862"
+        ],
+        "@type": "GrantRole",
+        "@id": "ark:/87287/d7mh2m/relationship/13340713",
+        "is-visible": true
+    },
+    "sponsorAwardId": "4600010450",
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
+        "name": "Research",
+        "@id": "ucdlib:Grant_Research"
+    },
+    "start": 2014,
+    "end": 2017,
+    "completed": true,
+    "role": "Research",
+    "awardedBy": "CALIFORNIA DEPARTMENT OF WATER RESOURCES"
+    }
+    */
+
+    let downloads = this.grants.filter(g => this.downloads.includes(g['@id']));
 
     let text = downloads.map(c => c.ris).join('\n');
-    let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+    let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
-    console.log('url', url)
-
-    console.log('downloads', downloads);
 
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'grants.ris');
+    link.setAttribute('download', 'grants.csv');
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
@@ -294,16 +315,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   _hideGrant(e) {
     this.modalTitle = 'Hide Grant';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
-    this.showModal = true;
-  }
-
-  /**
-   * @method _rejectGrant
-   * @description show modal with link to reject grant
-   */
-  _rejectGrant(e) {
-    this.modalTitle = 'Reject Grant';
-    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
     this.showModal = true;
   }
 

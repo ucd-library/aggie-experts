@@ -90,7 +90,7 @@ export default function render() {
         </div>
       </div>
       <div class="search-result-sub-text">${this.result.subtitle || 'Role Title, Department'}</div>
-      <div class="search-result-matches">
+      <div class="search-result-matches" ?hidden="${this.hideSearchMatches}">
         <span class="search-matches">Search matches:</span>
           <span>${this.result.numberOfGrants} grants</span>
           <span class="dot-separator">.</span>
