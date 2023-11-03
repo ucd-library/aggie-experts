@@ -103,6 +103,11 @@ return html`
       justify-content: space-between;
     }
 
+    h3 {
+      font-size: 2.49375rem;
+      margin: 0.5rem 0 1rem;
+    }
+
     @media (max-width: 992px) {
       .browse-content {
         width: 90%;
@@ -136,9 +141,11 @@ return html`
       </div>
       <hr class="browse-seperator">
 
+      <h3>${this.id.toUpperCase()}</h3>
+
       ${this.displayedResults.map(
         (result) => html`
-          <app-search-result-row search-result="${result.position}" .result=${result} hide-checkbox></app-search-result-row>
+          <app-search-result-row search-result="${result.position}" .result=${result} hide-checkbox hide-search-matches></app-search-result-row>
           <hr class="search-seperator">
         `
       )}

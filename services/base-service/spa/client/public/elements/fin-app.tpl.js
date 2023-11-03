@@ -68,14 +68,6 @@ return html`
     <ucdlib-pages
       selected="${this.page}"
       selectedAttribute="visible">
-      <div id="loading" ?hidden="${this.page}">
-        <img src="/images/logos/logo-icon.svg" style="max-width: 128px" />
-        <div class="loading-dots">
-          <h1 class="dot one">.</h1>
-          <h1 class="dot two">.</h1>
-          <h1 class="dot three">.</h1>
-        </div>
-      </div>
       <app-home id="home"></app-home>
       <app-browse id="browse"></app-browse>
       <!-- <app-work id="work"></app-work> -->
