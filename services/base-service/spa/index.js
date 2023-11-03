@@ -7,6 +7,9 @@ const path = require('path');
 
 const app = express();
 
+// allow images to be served
+// app.use(express.static(path.join(__dirname, 'client', 'public', 'images')));
+
 // parse cookies and add compression
 // app.use(cookieParser());
 // app.use(compression());
@@ -26,10 +29,20 @@ app.use((req, res, next) => {
   let user = req.get('x-fin-user');
   if( typeof user === 'string' ) user = JSON.parse(user);
 
-  if( !user || !user['preferred_username'] ) {
-    // res.redirect('/');
-    res.sendFile(assetsDir + '/login.html');
+  // skip images
+  if (/\.(png|jpg|jpeg|svg)$/i.test(req.url)) {
+    next();
     return;
+  }
+
+  if( !user || !user['preferred_username'] ) {
+    if( req.url !== '/' ) {
+      res.redirect('/');
+      return;
+    } else {
+      res.sendFile(assetsDir + '/login.html');
+      return;
+    }
   }
 
   next();
