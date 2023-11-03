@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#! /usr/bin/env -S node --no-warnings
 
 import { Command } from 'commander';
 const program = new Command();
@@ -26,5 +26,6 @@ program
   .command('iam', 'import profiles from IAM')
   .command('cdl', 'import profiles from CDL')
   .command('cdl-users', 'import user ids from CDL')
+  .command('cdl-edit', 'Edit User Relationships')
 
 program.parse(process.argv);
