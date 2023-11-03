@@ -1,11 +1,49 @@
+import GoogleSecrets from './google-secrets.js';
 const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
+const fetchCookie = require('fetch-cookie');
+const nodeFetch = require('node-fetch');
 
 export default class ElementsClient {
+    static const config = {
+      cdl: {
+        qa: {
+          url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+          authname : 'qa-oapolicy',
+          secretpath : 'projects/326679616213/secrets/cdl_elements_json'
+        },
+        prod: {
+          url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+          authname : 'oapolicy',
+          secretpath : 'projects/326679616213/secrets/cdl_elements_json'
+        }
+      }
+    };
+
+  static info(instance) {
+    return config.cdl[instance];
+  }
+
   // TODO: add elements info
   constructor(args={}) {
-    this.fetch = args.fetch || require('node-fetch');
-    this.login = args.login || require('./login.js');
+    this.instance = args.instance || 'prod';
+    this.cdl = ElementsClient.info(this.instance);
+    // New fetch instance with empty cookie jar
+    this.fetch = fetchCookie(nodeFetch, new fetchCookie.toughCookie.CookieJar());
+  }
+
+  async secret() {
+    if ! (this.cdl.secret) {
+      const gs = new GoogleSecrets();
+      let secretResp = await gs.getSecret(this.cdl.secretpath);
+      this.cdl.secret = JSON.parse(secretResp);
+    }
+    return this.cdl.secret;
+  }
+
+  async service_account() {
+    const secret = await this.secret();
+    return secret.service_account;
   }
 
   async login() {
@@ -28,16 +66,13 @@ export default class ElementsClient {
       };
     }
 
-//    let username = args.username || process.env.USERNAME;
-//    let password = args.password || process.env.PASSWORD;
-    let {fetch, host} = args;
-
-    if( !username || !password ) {
-      throw new Error('Username and password are required to login');
+    const service_account = await this.service_account();
+    if( !serviced_account.username || !service_account.password ) {
+      throw new Error('service_acount requires .username .password');
     }
 
     // setup login cookies and session
-    let resp = await fetch(`${host}`);
+    let resp = await this.fetch(this.cdl.url);
     // get return url
     let returnUrl = new URL(
       new URL(resp.url).searchParams.get('return')
@@ -53,7 +88,7 @@ export default class ElementsClient {
     returnUrl.searchParams.set('entityID', entityId);
 
     // get login form
-    resp = await fetch(returnUrl.toString());
+    resp = await this.fetch(returnUrl.toString());
 
     // grab the login form fields and form path
     let { postPath, method, usernameField, passwordField } = getLoginFields(await resp.text());
@@ -67,7 +102,7 @@ export default class ElementsClient {
     formData.append('_eventId_proceed',	'');
 
     // submit login form, this will redirect with saml request fields
-    resp = await fetch(loginUrl, {
+    resp = await this.fetch(loginUrl, {
       method: method.toUpperCase(),
       body: formData.toString(),
       headers: {
@@ -89,7 +124,7 @@ export default class ElementsClient {
       samlUrl = samlOrigin + samlUrl;
     }
 
-    resp = await fetch(samlUrl, {
+    resp = await this.fetch(samlUrl, {
       method : samlMethod,
       body: formData.toString(),
       headers: {
