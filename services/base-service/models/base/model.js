@@ -29,6 +29,96 @@ class BaseModel extends FinEsDataModel {
     this.transformService = "node";
   }
 
+  /** @inheritdoc */
+  getDefaultIndexConfig(schema) {
+    if( !schema ) {
+      schema = this.schema;
+    }
+    var newIndexName = `${this.modelName}-${Date.now()}`;
+
+    return {
+      index: newIndexName,
+      body : {
+        settings : {
+          analysis : {
+            char_filter : {
+              doi_prefix_filter : {
+                type : "pattern_replace",
+                pattern : "^(doi:|https://doi.org/)",
+                replacement : ""
+              },
+              mailto_prefix_filter : {
+                type : "pattern_replace",
+                pattern : "^mailto:",
+                replacement : ""
+              }
+              ampersand : {
+                type : "mapping",
+                mappings : [ "&=> and " ]
+              }
+            },
+            analyzer: {
+              default: {
+                type: "custom",
+                tokenizer: "uax_url_email",
+                filter: [
+                  "lowercase",
+                  "stop",
+                  "asciifolding"
+                ]
+              },
+              identifier_analyzer: {
+                type: "custom",
+                tokenizer: "keyword",
+                char_filter: [
+                  "doi_prefix_filter",
+                  "mailto_prefix_filter"
+                ]
+                filter: [
+                  "lowercase"
+                ]
+              },
+              prefix_analyzer: {
+                tokenizer: 'autocomplete',
+                filter: [
+                  'lowercase'
+                ]
+              },
+              autocomplete: {
+                tokenizer: 'autocomplete',
+                filter: [
+                  'lowercase'
+                ]
+              },
+              autocomplete_search : {
+                tokenizer: "lowercase"
+              },
+              lowercase_keyword: {
+                tokenizer: "keyword",
+                filter: [
+                  "lowercase",
+                  "unique"
+                ]
+              }
+            },
+            tokenizer: {
+              autocomplete: {
+                type: 'edge_ngram',
+                min_gram: 1,
+                max_gram: 20,
+                token_chars: [
+                  "letter",".",
+                  "digit"
+                ]
+              }
+            }
+          }
+        },
+        mappings : schema
+      }
+    }
+  }
+
   /**
    * @method is
    * @description Determines if this model can handle the given file based on
