@@ -76,6 +76,7 @@ declare -g -A G=(
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=
+  [cloudsdk_active_config_name]='aggie-experts'
 );
 
 function G() {
@@ -131,11 +132,11 @@ function guess_env() {
     fi
      if [[ "$env_host" =~ ^! ]]; then
       env_host=${env_host#!}
-      if ! [[ "$this_host" =~ "$env_host" ]]; then
+      if ! [[ "$this_host" =~ $env_host ]]; then
         envs+=($e)
       fi
     else
-      if [[ "$this_host" =~ "$env_host" ]]; then
+      if [[ "$this_host" =~ $env_host ]]; then
         envs+=($e)
       fi
     fi
@@ -228,13 +229,13 @@ function test_env() {
     local this_host=$(hostname --fqdn)
     if [[ "$expected_host" =~ ^! ]]; then
       expected_host=${expected_host#!}
-      if [[ "$this_host" =~ "$expected_host" ]]; then
-        >&2 echo "ERR: --env=$env host: $this_host =~ $expected_host"
+      if [[ "$this_host" =~ $expected_host ]]; then
+        >&2 echo "ERR: --env=$env host: [[ \"$this_host\" =~ $expected_host ]]"
         exit 1
       fi
     else
-      if ! [[ "$this_host" =~ "$expected_host" ]]; then
-        >&2 echo "ERR: --env=$env host: ! [[ $this_host =~ $expected_host ]]"
+      if ! [[ "$this_host" =~ $expected_host ]]; then
+        >&2 echo "ERR: --env=$env host: ! [[ \"$this_host\" =~ $expected_host ]]"
         exit 1
       fi
     fi
@@ -251,6 +252,11 @@ function test_env() {
       good_status
       host dev
       # Use git status to check for unstaged changes
+      ;;
+    build)
+      annotated_tag
+      not_dirty
+      good_status
       ;;
     sandbox )
       host sandbox
@@ -418,14 +424,6 @@ function push() {
       exit 1
       ;; # Never push
     build )
-      if [[ "$tag" =~ "dirty" ]]; then
-        >&2 echo "tag=$tag: clean tags only"
-        exit 1
-      fi
-      if [[ "$org" =~ "localhost" ]]; then
-        >&2 echo "org=$org: remote orgs only"
-        exit 1
-      fi
       ;;
     *)
       >&2 echo "Unknown env=${G[env]}"
@@ -596,7 +594,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -619,6 +617,7 @@ function main.cmd() {
         -l | --list-mounts) CMD[list-mounts]=1; shift;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
+        --cloudsdk-active-config-name) CMD[cloudsdk_active_config_name]=$2; shift 2;;
         -h | --help)
           pod2text $0
           exit 0
@@ -633,6 +632,10 @@ function main.cmd() {
       [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
     done
 
+    # set the google cloud sdk config
+    export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
+
+
     # Read .configuration paramters
     while [[ "$1" =~ ^\..*=.* ]]; do
       local cmd="$(sed -e 's/=\(.*\)$/="\1"/' <<<"$1")"
@@ -644,7 +647,7 @@ function main.cmd() {
     for cmd in "$@"; do
       shift
       case $cmd in
-	      build | setup | prune ) # API requests
+	      build | setup | push | prune ) # API requests
 
           # Guess env if not supplied
           if [[ -z ${G[env]} ]]; then
