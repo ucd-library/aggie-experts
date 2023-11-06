@@ -11,9 +11,11 @@ aggie-experts - Manage Aggie Experts code development, docker images, and deploy
 
 aggie-experts [-n|--dry-run] [--env=<env>] [--mount]  <command> <command> ...
 
-where <env> is one of dev, clean, sandbox, build, test, prod; default is dev
+where <env> is one of dev, clean, sandbox, build, test, prod; default is guessed
+using guess_env, fails if multiple matches are possible.
 
-where <command> is one of: build, prune, setup, config, list-mounts
+where <command> is one of: build, prune, setup, config, list-mounts, test_env,
+guess_env
 
 lesser used <command> include: compose, env, config
 
@@ -55,7 +57,31 @@ the bounded mounts.
 =item B<-n|--dry-run>
 
 Show what you would do do not really do it. Because some commands require
-multiple access to the server, this command does not always work properly :(.
+multiple access to the server, this command does not always work properly.
+
+=item B<gcs=I<bucket>>
+
+=item B<unstaged-ok>
+
+Will build a C<clean>) environment even if there are unstaged changes in the
+repository.  This usually means files that are not tracked by git.
+
+=item B<--list-mounts>
+
+List the bind mounts that are used in the dev environment.  Used with the
+C<setup> command.
+
+
+=item B<--no-env> B<--no-service-account> B<--no-compose>
+
+When running C<setup> do not create the environment, service account, or
+docker-compose.yml file, dpepending on the flag.
+
+=item B<-cloudsdk-active-config-name=I<name>>
+
+Specify the name of the gcloud configuration to use.  This is used to set the
+configuration for the duration of the command. Set to the empty string to use
+the default configuration.  Default is C<aggie-experts>.
 
 =item B<-h|--help>
 
@@ -88,12 +114,16 @@ function G() {
 
 =head1 COMMANDS
 
-There are number of
+There are number of commands to manage the development, build and deployment of
+Aggie Experts. The typical workflow is; develop your code in the C<dev>
+environment, verify the setup in the C<clean> environment, and then submit your
+pull requests.  The C<sandbox> environment can deploy any commit in a space for
+multiple reviewers.  Once the code is ready for production, it is built in the
+C<build> environment, and then deployed to the C<test> and C<prod> environments.
 
-C<aggie-experts [--env=<any>] test-env> Lets the developer test their
-environment, primarily with respect to the git branch and status.
-
-C<aggie-experts [--env=<dev|clean|sandbox|build>] build> Builds the docker images.  Builds to C<org=localhost> images in dev,clean, and sandbox environments.  C<org=gcr.io./aggie-experts> images in the build environment.
+C<aggie-experts [--env=<dev|clean|sandbox|build>] build> Builds the docker
+images.  Builds to C<org=localhost> images in dev,clean, and sandbox
+environments.  C<org=gcr.io./aggie-experts> images in the build environment.
 
 C<aggie-experts [--env=<dev|clean|sandbox|test|prod>] setup> Sets up the C<.env>
 and C<docker-compose.yaml> files for the specified environment.
@@ -101,14 +131,24 @@ and C<docker-compose.yaml> files for the specified environment.
 C<aggie-experts [--list-mounts] [--mount=<mnt,mnt,..>] [--env=dev] setup> When
 in the C<dev> environment, you have the option of setting up bind mounts for the
 C<spa>, C<models>, and C<init> directories.  This allows you to work on the code
-without having to rebuild the docker images.  The default is to mount all three.
+without having to rebuild the docker images.
 
 The --list-mounts option will list the available bind mounts.
+
+There are some commands that are used to manage the environment, and are not
+used in the main workflow.
+
+C<aggie-experts [--env=<any>] test-env> Lets the developer test their
+environment, primarily with respect to the git branch and status.
+
+C<aggie-experts [--env=<any>] guess-env> Shows what environments are available
+in the current host and git configuation.  If multiple environments are available, the developer must explicitly specify the environment C<--env=<env>>.
 
 C<aggie-experts [--env=<any>] prune> Prunes aggie-experts images from the local
 docker setup, based on the environment, and the git repository status.  This can
 be used to clean up the local docker environment.
 
+=head1 COMMANDS
 
 =cut
 
@@ -278,9 +318,19 @@ function test_env() {
   echo "OK"
 
 }
+
+
+: <<'=cut'
+=pod
+
+=head2 expand
+
+Use shell expansion to expand the config.json file into the current actual variables.
+
+=cut
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand(){
-  local line lineEscaped
+   local line lineEscaped
   # the `||` clause ensures that the last line is read even if it doesn't end with \n
   while IFS= read -r line || [[ -n $line ]]; do
     # Escape ALL chars. that could trigger an expansion..
@@ -476,58 +526,60 @@ function setup() {
     echo "TAG=$tag"
     echo "GCS=$gcs"
   }
+
   function service_account() {
-  local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.type:service-account-key" | jq -r '.[0].name'))
+    local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.type:service-account-key" | jq -r '.[0].name'))
 
-  gcloud secrets versions access latest --secret="$service_account"
-}
+    gcloud secrets versions access latest --secret="$service_account"
+  }
+
   function compose() {
-  local env=$(G .env)
-  local keycloak=$(G .keycloak)
-  local tmpl=$(G .template)
+    local env=$(G .env)
+    local keycloak=$(G .keycloak)
+    local tmpl=$(G .template)
 
-  local org=$(G .org // .envs.${G[env]}.org)
-  local tag=$(G .tag // .envs.${G[env]}.tag)
-  local mount=$(G .mount // .envs.${G[env]}.mount)
-  local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
+    local org=$(G .org // .envs.${G[env]}.org)
+    local tag=$(G .tag // .envs.${G[env]}.tag)
+    local mount=$(G .mount // .envs.${G[env]}.mount)
+    local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
 
 
-  if [[ "$env" = "dev" ]]; then
-    cat $tmpl |
-      if [[ "$keycloak" != "local" ]]; then
-        yq 'del(.services.keycloak)'
-       else
-        cat
-      fi |
-      if [[ -z "$gcs" ]]; then
-        yq 'del(.services.gcs)'
-       else
-        cat
-      fi |
-      if [[ "$mount" =~ "models" ]]; then
-        cat
-      else
-        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
-        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS_API" or alias=="DEV_MOUNT_MODELS_API"))'
-      fi |
-      if [[ "$mount" =~ "init-fcrepo" ]]; then
-        cat
-      else
-        yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
-      fi |
-      if [[ "$mount" =~ "spa" ]]; then
-        cat
-      else
-        yq 'del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
-      fi |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_ACTIVEMQ" or alias=="DEV_MOUNT_ACTIVEMQ"))' |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_FCREPO_PROPERTIES" or alias=="DEV_MOUNT_FCREPO_PROPERTIES"))' |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_ROOT_AUTH" or alias=="DEV_MOUNT_ROOT_AUTH"))' |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_POSTGRES" or alias=="DEV_MOUNT_INIT_POSTGRES"))'
-  else
-    cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
-  fi
-}
+    if [[ "$env" = "dev" ]]; then
+      cat $tmpl |
+        if [[ "$keycloak" != "local" ]]; then
+          yq 'del(.services.keycloak)'
+        else
+          cat
+        fi |
+        if [[ -z "$gcs" ]]; then
+          yq 'del(.services.gcs)'
+        else
+          cat
+        fi |
+        if [[ "$mount" =~ "models" ]]; then
+          cat
+        else
+          yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
+          yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS_API" or alias=="DEV_MOUNT_MODELS_API"))'
+        fi |
+        if [[ "$mount" =~ "init-fcrepo" ]]; then
+          cat
+        else
+          yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
+        fi |
+        if [[ "$mount" =~ "spa" ]]; then
+          cat
+        else
+          yq 'del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
+        fi |
+        yq 'del(.. | select(anchor=="DEV_MOUNT_ACTIVEMQ" or alias=="DEV_MOUNT_ACTIVEMQ"))' |
+        yq 'del(.. | select(anchor=="DEV_MOUNT_FCREPO_PROPERTIES" or alias=="DEV_MOUNT_FCREPO_PROPERTIES"))' |
+        yq 'del(.. | select(anchor=="DEV_MOUNT_ROOT_AUTH" or alias=="DEV_MOUNT_ROOT_AUTH"))' |
+        yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_POSTGRES" or alias=="DEV_MOUNT_INIT_POSTGRES"))'
+    else
+      cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
+    fi
+  }
   function setup_files() {
     if [[ -n $N ]]; then
       if [[ -n ${G[setup_env]} ]] ; then
@@ -633,8 +685,9 @@ function main.cmd() {
     done
 
     # set the google cloud sdk config
-    export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
-
+    if [[ -n $G[cloudsdk_active_config_name] ]]; then
+      export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
+    fi
 
     # Read .configuration paramters
     while [[ "$1" =~ ^\..*=.* ]]; do
