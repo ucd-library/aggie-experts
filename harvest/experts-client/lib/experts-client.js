@@ -130,7 +130,7 @@ export class ExpertsClient {
       return promise;
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources:[opt.db.source()] })
+    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()] })
 
     const queue = new readablePromiseQueue(bindingStream, insertBoundConstruct,
       { name: 'insert', max_promises: 10 });
@@ -201,7 +201,7 @@ export class ExpertsClient {
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()],fetch })
+    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()], fetch })
     const queue = new readablePromiseQueue(bindingStream, constructRecord,
       { name: 'splay', max_promises: 5 });
     return queue.execute({ via: 'start' });
@@ -297,7 +297,7 @@ export class ExpertsClient {
   * @returns
   *
   */
-  async getPostCDLentries(opt, query, cdlId, context) {
+  async getPostCDLentries(opt, query, cdlId, context, logger) {
     const cdl = opt.cdl;
     const db = opt.db;
     var lastPage = false
@@ -325,11 +325,12 @@ export class ExpertsClient {
       })
 
       if (response.status !== 200) {
-        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+        logger.error(`Did not get an OK from the server. Code: ${response.status}`);
+        // throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
         break;
       }
       else if (response.status === 200) {
-
+        logger.info(`Got an OK from the server. Code: ${response.status}`);
         const xml = await response.text();
         count++;
 

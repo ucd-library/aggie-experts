@@ -1,4 +1,5 @@
 'use strict';
+import winston from 'winston';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -14,6 +15,20 @@ import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  defaultMeta: { service: 'user-service' },
+  transports: [
+    //
+    // - Write all logs with importance level of `error` or less to `error.log`
+    // - Write all logs with importance level of `info` or less to `combined.log`
+    //
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+  ],
+});
 
 const DF = new DataFactory();
 const BF = new BindingsFactory();
@@ -39,15 +54,15 @@ const cdl = {
   secretpath: '',
 };
 
-async function temp_get_qa_grants(orig_opt,user,cdlId,context,ec) {
+async function temp_get_qa_grants(orig_opt, user, cdlId, context, ec) {
   console.log('starting temp_get_qa_grants ' + user + '-' + cdlId);
-  const grant_id_types="2,12,43,44,94,95,96,97,116,117,118,119,120,121,122,123,124,125,126,133,134,135,136,137,138,139,140,141"
-  const opt={
+  const grant_id_types = "2,12,43,44,94,95,96,97,116,117,118,119,120,121,122,123,124,125,126,133,134,135,136,137,138,139,140,141"
+  const opt = {
     ...orig_opt,
     cdl: {
-      url:'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-      authname:'qa-oapolicy',
-      secretpath:'projects/326679616213/secrets/cdl_elements_json'
+      url: 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+      authname: 'qa-oapolicy',
+      secretpath: 'projects/325574696734/secrets/cdl_elements_json'
     }
   }
   let secretResp = await gs.getSecret(opt.cdl.secretpath);
@@ -58,7 +73,7 @@ async function temp_get_qa_grants(orig_opt,user,cdlId,context,ec) {
     }
   }
 
-  await ec.getPostCDLentries(opt, `users/${cdlId}/relationships?detail=full&types=${grant_id_types}`, cdlId, context);
+  await ec.getPostCDLentries(opt, `users/${cdlId}/relationships?detail=full&types=${grant_id_types}`, cdlId, context, logger);
 }
 
 
@@ -137,8 +152,8 @@ async function main(opt) {
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
     let dbname
-    if (fuseki.db==='CAS-XX' || fuseki.db==='CAS') {
-      dbname = user+(fuseki.db==='CAS-XX'?'-'+nanoid(2):'');
+    if (fuseki.db === 'CAS-XXXX' || fuseki.db === 'CAS') {
+      dbname = user + (fuseki.db === 'CAS-XXXX' ? '-' + nanoid(2) : '');
       db = await fuseki.createDb(dbname);
       console.log(`Dataset '${dbname}' created successfully.`);
     }
@@ -174,11 +189,11 @@ async function main(opt) {
       // Step 3: Get User Relationships from CDL
 
       // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
-      opt.db=db
+      opt.db = db
       await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
 
       // Step 3a: Get User Grants from CDL (qa-oapolicy only)
-      await temp_get_qa_grants(opt,user,cdlId,context,ec);
+      await temp_get_qa_grants(opt, user, cdlId, context, ec);
     }
 
     if (opt.splay) {
@@ -194,12 +209,12 @@ async function main(opt) {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
-          return await ec.splay({ ...splay,bindings, db });
+          return await ec.splay({ ...splay, bindings, db });
         })(n);
       };
     }
     // Any other value don't delete
-    if (fuseki.delete === true ) {
+    if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db);
     }
   }
@@ -261,12 +276,21 @@ Object.keys(opt).forEach((k) => {
 if (opt.environment === 'development') {
   opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'qa-oapolicy';
-  opt.cdl.secretpath = 'projects/326679616213/secrets/cdl_elements_json';
+  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 else if (opt.environment === 'production') {
   opt.cdl.url = 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'oapolicy';
-  opt.cdl.secretpath = 'projects/326679616213/secrets/cdl_elements_json';
+  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
+}
+//
+// If we're not in production then log to the `console` with the format:
+// `${info.level}: ${info.message} JSON.stringify({ ...rest }) `
+//
+if (opt.environment !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple(),
+  }));
 }
 
 // console.log('opt', opt);
