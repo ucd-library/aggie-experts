@@ -45,6 +45,16 @@ The test and prod environments are for the production code.  They require
 specific tags, and deploy only from images pushed to the aggie-experts
 repository.
 
+=item B<--template=I<template>>
+
+Set the template to use for the environment.  The default template brings up the
+entire system.  You can also specify C<--template=fuseki> to bring up only the
+fuseki server.
+
+=item B<--no-fuseki>
+
+When using the default template, do not bring up the fuseki server.
+
 =item B<--mount=I<spa,models,init>>
 
 In the dev environment, you can specify which bind mounts you want to use.  This
@@ -102,11 +112,16 @@ declare -g -A G=(
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=
+  [include_fuseki]=1
+  [template]=default
   [cloudsdk_active_config_name]='aggie-experts'
 );
 
 function G() {
-  expand < ${G[config]} | jq "${G[jq]}" | jq -r "$*"
+  if [[ -z ${G[expanded]} ]] ; then
+    G[expanded]=$(expand < ${G[config]} | jq ${G[jq]})
+  fi
+  jq -r "$*" <<<"${G[expanded]}"
 }
 
 : <<'=cut'
@@ -503,28 +518,7 @@ function setup() {
     local tag="$(G .tag // .envs.${G[env]}.tag)"
     local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
 
-    local deploy
-    case ${G[env]} in
-      dev | clean )
-        deploy=dev
-        ;;
-      sandbox )
-        deploy=sandbox
-        ;;
-      test)
-        deploy=test
-        ;;
-      prod )
-        deploy=prod
-        ;;
-      *)
-        >&2 echo "ERR: Unknown environment: ${G[env]}"
-        exit 1
-        ;;
-    esac
-
-
-    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:$deploy" | jq -r '.[0].name'))
+    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:${G[env]}" | jq -r '.[0].name'))
 
     gcloud secrets versions access latest --secret="$secret"
 
@@ -544,7 +538,7 @@ function setup() {
   function compose() {
     local env=$(G .env)
     local keycloak=$(G .keycloak)
-    local tmpl=$(G .template)
+    local tmpl=$(G .template.${G[template]})
 
     local org=$(G .org // .envs.${G[env]}.org)
     local tag=$(G .tag // .envs.${G[env]}.tag)
@@ -554,6 +548,11 @@ function setup() {
 
     if [[ "$env" = "dev" ]]; then
       cat $tmpl |
+        if [[ -z ${G[include_fuseki]} ]]; then
+          yq 'del(.services.fuseki)'
+        else
+          cat
+        fi |
         if [[ "$keycloak" != "local" ]]; then
           yq 'del(.services.keycloak)'
         else
@@ -654,7 +653,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,template:,no-fuseki,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -673,6 +672,8 @@ function main.cmd() {
         --gcs) CMD[gcs]=$2; shift 2;;
         --no-env) CMD[setup_env]=; shift;;
         --no-compose) CMD[setup_compose]=; shift;;
+        --no-fuseki) CMD[include_fuseki]=; shift;;
+        --template) CMD[template]=$2; shift 2;;
         --no-service-account) CMD[setup_service_account]=; shift;;
         -l | --list-mounts) CMD[list-mounts]=1; shift;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
@@ -689,7 +690,7 @@ function main.cmd() {
 
     # command line over global
     for i in "${!CMD[@]}"; do
-      [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+      G[$i]=${CMD[$i]};
     done
 
     # set the google cloud sdk config
