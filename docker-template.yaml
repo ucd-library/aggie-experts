@@ -16,6 +16,24 @@ services:
     command: npm run gateway
     # command: bash -c 'tail -f /dev/null'
 
+  # Fuseki is used to harvest data, and as a check on data as well
+  fuseki:
+    image: &IMG ${ORG}/harvest:${TAG}
+    volumes:
+      - fuseki-data:/home/ucd.process
+    ports:
+      - ${DB_PORT:-3030}:3030
+    environment:
+      - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
+      - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON}
+    restart: unless-stopped
+    volumes:
+      - *SERVICE_ACCOUNT
+    command:
+      HDT=import server
+    # command: bash -c 'tail -f /dev/null'
+
+
   ###
   # Fedora Repository
   ###
@@ -223,6 +241,8 @@ services:
 # Docker data volumes
 ###
 volumes:
+  fuseki-data:
+    driver: local
   fedora-data:
     driver: local
   pg-data:

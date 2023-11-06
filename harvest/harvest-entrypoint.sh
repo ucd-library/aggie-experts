@@ -11,10 +11,12 @@ function init_local_user() {
 }
 
 function gcloud_auth() {
-  if [[ -n ${GOOGLE_APPLICATION_CREDENTIALS_JSON} ]]; then
+  if [[ -f /etc/fin/service-account.json ]]; then
+    gcloud auth activate-service-account --key-file /etc/fin/service-account.json
+  elif [[ -n ${GOOGLE_APPLICATION_CREDENTIALS_JSON} ]]; then
     gcloud auth activate-service-account --key-file=- <<< "${GOOGLE_APPLICATION_CREDENTIALS_JSON}"
   else
-    echo "GOOGLE_APPLICATION_CREDENTIALS_JSON is not set"
+    echo "no /etc/fin/service-account.json and GOOGLE_APPLICATION_CREDENTIALS_JSON is not set"
   fi
 }
 
@@ -23,7 +25,15 @@ init_local_user
 uid=$(id -u)
 if [[ ${uid} = 0 ]]; then
   # Don't cd, because users may want to set their own workdir
-  setpriv --reuid=ucd.process --init-groups -- bash -c 'if [[ -n ${GOOGLE_APPLICATION_CREDENTIALS_JSON} ]]; then gcloud auth activate-service-account --project=digital-ucdavis-edu --key-file=- <<< "${GOOGLE_APPLICATION_CREDENTIALS_JSON}"; echo ${GOOGLE_APPLICATION_CREDENTIALS_JSON} > /home/ucd.process/.config/gcloud/application_default_credentials.json; fi;'
+  setpriv --reuid=ucd.process --init-groups -- bash -c '
+  if [[ -f /etc/fin/service-account.json ]]; then
+    gcloud auth activate-service-account --key-file /etc/fin/service-account.json
+  elif [[ -n ${GOOGLE_APPLICATION_CREDENTIALS_JSON} ]]; then
+    gcloud auth activate-service-account --key-file=- <<< "${GOOGLE_APPLICATION_CREDENTIALS_JSON}"
+  else
+    echo "no /etc/fin/service-account.json and GOOGLE_APPLICATION_CREDENTIALS_JSON is not set"
+  fi
+'
   exec setpriv --reuid=ucd.process --init-groups make --file=/usr/local/lib/harvest/Makefile "$@"
 else
   exec make --file=/usr/local/lib/harvest/Makefile "$@"
