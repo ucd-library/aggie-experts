@@ -508,8 +508,11 @@ function setup() {
       dev | clean )
         deploy=dev
         ;;
-      sandbox | test)
+      sandbox )
         deploy=sandbox
+        ;;
+      test)
+        deploy=test
         ;;
       prod )
         deploy=prod
@@ -521,7 +524,7 @@ function setup() {
     esac
 
 
-    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.deploy:$deploy" | jq -r '.[0].name'))
+    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:$deploy" | jq -r '.[0].name'))
 
     gcloud secrets versions access latest --secret="$secret"
 
