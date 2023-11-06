@@ -45,6 +45,16 @@ The test and prod environments are for the production code.  They require
 specific tags, and deploy only from images pushed to the aggie-experts
 repository.
 
+=item B<--template=I<template>>
+
+Set the template to use for the environment.  The default template brings up the
+entire system.  You can also specify C<--template=fuseki> to bring up only the
+fuseki server.
+
+=item B<--no-fuseki>
+
+When using the default template, do not bring up the fuseki server.
+
 =item B<--mount=I<spa,models,init>>
 
 In the dev environment, you can specify which bind mounts you want to use.  This
@@ -59,9 +69,12 @@ the bounded mounts.
 Show what you would do do not really do it. Because some commands require
 multiple access to the server, this command does not always work properly.
 
-=item B<gcs=I<bucket>>
+=item B<--gcs=I<bucket>>
 
-=item B<unstaged-ok>
+Specify the Google Cloud Storage bucket to use for initialization.  This sets
+the C<GCS_BUCKET> parameter in the environment.
+
+=item B<--unstaged-ok>
 
 Will build a C<clean>) environment even if there are unstaged changes in the
 repository.  This usually means files that are not tracked by git.
@@ -71,13 +84,12 @@ repository.  This usually means files that are not tracked by git.
 List the bind mounts that are used in the dev environment.  Used with the
 C<setup> command.
 
-
 =item B<--no-env> B<--no-service-account> B<--no-compose>
 
 When running C<setup> do not create the environment, service account, or
 docker-compose.yml file, dpepending on the flag.
 
-=item B<-cloudsdk-active-config-name=I<name>>
+=item B<--cloudsdk-active-config-name=I<name>>
 
 Specify the name of the gcloud configuration to use.  This is used to set the
 configuration for the duration of the command. Set to the empty string to use
@@ -102,11 +114,16 @@ declare -g -A G=(
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=
+  [include_fuseki]=1
+  [template]=default
   [cloudsdk_active_config_name]='aggie-experts'
 );
 
 function G() {
-  expand < ${G[config]} | jq "${G[jq]}" | jq -r "$*"
+  if [[ -z ${G[expanded]} ]] ; then
+    G[expanded]=$(expand < ${G[config]} | jq ${G[jq]})
+  fi
+  jq -r "$*" <<<"${G[expanded]}"
 }
 
 : <<'=cut'
@@ -121,14 +138,14 @@ pull requests.  The C<sandbox> environment can deploy any commit in a space for
 multiple reviewers.  Once the code is ready for production, it is built in the
 C<build> environment, and then deployed to the C<test> and C<prod> environments.
 
-C<aggie-experts [--env=<dev|clean|sandbox|build>] build> Builds the docker
+C<aggie-experts [--env=dev|clean|sandbox|build] build> Builds the docker
 images.  Builds to C<org=localhost> images in dev,clean, and sandbox
 environments.  C<org=gcr.io./aggie-experts> images in the build environment.
 
-C<aggie-experts [--env=<dev|clean|sandbox|test|prod>] setup> Sets up the C<.env>
+C<aggie-experts [--env=dev|clean|sandbox|test|prod] setup> Sets up the C<.env>
 and C<docker-compose.yaml> files for the specified environment.
 
-C<aggie-experts [--list-mounts] [--mount=<mnt,mnt,..>] [--env=dev] setup> When
+C<aggie-experts [--list-mounts] [--mount=mnt,mnt,..] [--env=dev] setup> When
 in the C<dev> environment, you have the option of setting up bind mounts for the
 C<spa>, C<models>, and C<init> directories.  This allows you to work on the code
 without having to rebuild the docker images.
@@ -138,17 +155,17 @@ The --list-mounts option will list the available bind mounts.
 There are some commands that are used to manage the environment, and are not
 used in the main workflow.
 
-C<aggie-experts [--env=<any>] test-env> Lets the developer test their
+C<aggie-experts [--env=any] test-env> Lets the developer test their
 environment, primarily with respect to the git branch and status.
 
-C<aggie-experts [--env=<any>] guess-env> Shows what environments are available
-in the current host and git configuation.  If multiple environments are available, the developer must explicitly specify the environment C<--env=<env>>.
+C<aggie-experts [--env=any] guess-env> Shows what environments are available
+in the current host and git configuation.  If multiple environments are available, the developer must explicitly specify the environment C<--env=I<env>>.
 
-C<aggie-experts [--env=<any>] prune> Prunes aggie-experts images from the local
+C<aggie-experts [--env=any] prune> Prunes aggie-experts images from the local
 docker setup, based on the environment, and the git repository status.  This can
 be used to clean up the local docker environment.
 
-=head1 COMMANDS
+=head1 ADDITIONAL COMMANDS
 
 =cut
 
@@ -327,6 +344,8 @@ function test_env() {
 
 Use shell expansion to expand the config.json file into the current actual variables.
 
+C<aggie-experts expand>
+
 =cut
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand(){
@@ -503,28 +522,7 @@ function setup() {
     local tag="$(G .tag // .envs.${G[env]}.tag)"
     local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
 
-    local deploy
-    case ${G[env]} in
-      dev | clean )
-        deploy=dev
-        ;;
-      sandbox )
-        deploy=sandbox
-        ;;
-      test)
-        deploy=test
-        ;;
-      prod )
-        deploy=prod
-        ;;
-      *)
-        >&2 echo "ERR: Unknown environment: ${G[env]}"
-        exit 1
-        ;;
-    esac
-
-
-    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:$deploy" | jq -r '.[0].name'))
+    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:${G[env]}" | jq -r '.[0].name'))
 
     gcloud secrets versions access latest --secret="$secret"
 
@@ -544,7 +542,7 @@ function setup() {
   function compose() {
     local env=$(G .env)
     local keycloak=$(G .keycloak)
-    local tmpl=$(G .template)
+    local tmpl=$(G .template.${G[template]})
 
     local org=$(G .org // .envs.${G[env]}.org)
     local tag=$(G .tag // .envs.${G[env]}.tag)
@@ -554,6 +552,11 @@ function setup() {
 
     if [[ "$env" = "dev" ]]; then
       cat $tmpl |
+        if [[ -z ${G[include_fuseki]} ]]; then
+          yq 'del(.services.fuseki)'
+        else
+          cat
+        fi |
         if [[ "$keycloak" != "local" ]]; then
           yq 'del(.services.keycloak)'
         else
@@ -654,7 +657,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,template:,no-fuseki,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -673,6 +676,8 @@ function main.cmd() {
         --gcs) CMD[gcs]=$2; shift 2;;
         --no-env) CMD[setup_env]=; shift;;
         --no-compose) CMD[setup_compose]=; shift;;
+        --no-fuseki) CMD[include_fuseki]=; shift;;
+        --template) CMD[template]=$2; shift 2;;
         --no-service-account) CMD[setup_service_account]=; shift;;
         -l | --list-mounts) CMD[list-mounts]=1; shift;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
@@ -689,7 +694,7 @@ function main.cmd() {
 
     # command line over global
     for i in "${!CMD[@]}"; do
-      [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+      G[$i]=${CMD[$i]};
     done
 
     # set the google cloud sdk config
@@ -764,3 +769,26 @@ function main.cmd() {
 }
 main.cmd "$@"
 exit $?
+
+: <<=cut
+=pod
+
+=head1  EXAMPLES
+
+=head2 SETUP
+
+To setup just fuseki:
+
+C<aggie-expert --env=dev --template=fuseki setup>
+
+To setup the full stack:
+
+C<aggie-expert --env=dev setup>
+
+To skip fuseki:
+
+C<aggie-expert --env=dev --no-fuseki setup>
+
+=head1 AUTHOR
+
+qjhart@ucdavis.edu

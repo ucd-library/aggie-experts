@@ -44,7 +44,10 @@
       "gcs":"fcrepo-prod"
     }
   },
-  "template":"${G[base]}/docker-template.yaml",
+  "template": {
+    "default":"${G[base]}/docker-template.yaml",
+    "fuseki":"${G[base]}/docker-template-fuseki.yaml"
+  },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
     "tag":"2.3.1"
