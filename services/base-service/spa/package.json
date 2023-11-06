@@ -18,6 +18,9 @@
   "dependencies": {
     "@ucd-lib/cork-app-load": "^0.3.2",
     "@ucd-lib/spa-router-middleware": "^0.2.1",
+    "body-parser": "^1.20.2",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.17.3",
     "nodemon": "^2.0.15"

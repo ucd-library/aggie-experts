@@ -5,7 +5,6 @@ import {render} from "./app-expert-grants-list.tpl.js";
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
-import { generateCitations } from '../../utils/citation.js';
 import utils from '../../../lib/utils';
 
 export default class AppExpertGrantsList extends Mixin(LitElement)
@@ -63,9 +62,16 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'grants' ) return;
+    if( e.location.page !== 'grants' ) {
+      // reset data to first page of results
+      this.currentPage = 1;
+      let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+      this.grants = utils.parseGrants(grants);
+      this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
+      this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
+      return;
+    }
     window.scrollTo(0, 0);
-    console.log('in grants page onAppStateUpdate');
 
     let expertId = e.location.pathname.replace('/grants/', '');
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
@@ -94,72 +100,19 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     if( this.AppStateModel.location.page !== 'grants' ) return;
     if( e.id === this.expertId ) return;
 
-    console.log('in grants page onExpertUpdate');
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
 
     let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
-    await this._loadCitations();
-
     let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
-  }
 
-  /**
-   * @method _loadCitations
-   * @description load citations for expert async
-   *
-   * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
-   */
-  async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
-
-    try {
-      // sort by issued date desc, then by title asc
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
-
-      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-    }
-
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-
-    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
-
-    this.citationsDisplayed = citationResults.map(c => c.value);
-
-    // also remove issued date from citations if not first displayed on page from that year
-    let lastPrintedYear;
-    this.citationsDisplayed.forEach((cite, i) => {
-      let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
-        delete cite.issued;
-        lastPrintedYear = newIssueDate;
-      }
-    });
-
-    // update doi links to be anchor tags
-    this.citationsDisplayed.forEach(cite => {
-      if( cite.DOI && cite.apa ) {
-        // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
-        cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
-                  + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
-                  + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
-      }
-    });
-
-    this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
-
-    this.requestUpdate();
+    this.paginationTotal = Math.ceil(this.grants.length / this.resultsPerPage);
   }
 
   /**
@@ -171,10 +124,31 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
   async _onPaginationChange(e) {
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
-    if( maxIndex > this.citations.length ) maxIndex = this.citations.length;
+    if( maxIndex > this.grants.length ) maxIndex = this.grants.length;
 
     this.currentPage = e.detail.page;
-    await this._loadCitations();
+
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []);
+
+    let grantsActiveCount = this.grantsActiveDisplayed.length;
+    let grantsCompletedCount = this.grantsCompletedDisplayed.length;
+
+    // if first page, load grantsActive under this.resultsPerPage and remaining from grantsCompleted
+    // else if second page+, remove grants from active and completed in order
+    if( this.currentPage === 1 ) {
+      this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(0, this.resultsPerPage);
+      this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
+    } else {
+      let currentIndex = this.resultsPerPage * (this.currentPage - 1);
+      this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(currentIndex, this.resultsPerPage);
+
+      // TODO test..
+      // what if active grants are 50?
+      // what if 0 active grants and 50 completed grants?
+      this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(currentIndex - grantsActiveCount, currentIndex - grantsActiveCount + this.resultsPerPage);
+    }
+
     window.scrollTo(0, 0);
   }
 
@@ -186,6 +160,14 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
    */
   _returnToProfile(e) {
     e.preventDefault();
+
+    // reset data to first page of results
+    this.currentPage = 1;
+    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    this.grants = utils.parseGrants(grants);
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
+
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 
