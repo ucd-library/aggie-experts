@@ -406,19 +406,24 @@ function build() {
     fi
   }
 
+  local cache_tag
   case ${G[env]} in
-    dev) ;; # Always build
-    clean | sandbox | sandbox )
+    dev)
+      cache_tag=dirty
+    ;; # Always build
+    clean | sandbox )
       if [[ "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
         exit 1
       fi
+      cache_tag=dirty
       ;;
     build )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
         exit 1
       fi
+      cache_tag=$tag
       ;;
     test | prod )
       >&2 echo "No builds env=${G[env]}"
@@ -442,7 +447,7 @@ function build() {
        --build-arg FIN_ORG=${fin_org} --build-arg FIN_TAG=${fin_tag} \
        --build-arg ORG=${org} --build-arg TAG=${tag} \
        -t $image \
-       --cache-from localhost/aggie-experts/${n}:dirty ${i}
+       --cache-from localhost/aggie-experts/${n}:${cache_tag} ${i}
 
   done
 

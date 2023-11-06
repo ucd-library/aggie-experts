@@ -129,7 +129,7 @@ grants.hdt:=${FUSEKI_BASE}/databases/hdt/grants.hdt
 grants.hdt:${grants.hdt} ## BUILD grants.hdt from FIS data file (HDT=build)
 
 define fis_login
-$$(gcloud --project=digital-ucdavis-edu secrets versions access latest --secret=fis_ds_prod_oracle_connection_configuration | jq -r '[.user,"/",.password,"@",.sid] | add')
+$$(gcloud --project=aggie-experts secrets versions access latest --secret=fis_ds_prod_oracle_connection_configuration | jq -r '[.user,"/",.password,"@",.sid] | add')
 endef
 
 sqlcl:=sqlcl -S "$(call fis_login)"
@@ -188,7 +188,7 @@ iam.tdb2:=databases/iam
 iam.hdt:=${FUSEKI_BASE}/databases/hdt/iam.hdt
 
 define ucdid_auth
-$$(gcloud --project=digital-ucdavis-edu secrets versions access latest --secret=ucdid_auth | jq -r '.[] | select(.["@id"]=="iet-ws") | .auth.raw_auth')
+$$(gcloud --project=aggie-experts secrets versions access latest --secret=ucdid_auth | jq -r '.[] | select(.["@id"]=="iet-ws") | .auth.raw_auth')
 endef
 
 .PHONY: iam.hdt
