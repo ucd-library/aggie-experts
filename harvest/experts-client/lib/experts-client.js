@@ -300,10 +300,9 @@ export class ExpertsClient {
   async getPostCDLentries(opt, query, cdlId, context) {
     const cdl = opt.cdl;
     const db = opt.db;
-    var lastPage = false
-    var results, entries = [];
-    var nextPage = `${cdl.url}/${query}`
-    var count = 0;
+    let lastPage = false
+    let nextPage = `${cdl.url}/${query}`
+    let count = 0;
 
     if (cdl.auth.match(':')) {
       cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
@@ -312,8 +311,8 @@ export class ExpertsClient {
     }
 
     while (nextPage) {
-      results = [];
-      entries = [];
+      let results = [];
+      let entries = [];
 
       console.log(`getting ${nextPage}`);
       const response = await fetch(nextPage, {
@@ -328,62 +327,62 @@ export class ExpertsClient {
         throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
         break;
       }
-      else if (response.status === 200) {
 
-        const xml = await response.text();
-        count++;
+      const xml = await response.text();
+      count++;
 
-        // convert the xml atom feed to json
-        const json = parser.toJson(xml, { object: true, arrayNotation: false });
+      // convert the xml atom feed to json
+      const json = parser.toJson(xml, { object: true, arrayNotation: false });
 
-        // add the entries to the results array
-        if (json.feed.entry) {
+      // Bad writing here
+      fs.writeFileSync(`${cdlId}-${count}-orig.json`,json);
 
-          entries = entries.concat(json.feed.entry);
-          for (let work of entries) {
-            let related = [];
-            if (work['api:relationship'] && work['api:relationship']['api:related']) {
-              related.push(work['api:relationship']['api:related']);
-            }
-            related.push({ direction: 'to', id: cdlId, category: 'user' });
-            work['api:relationship'] ||= {};
-            work['api:relationship']['api:related'] = related;
-            results.push(work['api:relationship']);
+      // add the entries to the results array
+      if (json.feed.entry) {
+
+        entries = entries.concat(json.feed.entry);
+        for (let work of entries) {
+          let related = [];
+          if (work['api:relationship'] && work['api:relationship']['api:related']) {
+            related.push(work['api:relationship']['api:related']);
           }
-
-          // Create the JSON-LD for the user relationships
-          // save a text version of the context object
-          let contextObj = context;
-
-          contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-          contextObj["@graph"] = results;
-
-          let jsonld = JSON.stringify(contextObj);
-          console.log('posting relationships of ' + cdlId);
-
-          // Bad writing here
-          //fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
-
-          // Insert into our local Fuseki DB
-          await db.createGraphFromJsonLdFile(jsonld);
+          related.push({ direction: 'to', id: cdlId, category: 'user' });
+          work['api:relationship'] ||= {};
+          work['api:relationship']['api:related'] = related;
+          results.push(work['api:relationship']);
         }
 
-        // inspect the pagination to see if there are more pages
-        const pagination = json.feed['api:pagination'];
+        // Create the JSON-LD for the user relationships
+        // save a text version of the context object
+        let contextObj = context;
 
-        // Fetch the next page
-        nextPage = null;
+        contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
+        contextObj["@graph"] = results;
 
-        if (pagination["api:page"] instanceof Array) {
-          for (let link of pagination["api:page"]) {
-            if (link.position === 'next') {
-              nextPage = link.href;
-            }
+        let jsonld = JSON.stringify(contextObj);
+        console.log('posting relationships of ' + cdlId);
+
+        // Bad writing here
+        fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
+
+        // Insert into our local Fuseki DB
+        await db.createGraphFromJsonLdFile(jsonld);
+      }
+
+      // inspect the pagination to see if there are more pages
+      const pagination = json.feed['api:pagination'];
+
+      // Fetch the next page
+      nextPage = null;
+
+      if (pagination["api:page"] instanceof Array) {
+        for (let link of pagination["api:page"]) {
+          if (link.position === 'next') {
+            nextPage = link.href;
           }
         }
       }
     }
-
     return;
   }
 }
