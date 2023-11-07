@@ -216,7 +216,9 @@ class BaseModel extends FinEsDataModel {
           inner_hits.push(in_hit._source);
         }
       }
-      source._inner_hits = inner_hits;
+      if (inner_hits.length > 0) {
+        source._inner_hits = inner_hits;
+      }
       hits.push(source);
     }
     compact.hits = hits;
@@ -256,6 +258,34 @@ class BaseModel extends FinEsDataModel {
     const res=await this.client.searchTemplate(options);
     return this.compact_search_results(res,params);
   }
+
+  async msearch(opts) {
+
+    opts.index = "expert-read";
+
+    // Fix-up parms
+    for(let i=0;i<opts.search_templates.length;i++) {
+      let template=opts.search_templates[i];
+      if(template?.params) {
+        template.params = this.common_parms(template.params);
+      }
+      if (template?.id) {
+        await this.verify_template(template);
+      }
+    }
+
+    const res=await this.client.msearchTemplate(opts);
+    console.log(res);
+    // Compact each result
+    for(let i=0;i<res.responses.length;i++) {
+      res.responses[i] = this.compact_search_results(
+        res.responses[i],
+        // search_templates are in pairs.  So get second of pair
+        opts.search_templates[2*i+1].params);
+    }
+    return res.responses;
+  }
+
   /** ^^^^TEMPLATE SEARCH^^^^ **/
 
   /**

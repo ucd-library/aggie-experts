@@ -5,6 +5,7 @@ const models =  {
   WorkModel : require('./models/WorkModel'),
   ExpertModel : require('./models/ExpertModel'),
   SearchModel : require('./models/SearchModel'),
+  BrowseByModel : require('./models/BrowseByModel')
 };
 
 Registry.ready();

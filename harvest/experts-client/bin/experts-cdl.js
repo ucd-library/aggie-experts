@@ -62,7 +62,7 @@ async function temp_get_qa_grants(orig_opt, user, cdlId, context, ec) {
     cdl: {
       url: 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
       authname: 'qa-oapolicy',
-      secretpath: 'projects/325574696734/secrets/cdl_elements_json'
+      secretpath: 'projects/325574696734/secrets/cdl-elements-json'
     }
   }
   let secretResp = await gs.getSecret(opt.cdl.secretpath);
@@ -276,6 +276,7 @@ Object.keys(opt).forEach((k) => {
 if (opt.environment === 'development') {
   opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'qa-oapolicy';
+  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 else if (opt.environment === 'production') {

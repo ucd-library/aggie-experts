@@ -9,12 +9,13 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
 
   static get properties() {
     return {
-        url: {type: String},
-        keySort: {type: String},
-        selectedLetter: {type: String, attribute: 'selected-letter'},
-        noResult: {type: String, attribute: 'no-result'},
-        sort: {state: true},
-        urlParams: {state: true}
+        url : { type : String },
+        keySort : { type : String },
+        selectedLetter : { type : String, attribute : 'selected-letter' },
+        noResult : { type : String, attribute : 'no-result' },
+        sort : { state : true },
+        urlParams : { state : true },
+        alpha : { type : Array },
     }
   }
 
@@ -24,8 +25,9 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
 
   constructor() {
     super();
-    this._injectModel('AppStateModel');
+    this._injectModel('AppStateModel', 'BrowseByModel');
     this.render = render.bind(this);
+
     this.alpha = [
         {display: 'A', value: 'a', exists: true},
         {display: 'B', value: 'b', exists: true},
@@ -53,64 +55,46 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
         {display: 'X', value: 'x', exists: true},
         {display: 'Y', value: 'y', exists: true},
         {display: 'Z', value: 'z', exists: true}
-
     ];
-    this.keySort = 'collection-az';
-    this.defaultSort = 'a';
+
+    this.selectedLetter = 'a';
     this.sort = this.defaultSort;
 
     this.parseLocation();
-
   }
 
-  willUpdate(props){
-    if ( props.has('noResult') )
-    this.checksExist();
+  async firstUpdated() {
+    await this._onAppStateUpdate(await this.AppStateModel.get());
   }
 
-  checksExist() {
-    let emptyArray = this.noResult.split(",");
-    for( let x of emptyArray ) {
-      const a = this.alpha.find(o => o.value === x);
-      if( a ) {
-        a["exists"] = false;
-      }
-    }
+  async _onAppStateUpdate(e) {
+    if( e.location.page !== 'browse' ) return;
+    if( e.location.path.length < 3 ) this.selectedLetter = 'a';
+
+    // get active filters/a-z
+    let az = await this.BrowseByModel.browseAZ();
+    az = az?.body || [];
+    az.forEach(item => {
+      // disable if no results for letter
+      let matchedLetter = this.alpha.find(l => l.value.toUpperCase() === item.params?.p.toUpperCase());
+      if( matchedLetter ) matchedLetter.exists = item.total > 0;
+    });
+
+    this.requestUpdate();
   }
 
   parseLocation() {
-    this.url = window.location.origin + window.location.pathname;
-    this.urlParams = new URLSearchParams(window.location.search);
-    this.sort = this.urlParams.get(this.keySort) || this.defaultSort;
+    let selectedLetter = this.AppStateModel.location.pathname.split('/browse/expert/')?.[1];
+    if( !selectedLetter ) return;
+
+    this.onAlphaInput({ value : selectedLetter });
   }
 
   onAlphaInput(v) {
-    if( !v.exists || v.value == this.selectedLetter ) return;
-    v = v.value;
-    this.sort = v;
-    this.updateUrlParams(this.defaultSort, this.keySort, v);
-    this.urlParams.set('collection-tax', 'az');
-    this.updateLocation();
-  }
+    if( !v || v.value === this.selectedLetter || !v.exists ) return;
 
-  updateLocation() {
-    return; // TODO once api is ready
-    let queryString = this.urlParams.toString();
-    if( queryString ) {
-      this.AppStateModel.setLocation(this.url + '?' + this.urlParams.toString());
-      // window.location = this.url + '?' + this.urlParams.toString();
-    } else {
-      this.AppStateModel.setLocation(this.url);
-      // window.location = this.url;
-    }
-  }
-
-  updateUrlParams(defaultValue, key, value) {
-    if( value != defaultValue ) {
-      this.urlParams.set(key, value);
-    } else if( value == defaultValue && this.urlParams.get(key) ) {
-      this.urlParams.delete(key);
-    }
+    this.selectedLetter = v.value;
+    this.AppStateModel.setLocation(`/browse/expert/${this.selectedLetter}`);
   }
 
 }

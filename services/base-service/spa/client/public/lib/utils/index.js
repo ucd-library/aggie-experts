@@ -103,6 +103,9 @@ class Utils {
 
       // determine awarded-by
       g.awardedBy = g.assignedBy?.name;
+
+      if( Array.isArray(g.name) ) g.name = g.name[0];
+
       return g;
     });
 

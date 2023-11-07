@@ -30,7 +30,7 @@ class AppBrowse extends Mixin(LitElement)
   }
 
   _onAppStateUpdate(e) {
-    this.page = e.location.pathname;
+    this.page = '/' + e.location.path[0] + '/' + e.location.path[1];
   }
 
 }
