@@ -310,6 +310,14 @@ export class ExpertsClient {
       cdl.authBasic = cdl.auth;
     }
 
+    function truncate(work) {
+      foreach record in work['api:relationship']?.['api:related']?.['api:records']?.['api:record'] {
+        console.log(`record: ${record.id}`);
+      }
+      //?.['api:native']}?.['api.field']?.['api:people']?.['api:person']?.['api:name']?.['api:display']`);
+      return work;
+    }
+
     while (nextPage) {
       let results = [];
       let entries = [];
@@ -335,7 +343,7 @@ export class ExpertsClient {
       const json = parser.toJson(xml, { object: true, arrayNotation: false });
 
       // Bad writing here
-      fs.writeFileSync(`${cdlId}-${count}-orig.json`,json);
+      fs.writeFileSync(`${cdlId}-${count}-orig.json`,JSON.stringify(json));
 
       // add the entries to the results array
       if (json.feed.entry) {
@@ -344,12 +352,14 @@ export class ExpertsClient {
         for (let work of entries) {
           let related = [];
           if (work['api:relationship'] && work['api:relationship']['api:related']) {
-            related.push(work['api:relationship']['api:related']);
-          }
-          related.push({ direction: 'to', id: cdlId, category: 'user' });
-          work['api:relationship'] ||= {};
-          work['api:relationship']['api:related'] = related;
-          results.push(work['api:relationship']);
+            if (opt.truncate) {
+              related.push(truncate(work['api:relationship']['api:related']))
+            } else {
+              related.push(work['api:relationship']['api:related'])
+            }
+            work['api:relationship'] ||= {};
+            work['api:relationship']['api:related'] = related;
+            results.push(work['api:relationship']);
         }
 
         // Create the JSON-LD for the user relationships

@@ -12,10 +12,10 @@ aggie-experts - Manage Aggie Experts code development, docker images, and deploy
 aggie-experts [-n|--dry-run] [--env=<env>] [--mount]  <command> <command> ...
 
 where <env> is one of dev, clean, sandbox, build, test, prod; default is guessed
-using guess_env, fails if multiple matches are possible.
+using guess-env, fails if multiple matches are possible.
 
 where <command> is one of: build, prune, setup, config, list-mounts, test_env,
-guess_env
+guess-env
 
 lesser used <command> include: compose, env, config
 
@@ -172,12 +172,12 @@ be used to clean up the local docker environment.
 : <<'=cut'
 =pod
 
-=head2 guess_env
+=head2 guess-env
 
 Guess the environment based on the hostname and git tag
 
 =cut
-function guess_env() {
+function guess-env() {
   local this_host=$(hostname --fqdn)
   local envs=()
   local tag=$(${G[git]} describe --always --dirty)
@@ -717,9 +717,9 @@ function main.cmd() {
 
           # Guess env if not supplied
           if [[ -z ${G[env]} ]]; then
-            G[env]=$(guess_env)
+            G[env]=$(guess-env)
             if [[ $? -ne 0 ]]; then
-              >&2 echo "ERROR: Unable to guess one env: $G[env]"
+              >&2 echo "ERROR: Unable to guess one env: ${G[env]}"
               exit 1
             fi
           fi
@@ -736,14 +736,14 @@ function main.cmd() {
 	        $cmd
 	        ;;
 
-        guess_env ) # API requests
+        guess-env ) # API requests
 	        $cmd
 	        ;;
 
         test_env ) # API requests
           # Guess env if not supplied
           if [[ -z ${G[env]} ]]; then
-            G[env]=$(guess_env)
+            G[env]=$(guess-env)
           fi
 
 	        $cmd

@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#! /usr/bin/env --split-string node --no-warnings
 
 import { Command } from 'commander';
 const program = new Command();
