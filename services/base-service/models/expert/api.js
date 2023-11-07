@@ -6,10 +6,6 @@ const {defaultEsApiGenerator} = dataModels;
 const md5 = require('md5');
 
 router.get('/user', async (req, res) => {
-  res.send(JSON.stringify(req.user));
-});
-
-router.get('/user', async (req, res) => {
   if( !req.user ) {
     res.status(401).send('Not logged in');
     return;
