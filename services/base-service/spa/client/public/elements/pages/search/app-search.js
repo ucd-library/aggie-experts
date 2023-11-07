@@ -24,6 +24,7 @@ export default class AppSearch extends Mixin(LitElement)
       currentPage : { type : Number },
       totalResultsCount : { type : Number },
       rawSearchData : { type : Object },
+      resultsLoading : { type : String },
     }
   }
 
@@ -39,6 +40,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.resultsPerPage = 25;
     this.totalResultsCount = 0;
     this.rawSearchData = {};
+    this.resultsLoading = '...';
 
     this.render = render.bind(this);
   }
@@ -75,7 +77,9 @@ export default class AppSearch extends Mixin(LitElement)
     let searchTerm = e.location.fullpath.replace('/search/', '');
     if( searchTerm === this.searchTerm ) return;
 
+    this.totalResultsCount = null;
     this.searchTerm = searchTerm;
+
     this._onSearch({ detail: this.searchTerm });
   }
 
@@ -103,6 +107,7 @@ export default class AppSearch extends Mixin(LitElement)
 
     // update url
     this.searchTerm = e.detail.trim();
+    this.totalResultsCount = null;
 
     this.AppStateModel.setLocation(`/search/${this.searchTerm}`);
 

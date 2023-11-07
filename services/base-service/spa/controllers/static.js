@@ -9,19 +9,6 @@ module.exports = async (app) => {
   // path to your spa assets dir
   let assetsDir = path.join(__dirname, '..', 'client', 'public');
 
-  // make sure we are logged in
-  app.all('/', (req, res, next) => {
-    let user = req.get('x-fin-user');
-    if( typeof user === 'string' ) user = JSON.parse(user);
-
-    if( !user || !user['preferred_username'] ) {
-      res.sendFile(assetsDir + '/login.html');
-      return;
-    }
-
-    next();
-  });
-
   /**
    * Setup SPA app routes
    */
@@ -56,7 +43,7 @@ module.exports = async (app) => {
       });
     },
 
-    template : (req, res, next) => {
+    template : async (req, res, next) => {
       return next({title: 'Aggie Experts'});
     }
   });

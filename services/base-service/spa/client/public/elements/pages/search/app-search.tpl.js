@@ -178,7 +178,7 @@ return html`
     </app-search-box>
 
     <div class="search-results-heading">
-      <div class="results-count">${this.totalResultsCount} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
+      <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
       <div class="download">
         <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
       </div>

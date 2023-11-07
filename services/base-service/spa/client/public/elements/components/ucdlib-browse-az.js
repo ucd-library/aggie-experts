@@ -91,7 +91,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
   }
 
   onAlphaInput(v) {
-    if( !v || v.value === this.selectedLetter ) return;
+    if( !v || v.value === this.selectedLetter || !v.exists ) return;
 
     this.selectedLetter = v.value;
     this.AppStateModel.setLocation(`/browse/expert/${this.selectedLetter}`);
