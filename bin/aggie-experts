@@ -11,9 +11,11 @@ aggie-experts - Manage Aggie Experts code development, docker images, and deploy
 
 aggie-experts [-n|--dry-run] [--env=<env>] [--mount]  <command> <command> ...
 
-where <env> is one of dev, clean, sandbox, build, test, prod; default is dev
+where <env> is one of dev, clean, sandbox, build, test, prod; default is guessed
+using guess_env, fails if multiple matches are possible.
 
-where <command> is one of: build, prune, setup, config, list-mounts
+where <command> is one of: build, prune, setup, config, list-mounts, test_env,
+guess_env
 
 lesser used <command> include: compose, env, config
 
@@ -43,6 +45,16 @@ The test and prod environments are for the production code.  They require
 specific tags, and deploy only from images pushed to the aggie-experts
 repository.
 
+=item B<--template=I<template>>
+
+Set the template to use for the environment.  The default template brings up the
+entire system.  You can also specify C<--template=fuseki> to bring up only the
+fuseki server.
+
+=item B<--no-fuseki>
+
+When using the default template, do not bring up the fuseki server.
+
 =item B<--mount=I<spa,models,init>>
 
 In the dev environment, you can specify which bind mounts you want to use.  This
@@ -55,7 +67,33 @@ the bounded mounts.
 =item B<-n|--dry-run>
 
 Show what you would do do not really do it. Because some commands require
-multiple access to the server, this command does not always work properly :(.
+multiple access to the server, this command does not always work properly.
+
+=item B<--gcs=I<bucket>>
+
+Specify the Google Cloud Storage bucket to use for initialization.  This sets
+the C<GCS_BUCKET> parameter in the environment.
+
+=item B<--unstaged-ok>
+
+Will build a C<clean>) environment even if there are unstaged changes in the
+repository.  This usually means files that are not tracked by git.
+
+=item B<--list-mounts>
+
+List the bind mounts that are used in the dev environment.  Used with the
+C<setup> command.
+
+=item B<--no-env> B<--no-service-account> B<--no-compose>
+
+When running C<setup> do not create the environment, service account, or
+docker-compose.yml file, dpepending on the flag.
+
+=item B<--cloudsdk-active-config-name=I<name>>
+
+Specify the name of the gcloud configuration to use.  This is used to set the
+configuration for the duration of the command. Set to the empty string to use
+the default configuration.  Default is C<aggie-experts>.
 
 =item B<-h|--help>
 
@@ -71,49 +109,131 @@ declare -g -A G=(
   [project]="aggie-experts"
   [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../config.json"
   [jq]="."
-  [env]=dev
   # Below you probably don't need to change
   [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/.."
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=
+  [include_fuseki]=1
+  [template]=default
+  [cloudsdk_active_config_name]='aggie-experts'
 );
 
-#G[gcloud_user]=$(gcloud auth list --filter="status:ACTIVE"  --format="value(account)")
-
 function G() {
-  expand < ${G[config]} | jq "${G[jq]}" | jq -r "$*"
+  if [[ -z ${G[expanded]} ]] ; then
+    G[expanded]=$(expand < ${G[config]} | jq ${G[jq]})
+  fi
+  jq -r "$*" <<<"${G[expanded]}"
 }
 
-: <<='cut'
+: <<'=cut'
 =pod
 
 =head1 COMMANDS
 
-There are number of
+There are number of commands to manage the development, build and deployment of
+Aggie Experts. The typical workflow is; develop your code in the C<dev>
+environment, verify the setup in the C<clean> environment, and then submit your
+pull requests.  The C<sandbox> environment can deploy any commit in a space for
+multiple reviewers.  Once the code is ready for production, it is built in the
+C<build> environment, and then deployed to the C<test> and C<prod> environments.
 
-C<aggie-experts [--env=<any>] test-env> Lets the developer test their
-environment, primarily with respect to the git branch and status.
+C<aggie-experts [--env=dev|clean|sandbox|build] build> Builds the docker
+images.  Builds to C<org=localhost> images in dev,clean, and sandbox
+environments.  C<org=gcr.io./aggie-experts> images in the build environment.
 
-C<aggie-experts [--env=<dev|clean|sandbox|build>] build> Builds the docker images.  Builds to C<org=localhost> images in dev,clean, and sandbox environments.  C<org=gcr.io./aggie-experts> images in the build environment.
-
-C<aggie-experts [--env=<dev|clean|sandbox|test|prod>] setup> Sets up the C<.env>
+C<aggie-experts [--env=dev|clean|sandbox|test|prod] setup> Sets up the C<.env>
 and C<docker-compose.yaml> files for the specified environment.
 
-C<aggie-experts [--list-mounts] [--mount=<mnt,mnt,..>] [--env=dev] setup> When
+C<aggie-experts [--list-mounts] [--mount=mnt,mnt,..] [--env=dev] setup> When
 in the C<dev> environment, you have the option of setting up bind mounts for the
 C<spa>, C<models>, and C<init> directories.  This allows you to work on the code
-without having to rebuild the docker images.  The default is to mount all three.
+without having to rebuild the docker images.
 
 The --list-mounts option will list the available bind mounts.
 
-C<aggie-experts [--env=<any>] prune> Prunes aggie-experts images from the local
+There are some commands that are used to manage the environment, and are not
+used in the main workflow.
+
+C<aggie-experts [--env=any] test-env> Lets the developer test their
+environment, primarily with respect to the git branch and status.
+
+C<aggie-experts [--env=any] guess-env> Shows what environments are available
+in the current host and git configuation.  If multiple environments are available, the developer must explicitly specify the environment C<--env=I<env>>.
+
+C<aggie-experts [--env=any] prune> Prunes aggie-experts images from the local
 docker setup, based on the environment, and the git repository status.  This can
 be used to clean up the local docker environment.
 
+=head1 ADDITIONAL COMMANDS
 
 =cut
 
+: <<'=cut'
+=pod
+
+=head2 guess_env
+
+Guess the environment based on the hostname and git tag
+
+=cut
+function guess_env() {
+  local this_host=$(hostname --fqdn)
+  local envs=()
+  local tag=$(${G[git]} describe --always --dirty)
+
+  for e in $(G '.envs|keys[]' ); do
+    local env_host=$(G ".envs.${e}.host")
+    if [[ "$env_host" = "null" ]]; then
+      continue
+    fi
+     if [[ "$env_host" =~ ^! ]]; then
+      env_host=${env_host#!}
+      if ! [[ "$this_host" =~ $env_host ]]; then
+        envs+=($e)
+      fi
+    else
+      if [[ "$this_host" =~ $env_host ]]; then
+        envs+=($e)
+      fi
+    fi
+  done
+
+  # If only one match, return that, otherwise try describe
+  local d_envs=()
+  for e in "${envs[@]}"; do
+    case $e in
+      dev)
+        d_envs+=($e)
+        ;;
+      clean|sandbox|build)
+        if ! [[ "$tag" =~ "dirty" ]]; then
+          d_envs+=($e)
+        fi
+        ;;
+      test|prod)
+        if ! [[ "$tag" =~ "-" ]]; then
+          d_envs+=($e)
+        fi
+        ;;
+    esac
+  done
+  if [[ ${#d_envs[@]} == 1 ]]; then
+    echo ${d_envs[0]}
+  else
+    echo ${d_envs[@]}
+    exit 1;
+  fi
+}
+
+: <<'=cut'
+=pod
+
+=head2 test_env
+
+Tests the environment, with respect to the hostname and git tag.
+
+=cut
 function test_env() {
   local env=$(G .env)
   local tag=$(G .tag // .envs.${G[env]}.tag)
@@ -166,18 +286,19 @@ function test_env() {
     local this_host=$(hostname --fqdn)
     if [[ "$expected_host" =~ ^! ]]; then
       expected_host=${expected_host#!}
-      if [[ "$this_host" =~ "$expected_host" ]]; then
-        >&2 echo "ERR: --env=$env host: $this_host =~ $expected_host"
+      if [[ "$this_host" =~ $expected_host ]]; then
+        >&2 echo "ERR: --env=$env host: [[ \"$this_host\" =~ $expected_host ]]"
         exit 1
       fi
     else
-      if ! [[ "$this_host" =~ "$expected_host" ]]; then
-        >&2 echo "ERR: --env=$env host: ! [[ $this_host =~ $expected_host ]]"
+      if ! [[ "$this_host" =~ $expected_host ]]; then
+        >&2 echo "ERR: --env=$env host: ! [[ \"$this_host\" =~ $expected_host ]]"
         exit 1
       fi
     fi
   }
 
+  echo -n "Testing environment: ${G[env]} ... "
   case ${G[env]} in
     dev)
       branch
@@ -188,6 +309,11 @@ function test_env() {
       good_status
       host dev
       # Use git status to check for unstaged changes
+      ;;
+    build)
+      annotated_tag
+      not_dirty
+      good_status
       ;;
     sandbox )
       host sandbox
@@ -206,10 +332,24 @@ function test_env() {
       exit 1
       ;;
   esac
+  echo "OK"
+
 }
+
+
+: <<'=cut'
+=pod
+
+=head2 expand
+
+Use shell expansion to expand the config.json file into the current actual variables.
+
+C<aggie-experts expand>
+
+=cut
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand(){
-  local line lineEscaped
+   local line lineEscaped
   # the `||` clause ensures that the last line is read even if it doesn't end with \n
   while IFS= read -r line || [[ -n $line ]]; do
     # Escape ALL chars. that could trigger an expansion..
@@ -285,19 +425,24 @@ function build() {
     fi
   }
 
+  local cache_tag
   case ${G[env]} in
-    dev) ;; # Always build
-    clean | sandbox | sandbox )
+    dev)
+      cache_tag=dirty
+    ;; # Always build
+    clean | sandbox )
       if [[ "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
         exit 1
       fi
+      cache_tag=dirty
       ;;
     build )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
         exit 1
       fi
+      cache_tag=$tag
       ;;
     test | prod )
       >&2 echo "No builds env=${G[env]}"
@@ -321,7 +466,7 @@ function build() {
        --build-arg FIN_ORG=${fin_org} --build-arg FIN_TAG=${fin_tag} \
        --build-arg ORG=${org} --build-arg TAG=${tag} \
        -t $image \
-       --cache-from localhost/aggie-experts/${n}:dirty ${i}
+       --cache-from localhost/aggie-experts/${n}:${cache_tag} ${i}
 
   done
 
@@ -353,14 +498,6 @@ function push() {
       exit 1
       ;; # Never push
     build )
-      if [[ "$tag" =~ "dirty" ]]; then
-        >&2 echo "tag=$tag: clean tags only"
-        exit 1
-      fi
-      if [[ "$org" =~ "localhost" ]]; then
-        >&2 echo "org=$org: remote orgs only"
-        exit 1
-      fi
       ;;
     *)
       >&2 echo "Unknown env=${G[env]}"
@@ -385,25 +522,7 @@ function setup() {
     local tag="$(G .tag // .envs.${G[env]}.tag)"
     local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
 
-    local deploy
-    case ${G[env]} in
-      dev | clean )
-        deploy=dev
-        ;;
-      sandbox )
-        deploy=sandbox
-        ;;
-      test | prod )
-        deploy=prod
-        ;;
-      *)
-        >&2 echo "ERR: Unknown environment: ${G[env]}"
-        exit 1
-        ;;
-    esac
-
-
-    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:env AND labels.deploy:$deploy" | jq -r '.[0].name'))
+    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:${G[env]}" | jq -r '.[0].name'))
 
     gcloud secrets versions access latest --secret="$secret"
 
@@ -413,58 +532,65 @@ function setup() {
     echo "TAG=$tag"
     echo "GCS=$gcs"
   }
+
   function service_account() {
-  local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.project:${G[project]} AND labels.type:service-account" | jq -r '.[0].name'))
+    local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.type:service-account-key" | jq -r '.[0].name'))
 
-  gcloud secrets versions access latest --secret="$service_account"
-}
+    gcloud secrets versions access latest --secret="$service_account"
+  }
+
   function compose() {
-  local env=$(G .env)
-  local keycloak=$(G .keycloak)
-  local tmpl=$(G .template)
+    local env=$(G .env)
+    local keycloak=$(G .keycloak)
+    local tmpl=$(G .template.${G[template]})
 
-  local org=$(G .org // .envs.${G[env]}.org)
-  local tag=$(G .tag // .envs.${G[env]}.tag)
-  local mount=$(G .mount // .envs.${G[env]}.mount)
-  local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
+    local org=$(G .org // .envs.${G[env]}.org)
+    local tag=$(G .tag // .envs.${G[env]}.tag)
+    local mount=$(G .mount // .envs.${G[env]}.mount)
+    local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
 
 
-  if [[ "$env" = "dev" ]]; then
-    cat $tmpl |
-      if [[ "$keycloak" != "local" ]]; then
-        yq 'del(.services.keycloak)'
-       else
-        cat
-      fi |
-      if [[ -z "$gcs" ]]; then
-        yq 'del(.services.gcs)'
-       else
-        cat
-      fi |
-      if [[ "$mount" =~ "models" ]]; then
-        cat
-      else
-        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
-        yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS_API" or alias=="DEV_MOUNT_MODELS_API"))'
-      fi |
-      if [[ "$mount" =~ "init-fcrepo" ]]; then
-        cat
-      else
-        yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
-      fi |
-      if [[ "$mount" =~ "spa" ]]; then
-        cat
-      else
-        yq 'del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
-      fi |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_ACTIVEMQ" or alias=="DEV_MOUNT_ACTIVEMQ"))' |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_FCREPO_PROPERTIES" or alias=="DEV_MOUNT_FCREPO_PROPERTIES"))' |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_ROOT_AUTH" or alias=="DEV_MOUNT_ROOT_AUTH"))' |
-      yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_POSTGRES" or alias=="DEV_MOUNT_INIT_POSTGRES"))'
-  else
-    cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
-  fi
-}
+    if [[ "$env" = "dev" ]]; then
+      cat $tmpl |
+        if [[ -z ${G[include_fuseki]} ]]; then
+          yq 'del(.services.fuseki)'
+        else
+          cat
+        fi |
+        if [[ "$keycloak" != "local" ]]; then
+          yq 'del(.services.keycloak)'
+        else
+          cat
+        fi |
+        if [[ -z "$gcs" ]]; then
+          yq 'del(.services.gcs)'
+        else
+          cat
+        fi |
+        if [[ "$mount" =~ "models" ]]; then
+          cat
+        else
+          yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
+          yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS_API" or alias=="DEV_MOUNT_MODELS_API"))'
+        fi |
+        if [[ "$mount" =~ "init-fcrepo" ]]; then
+          cat
+        else
+          yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
+        fi |
+        if [[ "$mount" =~ "spa" ]]; then
+          cat
+        else
+          yq 'del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
+        fi |
+        yq 'del(.. | select(anchor=="DEV_MOUNT_ACTIVEMQ" or alias=="DEV_MOUNT_ACTIVEMQ"))' |
+        yq 'del(.. | select(anchor=="DEV_MOUNT_FCREPO_PROPERTIES" or alias=="DEV_MOUNT_FCREPO_PROPERTIES"))' |
+        yq 'del(.. | select(anchor=="DEV_MOUNT_ROOT_AUTH" or alias=="DEV_MOUNT_ROOT_AUTH"))' |
+        yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_POSTGRES" or alias=="DEV_MOUNT_INIT_POSTGRES"))'
+    else
+      cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
+    fi
+  }
   function setup_files() {
     if [[ -n $N ]]; then
       if [[ -n ${G[setup_env]} ]] ; then
@@ -531,7 +657,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,template:,no-fuseki,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -550,10 +676,13 @@ function main.cmd() {
         --gcs) CMD[gcs]=$2; shift 2;;
         --no-env) CMD[setup_env]=; shift;;
         --no-compose) CMD[setup_compose]=; shift;;
+        --no-fuseki) CMD[include_fuseki]=; shift;;
+        --template) CMD[template]=$2; shift 2;;
         --no-service-account) CMD[setup_service_account]=; shift;;
         -l | --list-mounts) CMD[list-mounts]=1; shift;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
+        --cloudsdk-active-config-name) CMD[cloudsdk_active_config_name]=$2; shift 2;;
         -h | --help)
           pod2text $0
           exit 0
@@ -565,33 +694,58 @@ function main.cmd() {
 
     # command line over global
     for i in "${!CMD[@]}"; do
-      [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+      G[$i]=${CMD[$i]};
     done
 
-    # Fix mount if exists
-    G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
-
-    # Add gcs if exists
-    if [[ -n ${G[gcs]} ]]; then
-      G[jq]="${G[jq]}|.gcs=\"${G[gcs]}\""
+    # set the google cloud sdk config
+    if [[ -n $G[cloudsdk_active_config_name] ]]; then
+      export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
     fi
 
     # Read .configuration paramters
     while [[ "$1" =~ ^\..*=.* ]]; do
       local cmd="$(sed -e 's/=\(.*\)$/="\1"/' <<<"$1")"
       G[jq]="${G[jq]}|$cmd"
-      G[env]=$(G .env) # Fix global if set that way
       shift
     done
-
-    # test environment
-    test_env
 
     # Now command(s)
     for cmd in "$@"; do
       shift
       case $cmd in
-	      build | setup | prune ) # API requests
+	      build | setup | push | prune ) # API requests
+
+          # Guess env if not supplied
+          if [[ -z ${G[env]} ]]; then
+            G[env]=$(guess_env)
+            if [[ $? -ne 0 ]]; then
+              >&2 echo "ERROR: Unable to guess one env: $G[env]"
+              exit 1
+            fi
+          fi
+
+          test_env
+          # Fix mount if exists
+          G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
+
+          # Add gcs if exists
+          if [[ -n ${G[gcs]} ]]; then
+            G[jq]="${G[jq]}|.gcs=\"${G[gcs]}\""
+          fi
+
+	        $cmd
+	        ;;
+
+        guess_env ) # API requests
+	        $cmd
+	        ;;
+
+        test_env ) # API requests
+          # Guess env if not supplied
+          if [[ -z ${G[env]} ]]; then
+            G[env]=$(guess_env)
+          fi
+
 	        $cmd
 	        ;;
 
@@ -615,3 +769,26 @@ function main.cmd() {
 }
 main.cmd "$@"
 exit $?
+
+: <<=cut
+=pod
+
+=head1  EXAMPLES
+
+=head2 SETUP
+
+To setup just fuseki:
+
+C<aggie-expert --env=dev --template=fuseki setup>
+
+To setup the full stack:
+
+C<aggie-expert --env=dev setup>
+
+To skip fuseki:
+
+C<aggie-expert --env=dev --no-fuseki setup>
+
+=head1 AUTHOR
+
+qjhart@ucdavis.edu

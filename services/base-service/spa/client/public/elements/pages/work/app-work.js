@@ -58,9 +58,6 @@ export default class AppWork extends Mixin(LitElement)
     let graphRoot = this.work['@graph'].filter(item => item['@id'] === this.workId)[0];
     let publishers = this.work['@graph'].filter(item => item['@id'] !== this.workId);
 
-    console.log(graphRoot);
-    console.log(publishers);
-
     this.publicationName = graphRoot.title;
     this.abstract = graphRoot.abstract;
   }
