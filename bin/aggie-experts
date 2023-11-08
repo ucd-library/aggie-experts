@@ -521,8 +521,11 @@ function setup() {
     local org="$(G .org // .envs.${G[env]}.org)"
     local tag="$(G .tag // .envs.${G[env]}.tag)"
     local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
+    local env=${G[env]}
 
-    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:${G[env]}" | jq -r '.[0].name'))
+    [[ "${G[env]}" == "clean" ]] && env='dev'
+
+    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:${env}" | jq -r '.[0].name'))
 
     gcloud secrets versions access latest --secret="$secret"
 
