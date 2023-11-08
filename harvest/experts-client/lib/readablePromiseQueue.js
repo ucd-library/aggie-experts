@@ -9,6 +9,7 @@ export class readablePromiseQueue {
     this.func = func;
     this.max_promises = opt.max_promises;
     this.name = opt.name;
+    this.logger = opt.logger;
     return this;
   }
 
@@ -20,10 +21,10 @@ export class readablePromiseQueue {
         this.readQueuedData({via:'readable'});
       })
       .on('error', (error) => {
-        console.error(error);
+        this.logger.error(error);
       })
       .on('end', () => {
-        console.log(`${this.name} readable finished`);
+        // this.logger.info(`${this.name} readable.end`);
       });
     this.readQueuedData({via:'execute'});
 
@@ -31,7 +32,7 @@ export class readablePromiseQueue {
       this.readable.on('end', () => {
         Promise.all(this.queue)
           .then( results => {
-            console.log(`${this.name} promises finished`);
+            this.logger.info(`${this.name} Promise.all resolved`);
             resolve(results); })
           .catch(error => { reject(error); });
       });
@@ -58,7 +59,7 @@ export class readablePromiseQueue {
       pending_promises++;
     }
     if (first_next!=pending_promises) {
-      console.log(`promise:(${first_next}:${pending_promises}/${this.max_promises}) via ${via}`);
+      this.logger.info(`promise:(${first_next}:${pending_promises}/${this.max_promises}) via ${via}`);
     }
   }
 
