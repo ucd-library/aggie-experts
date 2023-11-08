@@ -14,6 +14,8 @@ import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
+import { logger } from '../lib/logger.js';
+import { performance } from 'node:perf_hooks';
 
 const DF = new DataFactory();
 const BF = new BindingsFactory();
@@ -40,7 +42,7 @@ const cdl = {
 };
 
 async function temp_get_qa_grants(ec,db,user) {
-  console.log('starting temp_get_qa_grants ' + user);
+  logger.info({mark:'grants'},'temp_get_qa_grants ' + user);
   const grant_id_types="2,12,43,44,94,95,96,97,116,117,118,119,120,121,122,123,124,125,126,133,134,135,136,137,138,139,140,141"
   const orig_opt=ec.opt;
   const opt={
@@ -63,6 +65,8 @@ async function temp_get_qa_grants(ec,db,user) {
   const qa = new ExpertsClient(opt);
   qa.userId=ec.userId
   await qa.getPostUserRelationships(db,user,`detail=full&types=${grant_id_types}`);
+  logger.info({measure:'grants'},'temp_get_qa_grants ' + user);
+
 }
 
 
@@ -75,8 +79,6 @@ async function main(opt) {
       opt.cdl.auth = entry.auth.raw_auth;
     }
   }
-
-  // console.log('opt', opt);
 
   const ec = new ExpertsClient(opt);
 
@@ -112,8 +114,7 @@ async function main(opt) {
         users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
       }
 
-      console.log(users.join(' '));
-      console.log(users.length + ' users found');
+      logger.info(users.length + ' users found');
     }
   }
 
@@ -128,11 +129,11 @@ async function main(opt) {
     if (fuseki.db==='CAS-XX' || fuseki.db==='CAS') {
       dbname = user+(fuseki.db==='CAS-XX'?'-'+nanoid(2):'');
       db = await fuseki.createDb(dbname);
-      console.log(`Dataset '${dbname}' created successfully.`);
+      logger.info({measure:['start']},`Dataset '${dbname}' created successfully.`);
     }
 
     if (opt.fetch) {
-      console.log('starting getCDLprofile ' + user);
+      logger.info('starting getCDLprofile ' + user);
 
       await ec.getPostUser(db,user)
 
@@ -153,13 +154,14 @@ async function main(opt) {
       await ec.insert({ ...iam, bindings, db });
 
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        console.log(`splaying ${n} for ${user}`);
+        logger.info({mark:n},`splaying ${n} for ${user}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
           return await ec.splay({ ...splay,bindings, db,output:opt.output });
         })(n);
+        logger.info({measure:n},`splayed ${n} for ${user}`);
       };
     }
     // Any other value don't delete
@@ -175,7 +177,7 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename).replace('/bin', '/lib');
 
-
+performance.mark('start');
 program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
@@ -185,6 +187,9 @@ program.name('cdl-profile')
   .option('--cdl.affected <affected>', 'affected since')
   .option('--cdl.modified <modified>', 'modified since')
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
+  .option('--truncate-authors <max>', 'Truncate authors to max', null)
+  .option('--rank-authors', 'Add rank to authors, remove list context', false)
+  .option('--trim-authors', 'Remove extraneous author info', false)
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
@@ -235,5 +240,4 @@ else if (opt.environment === 'production') {
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 
-// console.log('opt', opt);
 await main(opt);
