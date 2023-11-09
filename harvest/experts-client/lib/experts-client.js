@@ -316,72 +316,79 @@ export class ExpertsClient {
       entries = [];
 
       console.log(`getting ${nextPage}`);
-      const response = await fetch(nextPage, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + cdl.authBasic,
-          'Content-Type': 'text/xml'
-        }
-      })
-
-      if (response.status !== 200) {
-        logger.error(`Did not get an OK from the server. Code: ${response.status}`);
-        // throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-        break;
-      }
-      else if (response.status === 200) {
-        logger.info(`Got an OK from the server. Code: ${response.status}`);
-        const xml = await response.text();
-        count++;
-
-        // convert the xml atom feed to json
-        const json = parser.toJson(xml, { object: true, arrayNotation: false });
-
-        // add the entries to the results array
-        if (json.feed.entry) {
-
-          entries = entries.concat(json.feed.entry);
-          for (let work of entries) {
-            let related = [];
-            if (work['api:relationship'] && work['api:relationship']['api:related']) {
-              related.push(work['api:relationship']['api:related']);
-            }
-            related.push({ direction: 'to', id: cdlId, category: 'user' });
-            work['api:relationship'] ||= {};
-            work['api:relationship']['api:related'] = related;
-            results.push(work['api:relationship']);
+      try {
+        const response = await fetch(nextPage, {
+          timeout: 12000,
+          method: 'GET',
+          headers: {
+            'Authorization': 'Basic ' + cdl.authBasic,
+            'Content-Type': 'text/xml'
           }
+        });
 
-          // Create the JSON-LD for the user relationships
-          // save a text version of the context object
-          let contextObj = context;
-
-          contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-          contextObj["@graph"] = results;
-
-          let jsonld = JSON.stringify(contextObj);
-          console.log('posting relationships of ' + cdlId);
-
-          // Bad writing here
-          //fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
-
-          // Insert into our local Fuseki DB
-          await db.createGraphFromJsonLdFile(jsonld);
-        }
-
-        // inspect the pagination to see if there are more pages
-        const pagination = json.feed['api:pagination'];
-
-        // Fetch the next page
         nextPage = null;
 
-        if (pagination["api:page"] instanceof Array) {
-          for (let link of pagination["api:page"]) {
-            if (link.position === 'next') {
-              nextPage = link.href;
+        if (response.status !== 200) {
+          logger.error(`Did not get an OK from the server. Code: ${response.status}`);
+          // throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+          break;
+        }
+        else if (response.status === 200) {
+          logger.info(`Got an OK from the server. Code: ${response.status}`);
+          const xml = await response.text();
+          count++;
+
+          // convert the xml atom feed to json
+          const json = parser.toJson(xml, { object: true, arrayNotation: false });
+
+          // add the entries to the results array
+          if (json.feed.entry) {
+
+            entries = entries.concat(json.feed.entry);
+            for (let work of entries) {
+              let related = [];
+              if (work['api:relationship'] && work['api:relationship']['api:related']) {
+                related.push(work['api:relationship']['api:related']);
+              }
+              related.push({ direction: 'to', id: cdlId, category: 'user' });
+              work['api:relationship'] ||= {};
+              work['api:relationship']['api:related'] = related;
+              results.push(work['api:relationship']);
+            }
+
+            // Create the JSON-LD for the user relationships
+            // save a text version of the context object
+            let contextObj = context;
+
+            contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
+            contextObj["@graph"] = results;
+
+            let jsonld = JSON.stringify(contextObj);
+            console.log('posting relationships of ' + cdlId);
+
+            // Bad writing here
+            //fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
+
+            // Insert into our local Fuseki DB
+            await db.createGraphFromJsonLdFile(jsonld);
+
+            // inspect the pagination to see if there are more pages
+            const pagination = json.feed['api:pagination'];
+            // Fetch the next page
+
+            if (pagination["api:page"] instanceof Array) {
+              for (let link of pagination["api:page"]) {
+                if (link.position === 'next') {
+                  nextPage = link.href;
+                }
+              }
             }
           }
         }
+
+      } catch (e) {
+        logger.error(`Did not get an OK from the server. Code: ${e.message}`);
+        break;
       }
     }
 

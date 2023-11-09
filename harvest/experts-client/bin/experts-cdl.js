@@ -190,7 +190,7 @@ async function main(opt) {
 
       // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
       opt.db = db
-      await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context);
+      await ec.getPostCDLentries(opt, 'users/' + cdlId + '/relationships?detail=full', cdlId, context, logger);
 
       // Step 3a: Get User Grants from CDL (qa-oapolicy only)
       await temp_get_qa_grants(opt, user, cdlId, context, ec);
@@ -288,11 +288,11 @@ else if (opt.environment === 'production') {
 // If we're not in production then log to the `console` with the format:
 // `${info.level}: ${info.message} JSON.stringify({ ...rest }) `
 //
-if (opt.environment !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple(),
-  }));
-}
+// if (opt.environment !== 'production') {
+//   logger.add(new winston.transports.Console({
+//     format: winston.format.simple(),
+//   }));
+// }
 
 // console.log('opt', opt);
 await main(opt);
