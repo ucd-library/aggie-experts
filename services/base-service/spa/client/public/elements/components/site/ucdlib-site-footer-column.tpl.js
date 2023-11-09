@@ -19,6 +19,10 @@ export default function render() {
         margin: 0;
         padding: 0;
       }
+      h2 {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+      }
     </style>
     <h2>${this.header}</h2>
     <slot></slot>
