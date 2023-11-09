@@ -299,31 +299,46 @@ export class ExpertsClient {
     }
     // If not saved, or not found, then fetch
     if (!xml) {
-      const response = await fetch(page, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + this.cdl.authBasic,
-          'Content-Type': 'text/xml'
-        }
-      })
+      const requestTimeout = 30000; // Set the timeout to 5 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
 
-      if (response.status !== 200) {
-        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-      }
-      xml = await response.text();
-    }
-    if (this.debug_save_xml) {
       try {
-        this.logger.info(`DEBUG: writing ${fn}`);
-        fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
-        fs.writeFileSync(fn, xml);
+        const response = await fetch(page, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Authorization': 'Basic ' + this.cdl.authBasic,
+            'Content-Type': 'text/xml'
+          }
+        })
+
+        clearTimeout(timeoutId); // Clear the timeout as the request was successful
+
+        if (response.status !== 200) {
+          this.logger.error(`Did not get an OK from the server. Code: ${response.status}`);
+          return null;
+        }
+        xml = await response.text();
+
       } catch (error) {
-        this.logger.error(`Error creating or writing the file: ${error}`);
+        this.logger.error(`Error fetching ${page}: ${error}`);
+        return null;
       }
+
+      if (this.debug_save_xml) {
+        try {
+          this.logger.info(`DEBUG: writing ${fn}`);
+          fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
+          fs.writeFileSync(fn, xml);
+        } catch (error) {
+          this.logger.error(`Error creating or writing the file: ${error}`);
+        }
+      }
+      // convert the xml atom feed to json
+      const json = parser.toJson(xml, { object: true, arrayNotation: false });
+      return json;
     }
-    // convert the xml atom feed to json
-    const json = parser.toJson(xml, { object: true, arrayNotation: false });
-    return json;
   }
 
   nextPage(pagination) {
@@ -353,10 +368,12 @@ export class ExpertsClient {
     while (nextPage) {
       const page = await this.getXMLPageAsObj(nextPage, name, count++);
       // add the entries to the results array
-      if (page.feed.entry) {
+      if (page && page.feed && page.feed.entry) {
         results = results.concat(page.feed.entry);
       }
-      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+      if (page && page.feed && page.feed['api:pagination']) {
+        nextPage = this.nextPage(page?.feed?.['api:pagination']);
+      }
     }
     return results;
   }
