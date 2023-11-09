@@ -83,7 +83,7 @@ export class ExpertsClient {
       this.cdl.authBasic = this.cdl.auth;
     }
     // Author options
-    this.author_truncate_to = opt.authorTruncateTo || 0;
+    this.author_truncate_to = opt.authorTruncateTo || 10000;
     this.author_rank = opt.authorRank || false
     this.author_trim_info = opt.authorTrimInfo || false
     // debugging
@@ -91,7 +91,7 @@ export class ExpertsClient {
 
   }
   context() {
-    return JSON.parse(JSON.stringify(ExpertsClient.context[(this.opt.author_rank?'listed':'unlisted')]));
+    return JSON.parse(JSON.stringify(ExpertsClient.context[(this.author_rank?'unlisted':'listed')]));
   }
 
   getUserId(user) {
@@ -231,6 +231,7 @@ export class ExpertsClient {
         }
         bindings = bindings.delete('filename');
       }
+      performance.mark(fn);
       // comunica's initialBindings function doesn't work,
       //so this is a sloppy workaround
       let construct = opt.construct;
@@ -251,9 +252,10 @@ export class ExpertsClient {
       } else {
         doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
       }
-      this.logger.info(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
+      this.logger.info({measure:[fn],quads:quads.length},'record');
+      performance.clearMarks(fn);
     }
 
     const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()],fetch })
@@ -404,7 +406,6 @@ export class ExpertsClient {
     if (query) {
       nextPage += `?${query}`
     }
-    let count = 0;
 
     // Trim extraneous info from authors
     function author_trim_info(author) {
@@ -440,11 +441,20 @@ export class ExpertsClient {
       return work;
     }
 
+    let count = 0;
+
     while (nextPage) {
       let results = [];
       let entries = [];
 
+      performance.mark(`${user}_${count}`);
+      performance.mark(`${user}_${count}_fetch`);
+
       const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),count);
+      performance.mark(`${user}_${count}_post`);
+      this.logger.info({measure:[`${user}_${count}`,`${user}_${count}_fetch`],user:user,page:count},`fetched`);
+      performance.clearMarks(`${user}_${count}_fetch`);
+      // add the entries to the results array
 
       // Bad writing here
       if (this.debug_save_xml) {
@@ -499,6 +509,9 @@ export class ExpertsClient {
         await db.createGraphFromJsonLdFile(jsonld);
       }
       // Fetch the next page
+      this.logger.info({measure:[`${user}_${count}`,`${user}_${count}_post`],user:user,page:count},`posted`);
+      performance.clearMarks(`${user}_${count}_post`);
+      performance.clearMarks(`${user}_${count}`);
       count++
       nextPage = this.nextPage(page?.feed?.['api:pagination']);
     }

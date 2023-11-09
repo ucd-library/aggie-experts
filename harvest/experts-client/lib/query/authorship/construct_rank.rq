@@ -1,10 +1,8 @@
-PREFIX oa: <http://www.w3.org/ns/oa#>
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -18,11 +16,11 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 construct {
   ?authorship a vivo:Authorship, ucdlib:Authorship;
-                ucdlib:favorite ?favorite;
-                ucdlib:is-visible ?visible;
-                vivo:relates ?expert,?work;
-                vivo:rank ?user_rank;
-                .
+              ucdlib:favorite ?favorite;
+              ucdlib:is-visible ?visible;
+              vivo:relates ?expert,?work;
+              vivo:rank ?user_rank;
+              .
 
   # Now the actual work as well
   ?work a ?bibo_type;
@@ -55,16 +53,15 @@ construct {
               vivo:issn ?issn;
               .
 }
-
 WHERE {
-  # These are the work types as defined by CDL
+
   graph cdl: {
     ?RELATIONSHIP__ :type "publication-user-authorship";
-                    :is-visible ?visible_str;
-                    :type ?type;
-                    :related ?pub;
-                    :related ?user;
-                    .
+                  :is-visible ?visible_str;
+                  :type ?type;
+                  :related ?pub;
+                  :related ?user;
+                  .
     OPTIONAL {
 	    ?RELATIONSHIP__ :is-favourite "true".
     	bind(true as ?favorite)
@@ -77,15 +74,118 @@ WHERE {
 
     # This needs to include grants later
     ?pub :category "publication";
-         :type ?oap_type;
-         :last-modified-when ?lastModifiedWhen;
          .
 
+    # Get every field_name by priority
+    {
+      select ?pub ?field_name (min(?score) as ?min_score)
+      WHERE {
+        VALUES (?source ?p) {
+          ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
+          ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
+          ("cinii-english" 12)("repec" 13)("figshare" 14)
+          (	"cinii-japanese" 15)("manual" 16)("dspace" 17) }
+
+        ?pub :records/:record ?record.
+        ?record :source-name  ?source;
+                :native/:field/:name ?field_name;
+                .
+        OPTIONAL {
+          ?record :native/:field/:name "doi".
+          bind(-10 as ?boost)
+        }
+        bind(coalesce(?boost,0)+?p as ?score)
+      }  group by ?pub ?field_name
+    }
+    # Now get the corresponding ?record w/ that low score
+    {
+      select ?pub (min(?source_field) as ?field) ?field_name ?min_score
+      WHERE {
+        VALUES (?source ?p) {
+          ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
+          ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
+          ("cinii-english" 12)("repec" 13)("figshare" 14)
+          (	"cinii-japanese" 15)("manual" 16)("dspace" 17) }
+
+        ?pub :records/:record ?record.
+        ?record :source-name  ?source;
+                :native/:field ?source_field.
+
+        OPTIONAL {
+          ?record :native/:field/:name "doi".
+          bind(-10 as ?boost)
+        }
+        bind(coalesce(?boost,0)+?p as ?min_score)
+      } group by ?pub ?field_name ?min_score
+    }
+
+    # these are the fields to check
+    VALUES(?field_name ?field_predicate) {
+      ("doi" bibo:doi)
+      ("abstract" cite:abstract)
+      #("acceptance-date" cite:issued)
+      #("addresses" cite:)
+      #("altmetric-attention-score" cite:)
+      #("associated-identifiers" cite:)
+      #("author-url" cite:) # Was bib:uri
+      ("authors" cite:EXPANDED) # This gets expanded below
+      #("c-eschol-id" cite:) # Was bibo:identifier, should be a specific esscholarship identifier
+      #("c-uci-id" cite:)
+      #("c-ucsf-id" cite:)
+      #("collections" cite:)
+      #("confidential" cite:)
+      ("doi" cite:DOI)
+      ("edition" cite:edition)
+      #("editors" cite:)
+      ("eissn" cite:eissn)
+      #("embargo-release-date" cite:)
+      ("external-identifiers" cite:)
+      #("field-citation-ratio" cite:)
+      #("filed-date" cite:)
+      #("finish-date" cite:)
+      ("is-open-access" ucdlib:is-open-access)
+      ("isbn-10" cite:ISBN)
+      ("isbn-13" cite:ISBN)
+      ("issn" cite:ISSN)
+      ("issue" cite:issue)
+      ("journal" cite:container-title)
+      ("keywords" cite:keyword)
+      ("language" cite:language)
+      #("location" cite:)
+      ("medium" cite:medium)
+      ("name-of-conference" cite:container-title)
+      ("notes" cite:note)
+      ("number" cite:collection-number)
+      ("oa-location-url" cite:url)
+      ("online-publication-date" cite:available-date) # EXPANDED below
+      ("pagination" cite:page) #EXPANDED below
+      ("parent-title" cite:container-title)
+      #("pii" cite:)
+      ("place-of-publication" cite:publisher-place)
+      ("public-url" cite:url)
+      ("publication-date" cite:issued) # EXPANDED below
+      ("publication-status" cite:status) #EXPANDED below
+      ("publisher" cite:publisher)
+      ("publisher-licence" cite:license)
+      #("publisher-url" cite:)
+      #("record-created-at-source-date" cite:)
+      #("record-made-public-at-source-date" cite:)
+      #("relative-citation-ratio" cite:)
+      #("repository-status" cite:)
+      ("series" cite:collection-number)
+      #("start-date" cite:)
+      ("thesis-type" cite:genre) # Hopefully cite:type set correctly
+      ("title" cite:title)
+      #("types" cite:genre) Handled elsewhere
+      ("volume" cite:volume)
+    }
+
+    # These are the work types as defined by CDL
     VALUES(?oap_type ?cite_include ?bibo_type ?cite_type ?cite_genre) {
-      ("book" true bibo:Book "book" undef)
-      ("chapter" true bibo:Chapter "chapter" undef)
-      ("conference" true vivo:ConferencePaper "paper-conference" undef)
-      ("journal-article" true bibo:AcademicArticle "article-journal" undef)
+      ("book" true bibo:Book "book" "")
+      ("chapter" true bibo:Chapter "chapter" "")
+      ("conference" true vivo:ConferencePaper "paper-conference" "")
+      ("journal-article" true bibo:AcademicArticle "article-journal" "")
       # false
       #("dataset" false ucdlib:Work "dataset" "")
       #("internet-publication" false ucdlib:Work "webpage" "")
@@ -100,73 +200,9 @@ WHERE {
       #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
     }
 
-    ?pub :records/:record ?record.
-    ?record :source-name ?source.
-    VALUES (?source ?p) {
-      ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
-      ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
-      ("cinii-english" 12)("repec" 13)("figshare" 14)
-      (	"cinii-japanese" 15)("manual" 16)("dspace" 17) }
-    OPTIONAL {
-      ?record :native/:field/:name "doi".
-      bind(-10 as ?boost)
-    }
-    bind(coalesce(?boost,0)+?p as ?score)
-
-    # Get every field_name by priority
-    {
-      select ?pub ?field_name ?field_predicate (min(?score) as ?min_score)
-      WHERE {
-        ?pub :records/:record ?record.
-        ?record :native/:field/:name ?field_name.
-        # these are the fields to check
-        VALUES(?field_name ?field_predicate) {
-          ("doi" bibo:doi)
-          ("abstract" cite:abstract)
-          ("authors" cite:EXPANDED) # This gets expanded below
-          ("doi" cite:DOI)
-          ("edition" cite:edition)
-          ("eissn" cite:eissn)
-          ("external-identifiers" cite:)
-          ("is-open-access" ucdlib:is-open-access)
-          ("isbn-10" cite:ISBN)
-          ("isbn-13" cite:ISBN)
-          ("issn" cite:ISSN)
-          ("issue" cite:issue)
-          ("journal" cite:container-title)
-          ("keywords" cite:keyword)
-          ("language" cite:language)
-          #("location" cite:)
-          ("medium" cite:medium)
-          ("name-of-conference" cite:container-title)
-          ("notes" cite:note)
-          ("number" cite:collection-number)
-          ("oa-location-url" cite:url)
-          ("online-publication-date" cite:available-date) # EXPANDED below
-          ("pagination" cite:page) #EXPANDED below
-          ("parent-title" cite:container-title)
-          ("place-of-publication" cite:publisher-place)
-          ("public-url" cite:url)
-          ("publication-date" cite:issued) # EXPANDED below
-          ("publication-status" cite:status) #EXPANDED below
-          ("publisher" cite:publisher)
-          ("publisher-licence" cite:license)
-          ("series" cite:collection-number)
-          ("thesis-type" cite:genre) # Hopefully cite:type set correctly
-          ("title" cite:title)
-          ("volume" cite:volume)
-        }
-      }  group by ?pub ?field_name ?field_predicate
-    }
-    # Now get a corresponding ?field ?record w/ that low score
-    {
-      select ?pub (min(?source_field) as ?field) ?field_name ?min_score
-      WHERE {
-        ?pub :records/:record ?record.
-        ?record :native/:field ?source_field.
-        ?source_field :name ?field_name.
-      } group by ?pub ?field_name ?min_score
-    }
+    ?pub oap:type ?oap_type;
+         :last-modified-when ?lastModifiedWhen;
+         .
 
     OPTIONAL {
       ?field :text ?field_value ;
@@ -174,7 +210,7 @@ WHERE {
     }
     # This is a tricky way to add in some optional extensntion from the field_names above.
     OPTIONAL {
-      VALUES (?status ?vivoStatus) {
+       VALUES (?status ?vivoStatus) {
         ( "Published" bibo:published )
         ( "Published online" bibo:published )
         ( "Accepted" bibo:accepted )
@@ -183,13 +219,15 @@ WHERE {
       filter(?field_name="publication-status")
     }
 
-    #Authors are combined lists of people
+    # Rank is added on ingest
     OPTIONAL {
-      ?field :people/:person [ list:index(?pos ?elem) ] .
-      BIND(?pos AS ?authorRank)
+      ?field :people/:person ?elem .
+
+      ?elem :rank ?rank.
+
       OPTIONAL {
 	      ?elem :links/:link ?user.   # This is the link to the relationship user
-        bind(?pos as ?user_pos)
+        bind(?rank as ?pref_user_rank)
       }
       OPTIONAL {
 		    ?elem :last-name ?authorFamilyName .
@@ -198,17 +236,18 @@ WHERE {
         ?elem :first-names ?authorGivenName .
 	    }
     }
-	  BIND(uri(concat(str(?pub),"#",str(?authorRank))) as ?author)
+	  BIND(uri(concat(str(?pub),"#",str(?rank))) as ?author)
 
     # If ?user_rank not in the preferred source, we need to get it from the other sources
     OPTIONAL {
-      ?pub :records/:record/:native/:field ?any_link.
-      ?any_link :name "authors";
-          	    :people/:person [ list:index(?any_user_pos ?any_elem) ] .
-      ?any_elem :links/:link ?user.
+    ?pub :records/:record/:native/:field ?any_link.
+       ?any_link :name "authors";
+          	:people/:person ?any_elem .
+      ?any_elem :rank ?any_user_rank;
+                :links/:link ?user.
     }
     # Prefer the rank from the priority source, this could have multiple values
-    BIND(coalesce(?user_pos,?any_user_pos) as ?user_rank)
+    BIND(coalesce(?pref_user_rank,?any_user_rank) as ?user_rank)
 
     OPTIONAL {
       ?field :date ?pub_date.

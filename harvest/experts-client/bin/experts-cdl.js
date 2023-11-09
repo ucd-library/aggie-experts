@@ -126,48 +126,56 @@ async function main(opt) {
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
     let dbname
+    logger.info({mark:user},'user ' + user);
     if (fuseki.db==='CAS-XX' || fuseki.db==='CAS') {
       dbname = user+(fuseki.db==='CAS-XX'?'-'+nanoid(2):'');
       db = await fuseki.createDb(dbname);
-      logger.info({measure:['start']},`Dataset '${dbname}' created successfully.`);
+      logger.info({measure:[user],user},`fuseki.createDb(${dbname})`);
     }
 
     if (opt.fetch) {
-      logger.info('starting getCDLprofile ' + user);
-
       await ec.getPostUser(db,user)
+      logger.info({measure:[user],user},`getPostUser`);
 
       // Step 3: Get User Relationships from CDL
       // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
       await ec.getPostUserRelationships(db,user,'detail=full');
+      logger.info({measure:[user],user},`getPostUserRelationships`);
 
       // Step 3a: Get User Grants from CDL (qa-oapolicy only)
-      // await temp_get_qa_grants(ec,db,user);
+      await temp_get_qa_grants(ec,db,user);
+      logger.info({measure:[user],user},`temp_get_qa_grant`);
     }
 
     if (opt.splay) {
+      logger.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
         { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
       );
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
-
       await ec.insert({ ...iam, bindings, db });
+      logger.info({measure:['splay'],user},`insert`);
 
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        logger.info({mark:n},`splaying ${n} for ${user}`);
+        logger.info({mark:n,user},`splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
           return await ec.splay({ ...splay,bindings, db,output:opt.output });
         })(n);
-        logger.info({measure:n},`splayed ${n} for ${user}`);
+        logger.info({measure:[n]},user,`splayed ${n}`);
+        performance.clearMarks(n);
       };
+      logger.info({measure:['splay',user],user},`splayed`);
+      performance.clearMarks('splay');
     }
     // Any other value don't delete
     if (fuseki.delete === true ) {
       const dropped = await fuseki.dropDb(db);
     }
+    logger.info({measure:[user],user},`completed`);
+    performance.clearMarks(user);
   }
 }
 

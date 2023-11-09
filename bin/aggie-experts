@@ -518,12 +518,12 @@ function setup() {
   local env=$(G .env )
 
   function env_file() {
-    local org="$(G .org // .envs.${G[env]}.org)"
-    local tag="$(G .tag // .envs.${G[env]}.tag)"
-    local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
-    local env=${G[env]}
+    local env org tag gcs
+    read env org tag gcs <<<$(G "[.env,.org // .envs.${G[env]}.org,
+                                      .tag // .envs.${G[env]}.tag,
+                                      .gcs // .envs.${G[env]}.gcs]|@tsv")
 
-    [[ "${G[env]}" == "clean" ]] && env='dev'
+    [[ "$env" == "clean" ]] && env='dev'
 
     local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:${env}" | jq -r '.[0].name'))
 
@@ -543,55 +543,44 @@ function setup() {
   }
 
   function compose() {
-    local env=$(G .env)
-    local keycloak=$(G .keycloak)
-    local tmpl=$(G .template.${G[template]})
-
-    local org=$(G .org // .envs.${G[env]}.org)
-    local tag=$(G .tag // .envs.${G[env]}.tag)
-    local mount=$(G .mount // .envs.${G[env]}.mount)
-    local gcs="$(G .gcs // .envs.${G[env]}.gcs)"
-
+    local keycloak=
+    local env tmpl org tag mount gcs
+    read env tmpl org tag mount gcs <<<$(G "[.env,
+                                            .template.${G[template]},
+                                            .org // .envs.${G[env]}.org,
+                                            .tag // .envs.${G[env]}.tag,
+                                            .mount // .envs.${G[env]}.mount,
+                                            .gcs // .envs.${G[env]}.gcs] | @tsv")
+    local yq='.'
 
     if [[ "$env" = "dev" ]]; then
-      cat $tmpl |
-        if [[ -z ${G[include_fuseki]} ]]; then
-          yq 'del(.services.fuseki)'
-        else
-          cat
-        fi |
-        if [[ "$keycloak" != "local" ]]; then
-          yq 'del(.services.keycloak)'
-        else
-          cat
-        fi |
-        if [[ -z "$gcs" ]]; then
-          yq 'del(.services.gcs)'
-        else
-          cat
-        fi |
-        if [[ "$mount" =~ "models" ]]; then
-          cat
-        else
-          yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
-          yq 'del(.. | select(anchor=="DEV_MOUNT_MODELS_API" or alias=="DEV_MOUNT_MODELS_API"))'
-        fi |
-        if [[ "$mount" =~ "init-fcrepo" ]]; then
-          cat
-        else
-          yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
-        fi |
-        if [[ "$mount" =~ "spa" ]]; then
-          cat
-        else
-          yq 'del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
-        fi |
-        yq 'del(.. | select(anchor=="DEV_MOUNT_ACTIVEMQ" or alias=="DEV_MOUNT_ACTIVEMQ"))' |
-        yq 'del(.. | select(anchor=="DEV_MOUNT_FCREPO_PROPERTIES" or alias=="DEV_MOUNT_FCREPO_PROPERTIES"))' |
-        yq 'del(.. | select(anchor=="DEV_MOUNT_ROOT_AUTH" or alias=="DEV_MOUNT_ROOT_AUTH"))' |
-        yq 'del(.. | select(anchor=="DEV_MOUNT_INIT_POSTGRES" or alias=="DEV_MOUNT_INIT_POSTGRES"))'
+      if [[ -z ${G[include_fuseki]} ]]; then
+          yq+='| del(.services.fuseki) | del(.volumes.fuseki-data)'
+      fi
+      if [[ "$keycloak" != "local" ]]; then
+        yq+='| del(.services.keycloak)'
+      fi
+      if [[ -z "$gcs" ]]; then
+        yq+='| del(.services.gcs)'
+      fi
+      if [[ ! "$mount" =~ "models" ]]; then
+        yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
+        yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS_API" or alias=="DEV_MOUNT_MODELS_API"))'
+      fi
+      if [[ ! "$mount" =~ "init-fcrepo" ]]; then
+        yq+='| del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
+      fi
+      if [[ ! "$mount" =~ "spa" ]]; then
+        yq+='| del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
+      fi
+    # These are potential others
     else
-      cat $tmpl | yq 'del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))' | yq 'del(.services.keycloak)'
+      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*")) | del(.services.keycloak)'
+    fi
+    if [[ -n $N ]]; then
+      echo "yq '${yq}' $tmpl"
+    else
+      yq "${yq}" $tmpl
     fi
   }
   function setup_files() {

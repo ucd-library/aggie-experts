@@ -49,6 +49,12 @@
       "bind@" : "authorship/bind.rq"
     },
     {
+      "@id":"authorship-rank",
+      "@type":"SplayQuery",
+      "construct@" : "authorship/construct_rank.rq",
+      "bind@" : "authorship/bind.rq"
+    },
+    {
       "@id":"grant_role",
       "@type":"SplayQuery",
       "construct@" : "grant_role/construct.rq",
