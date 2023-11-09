@@ -32,6 +32,7 @@ import readablePromiseQueue from './readablePromiseQueue.js';
 export class ExpertsClient {
 
   static context = {
+    listed: {
     "@context": {
       "@base": "http://oapolicy.universityofcalifornia.edu/",
       "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
@@ -45,7 +46,22 @@ export class ExpertsClient {
       "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
     },
-    "@id":'http://oapolicy.universityofcalifornia.edu/'
+      "@id":'http://oapolicy.universityofcalifornia.edu/'
+    },
+    unlisted: {
+    "@context": {
+      "@base": "http://oapolicy.universityofcalifornia.edu/",
+      "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "id": { "@type": "@id", "@id": "@id" },
+      "field-name": "api:field-name",
+      "field-number": "api:field-number",
+      "$t": "api:field-value",
+      "api:web-address": { "@container": "@list" }
+    },
+      "@id":'http://oapolicy.universityofcalifornia.edu/'
+    }
   };
 
   /**
@@ -55,8 +71,6 @@ export class ExpertsClient {
   constructor(opt) {
     this.opt = opt;
     this.logger = opt.logger || logger;
-    this.debugSaveXml = opt.debugSaveXml || false
-    this.db=opt.db;
     this.experts = [];
     this.debugRelationshipDir = opt.debugRelationshipDir || 'relationships';
     // Store crosswalk of user=>CDL ID
@@ -68,6 +82,16 @@ export class ExpertsClient {
     } else {
       this.cdl.authBasic = this.cdl.auth;
     }
+    // Author options
+    this.author_truncate_to = opt.authorTruncateTo || 0;
+    this.author_rank = opt.authorRank || false
+    this.author_trim_info = opt.authorTrimInfo || false
+    // debugging
+    this.debug_save_xml = opt.debugSaveXml || false
+
+  }
+  context() {
+    return JSON.parse(JSON.stringify(ExpertsClient.context[(this.opt.author_rank?'listed':'unlisted')]));
   }
 
   getUserId(user) {
@@ -267,7 +291,7 @@ export class ExpertsClient {
     const fn = path.join(dir,'page_'+ count.toString().padStart(3, '0') + '.xml');
     let xml;
 
-    if (this.debugSaveXml) {
+    if (this.debug_save_xml) {
       if (fs.existsSync(fn)) {
         this.logger.info(`DEBUG: Reading saved: ${fn}`);
         xml=fs.readFileSync(fn);
@@ -288,7 +312,7 @@ export class ExpertsClient {
       }
       xml = await response.text();
     }
-    if (this.debugSaveXml) {
+    if (this.debug_save_xml) {
       try {
         this.logger.info(`DEBUG: writing ${fn}`);
         fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
@@ -357,7 +381,7 @@ export class ExpertsClient {
     this.userId[user]=entries[0]["api:object"].id;
 
     // Create the JSON-LD for the user profile
-    let contextObj = ExpertsClient.context;
+    let contextObj = this.context();
     contextObj["@graph"] = entries;
 
     const jsonld = JSON.stringify(contextObj);
@@ -382,27 +406,32 @@ export class ExpertsClient {
     }
     let count = 0;
 
-    function truncate(work,logger) {
-      //console.log(JSON.stringify(work,null,2));
+    // Trim extraneous info from authors
+    function author_trim_info(author) {
+      delete(author['api:addresses']);
+    }
+
+    // modify author information
+    function update_author(me,work) {
+      const max_authors=me.author_truncate_to;
       let records=work?.['api:object']?.['api:records']?.['api:record'] || [];
       Array.isArray(records) || (records=[records]);
       records.forEach((record) => {
-        logger.info(`record: ${record.id}`);
+        // logger.info(`record: ${record.id}`);
         let fields=record?.['api:native']?.['api:field'] || [];
         Array.isArray(fields) || (fields=[fields]);
         fields.forEach((field) => {
           if (field.name === 'authors') {
             let authors=field?.['api:people']?.['api:person'] || [];
             Array.isArray(authors) || (authors=[authors]);
-            const max_authors=1;
             for(let i=0;i<(authors.length<max_authors?authors.length:max_authors);i++) {
-              delete(authors[i]['api:addresses']);
-              authors[i].rank=i+1;
+              if (me.author_trim_info) { author_trim_info(authors[i]); }
+              if (me.author_rank) { authors[i].rank=i+1; }
             }
             if (authors.length>1) {
-              authors[authors.length-1].rank=authors.length+1;
-              authors[authors.length-1].credit='last author';
-              delete(authors[authors.length-1]['api:addresses']);
+              if (me.author_rank) { authors[authors.length-1].rank=authors.length+1 };
+              //authors[authors.length-1].credit='last author';
+              if (me.author_trim_info) { author_trim_info(authors[authors.length-1]); }
             }
             authors.splice(max_authors,authors.length-max_authors-1);
           }
@@ -418,7 +447,7 @@ export class ExpertsClient {
       const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),count);
 
       // Bad writing here
-      {
+      if (this.debug_save_xml) {
         const dir = path.join(user,this.debugRelationshipDir);
         const fn = path.join(dir,'page_'+ count.toString().padStart(3, '0') + '.json');
         try {
@@ -435,8 +464,8 @@ export class ExpertsClient {
         for (let work of entries) {
           let related = [];
           if (work['api:relationship']?.['api:related']) {
-            if (this.truncate_works || true) {
-              related.push(truncate(work['api:relationship']['api:related'],this.logger))
+            if (this.author_truncate_to || this.author_rank || this.author_trim_info) {
+              related.push(update_author(this,work['api:relationship']['api:related']))
             } else {
               related.push(work['api:relationship']['api:related'])
             }
@@ -448,14 +477,13 @@ export class ExpertsClient {
         }
         // Create the JSON-LD for the user relationships
         // save a text version of the context object
-        let contextObj = ExpertsClient.context;
-
+        let contextObj = this.context();
         contextObj["@graph"] = results;
 
         let jsonld = JSON.stringify(contextObj,null,2);
 
         // Bad writing here
-        {
+        if (this.debug_save_xml) {
           const dir = path.join(user,this.debugRelationshipDir);
           const fn = path.join(dir,'jsonld_'+ count.toString().padStart(3, '0') + '.json');
           try {

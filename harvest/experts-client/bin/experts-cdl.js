@@ -187,9 +187,9 @@ program.name('cdl-profile')
   .option('--cdl.affected <affected>', 'affected since')
   .option('--cdl.modified <modified>', 'modified since')
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
-  .option('--truncate-authors <max>', 'Truncate authors to max', null)
-  .option('--rank-authors', 'Add rank to authors, remove list context', false)
-  .option('--trim-authors', 'Remove extraneous author info', false)
+  .option('--author-truncate-to <max>', 'Truncate authors to max', null)
+  .option('--author-rank', 'Add rank to authors, remove list context', false)
+  .option('--author-trim-info', 'Remove extraneous author info', false)
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
@@ -239,5 +239,5 @@ else if (opt.environment === 'production') {
   opt.cdl.authname = 'oapolicy';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
-
+logger.info({opt}, 'options');
 await main(opt);
