@@ -1,6 +1,9 @@
 <html>
   <head>
-    <title>UC Davis - Researcher Profiles</title>
+    <title>UC Davis - Aggie Experts</title>
+
+    <script src="https://brand.library.ucdavis.edu/ui/loader.js"></script>
+
     <style>
       body, html {
         font-family      : proxima-nova,"Lucida Grande","Lucida Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -10,120 +13,175 @@
         margin           : 0;
         padding          : 0;
         max-width        : 100vw;
-    }
-      #masthead {
-        color: #fff;
-        display: flex;
-        align-items: center;
-        background-size: 100%;
-        width: 100%;
-        height: 50px;
-        background-image: url('/images/rainbow-bar.png');
       }
-      .container {
-        width: calc(100% - 30px);
-        margin-left: 15px;
-        margin-right: 15px;
-      }
-      #app-header-content {
-        background-color: #fff;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      #nav-left {
-        display: flex;
-        align-items: center;
-      }
+
       h1 {
-        color: #022851;
-        font-size: 22px;
-        font-weight: 700;
+        color: #FFBF00;
+        text-align: center;
+        font-size: 3.1475rem;
+        font-style: normal;
+        font-weight: 800;
+        line-height: 3.1475rem;
       }
-      h1 small {
-        color: #6884A3;
+
+      h3 {
+        color: #FFF;
+        text-align: center;
+        font-size: 2.49375rem;
+        font-style: normal;
         font-weight: 400;
-        font-size: 22px;
-        font-style: italic;
+        line-height: 2.9925rem;
       }
+
       #hero {
-        min-height: calc(100vh - 130px);
+        min-height: calc(100vh - 40.75px);
         background-color: #E5E5E5;
-        background-image: url('/images/login.jpg');
+        background-image: url('/images/ae-watercolor-feature-solid.jpg');
         width: 100%;
         background-position: center;
         background-repeat: no-repeat;
         background-size: cover;
         padding-top: 20px;
       }
-      .film {
-        padding: 30px;
-        background-color: rgba(255, 255, 255, 0.8);
-        max-width: 490px;
-      }
-      .text-top {
-        margin-bottom: 20px;
-      }
-      .login {
-        margin-top: 24px;
-        background-color: #022851;
-        color: fff;
-        font-weight: 700;
-        text-decoration: none;
-        display: inline-block;
-        padding: 8px 18px;
+
+      .header__bar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-height: 40.75px;
+        background-color: rgb(216, 216, 216);
       }
 
-      @media (min-width: 600px) {
-        #hero {
-          min-height: calc(100vh - 160px);
-        }
-        #hero {
-          padding-top: 50px;
-        }
-        .film {
-          padding: 50px;
-        }
-        .container {
-          margin-right: auto;
-          margin-left: auto;
-          max-width: 580px; } }
+      .header__university {
+        display: flex;
+        align-items: center;
+        height: 40.75px;
+        padding-right: 15.28px;
+        background-color: rgb(229, 229, 229);
+      }
+
+      .header__university::before {
+        width: 15.28px;
+        height: 40.75px;
+        margin-right: 15.28px;
+        margin-left: -15.28px;
+        background-color: rgb(229, 229, 229);
+        clip-path: polygon(93% 0px, 110% 0px, 110% 102%, 0% 102%);
+        content: "";
+      }
+
+      .header__university a {
+        display: flex;
+        margin-left: 10.18px;
+      }
+
+      .mobile-bar {
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        min-height: 3.25rem;
+        background-color: rgb(2, 40, 81);
+      }
+
+      .mobile-bar__university {
+        margin-right: 1rem;
+        margin-left: auto;
+        line-height: 1;
+      }
+
+      .mobile-bar .ucd-logo {
+        width: auto;
+        height: 1.25rem;
+      }
+
+      .row {
+        display: flex;
+        justify-content: center;
+        padding-bottom: 2.38rem;
+      }
+
+      .row-min {
+        padding-bottom: 1.19rem;
+      }
+
+      .container {
+        max-width: 60%;
+      }
+
+      #hero {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
       @media (min-width: 992px) {
+        .header .ucd-logo {
+            height: 15.28px;
+        }
+        .mobile-bar {
+          display: none;
+        }
+      }
+
+      @media (max-width: 991px) {
+        .header__bar {
+          display: none;
+        }
+
+        h1 {
+          font-size: 1.91rem;
+        }
+
+        h3 {
+          font-size: 1.605rem;
+        }
+
+        .row {
+          padding-bottom: 2rem;
+        }
+
+        .row-min {
+          padding-bottom: 0.5rem;
+        }
+
         .container {
-          margin-right: auto;
-          margin-left: auto;
-          max-width: 970px; } }
+          max-width: 90%;
+        }
+      }
+
     </style>
   </head>
   <body>
-    <div id="masthead">
-        <div class="container"><a href="https://ucdavis.edu">
-          <img class="logo" alt="Logo" src="/images/logo-ucd.svg"></a>
-        </div>
+    <div class="mobile-bar">
+      <div class="mobile-bar__university">
+        <a href="https://www.ucdavis.edu/" aria-label="UC Davis main website link">
+          <img class="ucd-logo" alt="UC Davis main website link" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%2216.157%22%3E%3Cpath%20fill%3D%22%23FFBF00%22%20d%3D%22M58.865%204.877c.101.661%201.101%205.405%201.101%205.405h-2.194l1.093-5.405zm-8.328%2011.03h5.806l.438-1.947h4.144l.554%201.947h5.806L61.846.403h-6.087l-5.222%2015.504zM36.284.402h5.624c5.107%200%209.007%202.277%209.007%207.974%200%204.591-3.18%207.529-7.645%207.529l-6.986-.009V.402zm5.524%2011.052h.376c1.843%200%203.207-1.072%203.207-3.096%200-2.179-1.21-3.395-3.234-3.395h-.349v6.491zM32.941.888l.296%202.545c.071.604.426%202.052-.011%201.858-.276-.121-.502-.776-.726-1.36-.114-.295-.658-1.695-.801-1.799-.685-.501-2.401-1.064-3.561-1.069-3.521-.013-5.847%202.509-5.847%206.982%200%203.208%201.582%207.061%205.607%207.061%201.441%200%204.201-.443%204.952-2.436.339-.9.65-1.703.876-1.459.166.177-.05.899-.15%201.289-.474%201.847-.501%202.406-.65%202.479-1.818.885-4.15%201.178-6.191%201.178-6.485%200-8.726-3.678-8.726-7.354%200-6.379%204.032-9.021%2010.286-8.791%201.58.058%203.163.334%204.646.876M13.784%201.171L12.745.819c-.35-.306.075-.391.075-.391s1.5.271%205.24-.036c0%200%20.328.062.103.319l-1.228.511c-.798.338-.798.143-.798.994l-.007%207.902c0%206.178-6.47%206.039-7.73%206.039-.6%200-6.488%200-6.488-4.961V2.834c0-1.46.159-1.419-.338-1.591L.071.695S-.183.347.269.368c1.227.06%203.004.316%207.133.024%200%200%20.362.085.125.342l-1.201.339c-.95.414-.825.098-.849%201.045l.028%208.248c0%202.021%201.07%204.524%204.395%204.524%204.585%200%204.627-3.854%204.627-4.71l.009-8.167c.049-.77-.052-.551-.752-.842M87.65%2014.715l1.6-4.111.281.23c.982.781%202.316%201.443%203.574%201.471%201.127.023%201.676-.268%201.527-1.191-.113-.693-.916-.812-1.417-.91l-1.103-.213c-2.143-.39-3.941-1.673-3.941-4.104%200-3.677%203.262-5.737%206.544-5.737%201.726%200%203.306.424%204.786%201.36L98.11%205.156c-.762-.533-1.918-1.285-3.377-1.337-.482-.018-1.58.229-1.229%201.312.152.462.833.657%201.252.755l1.241.292c2.325.526%204.003%201.81%204.003%204.432%200%203.699-3.281%205.529-6.542%205.529-1.901%200-4.106-.527-5.808-1.424M80.979.403h5.492v15.504h-5.492zM74.684.402h5.72l-5.843%2015.503h-4.644L64.09.402h5.704l2.442%209.354z%22%2F%3E%3C%2Fsvg%3E">
+        </a>
+      </div>
+    </div>
+    <div class="header__bar">
+      <div class="header__university">
+        <a href="https://www.ucdavis.edu/" aria-label="UC Davis main website link">
+          <img class="ucd-logo" alt="UC Davis main website link" style="height: 0.95rem;" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%2216.157%22%3E%3Cpath%20fill%3D%22%23022851%22%20d%3D%22M58.865%204.877c.101.661%201.101%205.405%201.101%205.405h-2.194l1.093-5.405zm-8.328%2011.03h5.806l.438-1.947h4.144l.554%201.947h5.806L61.846.403h-6.087l-5.222%2015.504zM36.284.402h5.624c5.107%200%209.007%202.277%209.007%207.974%200%204.591-3.18%207.529-7.645%207.529l-6.986-.009V.402zm5.524%2011.052h.376c1.843%200%203.207-1.072%203.207-3.096%200-2.179-1.21-3.395-3.234-3.395h-.349v6.491zM32.941.888l.296%202.545c.071.604.426%202.052-.011%201.858-.276-.121-.502-.776-.726-1.36-.114-.295-.658-1.695-.801-1.799-.685-.501-2.401-1.064-3.561-1.069-3.521-.013-5.847%202.509-5.847%206.982%200%203.208%201.582%207.061%205.607%207.061%201.441%200%204.201-.443%204.952-2.436.339-.9.65-1.703.876-1.459.166.177-.05.899-.15%201.289-.474%201.847-.501%202.406-.65%202.479-1.818.885-4.15%201.178-6.191%201.178-6.485%200-8.726-3.678-8.726-7.354%200-6.379%204.032-9.021%2010.286-8.791%201.58.058%203.163.334%204.646.876M13.784%201.171L12.745.819c-.35-.306.075-.391.075-.391s1.5.271%205.24-.036c0%200%20.328.062.103.319l-1.228.511c-.798.338-.798.143-.798.994l-.007%207.902c0%206.178-6.47%206.039-7.73%206.039-.6%200-6.488%200-6.488-4.961V2.834c0-1.46.159-1.419-.338-1.591L.071.695S-.183.347.269.368c1.227.06%203.004.316%207.133.024%200%200%20.362.085.125.342l-1.201.339c-.95.414-.825.098-.849%201.045l.028%208.248c0%202.021%201.07%204.524%204.395%204.524%204.585%200%204.627-3.854%204.627-4.71l.009-8.167c.049-.77-.052-.551-.752-.842M87.65%2014.715l1.6-4.111.281.23c.982.781%202.316%201.443%203.574%201.471%201.127.023%201.676-.268%201.527-1.191-.113-.693-.916-.812-1.417-.91l-1.103-.213c-2.143-.39-3.941-1.673-3.941-4.104%200-3.677%203.262-5.737%206.544-5.737%201.726%200%203.306.424%204.786%201.36L98.11%205.156c-.762-.533-1.918-1.285-3.377-1.337-.482-.018-1.58.229-1.229%201.312.152.462.833.657%201.252.755l1.241.292c2.325.526%204.003%201.81%204.003%204.432%200%203.699-3.281%205.529-6.542%205.529-1.901%200-4.106-.527-5.808-1.424M80.979.403h5.492v15.504h-5.492zM74.684.402h5.72l-5.843%2015.503h-4.644L64.09.402h5.704l2.442%209.354z%22%2F%3E%3C%2Fsvg%3E">
+        </a>
+      </div>
     </div>
 
-    <div id="app-header-content" class="container flex app-header-content">
-      <h1>Research Registry <small>Prototype</small></h1>
-      <div></div>
-    </div>
     <div id="hero">
       <div class="container">
-        <div class="film">
-          <div class="text-top">
-            The <strong>UC Davis Research Registry</strong> is a research-focused discovery tool that enables collaboration among scholars of all disciplines.
-          </div>
-          <div>
-            To access the registry, login using your UC Davis credentials
-          </div>
-          <a class="login" href="/auth/login">Log in with UC Davis CAS</a>
+        <div class="row">
+          <div style="width: 200px; height: 200px; background-color: white; display: flex; align-items: center; justify-content: center;">TODO logo</div>
+        </div>
+        <div class="row row-min">
+          <h1>Aggie Experts</h1>
+        </div>
+        <div class="row">
+          <h3>Discover research and collaborate with experts across all disciplines at UC Davis</h3>
+        </div>
+        <div class="row" style="padding-bottom: 0;">
+          <a class="btn btn--primary btn--lg login" href="/auth/login">Sign In (UC Davis CAS)</a>
         </div>
       </div>
-
-
     </div>
-
-
   </body>
 </html>

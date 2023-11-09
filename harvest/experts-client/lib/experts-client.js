@@ -16,6 +16,10 @@ import { nanoid } from 'nanoid';
 import path from 'path';
 import parser from 'xml2json';
 import { count } from 'console';
+// We currently match the fin logger, but don't use the config yet
+//const { logger } = require('@ucd-lib/fin-service-utils');
+import { logger } from './logger.js';
+
 
 const jp = new JsonLdProcessor();
 
@@ -27,14 +31,74 @@ import readablePromiseQueue from './readablePromiseQueue.js';
 */
 export class ExpertsClient {
 
+  static context = {
+    listed: {
+      "@context": {
+        "@base": "http://oapolicy.universityofcalifornia.edu/",
+        "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
+        "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
+        "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+        "id": { "@type": "@id", "@id": "@id" },
+        "field-name": "api:field-name",
+        "field-number": "api:field-number",
+        "$t": "api:field-value",
+        "api:person": { "@container": "@list" },
+        "api:first-names-X": { "@container": "@list" },
+        "api:web-address": { "@container": "@list" }
+      },
+      "@id": 'http://oapolicy.universityofcalifornia.edu/'
+    },
+    unlisted: {
+      "@context": {
+        "@base": "http://oapolicy.universityofcalifornia.edu/",
+        "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
+        "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
+        "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+        "id": { "@type": "@id", "@id": "@id" },
+        "field-name": "api:field-name",
+        "field-number": "api:field-number",
+        "$t": "api:field-value",
+        "api:web-address": { "@container": "@list" }
+      },
+      "@id": 'http://oapolicy.universityofcalifornia.edu/'
+    }
+  };
+
   /**
   * @constructor
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
-    //    console.log('ExpertsClient constructor');
     this.opt = opt;
+    this.logger = opt.logger || logger;
     this.experts = [];
+    this.debugRelationshipDir = opt.debugRelationshipDir || 'relationships';
+    // Store crosswalk of user=>CDL ID
+    this.userId = {};
+
+    this.cdl = opt.cdl || {};
+    if (this.cdl?.auth.match(':')) {
+      this.cdl.authBasic = Buffer.from(this.cdl.auth).toString('base64');
+    } else {
+      this.cdl.authBasic = this.cdl.auth;
+    }
+    // Author options
+    this.author_truncate_to = opt.authorTruncateTo || 0;
+    this.author_rank = opt.authorRank || false
+    this.author_trim_info = opt.authorTrimInfo || false
+    // debugging
+    this.debug_save_xml = opt.debugSaveXml || false
+
+  }
+  context() {
+    return JSON.parse(JSON.stringify(ExpertsClient.context[(this.opt.author_rank ? 'listed' : 'unlisted')]));
+  }
+
+  getUserId(user) {
+    if (this.userId[user]) {
+      return this.userId[user];
+    }
+    throw new Error(`User ${user} not found in crosswalk`);
   }
 
   async getIAMProfiles(opt, scope) {
@@ -71,15 +135,6 @@ export class ExpertsClient {
     }
     return
   }
-
-  /** jsonld-ify an JSON object */
-  async createJsonLd(input, context, graphId) {
-
-    context["@id"] = graphId;
-    context["@graph"] = input;
-    return context;
-  }
-
 
   static str_or_file(opt, param, required) {
     if (opt[param]) {
@@ -133,7 +188,7 @@ export class ExpertsClient {
     const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()] })
 
     const queue = new readablePromiseQueue(bindingStream, insertBoundConstruct,
-      { name: 'insert', max_promises: 10 });
+      { name: 'insert', max_promises: 10, logger: this.logger });
     return queue.execute({ via: 'start' });
   }
 
@@ -196,14 +251,14 @@ export class ExpertsClient {
       } else {
         doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
       }
-      console.log(`writing ${fn} with ${quads.length} quads`);
+      this.logger.info(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
     }
 
     const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()], fetch })
     const queue = new readablePromiseQueue(bindingStream, constructRecord,
-      { name: 'splay', max_promises: 5 });
+      { name: 'splay', max_promises: 5, logger: this.logger });
     return queue.execute({ via: 'start' });
 
   }
@@ -225,173 +280,228 @@ export class ExpertsClient {
   }
 
   /**
- * @description Generic function to get all the entries from a CDL collection
- * @param {
-  * } opt
-  * @returns
-  *
-  */
-  async getCDLentries(opt, query) {
-    const cdl = opt.cdl;
-    var lastPage = false
-    var results = [];
-    var nextPage = path.join(cdl.url, query)
-    var count = 0;
+   * @description Fetch one XML page, save if debugging
+   * @param {
+   * } opt
+   * @returns XML
+   *
+   */
+  async getXMLPageAsObj(page, name = 'query', count = 0) {
+    const dir = path.join('.', name);
+    const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
+    let xml;
 
-    if (cdl.auth.match(':')) {
-      cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
-    } else {
-      cdl.authBasic = cdl.auth;
+    if (this.debug_save_xml) {
+      if (fs.existsSync(fn)) {
+        this.logger.info(`DEBUG: Reading saved: ${fn}`);
+        xml = fs.readFileSync(fn);
+      }
     }
-
-    while (nextPage) {
-      console.log(`getting ${nextPage}`);
-      const response = await fetch(nextPage, {
+    // If not saved, or not found, then fetch
+    if (!xml) {
+      const response = await fetch(page, {
         method: 'GET',
         headers: {
-          'Authorization': 'Basic ' + cdl.authBasic,
+          'Authorization': 'Basic ' + this.cdl.authBasic,
           'Content-Type': 'text/xml'
         }
       })
 
       if (response.status !== 200) {
         throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-        break;
       }
-      else if (response.status === 200) {
-
-        const xml = await response.text();
-        count++;
-        // convert the xml atom feed to json
-        const json = parser.toJson(xml, { object: true, arrayNotation: false });
-
-        // add the entries to the results array
-        if (json.feed.entry) {
-          results = results.concat(json.feed.entry);
-        }
-
-        // inspect the pagination to see if there are more pages
-        const pagination = json.feed['api:pagination'];
-
-        // Fetch the next page
-        nextPage = null;
-
-        if (pagination["api:page"] instanceof Array) {
-          for (let link of pagination["api:page"]) {
-            if (link.position === 'next') {
-              nextPage = link.href;
-            }
-          }
-        }
+      xml = await response.text();
+    }
+    if (this.debug_save_xml) {
+      try {
+        this.logger.info(`DEBUG: writing ${fn}`);
+        fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
+        fs.writeFileSync(fn, xml);
+      } catch (error) {
+        this.logger.error(`Error creating or writing the file: ${error}`);
       }
     }
-
-    return results;
+    // convert the xml atom feed to json
+    const json = parser.toJson(xml, { object: true, arrayNotation: false });
+    return json;
   }
 
+  nextPage(pagination) {
+    let pages = pagination["api:page"];
+    Array.isArray(pages) || (pages = [pages]);
+    for (let link of pages) {
+      if (link.position === 'next') {
+        return link.href;
+      }
+    }
+    return null;
+  }
 
   /**
- * @description Generic function to get all the entries from a CDL collection and post them to a fuseki database
+ * @description Generic function to get all the entries from a CDL collection
  * @param {
   * } opt
   * @returns
   *
   */
-  async getPostCDLentries(opt, query, cdlId, context, logger) {
-    const cdl = opt.cdl;
-    const db = opt.db;
+  async getCDLentries(query, name = 'query') {
     var lastPage = false
-    var results, entries = [];
-    var nextPage = `${cdl.url}/${query}`
+    var results = [];
+    var nextPage = path.join(this.cdl.url, query)
     var count = 0;
 
-    if (cdl.auth.match(':')) {
-      cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
-    } else {
-      cdl.authBasic = cdl.auth;
+    while (nextPage) {
+      const page = await this.getXMLPageAsObj(nextPage, name, count++);
+      // add the entries to the results array
+      if (page.feed.entry) {
+        results = results.concat(page.feed.entry);
+      }
+      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+    }
+    return results;
+  }
+
+
+  /**
+   * @description Get user from CDL and post to a fuseki database
+   * @param {
+   * } opt
+   * @returns
+   *
+   */
+  async getPostUser(db, user, query = 'detail=full') {
+    // Get a full profile for the user
+    let page = `users?username=${user}@ucdavis.edu`
+    if (query) {
+      page += `&${query}`
+    }
+
+    const entries = await this.getCDLentries(page, user);
+
+    this.userId[user] = entries[0]["api:object"].id;
+
+    // Create the JSON-LD for the user profile
+    let contextObj = this.context();
+    contextObj["@graph"] = entries;
+
+    const jsonld = JSON.stringify(contextObj);
+    await db.createGraphFromJsonLdFile(jsonld);
+
+    this.logger.info(`graph ${user} added`);
+  }
+
+  /**
+ * @description Get relationships from CDL and post them to a fuseki database
+ * @param {
+  * } opt
+  * @returns
+  *
+  */
+  async getPostUserRelationships(db, user, query = 'detail=full') {
+    let lastPage = false
+    const cdlId = this.getUserId(user);
+    let nextPage = `${this.cdl.url}/users/${cdlId}/relationships`
+    if (query) {
+      nextPage += `?${query}`
+    }
+    let count = 0;
+
+    // Trim extraneous info from authors
+    function author_trim_info(author) {
+      delete (author['api:addresses']);
+    }
+
+    // modify author information
+    function update_author(me, work) {
+      const max_authors = me.author_truncate_to;
+      let records = work?.['api:object']?.['api:records']?.['api:record'] || [];
+      Array.isArray(records) || (records = [records]);
+      records.forEach((record) => {
+        // logger.info(`record: ${record.id}`);
+        let fields = record?.['api:native']?.['api:field'] || [];
+        Array.isArray(fields) || (fields = [fields]);
+        fields.forEach((field) => {
+          if (field.name === 'authors') {
+            let authors = field?.['api:people']?.['api:person'] || [];
+            Array.isArray(authors) || (authors = [authors]);
+            for (let i = 0; i < (authors.length < max_authors ? authors.length : max_authors); i++) {
+              if (me.author_trim_info) { author_trim_info(authors[i]); }
+              if (me.author_rank) { authors[i].rank = i + 1; }
+            }
+            if (authors.length > 1) {
+              if (me.author_rank) { authors[authors.length - 1].rank = authors.length + 1 };
+              //authors[authors.length-1].credit='last author';
+              if (me.author_trim_info) { author_trim_info(authors[authors.length - 1]); }
+            }
+            authors.splice(max_authors, authors.length - max_authors - 1);
+          }
+        });
+      });
+      return work;
     }
 
     while (nextPage) {
-      results = [];
-      entries = [];
+      let results = [];
+      let entries = [];
 
-      console.log(`getting ${nextPage}`);
-      try {
-        const response = await fetch(nextPage, {
-          timeout: 12000,
-          method: 'GET',
-          headers: {
-            'Authorization': 'Basic ' + cdl.authBasic,
-            'Content-Type': 'text/xml'
-          }
-        });
+      const page = await this.getXMLPageAsObj(nextPage, path.join(user, this.debugRelationshipDir), count);
 
-        nextPage = null;
-
-        if (response.status !== 200) {
-          logger.error(`Did not get an OK from the server. Code: ${response.status}`);
-          // throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-          break;
+      // Bad writing here
+      if (this.debug_save_xml) {
+        const dir = path.join(user, this.debugRelationshipDir);
+        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
+        try {
+          fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
+          this.logger.info(`DEBUG: writing ${fn}`);
+          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+        } catch (error) {
+          this.logger.error(`Error creating or writing ${fn}: ${error}`);
         }
-        else if (response.status === 200) {
-          logger.info(`Got an OK from the server. Code: ${response.status}`);
-          const xml = await response.text();
-          count++;
-
-          // convert the xml atom feed to json
-          const json = parser.toJson(xml, { object: true, arrayNotation: false });
-
-          // add the entries to the results array
-          if (json.feed.entry) {
-
-            entries = entries.concat(json.feed.entry);
-            for (let work of entries) {
-              let related = [];
-              if (work['api:relationship'] && work['api:relationship']['api:related']) {
-                related.push(work['api:relationship']['api:related']);
-              }
-              related.push({ direction: 'to', id: cdlId, category: 'user' });
-              work['api:relationship'] ||= {};
-              work['api:relationship']['api:related'] = related;
-              results.push(work['api:relationship']);
-            }
-
-            // Create the JSON-LD for the user relationships
-            // save a text version of the context object
-            let contextObj = context;
-
-            contextObj["@id"] = 'http://oapolicy.universityofcalifornia.edu/';
-            contextObj["@graph"] = results;
-
-            let jsonld = JSON.stringify(contextObj);
-            console.log('posting relationships of ' + cdlId);
-
-            // Bad writing here
-            //fs.writeFileSync(`${cdlId}-${count}.json`,jsonld);
-
-            // Insert into our local Fuseki DB
-            await db.createGraphFromJsonLdFile(jsonld);
-
-            // inspect the pagination to see if there are more pages
-            const pagination = json.feed['api:pagination'];
-            // Fetch the next page
-
-            if (pagination["api:page"] instanceof Array) {
-              for (let link of pagination["api:page"]) {
-                if (link.position === 'next') {
-                  nextPage = link.href;
-                }
-              }
-            }
-          }
-        }
-
-      } catch (e) {
-        logger.error(`Did not get an OK from the server. Code: ${e.message}`);
-        break;
       }
-    }
+      // add the entries to the results array
+      if (page.feed.entry) {
+        entries = entries.concat(page.feed.entry);
+        for (let work of entries) {
+          let related = [];
+          if (work['api:relationship']?.['api:related']) {
+            if (this.author_truncate_to || this.author_rank || this.author_trim_info) {
+              related.push(update_author(this, work['api:relationship']['api:related']))
+            } else {
+              related.push(work['api:relationship']['api:related'])
+            }
+          }
+          related.push({ direction: 'to', id: cdlId, category: 'user' })
+          work['api:relationship'] ||= {};
+          work['api:relationship']['api:related'] = related;
+          results.push(work['api:relationship']);
+        }
+        // Create the JSON-LD for the user relationships
+        // save a text version of the context object
+        let contextObj = this.context();
+        contextObj["@graph"] = results;
 
+        let jsonld = JSON.stringify(contextObj, null, 2);
+
+        // Bad writing here
+        if (this.debug_save_xml) {
+          const dir = path.join(user, this.debugRelationshipDir);
+          const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
+          try {
+            this.logger.info(`DEBUG: writing ${fn}`);
+            fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
+            fs.writeFileSync(fn, jsonld);
+          } catch (error) {
+            this.logger.error(`Error creating or writing ${fn}: ${error}`);
+          }
+        }
+
+        // Insert into our local Fuseki DB
+        await db.createGraphFromJsonLdFile(jsonld);
+      }
+      // Fetch the next page
+      count++
+      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+    }
     return;
   }
 }
