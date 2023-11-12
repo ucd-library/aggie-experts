@@ -45,8 +45,8 @@
     }
   },
   "template": {
-    "default":"${G[base]}/docker-template.yaml",
-    "fuseki":"${G[base]}/docker-template-fuseki.yaml"
+    "default":"docker-template.yaml",
+    "fuseki":"docker-template-fuseki.yaml"
   },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
@@ -59,7 +59,7 @@
     "keycloak":"auth"
   },
   "git":{
-    "base":"$(${G[git]} rev-parse --show-toplevel)",
+    "root":"$(${G[git]} rev-parse --show-toplevel)",
     "repo":"$(basename -s .git $(${G[git]} config --get remote.origin.url))",
     "branch":"$(${G[git]} branch --show-current)"
   }
