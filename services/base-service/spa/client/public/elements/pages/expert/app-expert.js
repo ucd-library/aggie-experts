@@ -96,9 +96,10 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.canEdit = APP_CONFIG.user.expertId === this.expertId;
 
     // update page data
-    let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
+    let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
 
     this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
@@ -129,7 +130,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     await this._loadCitations();
 
-    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
@@ -162,7 +163,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
-    this.canEdit = true;
+    this.canEdit = APP_CONFIG.user?.expertId === this.expertId;
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
@@ -172,13 +173,22 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method toggleAdminUi
+   * @description toggle admin ui based on user expertId
+   *
+  */
+  toggleAdminUi() {
+    this.canEdit = APP_CONFIG.user?.expertId === this.expertId;
+  }
+
+  /**
    * @method _loadCitations
    * @description load citations for expert async
    *
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
   async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
+    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     try {
       // sort by issued date desc, then by title asc
@@ -220,7 +230,7 @@ export default class AppExpert extends Mixin(LitElement)
 
   /**
    * @method _downloadWorks
-   * @description bound to click events of download button in works list
+   * @description bound to click events of download button in works list. download .ris file of all works
    *
    * @param {Object} e click|keyup event
    */
@@ -235,6 +245,48 @@ export default class AppExpert extends Mixin(LitElement)
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', 'works.ris');
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
+   * @method _downloadGrants
+   * @description bound to click events of download button in grants list. download csv file of all grants
+   *
+   * @param {Object} e click|keyup event
+   */
+  async _downloadGrants(e) {
+    e.preventDefault();
+
+    let body = [];
+    this.grants.forEach(grant => {
+      body.push([
+        '"' + (grant.name || '') + '"',                               // Title
+        '"' + (grant.awardedBy || '') + '"',                          // Funding Agency
+        '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
+        '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
+        '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
+        '"' + (grant.role || '') + '"',                               // Type of Grant
+        '?', // List of contributors (role) {separate contributors by ";"}
+      ]);
+    });
+
+    if( !body.length ) return;
+
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'List of Contributors'];
+    let text = headers.join(',') + '\n';
+    body.forEach(row => {
+      text += row.join(',') + '\n';
+    });
+
+    let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+    let url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'grants.csv');
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();

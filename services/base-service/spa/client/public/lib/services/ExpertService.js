@@ -10,9 +10,12 @@ class ExpertService extends BaseService {
     this.baseUrl = '/api/expert';
   }
 
-  get(id) {
+  get(id, headRequest=false) {
     return this.request({
       url : `${this.baseUrl}/${id}`,
+      fetchOptions : {
+        method : headRequest ? 'HEAD' : 'GET'
+      },
       checkCached : () => this.store.getExpert(id),
       onLoading : request => this.store.setExpertLoading(id, request),
       onLoad : result => this.store.setExpertLoaded(id, result.body),

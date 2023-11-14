@@ -17,6 +17,10 @@ return html`
       display: block;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .hero-main {
       background: url('/images/watercolor-gold-solid.jpg') no-repeat center center;
       background-size: 100% auto;
@@ -443,11 +447,9 @@ return html`
           <span>EXPERT</span>
         </div>
         <h1>${this.expertName}
-          <a href="https://org.ucdavis.edu/odr/" style="position: relative;">
+          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
             <span class="tooltip edit-name" data-text="Edit name">
-              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                ?hidden="${!this.canEdit}">
-              </ucdlib-icon>
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
             </span>
           </a>
         </h1>
@@ -488,11 +490,9 @@ return html`
       <div class="roles-websites">
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles
-            <a href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}">
-                </ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
             </a>
           </h4>
@@ -518,10 +518,9 @@ return html`
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
           <h4>Links
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editWebsites}>
                 </ucdlib-icon>
               </span>
@@ -562,20 +561,18 @@ return html`
             <h2>${this.grants.length} Grants</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-grants" data-text="Edit grants">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editGrants}>
                 </ucdlib-icon>
               </span>
             </span>
 
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip download-all-grants" data-text="Download all grants">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._downloadGrants}>
                 </ucdlib-icon>
               </span>
@@ -628,20 +625,18 @@ return html`
             <h2>${this.citations.length} Works</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-works" data-text="Edit works">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editWorks}>
                 </ucdlib-icon>
               </span>
             </span>
 
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip download-all-works" data-text="Download all works">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._downloadWorks}>
                 </ucdlib-icon>
               </span>
