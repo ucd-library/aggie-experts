@@ -44,26 +44,20 @@ return html`
       </ucd-theme-search-form>
     </ucd-theme-search-popup>
 
-  <!--
     <ucd-theme-quick-links
         title="My Account"
-        style-modifiers="highlight"
+        style-modifiers=""
         @item-click="${e => console.log('@item-click', e.detail)}"
         @toggle="${e => console.log('@toggle', e.detail)}">
-      <a href="/auth/login?redirectUrl=/">Login</a>
+      <a href="/${this.expertId}">Profile</a>
+      <a href="/faq">Help</a>
+      <a href="https://org.ucdavis.edu/odr/">UC Davis Online Directory Listing</a>
+      <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management</a>
+      <a href="/auth/logout">Log Out</a>
     </ucd-theme-quick-links>
-  -->
-
-    <ucd-theme-quick-links
-        title="Sign In"
-        style-modifiers="highlight"
-        @item-click="${e => console.log('@item-click', e.detail)}"
-        @toggle="${e => console.log('@toggle', e.detail)}">
-      <a href="/auth/login?redirectUrl=/">Login</a>
-    </ucd-theme-quick-links>
-
 
   </ucd-theme-header>
+
   <div class="main-content">
     <ucdlib-pages
       selected="${this.page}"

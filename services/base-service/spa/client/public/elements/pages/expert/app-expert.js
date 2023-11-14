@@ -96,9 +96,10 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.canEdit = APP_CONFIG.user.expertId === this.expertId;
 
     // update page data
-    let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
+    let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
 
     this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
@@ -129,7 +130,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     await this._loadCitations();
 
-    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
@@ -162,7 +163,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
-    this.canEdit = true;
+    this.canEdit = APP_CONFIG.user?.expertId === this.expertId;
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
@@ -172,13 +173,23 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method toggleAdminUi
+   * @description toggle admin ui based on user expertId
+   *
+  */
+  toggleAdminUi() {
+    debugger;
+    this.canEdit = APP_CONFIG.user?.expertId === this.expertId;
+  }
+
+  /**
    * @method _loadCitations
    * @description load citations for expert async
    *
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
   async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
+    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     try {
       // sort by issued date desc, then by title asc
@@ -220,7 +231,7 @@ export default class AppExpert extends Mixin(LitElement)
 
   /**
    * @method _downloadWorks
-   * @description bound to click events of download button in works list
+   * @description bound to click events of download button in works list. download .ris file of all works
    *
    * @param {Object} e click|keyup event
    */
@@ -235,6 +246,101 @@ export default class AppExpert extends Mixin(LitElement)
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', 'works.ris');
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
+   * @method _downloadGrants
+   * @description bound to click events of download button in grants list. download csv file of all grants
+   *
+   * @param {Object} e click|keyup event
+   */
+  async _downloadGrants(e) {
+    e.preventDefault();
+
+    let body = [];
+    this.grants.forEach(grant => {
+      body.push([
+        '"' + (grant.name || '') + '"',                               // Title
+        '"' + (grant.awardedBy || '') + '"',                          // Funding Agency
+        '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
+        '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
+        '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
+        '"' + (grant.role || '') + '"',                               // Type of Grant
+        '?', // List of contributors (role) {separate contributors by ";"}
+      ]);
+    });
+
+    /*
+    {
+      "assignedBy": {
+          "@type": "FundingOrganization",
+          "name": "UC LAWRENCE BERKELEY LABORATORY",
+          "@id": "ark:/87287/d7mh2m/grant/4326881#unknown-funder"
+      },
+      "dateTimeInterval": {
+          "@type": "DateTimeInterval",
+          "start": {
+              "dateTime": "2009-09-21",
+              "@type": "DateTimeValue",
+              "@id": "ark:/87287/d7mh2m/grant/4326881#start-date",
+              "dateTimePrecision": "vivo:yearMonthDayPrecision"
+          },
+          "end": {
+              "dateTime": "2011-09-30",
+              "@type": "DateTimeValue",
+              "@id": "ark:/87287/d7mh2m/grant/4326881#end-date",
+              "dateTimePrecision": "vivo:yearMonthDayPrecision"
+          },
+          "@id": "ark:/87287/d7mh2m/grant/4326881#duration"
+      },
+      "@type": [
+          "Grant",
+          "vivo:Grant"
+      ],
+      "totalAwardAmount": "3062730",
+      "name": "GENOMIC ENCICLOPEDIA OF BACTERIA AND ARCHAEE",
+      "@id": "ark:/87287/d7mh2m/grant/4326881",
+      "relatedBy": {
+          "relates": [
+              "expert/226d2dccfba4c2be04aedd4f9f942e42",
+              "ark:/87287/d7mh2m/grant/4326881"
+          ],
+          "@type": "GrantRole",
+          "@id": "ark:/87287/d7mh2m/relationship/13238110",
+          "is-visible": true
+      },
+      "sponsorAwardId": "6895809",
+      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
+          "name": "Research",
+          "@id": "ucdlib:Grant_Research"
+      },
+      "start": 2009,
+      "end": 2011,
+      "completed": true,
+      "role": "Research",
+      "awardedBy": "UC LAWRENCE BERKELEY LABORATORY"
+    }
+    */
+
+
+    if( !body.length ) return;
+
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'List of Contributors'];
+    let text = headers.join(',') + '\n';
+    body.forEach(row => {
+      text += row.join(',') + '\n';
+    });
+
+    let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+    let url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'grants.csv');
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();

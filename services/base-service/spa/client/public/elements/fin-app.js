@@ -1,6 +1,8 @@
 import { LitElement } from 'lit';
 import {render} from "./fin-app.tpl.js";
 
+import md5 from 'md5';
+
 // import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js'
 import '../elements/pages/home/app-home.js';
 import '../elements/pages/browse/app-browse.js';
@@ -36,19 +38,21 @@ export default class FinApp extends Mixin(LitElement)
       page: { type: String },
       imageSrc: { type: String },
       imageAltText: { type: String },
-      pathInfo: { type: String }
+      pathInfo: { type: String },
+      expertId: { type: String },
     }
   }
 
   constructor() {
     super();
     this.appRoutes = APP_CONFIG.appRoutes;
-    this._injectModel('AppStateModel');
+    this._injectModel('AppStateModel', 'ExpertModel');
 
     this.page = 'home';
     this.imageSrc = '';
     this.imageAltText = '';
     this.pathInfo = '';
+    this.expertId = '';
 
     this.render = render.bind(this);
     this._init404();
@@ -85,6 +89,33 @@ export default class FinApp extends Mixin(LitElement)
     }
     window.scrollTo(0, 0);
 
+    let expertHash = md5((APP_CONFIG.user?.preferred_username || '') + '@ucdavis.edu');
+    if( expertHash ) {
+      this.expertId = 'expert/' + expertHash;
+
+      APP_CONFIG.user.expertId = this.expertId;
+
+      // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
+      let header = this.shadowRoot.querySelector('ucd-theme-header');
+      let quickLinks = header?.querySelector('ucd-theme-quick-links');
+
+      try {
+        await this.ExpertModel.get(this.expertId);
+        if( quickLinks ) {
+          quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
+        }
+      } catch (error) {
+        console.warn('expert ' + this.expertId + ' not found for logged in user');
+
+        if( quickLinks ) {
+          quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
+        }
+      }
+
+      let appExpert = this.shadowRoot.querySelector('app-expert');
+      if( appExpert ) appExpert.toggleAdminUi();
+    }
+
     let page = e.location.page;
     if( !APP_CONFIG.appRoutes.includes(e.location.page) ) page = '404';
 
@@ -94,6 +125,7 @@ export default class FinApp extends Mixin(LitElement)
 
     this.firstAppStateUpdate = false;
   }
+
 
   /**
    * @method _onSearch
