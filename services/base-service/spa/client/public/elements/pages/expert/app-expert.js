@@ -112,7 +112,7 @@ export default class AppExpert extends Mixin(LitElement)
       return {
         title : c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.name,
-        email : c?.hasEmail?.replace('email:', ''),
+        email : c?.hasEmail?.replace('mailto:', ''),
         websiteUrl : c.hasURL?.['url']
       }
     });
