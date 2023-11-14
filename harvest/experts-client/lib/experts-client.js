@@ -32,7 +32,6 @@ import readablePromiseQueue from './readablePromiseQueue.js';
 export class ExpertsClient {
 
   static context = {
-    listed: {
     "@context": {
       "@base": "http://oapolicy.universityofcalifornia.edu/",
       "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
@@ -46,22 +45,7 @@ export class ExpertsClient {
       "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
     },
-      "@id":'http://oapolicy.universityofcalifornia.edu/'
-    },
-    unlisted: {
-    "@context": {
-      "@base": "http://oapolicy.universityofcalifornia.edu/",
-      "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "id": { "@type": "@id", "@id": "@id" },
-      "field-name": "api:field-name",
-      "field-number": "api:field-number",
-      "$t": "api:field-value",
-      "api:web-address": { "@container": "@list" }
-    },
-      "@id":'http://oapolicy.universityofcalifornia.edu/'
-    }
+    "@id":'http://oapolicy.universityofcalifornia.edu/'
   };
 
   /**
@@ -84,14 +68,13 @@ export class ExpertsClient {
     }
     // Author options
     this.author_truncate_to = opt.authorTruncateTo || 10000;
-    this.author_rank = opt.authorRank || false
     this.author_trim_info = opt.authorTrimInfo || false
     // debugging
     this.debug_save_xml = opt.debugSaveXml || false
 
   }
   context() {
-    return JSON.parse(JSON.stringify(ExpertsClient.context[(this.author_rank?'unlisted':'listed')]));
+    return JSON.parse(JSON.stringify(ExpertsClient.context));
   }
 
   getUserId(user) {
@@ -427,11 +410,8 @@ export class ExpertsClient {
             Array.isArray(authors) || (authors=[authors]);
             for(let i=0;i<(authors.length<max_authors?authors.length:max_authors);i++) {
               if (me.author_trim_info) { author_trim_info(authors[i]); }
-              if (me.author_rank) { authors[i].rank=i+1; }
             }
             if (authors.length>1) {
-              if (me.author_rank) { authors[authors.length-1].rank=authors.length+1 };
-              //authors[authors.length-1].credit='last author';
               if (me.author_trim_info) { author_trim_info(authors[authors.length-1]); }
             }
             authors.splice(max_authors,authors.length-max_authors-1);
@@ -474,7 +454,7 @@ export class ExpertsClient {
         for (let work of entries) {
           let related = [];
           if (work['api:relationship']?.['api:related']) {
-            if (this.author_truncate_to || this.author_rank || this.author_trim_info) {
+            if (this.author_truncate_to || this.author_trim_info) {
               related.push(update_author(this,work['api:relationship']['api:related']))
             } else {
               related.push(work['api:relationship']['api:related'])
