@@ -1,11 +1,10 @@
-  PREFIX oa: <http://www.w3.org/ns/oa#>
+# THIS FILE GENERATED FROM ../README.org
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
-PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -40,7 +39,7 @@ construct {
 
   ?work  cite:author ?author.
 
-  ?author vivo:rank ?pos;
+  ?author vivo:rank ?rank;
           cite:family ?authorFamilyName;
           cite:given ?authorGivenName;
           .
@@ -67,29 +66,31 @@ WHERE {
             {
                 select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
               WHERE {
+                
                 graph cdl: {
                       VALUES (?source ?order) {
-                       ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
-                   ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
-                   ("cinii-english" 12)("repec" 13)("figshare" 14)
-                   ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
-
+                       ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
+                        ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
+                        ("arxiv" 10)("orcid" 11)("dblp" 12)
+                        ("cinqii-english" 13)("figshare" 14)
+                        ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+              
                   ?RELATIONSHIP__ :type "publication-user-authorship";
                                   :related ?pub;
                                   .
-
+              
                   # This needs to include grants later
                   ?pub :category "publication";
                                :records/:record ?record.
                       ?record :source-name ?source.
-
+              
                   OPTIONAL {
                     ?record :native/:field/:name "doi".
                     bind(-10 as ?boost)
                   }
                   bind(coalesce(?boost,0)+?order as ?score)
                 }
-              } order by ?score limit 3
+              } order by ?score
             }
             graph cdl: {
               ?record :native/:field/:name ?field_name
@@ -97,7 +98,6 @@ WHERE {
           }  group by ?relationship ?pub ?field_name
         }
         VALUES(?field_name ?field_predicate) {
-          ("doi" bibo:doi)
           ("abstract" cite:abstract)
           ("authors" cite:EXPANDED) # This gets expanded below
           ("doi" cite:DOI)
@@ -137,29 +137,31 @@ WHERE {
     {
         select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
       WHERE {
+        
         graph cdl: {
               VALUES (?source ?order) {
-               ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
-           ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
-           ("cinii-english" 12)("repec" 13)("figshare" 14)
-           ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
-
+               ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
+                ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
+                ("arxiv" 10)("orcid" 11)("dblp" 12)
+                ("cinqii-english" 13)("figshare" 14)
+                ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+      
           ?RELATIONSHIP__ :type "publication-user-authorship";
                           :related ?pub;
                           .
-
+      
           # This needs to include grants later
           ?pub :category "publication";
                        :records/:record ?record.
               ?record :source-name ?source.
-
+      
           OPTIONAL {
             ?record :native/:field/:name "doi".
             bind(-10 as ?boost)
           }
           bind(coalesce(?boost,0)+?order as ?score)
         }
-      } order by ?score limit 3
+      } order by ?score
     }
     graph cdl: {
       ?record :source-name ?source;
@@ -226,46 +228,48 @@ WHERE {
     }
   }
   {
-    select ?relationship (?pos as ?user_rank)
+    select ?relationship (?pos+1 as ?user_rank)
     WHERE {
       {
           select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
         WHERE {
+          
           graph cdl: {
                 VALUES (?source ?order) {
-                 ("verified-manual" 1)("dimensions" 2)("pubmed" 3)("scopus" 4)("wos" 5)
-             ("wos-lite" 6)("crossref" 7)("epmc" 8)("arxiv" 9)("orcid" 10)("dblp" 11)
-             ("cinii-english" 12)("repec" 13)("figshare" 14)
-             ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
-
+                 ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
+                  ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
+                  ("arxiv" 10)("orcid" 11)("dblp" 12)
+                  ("cinqii-english" 13)("figshare" 14)
+                  ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+        
             ?RELATIONSHIP__ :type "publication-user-authorship";
                             :related ?pub;
                             .
-
+        
             # This needs to include grants later
             ?pub :category "publication";
                          :records/:record ?record.
                 ?record :source-name ?source.
-
+        
             OPTIONAL {
               ?record :native/:field/:name "doi".
               bind(-10 as ?boost)
             }
             bind(coalesce(?boost,0)+?order as ?score)
           }
-        } order by ?score limit 3
+        } order by ?score
       }
       graph cdl: {
         ?relationship :related ?user.
         ?user :category "user";
               :username ?username;
               .
-
+    
         ?record :native/:field ?field.
         ?field :name "authors";
                :people/:person [ list:index(?pos ?elem) ] .
         ?elem :links/:link ?user.   # This is the link to the relationship user
-
+    
       }
     } limit 1
   }
@@ -275,6 +279,32 @@ WHERE {
                   :type ?type;
                   :related ?pub;
                   .
+
+    ?pub :type ?oap_type;
+         :last-modified-when ?lastModifiedWhen;
+         .
+
+    VALUES(?oap_type ?cite_include ?bibo_type ?cite_type ?cite_genre) {
+      ("book" true bibo:Book "book" undef)
+      ("chapter" true bibo:Chapter "chapter" undef)
+      ("conference" true vivo:ConferencePaper "paper-conference" undef)
+      ("journal-article" true bibo:AcademicArticle "article-journal" undef)
+      # false
+      #("dataset" false ucdlib:Work "dataset" "")
+      #("internet-publication" false ucdlib:Work "webpage" "")
+      #("media" false ucdlib:Work "article" "media")
+      #("other" false ucdlib:Work "article" "other")
+      #("poster" false ucdlib:Work "speech" "poster")
+      #("preprint" false ucdlib:Preprint "article" "preprint" )
+      #("presentation" false ucdlib:Work "speech" "presentation")
+      #("report" false ucdlib:Work "report" "")
+      #("scholarly-edition" false ucdlib:Work "manuscript" "scholarly-edition")
+      #("software" false ucdlib:Work "software" "")
+      #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
+    }
+    # Filter out MinorWorks
+    #filter(?cite_include = true)
+
     OPTIONAL {
       ?relationship :is-favourite "true".
       bind(true as ?favorite)
@@ -302,6 +332,7 @@ WHERE {
   # journal
   BIND(uri(concat(str(venue:),"urn:issn:",?issn)) as ?journalURI)
   # authors
-  BIND(uri(concat(str(?pub),"#",str(?pos))) as ?author)
+  BIND(uri(concat(str(?pub),"#",str(?pos+1))) as ?author)
+  BIND(?pos+1 as ?rank)
 
 }
