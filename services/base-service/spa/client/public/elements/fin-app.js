@@ -100,7 +100,7 @@ export default class FinApp extends Mixin(LitElement)
       let quickLinks = header?.querySelector('ucd-theme-quick-links');
 
       try {
-        await this.ExpertModel.get(this.expertId);
+        await this.ExpertModel.get(this.expertId, true); // head request only
         if( quickLinks ) {
           quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
         }

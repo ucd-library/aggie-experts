@@ -178,7 +178,6 @@ export default class AppExpert extends Mixin(LitElement)
    *
   */
   toggleAdminUi() {
-    debugger;
     this.canEdit = APP_CONFIG.user?.expertId === this.expertId;
   }
 
@@ -273,59 +272,6 @@ export default class AppExpert extends Mixin(LitElement)
         '?', // List of contributors (role) {separate contributors by ";"}
       ]);
     });
-
-    /*
-    {
-      "assignedBy": {
-          "@type": "FundingOrganization",
-          "name": "UC LAWRENCE BERKELEY LABORATORY",
-          "@id": "ark:/87287/d7mh2m/grant/4326881#unknown-funder"
-      },
-      "dateTimeInterval": {
-          "@type": "DateTimeInterval",
-          "start": {
-              "dateTime": "2009-09-21",
-              "@type": "DateTimeValue",
-              "@id": "ark:/87287/d7mh2m/grant/4326881#start-date",
-              "dateTimePrecision": "vivo:yearMonthDayPrecision"
-          },
-          "end": {
-              "dateTime": "2011-09-30",
-              "@type": "DateTimeValue",
-              "@id": "ark:/87287/d7mh2m/grant/4326881#end-date",
-              "dateTimePrecision": "vivo:yearMonthDayPrecision"
-          },
-          "@id": "ark:/87287/d7mh2m/grant/4326881#duration"
-      },
-      "@type": [
-          "Grant",
-          "vivo:Grant"
-      ],
-      "totalAwardAmount": "3062730",
-      "name": "GENOMIC ENCICLOPEDIA OF BACTERIA AND ARCHAEE",
-      "@id": "ark:/87287/d7mh2m/grant/4326881",
-      "relatedBy": {
-          "relates": [
-              "expert/226d2dccfba4c2be04aedd4f9f942e42",
-              "ark:/87287/d7mh2m/grant/4326881"
-          ],
-          "@type": "GrantRole",
-          "@id": "ark:/87287/d7mh2m/relationship/13238110",
-          "is-visible": true
-      },
-      "sponsorAwardId": "6895809",
-      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
-          "name": "Research",
-          "@id": "ucdlib:Grant_Research"
-      },
-      "start": 2009,
-      "end": 2011,
-      "completed": true,
-      "role": "Research",
-      "awardedBy": "UC LAWRENCE BERKELEY LABORATORY"
-    }
-    */
-
 
     if( !body.length ) return;
 
