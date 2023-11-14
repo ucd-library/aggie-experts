@@ -62,21 +62,24 @@ where {
   OPTIONAL {
     ?grant vivo:totalAwardAmount ?amount
     .
- #     filter(xsd:decimal(?amount) > 0)
+     filter(xsd:decimal(?amount) > 0)
   }
   }
   filter not exists {
     ?grant ucdlib:oracle_award_nbr ?oracle;
            .
   }
-#  OPTIONAL {
+  OPTIONAL {
   graph iam: {
   ?expert ucdlib:userId ?cas.
   }
-  GRAPH cdl: {
+	  GRAPH cdl: {
       ?expert ucdlib:proprietary_id ?ucpath .
     }
+  }
 #  BIND (STRAFTER(STR(?grant),'ark:/87287/d7gt0q/grant/') AS ?institution_reference) .
   BIND (?grant AS ?institution_reference) .
 #  filter(coalesce(xsd:decimal(?amount),1)>0)
 } order by ?grant
+
+#limit 100
