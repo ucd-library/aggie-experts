@@ -1,5 +1,4 @@
 'use strict';
-import winston from 'winston';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -127,8 +126,8 @@ async function main(opt) {
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
     let dbname
-    if (fuseki.db === 'CAS-XXXX' || fuseki.db === 'CAS') {
-      dbname = user + (fuseki.db === 'CAS-XXXX' ? '-' + nanoid(2) : '');
+    if (fuseki.db === 'CAS-XX' || fuseki.db === 'CAS') {
+      dbname = user + (fuseki.db === 'CAS-XX' ? '-' + nanoid(2) : '');
       db = await fuseki.createDb(dbname);
       logger.info({ measure: ['start'] }, `Dataset '${dbname}' created successfully.`);
     }
