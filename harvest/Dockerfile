@@ -99,7 +99,7 @@ RUN cd ${AE_API} && npm link
 ARG AE_CLIENT=/usr/local/lib/experts-client
 COPY experts-client ${AE_CLIENT}
 WORKDIR ${AE_CLIENT}
-RUN npm link @ucd-lib/experts-api && npm install && npm install -g
+RUN npm link @ucdlib/experts-api && npm install && npm install -g
 
 # Setup a place to hold the Makefile data
 RUN mkdir /usr/local/lib/harvest

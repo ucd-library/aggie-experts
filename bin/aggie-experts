@@ -579,9 +579,9 @@ function setup() {
       yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*")) | del(.services.keycloak)'
     fi
     if [[ -n $N ]]; then
-      echo "yq '${yq}' ${root}/$tmpl"
+      echo "yq '${yq}' < ${root}/$tmpl"
     else
-      yq "${yq}" ${root}/$tmpl
+      yq "${yq}" < ${root}/$tmpl
     fi
   }
   function setup_files() {
