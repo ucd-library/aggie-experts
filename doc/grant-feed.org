@@ -1,6 +1,23 @@
 * Grant Feed workflow
+UCD grants are imported into the CDL Elements system using the Symplectic Elements feed mechanism.
+A CSV format file is uploaded to the "ucdavis" FTP account at ftp.use.symplectic.org. The file is
+then processed by the Symplectic Elements system and the grants are added to the CDL Elements system.
 
-* Legacy KFS Grant Feed Workflow
-A one-time workflow to load all the grants from KFS into CDL Elements.
+Note that directories have been created for QA and Production.
+
+
+** Legacy KFS Grant Feed Workflow
+A one-time workflow to load all the grants from KFS into CDL Elements. A subset of the grants present in the KFS system have been designated as legacy.
+They will not be carried over to the new Aggie Enterpise system. The legacy grants are loaded into CDL Elements using the Symplectic Elements feed mechanism.
+A CSV format file is uploaded to the "ucdavis" FTP account at ftp.use.symplectic.org. The file is
+then processed by the Symplectic Elements system and the grants are added to the CDL Elements system.
+
+Two CSV file are need to load the legacy grants. The first file contains the grant data. The second file contains the links to associate grants with researchers.
+The grant data file is named "grants.csv". The grant links file is named "links.csv". Both files are uploaded to the appropriate Symplectic FTP directory.
+
+Column names for the grant data file are:
+```"id","category","type","url","institution-reference","title","funding-type","start-date","end-date","c-ucop-sponsor","funder-name","funder-reference","amount-value","amount-currency-code","visible"
+
+
 
 
