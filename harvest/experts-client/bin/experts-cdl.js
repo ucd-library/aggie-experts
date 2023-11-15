@@ -99,8 +99,7 @@ async function main(opt) {
       }
       else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
         // We need the date in XML ISO format
-        var date = new Date();
-        date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
+        var date = new Date(opt.cdl.modified);
         sinceFilter = '&modified-since=' + date.toISOString();
         uquery += sinceFilter;
       }
@@ -185,8 +184,9 @@ program.name('cdl-profile')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
   .option('--cdl.affected <affected>', 'affected since')
-  .option('--cdl.modified <modified>', 'modified since')
+  .option('--cdl.modified <modified>', 'modified since (YYYY-MM-DD)')
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
+  .option('--cdl.timeout <timeout>', 'Specify CDL API timeout in milliseconds', 30000)
   .option('--author-truncate-to <max>', 'Truncate authors to max', null)
   .option('--author-rank', 'Add rank to authors, remove list context', false)
   .option('--author-trim-info', 'Remove extraneous author info', false)

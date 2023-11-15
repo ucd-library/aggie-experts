@@ -286,7 +286,7 @@ export class ExpertsClient {
    * @returns XML
    *
    */
-  async getXMLPageAsObj(page, name = 'query', count = 0) {
+  async getXMLPageAsObj(page, name = 'query', count = 0, timeout = 30000) {
     const dir = path.join('.', name);
     const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
     let xml;
@@ -299,7 +299,7 @@ export class ExpertsClient {
     }
     // If not saved, or not found, then fetch
     if (!xml) {
-      const requestTimeout = 30000; // Set the timeout to 5 seconds
+      const requestTimeout = timeout; // Set the timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
 
@@ -366,7 +366,7 @@ export class ExpertsClient {
     var count = 0;
 
     while (nextPage) {
-      const page = await this.getXMLPageAsObj(nextPage, name, count++);
+      const page = await this.getXMLPageAsObj(nextPage, name, count++, this.cdl.timeout);
       // add the entries to the results array
       if (page && page.feed && page.feed.entry) {
         results = results.concat(page.feed.entry);
@@ -461,7 +461,7 @@ export class ExpertsClient {
       let results = [];
       let entries = [];
 
-      const page = await this.getXMLPageAsObj(nextPage, path.join(user, this.debugRelationshipDir), count);
+      const page = await this.getXMLPageAsObj(nextPage, path.join(user, this.debugRelationshipDir), count, this.cdl.timeout);
 
       // Bad writing here
       if (this.debug_save_xml) {
