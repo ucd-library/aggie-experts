@@ -16,8 +16,26 @@ Two CSV file are need to load the legacy grants. The first file contains the gra
 The grant data file is named "grants.csv". The grant links file is named "links.csv". Both files are uploaded to the appropriate Symplectic FTP directory.
 
 Column names for the grant data file are:
-```"id","category","type","url","institution-reference","title","funding-type","start-date","end-date","c-ucop-sponsor","funder-name","funder-reference","amount-value","amount-currency-code","visible"
+```
+"id"
+"category"
+"type"
+"url"
+"institution-reference"
+"title"
+"funding-type"
+"start-date"
+"end-date"
+"c-ucop-sponsor"
+"funder-name"
+"funder-reference"
+"amount-value"
+"amount-currency-code"
+"visible"
 
-
+This column names correspond to the grant data fields in the Symplectic Elements system. Values are mapped to matching fields in the CDL Elements system.
+in the Grants table. Note that custom fields can be added to the CDL Elements system to capture additional grant data.
+```
+```
 
 
