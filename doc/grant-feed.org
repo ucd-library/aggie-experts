@@ -1,1 +1,5 @@
 Grants Upload to CDL Elements 
+
+One-time Archive Grant Feed 
+  Grant extracts from the legacy UCD KFS system are imported 
+
