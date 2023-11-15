@@ -1,3 +1,6 @@
-*Grant Feed workflow
+* Grant Feed workflow
 
-**Legacy KFS Grant Feed Workflow**
+* Legacy KFS Grant Feed Workflow
+A one-time workflow to load all the grants from KFS into CDL Elements.
+
+
