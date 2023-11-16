@@ -39,6 +39,8 @@ export default class AppExpert extends Mixin(LitElement)
       showModal : { type : Boolean },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
+      expertImpersonating : { type : String },
+      hideImpersonate : { type : Boolean },
     }
   }
 
@@ -70,6 +72,8 @@ export default class AppExpert extends Mixin(LitElement)
     if( expertId === this.expertId ) return;
 
     this._reset();
+
+    if( this.expertImpersonating === this.expertId ) this.canEdit = true;
 
     try {
       let expert = await this.ExpertModel.get(expertId);
@@ -149,6 +153,9 @@ export default class AppExpert extends Mixin(LitElement)
    * @description clear all page data, called on connected and when expertId changes
    */
   _reset() {
+    let acExpertId = APP_CONFIG.user?.expertId;
+    let impersonatingExpertId = APP_CONFIG.impersonating?.expertId;
+
     this.expert = {};
     this.expertName = '';
     this.introduction = '';
@@ -163,13 +170,21 @@ export default class AppExpert extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
-    this.canEdit = APP_CONFIG.user?.expertId === this.expertId;
+    this.canEdit = (acExpertId === this.expertId || impersonatingExpertId === this.expertId);
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
+
+    if( !this.expertImpersonating ) {
+      this.expertImpersonating = '';
+      this.hideImpersonate = (
+        (acExpertId && acExpertId !== this.expertId) &&
+        (impersonatingExpertId && impersonatingExpertId !== this.expertId)
+      );
+    }
   }
 
   /**
@@ -178,7 +193,7 @@ export default class AppExpert extends Mixin(LitElement)
    *
   */
   toggleAdminUi() {
-    this.canEdit = APP_CONFIG.user?.expertId === this.expertId;
+    this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId);
   }
 
   /**
@@ -341,6 +356,44 @@ export default class AppExpert extends Mixin(LitElement)
     e.preventDefault();
 
     this.AppStateModel.setLocation('/works-edit/'+this.expertId);
+  }
+
+  /**
+   * @method _impersonateClick
+   * @description impersonate expert
+   */
+  _impersonateClick(e) {
+    e.preventDefault();
+
+    let user = APP_CONFIG.user;
+    if( !user || !(user.roles || []).filter(r => r === 'admin')[0] ) return;
+
+    this.hideImpersonate = true;
+    this.expertImpersonating = this.expertId;
+
+    APP_CONFIG.impersonating = {
+      expertId : this.expertId,
+      expertName : this.expertName
+    };
+
+    // dispatch event to fin-app
+    this.dispatchEvent(
+      new CustomEvent("impersonate", {})
+    );
+
+    this.canEdit = true;
+  }
+
+  /**
+   * @method cancelImpersonate
+   * @description cancel impersonating an expert
+   */
+  cancelImpersonate() {
+    this.expertImpersonating = '';
+
+    this.hideImpersonate = APP_CONFIG.user?.expertId === this.expertId;
+
+    if( APP_CONFIG.user?.expertId !== this.expertId ) this.canEdit = false;
   }
 
 }
