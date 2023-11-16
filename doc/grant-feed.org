@@ -11,7 +11,9 @@ A one-time workflow to load all the grants from KFS into CDL Elements. A subset 
 They will not be carried over to the new Aggie Enterpise system. The legacy grants are loaded into CDL Elements using the Symplectic Elements feed mechanism.
 A CSV format file is uploaded to the "ucdavis" FTP account at ftp.use.symplectic.org. The file is
 then processed by the Symplectic Elements system and the grants are added to the CDL Elements system.
+The grants are then harvested by the Aggie Experts via the CDL Elements API in the same fashion as publications.
 
+** Legacy Grant Feed File Format
 Two CSV file are need to load the legacy grants. The first file contains the grant data. The second file contains the links to associate grants with researchers.
 The grant data file is named "grants.csv". The grant links file is named "links.csv". Both files are uploaded to the appropriate Symplectic FTP directory.
 
@@ -35,7 +37,5 @@ Column names for the grant data file are:
 
 This column names correspond to the grant data fields in the Symplectic Elements system. Values are mapped to matching fields in the CDL Elements system.
 in the Grants table. Note that custom fields can be added to the CDL Elements system to capture additional grant data.
-```
-```
 
 
