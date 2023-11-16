@@ -151,6 +151,8 @@ export default class FinApp extends Mixin(LitElement)
   _impersonateClick(e) {
     e.preventDefault();
 
+    if( !(APP_CONFIG.user?.roles || []).includes('admin') ) return;
+
     // show button showing who we're impersonating
     this.hideImpersonate = false;
     this.expertNameImpersonating = APP_CONFIG.impersonating?.expertName;

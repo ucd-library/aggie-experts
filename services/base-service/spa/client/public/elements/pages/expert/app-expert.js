@@ -181,8 +181,9 @@ export default class AppExpert extends Mixin(LitElement)
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
       this.hideImpersonate = (
-        (acExpertId && acExpertId !== this.expertId) &&
-        (impersonatingExpertId && impersonatingExpertId !== this.expertId)
+        ((acExpertId && acExpertId !== this.expertId) &&
+        (impersonatingExpertId && impersonatingExpertId !== this.expertId)) ||
+        !(APP_CONFIG.user?.roles || []).includes('admin')
       );
     }
   }
