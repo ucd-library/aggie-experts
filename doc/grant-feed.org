@@ -13,30 +13,30 @@ A CSV format file is uploaded to the "ucdavis" FTP account at ftp.use.symplectic
 then processed by the Symplectic Elements system and the grants are added to the CDL Elements system.
 The grants are then harvested by the Aggie Experts via the CDL Elements API in the same fashion as publications.
 
-** Grant Feed File Formatt
+** Grant Feed File Format
 Two CSV file are need to load the legacy grants. The first file contains the grant data. The second file contains the links to associate grants with researchers.
 The grant data file is named "grants.csv". The grant links file is named "links.csv". Both files are uploaded to the appropriate Symplectic FTP directory.
 
 Column of the grant import file are:
-|-----------------------+------------------+------------------------------------|
-| field                 |                  | note                               |
-|-----------------------+------------------+------------------------------------|
-| id                    |                  |                                    |
-| category              |                  |                                    |
-| type                  |                  |                                    |
-| url                   |                  |                                    |
-| institution-reference |                  |                                    |
-| title                 |                  |                                    |
-| funding-type          |                  |                                    |
-| start-date            |                  |                                    |
-| end-date              |                  |                                    |
-| c-ucop-sponsor        |                  |                                    |
-| funder-name           |                  |                                    |
-| funder-reference      |                  |                                    |
-| amount-value          |                  |                                    |
-| amount-currency-code  |                  |                                    |
-| visible               |                  |                                    |
-|-----------------------+------------------+------------------------------------|
+|-----------------------+------------------+-----------------------------------------|
+| field                 | format           | notes                                   |
+|-----------------------+------------------+-----------------------------------------|
+| id                    | ARK ID           | ARK identifier used by Aggie Experts    |
+| category              | text             | Default to "grant"                      |
+| type                  | text             | Default tp ""c-davis"                   |
+| url                   |                  | Not used                                |
+| institution-reference | ARK ID           | ARK identifier used by Aggie Experts    |
+| title                 | text             | Grant title                             |
+| funding-type          | text             | Research, Service/Other, Instruction,   |
+| start-date            | YYYY-MM-DD       |                                         |
+| end-date              | YYYY-MM-DD       |                                         |
+| c-ucop-sponsor        |                  |                                         |
+| funder-name           | text             |                                         |
+| funder-reference      |                  | Funder ID                               |
+| amount-value          | number           |                                         |
+| amount-currency-code  |                  | USD                                     |
+| visible               | true/false       | Determines whether matching records ... |
+|-----------------------+------------------+-----------------------------------------|
 
 These column names correspond to the grant data "underlying fields" in the Symplectic Elements system.
 Values are mapped to matching fields in the CDL Elements system in the Grants table.
@@ -45,14 +45,14 @@ See "Manage underlying fields: grant" in the Symplectic Elements documentation f
 
 Column names for the grant links file are:
 |-----------------------+------------------+------------------------------------|
-| field                 |                  | note                               |
+| field                 | format           | notes                              |
 |-----------------------+------------------+------------------------------------|
-| category-1            |                  |                                    |
-| id-1                  |                  |                                    |
-| category-2            |                  |                                    |
-| id-2                  |                  |                                    |
-| link-type-id          |                                    |
-| visible               |                  |                                    |
+| category-1            |  text            |  Default to "user"                 |
+| id-1                  |  number          |  CDL Elements user ID              |
+| category-2            |  text            |  Default to "grant"                |
+| id-2                  |  ARK ID          |  ARK ID of grant                   |
+| link-type-id          |  number          |  Relationship type code            |
+| visible               |  true/false      |  Determines whether matching  **NOT SUPPORTED |
 |-----------------------+------------------+------------------------------------|
 
 
