@@ -13,29 +13,48 @@ A CSV format file is uploaded to the "ucdavis" FTP account at ftp.use.symplectic
 then processed by the Symplectic Elements system and the grants are added to the CDL Elements system.
 The grants are then harvested by the Aggie Experts via the CDL Elements API in the same fashion as publications.
 
-** Legacy Grant Feed File Format
+** Grant Feed File Formatt
 Two CSV file are need to load the legacy grants. The first file contains the grant data. The second file contains the links to associate grants with researchers.
 The grant data file is named "grants.csv". The grant links file is named "links.csv". Both files are uploaded to the appropriate Symplectic FTP directory.
 
-Column names for the grant data file are:
-```
-"id"
-"category"
-"type"
-"url"
-"institution-reference"
-"title"
-"funding-type"
-"start-date"
-"end-date"
-"c-ucop-sponsor"
-"funder-name"
-"funder-reference"
-"amount-value"
-"amount-currency-code"
-"visible"
+Column of the grant import file are:
+|-----------------------+------------------+------------------------------------|
+| field                 |                  | note                               |
+|-----------------------+------------------+------------------------------------|
+| id                    |                  |                                    |
+| category              |                  |                                    |
+| type                  |                  |                                    |
+| url                   |                  |                                    |
+| institution-reference |                  |                                    |
+| title                 |                  |                                    |
+| funding-type          |                  |                                    |
+| start-date            |                  |                                    |
+| end-date              |                  |                                    |
+| c-ucop-sponsor        |                  |                                    |
+| funder-name           |                  |                                    |
+| funder-reference      |                  |                                    |
+| amount-value          |                  |                                    |
+| amount-currency-code  |                  |                                    |
+| visible               |                  |                                    |
+|-----------------------+------------------+------------------------------------|
 
-This column names correspond to the grant data fields in the Symplectic Elements system. Values are mapped to matching fields in the CDL Elements system.
-in the Grants table. Note that custom fields can be added to the CDL Elements system to capture additional grant data.
+These column names correspond to the grant data "underlying fields" in the Symplectic Elements system.
+Values are mapped to matching fields in the CDL Elements system in the Grants table.
+Note that custom underlying fields can be added to the CDL Elements system to capture additional grant data.
+See "Manage underlying fields: grant" in the Symplectic Elements documentation for more information.
+
+Column names for the grant links file are:
+|-----------------------+------------------+------------------------------------|
+| field                 |                  | note                               |
+|-----------------------+------------------+------------------------------------|
+| category-1            |                  |                                    |
+| id-1                  |                  |                                    |
+| category-2            |                  |                                    |
+| id-2                  |                  |                                    |
+| link-type-id          |                                    |
+| visible               |                  |                                    |
+|-----------------------+------------------+------------------------------------|
+
+
 
 
