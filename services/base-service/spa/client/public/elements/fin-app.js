@@ -40,6 +40,8 @@ export default class FinApp extends Mixin(LitElement)
       imageAltText: { type: String },
       pathInfo: { type: String },
       expertId: { type: String },
+      expertNameImpersonating: { type: String },
+      hideImpersonate: { type: Boolean },
     }
   }
 
@@ -53,6 +55,8 @@ export default class FinApp extends Mixin(LitElement)
     this.imageAltText = '';
     this.pathInfo = '';
     this.expertId = '';
+    this.expertNameImpersonating = '';
+    this.hideImpersonate = true;
 
     this.render = render.bind(this);
     this._init404();
@@ -93,6 +97,8 @@ export default class FinApp extends Mixin(LitElement)
     if( expertHash ) {
       this.expertId = 'expert/' + expertHash;
 
+      // this.expertId = 'expert/66356b7eec24c51f01e757af2b27ebb8'; // hack for testing as QH
+
       APP_CONFIG.user.expertId = this.expertId;
 
       // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
@@ -126,7 +132,6 @@ export default class FinApp extends Mixin(LitElement)
     this.firstAppStateUpdate = false;
   }
 
-
   /**
    * @method _onSearch
    * @description called from the search box button is clicked or
@@ -135,6 +140,39 @@ export default class FinApp extends Mixin(LitElement)
    */
   _onSearch(e) {
     if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.searchTerm.trim());
+  }
+
+  /**
+   * @method _impersonateClick
+   * @description impersonate expert
+   *
+   * @param {Object} e
+   */
+  _impersonateClick(e) {
+    e.preventDefault();
+
+    if( !(APP_CONFIG.user?.roles || []).includes('admin') ) return;
+
+    // show button showing who we're impersonating
+    this.hideImpersonate = false;
+    this.expertNameImpersonating = APP_CONFIG.impersonating?.expertName;
+  }
+
+  /**
+   * @method _cancelImpersonateClick
+   * @description cancel impersonating an expert
+   *
+   * @param {Object} e
+   */
+  _cancelImpersonateClick(e) {
+    e.preventDefault();
+
+    this.hideImpersonate = true;
+    this.expertNameImpersonating = '';
+    APP_CONFIG.impersonating = {};
+
+    let appExpert = this.shadowRoot.querySelector('app-expert');
+    if( appExpert ) appExpert.cancelImpersonate();
   }
 
 }

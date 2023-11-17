@@ -77,7 +77,8 @@ return html`
     .hero-main h1 .tooltip:hover ucdlib-icon,
     .roles-websites .roles h4 ucdlib-icon:hover,
     .roles-websites .websites h4 ucdlib-icon:hover,
-    .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover {
+    .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover,
+    .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon:hover {
       fill: var(--color-aggie-gold);
     }
 
@@ -413,6 +414,40 @@ return html`
       line-height: var(--lh-html);
     }
 
+    .impersonate-btn {
+      margin-left: 1.19rem;
+      border-radius: 1.25em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-width: 10ch;
+      min-height: 2.5em;
+      margin-bottom: 0;
+      padding: 0.625em 1em;
+      border: 1px solid #b0d0ed;
+      background-color: transparent;
+      color: #022851;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      line-height: 1.1;
+      text-align: center;
+      text-decoration: none;
+      --btn-arrow-color: #ffbf00;
+      /* padding-right: 1.5em;
+      padding-left: 0.75em; */
+      transition: 0.2s padding ease-out;
+      border-color: #ffbf00;
+      background-color: transparent;
+    }
+
+    .impersonate-btn:hover {
+      background-color: #ffbf00;
+      color: #022851;
+      border-color: #ffbf00;
+    }
+
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
@@ -445,6 +480,7 @@ return html`
         <div class="experts">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT</span>
+          <button ?hidden="${this.hideImpersonate}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
         </div>
         <h1>${this.expertName}
           <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
