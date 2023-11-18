@@ -100,7 +100,7 @@ async function main(opt) {
 
 
   // const entries = await ec.getCDLusers(opt, uquery, '.[]["api:object"]|{id,"proprietary-id",username}');
-  const entries = await ec.getCDLentries(uquery);
+  const entries = await ec.getCDLentries(uquery,'users_via_groups');
 
   var expertArray = [];
 
@@ -210,10 +210,12 @@ if (opt.environment === 'development') {
   opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'qa-oapolicy';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
+  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 else if (opt.environment === 'production') {
   opt.cdl.url = 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'oapolicy';
+  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 
