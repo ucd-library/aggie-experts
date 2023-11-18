@@ -151,7 +151,7 @@ services:
   gcs:
     image: *BASE
     environment:
-      - GCS=${GCS:fcrepo-dev}
+      - GCS=${GCS:-fcrepo-dev}
     env_file:
       - .env
     volumes:
