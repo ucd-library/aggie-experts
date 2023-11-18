@@ -5,17 +5,17 @@ services:
   fuseki:
     image: &IMG ${ORG}/harvest:${TAG}
     volumes:
+      - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-./service-account.json}:/etc/fin/service-account.json
       - fuseki-data:/home/ucd.process
     ports:
       - ${DB_PORT:-3030}:3030
     environment:
       - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
+      - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON:-}
     restart: unless-stopped
     command:
       HDT=import server
     # command: bash -c 'tail -f /dev/null'
-    volumes:
-      - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-./service-account.json}:/etc/fin/service-account.json
 
 ###
 # Docker data volumes

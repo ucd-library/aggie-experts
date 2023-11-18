@@ -188,8 +188,6 @@ export class FusekiClientDB {
     // Don't include a graphname to use what's in the jsonld file
     const url = `${this.url}/${this.db}/data`;
 
-    console.log('posting to ' + url);
-
     // Set request options
     const options = {
       method: 'POST',

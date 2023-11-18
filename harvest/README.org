@@ -226,7 +226,7 @@ volumes:
              <http://vivoweb.org/ontology/core#rank>
                      11 ;
              <http://www.w3.org/2006/vcard/ns#hasEmail>
-                     <email:qjhart@ucdavis.edu> ;
+                     <mailto:qjhart@ucdavis.edu> ;
              <http://www.w3.org/2006/vcard/ns#hasName>
                      <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#name> ;
              <http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit>
@@ -240,7 +240,7 @@ volumes:
              <http://vivoweb.org/ontology/core#rank>
                      1 ;
              <http://www.w3.org/2006/vcard/ns#hasEmail>
-                     <email:qjhart@ucdavis.edu> ;
+                     <mailto:qjhart@ucdavis.edu> ;
              <http://www.w3.org/2006/vcard/ns#hasName>
                      <http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8#name> ;
              <http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit>

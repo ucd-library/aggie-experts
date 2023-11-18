@@ -155,7 +155,7 @@ WHERE {
                                      :privacy "public"; ]
                         ].
     }
-    bind(uri(concat('email:',str(?email))) as ?vcard_email)
+    bind(uri(concat('mailto:',str(?email))) as ?vcard_email)
     bind(uri(concat(str(?vcard),"-web-",str(?pos))) as ?vcard_web)
     bind(coalesce(concat(" § ",?title,coalesce(concat(", ",?dept),"")),
                   "") as ?title_dept)
