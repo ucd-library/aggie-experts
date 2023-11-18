@@ -414,7 +414,7 @@ export class ExpertsClient {
   * @returns
   *
   */
-  async getPostUserRelationships(db, user, query = 'detail=full') {
+  async getPostUserRelationships(db, user, query = 'detail=full', opt) {
     let lastPage = false
     const cdlId = this.getUserId(user);
     let nextPage = `${this.cdl.url}/users/${cdlId}/relationships`

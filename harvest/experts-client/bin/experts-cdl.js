@@ -124,24 +124,34 @@ async function main(opt) {
   }
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
-    let dbname
-    if (fuseki.db === 'CAS-XX' || fuseki.db === 'CAS') {
-      dbname = user + (fuseki.db === 'CAS-XX' ? '-' + nanoid(2) : '');
-      db = await fuseki.createDb(dbname);
-      logger.info({ measure: ['start'] }, `Dataset '${dbname}' created successfully.`);
+    try {
+      logger.info({ mark: ['start'] }, `starting ${user}`);
+      ec.userId = user;
+      const profile = await ec.getCDLprofile(user, opt);
+      logger.info({ measure: ['start'] }, `finished ${user}`);
+      let dbname
+      if (fuseki.db === 'CAS-XX' || fuseki.db === 'CAS') {
+        dbname = user + (fuseki.db === 'CAS-XX' ? '-' + nanoid(2) : '');
+        db = await fuseki.createDb(dbname);
+        logger.info({ measure: ['start'] }, `Dataset '${dbname}' created successfully.`);
+      }
+
+      if (opt.fetch) {
+        logger.info('starting getCDLprofile ' + user);
+
+        await ec.getPostUser(db, user)
+
+        // Step 3: Get User Relationships from CDL
+        // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
+        await ec.getPostUserRelationships(db, user, 'detail=full', opt);
+
+        // Step 3a: Get User Grants from CDL (qa-oapolicy only)
+        // await temp_get_qa_grants(ec,db,user);
+      }
+
     }
-
-    if (opt.fetch) {
-      logger.info('starting getCDLprofile ' + user);
-
-      await ec.getPostUser(db, user)
-
-      // Step 3: Get User Relationships from CDL
-      // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
-      await ec.getPostUserRelationships(db, user, 'detail=full');
-
-      // Step 3a: Get User Grants from CDL (qa-oapolicy only)
-      // await temp_get_qa_grants(ec,db,user);
+    catch (e) {
+      logger.error({ user, error: e }, `error ${user}`);
     }
 
     if (opt.splay) {
