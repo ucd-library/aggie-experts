@@ -39,6 +39,8 @@ export default class AppExpert extends Mixin(LitElement)
       showModal : { type : Boolean },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
+      expertImpersonating : { type : String },
+      hideImpersonate : { type : Boolean },
     }
   }
 
@@ -71,6 +73,8 @@ export default class AppExpert extends Mixin(LitElement)
 
     this._reset();
 
+    if( this.expertImpersonating === this.expertId ) this.canEdit = true;
+
     try {
       let expert = await this.ExpertModel.get(expertId);
       this._onExpertUpdate(expert);
@@ -96,9 +100,10 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.canEdit = APP_CONFIG.user.expertId === this.expertId;
 
     // update page data
-    let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
+    let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
 
     this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
@@ -129,7 +134,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     await this._loadCitations();
 
-    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
@@ -148,6 +153,9 @@ export default class AppExpert extends Mixin(LitElement)
    * @description clear all page data, called on connected and when expertId changes
    */
   _reset() {
+    let acExpertId = APP_CONFIG.user?.expertId;
+    let impersonatingExpertId = APP_CONFIG.impersonating?.expertId;
+
     this.expert = {};
     this.expertName = '';
     this.introduction = '';
@@ -162,13 +170,31 @@ export default class AppExpert extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
-    this.canEdit = true;
+    this.canEdit = (acExpertId === this.expertId || impersonatingExpertId === this.expertId);
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
+
+    if( !this.expertImpersonating ) {
+      this.expertImpersonating = '';
+      this.hideImpersonate = (
+        ((acExpertId && acExpertId !== this.expertId) &&
+        (impersonatingExpertId && impersonatingExpertId !== this.expertId)) ||
+        !(APP_CONFIG.user?.roles || []).includes('admin')
+      );
+    }
+  }
+
+  /**
+   * @method toggleAdminUi
+   * @description toggle admin ui based on user expertId
+   *
+  */
+  toggleAdminUi() {
+    this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId);
   }
 
   /**
@@ -178,7 +204,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
   async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
+    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     try {
       // sort by issued date desc, then by title asc
@@ -220,7 +246,7 @@ export default class AppExpert extends Mixin(LitElement)
 
   /**
    * @method _downloadWorks
-   * @description bound to click events of download button in works list
+   * @description bound to click events of download button in works list. download .ris file of all works
    *
    * @param {Object} e click|keyup event
    */
@@ -235,6 +261,48 @@ export default class AppExpert extends Mixin(LitElement)
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', 'works.ris');
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
+   * @method _downloadGrants
+   * @description bound to click events of download button in grants list. download csv file of all grants
+   *
+   * @param {Object} e click|keyup event
+   */
+  async _downloadGrants(e) {
+    e.preventDefault();
+
+    let body = [];
+    this.grants.forEach(grant => {
+      body.push([
+        '"' + (grant.name || '') + '"',                               // Title
+        '"' + (grant.awardedBy || '') + '"',                          // Funding Agency
+        '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
+        '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
+        '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
+        '"' + (grant.role || '') + '"',                               // Type of Grant
+        '?', // List of contributors (role) {separate contributors by ";"}
+      ]);
+    });
+
+    if( !body.length ) return;
+
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'List of Contributors'];
+    let text = headers.join(',') + '\n';
+    body.forEach(row => {
+      text += row.join(',') + '\n';
+    });
+
+    let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+    let url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'grants.csv');
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
@@ -289,6 +357,44 @@ export default class AppExpert extends Mixin(LitElement)
     e.preventDefault();
 
     this.AppStateModel.setLocation('/works-edit/'+this.expertId);
+  }
+
+  /**
+   * @method _impersonateClick
+   * @description impersonate expert
+   */
+  _impersonateClick(e) {
+    e.preventDefault();
+
+    let user = APP_CONFIG.user;
+    if( !user || !(user.roles || []).filter(r => r === 'admin')[0] ) return;
+
+    this.hideImpersonate = true;
+    this.expertImpersonating = this.expertId;
+
+    APP_CONFIG.impersonating = {
+      expertId : this.expertId,
+      expertName : this.expertName
+    };
+
+    // dispatch event to fin-app
+    this.dispatchEvent(
+      new CustomEvent("impersonate", {})
+    );
+
+    this.canEdit = true;
+  }
+
+  /**
+   * @method cancelImpersonate
+   * @description cancel impersonating an expert
+   */
+  cancelImpersonate() {
+    this.expertImpersonating = '';
+
+    this.hideImpersonate = APP_CONFIG.user?.expertId === this.expertId;
+
+    if( APP_CONFIG.user?.expertId !== this.expertId ) this.canEdit = false;
   }
 
 }

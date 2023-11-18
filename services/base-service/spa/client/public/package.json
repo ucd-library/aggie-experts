@@ -18,6 +18,7 @@
     "citation-js": "^0.6.9",
     "dompurify": "^2.3.6",
     "lit": "^2.8.0",
-    "lit-element": "^3.3.3"
+    "lit-element": "^3.3.3",
+    "md5": "^2.3.0"
   }
 }

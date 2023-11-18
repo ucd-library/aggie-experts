@@ -36,8 +36,18 @@ module.exports = async (app) => {
     enable404 : true,
 
     getConfig : async (req, res, next) => {
+      let user = req.user;
+
+      if( user ) {
+        if( !user.roles ) user.roles = [];
+        if( user.roles.includes('admin') ) user.admin = true;
+        user.loggedIn = true;
+      } else {
+        user = {loggedIn: false};
+      }
+
       next({
-        user : {},
+        user,
         appRoutes : config.client.appRoutes,
         env : config.client.env,
       });

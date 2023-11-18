@@ -17,6 +17,10 @@ return html`
       display: block;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .hero-main {
       background: url('/images/watercolor-gold-solid.jpg') no-repeat center center;
       background-size: 100% auto;
@@ -73,7 +77,8 @@ return html`
     .hero-main h1 .tooltip:hover ucdlib-icon,
     .roles-websites .roles h4 ucdlib-icon:hover,
     .roles-websites .websites h4 ucdlib-icon:hover,
-    .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover {
+    .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover,
+    .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon:hover {
       fill: var(--color-aggie-gold);
     }
 
@@ -409,6 +414,40 @@ return html`
       line-height: var(--lh-html);
     }
 
+    .impersonate-btn {
+      margin-left: 1.19rem;
+      border-radius: 1.25em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-width: 10ch;
+      min-height: 2.5em;
+      margin-bottom: 0;
+      padding: 0.625em 1em;
+      border: 1px solid #b0d0ed;
+      background-color: transparent;
+      color: #022851;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      line-height: 1.1;
+      text-align: center;
+      text-decoration: none;
+      --btn-arrow-color: #ffbf00;
+      /* padding-right: 1.5em;
+      padding-left: 0.75em; */
+      transition: 0.2s padding ease-out;
+      border-color: #ffbf00;
+      background-color: transparent;
+    }
+
+    .impersonate-btn:hover {
+      background-color: #ffbf00;
+      color: #022851;
+      border-color: #ffbf00;
+    }
+
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
@@ -441,13 +480,12 @@ return html`
         <div class="experts">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT</span>
+          <button ?hidden="${this.hideImpersonate}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
         </div>
         <h1>${this.expertName}
-          <a href="https://org.ucdavis.edu/odr/" style="position: relative;">
+          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
             <span class="tooltip edit-name" data-text="Edit name">
-              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                ?hidden="${!this.canEdit}">
-              </ucdlib-icon>
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
             </span>
           </a>
         </h1>
@@ -488,11 +526,9 @@ return html`
       <div class="roles-websites">
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles
-            <a href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}">
-                </ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
             </a>
           </h4>
@@ -518,10 +554,9 @@ return html`
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
           <h4>Links
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editWebsites}>
                 </ucdlib-icon>
               </span>
@@ -562,20 +597,18 @@ return html`
             <h2>${this.grants.length} Grants</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-grants" data-text="Edit grants">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editGrants}>
                 </ucdlib-icon>
               </span>
             </span>
 
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip download-all-grants" data-text="Download all grants">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._downloadGrants}>
                 </ucdlib-icon>
               </span>
@@ -628,20 +661,18 @@ return html`
             <h2>${this.citations.length} Works</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-works" data-text="Edit works">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editWorks}>
                 </ucdlib-icon>
               </span>
             </span>
 
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip download-all-works" data-text="Download all works">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._downloadWorks}>
                 </ucdlib-icon>
               </span>
