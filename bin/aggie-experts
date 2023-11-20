@@ -546,12 +546,13 @@ function setup() {
   function compose() {
     local keycloak=
     local env tmpl org tag mount gcs
-    read env tmpl org tag mount gcs <<<$(G "[.env,
+    read env tmpl org tag gcs mount <<<$(G "[.env,
                                             .template.${G[template]},
                                             .org // .envs.${G[env]}.org,
                                             .tag // .envs.${G[env]}.tag,
-                                            .mount // .envs.${G[env]}.mount,
-                                            .gcs // .envs.${G[env]}.gcs] | @tsv")
+                                            .gcs // .envs.${G[env]}.gcs,
+                                            .mount // .envs.${G[env]}.mount] | @tsv")
+
     local yq='.'
 
     if [[ "$env" = "dev" ]]; then
