@@ -84,24 +84,8 @@ export class ExpertsClient {
     throw new Error(`User ${user} not found in crosswalk`);
   }
 
-  async getIAMProfiles(opt, scope) {
-
-    let url = encodeURI(opt.iam.url + 'people/profile/search?key=' + opt.iam.auth);
-    // add a user(cas) id(s) to the iam endpoint if specified
-    if (scope === 'users' && opt.users.length > 0) {
-      url += '&userId=' + opt.users;
-    }
-    // if no specified users, then add the staff or the faculty flag
-    else if (scope === 'faculty') {
-      url += '&isFaculty=true';
-    }
-    else if (scope === 'staff') {
-      url += '&isStaff=true';
-    }
-    else {
-      throw new Error(`No IAM query scope specified.`);
-      return
-    }
+  async getIAMProfiles(search) {
+    let url = encodeURI(`${opt.iam.url}/people/profile/search?key=${opt.iam.auth}&${search}`);
 
     const response = await fetch(url);
 

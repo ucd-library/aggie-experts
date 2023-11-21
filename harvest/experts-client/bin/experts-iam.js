@@ -64,14 +64,14 @@ async function main(opt) {
 
   if (opt.users.length === 0) {
     if (opt.staff) {
-      await ec.getIAMProfiles(opt, 'staff');
+      await ec.getIAMProfiles('isStaff=true');
     }
     if (opt.faculty) {
-      await ec.getIAMProfiles(opt, 'faculty');
+      await ec.getIAMProfiles('isFaculty=true');
     }
   }
   else {
-    await ec.getIAMProfiles(opt, 'users');
+    await ec.getIAMProfiles('userId=' + opt.users);
   }
 
   console.log('starting createJsonLd');
