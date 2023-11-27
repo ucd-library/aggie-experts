@@ -66,6 +66,7 @@ export class ExpertsClient {
     } else {
       this.cdl.authBasic = this.cdl.auth;
     }
+
     // Author options
     this.author_truncate_to = opt.authorTruncateTo || 10000;
     this.author_trim_info = opt.authorTrimInfo || false
@@ -82,25 +83,6 @@ export class ExpertsClient {
       return this.userId[user];
     }
     throw new Error(`User ${user} not found in crosswalk`);
-  }
-
-  async getIAMProfiles(search) {
-    let url = encodeURI(`${opt.iam.url}/people/profile/search?key=${opt.iam.auth}&${search}`);
-
-    const response = await fetch(url);
-
-    if (response.status !== 200) {
-      throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-    }
-    else if (response.status === 200) {
-      let respJson = await response.json();
-      // console.log(this.doc);
-      if (respJson == null) {
-        throw new Error(`No profiles returned from IAM.`);
-      }
-      this.experts = this.experts.concat(respJson.responseData.results);
-    }
-    return
   }
 
   static str_or_file(opt, param, required) {
@@ -137,7 +119,7 @@ export class ExpertsClient {
           bindings = bindings.set(key, value);
         }
       }
-      // comunica's initialBindings function doesn't work,
+       // comunica's initialBindings function doesn't work,
       //so this is a sloppy workaround
       let insert = opt.insert;
       for (const [key, value] of bindings) {
