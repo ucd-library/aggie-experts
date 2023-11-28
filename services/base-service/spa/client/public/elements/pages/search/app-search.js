@@ -261,7 +261,7 @@ export default class AppSearch extends Mixin(LitElement)
           */
 
 
-          let email = onlyAuthor.length ? result.contactInfo?.hasEmail?.replace('email:','')?.trim() : 'NA';
+          let email = onlyAuthor.length ? result.contactInfo?.hasEmail?.replace('mailto:','')?.trim() : 'NA';
 
           body.push([
             '"expert"',
@@ -361,7 +361,7 @@ export default class AppSearch extends Mixin(LitElement)
           */
 
 
-          let email = onlyAuthor.length ? result.contactInfo?.hasEmail?.replace('email:','')?.trim() : 'NA';
+          let email = onlyAuthor.length ? result.contactInfo?.hasEmail?.replace('mailto:','')?.trim() : 'NA';
 
 
           body.push([

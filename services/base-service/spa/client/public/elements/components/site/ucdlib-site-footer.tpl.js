@@ -59,10 +59,7 @@ export function styles() {
       padding: var(--spacing-half);
       padding-left: 0;
     }
-    ucdlib-site-footer-column a:hover {
-      background-color: var(--color-aggie-blue-80);
-      border-radius: 4px;
-    }
+
     .container-footer {
       width: 90%;
       margin: 0 auto;

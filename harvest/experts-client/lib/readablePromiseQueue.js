@@ -15,6 +15,7 @@ export class readablePromiseQueue {
 
   async execute() {
     // should decide if this is a promise or not
+    performance.mark(this.name);
     this.readable = await this.readable;
     this.readable
       .on('readable', () => {
@@ -32,7 +33,8 @@ export class readablePromiseQueue {
       this.readable.on('end', () => {
         Promise.all(this.queue)
           .then( results => {
-            this.logger.info(`${this.name} Promise.all resolved`);
+            this.logger.info({measure:[this.name],queue:{name:this.name,max:this.max_promises}},`resolved`);
+            performance.clearMarks(this.name);
             resolve(results); })
           .catch(error => { reject(error); });
       });
@@ -59,7 +61,12 @@ export class readablePromiseQueue {
       pending_promises++;
     }
     if (first_next!=pending_promises) {
-      this.logger.info(`promise:(${first_next}:${pending_promises}/${this.max_promises}) via ${via}`);
+      this.logger.info({queue:{
+        name:this.name,
+        first_next:first_next,
+        pending:pending_promises,
+        queue:this.queue.length,
+        via}},'promise');
     }
   }
 

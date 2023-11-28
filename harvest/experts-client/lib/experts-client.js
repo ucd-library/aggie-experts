@@ -32,36 +32,20 @@ import readablePromiseQueue from './readablePromiseQueue.js';
 export class ExpertsClient {
 
   static context = {
-    listed: {
-      "@context": {
-        "@base": "http://oapolicy.universityofcalifornia.edu/",
-        "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
-        "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
-        "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
-        "id": { "@type": "@id", "@id": "@id" },
-        "field-name": "api:field-name",
-        "field-number": "api:field-number",
-        "$t": "api:field-value",
-        "api:person": { "@container": "@list" },
-        "api:first-names-X": { "@container": "@list" },
-        "api:web-address": { "@container": "@list" }
-      },
-      "@id": 'http://oapolicy.universityofcalifornia.edu/'
+    "@context": {
+      "@base": "http://oapolicy.universityofcalifornia.edu/",
+      "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "id": { "@type": "@id", "@id": "@id" },
+      "field-name": "api:field-name",
+      "field-number": "api:field-number",
+      "$t": "api:field-value",
+      "api:person": { "@container": "@list" },
+      "api:first-names-X": { "@container": "@list" },
+      "api:web-address": { "@container": "@list" }
     },
-    unlisted: {
-      "@context": {
-        "@base": "http://oapolicy.universityofcalifornia.edu/",
-        "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
-        "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
-        "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
-        "id": { "@type": "@id", "@id": "@id" },
-        "field-name": "api:field-name",
-        "field-number": "api:field-number",
-        "$t": "api:field-value",
-        "api:web-address": { "@container": "@list" }
-      },
-      "@id": 'http://oapolicy.universityofcalifornia.edu/'
-    }
+    "@id":'http://oapolicy.universityofcalifornia.edu/'
   };
 
   /**
@@ -83,15 +67,14 @@ export class ExpertsClient {
       this.cdl.authBasic = this.cdl.auth;
     }
     // Author options
-    this.author_truncate_to = opt.authorTruncateTo || 0;
-    this.author_rank = opt.authorRank || false
+    this.author_truncate_to = opt.authorTruncateTo || 10000;
     this.author_trim_info = opt.authorTrimInfo || false
     // debugging
     this.debug_save_xml = opt.debugSaveXml || false
 
   }
   context() {
-    return JSON.parse(JSON.stringify(ExpertsClient.context[(this.opt.author_rank ? 'listed' : 'unlisted')]));
+    return JSON.parse(JSON.stringify(ExpertsClient.context));
   }
 
   getUserId(user) {
@@ -231,6 +214,7 @@ export class ExpertsClient {
         }
         bindings = bindings.delete('filename');
       }
+      performance.mark(fn);
       // comunica's initialBindings function doesn't work,
       //so this is a sloppy workaround
       let construct = opt.construct;
@@ -251,9 +235,10 @@ export class ExpertsClient {
       } else {
         doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
       }
-      this.logger.info(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
+      this.logger.info({measure:[fn],quads:quads.length},'record');
+      performance.clearMarks(fn);
     }
 
     const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()], fetch })
@@ -421,7 +406,6 @@ export class ExpertsClient {
     if (query) {
       nextPage += `?${query}`
     }
-    let count = 0;
 
     // Trim extraneous info from authors
     function author_trim_info(author) {
@@ -443,12 +427,9 @@ export class ExpertsClient {
             Array.isArray(authors) || (authors = [authors]);
             for (let i = 0; i < (authors.length < max_authors ? authors.length : max_authors); i++) {
               if (me.author_trim_info) { author_trim_info(authors[i]); }
-              if (me.author_rank) { authors[i].rank = i + 1; }
             }
-            if (authors.length > 1) {
-              if (me.author_rank) { authors[authors.length - 1].rank = authors.length + 1 };
-              //authors[authors.length-1].credit='last author';
-              if (me.author_trim_info) { author_trim_info(authors[authors.length - 1]); }
+            if (authors.length>1) {
+              if (me.author_trim_info) { author_trim_info(authors[authors.length-1]); }
             }
             authors.splice(max_authors, authors.length - max_authors - 1);
           }
@@ -457,11 +438,20 @@ export class ExpertsClient {
       return work;
     }
 
+    let count = 0;
+
     while (nextPage) {
       let results = [];
       let entries = [];
 
-      const page = await this.getXMLPageAsObj(nextPage, path.join(user, this.debugRelationshipDir), count, this.cdl.timeout);
+      performance.mark(`${user}_${count}`);
+      performance.mark(`${user}_${count}_fetch`);
+
+      const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),count,this.cdl.timeout);
+      performance.mark(`${user}_${count}_post`);
+      this.logger.info({measure:[`${user}_${count}`,`${user}_${count}_fetch`],user:user,page:count},`fetched`);
+      performance.clearMarks(`${user}_${count}_fetch`);
+      // add the entries to the results array
 
       // Bad writing here
       if (this.debug_save_xml) {
@@ -481,8 +471,8 @@ export class ExpertsClient {
         for (let work of entries) {
           let related = [];
           if (work['api:relationship']?.['api:related']) {
-            if (this.author_truncate_to || this.author_rank || this.author_trim_info) {
-              related.push(update_author(this, work['api:relationship']['api:related']))
+            if (this.author_truncate_to || this.author_trim_info) {
+              related.push(update_author(this,work['api:relationship']['api:related']))
             } else {
               related.push(work['api:relationship']['api:related'])
             }
@@ -516,6 +506,9 @@ export class ExpertsClient {
         await db.createGraphFromJsonLdFile(jsonld);
       }
       // Fetch the next page
+      this.logger.info({measure:[`${user}_${count}`,`${user}_${count}_post`],user:user,page:count},`posted`);
+      performance.clearMarks(`${user}_${count}_post`);
+      performance.clearMarks(`${user}_${count}`);
       count++
       nextPage = this.nextPage(page?.feed?.['api:pagination']);
     }
