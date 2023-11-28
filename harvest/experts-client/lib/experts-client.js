@@ -60,6 +60,9 @@ export class ExpertsClient {
     // Store crosswalk of user=>CDL ID
     this.userId = {};
 
+    // fetch parameters
+    this.timeout = opt.timeout || 30000;
+
     this.cdl = opt.cdl || {};
     if (this.cdl?.auth.match(':')) {
       this.cdl.authBasic = Buffer.from(this.cdl.auth).toString('base64');
@@ -271,7 +274,7 @@ export class ExpertsClient {
    * @returns XML
    *
    */
-  async getXMLPageAsObj(page, name = 'query', count = 0, timeout = 30000) {
+  async getXMLPageAsObj(page, name = 'query', count = 0) {
     const dir = path.join('.', name);
     const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
     let xml;
@@ -284,7 +287,7 @@ export class ExpertsClient {
     }
     // If not saved, or not found, then fetch
     if (!xml) {
-      const requestTimeout = timeout; // Set the timeout
+      const requestTimeout = this.timeout; // Set the timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
 
@@ -351,7 +354,7 @@ export class ExpertsClient {
     var count = 0;
 
     while (nextPage) {
-      const page = await this.getXMLPageAsObj(nextPage, name, count++, this.cdl.timeout);
+      const page = await this.getXMLPageAsObj(nextPage, name, count++);
       // add the entries to the results array
       if (page && page.feed && page.feed.entry) {
         results = results.concat(page.feed.entry);
@@ -399,7 +402,7 @@ export class ExpertsClient {
   * @returns
   *
   */
-  async getPostUserRelationships(db, user, query = 'detail=full', opt) {
+  async getPostUserRelationships(db, user, query = 'detail=full') {
     let lastPage = false
     const cdlId = this.getUserId(user);
     let nextPage = `${this.cdl.url}/users/${cdlId}/relationships`
@@ -447,7 +450,7 @@ export class ExpertsClient {
       performance.mark(`${user}_${count}`);
       performance.mark(`${user}_${count}_fetch`);
 
-      const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),count,this.cdl.timeout);
+      const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),count);
       performance.mark(`${user}_${count}_post`);
       this.logger.info({measure:[`${user}_${count}`,`${user}_${count}_fetch`],user:user,page:count},`fetched`);
       performance.clearMarks(`${user}_${count}_fetch`);
