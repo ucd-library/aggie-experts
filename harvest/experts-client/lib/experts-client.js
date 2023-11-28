@@ -58,9 +58,12 @@ export class ExpertsClient {
     this.experts = [];
     this.debugRelationshipDir = opt.debugRelationshipDir || 'relationships';
     // Store crosswalk of user=>CDL ID
-    this.userId={};
+    this.userId = {};
 
-    this.cdl=opt.cdl || {};
+    // fetch parameters
+    this.timeout = opt.timeout || 30000;
+
+    this.cdl = opt.cdl || {};
     if (this.cdl?.auth.match(':')) {
       this.cdl.authBasic = Buffer.from(this.cdl.auth).toString('base64');
     } else {
@@ -168,10 +171,10 @@ export class ExpertsClient {
       return promise;
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources:[opt.db.source()] })
+    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()] })
 
     const queue = new readablePromiseQueue(bindingStream, insertBoundConstruct,
-                                           { name: 'insert', max_promises: 10, logger: this.logger });
+      { name: 'insert', max_promises: 10, logger: this.logger });
     return queue.execute({ via: 'start' });
   }
 
@@ -241,9 +244,9 @@ export class ExpertsClient {
       performance.clearMarks(fn);
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()],fetch })
+    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()], fetch })
     const queue = new readablePromiseQueue(bindingStream, constructRecord,
-                                           { name: 'splay', max_promises: 5, logger:this.logger });
+      { name: 'splay', max_promises: 5, logger: this.logger });
     return queue.execute({ via: 'start' });
 
   }
@@ -271,44 +274,59 @@ export class ExpertsClient {
    * @returns XML
    *
    */
-  async getXMLPageAsObj(page,name='query',count=0) {
-    const dir = path.join('.',name);
-    const fn = path.join(dir,'page_'+ count.toString().padStart(3, '0') + '.xml');
+  async getXMLPageAsObj(page, name = 'query', count = 0) {
+    const dir = path.join('.', name);
+    const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
     let xml;
 
     if (this.debug_save_xml) {
       if (fs.existsSync(fn)) {
         this.logger.info(`DEBUG: Reading saved: ${fn}`);
-        xml=fs.readFileSync(fn);
+        xml = fs.readFileSync(fn);
       }
     }
     // If not saved, or not found, then fetch
     if (!xml) {
-      const response = await fetch(page, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + this.cdl.authBasic,
-          'Content-Type': 'text/xml'
-        }
-      })
+      const requestTimeout = this.timeout; // Set the timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
 
-      if (response.status !== 200) {
-        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-      }
-      xml = await response.text();
-    }
-    if (this.debug_save_xml) {
       try {
-        this.logger.info(`DEBUG: writing ${fn}`);
-        fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
-        fs.writeFileSync(fn,xml);
+        const response = await fetch(page, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Authorization': 'Basic ' + this.cdl.authBasic,
+            'Content-Type': 'text/xml'
+          }
+        })
+
+        clearTimeout(timeoutId); // Clear the timeout as the request was successful
+
+        if (response.status !== 200) {
+          this.logger.error(`Did not get an OK from the server. Code: ${response.status}`);
+          return null;
+        }
+        xml = await response.text();
+
       } catch (error) {
-        this.logger.error(`Error creating or writing the file: ${error}`);
+        this.logger.error(`Error fetching ${page}: ${error}`);
+        return null;
       }
+
+      if (this.debug_save_xml) {
+        try {
+          this.logger.info(`DEBUG: writing ${fn}`);
+          fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
+          fs.writeFileSync(fn, xml);
+        } catch (error) {
+          this.logger.error(`Error creating or writing the file: ${error}`);
+        }
+      }
+      // convert the xml atom feed to json
+      const json = parser.toJson(xml, { object: true, arrayNotation: false });
+      return json;
     }
-    // convert the xml atom feed to json
-    const json = parser.toJson(xml, { object: true, arrayNotation: false });
-    return json;
   }
 
   nextPage(pagination) {
@@ -329,19 +347,21 @@ export class ExpertsClient {
   * @returns
   *
   */
-  async getCDLentries(query,name='query') {
+  async getCDLentries(query, name = 'query') {
     var lastPage = false
     var results = [];
     var nextPage = path.join(this.cdl.url, query)
     var count = 0;
 
     while (nextPage) {
-      const page=await this.getXMLPageAsObj(nextPage,name,count++);
+      const page = await this.getXMLPageAsObj(nextPage, name, count++);
       // add the entries to the results array
-      if (page.feed.entry) {
+      if (page && page.feed && page.feed.entry) {
         results = results.concat(page.feed.entry);
       }
-      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+      if (page && page.feed && page.feed['api:pagination']) {
+        nextPage = this.nextPage(page?.feed?.['api:pagination']);
+      }
     }
     return results;
   }
@@ -354,16 +374,16 @@ export class ExpertsClient {
    * @returns
    *
    */
-  async getPostUser(db,user,query='detail=full') {
+  async getPostUser(db, user, query = 'detail=full') {
     // Get a full profile for the user
     let page = `users?username=${user}@ucdavis.edu`
     if (query) {
       page += `&${query}`
     }
 
-    const entries = await this.getCDLentries(page,user);
+    const entries = await this.getCDLentries(page, user);
 
-    this.userId[user]=entries[0]["api:object"].id;
+    this.userId[user] = entries[0]["api:object"].id;
 
     // Create the JSON-LD for the user profile
     let contextObj = this.context();
@@ -382,9 +402,9 @@ export class ExpertsClient {
   * @returns
   *
   */
-  async getPostUserRelationships(db,user,query='detail=full') {
+  async getPostUserRelationships(db, user, query = 'detail=full') {
     let lastPage = false
-    const cdlId=this.getUserId(user);
+    const cdlId = this.getUserId(user);
     let nextPage = `${this.cdl.url}/users/${cdlId}/relationships`
     if (query) {
       nextPage += `?${query}`
@@ -392,29 +412,29 @@ export class ExpertsClient {
 
     // Trim extraneous info from authors
     function author_trim_info(author) {
-      delete(author['api:addresses']);
+      delete (author['api:addresses']);
     }
 
     // modify author information
-    function update_author(me,work) {
-      const max_authors=me.author_truncate_to;
-      let records=work?.['api:object']?.['api:records']?.['api:record'] || [];
-      Array.isArray(records) || (records=[records]);
+    function update_author(me, work) {
+      const max_authors = me.author_truncate_to;
+      let records = work?.['api:object']?.['api:records']?.['api:record'] || [];
+      Array.isArray(records) || (records = [records]);
       records.forEach((record) => {
         // logger.info(`record: ${record.id}`);
-        let fields=record?.['api:native']?.['api:field'] || [];
-        Array.isArray(fields) || (fields=[fields]);
+        let fields = record?.['api:native']?.['api:field'] || [];
+        Array.isArray(fields) || (fields = [fields]);
         fields.forEach((field) => {
           if (field.name === 'authors') {
-            let authors=field?.['api:people']?.['api:person'] || [];
-            Array.isArray(authors) || (authors=[authors]);
-            for(let i=0;i<(authors.length<max_authors?authors.length:max_authors);i++) {
+            let authors = field?.['api:people']?.['api:person'] || [];
+            Array.isArray(authors) || (authors = [authors]);
+            for (let i = 0; i < (authors.length < max_authors ? authors.length : max_authors); i++) {
               if (me.author_trim_info) { author_trim_info(authors[i]); }
             }
             if (authors.length>1) {
               if (me.author_trim_info) { author_trim_info(authors[authors.length-1]); }
             }
-            authors.splice(max_authors,authors.length-max_authors-1);
+            authors.splice(max_authors, authors.length - max_authors - 1);
           }
         });
       });
@@ -438,12 +458,12 @@ export class ExpertsClient {
 
       // Bad writing here
       if (this.debug_save_xml) {
-        const dir = path.join(user,this.debugRelationshipDir);
-        const fn = path.join(dir,'page_'+ count.toString().padStart(3, '0') + '.json');
+        const dir = path.join(user, this.debugRelationshipDir);
+        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
         try {
           fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
           this.logger.info(`DEBUG: writing ${fn}`);
-          fs.writeFileSync(fn,JSON.stringify(page,null,2));
+          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
         } catch (error) {
           this.logger.error(`Error creating or writing ${fn}: ${error}`);
         }
@@ -460,7 +480,7 @@ export class ExpertsClient {
               related.push(work['api:relationship']['api:related'])
             }
           }
-          related.push({direction: 'to', id: cdlId, category: 'user'})
+          related.push({ direction: 'to', id: cdlId, category: 'user' })
           work['api:relationship'] ||= {};
           work['api:relationship']['api:related'] = related;
           results.push(work['api:relationship']);
@@ -470,16 +490,16 @@ export class ExpertsClient {
         let contextObj = this.context();
         contextObj["@graph"] = results;
 
-        let jsonld = JSON.stringify(contextObj,null,2);
+        let jsonld = JSON.stringify(contextObj, null, 2);
 
         // Bad writing here
         if (this.debug_save_xml) {
-          const dir = path.join(user,this.debugRelationshipDir);
-          const fn = path.join(dir,'jsonld_'+ count.toString().padStart(3, '0') + '.json');
+          const dir = path.join(user, this.debugRelationshipDir);
+          const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
           try {
             this.logger.info(`DEBUG: writing ${fn}`);
             fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
-            fs.writeFileSync(fn,jsonld);
+            fs.writeFileSync(fn, jsonld);
           } catch (error) {
             this.logger.error(`Error creating or writing ${fn}: ${error}`);
           }
