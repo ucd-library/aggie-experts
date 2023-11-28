@@ -42,12 +42,6 @@
     "memory-level": "^1.0.0",
     "nanoid": "^4.0.2",
     "node-fetch": "^3.3.2",
-    "quadstore": "^11.0.8",
-    "quadstore-comunica": "=3.0.0",
-    "rdf-data-factory": "^1.1.0",
-    "readable-stream": "^4.3.0",
-    "string-to-stream": "^3.0.1",
-    "winston": "^3.11.0",
     "xml2js": "^0.6.0",
     "xml2json": "^0.12.0"
   },
