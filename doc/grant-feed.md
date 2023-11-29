@@ -1,15 +1,32 @@
 # Aggie Experts Grant Feed workflow
 
-UCD grants are imported into the CDL Elements system using the Symplectic Elements feed mechanism.
-A CSV format file is uploaded to the "ucdavis" FTP account at ftp.use.symplectic.org. The file is
-then processed by the Symplectic Elements system and the grants are added to the CDL Elements system.
+UCD grants are imported into the CDL Elements system using the Symplectic Elements file upload feed mechanism.
+A CSV format file is created from a Fuseki Sparql query and uploaded to the "ucdavis" FTP account at ftp.use.symplectic.org. The file is
+then processed by the Symplectic Elements system and the grants are added to the CDL Elements system on a nightly basis. Once UCD grants are imported into CDL Elements, they are harvested into Aggie Experts using the Elements API. 
 
-Note that directories have been created for QA and Production.
+ftp.use.symplectic.org 
 
+username: ucdavis
+
+password: [via GCS Secret Manager]
+
+Note that directories have been created under the ucdavis account for QA and Production.
+
+## Process Data Flow
+```mermaid
+graph TD;
+    UCDGrantData-->FusekiDB;
+    FusekiDB-->CSV-files; 
+    CSV-files-->SymplecticFTP;
+    SymplecticFTP-->CDLElements;
+    CDLElements-->AggieExperts
+```
 
 ## Legacy KFS Grant Feed Workflow
 
-A one-time workflow to load all the grants from KFS into CDL Elements. A subset of the grants present in the KFS system have been designated as legacy.
+A one-time workflow to load all the grants from KFS into CDL Elements.
+
+A subset of the grants present in the KFS system have been designated as legacy.
 They will not be carried over to the new Aggie Enterpise system. The legacy grants are loaded into CDL Elements using the Symplectic Elements feed mechanism.
 A CSV format file is uploaded to the "ucdavis" FTP account at ftp.use.symplectic.org. The file is
 then processed by the Symplectic Elements system and the grants are added to the CDL Elements system.
@@ -23,20 +40,20 @@ The grant data file is named "grants.csv". The grant links file is named "links.
 
 |field|format|notes|
 |-----|------|-----|
-|id|ARK ID|ARK identifier used by Aggie Experts |
+|id|Ark ID|ARK identifier used by Aggie Experts|
 |category|text|Default to "grant"|
 |type|text|Default to "c-davis"|
-|url||not used|
-|institution-reference|ARK identifier used by Aggie|| 
-|title|text| Grant title                             |
+|url|url|not used|
+|institution-reference|Ark ID|ARK identifier used by Aggie Experts|
+|title|text| Grant title|
 |funding-type|text| Research, Service/Other, Instruction,   |
-|start-date|YYYY-MM-DD||
-|end-date| YYYY-MM-DD||
-|c-ucop-sponsor|||
+|start-date|YYYY-MM-DD|Grant start date|
+|end-date| YYYY-MM-DD|Grant end date|
+|c-ucop-sponsor|http:/rems.ucop.edu/sponsor/[CODE]|valid REMS sponsor code|
 |funder-name|text||
 |funder-reference||Funder ID|
 |amount-value|number||
-|amount-currency-code|| USD                                     |
+|amount-currency-code||USD|
 |visible|true/false|Determines whether matching records ... |
 
 These column names correspond to the grant data "underlying fields" in the Symplectic Elements system.
@@ -44,7 +61,8 @@ Values are mapped to matching fields in the CDL Elements system in the Grants ta
 Note that custom underlying fields can be added to the CDL Elements system to capture additional grant data.
 See "Manage underlying fields: grant" in the Symplectic Elements documentation for more information.
 
-#### Column names for the grant links file are:
+#### Column names for the grant links file are
+
 |field|format|notes|
 |-----|------|-----|
 |category-1|text|Default to "user"|
