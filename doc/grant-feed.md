@@ -1,7 +1,7 @@
 # Aggie Experts Grant Feed workflow
 
 UCD grants are imported into the CDL Elements system using the Symplectic Elements file upload feed mechanism.
-A CSV format file is created from a Fuseki Sparql query and uploaded to the "ucdavis" FTP account at ftp.use.symplectic.org. The file is
+A CSV format file is created from a Fuseki [Sparql] (harvest/experts-client/lib/query/grant_feed) query and uploaded to the "ucdavis" FTP account at ftp.use.symplectic.org. The file is
 then processed by the Symplectic Elements system and the grants are added to the CDL Elements system on a nightly basis. Once UCD grants are imported into CDL Elements, they are harvested into Aggie Experts using the Elements API. 
 
 ftp.use.symplectic.org 
