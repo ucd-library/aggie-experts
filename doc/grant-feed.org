@@ -55,6 +55,7 @@ Column names for the grant links file are:
 | visible               |  true/false      |  Determines whether matching  **NOT SUPPORTED |
 |-----------------------+------------------+------------------------------------|
 
-
+** Sparql Queries
+see: [harvest/experts-client/lib/query/grant_feed/grants_feed.rq]
 
 
