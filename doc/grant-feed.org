@@ -56,6 +56,6 @@ Column names for the grant links file are:
 |-----------------------+------------------+------------------------------------|
 
 ** Sparql Queries
-see: [harvest/experts-client/lib/query/grant_feed/grants_feed.rq]
+see: ([Grant Feed Sparql Query](../harvest/experts-client/lib/query/grant_feed/grants_feed.rq))
 
 
