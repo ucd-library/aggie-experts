@@ -240,7 +240,7 @@ export class ExpertsClient {
       }
       fs.ensureFileSync(fn);
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
-      this.logger.info({measure:[fn],quads:quads.length},'record');
+      this.logger.info({measure:[fn],quads:quads.length,user:opt.user},'record');
       performance.clearMarks(fn);
     }
 

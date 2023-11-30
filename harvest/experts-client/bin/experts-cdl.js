@@ -168,7 +168,7 @@ async function main(opt) {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
-          return await ec.splay({ ...splay, bindings, db, output: opt.output });
+          return await ec.splay({ ...splay, bindings, db, output: opt.output, user });
         })(n);
         logger.info({measure:[n],user},`splayed ${n}`);
         performance.clearMarks(n);
