@@ -255,6 +255,9 @@ return html`
       .visible="${this.showModal}"
       .title="${this.modalTitle}"
       .content="${this.modalContent}"
+      .hideCancel="${this.hideCancel}"
+      .hideSave="${this.hideSave}"
+      .hideOK="${this.hideOK}"
       @cancel=${(e) => this.showModal = false}
       @save=${(e) => this.showModal = false}>
     </app-modal-overlay>

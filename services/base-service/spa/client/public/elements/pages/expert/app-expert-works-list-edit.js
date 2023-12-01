@@ -22,6 +22,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       currentPage : { type : Number },
       allSelected : { type : Boolean },
       showModal : { type : Boolean },
+      hideCancel : { type : Boolean },
+      hideSave : { type : Boolean },
+      hideOK : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -47,6 +50,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.resultsPerPage = 25;
     this.allSelected = false;
     this.showModal = false;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -277,6 +283,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modalTitle = 'Hide Work';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**
@@ -287,6 +296,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modalTitle = 'Reject Work';
     this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**

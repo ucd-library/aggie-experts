@@ -1,8 +1,10 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const md5 = require('md5');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
+const esClient = require('@ucd-lib/fin-service-utils').esClient;
 
 module.exports = async (app) => {
 
@@ -42,6 +44,21 @@ module.exports = async (app) => {
         if( !user.roles ) user.roles = [];
         if( user.roles.includes('admin') ) user.admin = true;
         user.loggedIn = true;
+        user.expertId = 'expert/'+ md5(user.preferred_username+'@ucdavis.edu');
+
+        let esUser = await esClient.search({
+          query : {
+            bool: {
+              must: {
+                term : {
+                  _id : user.expertId,
+                }
+              }
+            }
+          }
+        });
+        user.hasProfile = esUser.hits.hits.length > 0;
+
       } else {
         user = {loggedIn: false};
       }
