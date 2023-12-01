@@ -448,6 +448,34 @@ return html`
       border-color: #ffbf00;
     }
 
+    .refresh-profile {
+      padding-bottom: 2.38rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .last-updated-label {
+      color: #666;
+      font-size: .95rem;
+      font-style: italic;
+      line-height: 1.625rem;
+      padding-left: 1rem;
+    }
+
+    .btn--invert:before {
+      content: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTYiIHdpZHRoPSIxNiIgdmlld0JveD0iMCAwIDUxMiA1MTIiPjwhLS0hRm9udCBBd2Vzb21lIEZyZWUgNi41LjAgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSBDb3B5cmlnaHQgMjAyMyBGb250aWNvbnMsIEluYy4tLT48cGF0aCBmaWxsPSIjQjBEMEVEIiBkPSJNMTA1LjEgMjAyLjZjNy43LTIxLjggMjAuMi00Mi4zIDM3LjgtNTkuOGM2Mi41LTYyLjUgMTYzLjgtNjIuNSAyMjYuMyAwTDM4Ni4zIDE2MEgzNTJjLTE3LjcgMC0zMiAxNC4zLTMyIDMyczE0LjMgMzIgMzIgMzJINDYzLjVjMCAwIDAgMCAwIDBoLjRjMTcuNyAwIDMyLTE0LjMgMzItMzJWODBjMC0xNy43LTE0LjMtMzItMzItMzJzLTMyIDE0LjMtMzIgMzJ2MzUuMkw0MTQuNCA5Ny42Yy04Ny41LTg3LjUtMjI5LjMtODcuNS0zMTYuOCAwQzczLjIgMTIyIDU1LjYgMTUwLjcgNDQuOCAxODEuNGMtNS45IDE2LjcgMi45IDM0LjkgMTkuNSA0MC44czM0LjktMi45IDQwLjgtMTkuNXpNMzkgMjg5LjNjLTUgMS41LTkuOCA0LjItMTMuNyA4LjJjLTQgNC02LjcgOC44LTguMSAxNGMtLjMgMS4yLS42IDIuNS0uOCAzLjhjLS4zIDEuNy0uNCAzLjQtLjQgNS4xVjQzMmMwIDE3LjcgMTQuMyAzMiAzMiAzMnMzMi0xNC4zIDMyLTMyVjM5Ni45bDE3LjYgMTcuNSAwIDBjODcuNSA4Ny40IDIyOS4zIDg3LjQgMzE2LjcgMGMyNC40LTI0LjQgNDIuMS01My4xIDUyLjktODMuN2M1LjktMTYuNy0yLjktMzQuOS0xOS41LTQwLjhzLTM0LjkgMi45LTQwLjggMTkuNWMtNy43IDIxLjgtMjAuMiA0Mi4zLTM3LjggNTkuOGMtNjIuNSA2Mi41LTE2My44IDYyLjUtMjI2LjMgMGwtLjEtLjFMMTI1LjYgMzUySDE2MGMxNy43IDAgMzItMTQuMyAzMi0zMnMtMTQuMy0zMi0zMi0zMkg0OC40Yy0xLjYgMC0zLjIgLjEtNC44IC4zcy0zLjEgLjUtNC42IDF6Ii8+PC9zdmc+");
+      width: 2em;
+      position: relative;
+      left: 0.2rem;
+    }
+
+    .btn--invert {
+      /* width: 165px; */
+      border-color: var(--color-aggie-blue-50);
+      padding: .5rem 1.5rem .5rem .5rem;
+      font-size: 1rem;
+    }
+
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
@@ -472,6 +500,9 @@ return html`
       .visible="${this.showModal}"
       .title="${this.modalTitle}"
       .content="${this.modalContent}"
+      .hideCancel="${this.hideCancel}"
+      .hideSave="${this.hideSave}"
+      .hideOK="${this.hideOK}"
       @cancel=${(e) => this.showModal = false}
       @save=${(e) => this.showModal = false}>
     </app-modal-overlay>
@@ -493,6 +524,10 @@ return html`
     </div>
 
     <div class="main-content">
+      <div ?hidden="${!this.canEdit}" class="refresh-profile">
+        <button class="btn btn--invert" @click="${this._refreshProfileClicked}">Refresh Profile Data</button>
+        <div class="last-updated-label">Last Updated: Mon XX, 20XX, X:XXpm</div>
+      </div>
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>

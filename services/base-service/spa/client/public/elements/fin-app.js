@@ -1,8 +1,6 @@
 import { LitElement } from 'lit';
 import {render} from "./fin-app.tpl.js";
 
-import md5 from 'md5';
-
 // import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js'
 import '../elements/pages/home/app-home.js';
 import '../elements/pages/browse/app-browse.js';
@@ -50,6 +48,9 @@ export default class FinApp extends Mixin(LitElement)
     this.appRoutes = APP_CONFIG.appRoutes;
     this._injectModel('AppStateModel', 'ExpertModel');
 
+    // hack to customize header quick links, need to update styles if screen goes into mobile mode vs desktop mode and vice-versa
+    window.addEventListener("resize", this._validateLoggedInUser.bind(this));
+
     this.page = 'home';
     this.imageSrc = '';
     this.imageAltText = '';
@@ -93,34 +94,7 @@ export default class FinApp extends Mixin(LitElement)
     }
     window.scrollTo(0, 0);
 
-    let expertHash = md5((APP_CONFIG.user?.preferred_username || '') + '@ucdavis.edu');
-    if( expertHash ) {
-      this.expertId = 'expert/' + expertHash;
-
-      // this.expertId = 'expert/66356b7eec24c51f01e757af2b27ebb8'; // hack for testing as QH
-
-      APP_CONFIG.user.expertId = this.expertId;
-
-      // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
-      let header = this.shadowRoot.querySelector('ucd-theme-header');
-      let quickLinks = header?.querySelector('ucd-theme-quick-links');
-
-      try {
-        await this.ExpertModel.get(this.expertId, true); // head request only
-        if( quickLinks ) {
-          quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
-        }
-      } catch (error) {
-        console.warn('expert ' + this.expertId + ' not found for logged in user');
-
-        if( quickLinks ) {
-          quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
-        }
-      }
-
-      let appExpert = this.shadowRoot.querySelector('app-expert');
-      if( appExpert ) appExpert.toggleAdminUi();
-    }
+    this._validateLoggedInUser();
 
     let page = e.location.page;
     if( !APP_CONFIG.appRoutes.includes(e.location.page) ) page = '404';
@@ -130,6 +104,51 @@ export default class FinApp extends Mixin(LitElement)
     this.pathInfo = e.location.pathname.split('/media')[0];
 
     this.firstAppStateUpdate = false;
+  }
+
+  /**
+   * @method _validateLoggedInUser
+   * @description validate logged in user, hide profile link if expert not fount
+   * for logged in user
+   */
+  async _validateLoggedInUser() {
+    console.log('validating logged in user')
+
+    let expertId = APP_CONFIG.user?.expertId || '';
+    if( expertId ) {
+      this.expertId = expertId;
+
+      // this.expertId = 'expert/66356b7eec24c51f01e757af2b27ebb8'; // hack for testing as QH
+
+      // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
+      let header = this.shadowRoot.querySelector('ucd-theme-header');
+      let quickLinks = header?.querySelector('ucd-theme-quick-links');
+
+      if( APP_CONFIG.user?.hasProfile ) {
+        if( quickLinks ) {
+          quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
+        }
+      } else {
+        console.warn('expert ' + this.expertId + ' not found for logged in user');
+
+        if( quickLinks ) {
+          quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(3)').style.top = '3.2175rem';
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '0';
+
+          if( window.innerWidth > 991 ) {
+            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '6.5325rem';
+            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '1rem';
+          } else  {
+            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '0';
+          }
+        }
+      }
+
+      let appExpert = this.shadowRoot.querySelector('app-expert');
+      if( appExpert ) appExpert.toggleAdminUi();
+    }
   }
 
   /**
