@@ -46,18 +46,21 @@ module.exports = async (app) => {
         user.loggedIn = true;
         user.expertId = 'expert/'+ md5(user.preferred_username+'@ucdavis.edu');
 
-        let esUser = await esClient.search({
-          query : {
-            bool: {
-              must: {
-                term : {
-                  _id : user.expertId,
-                }
+        try {
+          const esResult = await esClient.get(
+            {
+              ...{
+                index: 'expert-read',
+                id: user.expertId,
+                _source: false
               }
             }
-          }
-        });
-        user.hasProfile = esUser.hits.hits.length > 0;
+          )
+          user.hasProfile = esResult.found;
+
+        } catch (e) {
+          user.hasProfile = false;
+        }
 
       } else {
         user = {loggedIn: false};
