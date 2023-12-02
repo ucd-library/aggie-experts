@@ -162,7 +162,8 @@ async function main(opt) {
       await ec.insert({ ...iam, bindings, db });
       logger.info({measure:['splay'],user},`insert`);
 
-      for (const n of ['expert', 'authorship', 'grant_role']) {
+//      for (const n of ['expert', 'authorship', 'grant_role']) {
+      for (const n of ['expert']) {
         logger.info({mark:n,user},`splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
@@ -231,7 +232,7 @@ Object.keys(opt).forEach((k) => {
     delete opt[k];
   }
 });
-opt.db = fuseki;
+//opt.db = fuseki;
 
 // make cdl_info as object
 Object.keys(opt).forEach((k) => {

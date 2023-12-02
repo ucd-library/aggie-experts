@@ -74,7 +74,7 @@ export class ExpertsClient {
     this.author_trim_info = opt.authorTrimInfo || false
     // debugging
     this.debug_save_xml = opt.debugSaveXml || false
-
+    this.save_dir = 'saved_xml'
   }
   context() {
     return JSON.parse(JSON.stringify(ExpertsClient.context));
@@ -228,7 +228,10 @@ export class ExpertsClient {
           construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-      const quadStream = await q.queryQuads(construct, { sources: [opt.db.source()] });
+      const quadStream = await q.queryQuads(
+        construct,
+        { //initialBindings:bindings,
+          sources: [opt.db.source()] });
 
       // convert construct to jsonld quads
       const quads = await quadStream.toArray();
@@ -275,13 +278,13 @@ export class ExpertsClient {
    *
    */
   async getXMLPageAsObj(page, name = 'query', count = 0) {
-    const dir = path.join('.', name);
+    const dir = path.join(this.save_dir, name);
     const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
     let xml;
 
     if (this.debug_save_xml) {
       if (fs.existsSync(fn)) {
-        this.logger.info(`DEBUG: Reading saved: ${fn}`);
+        this.logger.info({fn,action:"read"},`DEBUG: Reading saved: ${fn}`);
         xml = fs.readFileSync(fn);
       }
     }
@@ -316,17 +319,18 @@ export class ExpertsClient {
 
       if (this.debug_save_xml) {
         try {
-          this.logger.info(`DEBUG: writing ${fn}`);
-          fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
+          this.logger.info({action:"save",fn},`DEBUG: writing ${fn}`);
+          fs.ensureFileSync(fn);
           fs.writeFileSync(fn, xml);
         } catch (error) {
           this.logger.error(`Error creating or writing the file: ${error}`);
         }
       }
-      // convert the xml atom feed to json
-      const json = parser.toJson(xml, { object: true, arrayNotation: false });
-      return json;
     }
+    // convert the xml atom feed to json
+    this.logger.info(`Converting ${fn} to json`);
+    const json = await parser.toJson(xml, { object: true, arrayNotation: false });
+    return json;
   }
 
   nextPage(pagination) {
@@ -341,33 +345,6 @@ export class ExpertsClient {
   }
 
   /**
- * @description Generic function to get all the entries from a CDL collection
- * @param {
-  * } opt
-  * @returns
-  *
-  */
-  async getCDLentries(query, name = 'query') {
-    var lastPage = false
-    var results = [];
-    var nextPage = path.join(this.cdl.url, query)
-    var count = 0;
-
-    while (nextPage) {
-      const page = await this.getXMLPageAsObj(nextPage, name, count++);
-      // add the entries to the results array
-      if (page && page.feed && page.feed.entry) {
-        results = results.concat(page.feed.entry);
-      }
-      if (page && page.feed && page.feed['api:pagination']) {
-        nextPage = this.nextPage(page?.feed?.['api:pagination']);
-      }
-    }
-    return results;
-  }
-
-
-  /**
    * @description Get user from CDL and post to a fuseki database
    * @param {
    * } opt
@@ -375,24 +352,73 @@ export class ExpertsClient {
    *
    */
   async getPostUser(db, user, query = 'detail=full') {
+    let lastPage = false
     // Get a full profile for the user
-    let page = `users?username=${user}@ucdavis.edu`
+    let nextPage = `${this.cdl.url}/users?username=${user}@ucdavis.edu`
     if (query) {
-      page += `&${query}`
+      nextPage += `&${query}`
     }
 
-    const entries = await this.getCDLentries(page, user);
+    let count = 0;
 
-    this.userId[user] = entries[0]["api:object"].id;
+    while (nextPage) {
+      let results=[];
+      performance.mark(`${user}_${count}`);
+      const page = await this.getXMLPageAsObj(nextPage,user, count);
+      this.logger.info(
+        {measure:[`${user}_${count}`],
+         post:"expert",
+         user:user,
+         page:count},`fetched`)
+      if (this.debug_save_xml) {
+        const dir = path.join(this.save_dir,user);
+        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
+        try {
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+          this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+        } catch (error) {
+          this.logger.error(`Error creating or writing ${fn}: ${error}`);
+        }
+      }
 
-    // Create the JSON-LD for the user profile
-    let contextObj = this.context();
-    contextObj["@graph"] = entries;
+      // add the entries to the results array
+      if (page?.feed?.entry) {
+        results = results.concat(page.feed.entry);
+        // Save CDL ID to this
+        this.userId[user]=results[0]["api:object"].id;
 
-    const jsonld = JSON.stringify(contextObj);
-    await db.createGraphFromJsonLdFile(jsonld);
+        let contextObj = this.context();
+        contextObj["@graph"] = results;
+        let jsonld = JSON.stringify(contextObj);
 
-    this.logger.info(`graph ${user} added`);
+        if (this.debug_save_xml) {
+          const dir = path.join(this.save_dir,user);
+          const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
+          try {
+            fs.ensureFileSync(fn);
+            fs.writeFileSync(fn, jsonld);
+            this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+          } catch (error) {
+            this.logger.error(`Error creating or writing ${fn}: ${error}`);
+          }
+        }
+        // Insert into our local Fuseki DB
+        await db.createGraphFromJsonLdFile(jsonld);
+      }
+      // Fetch the next page
+      this.logger.info(
+        {
+          measure:[`${user}_${count}`,`${user}_${count}_post`],
+          user:user,
+          post:"expert",
+          page:count},`posted`);
+      performance.clearMarks(`${user}_${count}_post`);
+      performance.clearMarks(`${user}_${count}`);
+      count++
+      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+    }
+    return count;
   }
 
   /**
@@ -447,29 +473,31 @@ export class ExpertsClient {
       let results = [];
       let entries = [];
 
-      performance.mark(`${user}_${count}`);
-      performance.mark(`${user}_${count}_fetch`);
+      performance.mark(`${user}_rel_${count}`);
 
       const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),count);
-      performance.mark(`${user}_${count}_post`);
-      this.logger.info({measure:[`${user}_${count}`,`${user}_${count}_fetch`],user:user,page:count},`fetched`);
-      performance.clearMarks(`${user}_${count}_fetch`);
-      // add the entries to the results array
+      performance.mark(`${user}_rel_${count}_post`);
+      this.logger.info(
+        {
+          measure:[`${user}_rel_${count}`],
+          post:"relationship",
+          user:user,
+          page:count},`fetched`);
 
       // Bad writing here
       if (this.debug_save_xml) {
-        const dir = path.join(user, this.debugRelationshipDir);
+        const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
         const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
         try {
-          fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
-          this.logger.info(`DEBUG: writing ${fn}`);
+          fs.ensureFileSync(fn);
           fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+          this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
         } catch (error) {
           this.logger.error(`Error creating or writing ${fn}: ${error}`);
         }
       }
       // add the entries to the results array
-      if (page.feed.entry) {
+      if (page?.feed?.entry) {
         entries = entries.concat(page.feed.entry);
         for (let work of entries) {
           let related = [];
@@ -494,12 +522,12 @@ export class ExpertsClient {
 
         // Bad writing here
         if (this.debug_save_xml) {
-          const dir = path.join(user, this.debugRelationshipDir);
+          const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
           const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
           try {
-            this.logger.info(`DEBUG: writing ${fn}`);
-            fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
+            fs.ensureFileSync(fn);
             fs.writeFileSync(fn, jsonld);
+            this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
           } catch (error) {
             this.logger.error(`Error creating or writing ${fn}: ${error}`);
           }
@@ -509,13 +537,18 @@ export class ExpertsClient {
         await db.createGraphFromJsonLdFile(jsonld);
       }
       // Fetch the next page
-      this.logger.info({measure:[`${user}_${count}`,`${user}_${count}_post`],user:user,page:count},`posted`);
-      performance.clearMarks(`${user}_${count}_post`);
-      performance.clearMarks(`${user}_${count}`);
+      this.logger.info(
+        {
+          measure:[`${user}_rel_${count}`,`${user}_rel_${count}_post`],
+          user:user,
+          post:"relationship",
+          page:count},`posted`);
+      performance.clearMarks(`${user}_rel_${count}_post`);
+      performance.clearMarks(`${user}_rel_${count}`);
       count++
       nextPage = this.nextPage(page?.feed?.['api:pagination']);
     }
-    return;
+    return count;
   }
 }
 

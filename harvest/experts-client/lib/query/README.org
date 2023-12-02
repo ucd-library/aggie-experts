@@ -23,9 +23,103 @@ Some of the sparql queries are written in this area
   PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 #+end_src
 
+** Expert
+
+*** username
+    This is the component that gets bound in the splay command at a later date.
+
+ #+name: username
+ #+begin_src sparql :tangle no
+   "quinn@ucdavis.edu"
+ #+end_src
+
+ #+name: username+
+ #+begin_src sparql :tangle no
+   ?USERNAME_
+ #+end_src
+
+*** IAM data
+
+    This is the section we'll update at a later time, when we move to the normal
+    expert command.
+
+    #+name:iam_data
+    #+begin_src sparql
+      graph <http://iam.ucdavis.edu/> {
+        ?user a ucdlib:Expert .
+        ?iam_s ?iam_p ?iam_o.
+        OPTIONAL {
+          ?iam_o vcard:title ?iam_o_title.
+        }
+        filter(regex(str(?iam_s),concat('^',str(?user),'#?')))
+        filter(?iam_p != ucdlib:userId)
+      }
+    #+end_src
+
+*** CDL data
+
+    Later, we'll remove all the graphs from this arrangment, to simply the graph
+    functions.
+
+    #+name: cdl_data
+    #+begin_src sparql :noweb yes :tangle no
+      GRAPH <http://oapolicy.universityofcalifornia.edu/> {
+        ?cdl_id :category "user";
+                :is-public "true";
+                :is-login-allowed "true";
+                :username <<username>>;
+         :last-name ?ln;
+         :first-name ?fn;
+         :user-identifier-associations ?assoc;
+         .
+        ?assoc :user-id ?oapolicy_id.
+
+        OPTIONAL {
+          ?cdl_id :position ?title.
+        }
+        OPTIONAL {
+          ?cdl_id :department ?dept.
+        }
+
+        OPTIONAL {
+          values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
+          ?assoc :user-identifier-association [ :field-value  ?assoc_value ; :scheme ?assoc_scheme ].
+        }
+        OPTIONAL {
+          values (?oap_scheme ?id_pred) {
+            ("researcherid" vivo:researcherId)
+            ("orcid" vivo:orcidId)
+            ("scopus-author-id" vivo:scopusId) }
+          ?assoc :user-identifier-association [ :field-value  ?id_value ; :scheme ?oap_scheme ].
+        }
+        OPTIONAL {
+          ?cdl_id :records ?records.
+        }
+      }
+    #+end_src
+
+
+*** Complete Query
+   #+name: expert
+   #+begin_src sparql :noweb yes :tangle expert/foo.rq :url http://localhost:3030/quinn/sparql :formatx raw :wrapx _SRC ttl
+       <<prefixes>>
+       select *
+       WHERE {
+       bind(uri(concat(str(expert:),MD5(<<username>>))) as ?user)
+       bind(concat('expert:',MD5(<<username>>)) as ?user_id)
+       <<iam_data>>
+       <<cdl_data>>
+         bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
+         bind(concat(?fn," ",?ln) as ?name)
+         bind(uri(concat(str(?user),"#vcard-oap-1")) as ?vcard)
+         bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
+         bind(concat('ark:/87287/d7mh2m/user/',?oapolicy_id) as ?oapolicy_ark)
+         bind(uri(concat(str(?user),"#oapolicyId")) as ?identifier_oapolicy_id)
+         bind(uri(concat(str(?user),"#identifier-",?assoc_scheme,"-",?assoc_value)) as ?assoc_identifier)
+       }
+   #+end_src
+
 ** Authorship
-
-
 *** records
 
 The records are used in multiple locations, in the query.  We select the three
