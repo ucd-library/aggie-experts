@@ -10,9 +10,10 @@ Some of the sparql queries are written in this area
   PREFIX bibo: <http://purl.org/ontology/bibo/>
   PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
   PREFIX cite: <http://citationstyles.org/schema/>
-  PREFIX experts: <http://experts.ucdavis.edu/>
-  PREFIX list: <http://jena.apache.org/ARQ/list#>
   PREFIX expert: <http://experts.ucdavis.edu/expert/>
+  PREFIX experts: <http://experts.ucdavis.edu/>
+  PREFIX kfs: <ark:/87287/d7gt0q/schema#>
+  PREFIX list: <http://jena.apache.org/ARQ/list#>
   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
   PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -24,7 +25,6 @@ Some of the sparql queries are written in this area
 #+end_src
 
 ** Expert
-
 *** username
     This is the component that gets bound in the splay command at a later date.
 
@@ -97,7 +97,6 @@ Some of the sparql queries are written in this area
         }
       }
     #+end_src
-
 
 *** Complete Query
    #+name: expert
@@ -173,7 +172,7 @@ relationship here for testing.
 
  #+name: relationship_rank
  #+begin_src sparql :noweb yes :tangle no
-       select ?relationship (?pos+1 as ?user_rank)
+       select ?username ?relationship (?pos+1 as ?user_rank)
        WHERE {
          {
            <<records>>
@@ -192,7 +191,6 @@ relationship here for testing.
          }
        } limit 1
  #+end_src
-
 
 *** Minimum Field Score
 
@@ -251,8 +249,7 @@ relationship here for testing.
      }
    }
  #+end_src
-
-
+\
 *** Complete query
 
     These are combined with a contruct, and several field special processing for
@@ -429,8 +426,8 @@ relationship here for testing.
      # pub date
      BIND(concat("-",IF(xsd:integer(?pub_m_raw) < 10, CONCAT("0", ?pub_m_raw), ?pub_m_raw)) AS ?pub_month)
      BIND(concat("-",IF(xsd:integer(?pub_d_raw) < 10, CONCAT("0", ?pub_d_raw), ?pub_d_raw)) AS ?pub_day)
+     bind(xsd:boolean(?visible_str) as ?visible)
 
-     # online pub date
      BIND(concat("-",IF(xsd:integer(?opub_m_raw) < 10, CONCAT("0", ?opub_m_raw), ?opub_m_raw)) AS ?opub_month)
      BIND(concat("-",IF(xsd:integer(?opub_d_raw) < 10, CONCAT("0", ?opub_d_raw), ?opub_d_raw)) AS ?opub_day)
      BIND(CONCAT(?opub_year, COALESCE(?opub_month, ""), COALESCE(?opub_day, "")) AS ?opub_datestr)
@@ -443,3 +440,279 @@ relationship here for testing.
 
    }
  #+end_src
+
+** Grant
+
+   We need to do grants in a similar way to authorship.
+
+    #+name: grant_relationship
+ #+begin_src sparql :tangle no
+   ?RELATIONSHIP__
+ #+end_src
+
+ #+name: grant_relationship+
+ #+begin_src sparql :tangle no
+   <ark:/87287/d7mh2m/relationship/13340713>
+ #+end_src
+
+
+*** best grant record
+
+    The records are used in multiple locations in the query.  We currently don't
+    have multiple records so we just take one, but this is where that might change.
+
+ #+name: grant_record
+ #+begin_src sparql :noweb yes :tangle no
+   {
+     select ?relationship ?g ?record ?source
+     WHERE {
+       {
+         select ?relationship ?g (min(?id) as ?wanted_source_id)
+         WHERE {
+           bind(<<grant_relationship>> as ?relationship)
+           graph cdl: {
+             <<grant_relationship>> :related ?g.
+
+             ?g :category "grant";
+                :records/:record/:source-id ?id;
+                .
+           }
+         }  group by ?relationship ?g
+       }
+       ?g :records/:record ?record;
+          .
+       ?record :source-name  ?source;
+               :source-id ?wanted_source_id;
+               .
+     }
+   }
+ #+end_src
+
+
+*** Wanted Roles
+
+    There are a number of roles that we currently aren't using:
+
+    #+begin_src sparql :tangle no
+      VALUES (?role ?tid ?vivo_role ) {
+      #       (:GrantOtherRole "138" "Researcher on" )
+      #       (:GrantProjectLeaderRole "118" "Project Lead of")
+      #       (:GrantProgramDirectorRole "137" "Program Director of")
+      #       (:GrantCoreLeaderRole "119" "Co leader on")
+      #       (:GrantKeyPersonnelRole "97" "Senior personal of")
+           }
+    #+end_src
+
+    #+name: grant_roles
+    #+begin_src sparql :tangle no
+      VALUES (?role ?tid ?vivo_role ) {
+        (kfs:GrantCoPrincipalInvestigatorRole "116" vivo:CoPrincipalInvestigatorRole)
+        (kfs:GrantPrincipalInvestigatorRole "43" vivo:PrincipalInvestigatorRole)
+      }
+
+    #+end_src
+
+    There were also old style KFS roles that are no longer used:
+    #+begin_example
+#        VALUES (?grant_role ?ucd_role ?vivo_role) {
+#    ("PDIR" kfs:GrantProgramDirectorRole vivo:LeaderRole)
+#    ("KP" kfs:GrantKeyPersonnelRole vivo:ResearcherRole)
+##    ("OTHR" kfs:GrantOtherRole vivo:ResearcherRole)
+#    ("PLDR" kfs:GrantProjectLeaderRole vivo:LeaderRole)
+#    ("COPI" kfs:GrantCoPrincipalInvestigatorRole vivo:CoPrincipalInvestigatorRole)
+#    ("PI" kfs:GrantPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole )
+#    ("CLDR" kfs:GrantCoreLeaderRole vivo:ResearcherRole)
+##    ("ACCT-COPI" kfs:GrantAccountManagerRole vivo:ResearcherRole)
+#    }
+    #+end_example
+
+
+*** Grant interval
+    The grant interval needs to be both start and end_date
+
+    #+name: grant_interval
+    #+begin_src sparql :tangle no :noweb yes
+      {
+        select ?g ?start_date ?start_date_precision ?end_date ?end_date_precision
+        WHERE {
+          <<grant_record>>
+          ?record :native/:field ?s;
+                  :native/:field ?e;
+                  .
+
+          ?s :name "start-date";
+             :type "date";
+             :date ?s_date;
+             .
+          ?s_date :year ?syear.
+
+          BIND(vivo:yearPrecision AS ?syear_p)
+          OPTIONAL {
+            ?s_date :month ?sm_raw.
+            BIND(concat("-",IF(strlen(?sm_raw) = 1,
+                               CONCAT("0", ?sm_raw), ?sm_raw)) AS ?smonth)
+            BIND(vivo:yearMonthPrecision AS ?smonth_p)
+            OPTIONAL {
+              ?s_date :day ?sd_raw.
+              BIND(concat("-",IF(strlen(?sd_raw) =1,
+                                 CONCAT("0", ?sd_raw), ?sd_raw)) AS ?sday)
+              BIND(vivo:yearMonthDayPrecision AS ?sday_p)
+            }
+          }
+          BIND(CONCAT(?syear, COALESCE(?smonth, ""), COALESCE(?sday, "")) AS ?start_date)
+          BIND(coalesce(?sday_p,?smonth_p,?syear_p) as ?start_date_precision)
+
+          ?e :name "end-date";
+             :type "date";
+             :date ?e_date;
+             .
+          ?e_date :year ?eyear.
+
+          BIND(vivo:yearPrecision AS ?eyear_p)
+          OPTIONAL {
+            ?e_date :month ?em_raw.
+            BIND(concat("-",IF(strlen(?em_raw) = 1,
+                               CONCAT("0", ?em_raw), ?em_raw)) AS ?emonth)
+            BIND(vivo:yearMonthPrecision AS ?emonth_p)
+            OPTIONAL {
+              ?e_date :day ?ed_raw.
+              BIND(concat("-",IF(strlen(?ed_raw) =1,
+                                 CONCAT("0", ?ed_raw), ?ed_raw)) AS ?eday)
+              BIND(vivo:yearMonthDayPrecision AS ?eday_p)
+            }
+          }
+          BIND(CONCAT(?eyear, COALESCE(?emonth, ""), COALESCE(?eday, "")) AS ?end_date)
+          BIND(coalesce(?eday_p,?emonth_p,?eyear_p) as ?end_date_precision)
+
+        }
+      }
+    #+end_src
+
+*** Complete Grant Query
+
+ #+name: grant
+ #+begin_src sparql :noweb yes :tangle grant_role/construct.rq :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
+      <<prefixes>>
+      construct {
+     ?grant_role a ucdlib:GrantRole, ?role, ?vivo_role;
+              ucdlib:favorite ?favorite;
+              ucdlib:is-visible ?visible;
+              vivo:relates ?expert,?grant;
+              .
+
+     ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
+            ?field_predicate ?field_text;
+            ?field_predicate ?field_money;
+            vivo:assignedBy ?funder;
+            vivo:dateTimeInterval ?interval;
+            .
+
+     ?grant_type rdfs:label ?funding_type_label;
+                 .
+
+     ?funder a vivo:FundingOrganization;
+             rdfs:label ?funder_label;
+             .
+
+     ?interval
+        vivo:start ?sd;
+        vivo:end ?ed;
+        .
+
+     ?sd
+        vivo:dateTimePrecision ?start_date_precision;
+        vivo:dateTime ?start_date;
+        .
+     ?ed
+        vivo:dateTimePrecision ?end_date_precision;
+        vivo:dateTime ?end_date;
+        .
+   }
+   WHERE {
+     graph cdl: {
+       ?RELATIONSHIP__
+       :is-visible ?visible_str;
+       :type ?type;
+       :type-id ?tid;
+       :related ?g;
+       :related ?user;
+       .
+
+       OPTIONAL {
+         <<grant_roles>>
+         }
+
+       OPTIONAL {
+         ?RELATIONSHIP__ :is-favourite "true".
+         bind(true as ?favorite)
+       }
+
+       ?user :category "user";
+             :username ?username;
+             .
+
+       <<grant_record>>
+       ?record :native/:field ?field.
+
+       VALUES(?field_name ?field_type ?field_predicate) {
+         ("title" "text" rdfs:label)
+         ("amount" "money" vivo:totalAwardAmount)
+         ("start-date" "date" vivo:start)
+         ("end-date" "date" vivo:end)
+         ("funder-reference" "text" vivo:sponsorAwardId)
+         ("funding-type" "special" ucdlib:none)
+         ("funder-name" "special" ucdlib:none)
+       }
+
+       OPTIONAL {
+         ?field :name ?field_name;
+                :type "text";
+                :type ?field_type ;
+         :text ?field_text ;
+         .
+       }
+       OPTIONAL {
+         ?field :name ?field_name;
+                :type "money";
+                :type ?field_type;
+                :money/:field-value ?field_money;
+                .
+       }
+
+       # Funding type is a special case
+       OPTIONAL {
+         values (?grant_type ?funding_type_label) {
+           (ucdlib:Grant_AcademicSupport "Academic Support" )
+           (ucdlib:Grant_Default "Default" )
+           (ucdlib:Grant_Instruction "Instruction" )
+           (ucdlib:Grant_Research "Research" )
+           (ucdlib:Grant_Service "Service / Other" )
+           (ucdlib:Grant_Scholarship "Scholarships / Fellowships" )
+           (ucdlib:Grant_StudentService "Student Services" )
+         }
+         ?field :name "funding-type";
+                :type "text";
+                :text ?funding_type_label;
+                .
+       }
+
+       OPTIONAL {
+         ?field :name "funder-name";
+                :type "text";
+                :text ?funder_label;
+                .
+       }
+
+       <<grant_interval>>
+     }
+     bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
+     bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
+     bind(uri(concat(str(expert:),md5(?username))) as ?expert)
+     bind(xsd:boolean(?visible_str) as ?visible)
+
+     bind(uri(concat(str(?grant),'#start_date')) as ?sd)
+     bind(uri(concat(str(?grant),'#end_date')) as ?ed)
+     bind(uri(concat(str(?grant),'#interval')) as ?interval)
+     bind(uri(concat(str(?grant),"#funder")) as ?funder)
+   }
+#+end_src
