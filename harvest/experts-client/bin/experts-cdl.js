@@ -29,7 +29,7 @@ const program = new Command();
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-  type: 'tdb',
+  type: 'tdb2',
   db: 'CAS',
   replace: true,
   'delete': false
@@ -162,8 +162,7 @@ async function main(opt) {
       await ec.insert({ ...iam, bindings, db });
       logger.info({measure:['splay'],user},`insert`);
 
-//      for (const n of ['expert', 'authorship', 'grant_role']) {
-      for (const n of ['expert']) {
+      for (const n of ['expert', 'authorship', 'grant_role']) {
         logger.info({mark:n,user},`splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);

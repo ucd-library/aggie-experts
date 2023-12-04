@@ -6,7 +6,6 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
 PREFIX kfs: <ark:/87287/d7gt0q/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
@@ -14,10 +13,10 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX iam: <http://iam.ucdavis.edu/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 
-#SELECT ?cas (count(*) AS ?cnt ) WHERE { 
+#SELECT ?cas (count(*) AS ?cnt ) WHERE {
 select ?category_1 ?id_1 ?category_2 ?id_2 ?link_type_id ("TRUE" as ?visible)
 #describe ?related ?expert
-  WHERE { 
+  WHERE {
     VALUES (?role ?link_type_id ?e_role) {
 #       (:GrantAccountManagerRole "183" "Researcher on" )
        (:GrantOtherRole "138" "Researcher on" )
@@ -28,11 +27,11 @@ select ?category_1 ?id_1 ?category_2 ?id_2 ?link_type_id ("TRUE" as ?visible)
        (:GrantKeyPersonnelRole "97" "Senior personal of")
        (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
      }
-  
-#    GRAPH iam: { 
+
+#    GRAPH iam: {
 #        ?pi a ucdlib:Person.
 #    }
-  
+
     GRAPH kfs: {
         ?grant a vivo:Grant;
                vivo:relates [ a :GrantPrincipalInvestigatorRole;
@@ -42,18 +41,18 @@ select ?category_1 ?id_1 ?category_2 ?id_2 ?link_type_id ("TRUE" as ?visible)
    	?related a ?role ;
                obo:RO_0000052 ?expert;
                .
-    
+
   }
 
   graph iam: {
 	  ?expert ucdlib:userId ?cas.
-      
+
   	}
 
-  
+
 #  optional {
 #  FILTER NOT EXISTS {
-  GRAPH cdl: { 
+  GRAPH cdl: {
 	    ?expert ucdlib:proprietary_id ?ucpath .
     }
 
@@ -69,4 +68,3 @@ select ?category_1 ?id_1 ?category_2 ?id_2 ?link_type_id ("TRUE" as ?visible)
 #}
 #GROUP BY ?cas ORDER BY DESC (?cnt)
 limit 100000
-

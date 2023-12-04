@@ -166,7 +166,6 @@ export class ExpertsClient {
           insert = insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-      opt.insert = insert;
       const promise = opt.db.update(insert);
       return promise;
     }

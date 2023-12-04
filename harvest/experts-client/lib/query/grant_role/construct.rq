@@ -165,7 +165,8 @@ WHERE {
       bind('unknown-funder' as ?funder_ref)
     }
 
-    OPTIONAL {
+    # Interval is a special case, we'll make it required for removing bad ones for now
+#    OPTIONAL {
       ?field :name ?field_name;
              :type "date";
              :type ?field_type;
@@ -187,7 +188,7 @@ WHERE {
       BIND('duration' as ?duration)
       BIND(?field_name as ?interval_name)
       BIND(coalesce(?day_precision,?month_precision,?year_precision) as ?precision)
-    }
+#    }
   }
   # EXPERTS ids
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
