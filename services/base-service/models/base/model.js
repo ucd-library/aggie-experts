@@ -2,6 +2,7 @@
 const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
+const settings = require('./schema/settings.json');
 
 /**
  * @class BaseModel
@@ -27,6 +28,22 @@ class BaseModel extends FinEsDataModel {
     super(name);
     this.schema = schema;  // Common schema for all experts data models
     this.transformService = "node";
+  }
+
+  /** @inheritdoc */
+  getDefaultIndexConfig(schema) {
+    if( !schema ) {
+      schema = this.schema;
+    }
+    var newIndexName = `${this.modelName}-${Date.now()}`;
+
+    return {
+      index: newIndexName,
+      body : {
+        settings : settings,
+        mappings : schema
+      }
+    }
   }
 
   /**
