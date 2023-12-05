@@ -190,8 +190,8 @@
   `ark:/87287/d7mh2m/user/42956` We will mint a new ark: everytime numbering
   changes
 
-  *email* - If email is public via ODR, we will add campus emails as in
-  ~email:qjhart@ucdavis.edu~
+  *mailto* - If email is public via ODR, we will add campus emails as in
+  ~mailto:qjhart@ucdavis.edu~
 
   Other identifiers, https://www.webofscience.com/wos/author/record/M-4572-2018,
   http://www.scopus.com/authid/detail.url?authorId=6506365550 are *TBD*
@@ -216,7 +216,7 @@
     "identifier": [
        "https://orcid.org/0000-0001-9829-8914",
        "ark:/87287/d7mh2m/user/42956",
-       "email:qjhart@ucdavis.edu",
+       "mailto:qjhart@ucdavis.edu",
        "http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8"
     ]
   }]

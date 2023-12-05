@@ -22,6 +22,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       currentPage : { type : Number },
       allSelected : { type : Boolean },
       showModal : { type : Boolean },
+      hideCancel : { type : Boolean },
+      hideSave : { type : Boolean },
+      hideOK : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -47,6 +50,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.resultsPerPage = 25;
     this.allSelected = false;
     this.showModal = false;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -84,7 +90,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     let expertId = e.location.pathname.replace('/works-edit/', '');
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
-    if( expertId === this.expertId ) return;
 
     try {
       let expert = await this.ExpertModel.get(expertId);
@@ -108,12 +113,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'works-edit' ) return;
 
-    if( e.id === this.expertId ) return;
-
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
 
-    let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
+    let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
     await this._loadCitations();
@@ -126,7 +129,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
   async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
+    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     try {
       // sort by issued date desc, then by title asc
@@ -280,6 +283,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modalTitle = 'Hide Work';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**
@@ -290,6 +296,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modalTitle = 'Reject Work';
     this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**
@@ -300,6 +309,11 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   _returnToProfile(e) {
     e.preventDefault();
+
+    // reset data to first page of results
+    this.currentPage = 1;
+
+
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 

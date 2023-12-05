@@ -35,12 +35,15 @@ export function styles() {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
-      /* margin-top: var(--spacing-sm); */
     }
     #section-columns > * {
       margin: 0 var(--spacing-default) var(--spacing-default);
+      margin-right: var(--spacing-default) var(--spacing-default);
       flex-grow: 1;
-      padding: 4rem 3rem;
+      margin-bottom: 2rem;
+    }
+    #section-columns > *:last-child {
+      margin-right: 0;
     }
     ucdlib-site-footer-column ul {
       margin: 0;
@@ -54,10 +57,13 @@ export function styles() {
     ucdlib-site-footer-column span {
       display: block;
       padding: var(--spacing-half);
+      padding-left: 0;
     }
-    ucdlib-site-footer-column a:hover {
-      background-color: var(--color-aggie-blue-80);
-      border-radius: 4px;
+
+    .container-footer {
+      width: 90%;
+      margin: 0 auto;
+      padding-top: 4rem;
     }
     .button {
       margin-top: 15px;
@@ -78,6 +84,12 @@ export function styles() {
     address {
       font-style: normal;
     }
+    @media (max-width: 1200px) {
+      address,
+      ucdlib-site-footer-column span {
+        font-size: 1rem;
+      }
+    }
     #below-address {
       margin-top: var(--spacing-default);
     }
@@ -87,7 +99,7 @@ export function styles() {
     .section-aggie-logo {
       display: flex;
       justify-content: center;
-      margin: var(--spacing-md) 0;
+      margin: 1rem 0;
     }
     .container-aggie-logo {
       max-width: 100%;
@@ -128,10 +140,15 @@ export function styles() {
       text-align: center;
     }
 
+    @media (max-width: 992px) {
+      #section-columns > * {
+        width: 33%;
+      }
+    }
+
     @media (max-width: 768px) {
       #section-columns > * {
-        /* margin: 0; */
-        padding: 0;
+        width: 100%;
       }
       ucdlib-site-footer-column a {
         padding-left: 0;
@@ -149,7 +166,7 @@ export function styles() {
 
 export function render() {
   return html`
-    <div class="container">
+    <div class="container container-footer">
       <div id="section-columns" shadow-anchor="section-columns">
         <div id="address-column">
           <div class="lib-logo-container">

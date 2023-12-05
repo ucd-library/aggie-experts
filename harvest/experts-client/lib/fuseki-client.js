@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { logger } from './logger.js';
 
 export class FusekiClient {
   constructor(opt) {
@@ -8,6 +9,7 @@ export class FusekiClient {
     this.replace=opt.replace;
     this.delete=opt.delete;
     this.db=opt.db;
+    this.logger=opt.logger || logger;
     this.reauth();
   }
 
@@ -58,10 +60,10 @@ export class FusekiClient {
       });
     if (res.ok) {
       if (opt.replace) {
-        console.log(`Deleting existing dataset ${opt.db}`);
+        this.logger.info({db:opt.db,op:'delete'},`Deleting existing dataset ${opt.db}`);
         await this.dropDb(opt);
       } else {
-        console.log(`Using existing dataset ${opt.db}`);
+        this.logger.info({db:opt.db,op:'reuse'},`Using existing dataset ${opt.db}`);
         exists = true;
       }
     }
@@ -176,7 +178,6 @@ export class FusekiClientDB {
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      // console.log(response);
       throw new Error(`Failed to execute update. Status code: ${response.status}`);
     }
 
@@ -187,8 +188,6 @@ export class FusekiClientDB {
     // Construct URL for uploading the data to the graph
     // Don't include a graphname to use what's in the jsonld file
     const url = `${this.url}/${this.db}/data`;
-
-    console.log('posting to ' + url);
 
     // Set request options
     const options = {
@@ -202,8 +201,6 @@ export class FusekiClientDB {
 
     // Send the request to upload the data to the graph
     const response = await fetch(url, options);
-
-    // console.log(response);
 
     // Check if the request was successful
     if (!response.ok) {

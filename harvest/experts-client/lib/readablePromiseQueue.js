@@ -9,21 +9,23 @@ export class readablePromiseQueue {
     this.func = func;
     this.max_promises = opt.max_promises;
     this.name = opt.name;
+    this.logger = opt.logger;
     return this;
   }
 
   async execute() {
     // should decide if this is a promise or not
+    performance.mark(this.name);
     this.readable = await this.readable;
     this.readable
       .on('readable', () => {
         this.readQueuedData({via:'readable'});
       })
       .on('error', (error) => {
-        console.error(error);
+        this.logger.error(error);
       })
       .on('end', () => {
-        console.log(`${this.name} readable finished`);
+        // this.logger.info(`${this.name} readable.end`);
       });
     this.readQueuedData({via:'execute'});
 
@@ -31,7 +33,8 @@ export class readablePromiseQueue {
       this.readable.on('end', () => {
         Promise.all(this.queue)
           .then( results => {
-            console.log(`${this.name} promises finished`);
+            this.logger.info({measure:[this.name],queue:{name:this.name,max:this.max_promises}},`resolved`);
+            performance.clearMarks(this.name);
             resolve(results); })
           .catch(error => { reject(error); });
       });
@@ -58,7 +61,12 @@ export class readablePromiseQueue {
       pending_promises++;
     }
     if (first_next!=pending_promises) {
-      console.log(`promise:(${first_next}:${pending_promises}/${this.max_promises}) via ${via}`);
+      this.logger.info({queue:{
+        name:this.name,
+        first_next:first_next,
+        pending:pending_promises,
+        queue:this.queue.length,
+        via}},'promise');
     }
   }
 

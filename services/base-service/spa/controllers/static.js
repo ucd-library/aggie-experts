@@ -1,26 +1,15 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const md5 = require('md5');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
+const esClient = require('@ucd-lib/fin-service-utils').esClient;
 
 module.exports = async (app) => {
 
   // path to your spa assets dir
   let assetsDir = path.join(__dirname, '..', 'client', 'public');
-
-  // make sure we are logged in
-  app.all('/', (req, res, next) => {
-    let user = req.get('x-fin-user');
-    if( typeof user === 'string' ) user = JSON.parse(user);
-
-    if( !user || !user['preferred_username'] ) {
-      res.sendFile(assetsDir + '/login.html');
-      return;
-    }
-
-    next();
-  });
 
   /**
    * Setup SPA app routes
@@ -49,14 +38,42 @@ module.exports = async (app) => {
     enable404 : true,
 
     getConfig : async (req, res, next) => {
+      let user = req.user;
+
+      if( user ) {
+        if( !user.roles ) user.roles = [];
+        if( user.roles.includes('admin') ) user.admin = true;
+        user.loggedIn = true;
+        user.expertId = 'expert/'+ md5(user.preferred_username+'@ucdavis.edu');
+
+        try {
+          const esResult = await esClient.get(
+            {
+              ...{
+                index: 'expert-read',
+                id: user.expertId,
+                _source: false
+              }
+            }
+          )
+          user.hasProfile = esResult.found;
+
+        } catch (e) {
+          user.hasProfile = false;
+        }
+
+      } else {
+        user = {loggedIn: false};
+      }
+
       next({
-        user : {},
+        user,
         appRoutes : config.client.appRoutes,
         env : config.client.env,
       });
     },
 
-    template : (req, res, next) => {
+    template : async (req, res, next) => {
       return next({title: 'Aggie Experts'});
     }
   });

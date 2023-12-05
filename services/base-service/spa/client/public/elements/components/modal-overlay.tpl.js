@@ -84,6 +84,12 @@ export default function render() {
         font-size: .9rem;
       }
 
+      button.ok {
+        min-width: 70px;
+        max-width: 70px;
+        padding-left: 1rem;
+      }
+
       @media (max-width: 600px) {
         .overlay .footer-section {
           display: block;
@@ -113,8 +119,9 @@ export default function render() {
         </div>
         <div class="footer-section">
           <div class="footer-buttons">
-            <button class="btn btn--invert" @click="${this._onCancel}">Cancel</button>
-            <a href="https://oapolicy.universityofcalifornia.edu/" class="btn btn--primary" @click="${this._onSave}">${this.title}</a>
+            <button ?hidden="${this.hideCancel}" class="btn btn--invert" @click="${this._onCancel}">Cancel</button>
+            <a ?hidden="${this.hideSave}" href="https://oapolicy.universityofcalifornia.edu/" class="btn btn--primary" @click="${this._onSave}">${this.title}</a>
+            <button ?hidden="${this.hideOK}" class="btn btn--primary ok" @click="${this._onCancel}">OK</a>
           </div>
         </div>
       </div>

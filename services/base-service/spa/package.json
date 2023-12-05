@@ -20,6 +20,7 @@
     "@ucd-lib/spa-router-middleware": "^0.2.1",
     "cors": "^2.8.5",
     "express": "^4.17.3",
+    "md5": "^2.3.0",
     "nodemon": "^2.0.15"
   }
 }
