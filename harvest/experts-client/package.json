@@ -23,8 +23,8 @@
   "author": "rakunkel",
   "license": "MIT",
   "dependencies": {
-    "@comunica/bindings-factory": "^2.7.0",
-    "@comunica/query-sparql": "^2.7.1",
+    "@comunica/bindings-factory": "^2.10.0",
+    "@comunica/query-sparql": "^2.10.0",
     "@rdfjs/fetch-lite": "3.2.1",
     "@ucd-lib/experts-api": "^1.1.0",
     "bunyan": "^1.8.15",

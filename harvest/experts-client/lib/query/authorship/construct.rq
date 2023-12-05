@@ -3,9 +3,10 @@ PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX cite: <http://citationstyles.org/schema/>
-PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX kfs: <ark:/87287/d7gt0q/schema#>
+PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -228,7 +229,7 @@ WHERE {
     }
   }
   {
-    select ?relationship (?pos+1 as ?user_rank)
+    select ?username ?relationship (?pos+1 as ?user_rank)
     WHERE {
       {
           select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
@@ -323,8 +324,8 @@ WHERE {
   # pub date
   BIND(concat("-",IF(xsd:integer(?pub_m_raw) < 10, CONCAT("0", ?pub_m_raw), ?pub_m_raw)) AS ?pub_month)
   BIND(concat("-",IF(xsd:integer(?pub_d_raw) < 10, CONCAT("0", ?pub_d_raw), ?pub_d_raw)) AS ?pub_day)
+  bind(xsd:boolean(?visible_str) as ?visible)
 
-  # online pub date
   BIND(concat("-",IF(xsd:integer(?opub_m_raw) < 10, CONCAT("0", ?opub_m_raw), ?opub_m_raw)) AS ?opub_month)
   BIND(concat("-",IF(xsd:integer(?opub_d_raw) < 10, CONCAT("0", ?opub_d_raw), ?opub_d_raw)) AS ?opub_day)
   BIND(CONCAT(?opub_year, COALESCE(?opub_month, ""), COALESCE(?opub_day, "")) AS ?opub_datestr)
