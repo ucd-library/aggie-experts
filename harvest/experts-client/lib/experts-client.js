@@ -344,6 +344,71 @@ export class ExpertsClient {
   }
 
   /**
+   * @description Generic function to get all the entries from a CDL collection
+   * @param {
+   * } opt
+   * @returns
+   *
+   */
+  async getCDLentries(opt, query) {
+    const cdl = opt.cdl;
+    var lastPage = false
+    var results = [];
+    var nextPage = path.join(cdl.url, query)
+    var count = 0;
+
+    if (cdl.auth.match(':')) {
+      cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
+    } else {
+      cdl.authBasic = cdl.auth;
+    }
+
+    while (nextPage) {
+      console.log(`getting ${nextPage}`);
+      const response = await fetch(nextPage, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + cdl.authBasic,
+          'Content-Type': 'text/xml'
+        }
+      })
+
+      if (response.status !== 200) {
+        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
+        break;
+      }
+      else if (response.status === 200) {
+
+        const xml = await response.text();
+        count++;
+        // convert the xml atom feed to json
+        const json = parser.toJson(xml, { object: true, arrayNotation: false });
+
+        // add the entries to the results array
+        if (json.feed.entry) {
+          results = results.concat(json.feed.entry);
+        }
+
+        // inspect the pagination to see if there are more pages
+        const pagination = json.feed['api:pagination'];
+
+        // Fetch the next page
+        nextPage = null;
+
+        if (pagination["api:page"] instanceof Array) {
+          for (let link of pagination["api:page"]) {
+            if (link.position === 'next') {
+              nextPage = link.href;
+            }
+          }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * @description Get user from CDL and post to a fuseki database
    * @param {
    * } opt
