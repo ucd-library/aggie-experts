@@ -29,7 +29,7 @@ const program = new Command();
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-  type: 'tdb',
+  type: 'tdb2',
   db: 'CAS',
   replace: true,
   'delete': false
@@ -168,7 +168,7 @@ async function main(opt) {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
-          return await ec.splay({ ...splay, bindings, db, output: opt.output });
+          return await ec.splay({ ...splay, bindings, db, output: opt.output, user });
         })(n);
         logger.info({measure:[n],user},`splayed ${n}`);
         performance.clearMarks(n);
@@ -231,7 +231,7 @@ Object.keys(opt).forEach((k) => {
     delete opt[k];
   }
 });
-opt.db = fuseki;
+//opt.db = fuseki;
 
 // make cdl_info as object
 Object.keys(opt).forEach((k) => {
