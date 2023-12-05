@@ -350,61 +350,39 @@ export class ExpertsClient {
    * @returns
    *
    */
-  async getCDLentries(opt, query) {
-    const cdl = opt.cdl;
-    var lastPage = false
-    var results = [];
-    var nextPage = path.join(cdl.url, query)
-    var count = 0;
+  async getCDLentries(query,name='getCDLentries') {
+    let lastPage = false
+    let results = [];
+    let nextPage = `${this.cdl.url}/${query}`
 
-    if (cdl.auth.match(':')) {
-      cdl.authBasic = Buffer.from(cdl.auth).toString('base64');
-    } else {
-      cdl.authBasic = cdl.auth;
-    }
+    let count = 0;
 
+    performance.mark(name);
     while (nextPage) {
-      console.log(`getting ${nextPage}`);
-      const response = await fetch(nextPage, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + cdl.authBasic,
-          'Content-Type': 'text/xml'
-        }
-      })
-
-      if (response.status !== 200) {
-        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-        break;
-      }
-      else if (response.status === 200) {
-
-        const xml = await response.text();
-        count++;
-        // convert the xml atom feed to json
-        const json = parser.toJson(xml, { object: true, arrayNotation: false });
-
-        // add the entries to the results array
-        if (json.feed.entry) {
-          results = results.concat(json.feed.entry);
-        }
-
-        // inspect the pagination to see if there are more pages
-        const pagination = json.feed['api:pagination'];
-
-        // Fetch the next page
-        nextPage = null;
-
-        if (pagination["api:page"] instanceof Array) {
-          for (let link of pagination["api:page"]) {
-            if (link.position === 'next') {
-              nextPage = link.href;
-            }
-          }
+      performance.mark(`${name}_${count}`);
+      const page = await this.getXMLPageAsObj(nextPage,name, count);
+      this.logger.info(
+        {measure:[`${name}_${count}`],
+         page:count},`fetched`)
+      if (this.debug_save_xml) {
+        const dir = path.join(this.save_dir,name);
+        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
+        try {
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+         this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+        } catch (error) {
+          this.logger.error(`Error creating or writing ${fn}: ${error}`);
         }
       }
+      // add the entries to the results array
+      if (page?.feed?.entry) {
+        results = results.concat(page.feed.entry);
+      }
+      performance.clearMarks(`${name}_${count}`);
+      count++;
+      nextPage = this.nextPage(page?.feed?.['api:pagination']);
     }
-
     return results;
   }
 
