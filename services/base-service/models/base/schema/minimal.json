@@ -15,24 +15,16 @@
         "@type" : { "type" : "keyword" },
         "is-visible" : { "type" : "boolean" },
         "identifier" : {
-          "fields": {
-            "kw": {
-              "type":  "keyword",
-              "analyzer": "identifier_analyzer",
-              "ignore_above": 256
-            }
-          }
+          "type" : "keyword",
+          "normalizer": "identifier",
+          "ignore_above": 256
         },
         "contactInfo" : {
           "properties" : {
             "hasEmail": {
-              "fields" :{
-                "kw": {
-                  "type":  "keyword",
-                  "analyzer": "identifier_analyzer",
-                  "ignore_above": 256
-                }
-              }
+              "type":  "keyword",
+              "normalizer": "identifier",
+              "ignore_above": 256
             },
             "hasTitle":{
               "properties" : {
@@ -104,15 +96,9 @@
         "orcidId" : { "type": "text", "fields" : { "kw": { "type" : "keyword" } } },
         "overview" : { "type" : "text" },
         "DOI" : {
-          "type" : "text",
-          "analyzer": "prefix_analyzer",
-          "fields" :{
-            "kw": {
-              "type":  "keyword",
-              "analyzer": "identifier_analyzer",
-              "ignore_above": 1024
-            }
-          }
+          "type":  "keyword",
+          "normalizer": "identifier",
+          "ignore_above": 1024
         },
         "abstract" : { "type" : "text" },
         "container-title" : { "type" : "text" },
