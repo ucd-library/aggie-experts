@@ -30,6 +30,44 @@ export class FusekiClient {
     }
   }
 
+  async existsDb(opt) {
+    if(typeof opt === 'string') {
+      opt={db:opt};
+    }
+    opt.type ||= this.type;
+    opt.replace ||= this.replace;
+    opt.delete ||= this.delete;
+
+    let exists = false;
+
+    if (!this.url) {
+      throw new Error('No Fuseki url specified');
+    }
+    if (!opt.type) {
+      throw new Error('No Fuseki type specified');
+    }
+    if (!opt.db) {
+      throw new Error('No Fuseki db specified');
+    }
+
+    const res = await fetch(
+      `${this.url}/\$/datasets/${opt.db}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${this.authBasic}`
+        }
+      });
+    if (res.ok) {
+      return true;
+    } else if (res.status === 404) {
+      return false;
+    } else {
+      throw new Error(`Error checking for db ${opt.db}: ${res.status} ${res.statusText}`);
+    }
+  }
+
+
   async createDb(opt,files) {
     if(typeof opt === 'string') {
       opt={db:opt};

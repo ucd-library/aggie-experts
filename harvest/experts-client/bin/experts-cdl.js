@@ -17,6 +17,8 @@ import { GoogleSecret } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 
+import md5 from 'md5';
+
 const DF = new DataFactory();
 const BF = new BindingsFactory();
 
@@ -125,9 +127,16 @@ async function main(opt) {
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
     let dbname
+    let md=md5(`${user}@ucdavis.edu`);
+
+    if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${md}.jsonld.json`)) {
+      logger.info({mark:user},'skipping ' + user);
+      continue;
+    }
     logger.info({mark:user},'user ' + user);
     if (fuseki.db==='CAS-XX' || fuseki.db==='CAS') {
       dbname = user+(fuseki.db==='CAS-XX'?'-'+nanoid(2):'');
+      let exists = await fuseki.existsDb(dbname);
       db = await fuseki.createDb(dbname);
       logger.info({measure:[user],user},`fuseki.createDb(${dbname})`);
     }
@@ -195,7 +204,7 @@ performance.mark('start');
 program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
-  .option('--output <output>', 'output directory')
+  .option('--output <output>', 'output directory','.')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
   .option('--cdl.affected <affected>', 'affected since')
@@ -216,6 +225,7 @@ program.name('cdl-profile')
   .option('--environment <env>', 'specify environment', 'production')
   .option('--no-splay', 'splay data', true)
   .option('--no-fetch', 'fetch the data', true)
+  .option('--skip-existing-user', 'skip if expert/md5(${user}@ucdavis.edu`) exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
 
 
