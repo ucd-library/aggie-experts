@@ -4,7 +4,6 @@ PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 select distinct (?username as ?USERNAME__) ?filename where {
   graph harvest_oap: {
     [] :username ?username.
-    #    bind(concat("person/",md5(?username)) as ?id)
     bind(md5(?username) as ?id)
     bind(concat("expert/",?id,".jsonld.json") as ?filename)
   }

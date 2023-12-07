@@ -1,5 +1,7 @@
 ARG TAG
 ARG ORG
+ARG FIN_TAG
+ARG FIN_ORG
 
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
 FROM $ORG/fuseki:$TAG as more
@@ -38,6 +40,9 @@ RUN set -x ; mkdir -p /tmp/builder && \
 
 # Experts API is shared
 FROM $ORG/experts-api:$TAG as api
+
+# fin-service is also shared
+FROM $FIN_ORG/fin-base-service:$FIN_TAG as fin-base-service
 
 # Now build from fuseki
 FROM $ORG/fuseki:$TAG
@@ -90,6 +95,11 @@ COPY cdl-elements /usr/local/bin
 RUN chmod +x /usr/local/bin/cdl-elements
 # XML2JSON
 RUN cd /tmp && npm install -g xml2json --unsafe-perm
+
+# Copy fin-service
+ARG FIN_API=/usr/local/lib/fin/api
+COPY --from=fin-base-service /fin/api ${FIN_API}
+RUN cd ${FIN_API} && npm link
 
 # COPY over experts-api source code
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api

@@ -466,7 +466,7 @@ function build() {
        --build-arg FIN_ORG=${fin_org} --build-arg FIN_TAG=${fin_tag} \
        --build-arg ORG=${org} --build-arg TAG=${tag} \
        -t $image \
-       --cache-from localhost/aggie-experts/${n}:${cache_tag} ${i}
+       --cache-from localhost/aggie-experts/${n}:${cache_tag} ${i} || exit 1
 
   done
 

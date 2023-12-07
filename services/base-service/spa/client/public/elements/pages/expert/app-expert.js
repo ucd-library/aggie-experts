@@ -37,6 +37,9 @@ export default class AppExpert extends Mixin(LitElement)
       modalTitle : { type : String },
       modalContent : { type : String },
       showModal : { type : Boolean },
+      hideCancel : { type : Boolean },
+      hideSave : { type : Boolean },
+      hideOK : { type : Boolean },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
@@ -174,6 +177,9 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = false;
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
@@ -337,6 +343,9 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalTitle = 'Edit Links';
     this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**
@@ -395,6 +404,25 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideImpersonate = APP_CONFIG.user?.expertId === this.expertId;
 
     if( APP_CONFIG.user?.expertId !== this.expertId ) this.canEdit = false;
+  }
+
+  /**
+   * @method _refreshProfileClicked
+   * @description refresh expert profile
+   */
+  _refreshProfileClicked(e) {
+    e.preventDefault();
+
+    // TODO verify this user is who they say they are (logged in user)
+
+    // TODO trigger api call to refresh profile
+
+    this.modalTitle = 'Your Profile is Updating';
+    this.modalContent = `<p>The latest data is currently being retrieved for your profile. You will receive an email confirmation when the process is complete.</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
   }
 
 }

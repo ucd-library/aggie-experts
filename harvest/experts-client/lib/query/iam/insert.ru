@@ -9,16 +9,14 @@ PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 
 insert { graph iam: { ?s ?p ?o. ?o vcard:title ?title } } where {
   SERVICE ?EXPERTS_SERVICE__ {
-    bind(uri(concat(str(experts:),'person/',MD5(?USERNAME__))) as ?user)
+    bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
     graph iam: {
-      # Not yet updated
-      ?user a ucdlib:Person . ?s ?p ?o.
+      ?user a ucdlib:Expert . ?s ?p ?o.
       optional { ?o vcard:title ?title }
       filter(regex(str(?s),concat('^',str(?user),'#?')))
     }
   }
 };
-
 
 # Now we need to add our vcard name for each IAM user
 insert { graph iam: { ?vcard schema:name ?vcard_label; } } where {
