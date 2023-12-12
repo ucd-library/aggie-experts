@@ -97,7 +97,6 @@ function main.init() {
       [auth]=
       [endpoint]='https://iet-ws.ucdavis.edu/api/iam'
       #  [stage_api]='https://iet-ws-stage.ucdavis.edu/api/iam'
-      [base]='http://iam.ucdavis.edu/'
       [ucdid_fetch_format]='json'
       [http_session]="ucd"
       [util_http]="http"
@@ -129,18 +128,6 @@ function main.init() {
     done
 
 
-    G[fetch_context]='{"@context": {
-  "@version":"1.1",
-  "@base":"'${G[base]}'",
-  "@vocab":"'${G[base]}'schema#",
-  "iamId":"@id",
-  "orgOId":"@id",
-  "bouOrgOId":{
-    "@type":"@id"
-  },
-  "iam":"'${G[base]}'schema#",
-  "harvest_iam":"'${G[base]}'"}
-}'
 
     # system variables (UCDID_FOO_BAR) over config file
     for i in "${!G[@]}"; do
@@ -305,8 +292,8 @@ function login() {
 =item B<-f|--format=I<mime/type>>
 
 Specify the format for the return. This is in mime/type, and must be one of
-C<application/json> C<application/ld+json> or C<text/turtle>.  These can also be short
-hand C<json>,C<jsonld> or C<turtle|ttl>.  The default is C<application/json>
+C<application/json> or C<application/ld+json>.  These can also be short
+hand C<json>,C<jsonld>.  The default is C<application/json>
 
 =item B<-s | --search=I<profile_search>>
 
@@ -314,7 +301,7 @@ When requesting profiles data, you must also provide a search variable to limit 
 
 =item B<-c|--context=I<string>>
 
-For C<application/ld+json> and C<text/turtle>, you can specify a custom context
+For C<application/ld+json>, you can specify a custom context
 to be added to the system.
 
 =item B<--envelope>
@@ -330,14 +317,45 @@ response.
 function fetch() {
   local opts;
 
-  # declare -A id=(
-  #   [profiles]='iamId'
-  #   [odr.departments]='orgOId'
-  #   [pps.divisions]='orgOId'
-  #   [pps.titles]='orgOid'
-  #   [sis.colleges]='orgOid'
-  #   [ids]='iamId'
-  # );
+  local def_context
+  local titles_context
+
+  read -d '' def_context <<'CONTEXT';
+{"@context": {
+  "@version":1.1,
+  "@base":"http://iam.ucdavis.edu/",
+  "@vocab":"http://iam.ucdavis.edu/schema#",
+  "iamId":"@id",
+  "orgOId":"@id",
+  "bouOrgOId":{
+    "@type":"@id"
+  },
+  "titleCode":{"@type":"@id","@id":"@id","@base":"http://experts.ucdavis.edu/position/"}
+}}
+CONTEXT
+
+  read -d '' titles_context <<'CONTEXT';
+{"@context": {
+  "@version":1.1,
+  "@base":"http://experts.ucdavis.edu/position/",
+  "@vocab":"http://iam.ucdavis.edu/schema#",
+  "iamId":"@id",
+  "orgOId":"@id",
+  "bouOrgOId":{
+    "@type":"@id"
+  },
+  "titleCode":{"@type":"@id","@id":"@id"}
+}}
+CONTEXT
+
+   declare -A contexts=(
+     [profiles]="$def_context"
+     [odr.departments]="$def_context"
+     [pps.divisions]="$def_context"
+     [pps.titles]="$titles_context"
+     [sis.colleges]="$def_context"
+     [ids]="$def_context"
+   );
 
   # declare -A items=(
   #   [profiles]='User profile information'
@@ -361,11 +379,8 @@ function fetch() {
 
   declare -A mime=(
     ['application/ld+json']='application/ld+json'
-    ['text/turtle']='text/turtle'
     ['application/json']='application/json'
     [jsonld]='application/ld+json'
-    [turtle]='text/turtle'
-    [ttl]='text/turtle'
     [json]='application/json'
   );
 
@@ -374,19 +389,23 @@ function fetch() {
   );
 
 
-  if ! opts=$(${G[shell_getopt]} -o A:bnhs:vo: --long output:,format:,context:,envelope,search: -n "ucdid fetch" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o A:bnhs:vo:g: --long output:,format:,context:,envelope,search:,graph: -n "ucdid fetch" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
   eval set -- "$opts"
 
   local envelope=''
   local search=''
+  local context=''
   local output
-  declare -A CMD;
+  declare -A CMD=(
+    [graph]="http://iam.ucdavis.edu/"
+  );
   while true; do
 	  case $1 in
       -f | --format) CMD[ucdid_fetch_format]=$2; shift 2;;
-      -c | --context) CMD[fetch_context]=$2; shift 2;;
+      -g | --graph) CMD[graph]=$2; shift 2;;
+      -c | --context) CMD[context]=$2; shift 2;;
       -s | --search) search=$2; shift 2;;
       -e | --envelope) envelope=1; shift;;
       -o | --output) [[ $2 != '-' ]] && output=$2; shift 2;;
@@ -424,6 +443,11 @@ function fetch() {
     if [[ -z ${url[$1]} ]] ; then
       err 1 $1 is not one of: ${!url[@]}
     fi
+    if [[ -n "${CMD[context]}" ]]; then
+      context=${CMD[context]};
+    else
+      context=${contexts[$1]};
+    fi
   done
 
   # Redirect if need be
@@ -448,14 +472,12 @@ function fetch() {
         cat -
         shift;;
       application/ld+json)
-#        logit[jq]=${G[util_jq]}"${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '${G[util_riot]}' --formatted=jsonld --syntax=jsonld'
         log_assoc -v logit
-        ${G[util_jq]} "${G[fetch_context]}"' + {"@id":"http://iam.ucdavis.edu/","@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=jsonld --syntax=jsonld
-        shift;;
-      text/turtle)
-#        logit[jq]=${G[util_jq]}"${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '"${G[util_riot]} --formatted=ttl --syntax=jsonld"
-        log_assoc -v logit
-        ${G[util_jq]} "${G[fetch_context]}"' + {"@id":"http://iam.ucdavis.edu/","@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=ttl --syntax=jsonld
+        if [[ -z ${CMD[graph]} ]]; then
+          ${G[util_jq]} "${context}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)'
+          else
+            ${G[util_jq]} "${context}"' + {"@id":"http://iam.ucdavis.edu/","@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)'
+        fi
         shift;;
       *)
         err 1 ${G[ucid_fetch_format]} is invalid format
