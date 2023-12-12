@@ -50,7 +50,7 @@
   },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.3.1"
+    "tag":"sandbox"
   },
   "debug":{
     "config":"${G[config]}"

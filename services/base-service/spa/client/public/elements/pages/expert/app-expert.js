@@ -9,7 +9,7 @@ import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
 import utils from '../../../lib/utils';
 
 export default class AppExpert extends Mixin(LitElement)
@@ -223,7 +223,7 @@ export default class AppExpert extends Mixin(LitElement)
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
 

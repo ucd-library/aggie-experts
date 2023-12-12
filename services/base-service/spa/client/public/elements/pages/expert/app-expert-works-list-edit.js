@@ -6,7 +6,7 @@ import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import '../../components/modal-overlay.js';
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
 
 export default class AppExpertWorksListEdit extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -145,7 +145,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
 
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
 
