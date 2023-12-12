@@ -1,9 +1,7 @@
 {
   "@context": {
     "@vocab": "http://schema.org/",
-    "@base": "http://experts.library.ucdavis.edu/",
-    "cto": "http://experts.library.ucdavis.edu/cto/",
-    "title": "http://experts.library.ucdavis.edu/title/"
+    "@base": "http://experts.ucdavis.edu/cto/"
   },
   "@graph": [
     {

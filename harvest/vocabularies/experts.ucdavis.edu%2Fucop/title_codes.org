@@ -11,18 +11,15 @@ All of the queries throughout this document use these standard prefixes.  The
 
 #+name: local-prefixes
 #+BEGIN_SRC sparql :no-tangle
-PREFIX dcterms: <http://purl.org/dc/terms/>
-PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX experts_pub: <http://experts.ucdavis.edu/pub/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX position: <http://experts.ucdavis.edu/position/>
-PREFIX ucdlib:   <http://schema.library.ucdavis.edu/schema#>
-PREFIX vivo:  <http://vivoweb.org/ontology/core#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+  PREFIX cto: <http://experts.ucdavis.edu/cto/>
+  PREFIX dcterms: <http://purl.org/dc/terms/>
+  PREFIX experts: <http://experts.ucdavis.edu/>
+  PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+  PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+  PREFIX pos: <http://experts.ucdavis.edu/position/>
+  PREFIX ucdlib:   <http://schema.library.ucdavis.edu/schema#>
+  PREFIX vivo:  <http://vivoweb.org/ontology/core#>
+  PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 #+END_SRC
 
 ** Value Tables
@@ -33,31 +30,31 @@ class codes anyways.
 
 #+name: class-codes
 #+BEGIN_SRC sparql :no-tangle
-    VALUES (?emplclass ?empclass_description ?empclass_shortname) {
+  VALUES (?emplclass ?empclass_description ?empclass_shortname) {
     ("Staff" "Staff" "Staff")
     ("Academic" "Academic" "Academic")
     ("Student" "Student" "Student")
     ("1" "Staff:Contract" "Contract")
     ("10" "Academic:Non Faculty" "Non Fac")
-    ("11" "Academic:Academic Student" "Ac Student")
-    ("13" "Staff:Contingent Worker" "CWR Staff")
-    ("14" "Academic:Contingent Worker" "CWR Acad")
-    ("15" "Staff:Rehired Retireee" "RehRetiree")
-    ("2" "Staff:Career" "Career")
-    ("20" "Academic:Conversion" "Ac Conv")
-    ("21" "Academic:Emeriti" "Ac Emeriti")
-    ("22" "Academic:Deans/Faculty Admin" "Ac Dean/FA")
-    ("23" "Academic:Post Docs" "Ac PostDoc")
-    ("24" "Academic:Medical Residents" "Ac Med Res")
-    ("3" "Academic:Recall" "Ac Recall")
-    ("4" "Staff:Limited" "Limited")
-    ("5" "Student:Casual/Restricted" "Student")
-    ("6" "Staff:Per Diem" "Per Diem")
-    ("7" "Staff:Partial Year Career" "PartYrCar")
-    ("8" "Staff:Floater" "Floater")
-    ("9" "Academic:Faculty" "Ac Faculty")
-    ("C" "Converstion Use Only" "Conv")
-    }
+  ("11" "Academic:Academic Student" "Ac Student")
+  ("13" "Staff:Contingent Worker" "CWR Staff")
+  ("14" "Academic:Contingent Worker" "CWR Acad")
+  ("15" "Staff:Rehired Retireee" "RehRetiree")
+  ("2" "Staff:Career" "Career")
+  ("20" "Academic:Conversion" "Ac Conv")
+  ("21" "Academic:Emeriti" "Ac Emeriti")
+  ("22" "Academic:Deans/Faculty Admin" "Ac Dean/FA")
+  ("23" "Academic:Post Docs" "Ac PostDoc")
+  ("24" "Academic:Medical Residents" "Ac Med Res")
+  ("3" "Academic:Recall" "Ac Recall")
+  ("4" "Staff:Limited" "Limited")
+  ("5" "Student:Casual/Restricted" "Student")
+  ("6" "Staff:Per Diem" "Per Diem")
+  ("7" "Staff:Partial Year Career" "PartYrCar")
+  ("8" "Staff:Floater" "Floater")
+  ("9" "Academic:Faculty" "Ac Faculty")
+  ("C" "Converstion Use Only" "Conv")
+  }
 #+END_SRC
 
 *** UCOP Title codes
@@ -66,7 +63,7 @@ class codes anyways.
     and Programs]].  Currently, the easiest way to convert, is to cut this file in
     chrome, paste it in a text file, run ~sort -u~ over it, and then selectively
     remove the extraneous rows (the page headings).  The last time I did that
-    was 2023-12-11, to get acedemic_titles.txt.
+    was 2023-12-11, to get acedemic_titles.txt.  The file is created in the Makefile.
 
 *** CTO codes
 
@@ -108,110 +105,69 @@ codes, and how do they compare to title codes?
 All of these were combined in a single spreadsheet, better to communicate the
 issues with other agencies.
 
-#+name: positions
-#+BEGIN_SRC sparql :noweb yes :no-tangle :format raw :file positions.ttl :wrapx "SRC ttl :tangle positions.ttl"
-        <<local-prefixes>>
-        construct {
-          position: a skos:ConceptScheme;
-              rdfs:label "UCOP / UCDavis Title Codes"@en;
-              dcterms:title "UCOP / UCDavis Title Codes"@en;
-              dcterms:source <http://experts.ucdavis.edu>;
-              dcterms:creator "Aggie Experts" ;
-              dcterms:created "2021-03-05"^^<http://www.w3.org/2001/XMLSchema#date> ;
-              dcterms:type "Classification" ;
-              dcterms:language <http://id.loc.gov/vocabulary/iso639-2/eng>;
-          # dcterms:license <http://creativecommons.org/licenses/by-sa/3.0/igo/> ;
-              dcterms:rights "© University of Calfornia, Davis" ;
-             dcterms:rights
-        '''This work is copyright.
-        ''';
-          skos:prefLabel "UC Davis Title Concepts";
-          skos:hasTopConcept position:Academic, position:CTO, position:Class;
-          .
-
-          position:Class a skos:Concept;
-          .
-
-          position:AcademicClass a skos:Concept;
-          .
-          position:StaffClass a skos:Concept;
-          .
-          position:StudentClass a skos:Concept;
-          .
-
-          position:Academic a skos:Concept;
-            rdfs:label "Academic Title";
-            skos:prefLabel "Academic Title";
-            skos:inScheme position: ;
-          .
-
-          position:AcademicSenate a skos:Concept;
-              rdfs:label "Academic Senate";
-            skos:prefLabel "Academic Senate";
-            skos:broader position:Academic;
-            skos:inScheme position: ;
-            .
-
-          position:AcademicFederation a skos:Concept;
-              rdfs:label "Academic Federation";
-            skos:prefLabel "Academic Federation";
-            skos:broader position:Academic;
-            skos:inScheme position: ;
-            .
-
-          position:CTO a skos:Concept, ucdlib:CTO;
-              rdfs:label "Class Title Outline";
-            skos:prefLabel "Class Title Outline";
-            skos:inScheme position: ;
-            .
-
-          ?id a skos:Concept, vivo:Position, ucdlib:Position, ucdlib:Academic;
-            rdfs:label ?title;
-            ucdlib:identifier ?sys_loc;
-            ucdlib:cto ?cto_id;
-            skos:prefLabel ?title;
-            skos:broader ?cto_id;
-            skos:broader ?senate_id;
-            skos:broader ?academic_id;
-            skos:inScheme position: ;
-            .
-
-          ?ucd_senate_federation_id skos:narrower ?id.
-
-          ?cto_id a skos:Concept;
-              rdfs:label ?cto_name;
-            skos:prefLabel ?cto_name;
-            skos:broader position:CTO;
-            skos:broader ?academic_id;
-            skos:inScheme position: ;
-            .
-        }
-  FROM 'title_codes.tsv'
+#+name: types
+#+BEGIN_SRC sparql :noweb yes :tangle positions.rq
+  <<local-prefixes>>
+  construct {
+    ?id a ucdlib:AcademicMember,?senate_member,?federation_member;
+      ?p ?o;
+  }
   WHERE {
-        # Employee Class Codes Come from UCPATH
-        <<class-codes>>
-
-  #      <<title_code_values>>
-
-          OPTIONAL {
-            bind(URI(concat(str(position:),"Senate")) as ?senate_id)
-            filter (?ucd_senate_federation='Senate')
-          }
-          OPTIONAL {
-            bind(URI(concat(str(position:),"Federation")) as ?senate_id)
-            filter (?ucd_senate_federation='Federation')
-          }
-
-          bind(URI(concat(str(position:),"CTO",?cto)) as ?cto_id)
-          bind(URI(concat(str(position:),?code6)) as ?id)
-          bind(URI(concat(str(position:),'Academic')) as ?academic_id)
-          bind(URI(concat(str(ucdlib:),?system_local)) as ?sys_loc)
-
+    ?id ucdlib:cto ?cto;
+        ?p ?o;
+        .
+    OPTIONAL {
+      values ?senate_code {
+        cto:010 cto:011 cto:012 cto:016 cto:114
+        cto:210 cto:211 cto:214 cto:216
+        cto:311 cto:316 cto:317 }
+      ?id ucdlib:cto ?senate_code.
+      bind (ucdlib:SenateMemeber as ?senate_member)
     }
+    OPTIONAL {
+      values ?federation_code {
+        cto:040 cto:225
+        cto:335 cto:341
+        cto:530 cto:531 cto:534 cto:541 cto:557
+        cto:621 cto:627 cto:729 cto:825 cto:S46 cto:S56
+      }
+      ?id ucdlib:cto ?federation_code.
+      bind (ucdlib:FederationMember as ?federation_member)
+    }
+    OPTIONAL {
+      values ?exception { pos:001759 pos:001761 pos:001781 pos:001784 pos:001785 }
+      ?id ucdlib:cto cto:341.
+      filter (?id != ?exception)
+      bind (ucdlib:FederationMember as ?federation_member)
+    }
+    OPTIONAL {
+      values ?exception {
+        pos:003227 pos:003217 pos:003211 pos:003207
+        pos:001990 pos:001991 pos:001992 pos:001993
+        pos:001994 pos:001995 }
+      ?id ucdlib:cto cto:541.
+      filter (?id != ?exception)
+      bind (ucdlib:FederationMember as ?federation_member)
+    }
+    OPTIONAL {
+      values ?exception {
+        pos:003403 pos:003404 pos:003405 pos:003406 pos:003407 pos:003408
+      }
+      ?id ucdlib:cto cto:581.
+      filter (?id != ?exception)
+      bind (ucdlib:FederationMember as ?federation_member)
+    }
+    OPTIONAL {
+      values ?include {
+        pos:001550 pos:002220 pos:002221 pos:002222 pos:002223
+        pos:003300 pos:003301 pos:003310 pos:003311 pos:003320
+        pos:003321 pos:003572 pos:003575 pos:001650 pos:001675
+        pos:002210 pos:002211 pos:002284 pos:002285 pos:003800 }
+      filter(?id = ?include)
+      bind (ucdlib:FederationMember as ?federation_member)
+    }
+  }
 #+END_SRC
-
-#+RESULTS: positions
-[[file:positions.ttl]]
 
 ** CTO Logic
 
@@ -219,19 +175,7 @@ issues with other agencies.
 
     CDL uses these simple guidelines for senate membership
 
-    CTO code in
-    010
-    011
-    012
-    016
-    114
-    210
-    211
-    214
-    216
-    311
-    316
-    317
+    CTO code in 010 011 012 016 114 210 211 214 216 311 316 317
 
 *** Academic Federation Logic
 
