@@ -1,0 +1,250 @@
+{
+  "@context": {
+    "@vocab": "http://schema.org/",
+    "@base": "http://experts.library.ucdavis.edu/",
+    "cto": "http://experts.library.ucdavis.edu/cto/",
+    "title": "http://experts.library.ucdavis.edu/title/"
+  },
+  "@graph": [
+    {
+      "@id": "010",
+      "name": "PROFESSORIAL-TENURE"
+    },
+    {
+      "@id": "011",
+      "name": "PROFESSORIAL-NON-TENURE"
+    },
+    {
+      "@id": "012",
+      "name": "PROFESSORIAL-RECALL"
+    },
+    {
+      "@id": "016",
+      "name": "PROFESSORIAL-EMERITUS"
+    },
+    {
+      "@id": "114",
+      "name": "ACTING PROFESSOR-SENATE"
+    },
+    {
+      "@id": "124",
+      "name": "ACTING PROFESSOR-NON-SENATE"
+    },
+    {
+      "@id": "210",
+      "name": "LECTURER-SECURITY OF EMPLOYMENT"
+    },
+    {
+      "@id": "211",
+      "name": "LECTURER-PSOE-SENATE"
+    },
+    {
+      "@id": "214",
+      "name": "ACTING LECTURER-SOE"
+    },
+    {
+      "@id": "216",
+      "name": "LECTURER-SOE-EMERITUS"
+    },
+    {
+      "@id": "224",
+      "name": "ACTING LECTURER-PSOE"
+    },
+    {
+      "@id": "225",
+      "name": "LECTURER"
+    },
+    {
+      "@id": "311",
+      "name": "PROFESSOR IN RESIDENCE"
+    },
+    {
+      "@id": "316",
+      "name": "________-SENATE-EMERITUS"
+    },
+    {
+      "@id": "317",
+      "name": "PROFESSOR OF CLINICAL __________"
+    },
+    {
+      "@id": "323",
+      "name": "VISITING PROFESSOR"
+    },
+    {
+      "@id": "335",
+      "name": "ADJUNCT PROFESSOR"
+    },
+    {
+      "@id": "341",
+      "name": "HEALTH SCIENCES CLINICAL PROFESSOR"
+    },
+    {
+      "@id": "346",
+      "name": "CLINICAL PROFESSOR - VOLUNTEER"
+    },
+    {
+      "@id": "357",
+      "name": "INSTRUCTIONAL ASSISTANT"
+    },
+    {
+      "@id": "426",
+      "name": "TEACHING ASSISTANT & EQUIVALENT"
+    },
+    {
+      "@id": "436",
+      "name": "GRADUATE STUDENT RESEARCHER"
+    },
+    {
+      "@id": "446",
+      "name": "INTERN OR RESIDENT"
+    },
+    {
+      "@id": "456",
+      "name": "OTHER STUDENT TITLES"
+    },
+    {
+      "@id": "467",
+      "name": "ASSOCIATE-STUDENT"
+    },
+    {
+      "@id": "520",
+      "name": "ASTRONOMER-TENURE"
+    },
+    {
+      "@id": "530",
+      "name": "AGRONOMIST-TENURE"
+    },
+    {
+      "@id": "531",
+      "name": "AGRONOMIST-NON-TENURE"
+    },
+    {
+      "@id": "534",
+      "name": "AGRONOMIST-ACTING"
+    },
+    {
+      "@id": "541",
+      "name": "PROFESSIONAL RESEARCH-REGULAR"
+    },
+    {
+      "@id": "543",
+      "name": "PROFESSIONAL RESEARCH-VISITING"
+    },
+    {
+      "@id": "551",
+      "name": "SPECIALIST"
+    },
+    {
+      "@id": "553",
+      "name": "SPECIALIST-VISITING"
+    },
+    {
+      "@id": "557",
+      "name": "SPECIALIST IN A.E.S."
+    },
+    {
+      "@id": "566",
+      "name": "OTHER RESEARCH"
+    },
+    {
+      "@id": "575",
+      "name": "POSTDOCTORAL SCHOLAR"
+    },
+    {
+      "@id": "577",
+      "name": "POST-GRADUATE RESEARCH-NON-STUDENT"
+    },
+    {
+      "@id": "581",
+      "name": "PROJECT SERIES"
+    },
+    {
+      "@id": "583",
+      "name": "PROJECT SERIES-VISITING"
+    },
+    {
+      "@id": "621",
+      "name": "LIBRARIAN"
+    },
+    {
+      "@id": "623",
+      "name": "VISITING LIBRARIAN"
+    },
+    {
+      "@id": "627",
+      "name": "ASSOC & ASST UNIVERSITY LIBRARIAN"
+    },
+    {
+      "@id": "728",
+      "name": "COOPERATIVE EXTENSION ADVISOR"
+    },
+    {
+      "@id": "729",
+      "name": "SPECIALIST IN COOPERATIVE EXTENSION"
+    },
+    {
+      "@id": "825",
+      "name": "CONTINUING EDUCATOR -UNEX"
+    },
+    {
+      "@id": "828",
+      "name": "UNIVERSITY EXTENSION-OTHER"
+    },
+    {
+      "@id": "927",
+      "name": "MISCELLANEOUS TITLES-SERIES"
+    },
+    {
+      "@id": "928",
+      "name": "MISCELLANEOUS TITLES-SINGLE TITLES"
+    },
+    {
+      "@id": "999",
+      "name": "SUPPLEMENTAL PAY CODES"
+    },
+    {
+      "@id": "CWR",
+      "name": "CONTINGENT WORKER"
+    },
+    {
+      "@id": "S21",
+      "name": "DEAN"
+    },
+    {
+      "@id": "S24",
+      "name": "ACTING DEAN AND ACTING PROVOST"
+    },
+    {
+      "@id": "S26",
+      "name": "DIVISIONAL DEAN"
+    },
+    {
+      "@id": "S27",
+      "name": "PROVOST"
+    },
+    {
+      "@id": "S31",
+      "name": "DIRECTOR"
+    },
+    {
+      "@id": "S34",
+      "name": "ACTING DIRECTOR"
+    },
+    {
+      "@id": "S46",
+      "name": "ACADEMIC COORDINATOR"
+    },
+    {
+      "@id": "S56",
+      "name": "ACADEMIC-ADMINISTRATOR"
+    },
+    {
+      "@id": "S61",
+      "name": "DEPARTMENT CHAIRPERSON"
+    },
+    {
+      "@id": "S64",
+      "name": "ACTING DEPARTMENT CHAIRPERSON"
+    }
+  ]
+}

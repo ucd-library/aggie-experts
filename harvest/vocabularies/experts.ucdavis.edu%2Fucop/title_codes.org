@@ -28,10 +28,11 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 ** Value Tables
 *** Employee Class
 These are the items that were sent to me from Brian Darnell, which he sez is
-directly from UC Path
+directly from UC Path.  However, I can't find a match from title_codes to these
+class codes anyways.
 
-#+name: class_code_values
-#+BEGIN_SRC sparql :noweb yes :no-tangle :format
+#+name: class-codes
+#+BEGIN_SRC sparql :no-tangle
     VALUES (?emplclass ?empclass_description ?empclass_shortname) {
     ("Staff" "Staff" "Staff")
     ("Academic" "Academic" "Academic")
@@ -57,19 +58,37 @@ directly from UC Path
     ("9" "Academic:Faculty" "Ac Faculty")
     ("C" "Converstion Use Only" "Conv")
     }
-#+END_SRC sparql
+#+END_SRC
 
+*** UCOP Title codes
 
+    I start with the table from the UCOP title code pages, [[https://www.ucop.edu/academic-personnel-programs/compensation/academic-ctos-titles-and-title-codes/index.html][Academic Personnel
+    and Programs]].  Currently, the easiest way to convert, is to cut this file in
+    chrome, paste it in a text file, run ~sort -u~ over it, and then selectively
+    remove the extraneous rows (the page headings).  The last time I did that
+    was 2023-12-11, to get acedemic_titles.txt.
 
+*** CTO codes
+
+    CTO Code are the primary methodology to determine whether people are in the
+    acedemic senate or federation.  There is not an exact correspondance between
+    CTO codes, and these titles (although for senate CDL sez there is), so we
+    also need the title codes.  There is no API to get CTO codes from IAM, so
+    these are included as a table of data.
+
+    You can generate this from ~acedemic_titles.txt~ with:
 
 *** Title Codes
 
+    We use the IAM pps title codes as the UC Davis definitive reference for
+    titles on campus.  There exists a pps.title_code API to extract these
+    codes.  IAM does not supply the CTO codes for the title codes, so we need to
+    add that as another set of data.
 
-#+name: title_code_values"
-#+BEGIN_SRC sparql
-  VALUES (?code6 ?title ?class ?system_local ?cto ?cto_name ?ucd_academic ?ucd_senate_federation) {
- }
-#+END_SRC
+    #+begin_src bash :results file :wrap SRC json :file title_codes.json
+           cat academic_titles.txt |\
+               sed -e 's/^\(...\).* \(......\) \(.*\)/{"cto":"cto:\1","@id":"\2", "name":"\3"}/' |  jq --slurp '{"context":{"@vocab":"http://schema.library.ucdavis.edu/schema#","@base":"http://experts.ucdavis.edu/cto/"}} + {"@graph":.}'
+    #+end_src
 
 
 ** Academic Title Codes and Concepts Organization
@@ -91,130 +110,152 @@ issues with other agencies.
 
 #+name: positions
 #+BEGIN_SRC sparql :noweb yes :no-tangle :format raw :file positions.ttl :wrapx "SRC ttl :tangle positions.ttl"
-      <<local-prefixes>>
-      construct {
-        position: a skos:ConceptScheme;
-            rdfs:label "UCOP / UCDavis Title Codes"@en;
-            dcterms:title "UCOP / UCDavis Title Codes"@en;
-            dcterms:source <http://experts.ucdavis.edu>;
-            dcterms:creator "Aggie Experts" ;
-            dcterms:created "2021-03-05"^^<http://www.w3.org/2001/XMLSchema#date> ;
-            dcterms:type "Classification" ;
-            dcterms:language <http://id.loc.gov/vocabulary/iso639-2/eng>;
-        # dcterms:license <http://creativecommons.org/licenses/by-sa/3.0/igo/> ;
-            dcterms:rights "© University of Calfornia, Davis" ;
-           dcterms:rights
-      '''This work is copyright.
-      ''';
-        skos:prefLabel "UC Davis Title Concepts";
-        skos:hasTopConcept position:Academic, position:CTO, position:Class;
-        .
-
-        position:Class a skos:Concept;
-        .
-
-        position:AcademicClass a skos:Concept;
-        .
-        position:StaffClass a skos:Concept;
-        .
-        position:StudentClass a skos:Concept;
-        .
-
-        position:Academic a skos:Concept;
-          rdfs:label "Academic Title";
-          skos:prefLabel "Academic Title";
-          skos:inScheme position: ;
-        .
-
-        position:AcademicSenate a skos:Concept;
-            rdfs:label "Academic Senate";
-          skos:prefLabel "Academic Senate";
-          skos:broader position:Academic;
-          skos:inScheme position: ;
+        <<local-prefixes>>
+        construct {
+          position: a skos:ConceptScheme;
+              rdfs:label "UCOP / UCDavis Title Codes"@en;
+              dcterms:title "UCOP / UCDavis Title Codes"@en;
+              dcterms:source <http://experts.ucdavis.edu>;
+              dcterms:creator "Aggie Experts" ;
+              dcterms:created "2021-03-05"^^<http://www.w3.org/2001/XMLSchema#date> ;
+              dcterms:type "Classification" ;
+              dcterms:language <http://id.loc.gov/vocabulary/iso639-2/eng>;
+          # dcterms:license <http://creativecommons.org/licenses/by-sa/3.0/igo/> ;
+              dcterms:rights "© University of Calfornia, Davis" ;
+             dcterms:rights
+        '''This work is copyright.
+        ''';
+          skos:prefLabel "UC Davis Title Concepts";
+          skos:hasTopConcept position:Academic, position:CTO, position:Class;
           .
 
-        position:AcademicFederation a skos:Concept;
-            rdfs:label "Academic Federation";
-          skos:prefLabel "Academic Federation";
-          skos:broader position:Academic;
-          skos:inScheme position: ;
+          position:Class a skos:Concept;
           .
 
-        position:CTO a skos:Concept, ucdlib:CTO;
-            rdfs:label "Class Title Outline";
-          skos:prefLabel "Class Title Outline";
-          skos:inScheme position: ;
+          position:AcademicClass a skos:Concept;
+          .
+          position:StaffClass a skos:Concept;
+          .
+          position:StudentClass a skos:Concept;
           .
 
-        ?id a skos:Concept, vivo:Position, ucdlib:Position, ucdlib:Academic;
-          rdfs:label ?title;
-          ucdlib:identifier ?sys_loc;
-          ucdlib:cto ?cto_id;
-          skos:prefLabel ?title;
-          skos:broader ?cto_id;
-          skos:broader ?senate_id;
-          skos:broader ?academic_id;
-          skos:inScheme position: ;
+          position:Academic a skos:Concept;
+            rdfs:label "Academic Title";
+            skos:prefLabel "Academic Title";
+            skos:inScheme position: ;
           .
 
-        ?ucd_senate_federation_id skos:narrower ?id.
+          position:AcademicSenate a skos:Concept;
+              rdfs:label "Academic Senate";
+            skos:prefLabel "Academic Senate";
+            skos:broader position:Academic;
+            skos:inScheme position: ;
+            .
 
-        ?cto_id a skos:Concept;
-            rdfs:label ?cto_name;
-          skos:prefLabel ?cto_name;
-          skos:broader position:CTO;
-          skos:broader ?academic_id;
-          skos:inScheme position: ;
-          .
-      } WHERE {
-      # Employee Class Codes Come from UCPATH
-      <<class_code_values>>
+          position:AcademicFederation a skos:Concept;
+              rdfs:label "Academic Federation";
+            skos:prefLabel "Academic Federation";
+            skos:broader position:Academic;
+            skos:inScheme position: ;
+            .
 
-      <<title_code_values>>
+          position:CTO a skos:Concept, ucdlib:CTO;
+              rdfs:label "Class Title Outline";
+            skos:prefLabel "Class Title Outline";
+            skos:inScheme position: ;
+            .
 
-        OPTIONAL {
-          bind(URI(concat(str(position:),"Senate")) as ?senate_id)
-          filter (?ucd_senate_federation='Senate')
+          ?id a skos:Concept, vivo:Position, ucdlib:Position, ucdlib:Academic;
+            rdfs:label ?title;
+            ucdlib:identifier ?sys_loc;
+            ucdlib:cto ?cto_id;
+            skos:prefLabel ?title;
+            skos:broader ?cto_id;
+            skos:broader ?senate_id;
+            skos:broader ?academic_id;
+            skos:inScheme position: ;
+            .
+
+          ?ucd_senate_federation_id skos:narrower ?id.
+
+          ?cto_id a skos:Concept;
+              rdfs:label ?cto_name;
+            skos:prefLabel ?cto_name;
+            skos:broader position:CTO;
+            skos:broader ?academic_id;
+            skos:inScheme position: ;
+            .
         }
-        OPTIONAL {
-          bind(URI(concat(str(position:),"Federation")) as ?senate_id)
-          filter (?ucd_senate_federation='Federation')
-        }
+  FROM 'title_codes.tsv'
+  WHERE {
+        # Employee Class Codes Come from UCPATH
+        <<class-codes>>
 
-        bind(URI(concat(str(position:),"CTO",?cto)) as ?cto_id)
-        bind(URI(concat(str(position:),?code6)) as ?id)
-        bind(URI(concat(str(position:),'Academic')) as ?academic_id)
-        bind(URI(concat(str(ucdlib:),?system_local)) as ?sys_loc)
+  #      <<title_code_values>>
 
-  }
+          OPTIONAL {
+            bind(URI(concat(str(position:),"Senate")) as ?senate_id)
+            filter (?ucd_senate_federation='Senate')
+          }
+          OPTIONAL {
+            bind(URI(concat(str(position:),"Federation")) as ?senate_id)
+            filter (?ucd_senate_federation='Federation')
+          }
+
+          bind(URI(concat(str(position:),"CTO",?cto)) as ?cto_id)
+          bind(URI(concat(str(position:),?code6)) as ?id)
+          bind(URI(concat(str(position:),'Academic')) as ?academic_id)
+          bind(URI(concat(str(ucdlib:),?system_local)) as ?sys_loc)
+
+    }
 #+END_SRC
 
 #+RESULTS: positions
 [[file:positions.ttl]]
 
+** CTO Logic
+
+*** Senate
+
+    CDL uses these simple guidelines for senate membership
+
+    CTO code in
+    010
+    011
+    012
+    016
+    114
+    210
+    211
+    214
+    216
+    311
+    316
+    317
 
 *** Academic Federation Logic
 
-#+BEGIN_EXAMPLE
-(LIB.JOB_CD_OCUPTNL_SUBGRP_CD in
-('040','225','335','530','531','534','557','621','627','729','825','S46','S56')
-or (LIB.JOB_CD_OCUPTNL_SUBGRP_CD = '341' and LIB.JOB_CD not in ('001759','001761',
-'001781','001784','001785'))
-or (LIB.JOB_CD_OCUPTNL_SUBGRP_CD = '541' and LIB.JOB_CD not in ('003227','003217',
-'003211','003207','001990','001991','001992','001993','001994','001995'))
-or (LIB.JOB_CD_OCUPTNL_SUBGRP_CD = '581' and LIB.JOB_CD not in ('003403','003404',
-'003405','003406','003407','003408'))
-or LIB.JOB_CD in ('001550','002220','002221','002222','002223','003300','003301',
-'003310','003311','003320','003321','003572', '003575','001650', '001675',
-'002210','002211', '002284', '002285','003800'))
-and LIB.JOB_CD_EFF_STAT_CD = 'A'
-and LIB.JOB_CD_EFF_DT = (select max(LIB2.JOB_CD_EFF_DT) from LIBRARY_DM.JOB_CODE_D_V LIB2
-where LIB.JOB_CD = LIB2.JOB_CD and LIB2.JOB_CD_EFF_STAT_CD = 'A'))
-#+END_EXAMPLE
 
-#+BEGIN_SRC sparql :noweb yes :no-tangle :format raw :wrap "SRC ttl"
-<<prefixes>>
-construct {
-} WHERE {
-  position:
-#+END_SRC
+ #+BEGIN_EXAMPLE
+ (LIB.JOB_CD_OCUPTNL_SUBGRP_CD in
+ ('040','225','335','530','531','534','557','621','627','729','825','S46','S56')
+ or (LIB.JOB_CD_OCUPTNL_SUBGRP_CD = '341' and LIB.JOB_CD not in ('001759','001761',
+ '001781','001784','001785'))
+ or (LIB.JOB_CD_OCUPTNL_SUBGRP_CD = '541' and LIB.JOB_CD not in ('003227','003217',
+ '003211','003207','001990','001991','001992','001993','001994','001995'))
+ or (LIB.JOB_CD_OCUPTNL_SUBGRP_CD = '581' and LIB.JOB_CD not in ('003403','003404',
+ '003405','003406','003407','003408'))
+ or LIB.JOB_CD in ('001550','002220','002221','002222','002223','003300','003301',
+ '003310','003311','003320','003321','003572', '003575','001650', '001675',
+ '002210','002211', '002284', '002285','003800'))
+ and LIB.JOB_CD_EFF_STAT_CD = 'A'
+ and LIB.JOB_CD_EFF_DT = (select max(LIB2.JOB_CD_EFF_DT) from LIBRARY_DM.JOB_CODE_D_V LIB2
+ where LIB.JOB_CD = LIB2.JOB_CD and LIB2.JOB_CD_EFF_STAT_CD = 'A'))
+ #+END_EXAMPLE
+
+ #+BEGIN_SRC sparql :noweb yes :no-tangle :format raw :wrap "SRC ttl"
+ <<prefixes>>
+ construct {
+ } WHERE {
+   position:
+ #+END_SRC
