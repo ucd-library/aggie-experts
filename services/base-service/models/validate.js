@@ -22,13 +22,6 @@ class Validate {
       comments : []
     };
 
-    // result.errors.push({
-    //   label : 'Pdf client media manifest is not available',
-    //   id : jsonld['@id'],
-    //   manifest : 'bla',
-    //   status : 42
-    // });
-
     result = this._validateCitations(jsonld, result);
 
     return result;
