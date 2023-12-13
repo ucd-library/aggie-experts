@@ -17,7 +17,7 @@
         "identifier" : {
           "type" : "keyword",
           "normalizer": "identifier",
-          "ignore_above": 256
+          "ignore_above": 128
         },
         "contactInfo" : {
           "properties" : {
@@ -93,12 +93,16 @@
           }
         },
         "name" : { "type" : "text" },
-        "orcidId" : { "type": "text", "fields" : { "kw": { "type" : "keyword" } } },
+        "orcidId" : {
+          "type":  "keyword",
+          "normalizer": "identifier",
+          "ignore_above": 1024
+        },
         "overview" : { "type" : "text" },
         "DOI" : {
           "type":  "keyword",
           "normalizer": "identifier",
-          "ignore_above": 1024
+          "ignore_above": 32
         },
         "abstract" : { "type" : "text" },
         "container-title" : { "type" : "text" },

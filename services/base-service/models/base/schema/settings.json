@@ -3,8 +3,13 @@
     "char_filter" : {
       "doi_prefix_filter" : {
         "type" : "pattern_replace",
-        "pattern" : "^(doi:|https://doi.org/)",
-        "replacement" : ""
+        "pattern" : "^(/|doi:|https://doi.org/)?(10\.\d{4,}/[^\s]+)",
+        "replacement" : "doi:$2"
+      },
+      "orcid_prefix_filter" : {
+        "type" : "pattern_replace",
+        "pattern" : "^(orcid:|https://orcid.org/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])",
+        "replacement" : "https://orcid.org/$2"
       },
       "mailto_prefix_filter" : {
         "type" : "pattern_replace",
@@ -13,20 +18,28 @@
       },
       "ampersand" : {
         "type" : "mapping",
-        "mappings" : [ "&=> and " ]
+        "mappings" : [ "& => and " ]
       }
     },
     "normalizer" : {
       "default": {
         "type": "custom",
+        "char_filter": [
+          "ampersand",
+          "doi_prefix_filter",
+          "orcid_prefix_filter",
+          "mailto_prefix_filter"
+        ],
         "filter": [
-          "lowercase"
+          "lowercase",
+          "asciifolding"
         ]
       },
       "identifier": {
         "type": "custom",
         "char_filter": [
           "doi_prefix_filter",
+          "orcid_prefix_filter",
           "mailto_prefix_filter"
         ],
         "filter": [
@@ -38,6 +51,11 @@
       "default": {
         "type": "custom",
         "tokenizer": "uax_url_email",
+        "char_filter": [
+          "ampersand",
+          "doi_prefix_filter",
+          "mailto_prefix_filter"
+        ],
         "filter": [
           "lowercase",
           "stop",
