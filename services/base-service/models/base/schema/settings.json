@@ -1,46 +1,73 @@
 {
   "analysis" : {
-    "char_filter" : {
-      "doi_prefix_filter" : {
-        "type" : "pattern_replace",
-        "pattern" : "^(/|doi:|https://doi.org/)?(10\.\d{4,}/[^\s]+)",
-        "replacement" : "doi:$2"
+    "char_filter": {
+      "doi_to_url": {
+           "type": "pattern_replace",
+           "pattern": "\\b(/|doi:|https://doi.org/)?(10\\.\\d{4,})\\b",
+           "replacement": "http://doi.org/$2"
       },
-      "orcid_prefix_filter" : {
-        "type" : "pattern_replace",
-        "pattern" : "^(orcid:|https://orcid.org/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])",
-        "replacement" : "https://orcid.org/$2"
+      "xxx_to_doi":{
+        "type": "pattern_replace",
+        "pattern": "^(/|doi:|https?://doi.org/)?(10\\.\\d{4,})",
+        "replacement": "doi:$2"
       },
-      "mailto_prefix_filter" : {
-        "type" : "pattern_replace",
-        "pattern" : "^mailto:",
-        "replacement" : ""
+      "orcid_to_url": {
+        "type": "pattern_replace",
+        "pattern": "\\b(orcid:)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])",
+        "replacement": "https://orcid.org/$2"
       },
-      "ampersand" : {
+      "mailto_to_email": {
+        "type": "pattern_replace",
+        "pattern": "\\bmailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})\\b",
+        "replacement": "$1"
+      },
+      "email_to_mailto": {
+        "type": "pattern_replace",
+        "pattern": "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})",
+        "replacement": "mailto:$1"
+      },
+      "ark_to_n2t":{
+         "type":"pattern_replace",
+         "pattern":"\\b(ark:\\/\\d+\\/[a-zA-Z0-9_-]+)\\b",
+         "replacement": "http://n2t.net/$1"
+       },
+      "urn_to_n2t":{
+        "type": "pattern_replace",
+        "pattern": "\\b(urn:[a-zA-Z0-9][a-zA-Z0-9-]{0,31}:([a-zA-Z0-9()+,-.:=@;$_!*'%/?#]|%[0-9a-fA-F]{2})+)\\b",
+        "replacement": "http://n2t.net/$1"
+      },
+      "n2t_to_id":{
+        "type": "pattern_replace",
+        "pattern": "^https?://n2t.net/(.*)",
+        "replacement": "$1"
+      },
+      "text_mapper" : {
         "type" : "mapping",
         "mappings" : [ "& => and " ]
       }
     },
-    "normalizer" : {
-      "default": {
-        "type": "custom",
-        "char_filter": [
-          "ampersand",
-          "doi_prefix_filter",
-          "orcid_prefix_filter",
-          "mailto_prefix_filter"
-        ],
-        "filter": [
-          "lowercase",
-          "asciifolding"
-        ]
+    "filter": {
+      "email_to_mailto": {
+        "type": "pattern_replace",
+        "pattern": "([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})",
+        "replacement": "mailto:$1"
       },
+      "n2t_to_id":{
+        "type": "pattern_replace",
+        "pattern": "https?://n2t.net/(.*)",
+        "replacement": "$1"
+      },
+      "xxx_to_doi":{
+        "type": "pattern_replace",
+        "pattern": "(/|doi:|https://doi.org/)?(10\\.\\d{4,})",
+        "replacement": "doi:$2"
+      }
+    },
+    "normalizer" : {
       "identifier": {
         "type": "custom",
         "char_filter": [
-          "doi_prefix_filter",
-          "orcid_prefix_filter",
-          "mailto_prefix_filter"
+          "xxx_to_doi","orcid_to_url","email_to_mailto","n2t_to_id"
         ],
         "filter": [
           "lowercase"
@@ -52,11 +79,11 @@
         "type": "custom",
         "tokenizer": "uax_url_email",
         "char_filter": [
-          "ampersand",
-          "doi_prefix_filter",
-          "mailto_prefix_filter"
+          "text_mapper","doi_to_url","orcid_to_url",
+          "mailto_to_email","ark_to_n2t","urn_to_n2t"
         ],
         "filter": [
+          "email_to_mailto","xxx_to_doi","n2t_to_id",
           "lowercase",
           "stop",
           "asciifolding"
@@ -76,13 +103,6 @@
       },
       "autocomplete_search" : {
         "tokenizer": "lowercase"
-      },
-      "lowercase_keyword": {
-        "tokenizer": "keyword",
-        "filter": [
-          "lowercase",
-          "unique"
-        ]
       }
     },
     "tokenizer": {

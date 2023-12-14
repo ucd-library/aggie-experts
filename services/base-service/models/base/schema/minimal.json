@@ -16,15 +16,15 @@
         "is-visible" : { "type" : "boolean" },
         "identifier" : {
           "type" : "keyword",
-          "normalizer": "identifier",
+          "normalizer" : "identifier",
           "ignore_above": 128
         },
         "contactInfo" : {
           "properties" : {
             "hasEmail": {
               "type":  "keyword",
-              "normalizer": "identifier",
-              "ignore_above": 256
+              "normalizer" : "identifier",
+              "ignore_above": 128
             },
             "hasTitle":{
               "properties" : {
@@ -60,13 +60,11 @@
             "hasURL": {
               "properties" : {
                 "name" : { "type" : "text" },
-                "url" : { "type" : "text",
-                          "fields": {
-                            "kw": {
-                              "type":  "keyword"
-                            }
-                          }
-                        }
+                "url" : {
+                  "type" : "keyword",
+                  "normalizer" : "identifier",
+                  "ignore_above": 256
+                }
               }
             }
           }
@@ -95,8 +93,8 @@
         "name" : { "type" : "text" },
         "orcidId" : {
           "type":  "keyword",
-          "normalizer": "identifier",
-          "ignore_above": 1024
+          "normalizer" : "identifier",
+          "ignore_above": 32
         },
         "overview" : { "type" : "text" },
         "DOI" : {
