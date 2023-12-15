@@ -1,0 +1,68 @@
+PREFIX cto: <http://experts.ucdavis.edu/cto/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX pos: <http://experts.ucdavis.edu/position/>
+PREFIX ucdlib:   <http://schema.library.ucdavis.edu/schema#>
+PREFIX vivo:  <http://vivoweb.org/ontology/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+construct {
+  ?id a ucdlib:AcademicMember,?senate_member,?federation_member;
+    ?p ?o;
+}
+WHERE {
+  ?id ucdlib:cto ?cto;
+      ?p ?o;
+      .
+  OPTIONAL {
+    values ?senate_code {
+      cto:010 cto:011 cto:012 cto:016 cto:114
+      cto:210 cto:211 cto:214 cto:216
+      cto:311 cto:316 cto:317 }
+    ?id ucdlib:cto ?senate_code.
+    bind (ucdlib:SenateMemeber as ?senate_member)
+  }
+  OPTIONAL {
+    values ?federation_code {
+      cto:040 cto:225
+      cto:335 cto:341
+      cto:530 cto:531 cto:534 cto:541 cto:557
+      cto:621 cto:627 cto:729 cto:825 cto:S46 cto:S56
+    }
+    ?id ucdlib:cto ?federation_code.
+    bind (ucdlib:FederationMember as ?federation_member)
+  }
+  OPTIONAL {
+    values ?exception { pos:001759 pos:001761 pos:001781 pos:001784 pos:001785 }
+    ?id ucdlib:cto cto:341.
+    filter (?id != ?exception)
+    bind (ucdlib:FederationMember as ?federation_member)
+  }
+  OPTIONAL {
+    values ?exception {
+      pos:003227 pos:003217 pos:003211 pos:003207
+      pos:001990 pos:001991 pos:001992 pos:001993
+      pos:001994 pos:001995 }
+    ?id ucdlib:cto cto:541.
+    filter (?id != ?exception)
+    bind (ucdlib:FederationMember as ?federation_member)
+  }
+  OPTIONAL {
+    values ?exception {
+      pos:003403 pos:003404 pos:003405 pos:003406 pos:003407 pos:003408
+    }
+    ?id ucdlib:cto cto:581.
+    filter (?id != ?exception)
+    bind (ucdlib:FederationMember as ?federation_member)
+  }
+  OPTIONAL {
+    values ?include {
+      pos:001550 pos:002220 pos:002221 pos:002222 pos:002223
+      pos:003300 pos:003301 pos:003310 pos:003311 pos:003320
+      pos:003321 pos:003572 pos:003575 pos:001650 pos:001675
+      pos:002210 pos:002211 pos:002284 pos:002285 pos:003800 }
+    filter(?id = ?include)
+    bind (ucdlib:FederationMember as ?federation_member)
+  }
+}
