@@ -56,10 +56,10 @@ class BaseModel extends FinEsDataModel {
     if (typeof types === 'string') types = [types];
     types = types.filter(x => this.constructor.types.includes(x));
     if (types.length === 0) {
-      console.log(`!${this.constructor.name}.is`);
+//      console.log(`!${this.constructor.name}.is`);
       return false;
     }
-    console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
+//    console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
     return true
   }
 
@@ -209,9 +209,9 @@ class BaseModel extends FinEsDataModel {
     // Check if template exists, install if not
     try {
       const result = await this.client.getScript({id:options.id});
-      console.log(`render: template ${options.id} exists`);
+//      console.log(`render: template ${options.id} exists`);
     } catch (err) {
-      console.log(`render: template ${options.id} does not exist`);
+//      console.log(`render: template ${options.id} does not exist`);
       const template = require(`./template/${options.id}.json`);
       const result = await this.client.putScript(template);
     }
