@@ -10,6 +10,8 @@
             "multi_match": {
               "query": "{{q}}",
               "fields": [
+                "@graph.@id^10",
+                "@graph.relates^2",
                 "@graph.DOI^10",
                 "@graph.abstract^5",
                 "@graph.contactInfo.hasEmail^10",

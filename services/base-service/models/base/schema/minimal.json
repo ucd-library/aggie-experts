@@ -5,13 +5,21 @@
       "type" : "keyword"
     },
     "_.updated" : {
-      "type" : "date"
+      "type" : "date",
+      "format" : "strict_date_optional_time||epoch_millis"
     },
     "@graph": {
       "type": "nested",
       "properties" : {
-        "@id" : { "type" : "keyword" },
-        "relates" : {"type" : "keyword" },
+        "@id" : {
+          "type" : "keyword",
+          "normalizer" : "identifier",
+          "ignore_above" : 256
+        },
+        "relates" : {
+          "type" : "keyword",
+          "normalizer" : "identifier"
+        },
         "@type" : { "type" : "keyword" },
         "is-visible" : { "type" : "boolean" },
         "identifier" : {
@@ -28,38 +36,42 @@
             },
             "hasTitle":{
               "properties" : {
-                "name" : { "type" : "text" }
+                "name" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                }
               }
             },
             "hasOrganizationalUnit":{
               "properties" : {
-                "name" : { "type" : "text" }
+                "name" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                }
               }
             },
             "hasName" : {
               "properties" : {
                 "family" : {
                   "type" : "text",
-                  "fields": {
-                    "kw": {
-                      "type":  "keyword"
-                    }
-                  }
+                  "analyzer" : "default"
                 },
-                "middle" : { "type" : "text" },
+                "middle" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                },
                 "given" : {
                   "type" : "text",
-                  "fields": {
-                    "kw": {
-                      "type":  "keyword"
-                    }
-                  }
+                  "analyzer" : "default"
                 }
               }
             },
             "hasURL": {
               "properties" : {
-                "name" : { "type" : "text" },
+                "name" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                },
                 "url" : {
                   "type" : "keyword",
                   "normalizer" : "identifier",
@@ -73,41 +85,77 @@
           "properties" : {
             "family" : {
               "type" : "text",
+              "analyzer" : "default",
+              "index_prefixes" : {
+                "min_chars" : 1,
+                "max_chars" : 7
+              },
               "fields": {
                 "kw": {
-                  "type":  "keyword"
+                  "type":  "keyword",
+                  "normalizer" : "lowercase_ascii"
                 }
               }
             },
-            "middle" : { "type" : "text" },
+            "middle" : {
+              "type" : "text",
+              "analyzer" : "default"
+            },
             "given" : {
               "type" : "text",
+              "analyzer" : "default",
+              "index_prefixes" : {
+                "min_chars" : 1,
+                "max_chars" : 7
+              },
               "fields": {
                 "kw": {
-                  "type":  "keyword"
+                  "type":  "keyword",
+                  "normalizer" : "lowercase_ascii"
                 }
               }
             }
           }
         },
-        "name" : { "type" : "text" },
+        "name" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
         "orcidId" : {
           "type":  "keyword",
           "normalizer" : "identifier",
-          "ignore_above": 32
+          "ignore_above": 64
         },
-        "overview" : { "type" : "text" },
+        "overview" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
         "DOI" : {
           "type":  "keyword",
           "normalizer": "identifier",
-          "ignore_above": 32
+          "ignore_above": 128
         },
-        "abstract" : { "type" : "text" },
-        "container-title" : { "type" : "text" },
-        "publisher" : { "type" : "text" },
-        "issued" : { "type" : "date" },
-        "title" : { "type" : "text" }
-      }
+        "abstract" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "container-title" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "publisher" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "issued" : {
+          "type" : "date",
+          "format" : "yyyy-MM-dd"
+        },
+        "title" : {
+          "type" : "text",
+          "analyzer" : "default"
+        }
+       }
     },
     "roles": {
       "type": "keyword"
