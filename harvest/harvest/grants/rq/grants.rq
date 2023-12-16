@@ -21,6 +21,8 @@ CONSTRUCT {
      vivo:grantDirectCosts ?direct_costs_i;
      ucdlib:subAwardOf ?from_grant;
  	   ucdlib:grantIndirectCosts ?indirect_costs_i;
+     ucdlib:flowThruFunding ?fpt_funding_org;
+     ucdlib:piName ?person_nm;
      .
 
   ?grant_duration a vivo:DateTimeInterval;
