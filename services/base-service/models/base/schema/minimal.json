@@ -148,8 +148,7 @@
           "analyzer" : "default"
         },
         "issued" : {
-          "type" : "date",
-          "format" : "yyyy-MM-dd"
+          "type" : "date"
         },
         "title" : {
           "type" : "text",
