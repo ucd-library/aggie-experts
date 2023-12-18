@@ -370,7 +370,7 @@ class BaseModel extends FinEsDataModel {
     let identifier = id.replace(/^\//, '').split('/');
     identifier.shift();
     identifier = identifier.join('/');
-    console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
+    //console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
 
     let result= await this.client.get(
       {
@@ -389,6 +389,7 @@ class BaseModel extends FinEsDataModel {
       return null;
     }
 
+    // Add fcrepo and dbsync data if admin, for the dashboard
     if( opts.admin === true ) {
       try {
         let response = await api.metadata({
