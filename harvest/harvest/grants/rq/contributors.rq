@@ -6,10 +6,10 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 
 CONSTRUCT {
 	?grant vivo:relates ?role;
-        ucdlib:piCoPi ?copi_name;
         .
 
   ?role a ?vivo_role,?ucd_role;
@@ -32,14 +32,10 @@ WHERE {
     ("CLDR" :GrantCoreLeaderRole vivo:ResearcherRole)
 #    ("ACCT-COPI" :GrantAccountManagerRole vivo:ResearcherRole)
   }
-  OPTIONAL {
-    filter (?grant_role = "PI" || ?grant_role = "COPI")
-    bind(?expert_nm as ?copi_name)
-  }
 
 	BIND(URI(CONCAT(str(grant:), ?cgprpsl_nbr)) AS ?grant)
   BIND(md5(concat(?prncpl_nm,'@ucdavis.edu')) AS ?user_id)
 	BIND(URI(CONCAT(str(?grant), "#role-",?user_id,"-",?grant_role)) AS ?role)
 	BIND(URI(CONCAT(str(expert:), ?user_id)) as ?expert)
-  BIND(CONCAT(?expert_nm, " (", ?grant_role, ")") AS ?role_label)
+  BIND(CONCAT(?person_nm, " (", ?grant_role, ")") AS ?role_label)
 }
