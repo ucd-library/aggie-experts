@@ -463,8 +463,7 @@ class BaseModel extends FinEsDataModel {
    *
    * @returns {Promise} : Elasticsearch response Promise
    */
-  async update_graph_node(document_id, node_to_update, is_visible=true) {
-     if (is_visible === true || is_visible === 'true') {
+  async update_graph_node(document_id, node_to_update ) {
       return this.client.update({
         index: this.writeIndexAlias,
         id : document_id,
@@ -477,9 +476,6 @@ class BaseModel extends FinEsDataModel {
           params : {node: node_to_update}
         }
       });
-    } else {
-      return this.delete_graph_node(document_id, node_to_update);
-    }
   }
 
   /**

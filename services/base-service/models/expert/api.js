@@ -9,7 +9,7 @@ async function remove_not_visible(req, res) {
   let id = '/'+model.id+decodeURIComponent(req.path);
   if (req.query.complete && req.user &&
       (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
-       req.user.?roles.includes('admin'))
+       req.user?.roles?.includes('admin'))
      ) {
     res.status(200).json(res.thisDoc);
   } else {
