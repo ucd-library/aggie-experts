@@ -71,22 +71,26 @@ class AuthorshipModel extends BaseModel {
       }
       if (have_part.Expert && have_part.Work) {
         // Add Work as snippet to Expert
-        // console.log(root_node);
-        if (root_node['is-visible'] === true || root_node['is-visible'] === 'true') {
-          logger.info(`${have_part.Expert.id} ==> ${have_part.Work.id}`);
-          {
-            const node = {
-              ...workModel.snippet(have_part.Work.node),
-              ...this.snippet(root_node),
-              '@type': 'Authored',
-            };
-            delete node.relates;
-            // console.log(`${have_part.Expert.id} Authored ${have_part.Work.id}`);
-            await expertModel.update_graph_node(have_part.Expert.id,node,root_node['is-visible']);
-          }
+        logger.info(`${have_part.Expert.id} ==> ${have_part.Work.id}`);
+        {
+          const node = {
+            ...workModel.snippet(have_part.Work.node),
+            ...this.snippet(root_node),
+            '@type': 'Authored',
+          };
+          delete node.relates;
+          // console.log(`${have_part.Expert.id} Authored ${have_part.Work.id}`);
+          await expertModel.update_graph_node(have_part.Expert.id,node);
+        }
+      } else {
+        if (have_part.Expert) {
+          logger.info(`${have_part.Expert.id} =>? ?Work?`);
         } else {
-          logger.info(`${have_part.Expert.id} !=> ${have_part.Work.id}`);
-          await expertModel.delete_graph_node(have_part.Expert.id,root_node);
+          if (have_part.Work) {
+            logger.info(`?Expert? ?=> ${have_part.Work.id}`);
+          } else {
+            logger.info(`?Expert? ?=? ?Work?`);
+          }
         }
       }
     }
