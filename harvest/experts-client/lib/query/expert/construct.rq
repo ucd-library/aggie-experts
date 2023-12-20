@@ -23,7 +23,7 @@ CONSTRUCT {
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
                schema:identifier ?oapolicy_ark,?user_id;
-               ucdlib:is-visible: ?visible;
+               ucdlib:is-visible ?visible;
                ?field_predicate ?field_value;
                .
 
