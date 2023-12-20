@@ -73,13 +73,7 @@ class AuthorshipModel extends BaseModel {
         // Add Work as snippet to Expert
         logger.info(`${have_part.Expert.id} ==> ${have_part.Work.id}`);
         {
-          const node = {
-            ...workModel.snippet(have_part.Work.node),
-            ...this.snippet(root_node),
-            '@type': 'Authored',
-          };
-          delete node.relates;
-          // console.log(`${have_part.Expert.id} Authored ${have_part.Work.id}`);
+          const node = workModel.snippet(have_part.Work.node),
           await expertModel.update_graph_node(have_part.Expert.id,node);
         }
       } else {

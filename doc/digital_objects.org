@@ -48,10 +48,9 @@
                              "given-name": "Quinn" }
                }
              },
-             { "@id":["ark:/.../relationship/123","ark:/.../work/evap"],
-               "@type":["Authored"],
+             { "@id":["ark:/.../work/evap"],
+               "@type":["Work"],
                "favorite": true,
-               "rank":2,
                "title":"Evapotranspiration in California",
                "container-title": "California Agriculture"
                "authors": [{"family-name":"Muir",{"given-name":"John"},

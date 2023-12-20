@@ -20,7 +20,6 @@ class WorkModel extends BaseModel {
 
   snippet(node) {
     let snip=super.snippet(node);
-    snip.work_id=node['@id'];
     return snip;
   }
 
@@ -87,7 +86,7 @@ class WorkModel extends BaseModel {
       const work_node=this.get_expected_model_node(work);
       work_node["is-visible"]=false;
       const authors=this.get_nodes_by_type(work,'Author');
-      for (let i=0; i<authors.length, i++) {
+      for (let i=0; i<authors.length; i++) {
         if (authors[i]['is-visible']) {
           work_node["is-visible"]=true;
           break;
