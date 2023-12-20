@@ -100,7 +100,7 @@ async function main(opt) {
 
 
   // const entries = await ec.getCDLusers(opt, uquery, '.[]["api:object"]|{id,"proprietary-id",username}');
-  const entries = await ec.getCDLentries(opt, uquery);
+  const entries = await ec.getCDLentries(uquery);
 
   var expertArray = [];
 
@@ -110,7 +110,12 @@ async function main(opt) {
       entry = entry['api:object'];
       expertArray.push(entry['username'].substring(0, entry['username'].indexOf('@')));
     }
-    console.log(expertArray.join(' '));
+    if (opt.style === 'list') {
+      console.log(expertArray.join('\n'));
+    }
+    else {
+      console.log(expertArray.join(' '));
+    }
     return;
   }
 
@@ -175,6 +180,7 @@ program.name('cdl-profile')
   .option('--fuseki.db <name>', 'specify fuseki db', fuseki.db)
   .option('--environment <env>', 'specify environment', 'production')
   .option('--userList', 'output list of usernames', false)
+  .option('--style <style>', 'output list of usernames style', '')
 
 
 program.parse(process.argv);
@@ -203,12 +209,12 @@ Object.keys(opt).forEach((k) => {
 if (opt.environment === 'development') {
   opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'qa-oapolicy';
-  opt.cdl.secretpath = 'projects/326679616213/secrets/cdl_elements_json';
+  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 else if (opt.environment === 'production') {
   opt.cdl.url = 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'oapolicy';
-  opt.cdl.secretpath = 'projects/326679616213/secrets/cdl_elements_json';
+  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 
 // console.log('opt', opt);
