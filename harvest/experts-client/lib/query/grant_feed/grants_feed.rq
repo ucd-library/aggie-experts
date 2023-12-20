@@ -4,6 +4,102 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
 PREFIX kfs: <ark:/87287/d7gt0q/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+select distinct
+(?grant AS ?id)
+("grant" AS ?category)
+("c-davis" AS ?type)
+("" AS ?url)
+?institution_reference
+?title
+?funding_type
+?start_date
+?end_date
+?ucop_sponsor
+?flow_thru_funding
+(?funder AS ?funder_name)
+(?reference AS ?funder_reference)
+(?amount AS ?amount_value)
+("USD" AS ?amount_currency_code)
+("TRUE" AS ?visible)
+#select ?grant ?cas ?e_role ?title ?start_date ?end_date ?funder ?reference ?amount ?amt_type
+where {
+   VALUES (?role ?link_type_id ?e_role) {
+       (:GrantOtherRole "138" "Researcher on" )
+       (:GrantProjectLeaderRole "118" "Project Lead of")
+       (:GrantCoPrincipalInvestigatorRole "121" "Co-PI of")
+       (:GrantProgramDirectorRole "137" "Program Director of")
+       (:GrantCoreLeaderRole "119" "Co leader on")
+       (:GrantKeyPersonnelRole "97" "Senior personal of")
+       (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
+     }
+  GRAPH kfs: {
+  ?grant a vivo:Grant;
+        ucdlib:grantType/rdfs:label ?funding_type;
+         rdfs:label ?title;
+         vivo:dateTimeInterval [
+                                 vivo:start/vivo:dateTime ?start_date;
+                                 vivo:end/vivo:dateTime ?end_date;
+                               ];
+       vivo:relates [
+            a ?role;
+                 a :GrantPrincipalInvestigatorRole;
+                 obo:RO_0000052 ?expert;
+               ];
+      .
+  OPTIONAL {
+    ?grant vivo:assignedBy ?sponsor;
+           vivo:sponsorAwardId ?reference;
+           .
+      ?sponsor rdfs:label ?funder;
+           .
+      bind(uri(replace(str(?sponsor),"ark:/87287/d7gt0q/funding_org/","http://rems.ucop.edu/sponsor/")) as ?ucop_sponsor)
+  }
+
+  OPTIONAL {
+    # flow-thru-funding org via the subAwardOf field
+    ?grant ucdlib:subAwardOf/vivo:assignedBy ?flow_thru_funding
+
+  }
+
+  OPTIONAL {
+    ?grant vivo:totalAwardAmount ?amount
+    .
+     filter(xsd:decimal(?amount) > 0)
+  }
+  }
+  filter not exists {
+    ?grant ucdlib:oracle_award_nbr ?oracle;
+           .
+  }
+  OPTIONAL {
+  graph iam: {
+  ?expert ucdlib:userId ?cas.
+  }
+	  GRAPH cdl: {
+      ?expert ucdlib:proprietary_id ?ucpath .
+    }
+  }
+
+  #  BIND (STRAFTER(STR(?grant),'ark:/87287/d7gt0q/grant/') AS ?institution_reference) .
+  BIND (?grant AS ?institution_reference) .
+#  filter(coalesce(xsd:decimal(?amount),1)>0)
+
+} order by ?grant
+
+#limit 100
+
+PREFIX : <ark:/87287/d7gt0q/schema#>
+PREFIX iam: <http://iam.ucdavis.edu/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX grant: <ark:/87287/d7gt0q/grant/>
+PREFIX kfs: <ark:/87287/d7gt0q/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
