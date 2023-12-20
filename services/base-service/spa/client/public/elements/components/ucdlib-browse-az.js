@@ -69,7 +69,11 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
 
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'browse' ) return;
-    if( e.location.path.length < 3 ) this.selectedLetter = 'a';
+    if( e.location.path.length < 2 ) {
+      this.selectedLetter = 'a';
+    } else {
+      this.selectedLetter = e.location.path[2]?.toLowerCase();
+    }
 
     // get active filters/a-z
     let az = await this.BrowseByModel.browseAZ();

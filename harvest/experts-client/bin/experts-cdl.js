@@ -17,6 +17,8 @@ import { GoogleSecret } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 
+import md5 from 'md5';
+
 const DF = new DataFactory();
 const BF = new BindingsFactory();
 
@@ -29,7 +31,7 @@ const program = new Command();
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-  type: 'tdb',
+  type: 'tdb2',
   db: 'CAS',
   replace: true,
   'delete': false
@@ -41,17 +43,17 @@ const cdl = {
   secretpath: '',
 };
 
-async function temp_get_qa_grants(ec,db,user) {
-  logger.info({mark:'grants'},'temp_get_qa_grants ' + user);
-  const grant_id_types="2,12,43,44,94,95,96,97,116,117,118,119,120,121,122,123,124,125,126,133,134,135,136,137,138,139,140,141"
-  const orig_opt=ec.opt;
-  const opt={
+async function temp_get_qa_grants(ec, db, user) {
+  logger.info({ mark: 'grants' }, 'temp_get_qa_grants ' + user);
+  const grant_id_types = "2,12,43,44,94,95,96,97,116,117,118,119,120,121,122,123,124,125,126,133,134,135,136,137,138,139,140,141"
+  const orig_opt = ec.opt;
+  const opt = {
     ...orig_opt,
-    debugRelationshipDir:'grants',
+    debugRelationshipDir: 'grants',
     cdl: {
-      url:'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-      authname:'qa-oapolicy',
-      secretpath:'projects/325574696734/secrets/cdl-elements-json'
+      url: 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+      authname: 'qa-oapolicy',
+      secretpath: 'projects/325574696734/secrets/cdl-elements-json'
     }
   }
   let secretResp = await gs.getSecret(opt.cdl.secretpath);
@@ -63,9 +65,9 @@ async function temp_get_qa_grants(ec,db,user) {
   }
 
   const qa = new ExpertsClient(opt);
-  qa.userId=ec.userId
-  await qa.getPostUserRelationships(db,user,`detail=full&types=${grant_id_types}`);
-  logger.info({measure:'grants'},'temp_get_qa_grants ' + user);
+  qa.userId = ec.userId
+  await qa.getPostUserRelationships(db, user, `detail=full&types=${grant_id_types}`);
+  logger.info({ measure: 'grants' }, 'temp_get_qa_grants ' + user);
 
 }
 
@@ -99,14 +101,13 @@ async function main(opt) {
       }
       else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
         // We need the date in XML ISO format
-        var date = new Date();
-        date.setDate(date.getDate() - opt.cdl.modified); // Subtracts days
+        var date = new Date(opt.cdl.modified);
         sinceFilter = '&modified-since=' + date.toISOString();
         uquery += sinceFilter;
       }
 
       // Get the users from CDL that meet the criteria
-      const entries = await ec.getCDLentries(uquery,'users_via_groups');
+      const entries = await ec.getCDLentries(uquery, 'users_via_groups');
 
       // Add them to the users array
       for (let entry of entries) {
@@ -126,48 +127,70 @@ async function main(opt) {
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
     let dbname
+    let md=md5(`${user}@ucdavis.edu`);
+
+    if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${md}.jsonld.json`)) {
+      logger.info({mark:user},'skipping ' + user);
+      continue;
+    }
+    logger.info({mark:user},'user ' + user);
     if (fuseki.db==='CAS-XX' || fuseki.db==='CAS') {
       dbname = user+(fuseki.db==='CAS-XX'?'-'+nanoid(2):'');
+      let exists = await fuseki.existsDb(dbname);
       db = await fuseki.createDb(dbname);
-      logger.info({measure:['start']},`Dataset '${dbname}' created successfully.`);
+      logger.info({measure:[user],user},`fuseki.createDb(${dbname})`);
     }
 
+    // const profile = await ec.getCDLprofile(user, opt);
+
     if (opt.fetch) {
-      logger.info('starting getCDLprofile ' + user);
+      try {
+        await ec.getPostUser(db,user)
+        logger.info({measure:[user],user},`getPostUser`);
 
-      await ec.getPostUser(db,user)
+        // Step 3: Get User Relationships from CDL
+        // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
+        await ec.getPostUserRelationships(db,user,'detail=full');
+        logger.info({measure:[user],user},`getPostUserRelationships`);
 
-      // Step 3: Get User Relationships from CDL
-      // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
-      await ec.getPostUserRelationships(db,user,'detail=full');
-
-      // Step 3a: Get User Grants from CDL (qa-oapolicy only)
-      // await temp_get_qa_grants(ec,db,user);
+        // Step 3a: Get User Grants from CDL (qa-oapolicy only)
+        await temp_get_qa_grants(ec,db,user);
+        logger.info({measure:[user],user},`temp_get_qa_grant`);
+      }
+      catch (e) {
+        logger.error({ user, error: e }, `error ${user}`);
+      }
     }
 
     if (opt.splay) {
+      logger.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
         { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
       );
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
-
       await ec.insert({ ...iam, bindings, db });
+      logger.info({measure:['splay'],user},`insert`);
 
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        logger.info({mark:n},`splaying ${n} for ${user}`);
+        logger.info({mark:n,user},`splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
-          return await ec.splay({ ...splay,bindings, db,output:opt.output });
+          return await ec.splay({ ...splay, bindings, db, output: opt.output, user });
         })(n);
-        logger.info({measure:n},`splayed ${n} for ${user}`);
+        logger.info({measure:[n],user},`splayed ${n}`);
+        performance.clearMarks(n);
       };
+      logger.info({measure:['splay',user],user},`splayed`);
+      performance.clearMarks('splay');
     }
     // Any other value don't delete
-    if (fuseki.delete === true ) {
+    if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db);
     }
+    logger.info({measure:[user],user},`completed`);
+    performance.clearMarks(user);
   }
 }
 
@@ -181,14 +204,14 @@ performance.mark('start');
 program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
-  .option('--output <output>', 'output directory')
+  .option('--output <output>', 'output directory','.')
   .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
   .option('--cdl.affected <affected>', 'affected since')
-  .option('--cdl.modified <modified>', 'modified since')
+  .option('--cdl.modified <modified>', 'modified since (YYYY-MM-DD)')
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
+  .option('--cdl.timeout <timeout>', 'Specify CDL API timeout in milliseconds', 30000)
   .option('--author-truncate-to <max>', 'Truncate authors to max', null)
-  .option('--author-rank', 'Add rank to authors, remove list context', false)
   .option('--author-trim-info', 'Remove extraneous author info', false)
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
@@ -202,6 +225,7 @@ program.name('cdl-profile')
   .option('--environment <env>', 'specify environment', 'production')
   .option('--no-splay', 'splay data', true)
   .option('--no-fetch', 'fetch the data', true)
+  .option('--skip-existing-user', 'skip if expert/md5(${user}@ucdavis.edu`) exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
 
 
@@ -217,7 +241,7 @@ Object.keys(opt).forEach((k) => {
     delete opt[k];
   }
 });
-opt.db = fuseki;
+//opt.db = fuseki;
 
 // make cdl_info as object
 Object.keys(opt).forEach((k) => {
@@ -233,11 +257,12 @@ if (opt.environment === 'development') {
   opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'qa-oapolicy';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
+  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 else if (opt.environment === 'production') {
   opt.cdl.url = 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'oapolicy';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
-logger.info({opt}, 'options');
+logger.info({ opt }, 'options');
 await main(opt);

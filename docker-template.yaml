@@ -20,15 +20,14 @@ services:
   fuseki:
     image: &IMG ${ORG}/harvest:${TAG}
     volumes:
+      - *SERVICE_ACCOUNT
       - fuseki-data:/home/ucd.process
     ports:
       - ${DB_PORT:-3030}:3030
     environment:
       - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
-      - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON}
+      - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON:-}
     restart: unless-stopped
-    volumes:
-      - *SERVICE_ACCOUNT
     command:
       HDT=import server
     # command: bash -c 'tail -f /dev/null'
@@ -152,7 +151,7 @@ services:
   gcs:
     image: *BASE
     environment:
-      - GCS=${GCS:-aggie-experts-fcrepo-dev}
+      - GCS=${GCS:-fcrepo-dev}
     env_file:
       - .env
     volumes:

@@ -95,7 +95,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
 
-    let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
+    let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
     await this._loadCitations();
@@ -108,7 +108,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
   async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
+    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
     console.log('in _loadCitations');
     try {
       // sort by issued date desc, then by title asc

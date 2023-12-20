@@ -17,6 +17,10 @@ return html`
       display: block;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .hero-main {
       background: url('/images/watercolor-gold-solid.jpg') no-repeat center center;
       background-size: 100% auto;
@@ -73,7 +77,8 @@ return html`
     .hero-main h1 .tooltip:hover ucdlib-icon,
     .roles-websites .roles h4 ucdlib-icon:hover,
     .roles-websites .websites h4 ucdlib-icon:hover,
-    .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover {
+    .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover,
+    .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon:hover {
       fill: var(--color-aggie-gold);
     }
 
@@ -409,6 +414,68 @@ return html`
       line-height: var(--lh-html);
     }
 
+    .impersonate-btn {
+      margin-left: 1.19rem;
+      border-radius: 1.25em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-width: 10ch;
+      min-height: 2.5em;
+      margin-bottom: 0;
+      padding: 0.625em 1em;
+      border: 1px solid #b0d0ed;
+      background-color: transparent;
+      color: #022851;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      line-height: 1.1;
+      text-align: center;
+      text-decoration: none;
+      --btn-arrow-color: #ffbf00;
+      /* padding-right: 1.5em;
+      padding-left: 0.75em; */
+      transition: 0.2s padding ease-out;
+      border-color: #ffbf00;
+      background-color: transparent;
+    }
+
+    .impersonate-btn:hover {
+      background-color: #ffbf00;
+      color: #022851;
+      border-color: #ffbf00;
+    }
+
+    .refresh-profile {
+      padding-bottom: 2.38rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .last-updated-label {
+      color: #666;
+      font-size: .95rem;
+      font-style: italic;
+      line-height: 1.625rem;
+      padding-left: 1rem;
+    }
+
+    .btn--invert:before {
+      content: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTYiIHdpZHRoPSIxNiIgdmlld0JveD0iMCAwIDUxMiA1MTIiPjwhLS0hRm9udCBBd2Vzb21lIEZyZWUgNi41LjAgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSBDb3B5cmlnaHQgMjAyMyBGb250aWNvbnMsIEluYy4tLT48cGF0aCBmaWxsPSIjQjBEMEVEIiBkPSJNMTA1LjEgMjAyLjZjNy43LTIxLjggMjAuMi00Mi4zIDM3LjgtNTkuOGM2Mi41LTYyLjUgMTYzLjgtNjIuNSAyMjYuMyAwTDM4Ni4zIDE2MEgzNTJjLTE3LjcgMC0zMiAxNC4zLTMyIDMyczE0LjMgMzIgMzIgMzJINDYzLjVjMCAwIDAgMCAwIDBoLjRjMTcuNyAwIDMyLTE0LjMgMzItMzJWODBjMC0xNy43LTE0LjMtMzItMzItMzJzLTMyIDE0LjMtMzIgMzJ2MzUuMkw0MTQuNCA5Ny42Yy04Ny41LTg3LjUtMjI5LjMtODcuNS0zMTYuOCAwQzczLjIgMTIyIDU1LjYgMTUwLjcgNDQuOCAxODEuNGMtNS45IDE2LjcgMi45IDM0LjkgMTkuNSA0MC44czM0LjktMi45IDQwLjgtMTkuNXpNMzkgMjg5LjNjLTUgMS41LTkuOCA0LjItMTMuNyA4LjJjLTQgNC02LjcgOC44LTguMSAxNGMtLjMgMS4yLS42IDIuNS0uOCAzLjhjLS4zIDEuNy0uNCAzLjQtLjQgNS4xVjQzMmMwIDE3LjcgMTQuMyAzMiAzMiAzMnMzMi0xNC4zIDMyLTMyVjM5Ni45bDE3LjYgMTcuNSAwIDBjODcuNSA4Ny40IDIyOS4zIDg3LjQgMzE2LjcgMGMyNC40LTI0LjQgNDIuMS01My4xIDUyLjktODMuN2M1LjktMTYuNy0yLjktMzQuOS0xOS41LTQwLjhzLTM0LjkgMi45LTQwLjggMTkuNWMtNy43IDIxLjgtMjAuMiA0Mi4zLTM3LjggNTkuOGMtNjIuNSA2Mi41LTE2My44IDYyLjUtMjI2LjMgMGwtLjEtLjFMMTI1LjYgMzUySDE2MGMxNy43IDAgMzItMTQuMyAzMi0zMnMtMTQuMy0zMi0zMi0zMkg0OC40Yy0xLjYgMC0zLjIgLjEtNC44IC4zcy0zLjEgLjUtNC42IDF6Ii8+PC9zdmc+");
+      width: 2em;
+      position: relative;
+      left: 0.2rem;
+    }
+
+    .btn--invert {
+      /* width: 165px; */
+      border-color: var(--color-aggie-blue-50);
+      padding: .5rem 1.5rem .5rem .5rem;
+      font-size: 1rem;
+    }
+
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
@@ -433,6 +500,9 @@ return html`
       .visible="${this.showModal}"
       .title="${this.modalTitle}"
       .content="${this.modalContent}"
+      .hideCancel="${this.hideCancel}"
+      .hideSave="${this.hideSave}"
+      .hideOK="${this.hideOK}"
       @cancel=${(e) => this.showModal = false}
       @save=${(e) => this.showModal = false}>
     </app-modal-overlay>
@@ -441,13 +511,12 @@ return html`
         <div class="experts">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT</span>
+          <button ?hidden="${this.hideImpersonate}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
         </div>
         <h1>${this.expertName}
-          <a href="https://org.ucdavis.edu/odr/" style="position: relative;">
+          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
             <span class="tooltip edit-name" data-text="Edit name">
-              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                ?hidden="${!this.canEdit}">
-              </ucdlib-icon>
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
             </span>
           </a>
         </h1>
@@ -455,6 +524,10 @@ return html`
     </div>
 
     <div class="main-content">
+      <div ?hidden="${!this.canEdit}" class="refresh-profile">
+        <button class="btn btn--invert" @click="${this._refreshProfileClicked}">Refresh Profile Data</button>
+        <div class="last-updated-label">Last Updated: Mon XX, 20XX, X:XXpm</div>
+      </div>
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
@@ -488,11 +561,9 @@ return html`
       <div class="roles-websites">
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles
-            <a href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}">
-                </ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
             </a>
           </h4>
@@ -518,10 +589,9 @@ return html`
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
           <h4>Links
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editWebsites}>
                 </ucdlib-icon>
               </span>
@@ -562,20 +632,18 @@ return html`
             <h2>${this.grants.length} Grants</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-grants" data-text="Edit grants">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editGrants}>
                 </ucdlib-icon>
               </span>
             </span>
 
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip download-all-grants" data-text="Download all grants">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._downloadGrants}>
                 </ucdlib-icon>
               </span>
@@ -628,20 +696,18 @@ return html`
             <h2>${this.citations.length} Works</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-works" data-text="Edit works">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._editWorks}>
                 </ucdlib-icon>
               </span>
             </span>
 
-            <span style="position: relative;">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip download-all-works" data-text="Download all works">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
-                  ?hidden="${!this.canEdit}"
                   @click=${this._downloadWorks}>
                 </ucdlib-icon>
               </span>

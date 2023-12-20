@@ -1,8 +1,10 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const md5 = require('md5');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
+const esClient = require('@ucd-lib/fin-service-utils').esClient;
 
 module.exports = async (app) => {
 
@@ -36,8 +38,36 @@ module.exports = async (app) => {
     enable404 : true,
 
     getConfig : async (req, res, next) => {
+      let user = req.user;
+
+      if( user ) {
+        if( !user.roles ) user.roles = [];
+        if( user.roles.includes('admin') ) user.admin = true;
+        user.loggedIn = true;
+        user.expertId = 'expert/'+ md5(user.preferred_username+'@ucdavis.edu');
+
+        try {
+          const esResult = await esClient.get(
+            {
+              ...{
+                index: 'expert-read',
+                id: user.expertId,
+                _source: false
+              }
+            }
+          )
+          user.hasProfile = esResult.found;
+
+        } catch (e) {
+          user.hasProfile = false;
+        }
+
+      } else {
+        user = {loggedIn: false};
+      }
+
       next({
-        user : {},
+        user,
         appRoutes : config.client.appRoutes,
         env : config.client.env,
       });

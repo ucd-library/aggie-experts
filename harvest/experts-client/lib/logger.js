@@ -20,14 +20,14 @@ function measureSerializer(measure) {
     return measure;
   }
   const marks=Array.isArray(measure) ? measure : [measure];
-  const measured ={};
+  const measured =[];
   marks.forEach((mark) => {
       try {
         performance.measure(`__${mark}`,mark);
-        measured[mark]=Math.round(performance.getEntriesByName(`__${mark}`)[0].duration);
+        measured.push({mark:mark, duration:Math.round(performance.getEntriesByName(`__${mark}`)[0].duration)});
         performance.clearMeasures(`__${mark}`);
       } catch (e) {
-        measured[mark]=null;
+        measured.push({mark:mark,duration:null});
       }
     });
   return measured;

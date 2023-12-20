@@ -23,6 +23,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       currentPage : { type : Number },
       allSelected : { type : Boolean },
       showModal : { type : Boolean },
+      hideCancel : { type : Boolean },
+      hideSave : { type : Boolean },
+      hideOK : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -49,6 +52,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.resultsPerPage = 25;
     this.allSelected = false;
     this.showModal = false;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -115,10 +121,10 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
 
-    let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
+    let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
-    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
@@ -316,6 +322,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.modalTitle = 'Hide Grant';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**
@@ -329,7 +338,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     // reset data to first page of results
     this.currentPage = 1;
-    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(grants);
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);

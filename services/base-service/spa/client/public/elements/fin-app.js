@@ -36,19 +36,28 @@ export default class FinApp extends Mixin(LitElement)
       page: { type: String },
       imageSrc: { type: String },
       imageAltText: { type: String },
-      pathInfo: { type: String }
+      pathInfo: { type: String },
+      expertId: { type: String },
+      expertNameImpersonating: { type: String },
+      hideImpersonate: { type: Boolean },
     }
   }
 
   constructor() {
     super();
     this.appRoutes = APP_CONFIG.appRoutes;
-    this._injectModel('AppStateModel');
+    this._injectModel('AppStateModel', 'ExpertModel');
+
+    // hack to customize header quick links, need to update styles if screen goes into mobile mode vs desktop mode and vice-versa
+    window.addEventListener("resize", this._validateLoggedInUser.bind(this));
 
     this.page = 'home';
     this.imageSrc = '';
     this.imageAltText = '';
     this.pathInfo = '';
+    this.expertId = '';
+    this.expertNameImpersonating = '';
+    this.hideImpersonate = true;
 
     this.render = render.bind(this);
     this._init404();
@@ -85,6 +94,8 @@ export default class FinApp extends Mixin(LitElement)
     }
     window.scrollTo(0, 0);
 
+    this._validateLoggedInUser();
+
     let page = e.location.page;
     if( !APP_CONFIG.appRoutes.includes(e.location.page) ) page = '404';
 
@@ -96,6 +107,51 @@ export default class FinApp extends Mixin(LitElement)
   }
 
   /**
+   * @method _validateLoggedInUser
+   * @description validate logged in user, hide profile link if expert not fount
+   * for logged in user
+   */
+  async _validateLoggedInUser() {
+    console.log('validating logged in user')
+
+    let expertId = APP_CONFIG.user?.expertId || '';
+    if( expertId ) {
+      this.expertId = expertId;
+
+      // this.expertId = 'expert/66356b7eec24c51f01e757af2b27ebb8'; // hack for testing as QH
+
+      // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
+      let header = this.shadowRoot.querySelector('ucd-theme-header');
+      let quickLinks = header?.querySelector('ucd-theme-quick-links');
+
+      if( APP_CONFIG.user?.hasProfile ) {
+        if( quickLinks ) {
+          quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
+        }
+      } else {
+        console.warn('expert ' + this.expertId + ' not found for logged in user');
+
+        if( quickLinks ) {
+          quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(3)').style.top = '3.2175rem';
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '0';
+
+          if( window.innerWidth > 991 ) {
+            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '6.5325rem';
+            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '1rem';
+          } else  {
+            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '0';
+          }
+        }
+      }
+
+      let appExpert = this.shadowRoot.querySelector('app-expert');
+      if( appExpert ) appExpert.toggleAdminUi();
+    }
+  }
+
+  /**
    * @method _onSearch
    * @description called from the search box button is clicked or
    * the enter key is hit. search
@@ -103,6 +159,39 @@ export default class FinApp extends Mixin(LitElement)
    */
   _onSearch(e) {
     if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.searchTerm.trim());
+  }
+
+  /**
+   * @method _impersonateClick
+   * @description impersonate expert
+   *
+   * @param {Object} e
+   */
+  _impersonateClick(e) {
+    e.preventDefault();
+
+    if( !(APP_CONFIG.user?.roles || []).includes('admin') ) return;
+
+    // show button showing who we're impersonating
+    this.hideImpersonate = false;
+    this.expertNameImpersonating = APP_CONFIG.impersonating?.expertName;
+  }
+
+  /**
+   * @method _cancelImpersonateClick
+   * @description cancel impersonating an expert
+   *
+   * @param {Object} e
+   */
+  _cancelImpersonateClick(e) {
+    e.preventDefault();
+
+    this.hideImpersonate = true;
+    this.expertNameImpersonating = '';
+    APP_CONFIG.impersonating = {};
+
+    let appExpert = this.shadowRoot.querySelector('app-expert');
+    if( appExpert ) appExpert.cancelImpersonate();
   }
 
 }
