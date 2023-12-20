@@ -21,6 +21,7 @@ select distinct
 ?start_date
 ?end_date
 ?ucop_sponsor
+?flow_thru_funding
 (?funder AS ?funder_name)
 (?reference AS ?funder_reference)
 (?amount AS ?amount_value)
@@ -59,6 +60,13 @@ where {
            .
       bind(uri(replace(str(?sponsor),"ark:/87287/d7gt0q/funding_org/","http://rems.ucop.edu/sponsor/")) as ?ucop_sponsor)
   }
+
+  OPTIONAL {
+    # flow-thru-funding org via the subAwardOf field
+    ?grant ucdlib:subAwardOf/vivo:assignedBy ?flow_thru_funding
+
+  }
+
   OPTIONAL {
     ?grant vivo:totalAwardAmount ?amount
     .
@@ -77,9 +85,11 @@ where {
       ?expert ucdlib:proprietary_id ?ucpath .
     }
   }
-#  BIND (STRAFTER(STR(?grant),'ark:/87287/d7gt0q/grant/') AS ?institution_reference) .
+
+  #  BIND (STRAFTER(STR(?grant),'ark:/87287/d7gt0q/grant/') AS ?institution_reference) .
   BIND (?grant AS ?institution_reference) .
 #  filter(coalesce(xsd:decimal(?amount),1)>0)
+
 } order by ?grant
 
 #limit 100
