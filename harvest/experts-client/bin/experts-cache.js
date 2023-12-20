@@ -12,10 +12,6 @@ import { GoogleSecret } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 
-const DF = new DataFactory();
-const BF = new BindingsFactory();
-
-const ql = await new QueryLibrary().load();
 const gs = new GoogleSecret();
 
 const program = new Command();
@@ -151,16 +147,21 @@ performance.mark('start');
 program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
-  .option('--output <output>', 'output directory')
-  .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
-  .option('--cdl.affected <affected>', 'affected since')
-  .option('--cdl.modified <modified>', 'modified since (YYYY-MM-DD)')
   .option('--cdl.timeout <timeout>', 'Specify CDL API timeout in milliseconds', 30000)
-  .option('--author-trim-info', 'Remove extraneous author info', false)
-  .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
-  .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
+  .option('--default-domain','default university domain','ucdavis.edu')
+  .option('--deprioritize','allow an enqueue request to reduce an experts priority',false)
+  .option('--dequeue','remove expert(s) from the queue')
+  .option('--enqueue', 'enqueue expert(s) for processing')
+  .option('--environment <production|development>', 'specify cdl environment', 'production')
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
-  .option('--environment <env>', 'specify environment', 'production')
+  .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
+  .option('--invalidate','remove expert(s) from the cache')
+  .option('--list', 'list cache information')
+  .option('--max <n|empty|never>','when resolving, iterate over n experts, or rule', 'empty')
+  .option('--output <output>', 'cache directory')
+  .option('--priority <1-20>','priority for enqueue', 10)
+  .option('--queue', 'list queue information')
+  .option('--resolve','resolve expert(s) from the cache')
 
 program.parse(process.argv);
 
