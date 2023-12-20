@@ -1,10 +1,11 @@
 'use strict';
 import path from 'path';
 import fs from 'fs-extra';
-import { Command } from 'commander';
+import { Command } from '../lib/experts-commander.js';
 
 import { BindingsFactory } from '@comunica/bindings-factory';
 
+import IamClient  from '../lib/iam-client.js';
 import ExpertsClient from '../lib/experts-client.js';
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
@@ -25,12 +26,6 @@ const fuseki = new FusekiClient({
   replace: true,
   'delete': false
 });
-
-const cdl = {
-  url: '',
-  auth: '',
-  secretpath: '',
-};
 
 async function temp_get_qa_grants(ec, db, user) {
   logger.info({ mark: 'grants' }, 'temp_get_qa_grants ' + user);
@@ -147,7 +142,6 @@ performance.mark('start');
 program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
-  .option('--cdl.timeout <timeout>', 'Specify CDL API timeout in milliseconds', 30000)
   .option('--default-domain','default university domain','ucdavis.edu')
   .option('--deprioritize','allow an enqueue request to reduce an experts priority',false)
   .option('--dequeue','remove expert(s) from the queue')
@@ -187,16 +181,5 @@ Object.keys(opt).forEach((k) => {
   }
 });
 
-if (opt.environment === 'development') {
-  opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
-  opt.cdl.authname = 'qa-oapolicy';
-  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
-  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
-}
-else if (opt.environment === 'production') {
-  opt.cdl.url = 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
-  opt.cdl.authname = 'oapolicy';
-  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
-}
 logger.info({ opt }, 'options');
 await main(opt);

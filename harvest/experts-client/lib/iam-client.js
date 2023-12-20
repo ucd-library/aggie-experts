@@ -10,14 +10,31 @@
 import fetch from 'node-fetch';
 import JsonLdProcessor from 'jsonld';
 import { logger } from './logger.js';
+import { GoogleSecret } from '@ucd-lib/experts-api';
 
 const jp = new JsonLdProcessor();
+const gs = new GoogleSecret();
 
 /** Exports a class
 * @class
 * @classdesc Aggie Experts Client API provide methods to import and access Aggie Experts data.
 */
 export class IamClient {
+
+  const ENV={
+    dev: {
+      url: 'https://iet-ws-stage.ucdavis.edu/api/iam/',
+      authname: 'iet-ws-stage',
+      secretpath: 'projects/326679616213/secrets/ucdid_auth',
+      timeout: 30000
+    },
+    prod: {
+      url: 'https://iet-ws.ucdavis.edu/api/iam/',
+      authname: 'iet-ws',
+      secretpath: 'projects/326679616213/secrets/ucdid_auth',
+      timeout: 30000
+    }
+  };
 
   static context = {
     "@context": {
@@ -40,20 +57,34 @@ export class IamClient {
   * Accepts a opt object with options from a commander program.
   */
   constructor(opt) {
-    this.opt = opt;
     this.logger = opt.logger || logger;
-
-    this.iam=opt.iam || {};
-    if (this.iam?.auth.match(':')) {
-      this.iam.auth = this.iam.auth.split(':')[1];
-    }
+    this.timeout = opt.timeout || 30000;
+    this.env = opt.env || 'prod';
+    this.url = IamClient.ENV[this.env].url;
+    this.authname = IamClient.ENV[this.env].authname;
+    this.secretpath = IamClient.ENV[this.env].secretpath;
+    this.auth = null;
 
   }
   context() {
     return JSON.parse(JSON.stringify(IamClient.context));
   }
 
+  async getAuth() {
+    if (this.auth) {
+      return this.auth;
+    }
+    let secretResp = await gs.getSecret(this.secretpath);
+    let secretJson = JSON.parse(secretResp);
+    for (const entry of secretJson) {
+      if (entry['@id'] == this.authname) {
+        this.auth = entry.auth.raw_auth;
+      }
+    }
+  }
+
   async getProfiles(search) {
+    await this.getAuth();
     let url = encodeURI(`${opt.iam.url}/people/profile/search?key=${opt.iam.auth}&${search}`);
 
     const response = await fetch(url);
