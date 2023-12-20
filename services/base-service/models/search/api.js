@@ -36,7 +36,6 @@ router.get('/', async (req, res) => {
     const template = await experts.search(opts);
     res.send(template);
   } catch (err) {
-    console.log('search/',err);
     res.status(400).send('Invalid request');
   }
 });

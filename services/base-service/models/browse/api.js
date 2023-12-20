@@ -41,7 +41,6 @@ router.get('/', async (req, res) => {
     const template = await experts.search(opts);
     res.send(template);
   } catch (err) {
-    console.log('browse/',err);
     res.status(400).send('Invalid request');
   }
   } else {
@@ -55,7 +54,6 @@ router.get('/', async (req, res) => {
       const templates = await experts.msearch({search_templates});
       res.send(templates);
     } catch (err) {
-      console.log('browse/',err);
       res.status(400).send('Invalid request');
     }
   }
