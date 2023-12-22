@@ -301,7 +301,7 @@
    sanitization step when users access the system via the API.
    Every record is santizied before it's delivered to the
    user. The advantage for this is that elevated users will be able to see the
-   hidden data with a low overhead on the system, and a more consitent
+   hidden data with a low overhead on the system, and a more consistent
    experience with our experts.
 
 *** Node Removal for Experts

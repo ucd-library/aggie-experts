@@ -211,7 +211,7 @@ class BaseModel extends FinEsDataModel {
       const result = await this.client.getScript({id:options.id});
 //      console.log(`render: template ${options.id} exists`);
     } catch (err) {
-//      console.log(`render: template ${options.id} does not exist`);
+      logger.info(`adding template ./template/${options.id}`);
       const template = require(`./template/${options.id}.json`);
       const result = await this.client.putScript(template);
     }
