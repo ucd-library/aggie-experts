@@ -211,7 +211,7 @@ class BaseModel extends FinEsDataModel {
       const result = await this.client.getScript({id:options.id});
 //      console.log(`render: template ${options.id} exists`);
     } catch (err) {
-//      console.log(`render: template ${options.id} does not exist`);
+      logger.info(`adding template ./template/${options.id}`);
       const template = require(`./template/${options.id}.json`);
       const result = await this.client.putScript(template);
     }
@@ -370,7 +370,7 @@ class BaseModel extends FinEsDataModel {
     let identifier = id.replace(/^\//, '').split('/');
     identifier.shift();
     identifier = identifier.join('/');
-    console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
+    //console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
 
     let result= await this.client.get(
       {
@@ -389,6 +389,7 @@ class BaseModel extends FinEsDataModel {
       return null;
     }
 
+    // Add fcrepo and dbsync data if admin, for the dashboard
     if( opts.admin === true ) {
       try {
         let response = await api.metadata({
@@ -462,8 +463,7 @@ class BaseModel extends FinEsDataModel {
    *
    * @returns {Promise} : Elasticsearch response Promise
    */
-  async update_graph_node(document_id, node_to_update, is_visible=true) {
-     if (is_visible === true || is_visible === 'true') {
+  async update_graph_node(document_id, node_to_update ) {
       return this.client.update({
         index: this.writeIndexAlias,
         id : document_id,
@@ -476,9 +476,6 @@ class BaseModel extends FinEsDataModel {
           params : {node: node_to_update}
         }
       });
-    } else {
-      return this.delete_graph_node(document_id, node_to_update);
-    }
   }
 
   /**

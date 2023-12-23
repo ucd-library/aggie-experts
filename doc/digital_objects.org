@@ -11,27 +11,27 @@
   when relevant documents are added to or changed on the LDP.
 
   This document describes overall basic format of the elastic search documents;
-  various important identifiers, and types.  Then, the representation of each
+  various important identifiers, and types.  Then the representation of each
   type are described in more detail.
 
   Finally, the workflow for how nodes are combined into the elasticsearch
-  document via our updating methodology is described in detail.
+  document via our updating methodology is described.
 
 ** Basic format
 
-   All elastic search documents are valid jsonld files with a ~@context~ that
-   simplifies the names of the properties of the file. In addition, the JSON-LD
-   data is framed so that many minor are embedded into larger objects.
-   Informally, we call these larger objects nodes.  In the elastic search
-   document, all ~nodes~ are are stored in the ~@graph~.  Nodes have their own
-   ~@ids~ and ~@types~, the ~@ids~ describe the same object,  though they have
-   different amounts of specificity based on the document they are in.  Any
-   additional information outside the ~@graph~ is not expected to be often
-   searched by an regular user of the site.
+   All elastic search documents contain a ~@graph~ list of objects that would
+   form a valid jsonld if combined with the proper ~@context~ that simplifies
+   the names of the properties of the file. The JSON-LD data is framed so that
+   some minor objects are embedded into larger objects.  Informally, we call these
+   larger objects nodes.  In the elastic search document, all ~nodes~ are are
+   stored in the ~@graph~.  Nodes have their own ~@ids~ and ~@types~, the ~@ids~
+   describe the same object, though they have different amounts of specificity
+   based on the document they are in.  Any additional information outside the
+   ~@graph~ is not expected to be often searched by an regular user of the site.
 
    One main reason the data is organized this way, is that we used *nested*
    indices in elastic search, where each node in the ~@graph~ is searched as
-   it's own entity, though hits respond with the document.
+   it's own entity, though hits respond with the complete document.
 
    Here is an example of a typical document:
    #+begin_src json
@@ -43,23 +43,38 @@
              { "@id":"http://experts.ucdavis.edu/expert/quinn",
                "@type":["Expert", "Non-acedemic"],
                "identifiers" : [ "https://orcid.org/XXX" ],
+               "is-visible": true,
                "contactInfo": {
-                   "name" : {"family-name": "Hart"
-                             "given-name": "Quinn" }
+                   "name" : {"family": "Hart"
+                             "given": "Quinn" }
                }
              },
-             { "@id":["ark:/.../relationship/123","ark:/.../work/evap"],
-               "@type":["Authored"],
+             { "@id":"ark:/.../work/evap",
+               "@type":["Work"],
                "favorite": true,
-               "rank":2,
                "title":"Evapotranspiration in California",
                "container-title": "California Agriculture"
-               "authors": [{"family-name":"Muir",{"given-name":"John"},
-                           {"family-name":"Hart",{"given-name":"QJ"}]
+               "authors": [{"family":"Muir","given":"John"},
+                           {"family":"Hart","given":"QJ"}],
+               "relatedBy": {
+                 "@type": [
+                   "Authorship",
+                 ],
+                 "rank": 3,
+                 "@id": "ark:/...",
+                 "is-visible": true
+               },
              },
-             { "@id":["ark:/..../relationship/456","ark:/..../grant/CA-water"],
-               "@type":["PrincipalInvestigator"],
+             { "@id":"ark:/..../grant/CA-water",
+               "@type":["Grant"],
                "title":"Evapotranspiration Grant"
+               "relatedBy": {
+                 "@type": [
+                   "Principal Investigator",
+                 ],
+                 "@id": "ark:.../",
+                 "is-visible": true
+               },
              }
          ]
      }
@@ -165,7 +180,6 @@
 
 ** Specfic Types
 *** Expert
-
 **** Identifiers
 
   Expected identifiers for expert include:
@@ -275,6 +289,92 @@
   *CDL Elements* - Use ~ark:/87287/d7nh2m/grant/[number]~ to reference CDL
   Elements identifiers.  Some, but not all CDL Elements grants will use either
   of the above identifiers as their local ids.
+
+
+** ~is-visible~ and Sanitization
+
+   Note in the above examples, that ~nodes~ or the ~relatedBy~ component of a
+   node have an ~is-visible~ property.  The documents in the system can also
+   have nodes where the ~is-visible: false~.  These are nodes not available to
+   the public, but are available to admins, some elevated applications and the
+   expert that the document describes.  These nodes are removed during a
+   sanitization step when users access the system via the API.
+   Every record is santizied before it's delivered to the
+   user. The advantage for this is that elevated users will be able to see the
+   hidden data with a low overhead on the system, and a more consistent
+   experience with our experts.
+
+*** Node Removal for Experts
+
+    A normal expert has a ~@graph~ of data, each node can be a Work, a Grant or
+    an Expert.  There is only ever one Expert.  Work and Grants include their
+    relationship with the Expert in the ~vivo:relatedBy~ field.  Individual Works
+    and Grants may have an ~is-visible~ boolean value.  In addtion, the relation
+    itself as defined may have an ~is-visible~ value. (Actually is *always*
+    should have one.
+
+    If either of these flags are ~false~ then, the node is removed from the
+    ~@graph~ during the sanitization.  Note in the examples below, Grants
+    themselves don't have an  ~is-visible~ flag to be checked, but Works and
+    Experts do.
+
+    #+begin_src json
+      {
+        "@id": "expert/66356b7eec24c51f01e757af2b27ebb8",
+        "@graph": [
+          {
+          "@id": "expert/66356b7eec24c51f01e757af2b27ebb8",
+          "@type": [
+            "vivo:Person",
+            "Expert",
+            "NonAcademic"
+          ],
+          "orcidId": "0000-0001-9829-8914",
+          "is-visible": true
+        },
+          {
+          "@type": [ "Grant" ],
+          "totalAwardAmount": "783000",
+          "name": "NEAR REAL TIME SCIENCE PROCESSING ALGORITHM FOR LIVE FUEL MOISTURE CONTENT FOR THE MODIS DIRECT READOUT SYSTEM",
+          "@id": "ark:/87287/d7mh2m/grant/4316321",
+          "relatedBy": {
+            "relates": [
+              "expert/66356b7eec24c51f01e757af2b27ebb8",
+              "ark:/87287/d7mh2m/grant/4316321"
+            ],
+            "@type": "GrantRole",
+            "@id": "ark:/87287/d7mh2m/relationship/13338362",
+            "is-visible": true
+          }
+        },
+          {
+        "@id": "ark:/87287/d7mh2m/publication/1875203",
+        "@type": "Work",
+        "is-visible": true,
+        "title": "Impact of biases in gridded weather datasets on biomass estimates of short rotation woody cropping systems",
+        "DOI": "10.1016/j.agrformet.2016.11.008"
+        "relatedBy": {
+          "relates": [
+            "expert/66356b7eec24c51f01e757af2b27ebb8",
+            "ark:/87287/d7mh2m/publication/1875203"
+          ],
+          "@type": [
+            "Authorship",
+            "ucdlib:Authorship"
+          ],
+          "rank": 3,
+          "@id": "ark:/87287/d7mh2m/relationship/5921819",
+          "is-visible": true
+        }
+      }
+        ]
+      }
+    #+end_src
+
+*** Grant Sanitization
+
+    In addition to grant visibility, we are currently sanitizing Award amounts
+    from the grant system.  The items that are removed are ~totalAwardAmount~.
 
 
 ** Document Updates
