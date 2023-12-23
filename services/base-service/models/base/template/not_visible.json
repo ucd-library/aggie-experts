@@ -1,5 +1,5 @@
 {
-  "id": "default",
+  "id": "not_visible",
   "script": {
     "lang": "mustache",
     "source": {
@@ -41,16 +41,14 @@
                     {
                     "bool": {
                       "must": [
-                        { "exists": { "field": "@graph.is-visible" }},
-                        { "term": { "@graph.is-visible": true }}
+                        { "term": { "@graph.is-visible": false }}
                       ]
                     }
                   },
                     {
                     "bool": {
                       "must": [
-                        { "exists": { "field": "@graph.relatedBy.is-visible" }},
-                        { "term": { "@graph.relatedBy.is-visible": true }}
+                        { "term": { "@graph.relatedBy.is-visible": false }}
                       ]
                     }
                   }

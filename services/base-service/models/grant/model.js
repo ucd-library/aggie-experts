@@ -23,8 +23,10 @@ class GrantModel extends BaseModel {
    * @method update
    * @description Update Elasticsearch with the given data.
    */
-  async update(jsonld) {
-    throw new Error('GrantModel.update() not implemented');
+  async update(transformed) {
+    const root_node= this.get_expected_model_node(transformed);
+    const doc = this.promote_node_to_doc(root_node);
+    logger.info(`${this.constructor.name}.update(${doc['@id']}) (NOOP)`);
   }
 }
 module.exports = GrantModel;
