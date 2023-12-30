@@ -57,6 +57,8 @@ async function temp_get_qa_grants(ec, db, user) {
 
 
 async function main(opt) {
+
+
   // get the secret JSON
   let secretResp = await gs.getSecret(opt.cdl.secretpath);
   let secretJson = JSON.parse(secretResp);
@@ -169,7 +171,6 @@ Object.keys(opt).forEach((k) => {
     delete opt[k];
   }
 });
-//opt.db = fuseki;
 
 // make cdl_info as object
 Object.keys(opt).forEach((k) => {
