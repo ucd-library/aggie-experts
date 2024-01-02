@@ -153,6 +153,13 @@
         "title" : {
           "type" : "text",
           "analyzer" : "default"
+        },
+        "relatedBy" : {
+          "properties" : {
+            "is-visible" : {
+              "type" : "boolean"
+            }
+          }
         }
        }
     },

@@ -55,7 +55,7 @@ fuseki server.
 
 When using the default template, do not bring up the fuseki server.
 
-=item B<--mount=I<spa,models,init>>
+=item B<--mount=I<api,spa,models,init>>
 
 In the dev environment, you can specify which bind mounts you want to use.  This
 allows developers to work on the code without having to rebuild the docker
@@ -566,8 +566,7 @@ function setup() {
         yq+='| del(.services.gcs)'
       fi
       if [[ ! "$mount" =~ "models" ]]; then
-        yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS" or alias=="DEV_MOUNT_MODELS"))'
-        yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS_API" or alias=="DEV_MOUNT_MODELS_API"))'
+        yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS*" or alias=="DEV_MOUNT_MODELS*"))'
       fi
       if [[ ! "$mount" =~ "init-fcrepo" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'

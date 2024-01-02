@@ -112,7 +112,7 @@ class ExpertModel extends BaseModel {
     await this.update_or_create_main_node_doc(doc);
 
     const authorshipModel=await this.get_model('authorship');
-    const workModel=await this.get_model('work');
+    //const workModel=await this.get_model('work');
 
     // Update all Works with this Expert as well
     let authorships= await authorshipModel.esMatchNode({ 'relates': doc['@id'] });
