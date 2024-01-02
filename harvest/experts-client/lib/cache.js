@@ -1,63 +1,62 @@
 import fetch from 'node-fetch';
 import { logger } from './logger.js';
 import { FusekiClient } from './fuseki-client.js';
+import jsonld from 'jsonld';
+const expand=jsonld.expand;
 
 export class Cache {
 
+  static context={
+    "@context": {
+      "@vocab": "http://schema.library.ucdavis.edu/schema/cache#",
+      "schema": "http://schema.org/",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "Cached": {"@type": "@id"},
+      "Empty": {"@type": "@id"},
+      "Error": {"@type": "@id"},
+      "FetchError": {"@type": "@id"},
+      "ParseError": {"@type": "@id"},
+      "Pending": {"@type": "@id"},
+      "SplayError": {"@type": "@id"},
+      "WriteError": {"@type": "@id"},
+      "base": { "@type": "@id" },
+      "cache": {"@type": "@id"},
+      "error": { "@type": "@id" },
+      "iat": {"@type": "xsd:dateTimeStamp" },
+      "priority": {"@type": "xsd:integer" },
+      "queue": {"@type": "@id"},
+      "url": {"@type": "@id" }
+    }
+  };
+
+
   static DEF = {
     fuseki: {
-      url: 'http://fuseki:3030',
+      url: 'http://admin:testing123@fuseki:3030',
       type: 'tdb2'
     },
     max: 'empty',
     timeout: 30000,
-    base: './cache'
-  };
-
-  constructor(opt) {
-    opt = opt || {};
-    for (let k in Cache.DEF) {
-      opt[k] = opt[k] || Cache.DEF[k];
-    }
-    this.reauth();
-  }
-
-  /**
-   * @method auth
-   * @description Authenticate to Fuseki server.  Sets authBasic property.
-   **/
-
-
-  .option('--invalidate','remove expert(s) from the cache')
-  .option('--list', 'list cache information')
-  .option('--priority <1-20>','priority for enqueue', 10)
-  .option('--queue', 'list queue information')
-  .option('--resolve','resolve expert(s) from the cache')
-
-}
-
-export class CacheQueue {
-
-  static DEF = {
+    base: './cache',
     priority: 10,
     deprioritize: false,
     domain: 'ucdavis.edu'
   };
 
-  /**
-   * @method constructor
-   * @description Create a new CacheQueue object.
-   * @param {object} opts - options for the CacheQueue object
-   * @param {number} opts.priority - priority for the queue
-   * @param {boolean} opts.deprioritize - deprioritize the queue
-   * @param {string} opts.domain - domain for the queue
-   **/
-  constructor(opts) {
-    opts = opts || {};
-    for (let k in CacheQueue.DEF) {
-      opts[k] = opts[k] || CacheQueue.DEF[k];
+  constructor(opt) {
+    opt = opt || {};
+    for (let k in Cache.DEF) {
+      this[k] = opt[k] || Cache.DEF[k];
     }
+    this.fuseki = new FusekiClient(opt.fuseki);
+    this.cache = fuseki.Db('cache');
   }
+
+  invalidate(users) {
+  }
+
+  list(users) {}
+  process(users) {}
 
   /**
    * @method enqueue
@@ -75,10 +74,11 @@ export class CacheQueue {
         priority = opts.priority || this.priority;
         deprioritize = opts.deprioritize || this.deprioritize;
       } else {
-        throw new Error('enqueue requires an expert object');
+        throw new Error('enqueue options requires an object');
       }
     }
 
+    experts=this.normalize_experts(experts);
     if (!Array.isArray(experts)) {
       experts = [experts];
     }
@@ -88,10 +88,13 @@ export class CacheQueue {
       if (!expert.match(/@/)) {
         expert = `${expert}@${this.domain}`;
       }
+      if (!expert.match(/^mailto:/)) {
+        expert = `mailto:${expert}`;
+      }
       let entry={
         "@id": expert,
         "priority": priority,
-        "added": new Date().toISOString(),
+        "iat": new Date().toISOString(),
       };
 
       let current = null;
@@ -100,12 +103,12 @@ export class CacheQueue {
       }
 
       const sparql = `
-        PREFIX cache: <http://experts.ucdavis.edu/cache/>
+        PREFIX : <http://schema.library.ucdavis.edu/schema/cache#>
         PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
         INSERT DATA {
-          GRAPH cache: {
-            ${expert} cache:priority "${priority}"^^xsd:integer .
-            ${expert} cache:added "${new Date().toISOString()}"^^xsd:dateTime .
+           ${expert} :queue ${expert}#queue;
+            ${expert}#queue :priority "${priority}"^^xsd:integer .
+            ${expert}#queue :iat "${new Date().toISOString()}"^^xsd:dateTime .
           }
         }
       `;
@@ -122,7 +125,59 @@ export class CacheQueue {
         };
       }
     }
+  }
 
+  normalize_experts(experts=[]) {
+    if (!Array.isArray(experts)) {
+      experts = [experts];
+    }
+    experts = experts.map(expert => {
+      if (!expert.match(/@/)) {
+        expert = `${expert}@${this.domain}`;
+      }
+      if (!expert.match(/^mailto:/)) {
+        expert = `mailto:${expert}`;
+      }
+      return expert;
+    });
+    return experts
+  }
+
+  async queue(experts) {
+    let values='';
+    if(experts) {
+      experts=this.normalize_experts(experts);
+      values=`VALUES ?expert { ${experts.map(expert => `<${expert}>`).join(' ')} }`;
+    }
+
+    let query=`
+PREFIX : <http://schema.library.ucdavis.edu/schema/cache#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+construct {
+	?expert_queue :iat ?iat;
+	:priority ?priority;
+	.
+} WHERE {
+	select ?expert ?expert_queue ?iat ?priority where {
+    ${values}
+    ?expert :queue ?expert_queue.
+    ?expert_queue :priority ?priority;
+                  :iat ?iat .
+    } ORDER BY ?priority ?iat
+}
+      `;
+
+    let queue=await this.fuseki.query(query);
+
+    let framed = await jsonld.compact(queue,Cache.context,{omitGraph:false});
+
+    // Order authors by rank
+    if (! Array.isArray(framed["@graph"])) {
+      framed["@graph"]= [ framed["@graph"] ];
+    }
+    framed["@graph"].sort((a,b) => a.iat - b.iat);
+    framed["@context"] = "http://schema.library.ucdavis.edu/schema/cache#";
+    return framed;
   }
 
   dequeue(expert) {

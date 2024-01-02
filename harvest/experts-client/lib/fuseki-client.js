@@ -11,6 +11,11 @@ export class FusekiClient {
     this.db=opt.db;
     this.logger=opt.logger || logger;
     this.reauth();
+
+    if (opt.url) {
+      let url = new URL(opt.url);
+      this.auth=opt.auth || url.username+':'+url.password;
+      this.url = url.origin;
   }
 
   /**

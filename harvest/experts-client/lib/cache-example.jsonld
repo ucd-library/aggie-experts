@@ -14,6 +14,7 @@
     "base": { "@type": "@id" },
     "cache": {"@type": "@id"},
     "error": { "@type": "@id" },
+    "expert": { "@type": "@id" },
     "iat": {"@type": "xsd:dateTimeStamp" },
     "priority": {"@type": "xsd:integer" },
     "queue": {"@type": "@id"},

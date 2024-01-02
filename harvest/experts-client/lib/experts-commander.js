@@ -17,6 +17,11 @@ export class Command extends OriginalCommand {
     return this;
   }
 
+  option_fuseki {
+    this.addOption(new Option('--fuseki <http://admin:testing123@localhost:3030>', 'fuseki authentication and location').default('http://admin:testing123@localhost:3030'));
+    return this;
+  }
+
   opts() {
     const opts=super.opts();
     const cdl={
@@ -36,14 +41,19 @@ export class Command extends OriginalCommand {
 
     if (opts.iam) {
       opts.iam={ env: opts.iam
-                 timeout: opts.iam.timeout
+                 timeout: opts['iam.timeout']
                };
     }
 
-    if (opts.cdl.timeout) {
+    if (opts['cdl.timeout']) {
       cdl[opts.cdl].timeout=opts.cdl.timeout;
     }
     opts.cdl=cdl[opts.cdl]
+
+    if (opts.fuseki) {
+      opts.fuseki={ url: opts.fuseki };
+    }
+
     return opts;
   }
 }
