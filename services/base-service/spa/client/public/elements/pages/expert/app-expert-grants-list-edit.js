@@ -95,7 +95,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( expertId === this.expertId ) return;
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
+      let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+      let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
@@ -320,7 +321,20 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   _hideGrant(e) {
     this.modalTitle = 'Hide Grant';
-    this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
+    this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this grant?</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
+  }
+
+  /**
+   * @method _rejectGrant
+   * @description show modal with link to reject grant
+   */
+  _rejectGrant(e) {
+    this.modalTitle = 'Reject Grant';
+    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this grant?</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;

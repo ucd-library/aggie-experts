@@ -92,7 +92,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
+      let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+      let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
