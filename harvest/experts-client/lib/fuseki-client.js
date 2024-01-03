@@ -2,20 +2,25 @@ import fetch from 'node-fetch';
 import { logger } from './logger.js';
 
 export class FusekiClient {
+  static DEF= {
+    url: 'http://admin:testing123@localhost:3030',
+    replace: false,
+    type: 'tdb2',
+    logger: logger
+  };
+
   constructor(opt) {
-    this.url = opt.url;
-    this.auth=opt.auth;
-    this.type=opt.type;
-    this.replace=opt.replace;
-    this.delete=opt.delete;
-    this.db=opt.db;
-    this.logger=opt.logger || logger;
-    this.reauth();
+    opt = opt || {};
+    for (let k in FusekiClient.DEF) {
+      this[k] = opt[k] || FusekiClient.DEF[k];
+    }
 
     if (opt.url) {
       let url = new URL(opt.url);
       this.auth=opt.auth || url.username+':'+url.password;
       this.url = url.origin;
+    }
+    this.reauth();
   }
 
   /**
@@ -41,7 +46,6 @@ export class FusekiClient {
     }
     opt.type ||= this.type;
     opt.replace ||= this.replace;
-    opt.delete ||= this.delete;
 
     let exists = false;
 
@@ -79,7 +83,6 @@ export class FusekiClient {
     }
     opt.type ||= this.type;
     opt.replace ||= this.replace;
-    opt.delete ||= this.delete;
 
     let exists = false;
 
@@ -168,7 +171,6 @@ export class FusekiClientDB {
     this.db = opts.db;
     this.type = opts.type;
     this.replace = opts.replace;
-    this.delete = opts.delete;
   }
 
   source() {
@@ -225,6 +227,52 @@ export class FusekiClientDB {
     }
 
     return await response.text();
+  }
+
+  async query(query) {
+    const url = `${this.url}/${this.db}/query`;
+
+    // Set request options
+    const options = {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/sparql-query',
+        'Authorization': `Basic ${this.authBasic}`,
+        'Accept': 'application/sparql-results+json'
+      },
+      body: query,
+    };
+
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      throw new Error(`Failed to execute query. Status code: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async construct(query) {
+    const url = `${this.url}/${this.db}/query`;
+
+    // Set request options
+    const options = {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/sparql-query',
+        'Authorization': `Basic ${this.authBasic}`,
+        'Accept': 'application/ld+json'
+      },
+      body: query,
+    };
+
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      throw new Error(`Failed to execute construct. Status code: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
   async createGraphFromJsonLdFile(jsonld) {

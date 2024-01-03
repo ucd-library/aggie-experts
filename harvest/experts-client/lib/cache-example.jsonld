@@ -15,21 +15,21 @@
     "cache": {"@type": "@id"},
     "error": { "@type": "@id" },
     "expert": { "@type": "@id" },
-    "iat": {"@type": "xsd:dateTimeStamp" },
+    "iat": {"@type": "xsd:double" },
     "priority": {"@type": "xsd:integer" },
     "queue": {"@type": "@id"},
     "url": {"@type": "@id" }
   },
   "@graph":[
     {
-      "@id":"mailto:qjhart@ucdavis.edu",
+      "@id":"mailto:quinn@ucdavis.edu",
       "@type":"Cached",
       "cache": {
-        "@id":"mailto:qjhart@ucdavis.edu#cache",
+        "@id":"mailto:quinn@ucdavis.edu#cache",
         "iat":1703258355,
         "base":"file:///.",
         "error": [
-          {"@id":"mailto:qjhart@ucdavis.edu#error_timestamp",
+          {"@id":"mailto:quinn@ucdavis.edu#error_timestamp",
            "@type":"FetchError",
            "iat":1703258355.835531719,
            "url":"https://www.library.ucdavis.edu/",
@@ -38,7 +38,7 @@
         ]
       },
       "queue": {
-        "@id":"mailto:qjhart@ucdavis.edu#queue",
+        "@id":"mailto:quinn@ucdavis.edu#queue",
         "iat":1703258355.835531719,
         "priority":10
       }

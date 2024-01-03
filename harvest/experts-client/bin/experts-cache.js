@@ -31,26 +31,27 @@ async function main(opt) {
 
   const cache= new Cache(opt);
 
+  let queue=[];
   switch (command) {
   case 'enqueue':
-    await cache.queue().enqueue(program.args);
+    queue=await cache.enqueue(program.args);
     break;
   case 'dequeue':
-    await cache.queue().dequeue(program.args);
+    queue=await cache.dequeue(program.args);
     break;
   case 'queue':
-    await cache.queue().list(program.args);
+    queue = await cache.queue(program.args);
     break;
   case 'invalidate':
     await cache.invalidate(program.args);
     break;
-  case 'list':
-    await cache.list(program.args);
-    break;
   case 'process':
-    await cache.process(program.args);
+    let next=await cache.next(program.args);
+    console.log('next',next);
+//    await cache.process(program.args);
     break;
   }
+  console.log(JSON.stringify(queue, null, 2));
 }
 
 performance.mark('start');
@@ -66,7 +67,7 @@ program.name('cdl-cache')
   .option('--list', 'list cache information')
   .option('--max <n|empty|never>','when resolving, iterate over n experts, or rule', 'empty')
   .option('--output <output>', 'cache directory')
-  .option('--priority <1-20>','priority for enqueue', 10)
+  .option('--priority <1-20>|all','priority for enqueue(all=10), queue, and dequeue', 'all')
   .option('--queue', 'list queue information')
   .option('--process','process expert(s) from the cache')
   .option_fuseki()
