@@ -280,7 +280,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.expertName}</span>
         </div>
-        <h1>Manage My Grants (${this.grants.length || 0})</h1>
+        <h1>Manage My Grants (${this.totalGrants - this.hiddenGrants} Public, ${this.hiddenGrants} Hidden)</h1>
       </div>
     </div>
 

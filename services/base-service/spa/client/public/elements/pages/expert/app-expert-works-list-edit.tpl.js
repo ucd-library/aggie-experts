@@ -279,7 +279,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.expertName}</span>
         </div>
-        <h1>Manage My Works (${this.citations.length || 0})</h1>
+        <h1>Manage My Works (${this.totalCitations - this.hiddenCitations} Public, ${this.hiddenCitations} Hidden)</h1>
       </div>
     </div>
 

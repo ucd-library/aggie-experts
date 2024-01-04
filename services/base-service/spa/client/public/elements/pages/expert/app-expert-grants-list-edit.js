@@ -19,6 +19,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
+      totalGrants : { type : Number },
+      hiddenGrants : { type : Number },
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       allSelected : { type : Boolean },
@@ -47,6 +49,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
+    this.totalGrants = 0;
+    this.hiddenGrants = 0;
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
@@ -91,11 +95,12 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.replace('/grants-edit/', '');
-    if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
-    if( expertId === this.expertId ) return;
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+
+    if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
+    if( expertId === this.expertId || !canEdit ) return;
 
     try {
-      let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
       let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
     } catch (error) {
@@ -126,6 +131,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.expertName = graphRoot.name;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
+    this.totalGrants = grants.length;
+    this.hiddenGrants = grants.filter(g => !g.relatedBy?.['is-visible']).length;
+
     this.grants = utils.parseGrants(grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
