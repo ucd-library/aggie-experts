@@ -247,6 +247,18 @@ return html`
       }
     }
 
+    .not-visible h5,
+    .not-visible .work-details {
+      font-style: italic;
+    }
+
+    .main-content .not-visible .work h5 {
+      color: var(--ucd-black-60, #7F7F7F);
+    }
+
+    .not-visible .work-details {
+      color: var(--ucd-black-50, #999);
+    }
   </style>
 
   <div class="content">
@@ -267,7 +279,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.expertName}</span>
         </div>
-        <h1>Manage My Works (${this.citations.length || 0})</h1>
+        <h1>Manage My Works (${this.totalCitations - this.hiddenCitations} Public, ${this.hiddenCitations} Hidden)</h1>
       </div>
     </div>
 
@@ -291,11 +303,14 @@ return html`
         (cite, index) => html`
           <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h3>
           <hr class="work-seperator">
-          <div style="display: flex; justify-content: space-between;">
+          <div style="display: flex; justify-content: space-between;" class="${!cite.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._hideWork}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork}></ucdlib-icon>
+                </span>
+                <span class="tooltip show-work" data-text="Show work">
+                  <ucdlib-icon ?hidden="${cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork}></ucdlib-icon>
                 </span>
               </span>
               <span style="position: relative;">

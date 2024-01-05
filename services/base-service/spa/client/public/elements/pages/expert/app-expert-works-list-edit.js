@@ -18,6 +18,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       expertName : { type : String },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      totalCitations : { type : Number },
+      hiddenCitations : { type : Number },
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       allSelected : { type : Boolean },
@@ -45,6 +47,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.expertName = '';
     this.citations = [];
     this.citationsDisplayed = [];
+    this.totalCitations = 0;
+    this.hiddenCitations = 0;
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
@@ -89,10 +93,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.replace('/works-edit/', '');
-    if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+
+    if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
+      let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
@@ -130,6 +136,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
+    this.totalCitations = citations.length;
+    this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
 
     try {
       // sort by issued date desc, then by title asc
