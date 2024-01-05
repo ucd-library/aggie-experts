@@ -33,6 +33,8 @@ export default class AppExpert extends Mixin(LitElement)
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
+      totalGrants : { type : Number },
+      totalCitations : { type : Number },
       canEdit : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
@@ -79,7 +81,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( this.expertImpersonating === this.expertId ) this.canEdit = true;
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
+      let expert = await this.ExpertModel.get(expertId, true);
       this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
@@ -138,10 +140,7 @@ export default class AppExpert extends Mixin(LitElement)
     await this._loadCitations();
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.grants = utils.parseGrants(grants);
-
-    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
-    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
+    this.totalGrants = grants.length;
 
     // throw errors if any citations/grants have is-visible:false
     let invalidCitations = this.citations.filter(c => !c['is-visible']);
@@ -149,6 +148,12 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
     if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);
+
+    grants = grants.filter(g => g.relatedBy?.['is-visible']);
+    this.grants = utils.parseGrants(grants);
+
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
   }
 
   /**
@@ -173,6 +178,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
+    this.totalGrants = 0;
+    this.totalCitations = 0;
     this.canEdit = (acExpertId === this.expertId || impersonatingExpertId === this.expertId);
     this.modalTitle = '';
     this.modalContent = '';
@@ -211,6 +218,8 @@ export default class AppExpert extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
+    this.totalCitations = citations.length;
+    citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
     try {
       // sort by issued date desc, then by title asc

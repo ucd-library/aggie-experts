@@ -476,6 +476,15 @@ return html`
       font-size: 1rem;
     }
 
+    .hidden-grants-label,
+    .hidden-works-label {
+      color: var(--other-h3-gray, #666);
+      font-size: 1.03875rem;
+      font-style: italic;
+      font-weight: 400;
+      line-height: 2rem;
+    }
+
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
@@ -650,6 +659,10 @@ return html`
             </span>
           </div>
         </div>
+        <span class="hidden-grants-label" ?hidden="${this.totalGrants === this.grants.length || !this.canEdit}">
+          ${this.totalGrants - this.grants.length} additional grant${this.totalGrants - this.grants.length === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+        </span>
+
         <hr class="seperator">
         ${this.grantsActiveDisplayed.map(
           (grant, index) => html`
@@ -714,6 +727,10 @@ return html`
             </span>
           </div>
         </div>
+        <span class="hidden-works-label" ?hidden="${this.totalCitations === this.citations.length || !this.canEdit}">
+          ${this.totalCitations - this.citations.length} additional work${this.totalCitations - this.citations.length === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+        </span>
+
         <hr class="seperator">
         ${this.citationsDisplayed.map(
           (cite) => html`
