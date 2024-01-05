@@ -92,12 +92,6 @@ class Utils {
       }
       g.completed = completed;
 
-      // TEMP hack, need active grants to test ui
-      // if( index < 2 ) {
-      //   g.end = 2025 + index;
-      //   g.completed = false;
-      // }
-
       // determine role
       g.role = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
 
