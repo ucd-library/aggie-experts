@@ -1,5 +1,5 @@
 PREFIX : <ark:/87287/d7gt0q/schema#>
-PREFIX aggie_enterprise: <ark:/87287/d7c08j>
+PREFIX aggie_enterprise: <ark:/87287/d7c08j/>
 PREFIX iam: <http://iam.ucdavis.edu/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
