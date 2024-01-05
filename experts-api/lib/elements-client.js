@@ -1,11 +1,10 @@
-import GoogleSecrets from './google-secrets.js';
-const jsdom = require("jsdom");
-const { JSDOM } = jsdom;
-const fetchCookie = require('fetch-cookie');
-const nodeFetch = require('node-fetch');
+import GoogleSecrets from './googleSecret.js';
+import { JSDOM } from 'jsdom';
+import fetchCookie from 'fetch-cookie';
+import nodeFetch from 'node-fetch';
 
 export default class ElementsClient {
-    static const config = {
+    static config = {
       cdl: {
         qa: {
           url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
@@ -33,7 +32,7 @@ export default class ElementsClient {
   }
 
   async secret() {
-    if ! (this.cdl.secret) {
+    if (! this.cdl.secret) {
       const gs = new GoogleSecrets();
       let secretResp = await gs.getSecret(this.cdl.secretpath);
       this.cdl.secret = JSON.parse(secretResp);

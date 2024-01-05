@@ -106,10 +106,10 @@ export class FusekiClient {
       });
     if (res.ok) {
       if (opt.replace) {
-        this.logger.info({db:opt.db,op:'delete'},`Deleting existing dataset ${opt.db}`);
+        this.logger.info({db:opt.db,op:'delete'},`Deleting existing fuseki dataset ${opt.db}`);
         await this.dropDb(opt);
       } else {
-        this.logger.info({db:opt.db,op:'reuse'},`Using existing dataset ${opt.db}`);
+        this.logger.info({db:opt.db,op:'reuse'},`Using existing fuseki dataset ${opt.db}`);
         exists = true;
       }
     }

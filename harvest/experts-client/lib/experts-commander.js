@@ -1,4 +1,6 @@
 import { Command as OriginalCommand, Option } from 'commander';
+import { logger } from './logger.js';
+import { IAM } from './iam-client.js';
 
 export class Command extends OriginalCommand {
   constructor(...args) {
@@ -22,6 +24,11 @@ export class Command extends OriginalCommand {
     return this;
   }
 
+  option_log() {
+    this.addOption(new Option('--log <>', 'log level').choices(['info', 'warn','error','fatal']).default('info'));
+    return this;
+  }
+
   opts() {
     const opts=super.opts();
     const cdl={
@@ -39,10 +46,16 @@ export class Command extends OriginalCommand {
       }
     };
 
+    if (opts.log) {
+      logger.level(opts.log);
+      opts.log=logger;
+    }
+
     if (opts.iam) {
       opts.iam={ env: opts.iam,
                  timeout: opts['iam.timeout']
                };
+      opts.iam = new IAM(opts.iam);
     }
 
     if (opts['cdl.timeout']) {

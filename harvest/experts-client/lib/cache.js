@@ -1,7 +1,10 @@
+import fs from 'fs-extra';
 import fetch from 'node-fetch';
 import { logger } from './logger.js';
 import { FusekiClient } from './fuseki-client.js';
 import jsonld from 'jsonld';
+import path from 'path';
+import { performance } from 'node:perf_hooks';
 
 export class Cache {
 
@@ -35,12 +38,14 @@ export class Cache {
       url: 'http://admin:testing123@fuseki:3030',
       type: 'tdb2'
     },
+    log: logger,
     max: 'empty',
     timeout: 30000,
     base: './cache',
     priority: 10,
     deprioritize: false,
-    domain: 'ucdavis.edu'
+    domain: 'ucdavis.edu',
+    iam: null  // Must Be passed in
   };
 
   constructor(opt) {
@@ -60,12 +65,6 @@ export class Cache {
     }
     return this.cacheDb;
   }
-
-  invalidate(users) {
-  }
-
-  list(users) {}
-  process(users) {}
 
   /**
    * @method normalize_experts
@@ -87,6 +86,59 @@ export class Cache {
       return expert;
     });
     return experts
+  }
+
+  invalidate(users) {
+  }
+
+  list(users) {}
+
+  /**
+   * @method process
+   * @description process experts from the queue
+   * @param {Array} experts - limit to these experts
+   * @returns {Array} - an array of processed cache
+   **/
+  async process(experts,opt) {
+    opt ||= {};
+
+    let max=opt.max || this.max;
+
+    let n=null;
+    if (max.match(/^[0-9]+$/)) {
+      n=parseInt(max);
+    }
+    experts=this.normalize_experts(experts);
+
+    let expert;
+
+    while ((!n || n--)) {
+      let next = await this.next(experts);
+      if (!next.expert) {
+        break;
+      }
+      let expert = next.expert;
+      this.log.info({mark:expert,expert},`► process(${expert})`);
+      const d=path.join(this.base,expert);
+      { // Add in profile
+        performance.mark(`iam(${expert})`);
+        const pd = path.join(d,'ark:','87287','d7c08j');
+        if (!fs.existsSync(pd)) {
+          fs.mkdirSync(pd,{recursive:true});
+        }
+        // iam profile
+        try {
+          const profile=await this.iam.profile(expert);
+          fs.writeFileSync(path.join(pd,'profile.jsonld'),
+                           JSON.stringify(profile,null,2));
+          this.log.info({measure:`iam(${expert})`,expert},'► ◄ iam(${expert})');
+        } catch (e) {
+          this.log.error({measure:`iam(${expert})`,error:e.message,expert},`'►E◄ iam(${expert})`);
+        }
+      }
+      this.log.info({measure:expert,expert},`◄ process($expert)`);
+      performance.clearMarks(expert);
+    }
   }
 
   /**
