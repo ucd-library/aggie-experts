@@ -23,22 +23,6 @@ const fuseki = new FusekiClient({
   db: 'experts'
 });
 
-const context = {
-  "@context": {
-    "@base": "http://oapolicy.universityofcalifornia.edu/",
-    "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
-    "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
-    "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
-    "id": { "@type": "@id", "@id": "@id" },
-    "field-name": "api:field-name",
-    "field-number": "api:field-number",
-    "$t": "api:field-value",
-    "api:person": { "@container": "@list" },
-    "api:first-names-X": { "@container": "@list" },
-    "api:web-address": { "@container": "@list" }
-  }
-};
-
 const iam = {
   url: '',
   auth: '',
@@ -54,7 +38,7 @@ async function main(opt) {
   let secretJson = JSON.parse(secretResp);
   for (const entry of secretJson) {
     if (entry['@id'] == opt.iam.authname) {
-      opt.iam.auth = entry.auth.raw_auth.split(':')[1];
+      opt.iam.auth = entry.auth.raw_auth;
     }
   }
 
@@ -64,14 +48,14 @@ async function main(opt) {
 
   if (opt.users.length === 0) {
     if (opt.staff) {
-      await ec.getIAMProfiles(opt, 'staff');
+      await ec.getIAMProfiles('isStaff=true');
     }
     if (opt.faculty) {
-      await ec.getIAMProfiles(opt, 'faculty');
+      await ec.getIAMProfiles('isFaculty=true');
     }
   }
   else {
-    await ec.getIAMProfiles(opt, 'users');
+    await ec.getIAMProfiles('userId=' + opt.users);
   }
 
   console.log('starting createJsonLd');
