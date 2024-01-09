@@ -44,6 +44,7 @@
        }
     },
     "container-title":{"@id":"cite:container-title"},
+    "CoPrincipalInvestigatorRole":"vivo:CoPrincipalInvestigatorRole",
     "dateTimeInterval": { "@type":"@id",
                           "@context":{
                             "start":{"@type":"@id"},
@@ -112,6 +113,7 @@
     "label":{"@id":"rdfs:label"},
     "language":{"@id":"cite:language"},
     "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime"},
+    "LeaderRole":"vivo:LeaderRole",
     "license":{"@id":"cite:license"},
     "Name":{"@id":"vcard:Name"},
     "name":{"@id":"rdfs:label"},
@@ -119,6 +121,7 @@
     "note":{"@id":"cite:note"},
     "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
+    "PrincipalInvestigatorRole":"vivo:PrincipalInvestigatorRole",
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
@@ -137,6 +140,7 @@
                  }
                },
     "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
+    "ResearcherRole":"vivo:ResearcherRole",
     "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
     "status":{"@id":"cite:status"},
     "title":{"@id":"cite:title"},
