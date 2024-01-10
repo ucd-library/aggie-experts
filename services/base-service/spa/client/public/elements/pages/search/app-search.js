@@ -207,7 +207,7 @@ export default class AppSearch extends Mixin(LitElement)
         let landingPage = 'https://sandbox.experts.library.ucdavis.edu/' + result['@id'];
         let numberOfWorks = (result['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
         let numberOfGrants = (result['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
-        let urls = (result.contactInfo?.hasURL || []).map(w => w.url).join('; ');
+        let urls = (result.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
 
         body.push([
           '"' + name + '"',

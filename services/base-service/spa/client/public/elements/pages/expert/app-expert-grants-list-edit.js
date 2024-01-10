@@ -247,70 +247,29 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   async _downloadClicked(e) {
     e.preventDefault();
 
-    // The download csv should contain
-    //   Title : dl.name
-    //   Funding Agency : dl.awardedBy
-    //   Grant id : dl.sponsorAwardId
-    //   Start date : dl.dateTimeInterval.start.dateTime
-    //   End date : dl.dateTimeInterval.end.dateTime
-    //   Type of Grant : dl.role
-    //   List of contributors (role) {separate contributors by ";"}
-
-    /*
-    {
-    "assignedBy": {
-        "@type": "FundingOrganization",
-        "name": "CALIFORNIA DEPARTMENT OF WATER RESOURCES",
-        "@id": "ark:/87287/d7mh2m/grant/4344862#unknown-funder"
-    },
-    "dateTimeInterval": {
-        "@type": "DateTimeInterval",
-        "start": {
-            "dateTime": "2014-07-30",
-            "@type": "DateTimeValue",
-            "@id": "ark:/87287/d7mh2m/grant/4344862#start-date",
-            "dateTimePrecision": "vivo:yearMonthDayPrecision"
-        },
-        "end": {
-            "dateTime": "2017-07-29",
-            "@type": "DateTimeValue",
-            "@id": "ark:/87287/d7mh2m/grant/4344862#end-date",
-            "dateTimePrecision": "vivo:yearMonthDayPrecision"
-        },
-        "@id": "ark:/87287/d7mh2m/grant/4344862#duration"
-    },
-    "@type": [
-        "Grant",
-        "vivo:Grant"
-    ],
-    "totalAwardAmount": "181353",
-    "name": "SIMETAW and Cal-SIMETAW Upgrade",
-    "@id": "ark:/87287/d7mh2m/grant/4344862",
-    "relatedBy": {
-        "relates": [
-            "expert/66356b7eec24c51f01e757af2b27ebb8",
-            "ark:/87287/d7mh2m/grant/4344862"
-        ],
-        "@type": "GrantRole",
-        "@id": "ark:/87287/d7mh2m/relationship/13340713",
-        "is-visible": true
-    },
-    "sponsorAwardId": "4600010450",
-    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
-        "name": "Research",
-        "@id": "ucdlib:Grant_Research"
-    },
-    "start": 2014,
-    "end": 2017,
-    "completed": true,
-    "role": "Research",
-    "awardedBy": "CALIFORNIA DEPARTMENT OF WATER RESOURCES"
-    }
-    */
-
     let downloads = this.grants.filter(g => this.downloads.includes(g['@id']));
+    let body = [];
+    downloads.forEach(grant => {
+      body.push([
+        '"' + (grant.name || '') + '"',                               // Title
+        '"' + (grant.awardedBy || '') + '"',                          // Funding Agency
+        '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
+        '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
+        '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
+        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + (grant.role || '') + '"',                               // Role of Grant
+        '?', // List of contributors (role) {separate contributors by ";"}
+      ]);
+    });
 
-    let text = downloads.map(c => c.ris).join('\n');
+    if( !body.length ) return;
+
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of Contributors'];
+    let text = headers.join(',') + '\n';
+    body.forEach(row => {
+      text += row.join(',') + '\n';
+    });
+
     let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
 
