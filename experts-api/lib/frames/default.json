@@ -141,6 +141,7 @@
                },
     "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
     "ResearcherRole":"vivo:ResearcherRole",
+    "researchInterests":{"@id":"ucdlib:researchInterests"},
     "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
     "status":{"@id":"cite:status"},
     "title":{"@id":"cite:title"},
