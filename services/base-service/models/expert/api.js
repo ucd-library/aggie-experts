@@ -3,6 +3,29 @@ const {dataModels,logger} = require('@ucd-lib/fin-service-utils');
 const ExpertModel = require('./model.js');
 const {defaultEsApiGenerator} = dataModels;
 const md5 = require('md5');
+// const { logger } = require('@ucd-lib/fin-service-utils');
+
+async function siteFarmFormat(doc) {
+  let newDoc = {};
+  logger.info({ function: 'siteFarmFormat' });
+  newDoc["@id"] = doc["@id"];
+
+  for (let i = 0; i < doc["@graph"].length; i++) {
+    if (doc["@graph"][i]["@type"].includes("Expert")) {
+      for (let j = 0; j < doc["@graph"][i]["contactInfo"].length; j++) {
+        if (doc["@graph"][i]["contactInfo"][j].isPreferred === true) {
+          newDoc["contactInfo"] = doc["@graph"][i].contactInfo[j];
+        }
+      }
+      newDoc["orcidId"] = doc["@graph"][i].orcidId;
+      newDoc["overview"] = doc["@graph"][i].overview;
+      newDoc["researcherId"] = doc["@graph"][i].researcherId;
+      newDoc["scopusId"] = doc["@graph"][i].scopusId;
+    }
+  }
+
+  return newDoc;
+}
 
 async function sanitize(req, res) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
@@ -36,27 +59,49 @@ async function sanitize(req, res) {
         delete doc["@graph"][i]["totalAwardAmount"];
       }
     }
-    res.status(200).json(doc);
+    return doc;
   }
 }
 
+// Middleware function 1
+router.use((req, res, next) => {
+  logger.info('Middleware 1: Logging Request');
+  next();
+});
+
+// Middleware function 2
+router.use((req, res, next) => {
+  logger.info('Middleware 2: Logging Request');
+  next();
+});
+
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.get(
-  '/*',
+  '/expert/*',
   async (req, res, next) => {
+
+    const acceptHeader = req.headers.accept;
+
     logger.info(`GET ${req.url}`);
-    let id = '/'+model.id+decodeURIComponent(req.path);
+    let id = '/' + model.id + decodeURIComponent(req.path);
     try {
       let opts = {
-        admin : req.query.admin ? true : false,
+        admin: req.query.admin ? true : false,
       }
       res.thisDoc = await model.get(id, opts);
-      next();
-    } catch(e) {
+      // next();
+    } catch (e) {
       res.status(404).json(`${req.path} resource not found`);
     }
+    let doc = await sanitize(req, res);
+    doc = res.thisDoc;
+    // Conditionally reformat based on the Accept header
+    if (acceptHeader && acceptHeader.includes('site-farm')) {
+      logger.info('Accept Header: site-farm');
+      doc = await siteFarmFormat(doc);
+    }
+    res.status(200).json(doc);
   },
-  sanitize
 );
 
 const model = new ExpertModel();
