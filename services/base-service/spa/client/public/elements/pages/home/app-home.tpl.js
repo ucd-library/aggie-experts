@@ -49,11 +49,50 @@ return html`
       align-items: center;
       margin-top: 4rem;
       margin-bottom: 4rem;
+      width: 90%;
     }
 
     app-search-box {
       max-width: 600px;
       padding-top: 2rem;
+    }
+
+    .sub-heading.quote {
+      padding: 2rem 1rem 2rem 2rem;
+      width: 50%;
+    }
+
+    img.research-trio {
+      width: 50%;
+    }
+
+    .quote-text {
+      color: var(--ucd-blue-80, #13639E);
+      font-size: 2rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 2.7rem;
+      display: block;
+      padding-bottom: .65rem;
+    }
+
+    .quote-author {
+      color: var(--other-h3-gray, #666);
+      font-size: 1.7rem;
+      font-style: italic;
+      font-weight: 600;
+      line-height: 2.48313rem; /* 119.994% */
+    }
+
+    @media (max-width: 768px) {
+      .content.flex {
+        flex-direction: column-reverse;
+      }
+
+      img.research-trio,
+      .sub-heading.quote {
+        width: 100%;
+      }
     }
   </style>
 
@@ -72,9 +111,10 @@ return html`
   </div>
   <div class="site-frame">
     <div class="content flex">
-      <div class="stub" style="background-color: #C4C4C4; height: 400px; width: 50%"></div>
-      <div class="sub-heading h4" style="padding: 2rem; width: 50%">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ac nulla ex.
+      <img class="research-trio" src="/images/ae-research-image-trio-web.jpg" alt="featured image of researchers in various roles">
+      <div class="sub-heading quote h4">
+        <span class="quote-text">“There is immense power when a group of people with similar interests gets together to work toward the same goals.”</span>
+        <span class="quote-author">Idowu Koyenikan</span>
       </div>
     </div>
   </div>
