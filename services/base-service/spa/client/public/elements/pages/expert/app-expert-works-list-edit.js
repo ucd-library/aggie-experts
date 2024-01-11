@@ -270,6 +270,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     let downloads = this.citationsDisplayed.filter(c => this.downloads.includes(c['@id']));
 
+    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
+    this.citationsDisplayed = this.citationsDisplayed.slice(startIndex, startIndex + this.resultsPerPage)
+
     let text = downloads.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
     let url = URL.createObjectURL(blob);

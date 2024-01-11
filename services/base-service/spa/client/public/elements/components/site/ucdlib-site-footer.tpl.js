@@ -39,8 +39,9 @@ export function styles() {
     #section-columns > * {
       margin: 0 var(--spacing-default) var(--spacing-default);
       margin-right: var(--spacing-default) var(--spacing-default);
-      flex-grow: 1;
+      /* flex-grow: 1; */
       margin-bottom: 2rem;
+      flex: 1;
     }
     #section-columns > *:last-child {
       margin-right: 0;
@@ -141,14 +142,20 @@ export function styles() {
     }
 
     @media (max-width: 992px) {
+      #section-columns {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
       #section-columns > * {
-        width: 33%;
+        flex: 0 0 45%;
+        box-sizing: border-box;
       }
     }
 
     @media (max-width: 768px) {
       #section-columns > * {
-        width: 100%;
+        flex: 0 0 90%;
       }
       ucdlib-site-footer-column a {
         padding-left: 0;
@@ -159,6 +166,12 @@ export function styles() {
       }
       .lib-logo-container {
         padding-top: 1.5rem;
+      }
+    }
+
+    @media (min-width: 992px) {
+      #section-columns {
+        flex-wrap: nowrap;
       }
     }
   `;

@@ -505,11 +505,16 @@ relationship here for testing.
 
     #+name: grant_roles
     #+begin_src sparql :tangle no
-      VALUES (?role ?tid ?vivo_role ) {
-        (kfs:GrantCoPrincipalInvestigatorRole "116" vivo:CoPrincipalInvestigatorRole)
-        (kfs:GrantPrincipalInvestigatorRole "43" vivo:PrincipalInvestigatorRole)
+      VALUES (?cdl_type ?vivo_role ) {
+        ("user-grant-principal-investigation" vivo:PrincipalInvestigatorRole)
+        ("user-grant-co-principal-investigation" vivo:CoPrincipalInvestigatorRole)
+        ("user-grant-senior-key-personnel" vivo:ResearcherRole )
+        ("user-grant-co-primary-investigation" vivo:CoPrincipalInvestigatorRole)
+        ("user-grant-primary-investigation" vivo:PrincipalInvestigatorRole)
+        ("user-grant-program-direction" vivo:ResearcherRole)
+        ("user-grant-project-leadership" vivo:LeaderRole)
+        ("user-grant-research" vivo:ResearcherRole)
       }
-
     #+end_src
 
     There were also old style KFS roles that are no longer used:
@@ -594,7 +599,7 @@ relationship here for testing.
  #+begin_src sparql :noweb yes :tangle grant_role/construct.rq :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
       <<prefixes>>
       construct {
-     ?grant_role a ucdlib:GrantRole, ?role, ?vivo_role;
+     ?grant_role a ucdlib:GrantRole, ?role;
               ucdlib:favorite ?favorite;
               ucdlib:is-visible ?visible;
               vivo:relates ?expert,?grant;
@@ -632,8 +637,7 @@ relationship here for testing.
      graph cdl: {
        ?RELATIONSHIP__
        :is-visible ?visible_str;
-       :type ?type;
-       :type-id ?tid;
+       :type ?cdl_type;
        :related ?g;
        :related ?user;
        .
@@ -709,6 +713,7 @@ relationship here for testing.
      bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
      bind(uri(concat(str(expert:),md5(?username))) as ?expert)
      bind(xsd:boolean(?visible_str) as ?visible)
+     bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
 
      bind(uri(concat(str(?grant),'#start_date')) as ?sd)
      bind(uri(concat(str(?grant),'#end_date')) as ?ed)
@@ -716,3 +721,14 @@ relationship here for testing.
      bind(uri(concat(str(?grant),"#funder")) as ?funder)
    }
 #+end_src
+
+#+RESULTS: grant
+#+begin__SRC ttl
+HTTP/1.1 404 Not Found
+Cache-Control: must-revalidate,no-cache,no-store
+Pragma: no-cache
+Content-Type: text/plain;charset=utf-8
+Content-Length: 21
+
+Error 404: Not Found
+#+end__SRC
