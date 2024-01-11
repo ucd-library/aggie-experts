@@ -23,6 +23,8 @@ export default class AppExpert extends Mixin(LitElement)
       introduction : { type : String },
       researchInterests : { type : String },
       showMoreAboutMeLink : { type : Boolean },
+      truncateIntroduction : { type : Boolean },
+      truncateResearchInterests : { type : Boolean },
       roles : { type : Array },
       orcId : { type : String },
       scopusIds : { type : Array },
@@ -113,10 +115,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
     // max 500 characters, unless 'show me more' is clicked
-    this.introduction = graphRoot.overview;
-    this.showMoreAboutMeLink = this?.introduction?.length > 500;
+    this.introduction = graphRoot.overview || '';
+    this.researchInterests = graphRoot.researchInterests || '';
 
-    this.researchInterests = graphRoot.researchInterests;
+    this.showMoreAboutMeLink = this.introduction.length + this.researchInterests.length > 500;
+    this.truncateIntroduction = this.introduction.length > 500;
+    this.truncateResearchInterests = this.introduction.length + this.researchInterests.length > 500;
 
     this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true).map(c => {
       return {
@@ -168,6 +172,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertName = '';
     this.introduction = '';
     this.showMoreAboutMeLink = false;
+    this.truncateIntroduction = false;
+    this.truncateResearchInterests = false;
     this.roles = [];
     this.orcId = '';
     this.scopusIds = [];
@@ -208,6 +214,12 @@ export default class AppExpert extends Mixin(LitElement)
   */
   toggleAdminUi() {
     this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId);
+  }
+
+  _showMoreAboutMeClick(e) {
+    this.showMoreAboutMeLink = false;
+    this.truncateIntroduction = false;
+    this.truncateResearchInterests = false;
   }
 
   /**
@@ -299,14 +311,15 @@ export default class AppExpert extends Mixin(LitElement)
         '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
         '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
-        '"' + (grant.role || '') + '"',                               // Type of Grant
+        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + (grant.role || '') + '"',                               // Role of Grant
         '?', // List of contributors (role) {separate contributors by ";"}
       ]);
     });
 
     if( !body.length ) return;
 
-    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'List of Contributors'];
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of Contributors'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
@@ -351,6 +364,19 @@ export default class AppExpert extends Mixin(LitElement)
   _editWebsites(e) {
     this.modalTitle = 'Edit Links';
     this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
+  }
+
+  /**
+   * @method _editAboutMe
+   * @description show modal with link to edit intro/research interests
+   */
+  _editAboutMe(e) {
+    this.modalTitle = 'Edit Introduction';
+    this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
