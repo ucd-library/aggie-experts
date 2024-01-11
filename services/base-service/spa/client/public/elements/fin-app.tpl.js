@@ -180,15 +180,18 @@ return html`
         </ucdlib-site-footer-column>
         <ucdlib-site-footer-column header="Terms of Use">
           <ul>
+            <li>Our sources use algorithms for matching publications to people. Errors may exist.</li>
             <li>
               <a
                 href="/termsofuse"
                 rel="noopener"
                 >Terms of Use</a>
             </li>
-            <li>
-              <span>© The Regents of the University of California, Davis</span>
-            </li>
+          </ul>
+        </ucdlib-site-footer-column>
+        <ucdlib-site-footer-column header="Copyright">
+          <ul>
+            <li>©2023 The Regents of the University of California, Davis</li>
           </ul>
         </ucdlib-site-footer-column>
       </ucdlib-site-footer>

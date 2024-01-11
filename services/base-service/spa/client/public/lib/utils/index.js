@@ -67,6 +67,37 @@ class Utils {
   }
 
   /**
+   * @method getGrantRole
+   * @description given a GrantType vivo role, returns the role to display in AE
+   *
+   * @param {String} type
+   *
+   * @return {String} readable role
+   */
+  getGrantRole(role) {
+    let readableRole = role;
+
+    switch (role) {
+      case 'PrincipalInvestigatorRole':
+        readableRole = 'Principal Investigator';
+        break;
+      case 'CoPrincipalInvestigatorRole':
+        readableRole = 'Co-Principal Investigator';
+        break;
+      case 'LeaderRole':
+        readableRole = 'Leader';
+        break;
+      case 'ResearcherRole':
+        readableRole = 'Researcher';
+        break;
+      default:
+        break;
+    }
+
+    return readableRole;
+  }
+
+  /**
    * @method parseGrants
    * @description given an array of grants, parse and return an array of parsed grants
    *
@@ -92,8 +123,9 @@ class Utils {
       }
       g.completed = completed;
 
-      // determine role
-      g.role = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
+      // determine role/type
+      g.role = this.getGrantRole(g.relatedBy?.['@type']?.[1] || '');
+      g.type = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
 
       // determine awarded-by
       g.awardedBy = g.assignedBy?.name;

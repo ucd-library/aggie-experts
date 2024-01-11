@@ -6,7 +6,7 @@ prefix oap: <http://oapolicy.universityofcalifornia.edu/>
 prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
-select distinct (?relationship as ?RELATIONSHIP__) ?filename ?type where {
+select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
   graph ?g {
     ?relationship :type ?type;
                   :related ?grant;
