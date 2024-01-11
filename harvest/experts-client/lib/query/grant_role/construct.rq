@@ -66,7 +66,7 @@ WHERE {
         ("user-grant-senior-key-personnel" vivo:ResearcherRole )
         ("user-grant-co-primary-investigation" vivo:CoPrincipalInvestigatorRole)
         ("user-grant-primary-investigation" vivo:PrincipalInvestigatorRole)
-        ("user-grant-program-direction" vivo:ResearcherRole)
+        ("user-grant-program-direction" vivo:LeaderRole)
         ("user-grant-project-leadership" vivo:LeaderRole)
         ("user-grant-research" vivo:ResearcherRole)
       }
@@ -90,7 +90,7 @@ WHERE {
             bind(?RELATIONSHIP__ as ?relationship)
             graph cdl: {
               ?RELATIONSHIP__ :related ?g.
-    
+
               ?g :category "grant";
                  :records/:record/:source-id ?id;
                  .
@@ -167,7 +167,7 @@ WHERE {
                 bind(?RELATIONSHIP__ as ?relationship)
                 graph cdl: {
                   ?RELATIONSHIP__ :related ?g.
-        
+
                   ?g :category "grant";
                      :records/:record/:source-id ?id;
                      .
@@ -184,13 +184,13 @@ WHERE {
         ?record :native/:field ?s;
                 :native/:field ?e;
                 .
-    
+
         ?s :name "start-date";
            :type "date";
            :date ?s_date;
            .
         ?s_date :year ?syear.
-    
+
         BIND(vivo:yearPrecision AS ?syear_p)
         OPTIONAL {
           ?s_date :month ?sm_raw.
@@ -206,13 +206,13 @@ WHERE {
         }
         BIND(CONCAT(?syear, COALESCE(?smonth, ""), COALESCE(?sday, "")) AS ?start_date)
         BIND(coalesce(?sday_p,?smonth_p,?syear_p) as ?start_date_precision)
-    
+
         ?e :name "end-date";
            :type "date";
            :date ?e_date;
            .
         ?e_date :year ?eyear.
-    
+
         BIND(vivo:yearPrecision AS ?eyear_p)
         OPTIONAL {
           ?e_date :month ?em_raw.
@@ -228,7 +228,7 @@ WHERE {
         }
         BIND(CONCAT(?eyear, COALESCE(?emonth, ""), COALESCE(?eday, "")) AS ?end_date)
         BIND(coalesce(?eday_p,?emonth_p,?eyear_p) as ?end_date_precision)
-    
+
       }
     }
   }
