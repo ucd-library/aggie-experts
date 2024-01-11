@@ -146,7 +146,7 @@ WHERE {
   }
   bind(uri(concat(str(?user),"#vcard-",?vid)) as ?vcard)
   bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?default_email,?undefined_var)) as ?email)
-  bind(if(bound(?email),uri(concat("email:",?email)),?undefined_var) as ?email_uri)
+  bind(if(bound(?email),uri(concat("mailto:",?email)),?undefined_var) as ?email_uri)
   bind(coalesce(?ucd_title,uri(concat(str(?vcard),"-title"))) as ?vcard_title)
   bind(if(bound(?website),uri(concat(str(?vcard),"-url")),?undefined_var) as ?vcard_url)
 }

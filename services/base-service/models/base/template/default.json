@@ -7,26 +7,56 @@
         "nested": {
           "path": "@graph",
           "query": {
-            "multi_match": {
-              "query": "{{q}}",
-              "fields": [
-                "@graph.DOI^10",
-                "@graph.abstract^5",
-                "@graph.contactInfo.hasEmail^10",
-                "@graph.contactInfo.hasName.family^10",
-                "@graph.contactInfo.hasName.given^5",
-                "@graph.contactInfo.hasName.middle^5",
-                "@graph.contactInfo.hasTitle.name^5",
-                "@graph.contactInfo.hasURL.name^5",
-                "@graph.contactInfo.hasOrganizationalUnit.name^5",
-                "@graph.name^10",
-                "@graph.orcidId.kw^10",
-                "@graph.overview^5",
-                "@graph.abstract^5",
-                "@graph.identifier.kw^10",
-                "@graph.container-title^5",
-                "@graph.publisher^5",
-                "@graph.title^10"
+            "bool" : {
+              "must": [
+                {
+                "multi_match": {
+                  "query": "{{q}}",
+                  "fields": [
+                    "@graph.@id^10",
+                    "@graph.relates^2",
+                    "@graph.DOI^10",
+                    "@graph.abstract^5",
+                    "@graph.contactInfo.hasEmail^10",
+                    "@graph.contactInfo.hasName.family^10",
+                    "@graph.contactInfo.hasName.given^5",
+                    "@graph.contactInfo.hasName.middle^5",
+                    "@graph.contactInfo.hasTitle.name^5",
+                    "@graph.contactInfo.hasURL.name^5",
+                    "@graph.contactInfo.hasOrganizationalUnit.name^5",
+                    "@graph.name^10",
+                    "@graph.orcidId^10",
+                    "@graph.overview^5",
+                    "@graph.abstract^5",
+                    "@graph.identifier^10",
+                    "@graph.container-title^5",
+                    "@graph.publisher^5",
+                    "@graph.title^10"
+                  ]
+                } } ],
+              "filter": [
+                {
+                "bool": {
+                  "should": [
+                    {
+                    "bool": {
+                      "must": [
+                        { "exists": { "field": "@graph.is-visible" }},
+                        { "term": { "@graph.is-visible": true }}
+                      ]
+                    }
+                  },
+                    {
+                    "bool": {
+                      "must": [
+                        { "exists": { "field": "@graph.relatedBy.is-visible" }},
+                        { "term": { "@graph.relatedBy.is-visible": true }}
+                      ]
+                    }
+                  }
+                  ]
+                }
+              }
               ]
             }
           },

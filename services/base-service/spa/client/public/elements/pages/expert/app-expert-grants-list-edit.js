@@ -19,10 +19,15 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
+      totalGrants : { type : Number },
+      hiddenGrants : { type : Number },
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       allSelected : { type : Boolean },
       showModal : { type : Boolean },
+      hideCancel : { type : Boolean },
+      hideSave : { type : Boolean },
+      hideOK : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -44,11 +49,16 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
+    this.totalGrants = 0;
+    this.hiddenGrants = 0;
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
     this.allSelected = false;
     this.showModal = false;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -85,11 +95,13 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.replace('/grants-edit/', '');
-    if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
-    if( expertId === this.expertId ) return;
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+
+    if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
+    if( expertId === this.expertId || !canEdit ) return;
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
+      let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
@@ -115,10 +127,13 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
 
-    let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
+    let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
-    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
+    this.totalGrants = grants.length;
+    this.hiddenGrants = grants.filter(g => !g.relatedBy?.['is-visible']).length;
+
     this.grants = utils.parseGrants(grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
@@ -232,70 +247,29 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   async _downloadClicked(e) {
     e.preventDefault();
 
-    // The download csv should contain
-    //   Title : dl.name
-    //   Funding Agency : dl.awardedBy
-    //   Grant id : dl.sponsorAwardId
-    //   Start date : dl.dateTimeInterval.start.dateTime
-    //   End date : dl.dateTimeInterval.end.dateTime
-    //   Type of Grant : dl.role
-    //   List of contributors (role) {separate contributors by ";"}
-
-    /*
-    {
-    "assignedBy": {
-        "@type": "FundingOrganization",
-        "name": "CALIFORNIA DEPARTMENT OF WATER RESOURCES",
-        "@id": "ark:/87287/d7mh2m/grant/4344862#unknown-funder"
-    },
-    "dateTimeInterval": {
-        "@type": "DateTimeInterval",
-        "start": {
-            "dateTime": "2014-07-30",
-            "@type": "DateTimeValue",
-            "@id": "ark:/87287/d7mh2m/grant/4344862#start-date",
-            "dateTimePrecision": "vivo:yearMonthDayPrecision"
-        },
-        "end": {
-            "dateTime": "2017-07-29",
-            "@type": "DateTimeValue",
-            "@id": "ark:/87287/d7mh2m/grant/4344862#end-date",
-            "dateTimePrecision": "vivo:yearMonthDayPrecision"
-        },
-        "@id": "ark:/87287/d7mh2m/grant/4344862#duration"
-    },
-    "@type": [
-        "Grant",
-        "vivo:Grant"
-    ],
-    "totalAwardAmount": "181353",
-    "name": "SIMETAW and Cal-SIMETAW Upgrade",
-    "@id": "ark:/87287/d7mh2m/grant/4344862",
-    "relatedBy": {
-        "relates": [
-            "expert/66356b7eec24c51f01e757af2b27ebb8",
-            "ark:/87287/d7mh2m/grant/4344862"
-        ],
-        "@type": "GrantRole",
-        "@id": "ark:/87287/d7mh2m/relationship/13340713",
-        "is-visible": true
-    },
-    "sponsorAwardId": "4600010450",
-    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
-        "name": "Research",
-        "@id": "ucdlib:Grant_Research"
-    },
-    "start": 2014,
-    "end": 2017,
-    "completed": true,
-    "role": "Research",
-    "awardedBy": "CALIFORNIA DEPARTMENT OF WATER RESOURCES"
-    }
-    */
-
     let downloads = this.grants.filter(g => this.downloads.includes(g['@id']));
+    let body = [];
+    downloads.forEach(grant => {
+      body.push([
+        '"' + (grant.name || '') + '"',                               // Title
+        '"' + (grant.awardedBy || '') + '"',                          // Funding Agency
+        '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
+        '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
+        '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
+        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + (grant.role || '') + '"',                               // Role of Grant
+        '?', // List of contributors (role) {separate contributors by ";"}
+      ]);
+    });
 
-    let text = downloads.map(c => c.ris).join('\n');
+    if( !body.length ) return;
+
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of Contributors'];
+    let text = headers.join(',') + '\n';
+    body.forEach(row => {
+      text += row.join(',') + '\n';
+    });
+
     let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
 
@@ -314,8 +288,24 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   _hideGrant(e) {
     this.modalTitle = 'Hide Grant';
-    this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
+    this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this grant?</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
+  }
+
+  /**
+   * @method _rejectGrant
+   * @description show modal with link to reject grant
+   */
+  _rejectGrant(e) {
+    this.modalTitle = 'Reject Grant';
+    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this grant?</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**
@@ -329,7 +319,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     // reset data to first page of results
     this.currentPage = 1;
-    let grants = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g['@type'].includes('Grant'))));
+    let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(grants);
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);

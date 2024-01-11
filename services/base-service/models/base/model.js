@@ -2,6 +2,7 @@
 const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
+const settings = require('./schema/settings.json');
 
 /**
  * @class BaseModel
@@ -29,6 +30,22 @@ class BaseModel extends FinEsDataModel {
     this.transformService = "node";
   }
 
+  /** @inheritdoc */
+  getDefaultIndexConfig(schema) {
+    if( !schema ) {
+      schema = this.schema;
+    }
+    var newIndexName = `${this.modelName}-${Date.now()}`;
+
+    return {
+      index: newIndexName,
+      body : {
+        settings : settings,
+        mappings : schema
+      }
+    }
+  }
+
   /**
    * @method is
    * @description Determines if this model can handle the given file based on
@@ -39,10 +56,10 @@ class BaseModel extends FinEsDataModel {
     if (typeof types === 'string') types = [types];
     types = types.filter(x => this.constructor.types.includes(x));
     if (types.length === 0) {
-      console.log(`!${this.constructor.name}.is`);
+//      console.log(`!${this.constructor.name}.is`);
       return false;
     }
-    console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
+//    console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
     return true
   }
 
@@ -192,9 +209,9 @@ class BaseModel extends FinEsDataModel {
     // Check if template exists, install if not
     try {
       const result = await this.client.getScript({id:options.id});
-      console.log(`render: template ${options.id} exists`);
+//      console.log(`render: template ${options.id} exists`);
     } catch (err) {
-      console.log(`render: template ${options.id} does not exist`);
+      logger.info(`adding template ./template/${options.id}`);
       const template = require(`./template/${options.id}.json`);
       const result = await this.client.putScript(template);
     }
@@ -353,7 +370,7 @@ class BaseModel extends FinEsDataModel {
     let identifier = id.replace(/^\//, '').split('/');
     identifier.shift();
     identifier = identifier.join('/');
-    console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
+    //console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
 
     let result= await this.client.get(
       {
@@ -372,6 +389,7 @@ class BaseModel extends FinEsDataModel {
       return null;
     }
 
+    // Add fcrepo and dbsync data if admin, for the dashboard
     if( opts.admin === true ) {
       try {
         let response = await api.metadata({
@@ -445,8 +463,7 @@ class BaseModel extends FinEsDataModel {
    *
    * @returns {Promise} : Elasticsearch response Promise
    */
-  async update_graph_node(document_id, node_to_update, is_visible=true) {
-     if (is_visible === true || is_visible === 'true') {
+  async update_graph_node(document_id, node_to_update ) {
       return this.client.update({
         index: this.writeIndexAlias,
         id : document_id,
@@ -459,9 +476,6 @@ class BaseModel extends FinEsDataModel {
           params : {node: node_to_update}
         }
       });
-    } else {
-      return this.delete_graph_node(document_id, node_to_update);
-    }
   }
 
   /**

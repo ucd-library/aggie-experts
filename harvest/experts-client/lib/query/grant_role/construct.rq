@@ -1,20 +1,24 @@
-PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
-PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX expert: <http://experts.ucdavis.edu/expert/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-PREFIX vivo: <http://vivoweb.org/ontology/core#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX kfs: <ark:/87287/d7gt0q/schema#>
-
-construct {
-  ?grant_role a ucdlib:GrantRole, ?role, ?vivo_role;
+# THIS FILE GENERATED FROM ../README.org
+   PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+   PREFIX bibo: <http://purl.org/ontology/bibo/>
+   PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+   PREFIX cite: <http://citationstyles.org/schema/>
+   PREFIX expert: <http://experts.ucdavis.edu/expert/>
+   PREFIX experts: <http://experts.ucdavis.edu/>
+   PREFIX kfs: <ark:/87287/d7gt0q/schema#>
+   PREFIX list: <http://jena.apache.org/ARQ/list#>
+   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+   PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+   PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+   PREFIX venue: <http://experts.ucdavis.edu/venue/>
+   PREFIX vivo: <http://vivoweb.org/ontology/core#>
+   PREFIX work: <http://experts.ucdavis.edu/work/>
+   PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+   construct {
+  ?grant_role a ucdlib:GrantRole, ?role;
            ucdlib:favorite ?favorite;
            ucdlib:is-visible ?visible;
-#           ucdlib:type_id ?tid;
-#           ucdlib:type ?type;
            vivo:relates ?expert,?grant;
            .
 
@@ -32,81 +36,76 @@ construct {
           rdfs:label ?funder_label;
           .
 
-  ?interval a vivo:DateTimeInterval;
-            ?field_predicate ?field_date;
-            .
+  ?interval
+     vivo:start ?sd;
+     vivo:end ?ed;
+     .
 
-  ?field_date a vivo:DateTimeValue;
-              vivo:dateTimePrecision ?precision;
-              vivo:dateTime ?field_datestr;
-              .
+  ?sd
+     vivo:dateTimePrecision ?start_date_precision;
+     vivo:dateTime ?start_date;
+     .
+  ?ed
+     vivo:dateTimePrecision ?end_date_precision;
+     vivo:dateTime ?end_date;
+     .
 }
 WHERE {
-
   graph cdl: {
     ?RELATIONSHIP__
     :is-visible ?visible_str;
-    :type ?type;
-    :type-id ?tid;
+    :type ?cdl_type;
     :related ?g;
     :related ?user;
     .
 
     OPTIONAL {
-	    ?RELATIONSHIP__ :is-favourite "true".
-    	bind(true as ?favorite)
-    }
+      VALUES (?cdl_type ?vivo_role ) {
+        ("user-grant-principal-investigation" vivo:PrincipalInvestigatorRole)
+        ("user-grant-co-principal-investigation" vivo:CoPrincipalInvestigatorRole)
+        ("user-grant-senior-key-personnel" vivo:ResearcherRole )
+        ("user-grant-co-primary-investigation" vivo:CoPrincipalInvestigatorRole)
+        ("user-grant-primary-investigation" vivo:PrincipalInvestigatorRole)
+        ("user-grant-program-direction" vivo:LeaderRole)
+        ("user-grant-project-leadership" vivo:LeaderRole)
+        ("user-grant-research" vivo:ResearcherRole)
+      }
+      }
 
     OPTIONAL {
-           VALUES (?role ?tid ?vivo_role ) {
-#       (:GrantOtherRole "138" "Researcher on" )
-#       (:GrantProjectLeaderRole "118" "Project Lead of")
-       (kfs:GrantCoPrincipalInvestigatorRole "116" vivo:CoPrincipalInvestigatorRole)
-#       (:GrantProgramDirectorRole "137" "Program Director of")
-#       (:GrantCoreLeaderRole "119" "Co leader on")
-#       (:GrantKeyPersonnelRole "97" "Senior personal of")
-       (kfs:GrantPrincipalInvestigatorRole "43" vivo:PrincipalInvestigatorRole)
-     }
-
-#        VALUES (?grant_role ?ucd_role ?vivo_role) {
-#    ("PDIR" kfs:GrantProgramDirectorRole vivo:LeaderRole)
-#    ("KP" kfs:GrantKeyPersonnelRole vivo:ResearcherRole)
-##    ("OTHR" kfs:GrantOtherRole vivo:ResearcherRole)
-#    ("PLDR" kfs:GrantProjectLeaderRole vivo:LeaderRole)
-#    ("COPI" kfs:GrantCoPrincipalInvestigatorRole vivo:CoPrincipalInvestigatorRole)
-#    ("PI" kfs:GrantPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole )
-#    ("CLDR" kfs:GrantCoreLeaderRole vivo:ResearcherRole)
-##    ("ACCT-COPI" kfs:GrantAccountManagerRole vivo:ResearcherRole)
-#    }
-
+      ?RELATIONSHIP__ :is-favourite "true".
+      bind(true as ?favorite)
     }
-    bind(xsd:boolean(?visible_str) as ?visible)
+
     ?user :category "user";
           :username ?username;
           .
 
-    # This needs to include grants later
-    ?g :category "grant";
-       .
-
-    # We only use one source for grants
     {
-      select ?g (min(?id) as ?source_id)
+      select ?relationship ?g ?record ?source
       WHERE {
-        ?g :records/:record ?record.
-        ?record :source-name  ?source;
-                :source-id ?id;
-                .
-      }  group by ?g
-    }
-    # Now get the corresponding ?record w/ that low score,
-    # I'm calling it field_record even though it's currently the same for all
- 	  ?g :records/:record ?record.
-    ?field_record :source-name  ?source;
-                  :source-id ?wanted_source_id;
-                  .
+        {
+          select ?relationship ?g (min(?id) as ?wanted_source_id)
+          WHERE {
+            bind(?RELATIONSHIP__ as ?relationship)
+            graph cdl: {
+              ?RELATIONSHIP__ :related ?g.
 
-    # these are the fields to check
+              ?g :category "grant";
+                 :records/:record/:source-id ?id;
+                 .
+            }
+          }  group by ?relationship ?g
+        }
+        ?g :records/:record ?record;
+           .
+        ?record :source-name  ?source;
+                :source-id ?wanted_source_id;
+                .
+      }
+    }
+    ?record :native/:field ?field.
+
     VALUES(?field_name ?field_type ?field_predicate) {
       ("title" "text" rdfs:label)
       ("amount" "money" vivo:totalAwardAmount)
@@ -116,13 +115,6 @@ WHERE {
       ("funding-type" "special" ucdlib:none)
       ("funder-name" "special" ucdlib:none)
     }
-
-    ?g :type ?oap_type;
-       :last-modified-when ?lastModifiedWhen;
-       :records/:record ?field_record;
-       .
-
-    ?field_record :native/:field ?field.
 
     OPTIONAL {
       ?field :name ?field_name;
@@ -156,48 +148,98 @@ WHERE {
              .
     }
 
-    # Funder name is a special case
     OPTIONAL {
       ?field :name "funder-name";
              :type "text";
              :text ?funder_label;
              .
-      bind('unknown-funder' as ?funder_ref)
     }
 
-    OPTIONAL {
-      ?field :name ?field_name;
-             :type "date";
-             :type ?field_type;
-             :date ?date.
+    {
+      select ?g ?start_date ?start_date_precision ?end_date ?end_date_precision
+      WHERE {
+        {
+          select ?relationship ?g ?record ?source
+          WHERE {
+            {
+              select ?relationship ?g (min(?id) as ?wanted_source_id)
+              WHERE {
+                bind(?RELATIONSHIP__ as ?relationship)
+                graph cdl: {
+                  ?RELATIONSHIP__ :related ?g.
 
-      ?date :year ?year.
-      BIND(vivo:yearPrecision AS ?year_precision)
-      OPTIONAL {
-        ?date :month ?m_raw.
-        BIND(concat("-",IF(xsd:integer(?m_raw) < 10, CONCAT("0", ?m_raw), ?m_raw)) AS ?month)
-        BIND(vivo:yearMonthPrecision AS ?month_precision)
-        OPTIONAL {
-          ?date :day ?d_raw.
-          BIND(concat("-",IF(xsd:integer(?d_raw) < 10, CONCAT("0", ?d_raw), ?d_raw)) AS ?day)
-          BIND(vivo:yearMonthDayPrecision AS ?day_precision)
+                  ?g :category "grant";
+                     :records/:record/:source-id ?id;
+                     .
+                }
+              }  group by ?relationship ?g
+            }
+            ?g :records/:record ?record;
+               .
+            ?record :source-name  ?source;
+                    :source-id ?wanted_source_id;
+                    .
+          }
         }
+        ?record :native/:field ?s;
+                :native/:field ?e;
+                .
+
+        ?s :name "start-date";
+           :type "date";
+           :date ?s_date;
+           .
+        ?s_date :year ?syear.
+
+        BIND(vivo:yearPrecision AS ?syear_p)
+        OPTIONAL {
+          ?s_date :month ?sm_raw.
+          BIND(concat("-",IF(strlen(?sm_raw) = 1,
+                             CONCAT("0", ?sm_raw), ?sm_raw)) AS ?smonth)
+          BIND(vivo:yearMonthPrecision AS ?smonth_p)
+          OPTIONAL {
+            ?s_date :day ?sd_raw.
+            BIND(concat("-",IF(strlen(?sd_raw) =1,
+                               CONCAT("0", ?sd_raw), ?sd_raw)) AS ?sday)
+            BIND(vivo:yearMonthDayPrecision AS ?sday_p)
+          }
+        }
+        BIND(CONCAT(?syear, COALESCE(?smonth, ""), COALESCE(?sday, "")) AS ?start_date)
+        BIND(coalesce(?sday_p,?smonth_p,?syear_p) as ?start_date_precision)
+
+        ?e :name "end-date";
+           :type "date";
+           :date ?e_date;
+           .
+        ?e_date :year ?eyear.
+
+        BIND(vivo:yearPrecision AS ?eyear_p)
+        OPTIONAL {
+          ?e_date :month ?em_raw.
+          BIND(concat("-",IF(strlen(?em_raw) = 1,
+                             CONCAT("0", ?em_raw), ?em_raw)) AS ?emonth)
+          BIND(vivo:yearMonthPrecision AS ?emonth_p)
+          OPTIONAL {
+            ?e_date :day ?ed_raw.
+            BIND(concat("-",IF(strlen(?ed_raw) =1,
+                               CONCAT("0", ?ed_raw), ?ed_raw)) AS ?eday)
+            BIND(vivo:yearMonthDayPrecision AS ?eday_p)
+          }
+        }
+        BIND(CONCAT(?eyear, COALESCE(?emonth, ""), COALESCE(?eday, "")) AS ?end_date)
+        BIND(coalesce(?eday_p,?emonth_p,?eyear_p) as ?end_date_precision)
+
       }
-      BIND(CONCAT(?year, COALESCE(?month, ""), COALESCE(?day, "")) AS ?field_datestr)
-      BIND('duration' as ?duration)
-      BIND(?field_name as ?interval_name)
-      BIND(coalesce(?day_precision,?month_precision,?year_precision) as ?precision)
     }
   }
-  # EXPERTS ids
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
   bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
   bind(uri(concat(str(expert:),md5(?username))) as ?expert)
+  bind(xsd:boolean(?visible_str) as ?visible)
+  bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
 
-  # If funder_ref, then we make a special funder until REMS comes
-  bind(uri(concat(str(?grant),'#',?funder_ref)) as ?funder)
-
-
-  bind(uri(concat(str(?grant),'#',?duration)) as ?interval)
-  bind(uri(concat(str(?grant),'#',?interval_name)) as ?field_date)
+  bind(uri(concat(str(?grant),'#start_date')) as ?sd)
+  bind(uri(concat(str(?grant),'#end_date')) as ?ed)
+  bind(uri(concat(str(?grant),'#interval')) as ?interval)
+  bind(uri(concat(str(?grant),"#funder")) as ?funder)
 }

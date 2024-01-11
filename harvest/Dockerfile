@@ -1,5 +1,7 @@
 ARG TAG
 ARG ORG
+ARG FIN_TAG
+ARG FIN_ORG
 
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
 FROM $ORG/fuseki:$TAG as more
@@ -39,6 +41,9 @@ RUN set -x ; mkdir -p /tmp/builder && \
 # Experts API is shared
 FROM $ORG/experts-api:$TAG as api
 
+# fin-service is also shared
+FROM $FIN_ORG/fin-base-service:$FIN_TAG as fin-base-service
+
 # Now build from fuseki
 FROM $ORG/fuseki:$TAG
 
@@ -71,7 +76,8 @@ RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.c
 RUN mkdir -p /etc/apt/keyrings && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | apt-key --keyring /etc/apt/keyrings/nodesource.gpg add -
 ENV NODE_MAJOR=20
 RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
-RUN apt-get update && apt-get install nodejs -y
+RUN apt-get update && apt-get install nodejs -y && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && corepack enable
 
 # Set up some HDT files
 RUN mkdir -p /var/lib/fuseki/hdt/
@@ -91,15 +97,20 @@ RUN chmod +x /usr/local/bin/cdl-elements
 # XML2JSON
 RUN cd /tmp && npm install -g xml2json --unsafe-perm
 
+# Copy fin-service
+ARG FIN_API=/usr/local/lib/fin/api
+COPY --from=fin-base-service /fin/api ${FIN_API}
+RUN cd ${FIN_API} && npm link #&& yarn link
+
 # COPY over experts-api source code
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api
 COPY --from=api ${AE_API} ${AE_API}
-RUN cd ${AE_API} && npm link
+RUN cd ${AE_API} && npm link #&& yarn link
 
-ARG AE_CLIENT=/usr/local/lib/experts-client
+ARG AE_CLIENT=/usr/local/lib/aggie-experts/experts-client
 COPY experts-client ${AE_CLIENT}
-WORKDIR ${AE_CLIENT}
-RUN npm link @ucd-lib/experts-api && npm install && npm install -g
+#RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && yarn global add simple-copy typescript  && yarn link @ucd-lib/experts-api && yarn install
+RUN cd ${AE_CLIENT} && rm -rf node_modules && npm link @ucd-lib/experts-api && npm install -g
 
 # Setup a place to hold the Makefile data
 RUN mkdir /usr/local/lib/harvest

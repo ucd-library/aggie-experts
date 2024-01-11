@@ -18,10 +18,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       expertName : { type : String },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      totalCitations : { type : Number },
+      hiddenCitations : { type : Number },
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       allSelected : { type : Boolean },
       showModal : { type : Boolean },
+      hideCancel : { type : Boolean },
+      hideSave : { type : Boolean },
+      hideOK : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -42,11 +47,16 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.expertName = '';
     this.citations = [];
     this.citationsDisplayed = [];
+    this.totalCitations = 0;
+    this.hiddenCitations = 0;
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
     this.allSelected = false;
     this.showModal = false;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -83,10 +93,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.replace('/works-edit/', '');
-    if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+
+    if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
+      let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
@@ -110,7 +122,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
 
-    let graphRoot = this.expert['@graph'].filter(item => item['@id'] === this.expertId)[0];
+    let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
     await this._loadCitations();
@@ -123,7 +135,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
   async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify(this.expert['@graph'].filter(g => g.issued)));
+    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
+    this.totalCitations = citations.length;
+    this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
 
     try {
       // sort by issued date desc, then by title asc
@@ -256,6 +270,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     let downloads = this.citationsDisplayed.filter(c => this.downloads.includes(c['@id']));
 
+    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
+    this.citationsDisplayed = this.citationsDisplayed.slice(startIndex, startIndex + this.resultsPerPage)
+
     let text = downloads.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
@@ -277,6 +294,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modalTitle = 'Hide Work';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**
@@ -287,6 +307,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modalTitle = 'Reject Work';
     this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
     this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
   }
 
   /**

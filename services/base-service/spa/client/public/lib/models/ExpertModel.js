@@ -17,11 +17,12 @@ class ExpertModel extends BaseModel {
    * @description load a expert by id from elastic search
    *
    * @param {String} id expert id
+   * @param {Boolean} noSanitize if true, returns is-visible:false records
    *
    * @returns {Promise} resolves to expert
    */
-  async get(id) {
-    let state = this.store.getExpert(id);
+  async get(id, noSanitize=false) {
+    let state = this.store.getExpert(id, noSanitize);
 
     if( state && state.request ) {
       await state.request;
@@ -30,7 +31,7 @@ class ExpertModel extends BaseModel {
         this.store.setExpertLoaded(id, state.payload)
       }
     } else {
-      await this.service.get(id);
+      await this.service.get(id, noSanitize);
     }
 
     return this.store.getExpert(id);

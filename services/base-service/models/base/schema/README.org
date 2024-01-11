@@ -1,0 +1,109 @@
+** minimal.json
+
+   There are two keyword additions to the family and given name to allow sorting
+   based on those fields.  This is used in the directory component.
+
+** settings.json
+
+   The default text analyzer is used for all the text fields.  This will also be
+   what's used.
+
+*** identifiers
+    One problem we have with Aggie Experts, is that we expect there to be a lot
+    of indexing text with identifiers, and querying on them as well.  This is
+    problematic for a number of reasons.  First, some identifiers have more than
+    one generally accepted format, For example DOIS can be represented as either
+    ~https://doi.org/10.1016/j.compag.2018.09.042~ or as
+    ~doi:10.1016/j.compag.2018.09.042~, but we want to match both.  Another big
+    problem is that the standard elastic search ~uat_uri_email~ tokenizer only
+    tokenizes some URLs, ~https:~, ~ftp:~ and not others eg. ~mailto:~ and ~urn:~
+    this is very frustrating, a well-known urn like ~urn:ISSN:0167-6423~ gets
+    tokenized into ['urn','ISSN','0167','6423']
+
+    Our goal is to be flexible in how we parse text, but strident in how known
+    identifiers are stored.  In addition, we'd like to maintain the ability to
+    use the standard ~uat_uri_email~ tokenizer.  To that end, our plan will be to
+    convert all know identifiers into URL using ~char_filters~ before we tokenize
+    the stream, and then use ~token_filters~ to convert all well-known
+    identifiers back into their most standard form.
+
+    One thing to note, is that when there are multiple syntaxs for an identifier,
+    often this will include a URL form that acts as a resolver for the
+    identifier.  We embrace this method, and use the following method: If there
+    already exists a well known resolver for an identifier we will convert
+    identifiers to that URL.  This is the case for DOIs, for example.  If there
+    is not another resolver, we default to the [[https://n2t.net/e/compact_ids.html][compact identifier (CURIE)]]
+    resolver found at http://n2t.net/.
+
+    Finally, our token filters will convert to the most standard idenitifier
+    reference. For example, all dois -> ~doi:~ format, while
+    ~orcid:0000-0000-0000-0000~ will be converted in the opposite way to
+    http://orcid.org/0000-0000-0000-0000.
+
+    One caveat to this is that some documents in Aggie Experts are expected to
+    follow guidelines for linked data.  This means that identifiers have to be
+    URIs.
+
+
+    | id    | index                                 | url_email token                                | other varients                                |
+    |-------+---------------------------------------+------------------------------------------------+-----------------------------------------------|
+    | email | mailto:qjhart@ucdavis.edu             | qjhart@ucdavis.edu                             |                                               |
+    | doi   | doi:10.3390/ijgi3030929               | https://doi.org/10.3390/ijgi3030929            | 10.3390/ijgi3030929                           |
+    | orcid | https://orcid.org/0000-0001-9829-8914 | https://orcid.org/0000-0001-9829-8914          | orcid:0000-0001-9829-8914 0000-0001-9829-8914 |
+    |       |                                       |                                                | 0000-0001-9829-8914 0000-0001-9829-8914       |
+    | ark   | ark:/87287/d7mh2m/grant/4316321       | http://n2t.net/ark:/87287/d7mh2m/grant/4316321 |                                               |
+    | urn   | urn:issn:0277-786X                    | http://n2t.net/urn:issn:0277-786X              |                                               |
+    |       |                                       |                                                |                                               |
+
+
+    This example can be sent to elastic searches ~POST _analyze~ API
+    #+begin_src json
+      {
+        "char_filter": [
+          {
+            "type": "pattern_replace",
+            "pattern": "\\b(/|doi:|https://doi.org/)?(10\\.\\d{4,})\\b",
+            "replacement": "http://doi.org/$2"
+          },
+          {
+            "type": "pattern_replace",
+            "pattern": "\\b(orcid:)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])",
+            "replacement": "https://orcid.org/$2"
+        },
+              {
+            "type": "pattern_replace",
+            "pattern": "mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})\\b",
+            "replacement": "$1"
+        },
+        {
+          "type":"pattern_replace",
+          "pattern":"\\b(ark:\\/\\d+\\/[a-zA-Z0-9_-]+)\\b",
+          "replacement": "http://n2t.net/$1"
+        },
+        {
+            "type": "pattern_replace",
+            "pattern": "\\b(urn:[a-zA-Z0-9][a-zA-Z0-9-]{0,31}:([a-zA-Z0-9()+,-.:=@;$_!*'%/?#]|%[0-9a-fA-F]{2})+)\\b",
+            "replacement": "http://n2t.net/$1"
+        }
+        ],
+        "filter": [
+          {
+            "type": "pattern_replace",
+            "pattern": "([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})",
+            "replacement": "mailto:$1"
+          },
+          {
+            "type": "pattern_replace",
+            "pattern": "https?://n2t.net/(.*)",
+            "replacement": "$1"
+          },
+          {
+            "type": "pattern_replace",
+            "pattern": "https?://doi.org/(.*)",
+            "replacement": "doi:$1"
+          }
+        ],
+        "tokenizer": "uax_url_email",
+        "text": "Quinn <qjhart@ucdavis.edu> wrote doi:10.0000/b and 10.0000/foobar liked http://doi.org/10.0000/c mailto:qjhart@ucdavis.edu also qjhart@ucdavis.edu he's identified as orcid:0000-0001-9829-8914 or 0000-0001-9829-8914 ark:/87287/d7gt0q/ urn:ISSN:0167-6423"
+      }
+    #+end_src

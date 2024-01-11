@@ -32,7 +32,6 @@ import readablePromiseQueue from './readablePromiseQueue.js';
 export class ExpertsClient {
 
   static context = {
-    listed: {
     "@context": {
       "@base": "http://oapolicy.universityofcalifornia.edu/",
       "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
@@ -46,22 +45,7 @@ export class ExpertsClient {
       "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
     },
-      "@id":'http://oapolicy.universityofcalifornia.edu/'
-    },
-    unlisted: {
-    "@context": {
-      "@base": "http://oapolicy.universityofcalifornia.edu/",
-      "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "id": { "@type": "@id", "@id": "@id" },
-      "field-name": "api:field-name",
-      "field-number": "api:field-number",
-      "$t": "api:field-value",
-      "api:web-address": { "@container": "@list" }
-    },
-      "@id":'http://oapolicy.universityofcalifornia.edu/'
-    }
+    "@id":'http://oapolicy.universityofcalifornia.edu/'
   };
 
   /**
@@ -74,24 +58,26 @@ export class ExpertsClient {
     this.experts = [];
     this.debugRelationshipDir = opt.debugRelationshipDir || 'relationships';
     // Store crosswalk of user=>CDL ID
-    this.userId={};
+    this.userId = {};
 
-    this.cdl=opt.cdl || {};
+    // fetch parameters
+    this.timeout = opt.timeout || 30000;
+
+    this.cdl = opt.cdl || {};
     if (this.cdl?.auth.match(':')) {
       this.cdl.authBasic = Buffer.from(this.cdl.auth).toString('base64');
     } else {
       this.cdl.authBasic = this.cdl.auth;
     }
     // Author options
-    this.author_truncate_to = opt.authorTruncateTo || 0;
-    this.author_rank = opt.authorRank || false
+    this.author_truncate_to = opt.authorTruncateTo || 10000;
     this.author_trim_info = opt.authorTrimInfo || false
     // debugging
     this.debug_save_xml = opt.debugSaveXml || false
-
+    this.save_dir = 'saved_xml'
   }
   context() {
-    return JSON.parse(JSON.stringify(ExpertsClient.context[(this.opt.author_rank?'listed':'unlisted')]));
+    return JSON.parse(JSON.stringify(ExpertsClient.context));
   }
 
   getUserId(user) {
@@ -180,15 +166,14 @@ export class ExpertsClient {
           insert = insert.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-      opt.insert = insert;
       const promise = opt.db.update(insert);
       return promise;
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources:[opt.db.source()] })
+    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()] })
 
     const queue = new readablePromiseQueue(bindingStream, insertBoundConstruct,
-                                           { name: 'insert', max_promises: 10, logger: this.logger });
+      { name: 'insert', max_promises: 10, logger: this.logger });
     return queue.execute({ via: 'start' });
   }
 
@@ -231,6 +216,7 @@ export class ExpertsClient {
         }
         bindings = bindings.delete('filename');
       }
+      performance.mark(fn);
       // comunica's initialBindings function doesn't work,
       //so this is a sloppy workaround
       let construct = opt.construct;
@@ -241,7 +227,10 @@ export class ExpertsClient {
           construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-      const quadStream = await q.queryQuads(construct, { sources: [opt.db.source()] });
+      const quadStream = await q.queryQuads(
+        construct,
+        { //initialBindings:bindings,
+          sources: [opt.db.source()] });
 
       // convert construct to jsonld quads
       const quads = await quadStream.toArray();
@@ -251,14 +240,15 @@ export class ExpertsClient {
       } else {
         doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
       }
-      this.logger.info(`writing ${fn} with ${quads.length} quads`);
       fs.ensureFileSync(fn);
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
+      this.logger.info({measure:[fn],quads:quads.length,user:opt.user},'record');
+      performance.clearMarks(fn);
     }
 
-    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()],fetch })
+    const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()], fetch })
     const queue = new readablePromiseQueue(bindingStream, constructRecord,
-                                           { name: 'splay', max_promises: 5, logger:this.logger });
+      { name: 'splay', max_promises: 5, logger: this.logger });
     return queue.execute({ via: 'start' });
 
   }
@@ -286,43 +276,59 @@ export class ExpertsClient {
    * @returns XML
    *
    */
-  async getXMLPageAsObj(page,name='query',count=0) {
-    const dir = path.join('.',name);
-    const fn = path.join(dir,'page_'+ count.toString().padStart(3, '0') + '.xml');
+  async getXMLPageAsObj(page, name = 'query', count = 0) {
+    const dir = path.join(this.save_dir, name);
+    const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
     let xml;
 
     if (this.debug_save_xml) {
       if (fs.existsSync(fn)) {
-        this.logger.info(`DEBUG: Reading saved: ${fn}`);
-        xml=fs.readFileSync(fn);
+        this.logger.info({fn,action:"read"},`DEBUG: Reading saved: ${fn}`);
+        xml = fs.readFileSync(fn);
       }
     }
     // If not saved, or not found, then fetch
     if (!xml) {
-      const response = await fetch(page, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + this.cdl.authBasic,
-          'Content-Type': 'text/xml'
-        }
-      })
+      const requestTimeout = this.timeout; // Set the timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
 
-      if (response.status !== 200) {
-        throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
-      }
-      xml = await response.text();
-    }
-    if (this.debug_save_xml) {
       try {
-        this.logger.info(`DEBUG: writing ${fn}`);
-        fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
-        fs.writeFileSync(fn,xml);
+        const response = await fetch(page, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Authorization': 'Basic ' + this.cdl.authBasic,
+            'Content-Type': 'text/xml'
+          }
+        })
+
+        clearTimeout(timeoutId); // Clear the timeout as the request was successful
+
+        if (response.status !== 200) {
+          this.logger.error(`Did not get an OK from the server. Code: ${response.status}`);
+          return null;
+        }
+        xml = await response.text();
+
       } catch (error) {
-        this.logger.error(`Error creating or writing the file: ${error}`);
+        this.logger.error(`Error fetching ${page}: ${error}`);
+        return null;
+      }
+
+      if (this.debug_save_xml) {
+        try {
+          this.logger.info({action:"save",fn},`DEBUG: writing ${fn}`);
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, xml);
+        } catch (error) {
+          this.logger.error(`Error creating or writing the file: ${error}`);
+        }
       }
     }
     // convert the xml atom feed to json
-    const json = parser.toJson(xml, { object: true, arrayNotation: false });
+    this.logger.info(`Converting ${fn} to json`);
+    const json = await parser.toJson(xml, { object: true, arrayNotation: false });
     return json;
   }
 
@@ -338,29 +344,47 @@ export class ExpertsClient {
   }
 
   /**
- * @description Generic function to get all the entries from a CDL collection
- * @param {
-  * } opt
-  * @returns
-  *
-  */
-  async getCDLentries(query,name='query') {
-    var lastPage = false
-    var results = [];
-    var nextPage = path.join(this.cdl.url, query)
-    var count = 0;
+   * @description Generic function to get all the entries from a CDL collection
+   * @param {
+   * } opt
+   * @returns
+   *
+   */
+  async getCDLentries(query,name='getCDLentries') {
+    let lastPage = false
+    let results = [];
+    let nextPage = `${this.cdl.url}/${query}`
 
+    let count = 0;
+
+    performance.mark(name);
     while (nextPage) {
-      const page=await this.getXMLPageAsObj(nextPage,name,count++);
+      performance.mark(`${name}_${count}`);
+      const page = await this.getXMLPageAsObj(nextPage,name, count);
+      this.logger.info(
+        {measure:[`${name}_${count}`],
+         page:count},`fetched`)
+      if (this.debug_save_xml) {
+        const dir = path.join(this.save_dir,name);
+        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
+        try {
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+         this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+        } catch (error) {
+          this.logger.error(`Error creating or writing ${fn}: ${error}`);
+        }
+      }
       // add the entries to the results array
-      if (page.feed.entry) {
+      if (page?.feed?.entry) {
         results = results.concat(page.feed.entry);
       }
+      performance.clearMarks(`${name}_${count}`);
+      count++;
       nextPage = this.nextPage(page?.feed?.['api:pagination']);
     }
     return results;
   }
-
 
   /**
    * @description Get user from CDL and post to a fuseki database
@@ -369,25 +393,74 @@ export class ExpertsClient {
    * @returns
    *
    */
-  async getPostUser(db,user,query='detail=full') {
+  async getPostUser(db, user, query = 'detail=full') {
+    let lastPage = false
     // Get a full profile for the user
-    let page = `users?username=${user}@ucdavis.edu`
+    let nextPage = `${this.cdl.url}/users?username=${user}@ucdavis.edu`
     if (query) {
-      page += `&${query}`
+      nextPage += `&${query}`
     }
 
-    const entries = await this.getCDLentries(page,user);
+    let count = 0;
 
-    this.userId[user]=entries[0]["api:object"].id;
+    while (nextPage) {
+      let results=[];
+      performance.mark(`${user}_${count}`);
+      const page = await this.getXMLPageAsObj(nextPage,user, count);
+      this.logger.info(
+        {measure:[`${user}_${count}`],
+         post:"expert",
+         user:user,
+         page:count},`fetched`)
+      if (this.debug_save_xml) {
+        const dir = path.join(this.save_dir,user);
+        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
+        try {
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+          this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+        } catch (error) {
+          this.logger.error(`Error creating or writing ${fn}: ${error}`);
+        }
+      }
 
-    // Create the JSON-LD for the user profile
-    let contextObj = this.context();
-    contextObj["@graph"] = entries;
+      // add the entries to the results array
+      if (page?.feed?.entry) {
+        results = results.concat(page.feed.entry);
+        // Save CDL ID to this
+        this.userId[user]=results[0]["api:object"].id;
 
-    const jsonld = JSON.stringify(contextObj);
-    await db.createGraphFromJsonLdFile(jsonld);
+        let contextObj = this.context();
+        contextObj["@graph"] = results;
+        let jsonld = JSON.stringify(contextObj);
 
-    this.logger.info(`graph ${user} added`);
+        if (this.debug_save_xml) {
+          const dir = path.join(this.save_dir,user);
+          const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
+          try {
+            fs.ensureFileSync(fn);
+            fs.writeFileSync(fn, jsonld);
+            this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+          } catch (error) {
+            this.logger.error(`Error creating or writing ${fn}: ${error}`);
+          }
+        }
+        // Insert into our local Fuseki DB
+        await db.createGraphFromJsonLdFile(jsonld);
+      }
+      // Fetch the next page
+      this.logger.info(
+        {
+          measure:[`${user}_${count}`,`${user}_${count}_post`],
+          user:user,
+          post:"expert",
+          page:count},`posted`);
+      performance.clearMarks(`${user}_${count}_post`);
+      performance.clearMarks(`${user}_${count}`);
+      count++
+      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+    }
+    return count;
   }
 
   /**
@@ -397,80 +470,87 @@ export class ExpertsClient {
   * @returns
   *
   */
-  async getPostUserRelationships(db,user,query='detail=full') {
+  async getPostUserRelationships(db, user, query = 'detail=full') {
     let lastPage = false
-    const cdlId=this.getUserId(user);
+    const cdlId = this.getUserId(user);
     let nextPage = `${this.cdl.url}/users/${cdlId}/relationships`
     if (query) {
       nextPage += `?${query}`
     }
-    let count = 0;
 
     // Trim extraneous info from authors
     function author_trim_info(author) {
-      delete(author['api:addresses']);
+      delete (author['api:addresses']);
     }
 
     // modify author information
-    function update_author(me,work) {
-      const max_authors=me.author_truncate_to;
-      let records=work?.['api:object']?.['api:records']?.['api:record'] || [];
-      Array.isArray(records) || (records=[records]);
+    function update_author(me, work) {
+      const max_authors = me.author_truncate_to;
+      let records = work?.['api:object']?.['api:records']?.['api:record'] || [];
+      Array.isArray(records) || (records = [records]);
       records.forEach((record) => {
         // logger.info(`record: ${record.id}`);
-        let fields=record?.['api:native']?.['api:field'] || [];
-        Array.isArray(fields) || (fields=[fields]);
+        let fields = record?.['api:native']?.['api:field'] || [];
+        Array.isArray(fields) || (fields = [fields]);
         fields.forEach((field) => {
           if (field.name === 'authors') {
-            let authors=field?.['api:people']?.['api:person'] || [];
-            Array.isArray(authors) || (authors=[authors]);
-            for(let i=0;i<(authors.length<max_authors?authors.length:max_authors);i++) {
+            let authors = field?.['api:people']?.['api:person'] || [];
+            Array.isArray(authors) || (authors = [authors]);
+            for (let i = 0; i < (authors.length < max_authors ? authors.length : max_authors); i++) {
               if (me.author_trim_info) { author_trim_info(authors[i]); }
-              if (me.author_rank) { authors[i].rank=i+1; }
             }
             if (authors.length>1) {
-              if (me.author_rank) { authors[authors.length-1].rank=authors.length+1 };
-              //authors[authors.length-1].credit='last author';
               if (me.author_trim_info) { author_trim_info(authors[authors.length-1]); }
             }
-            authors.splice(max_authors,authors.length-max_authors-1);
+            authors.splice(max_authors, authors.length - max_authors - 1);
           }
         });
       });
       return work;
     }
 
+    let count = 0;
+
     while (nextPage) {
       let results = [];
       let entries = [];
 
+      performance.mark(`${user}_rel_${count}`);
+
       const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),count);
+      performance.mark(`${user}_rel_${count}_post`);
+      this.logger.info(
+        {
+          measure:[`${user}_rel_${count}`],
+          post:"relationship",
+          user:user,
+          page:count},`fetched`);
 
       // Bad writing here
       if (this.debug_save_xml) {
-        const dir = path.join(user,this.debugRelationshipDir);
-        const fn = path.join(dir,'page_'+ count.toString().padStart(3, '0') + '.json');
+        const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
+        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
         try {
-          fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
-          this.logger.info(`DEBUG: writing ${fn}`);
-          fs.writeFileSync(fn,JSON.stringify(page,null,2));
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+          this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
         } catch (error) {
           this.logger.error(`Error creating or writing ${fn}: ${error}`);
         }
       }
       // add the entries to the results array
-      if (page.feed.entry) {
+      if (page?.feed?.entry) {
         entries = entries.concat(page.feed.entry);
         for (let work of entries) {
           let related = [];
           if (work['api:relationship']?.['api:related']) {
-            if (this.author_truncate_to || this.author_rank || this.author_trim_info) {
+            if (this.author_truncate_to || this.author_trim_info) {
               related.push(update_author(this,work['api:relationship']['api:related']))
             } else {
               related.push(work['api:relationship']['api:related'])
             }
           }
-          related.push({direction: 'to', id: cdlId, category: 'user'})
+          related.push({ direction: 'to', id: cdlId, category: 'user' })
           work['api:relationship'] ||= {};
           work['api:relationship']['api:related'] = related;
           results.push(work['api:relationship']);
@@ -480,16 +560,16 @@ export class ExpertsClient {
         let contextObj = this.context();
         contextObj["@graph"] = results;
 
-        let jsonld = JSON.stringify(contextObj,null,2);
+        let jsonld = JSON.stringify(contextObj, null, 2);
 
         // Bad writing here
         if (this.debug_save_xml) {
-          const dir = path.join(user,this.debugRelationshipDir);
-          const fn = path.join(dir,'jsonld_'+ count.toString().padStart(3, '0') + '.json');
+          const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
+          const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
           try {
-            this.logger.info(`DEBUG: writing ${fn}`);
-            fs.mkdirSync(dir, { recursive: true }); // Create the directory and its parents if they don't exist
-            fs.writeFileSync(fn,jsonld);
+            fs.ensureFileSync(fn);
+            fs.writeFileSync(fn, jsonld);
+            this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
           } catch (error) {
             this.logger.error(`Error creating or writing ${fn}: ${error}`);
           }
@@ -499,10 +579,18 @@ export class ExpertsClient {
         await db.createGraphFromJsonLdFile(jsonld);
       }
       // Fetch the next page
+      this.logger.info(
+        {
+          measure:[`${user}_rel_${count}`,`${user}_rel_${count}_post`],
+          user:user,
+          post:"relationship",
+          page:count},`posted`);
+      performance.clearMarks(`${user}_rel_${count}_post`);
+      performance.clearMarks(`${user}_rel_${count}`);
       count++
       nextPage = this.nextPage(page?.feed?.['api:pagination']);
     }
-    return;
+    return count;
   }
 }
 
