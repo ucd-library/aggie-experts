@@ -1,11 +1,11 @@
 import GoogleSecrets from './google-secrets.js';
-const jsdom = require("jsdom");
-const { JSDOM } = jsdom;
-const fetchCookie = require('fetch-cookie');
-const nodeFetch = require('node-fetch');
+import FormData from 'form-data';
+import { JSDOM } from 'jsdom';
+import fetchCookie from 'fetch-cookie';
+import nodeFetch from 'node-fetch';
 
 export default class ElementsClient {
-    static const config = {
+  static const config = {
       cdl: {
         qa: {
           url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
@@ -67,7 +67,7 @@ export default class ElementsClient {
     }
 
     const service_account = await this.service_account();
-    if( !serviced_account.username || !service_account.password ) {
+    if( !service_account.username || !service_account.password ) {
       throw new Error('service_acount requires .username .password');
     }
 
@@ -91,7 +91,8 @@ export default class ElementsClient {
     resp = await this.fetch(returnUrl.toString());
 
     // grab the login form fields and form path
-    let { postPath, method, usernameField, passwordField } = getLoginFields(await resp.text());
+    let respText = await resp.text();
+    let { postPath, method, usernameField, passwordField } = getLoginFields(respText);
     let loginOrigin = new URL(resp.url).origin;
     let loginUrl = loginOrigin+postPath;
 
@@ -131,5 +132,140 @@ export default class ElementsClient {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
+
+    return resp;
   }
+
+  async impersonate(args, userId) {
+    let {fetch, host} = args;
+
+    let resp = await fetch(`${host}/impersonate.html?ii=false`);
+    let csrfToken;
+    try {
+      csrfToken = new JSDOM(await resp.text(), {runScripts: "dangerously"}).window.SYMPLECTIC.csrfToken;
+    } catch(e) {
+
+    }
+
+    let formData = new URLSearchParams();
+    formData.append('__csrf_token', csrfToken);
+    formData.append('user-id', userId);
+    formData.append('com', 'impersonate');
+
+    resp = await fetch(`${host}/impersonate.html`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+  }
+
+}
+
+export class Impersonator {
+  constructor(args={}) {
+    this.client = arg.client,
+    this.profileId = args.profileId,
+    this.fetch = fetchCookie(nodeFetch, new fetchCookie.toughCookie.CookieJar());
+  }
+
+  async profile() {
+    let resp = await this.fetch(this.client.cdl.url+'/profile/'+this.profileId);
+    return await resp.json();
+  }
+
+  async editProfile(data) {
+    let {fetch, host} = args;
+
+    let resp = await fetch(`${host}/userprofile.html?uid=${profileId}&em=true`);
+    let html = await resp.text();
+
+    let dom = new JSDOM(html, {runScripts: "dangerously"});
+    let csrfToken = dom.window.SYMPLECTIC.csrfToken;
+
+    let formData = new FormData();
+    formData.append('__csrf_token', csrfToken);
+    formData.append('com', 'updateFieldValues');
+    formData.append('userId', profileId);
+    formData.append('fieldValues', JSON.stringify(data));
+
+    let headers = formData.getHeaders();
+    headers['accept'] = 'application/json';
+
+    resp = await fetch(`${host}/userprofile.html`, {
+      method: 'POST',
+      body: formData,
+      headers
+    });
+
+    return resp.text();
+  }
+
+  async setLinkPrivacy(data) {
+    const level = {
+      public: 0,
+      internal: 50,
+      private: 100,
+    };
+    let {fetch, host} = args;
+
+    let resp = await fetch(`${host}/userprofile.html?uid=${profileId}&em=true`);
+    let html = await resp.text();
+
+    let dom = new JSDOM(html, {runScripts: "dangerously"});
+    let csrfToken = dom.window.SYMPLECTIC.csrfToken;
+
+    let formData = new FormData();
+    formData.append('__csrf_token', csrfToken);
+    formData.append('com', 'setLinkPrivacy');
+    formData.append('adminMode', 'false');
+    formData.append('categoryId', 1);
+    formData.append('objectId', data.objectId);
+    formData.append('linkPrivacyLevel', level[data.privacy]);
+
+    console.log(formData);
+    let headers = formData.getHeaders();
+    headers['accept'] = 'application/json';
+
+    resp = await fetch(`${host}/listobjects.html`, {
+      method: 'POST',
+      body: formData,
+      headers
+    });
+
+    return resp.text();
+  }
+
+  async function setFavourite(data) {
+
+    let {fetch, host} = args;
+
+    let resp = await fetch(`${host}/userprofile.html?uid=${profileId}&em=true`);
+    let html = await resp.text();
+
+    let dom = new JSDOM(html, {runScripts: "dangerously"});
+    let csrfToken = dom.window.SYMPLECTIC.csrfToken;
+
+    let formData = new FormData();
+    formData.append('__csrf_token', csrfToken);
+    formData.append('com', 'setFavourite');
+    formData.append('adminMode', 'false');
+    formData.append('categoryId', 1);
+    formData.append('objectId', data.objectId);
+    formData.append('favourite', (data.favourite ? 'true' : 'false'));
+
+    let headers = formData.getHeaders();
+    headers['accept'] = 'application/json';
+
+    resp = await fetch(`${host}/listobjects.html`, {
+      method: 'POST',
+      body: formData,
+      headers
+    });
+
+    return resp.text();
+  }
+
 }
