@@ -96,6 +96,7 @@ return html`
 
   <ucd-theme-header
     site-name="Aggie Experts"
+    figure-src="/images/aggie-experts-logo-primary.png"
     prevent-fixed>
 
     <ucd-theme-primary-nav>
