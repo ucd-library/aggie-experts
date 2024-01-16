@@ -1,4 +1,5 @@
 import { Command as OriginalCommand, Option } from 'commander';
+import { ElementsClient } from '@ucd-lib/experts-api';
 
 export class Command extends OriginalCommand {
   constructor(...args) {
@@ -12,21 +13,8 @@ export class Command extends OriginalCommand {
 
   opts() {
     const opts=super.opts();
-    const cdl={
-      qa:{
-        url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-        authname : 'qa-oapolicy',
-        secretpath : 'projects/326679616213/secrets/cdl_elements_json'
-      },
-      prod: {
-        url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-        authname : 'oapolicy',
-        secretpath : 'projects/326679616213/secrets/cdl_elements_json'
-      }
-    };
-
     if (opts.cdl) {
-      opts.cdl=cdl[opts.cdl]
+      opts.cdl=ElementsClient.info(opts.cdl);
     }
     return opts;
   }

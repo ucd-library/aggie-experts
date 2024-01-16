@@ -1,27 +1,32 @@
-import GoogleSecrets from './google-secrets.js';
+import GoogleSecrets from './googleSecret.js';
 import FormData from 'form-data';
 import { JSDOM } from 'jsdom';
 import fetchCookie from 'fetch-cookie';
 import nodeFetch from 'node-fetch';
+import AbortController from 'abort-controller';
 
 export default class ElementsClient {
-  static const config = {
+  static config = {
       cdl: {
         qa: {
-          url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+          "@id": "qa-oapolicy",
+          host: 'https://qa-oapolicy.universityofcalifornia.edu',
+          api : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
           authname : 'qa-oapolicy',
-          secretpath : 'projects/326679616213/secrets/cdl_elements_json'
+          secretpath : 'projects/325574696734/secrets/cdl-elements-json'
         },
         prod: {
-          url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+          "@id": "oapolicy",
+          host: 'https://oapolicy.universityofcalifornia.edu',
+          api: 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
           authname : 'oapolicy',
-          secretpath : 'projects/326679616213/secrets/cdl_elements_json'
+          secretpath : 'projects/325574696734/secrets/cdl-elements-json'
         }
       }
     };
 
   static info(instance) {
-    return config.cdl[instance];
+    return ElementsClient.config.cdl[instance];
   }
 
   // TODO: add elements info
@@ -33,10 +38,17 @@ export default class ElementsClient {
   }
 
   async secret() {
-    if ! (this.cdl.secret) {
+    if ( ! this.cdl.secret) {
       const gs = new GoogleSecrets();
-      let secretResp = await gs.getSecret(this.cdl.secretpath);
-      this.cdl.secret = JSON.parse(secretResp);
+      let secrets = JSON.parse(await gs.getSecret(this.cdl.secretpath));
+      secrets.forEach(s => {
+        if (s["@id"] === this.cdl["@id"]) {
+          this.cdl.secret = s;
+        }
+      });
+    }
+    if ( ! this.cdl.secret) {
+      throw new Error('Could not find secret for '+this.instance);
     }
     return this.cdl.secret;
   }
@@ -67,12 +79,12 @@ export default class ElementsClient {
     }
 
     const service_account = await this.service_account();
-    if( !service_account.username || !service_account.password ) {
-      throw new Error('service_acount requires .username .password');
+    if( !service_account.user || !service_account.pass ) {
+      throw new Error('service_acount requires .user .pass');
     }
 
     // setup login cookies and session
-    let resp = await this.fetch(this.cdl.url);
+    let resp = await this.fetch(this.cdl.host);
     // get return url
     let returnUrl = new URL(
       new URL(resp.url).searchParams.get('return')
@@ -87,8 +99,7 @@ export default class ElementsClient {
     // add entityId to return url
     returnUrl.searchParams.set('entityID', entityId);
 
-    // get login form
-    resp = await this.fetch(returnUrl.toString());
+    resp = await this.fetch(returnUrl);
 
     // grab the login form fields and form path
     let respText = await resp.text();
@@ -98,9 +109,14 @@ export default class ElementsClient {
 
     // set the login username/password
     let formData = new URLSearchParams();
-    formData.append(usernameField, username);
-    formData.append(passwordField, password);
+    formData.append(usernameField, service_account.user);
+    formData.append(passwordField, service_account.pass);
     formData.append('_eventId_proceed',	'');
+
+    console.log('loginUrl')
+    console.log(loginUrl)
+    console.log('formData')
+    console.log(formData)
 
     // submit login form, this will redirect with saml request fields
     resp = await this.fetch(loginUrl, {
@@ -125,14 +141,20 @@ export default class ElementsClient {
       samlUrl = samlOrigin + samlUrl;
     }
 
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     resp = await this.fetch(samlUrl, {
       method : samlMethod,
       body: formData.toString(),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
-      }
+      },
+      signal
     });
 
+    // abort if we get a redirect
+    controller.abort();
     return resp;
   }
 
@@ -238,7 +260,7 @@ export class Impersonator {
     return resp.text();
   }
 
-  async function setFavourite(data) {
+  async setFavourite(data) {
 
     let {fetch, host} = args;
 
