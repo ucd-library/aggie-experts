@@ -23,18 +23,40 @@ export default class ElementsClient {
           secretpath : 'projects/325574696734/secrets/cdl-elements-json'
         }
       }
-    };
+  };
+
+  static impersonators = [];
 
   static info(instance) {
     return ElementsClient.config.cdl[instance];
   }
 
-  // TODO: add elements info
-  constructor(args={}) {
+  static async impersonate(userId,args) {
+    if ( ElementsClient.impersonators[userId] ) {
+      if ( ElementsClient.impersonators[userId].expires > Date.now() )  {
+        return ElementsClient.impersonators[userId];
+      } else {
+        delete ElementsClient.impersonators[userId];
+      }
+    }
+    let user=new Impersonator(userId,args);
+    await user.login();
+    await user.impersonate();
+    ElementsClient.impersonators[userId]=user;
+    return user
+  }
+}
+
+export class Impersonator {
+
+  constructor(userId,args={}) {
     this.instance = args.instance || 'prod';
     this.cdl = ElementsClient.info(this.instance);
-    // New fetch instance with empty cookie jar
-    this.fetch = fetchCookie(nodeFetch, new fetchCookie.toughCookie.CookieJar());
+    this.cookie_jar=new fetchCookie.toughCookie.CookieJar();
+    this.fetch = fetchCookie(nodeFetch, this.cookie_jar);
+    this.userId=userId;
+    // create expiration date 1 hour from now
+    this.expires=Date.now() + 1000 * 60 * 60; // 1 hour
   }
 
   async secret() {
@@ -113,10 +135,7 @@ export default class ElementsClient {
     formData.append(passwordField, service_account.pass);
     formData.append('_eventId_proceed',	'');
 
-    console.log('loginUrl')
-    console.log(loginUrl)
-    console.log('formData')
-    console.log(formData)
+    //console.log('loginUrl\n', loginUrl, '\nformData\n', formData);
 
     // submit login form, this will redirect with saml request fields
     resp = await this.fetch(loginUrl, {
@@ -141,6 +160,7 @@ export default class ElementsClient {
       samlUrl = samlOrigin + samlUrl;
     }
 
+    // create a new AbortController for each request
     const controller = new AbortController();
     const signal = controller.signal;
 
@@ -153,70 +173,73 @@ export default class ElementsClient {
       signal
     });
 
+    console.log(`login ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
     // abort if we get a redirect
     controller.abort();
     return resp;
   }
 
-  async impersonate(args, userId) {
-    let {fetch, host} = args;
-
-    let resp = await fetch(`${host}/impersonate.html?ii=false`);
+  async impersonate() {
+    // Get the impersonation token's via cookie
+    let resp = await this.fetch(`${this.cdl.host}/impersonate.html?ii=false`);
     let csrfToken;
     try {
-      csrfToken = new JSDOM(await resp.text(), {runScripts: "dangerously"}).window.SYMPLECTIC.csrfToken;
+      let text=await resp.text();
+      // remove error causing script
+      text=text.replace('<script>jQuery.noConflict();</script>', '');
+      //console.log('text\n', text);
+      csrfToken = new JSDOM(text, {runScripts: "dangerously"}).window.SYMPLECTIC.csrfToken;
     } catch(e) {
-
     }
 
     let formData = new URLSearchParams();
     formData.append('__csrf_token', csrfToken);
-    formData.append('user-id', userId);
+    formData.append('user-id', this.userId);
     formData.append('com', 'impersonate');
 
-    resp = await fetch(`${host}/impersonate.html`, {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    resp = await this.fetch(`${this.cdl.host}/impersonate.html`, {
       method: 'POST',
       body: formData,
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
+         'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      signal
     });
-
-  }
-
-}
-
-export class Impersonator {
-  constructor(args={}) {
-    this.client = arg.client,
-    this.profileId = args.profileId,
-    this.fetch = fetchCookie(nodeFetch, new fetchCookie.toughCookie.CookieJar());
+    console.log(`impersonate ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
+    controller.abort();
+    return resp;
   }
 
   async profile() {
-    let resp = await this.fetch(this.client.cdl.url+'/profile/'+this.profileId);
-    return await resp.json();
+    if ( ! this.userId ) {
+      throw new Error('Not impersonating any userId');
+    }
+
+    let resp = await this.fetch(`${this.cdl.host}/userprofile.html?uid=${this.userId}&em=true`);
+    let html = await resp.text();
+    // remove error causing script
+    html=html.replace('<script>jQuery.noConflict();</script>', '');
+    let dom = new JSDOM(html, {runScripts: "dangerously"});
+    return dom.window.SYMPLECTIC
   }
 
   async editProfile(data) {
-    let {fetch, host} = args;
-
-    let resp = await fetch(`${host}/userprofile.html?uid=${profileId}&em=true`);
-    let html = await resp.text();
-
-    let dom = new JSDOM(html, {runScripts: "dangerously"});
-    let csrfToken = dom.window.SYMPLECTIC.csrfToken;
+    let symplectic = await this.profile();
+    let csrfToken = symplectic.csrfToken;
 
     let formData = new FormData();
     formData.append('__csrf_token', csrfToken);
     formData.append('com', 'updateFieldValues');
-    formData.append('userId', profileId);
+    formData.append('userId', userId);
     formData.append('fieldValues', JSON.stringify(data));
 
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    resp = await fetch(`${host}/userprofile.html`, {
+    resp = await this.fetch(`${this.cdl.host}/userprofile.html`, {
       method: 'POST',
       body: formData,
       headers
@@ -231,15 +254,11 @@ export class Impersonator {
       internal: 50,
       private: 100,
     };
-    let {fetch, host} = args;
 
-    let resp = await fetch(`${host}/userprofile.html?uid=${profileId}&em=true`);
-    let html = await resp.text();
+    const symplectic = await this.profile();
+    const csrfToken = symplectic.csrfToken;
 
-    let dom = new JSDOM(html, {runScripts: "dangerously"});
-    let csrfToken = dom.window.SYMPLECTIC.csrfToken;
-
-    let formData = new FormData();
+    const formData = new FormData();
     formData.append('__csrf_token', csrfToken);
     formData.append('com', 'setLinkPrivacy');
     formData.append('adminMode', 'false');
@@ -247,28 +266,23 @@ export class Impersonator {
     formData.append('objectId', data.objectId);
     formData.append('linkPrivacyLevel', level[data.privacy]);
 
-    console.log(formData);
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    resp = await fetch(`${host}/listobjects.html`, {
+    let resp = await this.fetch(`${this.cdl.host}/listobjects.html`, {
       method: 'POST',
       body: formData,
       headers
     });
 
-    return resp.text();
+    let json = await resp.json();
+    return json;
   }
 
   async setFavourite(data) {
 
-    let {fetch, host} = args;
-
-    let resp = await fetch(`${host}/userprofile.html?uid=${profileId}&em=true`);
-    let html = await resp.text();
-
-    let dom = new JSDOM(html, {runScripts: "dangerously"});
-    let csrfToken = dom.window.SYMPLECTIC.csrfToken;
+    const symplectic = await this.profile();
+    const csrfToken = symplectic.csrfToken;
 
     let formData = new FormData();
     formData.append('__csrf_token', csrfToken);
@@ -281,13 +295,12 @@ export class Impersonator {
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    resp = await fetch(`${host}/listobjects.html`, {
+    let resp = await this.fetch(`${this.cdl.host}/listobjects.html`, {
       method: 'POST',
       body: formData,
       headers
     });
-
-    return resp.text();
+    let json = await resp.json();
+    return json;
   }
-
 }
