@@ -9,6 +9,7 @@ async function siteFarmFormat(doc) {
   let newDoc = {};
   logger.info({ function: 'siteFarmFormat' });
   newDoc["@id"] = doc["@id"];
+  newDoc["publications"] = [];
 
   for (let i = 0; i < doc["@graph"].length; i++) {
     if (doc["@graph"][i]["@type"].includes("Expert")) {
@@ -21,6 +22,9 @@ async function siteFarmFormat(doc) {
       newDoc["overview"] = doc["@graph"][i].overview;
       newDoc["researcherId"] = doc["@graph"][i].researcherId;
       newDoc["scopusId"] = doc["@graph"][i].scopusId;
+    }
+    if (doc["@graph"][i]["@type"].includes("Work")) {
+      newDoc["publications"].push(doc["@graph"][i]);
     }
   }
 
