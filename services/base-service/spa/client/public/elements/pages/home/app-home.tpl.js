@@ -13,7 +13,7 @@ return html`
     .hero-main {
       background: url('/images/ae-watercolor-feature.jpg');
       width: 100%;
-      min-height: 500px;
+      /* min-height: 500px; */
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -34,6 +34,7 @@ return html`
     .content {
       width: 80%;
       margin: 0 auto;
+      padding-bottom: 8rem;
     }
 
     .content h1 {
@@ -47,9 +48,10 @@ return html`
     .content.flex {
       display: flex;
       align-items: center;
-      margin-top: 4rem;
-      margin-bottom: 4rem;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
       width: 90%;
+      padding-bottom: 2rem;
     }
 
     app-search-box {

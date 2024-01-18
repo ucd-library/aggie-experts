@@ -110,6 +110,13 @@ export default class AppExpertWorksList extends Mixin(LitElement)
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
     console.log('in _loadCitations');
+
+    citations = citations.map(c => {
+      let citation = { ...c };
+      citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
+      return citation;
+    });
+
     try {
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
