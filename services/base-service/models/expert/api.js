@@ -53,9 +53,39 @@ async function sanitize(req, res) {
   }
 }
 
+router.route(
+  /ark\:\/87287\/d7mh2m\/relationship\/.*/
+).get(
+  async (req, res, next) => {
+    //    res.status(200).json(JSON.stringify(req));
+    try {
+      const authorship_model= await model.get_model('authorship');
+      let id = '/'+model.id+decodeURIComponent(req.path);
+      let opts = {
+        admin : req.query.admin ? true : false,
+      }
+      res.thisDoc = await authorship_model.get(id, opts);
+      next();
+    } catch(e) {
+      res.status(404).json(`${id} from ${req.path} HELP ${e.message}`);
+    }
+  },
+  sanitize)
+.put(
+  json_only,
+  async (req, res, next) => {
+    logger.info(`PUT ${req.url}`);
+    let data = req.body;
+    logger.info({function:'PUT'}, JSON.stringify(data));
+    const authorshipModel= await model.get_model('authorship');
+    console.log("authorshipModel", authorshipModel);
+    res.status(200).json({status: "ok"});
+  }
+)
+
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.get(
-  '/*',
+  '/expert/*',
   async (req, res, next) => {
     logger.info(`GET ${req.url}`);
     let id = '/'+model.id+decodeURIComponent(req.path);
@@ -69,36 +99,12 @@ router.get(
       res.status(404).json(`${req.path} resource not found`);
     }
   },
-  sanitize
+  (req, res, next) => {
+   res.status(200).json(res.thisDoc);
+  }
 );
 
-router.route(
-  /ark\:\/87287\/d7mh2m\/relationship\/.*/
-).get(
-  async (req, res, next) => {
-    logger.info(`GET ${req.url}`);
-    let id = '/'+model.id+decodeURIComponent(req.path);
-    try {
-      let opts = {
-        admin : req.query.admin ? true : false,
-      }
-      res.thisDoc = await model.get(id, opts);
-      next();
-    } catch(e) {
-      res.status(404).json(`${req.path} resource not found`);
-    }
-  })
-.put(
-  json_only,
-  async (req, res, next) => {
-    logger.info(`PUT ${req.url}`);
-    let data = req.body;
-    logger.info({function:'PUT'}, JSON.stringify(data));
-    const authorshipModel= await model.get_model('authorship');
-    console.log("authorshipModel", authorshipModel);
-    res.status(200).json({status: "ok"});
-  }
-)
+
 const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, {router});
 
