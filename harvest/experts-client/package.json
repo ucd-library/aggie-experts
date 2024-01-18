@@ -23,9 +23,9 @@
   "author": "rakunkel",
   "license": "MIT",
   "dependencies": {
-    "componentsjs": "5.4.2",
     "@comunica/bindings-factory": "^2.10.0",
     "@comunica/query-sparql": "^2.10.0",
+    "@google-cloud/storage": "^7.7.0",
     "bunyan": "^1.8.15",
     "classic-level": "^1.2.0",
     "commander": "^10.0.0",
