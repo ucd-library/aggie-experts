@@ -449,7 +449,7 @@ return html`
       margin-bottom: 0;
       padding: 0.625em 1em;
       border: 1px solid #b0d0ed;
-      background-color: transparent;
+      background-color: white;
       color: #022851;
       cursor: pointer;
       font-family: inherit;

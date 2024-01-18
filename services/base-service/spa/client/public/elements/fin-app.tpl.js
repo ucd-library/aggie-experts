@@ -45,7 +45,7 @@ return html`
       --btn-arrow-color: #ffbf00;
       transition: 0.2s padding ease-out;
       border-color: #ffbf00;
-      background-color: transparent;
+      background-color: white;
     }
 
     .impersonate-btn:hover ucdlib-icon {
@@ -70,21 +70,19 @@ return html`
       right: 1rem;
     }
 
-    @media (max-width: 991px) {
-      .impersonate-container {
-        background-color: white;
-        width: 100%;
-        right: 0;
-        top: 6rem;
-        padding: 0.5rem 0;
-        display: flex;
-        justify-content: end;
-        padding-right: 0.5rem;
-      }
+    .impersonate-container.collapse {
+      background-color: white;
+      width: 100%;
+      right: 0;
+      top: 10.75rem;
+      padding: 0.5rem 0;
+      display: flex;
+      justify-content: end;
+      padding-right: 0.5rem;
+    }
 
-      .main-content.impersonating {
-        padding-top: 3rem;
-      }
+    .main-content.impersonating.collapse {
+      padding-top: 3rem;
     }
 
   </style>
@@ -135,7 +133,7 @@ return html`
     </button>
   </div>
 
-  <div class="main-content ${this.hideImpersonate ? '' : 'impersonating'}">
+  <div class="main-content">
     <ucdlib-pages
       selected="${this.page}"
       selectedAttribute="visible">
