@@ -6,4 +6,4 @@ export const frames = {
   default: defaultFrame
 };
 
-export { GoogleSecret ElementsClient };
+export { GoogleSecret, ElementsClient };
