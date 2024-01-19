@@ -4,10 +4,17 @@
   "envs": {
     "dev":{
       "mount":"spa",
+      "auth": {
+        "server":"sandbox",
+        "client_id":"local-dev",
+        "service_account":"local-dev-service-account"
+      },
       "org":"localhost/aggie-experts",
       "tag":"dirty",
       "branch":"!^(dev|main)",
-      "host":"!(experts.library.ucdavis.edu)",
+      "server":"!(experts.library.ucdavis.edu)",
+      "port":"80",
+      "host":"http://localhost",
       "gcs":"fcrepo-dev",
       "gcs-subscription":"local-dev"
     },
@@ -15,21 +22,70 @@
       "org":"localhost/aggie-experts",
       "tag":"$(${G[git]} describe --always --dirty)",
       "branch":"!^(dev|main)",
-      "host":"!(experts.library.ucdavis.edu)",
+      "auth": {
+        "server":"sandbox",
+        "client_id":"local-dev",
+        "service_account":"local-dev-service-account"
+      },
+      "server":"!(experts.library.ucdavis.edu)",
+      "port":"80",
+      "host":"http://localhost",
       "gcs":"fcrepo-dev"
     },
     "sandbox":{
       "org":"localhost/aggie-experts",
       "tag":"$(${G[git]} describe --always --dirty)",
       "branch":".*",
-      "host":"experts.library.ucdavis.edu",
+      "auth": {
+        "server":"sandbox",
+        "client_id":"sandbox",
+        "service_account":"local-dev-service-account"
+      },
+      "server":"experts.library.ucdavis.edu",
+      "port":"10180",
+      "host":"https://sandbox.experts.library.ucdavis.edu",
       "gcs":"fcrepo-sandbox"
+    },
+    "stage":{
+      "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
+      "tag":"$(${G[git]} describe --always --dirty)",
+      "server":"^(blue|gold).experts.library.ucdavis.edu",
+      "auth": {
+        "server":"sandbox",
+        "client_id":"aggie-experts",
+        "service_account":"aggie-experts-service-account"
+      },
+      "gcs":"fcrepo-prod",
+      "port":"10380",
+      "host":"https://stage.experts.library.ucdavis.edu",
+      "branch":"(dev|main)"
     },
     "test":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
       "tag":"$(${G[git]} describe --always --dirty)",
-      "host":"^(blue|gold).experts.library.ucdavis.edu",
+      "server":"^(blue|gold).experts.library.ucdavis.edu",
+      "auth": {
+        "server":"sandbox",
+        "client_id":"aggie-experts",
+        "service_account":"aggie-experts-service-account"
+      },
       "gcs":"fcrepo-prod",
+      "port":"10280",
+      "host":"https://test.experts.library.ucdavis.edu",
+      "branch":"(dev|main)"
+    },
+    "prev-test":{
+      "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
+      "tag":"$(${G[git]} describe --always --dirty)",
+      "server":"^(blue|gold).experts.library.ucdavis.edu",
+      "auth": {
+        "server":"sandbox",
+        "client_id":"aggie-experts",
+        "service_account":"aggie-experts-service-account"
+      },
+      "gcs":"fcrepo-prod",
+      "port":"10480",
+      "host":"https://prev_test.experts.library.ucdavis.edu",
       "branch":"(dev|main)"
     },
     "build":{
@@ -39,9 +95,15 @@
     "prod":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
       "tag":"$(${G[git]} describe --always --dirty)",
-      "host":"experts.library.ucdavis.edu",
-      "branch":"main",
-      "gcs":"fcrepo-prod"
+      "server":"^(blue|gold).experts.library.ucdavis.edu",
+      "auth": {
+        "server":"prod",
+        "client_id":"aggie-experts",
+        "service_account":"aggie-experts-service-account"
+      },
+      "gcs":"fcrepo-prod",
+      "host":"https://experts.ucdavis.edu",
+      "branch":"main"
     }
   },
   "template": {
@@ -51,12 +113,6 @@
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
     "tag":"2.3.1"
-  },
-  "debug":{
-    "config":"${G[config]}"
-  },
-  "deploy": {
-    "keycloak":"auth"
   },
   "git":{
     "root":"$(${G[git]} rev-parse --show-toplevel)",
