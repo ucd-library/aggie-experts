@@ -45,7 +45,7 @@ return html`
       --btn-arrow-color: #ffbf00;
       transition: 0.2s padding ease-out;
       border-color: #ffbf00;
-      background-color: transparent;
+      background-color: white;
     }
 
     .impersonate-btn:hover ucdlib-icon {
@@ -70,21 +70,19 @@ return html`
       right: 1rem;
     }
 
-    @media (max-width: 991px) {
-      .impersonate-container {
-        background-color: white;
-        width: 100%;
-        right: 0;
-        top: 6rem;
-        padding: 0.5rem 0;
-        display: flex;
-        justify-content: end;
-        padding-right: 0.5rem;
-      }
+    .impersonate-container.collapse {
+      background-color: white;
+      width: 100%;
+      right: 0;
+      top: 10.75rem;
+      padding: 0.5rem 0;
+      display: flex;
+      justify-content: end;
+      padding-right: 0.5rem;
+    }
 
-      .main-content.impersonating {
-        padding-top: 3rem;
-      }
+    .main-content.impersonating.collapse {
+      padding-top: 3rem;
     }
 
   </style>
@@ -96,6 +94,7 @@ return html`
 
   <ucd-theme-header
     site-name="Aggie Experts"
+    figure-src="/images/aggie-experts-logo-primary.png"
     prevent-fixed>
 
     <ucd-theme-primary-nav>
@@ -134,7 +133,7 @@ return html`
     </button>
   </div>
 
-  <div class="main-content ${this.hideImpersonate ? '' : 'impersonating'}">
+  <div class="main-content">
     <ucdlib-pages
       selected="${this.page}"
       selectedAttribute="visible">
@@ -180,15 +179,18 @@ return html`
         </ucdlib-site-footer-column>
         <ucdlib-site-footer-column header="Terms of Use">
           <ul>
+            <li>Our sources use algorithms for matching publications to people. Errors may exist.</li>
             <li>
               <a
                 href="/termsofuse"
                 rel="noopener"
                 >Terms of Use</a>
             </li>
-            <li>
-              <span>© The Regents of the University of California, Davis</span>
-            </li>
+          </ul>
+        </ucdlib-site-footer-column>
+        <ucdlib-site-footer-column header="Copyright">
+          <ul>
+            <li>©2023 The Regents of the University of California, Davis</li>
           </ul>
         </ucdlib-site-footer-column>
       </ucdlib-site-footer>

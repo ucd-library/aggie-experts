@@ -75,6 +75,7 @@ return html`
     }
 
     .hero-main h1 .tooltip:hover ucdlib-icon,
+    .introduction h4 ucdlib-icon:hover,
     .roles-websites .roles h4 ucdlib-icon:hover,
     .roles-websites .websites h4 ucdlib-icon:hover,
     .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover,
@@ -82,7 +83,9 @@ return html`
       fill: var(--color-aggie-gold);
     }
 
+
     .hero-main h1 ucdlib-icon,
+    .introduction h4 ucdlib-icon,
     .roles-websites h4 ucdlib-icon {
       display: inline-block;
       width: 15px;
@@ -166,15 +169,18 @@ return html`
       padding-left: 0.625rem;
     }
 
-    .introduction,
-    .research-interests {
-      padding-bottom: 2.375rem;
+    .introduction {
+      padding-bottom: 1rem;
     }
 
-    .introduction h4,
-    .research-interests h4 {
+    .introduction h4 {
       margin-bottom: 0;
       margin-top: 0;
+    }
+
+    .research-interests h5 {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
     }
 
     .introduction .more-about-me,
@@ -183,6 +189,10 @@ return html`
       display: flex;
       align-items: center;
       cursor: pointer;
+    }
+
+    .introduction .more-about-me {
+      padding-bottom: 1rem;
     }
 
     .see-all-grants,
@@ -205,6 +215,7 @@ return html`
     .roles-websites {
       display: flex;
       /* padding-top: 2.375rem; */
+      /* padding-top: 1rem; */
     }
 
     .roles-websites .roles {
@@ -216,6 +227,7 @@ return html`
     .roles-websites .websites h4  {
       padding-top: 0;
       margin-top: 0;
+      margin-bottom: .5rem;
     }
 
     .roles-websites ucdlib-icon {
@@ -379,6 +391,17 @@ return html`
       right: 5px;
     }
 
+    .tooltip.edit-about-me:before {
+      width: 130px;
+      bottom: 35px;
+      right: -65px;
+    }
+
+    .tooltip.edit-about-me:after {
+      bottom: 25px;
+      right: 5px;
+    }
+
     .tooltip.edit-grants:before,
     .tooltip.edit-works:before {
       width: 80px;
@@ -426,7 +449,7 @@ return html`
       margin-bottom: 0;
       padding: 0.625em 1em;
       border: 1px solid #b0d0ed;
-      background-color: transparent;
+      background-color: white;
       color: #022851;
       cursor: pointer;
       font-family: inherit;
@@ -474,6 +497,15 @@ return html`
       border-color: var(--color-aggie-blue-50);
       padding: .5rem 1.5rem .5rem .5rem;
       font-size: 1rem;
+    }
+
+    .hidden-grants-label,
+    .hidden-works-label {
+      color: var(--other-h3-gray, #666);
+      font-size: 1.03875rem;
+      font-style: italic;
+      font-weight: 400;
+      line-height: 2rem;
     }
 
     @media (max-width: 992px) {
@@ -534,29 +566,36 @@ return html`
       </div>
       <hr class="about-me seperator">
 
-      <div class="introduction" ?hidden="${!this.introduction}">
-        <h4>Introduction</h4>
-        <ucdlib-md>
+      <div class="introduction" ?hidden="${!this.introduction && !this.researchInterests}">
+        <h4>Introduction
+          <span ?hidden="${!this.canEdit}" style="position: relative;">
+            <span class="tooltip edit-about-me" data-text="Edit Introduction">
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                @click=${this._editAboutMe}>
+              </ucdlib-icon>
+            </span>
+          </span>
+        </h4>
+        <ucdlib-md ?hidden="${!this.introduction}">
           <ucdlib-md-content>
-            ${this.showMoreAboutMeLink ? this.introduction.substr(0, 500) + '...' : this.introduction}
+            ${this.truncateIntroduction ? this.introduction.substr(0, 500) + '...' : this.introduction}
           </ucdlib-md-content>
         </ucdlib-md>
 
-        <div class="more-about-me" ?hidden="${!this.showMoreAboutMeLink}" @click="${(e) => this.showMoreAboutMeLink = false}">
+        <div class="research-interests" ?hidden="${!this.researchInterests || (this.truncateResearchInterests && this.researchInterests.substr(0, 500 - this.introduction.length) <= 75)}">
+          <h5>Research Interests</h5>
+          <ucdlib-md>
+            <ucdlib-md-content>
+              ${this.truncateResearchInterests ? this.researchInterests.substr(0, 500 - this.introduction.length) + '...' : this.researchInterests}
+            </ucdlib-md-content>
+          </ucdlib-md>
+        </div>
+
+        <div class="more-about-me" ?hidden="${!this.showMoreAboutMeLink}" @click="${this._showMoreAboutMeClick}">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
           <span>MORE ABOUT ME</span>
         </div>
       </div>
-
-      <div class="research-interests" ?hidden="${!this.researchInterests}">
-        <h4>Research Interests</h4>
-        <ucdlib-md>
-          <ucdlib-md-content>
-            ${this.researchInterests}
-          </ucdlib-md-content>
-        </ucdlib-md>
-      </div>
-
 
       <div class="roles-websites">
         <div class="roles" ?hidden="${!this.roles.length}">
@@ -650,6 +689,10 @@ return html`
             </span>
           </div>
         </div>
+        <span class="hidden-grants-label" ?hidden="${this.totalGrants === this.grants.length || !this.canEdit}">
+          ${this.totalGrants - this.grants.length} additional grant${this.totalGrants - this.grants.length === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+        </span>
+
         <hr class="seperator">
         ${this.grantsActiveDisplayed.map(
           (grant, index) => html`
@@ -714,6 +757,10 @@ return html`
             </span>
           </div>
         </div>
+        <span class="hidden-works-label" ?hidden="${this.totalCitations === this.citations.length || !this.canEdit}">
+          ${this.totalCitations - this.citations.length} additional work${this.totalCitations - this.citations.length === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+        </span>
+
         <hr class="seperator">
         ${this.citationsDisplayed.map(
           (cite) => html`

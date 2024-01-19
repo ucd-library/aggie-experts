@@ -23,6 +23,8 @@ export default class AppExpert extends Mixin(LitElement)
       introduction : { type : String },
       researchInterests : { type : String },
       showMoreAboutMeLink : { type : Boolean },
+      truncateIntroduction : { type : Boolean },
+      truncateResearchInterests : { type : Boolean },
       roles : { type : Array },
       orcId : { type : String },
       scopusIds : { type : Array },
@@ -33,6 +35,8 @@ export default class AppExpert extends Mixin(LitElement)
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
+      totalGrants : { type : Number },
+      totalCitations : { type : Number },
       canEdit : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
@@ -79,7 +83,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( this.expertImpersonating === this.expertId ) this.canEdit = true;
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
+      let expert = await this.ExpertModel.get(expertId, true);
       this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
@@ -111,10 +115,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
     // max 500 characters, unless 'show me more' is clicked
-    this.introduction = graphRoot.overview;
-    this.showMoreAboutMeLink = this?.introduction?.length > 500;
+    this.introduction = graphRoot.overview || '';
+    this.researchInterests = graphRoot.researchInterests || '';
 
-    this.researchInterests = graphRoot.researchInterests;
+    this.showMoreAboutMeLink = this.introduction.length + this.researchInterests.length > 500;
+    this.truncateIntroduction = this.introduction.length > 500;
+    this.truncateResearchInterests = this.introduction.length + this.researchInterests.length > 500;
 
     this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true).map(c => {
       return {
@@ -138,10 +144,7 @@ export default class AppExpert extends Mixin(LitElement)
     await this._loadCitations();
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.grants = utils.parseGrants(grants);
-
-    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
-    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
+    this.totalGrants = grants.length;
 
     // throw errors if any citations/grants have is-visible:false
     let invalidCitations = this.citations.filter(c => !c['is-visible']);
@@ -149,6 +152,12 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
     if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);
+
+    grants = grants.filter(g => g.relatedBy?.['is-visible']);
+    this.grants = utils.parseGrants(grants);
+
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
   }
 
   /**
@@ -163,6 +172,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertName = '';
     this.introduction = '';
     this.showMoreAboutMeLink = false;
+    this.truncateIntroduction = false;
+    this.truncateResearchInterests = false;
     this.roles = [];
     this.orcId = '';
     this.scopusIds = [];
@@ -173,6 +184,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
+    this.totalGrants = 0;
+    this.totalCitations = 0;
     this.canEdit = (acExpertId === this.expertId || impersonatingExpertId === this.expertId);
     this.modalTitle = '';
     this.modalContent = '';
@@ -203,6 +216,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId);
   }
 
+  _showMoreAboutMeClick(e) {
+    this.showMoreAboutMeLink = false;
+    this.truncateIntroduction = false;
+    this.truncateResearchInterests = false;
+  }
+
   /**
    * @method _loadCitations
    * @description load citations for expert async
@@ -211,6 +230,14 @@ export default class AppExpert extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
+    this.totalCitations = citations.length;
+    citations = citations.filter(c => c.relatedBy?.['is-visible']);
+
+    citations = citations.map(c => {
+      let citation = { ...c };
+      citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
+      return citation;
+    });
 
     try {
       // sort by issued date desc, then by title asc
@@ -290,14 +317,15 @@ export default class AppExpert extends Mixin(LitElement)
         '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
         '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
-        '"' + (grant.role || '') + '"',                               // Type of Grant
+        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + (grant.role || '') + '"',                               // Role of Grant
         '?', // List of contributors (role) {separate contributors by ";"}
       ]);
     });
 
     if( !body.length ) return;
 
-    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'List of Contributors'];
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of Contributors'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
@@ -342,6 +370,19 @@ export default class AppExpert extends Mixin(LitElement)
   _editWebsites(e) {
     this.modalTitle = 'Edit Links';
     this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
+  }
+
+  /**
+   * @method _editAboutMe
+   * @description show modal with link to edit intro/research interests
+   */
+  _editAboutMe(e) {
+    this.modalTitle = 'Edit Introduction';
+    this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
