@@ -154,20 +154,16 @@ ${csv}:fis/%.csv:${mkfile_path}/grants/sql/%.sql
 	[[ -d $(dir $@) ]] || mkdir -p $(dir $@)
 	${sqlcl} < $< > $@
 
-fis/aggie_enterprise_imports.ttl:${mkfile_path}/grants/csv/aggie_enterprise_imports.csv
-	[[ -d $(dir $@) ]] || mkdir -p $(dir $@)
-	tarql ${mkfile_path}/grants/rq/aggie_enterprise_imports.rq $< > $@
-
 grants.ttl:${grants.ttl}
 
 ${grants.ttl}:fis/%.ttl:fis/%.csv ${mkfile_path}/grants/rq/%.rq
 	tarql ${mkfile_path}/grants/rq/$*.rq $< > $@
 
 ${grants.tdb2}:graph:=ark:/87287/d7gt0q/
-${grants.tdb2}:${grants.ttl} ${const_jsonld} fis/aggie_enterprise_imports.ttl
+${grants.tdb2}:${grants.ttl} ${const_jsonld}
 	mkdir -p ${grants.tdb2};
 	tdb2.tdbloader --loc=${grants.tdb2} ${const_jsonld}
-	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl} fis/aggie_enterprise_imports.ttl
+	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl}
 	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/archive.ru
 	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/amount0.ru
 	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/too_late.ru

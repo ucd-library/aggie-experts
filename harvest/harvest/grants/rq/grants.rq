@@ -1,7 +1,6 @@
 # See https://wiki.lyrasis.org/download/attachments/112526814/Grant%20Model.png?version=1&modificationDate=1553028250086&api=v2
 PREFIX : <ark:/87287/d7gt0q/schema#>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX grant: <ark:/87287/d7gt0q/grant/>
 PREFIX kfs: <ark:/87287/d7gt0q/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
@@ -23,6 +22,8 @@ CONSTRUCT {
  	   ucdlib:grantIndirectCosts ?indirect_costs_i;
      ucdlib:flowThruFunding ?fpt_funding_org;
      ucdlib:piName ?person_nm;
+     ucdlib:kfs_proposal_number ?cgprpsl_nbr;
+     ucdlib:oracle_award_number ?oracle_award_number;
      .
 
   ?grant_duration a vivo:DateTimeInterval;

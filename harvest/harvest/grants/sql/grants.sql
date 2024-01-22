@@ -28,7 +28,7 @@ SELECT
   , aorg.FIN_COA_CD as "fin_coa_cd"
   , per.prmry_dept_cd as "pi_dept_cd"
   , adm.prmry_dept_cd as "admin_dept_cd"
-  , 'K'|| EXT.UC_LOC_CD || EXT.UC_FUND_NBR as oracle_AWARD_NUMBER
+  , 'K'|| EXT.UC_LOC_CD || EXT.UC_FUND_NBR as "oracle_award_number"
   FROM FINANCE.CG_AWD_T awd
        JOIN UC_CG_AWD_EXT_T EXT
            ON AWD.CGPRPSL_NBR = EXT.CGPRPSL_NBR
