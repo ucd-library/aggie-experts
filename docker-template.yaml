@@ -183,6 +183,24 @@ services:
       - xpack.security.enabled=false
       - telemetry.enabled=false
 
+  uber:
+    image: &BASE ${ORG}/base-service:${TAG}
+    environment:
+      - FIN_SERVICE_NAME=uber
+      # - OTEL_LOG_LEVEL=DEBUG
+      - FIN_METRICS_FS_ENABLED=true
+      - FIN_METRICS_FIN_ENABLED=true
+      - FIN_METRICS_FCREPO_ENABLED=true
+    volumes:
+      - ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-../service-account.json}:/etc/fin/service-account.json
+      - ./services/base-service/spa:/fin/services/spa
+    env_file:
+      - .env
+    depends_on:
+      - elasticsearch
+    command: npm run uber
+  # command: bash -c 'tail -f /dev/null'
+
   # ###
   # # Fin Workflows
   # ###
