@@ -151,7 +151,7 @@ services:
 
   uber:
     image: *BASE
-     environment:
+    environment:
       - FIN_SERVICE_NAME=uber
       # - OTEL_LOG_LEVEL=DEBUG
       - FIN_METRICS_FS_ENABLED=${FIN_METRICS_FS_ENABLED:-true}
@@ -160,9 +160,9 @@ services:
       - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
     volumes:
       - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_SPA
       - *DEV_MOUNT_MODELS
       - *DEV_MOUNT_MODELS_API
-      - *DEV_MOUNT_SPA
     env_file:
       - .env
     depends_on:
