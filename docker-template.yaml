@@ -150,21 +150,16 @@ services:
       - telemetry.enabled=false
 
   uber:
-    image: *BASE
+    image: &BASE ${ORG}/base-service:${TAG}
     environment:
       - FIN_SERVICE_NAME=uber
       # - OTEL_LOG_LEVEL=DEBUG
-      - FIN_METRICS_ENABLED=${FIN_METRICS_ENABLED:-true}
-      - FIN_METRICS_FS_ENABLED=${FIN_METRICS_FS_ENABLED:-true}
-      - FIN_METRICS_FIN_ENABLED=${FIN_METRICS_FIN_ENABLED:-true}
-      - FIN_METRICS_FCREPO_ENABLED=${FIN_METRICS_FCREPO_ENABLED:-true}
-      - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
+      - FIN_METRICS_FS_ENABLED=true
+      - FIN_METRICS_FIN_ENABLED=true
+      - FIN_METRICS_FCREPO_ENABLED=true
     volumes:
-      - uber-data:/fs-tests
-      - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_SPA
-      - *DEV_MOUNT_MODELS
-      - *DEV_MOUNT_MODELS_API
+      - ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-../service-account.json}:/etc/fin/service-account.json
+      - ./services/base-service/spa:/fin/services/spa
     env_file:
       - .env
     depends_on:
