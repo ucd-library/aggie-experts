@@ -321,7 +321,11 @@ function test_env() {
       good_status
       # Use git status to check for unstaged changes
       ;;
+<<<<<<< HEAD
     test | prev-test | stage | prod )
+=======
+    test | prod )
+>>>>>>> 122629b (added more environments (#314))
       server prod
       annotated_tag
       not_dirty
