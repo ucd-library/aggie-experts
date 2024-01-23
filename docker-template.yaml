@@ -88,27 +88,6 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
 
-  api:
-    image: *BASE
-    env_file:
-      - .env
-    volumes:
-      - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_MODELS
-      - *DEV_MOUNT_MODELS_API
-    restart: unless-stopped
-    command: npm run api
-  # command: bash -c 'tail -f /dev/null'
-  finac:
-    image: *BASE
-    env_file:
-      - .env
-    volumes:
-      - *SERVICE_ACCOUNT
-    restart: unless-stopped
-    command: node fin-ac/index.js
-    # command: bash -c 'tail -f /dev/null'
-
   spa:
     image: *BASE
     volumes:
@@ -131,19 +110,6 @@ services:
     restart: unless-stopped
     command: npm run dbsync
     # command: bash -c 'tail -f /dev/null'
-
-  ###
-  # ES Index Management Service
-  ###
-  es-index-management:
-    image: *BASE
-    volumes:
-      - *SERVICE_ACCOUNT
-    env_file:
-      - .env
-    restart: unless-stopped
-    command: npm run es-index-management
-
 
   # ###
   # # GCS - Sccess & Sync
@@ -184,17 +150,19 @@ services:
       - telemetry.enabled=false
 
   uber:
-    image: &BASE ${ORG}/base-service:${TAG}
-    environment:
+    image: *BASE
+     environment:
       - FIN_SERVICE_NAME=uber
       # - OTEL_LOG_LEVEL=DEBUG
-      - FIN_METRICS_FS_ENABLED=true
-      - FIN_METRICS_FIN_ENABLED=true
-      - FIN_METRICS_FCREPO_ENABLED=true
-      - FIN_METRICS_EXPORT_GC=false
+      - FIN_METRICS_FS_ENABLED=${FIN_METRICS_FS_ENABLED:-true}
+      - FIN_METRICS_FIN_ENABLED=${FIN_METRICS_FIN_ENABLED:-true}
+      - FIN_METRICS_FCREPO_ENABLED=${FIN_METRICS_FCREPO_ENABLED:-true}
+      - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
     volumes:
-      - ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-../service-account.json}:/etc/fin/service-account.json
-      - ./services/base-service/spa:/fin/services/spa
+      - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_MODELS
+      - *DEV_MOUNT_MODELS_API
+      - *DEV_MOUNT_SPA
     env_file:
       - .env
     depends_on:
@@ -210,19 +178,6 @@ services:
   #   volumes:
       # - *SERVICE_ACCOUNT
   #   # command: bash -c 'tail -f /dev/null'
-
-  ###
-  # OIDC AuthenticationService
-  ###
-  oidc:
-    image: *BASE
-    env_file:
-      - .env
-    volumes:
-      - *SERVICE_ACCOUNT
-    restart: unless-stopped
-    # command: bash -c 'tail -f /dev/null'
-    command: npm run oidc
 
   # keycloak container only enabled with deploy --dev
   keycloak:
