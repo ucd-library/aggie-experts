@@ -50,7 +50,7 @@
   },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.3.1"
+    "tag":"2.5.1"
   },
   "debug":{
     "config":"${G[config]}"
