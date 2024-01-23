@@ -178,22 +178,22 @@ Guess the environment based on the hostname and git tag
 
 =cut
 function guess-env() {
-  local this_host=$(hostname --fqdn)
+  local this_server=$(hostname --fqdn)
   local envs=()
   local tag=$(${G[git]} describe --always --dirty)
 
   for e in $(G '.envs|keys[]' ); do
-    local env_host=$(G ".envs.${e}.host")
-    if [[ "$env_host" = "null" ]]; then
+    local env_server=$(G ".envs.${e}.server")
+    if [[ "$env_server" = "null" ]]; then
       continue
     fi
-     if [[ "$env_host" =~ ^! ]]; then
-      env_host=${env_host#!}
-      if ! [[ "$this_host" =~ $env_host ]]; then
+     if [[ "$env_server" =~ ^! ]]; then
+      env_server=${env_server#!}
+      if ! [[ "$this_server" =~ $env_server ]]; then
         envs+=($e)
       fi
     else
-      if [[ "$this_host" =~ $env_host ]]; then
+      if [[ "$this_server" =~ $env_server ]]; then
         envs+=($e)
       fi
     fi
@@ -281,18 +281,18 @@ function test_env() {
     fi
   }
 
-  function host() {
-    local expected_host=$(G .host // .envs.${G[env]}.host)
-    local this_host=$(hostname --fqdn)
-    if [[ "$expected_host" =~ ^! ]]; then
-      expected_host=${expected_host#!}
-      if [[ "$this_host" =~ $expected_host ]]; then
-        >&2 echo "ERR: --env=$env host: [[ \"$this_host\" =~ $expected_host ]]"
+  function server() {
+    local expected_server=$(G .server // .envs.${G[env]}.server)
+    local this_server=$(hostname --fqdn)
+    if [[ "$expected_server" =~ ^! ]]; then
+      expected_server=${expected_server#!}
+      if [[ "$this_server" =~ $expected_server ]]; then
+        >&2 echo "ERR: --env=$env server: [[ \"$this_server\" =~ $expected_server ]]"
         exit 1
       fi
     else
-      if ! [[ "$this_host" =~ $expected_host ]]; then
-        >&2 echo "ERR: --env=$env host: ! [[ \"$this_host\" =~ $expected_host ]]"
+      if ! [[ "$this_server" =~ $expected_server ]]; then
+        >&2 echo "ERR: --env=$env server: ! [[ \"$this_server\" =~ $expected_server ]]"
         exit 1
       fi
     fi
@@ -302,12 +302,12 @@ function test_env() {
   case ${G[env]} in
     dev)
       branch
-      host
+      server
     ;;
     clean )
       not_dirty
       good_status
-      host dev
+      server dev
       # Use git status to check for unstaged changes
       ;;
     build)
@@ -316,13 +316,13 @@ function test_env() {
       good_status
       ;;
     sandbox )
-      host sandbox
+      server sandbox
       not_dirty
       good_status
       # Use git status to check for unstaged changes
       ;;
     test | prod )
-      host prod
+      server prod
       annotated_tag
       not_dirty
       good_status
@@ -519,22 +519,35 @@ function setup() {
   read env root <<<$(G "[.env,.git.root] | @tsv" )
 
   function env_file() {
-    local env org tag gcs
-    read env org tag gcs <<<$(G "[.env,.org // .envs.${G[env]}.org,
-                                      .tag // .envs.${G[env]}.tag,
-                                      .gcs // .envs.${G[env]}.gcs]|@tsv")
+    local env org tag fin_org fin_tag host port auth client_id sa gcs
+    read  env org tag fin_org fin_tag host port auth client_id sa gcs \
+          <<<$(G "[.env,
+                   .org // .envs.${G[env]}.org,
+                   .tag // .envs.${G[env]}.tag,
+                   .fin.org,
+                   .fin.tag,
+                   .envs.${G[env]}.host,
+                   .envs.${G[env]}.port,
+                   .envs.${G[env]}.auth.server,
+                   .envs.${G[env]}.auth.client_id,
+                   .envs.${G[env]}.auth.service_account,
+                   .gcs // .envs.${G[env]}.gcs]|@tsv")
 
     [[ "$env" == "clean" ]] && env='dev'
 
-    local secret=$(basename $(gcloud --format=json secrets list --filter="labels.type:env AND labels.env:${env}" | jq -r '.[0].name'))
+    local srv=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa} AND labels.auth:${auth}" | jq -r '.[0].name'))
 
-    gcloud secrets versions access latest --secret="$secret"
+    srv_env=$(gcloud secrets versions access latest --secret="$srv")
 
-    echo "FIN_ORG=$(G .fin.org)"
-    echo "FIN_TAG=$(G .fin.tag)"
-    echo "ORG=$org"
-    echo "TAG=$tag"
-    echo "GCS=$gcs"
+    local oidc=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
+    local oidc_env=$(gcloud secrets versions access latest --secret="$oidc")
+
+    echo -e "FIN_URL=$host\nHOST_PORT=$port"
+    echo "$srv_env"
+    echo -e "LOCAL_KEYCLOAK=false"
+    echo "$oidc_env"
+    echo -e "FIN_ORG=$fin_org\nFIN_TAG=$fin_tag\nORG=$org\nTAG=$tag"
+    echo -e "GCS=$gcs"
   }
 
   function service_account() {
