@@ -233,6 +233,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.totalCitations = citations.length;
     citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
+    citations = citations.map(c => {
+      let citation = { ...c };
+      citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
+      return citation;
+    });
+
     try {
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))

@@ -139,6 +139,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.totalCitations = citations.length;
     this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
 
+    citations = citations.map(c => {
+      let citation = { ...c };
+      citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
+      return citation;
+    });
+
     try {
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
