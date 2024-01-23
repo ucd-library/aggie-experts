@@ -71,7 +71,7 @@ router.route(
     }
   },
   sanitize)
-.put(
+  .put(   // TODO: Dusty add person checking,
   json_only,
   async (req, res, next) => {
     logger.info(`PUT ${req.url}`);

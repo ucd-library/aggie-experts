@@ -42,6 +42,9 @@ class AuthorshipModel extends BaseModel {
     const doc=this.client_get(id);
 
     loger.info(`Favouriting ${id} with ${objectId} and ${favourite}`);
+    // TODO: Quinn #1 Update Elasticsearch document
+    // TODO: Dusty #2 Update FCREPO
+    // TODO: Quinn #3 Update CDL
 
   }
 
