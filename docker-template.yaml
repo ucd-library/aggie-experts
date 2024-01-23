@@ -191,7 +191,7 @@ services:
       - FIN_METRICS_FS_ENABLED=true
       - FIN_METRICS_FIN_ENABLED=true
       - FIN_METRICS_FCREPO_ENABLED=true
-      - FIN_METRIC_EXPORT_GC=false
+      - FIN_METRICS_EXPORT_GC=false
     volumes:
       - ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-../service-account.json}:/etc/fin/service-account.json
       - ./services/base-service/spa:/fin/services/spa
