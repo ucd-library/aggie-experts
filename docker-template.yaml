@@ -160,6 +160,7 @@ services:
       - FIN_METRICS_FCREPO_ENABLED=${FIN_METRICS_FCREPO_ENABLED:-true}
       - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
     volumes:
+      - uber-data:/fs-tests
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_SPA
       - *DEV_MOUNT_MODELS
@@ -226,4 +227,6 @@ volumes:
   redis-data:
     driver: local
   rabbitmq-data:
+    driver: local
+  uber-data:
     driver: local
