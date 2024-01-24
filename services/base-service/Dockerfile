@@ -37,5 +37,8 @@ WORKDIR ${FIN_SERVICE_ROOT}/models
 RUN mv package-lock.json package-lock.json- && npm link @ucd-lib/experts-api && npm install
 
 WORKDIR ${FIN_SERVICE_ROOT}
+# PROJECT_NAME is application label
+ENV PROJECT_NAME=aggie-experts
+ENV APP_VERSION=${TAG}
 
 CMD [ "bash", "-c", "tail -f /dev/null"]
