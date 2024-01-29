@@ -37,6 +37,20 @@ class ExpertModel extends BaseModel {
     return this.store.getExpert(id);
   }
 
+  /**
+   * @method updateCitationVisibility
+   * @description update visibility of experts work
+   *
+   * @param {String} id expert id
+   * @param {String} citationId id of work
+   * @param {Boolean} visible true if visible
+   *
+   * @returns {Promise} resolves to record
+   */
+  async updateCitationVisibility(id, citationId, visible=false) {
+    return await this.service.updateCitationVisibility(id, citationId, visible);
+  }
+
 }
 
 module.exports = new ExpertModel();

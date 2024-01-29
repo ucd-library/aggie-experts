@@ -271,7 +271,7 @@ return html`
       .hideSave="${this.hideSave}"
       .hideOK="${this.hideOK}"
       @cancel=${(e) => this.showModal = false}
-      @save=${(e) => this.showModal = false}>
+      @save=${this._modalSave}>
     </app-modal-overlay>
     <div class="hero-main site-frame">
       <div class="hero-text">
@@ -307,10 +307,10 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon ?hidden="${!cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-work" data-text="Show work">
-                  <ucdlib-icon ?hidden="${cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
               <span style="position: relative;">

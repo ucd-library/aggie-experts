@@ -162,6 +162,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
+    console.log('this.citationsDisplayed', this.citationsDisplayed);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
@@ -297,12 +298,39 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show modal with link to hide work
    */
   _hideWork(e) {
+    this.citationId = e.currentTarget.dataset.id;
+
     this.modalTitle = 'Hide Work';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+  }
+
+  /**
+   * @method _showWork
+   * @description show work
+   */
+  _showWork(e) {
+    this.citationId = e.currentTarget.dataset.id;
+    this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+  }
+
+  /**
+   * @method _modalSave
+   * @description modal save event
+   */
+  _modalSave(e) {
+    e.preventDefault();
+    this.showModal = false;
+
+    let action = e.currentTarget.title.trim() === 'Hide Work' ? 'hide' : 'reject';
+
+    if( action === 'hide' ) {
+      this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+    }
+    // TODO else if action === 'reject', tbd
   }
 
   /**

@@ -120,8 +120,8 @@ export default function render() {
         <div class="footer-section">
           <div class="footer-buttons">
             <button ?hidden="${this.hideCancel}" class="btn btn--invert" @click="${this._onCancel}">Cancel</button>
-            <a ?hidden="${this.hideSave}" href="https://oapolicy.universityofcalifornia.edu/" class="btn btn--primary" @click="${this._onSave}">${this.title}</a>
-            <button ?hidden="${this.hideOK}" class="btn btn--primary ok" @click="${this._onCancel}">OK</a>
+            <button ?hidden="${this.hideSave}" class="btn btn--primary" @click="${this._onSave}">${this.title}</button>
+            <button ?hidden="${this.hideOK}" class="btn btn--primary ok" @click="${this._onCancel}">OK</button>
           </div>
         </div>
       </div>

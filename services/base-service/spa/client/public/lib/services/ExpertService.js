@@ -20,6 +20,26 @@ class ExpertService extends BaseService {
     });
   }
 
+  async updateCitationVisibility(id, citationId, visible) {
+    return this.request({
+      url : `${this.baseUrl}/${id}/${citationId}`,
+      fetchOptions : {
+        method : 'PATCH',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "@id" : citationId,
+          "visible" : visible
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
 }
 
 module.exports = new ExpertService();
