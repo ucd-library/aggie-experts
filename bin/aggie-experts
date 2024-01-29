@@ -211,7 +211,7 @@ function guess-env() {
           d_envs+=($e)
         fi
         ;;
-      test|prod)
+      test| prev-test | stage | prod)
         if ! [[ "$tag" =~ "-" ]]; then
           d_envs+=($e)
         fi
@@ -321,7 +321,7 @@ function test_env() {
       good_status
       # Use git status to check for unstaged changes
       ;;
-    test | prod )
+    test | prev-test | stage | prod )
       server prod
       annotated_tag
       not_dirty
@@ -444,7 +444,7 @@ function build() {
       fi
       cache_tag=$tag
       ;;
-    test | prod )
+    test | prev-test | stage | prod )
       >&2 echo "No builds env=${G[env]}"
       exit 1
       ;;
@@ -493,7 +493,7 @@ function push() {
   local tag=$(G .tag // .envs.${G[env]}.tag)
 
   case ${G[env]} in
-    dev | clean | sandbox | test | prod ) # Never push
+    dev | clean | sandbox | test | prev-test | stage | prod ) # Never push
       >&2 echo "env=$env: Don't push env=${G[env]}"
       exit 1
       ;; # Never push
@@ -644,7 +644,7 @@ function setup() {
       fi
       ;;
 
-    clean | sandbox | test | prod ) # Always setup
+    clean | sandbox | test | prev-test | stage | prod ) # Always setup
       setup_files
       ;;
 
