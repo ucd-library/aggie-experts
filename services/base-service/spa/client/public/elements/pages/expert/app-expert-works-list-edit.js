@@ -92,6 +92,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     window.scrollTo(0, 0);
 
+    this.modifiedWorks = false;
     let expertId = e.location.pathname.replace('/works-edit/', '');
     let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
 
@@ -312,16 +313,21 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @method _showWork
    * @description show work
    */
-  _showWork(e) {
+  async _showWork(e) {
     this.citationId = e.currentTarget.dataset.id;
-    this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+    await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+
+    this.modifiedWorks = true;
+
+    let expert = await this.ExpertModel.get(this.expertId, true);
+    this._onExpertUpdate(expert);
   }
 
   /**
    * @method _modalSave
    * @description modal save event
    */
-  _modalSave(e) {
+  async _modalSave(e) {
     e.preventDefault();
     this.showModal = false;
 
@@ -331,6 +337,11 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
     }
     // TODO else if action === 'reject', tbd
+
+    this.modifiedWorks = true;
+
+    let expert = await this.ExpertModel.get(this.expertId, true);
+    this._onExpertUpdate(expert);
   }
 
   /**
@@ -358,7 +369,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
 
-
+    this.AppStateModel.store.data.modifiedWorks = true;
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 
