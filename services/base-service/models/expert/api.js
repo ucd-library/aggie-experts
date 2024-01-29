@@ -87,11 +87,7 @@ router.route(
     logger.info({function:'PATCH'}, JSON.stringify(data));
 
     const authorshipModel = await model.get_model('authorship');
-    await authorshipModel.favourite({
-      id : data['@id'],
-      visible : data.visible,
-      expertId
-    });
+    await authorshipModel.patch(data,expertId);
 
     res.status(200).json({status: "ok"});
   }

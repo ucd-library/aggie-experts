@@ -34,39 +34,78 @@ class AuthorshipModel extends BaseModel {
   }
 
   /**
-   * @method favourite
-   * @description Favourite the given id.
-   * @param {Object} args :  { id: id to favourite, objectId: objectId to favourite, favourite: boolean, expertId }
+   * @method patch
+   * @description Patch an authorship file.
+   * @param {Object} args :  { id: id to favourite, patch, expertId }
    * @returns {Object} : document object
     **/
-  async favourite(args) {
-    const { id, objectId, visible, favourite, expertId } = args;
-    const doc = this.client_get(id);
-
-    logger.info(`Favouriting ${id} with ${objectId} and ${favourite}`);
+  async patch(patch, expertId) {
+    let id = patch['@id'];
+    let doc;
+    let resp;
 
     // TODO: Quinn #1 Update Elasticsearch document
+    logger.info('Patching authorship:',patch);
+    try {
+      doc = await this.client_get(id);
+      console.log(doc);
+    } catch(e) {
+      logger.info('Patching ${id} not found');
+      return 404
+    };
+    if (! defined(visible)) {
+      return 400;
+    }
+    doc['@graph'][0]['visible'] = visible;
+    await this.update(doc);
 
     // Update FCREPO
+    let visible=undefined;
+    if (defined(patch['visible'])) {
+      visible = patch['visible'];
+    }
+    let favourite=undefined;
+    if (defined(patch['favourite'])) {
+      favourite = patch['favourite'];
+    }
     let options = {
       path: expertId + '/' + id,
       content: `
+        @PREFIX experts: <http://experts.ucdavis.edu/> .
+        @PREFIX ucdlib: <http://schema.library.ucdaivs.edu/schema#> .
         DELETE {
-          <http://experts.ucdavis.edu/${id}>
-          <http://schema.library.ucdavis.edu/schema#is-visible>
-          ${!visible}
+          ${defined(visible)?`experts:${id} ucdlib:is-visible ${!visible} .`}
+          ${defined(favourite)?`experts:${id} ucdlib:is-favourite ${!favourite} .`}
         }
         INSERT {
-            <http://experts.ucdavis.edu/${id}>
-            <http://schema.library.ucdavis.edu/schema#is-visible>
-            ${visible}
+          ${defined(visible)?`experts:${id} ucdlib:is-visible ${visible} .`}
+          ${defined(favourite)?`experts:${id} ucdlib:is-favourite ${favourite} .`}
         } WHERE {}
       `
     };
-    let resp = await finApi.patch(options);
+    resp = await finApi.patch(options);
 
     // TODO: Quinn #3 Update CDL
-
+    const expertModel= await this.get_model('expert');
+    try {
+      let expert = await expertModel.client_get(expertId);
+      console.log(expert);
+    } catch(e) {
+      logger.info('patch:expert ${expertId} not found');
+      return 503
+    }
+    // get CDL user id
+    let root_node = await expertModel.get_root_node(expertId);
+    console.log(root_node);
+//    if (! this.elementsClient ) {
+//      const { elementsClient } = await import('@ucd-lib/experts-api');
+//      this.elementsClient = elementsClient;
+//    }
+//    let cdl_user = await this.elementsClient.impersonate(cdl_user_id,{instance: 'qa'})
+//    let resp = await cdl_user.setLinkPrivacy({
+//      objectId,
+//      privacy: visible ? 'public' : 'internal'
+//    })
   }
 
   /**
