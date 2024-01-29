@@ -54,31 +54,45 @@ async function sanitize(req, res) {
 }
 
 router.route(
-  /ark\:\/87287\/d7mh2m\/relationship\/.*/
+  /expert\/[a-zA-Z0-9]+\/ark\:\/87287\/d7mh2m\/relationship\/[0-9]+/
 ).get(
   async (req, res, next) => {
     //    res.status(200).json(JSON.stringify(req));
+
+    let pathParts = decodeURIComponent(req.path).split('/');
+    let id = '/' + model.id + '/' + pathParts.splice(3).join('/');
+
     try {
-      const authorship_model= await model.get_model('authorship');
-      let id = '/'+model.id+decodeURIComponent(req.path);
+      const authorship_model = await model.get_model('authorship');
       let opts = {
         admin : req.query.admin ? true : false,
       }
       res.thisDoc = await authorship_model.get(id, opts);
+
       next();
     } catch(e) {
       res.status(404).json(`${id} from ${req.path} HELP ${e.message}`);
     }
   },
-  sanitize)
-  .put(   // TODO: Dusty add person checking,
+  sanitize
+).patch(   // TODO: Dusty add person checking,
   json_only,
   async (req, res, next) => {
-    logger.info(`PUT ${req.url}`);
+    logger.info(`PATCH ${req.url}`);
+
+    let pathParts = decodeURIComponent(req.path).split('/');
+    let expertId = model.id + '/' + (pathParts[2] || '');
     let data = req.body;
-    logger.info({function:'PUT'}, JSON.stringify(data));
-    const authorshipModel= await model.get_model('authorship');
-    console.log("authorshipModel", authorshipModel);
+
+    logger.info({function:'PATCH'}, JSON.stringify(data));
+
+    const authorshipModel = await model.get_model('authorship');
+    await authorshipModel.favourite({
+      id : data['@id'],
+      visible : data.visible,
+      expertId
+    });
+
     res.status(200).json({status: "ok"});
   }
 )

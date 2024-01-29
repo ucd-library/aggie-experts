@@ -2,6 +2,8 @@
 const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 
+const finApi = require('@ucd-lib/fin-api/lib/api.js');
+
 /**
  * @class AuthorshipModel
  * @description Base class for Aggie Experts data models.
@@ -34,16 +36,35 @@ class AuthorshipModel extends BaseModel {
   /**
    * @method favourite
    * @description Favourite the given id.
-   * @param {Object} args :  { id: id to favourite }
+   * @param {Object} args :  { id: id to favourite, objectId: objectId to favourite, favourite: boolean, expertId }
    * @returns {Object} : document object
     **/
   async favourite(args) {
-    const { id, objectId, favourite } = args;
-    const doc=this.client_get(id);
+    const { id, objectId, visible, favourite, expertId } = args;
+    const doc = this.client_get(id);
 
-    loger.info(`Favouriting ${id} with ${objectId} and ${favourite}`);
+    logger.info(`Favouriting ${id} with ${objectId} and ${favourite}`);
+
     // TODO: Quinn #1 Update Elasticsearch document
-    // TODO: Dusty #2 Update FCREPO
+
+    // Update FCREPO
+    let options = {
+      path: expertId + '/' + id,
+      content: `
+        DELETE {
+          <http://experts.ucdavis.edu/${id}>
+          <http://schema.library.ucdavis.edu/schema#is-visible>
+          ${!visible}
+        }
+        INSERT {
+            <http://experts.ucdavis.edu/${id}>
+            <http://schema.library.ucdavis.edu/schema#is-visible>
+            ${visible}
+        } WHERE {}
+      `
+    };
+    let resp = await finApi.patch(options);
+
     // TODO: Quinn #3 Update CDL
 
   }

@@ -1,0 +1,121 @@
+openapi: 3.0.0
+info:
+  title: Aggie Experts API
+  version: 1.0.0
+  description: This is the Swagger documentation for Aggie Experts.
+  license:
+    name: Licensed Under MIT
+    url: https://spdx.org/licenses/MIT.html
+  contact:
+    name: Online Strategy - UC Davis Library
+    url: https://library.ucdavis.edu/online-strategy/
+paths:
+  /api/browse:
+    get:
+      tags:
+        - browse
+      summary: "Browse experts A - Z"
+      description: "Returns counts for experts A - Z, or if sending query param p={letter}, will return results for experts with last names of that letter"
+      parameters:
+        - in: query
+          name: p
+          schema:
+            type: string
+          description: The letter the experts last name starts with
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The pagination of results to return
+        - in: query
+          name: size
+          schema:
+            type: integer
+          description: The number of results to return per page
+      responses:
+        '200':
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/browse'
+components:
+  schemas:
+    browse:
+      type: "object"
+      properties:
+        params:
+          type: "object"
+          properties:
+            size:
+              type: "string"
+            from:
+              type: "integer"
+            page:
+              type: "string"
+            p:
+              type: "string"
+        total:
+          type: "integer"
+        hits:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              contactInfo:
+                type: "object"
+                properties:
+                  hasURL:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        "@type":
+                          type: "array"
+                          items:
+                            type: "string"
+                        "@id":
+                          type: "string"
+                        url:
+                          type: "string"
+                        name:
+                          type: "string"
+                        rank:
+                          type: "integer"
+                  hasEmail:
+                    type: "string"
+                  hasName:
+                    type: "object"
+                    properties:
+                      given:
+                        type: "string"
+                      "@type":
+                        type: "string"
+                      pronouns:
+                        type: "string"
+                      "@id":
+                        type: "string"
+                      family:
+                        type: "string"
+                  name:
+                    type: "string"
+                  hasTitle:
+                    type: "object"
+                    properties:
+                      "@type":
+                        type: "string"
+                      name:
+                        type: "string"
+                      "@id":
+                        type: "string"
+                  hasOrganizationalUnit:
+                    type: "object"
+                    properties:
+                      name:
+                        type: "string"
+                      "@id":
+                        type: "string"
+              name:
+                type: "string"
+              "@id":
+                type: "string"
