@@ -36,76 +36,113 @@ class AuthorshipModel extends BaseModel {
   /**
    * @method patch
    * @description Patch an authorship file.
-   * @param {Object} args :  { id: id to favourite, patch, expertId }
+   * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
+   * @param {String} expertId : Expert Id
    * @returns {Object} : document object
     **/
   async patch(patch, expertId) {
     let id = patch['@id'];
-    let doc;
+    let expert;
     let resp;
 
-    // TODO: Quinn #1 Update Elasticsearch document
-    logger.info('Patching authorship:',patch);
-    try {
-      doc = await this.client_get(id);
-      console.log(doc);
-    } catch(e) {
-      logger.info('Patching ${id} not found');
-      return 404
-    };
-    if (! defined(visible)) {
+    function get_node_by_related_id(doc,id) {
+      const nodes = [];
+      for(let i=0; i<doc['@graph'].length; i++) {
+        if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
+          nodes.push(doc['@graph'][i]);
+        }
+      }
+      if (nodes.length === 0) {
+        throw new Error(`Unable to find node with relatedBy{"@id"="${id}"}`);
+      }
+      if (nodes.length > 1) {
+        throw new Error(`Found multiple nodes with relatedBy{"@id"="${id}"}`);
+      }
+      return nodes[0];
+    }
+
+    logger.info(`Patching ${expertId} authorship:`,patch);
+    if (patch.visible == null && patch.favourite == null) {
       return 400;
     }
-    doc['@graph'][0]['visible'] = visible;
-    await this.update(doc);
+
+    // Immediate Update Elasticsearch document
+    const expertModel= await this.get_model('expert');
+    let node
+
+    try {
+      expert = await expertModel.client_get(expertId);
+      node = get_node_by_related_id(expert,id);
+      let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+      if (patch.objectId==null) {
+        patch.objectId = node_id;
+      }
+    } catch(e) {
+      console.error(e.message);
+      logger.info(`relatedBy[{@id${id} not found in expert ${expertId}`);
+      return 404
+    };
+    if (patch.visible != null) {
+      node['relatedBy']['is-visible'] = patch.visible;
+    }
+    if (patch.favourite != null) {
+      node['relatedBy']['is-favourite'] = patch.favourite;
+    }
+    //already a snippet node = workModel.snippet(have_part.Work.node);
+    await expertModel.update_graph_node(expertId,node);
 
     // Update FCREPO
-    let visible=undefined;
-    if (defined(patch['visible'])) {
-      visible = patch['visible'];
-    }
-    let favourite=undefined;
-    if (defined(patch['favourite'])) {
-      favourite = patch['favourite'];
-    }
+    let bad_id = `<http://experts.ucdavis.edu/${id}>`
     let options = {
       path: expertId + '/' + id,
       content: `
-        @PREFIX experts: <http://experts.ucdavis.edu/> .
-        @PREFIX ucdlib: <http://schema.library.ucdaivs.edu/schema#> .
+        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
-          ${defined(visible)?`experts:${id} ucdlib:is-visible ${!visible} .`}
-          ${defined(favourite)?`experts:${id} ucdlib:is-favourite ${!favourite} .`}
+          ${patch.visible != null ? `${bad_id} ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`${bad_id} ucdlib:is-favourite ?f .`:''}
         }
         INSERT {
-          ${defined(visible)?`experts:${id} ucdlib:is-visible ${visible} .`}
-          ${defined(favourite)?`experts:${id} ucdlib:is-favourite ${favourite} .`}
-        } WHERE {}
+          ${patch.visible != null ?`${bad_id} ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`${bad_id} ucdlib:is-favourite ${patch.favourite} .`:''}
+        } WHERE {
+          ${bad_id} ucdlib:is-visible ?v .
+          OPTIONAL { ${bad_id} ucdlib:is-favourite ?fav } .
+        }
       `
     };
     resp = await finApi.patch(options);
 
     // TODO: Quinn #3 Update CDL
-    const expertModel= await this.get_model('expert');
-    try {
-      let expert = await expertModel.client_get(expertId);
-      console.log(expert);
-    } catch(e) {
-      logger.info('patch:expert ${expertId} not found');
-      return 503
-    }
     // get CDL user id
-    let root_node = await expertModel.get_root_node(expertId);
-    console.log(root_node);
-//    if (! this.elementsClient ) {
-//      const { elementsClient } = await import('@ucd-lib/experts-api');
-//      this.elementsClient = elementsClient;
-//    }
-//    let cdl_user = await this.elementsClient.impersonate(cdl_user_id,{instance: 'qa'})
-//    let resp = await cdl_user.setLinkPrivacy({
-//      objectId,
-//      privacy: visible ? 'public' : 'internal'
-//    })
+    if (false) {
+      let root_node = expertModel.get_expected_model_node(expert);
+      if (! Array.isArray(root_node.identifier)) {
+        root_node.identifier = [root_node.identifier];
+      }
+      let cdl_user_id;
+      for (let i=0; i<root_node.identifier.length; i++) {
+        if (root_node.identifier[i].startsWith('ark:/87287/d7mh2m/user/')) {
+          cdl_user_id = root_node.identifier[i].replace('ark:/87287/d7mh2m/user/','');
+          break;
+        }
+      }
+      if (cdl_user_id == null) {
+        throw new Error(`Unable to find CDL user id for ${expertId}`);
+      }
+      if (! this.elementsClient ) {
+        const { ElementsClient } = await import('@ucd-lib/experts-api');
+        console.log('elementsClient',ElementsClient);
+        this.ElementsClient = ElementsClient;
+      }
+
+
+      let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,{instance: 'qa'})
+      resp = await cdl_user.setLinkPrivacy({
+        objectId: patch.objectId,
+        privacy: patch.visible ? 'public' : 'internal'
+      })
+      console.log('CDL response:',resp);
+    }
   }
 
   /**
