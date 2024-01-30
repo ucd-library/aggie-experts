@@ -5,7 +5,13 @@ const {defaultEsApiGenerator} = dataModels;
 const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
 
-async function siteFarmFormat(doc) {
+async function siteFarmFormat(req, res, next) {
+  // Check if the request is for the site-farm format
+  const acceptHeader = req.headers.accept;
+  if (!(acceptHeader && acceptHeader.includes('site-farm'))) {
+    next();
+    return;
+  }
   let newDoc = {};
   logger.info({ function: 'siteFarmFormat' });
   newDoc["@id"] = doc["@id"];
@@ -27,11 +33,11 @@ async function siteFarmFormat(doc) {
       newDoc["publications"].push(doc["@graph"][i]);
     }
   }
-
-  return newDoc;
+  res.aeResponse = newDoc;
+  return;
 }
 
-async function sanitize(req, res) {
+async function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
   let id = '/'+model.id+decodeURIComponent(req.path);
   if (('no-sanitize' in req.query) && req.user &&
@@ -63,7 +69,8 @@ async function sanitize(req, res) {
         delete doc["@graph"][i]["totalAwardAmount"];
       }
     }
-    return doc;
+    res.aeResponse = doc;
+    return;
   }
 }
 
@@ -81,20 +88,24 @@ router.get(
         admin: req.query.admin ? true : false,
       }
       res.thisDoc = await model.get(id, opts);
-      // next();
+      next();
     } catch (e) {
       res.status(404).json(`${req.path} resource not found`);
     }
-    let doc = await sanitize(req, res);
-    doc = res.thisDoc;
-    // Conditionally reformat based on the Accept header
-    if (acceptHeader && acceptHeader.includes('site-farm')) {
-      logger.info('Accept Header: site-farm');
-      doc = await siteFarmFormat(doc);
-    }
-    res.status(200).json(doc);
   },
-);
+  sanitize,
+  siteFarmFormat,
+  // let doc = await sanitize(req, res);
+  // doc = res.thisDoc;
+  // // Conditionally reformat based on the Accept header
+  // if (acceptHeader && acceptHeader.includes('site-farm')) {
+  //   logger.info('Accept Header: site-farm');
+  //   doc = await siteFarmFormat(doc);
+  // }
+  (req, res) => {
+    res.status(200).json(res.aeResponse);
+  }
+)
 
 const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, {router});
