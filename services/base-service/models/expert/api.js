@@ -67,18 +67,6 @@ async function sanitize(req, res) {
   }
 }
 
-// Middleware function 1
-router.use((req, res, next) => {
-  logger.info('Middleware 1: Logging Request');
-  next();
-});
-
-// Middleware function 2
-router.use((req, res, next) => {
-  logger.info('Middleware 2: Logging Request');
-  next();
-});
-
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.get(
   '/expert/*',
