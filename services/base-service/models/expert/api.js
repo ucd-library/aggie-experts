@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const {dataModels,logger} = require('@ucd-lib/fin-service-utils');
 const ExpertModel = require('./model.js');
+const { config } = require('@ucd-lib/experts-api');
 const {defaultEsApiGenerator} = dataModels;
 const md5 = require('md5');
 

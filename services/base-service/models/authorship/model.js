@@ -56,6 +56,19 @@ class AuthorshipModel extends BaseModel {
     return nodes[0];
   }
 
+
+  /**
+   * @method _impersonate_cdl_user
+   * @description Get authorship by id
+   * @param {Object} expert : expert record
+   * @returns {Object} : cdl_user
+   * @throws {Error} : ifexoert
+   **/
+async _impersonate_cdl_user() {
+    let user = await finApi.auth.impersonateUser('cdl');
+    return user;
+  }
+
   /**
    * @method patch
    * @description Patch an authorship file.
@@ -244,6 +257,37 @@ class AuthorshipModel extends BaseModel {
     };
 
     await finApi.delete(options);
+
+    // Reject from CDL
+    if (false) {
+      let root_node = expertModel.get_expected_model_node(expert);
+      if (! Array.isArray(root_node.identifier)) {
+        root_node.identifier = [root_node.identifier];
+      }
+      let cdl_user_id;
+      for (let i=0; i<root_node.identifier.length; i++) {
+        if (root_node.identifier[i].startsWith('ark:/87287/d7mh2m/user/')) {
+          cdl_user_id = root_node.identifier[i].replace('ark:/87287/d7mh2m/user/','');
+          break;
+        }
+      }
+      if (cdl_user_id == null) {
+        throw new Error(`Unable to find CDL user id for ${expertId}`);
+      }
+      if (! this.elementsClient ) {
+        const { ElementsClient } = await import('@ucd-lib/experts-api');
+        console.log('elementsClient',ElementsClient);
+        this.ElementsClient = ElementsClient;
+      }
+
+      let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,{instance: 'qa'})
+      resp = await cdl_user.setLinkPrivacy({
+        objectId: patch.objectId,
+        privacy: patch.visible ? 'public' : 'internal'
+      })
+      console.log('CDL response:',resp);
+    }
+
   }
 }
 module.exports = AuthorshipModel;
