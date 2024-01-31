@@ -44,7 +44,7 @@ async function sanitize(req, res, next) {
       (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
        req.user?.roles?.includes('admin'))
      ) {
-    res.status(200).json(res.thisDoc);
+    next();
   } else {
     let doc = res.thisDoc;
     for(let i=0; i<doc["@graph"].length; i++) {
@@ -70,16 +70,14 @@ async function sanitize(req, res, next) {
       }
     }
     res.aeResponse = doc;
-    return;
+    next()  // continue to the next middleware;
   }
 }
 
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.get(
   '/expert/*',
-  async (req, res, next) => {
-
-    const acceptHeader = req.headers.accept;
+  async (req, res) => {
 
     logger.info(`GET ${req.url}`);
     let id = '/' + model.id + decodeURIComponent(req.path);
@@ -88,20 +86,12 @@ router.get(
         admin: req.query.admin ? true : false,
       }
       res.thisDoc = await model.get(id, opts);
-      next();
     } catch (e) {
       res.status(404).json(`${req.path} resource not found`);
     }
   },
   sanitize,
   siteFarmFormat,
-  // let doc = await sanitize(req, res);
-  // doc = res.thisDoc;
-  // // Conditionally reformat based on the Accept header
-  // if (acceptHeader && acceptHeader.includes('site-farm')) {
-  //   logger.info('Accept Header: site-farm');
-  //   doc = await siteFarmFormat(doc);
-  // }
   (req, res) => {
     res.status(200).json(res.aeResponse);
   }
