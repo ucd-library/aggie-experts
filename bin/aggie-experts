@@ -548,6 +548,7 @@ function setup() {
     echo "$oidc_env"
     echo -e "FIN_ORG=$fin_org\nFIN_TAG=$fin_tag\nORG=$org\nTAG=$tag"
     echo -e "GCS=$gcs"
+    echo -e "FIN_METRICS_EXPORT_GC=true"
   }
 
   function service_account() {

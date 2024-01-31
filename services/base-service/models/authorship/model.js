@@ -34,6 +34,29 @@ class AuthorshipModel extends BaseModel {
   }
 
   /**
+   * @method get_node_by_related_id
+   * @description Get elasticsearch node by id
+   * @param {Object} doc : elasticsearch doc
+   * @param {String} id : node id
+   * @returns {Object} : elasticsearch node
+   **/
+  get_node_by_related_id(doc,id) {
+    const nodes = [];
+    for(let i=0; i<doc['@graph'].length; i++) {
+      if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
+        nodes.push(doc['@graph'][i]);
+      }
+    }
+    if (nodes.length === 0) {
+      throw new Error(`Unable to find node with relatedBy{"@id"="${id}"}`);
+    }
+    if (nodes.length > 1) {
+      throw new Error(`Found multiple nodes with relatedBy{"@id"="${id}"}`);
+    }
+    return nodes[0];
+  }
+
+  /**
    * @method patch
    * @description Patch an authorship file.
    * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
@@ -44,22 +67,6 @@ class AuthorshipModel extends BaseModel {
     let id = patch['@id'];
     let expert;
     let resp;
-
-    function get_node_by_related_id(doc,id) {
-      const nodes = [];
-      for(let i=0; i<doc['@graph'].length; i++) {
-        if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
-          nodes.push(doc['@graph'][i]);
-        }
-      }
-      if (nodes.length === 0) {
-        throw new Error(`Unable to find node with relatedBy{"@id"="${id}"}`);
-      }
-      if (nodes.length > 1) {
-        throw new Error(`Found multiple nodes with relatedBy{"@id"="${id}"}`);
-      }
-      return nodes[0];
-    }
 
     logger.info(`Patching ${expertId} authorship:`,patch);
     if (patch.visible == null && patch.favourite == null) {
@@ -72,7 +79,7 @@ class AuthorshipModel extends BaseModel {
 
     try {
       expert = await expertModel.client_get(expertId);
-      node = get_node_by_related_id(expert,id);
+      node = this.get_node_by_related_id(expert,id);
       let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
       if (patch.objectId==null) {
         patch.objectId = node_id;
@@ -202,6 +209,41 @@ class AuthorshipModel extends BaseModel {
         }
       }
     }
+  }
+
+  /**
+   * @method delete
+   * @description Delete an authorship file
+   * @param {String} id of work
+   * @param {String} expertId : Expert Id
+  **/
+  async delete(id, expertId) {
+    logger.info(`Deleting ${id}`);
+
+    // Delete Elasticsearch document
+    const expertModel = await this.get_model('expert');
+    let node;
+    let expert;
+
+    try {
+      expert = await expertModel.client_get(expertId);
+      node = this.get_node_by_related_id(expert, id);
+      let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+    } catch(e) {
+      console.error(e.message);
+      logger.info(`relatedBy[{@id ${id} not found in expert ${expertId}`);
+      return 404
+    };
+
+    await expertModel.delete_graph_node(expertId, node);
+
+    // Delete from FCREPO
+    let options = {
+      path: expertId + '/' + id,
+      permanent: true
+    };
+
+    await finApi.delete(options);
   }
 }
 module.exports = AuthorshipModel;
