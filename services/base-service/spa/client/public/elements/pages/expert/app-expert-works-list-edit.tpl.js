@@ -315,7 +315,7 @@ return html`
               </span>
               <span style="position: relative;">
                 <span class="tooltip reject-work" data-text="Reject work">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork}></ucdlib-icon>
+                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
             </div>

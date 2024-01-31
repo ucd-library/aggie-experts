@@ -28,7 +28,7 @@ function json_only(req, res, next) {
   }
 }
 
-async function sanitize(req, res) {
+async function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
   let id = '/'+model.id+decodeURIComponent(req.path);
   if (('no-sanitize' in req.query) && req.user &&
@@ -106,7 +106,22 @@ router.route(
     await authorshipModel.patch(data,expertId);
     res.status(200).json({status: "ok"});
   }
-)
+).delete(
+  user_can_edit,
+  async (req, res, next) => {
+    logger.info(`DELETE ${req.url}`);
+
+    let pathParts = decodeURIComponent(req.path).split('/');
+    let expertId = model.id + '/' + (pathParts[2] || '');
+    let id = pathParts.slice(3).join('/');
+    console.log('id', id);
+
+    const authorshipModel = await model.get_model('authorship');
+    await authorshipModel.delete(id, expertId);
+
+    res.status(200).json({status: "ok"});
+  }
+);
 
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.get(

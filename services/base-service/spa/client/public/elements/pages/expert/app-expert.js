@@ -108,7 +108,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
-    this.canEdit = APP_CONFIG.user.expertId === this.expertId;
+    this.canEdit = APP_CONFIG.user.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId;
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];

@@ -40,6 +40,19 @@ class ExpertService extends BaseService {
     });
   }
 
+  async rejectCitation(id, citationId) {
+    return this.request({
+      url : `${this.baseUrl}/${id}/${citationId}`,
+      fetchOptions : {
+        method : 'DELETE'
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
 }
 
 module.exports = new ExpertService();
