@@ -26,12 +26,12 @@ paths:
           name: page
           schema:
             type: integer
-          description: The pagination of results to return
+          description: The pagination of results to return, defaults to 1
         - in: query
           name: size
           schema:
             type: integer
-          description: The number of results to return per page
+          description: The number of results to return per page, defaults to 25
       responses:
         '200':
           description: "Successful operation"
@@ -39,6 +39,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/browse'
+  /api/search:
+    get:
+      tags:
+        - search
+      summary: "Search ElasticSearch"
+      description: "Returns matching search results for experts, including the number of matching works and grants"
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: The search term
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The pagination of results to return, defaults to 1
+        - in: query
+          name: size
+          schema:
+            type: integer
+          description: The number of results to return per page, defaults to 25
+      responses:
+        '200':
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/search'
 components:
   schemas:
     browse:
@@ -119,3 +148,98 @@ components:
                 type: "string"
               "@id":
                 type: "string"
+    name:
+      type: object
+      properties:
+        given:
+          type: string
+        "@type":
+          type: string
+        "@id":
+          type: string
+        family:
+          type: string
+    title:
+      type: object
+      properties:
+        "@type":
+          type: string
+        name:
+          type: string
+        "@id":
+          type: string
+    organizationalUnit:
+      type: object
+      properties:
+        name:
+          type: string
+        "@id":
+          type: string
+    contactInfo:
+      type: object
+      properties:
+        hasEmail:
+          type: string
+        hasName:
+          $ref: '#/components/schemas/name'
+        name:
+          type: string
+        hasTitle:
+          $ref: '#/components/schemas/title'
+        hasOrganizationalUnit:
+          $ref: '#/components/schemas/organizationalUnit'
+    author:
+      type: object
+      properties:
+        given:
+          type: string
+        rank:
+          type: integer
+        "@id":
+          type: string
+        family:
+          type: string
+    innerHits:
+      type: object
+      properties:
+        volume:
+          type: string
+        "@type":
+          type: array
+          items:
+            type: string
+        author:
+          type: array
+          items:
+            $ref: '#/components/schemas/author'
+        "container-title":
+          type: string
+        ISSN:
+          type: string
+        abstract:
+          type: string
+        page:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        issued:
+          type: string
+        status:
+          type: string
+    search:
+      type: object
+      properties:
+        contactInfo:
+          $ref: '#/components/schemas/contactInfo'
+        "@type":
+          type: string
+        name:
+          type: string
+        "@id":
+          type: string
+        _inner_hits:
+          type: array
+          items:
+            $ref: '#/components/schemas/innerHits'
