@@ -248,23 +248,25 @@ export class Impersonator {
     return resp.text();
   }
 
-  async setLinkPrivacy(data) {
-    const level = {
-      public: 0,
-      internal: 50,
-      private: 100,
-    };
-
+  /**
+   * @method listobjects - Generic user object updater
+   * @param {object} data
+   * @returns {Promise<Response>}
+   */
+  async listobjects(data) {
     const symplectic = await this.profile();
     const csrfToken = symplectic.csrfToken;
 
     const formData = new FormData();
     formData.append('__csrf_token', csrfToken);
-    formData.append('com', 'setLinkPrivacy');
     formData.append('adminMode', 'false');
     formData.append('categoryId', 1);
-    formData.append('objectId', data.objectId);
-    formData.append('linkPrivacyLevel', level[data.privacy]);
+
+    for (let key in data) {
+      if (key !== 'com') {
+        formData.append(key, data[key]);
+      }
+    }
 
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
@@ -279,28 +281,32 @@ export class Impersonator {
     return json;
   }
 
-  async setFavourite(data) {
-
-    const symplectic = await this.profile();
-    const csrfToken = symplectic.csrfToken;
-
-    let formData = new FormData();
-    formData.append('__csrf_token', csrfToken);
-    formData.append('com', 'setFavourite');
-    formData.append('adminMode', 'false');
-    formData.append('categoryId', 1);
-    formData.append('objectId', data.objectId);
-    formData.append('favourite', (data.favourite ? 'true' : 'false'));
-
-    let headers = formData.getHeaders();
-    headers['accept'] = 'application/json';
-
-    let resp = await this.fetch(`${this.cdl.host}/listobjects.html`, {
-      method: 'POST',
-      body: formData,
-      headers
+  async setLinkPrivacy(data) {
+    const level = {
+      public: 0,
+      internal: 50,
+      private: 100,
+    };
+    return await this.listobjects({
+      com: 'setLinkPrivacy',
+      objectId: data.objectId,
+      privacy: level[data.privacy]
     });
-    let json = await resp.json();
-    return json;
+  }
+
+  async reject(data) {
+    return await this.listobjects(
+      {com: 'reject',
+       linkId: data.linkId,
+       objectId: data.objectId,
+      });
+  }
+
+  async setFavourite(data) {
+    return await this.listobjects(
+      {com: 'setFavourite',
+       objectId: data.objectId,
+       favourite: (data.favourite ? 'true' : 'false')
+      });
   }
 }

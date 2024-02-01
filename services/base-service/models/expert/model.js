@@ -101,6 +101,38 @@ class ExpertModel extends BaseModel {
   }
 
   /**
+   * @method _impersonate_cdl_user
+   * @description Get authorship by id
+   * @param {Object} expert : expert elasticsearch record
+   * @returns {Object} : cdl_user
+   * @throws {Error} : ifexoert
+   **/
+  async _impersonate_cdl_user(expert) {
+    let root_node = expertModel.get_expected_model_node(expert);
+    if (! Array.isArray(root_node.identifier)) {
+      root_node.identifier = [root_node.identifier];
+    }
+    let cdl_user_id;
+    for (let i=0; i<root_node.identifier.length; i++) {
+      if (root_node.identifier[i].startsWith('ark:/87287/d7mh2m/user/')) {
+        cdl_user_id = root_node.identifier[i].replace('ark:/87287/d7mh2m/user/','');
+        break;
+      }
+    }
+    if (cdl_user_id == null) {
+      throw new Error(`Unable to find CDL user id for ${expertId}`);
+    }
+    if (! this.elementsClient ) {
+      const { ElementsClient } = await import('@ucd-lib/experts-api');
+      console.log('elementsClient',ElementsClient);
+      this.ElementsClient = ElementsClient;
+    }
+    let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,{instance: 'qa'})
+    return cdl_user;
+  }
+
+
+  /**
    * @method update
    * @description Update Elasticsearch with the given data.
    */
