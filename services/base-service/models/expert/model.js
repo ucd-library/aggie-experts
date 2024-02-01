@@ -108,7 +108,7 @@ class ExpertModel extends BaseModel {
    * @throws {Error} : ifexoert
    **/
   async _impersonate_cdl_user(expert) {
-    let root_node = expertModel.get_expected_model_node(expert);
+    let root_node = this.get_expected_model_node(expert);
     if (! Array.isArray(root_node.identifier)) {
       root_node.identifier = [root_node.identifier];
     }
@@ -124,7 +124,7 @@ class ExpertModel extends BaseModel {
     }
     if (! this.elementsClient ) {
       const { ElementsClient } = await import('@ucd-lib/experts-api');
-      console.log('elementsClient',ElementsClient);
+      // console.log('elementsClient',ElementsClient);
       this.ElementsClient = ElementsClient;
     }
     let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,{instance: 'qa'})
@@ -140,7 +140,7 @@ class ExpertModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
-    console.log(`${this.constructor.name}.update(${doc['@id']})`);
+    // console.log(`${this.constructor.name}.update(${doc['@id']})`);
     await this.update_or_create_main_node_doc(doc);
 
     const authorshipModel=await this.get_model('authorship');

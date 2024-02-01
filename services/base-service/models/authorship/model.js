@@ -1,8 +1,9 @@
 // Can use this to get the fin configuration
-const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
+const {models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 
 const finApi = require('@ucd-lib/fin-api/lib/api.js');
+const config = require('../config');
 
 /**
  * @class AuthorshipModel
@@ -119,18 +120,15 @@ class AuthorshipModel extends BaseModel {
     };
     resp = await finApi.patch(options);
 
-    // TODO: Quinn #3 Update CDL
-    // get CDL user id
-    this.config ||  = await import('@ucd-lib/experts-api');
-    logger.info('cdl',this.config.api);
-
-    if (this.config.api.cdl_propogate_changes || false) {
+    if (config.experts.cdl_propogate_changes) {
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
       resp = await cdl_user.setLinkPrivacy({
         objectId: patch.objectId,
         privacy: patch.visible ? 'public' : 'internal'
       })
-      console.log('CDL response:',resp);
+      logger.info({cdl_response:resp},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+    } else {
+      logger.info({cdl_response:null},`XCDL propogate changes ${config.experts.cdl_propogate_changes}`);
     }
   }
 
@@ -206,11 +204,13 @@ class AuthorshipModel extends BaseModel {
     const expertModel = await this.get_model('expert');
     let node;
     let expert;
+    let objectId;
+    let resp;
 
     try {
       expert = await expertModel.client_get(expertId);
       node = this.get_node_by_related_id(expert, id);
-      let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+      objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
     } catch(e) {
       console.error(e.message);
       logger.info(`relatedBy[{@id ${id} not found in expert ${expertId}`);
@@ -227,18 +227,19 @@ class AuthorshipModel extends BaseModel {
 
     await finApi.delete(options);
 
-    // Reject from CDL
-    this.config ||= await import('@ucd-lib/experts-api');
-    logger.info('cdl',this.config.api);
-
-    if (this.config.api.cdl_propogate_changes || false) {
+    if (config.experts.cdl_propogate_changes) {
+      let linkId=id.replace("ark:/87287/d7mh2m/relationship/","");
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
+      logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
       resp = await cdl_user.reject({
-        objectId: patch.objectId,
-        privacy: patch.visible ? 'public' : 'internal'
+        linkId: linkId,
+        objectId: objectId
       })
-      console.log('CDL response:',resp);
+      logger.info({cdl_response:resp},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+    } else {
+      logger.info({cdl:null},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
     }
+
   }
 }
 module.exports = AuthorshipModel;

@@ -25,7 +25,7 @@ export default class ElementsClient {
       }
   };
 
-  static impersonators = [];
+  static impersonators = {};
 
   static info(instance) {
     return ElementsClient.config.cdl[instance];
@@ -173,7 +173,7 @@ export class Impersonator {
       signal
     });
 
-    console.log(`login ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
+    //console.log(`login ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
     // abort if we get a redirect
     controller.abort();
     return resp;
@@ -208,7 +208,7 @@ export class Impersonator {
       },
       signal
     });
-    console.log(`impersonate ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
+    //console.log(`impersonate ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
     controller.abort();
     return resp;
   }
@@ -263,14 +263,13 @@ export class Impersonator {
     formData.append('categoryId', 1);
 
     for (let key in data) {
-      if (key !== 'com') {
         formData.append(key, data[key]);
-      }
     }
 
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
+    // console.log('formData', formData);
     let resp = await this.fetch(`${this.cdl.host}/listobjects.html`, {
       method: 'POST',
       body: formData,
@@ -290,7 +289,7 @@ export class Impersonator {
     return await this.listobjects({
       com: 'setLinkPrivacy',
       objectId: data.objectId,
-      privacy: level[data.privacy]
+      linkPrivacyLevel: level[data.privacy]
     });
   }
 
