@@ -121,7 +121,7 @@ class AuthorshipModel extends BaseModel {
 
     // TODO: Quinn #3 Update CDL
     // get CDL user id
-    this.config ||  = await import('@ucd-lib/experts-api');
+    this.config ||= await import('@ucd-lib/experts-api');
     logger.info('cdl',this.config.api);
 
     if (this.config.api.cdl_propogate_changes || false) {
@@ -210,7 +210,6 @@ class AuthorshipModel extends BaseModel {
     try {
       expert = await expertModel.client_get(expertId);
       node = this.get_node_by_related_id(expert, id);
-      let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
     } catch(e) {
       console.error(e.message);
       logger.info(`relatedBy[{@id ${id} not found in expert ${expertId}`);
