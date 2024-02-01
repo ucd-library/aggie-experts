@@ -112,7 +112,7 @@
   },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.5.1"
+    "tag":"2.5.2"
   },
   "git":{
     "root":"$(${G[git]} rev-parse --show-toplevel)",
