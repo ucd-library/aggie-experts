@@ -19,7 +19,7 @@ tags:
   - name: expert
     description: Expert Information
 paths:
-  /{expert}:
+  /api/{expert}:
     get:
       tags:
         - expert
@@ -55,7 +55,7 @@ paths:
           description: Expert not found
       security:
         - oauth2: []
-  /{expert}/ark:/87287/d7mh2m/{relationship}:
+  /api/{expert}/ark:/87287/d7mh2m/{relationship}:
     get:
       tags:
         - expert
