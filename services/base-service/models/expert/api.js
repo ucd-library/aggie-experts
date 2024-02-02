@@ -12,6 +12,8 @@ async function siteFarmFormat(req, res, next) {
     next();
     return;
   }
+
+  let doc = res.aeResponse;
   let newDoc = {};
   logger.info({ function: 'siteFarmFormat' });
   newDoc["@id"] = doc["@id"];
@@ -34,10 +36,11 @@ async function siteFarmFormat(req, res, next) {
     }
   }
   res.aeResponse = newDoc;
-  return;
+  next();
 }
 
 async function sanitize(req, res, next) {
+
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
   let id = '/'+model.id+decodeURIComponent(req.path);
   if (('no-sanitize' in req.query) && req.user &&
@@ -46,7 +49,7 @@ async function sanitize(req, res, next) {
      ) {
     next();
   } else {
-    let doc = res.thisDoc;
+    let doc = res.aeResponse;
     for(let i=0; i<doc["@graph"].length; i++) {
       logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
       if ((("is-visible" in doc["@graph"][i])
@@ -75,23 +78,24 @@ async function sanitize(req, res, next) {
 }
 
 // this path is used instead of the defined version in the defaultEsApiGenerator
-router.get(
-  '/expert/*',
-  async (req, res) => {
+router.get('/expert/*', async (req, res, next) => {
+  // JM - this should be a global middleware if you want logging
+  // logger.info(`GET ${req.url}`);
 
-    logger.info(`GET ${req.url}`);
-    let id = '/' + model.id + decodeURIComponent(req.path);
-    try {
-      let opts = {
-        admin: req.query.admin ? true : false,
-      }
-      res.thisDoc = await model.get(id, opts);
-    } catch (e) {
-      res.status(404).json(`${req.path} resource not found`);
+  let id = '/' + model.id + decodeURIComponent(req.path);
+  try {
+    let opts = {
+      admin: req.query.admin ? true : false,
     }
-  },
+    res.aeResponse = await model.get(id, opts);
+    next();
+  } catch (e) {
+    return res.status(404).json(`${req.path} resource not found`);
+  }
+  // res.status(200).json(res.aeResponse);
+},
   sanitize,
-  siteFarmFormat,
+  siteFarmFormat, // JM - this could send the response as well
   (req, res) => {
     res.status(200).json(res.aeResponse);
   }
