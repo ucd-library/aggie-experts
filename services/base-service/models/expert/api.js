@@ -112,7 +112,6 @@ router.route(
     let pathParts = decodeURIComponent(req.path).split('/');
     let expertId = model.id + '/' + (pathParts[2] || '');
     let id = pathParts.slice(3).join('/');
-    console.log('id', id);
 
     const authorshipModel = await model.get_model('authorship');
     await authorshipModel.delete(id, expertId);
