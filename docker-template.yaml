@@ -169,8 +169,8 @@ services:
       - .env
     depends_on:
       - elasticsearch
- #  command: npm run uber
-  command: bash -c 'tail -f /dev/null'
+    command: npm run uber
+  # command: bash -c 'tail -f /dev/null'
 
   # ###
   # # Fin Workflows
