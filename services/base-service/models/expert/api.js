@@ -6,7 +6,8 @@ const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
 
 async function siteFarmFormat(req, res, next) {
-  // Check if the request is for the site-farm format
+  // To be used as a middleware to format the response in the site-farm format
+  // Check if the request is for the site-farm format based on the accept header
   const acceptHeader = req.headers.accept;
   if (!(acceptHeader && acceptHeader.includes('site-farm'))) {
     next();
@@ -79,8 +80,6 @@ async function sanitize(req, res, next) {
 
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.get('/expert/*', async (req, res, next) => {
-  // JM - this should be a global middleware if you want logging
-  // logger.info(`GET ${req.url}`);
 
   let id = '/' + model.id + decodeURIComponent(req.path);
   try {
@@ -92,10 +91,9 @@ router.get('/expert/*', async (req, res, next) => {
   } catch (e) {
     return res.status(404).json(`${req.path} resource not found`);
   }
-  // res.status(200).json(res.aeResponse);
 },
-  sanitize,
-  siteFarmFormat, // JM - this could send the response as well
+  sanitize, // Remove the graph nodes that are not visible
+  siteFarmFormat, // Format the response in the site-farm format if requested by the client
   (req, res) => {
     res.status(200).json(res.aeResponse);
   }
