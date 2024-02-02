@@ -63,7 +63,7 @@ class WorkModel extends BaseModel {
     let relates=authorship.relates.filter(x => x !== doc['@id']);
 
     if (relates.length != 1) {
-      console.log("ERROR: doc['@id']="+doc['@id']+" relates="+JSON.stringify(relates));
+      // console.log("ERROR: doc['@id']="+doc['@id']+" relates="+JSON.stringify(relates));
       throw new Error(`Expected 1 relates, got ${relates.length}`);
     }
     const expert_id=relates[0];

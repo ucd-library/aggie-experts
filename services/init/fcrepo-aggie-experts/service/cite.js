@@ -5,7 +5,6 @@ module.exports = async function(path, graph, headers, utils) {
               "@version":1.1,
               "@graph": graph};
 
-  console.log("path:",path);
   const res = await utils.request({uri:path+"/svc:node"});
   let framed = JSON.parse(res.body);
 

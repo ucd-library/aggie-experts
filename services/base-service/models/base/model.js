@@ -292,7 +292,7 @@ class BaseModel extends FinEsDataModel {
     }
 
     const res=await this.client.msearchTemplate(opts);
-    console.log(res);
+    //console.log(res);
     // Compact each result
     for(let i=0;i<res.responses.length;i++) {
       res.responses[i] = this.compact_search_results(
@@ -490,7 +490,7 @@ class BaseModel extends FinEsDataModel {
     try {
       const doc = await this.get(document_id,{_source:false});
     } catch (err) {
-      console.log(`update_graph_node_if_document_exists: document ${document_id} does not exist`);
+      // console.log(`update_graph_node_if_document_exists: document ${document_id} does not exist`);
       return {};
     }
     return this.update_graph_node(document_id,node_to_update);
