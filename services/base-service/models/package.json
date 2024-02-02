@@ -1,6 +1,6 @@
 {
   "name": "models",
-  "version": "1.0.0",
+  "version": "1.39.0-dev-36-gfbf935e-dirty",
   "description": "",
   "main": "index.js",
   "scripts": {

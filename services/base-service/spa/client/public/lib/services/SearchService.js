@@ -10,7 +10,7 @@ class SearchService extends BaseService {
     this.baseUrl = '/api/search';
   }
 
-  search(searchTerm, page=1, size=10) {
+  search(searchTerm, page=1, size=25) {
     return this.request({
       url : `${this.baseUrl}?q=${searchTerm}&page=${page}&size=${size}`,
       checkCached : () => this.store.search(searchTerm),
