@@ -1,0 +1,48 @@
+# Query for grant roles
+
+PREFIX : <ark:/87287/d7gt0q/schema#>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX grant: <ark:/87287/d7gt0q/grant/>
+PREFIX kfs: <ark:/87287/d7gt0q/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX iam: <http://iam.ucdavis.edu/>
+PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+
+select ?category ?id ?field_name ?surname ?first_name ?full_name ?order_number ?email_address ?phone_number ?full_address ?address_name
+  WHERE {
+    VALUES (?role ?link_type_id ?e_role) {
+       (:GrantCoPrincipalInvestigatorRole "121" "Co-PI of")
+       (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
+     }
+
+    GRAPH kfs: {
+        ?grant a vivo:Grant;
+               vivo:relates ?related
+               .
+   	    ?related a ?role;
+               rdfs:label ?full_name_and_role;
+               obo:RO_0000052 ?expert;
+               .
+    }
+
+
+Optional {
+  graph iam: {
+	  ?expert ucdlib:userId ?cas.
+
+  	}
+  }
+
+  bind("grant" as ?category)
+  bind(?grant as ?id)
+	bind("researchers" as ?field_name)
+  bind(replace(?full_name_and_role,"\\(.*\\)" ,"") as ?temp)
+  bind(replace(STRBEFORE(?temp," "),"," ,"") as ?surname)
+  bind(replace(STRAFTER(?temp," "),"," ,"") as ?first_name)
+  bind(?temp as ?full_name)
+  bind(concat(?cas,"@ucdavis.edu") as ?email_address)
+  }
