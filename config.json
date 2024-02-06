@@ -111,12 +111,8 @@
     "fuseki":"docker-template-fuseki.yaml"
   },
   "fin":{
-    "org":"gcr.io/ucdlib-pubreg",
-<<<<<<< HEAD
-    "tag":"2.5.2"
-=======
-    "tag":"2.5.1"
->>>>>>> 122629b (added more environments (#314))
+    "org": "gcr.io/ucdlib-pubreg",
+    "tag": "2.5.2"
   },
   "git":{
     "root":"$(${G[git]} rev-parse --show-toplevel)",
