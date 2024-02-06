@@ -68,31 +68,19 @@ class Utils {
 
   /**
    * @method getGrantRole
-   * @description given a GrantType vivo role, returns the role to display in AE
+   * @description given a GrantType vivo role @type, returns the role to display in AE. defaults to Researcher if no match
    *
    * @param {String} type
    *
    * @return {String} readable role
    */
   getGrantRole(role) {
-    let readableRole = role;
+    let readableRole = 'Researcher';
+    if( !Array.isArray(role) ) role = [role];
 
-    switch (role) {
-      case 'PrincipalInvestigatorRole':
-        readableRole = 'Principal Investigator';
-        break;
-      case 'CoPrincipalInvestigatorRole':
-        readableRole = 'Co-Principal Investigator';
-        break;
-      case 'LeaderRole':
-        readableRole = 'Leader';
-        break;
-      case 'ResearcherRole':
-        readableRole = 'Researcher';
-        break;
-      default:
-        break;
-    }
+    if( role.includes('PrincipalInvestigatorRole') ) readableRole = 'Principal Investigator';
+    else if( role.includes('CoPrincipalInvestigatorRole') ) readableRole = 'Co-Principal Investigator';
+    else if( role.includes('LeaderRole') ) readableRole = 'Leader';
 
     return readableRole;
   }
@@ -124,7 +112,8 @@ class Utils {
       g.completed = completed;
 
       // determine role/type
-      g.role = this.getGrantRole(g.relatedBy?.['@type']?.[1] || '');
+      g.role = this.getGrantRole(g.relatedBy?.['@type'] || '');
+
       g.type = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
 
       // determine awarded-by

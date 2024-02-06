@@ -92,6 +92,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     window.scrollTo(0, 0);
 
+    this.modifiedWorks = false;
     let expertId = e.location.pathname.replace('/works-edit/', '');
     let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
 
@@ -162,6 +163,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
+    console.log('this.citationsDisplayed', this.citationsDisplayed.map(c => 'is-visible: ' + c.relatedBy?.['is-visible']));
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
@@ -297,6 +299,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show modal with link to hide work
    */
   _hideWork(e) {
+    this.citationId = e.currentTarget.dataset.id;
+
     this.modalTitle = 'Hide Work';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
     this.showModal = true;
@@ -306,10 +310,72 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
   }
 
   /**
+   * @method _showWork
+   * @description show work
+   */
+  async _showWork(e) {
+    this.citationId = e.currentTarget.dataset.id;
+    await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+
+    this.modifiedWorks = true;
+
+    let expert = await this.ExpertModel.get(this.expertId, true);
+    this._onExpertUpdate(expert);
+  }
+
+  /**
+   * @method _modalSave
+   * @description modal save event
+   */
+  async _modalSave(e) {
+    e.preventDefault();
+    this.showModal = false;
+
+    let action = e.currentTarget.title.trim() === 'Hide Work' ? 'hide' : 'reject';
+
+    this.modifiedWorks = true;
+
+    if( action === 'hide' ) {
+      this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+
+      // update graph/display data
+      let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      citation = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+
+      this.requestUpdate();
+    } else if ( action === 'reject' ) {
+      this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+
+      // remove citation from graph/display data
+      // also if total citations > 25, need to reorganize
+      this.citations = this.citations.filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      this.citationsDisplayed = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      this.expert['@graph'] = this.expert['@graph'].filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      this._onPaginationChange({ detail: { page: this.currentPage } });
+
+      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+      this.totalCitations = this.citations.length;
+      this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+
+      this.requestUpdate();
+    }
+
+    // let expert = await this.ExpertModel.get(this.expertId, true);
+    // this._onExpertUpdate(expert);
+  }
+
+  /**
    * @method _rejectWork
    * @description show modal with link to reject work
    */
   _rejectWork(e) {
+    this.citationId = e.currentTarget.dataset.id;
+
     this.modalTitle = 'Reject Work';
     this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
     this.showModal = true;
@@ -330,7 +396,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
 
-
+    this.AppStateModel.store.data.modifiedWorks = true;
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 
