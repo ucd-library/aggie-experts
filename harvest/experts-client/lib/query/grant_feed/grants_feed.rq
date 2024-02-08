@@ -18,8 +18,7 @@ select distinct
 ("c-davis" AS ?type)
 ("" AS ?url)
 ?institution_reference
-# ?oracle
-# ?super
+?flowThruFunding
 ?title
 ?pi
 ?funding_type
@@ -40,6 +39,7 @@ where {
      }
   GRAPH kfs: {
   ?grant a vivo:Grant;
+        #  ucdlib:grantType/rdfs:label ?funding_type;
          rdfs:label ?title;
          ucdlib:piName ?pi;
          vivo:dateTimeInterval [
@@ -54,8 +54,12 @@ where {
                ];
       .
   OPTIONAL {
-        ?grant ucdlib:grantType/rdfs:label ?funding_type;
+    ?grant ucdlib:flowThruFunding ?ftf;
+    bind(uri(replace(str(?ftf),"ark:/87287/d7gt0q/funding_org/","http://rems.ucop.edu/sponsor/")) as ?flowThruFunding)
   }
+  # OPTIONAL {
+  #       ?grant ucdlib:grantType/rdfs:label ?funding_type;
+  # }
 
   OPTIONAL {
     ?grant vivo:assignedBy ?sponsor;
@@ -87,6 +91,6 @@ where {
   BIND (?grant AS ?institution_reference) .
 }
 
-order by ?grant
+# order by ?grant
 
-limit 10000
+#limit 100
