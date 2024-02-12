@@ -296,19 +296,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   }
 
   /**
-   * @method _rejectGrant
-   * @description show modal with link to reject grant
-   */
-  _rejectGrant(e) {
-    this.modalTitle = 'Reject Grant';
-    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this grant?</p>`;
-    this.showModal = true;
-    this.hideCancel = false;
-    this.hideSave = false;
-    this.hideOK = true;
-  }
-
-  /**
    * @method _returnToProfile
    * @description return to /expert/<id> page
    *

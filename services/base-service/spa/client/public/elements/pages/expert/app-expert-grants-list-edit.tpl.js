@@ -314,11 +314,6 @@ return html`
                   <ucdlib-icon ?hidden="${grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant}></ucdlib-icon>
                 </span>
               </span>
-              <span style="position: relative;">
-                <span class="tooltip reject-grant" data-text="Reject grant">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectGrant}></ucdlib-icon>
-                </span>
-              </span>
             </div>
             <div class="grant">
               <h5>${unsafeHTML(grant.name)}</h5>
@@ -349,11 +344,6 @@ return html`
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
                   <ucdlib-icon ?hidden="${grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant}></ucdlib-icon>
-                </span>
-              </span>
-              <span style="position: relative;">
-                <span class="tooltip reject-grant" data-text="Reject grant">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectGrant}></ucdlib-icon>
                 </span>
               </span>
             </div>
