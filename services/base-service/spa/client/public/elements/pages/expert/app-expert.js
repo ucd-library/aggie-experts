@@ -156,6 +156,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     grants = grants.filter(g => g.relatedBy?.['is-visible']);
     this.grants = utils.parseGrants(grants);
+    console.log({grants: this.grants})
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);

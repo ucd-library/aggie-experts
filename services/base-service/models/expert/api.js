@@ -136,8 +136,14 @@ router.route(
 
     logger.info({function:'PATCH'}, JSON.stringify(data));
 
-    const authorshipModel = await model.get_model('authorship');
-    await authorshipModel.patch(data,expertId);
+    if( data.grant ) {
+      const grantRoleModel = await model.get_model('grant_role');
+      await grantRoleModel.patch(data,expertId);
+    } else {
+      const authorshipModel = await model.get_model('authorship');
+      await authorshipModel.patch(data,expertId);
+    }
+
     res.status(200).json({status: "ok"});
   }
 ).delete(

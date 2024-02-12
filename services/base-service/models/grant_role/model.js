@@ -3,6 +3,8 @@
 const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 
+const finApi = require('@ucd-lib/fin-api/lib/api.js');
+
 /**
  * @class GrantRoleModel
  * @description Base class for Aggie Experts data models.
@@ -32,6 +34,108 @@ class GrantRoleModel extends BaseModel {
       '@graph': [node]
     };
     return doc;
+  }
+
+  /**
+   * @method get_node_by_related_id
+   * @description Get elasticsearch node by id
+   * @param {Object} doc : elasticsearch doc
+   * @param {String} id : node id
+   * @returns {Object} : elasticsearch node
+   **/
+  get_node_by_related_id(doc,id) {
+    const nodes = [];
+    for(let i=0; i<doc['@graph'].length; i++) {
+      if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
+        nodes.push(doc['@graph'][i]);
+      }
+    }
+    if (nodes.length === 0) {
+      throw new Error(`Unable to find node with relatedBy{"@id"="${id}"}`);
+    }
+    if (nodes.length > 1) {
+      throw new Error(`Found multiple nodes with relatedBy{"@id"="${id}"}`);
+    }
+    return nodes[0];
+  }
+
+  /**
+   * @method patch
+   * @description Patch an grant_role file.
+   * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
+   * @param {String} expertId : Expert Id
+   * @returns {Object} : document object
+   **/
+  async patch(patch, expertId) {
+    let id = patch['@id'];
+    let expert;
+    let resp;
+
+    logger.info(`Patching ${expertId}:`,patch);
+    if (patch.visible == null && patch.favourite == null) {
+      return 400;
+    }
+
+    // Immediate Update Elasticsearch document
+    const expertModel = await this.get_model('expert');
+    let node;
+
+    console.log('patching grant!!!')
+    try {
+      expert = await expertModel.client_get(expertId);
+      node = this.get_node_by_related_id(expert,id);
+      let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+      if (!patch.objectId) {
+        patch.objectId = node_id;
+      }
+    } catch(e) {
+      console.error(e.message);
+      logger.info(`relatedBy[{@id${id} not found in expert ${expertId}`);
+      return 404
+    };
+    if (patch.visible != null) {
+      node['relatedBy']['is-visible'] = patch.visible;
+    }
+    if (patch.favourite != null) {
+      node['relatedBy']['is-favourite'] = patch.favourite;
+    }
+    await expertModel.update_graph_node(expertId,node);
+
+    // Update FCREPO
+    // let bad_id = `<http://experts.ucdavis.edu/${id}>`
+    let bad_id = `${id}`
+
+    let options = {
+      path: expertId + '/' + id,
+      content: `
+        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        DELETE {
+          ${patch.visible != null ? `${bad_id} ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`${bad_id} ucdlib:is-favourite ?f .`:''}
+        }
+        INSERT {
+          ${patch.visible != null ?`${bad_id} ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`${bad_id} ucdlib:is-favourite ${patch.favourite} .`:''}
+        } WHERE {
+          ${bad_id} ucdlib:is-visible ?v .
+          OPTIONAL { ${bad_id} ucdlib:is-favourite ?fav } .
+        }
+      `
+    };
+    resp = await finApi.patch(options);
+
+    console.log({ options, bad_id, patch, expertId, resp });
+
+    // if (config.experts.cdl_propogate_changes) {
+    //   const cdl_user = await expertModel._impersonate_cdl_user(expert);
+    //   resp = await cdl_user.setLinkPrivacy({
+    //     objectId: patch.objectId,
+    //     privacy: patch.visible ? 'public' : 'internal'
+    //   })
+    //   logger.info({cdl_response:resp},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+    // } else {
+    //   logger.info({cdl_response:null},`XCDL propogate changes ${config.experts.cdl_propogate_changes}`);
+    // }
   }
 
   /**
