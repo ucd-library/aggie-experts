@@ -77,7 +77,8 @@ export default class AppExpert extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.substr(1);
-    if( expertId === this.expertId && !e.modifiedWorks ) return;
+    let modified = e.modifiedWorks || e.modifiedGrants;
+    if( expertId === this.expertId && !modified ) return;
 
     this._reset();
 
@@ -85,7 +86,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     try {
       let expert = await this.ExpertModel.get(expertId, true);
-      this._onExpertUpdate(expert, e.modifiedWorks);
+      this._onExpertUpdate(expert, modified);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -100,12 +101,12 @@ export default class AppExpert extends Mixin(LitElement)
    * @description bound to ExpertModel expert-update event
    *
    * @return {Object} e
-   * @return {Boolean} modifiedWorks
+   * @return {Boolean} modified
    */
-  async _onExpertUpdate(e, modifiedWorks=false) {
+  async _onExpertUpdate(e, modified=false) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'expert' ) return;
-    if( e.id === this.expertId && !modifiedWorks ) return;
+    if( e.id === this.expertId && !modified ) return;
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));

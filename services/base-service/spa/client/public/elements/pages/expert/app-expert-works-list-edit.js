@@ -339,7 +339,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modifiedWorks = true;
 
     if( action === 'hide' ) {
-      this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+      await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
 
       // update graph/display data
       let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
@@ -352,7 +352,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this.requestUpdate();
     } else if ( action === 'reject' ) {
-      this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+      await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
 
       // remove citation from graph/display data
       // also if total citations > 25, need to reorganize

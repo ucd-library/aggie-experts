@@ -125,8 +125,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants-edit' ) return;
 
-    if( e.id === this.expertId ) return;
-
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
 
@@ -307,6 +305,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   async _showGrant(e) {
     this.grantId = e.currentTarget.dataset.id;
+
     await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
 
     this.modifiedGrants = true;
@@ -327,18 +326,19 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.modifiedGrants = true;
 
-    debugger;
     if( action === 'hide' ) {
-      this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
+      await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
 
       // update graph/display data
-      // let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
-      // if( citation ) citation.relatedBy['is-visible'] = false;
-      // citation = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
-      // if( citation ) citation.relatedBy['is-visible'] = false;
-      // citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
-      // if( citation ) citation.relatedBy['is-visible'] = false;
-      // this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+      let grant = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];
+      if( grant ) grant.relatedBy['is-visible'] = false;
+      grant = this.grantsActiveDisplayed.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];
+      if( grant ) grant.relatedBy['is-visible'] = false;
+      grant = this.grantsCompletedDisplayed.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];
+      if( grant ) grant.relatedBy['is-visible'] = false;
+
+      this.totalGrants = this.grants.length;
+      this.hiddenGrants = this.grants.filter(g => !g.relatedBy?.['is-visible']).length;
 
       this.requestUpdate();
     }
@@ -360,6 +360,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
+    this.AppStateModel.store.data.modifiedGrants = this.modifiedGrants;
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 
