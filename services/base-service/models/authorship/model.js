@@ -120,15 +120,15 @@ class AuthorshipModel extends BaseModel {
     };
     resp = await finApi.patch(options);
 
-    if (config.experts.cdl_propogate_changes) {
+    if (config.experts.cdl_propagate_changes) {
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
       resp = await cdl_user.setLinkPrivacy({
         objectId: patch.objectId,
         privacy: patch.visible ? 'public' : 'internal'
       })
-      logger.info({cdl_response:resp},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
     } else {
-      logger.info({cdl_response:null},`XCDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl_propagate_changes}`);
     }
   }
 
@@ -227,17 +227,17 @@ class AuthorshipModel extends BaseModel {
 
     await finApi.delete(options);
 
-    if (config.experts.cdl_propogate_changes) {
+    if (config.experts.cdl_propagate_changes) {
       let linkId=id.replace("ark:/87287/d7mh2m/relationship/","");
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
-      logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
       resp = await cdl_user.reject({
         linkId: linkId,
         objectId: objectId
       })
-      logger.info({cdl_response:resp},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
     } else {
-      logger.info({cdl:null},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl:null},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
     }
 
   }

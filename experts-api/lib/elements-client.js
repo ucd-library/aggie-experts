@@ -59,6 +59,20 @@ export class Impersonator {
     this.expires=Date.now() + 1000 * 60 * 60; // 1 hour
   }
 
+  async fetchWithTimeout(url, options={}) {
+    const { timeout = 8000 } = options;
+    const controller = options.abort_controller || new AbortController();
+    delete options.abort_controller;
+    const id = setTimeout(() => controller.abort(), timeout);
+
+    const response = await this.fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  }
+
   async secret() {
     if ( ! this.cdl.secret) {
       const gs = new GoogleSecrets();
@@ -106,7 +120,7 @@ export class Impersonator {
     }
 
     // setup login cookies and session
-    let resp = await this.fetch(this.cdl.host);
+    let resp = await this.fetchWithTimeout(this.cdl.host);
     // get return url
     let returnUrl = new URL(
       new URL(resp.url).searchParams.get('return')
@@ -121,7 +135,7 @@ export class Impersonator {
     // add entityId to return url
     returnUrl.searchParams.set('entityID', entityId);
 
-    resp = await this.fetch(returnUrl);
+    resp = await this.fetchWithTimeout(returnUrl);
 
     // grab the login form fields and form path
     let respText = await resp.text();
@@ -138,7 +152,7 @@ export class Impersonator {
     //console.log('loginUrl\n', loginUrl, '\nformData\n', formData);
 
     // submit login form, this will redirect with saml request fields
-    resp = await this.fetch(loginUrl, {
+    resp = await this.fetchWithTimeout(loginUrl, {
       method: method.toUpperCase(),
       body: formData.toString(),
       headers: {
@@ -162,15 +176,14 @@ export class Impersonator {
 
     // create a new AbortController for each request
     const controller = new AbortController();
-    const signal = controller.signal;
 
-    resp = await this.fetch(samlUrl, {
+    resp = await this.fetchWithTimeout(samlUrl, {
       method : samlMethod,
       body: formData.toString(),
+      abort_controller: controller,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      signal
+      }
     });
 
     //console.log(`login ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
@@ -181,7 +194,7 @@ export class Impersonator {
 
   async impersonate() {
     // Get the impersonation token's via cookie
-    let resp = await this.fetch(`${this.cdl.host}/impersonate.html?ii=false`);
+    let resp = await this.fetchWithTimeout(`${this.cdl.host}/impersonate.html?ii=false`);
     let csrfToken;
     try {
       let text=await resp.text();
@@ -198,15 +211,14 @@ export class Impersonator {
     formData.append('com', 'impersonate');
 
     const controller = new AbortController();
-    const signal = controller.signal;
 
-    resp = await this.fetch(`${this.cdl.host}/impersonate.html`, {
+    resp = await this.fetchWithTimeout(`${this.cdl.host}/impersonate.html`, {
       method: 'POST',
       body: formData,
+      abort_controller: controller,
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      signal
+      }
     });
     //console.log(`impersonate ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
     controller.abort();
@@ -218,7 +230,7 @@ export class Impersonator {
       throw new Error('Not impersonating any userId');
     }
 
-    let resp = await this.fetch(`${this.cdl.host}/userprofile.html?uid=${this.userId}&em=true`);
+    let resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html?uid=${this.userId}&em=true`);
     let html = await resp.text();
     // remove error causing script
     html=html.replace('<script>jQuery.noConflict();</script>', '');
@@ -239,7 +251,7 @@ export class Impersonator {
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    resp = await this.fetch(`${this.cdl.host}/userprofile.html`, {
+    resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html`, {
       method: 'POST',
       body: formData,
       headers
@@ -270,7 +282,7 @@ export class Impersonator {
     headers['accept'] = 'application/json';
 
     // console.log('formData', formData);
-    let resp = await this.fetch(`${this.cdl.host}/listobjects.html`, {
+    let resp = await this.fetchWithTimeout(`${this.cdl.host}/listobjects.html`, {
       method: 'POST',
       body: formData,
       headers

@@ -71,7 +71,7 @@ class GrantRoleModel extends BaseModel {
     let expert;
     let resp;
 
-    logger.info(`Patching ${expertId}:`,patch);
+    logger.info(`grant_role.patch for ${expertId}:`,patch);
     if (patch.visible == null && patch.favourite == null) {
       return 400;
     }
@@ -80,11 +80,10 @@ class GrantRoleModel extends BaseModel {
     const expertModel = await this.get_model('expert');
     let node;
 
-    console.log('patching grant!!!')
     try {
       expert = await expertModel.client_get(expertId);
       node = this.get_node_by_related_id(expert,id);
-      let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+      let node_id = node['@id'].replace("ark:/87287/d7mh2m/grant/","");
       if (!patch.objectId) {
         patch.objectId = node_id;
       }
@@ -126,16 +125,22 @@ class GrantRoleModel extends BaseModel {
 
     console.log({ options, bad_id, patch, expertId, resp });
 
-    // if (config.experts.cdl_propogate_changes) {
-    //   const cdl_user = await expertModel._impersonate_cdl_user(expert);
-    //   resp = await cdl_user.setLinkPrivacy({
-    //     objectId: patch.objectId,
-    //     privacy: patch.visible ? 'public' : 'internal'
-    //   })
-    //   logger.info({cdl_response:resp},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
-    // } else {
-    //   logger.info({cdl_response:null},`XCDL propogate changes ${config.experts.cdl_propogate_changes}`);
-    // }
+    if (config.experts.cdl_propagate_changes) {
+      const cdl_user = await expertModel._impersonate_cdl_user(expert);
+      if (patch.visible != null) {
+        resp = await cdl_user.setLinkPrivacy({
+          objectId: patch.objectId,
+          privacy: patch.visible ? 'public' : 'internal'
+        })
+        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl_propagate_changes}`);
+      }
+      if (patch.favourite != null) {
+        resp = await cdl_user.setFavourite(patch)
+        logger.info({cdl_response:resp},`CDL propagate favourite ${config.experts.cdl_propagate_changes}`);
+      }
+    } else {
+        logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl_propagate_changes}`);
+      }
   }
 
   /**
