@@ -28,6 +28,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
+      hideOaPolicyLink : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -59,6 +60,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = false;
+    this.hideOaPolicyLink = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -94,6 +96,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     window.scrollTo(0, 0);
 
+    this.modifiedGrants = false;
     let expertId = e.location.pathname.replace('/grants-edit/', '');
     let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
 
@@ -293,6 +296,49 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+  }
+
+  /**
+   * @method _showWork
+   * @description show work
+   */
+  async _showGrant(e) {
+    this.grantId = e.currentTarget.dataset.id;
+    await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
+
+    this.modifiedGrants = true;
+
+    let expert = await this.ExpertModel.get(this.expertId, true);
+    this._onExpertUpdate(expert);
+  }
+
+  /**
+   * @method _modalSave
+   * @description modal save event
+   */
+  async _modalSave(e) {
+    e.preventDefault();
+    this.showModal = false;
+
+    let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
+
+    this.modifiedWorks = true;
+
+    if( action === 'hide' ) {
+      this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
+
+      // update graph/display data
+      // let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      // if( citation ) citation.relatedBy['is-visible'] = false;
+      // citation = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      // if( citation ) citation.relatedBy['is-visible'] = false;
+      // citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      // if( citation ) citation.relatedBy['is-visible'] = false;
+      // this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+
+      this.requestUpdate();
+    }
   }
 
   /**

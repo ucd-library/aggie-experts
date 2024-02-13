@@ -535,6 +535,7 @@ return html`
       .hideCancel="${this.hideCancel}"
       .hideSave="${this.hideSave}"
       .hideOK="${this.hideOK}"
+      .hideOaPolicyLink="${this.hideOaPolicyLink}"
       @cancel=${(e) => this.showModal = false}
       @save=${(e) => this.showModal = false}>
     </app-modal-overlay>

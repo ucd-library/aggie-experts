@@ -44,6 +44,7 @@ export default class AppExpert extends Mixin(LitElement)
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
+      hideOaPolicyLink : { type : Boolean },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
@@ -195,6 +196,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = false;
+    this.hideOaPolicyLink = false;
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
@@ -376,6 +378,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
   }
 
   /**
@@ -389,6 +392,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
   }
 
   /**
@@ -466,6 +470,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideCancel = true;
     this.hideSave = true;
     this.hideOK = false;
+    this.hideOaPolicyLink = true;
   }
 
 }

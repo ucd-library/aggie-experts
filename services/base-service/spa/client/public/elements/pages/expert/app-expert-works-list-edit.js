@@ -27,6 +27,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
+      hideOaPolicyLink : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -57,6 +58,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = false;
+    this.hideOaPolicyLink = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -307,6 +309,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
   }
 
   /**
@@ -382,6 +385,23 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+  }
+
+  /**
+   * @method _addNewWorkClicked
+   * @description show modal with link to add work
+   */
+  _addNewWorkClicked(e) {
+    e.preventDefault();
+    // this.AppStateModel.setLocation('/works-add/'+this.expertId);
+    this.modalTitle = 'Add New Work';
+    this.modalContent = `<p>New works are added, claimed or rejected view the <strong>UC Publication Management System.</strong></p><p>You will be redirected to this system.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = true;
+    this.hideOK = true;
+    this.hideOaPolicyLink = false;
   }
 
   /**
