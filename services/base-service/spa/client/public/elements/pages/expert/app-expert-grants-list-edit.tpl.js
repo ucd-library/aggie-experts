@@ -273,7 +273,7 @@ return html`
       .hideOK="${this.hideOK}"
       .hideOaPolicyLink="${this.hideOaPolicyLink}"
       @cancel=${(e) => this.showModal = false}
-      @save=${(e) => this.showModal = false}>
+      @save=${this._modalSave}>
     </app-modal-overlay>
     <div class="hero-main site-frame">
       <div class="hero-text">

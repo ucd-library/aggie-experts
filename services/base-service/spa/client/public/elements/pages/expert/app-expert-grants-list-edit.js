@@ -290,6 +290,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    * @description show modal with link to hide grant
    */
   _hideGrant(e) {
+    this.grantId = e.currentTarget.dataset.id;
+
     this.modalTitle = 'Hide Grant';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this grant?</p>`;
     this.showModal = true;
@@ -323,8 +325,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
 
-    this.modifiedWorks = true;
+    this.modifiedGrants = true;
 
+    debugger;
     if( action === 'hide' ) {
       this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
 
