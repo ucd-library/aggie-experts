@@ -47,7 +47,7 @@ class AuthorshipModel extends BaseModel {
     let expert;
     let resp;
 
-    logger.info(`Patching ${expertId} authorship:`,patch);
+    logger.info({patch},`authorship.patch ${expertId}:`);
     if (patch.visible == null && patch.favourite == null) {
       return 400;
     }
@@ -83,15 +83,15 @@ class AuthorshipModel extends BaseModel {
       content: `
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
-          ${patch.visible != null ? `${id} ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`${id} ucdlib:is-favourite ?f .`:''}
+          ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`<${id}> ucdlib:is-favourite ?f .`:''}
         }
         INSERT {
-          ${patch.visible != null ?`${id} ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`${id} ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`<${id}> ucdlib:is-favourite ${patch.favourite} .`:''}
         } WHERE {
-          ${id} ucdlib:is-visible ?v .
-          OPTIONAL { ${id} ucdlib:is-favourite ?fav } .
+          <${id}> ucdlib:is-visible ?v .
+          OPTIONAL { <${id}> ucdlib:is-favourite ?fav } .
         }
       `
     };

@@ -49,7 +49,7 @@ class GrantRoleModel extends BaseModel {
     let expert;
     let resp;
 
-    logger.info(`grant_role.patch for ${expertId}:`,patch);
+    logger.info({patch},`grant_role.patch for ${expertId}:`);
     if (patch.visible == null && patch.favourite == null) {
       return 400;
     }
@@ -79,29 +79,27 @@ class GrantRoleModel extends BaseModel {
     await expertModel.update_graph_node(expertId,node);
 
     // Update FCREPO
-    // let bad_id = `<http://experts.ucdavis.edu/${id}>`
-    let bad_id = `${id}`
 
     let options = {
       path: expertId + '/' + id,
       content: `
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
-          ${patch.visible != null ? `${bad_id} ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`${bad_id} ucdlib:is-favourite ?f .`:''}
+          ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`<${id}> ucdlib:is-favourite ?fav .`:''}
         }
         INSERT {
-          ${patch.visible != null ?`${bad_id} ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`${bad_id} ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`<${id}> ucdlib:is-favourite ${patch.favourite} .`:''}
         } WHERE {
-          ${bad_id} ucdlib:is-visible ?v .
-          OPTIONAL { ${bad_id} ucdlib:is-favourite ?fav } .
+          <${id}> ucdlib:is-visible ?v .
+          OPTIONAL { <${id}> ucdlib:is-favourite ?fav } .
         }
       `
     };
     resp = await finApi.patch(options);
 
-    console.log({ options, bad_id, patch, expertId, resp });
+    console.log({ options, id, patch, expertId, resp });
 
     if (config.experts.cdl_propagate_changes) {
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
