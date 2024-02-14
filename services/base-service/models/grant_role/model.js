@@ -36,28 +36,6 @@ class GrantRoleModel extends BaseModel {
     return doc;
   }
 
-  /**
-   * @method get_node_by_related_id
-   * @description Get elasticsearch node by id
-   * @param {Object} doc : elasticsearch doc
-   * @param {String} id : node id
-   * @returns {Object} : elasticsearch node
-   **/
-  get_node_by_related_id(doc,id) {
-    const nodes = [];
-    for(let i=0; i<doc['@graph'].length; i++) {
-      if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
-        nodes.push(doc['@graph'][i]);
-      }
-    }
-    if (nodes.length === 0) {
-      throw new Error(`Unable to find node with relatedBy{"@id"="${id}"}`);
-    }
-    if (nodes.length > 1) {
-      throw new Error(`Found multiple nodes with relatedBy{"@id"="${id}"}`);
-    }
-    return nodes[0];
-  }
 
   /**
    * @method patch
