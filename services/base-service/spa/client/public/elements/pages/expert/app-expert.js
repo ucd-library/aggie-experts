@@ -254,7 +254,7 @@ export default class AppExpert extends Mixin(LitElement)
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
       if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-      // this.totalCitations = citations.length;
+      this.totalCitations = citations.length;
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
