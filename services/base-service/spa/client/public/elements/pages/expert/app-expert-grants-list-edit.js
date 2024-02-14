@@ -29,6 +29,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
       hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -61,6 +62,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = false;
     this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -297,6 +299,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = true;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**

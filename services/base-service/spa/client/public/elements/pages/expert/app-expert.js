@@ -45,6 +45,7 @@ export default class AppExpert extends Mixin(LitElement)
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
       hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
@@ -198,6 +199,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = false;
     this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
@@ -252,9 +254,10 @@ export default class AppExpert extends Mixin(LitElement)
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
       if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+      // this.totalCitations = citations.length;
     }
 
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
@@ -380,6 +383,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = true;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -394,6 +398,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = true;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -472,6 +477,20 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideSave = true;
     this.hideOK = false;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  _cdlErrorModal(e) {
+    e.preventDefault();
+
+    this.modalTitle = 'Error: Update Failed';
+    this.modalContent = `<p>TITLE OF WORK could not be updated. Please try again in awhile or make your changes directly in the UC Publication Managment System.</p><p>For more help, see <a href="">toubleshooting tips.</a></p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = true;
   }
 
 }
