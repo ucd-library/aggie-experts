@@ -100,21 +100,20 @@ class AuthorshipModel extends BaseModel {
     await expertModel.update_graph_node(expertId,node);
 
     // Update FCREPO
-    let bad_id = `<http://experts.ucdavis.edu/${id}>`
     let options = {
       path: expertId + '/' + id,
       content: `
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
-          ${patch.visible != null ? `${bad_id} ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`${bad_id} ucdlib:is-favourite ?f .`:''}
+          ${patch.visible != null ? `${id} ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`${id} ucdlib:is-favourite ?f .`:''}
         }
         INSERT {
-          ${patch.visible != null ?`${bad_id} ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`${bad_id} ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.visible != null ?`${id} ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`${id} ucdlib:is-favourite ${patch.favourite} .`:''}
         } WHERE {
-          ${bad_id} ucdlib:is-visible ?v .
-          OPTIONAL { ${bad_id} ucdlib:is-favourite ?fav } .
+          ${id} ucdlib:is-visible ?v .
+          OPTIONAL { ${id} ucdlib:is-favourite ?fav } .
         }
       `
     };
