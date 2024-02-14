@@ -111,7 +111,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
-    this.canEdit = APP_CONFIG.user.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId;
+    this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId;
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
@@ -171,7 +171,7 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _reset() {
     let acExpertId = APP_CONFIG.user?.expertId;
-    let impersonatingExpertId = APP_CONFIG.impersonating?.expertId;
+    let impersonatingExpertId = utils.getCookie('impersonateId');
 
     this.expert = {};
     this.expertName = '';
@@ -220,7 +220,7 @@ export default class AppExpert extends Mixin(LitElement)
    *
   */
   toggleAdminUi() {
-    this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId);
+    this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId);
   }
 
   _showMoreAboutMeClick(e) {
@@ -434,14 +434,15 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideImpersonate = true;
     this.expertImpersonating = this.expertId;
 
-    APP_CONFIG.impersonating = {
-      expertId : this.expertId,
-      expertName : this.expertName
-    };
 
     // dispatch event to fin-app
     this.dispatchEvent(
-      new CustomEvent("impersonate", {})
+      new CustomEvent("impersonate", {
+        detail : {
+          expertId : this.expertId,
+          expertName : this.expertName
+        }
+      })
     );
 
     this.canEdit = true;
@@ -484,7 +485,11 @@ export default class AppExpert extends Mixin(LitElement)
     e.preventDefault();
 
     this.modalTitle = 'Error: Update Failed';
-    this.modalContent = `<p>TITLE OF WORK could not be updated. Please try again in awhile or make your changes directly in the UC Publication Managment System.</p><p>For more help, see <a href="">toubleshooting tips.</a></p>`;
+    let rejectFailureMsg = `<p>Rejecting (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
+    let visibilityFailureMsgGrant = `<p>Changes to the visibility of (Title of Grant) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+    let visibilityFailureMsgWork = `<p>Changes to the visibility of (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+    this.modalContent = rejectFailureMsg;
     this.showModal = true;
     this.hideCancel = true;
     this.hideSave = true;
