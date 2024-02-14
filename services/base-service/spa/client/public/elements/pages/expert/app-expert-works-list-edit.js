@@ -8,6 +8,8 @@ import '../../components/modal-overlay.js';
 
 import { generateCitations } from '../../utils/citation.js';
 
+import utils from '../../../lib/utils';
+
 export default class AppExpertWorksListEdit extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
@@ -98,7 +100,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.modifiedWorks = false;
     let expertId = e.location.pathname.replace('/works-edit/', '');
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
@@ -158,7 +160,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
       if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-      // this.totalCitations = citations.length;
+      this.totalCitations = citations.length;
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
@@ -383,7 +385,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.citationId = e.currentTarget.dataset.id;
 
     this.modalTitle = 'Reject Work';
-    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
+    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from your Aggie Experts profile. To reclaim this item, you must do so via the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
