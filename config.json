@@ -2,6 +2,11 @@
   "project":"${G[project]}",
   "env":"${G[env]}",
   "envs": {
+    "default":{
+      "cdl":{
+        "propagate_changes":"false"
+      }
+    },
     "dev":{
       "mount":"spa",
       "auth": {
@@ -103,7 +108,10 @@
       },
       "gcs":"fcrepo-prod",
       "host":"https://experts.ucdavis.edu",
-      "branch":"main"
+      "branch":"main",
+      "cdl":{
+        "propagate_changes":"true"
+      }
     }
   },
   "template": {
