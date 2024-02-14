@@ -45,6 +45,7 @@ export default class AppExpert extends Mixin(LitElement)
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
       hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
@@ -77,7 +78,8 @@ export default class AppExpert extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.substr(1);
-    if( expertId === this.expertId && !e.modifiedWorks ) return;
+    let modified = e.modifiedWorks || e.modifiedGrants;
+    if( expertId === this.expertId && !modified ) return;
 
     this._reset();
 
@@ -85,7 +87,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     try {
       let expert = await this.ExpertModel.get(expertId, true);
-      this._onExpertUpdate(expert, e.modifiedWorks);
+      this._onExpertUpdate(expert, modified);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -100,12 +102,12 @@ export default class AppExpert extends Mixin(LitElement)
    * @description bound to ExpertModel expert-update event
    *
    * @return {Object} e
-   * @return {Boolean} modifiedWorks
+   * @return {Boolean} modified
    */
-  async _onExpertUpdate(e, modifiedWorks=false) {
+  async _onExpertUpdate(e, modified=false) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'expert' ) return;
-    if( e.id === this.expertId && !modifiedWorks ) return;
+    if( e.id === this.expertId && !modified ) return;
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
@@ -197,6 +199,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = false;
     this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
@@ -251,9 +254,10 @@ export default class AppExpert extends Mixin(LitElement)
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
       if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+      // this.totalCitations = citations.length;
     }
 
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
@@ -379,6 +383,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = true;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -393,6 +398,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = true;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -471,6 +477,20 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideSave = true;
     this.hideOK = false;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  _cdlErrorModal(e) {
+    e.preventDefault();
+
+    this.modalTitle = 'Error: Update Failed';
+    this.modalContent = `<p>TITLE OF WORK could not be updated. Please try again in awhile or make your changes directly in the UC Publication Managment System.</p><p>For more help, see <a href="">toubleshooting tips.</a></p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = true;
   }
 
 }

@@ -28,6 +28,20 @@ export default function render() {
         background-color: rgba(0,0,0,0.5);
       }
 
+      .container.error-mode .overlay {
+        background-color: var(--color-double-decker);
+      }
+
+      .container.error-mode .overlay h4,
+      .container.error-mode .overlay p,
+      .container.error-mode .overlay a {
+        color: white;
+      }
+
+      .container.error-mode .overlay .header-section ucdlib-icon {
+        fill: white;
+      }
+
       .overlay {
         position: absolute;
         top: 50%;
@@ -108,7 +122,7 @@ export default function render() {
     </style>
 
 
-    <div class="container">
+    <div class="container${this.errorMode ? ' error-mode' : ''}">
       <div class="overlay">
         <div class="header-section">
           <h4>${this.title}</h4>

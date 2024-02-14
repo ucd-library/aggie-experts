@@ -28,6 +28,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
       hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -59,6 +60,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = false;
     this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -155,8 +157,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
       if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
-
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+      // this.totalCitations = citations.length;
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
@@ -310,6 +312,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = true;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -339,7 +342,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modifiedWorks = true;
 
     if( action === 'hide' ) {
-      this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+      await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
 
       // update graph/display data
       let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
@@ -352,7 +355,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this.requestUpdate();
     } else if ( action === 'reject' ) {
-      this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+      await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
 
       // remove citation from graph/display data
       // also if total citations > 25, need to reorganize
@@ -386,6 +389,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideSave = false;
     this.hideOK = true;
     this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -402,6 +406,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideSave = true;
     this.hideOK = true;
     this.hideOaPolicyLink = false;
+    this.errorMode = false;
   }
 
   /**

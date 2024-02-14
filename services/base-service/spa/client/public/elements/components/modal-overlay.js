@@ -19,7 +19,8 @@ export class ModalOverlay extends LitElement {
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
-      hideOaPolicyLink : { type : Boolean }
+      hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean }
     };
   }
 
@@ -34,6 +35,7 @@ export class ModalOverlay extends LitElement {
     this.hideSave = false;
     this.hideOK = false;
     this.hideOaPolicyLink = false;
+    this.errorMode = false;
 
     window.addEventListener('keydown', (e) => {
       if( !this.visible ) return;
