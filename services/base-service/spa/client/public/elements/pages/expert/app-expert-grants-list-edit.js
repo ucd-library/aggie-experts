@@ -309,7 +309,25 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   async _showGrant(e) {
     this.grantId = e.currentTarget.dataset.id;
 
-    await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
+    try {
+      let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
+    } catch (error) {
+      // TODO handle different error codes?
+
+      let grantTitle = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)?.[0]?.name || '';
+      let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+      this.modalTitle = 'Error: Update Failed';
+      this.modalContent = modelContent;
+      this.showModal = true;
+      this.hideCancel = true;
+      this.hideSave = true;
+      this.hideOK = false;
+      this.hideOaPolicyLink = true;
+      this.errorMode = true;
+
+      return;
+    }
 
     this.modifiedGrants = true;
 
@@ -330,7 +348,25 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.modifiedGrants = true;
 
     if( action === 'hide' ) {
-      await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
+      try {
+        let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
+      } catch (error) {
+        // TODO handle different error codes?
+
+        let grantTitle = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)?.[0]?.name || '';
+        let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+        return;
+      }
 
       // update graph/display data
       let grant = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];

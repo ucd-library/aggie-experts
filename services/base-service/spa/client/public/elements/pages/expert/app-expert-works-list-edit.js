@@ -169,7 +169,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
-    console.log('this.citationsDisplayed', this.citationsDisplayed.map(c => 'is-visible: ' + c.relatedBy?.['is-visible']));
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
@@ -323,7 +322,27 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _showWork(e) {
     this.citationId = e.currentTarget.dataset.id;
-    await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+
+    try {
+      let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+    } catch (error) {
+      // TODO handle different error codes?
+
+      let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+      let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+      this.modalTitle = 'Error: Update Failed';
+      this.modalContent = modelContent;
+      this.showModal = true;
+      this.hideCancel = true;
+      this.hideSave = true;
+      this.hideOK = false;
+      this.hideOaPolicyLink = true;
+      this.errorMode = true;
+
+      return;
+    }
+
 
     this.modifiedWorks = true;
 
@@ -344,7 +363,26 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modifiedWorks = true;
 
     if( action === 'hide' ) {
-      await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+      try {
+        let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+      } catch (error) {
+        debugger;
+        // TODO handle different error codes?
+
+        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+        let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+        return;
+      }
 
       // update graph/display data
       let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
@@ -357,7 +395,26 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this.requestUpdate();
     } else if ( action === 'reject' ) {
-      await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+      try {
+        let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+      } catch (error) {
+        debugger;
+        // TODO handle different error codes?
+
+        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+        let modelContent = `<p>Rejecting (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+        return;
+      }
 
       // remove citation from graph/display data
       // also if total citations > 25, need to reorganize
