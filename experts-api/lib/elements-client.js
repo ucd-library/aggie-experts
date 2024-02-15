@@ -272,7 +272,6 @@ export class Impersonator {
     const formData = new FormData();
     formData.append('__csrf_token', csrfToken);
     formData.append('adminMode', 'false');
-    formData.append('categoryId', 1);
 
     for (let key in data) {
         formData.append(key, data[key]);
@@ -281,7 +280,7 @@ export class Impersonator {
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    // console.log('formData', formData);
+    console.log('formData', formData);
     let resp = await this.fetchWithTimeout(`${this.cdl.host}/listobjects.html`, {
       method: 'POST',
       body: formData,
@@ -292,15 +291,22 @@ export class Impersonator {
     return json;
   }
 
+  /**
+   * @method setLinkPrivacy - Set the privacy of a link
+   * @param {object}
+
+   * @returns {Promise<Response>}
+   */
   async setLinkPrivacy(data) {
     const level = {
       public: 0,
       internal: 50,
       private: 100,
     };
-    return await this.listobjects({
+     return await this.listobjects({
       com: 'setLinkPrivacy',
       objectId: data.objectId,
+      categoryId:data.categoryId,
       linkPrivacyLevel: level[data.privacy]
     });
   }

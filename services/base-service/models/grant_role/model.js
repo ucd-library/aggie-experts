@@ -106,6 +106,7 @@ class GrantRoleModel extends BaseModel {
       if (patch.visible != null) {
         resp = await cdl_user.setLinkPrivacy({
           objectId: patch.objectId,
+          categoryId: 2,
           privacy: patch.visible ? 'public' : 'internal'
         })
         logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl_propagate_changes}`);

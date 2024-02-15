@@ -101,6 +101,7 @@ class AuthorshipModel extends BaseModel {
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
       resp = await cdl_user.setLinkPrivacy({
         objectId: patch.objectId,
+        categoryId: 1,
         privacy: patch.visible ? 'public' : 'internal'
       })
       logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
