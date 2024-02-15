@@ -31,7 +31,7 @@ const fuseki = new FusekiClient({
   type: 'tdb',
   replace: false,
   'delete': false,
-  db: 'experts'
+  db: 'aggie'
 });
 
 const cdl = {

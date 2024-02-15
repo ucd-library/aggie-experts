@@ -1,5 +1,4 @@
 # Query for grants
-
 PREFIX : <ark:/87287/d7gt0q/schema#>
 PREFIX ae: <ark:/87287/d7c08j/>
 PREFIX iam: <http://iam.ucdavis.edu/>
@@ -17,7 +16,7 @@ select distinct
 ("grant" AS ?category)
 ("c-davis" AS ?type)
 ("" AS ?url)
-?institution_reference
+(?grant as ?institution_reference)
 ?flowThruFunding
 ?title
 ?pi
@@ -25,72 +24,44 @@ select distinct
 ?start_date
 ?end_date
 ?ucop_sponsor
-(?funder AS ?funder_name)
-(?reference AS ?funder_reference)
-(?amount AS ?amount_value)
+?funder_name
+?funder_reference
+?amount_value
 ("USD" AS ?amount_currency_code)
 ("TRUE" AS ?visible)
-#select ?grant ?cas ?e_role ?title ?start_date ?end_date ?funder ?reference ?amount ?amt_type
-#DESCRIBE ?grant
 where {
-   VALUES (?role ?link_type_id ?e_role) {
-       (:GrantCoPrincipalInvestigatorRole "121" "Co-PI of")
-       (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
-     }
   GRAPH kfs: {
-  ?grant a vivo:Grant;
-        #  ucdlib:grantType/rdfs:label ?funding_type;
-         rdfs:label ?title;
-         ucdlib:piName ?pi;
-         vivo:dateTimeInterval [
-                                 vivo:start/vivo:dateTime ?start_date;
-                                 vivo:end/vivo:dateTime ?end_date;
-                               ];
-
-       vivo:relates [
-            a ?role;
-                 a :GrantPrincipalInvestigatorRole;
-                 obo:RO_0000052 ?expert;
-               ];
-      .
-  OPTIONAL {
-    ?grant ucdlib:flowThruFunding ?ftf;
-    bind(uri(replace(str(?ftf),"ark:/87287/d7gt0q/funding_org/","http://rems.ucop.edu/sponsor/")) as ?flowThruFunding)
-  }
-  # OPTIONAL {
-  #       ?grant ucdlib:grantType/rdfs:label ?funding_type;
-  # }
-
-  OPTIONAL {
-    ?grant vivo:assignedBy ?sponsor;
-           vivo:sponsorAwardId ?reference;
-           .
-      ?sponsor rdfs:label ?funder;
-           .
-      bind(uri(replace(str(?sponsor),"ark:/87287/d7gt0q/funding_org/","http://rems.ucop.edu/sponsor/")) as ?ucop_sponsor)
-  }
-  OPTIONAL {
-    ?grant vivo:totalAwardAmount ?amount
+    ?grant a vivo:Grant,?grant_class ;
+              rdfs:label ?title;
+              ucdlib:piName ?pi;
+              vivo:totalAwardAmount ?amount_value;
+              vivo:dateTimeInterval [
+                                      vivo:start/vivo:dateTime ?start_date;
+                                      vivo:end/vivo:dateTime ?end_date;
+                                    ];
     .
-     filter(xsd:decimal(?amount) > 0)
-  }
-  }
-  filter not exists {
-    ?grant ucdlib:oracle_award_nbr ?oracle;
-           .
-  }
-  OPTIONAL {
-  graph iam: {
-    ?expert ucdlib:userId ?cas.
-  }
 
-  GRAPH cdl: {
-      ?expert ucdlib:proprietary_id ?ucpath .
+    VALUES (?funding_type ?grant_class) {
+      ("Instruction" :GrantTypeInstruction)
+      ("Research" :GrantTypeResearch)
+      ("Service /Other" :GrantTypeService)
+      ("Academic Support" :GrantTypeAcademicSupport)
+      ("Student Services" :GrantTypeStudentService)
+      ("Scholarships / Fellowships" :GrantTypeScholarship)
+      ("Research" :GrantTypeDefault)
     }
+
+    OPTIONAL {
+      ?grant ucdlib:flowThruFunding ?flowThruFunding.
+    }
+
+    OPTIONAL {
+      ?grant vivo:assignedBy ?ucop_sponsor;
+             vivo:sponsorAwardId ?funder_reference;
+             .
+      ?ucop_sponsor rdfs:label ?funder_name.
+    }
+    # This filters grants without a value oracle_award_number
+    filter(! regex(str(?grant),"K-"))
   }
-  BIND (?grant AS ?institution_reference) .
-}
-
-# order by ?grant
-
-#limit 100
+} order by ?id limit 100

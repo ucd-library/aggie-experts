@@ -13,43 +13,32 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX iam: <http://iam.ucdavis.edu/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 
-select ?category_1 ?id_1 ?category_2 ?id_2 ?link_type_id ("TRUE" as ?visible)
-  WHERE {
-    VALUES (?role ?link_type_id ?e_role) {
-#       (:GrantAccountManagerRole "183" "Researcher on" )
-       (:GrantOtherRole "138" "Researcher on" )
-       (:GrantProjectLeaderRole "118" "Project Lead of")
-       (:GrantCoPrincipalInvestigatorRole "121" "Co-PI of")
-       (:GrantProgramDirectorRole "137" "Program Director of")
-       (:GrantCoreLeaderRole "119" "Co leader on")
-       (:GrantKeyPersonnelRole "97" "Senior personal of")
-       (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
-     }
-
-    GRAPH kfs: {
-        ?grant a vivo:Grant;
-               vivo:relates [ a :GrantPrincipalInvestigatorRole;
-               obo:RO_0000052 ?pi];
-               vivo:relates ?related
-               .
-   	?related a ?role ;
-               obo:RO_0000052 ?expert;
-               .
-
+select ("user" as ?category_1) (?ucpath as ?id_1)
+("grant" as ?category_2) (?grant as ?id_2)
+?link_type_id ("TRUE" as ?visible)
+WHERE {
+  VALUES (?role ?link_type_id ?e_role) {
+    #       (:GrantAccountManagerRole "183" "Researcher on" )
+    (:GrantOtherRole "138" "Researcher on" )
+    (:GrantProjectLeaderRole "118" "Project Lead of")
+    (:GrantCoPrincipalInvestigatorRole "121" "Co-PI of")
+    (:GrantProgramDirectorRole "137" "Program Director of")
+    (:GrantCoreLeaderRole "119" "Co leader on")
+    (:GrantKeyPersonnelRole "97" "Senior personal of")
+    (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
   }
-
-  graph iam: {
-	  ?expert ucdlib:userId ?cas.
-
-  	}
-
+  graph kfs: {
+    ?grant a vivo:Grant;
+           vivo:relates ?related;
+           .
+    ?related a ?role ;
+    obo:RO_0000052 ?expert;
+    .
+    # This filters grants without a value oracle_award_number
+    filter(! regex(str(?grant),"K-"))
+  }
 
   GRAPH cdl: {
-	    ?expert ucdlib:proprietary_id ?ucpath .
-    }
-
-      bind("user" as ?category_1)
-      bind("grant" as ?category_2)
-      bind(?ucpath as ?id_1)
-      bind(?grant as ?id_2)
+	  ?expert ucdlib:proprietary_id ?ucpath .
   }
+} order by ?id_2 ?id_1
