@@ -99,7 +99,7 @@ class GrantRoleModel extends BaseModel {
     };
     resp = await finApi.patch(options);
 
-    console.log({ options, id, patch, expertId, resp });
+//    console.log({ options, id, patch, expertId, resp });
 
     if (config.experts.cdl_propagate_changes) {
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
