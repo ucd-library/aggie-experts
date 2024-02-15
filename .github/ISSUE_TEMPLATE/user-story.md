@@ -1,7 +1,7 @@
 ---
 name: User Story
 about: Describe the functionality from the user's POV
-title: "[Issue]"
+title: "_Add User Story Title_"
 labels: user story
 assignees: ""
 
