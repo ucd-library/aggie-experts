@@ -27,7 +27,7 @@ noop:  ## Run a bash shell in the container
 
 .PHONY: server_startup
 
-server_startup: ${FUSEKI_BASE}/databases/hdt/grants.hdt ${FUSEKI_BASE}/databases/hdt/iam.hdt
+server_startup: ${FUSEKI_BASE}/databases/hdt/iam.hdt
 	export FUSEKI_BASE=${FUSEKI_BASE};\
 	. /fuseki-functions.sh; \
   cp -r /etc/fuseki/* ${FUSEKI_BASE}; \
@@ -57,12 +57,11 @@ hdt-pull: ## Pull HDT files from GCS_GRAPH_STORAGE
 
 INFO:: ## When HDT=import
 ifeq (${HDT},import)
-.PHONY: iam.hdt grants.hdt
+.PHONY: iam.hdt
 
 iam.hdt:${FUSEKI_BASE}/databases/hdt/iam.hdt ## Import iam.hdt file (HDT=import)
-grants.hdt:${FUSEKI_BASE}/databases/hdt/grants.hdt ## Import grants.hdt file (HDT=import)
 
-${FUSEKI_BASE}/databases/hdt/grants.hdt ${FUSEKI_BASE}/databases/hdt/iam.hdt:${FUSEKI_BASE}/databases/hdt/%.hdt:
+${FUSEKI_BASE}/databases/hdt/iam.hdt:${FUSEKI_BASE}/databases/hdt/%.hdt:
 	[[ -d databases/hdt ]] || mkdir -p databases/hdt
 	gsutil rsync -r ${hdt-bucket}/hdt/ databases/hdt/
 
@@ -74,35 +73,28 @@ endif
 INFO:: ## When HDT=stubs
 ifeq (${HDT},stubs)
 
-define grants.stub
-<http://experts.ucdavis.edu/fis/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://experts.ucdavis.edu/schema#Graph>.
-endef
 define iam.stub
 <http://experts.ucdavis.edu/private/iam/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://experts.ucdavis.edu/schema#Graph>.
 endef
 
-.PHONY: stubs iam.hdt grants.hdt
+.PHONY: stubs iam.hdt
 
 iam.hdt:${FUSEKI_BASE}/databases/hdt/iam.hdt ## Create Stub iam.hdt file (HDT=stubs)
-grants.hdt:${FUSEKI_BASE}/databases/hdt/grants.hdt ## Create Stub grants.hdt file (HDT=stubs)
 
-stubs: ${FUSEKI_BASE}/databases/hdt/iam.hdt ${FUSEKI_BASE}/databases/hdt/grants.hdt
+stubs: ${FUSEKI_BASE}/databases/hdt/iam.hdt
 
 INFO::
-	@echo ${FUSEKI_BASE}/databases/hdt/grants.hdt ${FUSEKI_BASE}/databases/hdt/iam.hdt:${FUSEKI_BASE}/databases/hdt/%.hdt:
+	@echo ${FUSEKI_BASE}/databases/hdt/iam.hdt:${FUSEKI_BASE}/databases/hdt/%.hdt:
 
-${FUSEKI_BASE}/databases/hdt/grants.hdt ${FUSEKI_BASE}/databases/hdt/iam.hdt:${FUSEKI_BASE}/databases/hdt/%.hdt:
+${FUSEKI_BASE}/databases/hdt/iam.hdt:${FUSEKI_BASE}/databases/hdt/%.hdt:
 	[[ -d $(dir $@) ]] || mkdir -p $(dir $@)
 	rdf2hdt.sh -index $@ >/dev/null <<<'${$*.stub}'
 
 endif
 
-
-#
-# Grants Commands
-#
-INFO:: ## When HDT=build
-
+###########
+# IAM Section
+###########
 ifeq (${HDT},build)
 
 define tdb2hdt
@@ -116,74 +108,6 @@ ${$1.hdt}:${$1.tdb2}
 
 endef
 
-tables:=organizations contributors fin_coa grants funding_agencies
-csv:=$(patsubst %,fis/%.csv,${tables})
-grants.ttl:=$(patsubst %,fis/%.ttl,${tables})
-const_jsonld:=$(patsubst %,${mkfile_path}/grants/json/%.jsonld,contributor_roles)
-
-grants.tdb2:=databases/grants
-grants.hdt:=${FUSEKI_BASE}/databases/hdt/grants.hdt
-
-.PHONY:csv sql grants.ttl grants.hdt
-
-grants.hdt:${grants.hdt} ## BUILD grants.hdt from FIS data file (HDT=build)
-
-define fis_login
-$$(gcloud --project=aggie-experts secrets versions access latest --secret=fis_ds_prod_oracle_connection_configuration | jq -r '[.user,"/",.password,"@",.sid] | add')
-endef
-
-sqlcl:=sqlcl -S "$(call fis_login)"
-
-interactive:
-	${sqlcl}
-
-clean::                  # Remove all generated files
-	rm contributors.csv  fin_coa.csv  funding_agencies.csv  grants.csv  organizations.csv
-	rm -rf grants.tdb2
-
-dist-clean:: clean       # Remove all generated files and databases
-	rm grants.ttl funding_agencies.ttl
-
-csv:${csv}               # Generate CSV files from FIS
-
-tar/fis_csv.tar.gz: ${csv}
-	[[ -d tar ]] || mkdir -p tar
-	tar -czf $@ $^
-
-${csv}:fis/%.csv:${mkfile_path}/grants/sql/%.sql
-	[[ -d $(dir $@) ]] || mkdir -p $(dir $@)
-	${sqlcl} < $< > $@
-
-fis/aggie_enterprise_imports.ttl:${mkfile_path}/grants/csv/aggie_enterprise_imports.csv
-	[[ -d $(dir $@) ]] || mkdir -p $(dir $@)
-	tarql ${mkfile_path}/grants/rq/aggie_enterprise_imports.rq $< > $@
-
-grants.ttl:${grants.ttl}
-
-${grants.ttl}:fis/%.ttl:fis/%.csv ${mkfile_path}/grants/rq/%.rq
-	tarql ${mkfile_path}/grants/rq/$*.rq $< > $@
-
-${grants.tdb2}:graph:=ark:/87287/d7gt0q/
-${grants.tdb2}:${grants.ttl} ${const_jsonld} fis/aggie_enterprise_imports.ttl
-	mkdir -p ${grants.tdb2};
-	tdb2.tdbloader --loc=${grants.tdb2} ${const_jsonld}
-	tdb2.tdbloader --loc=${grants.tdb2} --graph=${graph} ${grants.ttl} fis/aggie_enterprise_imports.ttl
-	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/archive.ru
-	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/amount0.ru
-	tdb2.tdbupdate --loc=${grants.tdb2} --update=${mkfile_path}/grants/ru/too_late.ru
-	touch ${grants.tdb2}
-
-grants.json.gz:${grants.tdb2}
-	tdb2.tdbdump --loc=${grants.tdb2} --output=jsonld | gzip > $@
-
-$(eval $(call tdb2hdt,grants,ark:/87287/d7gt0q/))
-
-endif
-
-###########
-# IAM Section
-###########
-ifeq (${HDT},build)
 iam.tdb2:=databases/iam
 iam.hdt:=${FUSEKI_BASE}/databases/hdt/iam.hdt
 

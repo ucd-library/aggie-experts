@@ -1,6 +1,6 @@
 * Aggie Expert Harvest
 
-  This image builds and/or serves IAM and grants data in a fuseki endpoint.
+  This image builds and/or serves IAM data in a fuseki endpoint.
 
 ** Environmental Variables
 
@@ -19,7 +19,7 @@
 ** Methods of running
 
    This image can be used to build and/or serve the data.  The HDT context
-   variable controls the source of the IAM/grants data, either ~build~, ~import~
+   variable controls the source of the IAM  data, either ~build~, ~import~
    or ~stubs~
 
    The default entrypoint of this image is a Makefile. where you can choose a
@@ -28,11 +28,11 @@
 
 *** Building the data
 
-    When building a new set of IAM / Grants data, the image will fetch data from
-    both UCD IAM services and UCD FIS grants information. The data is converted
-    into the VIVO schema.  Physically, the data can be formatted as either
-    ~jsonld~ or as a  ~hdt~ file.  This can only be successful when the
-    container is running in the UCD VPN, and will not work in the cloud.
+    When building a new set of IAM data, the image will fetch data from UCD IAM
+    services. The data is converted into the VIVO schema.  Physically, the data
+    can be formatted as either ~jsonld~ or as a ~hdt~ file.  This can only be
+    successful when the container is running in the UCD VPN, and will not work
+    in the cloud.
 
     In addition, the built data can be pushed to the ~$GCS_GRAPH_STORAGE~ cloud
     bucket.
@@ -42,7 +42,7 @@
 
     #+begin_src bash
       docker run --name iam --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud secrets versions access latest --secret='aggie-expert-data-harvester-key' | jq -c .)"\
-      --interactive --tty --rm  gcr.io/digital-ucdavis-edu/aggie-experts/harvest HDT=build iam.hdt grants.hdt hdt-push
+      --interactive --tty --rm  gcr.io/digital-ucdavis-edu/aggie-experts/harvest HDT=build iam.hdt hdt-push
     #+end_src
 
     You might instead want to view the data first, before running.  In that
@@ -50,7 +50,7 @@
 
     #+begin_src bash
       docker run --name iam -p 3030:3030 --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud secrets versions access latest --secret='aggie-expert-data-harvester-key' | jq -c .)"\
-      --interactive --tty --rm gcr.io/digital-ucdavis-edu/aggie-experts/harvest HDT=build iam.hdt grants.hdt server
+      --interactive --tty --rm gcr.io/digital-ucdavis-edu/aggie-experts/harvest HDT=build iam.hdt server
     #+end_src
 
     If you are satisfied, you can then push the data to the cloud:
@@ -59,12 +59,6 @@
     docker exec iam  --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud secrets versions access latest --secret='aggie-expert-data-harvester-key' | jq -c .)"\
     /harvest-entrypoint.sh hdt-push
     #+end_src
-
-**** grants.hdt
-    Retrieving grants information from the FIS database requires a connection
-    string to the FIS data. There is a JSON representation for that which lives
-    in a google cloud secret ~projects/326679616213/secrets/iet-ws_ucdavis_edu~, that
-    needs to be accessable for the service account that you are using
 
 **** iam.hdt
      Retrieving IAM data requires access to the IAM server. There is an google
@@ -104,7 +98,7 @@
     #+begin_src bash
       docker run --name=iam --interactive --tty --rm \
       --mount type=bind,source=/home/quinn/aggie-test,target=/home/ucd.process \
-      gcr.io/digital-ucdavis-edu/aggie-experts/harvest:v1.0.0 HDT=build grants.json
+      gcr.io/digital-ucdavis-edu/aggie-experts/harvest:v1.0.0 HDT=build iam.json
    #+end_src
 
    You can also use the ~bash~ command to skip building or serving, and just
@@ -309,23 +303,6 @@ volumes:
     #+begin_src bash
       dc exec fuseki curl http://fuseki:3030/vocabularies/get -H "Accept:application/ld+json" | gzip > vocabularies.json.gz
     #+end_src
-
-*** Debugging the data
-    :PROPERTIES:
-    :header-args:sparql: :url http://localhost:3030/experts/sparql
-    :END:
-
-    Under normal operation, the commands used to create the grants database are
-   stand-alone, in that you they can be created without any external files.
-
-   However, there are times when you need to investigate the grants output data,
-   and also have access to some additional data for those investigations.  This
-   image allows one to start up a local fuseki database, so that queries to the
-   grants database can be executed on this dataset.  The image includes some
-   vocabularies for investigation, primarily information about user job titles.
-
-   However, if you are interested in activities for particular users, then you
-   may also need to add in more detailed IAM data.
 
 ** Expert Build
 
