@@ -271,6 +271,11 @@ async function main(opt) {
   uploadFile(opt.output + "/links.csv", "links.csv");
 
   // Exexute the SPARQL query to to export the roles.csv file
+  // const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
+  // fs.writeFileSync(opt.output + "/roles.csv", await executeCsvQuery(db, roleQ));
+  // // Perform the SFTP upload
+  // uploadFile(opt.output + "/roles.csv", "roles.csv");
+
 
 }
 
