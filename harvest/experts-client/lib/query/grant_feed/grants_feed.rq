@@ -64,10 +64,6 @@ where {
      filter(xsd:decimal(?amount) > 0)
   }
   }
-  filter not exists {
-    ?grant ucdlib:oracle_award_nbr ?oracle;
-           .
-  }
   OPTIONAL {
   graph iam: {
   ?expert ucdlib:userId ?cas.
