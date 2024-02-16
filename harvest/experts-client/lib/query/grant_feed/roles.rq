@@ -1,9 +1,7 @@
 # Query for grant roles
 
-PREFIX : <ark:/87287/d7gt0q/schema#>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
-PREFIX kfs: <ark:/87287/d7gt0q/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -19,7 +17,7 @@ select ?category ?id ?field_name ?surname ?first_name ?full_name ?order_number ?
        (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
      }
 
-    GRAPH kfs: {
+    GRAPH <ark:/87287/d7c08j/> {
         ?grant a vivo:Grant;
                vivo:relates ?related
                .

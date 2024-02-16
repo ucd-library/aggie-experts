@@ -3,12 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { Command } from 'commander';
 import { spawnSync } from 'child_process';
-// import ExpertsClient from '../lib/experts-client.js';
-// import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
 import Client from 'ssh2-sftp-client';
 import { Storage } from '@google-cloud/storage';
-// import fs from 'fs/promises';
 import { GoogleSecret } from '@ucd-lib/experts-api';
 import parser from 'xml2json';
 
@@ -48,15 +45,6 @@ const storage = new Storage({
   // keyFilename: 'path/to/your/keyfile.json',
 });
 
-// fusekize opt
-// Object.keys(opt).forEach((k) => {
-//   const n = k.replace(/^fuseki./, '')
-//   if (n !== k) {
-//     fuseki[n] = opt[k];
-//     delete opt[k];
-//   }
-// });
-
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
@@ -73,13 +61,15 @@ opt.secretpath = 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-
 
 const sftp = new Client();
 
-async function uploadFile(localFilePath) {
+async function uploadFile(localFilePath, remoteFileName) {
 
   try {
     await sftp.connect(sftpConfig);
-    await sftp.put(fs.createReadStream(localFilePath), remoteFilePath);
+    console.log(localFilePath, remoteFilePath + remoteFileName);
 
-    console.log(`File uploaded successfully: ${localFilePath} -> ${remoteFilePath}`);
+    await sftp.put(fs.createReadStream(localFilePath), remoteFilePath + remoteFileName);
+
+    console.log(`File uploaded successfully: ${localFilePath} -> ${remoteFilePath + remoteFileName}`);
   } catch (error) {
     console.error('Error uploading file:', error.message);
   } finally {
@@ -194,15 +184,16 @@ async function main(opt) {
   let db = await fuseki.createDb(fuseki.db);
 
   // Retrieve the grants source file from GCS
+  console.log(__dirname);
   let localFilePath = opt.output + "/" + opt.source; // The file to be transferred to the Symplectic server
 
   // First download the file from GCS
-  // await downloadFile(opt.bucket, opt.source, localFilePath);
+  // await downloadFile(opt.bucket, 'grants/' + opt.source, localFilePath);
   const xml = fs.readFileSync(localFilePath, 'utf8');
   // console.log('Downloaded file:', xml);
 
   let json = parser.toJson(xml, { object: true, arrayNotation: false });
-  // console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
+  console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
 
   let contextObj = {
     "@context": {
@@ -264,23 +255,22 @@ async function main(opt) {
 
   console.log('Exit code:', result.status);
 
+  // Retrieve the SFTP password from GCS Secret Manager
+  sftpConfig.password = await gs.getSecret(opt.secretpath);
+
   // Exexute the SPARQL query to to export the grants.csv file
-  const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants_feed_test.rq', 'utf8');
+  const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
   fs.writeFileSync(opt.output + "/grants.csv", await executeCsvQuery(db, grantQ));
   // Perform the SFTP upload
-  uploadFile(localFilePath);
+  uploadFile(opt.output + "/grants.csv", "grants.csv");
 
   // Exexute the SPARQL query to to export the links.csv file
-  const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants_links_test.rq', 'utf8');
+  const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
   fs.writeFileSync(opt.output + "/links.csv", await executeCsvQuery(db, linkQ));
   // Perform the SFTP upload
-  uploadFile(localFilePath);
+  uploadFile(opt.output + "/links.csv", "links.csv");
 
   // Exexute the SPARQL query to to export the roles.csv file
-
-  // Retrieve the SFTP password from GCS Secret Manager
-  // sftpConfig.password = await gs.getSecret(opt.secretpath);
-
 
 }
 
