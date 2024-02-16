@@ -44,6 +44,8 @@ export default class AppExpert extends Mixin(LitElement)
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
+      hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
@@ -76,7 +78,8 @@ export default class AppExpert extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.substr(1);
-    if( expertId === this.expertId && !e.modifiedWorks ) return;
+    let modified = e.modifiedWorks || e.modifiedGrants;
+    if( expertId === this.expertId && !modified ) return;
 
     this._reset();
 
@@ -84,7 +87,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     try {
       let expert = await this.ExpertModel.get(expertId, true);
-      this._onExpertUpdate(expert, e.modifiedWorks);
+      this._onExpertUpdate(expert, modified);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -99,16 +102,16 @@ export default class AppExpert extends Mixin(LitElement)
    * @description bound to ExpertModel expert-update event
    *
    * @return {Object} e
-   * @return {Boolean} modifiedWorks
+   * @return {Boolean} modified
    */
-  async _onExpertUpdate(e, modifiedWorks=false) {
+  async _onExpertUpdate(e, modified=false) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'expert' ) return;
-    if( e.id === this.expertId && !modifiedWorks ) return;
+    if( e.id === this.expertId && !modified ) return;
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
-    this.canEdit = APP_CONFIG.user.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId;
+    this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId;
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
@@ -136,7 +139,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.scopusIds = Array.isArray(graphRoot.scopusId) ? graphRoot.scopusId : [graphRoot.scopusId];
     this.researcherId = graphRoot.researcherId;
 
-    let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['vivo:rank'] === 20 && c.hasURL);
+    let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
     websites.forEach(w => {
       if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
       this.websites.push(...w.hasURL);
@@ -167,7 +170,7 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _reset() {
     let acExpertId = APP_CONFIG.user?.expertId;
-    let impersonatingExpertId = APP_CONFIG.impersonating?.expertId;
+    let impersonatingExpertId = utils.getCookie('impersonateId');
 
     this.expert = {};
     this.expertName = '';
@@ -194,6 +197,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = false;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
@@ -214,7 +219,7 @@ export default class AppExpert extends Mixin(LitElement)
    *
   */
   toggleAdminUi() {
-    this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || APP_CONFIG.impersonating?.expertId === this.expertId);
+    this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId);
   }
 
   _showMoreAboutMeClick(e) {
@@ -248,9 +253,10 @@ export default class AppExpert extends Mixin(LitElement)
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
       if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+      this.totalCitations = citations.length;
     }
 
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
@@ -375,6 +381,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -388,6 +396,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -423,14 +433,15 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideImpersonate = true;
     this.expertImpersonating = this.expertId;
 
-    APP_CONFIG.impersonating = {
-      expertId : this.expertId,
-      expertName : this.expertName
-    };
 
     // dispatch event to fin-app
     this.dispatchEvent(
-      new CustomEvent("impersonate", {})
+      new CustomEvent("impersonate", {
+        detail : {
+          expertId : this.expertId,
+          expertName : this.expertName
+        }
+      })
     );
 
     this.canEdit = true;
@@ -465,6 +476,25 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideCancel = true;
     this.hideSave = true;
     this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  _cdlErrorModal(e) {
+    e.preventDefault();
+
+    this.modalTitle = 'Error: Update Failed';
+    let rejectFailureMsg = `<p>Rejecting (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
+    let visibilityFailureMsgGrant = `<p>Changes to the visibility of (Title of Grant) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+    let visibilityFailureMsgWork = `<p>Changes to the visibility of (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+    this.modalContent = rejectFailureMsg;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = true;
   }
 
 }

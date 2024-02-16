@@ -109,7 +109,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
-    console.log('in _loadCitations');
 
     citations = citations.map(c => {
       let citation = { ...c };

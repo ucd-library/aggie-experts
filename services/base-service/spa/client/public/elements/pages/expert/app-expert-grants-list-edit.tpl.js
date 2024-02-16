@@ -271,8 +271,10 @@ return html`
       .hideCancel="${this.hideCancel}"
       .hideSave="${this.hideSave}"
       .hideOK="${this.hideOK}"
+      .hideOaPolicyLink="${this.hideOaPolicyLink}"
+      .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${(e) => this.showModal = false}>
+      @save=${this._modalSave}>
     </app-modal-overlay>
     <div class="hero-main site-frame">
       <div class="hero-text">
@@ -308,15 +310,10 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon ?hidden="${!grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
-                  <ucdlib-icon ?hidden="${grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant}></ucdlib-icon>
-                </span>
-              </span>
-              <span style="position: relative;">
-                <span class="tooltip reject-grant" data-text="Reject grant">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectGrant}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
             </div>
@@ -345,15 +342,10 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon ?hidden="${!grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
-                  <ucdlib-icon ?hidden="${grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant}></ucdlib-icon>
-                </span>
-              </span>
-              <span style="position: relative;">
-                <span class="tooltip reject-grant" data-text="Reject grant">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectGrant}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
             </div>

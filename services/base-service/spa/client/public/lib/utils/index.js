@@ -124,55 +124,29 @@ class Utils {
       return g;
     });
 
-    parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime));
+    parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime) || a.name.localeCompare(b.name));
+    return parsedGrants;
+  }
 
-    /*
-    {
-      "assignedBy": {
-          "@type": "FundingOrganization",
-          "name": "NASA/MISCELLANEOUS CENTERS",
-          "@id": "ark:/87287/d7mh2m/grant/4316321#unknown-funder"
-      },
-      "dateTimeInterval": {
-          "@type": "DateTimeInterval",
-          "start": {
-              "dateTime": "2011-05-01",
-              "@type": "DateTimeValue",
-              "@id": "ark:/87287/d7mh2m/grant/4316321#start-date",
-              "dateTimePrecision": "vivo:yearMonthDayPrecision"
-          },
-          "end": {
-              "dateTime": "2015-04-30",
-              "@type": "DateTimeValue",
-              "@id": "ark:/87287/d7mh2m/grant/4316321#end-date",
-              "dateTimePrecision": "vivo:yearMonthDayPrecision"
-          },
-          "@id": "ark:/87287/d7mh2m/grant/4316321#duration"
-      },
-      "@type": [
-          "Grant",
-          "vivo:Grant"
-      ],
-      "totalAwardAmount": "783000",
-      "name": "NEAR REAL TIME SCIENCE PROCESSING ALGORITHM FOR LIVE FUEL MOISTURE CONTENT FOR THE MODIS DIRECT READOUT SYSTEM",
-      "@id": "ark:/87287/d7mh2m/grant/4316321",
-      "relatedBy": {
-          "relates": [
-              "expert/66356b7eec24c51f01e757af2b27ebb8",
-              "ark:/87287/d7mh2m/grant/4316321"
-          ],
-          "@type": "GrantRole",
-          "@id": "ark:/87287/d7mh2m/relationship/13338362",
-          "is-visible": true
-      },
-      "sponsorAwardId": "NNX11AF93G",
-      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
-          "name": "Research",
-          "@id": "ucdlib:Grant_Research"
+  /**
+   * @method getCookie
+   * @description given a cookie name, return the value of the cookie
+   *
+   * @return {String} cookie value or null
+   */
+  getCookie(name) {
+    let cookieArr = document.cookie.split("; ");
+
+    for(let i = 0; i < cookieArr.length; i++) {
+      let cookiePair = cookieArr[i].split("=");
+
+      if(name == cookiePair[0]) {
+        return decodeURIComponent(cookiePair[1]);
       }
     }
-    */
-   return parsedGrants;
+
+    // return null if not found
+    return null;
   }
 
 }

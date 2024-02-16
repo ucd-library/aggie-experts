@@ -8,6 +8,8 @@ import '../../components/modal-overlay.js';
 
 import { generateCitations } from '../../utils/citation.js';
 
+import utils from '../../../lib/utils';
+
 export default class AppExpertWorksListEdit extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
@@ -27,6 +29,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
+      hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -57,6 +61,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = false;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -94,7 +100,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.modifiedWorks = false;
     let expertId = e.location.pathname.replace('/works-edit/', '');
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
@@ -153,8 +159,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
       if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
       if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
-
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+      this.totalCitations = citations.length;
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
@@ -163,7 +169,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value);
-    console.log('this.citationsDisplayed', this.citationsDisplayed.map(c => 'is-visible: ' + c.relatedBy?.['is-visible']));
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
@@ -307,6 +312,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -315,7 +322,27 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _showWork(e) {
     this.citationId = e.currentTarget.dataset.id;
-    await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+
+    try {
+      let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+    } catch (error) {
+      // TODO handle different error codes?
+
+      let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+      let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+      this.modalTitle = 'Error: Update Failed';
+      this.modalContent = modelContent;
+      this.showModal = true;
+      this.hideCancel = true;
+      this.hideSave = true;
+      this.hideOK = false;
+      this.hideOaPolicyLink = true;
+      this.errorMode = true;
+
+      return;
+    }
+
 
     this.modifiedWorks = true;
 
@@ -336,7 +363,26 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.modifiedWorks = true;
 
     if( action === 'hide' ) {
-      this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+      try {
+        let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+      } catch (error) {
+        debugger;
+        // TODO handle different error codes?
+
+        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+        let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+        return;
+      }
 
       // update graph/display data
       let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
@@ -349,7 +395,26 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this.requestUpdate();
     } else if ( action === 'reject' ) {
-      this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+      try {
+        let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+      } catch (error) {
+        debugger;
+        // TODO handle different error codes?
+
+        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+        let modelContent = `<p>Rejecting (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+        return;
+      }
 
       // remove citation from graph/display data
       // also if total citations > 25, need to reorganize
@@ -377,11 +442,30 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.citationId = e.currentTarget.dataset.id;
 
     this.modalTitle = 'Reject Work';
-    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
+    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from your Aggie Experts profile. To reclaim this item, you must do so via the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _addNewWorkClicked
+   * @description show modal with link to add work
+   */
+  _addNewWorkClicked(e) {
+    e.preventDefault();
+    // this.AppStateModel.setLocation('/works-add/'+this.expertId);
+    this.modalTitle = 'Add New Work';
+    this.modalContent = `<p>New works are added, claimed or rejected view the <strong>UC Publication Management System.</strong></p><p>You will be redirected to this system.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = true;
+    this.hideOK = true;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
   }
 
   /**

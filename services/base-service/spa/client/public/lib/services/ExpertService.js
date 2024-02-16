@@ -53,6 +53,27 @@ class ExpertService extends BaseService {
     });
   }
 
+  async updateGrantVisibility(id, grantId, visible) {
+    return this.request({
+      url : `${this.baseUrl}/${id}/${grantId}`,
+      fetchOptions : {
+        method : 'PATCH',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "@id" : grantId,
+          "visible" : visible,
+          "grant" : true
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
 }
 
 module.exports = new ExpertService();

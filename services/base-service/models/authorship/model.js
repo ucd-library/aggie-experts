@@ -34,28 +34,6 @@ class AuthorshipModel extends BaseModel {
     return doc;
   }
 
-  /**
-   * @method get_node_by_related_id
-   * @description Get elasticsearch node by id
-   * @param {Object} doc : elasticsearch doc
-   * @param {String} id : node id
-   * @returns {Object} : elasticsearch node
-   **/
-  get_node_by_related_id(doc,id) {
-    const nodes = [];
-    for(let i=0; i<doc['@graph'].length; i++) {
-      if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
-        nodes.push(doc['@graph'][i]);
-      }
-    }
-    if (nodes.length === 0) {
-      throw new Error(`Unable to find node with relatedBy{"@id"="${id}"}`);
-    }
-    if (nodes.length > 1) {
-      throw new Error(`Found multiple nodes with relatedBy{"@id"="${id}"}`);
-    }
-    return nodes[0];
-  }
 
   /**
    * @method patch
@@ -69,7 +47,7 @@ class AuthorshipModel extends BaseModel {
     let expert;
     let resp;
 
-    logger.info(`Patching ${expertId} authorship:`,patch);
+    logger.info({patch},`authorship.patch ${expertId}:`);
     if (patch.visible == null && patch.favourite == null) {
       return 400;
     }
@@ -100,35 +78,41 @@ class AuthorshipModel extends BaseModel {
     await expertModel.update_graph_node(expertId,node);
 
     // Update FCREPO
-    let bad_id = `<http://experts.ucdavis.edu/${id}>`
     let options = {
       path: expertId + '/' + id,
       content: `
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
-          ${patch.visible != null ? `${bad_id} ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`${bad_id} ucdlib:is-favourite ?f .`:''}
+          ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`<${id}> ucdlib:is-favourite ?f .`:''}
         }
         INSERT {
-          ${patch.visible != null ?`${bad_id} ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`${bad_id} ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`<${id}> ucdlib:is-favourite ${patch.favourite} .`:''}
         } WHERE {
-          ${bad_id} ucdlib:is-visible ?v .
-          OPTIONAL { ${bad_id} ucdlib:is-favourite ?fav } .
+          <${id}> ucdlib:is-visible ?v .
+          OPTIONAL { <${id}> ucdlib:is-favourite ?fav } .
         }
       `
     };
-    resp = await finApi.patch(options);
+    const api_resp = await finApi.patch(options);
+    if (api_resp.last.statusCode != 204) {
+      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`grant_role.patch for ${expertId}`);
+      const error=new Error(`Failed to update grant_role ${id} for expert ${expertId}:${api_resp.last.body}`);
+      error.status=500;
+      throw error;
+    }
 
-    if (config.experts.cdl_propogate_changes) {
+    if (config.experts.cdl_propagate_changes) {
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
       resp = await cdl_user.setLinkPrivacy({
         objectId: patch.objectId,
+        categoryId: 1,
         privacy: patch.visible ? 'public' : 'internal'
       })
-      logger.info({cdl_response:resp},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
     } else {
-      logger.info({cdl_response:null},`XCDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl_propagate_changes}`);
     }
   }
 
@@ -227,17 +211,17 @@ class AuthorshipModel extends BaseModel {
 
     await finApi.delete(options);
 
-    if (config.experts.cdl_propogate_changes) {
+    if (config.experts.cdl_propagate_changes) {
       let linkId=id.replace("ark:/87287/d7mh2m/relationship/","");
       const cdl_user = await expertModel._impersonate_cdl_user(expert);
-      logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
       resp = await cdl_user.reject({
         linkId: linkId,
         objectId: objectId
       })
-      logger.info({cdl_response:resp},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
     } else {
-      logger.info({cdl:null},`CDL propogate changes ${config.experts.cdl_propogate_changes}`);
+      logger.info({cdl:null},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
     }
 
   }
