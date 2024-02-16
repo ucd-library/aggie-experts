@@ -519,8 +519,8 @@ function setup() {
   read env root <<<$(G "[.env,.git.root] | @tsv" )
 
   function env_file() {
-    local env org tag fin_org fin_tag host port auth client_id sa gcs
-    read  env org tag fin_org fin_tag host port auth client_id sa gcs \
+    local env org tag fin_org fin_tag host port auth client_id sa gcs propagate
+    read  env org tag fin_org fin_tag host port auth client_id sa gcs propagate\
           <<<$(G "[.env,
                    .org // .envs.${G[env]}.org,
                    .tag // .envs.${G[env]}.tag,
@@ -531,7 +531,8 @@ function setup() {
                    .envs.${G[env]}.auth.server,
                    .envs.${G[env]}.auth.client_id,
                    .envs.${G[env]}.auth.service_account,
-                   .gcs // .envs.${G[env]}.gcs]|@tsv")
+                   .gcs // .envs.${G[env]}.gcs,
+                   .envs.${G[env]}.cdl.propagate_changes // .envs.default.cdl.propagate_changes]|@tsv")
 
     [[ "$env" == "clean" ]] && env='dev'
 
@@ -548,6 +549,7 @@ function setup() {
     echo "$oidc_env"
     echo -e "FIN_ORG=$fin_org\nFIN_TAG=$fin_tag\nORG=$org\nTAG=$tag"
     echo -e "GCS=$gcs"
+    echo -e "CDL_PROPAGATE_CHANGES=$propagate"
   }
 
   function service_account() {
