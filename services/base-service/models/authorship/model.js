@@ -95,7 +95,13 @@ class AuthorshipModel extends BaseModel {
         }
       `
     };
-    resp = await finApi.patch(options);
+    const api_resp = await finApi.patch(options);
+    if (api_resp.last.statusCode != 204) {
+      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`grant_role.patch for ${expertId}`);
+      const error=new Error(`Failed to update grant_role ${id} for expert ${expertId}:${api_resp.last.body}`);
+      error.status=500;
+      throw error;
+    }
 
     if (config.experts.cdl_propagate_changes) {
       const cdl_user = await expertModel._impersonate_cdl_user(expert);

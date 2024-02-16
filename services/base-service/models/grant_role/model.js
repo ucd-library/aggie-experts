@@ -49,7 +49,7 @@ class GrantRoleModel extends BaseModel {
     let expert;
     let resp;
 
-    logger.info({patch},`grant_role.patch for ${expertId}:`);
+    logger.info(`grant_role.patch for ${expertId}:`,patch);
     if (patch.visible == null && patch.favourite == null) {
       return 400;
     }
@@ -66,9 +66,9 @@ class GrantRoleModel extends BaseModel {
         patch.objectId = node_id;
       }
     } catch(e) {
-      console.error(e.message);
-      logger.info(`relatedBy[{@id${id} not found in expert ${expertId}`);
-      return 404
+      e.message = `relatedBy[{@id${id} not found in expert ${expertId}: ${e.message}`;
+      e.status=500;
+      throw e;
     };
     if (patch.visible != null) {
       node['relatedBy']['is-visible'] = patch.visible;
@@ -97,9 +97,14 @@ class GrantRoleModel extends BaseModel {
         }
       `
     };
-    resp = await finApi.patch(options);
+    const api_resp = await finApi.patch(options);
 
-//    console.log({ options, id, patch, expertId, resp });
+    if (api_resp.last.statusCode != 204) {
+      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`grant_role.patch for ${expertId}`);
+      const error=new Error(`Failed fcrepo patch to ${id}:${api_resp.last.body}`);
+      error.status=500;
+      throw error;
+    }
 
     if (config.experts.cdl_propagate_changes) {
       const cdl_user = await expertModel._impersonate_cdl_user(expert);

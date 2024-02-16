@@ -39,17 +39,26 @@ export default class ElementsClient {
         delete ElementsClient.impersonators[userId];
       }
     }
-    let user=new Impersonator(userId,args);
-    await user.login();
-    await user.impersonate();
-    ElementsClient.impersonators[userId]=user;
-    return user
+    try {
+      let user=new Impersonator(userId,args);
+      await user.login();
+      await user.impersonate();
+      ElementsClient.impersonators[userId]=user;
+      return user
+    } catch (e) {
+      if (e.status !== 504) {
+        e.message = `Impersonation failed: ${e.message}`;
+        e.status=502;
+      }
+      throw e;
+    }
   }
 }
 
 export class Impersonator {
 
   constructor(userId,args={}) {
+
     this.instance = args.instance || 'prod';
     this.cdl = ElementsClient.info(this.instance);
     this.cookie_jar=new fetchCookie.toughCookie.CookieJar();
@@ -65,12 +74,39 @@ export class Impersonator {
     delete options.abort_controller;
     const id = setTimeout(() => controller.abort(), timeout);
 
-    const response = await this.fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(id);
-    return response;
+    let resp;
+    try {
+      resp = await this.fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(id);
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        const error=new Error('Request timed out');
+        error.status=504;
+        throw error;
+      }
+      throw e;
+    }
+
+    if (resp.status !== 204 && resp.status !== 200) {
+      let error = new Error(`CDL change propagation Error(${resp.status}):`);
+      let json=''
+      try  {
+        json=await resp.json();
+        error.message += JSON.stringify(json);
+      } catch (e) {
+        error.message += await resp.text();
+      }
+      if (resp.status === 408) {
+        error.status=504;
+      } else {
+        error.status = 502;
+      }
+      throw error;
+    }
+    return resp;
   }
 
   async secret() {
@@ -280,7 +316,6 @@ export class Impersonator {
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    console.log('formData', formData);
     let resp = await this.fetchWithTimeout(`${this.cdl.host}/listobjects.html`, {
       method: 'POST',
       body: formData,
@@ -288,6 +323,17 @@ export class Impersonator {
     });
 
     let json = await resp.json();
+    if (resp.status !== 200) {
+      let error = new Error(`CDL change propagation Error(${resp.status}):`);
+      logger.info('listobjects error', json);
+
+      if (resp.status === 408) {
+        error.status=504;
+      } else {
+        error.status = 502;
+      }
+      throw error;
+    }
     return json;
   }
 
@@ -305,8 +351,8 @@ export class Impersonator {
     };
      return await this.listobjects({
       com: 'setLinkPrivacy',
-      objectId: data.objectId,
-      categoryId:data.categoryId,
+       objectId: data.objectId,
+       categoryId:data.categoryId,
       linkPrivacyLevel: level[data.privacy]
     });
   }
