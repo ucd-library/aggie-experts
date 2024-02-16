@@ -1,6 +1,6 @@
 # Query for grants
 PREFIX : <ark:/87287/d7gt0q/schema#>
-PREFIX ae: <ark:/87287/d7c08j/>
+# PREFIX ae: <ark:/87287/d7c08j/>
 PREFIX iam: <http://iam.ucdavis.edu/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
@@ -30,10 +30,10 @@ select distinct
 ("USD" AS ?amount_currency_code)
 ("TRUE" AS ?visible)
 where {
-  GRAPH kfs: {
+  GRAPH <ark:/87287/d7c08j/> {
     ?grant a vivo:Grant,?grant_class ;
               rdfs:label ?title;
-              ucdlib:piName ?pi;
+              # ucdlib:piName ?pi;
               vivo:totalAwardAmount ?amount_value;
               vivo:dateTimeInterval [
                                       vivo:start/vivo:dateTime ?start_date;
@@ -41,19 +41,19 @@ where {
                                     ];
     .
 
-    VALUES (?funding_type ?grant_class) {
-      ("Instruction" :GrantTypeInstruction)
-      ("Research" :GrantTypeResearch)
-      ("Service /Other" :GrantTypeService)
-      ("Academic Support" :GrantTypeAcademicSupport)
-      ("Student Services" :GrantTypeStudentService)
-      ("Scholarships / Fellowships" :GrantTypeScholarship)
-      ("Research" :GrantTypeDefault)
-    }
+    # VALUES (?funding_type ?grant_class) {
+    #   ("Instruction" :GrantTypeInstruction)
+    #   ("Research" :GrantTypeResearch)
+    #   ("Service /Other" :GrantTypeService)
+    #   ("Academic Support" :GrantTypeAcademicSupport)
+    #   ("Student Services" :GrantTypeStudentService)
+    #   ("Scholarships / Fellowships" :GrantTypeScholarship)
+    #   ("Research" :GrantTypeDefault)
+    # }
 
-    OPTIONAL {
-      ?grant ucdlib:flowThruFunding ?flowThruFunding.
-    }
+    # OPTIONAL {
+    #   ?grant ucdlib:flowThruFunding ?flowThruFunding.
+    # }
 
     OPTIONAL {
       ?grant vivo:assignedBy ?ucop_sponsor;
@@ -61,7 +61,7 @@ where {
              .
       ?ucop_sponsor rdfs:label ?funder_name.
     }
-    # This filters grants without a value oracle_award_number
-    filter(! regex(str(?grant),"K-"))
+    # # This filters grants without a value oracle_award_number
+    # filter(! regex(str(?grant),"K-"))
   }
 } order by ?id limit 100
