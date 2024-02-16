@@ -27,5 +27,6 @@ program
   .command('cdl', 'import profiles from CDL')
   .command('cdl-users', 'import user ids from CDL')
   .command('cdl-edit', 'Edit User Relationships')
+  .command('grant-feed', 'Create a CDL Sympletic grant feed')
 
 program.parse(process.argv);
