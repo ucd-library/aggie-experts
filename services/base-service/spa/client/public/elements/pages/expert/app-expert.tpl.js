@@ -558,10 +558,10 @@ return html`
     </div>
 
     <div class="main-content">
-      <div ?hidden="${!this.canEdit}" class="refresh-profile">
+      <!-- <div ?hidden="${!this.canEdit}" class="refresh-profile">
         <button class="btn btn--invert" @click="${this._refreshProfileClicked}">Refresh Profile Data</button>
         <div class="last-updated-label">Last Updated: Mon XX, 20XX, X:XXpm</div>
-      </div>
+      </div> -->
       <!-- <div class="test-cdl-error" style="padding-bottom: 2rem;">
         <button class="btn" @click="${this._cdlErrorModal}">CDL Error</button>
       </div> -->
