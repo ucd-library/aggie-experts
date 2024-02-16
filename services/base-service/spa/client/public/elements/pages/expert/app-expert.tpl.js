@@ -535,6 +535,8 @@ return html`
       .hideCancel="${this.hideCancel}"
       .hideSave="${this.hideSave}"
       .hideOK="${this.hideOK}"
+      .hideOaPolicyLink="${this.hideOaPolicyLink}"
+      .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
       @save=${(e) => this.showModal = false}>
     </app-modal-overlay>
@@ -556,10 +558,13 @@ return html`
     </div>
 
     <div class="main-content">
-      <div ?hidden="${!this.canEdit}" class="refresh-profile">
+      <!-- <div ?hidden="${!this.canEdit}" class="refresh-profile">
         <button class="btn btn--invert" @click="${this._refreshProfileClicked}">Refresh Profile Data</button>
         <div class="last-updated-label">Last Updated: Mon XX, 20XX, X:XXpm</div>
-      </div>
+      </div> -->
+      <!-- <div class="test-cdl-error" style="padding-bottom: 2rem;">
+        <button class="btn" @click="${this._cdlErrorModal}">CDL Error</button>
+      </div> -->
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
