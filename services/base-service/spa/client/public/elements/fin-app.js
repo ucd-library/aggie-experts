@@ -28,6 +28,8 @@ import '@ucd-lib/theme-elements/brand/ucd-theme-search-form/ucd-theme-search-for
 import '@ucd-lib/theme-elements/brand/ucd-theme-quick-links/ucd-theme-quick-links.js';
 import '@ucd-lib/theme-elements/ucdlib/ucdlib-pages/ucdlib-pages.js';
 
+import utils from '../lib/utils';
+
 export default class FinApp extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
@@ -55,9 +57,9 @@ export default class FinApp extends Mixin(LitElement)
     this.imageSrc = '';
     this.imageAltText = '';
     this.pathInfo = '';
-    this.expertId = '';
-    this.expertNameImpersonating = '';
-    this.hideImpersonate = true;
+    this.expertId = utils.getCookie('impersonateId');
+    this.expertNameImpersonating = utils.getCookie('impersonateName');
+    this.hideImpersonate = !utils.getCookie('impersonateId');
 
     this.render = render.bind(this);
     this._init404();
@@ -213,7 +215,11 @@ export default class FinApp extends Mixin(LitElement)
 
     // show button showing who we're impersonating
     this.hideImpersonate = false;
-    this.expertNameImpersonating = APP_CONFIG.impersonating?.expertName;
+
+    document.cookie = 'impersonateId='+e.detail.expertId+'; path=/';
+    document.cookie = 'impersonateName='+e.detail.expertName+'; path=/';
+
+    this.expertNameImpersonating = e.detail.expertName;
     this._styleImpersonateButton();
   }
 
@@ -227,8 +233,11 @@ export default class FinApp extends Mixin(LitElement)
     e.preventDefault();
 
     this.hideImpersonate = true;
+
+    document.cookie = "impersonateId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+    document.cookie = "impersonateName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+
     this.expertNameImpersonating = '';
-    APP_CONFIG.impersonating = {};
 
     let appExpert = this.shadowRoot.querySelector('app-expert');
     if( appExpert ) appExpert.cancelImpersonate();

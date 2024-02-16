@@ -134,11 +134,20 @@ router.route(
     let expertId = model.id + '/' + (pathParts[2] || '');
     let data = req.body;
 
-    logger.info({function:'PATCH'}, JSON.stringify(data));
-
-    const authorshipModel = await model.get_model('authorship');
-    await authorshipModel.patch(data,expertId);
-    res.status(200).json({status: "ok"});
+    try {
+      let resp;
+      let role_model;
+      if( data.grant ) {
+        role_model = await model.get_model('grant_role');
+      } else {
+        role_model = await model.get_model('authorship');
+      }
+      patched=await role_model.patch(data,expertId);
+      res.status(204).json();
+//      res.status(200).json({status: 'ok'});
+    } catch(e) {
+      next(e);
+    }
   }
 ).delete(
   user_can_edit,

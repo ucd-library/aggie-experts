@@ -28,6 +28,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
+      hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -59,6 +61,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = false;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.downloads = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
@@ -94,8 +98,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     window.scrollTo(0, 0);
 
+    this.modifiedGrants = false;
     let expertId = e.location.pathname.replace('/grants-edit/', '');
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( expertId === this.expertId || !canEdit ) return;
@@ -121,8 +126,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   async _onExpertUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants-edit' ) return;
-
-    if( e.id === this.expertId ) return;
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
@@ -287,12 +290,97 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    * @description show modal with link to hide grant
    */
   _hideGrant(e) {
+    this.grantId = e.currentTarget.dataset.id;
+
     this.modalTitle = 'Hide Grant';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this grant?</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _showWork
+   * @description show work
+   */
+  async _showGrant(e) {
+    this.grantId = e.currentTarget.dataset.id;
+
+    try {
+      let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
+    } catch (error) {
+      // TODO handle different error codes?
+
+      let grantTitle = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)?.[0]?.name || '';
+      let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+      this.modalTitle = 'Error: Update Failed';
+      this.modalContent = modelContent;
+      this.showModal = true;
+      this.hideCancel = true;
+      this.hideSave = true;
+      this.hideOK = false;
+      this.hideOaPolicyLink = true;
+      this.errorMode = true;
+
+      return;
+    }
+
+    this.modifiedGrants = true;
+
+    let expert = await this.ExpertModel.get(this.expertId, true);
+    this._onExpertUpdate(expert);
+  }
+
+  /**
+   * @method _modalSave
+   * @description modal save event
+   */
+  async _modalSave(e) {
+    e.preventDefault();
+    this.showModal = false;
+
+    let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
+
+    this.modifiedGrants = true;
+
+    if( action === 'hide' ) {
+      try {
+        let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
+      } catch (error) {
+        // TODO handle different error codes?
+
+        let grantTitle = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)?.[0]?.name || '';
+        let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+        return;
+      }
+
+      // update graph/display data
+      let grant = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];
+      if( grant ) grant.relatedBy['is-visible'] = false;
+      grant = this.grantsActiveDisplayed.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];
+      if( grant ) grant.relatedBy['is-visible'] = false;
+      grant = this.grantsCompletedDisplayed.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];
+      if( grant ) grant.relatedBy['is-visible'] = false;
+
+      this.totalGrants = this.grants.length;
+      this.hiddenGrants = this.grants.filter(g => !g.relatedBy?.['is-visible']).length;
+
+      this.requestUpdate();
+    }
   }
 
   /**
@@ -311,6 +399,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
+    this.AppStateModel.store.data.modifiedGrants = this.modifiedGrants;
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 
