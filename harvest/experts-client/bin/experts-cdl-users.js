@@ -28,7 +28,7 @@ const program = new Command();
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-  type: 'tdb',
+  type: 'tdb2',
   replace: false,
   'delete': false,
   db: 'aggie'

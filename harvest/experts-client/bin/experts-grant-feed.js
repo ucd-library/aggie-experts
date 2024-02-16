@@ -2,7 +2,8 @@
 import fs from 'fs';
 import path from 'path';
 import { Command } from 'commander';
-import ExpertsClient from '../lib/experts-client.js';
+import { spawnSync } from 'child_process';
+// import ExpertsClient from '../lib/experts-client.js';
 // import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
 import Client from 'ssh2-sftp-client';
@@ -15,6 +16,13 @@ const gs = new GoogleSecret();
 
 const program = new Command();
 
+// Trick for getting __dirname in ES6 modules
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+
 program
   .version('1.0.0')
   .description('Upload a file to a remote SFTP server')
@@ -23,6 +31,7 @@ program
   .requiredOption('-o, --output <output>', 'Local output file path')
   .requiredOption('-h, --host <host>', 'SFTP server hostname')
   .requiredOption('-u, --username <username>', 'SFTP username')
+  .requiredOption('-d, --db <db>', 'Fuseki database name')
   .requiredOption('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .parse(process.argv);
 
@@ -37,6 +46,24 @@ const sftpConfig = {
 const storage = new Storage({
   projectId: 'aggie-experts',
   // keyFilename: 'path/to/your/keyfile.json',
+});
+
+// fusekize opt
+// Object.keys(opt).forEach((k) => {
+//   const n = k.replace(/^fuseki./, '')
+//   if (n !== k) {
+//     fuseki[n] = opt[k];
+//     delete opt[k];
+//   }
+// });
+
+const fuseki = new FusekiClient({
+  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
+  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
+  type: 'tdb2',
+  db: opt.db,
+  replace: true,
+  'delete': false
 });
 
 
@@ -78,7 +105,7 @@ async function downloadFile(bucketName, fileName, destinationPath) {
       console.log(`File downloaded successfully to: ${destinationPath}`);
     });
 
-    readStream.pipe(writeStream);
+    await readStream.pipe(writeStream);
   } catch (error) {
     console.error('Error downloading file:', error.message);
   }
@@ -110,30 +137,74 @@ async function createGraphFromJsonLdFile(db, jsonld) {
   return await response.text();
 }
 
-async function main(opt) {
+async function executeUpdate(db, query) {
+  // Construct URL for uploading the data to the graph
+  // Don't include a graphname to use what's in the jsonld file
+  const url = `${db.url}/${db.db}/update`;
 
-  const fuseki = new FusekiClient({
-    url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
-    auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-    type: 'tdb2',
-    db: 'aggie',
-    replace: true,
-    'delete': false
-  });
+  // Set request options
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/sparql-update',
+      'Authorization': `Basic ${db.authBasic}`
+    },
+    body: query,
+  };
+
+  // Send the request to upload the data to the graph
+  const response = await fetch(url, options);
+
+  // Check if the request was successful
+  if (!response.ok) {
+    throw new Error(`Failed execute update. Status code: ${response.status}` + response.statusText);
+  }
+
+  return await response.text();
+}
+
+async function executeCsvQuery(db, query) {
+  // Construct URL for uploading the data to the graph
+  // Don't include a graphname to use what's in the jsonld file
+  const url = `${db.url}/${db.db}/query`;
+
+  // Set request options
+  const options = {
+    method: 'POST',
+    headers: {
+      'Accept': 'text/csv',
+      'Content-Type': 'application/sparql-query',
+      'Authorization': `Basic ${db.authBasic}`
+    },
+    body: query,
+  };
+
+  // Send the request
+  const response = await fetch(url, options);
+
+  // Check if the request was successful
+  if (!response.ok) {
+    throw new Error(`Query Failed. Status code: ${response.status}` + response.statusText);
+  }
+
+  return await response.text();
+}
+
+async function main(opt) {
 
   let db = await fuseki.createDb(fuseki.db);
 
   // Retrieve the grants source file from GCS
-  localFilePath = opt.output + opt.source; // The file to be transferred to the Symplectic server
+  localFilePath = opt.output + "/" + opt.source; // The file to be transferred to the Symplectic server
 
   // First download the file from GCS
-  await downloadFile(opt.bucket, opt.source, localFilePath);
+  // await downloadFile(opt.bucket, opt.source, localFilePath);
   const xml = fs.readFileSync(localFilePath, 'utf8');
   // console.log('Downloaded file:', xml);
 
   let json = parser.toJson(xml, { object: true, arrayNotation: false });
-  // console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
-  // fs.writeFileSync("tmp/out.json", JSON.stringify(json, null, 2));
+  console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
+  // fs.writeFileSync(opt.output + "/out.json", JSON.stringify(json, null, 2));
 
   let contextObj = {
     "@context": {
@@ -170,16 +241,44 @@ async function main(opt) {
   };
 
   contextObj["@graph"] = json["Document"]["award"];
-  console.log('JSON:', JSON.stringify(contextObj).substring(0, 1000) + '...');
+  // console.log('JSON:', JSON.stringify(contextObj).substring(0, 1000) + '...');
 
   let jsonld = JSON.stringify(contextObj);
-  createGraphFromJsonLdFile(db, jsonld);
+
+  // Create a graph from the JSON-LD file
+  console.log(createGraphFromJsonLdFile(db, jsonld));
+
+  // Apply the grants2vivo.rq SPARQL update to the graph
+  const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.rq', 'utf8');
+  console.log(await executeUpdate(db, vivo));
+
+  // Add the CDL-users graph to the fuseki database to include proprietary IDs
+  // Command-line parameters to pass to the script
+  const params = ['--cdl.groups=431', '--experts-service=http://localhost:3030/aggie/sparql'];
+  const result = spawnSync('node', [__dirname + '/experts-cdl-users.js', ...params], { encoding: 'utf8' });
+
+  console.log('Output:', result.stdout);
+  console.error('Error Output:', result.stderr);
+
+  if (result.error) {
+    console.error('Execution error:', result.error);
+  }
+
+  console.log('Exit code:', result.status);
+
+  // Exexute the SPARQL query to to export the grants.csv file
+  const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants_feed_test.rq', 'utf8');
+  console.log(await executeCsvQuery(db, grantQ));
+
+  // Exexute the SPARQL query to to export the links.csv file
+
+  // Exexute the SPARQL query to to export the roles.csv file
 
   // Retrieve the SFTP password from GCS Secret Manager
   // sftpConfig.password = await gs.getSecret(opt.secretpath);
 
   // Perform the SFTP upload
-  // uploadFile();
+  uploadFile();
 
 }
 
