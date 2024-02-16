@@ -67,14 +67,13 @@ const fuseki = new FusekiClient({
 });
 
 
-var localFilePath = ''; // A default local file path
 const remoteFilePath = opt.remote;
 
 opt.secretpath = 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password';
 
 const sftp = new Client();
 
-async function uploadFile() {
+async function uploadFile(localFilePath) {
 
   try {
     await sftp.connect(sftpConfig);
@@ -195,7 +194,7 @@ async function main(opt) {
   let db = await fuseki.createDb(fuseki.db);
 
   // Retrieve the grants source file from GCS
-  localFilePath = opt.output + "/" + opt.source; // The file to be transferred to the Symplectic server
+  let localFilePath = opt.output + "/" + opt.source; // The file to be transferred to the Symplectic server
 
   // First download the file from GCS
   // await downloadFile(opt.bucket, opt.source, localFilePath);
@@ -203,8 +202,7 @@ async function main(opt) {
   // console.log('Downloaded file:', xml);
 
   let json = parser.toJson(xml, { object: true, arrayNotation: false });
-  console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
-  // fs.writeFileSync(opt.output + "/out.json", JSON.stringify(json, null, 2));
+  // console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
 
   let contextObj = {
     "@context": {
@@ -268,17 +266,21 @@ async function main(opt) {
 
   // Exexute the SPARQL query to to export the grants.csv file
   const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants_feed_test.rq', 'utf8');
-  console.log(await executeCsvQuery(db, grantQ));
+  fs.writeFileSync(opt.output + "/grants.csv", await executeCsvQuery(db, grantQ));
+  // Perform the SFTP upload
+  uploadFile(localFilePath);
 
   // Exexute the SPARQL query to to export the links.csv file
+  const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants_links_test.rq', 'utf8');
+  fs.writeFileSync(opt.output + "/links.csv", await executeCsvQuery(db, linkQ));
+  // Perform the SFTP upload
+  uploadFile(localFilePath);
 
   // Exexute the SPARQL query to to export the roles.csv file
 
   // Retrieve the SFTP password from GCS Secret Manager
   // sftpConfig.password = await gs.getSecret(opt.secretpath);
 
-  // Perform the SFTP upload
-  uploadFile();
 
 }
 
