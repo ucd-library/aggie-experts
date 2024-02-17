@@ -29,6 +29,7 @@ program
   .requiredOption('-h, --host <host>', 'SFTP server hostname')
   .requiredOption('-u, --username <username>', 'SFTP username')
   .requiredOption('-d, --db <db>', 'Fuseki database name')
+  .requiredOption('-p, --prefix <prefix>', 'Remote file prefix')
   .requiredOption('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .parse(process.argv);
 
@@ -42,6 +43,7 @@ const sftpConfig = {
 
 const storage = new Storage({
   projectId: 'aggie-experts',
+
   // keyFilename: 'path/to/your/keyfile.json',
 });
 
@@ -81,24 +83,30 @@ async function downloadFile(bucketName, fileName, destinationPath) {
   const bucket = storage.bucket(bucketName);
   const file = bucket.file(fileName);
 
-  try {
-    // Create a read stream from the file and pipe it to a local file
-    const readStream = file.createReadStream();
-    const writeStream = fs.createWriteStream(destinationPath);
+  return new Promise((resolve, reject) => {
+    try {
+      // Create a read stream from the file and pipe it to a local file
+      const readStream = file.createReadStream();
+      const writeStream = fs.createWriteStream(destinationPath);
 
-    readStream.on('error', err => {
-      console.error('Error reading stream:', err);
-    });
+      readStream.on('error', err => {
+        console.error('Error reading stream:', err);
+        reject(err);
+      });
 
-    writeStream.on('finish', () => {
-      console.log(`File downloaded successfully to: ${destinationPath}`);
-    });
+      writeStream.on('finish', () => {
+        console.log(`File downloaded successfully to: ${destinationPath}`);
+        resolve();
+      });
 
-    await readStream.pipe(writeStream);
-  } catch (error) {
-    console.error('Error downloading file:', error.message);
-  }
+      readStream.pipe(writeStream);
+    } catch (error) {
+      console.error('Error downloading file:', error.message);
+      reject(error);
+    }
+  });
 }
+
 
 async function createGraphFromJsonLdFile(db, jsonld) {
   // Construct URL for uploading the data to the graph
@@ -179,22 +187,33 @@ async function executeCsvQuery(db, query) {
   return await response.text();
 }
 
+
 async function main(opt) {
 
+  // Start a fresh database
   let db = await fuseki.createDb(fuseki.db);
 
-  // Retrieve the grants source file from GCS
-  console.log(__dirname);
-  let localFilePath = opt.output + "/" + opt.source; // The file to be transferred to the Symplectic server
+  // Where are we?
+  console.log('Working dir: ' + __dirname);
+  let localFilePath = opt.output + "/" + opt.source;
 
   // First download the file from GCS
-  // await downloadFile(opt.bucket, 'grants/' + opt.source, localFilePath);
-  const xml = fs.readFileSync(localFilePath, 'utf8');
-  // console.log('Downloaded file:', xml);
+  try {
+    // Bucket where the file resides. Local file path to save the file to
+    // Wait for the file to be completely written
+    await downloadFile(opt.bucket, 'grants/' + opt.source, localFilePath);
+    // The file has been completely written. You can proceed with your logic here.
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
 
+  const xml = fs.readFileSync(localFilePath, 'utf8');
+
+  // Convert the XML to JSON
   let json = parser.toJson(xml, { object: true, arrayNotation: false });
   console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
 
+  // Create the JSON-LD context
   let contextObj = {
     "@context": {
       "@version": 1.1,
@@ -262,19 +281,19 @@ async function main(opt) {
   const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
   fs.writeFileSync(opt.output + "/grants.csv", await executeCsvQuery(db, grantQ));
   // Perform the SFTP upload
-  uploadFile(opt.output + "/grants.csv", "grants.csv");
+  uploadFile(opt.output + "/grants.csv", opt.prefix + "-grants.csv");
 
   // Exexute the SPARQL query to to export the links.csv file
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
   fs.writeFileSync(opt.output + "/links.csv", await executeCsvQuery(db, linkQ));
   // Perform the SFTP upload
-  uploadFile(opt.output + "/links.csv", "links.csv");
+  uploadFile(opt.output + "/links.csv", opt.prefix + "-links.csv");
 
   // Exexute the SPARQL query to to export the roles.csv file
   const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
   fs.writeFileSync(opt.output + "/roles.csv", await executeCsvQuery(db, roleQ));
   // Perform the SFTP upload
-  uploadFile(opt.output + "/roles.csv", "roles.csv");
+  uploadFile(opt.output + "/roles.csv", opt.prefix + "-researchers.csv");
 
 }
 
