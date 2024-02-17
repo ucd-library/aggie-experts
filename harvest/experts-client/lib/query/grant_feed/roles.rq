@@ -26,12 +26,10 @@ WHERE {
            vivo:relates ?related
     .
    	?related a ?role_type;
-             rdfs:label ?full_name_and_role;
+             rdfs:label ?full_name;
              .
   }
 
-  bind(replace(?full_name_and_role,"\\(.*\\)" ,"") as ?temp)
-  bind(replace(STRBEFORE(?temp," "),"," ,"") as ?surname)
-  bind(replace(STRAFTER(?temp," "),"," ,"") as ?first_name)
-  bind(?temp as ?full_name)
+  bind(replace(?full_name,"(.*) ([^ ]*)$" ,"$1") as ?first_name)
+  bind(replace(?full_name,"(.*) ([^ ]*)$" ,"$2") as ?surname)
 } order by ?id ?surname ?first_name
