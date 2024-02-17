@@ -47,6 +47,15 @@ const storage = new Storage({
   // keyFilename: 'path/to/your/keyfile.json',
 });
 
+// fusekize opt
+Object.keys(opt).forEach((k) => {
+  const n = k.replace(/^fuseki./, '')
+  if (n !== k) {
+    fuseki[n] = opt[k];
+    delete opt[k];
+  }
+});
+
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
