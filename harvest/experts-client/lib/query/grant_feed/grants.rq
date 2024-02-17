@@ -1,10 +1,10 @@
 # Query for grants
 PREFIX : <ark:/87287/d7gt0q/schema#>
-# PREFIX ae: <ark:/87287/d7c08j/>
+PREFIX ae: <ark:/87287/d7c08j/>
 PREFIX iam: <http://iam.ucdavis.edu/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
-PREFIX kfs: <ark:/87287/d7gt0q/>
+PREFIX ae:  <ark:/87287/d7c08j/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -14,26 +14,23 @@ PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 select distinct
 (?grant AS ?id)
 ("grant" AS ?category)
-("c-davis" AS ?type)
-("" AS ?url)
-(?grant as ?institution_reference)
-?flowThruFunding
+("c-davis-archive" AS ?type)
 ?title
-?pi
-?funding_type
-?start_date
-?end_date
-?ucop_sponsor
+?c_pi
 ?funder_name
 ?funder_reference
+?start_date
+?end_date
 ?amount_value
-("USD" AS ?amount_currency_code)
+?funding_type
+?c_ucop_sponsor
+?c_flow_thru_funding
 ("TRUE" AS ?visible)
 where {
-  GRAPH <ark:/87287/d7c08j/> {
+  GRAPH ae: {
     ?grant a vivo:Grant,?grant_class ;
               rdfs:label ?title;
-              # ucdlib:piName ?pi;
+              #ucdlib:piName ?c_pi;
               vivo:totalAwardAmount ?amount_value;
               vivo:dateTimeInterval [
                                       vivo:start/vivo:dateTime ?start_date;
@@ -41,27 +38,28 @@ where {
                                     ];
     .
 
-    # VALUES (?funding_type ?grant_class) {
-    #   ("Instruction" :GrantTypeInstruction)
-    #   ("Research" :GrantTypeResearch)
-    #   ("Service /Other" :GrantTypeService)
-    #   ("Academic Support" :GrantTypeAcademicSupport)
-    #   ("Student Services" :GrantTypeStudentService)
-    #   ("Scholarships / Fellowships" :GrantTypeScholarship)
-    #   ("Research" :GrantTypeDefault)
-    # }
-
-    # OPTIONAL {
-    #   ?grant ucdlib:flowThruFunding ?flowThruFunding.
-    # }
+    VALUES (?funding_type ?grant_class) {
+       ("Academic Support" ucdlib:GrantAcademicSupport)
+                  ("Research" ucdlib:GrantResearchAES)
+                  ("Student Services" ucdlib:GrantStudentServices)
+                  ("Capital Projects" ucdlib:GrantCapitalProjects)
+#                  ("78-Student Financial Aid" ucdlib:GrantStudentFinancialAid)
+                  ("Instruction" ucdlib:GrantInstruction)
+                  ("Research" ucdlib:GrantResearch)
+                  ("Public Service / Other" ucdlib:GrantPublicService)
+    }
 
     OPTIONAL {
-      ?grant vivo:assignedBy ?ucop_sponsor;
+      ?grant ucdlib:flowThruFunding ?c_flow_thru_funding.
+    }
+
+    OPTIONAL {
+      ?grant vivo:assignedBy ?c_ucop_sponsor;
              vivo:sponsorAwardId ?funder_reference;
              .
-      ?ucop_sponsor rdfs:label ?funder_name.
+       ?c_ucop_sponsor rdfs:label ?funder_name.
     }
-    # # This filters grants without a value oracle_award_number
-    # filter(! regex(str(?grant),"K-"))
+    # This filters grants without a value oracle_award_number
+    filter(! regex(str(?grant),"K-"))
   }
-} order by ?id limit 100
+} order by ?id

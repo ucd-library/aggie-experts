@@ -2,9 +2,9 @@
 # Note that the CDL graph must be created using the experts-cdl-users script before this query can be successful.
 
 PREFIX : <ark:/87287/d7gt0q/schema#>
+PREFIX ae: <ark:/87287/d7c08j/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
-PREFIX kfs: <ark:/87287/d7gt0q/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -18,17 +18,15 @@ select ("user" as ?category_1) (?ucpath as ?id_1)
 ?link_type_id ("TRUE" as ?visible)
 # select *
 WHERE {
-  # VALUES (?role ?link_type_id ?e_role) {
-  #   #       (:GrantAccountManagerRole "183" "Researcher on" )
-  #   (:GrantOtherRole "138" "Researcher on" )
-  #   (:GrantProjectLeaderRole "118" "Project Lead of")
-  #   (:GrantCoPrincipalInvestigatorRole "121" "Co-PI of")
-  #   (:GrantProgramDirectorRole "137" "Program Director of")
-  #   (:GrantCoreLeaderRole "119" "Co leader on")
-  #   (:GrantKeyPersonnelRole "97" "Senior personal of")
-  #   (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
-  # }
-  graph <ark:/87287/d7c08j/> {
+  values (?role_role ?role_type ?link_type_id ?e_role) {
+          ("Co-Principal Investigator" vivo:CoPrincipalInvestigatorRole "121" "Co-PI of")
+          ("Project Manager" vivo:ProjectManagerRole "118" "Project Lead of")
+          ("Project Administrator" vivo:ProjectAdministratorRole "137" "Program Director of")
+#          ("Grants Administrator" vivo:GrantsAdministratorRole "183" )
+          ("Principal Investigator" vivo:PrincipalInvestigatorRole "120" "Primary investigator for")
+        }
+
+  graph ae: {
     ?grant a vivo:Grant;
            vivo:relates ?related;
            .
@@ -43,5 +41,3 @@ WHERE {
 	#   ?expert ucdlib:proprietary_id ?ucpath .
   # }
 } order by ?id_2 ?id_1
-
-limit 10
