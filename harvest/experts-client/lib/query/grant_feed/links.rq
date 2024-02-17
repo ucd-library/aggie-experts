@@ -16,9 +16,8 @@ PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 select ("user" as ?category_1) (?ucpath as ?id_1)
 ("grant" as ?category_2) (?grant as ?id_2)
 ?link_type_id ("TRUE" as ?visible)
-# select *
 WHERE {
-  values (?role_role ?role_type ?link_type_id ?e_role) {
+    values (?role_role ?role_type ?link_type_id ?e_role) {
           ("Co-Principal Investigator" vivo:CoPrincipalInvestigatorRole "121" "Co-PI of")
           ("Project Manager" vivo:ProjectManagerRole "118" "Project Lead of")
           ("Project Administrator" vivo:ProjectAdministratorRole "137" "Program Director of")
@@ -30,14 +29,11 @@ WHERE {
     ?grant a vivo:Grant;
            vivo:relates ?related;
            .
-    ?related a ?role ;
-    # obo:RO_0000052 ?expert;
+    ?related a ?role_type ;
+           obo:RO_0000052 ?expert;
     .
-    # This filters grants without a value oracle_award_number
-    # filter(! regex(str(?grant),"K-"))
   }
-
-  # GRAPH cdl: {
-	#   ?expert ucdlib:proprietary_id ?ucpath .
-  # }
+  GRAPH cdl: {
+	  ?expert ucdlib:proprietary_id ?ucpath .
+  }
 } order by ?id_2 ?id_1

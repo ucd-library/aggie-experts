@@ -30,14 +30,14 @@ insert { graph <ark:/87287/d7c08j/> {
 
   ?role a vivo:GrantRole, ?role_type;
           rdfs:label ?role_label;
-          obo:RO_000052 ?role_expert;
+          obo:RO_0000052 ?role_expert;
           vivo:relatedBy ?grant;
           ucdlib:role ?role_role;
           ucdlib:percentage ?role_percentage;
           .
 
   # Link Back
-  ?role_expert obo:RO_000053 ?role.
+  ?role_expert obo:RO_0000053 ?role.
 
 
   ?duration a vivo:DateTimeInterval;

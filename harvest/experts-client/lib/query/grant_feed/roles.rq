@@ -1,5 +1,6 @@
 # Query for grant roles
-
+PREFIX : <ark:/87287/d7gt0q/schema#>
+PREFIX ae: <ark:/87287/d7c08j/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
@@ -7,40 +8,30 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX iam: <http://iam.ucdavis.edu/>
+PREFIX schema: <http://schema.org/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 
-select ?category ?id ?field_name ?surname ?first_name ?full_name ?order_number ?email_address ?phone_number ?full_address ?address_name
-  WHERE {
-    VALUES (?role ?link_type_id ?e_role) {
-       (:GrantCoPrincipalInvestigatorRole "121" "Co-PI of")
-       (:GrantPrincipalInvestigatorRole "120" "Primary investigator for")
-     }
+select ("grant" as ?category)
+(?grant as ?id)
+("researchers" as ?field_name)
+?surname ?first_name ?full_name
+WHERE {
+    values (?role_role ?role_type ?link_type_id ?e_role) {
+          ("Co-Principal Investigator" vivo:CoPrincipalInvestigatorRole "121" "Co-PI of")
+          ("Principal Investigator" vivo:PrincipalInvestigatorRole "120" "Primary investigator for")
+        }
 
-    GRAPH <ark:/87287/d7c08j/> {
-        ?grant a vivo:Grant;
-               vivo:relates ?related
-               .
-   	    ?related a ?role;
-               rdfs:label ?full_name_and_role;
-               obo:RO_0000052 ?expert;
-               .
-    }
-
-
-Optional {
-  graph iam: {
-	  ?expert ucdlib:userId ?cas.
-
-  	}
+  GRAPH ae: {
+    ?grant a vivo:Grant;
+           vivo:relates ?related
+    .
+   	?related a ?role_type;
+             rdfs:label ?full_name_and_role;
+             .
   }
 
-  bind("grant" as ?category)
-  bind(?grant as ?id)
-	bind("researchers" as ?field_name)
   bind(replace(?full_name_and_role,"\\(.*\\)" ,"") as ?temp)
   bind(replace(STRBEFORE(?temp," "),"," ,"") as ?surname)
   bind(replace(STRAFTER(?temp," "),"," ,"") as ?first_name)
   bind(?temp as ?full_name)
-  bind(concat(?cas,"@ucdavis.edu") as ?email_address)
-  }
+} order by ?id ?surname ?first_name

@@ -243,7 +243,7 @@ async function main(opt) {
 
   // Add the CDL-users graph to the fuseki database to include proprietary IDs
   // Command-line parameters to pass to the script
-  const params = ['--cdl.groups=431', '--experts-service=http://localhost:3030/aggie/sparql'];
+  const params = ['--cdl.groups=431', '--fuseki.db=aggie'];
   const result = spawnSync('node', [__dirname + '/experts-cdl-users.js', ...params], { encoding: 'utf8' });
 
   console.log('Output:', result.stdout);
@@ -265,17 +265,16 @@ async function main(opt) {
   uploadFile(opt.output + "/grants.csv", "grants.csv");
 
   // Exexute the SPARQL query to to export the links.csv file
-  const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
+  const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
   fs.writeFileSync(opt.output + "/links.csv", await executeCsvQuery(db, linkQ));
   // Perform the SFTP upload
   uploadFile(opt.output + "/links.csv", "links.csv");
 
   // Exexute the SPARQL query to to export the roles.csv file
-  // const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
-  // fs.writeFileSync(opt.output + "/roles.csv", await executeCsvQuery(db, roleQ));
-  // // Perform the SFTP upload
-  // uploadFile(opt.output + "/roles.csv", "roles.csv");
-
+  const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
+  fs.writeFileSync(opt.output + "/roles.csv", await executeCsvQuery(db, roleQ));
+  // Perform the SFTP upload
+  uploadFile(opt.output + "/roles.csv", "roles.csv");
 
 }
 
