@@ -67,10 +67,13 @@ function json_only(req, res, next) {
 async function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
   let id = '/'+model.id+decodeURIComponent(req.path);
-  if (('no-sanitize' in req.query) && req.user &&
-      (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
-       req.user?.roles?.includes('admin'))
-     ) {
+  console.log('user:', req.user);
+  if (
+    ('no-sanitize' in req.query || 'unsanitized' in req.query || req?.headers?.accept.includes('unsanitized'))
+      && req.user &&
+      ((id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
+        req.user?.roles?.includes('admin')) || req.user?.roles?.includes('miv'))
+  ) {
     return next();
   } else {
     let doc = res.thisDoc;
