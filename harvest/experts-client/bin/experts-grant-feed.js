@@ -158,6 +158,8 @@ async function executeUpdate(db, query) {
     body: query,
   };
 
+  // console.log(query);
+
   // Send the request to upload the data to the graph
   const response = await fetch(url, options);
 
@@ -210,6 +212,7 @@ async function main(opt) {
   try {
     // Bucket where the file resides. Local file path to save the file to
     // Wait for the file to be completely written
+    // console.log(localFilePath);
     await downloadFile(opt.bucket, 'grants/' + opt.source, localFilePath);
     // The file has been completely written. You can proceed with your logic here.
   } catch (error) {
@@ -261,6 +264,8 @@ async function main(opt) {
   // console.log('JSON:', JSON.stringify(contextObj).substring(0, 1000) + '...');
 
   let jsonld = JSON.stringify(contextObj);
+
+  // fs.writeFileSync(opt.output + "/grants.jsonld", jsonld);
 
   // Create a graph from the JSON-LD file
   console.log(createGraphFromJsonLdFile(db, jsonld));
