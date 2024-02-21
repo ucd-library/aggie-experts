@@ -82,7 +82,7 @@ WHERE {
   }
 
   {
-    select ?g ?role ?role_ark ?role_percentage ?role_type
+    select ?g ?role ?role_ark ?role_percentage ?role_type ?aggie_person_name
     WHERE {
       {
         ?g :principal_investigator [:name ?aggie_person_name;
