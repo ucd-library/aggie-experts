@@ -30,7 +30,7 @@ where {
   GRAPH ae: {
     ?grant a vivo:Grant,?grant_class ;
               rdfs:label ?title;
-              #ucdlib:piName ?c_pi;
+              ucdlib:piName ?c_pi;
               vivo:totalAwardAmount ?amount_value;
               vivo:dateTimeInterval [
                                       vivo:start/vivo:dateTime ?start_date;
