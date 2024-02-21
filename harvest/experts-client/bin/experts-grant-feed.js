@@ -73,7 +73,6 @@ opt.secretpath = 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-
 const sftp = new Client();
 
 async function uploadFile(localFilePath, remoteFileName) {
-
   try {
     await sftp.connect(sftpConfig);
     console.log(localFilePath, remoteFilePath + remoteFileName);
@@ -87,6 +86,7 @@ async function uploadFile(localFilePath, remoteFileName) {
     await sftp.end();
   }
 }
+
 
 async function downloadFile(bucketName, fileName, destinationPath) {
   const bucket = storage.bucket(bucketName);
@@ -304,21 +304,21 @@ async function main(opt) {
   fs.writeFileSync(opt.output + "/grants.csv", await executeCsvQuery(db, grantQ));
   replaceHeaderHyphens("grants.csv");
   // Perform the SFTP upload
-  uploadFile(opt.output + "/grants.csv", opt.prefix + "-grants.csv");
+  await uploadFile(opt.output + "/grants.csv", opt.prefix + "-grants.csv");
 
   // Exexute the SPARQL query to to export the links.csv file
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
   fs.writeFileSync(opt.output + "/links.csv", await executeCsvQuery(db, linkQ));
   replaceHeaderHyphens("links.csv");
   // Perform the SFTP upload
-  uploadFile(opt.output + "/links.csv", opt.prefix + "-links.csv");
+  await uploadFile(opt.output + "/links.csv", opt.prefix + "-links.csv");
 
   // Exexute the SPARQL query to to export the roles.csv file
   const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
   fs.writeFileSync(opt.output + "/roles.csv", await executeCsvQuery(db, roleQ));
   replaceHeaderHyphens("roles.csv");
   // Perform the SFTP upload
-  uploadFile(opt.output + "/roles.csv", opt.prefix + "_grants_persons_QA.csv");
+  await uploadFile(opt.output + "/roles.csv", opt.prefix + "_grants_persons_QA.csv");
 
 }
 
