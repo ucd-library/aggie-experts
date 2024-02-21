@@ -14,7 +14,7 @@ PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 select distinct
 (?grant AS ?id)
 ("grant" AS ?category)
-("c-davis-archive" AS ?type)
+("c-ucdavis-pre-ae" AS ?type)
 ?title
 ?c_pi
 ?funder_name
@@ -22,6 +22,7 @@ select distinct
 ?start_date
 ?end_date
 ?amount_value
+("USD" as ?amount_currency_code)
 ?funding_type
 ?c_ucop_sponsor
 ?c_flow_thru_funding
