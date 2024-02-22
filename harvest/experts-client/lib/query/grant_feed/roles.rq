@@ -13,7 +13,7 @@ PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 
 select ("grant" as ?category)
 (?grant as ?id)
-("researchers" as ?field_name)
+("c-co-pis" as ?field_name)
 ?surname ?first_name ?full_name
 WHERE {
     values (?role_role ?role_type ?link_type_id ?e_role) {
