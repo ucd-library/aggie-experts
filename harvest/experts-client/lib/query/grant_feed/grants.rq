@@ -14,7 +14,7 @@ PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 select distinct
 (?grant AS ?id)
 ("grant" AS ?category)
-("c-ucdavis-enterprise" AS ?type)
+("c-ucd-enterprise" AS ?type)
 ?title
 ?c_pi
 ?funder_name
