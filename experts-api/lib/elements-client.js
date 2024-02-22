@@ -61,6 +61,7 @@ export default class ElementsClient {
     } else {
       throw new Error(`Bad instance ${instance}`);
     }
+  }
 }
 
 export class Impersonator {

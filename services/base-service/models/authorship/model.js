@@ -103,16 +103,16 @@ class AuthorshipModel extends BaseModel {
       throw error;
     }
 
-    if (config.experts.cdl_propagate_changes) {
-      const cdl_user = await expertModel._impersonate_cdl_user(expert,{instance:'prod'});
+    if (config.experts.cdl.authorship.propagate) {
+      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
       resp = await cdl_user.setLinkPrivacy({
         objectId: patch.objectId,
         categoryId: 1,
         privacy: patch.visible ? 'public' : 'internal'
       })
-      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
+      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
     } else {
-      logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl_propagate_changes}`);
+      logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl.authorship.propagate}`);
     }
   }
 
@@ -211,17 +211,17 @@ class AuthorshipModel extends BaseModel {
 
     await finApi.delete(options);
 
-    if (config.experts.cdl_propagate_changes) {
+    if (config.experts.cdl.authorship.propagate) {
       let linkId=id.replace("ark:/87287/d7mh2m/relationship/","");
-      const cdl_user = await expertModel._impersonate_cdl_user(expert,);
-      logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
+      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
+      logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
       resp = await cdl_user.reject({
         linkId: linkId,
         objectId: objectId
       })
-      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
+      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
     } else {
-      logger.info({cdl:null},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
+      logger.info({cdl:null},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
     }
 
   }
