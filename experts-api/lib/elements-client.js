@@ -25,34 +25,42 @@ export default class ElementsClient {
       }
   };
 
-  static impersonators = {};
+  static impersonators =
+    {
+      qa:{},
+      prod:{}
+    };
 
   static info(instance) {
     return ElementsClient.config.cdl[instance];
   }
 
   static async impersonate(userId,args) {
-    if ( ElementsClient.impersonators[userId] ) {
-      if ( ElementsClient.impersonators[userId].expires > Date.now() )  {
-        return ElementsClient.impersonators[userId];
-      } else {
-        delete ElementsClient.impersonators[userId];
+    const instance = args.instance || 'prod';
+    if (ElementsClient.impersonators[instance]) {
+      if ( ElementsClient.impersonators[instance][userId] ) {
+        if ( ElementsClient.impersonators[instance][userId].expires > Date.now() )  {
+          return ElementsClient.impersonators[instance][userId];
+        } else {
+          delete ElementsClient.impersonators[instance][userId];
+        }
       }
-    }
-    try {
-      let user=new Impersonator(userId,args);
-      await user.login();
-      await user.impersonate();
-      ElementsClient.impersonators[userId]=user;
-      return user
-    } catch (e) {
-      if (e.status !== 504) {
-        e.message = `Impersonation failed: ${e.message}`;
-        e.status=502;
+      try {
+        let user=new Impersonator(userId,args);
+        await user.login();
+        await user.impersonate();
+        ElementsClient.impersonators[instance][userId]=user;
+        return user
+      } catch (e) {
+        if (e.status !== 504) {
+          e.message = `Impersonation failed: ${e.message}`;
+          e.status=502;
+        }
+        throw e;
       }
-      throw e;
+    } else {
+      throw new Error(`Bad instance ${instance}`);
     }
-  }
 }
 
 export class Impersonator {

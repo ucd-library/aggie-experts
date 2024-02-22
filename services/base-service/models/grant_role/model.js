@@ -107,7 +107,7 @@ class GrantRoleModel extends BaseModel {
     }
 
     if (config.experts.cdl_propagate_changes) {
-      const cdl_user = await expertModel._impersonate_cdl_user(expert);
+       const cdl_user = await expertModel._impersonate_cdl_user(expert,{instance:"qa"});
       if (patch.visible != null) {
         resp = await cdl_user.setLinkPrivacy({
           objectId: patch.objectId,

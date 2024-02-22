@@ -107,7 +107,7 @@ class ExpertModel extends BaseModel {
    * @returns {Object} : cdl_user
    * @throws {Error} : ifexoert
    **/
-  async _impersonate_cdl_user(expert) {
+  async _impersonate_cdl_user(expert,args) {
     let root_node = this.get_expected_model_node(expert);
     if (! Array.isArray(root_node.identifier)) {
       root_node.identifier = [root_node.identifier];
@@ -127,7 +127,7 @@ class ExpertModel extends BaseModel {
       // console.log('elementsClient',ElementsClient);
       this.ElementsClient = ElementsClient;
     }
-    let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,{instance: 'qa'})
+    let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,args);
     return cdl_user;
   }
 

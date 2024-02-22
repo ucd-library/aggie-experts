@@ -104,7 +104,7 @@ class AuthorshipModel extends BaseModel {
     }
 
     if (config.experts.cdl_propagate_changes) {
-      const cdl_user = await expertModel._impersonate_cdl_user(expert);
+      const cdl_user = await expertModel._impersonate_cdl_user(expert,{instance:'prod'});
       resp = await cdl_user.setLinkPrivacy({
         objectId: patch.objectId,
         categoryId: 1,
@@ -213,7 +213,7 @@ class AuthorshipModel extends BaseModel {
 
     if (config.experts.cdl_propagate_changes) {
       let linkId=id.replace("ark:/87287/d7mh2m/relationship/","");
-      const cdl_user = await expertModel._impersonate_cdl_user(expert);
+      const cdl_user = await expertModel._impersonate_cdl_user(expert,);
       logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl_propagate_changes}`);
       resp = await cdl_user.reject({
         linkId: linkId,
