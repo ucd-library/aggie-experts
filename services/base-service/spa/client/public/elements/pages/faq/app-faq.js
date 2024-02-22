@@ -26,6 +26,10 @@ export default class AppFaq extends Mixin(LitElement)
     this.render = render.bind(this);
   }
 
+  async firstUpdated() {
+    this._onAppStateUpdate(await this.AppStateModel.get());
+  }
+
   /**
    * @method _onAppStateUpdate
    * @description bound to AppStateModel app-state-update event

@@ -325,8 +325,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       this.hideOK = false;
       this.hideOaPolicyLink = true;
       this.errorMode = true;
-
-      return;
     }
 
     this.modifiedGrants = true;
@@ -351,8 +349,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       try {
         let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
       } catch (error) {
-        // TODO handle different error codes?
-
         let grantTitle = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)?.[0]?.name || '';
         let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
 
@@ -364,8 +360,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         this.hideOK = false;
         this.hideOaPolicyLink = true;
         this.errorMode = true;
-
-        return;
       }
 
       // update graph/display data
