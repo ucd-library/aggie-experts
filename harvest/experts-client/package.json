@@ -25,6 +25,7 @@
   "dependencies": {
     "@comunica/bindings-factory": "^2.10.0",
     "@comunica/query-sparql": "^2.10.0",
+    "@google-cloud/storage": "^7.7.0",
     "bunyan": "^1.8.15",
     "classic-level": "^1.2.0",
     "commander": "^10.0.0",
@@ -37,6 +38,8 @@
     "md5": "^2.3.0",
     "nanoid": "^4.0.2",
     "node-fetch": "^3.3.2",
+    "ssh2-sftp-client": "^9.1.0",
+    "xml2js": "^0.6.0",
     "xml2json": "^0.12.0"
   },
   "devDependencies": {
