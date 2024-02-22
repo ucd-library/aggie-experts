@@ -29,7 +29,6 @@ program
   .requiredOption('-h, --host <host>', 'SFTP server hostname')
   .requiredOption('-u, --username <username>', 'SFTP username')
   .requiredOption('-d, --db <db>', 'Fuseki database name')
-  .requiredOption('-p, --prefix <prefix>', 'Remote file prefix')
   .requiredOption('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .parse(process.argv);
 
@@ -304,21 +303,21 @@ async function main(opt) {
   fs.writeFileSync(opt.output + "/grants.csv", await executeCsvQuery(db, grantQ));
   replaceHeaderHyphens("grants.csv");
   // Perform the SFTP upload
-  await uploadFile(opt.output + "/grants.csv", opt.prefix + "-grants.csv");
+  await uploadFile(opt.output + "/grants.csv", "grants.csv");
 
   // Exexute the SPARQL query to to export the links.csv file
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
   fs.writeFileSync(opt.output + "/links.csv", await executeCsvQuery(db, linkQ));
   replaceHeaderHyphens("links.csv");
   // Perform the SFTP upload
-  await uploadFile(opt.output + "/links.csv", opt.prefix + "-links.csv");
+  await uploadFile(opt.output + "/links.csv", "links.csv");
 
   // Exexute the SPARQL query to to export the roles.csv file
   const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
   fs.writeFileSync(opt.output + "/roles.csv", await executeCsvQuery(db, roleQ));
   replaceHeaderHyphens("roles.csv");
   // Perform the SFTP upload
-  await uploadFile(opt.output + "/roles.csv", opt.prefix + "_grants_persons_QA.csv");
+  await uploadFile(opt.output + "/roles.csv", "persons.csv");
 
 }
 
