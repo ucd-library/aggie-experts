@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+
+/* Transform the Aggie Enterprise grant feed into VIVO RDF and upload to the Symplectic server
+   rakunkel@ucdavis.edu */
+
 import fs from 'fs';
 import path from 'path';
 import { Command } from 'commander';
@@ -40,10 +44,10 @@ const sftpConfig = {
   username: opt.username,
 };
 
+// GCS storage
+// XML file to be downloaded from GCS and converted to JSON
 const storage = new Storage({
   projectId: 'aggie-experts',
-
-  // keyFilename: 'path/to/your/keyfile.json',
 });
 
 // fusekize opt
@@ -64,7 +68,7 @@ const fuseki = new FusekiClient({
   'delete': false
 });
 
-
+// SFTP configuration
 const remoteFilePath = opt.remote;
 
 opt.secretpath = 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password';
@@ -157,7 +161,6 @@ async function executeUpdate(db, query) {
     body: query,
   };
 
-  // console.log(query);
 
   // Send the request to upload the data to the graph
   const response = await fetch(url, options);
@@ -166,7 +169,6 @@ async function executeUpdate(db, query) {
   if (!response.ok) {
     throw new Error(`Failed execute update. Status code: ${response.status}` + response.statusText);
   }
-
   return await response.text();
 }
 
@@ -268,11 +270,8 @@ async function main(opt) {
   };
 
   contextObj["@graph"] = json["Document"]["award"];
-  // console.log('JSON:', JSON.stringify(contextObj).substring(0, 1000) + '...');
 
   let jsonld = JSON.stringify(contextObj);
-
-  // fs.writeFileSync(opt.output + "/grants.jsonld", jsonld);
 
   // Create a graph from the JSON-LD file
   console.log(createGraphFromJsonLdFile(db, jsonld));
