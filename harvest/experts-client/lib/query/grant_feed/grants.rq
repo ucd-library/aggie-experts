@@ -58,9 +58,8 @@ where {
       ?grant vivo:assignedBy ?c_ucop_sponsor;
              vivo:sponsorAwardId ?funder_reference;
              .
-       ?c_ucop_sponsor rdfs:label ?funder_name.
+      ?c_ucop_sponsor rdfs:label ?funder_name.
+      filter(isIRI(?c_ucop_sponsor))
     }
-    # This filters grants without a value oracle_award_number
-    filter(! regex(str(?grant),"K-"))
   }
 } order by ?id
