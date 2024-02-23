@@ -105,24 +105,23 @@ class GrantRoleModel extends BaseModel {
       error.status=500;
       throw error;
     }
-
-    if (config.experts.cdl_propagate_changes) {
-      const cdl_user = await expertModel._impersonate_cdl_user(expert);
+    if (config.experts.cdl.grant_role.propagate) {
+      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
       if (patch.visible != null) {
         resp = await cdl_user.setLinkPrivacy({
           objectId: patch.objectId,
           categoryId: 2,
           privacy: patch.visible ? 'public' : 'internal'
         })
-        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl_propagate_changes}`);
+        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.grant_role.propagate}`);
       }
       if (patch.favourite != null) {
         resp = await cdl_user.setFavourite(patch)
-        logger.info({cdl_response:resp},`CDL propagate favourite ${config.experts.cdl_propagate_changes}`);
+        logger.info({cdl_response:resp},`CDL propagate favourite ${config.experts.cdl.grant_role.propagate}`);
       }
     } else {
-        logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl_propagate_changes}`);
-      }
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.grant_role.propagate}`);
+    }
   }
 
   /**
