@@ -16,32 +16,41 @@
    PREFIX work: <http://experts.ucdavis.edu/work/>
    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
    construct {
-  ?grant_role a ucdlib:GrantRole, ?role;
-           ucdlib:favorite ?favorite;
-           ucdlib:is-visible ?visible;
-           vivo:relates ?expert,?grant;
-           .
+     ?grant_role a ucdlib:GrantRole, ?role;
+                   ucdlib:favorite ?favorite;
+                   ucdlib:is-visible ?visible;
+                   vivo:relates ?expert,?grant;
+                   .
 
-  ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
-         ?field_predicate ?field_text;
-         ?field_predicate ?field_money;
-         vivo:assignedBy ?funder;
-         vivo:dateTimeInterval ?interval;
-         .
+     ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
+            ?field_predicate ?field_text;
+            ?field_predicate ?field_money;
+            vivo:assignedBy ?funder;
+            vivo:dateTimeInterval ?interval;
+            vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
+            .
 
-  ?grant_type rdfs:label ?funding_type_label;
-              .
+     ?grant_type rdfs:label ?funding_type_label;
+                 .
 
-  ?funder a vivo:FundingOrganization;
-          rdfs:label ?funder_label;
-          .
+     ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
+                              vivo:relates ?labeled_only_pi,?grant;
+                              .
 
-  ?interval
+     ?labeled_only_co_pi_role a vivo:CoPrincipalInvestigatorRole;
+                              vivo:relates ?labeled_only_co_pi,?grant;
+                        .
+
+     ?funder a vivo:FundingOrganization;
+             rdfs:label ?funder_label;
+             .
+
+     ?interval
      vivo:start ?sd;
      vivo:end ?ed;
      .
 
-  ?sd
+     ?sd
      vivo:dateTimePrecision ?start_date_precision;
      vivo:dateTime ?start_date;
      .
