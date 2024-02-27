@@ -10,7 +10,7 @@ username: ucdavis
 
 password: [via GCS Secret Manager]
 
-Note that directories have been created under the ucdavis account for QA and Production.
+Note that directories have been created on the Symplectic FTP server under the ucdavis account for QA and Production.
 
 ## Process Data Flow
 ```mermaid
@@ -36,24 +36,24 @@ The grants are then harvested by the Aggie Experts via the CDL Elements API in t
 Two CSV file are need to load the legacy grants. The first file contains the grant data. The second file contains the links to associate grants with researchers.
 The grant data file is named "grants.csv". The grant links file is named "links.csv". Both files are uploaded to the appropriate Symplectic FTP directory.
 
-#### Columns of the grant import file are:
+#### Columns of the grants.csv import file are:
 
 |field|format|notes|
 |-----|------|-----|
 |id|Ark ID|ARK identifier used by Aggie Experts|
 |category|text|Default to "grant"|
-|type|text|Default to "c-davis"|
-|url|url|not used|
-|institution-reference|Ark ID|ARK identifier used by Aggie Experts|
+|type|text|The grant type as defined in Elements."c-ucdavis-pre-ae" for archived (KFS) grants. "c-ucd-enterprise" for Aggie Enterprise managed grants|
 |title|text| Grant title|
-|funding-type|text| Research, Service/Other, Instruction,   |
+|c-pi|text|Principle Investigator|
+|funder-name|text||
+|funder-reference|text|Funder ID|
 |start-date|YYYY-MM-DD|Grant start date|
 |end-date| YYYY-MM-DD|Grant end date|
-|c-ucop-sponsor|http:/rems.ucop.edu/sponsor/[CODE]|valid REMS sponsor code|
-|funder-name|text||
-|funder-reference||Funder ID|
-|amount-value|number||
-|amount-currency-code||USD|
+|amount-value|number|USD amount|
+|amount-currency-code|currency type|USD|
+|funding-type|text| Research, Service/Other, Instruction,   |
+|c-ucop-sponsor|http:/rems.ucop.edu/sponsor/[CODE]|URL with valid REMS sponsor code|
+|c-flow-thru-funding|http:/rems.ucop.edu/sponsor/[CODE]|URL with valid REMS sponsor code| 
 |visible|true/false|Determines whether matching records ... |
 
 These column names correspond to the grant data "underlying fields" in the Symplectic Elements system.
@@ -61,7 +61,7 @@ Values are mapped to matching fields in the CDL Elements system in the Grants ta
 Note that custom underlying fields can be added to the CDL Elements system to capture additional grant data.
 See "Manage underlying fields: grant" in the Symplectic Elements documentation for more information.
 
-#### Column names for the grant links file are
+#### Column names for the links.csv file are
 
 |field|format|notes|
 |-----|------|-----|
@@ -71,6 +71,17 @@ See "Manage underlying fields: grant" in the Symplectic Elements documentation f
 |id-2|ARK ID|ARK ID of grant|
 |link-type-id|number|Relationship type code|
 |visible|true/false|Determines whether matching  **NOT SUPPORTED |
+
+#### Column names for the persons.csv file are
+
+|field|format|notes|
+|-----|------|-----|
+|category|text|Default to "grant"|
+|id|number|Ark format ID of grant|
+|field-name|text||
+|surname|||
+|first-name|||
+|full-name|||
 
 ### Sparql Queries  
 see: ([Grant Feed Sparql Query](../harvest/experts-client/lib/query/grant_feed/grants_feed.rq))
