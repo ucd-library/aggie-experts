@@ -32,6 +32,12 @@ A CSV format file is uploaded to the "ucdavis" FTP account at ftp.use.symplectic
 then processed by the Symplectic Elements system and the grants are added to the CDL Elements system.
 The grants are then harvested by the Aggie Experts via the CDL Elements API in the same fashion as publications.
 
+
+### Three csv files or uploaded to the Symplectic server:
+#### grants.csv for grants
+#### links.csv for linking Elements users to grants with roles.
+#### persons.csv for linking persons who are not Elements users. We use this to include Co-PIs that are not in the Elements system.
+
 ### Grant Feed File Format
 Two CSV file are need to load the legacy grants. The first file contains the grant data. The second file contains the links to associate grants with researchers.
 The grant data file is named "grants.csv". The grant links file is named "links.csv". Both files are uploaded to the appropriate Symplectic FTP directory.
@@ -76,12 +82,12 @@ See "Manage underlying fields: grant" in the Symplectic Elements documentation f
 
 |field|format|notes|
 |-----|------|-----|
-|category|text|Default to "grant"|
+|category|text|Default to "grant" |
 |id|number|Ark format ID of grant|
-|field-name|text||
-|surname|||
-|first-name|||
-|full-name|||
+|field-name|text|field to apply value to|
+|surname|text|last name of related person|
+|first-name|text|first name of related person|
+|full-name|text|full name of related person|
 
 ### Sparql Queries  
 see: ([Grant Feed Sparql Query](../harvest/experts-client/lib/query/grant_feed/grants_feed.rq))
