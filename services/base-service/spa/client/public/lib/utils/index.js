@@ -70,17 +70,17 @@ class Utils {
    * @method getGrantRole
    * @description given a GrantType vivo role @type, returns the role to display in AE. defaults to Researcher if no match
    *
-   * @param {String} type
+   * @param {String | Array} type
    *
-   * @return {String} readable role
+   * @return {String} readable roles
    */
-  getGrantRole(role) {
+  getGrantRole(roles) {
     let readableRole = 'Researcher';
-    if( !Array.isArray(role) ) role = [role];
+    if( !Array.isArray(roles) ) roles = [roles];
 
-    if( role.includes('PrincipalInvestigatorRole') ) readableRole = 'Principal Investigator';
-    else if( role.includes('CoPrincipalInvestigatorRole') ) readableRole = 'Co-Principal Investigator';
-    else if( role.includes('LeaderRole') ) readableRole = 'Leader';
+    if( roles.includes('PrincipalInvestigatorRole') ) readableRole = 'Principal Investigator';
+    else if( roles.includes('CoPrincipalInvestigatorRole') ) readableRole = 'Co-Principal Investigator';
+    else if( roles.includes('LeaderRole') ) readableRole = 'Leader';
 
     return readableRole;
   }
@@ -89,11 +89,13 @@ class Utils {
    * @method parseGrants
    * @description given an array of grants, parse and return an array of parsed grants
    *
-   * @param {Array} grants
+   * @param {String} expertId expertId to match for experts role in grant
+   * @param {Array} grants array of grant objects
+   * @param {Boolean} filterHidden whether to filter out hidden grants
    *
    * @return {Array} parsedGrants
    */
-  parseGrants(grants) {
+  parseGrants(expertId, grants, filterHidden=true) {
     let parsedGrants = (grants || []).map((g, index) => {
       // determine if active or completed
       let completed = false;
@@ -111,8 +113,52 @@ class Utils {
       }
       g.completed = completed;
 
-      // determine role/type
-      g.role = this.getGrantRole(g.relatedBy?.['@type'] || '');
+      // determine experts relationship in this grant
+      let relatedBy = g.relatedBy || [];
+      if( !Array.isArray(relatedBy) ) relatedBy = [relatedBy];
+
+      let expertsRelationship = {};
+      let otherRelationships = [];
+
+      relatedBy.forEach(r => {
+        let isExpert = false;
+        let relates = r.relates || [];
+        if( !Array.isArray(relates) ) relates = [relates];
+
+        relates.forEach(relate => {
+          if( typeof relate === 'string' && relate.trim().toLowerCase() === expertId.trim().toLowerCase() ) {
+            expertsRelationship = r;
+            isExpert = true;
+          } else if( relate['@id'] && relate['@id'].includes(expertId) ) {
+            expertsRelationship = r;
+            isExpert = true;
+          }
+        });
+        if( !isExpert ) otherRelationships.push(r);
+      });
+
+      console.log({ expertsRelationship, otherRelationships });
+
+      if( filterHidden && !expertsRelationship['is-visible'] ) return;
+
+      g.isVisible = expertsRelationship['is-visible'];
+
+      // determine pi/copi in otherRelationships
+      let contributors = otherRelationships.map(r => {
+        let contributorRole = this.getGrantRole(r['@type'] || '');
+        let contributorName = r.relates.filter(relate => relate.name)[0]?.name || '';
+        if( contributorName && contributorRole ) {
+          return {
+            name: contributorName,
+            role: contributorRole,
+          };
+        }
+      });
+
+      g.contributors = contributors.filter(c => c); // remove undefined
+
+      // determine role/type using expertsRelationship
+      g.role = this.getGrantRole(expertsRelationship['@type'] || '');
 
       g.type = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
 
@@ -124,6 +170,7 @@ class Utils {
       return g;
     });
 
+    parsedGrants = parsedGrants.filter(g => g); // remove undefined
     parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime) || a.name.localeCompare(b.name));
     return parsedGrants;
   }

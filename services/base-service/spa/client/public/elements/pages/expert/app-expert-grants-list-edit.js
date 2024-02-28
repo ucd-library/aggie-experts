@@ -135,9 +135,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.totalGrants = grants.length;
-    this.hiddenGrants = grants.filter(g => !g.relatedBy?.['is-visible']).length;
 
-    this.grants = utils.parseGrants(grants);
+    this.grants = utils.parseGrants(this.expertId, grants, false); // don't filter hidden grants
+    this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
@@ -371,7 +371,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       if( grant ) grant.relatedBy['is-visible'] = false;
 
       this.totalGrants = this.grants.length;
-      this.hiddenGrants = this.grants.filter(g => !g.relatedBy?.['is-visible']).length;
+      this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
 
       this.requestUpdate();
     }
@@ -389,7 +389,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.grants = utils.parseGrants(grants);
+    this.grants = utils.parseGrants(this.expertId, grants);
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
