@@ -14,6 +14,7 @@ Some of the sparql queries are written in this area
   PREFIX experts: <http://experts.ucdavis.edu/>
   PREFIX kfs: <ark:/87287/d7gt0q/schema#>
   PREFIX list: <http://jena.apache.org/ARQ/list#>
+  PREFIX obo: <http://purl.obolibrary.org/obo/>
   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
   PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -281,6 +282,7 @@ relationship here for testing.
            ?field_predicate ?field_value;
            cite:issued ?pub_datestr;
            cite:date-available ?opub_datestr;
+           vivo:relatedBy ?authorship;
            .
 
      ?work  cite:author ?author.
@@ -602,8 +604,8 @@ relationship here for testing.
          ?grant_role a ucdlib:GrantRole, ?role;
                   ucdlib:favorite ?favorite;
                   ucdlib:is-visible ?visible;
-                  vivo:relates ?expert,?grant;
-                  vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
+                  vivo:relates ?grant,?expert;
+                  obo:RO_0000052 ?expert;
                   .
 
          ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
@@ -611,6 +613,7 @@ relationship here for testing.
                 ?field_predicate ?field_money;
                 vivo:assignedBy ?funder;
                 vivo:dateTimeInterval ?interval;
+                vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
                 .
 
          ?grant_type rdfs:label ?funding_type_label;
