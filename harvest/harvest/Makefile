@@ -49,7 +49,6 @@ hdt-bucket:=${GCS_GRAPH_STORAGE}
 
 hdt-push: ## Push the HDT files to the GCS bucket
 	gsutil rsync -r databases/hdt ${hdt-bucket}/hdt
-	gsutil rsync -r tar ${hdt-bucket}/tar
 
 hdt-pull: ## Pull HDT files from GCS_GRAPH_STORAGE
 	[[ -d databases/hdt ]] || mkdir -p databases/hdt
