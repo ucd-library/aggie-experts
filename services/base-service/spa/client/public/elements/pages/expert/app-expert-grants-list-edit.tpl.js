@@ -310,10 +310,10 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
-                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
               </span>
             </div>
@@ -342,10 +342,10 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
-                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
               </span>
             </div>

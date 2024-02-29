@@ -152,7 +152,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     // throw errors if any citations/grants have is-visible:false
     let invalidCitations = this.citations.filter(c => !c['is-visible']);
-    let invalidGrants = this.grants.filter(g => !g.relatedBy?.['is-visible']);
+    let invalidGrants = this.grants.filter(g => !g.isVisible);
 
     if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
     if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);

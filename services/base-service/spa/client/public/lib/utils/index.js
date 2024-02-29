@@ -142,6 +142,7 @@ class Utils {
       if( filterHidden && !expertsRelationship['is-visible'] ) return;
 
       g.isVisible = expertsRelationship['is-visible'];
+      g.relationshipId = expertsRelationship['@id'];
 
       // determine pi/copi in otherRelationships
       let contributors = otherRelationships.map(r => {
