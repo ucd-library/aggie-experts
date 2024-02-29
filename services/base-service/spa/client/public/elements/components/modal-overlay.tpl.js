@@ -135,7 +135,7 @@ export default function render() {
           <div class="footer-buttons">
             <button ?hidden="${this.hideCancel}" class="btn btn--invert" @click="${this._onCancel}">Cancel</button>
             <button ?hidden="${this.hideSave}" class="btn btn--primary" @click="${this._onSave}">${this.title}</button>
-            <a ?hidden="${this.hideOaPolicyLink}" href="https://oapolicy.universityofcalifornia.edu/" class="btn btn--primary">${(this.title || '').replace('New ', '')}</a>
+            <a ?hidden="${this.hideOaPolicyLink}" href=" https://oapolicy.universityofcalifornia.edu/listobjects.html?as=3&am=false&cid=1&ipr=false&iqf=true" class="btn btn--primary">${(this.title || '').replace('New ', '')}</a>
             <button ?hidden="${this.hideOK}" class="btn btn--primary ok" @click="${this._onCancel}">OK</button>
           </div>
         </div>
