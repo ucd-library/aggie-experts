@@ -264,6 +264,7 @@ WHERE {
         ?relationship :related ?user.
         ?user :category "user";
               :username ?username;
+              :is-public "true";
               .
 
         ?record :native/:field ?field.
