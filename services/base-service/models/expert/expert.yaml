@@ -37,7 +37,6 @@ paths:
           in: header
           schema:
             type: string
-            external: https://httpwg.org/specs/rfc7240.html
             example: "return=representation; sanitize=false"
       responses:
         '200':
