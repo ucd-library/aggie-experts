@@ -79,6 +79,7 @@ WHERE {
 
     ?user :category "user";
           :username ?username;
+          :is-public "true";
           .
 
     {

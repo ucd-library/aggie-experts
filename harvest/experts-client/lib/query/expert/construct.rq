@@ -80,7 +80,7 @@ WHERE {
   }
   GRAPH <http://oapolicy.universityofcalifornia.edu/> {
   ?cdl_id :category "user";
-        :is-public ?visible_str;
+        :is-public "true",?visible_str;
         :is-login-allowed "true";
         :username ?USERNAME__;
         :last-name ?ln;
