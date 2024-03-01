@@ -322,11 +322,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _showWork(e) {
     this.citationId = e.currentTarget.dataset.id;
+    this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
       let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+      this.dispatchEvent(new CustomEvent("loaded", {}));
     } catch (error) {
-      // TODO handle different error codes?
+      this.dispatchEvent(new CustomEvent("loaded", {}));
 
       let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
       let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
@@ -356,18 +358,19 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _modalSave(e) {
     e.preventDefault();
+
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
     this.showModal = false;
-
     let action = e.currentTarget.title.trim() === 'Hide Work' ? 'hide' : 'reject';
-
     this.modifiedWorks = true;
 
     if( action === 'hide' ) {
       try {
         let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
       } catch (error) {
-        debugger;
-        // TODO handle different error codes?
+        this.dispatchEvent(new CustomEvent("loaded", {}));
 
         let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
         let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
@@ -381,7 +384,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
 
-        return;
       }
 
       // update graph/display data
@@ -397,9 +399,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } else if ( action === 'reject' ) {
       try {
         let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
       } catch (error) {
-        debugger;
-        // TODO handle different error codes?
+        this.dispatchEvent(new CustomEvent("loaded", {}));
 
         let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
         let modelContent = `<p>Rejecting (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
@@ -413,7 +415,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
 
-        return;
       }
 
       // remove citation from graph/display data
@@ -459,7 +460,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     e.preventDefault();
     // this.AppStateModel.setLocation('/works-add/'+this.expertId);
     this.modalTitle = 'Add New Work';
-    this.modalContent = `<p>New works are added, claimed or rejected view the <strong>UC Publication Management System.</strong></p><p>You will be redirected to this system.</p>`;
+    this.modalContent = `<p>New works are added, claimed or rejected via the <strong>UC Publication Management System.</strong></p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = true;

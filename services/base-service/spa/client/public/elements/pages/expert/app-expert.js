@@ -152,16 +152,17 @@ export default class AppExpert extends Mixin(LitElement)
 
     // throw errors if any citations/grants have is-visible:false
     let invalidCitations = this.citations.filter(c => !c['is-visible']);
-    let invalidGrants = this.grants.filter(g => !g.relatedBy?.['is-visible']);
+    let invalidGrants = this.grants.filter(g => !g.isVisible);
 
     if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
     if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);
 
-    grants = grants.filter(g => g.relatedBy?.['is-visible']);
-    this.grants = utils.parseGrants(grants);
+    this.grants = utils.parseGrants(this.expertId, grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
+
+    console.log({ grants : this.grants });
   }
 
   /**
@@ -326,13 +327,13 @@ export default class AppExpert extends Mixin(LitElement)
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
         '"' + (grant.type || '') + '"',                               // Type of Grant
         '"' + (grant.role || '') + '"',                               // Role of Grant
-        '?', // List of contributors (role) {separate contributors by ";"}
+        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (PIs and CoPIs)
       ]);
     });
 
     if( !body.length ) return;
 
-    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of Contributors'];
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
