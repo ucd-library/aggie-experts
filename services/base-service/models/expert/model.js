@@ -56,6 +56,11 @@ class ExpertModel extends BaseModel {
     };
 
     doc["@type"] = "Expert";
+    // Add visibility
+    if (node["is-visible"]) {
+      doc["is-visible"] = node["is-visible"];
+    }
+
 
     // Order the vcards, and get the first one
     let contact

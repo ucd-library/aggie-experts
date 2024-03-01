@@ -330,7 +330,9 @@ function fetch() {
   "bouOrgOId":{
     "@type":"@id"
   },
-  "titleCode":{"@type":"@id","@id":"@id","@base":"http://experts.ucdavis.edu/position/"}
+  "titleCode":{
+    "@type":"@id"
+  }
 }}
 CONTEXT
 
