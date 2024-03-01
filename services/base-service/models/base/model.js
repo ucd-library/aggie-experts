@@ -73,8 +73,17 @@ class BaseModel extends FinEsDataModel {
   get_node_by_related_id(doc,id) {
     const nodes = [];
     for(let i=0; i<doc['@graph'].length; i++) {
-      if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
-        nodes.push(doc['@graph'][i]);
+      if (Array.isArray(doc['@graph'][i]?.['relatedBy'] )) {
+        for (let k = 0; k < doc['@graph'][i]['relatedBy'].length; k++) {
+          if (doc['@graph'][i]['relatedBy'][k]['@id'] === id) {
+            nodes.push(doc['@graph'][i]);
+            continue;
+          }
+        }
+      } else {
+        if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
+          nodes.push(doc['@graph'][i]);
+        }
       }
     }
     if (nodes.length === 0) {

@@ -88,10 +88,10 @@ return html`
     .introduction h4 ucdlib-icon,
     .roles-websites h4 ucdlib-icon {
       display: inline-block;
-      width: 15px;
-      height: 15px;
-      min-width: 17px;
-      min-height: 17px;
+      width: 1.2rem;
+      height: 1.2rem;
+      min-width: 1.2rem;
+      min-height: 1.2rem;
       fill: var(--color-aggie-blue-80);
       cursor: pointer;
       padding-left: .25rem;
@@ -311,10 +311,10 @@ return html`
     .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon,
     .works-abbreviated .works-heading .works-edit-download ucdlib-icon {
       fill: var(--color-aggie-blue-80);
-      width: 15px;
-      height: 15px;
-      min-width: 17px;
-      min-height: 17px;
+      width: 1.2rem;
+      height: 1.2rem;
+      min-width: 1.2rem;
+      min-height: 1.2rem;
       cursor: pointer;
     }
 

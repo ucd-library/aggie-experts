@@ -66,7 +66,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
       // reset data to first page of results
       this.currentPage = 1;
       let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-      this.grants = utils.parseGrants(grants);
+      this.grants = utils.parseGrants(this.expertId, grants);
       this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
       this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
       return;
@@ -107,7 +107,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     this.expertName = graphRoot.name;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.grants = utils.parseGrants(grants);
+    this.grants = utils.parseGrants(this.expertId, grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
@@ -164,7 +164,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.grants = utils.parseGrants(grants);
+    this.grants = utils.parseGrants(this.expertId, grants);
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
