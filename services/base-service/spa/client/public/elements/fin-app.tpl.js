@@ -195,6 +195,7 @@ return html`
         @show-404="${(e) => this.page = '404'}">
       </app-expert>
       <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
+<<<<<<< HEAD
       <app-expert-works-list-edit
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
