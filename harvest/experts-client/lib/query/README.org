@@ -173,24 +173,25 @@ relationship here for testing.
 
  #+name: relationship_rank
  #+begin_src sparql :noweb yes :tangle no
-       select ?username ?relationship (?pos+1 as ?user_rank)
-       WHERE {
-         {
-           <<records>>
-         }
-         graph cdl: {
-           ?relationship :related ?user.
-           ?user :category "user";
-                 :username ?username;
-                 .
+   select ?username ?relationship (?pos+1 as ?user_rank)
+   WHERE {
+     {
+       <<records>>
+     }
+     graph cdl: {
+       ?relationship :related ?user.
+       ?user :category "user";
+             :is-public "true";
+             :username ?username;
+             .
 
-           ?record :native/:field ?field.
-           ?field :name "authors";
-                  :people/:person [ list:index(?pos ?elem) ] .
-           ?elem :links/:link ?user.   # This is the link to the relationship user
+       ?record :native/:field ?field.
+       ?field :name "authors";
+              :people/:person [ list:index(?pos ?elem) ] .
+       ?elem :links/:link ?user.   # This is the link to the relationship user
 
-         }
-       } limit 1
+     }
+   } limit 1
  #+end_src
 
 *** Minimum Field Score
@@ -601,171 +602,171 @@ relationship here for testing.
  #+begin_src sparql :noweb yes :tangle grant_role/construct.rq :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
    <<prefixes>>
    construct {
-         ?grant_role a ucdlib:GrantRole, ?role;
-                  ucdlib:favorite ?favorite;
-                  ucdlib:is-visible ?visible;
-                  vivo:relates ?grant,?expert;
-                  obo:RO_0000052 ?expert;
-                  .
+     ?grant_role a ucdlib:GrantRole, ?role;
+                   ucdlib:favorite ?favorite;
+     ucdlib:is-visible ?visible;
+     vivo:relates ?grant,?expert;
+     obo:RO_0000052 ?expert;
+     .
 
-         ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
-                ?field_predicate ?field_text;
-                ?field_predicate ?field_money;
-                vivo:assignedBy ?funder;
-                vivo:dateTimeInterval ?interval;
-                vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
-                .
+     ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
+            ?field_predicate ?field_text;
+            ?field_predicate ?field_money;
+            vivo:assignedBy ?funder;
+            vivo:dateTimeInterval ?interval;
+            vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
+            .
 
-         ?grant_type rdfs:label ?funding_type_label;
-                        .
-
-         ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
-                               vivo:relates ?labeled_only_pi,?grant;
-                               .
-
-         ?labeled_only_pi a vivo:Person;
-                          rdfs:label ?labeled_only_pi_name;
-                          .
-
-         ?labeled_only_co_pi_role a vivo:CoPrincipalInvestigatorRole;
-                                  vivo:relates ?labeled_only_co_pi,?grant;
-                                  .
-
-         ?labeled_only_co_pi a vivo:Person;
-                          rdfs:label ?labeled_only_co_pi_name;
-                          .
-
-         ?funder a vivo:FundingOrganization;
-                 rdfs:label ?funder_label;
+     ?grant_type rdfs:label ?funding_type_label;
                  .
 
-         ?interval
-            vivo:start ?sd;
-            vivo:end ?ed;
-            .
+     ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
+                           vivo:relates ?labeled_only_pi,?grant;
+                           .
 
-         ?sd
-            vivo:dateTimePrecision ?start_date_precision;
-            vivo:dateTime ?start_date;
-            .
-         ?ed
-            vivo:dateTimePrecision ?end_date_precision;
-            vivo:dateTime ?end_date;
-            .
-       }
-       WHERE {
-         graph cdl: {
-           ?RELATIONSHIP__
-           :is-visible ?visible_str;
-           :type ?cdl_type;
-           :related ?g;
-           :related ?user;
-           .
+     ?labeled_only_pi a vivo:Person;
+                      rdfs:label ?labeled_only_pi_name;
+                      .
 
-           OPTIONAL {
-             <<grant_roles>>
-             }
+     ?labeled_only_co_pi_role a vivo:CoPrincipalInvestigatorRole;
+                              vivo:relates ?labeled_only_co_pi,?grant;
+                              .
 
-           OPTIONAL {
-             ?RELATIONSHIP__ :is-favourite "true".
-             bind(true as ?favorite)
-           }
+     ?labeled_only_co_pi a vivo:Person;
+                         rdfs:label ?labeled_only_co_pi_name;
+                         .
 
-           ?user :category "user";
-                 :username ?username;
-                 .
-
-           <<grant_record>>
-           ?record :native/:field ?field.
-
-           VALUES(?field_name ?field_type ?field_predicate) {
-             ("title" "text" rdfs:label)
-             ("amount" "money" vivo:totalAwardAmount)
-             ("start-date" "date" vivo:start)
-             ("end-date" "date" vivo:end)
-             ("funder-reference" "text" vivo:sponsorAwardId)
-             ("funding-type" "special" ucdlib:none)
-             ("funder-name" "special" ucdlib:none)
-             ("c-pi" "special" ucdlib:none)
-             ("c-co-pis" "special" ucdlib:none)
-           }
-
-           OPTIONAL {
-             ?field :name ?field_name;
-                    :type "text";
-                    :type ?field_type ;
-             :text ?field_text ;
+     ?funder a vivo:FundingOrganization;
+             rdfs:label ?funder_label;
              .
-           }
-           OPTIONAL {
-             ?field :name ?field_name;
-                    :type "money";
-                    :type ?field_type;
-                    :money/:field-value ?field_money;
-                    .
-           }
 
-           # PI is expanded to a relationship / Not optional
-           OPTIONAL {
-             ?field :name "c-pi";
-                    :type "text";
-                    :text ?labeled_only_pi_name;
-                    .
-           }
+     ?interval
+     vivo:start ?sd;
+     vivo:end ?ed;
+     .
 
-           # Co-PIs are optional
-           OPTIONAL {
-             ?field :name "c-co-pis";
-                    :people/:person [ list:index(?pos ?elem) ] .
-             ?elem :last-name ?labeled_only_co_pi_name_last .
-             OPTIONAL {
-               ?elem :first-names ?labeled_only_co_pi_name_first .
-             }
-           }
+     ?sd
+     vivo:dateTimePrecision ?start_date_precision;
+     vivo:dateTime ?start_date;
+     .
+     ?ed
+     vivo:dateTimePrecision ?end_date_precision;
+     vivo:dateTime ?end_date;
+     .
+   }
+   WHERE {
+     graph cdl: {
+       ?RELATIONSHIP__
+       :is-visible ?visible_str;
+       :type ?cdl_type;
+       :related ?g;
+       :related ?user;
+       .
 
-           # Funding type is a special case
-           OPTIONAL {
-             values (?grant_type ?funding_type_label) {
-               (ucdlib:Grant_AcademicSupport "Academic Support" )
-               (ucdlib:Grant_Default "Default" )
-               (ucdlib:Grant_Instruction "Instruction" )
-               (ucdlib:Grant_Research "Research" )
-               (ucdlib:Grant_Service "Service / Other" )
-               (ucdlib:Grant_Scholarship "Scholarships / Fellowships" )
-               (ucdlib:Grant_StudentService "Student Services" )
-             }
-             ?field :name "funding-type";
-                    :type "text";
-                    :text ?funding_type_label;
-                    .
-           }
-
-           OPTIONAL {
-             ?field :name "funder-name";
-                    :type "text";
-                    :text ?funder_label;
-                    .
-           }
-
-           <<grant_interval>>
-         }
-         bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
-         bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
-         bind(uri(concat(str(expert:),md5(?username))) as ?expert)
-         bind(xsd:boolean(?visible_str) as ?visible)
-         bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
-
-         bind(uri(concat(str(?grant),'#start_date')) as ?sd)
-         bind(uri(concat(str(?grant),'#end_date')) as ?ed)
-         bind(uri(concat(str(?grant),'#interval')) as ?interval)
-         bind(uri(concat(str(?grant),"#funder")) as ?funder)
-           bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
-      bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
-      bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
-      bind(uri(concat(str(?grant),"#co_pi_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi)
-      bind(uri(concat(str(?grant),"#co_pi_role_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi_role)
-
+       OPTIONAL {
+         <<grant_roles>>
        }
+
+       OPTIONAL {
+         ?RELATIONSHIP__ :is-favourite "true".
+         bind(true as ?favorite)
+       }
+
+       ?user :category "user";
+             :is-public "true";
+             :username ?username;
+             .
+
+       <<grant_record>>
+       ?record :native/:field ?field.
+
+       VALUES(?field_name ?field_type ?field_predicate) {
+         ("title" "text" rdfs:label)
+         ("amount" "money" vivo:totalAwardAmount)
+         ("start-date" "date" vivo:start)
+         ("end-date" "date" vivo:end)
+         ("funder-reference" "text" vivo:sponsorAwardId)
+         ("funding-type" "special" ucdlib:none)
+         ("funder-name" "special" ucdlib:none)
+         ("c-pi" "special" ucdlib:none)
+         ("c-co-pis" "special" ucdlib:none)
+       }
+
+       OPTIONAL {
+         ?field :name ?field_name;
+                :type "text";
+                :type ?field_type ;
+         :text ?field_text ;
+         .
+       }
+       OPTIONAL {
+         ?field :name ?field_name;
+                :type "money";
+                :type ?field_type;
+                :money/:field-value ?field_money;
+                .
+       }
+
+       # PI is expanded to a relationship / Not optional
+       OPTIONAL {
+         ?field :name "c-pi";
+                :type "text";
+                :text ?labeled_only_pi_name;
+                .
+       }
+
+       # Co-PIs are optional
+       OPTIONAL {
+         ?field :name "c-co-pis";
+                :people/:person [ list:index(?pos ?elem) ] .
+         ?elem :last-name ?labeled_only_co_pi_name_last .
+         OPTIONAL {
+           ?elem :first-names ?labeled_only_co_pi_name_first .
+         }
+       }
+
+       # Funding type is a special case
+       OPTIONAL {
+         values (?grant_type ?funding_type_label) {
+           (ucdlib:Grant_AcademicSupport "Academic Support" )
+           (ucdlib:Grant_Default "Default" )
+           (ucdlib:Grant_Instruction "Instruction" )
+           (ucdlib:Grant_Research "Research" )
+           (ucdlib:Grant_Service "Service / Other" )
+           (ucdlib:Grant_Scholarship "Scholarships / Fellowships" )
+           (ucdlib:Grant_StudentService "Student Services" )
+         }
+         ?field :name "funding-type";
+                :type "text";
+                :text ?funding_type_label;
+                .
+       }
+
+       OPTIONAL {
+         ?field :name "funder-name";
+                :type "text";
+                :text ?funder_label;
+                .
+       }
+
+       <<grant_interval>>
+     }
+     bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
+     bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
+     bind(uri(concat(str(expert:),md5(?username))) as ?expert)
+     bind(xsd:boolean(?visible_str) as ?visible)
+     bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
+
+     bind(uri(concat(str(?grant),'#start_date')) as ?sd)
+     bind(uri(concat(str(?grant),'#end_date')) as ?ed)
+     bind(uri(concat(str(?grant),'#interval')) as ?interval)
+     bind(uri(concat(str(?grant),"#funder")) as ?funder)
+     bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
+     bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
+     bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
+     bind(uri(concat(str(?grant),"#co_pi_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi)
+     bind(uri(concat(str(?grant),"#co_pi_role_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi_role)
+   }
 #+end_src
 
 #+RESULTS: grant

@@ -26,6 +26,7 @@ services:
       - ${DB_PORT:-3030}:3030
     environment:
       - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
+      - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
       - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON:-}
     restart: unless-stopped
     command:

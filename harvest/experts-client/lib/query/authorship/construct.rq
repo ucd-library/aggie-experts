@@ -265,6 +265,7 @@ WHERE {
       graph cdl: {
         ?relationship :related ?user.
         ?user :category "user";
+              :is-public "true";
               :username ?username;
               .
     
