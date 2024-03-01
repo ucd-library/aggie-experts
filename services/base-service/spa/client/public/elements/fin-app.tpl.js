@@ -85,6 +85,14 @@ return html`
       padding-top: 3rem;
     }
 
+    .spinner-container {
+      position: fixed;
+      top: calc(50% + 15px);
+      left: calc(50% - 70px);
+      height: 100px;
+      color: var(--color-aggie-blue);
+    }
+
     .spinner {
       position: fixed;
       top: 0;
@@ -100,8 +108,8 @@ return html`
 
     .spinner:after {
       content: '';
-      width: 30px;
-      height: 30px;
+      width: 40px;
+      height: 40px;
       border: 5px solid  var(--color-aggie-gold-70);
       border-top-color: var(--color-aggie-gold);
       border-radius: 50%;
@@ -115,6 +123,10 @@ return html`
       to {
         transform: rotate(1turn);
       }
+    }
+
+    ucdlib-pages.loading {
+      opacity: .6;
     }
 
   </style>
@@ -168,7 +180,8 @@ return html`
   <div class="main-content">
     <ucdlib-pages
       selected="${this.page}"
-      selectedAttribute="visible">
+      selectedAttribute="visible"
+      class="${this.loading ? 'loading' : ''}">
       <app-home id="home"></app-home>
       <app-browse id="browse"></app-browse>
       <!-- <app-work id="work"></app-work> -->
@@ -184,7 +197,10 @@ return html`
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
 
-    <div ?hidden="${!this.loading}" class="spinner"></div>
+    <div class="spinner-container" ?hidden="${!this.loading}">
+      <div ?hidden="${!this.loading}" class="spinner"></div>
+      <h3>Saving Changes</h3>
+    </div>
 
     <div class="footer site-frame">
       <ucdlib-site-footer>
