@@ -217,6 +217,7 @@ class AuthorshipModel extends BaseModel {
       logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
       resp = await cdl_user.reject({
         linkId: linkId,
+        categoryId: 1,
         objectId: objectId
       })
       logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);

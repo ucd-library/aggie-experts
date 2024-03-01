@@ -370,6 +370,7 @@ export class Impersonator {
     return await this.listobjects(
       {com: 'reject',
        linkId: data.linkId,
+       categoryId: data.categoryId,
        objectId: data.objectId,
       });
   }
