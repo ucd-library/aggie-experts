@@ -282,6 +282,7 @@ WHERE {
               :is-public "true";
               :is-public "true";
               :username ?username;
+              :is-public "true";
               .
 
 
