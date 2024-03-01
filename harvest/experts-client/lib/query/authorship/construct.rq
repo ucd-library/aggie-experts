@@ -267,6 +267,7 @@ WHERE {
         ?user :category "user";
               :is-public "true";
               :username ?username;
+              :is-public "true";
               .
     
         ?record :native/:field ?field.
