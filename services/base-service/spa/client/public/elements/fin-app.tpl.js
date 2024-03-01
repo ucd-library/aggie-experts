@@ -85,6 +85,38 @@ return html`
       padding-top: 3rem;
     }
 
+    .spinner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color:  transparent;
+      transition: opacity 0.75s, visibility 0.75s;
+    }
+
+    .spinner:after {
+      content: '';
+      width: 30px;
+      height: 30px;
+      border: 5px solid  var(--color-aggie-gold-70);
+      border-top-color: var(--color-aggie-gold);
+      border-radius: 50%;
+      animation: loading 0.75s ease infinite;
+    }
+
+    @keyframes loading {
+      from {
+        transform: rotate(0turn);
+      }
+      to {
+        transform: rotate(1turn);
+      }
+    }
+
   </style>
   <!--
     Required for AppStateModel
@@ -142,15 +174,17 @@ return html`
       <!-- <app-work id="work"></app-work> -->
       <app-expert @impersonate="${this._impersonateClick}" id="expert" @show-404="${(e) => this.page = '404'}"></app-expert>
       <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
-      <app-expert-works-list-edit id="works-edit" @show-404="${(e) => this.page = '404'}"></app-expert-works-list-edit>
+      <app-expert-works-list-edit @loading="${(e) => this.loading = true}" @loaded="${(e) => this.loading = false}" id="works-edit" @show-404="${(e) => this.page = '404'}"></app-expert-works-list-edit>
       <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
-      <app-expert-grants-list-edit id="grants-edit" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list-edit>
+      <app-expert-grants-list-edit @loading="${(e) => this.loading = true}" @loaded="${(e) => this.loading = false}" id="grants-edit" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list-edit>
       <app-search id="search"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
     </ucdlib-pages>
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
+
+    <div ?hidden="${!this.loading}" class="spinner"></div>
 
     <div class="footer site-frame">
       <ucdlib-site-footer>

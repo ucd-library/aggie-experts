@@ -42,6 +42,7 @@ export default class FinApp extends Mixin(LitElement)
       expertId: { type: String },
       expertNameImpersonating: { type: String },
       hideImpersonate: { type: Boolean },
+      loading: { type: Boolean },
     }
   }
 
@@ -60,6 +61,7 @@ export default class FinApp extends Mixin(LitElement)
     this.expertId = utils.getCookie('impersonateId');
     this.expertNameImpersonating = utils.getCookie('impersonateName');
     this.hideImpersonate = !utils.getCookie('impersonateId');
+    this.loading = false;
 
     this.render = render.bind(this);
     this._init404();

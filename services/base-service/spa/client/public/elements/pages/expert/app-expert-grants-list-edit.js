@@ -308,11 +308,13 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   async _showGrant(e) {
     this.grantId = e.currentTarget.dataset.id;
+    this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
       let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
+      this.dispatchEvent(new CustomEvent("loaded", {}));
     } catch (error) {
-      // TODO handle different error codes?
+      this.dispatchEvent(new CustomEvent("loaded", {}));
 
       let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
       let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
@@ -329,8 +331,18 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.modifiedGrants = true;
 
-    let expert = await this.ExpertModel.get(this.expertId, true);
-    this._onExpertUpdate(expert);
+    // update graph/display data
+    let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+    grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+    grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+
+    this.totalGrants = this.grants.length;
+    this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+
+    this.requestUpdate();
   }
 
   /**
@@ -339,25 +351,20 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   async _modalSave(e) {
     e.preventDefault();
+
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
     this.showModal = false;
-
     let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
-
     this.modifiedGrants = true;
 
     if( action === 'hide' ) {
       try {
         let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
-
-        // update graph/display data
-        let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
-        if( grant ) grant.isVisible = false;
-        grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
-        if( grant ) grant.isVisible = false;
-        grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
-        if( grant ) grant.isVisible = false;
-
+        this.dispatchEvent(new CustomEvent("loaded", {}));
       } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
         let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
         let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
 
@@ -370,6 +377,14 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
       }
+
+      // update graph/display data
+      let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
+      grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
+      grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
 
       this.totalGrants = this.grants.length;
       this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
