@@ -615,7 +615,7 @@ return html`
           ${this.roles.map(
           (role) => html`
             <div class="role">
-            <div>
+            <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
             <div class="link-row" ?hidden="${!role.websiteUrl}">
