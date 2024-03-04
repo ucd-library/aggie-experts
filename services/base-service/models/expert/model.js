@@ -160,5 +160,123 @@ class ExpertModel extends BaseModel {
       workModel.update(authorships.hits.hits[i]._source);
     }
   }
+
+  /**
+   * @method patch
+   * @description Patch an expert as visible or not.
+   * @param {Object} patch :  { "@id", "is-visible" }
+   * @param {String} expertId : Expert Id
+   * @returns {Object} : document object
+   **/
+  async patch(patch, expertId) {
+    let id = patch['@id'];
+    let expert;
+    let resp;
+
+    logger.info(`expert.patch for ${expertId}:`,patch);
+    if (patch.visible == null ) {
+      return 400;
+    }
+
+    // Immediate Update Elasticsearch document
+    const expertModel = await this.get_model('expert');
+
+    try {
+      expert = await expertModel.client_get(expertId);
+    } catch(e) {
+      e.message = `expert "@id"=${expertId} not found`;
+      e.status=500;
+      throw e;
+    };
+    if (patch.visible != null) {
+      expert['is-visible'] = patch.visible;
+    }
+    // Just update the existing document
+    await this.client.index({
+      index : this.writeIndexAlias,
+      id : exepert['@id'],
+      document: expert
+    });
+
+    // Update FCREPO
+    let options = {
+      path: expertId,
+      content: `
+        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        DELETE {
+          ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
+        }
+        INSERT {
+          ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
+        } WHERE {
+          <${id}> ucdlib:is-visible ?v .
+        }
+      `
+    };
+    const api_resp = await finApi.patch(options);
+
+    if (api_resp.last.statusCode != 204) {
+      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`expert.patch(${expertId})`);
+      const error=new Error(`Failed fcrepo patch to ${expertId}:${api_resp.last.body}`);
+      error.status=500;
+      throw error;
+    }
+    if (config.experts.cdl.expert.propagate) {
+      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.expert);
+      if (patch.visible != null) {
+        resp = await cdl_user.updateUserPrivacyLevel({
+          userId: expertId,
+          privacy: patch.visible ? 'public' : 'internal'
+        })
+        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
+      }
+    } else {
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
+    }
+  }
+
+  /**
+   * @method delete
+   * @description Delete an expert
+   * @param {String} expertId : Expert Id
+  **/
+  async delete(expertId) {
+    logger.info(`expert.delete(${expertId})`);
+
+    // Delete Elasticsearch document
+    const expertModel = await this.get_model('expert');
+    let expert;
+
+    try {
+      expert = await expertModel.client_get(expertId);
+    } catch(e) {
+      console.error(e.message);
+      logger.info(`expert @id ${expertId} not found`);
+      return 404
+    };
+
+    await expertModel.delete(expertId);
+
+    await finApi.delete(
+      {
+        path: expertId,
+        permanent: true
+      }
+    );
+
+    if (config.experts.cdl.expert.propagate) {
+      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.expert);
+      if (patch.visible != null) {
+        let resp = await cdl_user.updateUserPrivacyLevel({
+          userId: expertId,
+          privacy: patch.visible ? 'public' : 'internal'
+        })
+        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
+      }
+    } else {
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
+    }
+  }
+
 }
 module.exports = ExpertModel;

@@ -169,8 +169,7 @@ router.route(
 );
 
 // this path is used instead of the defined version in the defaultEsApiGenerator
-router.get('/expert/*', async (req, res, next) => {
-
+router.get('/expert/[a-zA-Z0-9]+/?', async (req, res, next) => {
   let id = '/' + model.id + decodeURIComponent(req.path);
   try {
     let opts = {
@@ -186,6 +185,20 @@ router.get('/expert/*', async (req, res, next) => {
   siteFarmFormat, // Format the response in the site-farm format if requested by the client
   (req, res) => {
     res.status(200).json(res.thisDoc);
+  }
+).patch(
+  user_can_edit,
+  json_only,
+  async (req, res, next) => {
+    let id = '/' + model.id + decodeURIComponent(req.path);
+    let data = req.body;
+    try {
+      let resp;
+      patched=await expert.patch(data,id);
+      res.status(204).json();
+    } catch(e) {
+      next(e);
+    }
   }
 )
 
