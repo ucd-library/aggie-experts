@@ -84,6 +84,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
     // parse hits
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let id = r['@id'];
+      if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
       let subtitle = r.name?.split('§')?.pop()?.trim();
 
