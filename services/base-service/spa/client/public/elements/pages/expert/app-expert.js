@@ -38,8 +38,10 @@ export default class AppExpert extends Mixin(LitElement)
       totalGrants : { type : Number },
       totalCitations : { type : Number },
       canEdit : { type : Boolean },
+      isAdmin : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
+      modalAction : { type : String },
       showModal : { type : Boolean },
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
@@ -50,6 +52,7 @@ export default class AppExpert extends Mixin(LitElement)
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
       hideImpersonate : { type : Boolean },
+      isVisible : { type : Boolean }
     }
   }
 
@@ -86,6 +89,8 @@ export default class AppExpert extends Mixin(LitElement)
     if( this.expertImpersonating === this.expertId ) this.canEdit = true;
 
     try {
+      // this is using no-sanitize by default, should it instead use this.canEdit for the no-sanitize value?
+      // we do want to call with no-sanitize, to hide/show the expert for admins, once that ui is planned
       let expert = await this.ExpertModel.get(expertId, true);
       this._onExpertUpdate(expert, modified);
     } catch (error) {
@@ -112,6 +117,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId;
+
+    this.isVisible = this.expert['is-visible'];
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
@@ -203,6 +210,9 @@ export default class AppExpert extends Mixin(LitElement)
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.modalAction = '';
+    this.isVisible = true;
 
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
@@ -372,10 +382,57 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _onSave
+   * @description modal save, only used when hiding expert
+   */
+  async _onSave(e) {
+    this.showModal = false;
+
+    if( this.isAdmin && this.modalAction === 'hide-expert' ) {
+      // TODO handle errors
+      let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
+      this.isVisible = false;
+    } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
+      window.location.href = 'https://oapolicy.universityofcalifornia.edu';
+    }
+
+    this.modalAction = '';
+  }
+
+  /**
+   * @method _showExpert
+   * @description update expert visibility to true
+   */
+  async _showExpert(e) {
+    if( this.isAdmin ) {
+      // TODO handle errors
+      let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
+      this.isVisible = true;
+    }
+  }
+
+  /**
+   * @method _hideExpert
+   * @description show modal confirmed expert should be hidden
+   */
+  _hideExpert(e) {
+    this.modalAction = 'hide-expert';
+    this.modalTitle = 'Hide Expert';
+    this.modalContent = `<p>Expert will be hidden from Aggie Experts. CDL privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in CDL. Are you sure you would like to continue?</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
    * @method _editWebsites
    * @description show modal with link to edit websites
    */
   _editWebsites(e) {
+    this.modalAction = 'edit-websites';
     this.modalTitle = 'Edit Links';
     this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
@@ -391,6 +448,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit intro/research interests
    */
   _editAboutMe(e) {
+    this.modalAction = 'edit-about-me';
     this.modalTitle = 'Edit Introduction';
     this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
