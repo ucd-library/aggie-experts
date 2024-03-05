@@ -374,9 +374,9 @@ return html`
     }
 
     .tooltip.hide-expert:before {
-      width: 80px;
+      width: 90px;
       bottom: 33px;
-      right: -40px;
+      right: -45px;
     }
 
     .tooltip.hide-expert:after {
@@ -385,9 +385,9 @@ return html`
     }
 
     .tooltip.show-expert:before {
-      width: 80px;
+      width: 96px;
       bottom: 33px;
-      right: -40px;
+      right: -48px;
     }
 
     .tooltip.show-expert:after {
@@ -441,7 +441,12 @@ return html`
       right: 22px;
     }
 
-    .tooltip.download-all-grants:before,
+    .tooltip.download-all-grants:before {
+      width: 150px;
+      bottom: 30px;
+      right: -75px;
+    }
+
     .tooltip.download-all-works:before {
       width: 145px;
       bottom: 30px;
@@ -532,6 +537,16 @@ return html`
       font-style: italic;
       font-weight: 400;
       line-height: 2rem;
+    }
+
+    @media (max-width: 1080px) {
+      .tooltip.download-all-grants:before {
+        right: -25px;
+      }
+
+      .tooltip.download-all-works:before {
+        right: -25px;
+      }
     }
 
     @media (max-width: 992px) {
