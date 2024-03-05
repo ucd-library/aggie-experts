@@ -93,6 +93,8 @@ export default class AppExpert extends Mixin(LitElement)
       // we do want to call with no-sanitize, to hide/show the expert for admins, once that ui is planned
       let expert = await this.ExpertModel.get(expertId, true);
       this._onExpertUpdate(expert, modified);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
