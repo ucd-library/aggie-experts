@@ -40,6 +40,35 @@ async function siteFarmFormat(req, res, next) {
   next();
 }
 
+function siteFarmFmt(doc) {
+  // To be used as a std function to format the response in the site-farm format
+  // Check if the request is for the site-farm format based on the accept header
+  return new Promise((resolve, reject) => {
+    let newDoc = {};
+    logger.info({ function: 'siteFarmFormat' });
+    newDoc["@id"] = doc["@id"];
+    newDoc["publications"] = [];
+
+    for (let i = 0; i < doc["@graph"].length; i++) {
+      if (doc["@graph"][i]["@type"].includes("Expert")) {
+        for (let j = 0; j < doc["@graph"][i]["contactInfo"].length; j++) {
+          if (doc["@graph"][i]["contactInfo"][j].isPreferred === true) {
+            newDoc["contactInfo"] = doc["@graph"][i].contactInfo[j];
+          }
+        }
+        newDoc["orcidId"] = doc["@graph"][i].orcidId;
+        newDoc["overview"] = doc["@graph"][i].overview;
+        newDoc["researcherId"] = doc["@graph"][i].researcherId;
+        newDoc["scopusId"] = doc["@graph"][i].scopusId;
+      }
+      if (doc["@graph"][i]["@type"].includes("Work")) {
+        newDoc["publications"].push(doc["@graph"][i]);
+      }
+    }
+    resolve(newDoc);
+  });
+}
+
 function user_can_edit(req, res, next) {
   let id = '/'+model.id+decodeURIComponent(req.path);
   // logger.info('Checking if user can edit', id, req.user);
@@ -168,10 +197,42 @@ router.route(
   }
 );
 
+router.get('/experts/:ids', async (req, res) => {
+  var returndata = [];
+  var doc = {};
+  const id_array = req.params.ids.replace('ids=', '').split(',');
+
+  for (const id of id_array) {
+    const full = 'expert/' + model.id + '/' + id;
+    try {
+      let opts = {
+        admin: req.query.admin ? true : false,
+      }
+      res.thisDoc = await model.get(full, opts);
+    } catch (e) {
+      // return res.status(404).json(`${req.path} resource not found`);
+    }
+
+    // await sanitize(req, res); // Remove the graph nodes that are not visible
+    await siteFarmFmt(res.thisDoc) // Format the response in the site-farm format if requested by the client
+      .then((data) => {
+        // res.status(200).json(data);
+        returndata.push(data);
+      })
+      .catch((err) => {
+        res.status(500).json(err);
+      });
+
+  }
+  res.status(200).json(returndata);
+}
+);
+
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.get('/expert/*', async (req, res, next) => {
 
   let id = '/' + model.id + decodeURIComponent(req.path);
+  // res.send(id);
   try {
     let opts = {
       admin: req.query.admin ? true : false,
@@ -187,7 +248,7 @@ router.get('/expert/*', async (req, res, next) => {
   (req, res) => {
     res.status(200).json(res.thisDoc);
   }
-)
+);
 
 
 const model = new ExpertModel();
