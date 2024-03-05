@@ -169,18 +169,21 @@ router.route(
 );
 
 // this path is used instead of the defined version in the defaultEsApiGenerator
-router.get('/expert/[a-zA-Z0-9]+/?', async (req, res, next) => {
-  let id = '/' + model.id + decodeURIComponent(req.path);
-  try {
-    let opts = {
-      admin: req.query.admin ? true : false,
+router.route(
+  /expert\/[a-zA-Z0-9]+$/
+).get(
+  async (req, res, next) => {
+    let id = '/'+ model.id + decodeURIComponent(req.path);
+    try {
+      let opts = {
+        admin: req.query.admin ? true : false,
+      }
+      res.thisDoc = await model.get(id, opts);
+      next();
+    } catch (e) {
+      return res.status(404).json(`${req.path} resource not found`);
     }
-    res.thisDoc = await model.get(id, opts);
-    next();
-  } catch (e) {
-    return res.status(404).json(`${req.path} resource not found`);
-  }
-},
+  },
   sanitize, // Remove the graph nodes that are not visible
   siteFarmFormat, // Format the response in the site-farm format if requested by the client
   (req, res) => {
@@ -190,11 +193,11 @@ router.get('/expert/[a-zA-Z0-9]+/?', async (req, res, next) => {
   user_can_edit,
   json_only,
   async (req, res, next) => {
-    let id = '/' + model.id + decodeURIComponent(req.path);
+    let id = decodeURIComponent(req.path).replace(/^\//, '');
     let data = req.body;
     try {
       let resp;
-      patched=await expert.patch(data,id);
+      patched=await model.patch(data,id);
       res.status(204).json();
     } catch(e) {
       next(e);

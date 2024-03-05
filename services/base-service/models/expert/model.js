@@ -1,6 +1,9 @@
 // Can use this to get the fin configuration
-const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
+const {models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
+
+const finApi = require('@ucd-lib/fin-api/lib/api.js');
+const config = require('../config');
 
 /**
  * @class ExpertModel
@@ -169,13 +172,12 @@ class ExpertModel extends BaseModel {
    * @returns {Object} : document object
    **/
   async patch(patch, expertId) {
-    let id = patch['@id'];
     let expert;
-    let resp;
+     let resp;
 
-    logger.info(`expert.patch for ${expertId}:`,patch);
+    logger.info(`expert.patch(${expertId}):`,patch);
     if (patch.visible == null ) {
-      return 400;
+      throw new Error('Invalid patch, visible is required');
     }
 
     // Immediate Update Elasticsearch document
@@ -194,7 +196,7 @@ class ExpertModel extends BaseModel {
     // Just update the existing document
     await this.client.index({
       index : this.writeIndexAlias,
-      id : exepert['@id'],
+      id : expert['@id'],
       document: expert
     });
 
@@ -203,16 +205,19 @@ class ExpertModel extends BaseModel {
       path: expertId,
       content: `
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        PREFIX expert: <http://experts.ucdavis.edu/${expertId}>
         DELETE {
-          ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
+          ${patch.visible != null ? `expert: ucdlib:is-visible ?v .`:''}
         }
         INSERT {
-          ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.visible != null ?`expert: ucdlib:is-visible ${patch.visible} .`:''}
         } WHERE {
-          <${id}> ucdlib:is-visible ?v .
+          expert: ucdlib:is-visible ?v .
         }
       `
     };
+    console.log('options',options);
+    if (false) {
     const api_resp = await finApi.patch(options);
 
     if (api_resp.last.statusCode != 204) {
@@ -232,6 +237,7 @@ class ExpertModel extends BaseModel {
       }
     } else {
       logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
+    }
     }
   }
 
