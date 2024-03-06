@@ -94,6 +94,25 @@ class ExpertService extends BaseService {
     });
   }
 
+  async deleteExpert(id) {
+    return this.request({
+      url : `${this.baseUrl}/${id}`,
+      fetchOptions : {
+        method : 'DELETE',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "@id" : id,
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
 }
 
 module.exports = new ExpertService();
