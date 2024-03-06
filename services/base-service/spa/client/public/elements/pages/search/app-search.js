@@ -124,6 +124,7 @@ export default class AppSearch extends Mixin(LitElement)
       if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
       let subtitle = r.name?.split('§')?.pop()?.trim();
+      if( name === subtitle ) subtitle = '';
       let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
       let numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 

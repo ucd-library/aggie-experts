@@ -75,6 +75,8 @@ return html`
     }
 
     .hero-main h1 .tooltip:hover ucdlib-icon,
+    .hero-main .experts span.hide-expert:hover ucdlib-icon,
+    .hero-main .experts span.show-expert:hover ucdlib-icon,
     .introduction h4 ucdlib-icon:hover,
     .roles-websites .roles h4 ucdlib-icon:hover,
     .roles-websites .websites h4 ucdlib-icon:hover,
@@ -85,6 +87,8 @@ return html`
 
 
     .hero-main h1 ucdlib-icon,
+    .hero-main .experts span.hide-expert ucdlib-icon,
+    .hero-main .experts span.show-expert ucdlib-icon,
     .introduction h4 ucdlib-icon,
     .roles-websites h4 ucdlib-icon {
       display: inline-block;
@@ -369,6 +373,28 @@ return html`
       right: 5px;
     }
 
+    .tooltip.hide-expert:before {
+      width: 90px;
+      bottom: 33px;
+      right: -45px;
+    }
+
+    .tooltip.hide-expert:after {
+      bottom: 23px;
+      right: 5px;
+    }
+
+    .tooltip.show-expert:before {
+      width: 96px;
+      bottom: 33px;
+      right: -48px;
+    }
+
+    .tooltip.show-expert:after {
+      bottom: 23px;
+      right: 5px;
+    }
+
     .tooltip.edit-roles:before {
       width: 80px;
       bottom: 35px;
@@ -415,7 +441,12 @@ return html`
       right: 22px;
     }
 
-    .tooltip.download-all-grants:before,
+    .tooltip.download-all-grants:before {
+      width: 150px;
+      bottom: 30px;
+      right: -75px;
+    }
+
     .tooltip.download-all-works:before {
       width: 145px;
       bottom: 30px;
@@ -508,6 +539,16 @@ return html`
       line-height: 2rem;
     }
 
+    @media (max-width: 1080px) {
+      .tooltip.download-all-grants:before {
+        right: -25px;
+      }
+
+      .tooltip.download-all-works:before {
+        right: -25px;
+      }
+    }
+
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
@@ -538,7 +579,7 @@ return html`
       .hideOaPolicyLink="${this.hideOaPolicyLink}"
       .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${(e) => this.showModal = false}>
+      @save=${this._onSave}>
     </app-modal-overlay>
     <div class="hero-main site-frame">
       <div class="hero-text">
@@ -546,6 +587,14 @@ return html`
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT</span>
           <button ?hidden="${this.hideImpersonate}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
+          <div ?hidden="${!this.isAdmin || !this.hideImpersonate}" style="position: relative; display: flex;">
+            <span ?hidden="${!this.isVisible}" class="tooltip hide-expert" data-text="Hide expert">
+              <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._hideExpert}></ucdlib-icon>
+            </span>
+            <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">
+              <ucdlib-icon icon="ucdlib-experts:fa-eye" @click=${this._showExpert}></ucdlib-icon>
+            </span>
+          </div>
         </div>
         <h1>${this.expertName}
           <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">

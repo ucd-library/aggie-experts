@@ -36,6 +36,8 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     this.render = render.bind(this);
   }
@@ -80,6 +82,8 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     try {
       let expert = await this.ExpertModel.get(expertId);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -102,6 +106,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
