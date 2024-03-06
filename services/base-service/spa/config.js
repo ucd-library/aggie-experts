@@ -13,6 +13,7 @@ config.client = {
   title : 'Aggie Experts',
   description : 'Aggie Experts is a research networking and expertise discovery tool for UC Davis.',
   appName : process.env.FIN_APP_NAME || 'spa',
+  gaCode : process.env.GA_CODE || 'UA-XXXXX-X',
   assets : (env === 'prod') ? 'dist' : 'public',
   appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'works', 'works-edit', 'browse', 'grants', 'grants-edit'],
   versions : {

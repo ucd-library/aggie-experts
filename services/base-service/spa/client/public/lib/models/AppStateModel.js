@@ -9,6 +9,7 @@ class AppStateModelImpl extends AppStateModel {
     this.store = AppStateStore;
 
     this.init(APP_CONFIG.appRoutes);
+    this._sendGA();
   }
 
   set(update) {
@@ -20,7 +21,7 @@ class AppStateModelImpl extends AppStateModel {
 
       update.location.page = page;
     }
-
+    this._sendGA();
     return super.set(update);
   }
 
@@ -31,6 +32,21 @@ class AppStateModelImpl extends AppStateModel {
   show404Page() {
     this.set({page: '404'});
   }
+
+    /**
+   * @method _sendGA
+   * @description send a google analytics event if pathname has changed
+   */
+  _sendGA() {
+    if( !window.gtag ) return console.warn('No global gtag variable set for analytics events');
+    if( this.lastGaLocation === window.location.pathname ) return;
+    this.lastGaLocation = window.location.pathname;
+
+    gtag('config', config.gaCode, {
+      page_path: window.location.pathname
+    });
+  }
+
 
 }
 
