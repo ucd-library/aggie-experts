@@ -114,10 +114,6 @@
       }
     }
   },
-  "template": {
-    "default":"docker-template.yaml",
-    "fuseki":"docker-template-fuseki.yaml"
-  },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
     "tag":"2.5.2"
