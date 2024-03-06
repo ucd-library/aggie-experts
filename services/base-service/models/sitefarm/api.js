@@ -109,7 +109,6 @@ router.get('/experts/:ids', json_only, async (req, res, next) => {
   res.doc_array = [];
   var doc;
 
-  // return res.status(404).json(`${req.path} here we are`);
   for (const id of id_array) {
     const full = 'expert/' + expert_model.id + '/' + id;
     try {
@@ -119,7 +118,7 @@ router.get('/experts/:ids', json_only, async (req, res, next) => {
       doc = await expert_model.get(full, opts);
       res.doc_array.push(doc);
     } catch (e) {
-      // log the error - could find the resource. But continue to the next one
+      // log the error - couldn't find the resource. But continue to the next one
       logger.error(`Could not get ${full}`);
     }
   }
