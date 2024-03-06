@@ -394,6 +394,12 @@ export default class AppExpert extends Mixin(LitElement)
       // TODO handle errors
       let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
       this.isVisible = false;
+    } else if( this.modalAction === 'delete-expert' ) {
+      // TODO handle errors
+      let res = await this.ExpertModel.deleteExpert(this.expertId);
+
+      // redirect to home page
+      this.AppStateModel.setLocation('/');
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
       window.location.href = 'https://oapolicy.universityofcalifornia.edu';
     }
@@ -415,12 +421,28 @@ export default class AppExpert extends Mixin(LitElement)
 
   /**
    * @method _hideExpert
-   * @description show modal confirmed expert should be hidden
+   * @description show modal confirming expert should be hidden
    */
   _hideExpert(e) {
     this.modalAction = 'hide-expert';
     this.modalTitle = 'Hide Expert';
-    this.modalContent = `<p>Expert will be hidden from Aggie Experts. CDL privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in CDL. Are you sure you would like to continue?</p>`;
+    this.modalContent = `<p>Expert will be hidden from Aggie Experts. CDL privacy will be set to internal. To show the expert again in Aggie Experts, you can show expert from Aggie Experts. Are you sure you would like to continue?</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _deleteExpert
+   * @description show modal confirming expert should be deleted from Aggie Experts and CDL
+   */
+  _deleteExpert(e) {
+    this.modalAction = 'delete-expert';
+    this.modalTitle = 'Delete Expert';
+    this.modalContent = `<p>Expert will be removed from Aggie Experts. CDL privacy will be set to private. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in CDL. Are you sure you would like to continue?</p>`;
     this.showModal = true;
     this.hideCancel = true;
     this.hideSave = false;
