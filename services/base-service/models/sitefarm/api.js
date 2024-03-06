@@ -8,11 +8,11 @@ const md5 = require('md5');
 function siteFarmFormat(req, res, next) {
   // To be used as a middleware to format the response in the site-farm format
   // Check if the request is for the site-farm format based on the accept header
-  const acceptHeader = req.headers.accept;
-  if (!(acceptHeader && acceptHeader.includes('site-farm'))) {
-    next();
-    return;
-  }
+  // const acceptHeader = req.headers.accept;
+  // if (!(acceptHeader && acceptHeader.includes('site-farm'))) {
+  //   next();
+  //   return;
+  // }
 
   var newArray = [];
   for (let i in res.doc_array) {
