@@ -203,8 +203,18 @@ router.route(
       next(e);
     }
   }
-)
-
+).delete(
+  user_can_edit,
+  async (req, res, next) => {
+    try {
+      let id = decodeURIComponent(req.path).replace(/^\//, '');
+      await model.delete(id);
+      res.status(204).json({status: "ok"});
+    } catch(e) {
+      next(e);
+    }
+  }
+);
 
 const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, {router});

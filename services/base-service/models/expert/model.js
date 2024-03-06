@@ -57,7 +57,10 @@ class ExpertModel extends BaseModel {
       "@id": node['@id'],
       "@graph": [node]
     };
+    return this.move_fields_to_doc(node, doc);
+  }
 
+  move_fields_to_doc(node, doc) {
     doc["@type"] = "Expert";
     // Add visibility
     if (node["is-visible"]) {
@@ -148,19 +151,32 @@ class ExpertModel extends BaseModel {
 
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
-    const doc = this.promote_node_to_doc(root_node);
-    // console.log(`${this.constructor.name}.update(${doc['@id']})`);
-    await this.update_or_create_main_node_doc(doc);
-
-    const authorshipModel=await this.get_model('authorship');
-    //const workModel=await this.get_model('work');
-
-    // Update all Works with this Expert as well
-    let authorships= await authorshipModel.esMatchNode({ 'relates': doc['@id'] });
-
-    for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {
-      authorshipModel.update(authorships.hits.hits[i]._source);
-      workModel.update(authorships.hits.hits[i]._source);
+    // If a doc exists, update this node only, otherwise create a new doc.
+    try {
+      console.log('update w/ root:',root_node['@id']);
+      let expert = await this.client_get(root_node['@id']);
+      expert=await this.update_graph_node(expert['@id'],root_node);
+      console.log('updated expert:',expert['@id']);
+      this.move_fields_to_doc(root_node,expert);
+      console.log('update expert with:',expert);
+      await this.client.index({
+        index : this.writeIndexAlias,
+        id : expert['@id'],
+        document: expert
+      });
+    } catch (e) {
+      // If the doc does not exist, create a new one.
+      const doc = this.promote_node_to_doc(root_node);
+      await this.update_or_create_main_node_doc(doc);
+      // We are not yet maintaining authorship and work models.
+      // const authorshipModel=await this.get_model('authorship');
+      // Update all Works with this Expert as well
+      // let authorships= await authorshipModel.esMatchNode({ 'relates': doc['@id'] });
+      //
+      //for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {
+      //  authorshipModel.update(authorships.hits.hits[i]._source);
+      //  workModel.update(authorships.hits.hits[i]._source);
+      //}
     }
   }
 
@@ -217,7 +233,7 @@ class ExpertModel extends BaseModel {
       `
     };
     console.log('options',options);
-    if (false) {
+
     const api_resp = await finApi.patch(options);
 
     if (api_resp.last.statusCode != 204) {
@@ -238,8 +254,7 @@ class ExpertModel extends BaseModel {
     } else {
       logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
     }
-    }
-  }
+   }
 
   /**
    * @method delete
@@ -250,18 +265,20 @@ class ExpertModel extends BaseModel {
     logger.info(`expert.delete(${expertId})`);
 
     // Delete Elasticsearch document
-    const expertModel = await this.get_model('expert');
     let expert;
 
     try {
-      expert = await expertModel.client_get(expertId);
+      expert = await this.client_get(expertId);
     } catch(e) {
       console.error(e.message);
       logger.info(`expert @id ${expertId} not found`);
       return 404
     };
 
-    await expertModel.delete(expertId);
+    await this.client.delete(
+      {id:expertId,
+       index:this.writeIndexAlias
+      });
 
     await finApi.delete(
       {
