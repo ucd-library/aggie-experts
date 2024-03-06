@@ -117,10 +117,11 @@ router.get('/experts/:ids', json_only, async (req, res, next) => {
         admin: req.query.admin ? true : false,
       }
       doc = await expert_model.get(full, opts);
+      res.doc_array.push(doc);
     } catch (e) {
-      return res.status(404).json(`${req.path} e.message`);
+      // log the error - could find the resource. But continue to the next one
+      logger.error(`Could not get ${full}`);
     }
-    res.doc_array.push(doc);
   }
   next();
 },
