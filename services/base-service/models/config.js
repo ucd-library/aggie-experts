@@ -7,8 +7,8 @@ config.experts = {
   version: models_package.version,
   cdl: {
     expert: {
-      propagate: false,
-      instance:"prod" },
+      propagate: (process.env.CDL_PROPAGATE_CHANGES === "true") || false,,
+      instance:"qa" },
     grant_role: {
       propagate: (process.env.CDL_PROPAGATE_CHANGES === "true") || false,
       instance:"qa"},
