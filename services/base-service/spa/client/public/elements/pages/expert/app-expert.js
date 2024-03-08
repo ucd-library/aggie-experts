@@ -38,8 +38,10 @@ export default class AppExpert extends Mixin(LitElement)
       totalGrants : { type : Number },
       totalCitations : { type : Number },
       canEdit : { type : Boolean },
+      isAdmin : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
+      modalAction : { type : String },
       showModal : { type : Boolean },
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
@@ -203,6 +205,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.modalAction = '';
 
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
@@ -373,10 +377,43 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _onSave
+   * @description modal save, only used when hiding expert
+   */
+  _onSave(e) {
+    this.showModal = false;
+
+    if( this.isAdmin && this.modalAction === 'hide-expert' ) {
+      // TODO
+    } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
+      window.location.href = 'https://oapolicy.universityofcalifornia.edu';
+    }
+
+    this.modalAction = '';
+  }
+
+  /**
+   * @method _hideExpert
+   * @description show modal confirmed expert should be hidden
+   */
+  _hideExpert(e) {
+    this.modalAction = 'hide-expert';
+    this.modalTitle = 'Hide Expert';
+    this.modalContent = `<p>Expert will be hidden from Aggie Experts. CDL privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in CDL. Are you sure you would like to continue?</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
    * @method _editWebsites
    * @description show modal with link to edit websites
    */
   _editWebsites(e) {
+    this.modalAction = 'edit-websites';
     this.modalTitle = 'Edit Links';
     this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
@@ -392,6 +429,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit intro/research interests
    */
   _editAboutMe(e) {
+    this.modalAction = 'edit-about-me';
     this.modalTitle = 'Edit Introduction';
     this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
