@@ -26,7 +26,7 @@ select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
       #("software" false ucdlib:Work "software" "")
       #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
     }
-  graph ?g {
+  graph oap: {
     ?relationship :type "publication-user-authorship";
 #                  :effective-privacy-level "Public";
 #                  :is-visible "true";
@@ -40,6 +40,12 @@ select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
           :username ?username;
           :is-public "true";
           .
+  }
+  graph <http://iam.ucdavis.edu/> {
+    bind(uri(concat(str(expert:),md5(?username))) as ?expert)
+    ?expert a ucdlib:Expert;
+            ucdlib:is-visible true;
+            .
   }
 
   bind(replace(str(?relationship),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
