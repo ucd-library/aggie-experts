@@ -1,8 +1,7 @@
 node_modules
-services/fin/ucd-lib-client/client/dist
-services/fin/ucd-lib-client/client/public/js
 .DS_Store
 # Env files
 .env
 docker-compose.yaml
 /service-account.json
+services/base-service/spa/client/public/bundle.js
