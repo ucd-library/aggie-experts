@@ -45,15 +45,9 @@ The test and prod environments are for the production code.  They require
 specific tags, and deploy only from images pushed to the aggie-experts
 repository.
 
-=item B<--template=I<template>>
-
-Set the template to use for the environment.  The default template brings up the
-entire system.  You can also specify C<--template=fuseki> to bring up only the
-fuseki server.
-
 =item B<--no-fuseki>
 
-When using the default template, do not bring up the fuseki server.
+Do not bring up the fuseki server.
 
 =item B<--mount=I<api,spa,models,init>>
 
@@ -115,7 +109,6 @@ declare -g -A G=(
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=
   [include_fuseki]=1
-  [template]=default
   [cloudsdk_active_config_name]='aggie-experts'
 );
 
@@ -560,13 +553,12 @@ function setup() {
 
   function compose() {
     local keycloak=
-    local env tmpl org tag mount gcs
-    read env tmpl org tag gcs mount <<<$(G "[.env,
-                                            .template.${G[template]},
-                                            .org // .envs.${G[env]}.org,
-                                            .tag // .envs.${G[env]}.tag,
-                                            .gcs // .envs.${G[env]}.gcs,
-                                            .mount // .envs.${G[env]}.mount] | @tsv")
+    local env org tag mount gcs
+    read env org tag gcs mount <<<$(G "[.env,
+                                        .org // .envs.${G[env]}.org,
+                                        .tag // .envs.${G[env]}.tag,
+                                        .gcs // .envs.${G[env]}.gcs,
+                                        .mount // .envs.${G[env]}.mount] | @tsv")
 
     local yq='.'
 
@@ -594,9 +586,9 @@ function setup() {
       yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*")) | del(.services.keycloak)'
     fi
     if [[ -n $N ]]; then
-      echo "yq '${yq}' < ${root}/$tmpl"
+      echo "yq '${yq}' < ${root}/docker-template.yaml"
     else
-      yq "${yq}" < ${root}/$tmpl
+      yq "${yq}" < ${root}/docker-template.yaml
     fi
   }
   function setup_files() {
@@ -632,7 +624,7 @@ function setup() {
   case $env in
     dev )
       if [[ ${G[list-mounts]} ]]; then
-        grep '^[^#&]*\&DEV_MOUNT' ${root}/${tmpl} |
+        grep '^[^#&]*\&DEV_MOUNT' ${root}/docker-template.yaml |
           sed -e 's/.*\&DEV_MOUNT_//' -e 's/ /=/' |
           tr '[:upper:]' '[:lower:]' | sort -u
         exit 0
@@ -665,7 +657,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,template:,no-fuseki,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-fuseki,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -689,7 +681,6 @@ function main.cmd() {
         --no-env) CMD[setup_env]=; shift;;
         --no-fuseki) CMD[include_fuseki]=; shift;;
         --no-service-account) CMD[setup_service_account]=; shift;;
-        --template) CMD[template]=$2; shift 2;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
         -h | --help) pod2text $0; exit 0;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
@@ -782,10 +773,6 @@ exit $?
 =head1  EXAMPLES
 
 =head2 SETUP
-
-To setup just fuseki:
-
-C<aggie-expert --env=dev --template=fuseki setup>
 
 To setup the full stack:
 
