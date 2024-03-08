@@ -260,11 +260,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
 
-    this.citationsDisplayed = citationResults.map(c => c.value);
+    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     this.citationsDisplayed.forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
       if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) ) {
         delete cite.issued;
