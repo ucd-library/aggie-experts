@@ -5,40 +5,6 @@ const {defaultEsApiGenerator} = dataModels;
 const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
 
-async function siteFarmFormat(req, res, next) {
-  // To be used as a middleware to format the response in the site-farm format
-  // Check if the request is for the site-farm format based on the accept header
-  const acceptHeader = req.headers.accept;
-  if (!(acceptHeader && acceptHeader.includes('site-farm'))) {
-    next();
-    return;
-  }
-
-  let doc = res.thisDoc;
-  let newDoc = {};
-  logger.info({ function: 'siteFarmFormat' });
-  newDoc["@id"] = doc["@id"];
-  newDoc["publications"] = [];
-
-  for (let i = 0; i < doc["@graph"].length; i++) {
-    if (doc["@graph"][i]["@type"].includes("Expert")) {
-      for (let j = 0; j < doc["@graph"][i]["contactInfo"].length; j++) {
-        if (doc["@graph"][i]["contactInfo"][j].isPreferred === true) {
-          newDoc["contactInfo"] = doc["@graph"][i].contactInfo[j];
-        }
-      }
-      newDoc["orcidId"] = doc["@graph"][i].orcidId;
-      newDoc["overview"] = doc["@graph"][i].overview;
-      newDoc["researcherId"] = doc["@graph"][i].researcherId;
-      newDoc["scopusId"] = doc["@graph"][i].scopusId;
-    }
-    if (doc["@graph"][i]["@type"].includes("Work")) {
-      newDoc["publications"].push(doc["@graph"][i]);
-    }
-  }
-  res.thisDoc = newDoc;
-  next();
-}
 
 function user_can_edit(req, res, next) {
   let id = '/'+model.id+decodeURIComponent(req.path);
@@ -168,6 +134,7 @@ router.route(
   }
 );
 
+
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.get('/expert/*', async (req, res, next) => {
 
@@ -183,11 +150,10 @@ router.get('/expert/*', async (req, res, next) => {
   }
 },
   sanitize, // Remove the graph nodes that are not visible
-  siteFarmFormat, // Format the response in the site-farm format if requested by the client
   (req, res) => {
     res.status(200).json(res.thisDoc);
   }
-)
+);
 
 
 const model = new ExpertModel();
