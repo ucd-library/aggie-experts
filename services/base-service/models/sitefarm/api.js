@@ -1,9 +1,14 @@
+const express = require('express');
 const router = require('express').Router();
 const { dataModels, logger } = require('@ucd-lib/fin-service-utils');
 const SiteFarmModel = require('./model.js');
 const { defaultEsApiGenerator } = dataModels;
 const md5 = require('md5');
-// const { logger } = require('@ucd-lib/fin-service-utils');
+const path = require('path');
+// const swaggerUi = require('swagger-ui-express');
+// const YAML = require('yamljs');
+// const swaggerDocument = YAML.load('./sitefarm.yaml');
+
 
 function siteFarmFormat(req, res, next) {
   // To be used as a middleware to format the response in the site-farm format
@@ -130,6 +135,10 @@ router.get('/experts/:ids', json_only, async (req, res, next) => {
     res.status(200).json(res.doc_array);
   }
 );
+
+router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
+
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 const model = new SiteFarmModel();
 module.exports = defaultEsApiGenerator(model, { router });
