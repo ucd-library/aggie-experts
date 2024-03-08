@@ -39,8 +39,10 @@ export default class AppExpert extends Mixin(LitElement)
       totalCitations : { type : Number },
       canEdit : { type : Boolean },
       isAdmin : { type : Boolean },
+      isAdmin : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
+      modalAction : { type : String },
       modalAction : { type : String },
       showModal : { type : Boolean },
       hideCancel : { type : Boolean },
@@ -214,7 +216,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.worksPerPage = 10;
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
     this.modalAction = '';
-    this.isVisible = true;
 
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
@@ -388,44 +389,11 @@ export default class AppExpert extends Mixin(LitElement)
    * @method _onSave
    * @description modal save, only used when hiding expert
    */
-  async _onSave(e) {
+  _onSave(e) {
     this.showModal = false;
 
     if( this.isAdmin && this.modalAction === 'hide-expert' ) {
-      try {
-        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
-        this.isVisible = false;
-      } catch (error) {
-        let modelContent = `<p>Hiding expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
-      }
-    } else if( this.modalAction === 'delete-expert' ) {
-      try {
-        let res = await this.ExpertModel.deleteExpert(this.expertId);
-
-        // redirect to home page
-        this.AppStateModel.setLocation('/');
-      } catch (error) {
-        let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
-      }
-
+      // TODO
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
       window.location.href = 'https://oapolicy.universityofcalifornia.edu';
     }
@@ -434,53 +402,13 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
-   * @method _showExpert
-   * @description update expert visibility to true
-   */
-  async _showExpert(e) {
-    if( this.isAdmin ) {
-      try {
-        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
-        this.isVisible = true;
-      } catch (error) {
-        let modelContent = `<p>Showing expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
-      }
-    }
-  }
-
-  /**
    * @method _hideExpert
-   * @description show modal confirming expert should be hidden
+   * @description show modal confirmed expert should be hidden
    */
   _hideExpert(e) {
     this.modalAction = 'hide-expert';
     this.modalTitle = 'Hide Expert';
-    this.modalContent = `<p>Expert will be hidden from Aggie Experts. CDL privacy will be set to internal. To show the expert again in Aggie Experts, you can show expert from Aggie Experts. Are you sure you would like to continue?</p>`;
-    this.showModal = true;
-    this.hideCancel = true;
-    this.hideSave = false;
-    this.hideOK = true;
-    this.hideOaPolicyLink = true;
-    this.errorMode = false;
-  }
-
-  /**
-   * @method _deleteExpert
-   * @description show modal confirming expert should be deleted from Aggie Experts and CDL
-   */
-  _deleteExpert(e) {
-    this.modalAction = 'delete-expert';
-    this.modalTitle = 'Delete Expert';
-    this.modalContent = `<p>Expert will be removed from Aggie Experts. CDL privacy will be set to private. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in CDL. Are you sure you would like to continue?</p>`;
+    this.modalContent = `<p>Expert will be hidden from Aggie Experts. CDL privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in CDL. Are you sure you would like to continue?</p>`;
     this.showModal = true;
     this.hideCancel = true;
     this.hideSave = false;
@@ -494,6 +422,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit websites
    */
   _editWebsites(e) {
+    this.modalAction = 'edit-websites';
     this.modalAction = 'edit-websites';
     this.modalTitle = 'Edit Links';
     this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
@@ -510,6 +439,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit intro/research interests
    */
   _editAboutMe(e) {
+    this.modalAction = 'edit-about-me';
     this.modalAction = 'edit-about-me';
     this.modalTitle = 'Edit Introduction';
     this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
