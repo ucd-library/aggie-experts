@@ -143,6 +143,7 @@ router.route(
 );
 
 
+
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.route(
   /expert\/[a-zA-Z0-9]+$/
@@ -163,32 +164,8 @@ router.route(
   (req, res) => {
     res.status(200).json(res.thisDoc);
   }
-).patch(
-  user_can_edit,
-  json_only,
-  async (req, res, next) => {
-    let id = decodeURIComponent(req.path).replace(/^\//, '');
-    let data = req.body;
-    try {
-      let resp;
-      patched=await model.patch(data,id);
-      res.status(204).json();
-    } catch(e) {
-      next(e);
-    }
-  }
-).delete(
-  user_can_edit,
-  async (req, res, next) => {
-    try {
-      let id = decodeURIComponent(req.path).replace(/^\//, '');
-      await model.delete(id);
-      res.status(204).json({status: "ok"});
-    } catch(e) {
-      next(e);
-    }
-  }
 );
+
 
 const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, {router});
