@@ -1,13 +1,14 @@
-prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
-prefix cdl: <ark:/87287/d7_cdltest_/>
-prefix experts: <http://experts.ucdavis.edu/>
-prefix oap: <http://oapolicy.universityofcalifornia.edu/>
-prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
-prefix vivo: <http://vivoweb.org/ontology/core#>
+PREFIX cdl: <ark:/87287/d7_cdltest_/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX oap: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
 
 select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
-  graph ?g {
+  graph oap: {
     ?relationship :type ?type;
                   :related ?grant;
                   :related ?user;
@@ -19,7 +20,12 @@ select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
           :is-public "true";
           .
   }
-
+  graph <http://iam.ucdavis.edu/> {
+    bind(uri(concat(str(expert:),md5(?username))) as ?expert)
+    ?expert a ucdlib:Expert;
+          ucdlib:is-visible true;
+          .
+  }
   bind(replace(str(?relationship),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
   filter(regex(?username,"@ucdavis.edu"))
   bind(concat('expert/',md5(?username),"/",?id,".jsonld.json") as ?filename)
