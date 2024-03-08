@@ -148,6 +148,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
+
     this.totalCitations = citations.length;
     this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
 
@@ -173,11 +174,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
-    this.citationsDisplayed = citationResults.map(c => c.value);
+    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     this.citationsDisplayed.forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
       if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
         delete cite.issued;

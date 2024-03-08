@@ -10,10 +10,4 @@ select distinct (?username as ?USERNAME__) ?filename where {
     bind(md5(?username) as ?id)
     bind(concat("expert/",?id,".jsonld.json") as ?filename)
   }
-  graph <http://iam.ucdavis.edu/> {
-    bind(uri(concat(str(expert:),md5(?username))) as ?expert)
-    ?expert a ucdlib:Expert;
-            ucdlib:is-visible true;
-            .
-  }
 }
