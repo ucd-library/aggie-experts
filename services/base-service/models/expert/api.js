@@ -67,13 +67,21 @@ function json_only(req, res, next) {
 async function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
   let id = '/'+model.id+decodeURIComponent(req.path);
-  if (('no-sanitize' in req.query) && req.user &&
-      (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
-       req.user?.roles?.includes('admin'))
-     ) {
-    return next();
+  if ('no-sanitize' in req.query) {
+    if (req.user &&
+        (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
+         req.user?.roles?.includes('admin'))
+       ) {
+      return next();
+    } else {
+      res.status(403).send('Forbidden');
+    }
   } else {
     let doc = res.thisDoc;
+    if (doc["is-visible"] === false) {
+      res.status(204).send('No Content');
+    }
+    // logger.info('Sanitizing', doc);
     for(let i=0; i<doc["@graph"].length; i++) {
       logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
       if ((("is-visible" in doc["@graph"][i])
