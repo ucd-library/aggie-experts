@@ -5,19 +5,9 @@ const SiteFarmModel = require('./model.js');
 const { defaultEsApiGenerator } = dataModels;
 const md5 = require('md5');
 const path = require('path');
-// const swaggerUi = require('swagger-ui-express');
-// const YAML = require('yamljs');
-// const swaggerDocument = YAML.load('./sitefarm.yaml');
 
 
 function siteFarmFormat(req, res, next) {
-  // To be used as a middleware to format the response in the site-farm format
-  // Check if the request is for the site-farm format based on the accept header
-  // const acceptHeader = req.headers.accept;
-  // if (!(acceptHeader && acceptHeader.includes('site-farm'))) {
-  //   next();
-  //   return;
-  // }
 
   var newArray = [];
   for (let i in res.doc_array) {
@@ -137,8 +127,6 @@ router.get('/experts/:ids', json_only, async (req, res, next) => {
 );
 
 router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
-
-// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 const model = new SiteFarmModel();
 module.exports = defaultEsApiGenerator(model, { router });
