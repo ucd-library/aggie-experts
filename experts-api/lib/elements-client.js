@@ -297,6 +297,7 @@ export class Impersonator {
     headers['accept'] = 'application/json';
 
     resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html`, {
+      timeout: 20000,
       method: 'POST',
       body: formData,
       headers
@@ -328,6 +329,7 @@ export class Impersonator {
     let resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html`, {
       method: 'POST',
       body: formData,
+      timeout: 20000,
       headers
     });
 
