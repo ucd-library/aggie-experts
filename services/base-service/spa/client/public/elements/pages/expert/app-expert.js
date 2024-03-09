@@ -392,15 +392,40 @@ export default class AppExpert extends Mixin(LitElement)
     this.showModal = false;
 
     if( this.isAdmin && this.modalAction === 'hide-expert' ) {
-      // TODO handle errors
-      let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
-      this.isVisible = false;
-    } else if( this.modalAction === 'delete-expert' ) {
-      // TODO handle errors
-      let res = await this.ExpertModel.deleteExpert(this.expertId);
+      try {
+        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
+        this.isVisible = false;
+      } catch (error) {
+        let modelContent = `<p>Hiding expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
 
-      // redirect to home page
-      this.AppStateModel.setLocation('/');
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+    } else if( this.modalAction === 'delete-expert' ) {
+      try {
+        let res = await this.ExpertModel.deleteExpert(this.expertId);
+
+        // redirect to home page
+        this.AppStateModel.setLocation('/');
+      } catch (error) {
+        let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
       window.location.href = 'https://oapolicy.universityofcalifornia.edu';
     }
@@ -414,9 +439,21 @@ export default class AppExpert extends Mixin(LitElement)
    */
   async _showExpert(e) {
     if( this.isAdmin ) {
-      // TODO handle errors
-      let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
-      this.isVisible = true;
+      try {
+        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
+        this.isVisible = true;
+      } catch (error) {
+        let modelContent = `<p>Showing expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
     }
   }
 
