@@ -153,12 +153,11 @@ class ExpertModel extends BaseModel {
     const root_node= this.get_expected_model_node(transformed);
     // If a doc exists, update this node only, otherwise create a new doc.
     try {
-      console.log('update w/ root:',root_node['@id']);
       let expert = await this.client_get(root_node['@id']);
-      expert=await this.update_graph_node(expert['@id'],root_node);
-      console.log('updated expert:',expert['@id']);
+      await this.update_graph_node(expert['@id'],root_node);
+      expert = await this.client_get(root_node['@id']);
       this.move_fields_to_doc(root_node,expert);
-      console.log('update expert with:',expert);
+      // reindex this expert again
       await this.client.index({
         index : this.writeIndexAlias,
         id : expert['@id'],
@@ -232,7 +231,6 @@ class ExpertModel extends BaseModel {
         }
       `
     };
-    console.log('options',options);
 
     const api_resp = await finApi.patch(options);
 
@@ -242,7 +240,9 @@ class ExpertModel extends BaseModel {
       error.status=500;
       throw error;
     }
+    console.log('config.experts',config.experts);
     if (config.experts.cdl.expert.propagate) {
+      console.log('propagate to CDL');
       const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.expert);
       if (patch.visible != null) {
         resp = await cdl_user.updateUserPrivacyLevel({

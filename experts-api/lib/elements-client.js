@@ -324,6 +324,7 @@ export class Impersonator {
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
+    console.log('formData', formData);
     let resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html`, {
       method: 'POST',
       body: formData,
