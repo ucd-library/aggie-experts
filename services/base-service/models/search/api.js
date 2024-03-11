@@ -51,8 +51,4 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/hello', (req, res) => {
-    res.send("World");
-});
-
 module.exports = router;
