@@ -4,22 +4,34 @@
     "lang": "mustache",
     "source": {
       "query": {
-        "nested": {
-          "path": "@graph",
-          "query": {
-            "bool": {
+        "bool": {
+          "filter": {
+            "bool":{
               "must": [
-                {
-                "prefix": {
-                  "@graph.hasName.family.kw": "{{p}}"
-                }
-              },
-                {
-                "term": {
-                  "@graph.@type": "Expert"
+                { "exists": { "field": "is-visible" }},
+                { "term" : {"is-visible": true } }
+              ]
+            }
+          },
+          "must":{
+            "nested": {
+              "path": "@graph",
+              "query": {
+                "bool": {
+                  "must": [
+                    {
+                      "prefix": {
+                        "@graph.hasName.family.kw": "{{p}}"
+                      }
+                    },
+                    {
+                      "term": {
+                        "@graph.@type": "Expert"
+                      }
+                    }
+                  ]
                 }
               }
-              ]
             }
           }
         }
