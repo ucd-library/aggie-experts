@@ -45,7 +45,7 @@ async function sanitize(req, res, next) {
   } else {
     let doc = res.thisDoc;
     if (doc["is-visible"] === false) {
-      res.status(204).send('No Content');
+      res.status(404).send('Not Found');
     }
     // logger.info('Sanitizing', doc);
     for(let i=0; i<doc["@graph"].length; i++) {
