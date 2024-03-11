@@ -42,8 +42,21 @@ async function sanitize(req, res, next) {
     } else {
       res.status(403).send('Forbidden');
     }
+  if ('no-sanitize' in req.query) {
+    if (req.user &&
+        (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
+         req.user?.roles?.includes('admin'))
+       ) {
+      return next();
+    } else {
+      res.status(403).send('Forbidden');
+    }
   } else {
     let doc = res.thisDoc;
+    if (doc["is-visible"] === false) {
+      res.status(404).send('Not Found');
+    }
+    // logger.info('Sanitizing', doc);
     if (doc["is-visible"] === false) {
       res.status(404).send('Not Found');
     }
@@ -160,12 +173,51 @@ router.route(
       return res.status(404).json(`${req.path} resource not found`);
     }
   },
+router.route(
+  /expert\/[a-zA-Z0-9]+$/
+).get(
+  async (req, res, next) => {
+    let id = '/'+ model.id + decodeURIComponent(req.path);
+    try {
+      let opts = {
+        admin: req.query.admin ? true : false,
+      }
+      res.thisDoc = await model.get(id, opts);
+      next();
+    } catch (e) {
+      return res.status(404).json(`${req.path} resource not found`);
+    }
+  },
   sanitize, // Remove the graph nodes that are not visible
   (req, res) => {
     res.status(200).json(res.thisDoc);
   }
+).patch(
+  user_can_edit,
+  json_only,
+  async (req, res, next) => {
+    let id = decodeURIComponent(req.path).replace(/^\//, '');
+    let data = req.body;
+    try {
+      let resp;
+      patched=await model.patch(data,id);
+      res.status(204).json();
+    } catch(e) {
+      next(e);
+    }
+  }
+).delete(
+  user_can_edit,
+  async (req, res, next) => {
+    try {
+      let id = decodeURIComponent(req.path).replace(/^\//, '');
+      await model.delete(id);
+      res.status(204).json({status: "ok"});
+    } catch(e) {
+      next(e);
+    }
+  }
 );
-
 
 const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, {router});
