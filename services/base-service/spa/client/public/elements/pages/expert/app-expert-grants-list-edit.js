@@ -19,6 +19,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
+      totalGrants : { type : Number },
+      hiddenGrants : { type : Number },
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       allSelected : { type : Boolean },
@@ -26,6 +28,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
+      hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -47,6 +51,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
+    this.totalGrants = 0;
+    this.hiddenGrants = 0;
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
@@ -55,7 +61,11 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = false;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.downloads = [];
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -90,13 +100,18 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     window.scrollTo(0, 0);
 
+    this.modifiedGrants = false;
     let expertId = e.location.pathname.replace('/grants-edit/', '');
-    if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
-    if( expertId === this.expertId ) return;
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
+
+    if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
+    if( expertId === this.expertId || !canEdit ) return;
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
+      let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -116,16 +131,18 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants-edit' ) return;
 
-    if( e.id === this.expertId ) return;
-
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.grants = utils.parseGrants(grants);
+    this.totalGrants = grants.length;
+
+    this.grants = utils.parseGrants(this.expertId, grants, false); // don't filter hidden grants
+    this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
@@ -238,70 +255,29 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   async _downloadClicked(e) {
     e.preventDefault();
 
-    // The download csv should contain
-    //   Title : dl.name
-    //   Funding Agency : dl.awardedBy
-    //   Grant id : dl.sponsorAwardId
-    //   Start date : dl.dateTimeInterval.start.dateTime
-    //   End date : dl.dateTimeInterval.end.dateTime
-    //   Type of Grant : dl.role
-    //   List of contributors (role) {separate contributors by ";"}
-
-    /*
-    {
-    "assignedBy": {
-        "@type": "FundingOrganization",
-        "name": "CALIFORNIA DEPARTMENT OF WATER RESOURCES",
-        "@id": "ark:/87287/d7mh2m/grant/4344862#unknown-funder"
-    },
-    "dateTimeInterval": {
-        "@type": "DateTimeInterval",
-        "start": {
-            "dateTime": "2014-07-30",
-            "@type": "DateTimeValue",
-            "@id": "ark:/87287/d7mh2m/grant/4344862#start-date",
-            "dateTimePrecision": "vivo:yearMonthDayPrecision"
-        },
-        "end": {
-            "dateTime": "2017-07-29",
-            "@type": "DateTimeValue",
-            "@id": "ark:/87287/d7mh2m/grant/4344862#end-date",
-            "dateTimePrecision": "vivo:yearMonthDayPrecision"
-        },
-        "@id": "ark:/87287/d7mh2m/grant/4344862#duration"
-    },
-    "@type": [
-        "Grant",
-        "vivo:Grant"
-    ],
-    "totalAwardAmount": "181353",
-    "name": "SIMETAW and Cal-SIMETAW Upgrade",
-    "@id": "ark:/87287/d7mh2m/grant/4344862",
-    "relatedBy": {
-        "relates": [
-            "expert/66356b7eec24c51f01e757af2b27ebb8",
-            "ark:/87287/d7mh2m/grant/4344862"
-        ],
-        "@type": "GrantRole",
-        "@id": "ark:/87287/d7mh2m/relationship/13340713",
-        "is-visible": true
-    },
-    "sponsorAwardId": "4600010450",
-    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
-        "name": "Research",
-        "@id": "ucdlib:Grant_Research"
-    },
-    "start": 2014,
-    "end": 2017,
-    "completed": true,
-    "role": "Research",
-    "awardedBy": "CALIFORNIA DEPARTMENT OF WATER RESOURCES"
-    }
-    */
-
     let downloads = this.grants.filter(g => this.downloads.includes(g['@id']));
+    let body = [];
+    downloads.forEach(grant => {
+      body.push([
+        '"' + (grant.name || '') + '"',                               // Title
+        '"' + (grant.awardedBy || '') + '"',                          // Funding Agency
+        '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
+        '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
+        '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
+        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + (grant.role || '') + '"',                               // Role of Grant
+        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (PIs and CoPIs)
+      ]);
+    });
 
-    let text = downloads.map(c => c.ris).join('\n');
+    if( !body.length ) return;
+
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
+    let text = headers.join(',') + '\n';
+    body.forEach(row => {
+      text += row.join(',') + '\n';
+    });
+
     let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
 
@@ -319,12 +295,107 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    * @description show modal with link to hide grant
    */
   _hideGrant(e) {
+    this.grantId = e.currentTarget.dataset.id;
+
     this.modalTitle = 'Hide Grant';
-    this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
+    this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this grant?</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _showWork
+   * @description show work
+   */
+  async _showGrant(e) {
+    this.grantId = e.currentTarget.dataset.id;
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
+    try {
+      let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+    } catch (error) {
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
+      let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+      this.modalTitle = 'Error: Update Failed';
+      this.modalContent = modelContent;
+      this.showModal = true;
+      this.hideCancel = true;
+      this.hideSave = true;
+      this.hideOK = false;
+      this.hideOaPolicyLink = true;
+      this.errorMode = true;
+    }
+
+    this.modifiedGrants = true;
+
+    // update graph/display data
+    let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+    grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+    grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+
+    this.totalGrants = this.grants.length;
+    this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+
+    this.requestUpdate();
+  }
+
+  /**
+   * @method _modalSave
+   * @description modal save event
+   */
+  async _modalSave(e) {
+    e.preventDefault();
+
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
+    this.showModal = false;
+    let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
+    this.modifiedGrants = true;
+
+    if( action === 'hide' ) {
+      try {
+        let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
+        let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+
+      // update graph/display data
+      let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
+      grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
+      grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
+
+      this.totalGrants = this.grants.length;
+      this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+
+      this.requestUpdate();
+    }
   }
 
   /**
@@ -339,10 +410,11 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.grants = utils.parseGrants(grants);
+    this.grants = utils.parseGrants(this.expertId, grants);
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
+    this.AppStateModel.store.data.modifiedGrants = this.modifiedGrants;
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 

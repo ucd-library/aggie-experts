@@ -1,11 +1,11 @@
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX fedora: <http://fedora.info/definitions/v4/repository#>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX schema: <http://schema.org/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -23,6 +23,7 @@ CONSTRUCT {
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
                schema:identifier ?oapolicy_ark,?user_id;
+               ucdlib:is-visible ?visible;
                ?field_predicate ?field_value;
                .
 
@@ -68,7 +69,9 @@ WHERE {
   bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
   bind(concat('expert:',MD5(?USERNAME__)) as ?user_id)
   graph <http://iam.ucdavis.edu/> {
-    ?user a ucdlib:Expert .
+    ?user a ucdlib:Expert;
+          ucdlib:is-visible true;
+          .
     ?iam_s ?iam_p ?iam_o.
     # This is soo hacky,
     OPTIONAL {
@@ -79,7 +82,7 @@ WHERE {
   }
   GRAPH <http://oapolicy.universityofcalifornia.edu/> {
   ?cdl_id :category "user";
-        :is-public "true";
+        :is-public "true",?visible_str;
         :is-login-allowed "true";
         :username ?USERNAME__;
         :last-name ?ln;
@@ -99,6 +102,7 @@ WHERE {
     bind(concat(?fn," ",?ln) as ?name)
     bind(uri(concat(str(?user),"#vcard-oap-1")) as ?vcard)
     bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
+    bind(xsd:boolean(?visible_str) as ?visible)
 
     ?assoc :user-id ?oapolicy_id.
     bind(concat('ark:/87287/d7mh2m/user/',?oapolicy_id) as ?oapolicy_ark)

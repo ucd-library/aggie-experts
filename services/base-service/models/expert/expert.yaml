@@ -1,0 +1,174 @@
+openapi: 3.0.3
+info:
+  title: Experts API
+  description: |-
+   The Experts API specifies updates to a particular expert.
+   Publically available API endpoints can be used for access to an experts data.
+
+   Some elevated users can use this
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: aggie-experts@ucdavis.edu
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: ${VERSION}
+servers:
+  - url: ${HOST}/expert
+tags:
+  - name: expert
+    description: Expert Information
+paths:
+  /api/{expert}:
+    get:
+      tags:
+        - expert
+      summary: Find expert by ID
+      description: Returns an expert
+      operationId: getExpertById
+      parameters:
+        - name: expert
+          in: path
+          description: ID of expert
+          required: true
+          schema:
+            type: string
+        - name: Prefer
+          in: header
+          schema:
+            type: string
+            external: https://httpwg.org/specs/rfc7240.html
+            example: "return=representation; sanitize=false"
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/ld+json; profile="#site-farm":
+              schema:
+                type: string
+            application/json:
+              schema:
+                 type: string
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Expert not found
+      security:
+        - oauth2: []
+    patch:
+      tags:
+        - expert
+      summary: Patch experts visibility by ID
+      description: Patches the is-visible flag for the expert
+      parameters:
+        - name: expert
+          in: path
+          description: ID of expert
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          'application/json':
+            examples:
+              not-visable:
+                summary: Set expert not visible
+                value" {"is-visible": false}
+      responses:
+        '204':
+          description: successful operation
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Expert not found
+      security:
+        - oauth2: []
+  /api/{expert}/ark:/87287/d7mh2m/{relationship}:
+    get:
+      tags:
+        - expert
+      security: &OWNER
+        - oauth2: [owner]
+        - oauth2: [admin]
+      summary: Get CDL relationship by id
+      description: ''
+      operationId: expert_get_relationship
+      parameters: &PARMS
+        - name: expert
+          in: path
+          description: ID of expert
+          required: true
+          schema:
+            type: string
+        - name: relationship
+          in: path
+          description: 'The name that needs to be fetched. Use user1 for testing. '
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+    patch:
+      tags:
+        - expert
+      security: *OWNER
+      summary: Update relationship
+      description: This can only be done by the logged in expert, or and admin
+      operationId: userUpdateRelationship
+      parameters: *PARMS
+      requestBody:
+        description: Update an experts relationship
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/relationship'
+      responses:
+        '400':
+          description: Invalid parameters
+        '404':
+          description: Relationship not found
+        default:
+          description: successful operation
+    delete:
+      tags:
+        - expert
+      security: *OWNER
+      summary: Delete relationship
+      description: This can only be done by the logged in user.
+      operationId: deleteUserRelationship
+      parameters: *PARMS
+      responses:
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+components:
+  schemas:
+    relationship:
+      type: object
+      properties:
+        item:
+          type: string
+        visible:
+          type: boolean
+        favorite:
+          type: boolean
+  securitySchemes:
+    oauth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://sandbox.auth.library.ucdavis.edu/realms/aggie-experts/protocol/openid-connect/auth
+          scopes:
+            viewer: view your account
+            owner: modify your account
+            admin: Administrative login

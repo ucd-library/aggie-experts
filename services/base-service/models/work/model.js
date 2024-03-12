@@ -20,7 +20,6 @@ class WorkModel extends BaseModel {
 
   snippet(node) {
     let snip=super.snippet(node);
-    snip.work_id=node['@id'];
     return snip;
   }
 
@@ -61,40 +60,41 @@ class WorkModel extends BaseModel {
     // Update all Authors with this work as well
     let authorship = authorshipModel.get_expected_model_node(transformed);
 
-    if (authorship['is-visible']) {
-      let relates=authorship.relates.filter(x => x !== doc['@id']);
-      if (relates.length != 1) {
-        console.log("ERROR: doc['@id']="+doc['@id']+" relates="+JSON.stringify(relates));
-        throw new Error(`Expected 1 relates, got ${relates.length}`);
-      }
-      const expert_id=relates[0];
-      let expert=await expertModel.client_get(expert_id);
-      expert=expertModel.get_expected_model_node(expert);
-      const author = {
-        ...expertModel.snippet(expert),
-        ...authorshipModel.snippet(authorship),
-        '@type': 'Author'
-      };
-      delete author.relates;
+    let relates=authorship.relates.filter(x => x !== doc['@id']);
 
-      logger.info(`${doc["@id"]} ==> ${expert_id}`);
-      // Author(expert) is added/delete to Work
-      await this.update_or_create_main_node_doc(doc);
-      await this.update_graph_node(doc['@id'],author,authorship['is-visible']);
-    } else {
-      try {
-        await this.delete_graph_node(doc['@id'],authorship);
-        // If work is authorless, remove it
-        let work=await this.client_get(doc['@id']);
-        const authors=this.get_nodes_by_type(work,'Author');
-        if (authors.length == 0) {
-          logger.info(`${doc['@id']} ==> <DELETED>`);
-          await this.delete(doc['@id']);
-        }
-      } catch (e) {
-        logger.info(`${doc["@id"]} !=> ${authorship['@id']}`);
-      }
+    if (relates.length != 1) {
+      // console.log("ERROR: doc['@id']="+doc['@id']+" relates="+JSON.stringify(relates));
+      throw new Error(`Expected 1 relates, got ${relates.length}`);
     }
+    const expert_id=relates[0];
+    let expert=await expertModel.client_get(expert_id);
+    expert=expertModel.get_expected_model_node(expert);
+    const author = {
+      ...expertModel.snippet(expert),
+      ...authorshipModel.snippet(authorship),
+      '@type': 'Author'
+    };
+    delete author.relates;
+    delete author['@id'];
+    // Author(expert) is added/delete to Work
+    await this.update_or_create_main_node_doc(doc);
+    await this.update_graph_node(doc['@id'],author);
+
+    // Now determine visibility of the work itself
+    try {
+      let work=await this.client_get(doc['@id']);
+      const work_node=this.get_expected_model_node(work);
+      work_node["is-visible"]=false;
+      const authors=this.get_nodes_by_type(work,'Author');
+      for (let i=0; i<authors.length; i++) {
+        if (authors[i]['is-visible']) {
+          work_node["is-visible"]=true;
+          break;
+        }
+      }
+    } catch (e) {
+      logger.info(`${doc["@id"]} visibility error`);
+     }
   }
 }
 module.exports = WorkModel;

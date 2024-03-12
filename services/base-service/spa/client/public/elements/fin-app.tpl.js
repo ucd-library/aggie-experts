@@ -45,7 +45,7 @@ return html`
       --btn-arrow-color: #ffbf00;
       transition: 0.2s padding ease-out;
       border-color: #ffbf00;
-      background-color: transparent;
+      background-color: white;
     }
 
     .impersonate-btn:hover ucdlib-icon {
@@ -70,21 +70,63 @@ return html`
       right: 1rem;
     }
 
-    @media (max-width: 991px) {
-      .impersonate-container {
-        background-color: white;
-        width: 100%;
-        right: 0;
-        top: 6rem;
-        padding: 0.5rem 0;
-        display: flex;
-        justify-content: end;
-        padding-right: 0.5rem;
-      }
+    .impersonate-container.collapse {
+      background-color: white;
+      width: 100%;
+      right: 0;
+      top: 10.75rem;
+      padding: 0.5rem 0;
+      display: flex;
+      justify-content: end;
+      padding-right: 0.5rem;
+    }
 
-      .main-content.impersonating {
-        padding-top: 3rem;
+    .main-content.impersonating.collapse {
+      padding-top: 3rem;
+    }
+
+    .spinner-container {
+      position: fixed;
+      top: calc(50% + 15px);
+      left: calc(50% - 70px);
+      height: 100px;
+      color: var(--color-aggie-blue);
+    }
+
+    .spinner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color:  transparent;
+      transition: opacity 0.75s, visibility 0.75s;
+    }
+
+    .spinner:after {
+      content: '';
+      width: 40px;
+      height: 40px;
+      border: 5px solid  var(--color-aggie-gold-70);
+      border-top-color: var(--color-aggie-gold);
+      border-radius: 50%;
+      animation: loading 0.75s ease infinite;
+    }
+
+    @keyframes loading {
+      from {
+        transform: rotate(0turn);
       }
+      to {
+        transform: rotate(1turn);
+      }
+    }
+
+    ucdlib-pages.loading {
+      opacity: .6;
     }
 
   </style>
@@ -96,6 +138,7 @@ return html`
 
   <ucd-theme-header
     site-name="Aggie Experts"
+    figure-src="/images/aggie-experts-logo-primary.png"
     prevent-fixed>
 
     <ucd-theme-primary-nav>
@@ -134,24 +177,30 @@ return html`
     </button>
   </div>
 
-  <div class="main-content ${this.hideImpersonate ? '' : 'impersonating'}">
+  <div class="main-content">
     <ucdlib-pages
       selected="${this.page}"
-      selectedAttribute="visible">
+      selectedAttribute="visible"
+      class="${this.loading ? 'loading' : ''}">
       <app-home id="home"></app-home>
       <app-browse id="browse"></app-browse>
       <!-- <app-work id="work"></app-work> -->
       <app-expert @impersonate="${this._impersonateClick}" id="expert" @show-404="${(e) => this.page = '404'}"></app-expert>
       <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
-      <app-expert-works-list-edit id="works-edit" @show-404="${(e) => this.page = '404'}"></app-expert-works-list-edit>
+      <app-expert-works-list-edit @loading="${(e) => this.loading = true}" @loaded="${(e) => this.loading = false}" id="works-edit" @show-404="${(e) => this.page = '404'}"></app-expert-works-list-edit>
       <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
-      <app-expert-grants-list-edit id="grants-edit" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list-edit>
+      <app-expert-grants-list-edit @loading="${(e) => this.loading = true}" @loaded="${(e) => this.loading = false}" id="grants-edit" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list-edit>
       <app-search id="search"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
     </ucdlib-pages>
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
+
+    <div class="spinner-container" ?hidden="${!this.loading}">
+      <div ?hidden="${!this.loading}" class="spinner"></div>
+      <h3>Saving Changes</h3>
+    </div>
 
     <div class="footer site-frame">
       <ucdlib-site-footer>
@@ -180,15 +229,18 @@ return html`
         </ucdlib-site-footer-column>
         <ucdlib-site-footer-column header="Terms of Use">
           <ul>
+            <li>Our sources use algorithms for matching publications to people. Errors may exist.</li>
             <li>
               <a
                 href="/termsofuse"
                 rel="noopener"
                 >Terms of Use</a>
             </li>
-            <li>
-              <span>© The Regents of the University of California, Davis</span>
-            </li>
+          </ul>
+        </ucdlib-site-footer-column>
+        <ucdlib-site-footer-column header="Copyright">
+          <ul>
+            <li>©2023 The Regents of the University of California, Davis</li>
           </ul>
         </ucdlib-site-footer-column>
       </ucdlib-site-footer>

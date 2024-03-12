@@ -28,6 +28,20 @@ export default function render() {
         background-color: rgba(0,0,0,0.5);
       }
 
+      .container.error-mode .overlay {
+        background-color: var(--color-double-decker);
+      }
+
+      .container.error-mode .overlay h4,
+      .container.error-mode .overlay p,
+      .container.error-mode .overlay a {
+        color: white;
+      }
+
+      .container.error-mode .overlay .header-section ucdlib-icon {
+        fill: white;
+      }
+
       .overlay {
         position: absolute;
         top: 50%;
@@ -108,7 +122,7 @@ export default function render() {
     </style>
 
 
-    <div class="container">
+    <div class="container${this.errorMode ? ' error-mode' : ''}">
       <div class="overlay">
         <div class="header-section">
           <h4>${this.title}</h4>
@@ -120,8 +134,9 @@ export default function render() {
         <div class="footer-section">
           <div class="footer-buttons">
             <button ?hidden="${this.hideCancel}" class="btn btn--invert" @click="${this._onCancel}">Cancel</button>
-            <a ?hidden="${this.hideSave}" href="https://oapolicy.universityofcalifornia.edu/" class="btn btn--primary" @click="${this._onSave}">${this.title}</a>
-            <button ?hidden="${this.hideOK}" class="btn btn--primary ok" @click="${this._onCancel}">OK</a>
+            <button ?hidden="${this.hideSave}" class="btn btn--primary" @click="${this._onSave}">${this.title}</button>
+            <a ?hidden="${this.hideOaPolicyLink}" href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=3&am=false&cid=1&ipr=false&iqf=true" class="btn btn--primary">${(this.title || '').replace('New ', '')}</a>
+            <button ?hidden="${this.hideOK}" class="btn btn--primary ok" @click="${this._onCancel}">OK</button>
           </div>
         </div>
       </div>

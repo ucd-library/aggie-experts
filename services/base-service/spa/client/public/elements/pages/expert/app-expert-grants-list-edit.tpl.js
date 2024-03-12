@@ -233,10 +233,31 @@ return html`
       opacity: 1;
     }
 
+    .tooltip.reject-grant:before {
+      right: -25px;
+    }
+
+    .tooltip.reject-grant:after {
+      right: 21px;
+    }
+
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
       }
+    }
+
+    .not-visible h5,
+    .not-visible .grant-details {
+      font-style: italic;
+    }
+
+    .main-content .not-visible .grant h5 {
+      color: var(--ucd-black-60, #7F7F7F);
+    }
+
+    .not-visible .grant-details {
+      color: var(--ucd-black-50, #999);
     }
 
   </style>
@@ -250,8 +271,10 @@ return html`
       .hideCancel="${this.hideCancel}"
       .hideSave="${this.hideSave}"
       .hideOK="${this.hideOK}"
+      .hideOaPolicyLink="${this.hideOaPolicyLink}"
+      .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${(e) => this.showModal = false}>
+      @save=${this._modalSave}>
     </app-modal-overlay>
     <div class="hero-main site-frame">
       <div class="hero-text">
@@ -259,7 +282,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.expertName}</span>
         </div>
-        <h1>Manage My Grants (${this.grants.length || 0})</h1>
+        <h1>Manage My Grants (${this.totalGrants - this.hiddenGrants} Public, ${this.hiddenGrants} Hidden)</h1>
       </div>
     </div>
 
@@ -283,11 +306,14 @@ return html`
         (grant, index) => html`
           <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}"><span ?hidden="${index > 0}">Active</span></h3>
           <hr class="grant-seperator">
-          <div style="display: flex; justify-content: space-between; padding-bottom: 1.19rem;">
+          <div style="display: flex; justify-content: space-between; padding-bottom: 1.19rem;" class="${!grant.isVisible ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._hideGrant}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+                </span>
+                <span class="tooltip show-grant" data-text="Show grant">
+                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
               </span>
             </div>
@@ -312,11 +338,14 @@ return html`
         (grant, index) => html`
           <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}" style="padding-top: 1.19rem;"><span ?hidden="${index > 0}">Completed</span></h3>
           <hr class="grant-seperator">
-          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;">
+          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!grant.isVisible ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._hideGrant}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+                </span>
+                <span class="tooltip show-grant" data-text="Show grant">
+                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
               </span>
             </div>

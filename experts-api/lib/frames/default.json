@@ -44,6 +44,7 @@
        }
     },
     "container-title":{"@id":"cite:container-title"},
+    "CoPrincipalInvestigatorRole":"vivo:CoPrincipalInvestigatorRole",
     "dateTimeInterval": { "@type":"@id",
                           "@context":{
                             "start":{"@type":"@id"},
@@ -102,6 +103,7 @@
     },
     "identifier":{"@id":"schema:identifier"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
+    "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
     "is-open-access":{"@id":"ucdlib:is-open-access"},
     "is-visible":{"@id":"ucdlib:is-visible"},
     "ISBN": {"@id":"cite:ISBN"},
@@ -112,6 +114,7 @@
     "label":{"@id":"rdfs:label"},
     "language":{"@id":"cite:language"},
     "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime"},
+    "LeaderRole":"vivo:LeaderRole",
     "license":{"@id":"cite:license"},
     "Name":{"@id":"vcard:Name"},
     "name":{"@id":"rdfs:label"},
@@ -119,24 +122,29 @@
     "note":{"@id":"cite:note"},
     "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
+    "PrincipalInvestigatorRole":"vivo:PrincipalInvestigatorRole",
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
     "rank":{"@id":"vivo:rank"},
-    "relatedByX":{"@type":"@id",
-                 "@id":"vivo:relatedByX"
-                 },
-    "relatedBy":{"@reverse":"vivo:relates"},
-    "relates": { "@id":"vivo:relates",
+    "relatedByReverse":{
+      "@reverse":"vivo:relates"
+    },
+    "relatedBy":{
+      "@id":"vivo:relatedBy"
+    },
+    "relates": { "@id":"vivo:relates", "@type":"@id" },
+    "relatesx": { "@id":"vivo:relatesX",
                   "@type":"@id",
                  "@context":{
-                   "role_person_name":{"@id":"ucdlib:role_person_name"},
                    "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
-                   "relatedBy":{"@type":"@id"},
+                   "relatedBy":{"@id":"vivo:relatedBy","@type":"@id"},
                    "name":{"@id":"rdfs:label"}
                  }
                },
     "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
+    "ResearcherRole":"vivo:ResearcherRole",
+    "researchInterests":{"@id":"ucdlib:researchInterests"},
     "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
     "status":{"@id":"cite:status"},
     "title":{"@id":"cite:title"},

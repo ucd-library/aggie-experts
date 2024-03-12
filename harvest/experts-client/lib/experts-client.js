@@ -333,6 +333,9 @@ export class ExpertsClient {
   }
 
   nextPage(pagination) {
+    if (!pagination || !pagination["api:page"]) {
+      return null;
+    }
     let pages = pagination["api:page"];
     Array.isArray(pages) || (pages = [pages]);
     for (let link of pages) {

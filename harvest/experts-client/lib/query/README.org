@@ -1,6 +1,6 @@
-* Sparql Queries
 :header-args:sparql: :url http://localhost:8081/experts/sparql :format text/csv
 
+* Sparql Queries
 Some of the sparql queries are written in this area
 
 #+name: prefixes
@@ -14,6 +14,7 @@ Some of the sparql queries are written in this area
   PREFIX experts: <http://experts.ucdavis.edu/>
   PREFIX kfs: <ark:/87287/d7gt0q/schema#>
   PREFIX list: <http://jena.apache.org/ARQ/list#>
+  PREFIX obo: <http://purl.obolibrary.org/obo/>
   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
   PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -172,24 +173,25 @@ relationship here for testing.
 
  #+name: relationship_rank
  #+begin_src sparql :noweb yes :tangle no
-       select ?username ?relationship (?pos+1 as ?user_rank)
-       WHERE {
-         {
-           <<records>>
-         }
-         graph cdl: {
-           ?relationship :related ?user.
-           ?user :category "user";
-                 :username ?username;
-                 .
+   select ?username ?relationship (?pos+1 as ?user_rank)
+   WHERE {
+     {
+       <<records>>
+     }
+     graph cdl: {
+       ?relationship :related ?user.
+       ?user :category "user";
+             :is-public "true";
+             :username ?username;
+             .
 
-           ?record :native/:field ?field.
-           ?field :name "authors";
-                  :people/:person [ list:index(?pos ?elem) ] .
-           ?elem :links/:link ?user.   # This is the link to the relationship user
+       ?record :native/:field ?field.
+       ?field :name "authors";
+              :people/:person [ list:index(?pos ?elem) ] .
+       ?elem :links/:link ?user.   # This is the link to the relationship user
 
-         }
-       } limit 1
+     }
+   } limit 1
  #+end_src
 
 *** Minimum Field Score
@@ -281,6 +283,7 @@ relationship here for testing.
            ?field_predicate ?field_value;
            cite:issued ?pub_datestr;
            cite:date-available ?opub_datestr;
+           vivo:relatedBy ?authorship;
            .
 
      ?work  cite:author ?author.
@@ -505,11 +508,16 @@ relationship here for testing.
 
     #+name: grant_roles
     #+begin_src sparql :tangle no
-      VALUES (?role ?tid ?vivo_role ) {
-        (kfs:GrantCoPrincipalInvestigatorRole "116" vivo:CoPrincipalInvestigatorRole)
-        (kfs:GrantPrincipalInvestigatorRole "43" vivo:PrincipalInvestigatorRole)
+      VALUES (?cdl_type ?vivo_role ) {
+        ("user-grant-principal-investigation" vivo:PrincipalInvestigatorRole)
+        ("user-grant-co-principal-investigation" vivo:CoPrincipalInvestigatorRole)
+        ("user-grant-senior-key-personnel" vivo:ResearcherRole )
+        ("user-grant-co-primary-investigation" vivo:CoPrincipalInvestigatorRole)
+        ("user-grant-primary-investigation" vivo:PrincipalInvestigatorRole)
+        ("user-grant-program-direction" vivo:LeaderRole)
+        ("user-grant-project-leadership" vivo:LeaderRole)
+        ("user-grant-research" vivo:ResearcherRole)
       }
-
     #+end_src
 
     There were also old style KFS roles that are no longer used:
@@ -592,55 +600,72 @@ relationship here for testing.
 
  #+name: grant
  #+begin_src sparql :noweb yes :tangle grant_role/construct.rq :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
-      <<prefixes>>
-      construct {
-     ?grant_role a ucdlib:GrantRole, ?role, ?vivo_role;
-              ucdlib:favorite ?favorite;
-              ucdlib:is-visible ?visible;
-              vivo:relates ?expert,?grant;
-              .
+   <<prefixes>>
+   construct {
+     ?grant_role a ucdlib:GrantRole, ?role;
+                   ucdlib:favorite ?favorite;
+     ucdlib:is-visible ?visible;
+     vivo:relates ?grant,?expert;
+     obo:RO_0000052 ?expert;
+     .
 
      ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
             ?field_predicate ?field_text;
             ?field_predicate ?field_money;
             vivo:assignedBy ?funder;
             vivo:dateTimeInterval ?interval;
+            vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
             .
 
      ?grant_type rdfs:label ?funding_type_label;
                  .
+
+     ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
+                           vivo:relates ?labeled_only_pi,?grant;
+                           .
+
+     ?labeled_only_pi a vivo:Person;
+                      rdfs:label ?labeled_only_pi_name;
+                      .
+
+     ?labeled_only_co_pi_role a vivo:CoPrincipalInvestigatorRole;
+                              vivo:relates ?labeled_only_co_pi,?grant;
+                              .
+
+     ?labeled_only_co_pi a vivo:Person;
+                         rdfs:label ?labeled_only_co_pi_name;
+                         .
 
      ?funder a vivo:FundingOrganization;
              rdfs:label ?funder_label;
              .
 
      ?interval
-        vivo:start ?sd;
-        vivo:end ?ed;
-        .
+     vivo:start ?sd;
+     vivo:end ?ed;
+     .
 
      ?sd
-        vivo:dateTimePrecision ?start_date_precision;
-        vivo:dateTime ?start_date;
-        .
+     vivo:dateTimePrecision ?start_date_precision;
+     vivo:dateTime ?start_date;
+     .
      ?ed
-        vivo:dateTimePrecision ?end_date_precision;
-        vivo:dateTime ?end_date;
-        .
+     vivo:dateTimePrecision ?end_date_precision;
+     vivo:dateTime ?end_date;
+     .
    }
    WHERE {
      graph cdl: {
        ?RELATIONSHIP__
        :is-visible ?visible_str;
-       :type ?type;
-       :type-id ?tid;
+       :type ?cdl_type;
        :related ?g;
        :related ?user;
        .
 
        OPTIONAL {
          <<grant_roles>>
-         }
+       }
 
        OPTIONAL {
          ?RELATIONSHIP__ :is-favourite "true".
@@ -648,6 +673,7 @@ relationship here for testing.
        }
 
        ?user :category "user";
+             :is-public "true";
              :username ?username;
              .
 
@@ -662,6 +688,8 @@ relationship here for testing.
          ("funder-reference" "text" vivo:sponsorAwardId)
          ("funding-type" "special" ucdlib:none)
          ("funder-name" "special" ucdlib:none)
+         ("c-pi" "special" ucdlib:none)
+         ("c-co-pis" "special" ucdlib:none)
        }
 
        OPTIONAL {
@@ -677,6 +705,24 @@ relationship here for testing.
                 :type ?field_type;
                 :money/:field-value ?field_money;
                 .
+       }
+
+       # PI is expanded to a relationship / Not optional
+       OPTIONAL {
+         ?field :name "c-pi";
+                :type "text";
+                :text ?labeled_only_pi_name;
+                .
+       }
+
+       # Co-PIs are optional
+       OPTIONAL {
+         ?field :name "c-co-pis";
+                :people/:person [ list:index(?pos ?elem) ] .
+         ?elem :last-name ?labeled_only_co_pi_name_last .
+         OPTIONAL {
+           ?elem :first-names ?labeled_only_co_pi_name_first .
+         }
        }
 
        # Funding type is a special case
@@ -709,10 +755,27 @@ relationship here for testing.
      bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
      bind(uri(concat(str(expert:),md5(?username))) as ?expert)
      bind(xsd:boolean(?visible_str) as ?visible)
+     bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
 
      bind(uri(concat(str(?grant),'#start_date')) as ?sd)
      bind(uri(concat(str(?grant),'#end_date')) as ?ed)
      bind(uri(concat(str(?grant),'#interval')) as ?interval)
      bind(uri(concat(str(?grant),"#funder")) as ?funder)
+     bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
+     bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
+     bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
+     bind(uri(concat(str(?grant),"#co_pi_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi)
+     bind(uri(concat(str(?grant),"#co_pi_role_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi_role)
    }
 #+end_src
+
+#+RESULTS: grant
+#+begin__SRC ttl
+HTTP/1.1 404 Not Found
+Cache-Control: must-revalidate,no-cache,no-store
+Pragma: no-cache
+Content-Type: text/plain;charset=utf-8
+Content-Length: 21
+
+Error 404: Not Found
+#+end__SRC

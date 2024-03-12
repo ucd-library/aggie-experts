@@ -121,9 +121,11 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let id = r['@id'];
+      if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
       let subtitle = r.name?.split('§')?.pop()?.trim();
-      let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type'] === 'Authored') || []).length;
+      if( name === subtitle ) subtitle = '';
+      let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
       let numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 
       return {
@@ -205,9 +207,9 @@ export default class AppSearch extends Mixin(LitElement)
       if( selectedPersons.includes(result['@id']) ) {
         let name = result.name?.split('§')?.[0]?.trim();
         let landingPage = 'https://sandbox.experts.library.ucdavis.edu/' + result['@id'];
-        let numberOfWorks = (result['_inner_hits']?.filter(h => h['@type'] === 'Authored') || []).length;
+        let numberOfWorks = (result['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
         let numberOfGrants = (result['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
-        let urls = (result.contactInfo?.hasURL || []).map(w => w.url).join('; ');
+        let urls = (result.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
 
         body.push([
           '"' + name + '"',

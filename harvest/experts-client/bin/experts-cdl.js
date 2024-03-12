@@ -34,7 +34,7 @@ const fuseki = new FusekiClient({
   type: 'tdb2',
   db: 'CAS',
   replace: true,
-  'delete': false
+  'delete': true
 });
 
 const cdl = {

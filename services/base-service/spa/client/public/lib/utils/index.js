@@ -67,14 +67,35 @@ class Utils {
   }
 
   /**
+   * @method getGrantRole
+   * @description given a GrantType vivo role @type, returns the role to display in AE. defaults to Researcher if no match
+   *
+   * @param {String | Array} type
+   *
+   * @return {String} readable roles
+   */
+  getGrantRole(roles) {
+    let readableRole = 'Researcher';
+    if( !Array.isArray(roles) ) roles = [roles];
+
+    if( roles.includes('PrincipalInvestigatorRole') ) readableRole = 'Principal Investigator';
+    else if( roles.includes('CoPrincipalInvestigatorRole') ) readableRole = 'Co-Principal Investigator';
+    else if( roles.includes('LeaderRole') ) readableRole = 'Leader';
+
+    return readableRole;
+  }
+
+  /**
    * @method parseGrants
    * @description given an array of grants, parse and return an array of parsed grants
    *
-   * @param {Array} grants
+   * @param {String} expertId expertId to match for experts role in grant
+   * @param {Array} grants array of grant objects
+   * @param {Boolean} filterHidden whether to filter out hidden grants
    *
    * @return {Array} parsedGrants
    */
-  parseGrants(grants) {
+  parseGrants(expertId, grants, filterHidden=true) {
     let parsedGrants = (grants || []).map((g, index) => {
       // determine if active or completed
       let completed = false;
@@ -92,14 +113,55 @@ class Utils {
       }
       g.completed = completed;
 
-      // TEMP hack, need active grants to test ui
-      // if( index < 2 ) {
-      //   g.end = 2025 + index;
-      //   g.completed = false;
-      // }
+      // determine experts relationship in this grant
+      let relatedBy = g.relatedBy || [];
+      if( !Array.isArray(relatedBy) ) relatedBy = [relatedBy];
 
-      // determine role
-      g.role = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
+      let expertsRelationship = {};
+      let otherRelationships = [];
+
+      relatedBy.forEach(r => {
+        let isExpert = false;
+        let relates = r.relates || [];
+        if( !Array.isArray(relates) ) relates = [relates];
+
+        relates.forEach(relate => {
+          if( typeof relate === 'string' && relate.trim().toLowerCase() === expertId.trim().toLowerCase() ) {
+            expertsRelationship = r;
+            isExpert = true;
+          } else if( relate['@id'] && relate['@id'].includes(expertId) ) {
+            expertsRelationship = r;
+            isExpert = true;
+          }
+        });
+        if( !isExpert ) otherRelationships.push(r);
+      });
+
+      console.log({ expertsRelationship, otherRelationships });
+
+      if( filterHidden && !expertsRelationship['is-visible'] ) return;
+
+      g.isVisible = expertsRelationship['is-visible'];
+      g.relationshipId = expertsRelationship['@id'];
+
+      // determine pi/copi in otherRelationships
+      let contributors = otherRelationships.map(r => {
+        let contributorRole = this.getGrantRole(r['@type'] || '');
+        let contributorName = r.relates.filter(relate => relate.name)[0]?.name || '';
+        if( contributorName && contributorRole ) {
+          return {
+            name: contributorName,
+            role: contributorRole,
+          };
+        }
+      });
+
+      g.contributors = contributors.filter(c => c); // remove undefined
+
+      // determine role/type using expertsRelationship
+      g.role = this.getGrantRole(expertsRelationship['@type'] || '');
+
+      g.type = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
 
       // determine awarded-by
       g.awardedBy = g.assignedBy?.name;
@@ -109,55 +171,30 @@ class Utils {
       return g;
     });
 
-    parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime));
+    parsedGrants = parsedGrants.filter(g => g); // remove undefined
+    parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime) || a.name.localeCompare(b.name));
+    return parsedGrants;
+  }
 
-    /*
-    {
-      "assignedBy": {
-          "@type": "FundingOrganization",
-          "name": "NASA/MISCELLANEOUS CENTERS",
-          "@id": "ark:/87287/d7mh2m/grant/4316321#unknown-funder"
-      },
-      "dateTimeInterval": {
-          "@type": "DateTimeInterval",
-          "start": {
-              "dateTime": "2011-05-01",
-              "@type": "DateTimeValue",
-              "@id": "ark:/87287/d7mh2m/grant/4316321#start-date",
-              "dateTimePrecision": "vivo:yearMonthDayPrecision"
-          },
-          "end": {
-              "dateTime": "2015-04-30",
-              "@type": "DateTimeValue",
-              "@id": "ark:/87287/d7mh2m/grant/4316321#end-date",
-              "dateTimePrecision": "vivo:yearMonthDayPrecision"
-          },
-          "@id": "ark:/87287/d7mh2m/grant/4316321#duration"
-      },
-      "@type": [
-          "Grant",
-          "vivo:Grant"
-      ],
-      "totalAwardAmount": "783000",
-      "name": "NEAR REAL TIME SCIENCE PROCESSING ALGORITHM FOR LIVE FUEL MOISTURE CONTENT FOR THE MODIS DIRECT READOUT SYSTEM",
-      "@id": "ark:/87287/d7mh2m/grant/4316321",
-      "relatedBy": {
-          "relates": [
-              "expert/66356b7eec24c51f01e757af2b27ebb8",
-              "ark:/87287/d7mh2m/grant/4316321"
-          ],
-          "@type": "GrantRole",
-          "@id": "ark:/87287/d7mh2m/relationship/13338362",
-          "is-visible": true
-      },
-      "sponsorAwardId": "NNX11AF93G",
-      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": {
-          "name": "Research",
-          "@id": "ucdlib:Grant_Research"
+  /**
+   * @method getCookie
+   * @description given a cookie name, return the value of the cookie
+   *
+   * @return {String} cookie value or null
+   */
+  getCookie(name) {
+    let cookieArr = document.cookie.split("; ");
+
+    for(let i = 0; i < cookieArr.length; i++) {
+      let cookiePair = cookieArr[i].split("=");
+
+      if(name == cookiePair[0]) {
+        return decodeURIComponent(cookiePair[1]);
       }
     }
-    */
-   return parsedGrants;
+
+    // return null if not found
+    return null;
   }
 
 }

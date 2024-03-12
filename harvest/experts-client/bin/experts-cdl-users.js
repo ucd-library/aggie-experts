@@ -28,10 +28,10 @@ const program = new Command();
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-  type: 'tdb',
+  type: 'tdb2',
   replace: false,
   'delete': false,
-  db: 'experts'
+  db: 'aggie'
 });
 
 const cdl = {
@@ -68,9 +68,9 @@ async function main(opt) {
 
   const users = program.args;
 
-  opt.db=await fuseki.createDb(fuseki.db);
-
-  console.log('starting CDL users fetch');
+  if (fuseki.db) {
+    opt.db=await fuseki.createDb(fuseki.db);
+  }
 
   var uquery = 'users?detail=ref&per-page=1000';
   if (opt.username) {
@@ -136,7 +136,9 @@ async function main(opt) {
   let jsonld = JSON.stringify(contextObj);
   console.log('starting createGraph');
 
-  await opt.db.createGraphFromJsonLdFile(jsonld);
+  if (opt.db) {
+    await opt.db.createGraphFromJsonLdFile(jsonld);
+  }
 
   if (opt.output === '-') {
     // write to std out
@@ -168,7 +170,6 @@ program.name('cdl-profile')
   .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
   .option('--cdl.affected <affected>', 'affected since')
   .option('--cdl.modified <modified>', 'modified since')
-  .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)

@@ -34,6 +34,8 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     this.render = render.bind(this);
   }
@@ -73,6 +75,8 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     try {
       let expert = await this.ExpertModel.get(expertId);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -94,6 +98,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
@@ -109,7 +114,12 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
-    console.log('in _loadCitations');
+    citations = citations.map(c => {
+      let citation = { ...c };
+      citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
+      return citation;
+    });
+
     try {
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
@@ -126,11 +136,12 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
     let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
-    this.citationsDisplayed = citationResults.map(c => c.value);
+    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     this.citationsDisplayed.forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
       if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
         delete cite.issued;

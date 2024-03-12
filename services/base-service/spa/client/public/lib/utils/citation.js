@@ -16,49 +16,58 @@ class Citation {
   generateCitationPromise(citation, format='html', hideApaTitle=true, showDateInApa=false) {
     return new Promise((resolve, reject) => {
       Cite.async(citation).then(citation => {
-        let originalIssued = citation.data[0].issued;
-        if( showDateInApa ) {
-          citation.data[0].issued = parse(originalIssued);
-        }
+        try {
 
-        let apa;
-        if( hideApaTitle ) {
-          let originalTitle = citation.data[0].title;
-          citation.data[0].title = ''; // apa citation shouldn't include title in ui
+          let originalIssued = citation.data[0].issued;
+          if( showDateInApa ) {
+            citation.data[0].issued = parse(originalIssued);
+          }
 
-          apa = citation.format('bibliography', {
-            format,
+          let apa;
+          if( hideApaTitle ) {
+            let originalTitle = citation.data[0].title;
+            citation.data[0].title = ''; // apa citation shouldn't include title in ui
+
+            apa = citation.format('bibliography', {
+              format,
+              template: 'apa',
+              lang: 'en-US'
+            });
+
+            citation.data[0].title = originalTitle;
+          } else {
+            apa = citation.format('bibliography', {
+              format,
+              template: 'apa',
+              lang: 'en-US'
+            });
+          }
+
+          // ris format expects date-parts structure, regardless if apa is showing date or not
+          if( !showDateInApa ) {
+            citation.data[0].issued = parse(originalIssued);
+          }
+
+          let ris = citation.format('ris', {
+            format: 'html',
             template: 'apa',
             lang: 'en-US'
           });
+          citation.data[0].issued = originalIssued.split('-');
 
-          citation.data[0].title = originalTitle;
-        } else {
-          apa = citation.format('bibliography', {
-            format,
-            template: 'apa',
-            lang: 'en-US'
+          resolve({
+            ...citation.data[0],
+            apa,
+            ris,
           });
+        } catch(e) {
+          console.log('error generating citation for ' + citation.data[0]['@id'], e);
+          reject({data: citation.data[0], error: e});
         }
-
-        // ris format expects date-parts structure, regardless if apa is showing date or not
-        if( !showDateInApa ) {
-          citation.data[0].issued = parse(originalIssued);
-        }
-
-        let ris = citation.format('ris', {
-          format: 'html',
-          template: 'apa',
-          lang: 'en-US'
-        });
-        citation.data[0].issued = originalIssued.split('-');
-
-        resolve({
-          ...citation.data[0],
-          apa,
-          ris,
-        });
-      })
+      }).catch(e => {
+        console.log('error generating citation for ' + citation.data[0]['@id'], e);
+        reject({data: citation.data[0], error: e});
+      });
     });
   }
 

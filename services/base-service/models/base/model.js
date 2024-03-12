@@ -56,11 +56,43 @@ class BaseModel extends FinEsDataModel {
     if (typeof types === 'string') types = [types];
     types = types.filter(x => this.constructor.types.includes(x));
     if (types.length === 0) {
-      console.log(`!${this.constructor.name}.is`);
+//      console.log(`!${this.constructor.name}.is`);
       return false;
     }
-    console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
+//    console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
     return true
+  }
+
+  /**
+   * @method get_node_by_related_id
+   * @description Get elasticsearch node by id
+   * @param {Object} doc : elasticsearch doc
+   * @param {String} id : node id
+   * @returns {Object} : elasticsearch node
+   **/
+  get_node_by_related_id(doc,id) {
+    const nodes = [];
+    for(let i=0; i<doc['@graph'].length; i++) {
+      if (Array.isArray(doc['@graph'][i]?.['relatedBy'] )) {
+        for (let k = 0; k < doc['@graph'][i]['relatedBy'].length; k++) {
+          if (doc['@graph'][i]['relatedBy'][k]['@id'] === id) {
+            nodes.push(doc['@graph'][i]);
+            continue;
+          }
+        }
+      } else {
+        if ( doc['@graph'][i]?.['relatedBy']?.['@id'] === id ) {
+          nodes.push(doc['@graph'][i]);
+        }
+      }
+    }
+    if (nodes.length === 0) {
+      throw new Error(`Unable to find node with relatedBy{"@id"="${id}"}`);
+    }
+    if (nodes.length > 1) {
+      throw new Error(`Found multiple nodes with relatedBy{"@id"="${id}"}`);
+    }
+    return nodes[0];
   }
 
     /**
@@ -209,9 +241,9 @@ class BaseModel extends FinEsDataModel {
     // Check if template exists, install if not
     try {
       const result = await this.client.getScript({id:options.id});
-      console.log(`render: template ${options.id} exists`);
+//      console.log(`render: template ${options.id} exists`);
     } catch (err) {
-      console.log(`render: template ${options.id} does not exist`);
+      logger.info(`adding template ./template/${options.id}`);
       const template = require(`./template/${options.id}.json`);
       const result = await this.client.putScript(template);
     }
@@ -292,7 +324,7 @@ class BaseModel extends FinEsDataModel {
     }
 
     const res=await this.client.msearchTemplate(opts);
-    console.log(res);
+    //console.log(res);
     // Compact each result
     for(let i=0;i<res.responses.length;i++) {
       res.responses[i] = this.compact_search_results(
@@ -367,8 +399,12 @@ class BaseModel extends FinEsDataModel {
     if( opts.admin ) _source_excludes = false;
     else if( opts.compact ) _source_excludes = 'compact';
 
-    let identifier = id.substring(1).replace(/^(\w+\/)\1/, '$1'); // match 2 repeated words with tailing /, remove one, ie expert/expert/ -> expert/
-    console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
+    // let identifier = id.substring(1).replace(/^(\w+\/)\1/, '$1'); // match 2 repeated words with tailing /, remove one, ie expert/expert/ -> expert/
+    // console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
+    let identifier = id.replace(/^\//, '').split('/');
+    identifier.shift();
+    identifier = identifier.join('/');
+    //console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
 
     let result= await this.client.get(
       {
@@ -387,6 +423,7 @@ class BaseModel extends FinEsDataModel {
       return null;
     }
 
+    // Add fcrepo and dbsync data if admin, for the dashboard
     if( opts.admin === true ) {
       try {
         let response = await api.metadata({
@@ -460,8 +497,7 @@ class BaseModel extends FinEsDataModel {
    *
    * @returns {Promise} : Elasticsearch response Promise
    */
-  async update_graph_node(document_id, node_to_update, is_visible=true) {
-     if (is_visible === true || is_visible === 'true') {
+  async update_graph_node(document_id, node_to_update ) {
       return this.client.update({
         index: this.writeIndexAlias,
         id : document_id,
@@ -474,9 +510,6 @@ class BaseModel extends FinEsDataModel {
           params : {node: node_to_update}
         }
       });
-    } else {
-      return this.delete_graph_node(document_id, node_to_update);
-    }
   }
 
   /**
@@ -491,7 +524,7 @@ class BaseModel extends FinEsDataModel {
     try {
       const doc = await this.get(document_id,{_source:false});
     } catch (err) {
-      console.log(`update_graph_node_if_document_exists: document ${document_id} does not exist`);
+      // console.log(`update_graph_node_if_document_exists: document ${document_id} does not exist`);
       return {};
     }
     return this.update_graph_node(document_id,node_to_update);

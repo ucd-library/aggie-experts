@@ -69,13 +69,6 @@ tdb2:DatasetTDB2  rdfs:subClassOf  ja:RDFDataset .
     hdt:fileName "${FUSEKI_BASE}/databases/hdt/iam.hdt" ;
     .
 
-:grants  a hdt:HDTGraph ;
-    fuseki:name "grants" ;
-    rdfs:label "UC Davis Grants info" ;
-    hdt:fileName "${FUSEKI_BASE}/databases/hdt/grants.hdt" ;
-    .
-
-
 :tdb_experts
     a              tdb2:DatasetTDB2 ;
     rdfs:label "Scratch Location" ;
@@ -89,38 +82,6 @@ tdb2:DatasetTDB2  rdfs:subClassOf  ja:RDFDataset .
 
 # We use HDT files for these.  If we want access to the TDB files, I Need to think about the
 # best way to do that.  Maybe service would be best.
-
-# IET and OAPolicy data are grants to internal review
-# these are stored in the database below
-#:tdb_grants
-#    a              tdb2:DatasetTDB2 ;
-#    ja:context [ ja:cxtName "arq:queryTimeout" ;  ja:cxtValue "600000,3600000" ] ;
-#    .
-
-# These two graphs are used below
-#:graph_grants
-#    a tdb2:GraphTDB2;
-#    tdb2:dataset :tdb_grants;
-#    tdb2:location  "${FUSEKI_BASE}/databases/grants";
-#    tdb2:graphName <ark:/87287/d7gt0q/> ;
-#    .
-
-
-# IET and OAPolicy data are grants to internal review
-# these are stored in the database below
-#:tdb_iam
-#    a              tdb2:DatasetTDB2 ;
-#    ja:context [ ja:cxtName "arq:queryTimeout" ;  ja:cxtValue "600000,3600000" ] ;
-#    .
-
-# These two graphs are used below
-#:graph_iam
-#    a tdb2:GraphTDB2;
-#    tdb2:dataset :tdb_iam;
-#    tdb2:location  "${FUSEKI_BASE}/databases/iam" .
-#    tdb2:graphName <http://experts.ucdavis.edu/private/iam/> ;
-#    .
-
 
 # Other graphs will go to a emphemeral memory database, (I think)
 :dataset_experts
@@ -137,9 +98,5 @@ tdb2:DatasetTDB2  rdfs:subClassOf  ja:RDFDataset .
     ja:namedGraph [
         ja:graphName <http://iam.ucdavis.edu/> ;
         ja:graph :iam ;
-        ] ;
-    ja:namedGraph [
-        ja:graphName <ark:/87287/d7gt0q/> ;
-        ja:graph :grants ;
         ] ;
     .
