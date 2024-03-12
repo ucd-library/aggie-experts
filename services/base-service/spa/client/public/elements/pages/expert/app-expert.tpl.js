@@ -771,11 +771,11 @@ return html`
           (cite) => html`
             <h4 style="margin: 1.19rem 0;">${cite.issued?.[0]}</h4>
             <div class="work">
-              <h5>${unsafeHTML(cite.title)}</h5>
+              <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">.</span>
-                ${unsafeHTML(cite.apa.replace('(n.d.). ', '').replace('(n.d.).', ''))}
+                ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
               </div>
             </div>
             <br>
