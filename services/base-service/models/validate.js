@@ -22,7 +22,7 @@ class Validate {
       comments : []
     };
 
-    result = this._validateCitations(jsonld, result);
+    result = await this._validateCitations(jsonld, result);
 
     return result;
   }
