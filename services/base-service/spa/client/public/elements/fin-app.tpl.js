@@ -185,11 +185,27 @@ return html`
       <app-home id="home"></app-home>
       <app-browse id="browse"></app-browse>
       <!-- <app-work id="work"></app-work> -->
-      <app-expert @impersonate="${this._impersonateClick}" id="expert" @show-404="${(e) => this.page = '404'}"></app-expert>
+      <app-expert
+        @loading="${(e) => this.loading = true}"
+        @loaded="${(e) => this.loading = false}"
+        @impersonate="${this._impersonateClick}"
+        id="expert"
+        @show-404="${(e) => this.page = '404'}">
+      </app-expert>
       <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
-      <app-expert-works-list-edit @loading="${(e) => this.loading = true}" @loaded="${(e) => this.loading = false}" id="works-edit" @show-404="${(e) => this.page = '404'}"></app-expert-works-list-edit>
+      <app-expert-works-list-edit
+        @loading="${(e) => this.loading = true}"
+        @loaded="${(e) => this.loading = false}"
+        id="works-edit"
+        @show-404="${(e) => this.page = '404'}">
+      </app-expert-works-list-edit>
       <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
-      <app-expert-grants-list-edit @loading="${(e) => this.loading = true}" @loaded="${(e) => this.loading = false}" id="grants-edit" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list-edit>
+      <app-expert-grants-list-edit
+        @loading="${(e) => this.loading = true}"
+        @loaded="${(e) => this.loading = false}"
+        id="grants-edit"
+        @show-404="${(e) => this.page = '404'}">
+      </app-expert-grants-list-edit>
       <app-search id="search"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
