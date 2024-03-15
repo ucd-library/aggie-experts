@@ -6,12 +6,12 @@ const experts = new BaseModel();
 
 router.get('/render', async (req, res) => {
   const params = {};
-  ["inner_hit_size","size","page","q"].forEach((key) => {
+  ["userId"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
     index: "expert-read",
-    id: "default",
+    id: "miv_grants",
     params
   };
   try {
@@ -22,20 +22,11 @@ router.get('/render', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/grants', async (req, res) => {
   const params = {};
-  let template = "default";
+  let template = "miv_grants";
 
-  // If template parameter is passed, check admin status
-  if (req.query.template) {
-    if (req.user?.roles?.includes('admin')) {
-      template = req.query.template;
-    } else {
-      res.status(401).send('Unauthorized parameter(s)');
-    }
-  }
-
-  ["inner_hit_size","size","page","q"].forEach((key) => {
+  ["userId"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
@@ -49,10 +40,6 @@ router.get('/', async (req, res) => {
   } catch (err) {
     res.status(400).send('Invalid request');
   }
-});
-
-router.get('/hello', (req, res) => {
-    res.send("World");
 });
 
 module.exports = router;

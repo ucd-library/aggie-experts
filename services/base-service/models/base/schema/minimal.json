@@ -56,7 +56,7 @@
             "hasName" : {
               "properties" : {
                 "family" : {
-                  "type" : "text",
+                   "type" : "text",
                   "analyzer" : "default"
                 },
                 "middle" : {
@@ -115,6 +115,26 @@
                 "kw": {
                   "type":  "keyword",
                   "normalizer" : "lowercase_ascii"
+                }
+              }
+            }
+          }
+        },
+        "dateTimeInterval" : {
+          "properties" : {
+            "start" : {
+              "properties" : {
+                "dateTime" : {
+                  "type" : "date",
+                  "format" : "date"
+                }
+              }
+            },
+            "end" : {
+              "properties" : {
+                "dateTime" : {
+                  "type" : "date",
+                  "format" : "date"
                 }
               }
             }
