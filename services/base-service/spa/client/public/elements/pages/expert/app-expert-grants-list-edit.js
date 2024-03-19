@@ -64,6 +64,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideOaPolicyLink = false;
     this.errorMode = false;
     this.downloads = [];
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -108,6 +110,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     try {
       let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -129,15 +133,22 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.totalGrants = grants.length;
+<<<<<<< HEAD
     this.hiddenGrants = grants.filter(g => !g.relatedBy?.['is-visible']).length;
 
     this.grants = utils.parseGrants(grants);
+=======
+
+    this.grants = utils.parseGrants(this.expertId, grants, false); // don't filter hidden grants
+    this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+>>>>>>> dev
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
@@ -261,13 +272,21 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
         '"' + (grant.type || '') + '"',                               // Type of Grant
         '"' + (grant.role || '') + '"',                               // Role of Grant
+<<<<<<< HEAD
         '?', // List of contributors (role) {separate contributors by ";"}
+=======
+        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (PIs and CoPIs)
+>>>>>>> dev
       ]);
     });
 
     if( !body.length ) return;
 
+<<<<<<< HEAD
     let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of Contributors'];
+=======
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
+>>>>>>> dev
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
@@ -308,6 +327,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   async _showGrant(e) {
     this.grantId = e.currentTarget.dataset.id;
+<<<<<<< HEAD
 
     try {
       let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
@@ -315,6 +335,17 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       // TODO handle different error codes?
 
       let grantTitle = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)?.[0]?.name || '';
+=======
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
+    try {
+      let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+    } catch (error) {
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
+>>>>>>> dev
       let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
 
       this.modalTitle = 'Error: Update Failed';
@@ -329,8 +360,23 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.modifiedGrants = true;
 
+<<<<<<< HEAD
     let expert = await this.ExpertModel.get(this.expertId, true);
     this._onExpertUpdate(expert);
+=======
+    // update graph/display data
+    let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+    grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+    grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+    if( grant ) grant.isVisible = true;
+
+    this.totalGrants = this.grants.length;
+    this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+
+    this.requestUpdate();
+>>>>>>> dev
   }
 
   /**
@@ -339,17 +385,33 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   async _modalSave(e) {
     e.preventDefault();
+<<<<<<< HEAD
     this.showModal = false;
 
     let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
 
+=======
+
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
+    this.showModal = false;
+    let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
+>>>>>>> dev
     this.modifiedGrants = true;
 
     if( action === 'hide' ) {
       try {
         let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
+<<<<<<< HEAD
       } catch (error) {
         let grantTitle = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)?.[0]?.name || '';
+=======
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
+>>>>>>> dev
         let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://qa-oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
 
         this.modalTitle = 'Error: Update Failed';
@@ -363,6 +425,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       }
 
       // update graph/display data
+<<<<<<< HEAD
       let grant = this.grants.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];
       if( grant ) grant.relatedBy['is-visible'] = false;
       grant = this.grantsActiveDisplayed.filter(g => g.relatedBy?.['@id'] === this.grantId)[0];
@@ -372,6 +435,17 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
       this.totalGrants = this.grants.length;
       this.hiddenGrants = this.grants.filter(g => !g.relatedBy?.['is-visible']).length;
+=======
+      let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
+      grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
+      grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
+      if( grant ) grant.isVisible = false;
+
+      this.totalGrants = this.grants.length;
+      this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+>>>>>>> dev
 
       this.requestUpdate();
     }
@@ -389,7 +463,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.grants = utils.parseGrants(grants);
+    this.grants = utils.parseGrants(this.expertId, grants);
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 

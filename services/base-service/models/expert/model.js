@@ -1,6 +1,9 @@
 // Can use this to get the fin configuration
-const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
+const {models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
+
+const finApi = require('@ucd-lib/fin-api/lib/api.js');
+const config = require('../config');
 
 /**
  * @class ExpertModel
@@ -54,8 +57,16 @@ class ExpertModel extends BaseModel {
       "@id": node['@id'],
       "@graph": [node]
     };
+    return this.move_fields_to_doc(node, doc);
+  }
 
+  move_fields_to_doc(node, doc) {
     doc["@type"] = "Expert";
+    // Add visibility
+    if (node["is-visible"]) {
+      doc["is-visible"] = node["is-visible"];
+    }
+
 
     // Order the vcards, and get the first one
     let contact
@@ -140,6 +151,7 @@ class ExpertModel extends BaseModel {
 
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
+<<<<<<< HEAD
     const doc = this.promote_node_to_doc(root_node);
     // console.log(`${this.constructor.name}.update(${doc['@id']})`);
     await this.update_or_create_main_node_doc(doc);
@@ -153,7 +165,143 @@ class ExpertModel extends BaseModel {
     for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {
       authorshipModel.update(authorships.hits.hits[i]._source);
       workModel.update(authorships.hits.hits[i]._source);
+=======
+    // If a doc exists, update this node only, otherwise create a new doc.
+    try {
+      let expert = await this.client_get(root_node['@id']);
+      await this.update_graph_node(expert['@id'],root_node);
+      expert = await this.client_get(root_node['@id']);
+      this.move_fields_to_doc(root_node,expert);
+      // reindex this expert again
+      await this.client.index({
+        index : this.writeIndexAlias,
+        id : expert['@id'],
+        document: expert
+      });
+    } catch (e) {
+      // If the doc does not exist, create a new one.
+      const doc = this.promote_node_to_doc(root_node);
+      await this.update_or_create_main_node_doc(doc);
+      // We are not yet maintaining authorship and work models.
+      // const authorshipModel=await this.get_model('authorship');
+      // Update all Works with this Expert as well
+      // let authorships= await authorshipModel.esMatchNode({ 'relates': doc['@id'] });
+      //
+      //for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {
+      //  authorshipModel.update(authorships.hits.hits[i]._source);
+      //  workModel.update(authorships.hits.hits[i]._source);
+      //}
+>>>>>>> dev
     }
   }
+
+  /**
+   * @method patch
+   * @description Patch an expert as visible or not.
+   * @param {Object} patch :  { "@id", "is-visible" }
+   * @param {String} expertId : Expert Id
+   * @returns {Object} : document object
+   **/
+  async patch(patch, expertId) {
+    let expert;
+     let resp;
+
+    logger.info(`expert.patch(${expertId}):`,patch);
+    if (patch.visible == null ) {
+      throw new Error('Invalid patch, visible is required');
+    }
+
+    // Immediate Update Elasticsearch document
+    const expertModel = await this.get_model('expert');
+
+    try {
+      expert = await expertModel.client_get(expertId);
+    } catch(e) {
+      e.message = `expert "@id"=${expertId} not found`;
+      e.status=500;
+      throw e;
+    };
+    if (patch.visible != null) {
+      expert['is-visible'] = patch.visible;
+    }
+    // Just update the existing document
+    await this.client.index({
+      index : this.writeIndexAlias,
+      id : expert['@id'],
+      document: expert
+    });
+
+    // Update FCREPO
+    let options = {
+      path: expertId,
+      content: `
+        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        PREFIX expert: <http://experts.ucdavis.edu/${expertId}>
+        DELETE {
+          ${patch.visible != null ? `expert: ucdlib:is-visible ?v .`:''}
+        }
+        INSERT {
+          ${patch.visible != null ?`expert: ucdlib:is-visible ${patch.visible} .`:''}
+        } WHERE {
+          expert: ucdlib:is-visible ?v .
+        }
+      `
+    };
+
+    const api_resp = await finApi.patch(options);
+
+    if (api_resp.last.statusCode != 204) {
+      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`expert.patch(${expertId})`);
+      const error=new Error(`Failed fcrepo patch to ${expertId}:${api_resp.last.body}`);
+      error.status=500;
+      throw error;
+    }
+  }
+
+  /**
+   * @method delete
+   * @description Delete an expert
+   * @param {String} expertId : Expert Id
+  **/
+  async delete(expertId) {
+    logger.info(`expert.delete(${expertId})`);
+
+    // Delete Elasticsearch document
+    let expert;
+
+    try {
+      expert = await this.client_get(expertId);
+    } catch(e) {
+      console.error(e.message);
+      logger.info(`expert @id ${expertId} not found`);
+      return 404
+    };
+
+    await this.client.delete(
+      {id:expertId,
+       index:this.writeIndexAlias
+      });
+
+    await finApi.delete(
+      {
+        path: expertId,
+        permanent: true
+      }
+    );
+
+    if (config.experts.cdl.expert.propagate) {
+      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.expert);
+      if (patch.visible != null) {
+        let resp = await cdl_user.updateUserPrivacyLevel({
+          userId: expertId,
+          privacy: patch.visible ? 'public' : 'internal'
+        })
+        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
+      }
+    } else {
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
+    }
+  }
+
 }
 module.exports = ExpertModel;

@@ -38,8 +38,10 @@ export default class AppExpert extends Mixin(LitElement)
       totalGrants : { type : Number },
       totalCitations : { type : Number },
       canEdit : { type : Boolean },
+      isAdmin : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
+      modalAction : { type : String },
       showModal : { type : Boolean },
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
@@ -50,6 +52,10 @@ export default class AppExpert extends Mixin(LitElement)
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
       hideImpersonate : { type : Boolean },
+<<<<<<< HEAD
+=======
+      isVisible : { type : Boolean }
+>>>>>>> dev
     }
   }
 
@@ -74,6 +80,8 @@ export default class AppExpert extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
+    this.expertImpersonating = utils.getCookie('impersonateId');
+
     if( e.location.page !== 'expert' ) return;
     window.scrollTo(0, 0);
 
@@ -86,8 +94,17 @@ export default class AppExpert extends Mixin(LitElement)
     if( this.expertImpersonating === this.expertId ) this.canEdit = true;
 
     try {
+<<<<<<< HEAD
       let expert = await this.ExpertModel.get(expertId, true);
       this._onExpertUpdate(expert, modified);
+=======
+      // this is using no-sanitize by default, should it instead use this.canEdit for the no-sanitize value?
+      // we do want to call with no-sanitize, to hide/show the expert for admins, once that ui is planned
+      let expert = await this.ExpertModel.get(expertId, true);
+      this._onExpertUpdate(expert, modified);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
+>>>>>>> dev
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -112,6 +129,11 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId;
+<<<<<<< HEAD
+=======
+
+    this.isVisible = this.expert['is-visible'];
+>>>>>>> dev
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
@@ -149,6 +171,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.totalGrants = grants.length;
+<<<<<<< HEAD
 
     // throw errors if any citations/grants have is-visible:false
     let invalidCitations = this.citations.filter(c => !c['is-visible']);
@@ -162,6 +185,22 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
+=======
+
+    // throw errors if any citations/grants have is-visible:false
+    let invalidCitations = this.citations.filter(c => !c['is-visible']);
+    let invalidGrants = this.grants.filter(g => !g.isVisible);
+
+    if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
+    if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);
+
+    this.grants = utils.parseGrants(this.expertId, grants);
+
+    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
+    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
+
+    console.log({ grants : this.grants });
+>>>>>>> dev
   }
 
   /**
@@ -202,6 +241,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
+<<<<<<< HEAD
+=======
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.modalAction = '';
+    this.isVisible = true;
+>>>>>>> dev
 
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
@@ -259,11 +304,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
     let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
 
-    this.citationsDisplayed = citationResults.map(c => c.value);
+    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     this.citationsDisplayed.forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
       if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) ) {
         delete cite.issued;
@@ -326,13 +372,21 @@ export default class AppExpert extends Mixin(LitElement)
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
         '"' + (grant.type || '') + '"',                               // Type of Grant
         '"' + (grant.role || '') + '"',                               // Role of Grant
+<<<<<<< HEAD
         '?', // List of contributors (role) {separate contributors by ";"}
+=======
+        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (PIs and CoPIs)
+>>>>>>> dev
       ]);
     });
 
     if( !body.length ) return;
 
+<<<<<<< HEAD
     let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of Contributors'];
+=======
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
+>>>>>>> dev
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
@@ -371,10 +425,124 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _onSave
+   * @description modal save, only used when hiding expert
+   */
+  async _onSave(e) {
+    this.showModal = false;
+
+    if( this.isAdmin && this.modalAction === 'hide-expert' ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
+      try {
+        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        this.isVisible = false;
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        let modelContent = `<p>Hiding expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+    } else if( this.isAdmin && this.modalAction === 'delete-expert' ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
+      try {
+        let res = await this.ExpertModel.deleteExpert(this.expertId);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        // redirect to home page
+        this.AppStateModel.setLocation('/');
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+
+    } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
+      window.location.href = 'https://oapolicy.universityofcalifornia.edu';
+    }
+
+    this.modalAction = '';
+  }
+
+  /**
+   * @method _showExpert
+   * @description update expert visibility to true
+   */
+  async _showExpert(e) {
+    if( this.isAdmin ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
+      try {
+        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        this.isVisible = true;
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        let modelContent = `<p>Showing expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+    }
+  }
+
+  /**
+   * @method _hideExpert
+   * @description show modal confirming expert should be hidden
+   */
+  _hideExpert(e) {
+    this.modalAction = 'hide-expert';
+    this.modalTitle = 'Hide Expert';
+    this.modalContent = `<p>The expert will be hidden from Aggie Experts, but this change will not appear in Elements. This is a safeguard available only to admins, in case "Delete Expert" does not work because Elements is not reachable. It is the admin's responsibility to manually change visibility in Elements. Are you sure you would like to continue?</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _deleteExpert
+   * @description show modal confirming expert should be deleted from Aggie Experts and CDL
+   */
+  _deleteExpert(e) {
+    this.modalAction = 'delete-expert';
+    this.modalTitle = 'Delete Expert';
+    this.modalContent = `<p>The expert will be removed from Aggie Experts. In the <a href="https://oapolicy.universityofcalifornia.edu">UC Publication Management System</a> their privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in the UC Publication Management System. Are you sure you would like to continue?</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
    * @method _editWebsites
    * @description show modal with link to edit websites
    */
   _editWebsites(e) {
+    this.modalAction = 'edit-websites';
     this.modalTitle = 'Edit Links';
     this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
@@ -390,6 +558,10 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit intro/research interests
    */
   _editAboutMe(e) {
+<<<<<<< HEAD
+=======
+    this.modalAction = 'edit-about-me';
+>>>>>>> dev
     this.modalTitle = 'Edit Introduction';
     this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;

@@ -83,7 +83,7 @@ return html`
     }
 
     .main-content .grant h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: 0 0 0.5rem 0;
     }
 
@@ -306,6 +306,7 @@ return html`
         (grant, index) => html`
           <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}"><span ?hidden="${index > 0}">Active</span></h3>
           <hr class="grant-seperator">
+<<<<<<< HEAD
           <div style="display: flex; justify-content: space-between; padding-bottom: 1.19rem;" class="${!grant.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
@@ -314,6 +315,16 @@ return html`
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
                   <ucdlib-icon ?hidden="${grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
+=======
+          <div style="display: flex; justify-content: space-between; padding-bottom: 1.19rem;" class="${!grant.isVisible ? 'not-visible' : ''}">
+            <div class="hide-delete-btn-group">
+              <span style="position: relative;">
+                <span class="tooltip hide-grant" data-text="Hide grant">
+                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+                </span>
+                <span class="tooltip show-grant" data-text="Show grant">
+                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+>>>>>>> dev
                 </span>
               </span>
             </div>
@@ -338,6 +349,7 @@ return html`
         (grant, index) => html`
           <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}" style="padding-top: 1.19rem;"><span ?hidden="${index > 0}">Completed</span></h3>
           <hr class="grant-seperator">
+<<<<<<< HEAD
           <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!grant.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
@@ -346,6 +358,16 @@ return html`
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
                   <ucdlib-icon ?hidden="${grant.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relatedBy?.['@id']}"></ucdlib-icon>
+=======
+          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!grant.isVisible ? 'not-visible' : ''}">
+            <div class="hide-delete-btn-group">
+              <span style="position: relative;">
+                <span class="tooltip hide-grant" data-text="Hide grant">
+                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+                </span>
+                <span class="tooltip show-grant" data-text="Show grant">
+                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+>>>>>>> dev
                 </span>
               </span>
             </div>

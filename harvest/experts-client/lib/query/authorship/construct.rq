@@ -7,6 +7,7 @@ PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX kfs: <ark:/87287/d7gt0q/schema#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -36,6 +37,7 @@ construct {
         ?field_predicate ?field_value;
         cite:issued ?pub_datestr;
         cite:date-available ?opub_datestr;
+        vivo:relatedBy ?authorship;
         .
 
   ?work  cite:author ?author.
@@ -263,6 +265,7 @@ WHERE {
       graph cdl: {
         ?relationship :related ?user.
         ?user :category "user";
+              :is-public "true";
               :username ?username;
               .
 
@@ -333,7 +336,7 @@ WHERE {
   # journal
   BIND(uri(concat(str(venue:),"urn:issn:",?issn)) as ?journalURI)
   # authors
-  bind(uri(concat(replace(str(?pub),str(cdl:),"ark:/87287/d7mh2m/publication/"),"#",str(?pos+1))) as ?author)
+  BIND(uri(concat(replace(str(?pub),str(cdl:),"ark:/87287/d7mh2m/publication/"),"#",str(?pos+1))) as ?author)
   BIND(?pos+1 as ?rank)
 
 }

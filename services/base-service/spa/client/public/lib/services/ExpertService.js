@@ -74,6 +74,48 @@ class ExpertService extends BaseService {
     });
   }
 
+<<<<<<< HEAD
+=======
+  async updateExpertVisibility(id, visible) {
+    return this.request({
+      url : `${this.baseUrl}/${id}`,
+      fetchOptions : {
+        method : 'PATCH',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "@id" : id,
+          "visible" : visible
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async deleteExpert(id) {
+    return this.request({
+      url : `${this.baseUrl}/${id}`,
+      fetchOptions : {
+        method : 'DELETE',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "@id" : id,
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+>>>>>>> dev
 }
 
 module.exports = new ExpertService();

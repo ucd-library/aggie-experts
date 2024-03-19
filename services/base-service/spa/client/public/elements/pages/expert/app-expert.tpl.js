@@ -75,6 +75,12 @@ return html`
     }
 
     .hero-main h1 .tooltip:hover ucdlib-icon,
+<<<<<<< HEAD
+=======
+    .hero-main .experts span.hide-expert:hover ucdlib-icon,
+    .hero-main .experts span.show-expert:hover ucdlib-icon,
+    .hero-main .experts span.delete-expert:hover ucdlib-icon,
+>>>>>>> dev
     .introduction h4 ucdlib-icon:hover,
     .roles-websites .roles h4 ucdlib-icon:hover,
     .roles-websites .websites h4 ucdlib-icon:hover,
@@ -85,13 +91,19 @@ return html`
 
 
     .hero-main h1 ucdlib-icon,
+<<<<<<< HEAD
+=======
+    .hero-main .experts span.hide-expert ucdlib-icon,
+    .hero-main .experts span.show-expert ucdlib-icon,
+    .hero-main .experts span.delete-expert ucdlib-icon,
+>>>>>>> dev
     .introduction h4 ucdlib-icon,
     .roles-websites h4 ucdlib-icon {
       display: inline-block;
-      width: 15px;
-      height: 15px;
-      min-width: 17px;
-      min-height: 17px;
+      width: 1.2rem;
+      height: 1.2rem;
+      min-width: 1.2rem;
+      min-height: 1.2rem;
       fill: var(--color-aggie-blue-80);
       cursor: pointer;
       padding-left: .25rem;
@@ -191,7 +203,12 @@ return html`
       cursor: pointer;
     }
 
+<<<<<<< HEAD
     .introduction .more-about-me {
+=======
+    .introduction .more-about-me,
+    .no-introduction .no-display-data {
+>>>>>>> dev
       padding-bottom: 1rem;
     }
 
@@ -290,7 +307,7 @@ return html`
 
     .grants-abbreviated .grant h5,
     .works-abbreviated .work h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: .5rem 0;
     }
 
@@ -311,10 +328,10 @@ return html`
     .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon,
     .works-abbreviated .works-heading .works-edit-download ucdlib-icon {
       fill: var(--color-aggie-blue-80);
-      width: 15px;
-      height: 15px;
-      min-width: 17px;
-      min-height: 17px;
+      width: 1.2rem;
+      height: 1.2rem;
+      min-width: 1.2rem;
+      min-height: 1.2rem;
       cursor: pointer;
     }
 
@@ -369,6 +386,39 @@ return html`
       right: 5px;
     }
 
+    .tooltip.hide-expert:before {
+      width: 90px;
+      bottom: 33px;
+      right: -45px;
+    }
+
+    .tooltip.hide-expert:after {
+      bottom: 23px;
+      right: 5px;
+    }
+
+    .tooltip.show-expert:before {
+      width: 96px;
+      bottom: 33px;
+      right: -48px;
+    }
+
+    .tooltip.show-expert:after {
+      bottom: 23px;
+      right: 5px;
+    }
+
+    .tooltip.delete-expert:before {
+      width: 120px;
+      bottom: 33px;
+      right: -60px;
+    }
+
+    .tooltip.delete-expert:after {
+      bottom: 23px;
+      right: 5px;
+    }
+
     .tooltip.edit-roles:before {
       width: 80px;
       bottom: 35px;
@@ -415,7 +465,12 @@ return html`
       right: 22px;
     }
 
-    .tooltip.download-all-grants:before,
+    .tooltip.download-all-grants:before {
+      width: 150px;
+      bottom: 30px;
+      right: -75px;
+    }
+
     .tooltip.download-all-works:before {
       width: 145px;
       bottom: 30px;
@@ -477,7 +532,12 @@ return html`
       align-items: center;
     }
 
+<<<<<<< HEAD
     .last-updated-label {
+=======
+    .last-updated-label,
+    .no-display-data {
+>>>>>>> dev
       color: #666;
       font-size: .95rem;
       font-style: italic;
@@ -485,6 +545,14 @@ return html`
       padding-left: 1rem;
     }
 
+<<<<<<< HEAD
+=======
+    .no-display-data {
+      padding-top: .5rem;
+      padding-left: 0;
+    }
+
+>>>>>>> dev
     .btn--invert:before {
       content: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTYiIHdpZHRoPSIxNiIgdmlld0JveD0iMCAwIDUxMiA1MTIiPjwhLS0hRm9udCBBd2Vzb21lIEZyZWUgNi41LjAgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSBDb3B5cmlnaHQgMjAyMyBGb250aWNvbnMsIEluYy4tLT48cGF0aCBmaWxsPSIjQjBEMEVEIiBkPSJNMTA1LjEgMjAyLjZjNy43LTIxLjggMjAuMi00Mi4zIDM3LjgtNTkuOGM2Mi41LTYyLjUgMTYzLjgtNjIuNSAyMjYuMyAwTDM4Ni4zIDE2MEgzNTJjLTE3LjcgMC0zMiAxNC4zLTMyIDMyczE0LjMgMzIgMzIgMzJINDYzLjVjMCAwIDAgMCAwIDBoLjRjMTcuNyAwIDMyLTE0LjMgMzItMzJWODBjMC0xNy43LTE0LjMtMzItMzItMzJzLTMyIDE0LjMtMzIgMzJ2MzUuMkw0MTQuNCA5Ny42Yy04Ny41LTg3LjUtMjI5LjMtODcuNS0zMTYuOCAwQzczLjIgMTIyIDU1LjYgMTUwLjcgNDQuOCAxODEuNGMtNS45IDE2LjcgMi45IDM0LjkgMTkuNSA0MC44czM0LjktMi45IDQwLjgtMTkuNXpNMzkgMjg5LjNjLTUgMS41LTkuOCA0LjItMTMuNyA4LjJjLTQgNC02LjcgOC44LTguMSAxNGMtLjMgMS4yLS42IDIuNS0uOCAzLjhjLS4zIDEuNy0uNCAzLjQtLjQgNS4xVjQzMmMwIDE3LjcgMTQuMyAzMiAzMiAzMnMzMi0xNC4zIDMyLTMyVjM5Ni45bDE3LjYgMTcuNSAwIDBjODcuNSA4Ny40IDIyOS4zIDg3LjQgMzE2LjcgMGMyNC40LTI0LjQgNDIuMS01My4xIDUyLjktODMuN2M1LjktMTYuNy0yLjktMzQuOS0xOS41LTQwLjhzLTM0LjkgMi45LTQwLjggMTkuNWMtNy43IDIxLjgtMjAuMiA0Mi4zLTM3LjggNTkuOGMtNjIuNSA2Mi41LTE2My44IDYyLjUtMjI2LjMgMGwtLjEtLjFMMTI1LjYgMzUySDE2MGMxNy43IDAgMzItMTQuMyAzMi0zMnMtMTQuMy0zMi0zMi0zMkg0OC40Yy0xLjYgMC0zLjIgLjEtNC44IC4zcy0zLjEgLjUtNC42IDF6Ii8+PC9zdmc+");
       width: 2em;
@@ -508,6 +576,19 @@ return html`
       line-height: 2rem;
     }
 
+<<<<<<< HEAD
+=======
+    @media (max-width: 1080px) {
+      .tooltip.download-all-grants:before {
+        right: -25px;
+      }
+
+      .tooltip.download-all-works:before {
+        right: -25px;
+      }
+    }
+
+>>>>>>> dev
     @media (max-width: 992px) {
       .main-content {
         width: 90%;
@@ -538,7 +619,7 @@ return html`
       .hideOaPolicyLink="${this.hideOaPolicyLink}"
       .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${(e) => this.showModal = false}>
+      @save=${this._onSave}>
     </app-modal-overlay>
     <div class="hero-main site-frame">
       <div class="hero-text">
@@ -546,6 +627,22 @@ return html`
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT</span>
           <button ?hidden="${this.hideImpersonate}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
+<<<<<<< HEAD
+=======
+          <div ?hidden="${!this.isAdmin || !this.hideImpersonate || (this.expertImpersonating !== this.expertId)}" style="position: relative; display: flex;">
+            <span ?hidden="${!this.isVisible}" class="tooltip hide-expert" data-text="Hide expert">
+              <ucdlib-icon icon="ucdlib-experts:fa-eye" @click=${this._hideExpert}></ucdlib-icon>
+            </span>
+            <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">
+              <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._showExpert}></ucdlib-icon>
+            </span>
+          </div>
+          <div ?hidden="${!this.isAdmin || !this.hideImpersonate || (this.expertImpersonating !== this.expertId)}" style="position: relative; display: flex;">
+            <span class="tooltip delete-expert" data-text="Delete expert">
+              <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._deleteExpert}></ucdlib-icon>
+            </span>
+          </div>
+>>>>>>> dev
         </div>
         <h1>${this.expertName}
           <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
@@ -571,6 +668,21 @@ return html`
       </div>
       <hr class="about-me seperator">
 
+<<<<<<< HEAD
+=======
+      <div class="introduction no-introduction" ?hidden="${!this.canEdit || this.introduction || this.researchInterests}">
+        <h4>Introduction
+          <span ?hidden="${!this.canEdit}" style="position: relative;">
+            <span class="tooltip edit-about-me" data-text="Edit Introduction">
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                @click=${this._editAboutMe}>
+              </ucdlib-icon>
+            </span>
+          </span>
+        </h4>
+        <div class="no-display-data">No data to display</div>
+      </div>
+>>>>>>> dev
       <div class="introduction" ?hidden="${!this.introduction && !this.researchInterests}">
         <h4>Introduction
           <span ?hidden="${!this.canEdit}" style="position: relative;">
@@ -602,7 +714,23 @@ return html`
         </div>
       </div>
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> dev
       <div class="roles-websites">
+
+        <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
+          <h4>Roles
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+              <span class="tooltip edit-roles" data-text="Edit roles">
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
+              </span>
+            </a>
+          </h4>
+          <div class="no-display-data">No data to display</div>
+        </div>
+
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles
             <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
@@ -615,7 +743,7 @@ return html`
           ${this.roles.map(
           (role) => html`
             <div class="role">
-            <div>
+            <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
             <div class="link-row" ?hidden="${!role.websiteUrl}">
@@ -629,6 +757,19 @@ return html`
           </div>
           `
         )}
+        </div>
+
+        <div class="websites no-websites" ?hidden="${!this.canEdit || this.websites.length || this.orcId || this.scopusId || this.researcherId}">
+          <h4>Links
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
+              <span class="tooltip edit-websites" data-text="Edit links">
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                  @click=${this._editWebsites}>
+                </ucdlib-icon>
+              </span>
+            </span>
+          </h4>
+          <div class="no-display-data">No data to display</div>
         </div>
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
@@ -669,7 +810,7 @@ return html`
         </div>
       </div>
 
-      <div class="grants-abbreviated" ?hidden="${this.grants.length === 0}">
+      <div class="grants-abbreviated" ?hidden="${this.grants.length === 0 && (!this.canEdit || this.totalGrants === 0)}">
         <div class="grants-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="file-invoice-dollar" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
@@ -737,7 +878,7 @@ return html`
         </div>
       </div>
 
-      <div class="works-abbreviated" ?hidden="${this.citations.length === 0}">
+      <div class="works-abbreviated" ?hidden="${this.citations.length === 0 && (!this.canEdit || this.totalCitations === 0)}">
         <div class="works-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
@@ -771,11 +912,11 @@ return html`
           (cite) => html`
             <h4 style="margin: 1.19rem 0;">${cite.issued?.[0]}</h4>
             <div class="work">
-              <h5>${unsafeHTML(cite.title)}</h5>
+              <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">.</span>
-                ${unsafeHTML(cite.apa.replace('(n.d.). ', '').replace('(n.d.).', ''))}
+                ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
               </div>
             </div>
             <br>

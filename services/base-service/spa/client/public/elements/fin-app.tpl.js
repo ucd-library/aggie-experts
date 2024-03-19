@@ -85,6 +85,53 @@ return html`
       padding-top: 3rem;
     }
 
+<<<<<<< HEAD
+=======
+    .spinner-container {
+      position: fixed;
+      top: calc(50% + 15px);
+      left: calc(50% - 70px);
+      height: 100px;
+      color: var(--color-aggie-blue);
+    }
+
+    .spinner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color:  transparent;
+      transition: opacity 0.75s, visibility 0.75s;
+    }
+
+    .spinner:after {
+      content: '';
+      width: 40px;
+      height: 40px;
+      border: 5px solid  var(--color-aggie-gold-70);
+      border-top-color: var(--color-aggie-gold);
+      border-radius: 50%;
+      animation: loading 0.75s ease infinite;
+    }
+
+    @keyframes loading {
+      from {
+        transform: rotate(0turn);
+      }
+      to {
+        transform: rotate(1turn);
+      }
+    }
+
+    ucdlib-pages.loading {
+      opacity: .6;
+    }
+
+>>>>>>> dev
   </style>
   <!--
     Required for AppStateModel
@@ -113,8 +160,13 @@ return html`
     <ucd-theme-quick-links
         title="My Account"
         style-modifiers="highlight"
+<<<<<<< HEAD
+=======
+        use-icon
+>>>>>>> dev
         @item-click="${e => console.log('@item-click', e.detail)}"
         @toggle="${e => console.log('@toggle', e.detail)}">
+      <svg slot="custom-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512H418.3c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>
       <a href="/${this.expertId}">Profile</a>
       <a href="/faq">Help</a>
       <a href="/auth/logout">Log Out</a>
@@ -136,21 +188,47 @@ return html`
   <div class="main-content">
     <ucdlib-pages
       selected="${this.page}"
-      selectedAttribute="visible">
+      selectedAttribute="visible"
+      class="${this.loading ? 'loading' : ''}">
       <app-home id="home"></app-home>
       <app-browse id="browse"></app-browse>
       <!-- <app-work id="work"></app-work> -->
+<<<<<<< HEAD
       <app-expert @impersonate="${this._impersonateClick}" id="expert" @show-404="${(e) => this.page = '404'}"></app-expert>
+=======
+      <app-expert
+        @loading="${(e) => this.loading = true}"
+        @loaded="${(e) => this.loading = false}"
+        @impersonate="${this._impersonateClick}"
+        id="expert"
+        @show-404="${(e) => this.page = '404'}">
+      </app-expert>
+>>>>>>> dev
       <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
-      <app-expert-works-list-edit id="works-edit" @show-404="${(e) => this.page = '404'}"></app-expert-works-list-edit>
+      <app-expert-works-list-edit
+        @loading="${(e) => this.loading = true}"
+        @loaded="${(e) => this.loading = false}"
+        id="works-edit"
+        @show-404="${(e) => this.page = '404'}">
+      </app-expert-works-list-edit>
       <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
-      <app-expert-grants-list-edit id="grants-edit" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list-edit>
+      <app-expert-grants-list-edit
+        @loading="${(e) => this.loading = true}"
+        @loaded="${(e) => this.loading = false}"
+        id="grants-edit"
+        @show-404="${(e) => this.page = '404'}">
+      </app-expert-grants-list-edit>
       <app-search id="search"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
     </ucdlib-pages>
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
+
+    <div class="spinner-container" ?hidden="${!this.loading}">
+      <div ?hidden="${!this.loading}" class="spinner"></div>
+      <h3>Saving Changes</h3>
+    </div>
 
     <div class="footer site-frame">
       <ucdlib-site-footer>

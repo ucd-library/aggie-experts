@@ -80,7 +80,7 @@ return html`
     }
 
     .main-content .grant h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: 0.5rem 0;
     }
 

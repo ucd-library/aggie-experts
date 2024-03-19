@@ -1,54 +1,73 @@
 # THIS FILE GENERATED FROM ../README.org
-   PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
-   PREFIX bibo: <http://purl.org/ontology/bibo/>
-   PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
-   PREFIX cite: <http://citationstyles.org/schema/>
-   PREFIX expert: <http://experts.ucdavis.edu/expert/>
-   PREFIX experts: <http://experts.ucdavis.edu/>
-   PREFIX kfs: <ark:/87287/d7gt0q/schema#>
-   PREFIX list: <http://jena.apache.org/ARQ/list#>
-   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-   PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-   PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-   PREFIX venue: <http://experts.ucdavis.edu/venue/>
-   PREFIX vivo: <http://vivoweb.org/ontology/core#>
-   PREFIX work: <http://experts.ucdavis.edu/work/>
-   PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-   construct {
+PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
+PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX cite: <http://citationstyles.org/schema/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX kfs: <ark:/87287/d7gt0q/schema#>
+PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX venue: <http://experts.ucdavis.edu/venue/>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX work: <http://experts.ucdavis.edu/work/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+construct {
   ?grant_role a ucdlib:GrantRole, ?role;
-           ucdlib:favorite ?favorite;
-           ucdlib:is-visible ?visible;
-           vivo:relates ?expert,?grant;
-           .
+                ucdlib:favorite ?favorite;
+  ucdlib:is-visible ?visible;
+  vivo:relates ?grant,?expert;
+  obo:RO_0000052 ?expert;
+  .
 
   ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
          ?field_predicate ?field_text;
          ?field_predicate ?field_money;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
+         vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
          .
 
   ?grant_type rdfs:label ?funding_type_label;
               .
+
+  ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
+                        vivo:relates ?labeled_only_pi,?grant;
+                        .
+
+  ?labeled_only_pi a vivo:Person;
+                   rdfs:label ?labeled_only_pi_name;
+                   .
+
+  ?labeled_only_co_pi_role a vivo:CoPrincipalInvestigatorRole;
+                           vivo:relates ?labeled_only_co_pi,?grant;
+                           .
+
+  ?labeled_only_co_pi a vivo:Person;
+                      rdfs:label ?labeled_only_co_pi_name;
+                      .
 
   ?funder a vivo:FundingOrganization;
           rdfs:label ?funder_label;
           .
 
   ?interval
-     vivo:start ?sd;
-     vivo:end ?ed;
-     .
+  vivo:start ?sd;
+  vivo:end ?ed;
+  .
 
   ?sd
-     vivo:dateTimePrecision ?start_date_precision;
-     vivo:dateTime ?start_date;
-     .
+  vivo:dateTimePrecision ?start_date_precision;
+  vivo:dateTime ?start_date;
+  .
   ?ed
-     vivo:dateTimePrecision ?end_date_precision;
-     vivo:dateTime ?end_date;
-     .
+  vivo:dateTimePrecision ?end_date_precision;
+  vivo:dateTime ?end_date;
+  .
 }
 WHERE {
   graph cdl: {
@@ -73,11 +92,25 @@ WHERE {
       }
 
     OPTIONAL {
+      VALUES (?cdl_type ?vivo_role ) {
+        ("user-grant-principal-investigation" vivo:PrincipalInvestigatorRole)
+        ("user-grant-co-principal-investigation" vivo:CoPrincipalInvestigatorRole)
+        ("user-grant-senior-key-personnel" vivo:ResearcherRole )
+        ("user-grant-co-primary-investigation" vivo:CoPrincipalInvestigatorRole)
+        ("user-grant-primary-investigation" vivo:PrincipalInvestigatorRole)
+        ("user-grant-program-direction" vivo:LeaderRole)
+        ("user-grant-project-leadership" vivo:LeaderRole)
+        ("user-grant-research" vivo:ResearcherRole)
+      }
+    }
+
+    OPTIONAL {
       ?RELATIONSHIP__ :is-favourite "true".
       bind(true as ?favorite)
     }
 
     ?user :category "user";
+          :is-public "true";
           :username ?username;
           .
 
@@ -114,6 +147,8 @@ WHERE {
       ("funder-reference" "text" vivo:sponsorAwardId)
       ("funding-type" "special" ucdlib:none)
       ("funder-name" "special" ucdlib:none)
+      ("c-pi" "special" ucdlib:none)
+      ("c-co-pis" "special" ucdlib:none)
     }
 
     OPTIONAL {
@@ -129,6 +164,24 @@ WHERE {
              :type ?field_type;
              :money/:field-value ?field_money;
              .
+    }
+
+    # PI is expanded to a relationship / Not optional
+    OPTIONAL {
+      ?field :name "c-pi";
+             :type "text";
+             :text ?labeled_only_pi_name;
+             .
+    }
+
+    # Co-PIs are optional
+    OPTIONAL {
+      ?field :name "c-co-pis";
+             :people/:person [ list:index(?pos ?elem) ] .
+      ?elem :last-name ?labeled_only_co_pi_name_last .
+      OPTIONAL {
+        ?elem :first-names ?labeled_only_co_pi_name_first .
+      }
     }
 
     # Funding type is a special case
@@ -242,4 +295,9 @@ WHERE {
   bind(uri(concat(str(?grant),'#end_date')) as ?ed)
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
+  bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
+  bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
+  bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
+  bind(uri(concat(str(?grant),"#co_pi_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi)
+  bind(uri(concat(str(?grant),"#co_pi_role_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi_role)
 }

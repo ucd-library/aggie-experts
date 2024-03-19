@@ -297,12 +297,73 @@ export class Impersonator {
     headers['accept'] = 'application/json';
 
     resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html`, {
+      timeout: 20000,
       method: 'POST',
       body: formData,
       headers
     });
 
     return resp.text();
+  }
+
+  /**
+   * @method userprofile - Generic user object updater
+   * @param {object} data
+   * @returns {Promise<Response>}
+   */
+  async userprofile(data) {
+    const symplectic = await this.profile();
+    const csrfToken = symplectic.csrfToken;
+
+    const formData = new FormData();
+    formData.append('__csrf_token', csrfToken);
+
+    for (let key in data) {
+        formData.append(key, data[key]);
+    }
+
+    let headers = formData.getHeaders();
+    headers['accept'] = 'application/json';
+
+    console.log('formData', formData);
+    let resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html`, {
+      method: 'POST',
+      body: formData,
+      timeout: 20000,
+      headers
+    });
+
+    let json = await resp.json();
+    if (resp.status !== 200) {
+      let error = new Error(`CDL change propagation Error(${resp.status}):`);
+      logger.info('userprofile error', json);
+
+      if (resp.status === 408) {
+        error.status=504;
+      } else {
+        error.status = 502;
+      }
+      throw error;
+    }
+    return json;
+  }
+
+  /**
+   * @method updateUserPrivacyLevel - Set the privacy of a user
+   * @param {object}
+
+   * @returns {Promise<Response>}
+   */
+  async updateUserPrivacyLevel(data) {
+    const level = {
+      public: 0,
+      internal: 50
+    };
+     return await this.userprofile({
+       com: 'updateUserPrivacyLevel',
+       userId: data.userId,
+       privacyLevel: level[data.privacy]
+    });
   }
 
   /**
@@ -370,6 +431,7 @@ export class Impersonator {
     return await this.listobjects(
       {com: 'reject',
        linkId: data.linkId,
+       categoryId: data.categoryId,
        objectId: data.objectId,
       });
   }
