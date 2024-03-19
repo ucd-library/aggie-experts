@@ -42,7 +42,7 @@ class AppStateModelImpl extends AppStateModel {
     if( this.lastGaLocation === window.location.pathname ) return;
     this.lastGaLocation = window.location.pathname;
 
-    gtag('config', config.gaCode, {
+    gtag('config', APP_CONFIG.gaCode, {
       page_path: window.location.pathname
     });
   }
