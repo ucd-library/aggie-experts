@@ -474,7 +474,7 @@ export default class AppExpert extends Mixin(LitElement)
   _hideExpert(e) {
     this.modalAction = 'hide-expert';
     this.modalTitle = 'Hide Expert';
-    this.modalContent = `<p>Expert will be hidden from Aggie Experts. CDL privacy will be set to internal. To show the expert again in Aggie Experts, you can show expert from Aggie Experts. Are you sure you would like to continue?</p>`;
+    this.modalContent = `<p>The expert will be hidden from Aggie Experts, but this change will not appear in Elements. This is a safeguard available only to admins, in case "Delete Expert" does not work because Elements is not reachable. It is the admin's responsibility to manually change visibility in Elements. Are you sure you would like to continue?</p>`;
     this.showModal = true;
     this.hideCancel = true;
     this.hideSave = false;
@@ -490,7 +490,7 @@ export default class AppExpert extends Mixin(LitElement)
   _deleteExpert(e) {
     this.modalAction = 'delete-expert';
     this.modalTitle = 'Delete Expert';
-    this.modalContent = `<p>Expert will be removed from Aggie Experts. CDL privacy will be set to "internal". To show the expert again in Aggie Experts, you would need to update the privacy setting to public in CDL. Are you sure you would like to continue?</p>`;
+    this.modalContent = `<p>The expert will be removed from Aggie Experts. In the <a href="https://oapolicy.universityofcalifornia.edu">UC Publication Management System</a> their privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in the UC Publication Management System. Are you sure you would like to continue?</p>`;
     this.showModal = true;
     this.hideCancel = true;
     this.hideSave = false;
