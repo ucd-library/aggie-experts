@@ -33,14 +33,18 @@ function json_only(req, res, next) {
 async function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
   let id = '/'+model.id+decodeURIComponent(req.path);
-  console.log('user:', req.user);
-  if (
-    ('no-sanitize' in req.query || 'unsanitized' in req.query || req?.headers?.accept.includes('unsanitized'))
-      && req.user &&
-      ((id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
-        req.user?.roles?.includes('admin')) || req.user?.roles?.includes('miv'))
-  ) {
-    return next();
+  if ('no-sanitize' in req.query ||
+      'unsanitized' in req.query ||
+      req?.headers?.accept.includes('unsanitized')
+     ) {
+    if (req.user &&
+        (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
+         req.user?.roles?.includes('admin'))
+       ) {
+      return next();
+    } else {
+      res.status(403).send('Forbidden');
+    }
   } else {
     let doc = res.thisDoc;
     if (doc["is-visible"] === false) {
