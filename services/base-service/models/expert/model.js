@@ -240,21 +240,7 @@ class ExpertModel extends BaseModel {
       error.status=500;
       throw error;
     }
-    console.log('config.experts',config.experts);
-    if (config.experts.cdl.expert.propagate) {
-      console.log('propagate to CDL');
-      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.expert);
-      if (patch.visible != null) {
-        resp = await cdl_user.updateUserPrivacyLevel({
-          userId: cdl_user.userId,
-          privacy: patch.visible ? 'public' : 'internal'
-        })
-        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
-      }
-    } else {
-      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
-    }
-   }
+  }
 
   /**
    * @method delete
