@@ -297,7 +297,7 @@ return html`
 
     .grants-abbreviated .grant h5,
     .works-abbreviated .work h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: .5rem 0;
     }
 

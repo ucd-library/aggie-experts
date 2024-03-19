@@ -83,7 +83,7 @@ return html`
     }
 
     .main-content .work h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: 0 0 0.5rem 0;
     }
 
