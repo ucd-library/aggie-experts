@@ -8,7 +8,7 @@
           "filter": {
             "bool":{
               "must": [
-                { "term" : {"id": expert/{{md5}} } }
+                { "term" : {"id": "expert/{{md5}}" } }
               ]
             }
           },
@@ -18,13 +18,17 @@
               "query": {
                 "bool" : {
                   "filter": [
-                    "bool": {
-                      "must": [
-                        { "exists": { "field": "@graph.@type" }},
-                        { "term": { "@graph.is-visible": true }}
-                      ]
-                    }
-                  },
+                    {
+                      "bool": {
+                        "should":[
+                          {
+                            "bool": {
+                              "must": [
+                                { "exists": { "field": "@graph.@type" }},
+                                { "term": { "@graph.is-visible": true }}
+                              ]
+                            }
+                          },
                           {
                             "bool": {
                               "must": [
