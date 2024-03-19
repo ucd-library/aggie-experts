@@ -52,7 +52,7 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/hello', (req, res) => {
-    res.send("World");
+    res.send("Cruel World");
 });
 
 module.exports = router;
