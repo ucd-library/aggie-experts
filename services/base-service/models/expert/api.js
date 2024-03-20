@@ -7,11 +7,15 @@ const md5 = require('md5');
 
 
 function user_can_edit(req, res, next) {
-  let id = '/'+model.id+decodeURIComponent(req.path);
+  let id = decodeURIComponent(req.path);
+  console.log('usercanedit', id);//
   // logger.info('Checking if user can edit', id, req.user);
+  id = id.split('/').slice(0,3).join('/');
+  console.log('usercanedit', id);//
+  console.log('usercanedit', '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu"));
   if (req.user &&
-      (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
-       req.user?.roles?.includes('admin'))
+      (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) ||
+       req.user?.roles?.includes('admin')
      ) {
     return next();
   }
@@ -32,14 +36,13 @@ function json_only(req, res, next) {
 
 async function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
-  let id = '/'+model.id+decodeURIComponent(req.path);
-  if ('no-sanitize' in req.query ||
-      'unsanitized' in req.query ||
-      req?.headers?.accept.includes('unsanitized')
-     ) {
+  let id = decodeURIComponent(req.path);
+//  console.log('sanitize', id);//
+//  console.log('sanitize', '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu"));
+  if ('no-sanitize' in req.query) {
     if (req.user &&
-        (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
-         req.user?.roles?.includes('admin'))
+        (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) ||
+         req.user?.roles?.includes('admin')
        ) {
       return next();
     } else {
