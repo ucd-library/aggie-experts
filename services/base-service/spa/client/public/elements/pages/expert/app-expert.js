@@ -88,12 +88,10 @@ export default class AppExpert extends Mixin(LitElement)
 
     this._reset();
 
-    if( this.expertImpersonating === this.expertId ) this.canEdit = true;
+    if( this.expertImpersonating === this.expertId && this.expertId.length > 0 ) this.canEdit = true;
 
     try {
-      // this is using no-sanitize by default, should it instead use this.canEdit for the no-sanitize value?
-      // we do want to call with no-sanitize, to hide/show the expert for admins, once that ui is planned
-      let expert = await this.ExpertModel.get(expertId, true);
+      let expert = await this.ExpertModel.get(expertId, (this.isAdmin || this.canEdit));
       this._onExpertUpdate(expert, modified);
 
       if( !this.isAdmin && !this.isVisible ) throw new Error();
@@ -202,7 +200,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.grantsCompletedDisplayed = [];
     this.totalGrants = 0;
     this.totalCitations = 0;
-    this.canEdit = (acExpertId === this.expertId || impersonatingExpertId === this.expertId);
+    this.canEdit = (acExpertId === this.expertId || (impersonatingExpertId === this.expertId && this.expertId.length > 0));
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
