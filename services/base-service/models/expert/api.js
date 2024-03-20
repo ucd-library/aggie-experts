@@ -32,11 +32,13 @@ function json_only(req, res, next) {
 
 async function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
-  let id = '/'+model.id+decodeURIComponent(req.path);
+  let id = decodeURIComponent(req.path);
+//  console.log('sanitize', id);//
+//  console.log('sanitize', '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu"));
   if ('no-sanitize' in req.query) {
     if (req.user &&
-        (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu") ||
-         req.user?.roles?.includes('admin'))
+        (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) ||
+         req.user?.roles?.includes('admin')
        ) {
       return next();
     } else {
