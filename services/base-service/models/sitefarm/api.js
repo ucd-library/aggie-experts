@@ -41,6 +41,25 @@ function siteFarmFormat(req, res, next) {
   next();
 }
 
+async function sanitize(req, res, next) {
+  logger.info({ function: 'sanitize' }, JSON.stringify(req.query));
+  let id = '/' + model.id + decodeURIComponent(req.path);
+  if (('no-sanitize' in req.query) && req.user &&
+    (id === '/expert/' + md5(req.user.preferred_username + "@ucdavis.edu") ||
+      req.user?.roles?.includes('admin'))
+  ) {
+    return next();
+  } else {
+    var newArray = [];
+    for (let i in res.doc_array) {
+      let doc = res.doc_array[i];
+      newArray.push(model.apiUtils.sanitize(doc));
+    }
+    res.doc_array = newArray;
+    return next();
+  }
+}
+
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
@@ -54,48 +73,32 @@ function json_only(req, res, next) {
   }
 }
 
-async function sanitize(req, res, next) {
-  logger.info({ function: 'sanitize' }, JSON.stringify(req.query));
-  let id = '/' + model.id + decodeURIComponent(req.path);
-  if (('no-sanitize' in req.query) && req.user &&
-    (id === '/expert/' + md5(req.user.preferred_username + "@ucdavis.edu") ||
-      req.user?.roles?.includes('admin'))
-  ) {
-    return next();
-  } else {
-    var newArray = [];
-    for (let i in res.doc_array) {
-
-      let doc = res.doc_array[i];
-      let newDoc = {};
-
-      for (let i = 0; i < doc["@graph"].length; i++) {
-        logger.info({ function: "sanitize" }, `${doc["@graph"][i]["@id"]}`);
-        if ((("is-visible" in doc["@graph"][i])
-          && doc["@graph"][i]?.["is-visible"] !== true) ||
-          (doc["@graph"][i].relatedBy && ("is-visible" in doc["@graph"][i].relatedBy)
-            && doc["@graph"][i]?.relatedBy?.["is-visible"] !== true)) { // remove this graph node
-          if (doc["@graph"][i]?.["@type"] === "Expert") {
-            res.status(404).json(`${req.path} resource not found`);
-            // alternatively, we could return the parent resource
-            //delete doc["@graph"];
-            //break;
-          } else {
-            logger.info({ function: "sanitize" }, `_x_${doc["@graph"][i]["@id"]}`);
-            doc["@graph"].splice(i, 1);
-            i--;
-          }
-        } else { // sanitize this graph node
-          logger.info({ function: "sanitize" }, `Deleting totalAwardAmount=${doc["@graph"][i]?.["totalAwardAmount"]}`);
-          delete doc["@graph"][i]["totalAwardAmount"];
-        }
+router.get('/experts/:ids', json_only, async (req, res, next) => {
+  const id_array = req.params.ids.replace('ids=', '').split(',');
+  const expert_model = await model.get_model('expert');
+  res.doc_array = [];
+  var doc;
+  for (const id of id_array) {
+    const full = 'expert/' + expert_model.id + '/' + id;
+    try {
+      let opts = {
+        admin: req.query.admin ? true : false,
       }
-      newArray.push(doc);
+      doc = await expert_model.get(full, opts);
+      res.doc_array.push(doc);
+    } catch (e) {
+      // log the error - couldn't find the resource. But continue to the next one
+      logger.error(`Could not get ${full}`);
     }
-    res.doc_array = newArray;
-    return next();
   }
-}
+  next();
+},
+  sanitize,
+  siteFarmFormat,
+  (req, res) => {
+    res.status(200).json(res.doc_array);
+  }
+);
 
 
 router.get('/experts/:ids', json_only, async (req, res, next) => {
