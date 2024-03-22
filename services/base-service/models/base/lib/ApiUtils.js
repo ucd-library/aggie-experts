@@ -5,7 +5,7 @@ class ApiUtils {
     // Initialization code
   }
 
-  // Add methods for this class
+  // Method to sanitize a single document.
   sanitize(doc) {
 
     let newDoc = {};

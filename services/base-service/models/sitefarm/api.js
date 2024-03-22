@@ -51,6 +51,7 @@ async function sanitize(req, res, next) {
     return next();
   } else {
     var newArray = [];
+    // loop through the documents and sanitize them
     for (let i in res.doc_array) {
       let doc = res.doc_array[i];
       newArray.push(model.apiUtils.sanitize(doc));
