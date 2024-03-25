@@ -77,6 +77,8 @@ export default class AppExpert extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
+    this.expertImpersonating = utils.getCookie('impersonateId');
+
     if( e.location.page !== 'expert' ) return;
     window.scrollTo(0, 0);
 
@@ -86,12 +88,10 @@ export default class AppExpert extends Mixin(LitElement)
 
     this._reset();
 
-    if( this.expertImpersonating === this.expertId ) this.canEdit = true;
+    if( this.expertImpersonating === this.expertId && this.expertId.length > 0 ) this.canEdit = true;
 
     try {
-      // this is using no-sanitize by default, should it instead use this.canEdit for the no-sanitize value?
-      // we do want to call with no-sanitize, to hide/show the expert for admins, once that ui is planned
-      let expert = await this.ExpertModel.get(expertId, true);
+      let expert = await this.ExpertModel.get(expertId, (this.isAdmin || this.canEdit));
       this._onExpertUpdate(expert, modified);
 
       if( !this.isAdmin && !this.isVisible ) throw new Error();
@@ -200,7 +200,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.grantsCompletedDisplayed = [];
     this.totalGrants = 0;
     this.totalCitations = 0;
-    this.canEdit = (acExpertId === this.expertId || impersonatingExpertId === this.expertId);
+    this.canEdit = (acExpertId === this.expertId || (impersonatingExpertId === this.expertId && this.expertId.length > 0));
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
@@ -392,10 +392,13 @@ export default class AppExpert extends Mixin(LitElement)
     this.showModal = false;
 
     if( this.isAdmin && this.modalAction === 'hide-expert' ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = false;
       } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
         let modelContent = `<p>Hiding expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
 
         this.modalTitle = 'Error: Update Failed';
@@ -407,13 +410,15 @@ export default class AppExpert extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
       }
-    } else if( this.modalAction === 'delete-expert' ) {
+    } else if( this.isAdmin && this.modalAction === 'delete-expert' ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.ExpertModel.deleteExpert(this.expertId);
-
+        this.dispatchEvent(new CustomEvent("loaded", {}));
         // redirect to home page
         this.AppStateModel.setLocation('/');
       } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
         let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
 
         this.modalTitle = 'Error: Update Failed';
@@ -439,10 +444,13 @@ export default class AppExpert extends Mixin(LitElement)
    */
   async _showExpert(e) {
     if( this.isAdmin ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = true;
       } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
         let modelContent = `<p>Showing expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
 
         this.modalTitle = 'Error: Update Failed';
@@ -464,7 +472,7 @@ export default class AppExpert extends Mixin(LitElement)
   _hideExpert(e) {
     this.modalAction = 'hide-expert';
     this.modalTitle = 'Hide Expert';
-    this.modalContent = `<p>Expert will be hidden from Aggie Experts. CDL privacy will be set to internal. To show the expert again in Aggie Experts, you can show expert from Aggie Experts. Are you sure you would like to continue?</p>`;
+    this.modalContent = `<p>The expert will be hidden from Aggie Experts, but this change will not appear in Elements. This is a safeguard available only to admins, in case "Delete Expert" does not work because Elements is not reachable. It is the admin's responsibility to manually change visibility in Elements. Are you sure you would like to continue?</p>`;
     this.showModal = true;
     this.hideCancel = true;
     this.hideSave = false;
@@ -480,7 +488,7 @@ export default class AppExpert extends Mixin(LitElement)
   _deleteExpert(e) {
     this.modalAction = 'delete-expert';
     this.modalTitle = 'Delete Expert';
-    this.modalContent = `<p>Expert will be removed from Aggie Experts. CDL privacy will be set to private. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in CDL. Are you sure you would like to continue?</p>`;
+    this.modalContent = `<p>The expert will be removed from Aggie Experts. In the <a href="https://oapolicy.universityofcalifornia.edu">UC Publication Management System</a> their privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in the UC Publication Management System. Are you sure you would like to continue?</p>`;
     this.showModal = true;
     this.hideCancel = true;
     this.hideSave = false;
