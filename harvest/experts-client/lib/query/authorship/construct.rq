@@ -321,8 +321,8 @@ WHERE {
   # EXPERTS ids
   BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
   BIND(concat(?begin,coalesce(concat('-',?end),'')) AS ?page)
-  bind(uri(replace(str(?relationship),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/relationship/"))) as ?authorship)
-  bind(uri(replace(str(?pub),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/publication/"))) as ?work)
+  bind(uri(replace(str(?relationship),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?authorship)
+  bind(uri(replace(str(?pub),str(cdl:),"ark:/87287/d7mh2m/publication/")) as ?work)
   bind(uri(concat(str(expert:),md5(?username))) as ?expert)
   # pub date
   BIND(concat("-",IF(xsd:integer(?pub_m_raw) < 10, CONCAT("0", ?pub_m_raw), ?pub_m_raw)) AS ?pub_month)
@@ -336,7 +336,7 @@ WHERE {
   # journal
   BIND(uri(concat(str(venue:),"urn:issn:",?issn)) as ?journalURI)
   # authors
-  BIND(uri(concat(str(?pub),"#",str(?pos+1))) as ?author)
+  BIND(uri(concat(replace(str(?pub),str(cdl:),"ark:/87287/d7mh2m/publication/"),"#",str(?pos+1))) as ?author)
   BIND(?pos+1 as ?rank)
 
 }
