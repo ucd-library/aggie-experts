@@ -2,6 +2,7 @@
 const router = require('express').Router();
 const BaseModel = require('../base/model.js');
 const utils = require('../utils.js')
+const md5 = require('md5');
 
 const experts = new BaseModel();
 
@@ -27,9 +28,13 @@ router.get('/grants', async (req, res) => {
   const params = {};
   let template = "miv_grants";
 
-  ["md5"].forEach((key) => {
+  if (req.query.userId) {
+    params.md5 = md5(`${req.query.userId}@ucdavis.edu`);
+  }
+  ["since", "until"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
+
   opts = {
     index: "expert-read",
     id: template,
