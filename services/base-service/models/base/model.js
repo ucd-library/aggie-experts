@@ -585,12 +585,12 @@ class BaseModel extends FinEsDataModel {
     return this.method;
   }
 
-  // async update(jsonld) {
-  //   throw new Error(`${this.constructor.name}.update(${jsonld['@id']}) not implemented`);
-  // }
+  async update(jsonld) {
+    throw new Error(`${this.constructor.name}.update(${jsonld['@id']}) not implemented`);
+  }
 
-  // async remove(jsonld) {
-  //   throw new Error(`${this.constructor.name}.delete(${jsonld['@id']}) not implemented`);
-  // }
+  async remove(jsonld) {
+    throw new Error(`${this.constructor.name}.delete(${jsonld['@id']}) not implemented`);
+  }
 }
 module.exports = BaseModel;
