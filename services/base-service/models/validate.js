@@ -42,26 +42,38 @@ class Validate {
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) {
-        invalidCitations.forEach(c => {
+      // validate issue date
+      let validation = Citation.validateIssueDate(citations);
+      if( validation.citations?.length ) {
+        validation.citations.forEach(c => {
           result.errors.push({
-            label : 'Invalid citation issue date, should be a string value',
+            label : validation.error,
             id : c['@id'],
           });
         });
       }
 
-      invalidCitations = citations.filter(c => typeof c.title !== 'string');
-      if( invalidCitations.length ) {
-        invalidCitations.forEach(c => {
+      // validate title
+      validation = Citation.validateTitle(citations);
+      if( validation.citations?.length ) {
+        validation.citations.forEach(c => {
           result.errors.push({
-            label : 'Invalid citation title, should be a string value',
+            label : validation.error,
             id : c['@id'],
           });
         });
       }
-      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+
+      // validate is-visible
+      validation = Citation.validateIsVisible(citations);
+      if( validation.citations?.length ) {
+        validation.citations.forEach(c => {
+          result.errors.push({
+            label : validation.error,
+            id : c['@id'],
+          });
+        });
+      }
     }
 
     try {

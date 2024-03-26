@@ -95,6 +95,57 @@ class Citation {
     return citationResults;
   }
 
+  /**
+   * @method validateIssueDate
+   * @description validate citation issue date is a string
+   *
+   * @param {Array} citations
+   *
+   * @return {Object} invalid citations array as well as error message
+   */
+  validateIssueDate(citations) {
+    citations = citations.filter(c => typeof c.issued !== 'string');
+
+    return {
+      citations,
+      error : 'Invalid citation issue date, should be a string value'
+    };
+  }
+
+  /**
+   * @method validateTitle
+   * @description validate citation title is a string
+   *
+   * @param {Array} citations
+   *
+   * @return {Object} invalid citations array as well as error message
+   */
+  validateTitle(citations) {
+    citations = citations.filter(c => typeof c.title !== 'string');
+
+    return {
+      citations,
+      error : 'Invalid citation title, should be a string value'
+    };
+  }
+
+  /**
+   * @method validateIsVisible
+   * @description validate citation is visible
+   *
+   * @param {Array} citations
+   *
+   * @return {Object} invalid citations array as well as error message
+   */
+  validateIsVisible(citations) {
+    citations = citations.filter(c => c.relatedBy?.['is-visible']);
+
+    return {
+      citations,
+      error : 'Invalid citation is-visible, should be true'
+    };
+  }
+
 }
 
 module.exports = new Citation();
