@@ -10,7 +10,7 @@
       "acl:accessTo" : [{"@id": "@base:"}],
       "acl:default" : [{"@id": "@base:"}],
       "acl:mode" : [{"@id": "acl:Read"}],
-      "acl:agent" : [{"@value": "discovery"}
+      "acl:agent" : [{"@value": "discover"}
                     ]
     },
     {

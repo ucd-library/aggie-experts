@@ -114,9 +114,13 @@
       }
     }
   },
-  "fin":{
+  "finx":{
     "org":"gcr.io/ucdlib-pubreg",
     "tag":"2.5.2"
+  },
+  "fin":{
+    "org":"localhost/local-dev",
+    "tag":"sandbox"
   },
   "git":{
     "root":"$(${G[git]} rev-parse --show-toplevel)",
