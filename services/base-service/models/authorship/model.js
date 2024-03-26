@@ -175,6 +175,38 @@ class AuthorshipModel extends BaseModel {
     }
   }
 
+
+  /**
+   * @method remove
+   * @description Remove Work/Authorship node from Expert based on jsonld
+   * @param {object} jsonld: work/authorship object
+   **/
+  async remove(jsonld) {
+    console.log(`AuthorshipModel.remove(${jsonld['@id']})`);
+    console.log('jsonld',jsonld);
+  }
+
+  /**
+   * @method remove_node_from_expert
+   * @description Remove Work/Authorship node from Expert
+   * @param {String} id of work
+   * @param {String} expertId : Expert Id
+  **/
+  async remove_node_from_expert(id,expertId) {
+    const expertModel = await this.get_model('expert');
+    let node;
+
+    try {
+      let expert = await expertModel.client_get(expertId);
+      node = this.get_node_by_related_id(expert, id);
+    } catch(e) {
+      console.error(e.message);
+      logger.info(`relatedBy[{@id ${id} not found in expert ${expertId}`);
+      return 404
+    };
+    await expertModel.delete_graph_node(expertId, node);
+  }
+
   /**
    * @method delete
    * @description Delete an authorship file
@@ -184,24 +216,7 @@ class AuthorshipModel extends BaseModel {
   async delete(id, expertId) {
     logger.info(`Deleting ${id}`);
 
-    // Delete Elasticsearch document
-    const expertModel = await this.get_model('expert');
-    let node;
-    let expert;
-    let objectId;
-    let resp;
-
-    try {
-      expert = await expertModel.client_get(expertId);
-      node = this.get_node_by_related_id(expert, id);
-      objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
-    } catch(e) {
-      console.error(e.message);
-      logger.info(`relatedBy[{@id ${id} not found in expert ${expertId}`);
-      return 404
-    };
-
-    await expertModel.delete_graph_node(expertId, node);
+    await this.remove_node_from_expert(id,expertId);
 
     // Delete from FCREPO
     let options = {
@@ -211,11 +226,25 @@ class AuthorshipModel extends BaseModel {
 
     await finApi.delete(options);
 
+    const expertModel = await this.get_model('expert');
+    let expert;
+    let objectId;
+
+    try {
+      expert = await expertModel.client_get(expertId);
+      let node = this.get_node_by_related_id(expert, id);
+      objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+    } catch(e) {
+      console.error(e.message);
+      logger.info(`relatedBy[{@id ${id} not found in expert ${expertId}`);
+      return 404
+    };
+
     if (config.experts.cdl.authorship.propagate) {
       let linkId=id.replace("ark:/87287/d7mh2m/relationship/","");
       const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
       logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
-      resp = await cdl_user.reject({
+      let resp = await cdl_user.reject({
         linkId: linkId,
         categoryId: 1,
         objectId: objectId

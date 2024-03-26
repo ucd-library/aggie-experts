@@ -395,9 +395,8 @@ class BaseModel extends FinEsDataModel {
    * @returns {Promise} resolves to elasticsearch result
    */
   async get(id, opts={}, index) {
-    let _source_excludes = true;
+    let _source_excludes = 'roles';
     if( opts.admin ) _source_excludes = false;
-    else if( opts.compact ) _source_excludes = 'compact';
 
     let identifier = id.replace(/^\//, '').split('/');
     identifier.shift();
@@ -406,9 +405,7 @@ class BaseModel extends FinEsDataModel {
 
     let result = await this.client.exists({
       index: this.readIndexAlias,
-        id: identifier,
-        _source: true,
-	      _source_excludes: _source_excludes
+      id: identifier
     });
 
     if( !result ) return null;

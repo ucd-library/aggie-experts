@@ -243,16 +243,20 @@ class ExpertModel extends BaseModel {
   }
 
   /**
-   * @method delete
-   * @description Delete an expert
+   * @method remove
+   * @description Delete an expert based on existing json-ld document.
+   * @param {Object} jsonld : Expert Document
+  **/
+  async remove(jsonld) {
+    return this.remove_from_elasticsearch(jsonld['@id']);
+  }
+
+  /**
+   * @method remove_from_elasticsearch
+   * @description Delete an expert from elasticsearch based on expertId.
    * @param {String} expertId : Expert Id
   **/
-  async delete(expertId) {
-    logger.info(`expert.delete(${expertId})`);
-
-    // Delete Elasticsearch document
-    let expert;
-
+  async remove_from_elasticsearch(expertId) {
     try {
       expert = await this.client_get(expertId);
     } catch(e) {
@@ -265,6 +269,20 @@ class ExpertModel extends BaseModel {
       {id:expertId,
        index:this.writeIndexAlias
       });
+  }
+
+  /**
+   * @method delete
+   * @description Delete an expert
+   * @param {String} expertId : Expert Id
+  **/
+  async delete(expertId) {
+    logger.info(`expert.delete(${expertId})`);
+
+    // Delete Elasticsearch document
+    let expert;
+
+    await remove_from_elasticsearch(expertId) {
 
     await finApi.delete(
       {
