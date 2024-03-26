@@ -89,9 +89,10 @@ export default class AppExpert extends Mixin(LitElement)
     this._reset();
 
     if( this.expertImpersonating === this.expertId && this.expertId.length > 0 ) this.canEdit = true;
+    if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, (this.isAdmin || this.canEdit));
+      let expert = await this.ExpertModel.get(expertId, this.canEdit);
       this._onExpertUpdate(expert, modified);
 
       if( !this.isAdmin && !this.isVisible ) throw new Error();
