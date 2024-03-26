@@ -404,22 +404,26 @@ class BaseModel extends FinEsDataModel {
     identifier = identifier.join('/');
     //console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
 
-    let result= await this.client.get(
+    let result = await this.client.exists({
+      index: this.readIndexAlias,
+        id: identifier,
+        _source: true,
+	      _source_excludes: _source_excludes
+    });
+
+    if( !result ) return null;
+
+    result = await this.client.get(
       {
         index: this.readIndexAlias,
         id: identifier,
         _source: true,
-	      _source_excludes: _source_excludes
+        _source_excludes: _source_excludes
       }
     );
-
-    if( result ) {
-      result = result._source;
-      //if( opts.compact ) this.utils.compactAllTypes(result);
-      //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
-    } else {
-      return null;
-    }
+    result = result._source;
+    //if( opts.compact ) this.utils.compactAllTypes(result);
+    //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
 
     // Add fcrepo and dbsync data if admin, for the dashboard
     if( opts.admin === true ) {
@@ -581,12 +585,12 @@ class BaseModel extends FinEsDataModel {
     return this.method;
   }
 
-  async update(jsonld) {
-    throw new Error(`${this.constructor.name}.update(${jsonld['@id']}) not implemented`);
-  }
+  // async update(jsonld) {
+  //   throw new Error(`${this.constructor.name}.update(${jsonld['@id']}) not implemented`);
+  // }
 
-  async remove(jsonld) {
-    throw new Error(`${this.constructor.name}.delete(${jsonld['@id']}) not implemented`);
-  }
+  // async remove(jsonld) {
+  //   throw new Error(`${this.constructor.name}.delete(${jsonld['@id']}) not implemented`);
+  // }
 }
 module.exports = BaseModel;
