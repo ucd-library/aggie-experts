@@ -101,37 +101,6 @@ router.get('/experts/:ids', json_only, async (req, res, next) => {
   }
 );
 
-
-router.get('/experts/:ids', json_only, async (req, res, next) => {
-  const id_array = req.params.ids.replace('ids=', '').split(',');
-  const expert_model = await model.get_model('expert');
-  res.doc_array = [];
-  var doc;
-
-  for (const id of id_array) {
-    const full = 'expert/' + expert_model.id + '/' + id;
-    try {
-      let opts = {
-        admin: req.query.admin ? true : false,
-      }
-      doc = await expert_model.get(full, opts);
-      res.doc_array.push(doc);
-    } catch (e) {
-      // log the error - couldn't find the resource. But continue to the next one
-      logger.error(`Could not get ${full}`);
-    }
-  }
-  next();
-},
-  sanitize,
-  siteFarmFormat,
-  (req, res) => {
-    res.status(200).json(res.doc_array);
-  }
-);
-
-router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
-
 const model = new SiteFarmModel();
 module.exports = defaultEsApiGenerator(model, { router });
 

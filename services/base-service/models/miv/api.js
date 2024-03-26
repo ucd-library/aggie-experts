@@ -27,7 +27,7 @@ router.get('/grants', async (req, res) => {
   const params = {};
   let template = "miv_grants";
 
-  ["userId"].forEach((key) => {
+  ["md5"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
@@ -39,7 +39,10 @@ router.get('/grants', async (req, res) => {
     const template = await experts.search(opts);
     res.send(template);
   } catch (err) {
-    res.status(400).send('Invalid request');
+    // Write the error message to the console
+    console.error(err);
+    res.status(400).send(err);
+    // res.status(400).send('Invalid request - no likey');
   }
 });
 
