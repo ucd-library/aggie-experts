@@ -606,8 +606,8 @@ return html`
         <div class="experts">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT</span>
-          <button ?hidden="${this.hideImpersonate}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
-          <div ?hidden="${!this.isAdmin || !this.hideImpersonate || (this.expertImpersonating !== this.expertId)}" style="position: relative; display: flex;">
+          <button ?hidden="${this.hideImpersonate || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
+          <div ?hidden="${(!this.isAdmin || !this.hideImpersonate || this.expertImpersonating !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span ?hidden="${!this.isVisible}" class="tooltip hide-expert" data-text="Hide expert">
               <ucdlib-icon icon="ucdlib-experts:fa-eye" @click=${this._hideExpert}></ucdlib-icon>
             </span>
@@ -615,7 +615,7 @@ return html`
               <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._showExpert}></ucdlib-icon>
             </span>
           </div>
-          <div ?hidden="${!this.isAdmin || !this.hideImpersonate || (this.expertImpersonating !== this.expertId)}" style="position: relative; display: flex;">
+          <div ?hidden="${(!this.isAdmin || !this.hideImpersonate || this.expertImpersonating !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span class="tooltip delete-expert" data-text="Delete expert">
               <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._deleteExpert}></ucdlib-icon>
             </span>
