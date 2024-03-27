@@ -70,6 +70,7 @@ module.exports = async (app) => {
         user,
         appRoutes : config.client.appRoutes,
         env : config.client.env,
+        gaCode : config.client.gaCode
       });
     },
 
