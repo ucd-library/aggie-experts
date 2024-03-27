@@ -139,7 +139,10 @@ class Utils {
 
       console.log({ expertsRelationship, otherRelationships });
 
-      if( filterHidden && !expertsRelationship['is-visible'] ) return;
+      if( filterHidden && !expertsRelationship['is-visible'] ) {
+        console.warn('Invalid grant is-visible, should be true', g);
+        return;
+      }
 
       g.isVisible = expertsRelationship['is-visible'];
       g.relationshipId = expertsRelationship['@id'];

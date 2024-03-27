@@ -9,7 +9,7 @@ import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
 import utils from '../../../lib/utils';
 
 export default class AppExpert extends Mixin(LitElement)
@@ -162,13 +162,6 @@ export default class AppExpert extends Mixin(LitElement)
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.totalGrants = grants.length;
 
-    // throw errors if any citations/grants have is-visible:false
-    let invalidCitations = this.citations.filter(c => !c['is-visible']);
-    let invalidGrants = this.grants.filter(g => !g.isVisible);
-
-    if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
-    if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);
-
     this.grants = utils.parseGrants(this.expertId, grants);
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
@@ -254,6 +247,10 @@ export default class AppExpert extends Mixin(LitElement)
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
     this.totalCitations = citations.length;
+
+    // filter out non is-visible citations
+    let citationValidation = Citation.validateIsVisible(citations);
+    if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
     citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
     citations = citations.map(c => {
@@ -266,15 +263,22 @@ export default class AppExpert extends Mixin(LitElement)
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      // validate issue date
+      let validation = Citation.validateIssueDate(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // validate title
+      validation = Citation.validateTitle(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+
       this.totalCitations = citations.length;
     }
 
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
