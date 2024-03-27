@@ -52,7 +52,8 @@ export default class AppExpert extends Mixin(LitElement)
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
       hideImpersonate : { type : Boolean },
-      isVisible : { type : Boolean }
+      isVisible : { type : Boolean },
+      elementsUserId : { type : String }
     }
   }
 
@@ -124,6 +125,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
+    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('/user'))?.[0]?.split('/')?.pop() || '';
 
     this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
@@ -215,6 +217,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
     this.modalAction = '';
     this.isVisible = true;
+    this.elementsUserId = '';
 
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
@@ -432,7 +435,7 @@ export default class AppExpert extends Mixin(LitElement)
       }
 
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
-      window.location.href = 'https://oapolicy.universityofcalifornia.edu';
+      window.location.href = `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId : ''}`
     }
 
     this.modalAction = '';
