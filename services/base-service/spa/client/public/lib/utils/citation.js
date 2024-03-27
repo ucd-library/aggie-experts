@@ -138,7 +138,7 @@ class Citation {
    * @return {Object} invalid citations array as well as error message
    */
   validateIsVisible(citations) {
-    citations = citations.filter(c => c.relatedBy?.['is-visible']);
+    citations = citations.filter(c => !c.relatedBy?.['is-visible']);
 
     return {
       citations,

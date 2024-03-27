@@ -38,42 +38,37 @@ class Validate {
   async _validateCitations(jsonld, result) {
     let citations = JSON.parse(JSON.stringify((jsonld['@graph'] || []).filter(g => g.issued)));
 
-    try {
-      // sort by issued date desc, then by title asc
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    } catch (error) {
-      // validate issue date
-      let validation = Citation.validateIssueDate(citations);
-      if( validation.citations?.length ) {
-        validation.citations.forEach(c => {
-          result.errors.push({
-            label : validation.error,
-            id : c['@id'],
-          });
+    // validate issue date
+    let validation = Citation.validateIssueDate(citations);
+    if( validation.citations?.length ) {
+      validation.citations.forEach(c => {
+        result.errors.push({
+          label : validation.error,
+          id : c['@id'],
         });
-      }
+      });
+    }
 
-      // validate title
-      validation = Citation.validateTitle(citations);
-      if( validation.citations?.length ) {
-        validation.citations.forEach(c => {
-          result.errors.push({
-            label : validation.error,
-            id : c['@id'],
-          });
+    // validate title
+    validation = Citation.validateTitle(citations);
+    if( validation.citations?.length ) {
+      validation.citations.forEach(c => {
+        result.errors.push({
+          label : validation.error,
+          id : c['@id'],
         });
-      }
+      });
+    }
 
-      // validate is-visible
-      validation = Citation.validateIsVisible(citations);
-      if( validation.citations?.length ) {
-        validation.citations.forEach(c => {
-          result.errors.push({
-            label : validation.error,
-            id : c['@id'],
-          });
+    // validate is-visible
+    validation = Citation.validateIsVisible(citations);
+    if( validation.citations?.length ) {
+      validation.citations.forEach(c => {
+        result.errors.push({
+          label : validation.error,
+          id : c['@id'],
         });
-      }
+      });
     }
 
     try {

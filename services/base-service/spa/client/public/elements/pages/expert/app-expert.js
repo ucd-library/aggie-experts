@@ -245,7 +245,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.totalCitations = citations.length;
 
     // filter out non is-visible citations
-    let citationValidation = Citation.validateIsVisible(this.citations);
+    let citationValidation = Citation.validateIsVisible(citations);
     if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
     citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
