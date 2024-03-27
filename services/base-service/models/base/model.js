@@ -395,29 +395,30 @@ class BaseModel extends FinEsDataModel {
    * @returns {Promise} resolves to elasticsearch result
    */
   async get(id, opts={}, index) {
-    let _source_excludes = true;
+    let _source_excludes = 'roles';
     if( opts.admin ) _source_excludes = false;
-    else if( opts.compact ) _source_excludes = 'compact';
 
     let identifier = id.substring(1).replace(/^(\w+\/)\1/, '$1'); // match 2 repeated words with tailing /, remove one, ie expert/expert/ -> expert/
     // console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
 
-    let result= await this.client.get(
+    let result = await this.client.exists({
+      index: this.readIndexAlias,
+      id: identifier
+    });
+
+    if( !result ) return null;
+
+    result = await this.client.get(
       {
         index: this.readIndexAlias,
         id: identifier,
         _source: true,
-	      _source_excludes: _source_excludes
+        _source_excludes: _source_excludes
       }
     );
-
-    if( result ) {
-      result = result._source;
-      //if( opts.compact ) this.utils.compactAllTypes(result);
-      //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
-    } else {
-      return null;
-    }
+    result = result._source;
+    //if( opts.compact ) this.utils.compactAllTypes(result);
+    //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
 
     // Add fcrepo and dbsync data if admin, for the dashboard
     if( opts.admin === true ) {
