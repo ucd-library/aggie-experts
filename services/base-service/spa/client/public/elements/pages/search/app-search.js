@@ -48,7 +48,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.AppStateModel.location.page !== 'search' ) return;
 
     // update search term
-    this.searchTerm = this.AppStateModel.location.fullpath.replace('/search/', '');
+    this.searchTerm = decodeURI(this.AppStateModel.location.fullpath.replace('/search/', ''));
 
     this._onSearch({ detail: this.searchTerm });
   }
