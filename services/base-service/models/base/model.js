@@ -370,21 +370,23 @@ class BaseModel extends FinEsDataModel {
    * @description Get document via _id.
    * @param {String} id : _id of document to get
    * @param {Object} options : options for get (like _source:false)
+   * @param {Boolean} sourceExcludes : exclude source fields
    */
-  async client_get(id,options) {
+  async client_get(id, options, sourceExcludes=false) {
     // console.log(`FinEsNestedModel.client_get(${id}) on ${this.readIndexAlias}`);
     const result = await this.client.get(
       {
         ...{
           index: this.readIndexAlias,
           id: id,
-          _source: true
+          _source: true,
+          _source_excludes: sourceExcludes
         },
         ...options
       }
     )
     return result._source;
-    }
+  }
 
     /**
    * @method get
@@ -410,15 +412,7 @@ class BaseModel extends FinEsDataModel {
 
     if( !result ) return null;
 
-    result = await this.client.get(
-      {
-        index: this.readIndexAlias,
-        id: identifier,
-        _source: true,
-        _source_excludes: _source_excludes
-      }
-    );
-    result = result._source;
+    result = await this.client_get(identifier, null, _source_excludes);
     //if( opts.compact ) this.utils.compactAllTypes(result);
     //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
 

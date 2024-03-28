@@ -282,7 +282,7 @@ class ExpertModel extends BaseModel {
     // Delete Elasticsearch document
     let expert;
 
-    await remove_from_elasticsearch(expertId) {
+    await remove_from_elasticsearch(expertId);
 
     await finApi.delete(
       {
