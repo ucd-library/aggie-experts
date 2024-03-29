@@ -3,7 +3,6 @@ const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-util
 const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
-const ApiUtils = require('./lib/ApiUtils');
 
 
 /**
