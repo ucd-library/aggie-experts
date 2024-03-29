@@ -24,12 +24,11 @@ class BaseModel extends FinEsDataModel {
 //    "http://vivoweb.org/ontology/core#Grant",
   ];
 
-  constructor(name='experts') {
+  constructor(name='base') {
 
     super(name);
     this.schema = schema;  // Common schema for all experts data models
     this.transformService = "node";
-    this.apiUtils = new ApiUtils();
   }
 
   /** @inheritdoc */
@@ -239,18 +238,26 @@ class BaseModel extends FinEsDataModel {
     return params;
   }
 
-  async verify_template(options) {
-    // Check if template exists, install if not
-    try {
-      const result = await this.client.getScript({id:options.id});
-//      console.log(`render: template ${options.id} exists`);
-    } catch (err) {
-      logger.info(`adding template ./template/${options.id}`);
-      const template = require(`./template/${options.id}.json`);
-      const result = await this.client.putScript(template);
+  /**
+   * @method verify_template
+   * @description Adds template to elastic search if it doesn't exist
+   */
+  async verify_template(template) {
+    if (!Array.isArray(template)) {
+      template = [template];
+    }
+    for (let t of template) {
+      try {
+        logger.info(`checking template ${t.id}`);
+        await this.client.getScript(t.id);
+      } catch (err) {
+        logger.info(`adding template ${t.id}`);
+        const result=await this.client.putScript(t);
+      }
     }
     return true;
   }
+
 
   compact_search_results(results,params) {
     const compact = {
@@ -294,18 +301,21 @@ class BaseModel extends FinEsDataModel {
     return template;
   }
 
+  /**
+   * @method search
+   * @description ES search using a template
+   * @returns {Object} ES results
+   */
   async search(opts) {
 
     const params = this.common_parms(opts.params);
 
+    console.log(`searching ${this.readIndexAlias} with ${JSON.stringify(params)}`);
     const options = {
       id: (opts.id)?opts.id:"default",
-      index: "expert-read",
+      index: this.readIndexAlias,
       params
     }
-    // Check if template exists, install if not
-    await this.verify_template(options);
-
     const res=await this.client.searchTemplate(options);
     return this.compact_search_results(res,params);
   }
