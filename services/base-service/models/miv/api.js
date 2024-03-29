@@ -27,7 +27,32 @@ router.get('/grants', async (req, res) => {
   try {
     await expert.verify_template(template);
     const find = await expert.search(opts);
-    res.send(find);
+    // Modify for MIV format (old version)
+    //jq '.hits[0]["_inner_hits"][0]| {"@id","title":.name,"end_date":.dateTimeInterval.end.dateTime,"start_date":.dateTimeInterval.start.dateTime,"grant_amount":.totalAwardAmount,"sponsor_id":.sponsorAwardId,"sponsor_name":.assignedBy.name,"type":.["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"].name,"role_label":(.relatedBy[] | select(.inheres_in) | .["@type"])}' new.json
+    let grants = [];
+    for (const hit of find.hits[0]._inner_hits) {
+      grants.push({
+        '@id': hit['@id'],
+        title: hit.name,
+        end_date: hit.dateTimeInterval.end.dateTime,
+        start_date: hit.dateTimeInterval.start.dateTime,
+        grant_amount: hit.totalAwardAmount,
+        sponsor_id: hit.sponsorAwardId,
+        sponsor_name: hit.assignedBy.name,
+        type: hit['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'].name,
+        role_label: hit.relatedBy.find(x => x.inheres_in)['@type']
+      });
+      hit.relatedBy.forEach((x) => {
+        if (! x.inheres_in) {
+          grants.push({
+            '@id': x['@id'],
+            name: x.relates[0].name,
+            role: x['@type']
+          });
+        }
+      });
+    }
+    res.send({"@graph": grants});
   } catch (err) {
     // Write the error message to the console
     console.error(err);
