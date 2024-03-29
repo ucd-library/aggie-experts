@@ -24,16 +24,13 @@ construct {
   obo:RO_0000052 ?expert;
   .
 
-  ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
+  ?grant a vivo:Grant,?grant_type;
          ?field_predicate ?field_text;
          ?field_predicate ?field_money;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
          .
-
-  ?grant_type rdfs:label ?funding_type_label;
-              .
 
   ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
                         vivo:relates ?labeled_only_pi,?grant;

@@ -60,7 +60,35 @@
     "favorite":{"@id":"ucdlib:favorite","@type":"xsd:boolean"},
     "genre":{"@id":"cite:genre"},
     "Grant": {
-      "@id":"ucdlib:Grant",
+      "@id":"vivo:Grant",
+      "@type":"@id"
+    },
+    "Grant_AcademicSupport": {
+      "@id":"ucdlib:Grant_AcademicSupport",
+      "@type":"@id"
+    },
+    "Grant_Default": {
+      "@id":"ucdlib:Grant_Default",
+      "@type":"@id"
+    },
+    "Grant_Instruction": {
+      "@id":"ucdlib:Grant_Instruction",
+      "@type":"@id"
+    },
+    "Grant_Research": {
+      "@id":"ucdlib:Grant_Research",
+      "@type":"@id"
+    },
+    "Grant_Service": {
+      "@id":"ucdlib:Grant_Service",
+      "@type":"@id"
+    },
+    "Grant_Scholarship": {
+      "@id":"ucdlib:Grant_Scholarship",
+      "@type":"@id"
+    },
+    "Grant_StudentService": {
+      "@id":"ucdlib:Grant_",
       "@type":"@id"
     },
     "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
