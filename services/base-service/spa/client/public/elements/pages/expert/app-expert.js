@@ -9,7 +9,7 @@ import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
 import utils from '../../../lib/utils';
 
 export default class AppExpert extends Mixin(LitElement)
@@ -52,7 +52,8 @@ export default class AppExpert extends Mixin(LitElement)
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
       hideImpersonate : { type : Boolean },
-      isVisible : { type : Boolean }
+      isVisible : { type : Boolean },
+      elementsUserId : { type : String }
     }
   }
 
@@ -89,9 +90,10 @@ export default class AppExpert extends Mixin(LitElement)
     this._reset();
 
     if( this.expertImpersonating === this.expertId && this.expertId.length > 0 ) this.canEdit = true;
+    if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, (this.isAdmin || this.canEdit));
+      let expert = await this.ExpertModel.get(expertId, this.canEdit);
       this._onExpertUpdate(expert, modified);
 
       if( !this.isAdmin && !this.isVisible ) throw new Error();
@@ -124,6 +126,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
+    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('/user'))?.[0]?.split('/')?.pop() || '';
 
     this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
 
@@ -158,13 +161,6 @@ export default class AppExpert extends Mixin(LitElement)
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.totalGrants = grants.length;
-
-    // throw errors if any citations/grants have is-visible:false
-    let invalidCitations = this.citations.filter(c => !c['is-visible']);
-    let invalidGrants = this.grants.filter(g => !g.isVisible);
-
-    if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
-    if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);
 
     this.grants = utils.parseGrants(this.expertId, grants);
 
@@ -215,6 +211,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
     this.modalAction = '';
     this.isVisible = true;
+    this.elementsUserId = '';
 
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
@@ -250,6 +247,10 @@ export default class AppExpert extends Mixin(LitElement)
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
     this.totalCitations = citations.length;
+
+    // filter out non is-visible citations
+    let citationValidation = Citation.validateIsVisible(citations);
+    if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
     citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
     citations = citations.map(c => {
@@ -262,15 +263,22 @@ export default class AppExpert extends Mixin(LitElement)
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      // validate issue date
+      let validation = Citation.validateIssueDate(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // validate title
+      validation = Citation.validateTitle(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+
       this.totalCitations = citations.length;
     }
 
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
@@ -432,7 +440,7 @@ export default class AppExpert extends Mixin(LitElement)
       }
 
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
-      window.location.href = 'https://oapolicy.universityofcalifornia.edu';
+      window.location.href = `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId : ''}`
     }
 
     this.modalAction = '';

@@ -1,6 +1,7 @@
 // Can use this to get the fin configuration
 const {models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
+const validate = require('../validate.js');
 
 const finApi = require('@ucd-lib/fin-api/lib/api.js');
 const config = require('../config');
@@ -177,6 +178,10 @@ class ExpertModel extends BaseModel {
       //  workModel.update(authorships.hits.hits[i]._source);
       //}
     }
+  }
+
+  async validate(jsonld) {
+    return validate.validateExpert(jsonld);
   }
 
   /**
