@@ -47,38 +47,6 @@ class ExpertModel extends BaseModel {
     return s;
   }
 
-    /**
-   * @method sanitize
-   * @description Sanitize document
-   * @param {Object} doc
-   * @returns {Object} : sanitized document
-   **/
-  sanitize(doc) {
-    if (doc["is-visible"] === false) {
-      throw {status: 404, message: "Not found"};
-    }
-    for(let i=0; i<doc["@graph"].length; i++) {
-      logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
-      if ((("is-visible" in doc["@graph"][i])
-           && doc["@graph"][i]?.["is-visible"] !== true) ||
-          (doc["@graph"][i].relatedBy && ("is-visible" in doc["@graph"][i].relatedBy)
-           && doc["@graph"][i]?.relatedBy?.["is-visible"] !== true))
-      { // remove this graph node
-        if (doc["@graph"][i]?.["@type"] === "Expert") {
-          throw {status: 404, message: "Not found"};
-        } else {
-          logger.info({function:"sanitize"},`_x_${doc["@graph"][i]["@id"]}`);
-          doc["@graph"].splice(i, 1);
-          i--;
-        }
-      } else { // sanitize this graph node
-        logger.info({function:"sanitize"},`Deleting totalAwardAmount=${doc["@graph"][i]?.["totalAwardAmount"]}`);
-        delete doc["@graph"][i]["totalAwardAmount"];
-      }
-    }
-    return doc;
-  }
-
   /**
    * @method promote_node_to_doc
    * @description Promotes some node fields to document fields
