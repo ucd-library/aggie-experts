@@ -13,14 +13,25 @@ function expert_uri_from_path(path) {
 
 function user_can_edit(req, res, next) {
   let id = expert_uri_from_path(req.path);
-  console.log('usercanedit', id);//
-  if (req.user &&
-      (id === 'expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) ||
-       req.user?.roles?.includes('admin')
-     ) {
+  if (!req.user) {
+    throw {status:401,message:'Unauthorized'};
+  }
+  if ( req.user?.roles?.includes('admin')) {
     return next();
   }
-  res.status(403).send('Forbidden');
+  let user_roles = req.user.roles.filter(r => r.match(/@ucdavis.edu$/));
+  if (user_roles.length) {
+    user_roles=user_roles.filter(r=>id==='expert/'+md5(r))
+    if (user_roles.length) {
+      return next();
+    } else {
+      throw {message:'User not authorized',status:403};
+    }
+  }
+  if (id === 'expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) {
+    return next();
+  }
+  throw {message:'User not authorized',status:403};
 }
 
 // Custom middleware to check Content-Type
@@ -38,15 +49,11 @@ function json_only(req, res, next) {
 async function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
   let id = expert_uri_from_path(req.path);
-  console.log('sanitize user', req.user);//
   if ('no-sanitize' in req.query) {
-    if (req.user &&
-        (id === 'expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) ||
-         req.user?.roles?.includes('admin')
-       ) {
-      return next();
-    } else {
-      res.status(403).send('Forbidden');
+    try {
+      user_can_edit(req, res, next);
+    } catch (e) {
+      res.status(e.status || 500).json({error:e.message});
     }
   } else {
     let doc = res.thisDoc;
@@ -151,7 +158,6 @@ router.route(
  '/[a-zA-Z0-9]+/?$'
 ).get(
   async (req, res, next) => {
-    console.log('GET /expert/:id',decodeURIComponent(req.path));
     let id = model.id+decodeURIComponent(req.path).replace(/\/$/,'');
     try {
       let opts = {
