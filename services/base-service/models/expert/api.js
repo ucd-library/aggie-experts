@@ -14,7 +14,7 @@ function expert_uri_from_path(path) {
 function user_can_edit(req, res, next) {
   let id = expert_uri_from_path(req.path);
   if (!req.user) {
-    throw {status:401,message:'Unauthorized'};
+    return res.status(401).send('Unauthorized');
   }
   if ( req.user?.roles?.includes('admin')) {
     return next();
@@ -25,13 +25,13 @@ function user_can_edit(req, res, next) {
     if (user_roles.length) {
       return next();
     } else {
-      throw {message:'User not authorized',status:403};
+      return res.status(403).send('Not Authorized');
     }
   }
   if (id === 'expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) {
     return next();
   }
-  throw {message:'User not authorized',status:403};
+  return res.status(403).send('Not Authorized');
 }
 
 // Custom middleware to check Content-Type
@@ -46,45 +46,18 @@ function json_only(req, res, next) {
   }
 }
 
-async function sanitize(req, res, next) {
+function sanitize(req, res, next) {
   logger.info({function:'sanitize'}, JSON.stringify(req.query));
   let id = expert_uri_from_path(req.path);
   if ('no-sanitize' in req.query) {
-    try {
       user_can_edit(req, res, next);
+  } else {
+    try {
+      res.thisDoc = model.sanitize(res.thisDoc);
+      next();
     } catch (e) {
       res.status(e.status || 500).json({error:e.message});
     }
-  } else {
-    let doc = res.thisDoc;
-    if (doc["is-visible"] === false) {
-      res.status(404).send('Not Found');
-    }
-    // logger.info('Sanitizing', doc);
-    for(let i=0; i<doc["@graph"].length; i++) {
-      logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
-      if ((("is-visible" in doc["@graph"][i])
-           && doc["@graph"][i]?.["is-visible"] !== true) ||
-          (doc["@graph"][i].relatedBy && ("is-visible" in doc["@graph"][i].relatedBy)
-           && doc["@graph"][i]?.relatedBy?.["is-visible"] !== true))
-      { // remove this graph node
-        if (doc["@graph"][i]?.["@type"] === "Expert") {
-          res.status(404).json(`${req.path} resource not found`);
-          // alternatively, we could return the parent resource
-          //delete doc["@graph"];
-          //break;
-        } else {
-          logger.info({function:"sanitize"},`_x_${doc["@graph"][i]["@id"]}`);
-          doc["@graph"].splice(i, 1);
-          i--;
-        }
-      } else { // sanitize this graph node
-        logger.info({function:"sanitize"},`Deleting totalAwardAmount=${doc["@graph"][i]?.["totalAwardAmount"]}`);
-        delete doc["@graph"][i]["totalAwardAmount"];
-      }
-    }
-    res.thisDoc = doc;
-    return next();
   }
 }
 
