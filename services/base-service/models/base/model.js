@@ -395,6 +395,7 @@ class BaseModel extends FinEsDataModel {
    * @returns {Promise} resolves to elasticsearch result
    */
   async get(id, opts={}, index) {
+    if( id[0] === '/' ) id = id.substring(1);
     let _source_excludes = true;
     if( opts.admin ) _source_excludes = false;
     else if( opts.compact ) _source_excludes = 'compact';
