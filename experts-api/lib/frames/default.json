@@ -88,7 +88,7 @@
       "@type":"@id"
     },
     "Grant_StudentService": {
-      "@id":"ucdlib:Grant_",
+      "@id":"ucdlib:Grant_StudentService",
       "@type":"@id"
     },
     "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
