@@ -24,16 +24,13 @@ construct {
   obo:RO_0000052 ?expert;
   .
 
-  ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
+  ?grant a vivo:Grant,?grant_type;
          ?field_predicate ?field_text;
          ?field_predicate ?field_money;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
          .
-
-  ?grant_type rdfs:label ?funding_type_label;
-              .
 
   ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
                         vivo:relates ?labeled_only_pi,?grant;
@@ -102,7 +99,7 @@ WHERE {
           .
 
     {
-      select ?relationship ?g ?record ?source
+      select ?relationship ?grant_id ?record ?source
       WHERE {
         {
           select ?relationship ?g (min(?id) as ?wanted_source_id)
@@ -121,6 +118,7 @@ WHERE {
            .
         ?record :source-name  ?source;
                 :source-id ?wanted_source_id;
+                :id-at-source ?grant_id;
                 .
       }
     }
@@ -199,7 +197,7 @@ WHERE {
       select ?g ?start_date ?start_date_precision ?end_date ?end_date_precision
       WHERE {
         {
-          select ?relationship ?g ?record ?source
+          select ?relationship ?grant_id ?record ?source
           WHERE {
             {
               select ?relationship ?g (min(?id) as ?wanted_source_id)
@@ -218,6 +216,7 @@ WHERE {
                .
             ?record :source-name  ?source;
                     :source-id ?wanted_source_id;
+                    :id-at-source ?grant_id;
                     .
           }
         }
@@ -273,7 +272,7 @@ WHERE {
     }
   }
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
-  bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
+  bind(uri(?grant_id) as ?grant)
   bind(uri(concat(str(expert:),md5(?username))) as ?expert)
   bind(xsd:boolean(?visible_str) as ?visible)
   bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
