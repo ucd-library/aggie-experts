@@ -399,13 +399,10 @@ class BaseModel extends FinEsDataModel {
     if( opts.admin ) _source_excludes = false;
     else if( opts.compact ) _source_excludes = 'compact';
 
-    let identifier = id.substring(1).replace(/^(\w+\/)\1/, '$1'); // match 2 repeated words with tailing /, remove one, ie expert/expert/ -> expert/
-    // console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
-
     let result= await this.client.get(
       {
         index: this.readIndexAlias,
-        id: identifier,
+        id: id,
         _source: true,
 	      _source_excludes: _source_excludes
       }

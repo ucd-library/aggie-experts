@@ -7,7 +7,7 @@ class ExpertService extends BaseService {
     super();
     this.store = ExpertStore;
 
-    this.baseUrl = '/api/expert';
+    this.baseUrl = '/api';
   }
 
   get(id, noSanitize=false) {
