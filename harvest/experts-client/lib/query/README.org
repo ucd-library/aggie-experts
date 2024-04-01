@@ -423,8 +423,8 @@ relationship here for testing.
      # EXPERTS ids
      BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
      BIND(concat(?begin,coalesce(concat('-',?end),'')) AS ?page)
-     bind(uri(replace(str(?relationship),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/relationship/"))) as ?authorship)
-     bind(uri(replace(str(?pub),str(cdl:),concat(str(experts:),"ark:/87287/d7mh2m/publication/"))) as ?work)
+     bind(uri(replace(str(?relationship),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?authorship)
+     bind(uri(replace(str(?pub),str(cdl:),"ark:/87287/d7mh2m/publication/")) as ?work)
      bind(uri(concat(str(expert:),md5(?username))) as ?expert)
      # pub date
      BIND(concat("-",IF(xsd:integer(?pub_m_raw) < 10, CONCAT("0", ?pub_m_raw), ?pub_m_raw)) AS ?pub_month)
@@ -438,7 +438,7 @@ relationship here for testing.
      # journal
      BIND(uri(concat(str(venue:),"urn:issn:",?issn)) as ?journalURI)
      # authors
-     BIND(uri(concat(str(?pub),"#",str(?pos+1))) as ?author)
+     BIND(uri(concat(replace(str(?pub),str(cdl:),"ark:/87287/d7mh2m/publication/"),"#",str(?pos+1))) as ?author)
      BIND(?pos+1 as ?rank)
 
    }
@@ -449,15 +449,14 @@ relationship here for testing.
    We need to do grants in a similar way to authorship.
 
     #+name: grant_relationship
- #+begin_src sparql :tangle no
-   ?RELATIONSHIP__
- #+end_src
+    #+begin_src sparql :tangle no
+      ?RELATIONSHIP__
+    #+end_src
 
- #+name: grant_relationship+
- #+begin_src sparql :tangle no
-   <ark:/87287/d7mh2m/relationship/13340713>
- #+end_src
-
+    #+name: grant_relationship+
+    #+begin_src sparql :tangle no
+      <ark:/87287/d7mh2m/relationship/13340713>
+    #+end_src
 
 *** best grant record
 
@@ -467,7 +466,7 @@ relationship here for testing.
  #+name: grant_record
  #+begin_src sparql :noweb yes :tangle no
    {
-     select ?relationship ?g ?record ?source
+     select ?relationship ?grant_id ?record ?source
      WHERE {
        {
          select ?relationship ?g (min(?id) as ?wanted_source_id)
@@ -486,11 +485,11 @@ relationship here for testing.
           .
        ?record :source-name  ?source;
                :source-id ?wanted_source_id;
+               :id-at-source ?grant_id;
                .
      }
    }
  #+end_src
-
 
 *** Wanted Roles
 
@@ -533,7 +532,6 @@ relationship here for testing.
 ##    ("ACCT-COPI" kfs:GrantAccountManagerRole vivo:ResearcherRole)
 #    }
     #+end_example
-
 
 *** Grant interval
     The grant interval needs to be both start and end_date
@@ -597,7 +595,6 @@ relationship here for testing.
     #+end_src
 
 *** Complete Grant Query
-
  #+name: grant
  #+begin_src sparql :noweb yes :tangle grant_role/construct.rq :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
    <<prefixes>>
@@ -609,16 +606,13 @@ relationship here for testing.
      obo:RO_0000052 ?expert;
      .
 
-     ?grant a ucdlib:Grant,vivo:Grant,?grant_type;
+     ?grant a vivo:Grant,?grant_type;
             ?field_predicate ?field_text;
             ?field_predicate ?field_money;
             vivo:assignedBy ?funder;
             vivo:dateTimeInterval ?interval;
             vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
             .
-
-     ?grant_type rdfs:label ?funding_type_label;
-                 .
 
      ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
                            vivo:relates ?labeled_only_pi,?grant;
@@ -752,7 +746,7 @@ relationship here for testing.
        <<grant_interval>>
      }
      bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
-     bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?grant)
+     bind(uri(?grant_id) as ?grant)
      bind(uri(concat(str(expert:),md5(?username))) as ?expert)
      bind(xsd:boolean(?visible_str) as ?visible)
      bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
