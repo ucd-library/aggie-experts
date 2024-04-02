@@ -64,6 +64,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideOaPolicyLink = false;
     this.errorMode = false;
     this.downloads = [];
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -108,6 +110,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     try {
       let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -129,6 +133,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;

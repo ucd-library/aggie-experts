@@ -75,6 +75,9 @@ return html`
     }
 
     .hero-main h1 .tooltip:hover ucdlib-icon,
+    .hero-main .experts span.hide-expert:hover ucdlib-icon,
+    .hero-main .experts span.show-expert:hover ucdlib-icon,
+    .hero-main .experts span.delete-expert:hover ucdlib-icon,
     .introduction h4 ucdlib-icon:hover,
     .roles-websites .roles h4 ucdlib-icon:hover,
     .roles-websites .websites h4 ucdlib-icon:hover,
@@ -85,6 +88,9 @@ return html`
 
 
     .hero-main h1 ucdlib-icon,
+    .hero-main .experts span.hide-expert ucdlib-icon,
+    .hero-main .experts span.show-expert ucdlib-icon,
+    .hero-main .experts span.delete-expert ucdlib-icon,
     .introduction h4 ucdlib-icon,
     .roles-websites h4 ucdlib-icon {
       display: inline-block;
@@ -191,7 +197,8 @@ return html`
       cursor: pointer;
     }
 
-    .introduction .more-about-me {
+    .introduction .more-about-me,
+    .no-introduction .no-display-data {
       padding-bottom: 1rem;
     }
 
@@ -290,7 +297,7 @@ return html`
 
     .grants-abbreviated .grant h5,
     .works-abbreviated .work h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: .5rem 0;
     }
 
@@ -369,6 +376,39 @@ return html`
       right: 5px;
     }
 
+    .tooltip.hide-expert:before {
+      width: 90px;
+      bottom: 33px;
+      right: -45px;
+    }
+
+    .tooltip.hide-expert:after {
+      bottom: 23px;
+      right: 5px;
+    }
+
+    .tooltip.show-expert:before {
+      width: 96px;
+      bottom: 33px;
+      right: -48px;
+    }
+
+    .tooltip.show-expert:after {
+      bottom: 23px;
+      right: 5px;
+    }
+
+    .tooltip.delete-expert:before {
+      width: 120px;
+      bottom: 33px;
+      right: -60px;
+    }
+
+    .tooltip.delete-expert:after {
+      bottom: 23px;
+      right: 5px;
+    }
+
     .tooltip.edit-roles:before {
       width: 80px;
       bottom: 35px;
@@ -415,7 +455,12 @@ return html`
       right: 22px;
     }
 
-    .tooltip.download-all-grants:before,
+    .tooltip.download-all-grants:before {
+      width: 150px;
+      bottom: 30px;
+      right: -75px;
+    }
+
     .tooltip.download-all-works:before {
       width: 145px;
       bottom: 30px;
@@ -477,12 +522,18 @@ return html`
       align-items: center;
     }
 
-    .last-updated-label {
+    .last-updated-label,
+    .no-display-data {
       color: #666;
       font-size: .95rem;
       font-style: italic;
       line-height: 1.625rem;
       padding-left: 1rem;
+    }
+
+    .no-display-data {
+      padding-top: .5rem;
+      padding-left: 0;
     }
 
     .btn--invert:before {
@@ -506,6 +557,16 @@ return html`
       font-style: italic;
       font-weight: 400;
       line-height: 2rem;
+    }
+
+    @media (max-width: 1080px) {
+      .tooltip.download-all-grants:before {
+        right: -25px;
+      }
+
+      .tooltip.download-all-works:before {
+        right: -25px;
+      }
     }
 
     @media (max-width: 992px) {
@@ -538,14 +599,27 @@ return html`
       .hideOaPolicyLink="${this.hideOaPolicyLink}"
       .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${(e) => this.showModal = false}>
+      @save=${this._onSave}>
     </app-modal-overlay>
     <div class="hero-main site-frame">
       <div class="hero-text">
         <div class="experts">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT</span>
-          <button ?hidden="${this.hideImpersonate}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
+          <button ?hidden="${this.hideImpersonate || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
+          <div ?hidden="${(!this.isAdmin || !this.hideImpersonate || this.expertImpersonating !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+            <span ?hidden="${!this.isVisible}" class="tooltip hide-expert" data-text="Hide expert">
+              <ucdlib-icon icon="ucdlib-experts:fa-eye" @click=${this._hideExpert}></ucdlib-icon>
+            </span>
+            <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">
+              <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._showExpert}></ucdlib-icon>
+            </span>
+          </div>
+          <div ?hidden="${(!this.isAdmin || !this.hideImpersonate || this.expertImpersonating !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+            <span class="tooltip delete-expert" data-text="Delete expert">
+              <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._deleteExpert}></ucdlib-icon>
+            </span>
+          </div>
         </div>
         <h1>${this.expertName}
           <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
@@ -571,6 +645,18 @@ return html`
       </div>
       <hr class="about-me seperator">
 
+      <div class="introduction no-introduction" ?hidden="${!this.canEdit || this.introduction || this.researchInterests}">
+        <h4>Introduction
+          <span ?hidden="${!this.canEdit}" style="position: relative;">
+            <span class="tooltip edit-about-me" data-text="Edit Introduction">
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                @click=${this._editAboutMe}>
+              </ucdlib-icon>
+            </span>
+          </span>
+        </h4>
+        <div class="no-display-data">No data to display</div>
+      </div>
       <div class="introduction" ?hidden="${!this.introduction && !this.researchInterests}">
         <h4>Introduction
           <span ?hidden="${!this.canEdit}" style="position: relative;">
@@ -602,7 +688,20 @@ return html`
         </div>
       </div>
 
+
       <div class="roles-websites">
+
+        <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
+          <h4>Roles
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+              <span class="tooltip edit-roles" data-text="Edit roles">
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
+              </span>
+            </a>
+          </h4>
+          <div class="no-display-data">No data to display</div>
+        </div>
+
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles
             <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
@@ -629,6 +728,19 @@ return html`
           </div>
           `
         )}
+        </div>
+
+        <div class="websites no-websites" ?hidden="${!this.canEdit || this.websites.length || this.orcId || this.scopusId || this.researcherId}">
+          <h4>Links
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
+              <span class="tooltip edit-websites" data-text="Edit links">
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                  @click=${this._editWebsites}>
+                </ucdlib-icon>
+              </span>
+            </span>
+          </h4>
+          <div class="no-display-data">No data to display</div>
         </div>
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
@@ -669,7 +781,7 @@ return html`
         </div>
       </div>
 
-      <div class="grants-abbreviated" ?hidden="${this.grants.length === 0}">
+      <div class="grants-abbreviated" ?hidden="${this.grants.length === 0 && (!this.canEdit || this.totalGrants === 0)}">
         <div class="grants-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="file-invoice-dollar" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
@@ -737,7 +849,7 @@ return html`
         </div>
       </div>
 
-      <div class="works-abbreviated" ?hidden="${this.citations.length === 0}">
+      <div class="works-abbreviated" ?hidden="${this.citations.length === 0 && (!this.canEdit || this.totalCitations === 0)}">
         <div class="works-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
@@ -771,11 +883,11 @@ return html`
           (cite) => html`
             <h4 style="margin: 1.19rem 0;">${cite.issued?.[0]}</h4>
             <div class="work">
-              <h5>${unsafeHTML(cite.title)}</h5>
+              <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">.</span>
-                ${unsafeHTML(cite.apa.replace('(n.d.). ', '').replace('(n.d.).', ''))}
+                ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
               </div>
             </div>
             <br>

@@ -48,7 +48,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.AppStateModel.location.page !== 'search' ) return;
 
     // update search term
-    this.searchTerm = this.AppStateModel.location.fullpath.replace('/search/', '');
+    this.searchTerm = decodeURI(this.AppStateModel.location.fullpath.replace('/search/', ''));
 
     this._onSearch({ detail: this.searchTerm });
   }
@@ -124,6 +124,7 @@ export default class AppSearch extends Mixin(LitElement)
       if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
       let subtitle = r.name?.split('§')?.pop()?.trim();
+      if( name === subtitle ) subtitle = '';
       let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
       let numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 

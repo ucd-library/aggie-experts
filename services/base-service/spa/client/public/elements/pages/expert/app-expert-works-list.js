@@ -5,7 +5,7 @@ import {render} from "./app-expert-works-list.tpl.js";
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
 
 export default class AppExpertWorksList extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -34,6 +34,8 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     this.render = render.bind(this);
   }
@@ -73,6 +75,8 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     try {
       let expert = await this.ExpertModel.get(expertId);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -94,6 +98,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.name;
@@ -109,7 +114,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
-
     citations = citations.map(c => {
       let citation = { ...c };
       citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
@@ -120,23 +124,29 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      // validate issue date
+      let validation = Citation.validateIssueDate(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
+      // validate title
+      validation = Citation.validateTitle(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
 
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
-    this.citationsDisplayed = citationResults.map(c => c.value);
+    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     this.citationsDisplayed.forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
       if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
         delete cite.issued;

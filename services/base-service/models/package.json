@@ -11,6 +11,9 @@
   "dependencies": {
     "@ucd-lib/experts-api": "^1.1.0",
     "jsonld": "^8.1.0",
-    "md5": "^2.3.0"
+    "md5": "^2.3.0",
+    "path": "^0.12.7",
+    "swagger-ui-express": "^5.0.0",
+    "yamljs": "^0.3.0"
   }
 }

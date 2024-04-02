@@ -395,19 +395,15 @@ class BaseModel extends FinEsDataModel {
    * @returns {Promise} resolves to elasticsearch result
    */
   async get(id, opts={}, index) {
+    if( id[0] === '/' ) id = id.substring(1);
     let _source_excludes = true;
     if( opts.admin ) _source_excludes = false;
     else if( opts.compact ) _source_excludes = 'compact';
 
-    let identifier = id.replace(/^\//, '').split('/');
-    identifier.shift();
-    identifier = identifier.join('/');
-    //console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
-
     let result= await this.client.get(
       {
         index: this.readIndexAlias,
-        id: identifier,
+        id: id,
         _source: true,
 	      _source_excludes: _source_excludes
       }
