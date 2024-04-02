@@ -39,7 +39,7 @@ router.get('/grants', async (req, res) => {
         grant_amount: hit.totalAwardAmount,
         sponsor_id: hit.sponsorAwardId,
         sponsor_name: hit.assignedBy.name,
-        type: hit['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'].name,
+        type: hit['@type'],
         role_label: hit.relatedBy.find(x => x.inheres_in)['@type']
       });
       hit.relatedBy.forEach((x) => {

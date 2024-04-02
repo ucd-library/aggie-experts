@@ -1,51 +1,23 @@
 const router = require('express').Router();
-const BaseModel = require('../base/model.js');
+const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
-
-const experts = new BaseModel();
-
-router.get('/render', async (req, res) => {
-  const params = {};
-  ["inner_hit_size","size","page","q"].forEach((key) => {
-    if (req.query[key]) { params[key] = req.query[key]; }
-  });
-  opts = {
-    index: "expert-read",
-    id: "default",
-    params
-  };
-  try {
-  const template = await experts.render(opts);
-    res.send(template);
-  } catch (err) {
-    res.status(400).send('Invalid request');
-  }
-});
+const template = require('./template/default.json');
+const experts = new ExpertModel();
 
 router.get('/', async (req, res) => {
   const params = {};
-  let template = "default";
-
-  // If template parameter is passed, check admin status
-  if (req.query.template) {
-    if (req.user?.roles?.includes('admin')) {
-      template = req.query.template;
-    } else {
-      res.status(401).send('Unauthorized parameter(s)');
-    }
-  }
 
   ["inner_hit_size","size","page","q"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
-    index: "expert-read",
-    id: template,
+    id: template.id,
     params
   };
   try {
-    const template = await experts.search(opts);
-    res.send(template);
+    await experts.verify_template(template);
+    const find = await experts.search(opts);
+    res.send(find);
   } catch (err) {
     res.status(400).send('Invalid request');
   }

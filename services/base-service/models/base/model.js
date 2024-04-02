@@ -249,10 +249,15 @@ class BaseModel extends FinEsDataModel {
     for (let t of template) {
       try {
         logger.info(`checking template ${t.id}`);
-        await this.client.getScript(t.id);
+        let result = await this.client.getScript({id:t.id});
+        logger.info(`template ${t.id} ${result}`);
       } catch (err) {
-        logger.info(`adding template ${t.id}`);
-        const result=await this.client.putScript(t);
+        try {
+          logger.info(`adding template ${t.id}`);
+          const result=await this.client.putScript(t);
+        } catch (err) {
+          throw new Error(`verify_template: ${err}`);
+        }
       }
     }
     return true;
@@ -329,9 +334,6 @@ class BaseModel extends FinEsDataModel {
       let template=opts.search_templates[i];
       if(template?.params) {
         template.params = this.common_parms(template.params);
-      }
-      if (template?.id) {
-        await this.verify_template(template);
       }
     }
 
