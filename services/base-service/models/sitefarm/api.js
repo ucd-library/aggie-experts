@@ -105,7 +105,7 @@ router.get('/experts/:ids', json_only, async (req, res, next) => {
   var doc;
 
   for (const id of id_array) {
-    const full = 'expert/' + expert_model.id + '/' + id;
+    const full = expert_model.id + '/' + id;
     try {
       let opts = {
         admin: req.query.admin ? true : false,
