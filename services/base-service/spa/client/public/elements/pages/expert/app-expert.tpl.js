@@ -717,10 +717,10 @@ return html`
             <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <div class="link-row" ?hidden="${!role.websiteUrl}">
+            <!-- <div class="link-row" ?hidden="${!role.websiteUrl}">
               <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
               <span><a href="${role.websiteUrl}">${role.websiteUrl}</a></span>
-            </div>
+            </div> -->
             <div class="link-row" ?hidden="${!role.email}">
               <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
               <span><a href="mailto:${role.email}">${role.email}</a></span>
