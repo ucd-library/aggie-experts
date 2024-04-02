@@ -622,7 +622,7 @@ return html`
           </div>
         </div>
         <h1>${this.expertName}
-          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
             <span class="tooltip edit-name" data-text="Edit name">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
             </span>
@@ -693,7 +693,7 @@ return html`
 
         <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
           <h4>Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
               <span class="tooltip edit-roles" data-text="Edit roles">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
@@ -704,7 +704,7 @@ return html`
 
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
               <span class="tooltip edit-roles" data-text="Edit roles">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>

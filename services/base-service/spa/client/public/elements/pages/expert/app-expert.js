@@ -89,7 +89,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     this._reset();
 
-    if( this.expertImpersonating === this.expertId && this.expertId.length > 0 ) this.canEdit = true;
+    if( (this.expertImpersonating === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
@@ -248,11 +248,6 @@ export default class AppExpert extends Mixin(LitElement)
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
     this.totalCitations = citations.length;
 
-    // filter out non is-visible citations
-    let citationValidation = Citation.validateIsVisible(citations);
-    if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
-    citations = citations.filter(c => c.relatedBy?.['is-visible']);
-
     citations = citations.map(c => {
       let citation = { ...c };
       citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
@@ -276,6 +271,11 @@ export default class AppExpert extends Mixin(LitElement)
 
       this.totalCitations = citations.length;
     }
+
+    // filter out non is-visible citations
+    let citationValidation = Citation.validateIsVisible(citations);
+    if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
+    citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
@@ -440,7 +440,8 @@ export default class AppExpert extends Mixin(LitElement)
       }
 
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
-      window.location.href = `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId : ''}`
+      let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
+      window.open(`https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`, '_blank');
     }
 
     this.modalAction = '';
