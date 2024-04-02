@@ -171,6 +171,10 @@ class Utils {
 
       if( Array.isArray(g.name) ) g.name = g.name[0];
 
+      // if grant idenfication number is in the name/title, remove it
+      let grantIdentifier = g['@id'].split('grant/').pop();
+      if( g.name.includes(grantIdentifier) ) g.name = g.name.replace(grantIdentifier, '');
+
       return g;
     });
 
