@@ -137,8 +137,6 @@ class Utils {
         if( !isExpert ) otherRelationships.push(r);
       });
 
-      console.log({ expertsRelationship, otherRelationships });
-
       if( filterHidden && !expertsRelationship['is-visible'] ) {
         console.warn('Invalid grant is-visible, should be true', g);
         return;
@@ -150,6 +148,8 @@ class Utils {
       // determine pi/copi in otherRelationships
       let contributors = otherRelationships.map(r => {
         let contributorRole = this.getGrantRole(r['@type'] || '');
+        if( contributorRole !== 'Co-Principal Investigator' ) return;
+
         let contributorName = r.relates.filter(relate => relate.name)[0]?.name || '';
         if( contributorName && contributorRole ) {
           return {
