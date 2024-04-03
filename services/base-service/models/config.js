@@ -8,10 +8,10 @@ config.experts = {
   cdl: {
     expert: {
       propagate: (process.env.CDL_PROPAGATE_CHANGES === "true") || false,
-      instance:"qa" },
+      instance:"prod" },
     grant_role: {
       propagate: (process.env.CDL_PROPAGATE_CHANGES === "true") || false,
-      instance:"qa"},
+      instance:"prod"},
     authorship: {
       propagate: (process.env.CDL_PROPAGATE_CHANGES === "true") || false,
       instance:"prod"
