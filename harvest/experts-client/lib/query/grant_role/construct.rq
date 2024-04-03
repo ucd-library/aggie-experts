@@ -30,6 +30,7 @@ construct {
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
+         ucdlib:flowThruFunding ?flow_thru_funding;
          .
 
   ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
@@ -50,6 +51,10 @@ construct {
 
   ?funder a vivo:FundingOrganization;
           rdfs:label ?funder_label;
+          .
+
+  ?flow_thru_funding a vivo:FundingOrganization;
+                     rdfs:label ?flow_thru_funding_label;
           .
 
   ?interval
@@ -107,7 +112,7 @@ WHERE {
             bind(?RELATIONSHIP__ as ?relationship)
             graph cdl: {
               ?RELATIONSHIP__ :related ?g.
-    
+
               ?g :category "grant";
                  :records/:record/:source-id ?id;
                  .
@@ -132,6 +137,7 @@ WHERE {
       ("funder-reference" "text" vivo:sponsorAwardId)
       ("funding-type" "special" ucdlib:none)
       ("funder-name" "special" ucdlib:none)
+      ("c-flow-thru-funding" "special" ucdlib:none)
       ("c-pi" "special" ucdlib:none)
       ("c-co-pis" "special" ucdlib:none)
     }
@@ -187,6 +193,13 @@ WHERE {
     }
 
     OPTIONAL {
+      ?field :name "c-flow-thru-funding";
+             :type "text";
+             :text ?flow_thru_funding_str;
+             .
+    }
+
+    OPTIONAL {
       ?field :name "funder-name";
              :type "text";
              :text ?funder_label;
@@ -205,7 +218,7 @@ WHERE {
                 bind(?RELATIONSHIP__ as ?relationship)
                 graph cdl: {
                   ?RELATIONSHIP__ :related ?g.
-        
+
                   ?g :category "grant";
                      :records/:record/:source-id ?id;
                      .
@@ -223,13 +236,13 @@ WHERE {
         ?record :native/:field ?s;
                 :native/:field ?e;
                 .
-    
+
         ?s :name "start-date";
            :type "date";
            :date ?s_date;
            .
         ?s_date :year ?syear.
-    
+
         BIND(vivo:yearPrecision AS ?syear_p)
         OPTIONAL {
           ?s_date :month ?sm_raw.
@@ -245,13 +258,13 @@ WHERE {
         }
         BIND(CONCAT(?syear, COALESCE(?smonth, ""), COALESCE(?sday, "")) AS ?start_date)
         BIND(coalesce(?sday_p,?smonth_p,?syear_p) as ?start_date_precision)
-    
+
         ?e :name "end-date";
            :type "date";
            :date ?e_date;
            .
         ?e_date :year ?eyear.
-    
+
         BIND(vivo:yearPrecision AS ?eyear_p)
         OPTIONAL {
           ?e_date :month ?em_raw.
@@ -267,7 +280,7 @@ WHERE {
         }
         BIND(CONCAT(?eyear, COALESCE(?emonth, ""), COALESCE(?eday, "")) AS ?end_date)
         BIND(coalesce(?eday_p,?emonth_p,?eyear_p) as ?end_date_precision)
-    
+
       }
     }
   }
@@ -281,6 +294,7 @@ WHERE {
   bind(uri(concat(str(?grant),'#end_date')) as ?ed)
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
+  bind(uri(?flow_thru_funding_str) as ?flow_thru_funding)
   bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
   bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
   bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
