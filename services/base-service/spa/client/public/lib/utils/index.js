@@ -164,7 +164,14 @@ class Utils {
       // determine role/type using expertsRelationship
       g.role = this.getGrantRole(expertsRelationship['@type'] || '');
 
-      g.type = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
+      // determine type(s) from all types excluding 'Grant', and split everything after 'Grant_' by uppercase letters with space
+      // should just be one type, but just in case
+      try {
+        g.types = (g['@type'] || []).filter(t => t !== 'Grant').map(t => t.split('Grant_')[1].replace(/([A-Z])/g, ' $1').trim());
+      } catch(e) {
+        console.error('Error parsing grant types', g);
+        g.types = [];
+      }
 
       // determine awarded-by
       g.awardedBy = g.assignedBy?.name;

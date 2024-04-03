@@ -346,7 +346,7 @@ export default class AppExpert extends Mixin(LitElement)
         '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
         '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
-        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + grant.types.join(', ') + '"',                           // Type of Grant
         '"' + (grant.role || '') + '"',                               // Role of Grant
         '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (PIs and CoPIs)
       ]);
