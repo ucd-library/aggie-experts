@@ -70,11 +70,13 @@ module.exports = async (app) => {
         user,
         appRoutes : config.client.appRoutes,
         env : config.client.env,
+        enableGA4Stats : config.client.enableGA4Stats,
+        gaId : config.client.gaId,
       });
     },
 
     template : async (req, res, next) => {
-      return next({title: 'Aggie Experts'});
+      return next({title: 'Aggie Experts', gaId: config.client.gaId});
     }
   });
 
