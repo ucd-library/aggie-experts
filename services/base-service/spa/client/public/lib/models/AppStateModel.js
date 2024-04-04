@@ -8,6 +8,10 @@ class AppStateModelImpl extends AppStateModel {
     super();
     this.store = AppStateStore;
 
+    if( !APP_CONFIG.enableGA4Stats ) console.warn('GA4 stats are disabled by flag');
+    if( !window.gtag ) console.warn('No global gtag variable set for analytics events');
+    if( APP_CONFIG.gaId && !APP_CONFIG.enableGA4Stats ) console.warn('GA4 stats are enabled but no GA ID is set');
+
     this.init(APP_CONFIG.appRoutes);
     this._sendGA();
   }
@@ -38,11 +42,15 @@ class AppStateModelImpl extends AppStateModel {
    * @description send a google analytics event if pathname has changed
    */
   _sendGA() {
-    if( !window.gtag ) return console.warn('No global gtag variable set for analytics events');
+    if( !APP_CONFIG.enableGA4Stats ) return;
+    if( !window.gtag ) return;
+    if( !APP_CONFIG.gaId ) return;
+
     if( this.lastGaLocation === window.location.pathname ) return;
     this.lastGaLocation = window.location.pathname;
 
-    gtag('config', APP_CONFIG.gaCode, {
+    // temp hack until env variables are used
+    gtag('config', (APP_CONFIG.gaId), {
       page_path: window.location.pathname
     });
   }

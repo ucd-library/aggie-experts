@@ -95,6 +95,8 @@ services:
       - *SERVICE_ACCOUNT
       - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
     command: node spa/index.js
+    env_file:
+      - .env
     # command: bash -c 'tail -f /dev/null'
 
   ###
