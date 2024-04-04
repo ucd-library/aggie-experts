@@ -95,9 +95,9 @@ services:
       - *SERVICE_ACCOUNT
       - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
     command: node spa/index.js
-    env_file:
-      - .env
-    # command: bash -c 'tail -f /dev/null'
+    environment:
+      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-false}
+      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
 
   ###
   # External Database Sync Services

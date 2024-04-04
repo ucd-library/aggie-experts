@@ -13,7 +13,7 @@ config.client = {
   title : 'Aggie Experts',
   description : 'Aggie Experts is a research networking and expertise discovery tool for UC Davis.',
   appName : process.env.FIN_APP_NAME || 'spa',
-  enableGA4Stats : process.env.ENABLE_GA4_STATS === 'true',
+  enableGA4Stats : process.env.GA4_ENABLE_STATS === 'true',
   gaId : process.env.GA4_MEASUREMENT_ID || '',
   assets : (env === 'prod') ? 'dist' : 'public',
   appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'works', 'works-edit', 'browse', 'grants', 'grants-edit'],

@@ -544,7 +544,7 @@ function setup() {
     echo -e "FIN_ORG=$fin_org\nFIN_TAG=$fin_tag\nORG=$org\nTAG=$tag"
     echo -e "GCS=$gcs"
     echo -e "CDL_PROPAGATE_CHANGES=$propagate"
-    echo -e "ENABLE_GA4_STATS=false\nGA4_MEASUREMENT_ID=$gaid"
+    echo -e "GA4_ENABLE_STATS=false\nGA4_MEASUREMENT_ID=$gaid"
   }
 
   function service_account() {
