@@ -137,8 +137,6 @@ class Utils {
         if( !isExpert ) otherRelationships.push(r);
       });
 
-      console.log({ expertsRelationship, otherRelationships });
-
       if( filterHidden && !expertsRelationship['is-visible'] ) {
         console.warn('Invalid grant is-visible, should be true', g);
         return;
@@ -150,6 +148,8 @@ class Utils {
       // determine pi/copi in otherRelationships
       let contributors = otherRelationships.map(r => {
         let contributorRole = this.getGrantRole(r['@type'] || '');
+        if( contributorRole !== 'Co-Principal Investigator' ) return;
+
         let contributorName = r.relates.filter(relate => relate.name)[0]?.name || '';
         if( contributorName && contributorRole ) {
           return {
@@ -164,12 +164,23 @@ class Utils {
       // determine role/type using expertsRelationship
       g.role = this.getGrantRole(expertsRelationship['@type'] || '');
 
-      g.type = g['http://www.w3.org/1999/02/22-rdf-syntax-ns#type']?.name;
+      // determine type(s) from all types excluding 'Grant', and split everything after 'Grant_' by uppercase letters with space
+      // should just be one type, but just in case
+      try {
+        g.types = (g['@type'] || []).filter(t => t !== 'Grant').map(t => t.split('Grant_')[1].replace(/([A-Z])/g, ' $1').trim());
+      } catch(e) {
+        console.error('Error parsing grant types', g);
+        g.types = [];
+      }
 
       // determine awarded-by
       g.awardedBy = g.assignedBy?.name;
 
       if( Array.isArray(g.name) ) g.name = g.name[0];
+
+      // if grant idenfication number is in the name/title, remove it
+      let grantIdentifier = g['@id'].split('grant/').pop();
+      if( g.name.includes(grantIdentifier) ) g.name = g.name.replace(grantIdentifier, '');
 
       return g;
     });

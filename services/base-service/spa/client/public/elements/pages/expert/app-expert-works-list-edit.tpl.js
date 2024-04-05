@@ -367,7 +367,8 @@ return html`
           current-page=${this.currentPage}
           max-pages=${this.paginationTotal}
           @page-change=${this._onPaginationChange}
-          xs-screen>
+          xs-screen
+          ellipses>
         </ucd-theme-pagination>
 
       </div>

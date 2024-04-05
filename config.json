@@ -21,7 +21,8 @@
       "port":"80",
       "host":"http://localhost",
       "gcs":"fcrepo-dev",
-      "gcs-subscription":"local-dev"
+      "gcs-subscription":"local-dev",
+      "gaid":"G-GM57B0V0WC"
     },
     "clean":{
       "org":"localhost/aggie-experts",
@@ -35,7 +36,8 @@
       "server":"!(experts.library.ucdavis.edu)",
       "port":"80",
       "host":"http://localhost",
-      "gcs":"fcrepo-dev"
+      "gcs":"fcrepo-dev",
+      "gaid":"G-GM57B0V0WC"
     },
     "sandbox":{
       "org":"localhost/aggie-experts",
@@ -49,7 +51,8 @@
       "server":"experts.library.ucdavis.edu",
       "port":"10180",
       "host":"https://sandbox.experts.library.ucdavis.edu",
-      "gcs":"fcrepo-sandbox"
+      "gcs":"fcrepo-sandbox",
+      "gaid":"G-GM57B0V0WC"
     },
     "stage":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
@@ -63,7 +66,8 @@
       "gcs":"fcrepo-prod",
       "port":"10380",
       "host":"https://stage.experts.library.ucdavis.edu",
-      "branch":"(dev|main)"
+      "branch":"(dev|main)",
+      "gaid":"G-GM57B0V0WC"
     },
     "test":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
@@ -77,7 +81,8 @@
       "gcs":"fcrepo-prod",
       "port":"10280",
       "host":"https://test.experts.library.ucdavis.edu",
-      "branch":"(dev|main)"
+      "branch":"(dev|main)",
+      "gaid":"G-GM57B0V0WC"
     },
     "prev-test":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
@@ -91,7 +96,8 @@
       "gcs":"fcrepo-prod",
       "port":"10480",
       "host":"https://prev_test.experts.library.ucdavis.edu",
-      "branch":"(dev|main)"
+      "branch":"(dev|main)",
+      "gaid":"G-GM57B0V0WC"
     },
     "build":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
@@ -111,7 +117,8 @@
       "branch":"main",
       "cdl":{
         "propagate_changes":"true"
-      }
+      },
+      "gaid":"G-GM57B0V0WC"
     }
   },
   "fin":{

@@ -28,7 +28,7 @@
                           "@graph.DOI^10",
                           "@graph.abstract^5",
                           "@graph.contactInfo.hasEmail^10",
-                          "@graph.contactInfo.hasName.family^10",
+                          "@graph.contactInfo.hasName.family^20",
                           "@graph.contactInfo.hasName.given^5",
                           "@graph.contactInfo.hasName.middle^5",
                           "@graph.contactInfo.hasTitle.name^5",
