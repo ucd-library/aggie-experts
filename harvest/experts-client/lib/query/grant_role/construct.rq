@@ -124,30 +124,24 @@ WHERE {
     }
     ?record :native/:field ?field.
 
-    VALUES(?field_name ?field_type ?field_predicate) {
-      ("title" "text" rdfs:label)
-      ("amount" "money" vivo:totalAwardAmount)
-      ("start-date" "date" vivo:start)
-      ("end-date" "date" vivo:end)
-      ("funder-reference" "text" vivo:sponsorAwardId)
-      ("funding-type" "special" ucdlib:none)
-      ("funder-name" "special" ucdlib:none)
-      ("c-pi" "special" ucdlib:none)
-      ("c-co-pis" "special" ucdlib:none)
+    ?field :name "title";
+           :type "text";
+           :text ?grant_label;
+           .
+    bind(replace(?label,"(?:SEE\\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\\s*-)?\\s*)*\\s*(?:SP0A\\d{6})?(..*?)(\\s+K.[0-9]{2}.[0-9]{1,2})?$","$1") as ?grant_title)
+
+
+    OPTIONAL {
+      ?field :name "funder-reference";
+             :type "text";
+             :text ?sponsor_award_id;
+             .
     }
 
     OPTIONAL {
-      ?field :name ?field_name;
-             :type "text";
-             :type ?field_type ;
-      :text ?field_text ;
-      .
-    }
-    OPTIONAL {
-      ?field :name ?field_name;
+      ?field :name amount;
              :type "money";
-             :type ?field_type;
-             :money/:field-value ?field_money;
+             :money/:field-value ?total_award_amount;
              .
     }
 
