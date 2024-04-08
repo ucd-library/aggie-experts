@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
   });
 
   if (params.p) {
-    opts = {
+    const opts = {
       index: "expert-read",
       id: "family_prefix",
       params
