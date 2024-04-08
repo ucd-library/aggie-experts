@@ -12,12 +12,14 @@ router.get('/', async (req, res) => {
   ["size","page","p"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
-  opts = {
-    index: "expert-read",
-    id: "family_prefix",
-    params
-  };
+
   if (params.p) {
+    const opts = {
+      index: "expert-read",
+      id: "family_prefix",
+      params
+    };
+
     try {
       await experts.verify_template(template);
       const find = await experts.search(opts);
