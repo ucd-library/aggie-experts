@@ -170,7 +170,7 @@ class Utils {
         g.types = (g['@type'] || []).filter(t => t !== 'Grant').map(t => t.split('Grant_')[1].replace(/([A-Z])/g, ' $1').trim());
       } catch(e) {
         console.error('Error parsing grant types', g);
-        g.types = [];
+        g.types = ['Grant'];
       }
 
       // determine awarded-by
