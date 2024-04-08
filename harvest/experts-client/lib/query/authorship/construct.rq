@@ -53,7 +53,7 @@ construct {
   # This needs adding via indirect link
   ?journalURI vivo:publicationVenueFor ?experts_work_id .
 
-  ?journalURI rdfs:label ?journal_title;
+  ?journalURI schema:name ?journal_title;
               vivo:issn ?issn;
               .
 }

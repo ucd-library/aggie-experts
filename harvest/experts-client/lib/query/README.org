@@ -299,7 +299,7 @@ relationship here for testing.
      # This needs adding via indirect link
      ?journalURI vivo:publicationVenueFor ?experts_work_id .
 
-     ?journalURI rdfs:label ?journal_title;
+     ?journalURI schema:name ?journal_title;
                  vivo:issn ?issn;
                  .
    }
@@ -622,7 +622,7 @@ relationship here for testing.
                            .
 
      ?labeled_only_pi a vivo:Person;
-                      rdfs:label ?labeled_only_pi_name;
+                      schema:name ?labeled_only_pi_name;
                       .
 
      ?labeled_only_co_pi_role a vivo:CoPrincipalInvestigatorRole;
@@ -630,11 +630,11 @@ relationship here for testing.
                               .
 
      ?labeled_only_co_pi a vivo:Person;
-                         rdfs:label ?labeled_only_co_pi_name;
+                         schema:name ?labeled_only_co_pi_name;
                          .
 
      ?funder a vivo:FundingOrganization;
-             rdfs:label ?funder_label;
+             schema:name ?funder_label;
              .
 
      ?interval
