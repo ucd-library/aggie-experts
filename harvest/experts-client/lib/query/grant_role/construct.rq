@@ -10,6 +10,7 @@ PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX schema: <http://schema.org/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX venue: <http://experts.ucdavis.edu/venue/>
@@ -25,8 +26,10 @@ construct {
   .
 
   ?grant a vivo:Grant,?grant_type;
-         ?field_predicate ?field_text;
-         ?field_predicate ?field_money;
+         rdfs:label ?grant_label;
+         schema:name ?grant_title;
+         vivo:totalAwardAmount ?amount;
+         vivo:sponsorAwardId ?sponsor_award_id;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
@@ -124,12 +127,13 @@ WHERE {
     }
     ?record :native/:field ?field.
 
-    ?field :name "title";
-           :type "text";
-           :text ?grant_label;
-           .
-    bind(replace(?label,"(?:SEE\\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\\s*-)?\\s*)*\\s*(?:SP0A\\d{6})?(..*?)(\\s+K.[0-9]{2}.[0-9]{1,2})?$","$1") as ?grant_title)
-
+    OPTIONAL {
+      ?field :name "title";
+             :type "text";
+             :text ?grant_label;
+             .
+      bind(replace(?grant_label,"(?:SEE\\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\\s*-)?\\s*)*\\s*(?:SP0A\\d{6})?(..*?)(\\s+K.[0-9]{2}.[0-9]{1,2})?$","$1") as ?grant_title)
+    }
 
     OPTIONAL {
       ?field :name "funder-reference";

@@ -145,7 +145,7 @@
     "LeaderRole":"vivo:LeaderRole",
     "license":{"@id":"cite:license"},
     "Name":{"@id":"vcard:Name"},
-    "name":{"@id":"rdfs:label"},
+    "name":{"@id":"schema:name"},
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
     "page":{"@id":"cite:page"},
