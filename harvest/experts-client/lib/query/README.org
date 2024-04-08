@@ -689,7 +689,7 @@ relationship here for testing.
        }
 
        OPTIONAL {
-         ?field :name amount;
+         ?field :name "amount";
                 :type "money";
                 :money/:field-value ?total_award_amount;
                 .
