@@ -170,7 +170,7 @@ WHERE {
         (ucdlib:Grant_Default "Default" )
         (ucdlib:Grant_Instruction "Instruction" )
         (ucdlib:Grant_Research "Research" )
-        (ucdlib:Grant_Service "Service / Other" )
+        (ucdlib:Grant_Service "Public Service / Other" )
         (ucdlib:Grant_Scholarship "Scholarships / Fellowships" )
         (ucdlib:Grant_StudentService "Student Services" )
       }
