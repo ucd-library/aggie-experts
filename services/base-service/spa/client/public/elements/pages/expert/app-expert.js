@@ -128,7 +128,7 @@ export default class AppExpert extends Mixin(LitElement)
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('/user'))?.[0]?.split('/')?.pop() || '';
 
-    this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     // max 500 characters, unless 'show me more' is clicked
     this.introduction = graphRoot.overview || '';
