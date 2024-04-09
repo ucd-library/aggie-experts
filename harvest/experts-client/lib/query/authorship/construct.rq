@@ -10,6 +10,7 @@ PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX schema: <http://schema.org/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX venue: <http://experts.ucdavis.edu/venue/>
@@ -52,7 +53,7 @@ construct {
   # This needs adding via indirect link
   ?journalURI vivo:publicationVenueFor ?experts_work_id .
 
-  ?journalURI rdfs:label ?journal_title;
+  ?journalURI schema:name ?journal_title;
               vivo:issn ?issn;
               .
 }
