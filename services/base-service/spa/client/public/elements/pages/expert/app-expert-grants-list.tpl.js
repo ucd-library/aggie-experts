@@ -80,7 +80,7 @@ return html`
     }
 
     .main-content .grant h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: 0.5rem 0;
     }
 
@@ -178,7 +178,8 @@ return html`
         current-page=${this.currentPage}
         max-pages=${this.paginationTotal}
         @page-change=${this._onPaginationChange}
-        xs-screen>
+        xs-screen
+        ellipses>
       </ucd-theme-pagination>
     </div>
 

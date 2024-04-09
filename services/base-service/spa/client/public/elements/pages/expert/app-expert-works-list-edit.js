@@ -6,7 +6,9 @@ import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import '../../components/modal-overlay.js';
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
+
+import utils from '../../../lib/utils';
 
 export default class AppExpertWorksListEdit extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -27,6 +29,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
       hideOK : { type : Boolean },
+      hideOaPolicyLink : { type : Boolean },
+      errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
     }
@@ -57,7 +61,11 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = false;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
     this.downloads = [];
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -92,14 +100,17 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     window.scrollTo(0, 0);
 
+    this.modifiedWorks = false;
     let expertId = e.location.pathname.replace('/works-edit/', '');
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || APP_CONFIG.impersonating?.expertId === expertId);
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
       let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -121,9 +132,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     await this._loadCitations();
   }
@@ -136,30 +148,44 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
+
     this.totalCitations = citations.length;
     this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
+
+    citations = citations.map(c => {
+      let citation = { ...c };
+      citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
+      return citation;
+    });
 
     try {
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      // validate issue date
+      let validation = Citation.validateIssueDate(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
+      // validate title
+      validation = Citation.validateTitle(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+      this.totalCitations = citations.length;
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
 
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
-    this.citationsDisplayed = citationResults.map(c => c.value);
+    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     this.citationsDisplayed.forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
       if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
         delete cite.issued;
@@ -270,6 +296,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     let downloads = this.citationsDisplayed.filter(c => this.downloads.includes(c['@id']));
 
+    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
+    this.citationsDisplayed = this.citationsDisplayed.slice(startIndex, startIndex + this.resultsPerPage)
+
     let text = downloads.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
@@ -288,12 +317,135 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show modal with link to hide work
    */
   _hideWork(e) {
+    this.citationId = e.currentTarget.dataset.id;
+
     this.modalTitle = 'Hide Work';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _showWork
+   * @description show work
+   */
+  async _showWork(e) {
+    this.citationId = e.currentTarget.dataset.id;
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
+    try {
+      let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+    } catch (error) {
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+      let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+      this.modalTitle = 'Error: Update Failed';
+      this.modalContent = modelContent;
+      this.showModal = true;
+      this.hideCancel = true;
+      this.hideSave = true;
+      this.hideOK = false;
+      this.hideOaPolicyLink = true;
+      this.errorMode = true;
+
+      return;
+    }
+
+
+    this.modifiedWorks = true;
+
+    let expert = await this.ExpertModel.get(this.expertId, true);
+    this._onExpertUpdate(expert);
+  }
+
+  /**
+   * @method _modalSave
+   * @description modal save event
+   */
+  async _modalSave(e) {
+    e.preventDefault();
+
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
+    this.showModal = false;
+    let action = e.currentTarget.title.trim() === 'Hide Work' ? 'hide' : 'reject';
+    this.modifiedWorks = true;
+
+    if( action === 'hide' ) {
+      try {
+        let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+        let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+      }
+
+      // update graph/display data
+      let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      citation = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+
+      this.requestUpdate();
+    } else if ( action === 'reject' ) {
+      try {
+        let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+        let modelContent = `<p>Rejecting (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+      }
+
+      // remove citation from graph/display data
+      // also if total citations > 25, need to reorganize
+      this.citations = this.citations.filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      this.citationsDisplayed = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      this.expert['@graph'] = this.expert['@graph'].filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      this._onPaginationChange({ detail: { page: this.currentPage } });
+
+      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+      this.totalCitations = this.citations.length;
+      this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+
+      this.requestUpdate();
+    }
+
+    // let expert = await this.ExpertModel.get(this.expertId, true);
+    // this._onExpertUpdate(expert);
   }
 
   /**
@@ -301,12 +453,33 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show modal with link to reject work
    */
   _rejectWork(e) {
+    this.citationId = e.currentTarget.dataset.id;
+
     this.modalTitle = 'Reject Work';
-    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from being associated with you in both Aggie Experts and the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
+    this.modalContent = `<p>This record will be <strong>permanently removed</strong> from your Aggie Experts profile. To reclaim this item, you must do so via the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _addNewWorkClicked
+   * @description show modal with link to add work
+   */
+  _addNewWorkClicked(e) {
+    e.preventDefault();
+    // this.AppStateModel.setLocation('/works-add/'+this.expertId);
+    this.modalTitle = 'Add New Work';
+    this.modalContent = `<p>New works are added, claimed or rejected via the <strong>UC Publication Management System.</strong></p><p>You will be redirected to this system.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = true;
+    this.hideOK = true;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
   }
 
   /**
@@ -321,7 +494,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
 
-
+    this.AppStateModel.store.data.modifiedWorks = true;
     this.AppStateModel.setLocation('/'+this.expertId);
   }
 

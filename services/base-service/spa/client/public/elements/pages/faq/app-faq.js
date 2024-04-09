@@ -20,10 +20,29 @@ export default class AppFaq extends Mixin(LitElement)
     super();
     this._injectModel('AppStateModel');
 
-    this.isLoggedIn = false;
+    this.isLoggedIn = APP_CONFIG.user?.preferred_username ? true : false;
     this.imgPath = '/images/faq/';
 
     this.render = render.bind(this);
+  }
+
+  async firstUpdated() {
+    this._onAppStateUpdate(await this.AppStateModel.get());
+  }
+
+  /**
+   * @method _onAppStateUpdate
+   * @description bound to AppStateModel app-state-update event
+   *
+   * @return {Object} e
+   */
+  async _onAppStateUpdate(e) {
+    if( e.location.page !== 'faq' ) return;
+
+    // jumpTo section if hash in url path
+    if( e.location.hash ) {
+      requestAnimationFrame(() => this._jumpTo({currentTarget: {dataset: {jumpTo: e.location.hash}}}));
+    }
   }
 
   /**
@@ -33,7 +52,7 @@ export default class AppFaq extends Mixin(LitElement)
    * @param {Object} event
    */
   _jumpTo(e) {
-    e.preventDefault();
+    if( e.preventDefault ) e.preventDefault();
 
     // scroll to item
     let jumpToSection = this.shadowRoot.querySelector('ucd-theme-list-accordion li#'+e.currentTarget.dataset.jumpTo);
@@ -43,13 +62,15 @@ export default class AppFaq extends Mixin(LitElement)
     window.scrollTo(0, posY);
 
     // open item
-    let accordion = this.shadowRoot.querySelector('ucd-theme-list-accordion');
-    if( !accordion ) return;
+    let accordions = this.shadowRoot.querySelectorAll('ucd-theme-list-accordion');
+    if( !accordions || !accordions.length ) return;
 
     let index = jumpToSection.slot.split('-').pop();
-    if( !accordion.itemIsExpanded(index, false) ) {
-      accordion.toggleItemVisiblity(index, false, false);
-    }
+    accordions.forEach(accordion => {
+      if( !accordion.itemIsExpanded(index, false) ) {
+        accordion.toggleItemVisiblity(index, false, false);
+      }
+    });
   }
 
 }

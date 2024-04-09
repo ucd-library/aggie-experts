@@ -80,7 +80,7 @@ return html`
     }
 
     .main-content .work h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: 0.5rem 0;
     }
 
@@ -138,11 +138,11 @@ return html`
         <div class="work-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
           <div class="work">
-            <h5>${unsafeHTML(cite.title)}</h5>
+            <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
             <div class="work-details">
               <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
               <span class="dot">.</span>
-              ${unsafeHTML(cite.apa.replace('(n.d.). ', '').replace('(n.d.).', ''))}
+              ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
             </div>
           </div>
         </div>
@@ -155,7 +155,8 @@ return html`
         current-page=${this.currentPage}
         max-pages=${this.paginationTotal}
         @page-change=${this._onPaginationChange}
-        xs-screen>
+        xs-screen
+        ellipses>
       </ucd-theme-pagination>
     </div>
 

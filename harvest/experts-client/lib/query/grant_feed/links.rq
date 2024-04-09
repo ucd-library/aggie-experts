@@ -1,0 +1,39 @@
+# Query for Grant CDL User links.
+# Note that the CDL graph must be created using the experts-cdl-users script before this query can be successful.
+
+PREFIX : <ark:/87287/d7gt0q/schema#>
+PREFIX ae: <ark:/87287/d7c08j/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX grant: <ark:/87287/d7gt0q/grant/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX iam: <http://iam.ucdavis.edu/>
+PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
+
+select ("user" as ?category_1) (?ucpath as ?id_1)
+("grant" as ?category_2) (?grant as ?id_2)
+?link_type_id ("TRUE" as ?visible)
+WHERE {
+    values (?role_role ?role_type ?link_type_id ?e_role) {
+          ("Co-Principal Investigator" vivo:CoPrincipalInvestigatorRole "121" "Co-PI of")
+          ("Project Manager" vivo:ProjectManagerRole "118" "Project Lead of")
+          ("Project Administrator" vivo:ProjectAdministratorRole "137" "Program Director of")
+#          ("Grants Administrator" vivo:GrantsAdministratorRole "183" )
+          ("Principal Investigator" vivo:PrincipalInvestigatorRole "120" "Primary investigator for")
+        }
+
+  graph ae: {
+    ?grant a vivo:Grant;
+           vivo:relates ?related;
+           .
+    ?related a ?role_type ;
+           obo:RO_0000052 ?expert;
+    .
+  }
+  GRAPH cdl: {
+	  ?expert ucdlib:proprietary_id ?ucpath .
+  }
+} order by ?id_2 ?id_1

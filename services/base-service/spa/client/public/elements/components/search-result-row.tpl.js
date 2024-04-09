@@ -89,7 +89,7 @@ export default function render() {
           <input type="checkbox" id="select-${this.result.id}" name="select-${this.result.id}" value="select-${this.result.id}">
         </div>
       </div>
-      <div class="search-result-sub-text">${this.result.subtitle || 'Role Title, Department'}</div>
+      <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${this.result.subtitle}</div>
       <div class="search-result-matches" ?hidden="${this.hideSearchMatches}">
         <span class="search-matches">Search matches:</span>
           <span>${this.result.numberOfGrants} grants</span>

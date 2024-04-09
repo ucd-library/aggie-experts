@@ -29,7 +29,7 @@ return html`
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
-      height: 12.25rem;
+      min-height: 12.25rem;
     }
 
     .hero-text {
@@ -83,7 +83,7 @@ return html`
     }
 
     .main-content .work h5 {
-      color: var(--color-aggie-blue-80);
+      color: black;
       margin: 0 0 0.5rem 0;
     }
 
@@ -247,6 +247,12 @@ return html`
       }
     }
 
+    @media (max-width: 375px) {
+      .hero-main {
+        background-size: auto 100%;
+      }
+    }
+
     .not-visible h5,
     .not-visible .work-details {
       font-style: italic;
@@ -259,6 +265,25 @@ return html`
     .not-visible .work-details {
       color: var(--ucd-black-50, #999);
     }
+
+    .hero-main button.btn.add-work {
+      font-size: .85rem;
+      margin: .85rem 0;
+    }
+
+    .hero-main button.btn.add-work::before {
+      padding: 0 .4rem;
+      opacity: 1;
+      transform: initial;
+      transition: initial;
+
+      content: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20448%20512%22%3E%3C!--!Font%20Awesome%20Free%206.5.1%20by%20%40fontawesome%20-%20https%3A%2F%2Ffontawesome.com%20License%20-%20https%3A%2F%2Ffontawesome.com%2Flicense%2Ffree%20Copyright%202024%20Fonticons%2C%20Inc.--%3E%3Cpath%20d%3D%22M416%20208H272V64c0-17.7-14.3-32-32-32h-32c-17.7%200-32%2014.3-32%2032v144H32c-17.7%200-32%2014.3-32%2032v32c0%2017.7%2014.3%2032%2032%2032h144v144c0%2017.7%2014.3%2032%2032%2032h32c17.7%200%2032-14.3%2032-32V304h144c17.7%200%2032-14.3%2032-32v-32c0-17.7-14.3-32-32-32z%22%20fill%3D%22%23FFBF00%22%2F%3E%3C%2Fsvg%3E");
+    }
+
+    .hero-main button.btn.add-work:hover {
+      padding-right: 1.5em;
+      padding-left: 0.75em;
+    }
   </style>
 
   <div class="content">
@@ -270,8 +295,10 @@ return html`
       .hideCancel="${this.hideCancel}"
       .hideSave="${this.hideSave}"
       .hideOK="${this.hideOK}"
+      .hideOaPolicyLink="${this.hideOaPolicyLink}"
+      .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${(e) => this.showModal = false}>
+      @save=${this._modalSave}>
     </app-modal-overlay>
     <div class="hero-main site-frame">
       <div class="hero-text">
@@ -280,6 +307,7 @@ return html`
         <span>${this.expertName}</span>
         </div>
         <h1>Manage My Works (${this.totalCitations - this.hiddenCitations} Public, ${this.hiddenCitations} Hidden)</h1>
+        <button class="btn btn--round btn--alt2 add-work" @click="${this._addNewWorkClicked}">Add New Work</button>
       </div>
     </div>
 
@@ -307,24 +335,24 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon ?hidden="${!cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-work" data-text="Show work">
-                  <ucdlib-icon ?hidden="${cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork}></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
               <span style="position: relative;">
                 <span class="tooltip reject-work" data-text="Reject work">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork}></ucdlib-icon>
+                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
             </div>
             <div class="work">
-              <h5>${unsafeHTML(cite.title)}</h5>
+            <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">.</span>
-                ${unsafeHTML(cite.apa.replace('(n.d.). ', '').replace('(n.d.).', ''))}
+                ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
               </div>
             </div>
             <div class="select-checkbox">
@@ -339,7 +367,8 @@ return html`
           current-page=${this.currentPage}
           max-pages=${this.paginationTotal}
           @page-change=${this._onPaginationChange}
-          xs-screen>
+          xs-screen
+          ellipses>
         </ucd-theme-pagination>
 
       </div>

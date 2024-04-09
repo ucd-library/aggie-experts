@@ -28,6 +28,8 @@ import '@ucd-lib/theme-elements/brand/ucd-theme-search-form/ucd-theme-search-for
 import '@ucd-lib/theme-elements/brand/ucd-theme-quick-links/ucd-theme-quick-links.js';
 import '@ucd-lib/theme-elements/ucdlib/ucdlib-pages/ucdlib-pages.js';
 
+import utils from '../lib/utils';
+
 export default class FinApp extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
@@ -40,6 +42,7 @@ export default class FinApp extends Mixin(LitElement)
       expertId: { type: String },
       expertNameImpersonating: { type: String },
       hideImpersonate: { type: Boolean },
+      loading: { type: Boolean },
     }
   }
 
@@ -55,9 +58,10 @@ export default class FinApp extends Mixin(LitElement)
     this.imageSrc = '';
     this.imageAltText = '';
     this.pathInfo = '';
-    this.expertId = '';
-    this.expertNameImpersonating = '';
-    this.hideImpersonate = true;
+    this.expertId = utils.getCookie('impersonateId');
+    this.expertNameImpersonating = utils.getCookie('impersonateName');
+    this.hideImpersonate = !utils.getCookie('impersonateId');
+    this.loading = false;
 
     this.render = render.bind(this);
     this._init404();
@@ -112,8 +116,6 @@ export default class FinApp extends Mixin(LitElement)
    * for logged in user
    */
   async _validateLoggedInUser() {
-    console.log('validating logged in user')
-
     let expertId = APP_CONFIG.user?.expertId || '';
     if( expertId ) {
       this.expertId = expertId;
@@ -149,6 +151,47 @@ export default class FinApp extends Mixin(LitElement)
       let appExpert = this.shadowRoot.querySelector('app-expert');
       if( appExpert ) appExpert.toggleAdminUi();
     }
+
+    this._styleImpersonateButton();
+  }
+
+  /**
+   * @method _styleImpersonateButton
+   * @description style impersonate button based on screen width to ensure impersonate button doesn't overlap header
+   */
+  _styleImpersonateButton() {
+    let impersonateBtn = this.shadowRoot.querySelector('.impersonate-btn');
+    let impersonateContainer = this.shadowRoot.querySelector('.impersonate-container');
+    let headerLogoContainer = this.shadowRoot.querySelector('ucd-theme-header')?.shadowRoot.querySelector('.site-branding');
+    let mainContent = this.shadowRoot.querySelector('.main-content');
+    let minSpace = parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+    if( !impersonateBtn || !headerLogoContainer ) return;
+
+    const impersonateContainerDisplay = this.hideImpersonate ? 'none' : 'flex' ;
+    impersonateContainer.style.display = impersonateContainerDisplay;
+
+    if (impersonateContainerDisplay === 'none') impersonateContainer.style.display = 'flex';
+
+    let impersonateBtnRect = impersonateBtn.getBoundingClientRect();
+    let headerLogoContainerRect = headerLogoContainer.getBoundingClientRect();
+
+    if (impersonateContainerDisplay === 'none') impersonateContainer.style.display = impersonateContainerDisplay;
+
+    let collapse = !(headerLogoContainerRect.right < impersonateBtnRect.left - minSpace ||
+      headerLogoContainerRect.left > impersonateBtnRect.right + minSpace ||
+      headerLogoContainerRect.bottom < impersonateBtnRect.top - minSpace ||
+      headerLogoContainerRect.top > impersonateBtnRect.bottom + minSpace);
+
+    if( collapse && !this.hideImpersonate ) {
+      mainContent.classList.add('collapse');
+      mainContent.classList.add('impersonating');
+      impersonateContainer.classList.add('collapse');
+    } else {
+      mainContent.classList.remove('collapse');
+      mainContent.classList.remove('impersonating');
+      impersonateContainer.classList.remove('collapse');
+    }
   }
 
   /**
@@ -174,7 +217,12 @@ export default class FinApp extends Mixin(LitElement)
 
     // show button showing who we're impersonating
     this.hideImpersonate = false;
-    this.expertNameImpersonating = APP_CONFIG.impersonating?.expertName;
+
+    document.cookie = 'impersonateId='+e.detail.expertId+'; path=/';
+    document.cookie = 'impersonateName='+e.detail.expertName+'; path=/';
+
+    this.expertNameImpersonating = e.detail.expertName;
+    this._styleImpersonateButton();
   }
 
   /**
@@ -187,11 +235,15 @@ export default class FinApp extends Mixin(LitElement)
     e.preventDefault();
 
     this.hideImpersonate = true;
+
+    document.cookie = "impersonateId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+    document.cookie = "impersonateName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+
     this.expertNameImpersonating = '';
-    APP_CONFIG.impersonating = {};
 
     let appExpert = this.shadowRoot.querySelector('app-expert');
     if( appExpert ) appExpert.cancelImpersonate();
+    this._styleImpersonateButton();
   }
 
 }
