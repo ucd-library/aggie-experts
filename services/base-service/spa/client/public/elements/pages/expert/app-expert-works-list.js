@@ -101,7 +101,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     await this._loadCitations();
   }
