@@ -3,23 +3,37 @@ import pkg from 'csvtojson';
 const { csv } = pkg;
 
 import fs from 'fs';
+import { Command } from 'commander';
 
-// Get the paths to the new and old CSV files from arguments
-const newPath = process.argv[2];
-const oldPath = process.argv[3];
+const program = new Command();
 
-const newGrantsPath = newPath + '/grants.csv';
-const oldGrantsPath = oldPath + '/grants.csv';
-const newLinksPath = newPath + '/links.csv';
-const oldLinksPath = oldPath + '/links.csv';
-const newPersonsPath = newPath + '/persons.csv';
-const oldPersonsPath = oldPath + '/persons.csv';
+// Trick for getting __dirname in ES6 modules
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-const deltaPath = process.argv[4];
+program
+  .version('1.0.0')
+  .description('Upload a file to a remote SFTP server')
+  .requiredOption('-n, --new <new>', 'New grant file set path')
+  .requiredOption('-p, --prev <prev>', 'Previous grant file set path')
+  .requiredOption('-o, --output <output>', 'Local output file path')
+  .requiredOption('-pf, --prefix <prefix>', 'Prefix for the output file', '')
+  .parse(process.argv);
+
+let opt = program.opts();
+
+const newGrantsPath = opt.new + '/' + opt.prefix + 'grants.csv';
+const oldGrantsPath = opt.prev + '/' + opt.prefix + 'grants.csv';
+const newLinksPath = opt.new + '/' + opt.prefix + 'links.csv';
+const oldLinksPath = opt.prev + '/' + opt.prefix + 'links.csv';
+const newPersonsPath = opt.new + '/' + opt.prefix + 'persons.csv';
+const oldPersonsPath = opt.prev + '/' + opt.prefix + 'persons.csv';
 
 // Ensure the output directory exists
-if (!fs.existsSync(deltaPath)) {
-  fs.mkdirSync(deltaPath, { recursive: true });
+if (!fs.existsSync(opt.output)) {
+  fs.mkdirSync(opt.output, { recursive: true });
 }
 
 csv()
@@ -58,7 +72,7 @@ csv()
         });
         console.log('Delta-grants:', deltaGrants.length);
         // Write the delta object to a new CSV file.
-        const deltaFilePath = deltaPath + '/grants.csv'; // replace with your desired delta CSV file path
+        const deltaFilePath = opt.output + '/' + opt.prefix + 'grants.csv'; // replace with your desired delta CSV file path
         fs.writeFileSync(deltaFilePath, 'id,category,type,title,c-pi,funder-name,funder-reference,start-date,end-date,amount-value,amount-currency-code,funding-type,c-ucop-sponsor,c-flow-thru-funding,visible\n' + deltaGrants.map((item) => Object.values(item).join(',')).join('\n'));
 
       });
@@ -100,7 +114,7 @@ csv()
         });
         console.log('Delta-links:', deltaLinks.length);
         // Write the delta object to a new CSV file.
-        const deltaFilePath = deltaPath + '/links.csv'; // replace with your desired delta CSV file path
+        const deltaFilePath = opt.output + '/' + opt.prefix + 'links.csv'; // replace with your desired delta CSV file path
         fs.writeFileSync(deltaFilePath, 'category-1,id-1,category-2,id-2,link-type-id,visible\n' + deltaLinks.map((item) => Object.values(item).join(',')).join('\n'));
 
       });
@@ -144,7 +158,7 @@ csv()
 
         console.log('Delta-persons:', deltaPersons.length);
         // Write the delta object to a new CSV file.
-        const deltaFilePath = deltaPath + '/persons.csv'; // replace with your desired delta CSV file path
+        const deltaFilePath = opt.output + '/' + opt.prefix + 'persons.csv'; // replace with your desired delta CSV file path
         fs.writeFileSync(deltaFilePath, 'category,id,field-name,surname,first-name,full-name\n' + deltaPersons.map((item) => Object.values(item).join(',')).join('\n'));
 
       });
