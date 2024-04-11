@@ -24,12 +24,12 @@ program
 
 let opt = program.opts();
 
-const newGrantsPath = opt.new + '/' + opt.prefix + 'grants.csv';
-const oldGrantsPath = opt.prev + '/' + opt.prefix + 'grants.csv';
-const newLinksPath = opt.new + '/' + opt.prefix + 'links.csv';
-const oldLinksPath = opt.prev + '/' + opt.prefix + 'links.csv';
-const newPersonsPath = opt.new + '/' + opt.prefix + 'persons.csv';
-const oldPersonsPath = opt.prev + '/' + opt.prefix + 'persons.csv';
+const newGrantsPath = opt.new + '/' + opt.prefix + 'grants_metadata.csv';
+const oldGrantsPath = opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
+const newLinksPath = opt.new + '/' + opt.prefix + 'grants_links.csv';
+const oldLinksPath = opt.prev + '/' + opt.prefix + 'grants_links.csv';
+const newPersonsPath = opt.new + '/' + opt.prefix + 'grants_persons.csv';
+const oldPersonsPath = opt.prev + '/' + opt.prefix + 'grants_persons.csv';
 
 // Ensure the output directory exists
 if (!fs.existsSync(opt.output)) {
