@@ -27,12 +27,11 @@ const __dirname = dirname(__filename);
 program
   .version('1.0.0')
   .description('Upload a file to a remote SFTP server')
-  .requiredOption('-b, --bucket <bucket>', 'GCS bucket name')
-  .requiredOption('-s, --source <source>', 'Source file path in GCS')
+  .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
   .requiredOption('-h, --host <host>', 'SFTP server hostname')
   .requiredOption('-u, --username <username>', 'SFTP username')
-  .requiredOption('-d, --db <db>', 'Fuseki database name')
+  .requiredOption('--fuseki <db>', 'Fuseki database name')
   .requiredOption('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .parse(process.argv);
 
@@ -44,11 +43,19 @@ const sftpConfig = {
   username: opt.username,
 };
 
+const storage = new Storage();
+
 // GCS storage
 // XML file to be downloaded from GCS and converted to JSON
-const storage = new Storage({
-  projectId: 'aggie-experts',
-});
+// If xml starts with gs://, download the file from GCS
+if (opt.xml.startsWith('gs://')) {
+  const [, , bucketName, ...filePathParts] = opt.xml.split('/');
+  const filePath = filePathParts.join('/');
+  opt.bucket = bucketName;
+  opt.filePath = filePath;
+  console.log(`Bucket: ${bucketName}`);
+  console.log(`File: ${filePath}`);
+}
 
 // fusekize opt
 Object.keys(opt).forEach((k) => {
@@ -92,6 +99,9 @@ async function uploadFile(localFilePath, remoteFileName) {
 
 
 async function downloadFile(bucketName, fileName, destinationPath) {
+  console.log(`Downloading file from GCS: ${fileName} -> ${destinationPath}`);
+  console.log(`Bucket: ${bucketName}`);
+  console.log(`File: ${fileName}`);
   const bucket = storage.bucket(bucketName);
   const file = bucket.file(fileName);
 
@@ -227,7 +237,7 @@ async function main(opt) {
     // Bucket where the file resides. Local file path to save the file to
     // Wait for the file to be completely written
     // console.log(localFilePath);
-    await downloadFile(opt.bucket, 'grants/' + opt.source, localFilePath);
+    await downloadFile(opt.bucket, opt.filePath, localFilePath);
     // The file has been completely written. You can proceed with your logic here.
   } catch (error) {
     console.error('Error:', error.message);
@@ -307,22 +317,21 @@ async function main(opt) {
   const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
   fs.writeFileSync(opt.output + "/grants.csv", await executeCsvQuery(db, grantQ));
   replaceHeaderHyphens("grants.csv");
-  // Perform the SFTP upload
-  await uploadFile(opt.output + "/grants.csv", "grants.csv");
 
   // Exexute the SPARQL query to to export the links.csv file
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
   fs.writeFileSync(opt.output + "/links.csv", await executeCsvQuery(db, linkQ));
   replaceHeaderHyphens("links.csv");
-  // Perform the SFTP upload
-  await uploadFile(opt.output + "/links.csv", "links.csv");
 
   // Exexute the SPARQL query to to export the roles.csv file
   const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
   fs.writeFileSync(opt.output + "/roles.csv", await executeCsvQuery(db, roleQ));
   replaceHeaderHyphens("roles.csv");
+
   // Perform the SFTP upload
+  await uploadFile(opt.output + "/links.csv", "links.csv");
   await uploadFile(opt.output + "/roles.csv", "persons.csv");
+  await uploadFile(opt.output + "/grants.csv", "grants.csv");
 
 }
 
