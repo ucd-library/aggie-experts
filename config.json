@@ -113,8 +113,8 @@
         "service_account":"aggie-experts-service-account"
       },
       "gcs":"fcrepo-prod",
+      "port":"10180",
       "host":"https://experts.ucdavis.edu",
-      "branch":"main",
       "cdl":{
         "propagate_changes":"true"
       },
