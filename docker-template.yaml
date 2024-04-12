@@ -9,7 +9,7 @@ services:
       - &DEV_MOUNT_MODELS ./services/base-service/models:/fin/services/models
       - &DEV_MOUNT_MODELS_API ./experts-api:/experts-api
     ports:
-      - ${HOST_PORT:-3000}:3001
+      - ${HOST_PORT:-80}:3001
     env_file:
       - .env
     restart: unless-stopped
@@ -23,7 +23,7 @@ services:
       - *SERVICE_ACCOUNT
       - fuseki-data:/home/ucd.process
     ports:
-      - ${DB_PORT:-3030}:3030
+      - ${FUSEKI_PORT}:3030
     environment:
       - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
       - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
@@ -42,7 +42,7 @@ services:
     env_file:
       - .env
     ports:
-      - ${FCREPO_HOST_PORT:-8080}:8080
+      - ${FCREPO_PORT}:8080
     # Example for change logging.  Note, don't forget to still include the fcrepo.properties file location!
     # See: https://wiki.lyrasis.org/display/FEDORA6x/Logging
     # environment:
@@ -84,8 +84,6 @@ services:
   ###
   rabbitmq:
     image: ${FIN_ORG}/fin-rabbitmq:${FIN_TAG}
-    ports:
-      - 15672:15672
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
 
@@ -145,7 +143,7 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:8.4.3
     ports:
-      - ${KIBANA_HOST_PORT:-5601}:5601
+      - ${KIBANA_PORT}:5601
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_URL=http://elasticsearch:9200
@@ -203,7 +201,6 @@ services:
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-***app_client_id_missing***}
       OIDC_SECRET: ${OIDC_SECRET:-***client_secret_missing***}
       OIDC_BASE_URL: ${OIDC_BASE_URL:-https://keycloak:8443/realms/${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}}
-
     ports:
       - 8081:8080
       - 8443:8443
