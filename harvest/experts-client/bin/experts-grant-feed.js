@@ -27,17 +27,27 @@ const __dirname = dirname(__filename);
 program
   .version('1.0.0')
   .description('Upload a file to a remote SFTP server')
+  .option('--env <env>', '', 'QA')
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
+  .option('--upload', 'Upload the file to the SFTP server')
   .requiredOption('-h, --host <host>', 'SFTP server hostname')
   .requiredOption('-u, --username <username>', 'SFTP username')
   .requiredOption('--fuseki <db>', 'Fuseki database name')
-  .requiredOption('-r, --remote <remote>', 'Remote file path on the Symplectic server')
+  .option('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .parse(process.argv);
 
 let opt = program.opts();
 
-const sftpConfig = {
+if (opt.env === 'PROD') {
+  opt.prefix = 'PROD/Prod_UCD_';
+} else if (opt.env === 'QA') {
+  opt.prefix = 'QA/';
+} else {
+  opt.prefix = '';
+}
+
+const ftpConfig = {
   host: opt.host,
   port: opt.port || 22,
   username: opt.username,
@@ -58,25 +68,25 @@ if (opt.xml.startsWith('gs://')) {
 }
 
 // fusekize opt
-Object.keys(opt).forEach((k) => {
-  const n = k.replace(/^fuseki./, '')
-  if (n !== k) {
-    fuseki[n] = opt[k];
-    delete opt[k];
-  }
-});
+// Object.keys(opt).forEach((k) => {
+//   const n = k.replace(/^fuseki./, '')
+//   if (n !== k) {
+//     fuseki[n] = opt[k];
+//     delete opt[k];
+//   }
+// });
 
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb2',
-  db: opt.db,
+  db: opt.fuseki || 'aggie',
   replace: true,
   'delete': false
 });
 
 // SFTP configuration
-const remoteFilePath = opt.remote;
+const remoteFilePath = opt.env.toUpperCase();
 
 opt.secretpath = 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password';
 
@@ -84,12 +94,12 @@ const sftp = new Client();
 
 async function uploadFile(localFilePath, remoteFileName) {
   try {
-    await sftp.connect(sftpConfig);
-    console.log(localFilePath, remoteFilePath + remoteFileName);
+    await sftp.connect(ftpConfig);
+    console.log(localFilePath, remoteFileName);
 
-    await sftp.put(fs.createReadStream(localFilePath), remoteFilePath + remoteFileName);
+    await sftp.put(fs.createReadStream(localFilePath), remoteFileName);
 
-    console.log(`File uploaded successfully: ${localFilePath} -> ${remoteFilePath + remoteFileName}`);
+    console.log(`File uploaded successfully: ${localFilePath} -> ${remoteFileName}`);
   } catch (error) {
     console.error('Error uploading file:', error.message);
   } finally {
@@ -212,18 +222,18 @@ async function executeCsvQuery(db, query) {
 
 function replaceHeaderHyphens(filename) {
   // Replace column headers underscores with dashes
-  let data = fs.readFileSync(opt.output + "/" + filename, 'utf8');
+  let data = fs.readFileSync(filename, 'utf8');
   let lines = data.split('\n');
   lines[0] = lines[0].replace(/_/g, '-');
   let output = lines.join('\n');
-  fs.writeFileSync(opt.output + "/" + filename, output);
+  fs.writeFileSync(filename, output);
 }
 
 async function main(opt) {
 
   // Ensure the output directory exists
-  if (!fs.existsSync(opt.output)) {
-    fs.mkdirSync(opt.output, { recursive: true });
+  if (!fs.existsSync(opt.output + '/' + opt.prefix)) {
+    fs.mkdirSync(opt.output + '/' + opt.prefix, { recursive: true });
   }
   // Start a fresh database
   let db = await fuseki.createDb(fuseki.db);
@@ -310,29 +320,30 @@ async function main(opt) {
 
   console.log('Exit code:', result.status);
 
-  // Retrieve the SFTP password from GCS Secret Manager
-  sftpConfig.password = await gs.getSecret(opt.secretpath);
-
-  // Exexute the SPARQL query to to export the grants.csv file
+  // Exexute the SPARQL queries to to export the csv files
+  const grantFile = opt.output + '/' + opt.prefix + 'grants_metadata.csv';
   const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
-  fs.writeFileSync(opt.output + "/grants.csv", await executeCsvQuery(db, grantQ));
-  replaceHeaderHyphens("grants.csv");
+  fs.writeFileSync(grantFile, await executeCsvQuery(db, grantQ));
+  replaceHeaderHyphens(grantFile);
 
-  // Exexute the SPARQL query to to export the links.csv file
+  const linkFile = opt.output + '/' + opt.prefix + 'grants_links.csv';
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
-  fs.writeFileSync(opt.output + "/links.csv", await executeCsvQuery(db, linkQ));
-  replaceHeaderHyphens("links.csv");
+  fs.writeFileSync(linkFile, await executeCsvQuery(db, linkQ));
+  replaceHeaderHyphens(linkFile);
 
-  // Exexute the SPARQL query to to export the roles.csv file
+  const roleFile = opt.output + '/' + opt.prefix + 'grants_persons.csv';
   const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
-  fs.writeFileSync(opt.output + "/roles.csv", await executeCsvQuery(db, roleQ));
-  replaceHeaderHyphens("roles.csv");
+  fs.writeFileSync(roleFile, await executeCsvQuery(db, roleQ));
+  replaceHeaderHyphens(roleFile);
 
   // Perform the SFTP upload
-  await uploadFile(opt.output + "/links.csv", "links.csv");
-  await uploadFile(opt.output + "/roles.csv", "persons.csv");
-  await uploadFile(opt.output + "/grants.csv", "grants.csv");
-
+  if (opt.upload) {
+    // Retrieve the SFTP password from GCS Secret Manager
+    ftpConfig.password = await gs.getSecret(opt.secretpath);
+    await uploadFile(grantFile, opt.prefix + "grants_metadata.csv");
+    await uploadFile(linkFile, opt.prefix + "grants_links.csv");
+    await uploadFile(roleFile, opt.prefix + "grants_persons.csv");
+  }
 }
 
 await main(opt);

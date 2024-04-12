@@ -7,7 +7,7 @@ import { Command } from 'commander';
 
 const program = new Command();
 
-// Trick for getting __dirname in ES6 modules
+// Setup getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
@@ -16,13 +16,21 @@ const __dirname = dirname(__filename);
 program
   .version('1.0.0')
   .description('Upload a file to a remote SFTP server')
+  .option('--env <env>', '', 'QA')
   .requiredOption('-n, --new <new>', 'New grant file set path')
   .requiredOption('-p, --prev <prev>', 'Previous grant file set path')
   .requiredOption('-o, --output <output>', 'Local output file path')
-  .requiredOption('-pf, --prefix <prefix>', 'Prefix for the output file', '')
   .parse(process.argv);
 
 let opt = program.opts();
+
+if (opt.env === 'PROD') {
+  opt.prefix = 'Prod_UCD_';
+} else if (opt.env === 'QA') {
+  opt.prefix = '';
+} else {
+  opt.prefix = '';
+}
 
 const newGrantsPath = opt.new + '/' + opt.prefix + 'grants_metadata.csv';
 const oldGrantsPath = opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
