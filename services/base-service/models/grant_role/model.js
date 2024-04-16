@@ -61,12 +61,28 @@ class GrantRoleModel extends BaseModel {
     try {
       expert = await expertModel.client_get(expertId);
       node = this.get_node_by_related_id(expert,id);
-      let node_id = node['@id'].replace("ark:/87287/d7mh2m/grant/","");
+
       if (!patch.objectId) {
-        patch.objectId = node_id;
+        // loop through node.identifiers and find the one that matches 'ark:/87287/d7mh2m/grant/'
+        if (typeof node?.identifier === 'string') {
+          node.identifier = [node.identifier];
+        }
+        for (let i=0; i<node?.identifier?.length; i++) {
+          console.log(`${i}:${node.identifier[i]}`);
+          if (node.identifier[i].startsWith('ark:/87287/d7mh2m/grant/')) {
+            patch.objectId = node.identifier[i].replace('ark:/87287/d7mh2m/grant/','');
+            break;
+          }
+        }
+        if (!patch.objectId) {
+          throw {
+            status: 500,
+            message: `CDL identifier not found in expert ${expertId}`
+          }
+        }
       }
     } catch(e) {
-      e.message = `relatedBy[{@id${id} not found in expert ${expertId}: ${e.message}`;
+      e.message = `relatedBy[${id} not found in expert ${expertId}: ${e.message}`;
       e.status=500;
       throw e;
     };
