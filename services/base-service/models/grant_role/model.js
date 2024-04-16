@@ -63,21 +63,26 @@ class GrantRoleModel extends BaseModel {
       node = this.get_node_by_related_id(expert,id);
 
       if (!patch.objectId) {
-      // loop through node.identifiers and find the one that matches 'ark:/87287/d7mh2m/grant/'
-        for (let i=0; i<node.identifiers.length; i++) {
-          if (node.identifiers[i].startsWith('ark:/87287/d7mh2m/grant/')) {
-            patch.objectId = node.identifiers[i].replace('ark:/87287/d7mh2m/grant/','');
+        // loop through node.identifiers and find the one that matches 'ark:/87287/d7mh2m/grant/'
+        if (typeof node?.identifier === 'string') {
+          node.identifier = [node.identifier];
+        }
+        for (let i=0; i<node?.identifier?.length; i++) {
+          console.log(`${i}:${node.identifier[i]}`);
+          if (node.identifier[i].startsWith('ark:/87287/d7mh2m/grant/')) {
+            patch.objectId = node.identifier[i].replace('ark:/87287/d7mh2m/grant/','');
             break;
           }
         }
         if (!patch.objectId) {
-          e.message = `CDL identifier not found in expert ${expertId}`;
-          e.status=500;
-          throw e;
+          throw {
+            status: 500,
+            message: `CDL identifier not found in expert ${expertId}`
+          }
         }
       }
     } catch(e) {
-      e.message = `relatedBy[{@id${id} not found in expert ${expertId}: ${e.message}`;
+      e.message = `relatedBy[${id} not found in expert ${expertId}: ${e.message}`;
       e.status=500;
       throw e;
     };
