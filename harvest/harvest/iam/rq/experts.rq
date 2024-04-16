@@ -58,7 +58,7 @@ WHERE {
   graph harvest_iam: {
     ?s iam:email ?default_email;
        iam:userID ?kerb;
-       iam:employeeId ?employee_id;
+       iam:mothraId ?mothra_id;
        iam:dLastName ?iam_lname;
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty;
@@ -92,7 +92,7 @@ WHERE {
     bind(concat(?kerb,"@ucdavis.edu") as ?username)
     bind(md5(?username) as ?user_id)
     bind(uri(concat(str(expert:),?user_id)) as ?user)
-    bind(uri(concat('ark:/87287/d7c08j/',md5(concat('employeeId/',?employee_id)))) as ?aggie_ark)
+    bind(uri(concat('ark:/87287/d7c08j/',md5(concat('mothra/'?mothra_id)))) as ?aggie_ark)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
     bind(uri(concat(str(?user),"#name")) as ?vcard_name)
   }
