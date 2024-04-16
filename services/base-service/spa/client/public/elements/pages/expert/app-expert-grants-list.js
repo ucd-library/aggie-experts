@@ -75,7 +75,8 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     }
     window.scrollTo(0, 0);
 
-    let expertId = e.location.pathname.replace('/grants/', '');
+    let expertId = e.location.pathname.replace('/grants', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( expertId === this.expertId ) return;
 
