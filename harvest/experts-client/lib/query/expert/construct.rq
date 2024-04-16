@@ -140,14 +140,18 @@ WHERE {
                             :web-addresses/:web-address [ list:index(?pos ?elem) ]
                           ].
 
-        ?elem :label ?web_label;
+        ?elem :url ?web_url;
               :privacy "public";
-              :type ?web_type_text;
-              :url ?web_url;
               .
+        OPTIONAL {
+          ?elem :label ?web_label.
+          }
 
+        OPTIONAL {
+          ?elem :type ?web_type_text.
+          bind(uri(concat(str(ucdlib:),"URL_",?web_type_text)) as ?web_type)
+        }
         bind(?pos as ?web_rank)
-        bind(uri(concat(str(ucdlib:),"URL_",?web_type_text)) as ?web_type)
       }
       values (?field_name ?field_predicate ) {
         ("overview" vivo:overview)
