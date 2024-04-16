@@ -327,6 +327,8 @@ export default class AppExpert extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'works_download', {});
   }
 
   /**
@@ -370,6 +372,8 @@ export default class AppExpert extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'grants_download', {});
   }
 
   /**
