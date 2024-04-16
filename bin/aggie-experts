@@ -108,6 +108,7 @@ declare -g -A G=(
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=
+  [test_env]=1
   [include_fuseki]=1
   [cloudsdk_active_config_name]='aggie-experts'
 );
@@ -564,6 +565,15 @@ function setup() {
 
     local yq='.'
 
+    eval "$(cat .env)"
+    # Delete unused PORTS
+    for i in fuseki kibana fcrepo rabbitmq; do
+      local p=${i^^}_PORT
+      if [[ -z "${!p}" ]]; then
+        yq="$yq | del(.services.$i.ports)"
+      fi
+    done
+
     if [[ "$env" = "dev" ]]; then
       if [[ -z ${G[include_fuseki]} ]]; then
           yq+='| del(.services.fuseki) | del(.volumes.fuseki-data)'
@@ -659,7 +669,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-fuseki,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,no-fuseki,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -679,6 +689,7 @@ function main.cmd() {
         --gcs) CMD[gcs]=$2; shift 2;;
         --list-mounts | -l) CMD[list-mounts]=1; shift;;
         --mount) CMD[mount]=$2; shift 2;;
+        --no-test) CMD[test_env]=; shift;;
         --no-compose) CMD[setup_compose]=; shift;;
         --no-env) CMD[setup_env]=; shift;;
         --no-fuseki) CMD[include_fuseki]=; shift;;
@@ -723,7 +734,7 @@ function main.cmd() {
             fi
           fi
 
-          test_env
+          [[ ${G[test_env]} ]] && test_env
           # Fix mount if exists
           G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
 
@@ -755,6 +766,11 @@ function main.cmd() {
 
         expand )
           expand <${G[config]}
+          exit 0
+          ;;
+
+        bar )
+          expand <docker-template.yaml
           exit 0
           ;;
 

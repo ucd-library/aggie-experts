@@ -10,7 +10,7 @@ class AppStateModelImpl extends AppStateModel {
 
     if( !APP_CONFIG.enableGA4Stats ) console.warn('GA4 stats are disabled by flag');
     if( !window.gtag ) console.warn('No global gtag variable set for analytics events');
-    if( APP_CONFIG.gaId && !APP_CONFIG.enableGA4Stats ) console.warn('GA4 stats are enabled but no GA ID is set');
+    if( !APP_CONFIG.gaId && APP_CONFIG.enableGA4Stats ) console.warn('GA4 stats are enabled but no GA ID is set');
 
     this.init(APP_CONFIG.appRoutes);
     this._sendGA();

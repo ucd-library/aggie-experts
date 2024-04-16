@@ -20,14 +20,15 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 construct {
   ?grant_role a ucdlib:GrantRole, ?role;
                 ucdlib:favorite ?favorite;
-  ucdlib:is-visible ?visible;
-  vivo:relates ?grant,?expert;
-  obo:RO_0000052 ?expert;
-  .
+                ucdlib:is-visible ?visible;
+                vivo:relates ?grant,?expert;
+                obo:RO_0000052 ?expert;
+                .
 
   ?grant a vivo:Grant,?grant_type;
          rdfs:label ?grant_label;
          schema:name ?grant_title;
+         schema:identifier ?cdl_ark;
          vivo:totalAwardAmount ?amount;
          vivo:sponsorAwardId ?sponsor_award_id;
          vivo:assignedBy ?funder;
@@ -102,7 +103,7 @@ WHERE {
           .
 
     {
-      select ?relationship ?grant_id ?record ?source
+      select ?g ?relationship ?grant_id ?record ?source
       WHERE {
         {
           select ?relationship ?g (min(?id) as ?wanted_source_id)
@@ -110,7 +111,7 @@ WHERE {
             bind(?RELATIONSHIP__ as ?relationship)
             graph cdl: {
               ?RELATIONSHIP__ :related ?g.
-    
+
               ?g :category "grant";
                  :records/:record/:source-id ?id;
                  .
@@ -203,7 +204,7 @@ WHERE {
                 bind(?RELATIONSHIP__ as ?relationship)
                 graph cdl: {
                   ?RELATIONSHIP__ :related ?g.
-        
+
                   ?g :category "grant";
                      :records/:record/:source-id ?id;
                      .
@@ -221,13 +222,13 @@ WHERE {
         ?record :native/:field ?s;
                 :native/:field ?e;
                 .
-    
+
         ?s :name "start-date";
            :type "date";
            :date ?s_date;
            .
         ?s_date :year ?syear.
-    
+
         BIND(vivo:yearPrecision AS ?syear_p)
         OPTIONAL {
           ?s_date :month ?sm_raw.
@@ -243,13 +244,13 @@ WHERE {
         }
         BIND(CONCAT(?syear, COALESCE(?smonth, ""), COALESCE(?sday, "")) AS ?start_date)
         BIND(coalesce(?sday_p,?smonth_p,?syear_p) as ?start_date_precision)
-    
+
         ?e :name "end-date";
            :type "date";
            :date ?e_date;
            .
         ?e_date :year ?eyear.
-    
+
         BIND(vivo:yearPrecision AS ?eyear_p)
         OPTIONAL {
           ?e_date :month ?em_raw.
@@ -265,11 +266,12 @@ WHERE {
         }
         BIND(CONCAT(?eyear, COALESCE(?emonth, ""), COALESCE(?eday, "")) AS ?end_date)
         BIND(coalesce(?eday_p,?emonth_p,?eyear_p) as ?end_date_precision)
-    
+
       }
     }
   }
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
+  bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?cdl_ark)
   bind(uri(?grant_id) as ?grant)
   bind(uri(concat(str(expert:),md5(?username))) as ?expert)
   bind(xsd:boolean(?visible_str) as ?visible)
