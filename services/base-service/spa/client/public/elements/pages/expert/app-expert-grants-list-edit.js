@@ -288,6 +288,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'grants_download', {});
   }
 
   /**
