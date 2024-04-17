@@ -20,6 +20,7 @@ const program = new Command();
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { versions } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -31,10 +32,11 @@ program
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
   .option('--upload', 'Upload the file to the SFTP server')
-  .requiredOption('-h, --host <host>', 'SFTP server hostname')
-  .requiredOption('-u, --username <username>', 'SFTP username')
+  .option('-h, --host <host>', 'SFTP server hostname')
+  .option('-u, --username <username>', 'SFTP username')
   .requiredOption('--fuseki <db>', 'Fuseki database name')
   .option('-r, --remote <remote>', 'Remote file path on the Symplectic server')
+  .option('-g, --generation <generation>', 'GCS (XML) file generation', 0)
   .parse(process.argv);
 
 let opt = program.opts();
@@ -46,6 +48,10 @@ if (opt.env === 'PROD') {
 } else {
   opt.prefix = '';
 }
+opt.output = opt.output + '/gen' + opt.generation + '/' + opt.env;
+
+console.log('Options:', opt);
+
 
 const ftpConfig = {
   host: opt.host,
@@ -63,18 +69,12 @@ if (opt.xml.startsWith('gs://')) {
   const filePath = filePathParts.join('/');
   opt.bucket = bucketName;
   opt.filePath = filePath;
+  // get the file name from the path
+  opt.fileName = filePathParts[filePathParts.length - 1];
+  console.log(`File Name: ${opt.fileName}`);
   console.log(`Bucket: ${bucketName}`);
   console.log(`File: ${filePath}`);
 }
-
-// fusekize opt
-// Object.keys(opt).forEach((k) => {
-//   const n = k.replace(/^fuseki./, '')
-//   if (n !== k) {
-//     fuseki[n] = opt[k];
-//     delete opt[k];
-//   }
-// });
 
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
@@ -107,39 +107,63 @@ async function uploadFile(localFilePath, remoteFileName) {
   }
 }
 
+async function downloadFile(bucketName, fileName, destinationPath, generation) {
 
-async function downloadFile(bucketName, fileName, destinationPath) {
-  console.log(`Downloading file from GCS: ${fileName} -> ${destinationPath}`);
-  console.log(`Bucket: ${bucketName}`);
-  console.log(`File: ${fileName}`);
+  console.log(`Downloading file ${fileName} from bucket ${bucketName} to ${destinationPath}`);
+
   const bucket = storage.bucket(bucketName);
-  const file = bucket.file(fileName);
+  const meta = bucket.file(fileName);
+  const latestTwoGenerations = [];
+
+  bucket.getFiles({
+    versions: true,
+    // prefix: 'ae-grants'
+  }, function (err, files) {
+    // Each file is scoped to its generation.
+    files.forEach(function (file) {
+      console.log(`File: ${file.name}, Generation: ${file.metadata.generation}`);
+    });
+  });
 
   return new Promise((resolve, reject) => {
     try {
-      console.log(`Downloading file from GCS: ${fileName} -> ${destinationPath}`);
-      // Create a read stream from the file and pipe it to a local file
-      const readStream = file.createReadStream();
-      const writeStream = fs.createWriteStream(destinationPath);
-
-      readStream.on('error', err => {
-        console.error('Error reading stream:', err);
-        reject(err);
-      });
-
-      writeStream.on('finish', () => {
-        console.log(`File downloaded successfully to: ${destinationPath}`);
-        resolve();
-      });
-
-      readStream.pipe(writeStream);
-    } catch (error) {
-      console.error('Error downloading file:', error.message);
-      reject(error);
+      meta.getMetadata()
+        .then(([metadata]) => {
+          if (metadata.hasOwnProperty('generations')) {
+            // Sort the generations in descending order and take the first two
+            latestTwoGenerations = metadata.generations.sort((a, b) => b - a).slice(0, 2);
+            const versionedFile = bucket.file(filePath, { generation: latestTwoGenerations[0] });
+            versionedFile.download()
+              .then((data) => {
+                console.log(`Downloaded version ${generation} of file ${filePath}`);
+                // Write the file to the local file system
+                fs.writeFileSync(destinationPath, data.toString());
+                resolve();
+              })
+              .catch((err) => {
+                console.error(`Failed to download version ${generation} of file ${filePath}:`, err);
+                reject(err);
+              }
+              );
+            console.log('File has generations:', metadata);
+          } else {
+            console.error('File does not have generations:', metadata);
+            reject();
+          }
+        }
+        )
+        .catch((err) => {
+          console.error('Failed to get file metadata:', err);
+          reject(err);
+        }
+        )
+    }
+    catch (err) {
+      console.error('Error downloading file:', err);
+      reject(err);
     }
   });
 }
-
 
 async function createGraphFromJsonLdFile(db, jsonld) {
   // Construct URL for uploading the data to the graph
@@ -232,27 +256,25 @@ function replaceHeaderHyphens(filename) {
 async function main(opt) {
 
   // Ensure the output directory exists
-  if (!fs.existsSync(opt.output + '/' + opt.prefix)) {
-    fs.mkdirSync(opt.output + '/' + opt.prefix, { recursive: true });
+  if (!fs.existsSync(opt.output)) {
+    fs.mkdirSync(opt.output, { recursive: true });
   }
   // Start a fresh database
   let db = await fuseki.createDb(fuseki.db);
 
   // Where are we?
   console.log('Working dir: ' + __dirname);
-  let localFilePath = opt.output + "/" + opt.source;
+  // Ensure the output directory exists
+  if (!fs.existsSync(opt.output + "/xml")) {
+    fs.mkdirSync(opt.output + "/xml", { recursive: true });
+  }
+  let localFilePath = opt.output + "/xml/" + opt.fileName;
+  console.log('Local file path:', localFilePath);
+
+  console.log('Downloading file from GCS:', opt.filePath + ' - ' + opt.fileName);
 
   // First download the file from GCS
-  try {
-    // Bucket where the file resides. Local file path to save the file to
-    // Wait for the file to be completely written
-    // console.log(localFilePath);
-    await downloadFile(opt.bucket, opt.filePath, localFilePath);
-    // The file has been completely written. You can proceed with your logic here.
-  } catch (error) {
-    console.error('Error:', error.message);
-  }
-
+  await downloadFile(opt.bucket, opt.filePath, localFilePath, opt.generation);
   const xml = fs.readFileSync(localFilePath, 'utf8');
 
   // Convert the XML to JSON
