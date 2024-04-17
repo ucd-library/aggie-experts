@@ -25,17 +25,27 @@ export class Command extends OriginalCommand {
   }
 
   option_log() {
-    this.addOption(new Option('--log <>', 'log level').choices(['info', 'warn','error','fatal']).default('info'));
+    this.addOption(new Option('--log <>', 'log level').choices(['info', 'warn','error','fatal']).default('fatal'));
     return this;
   }
 
   opts() {
     const opts=super.opts();
+    if (opts.log) {
+      opts.log=logger.child({level:opts.log});
+    }
     if (opts.cdl) {
       opts.cdl=ElementsClient.info(opts.cdl);
     }
+    if (opts.fuseki) {
+      opts.fuseki={url:opts.fuseki,type:'tdb2'};
+    }
     if (opts.iam) {
-      opts.iam=IAM.info(opts.iam);
+      opts.iam=new IAM(
+        {env:opts.iam,
+         timeout:opts['iam.timeout'],
+         log:opts.log}
+      );
     }
     return opts;
   }

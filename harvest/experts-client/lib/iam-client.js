@@ -83,7 +83,6 @@ export class IAM {
       return this.key;
     }
     let secretResp = await gs.getSecret(this.secretpath);
-    console.log(secretResp);
     let secretJson = JSON.parse(secretResp);
     for (const entry of secretJson) {
       if (entry['@id'] == this.authname) {
@@ -113,15 +112,14 @@ export class IAM {
       throw new Error(`Did not get an OK from the server. Code: ${response.status}`);
     }
     let res = await response.json();
-    console.log(res);
     if (res == null) {
       throw new Error(`No profiles returned from IAM.`);
     }
     this.log.info({measure:`profile(${expert})`,expert:expert},`profile(${expert})`);
-    return JSON.stringify({
+    return {
       "@context":this.context(),
       "@graph":res.responseData.results || []
-    });
+    };
   }
 
   async getProfiles(search) {

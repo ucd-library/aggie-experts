@@ -68,7 +68,6 @@ export class CdlClient {
     this.secretpath = CdlClient.ENV[this.env].secretpath;
     this.auth = null;
 
-
     this.experts = [];
     this.debugRelationshipDir = opt.debugRelationshipDir || 'relationships';
     // Store crosswalk of user=>CDL ID

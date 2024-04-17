@@ -6,7 +6,7 @@ export class FusekiClient {
     url: 'http://admin:testing123@localhost:3030',
     replace: false,
     type: 'tdb2',
-    logger: logger
+    log: logger
   };
 
   constructor(opt) {
@@ -106,10 +106,10 @@ export class FusekiClient {
       });
     if (res.ok) {
       if (opt.replace) {
-        this.logger.info({db:opt.db,op:'delete'},`Deleting existing fuseki dataset ${opt.db}`);
+        this.log.info({db:opt.db,op:'delete'},`Deleting existing fuseki dataset ${opt.db}`);
         await this.dropDb(opt);
       } else {
-        this.logger.info({db:opt.db,op:'reuse'},`Using existing fuseki dataset ${opt.db}`);
+        this.log.info({db:opt.db,op:'reuse'},`Using existing fuseki dataset ${opt.db}`);
         exists = true;
       }
     }

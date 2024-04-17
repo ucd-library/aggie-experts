@@ -53,6 +53,7 @@ export class Cache {
     for (let k in Cache.DEF) {
       this[k] = opt[k] || Cache.DEF[k];
     }
+    this.fuseki.log = this.log;
   }
 
   async createCacheDb() {
@@ -136,6 +137,18 @@ export class Cache {
           this.log.error({measure:`iam(${expert})`,error:e.message,expert},`'►E◄ iam(${expert})`);
         }
       }
+      { // Add in cdl cache
+        try {
+          await this.cdl.getPostUser(db,user)
+          this.log.info({measure:[user],user},`getPostUser`);
+          await this.cdl.getPostUserRelationships(db,user,'detail=full');
+          this.log.info({measure:[user],user},`getPostUserRelationships`);
+        }
+        catch (e) {
+          this.log.error({ user, error: e }, `error ${user}`);
+        }
+      }
+
       this.log.info({measure:expert,expert},`◄ process($expert)`);
       performance.clearMarks(expert);
     }
