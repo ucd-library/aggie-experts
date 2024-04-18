@@ -2,35 +2,19 @@
   <head>
     <title>UC Davis - Aggie Experts</title>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <script src="https://brand.library.ucdavis.edu/ui/loader.js"></script>
 
     <style>
-      body, html {
-        font-family      : proxima-nova,"Lucida Grande","Lucida Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
-        font-size        : 16px;
-        font-weight      : 400;
-        line-height      : calc(16px * 1.625);
-        margin           : 0;
-        padding          : 0;
-        max-width        : 100vw;
-      }
-
       h1 {
-        color: #FFBF00;
-        text-align: center;
-        font-size: 3.1475rem;
-        font-style: normal;
-        font-weight: 800;
-        line-height: 3.1475rem;
+        color: #ffc519;
       }
 
-      h3 {
-        color: #FFF;
+      h2 {
+        color: white;
+        font-weight: 300;
         text-align: center;
-        font-size: 2.49375rem;
-        font-style: normal;
-        font-weight: 400;
-        line-height: 2.9925rem;
       }
 
       #hero {
@@ -42,56 +26,17 @@
         background-repeat: no-repeat;
         background-size: cover;
         padding-top: 20px;
+        display: flex;
+        justify-content: center;
       }
 
-      .header__bar {
+      #hero .container {
         display: flex;
         align-items: center;
-        justify-content: flex-end;
-        min-height: 40.75px;
-        background-color: rgb(216, 216, 216);
-      }
-
-      .header__university {
-        display: flex;
-        align-items: center;
-        height: 40.75px;
-        padding-right: 15.28px;
-        background-color: rgb(229, 229, 229);
-      }
-
-      .header__university::before {
-        width: 15.28px;
-        height: 40.75px;
-        margin-right: 15.28px;
-        margin-left: -15.28px;
-        background-color: rgb(229, 229, 229);
-        clip-path: polygon(93% 0px, 110% 0px, 110% 102%, 0% 102%);
-        content: "";
-      }
-
-      .header__university a {
-        display: flex;
-        margin-left: 10.18px;
-      }
-
-      .mobile-bar {
-        display: flex;
-        align-items: center;
-        overflow: hidden;
-        min-height: 3.25rem;
-        background-color: rgb(2, 40, 81);
-      }
-
-      .mobile-bar__university {
-        margin-right: 1rem;
-        margin-left: auto;
-        line-height: 1;
-      }
-
-      .mobile-bar .ucd-logo {
-        width: auto;
-        height: 1.25rem;
+        justify-content: space-between;
+        flex-direction: column;
+        height: 70vh;
+        margin-top: 5vh;
       }
 
       .row {
@@ -102,16 +47,14 @@
 
       .row-min {
         padding-bottom: 1.19rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
       }
 
       .container {
         max-width: 60%;
-      }
-
-      #hero {
-        display: flex;
-        align-items: center;
-        justify-content: center;
       }
 
       @media (min-width: 992px) {
@@ -128,24 +71,15 @@
           display: none;
         }
 
-        h1 {
-          font-size: 1.91rem;
-        }
-
-        h3 {
-          font-size: 1.605rem;
-        }
-
-        .row {
-          padding-bottom: 2rem;
-        }
-
-        .row-min {
-          padding-bottom: 0.5rem;
-        }
-
         .container {
           max-width: 90%;
+        }
+      }
+
+      @media (max-width: 768px) {
+        #hero .ae-logo {
+          width: 100px !important;
+          height: 100px !important;
         }
       }
 
@@ -169,18 +103,19 @@
 
     <div id="hero">
       <div class="container">
+        <div class="row"></div>
         <div class="row">
-          <img style="width: 200px; height: 200px;" src="images/aggie-experts-logo-primary.png" />
+          <img class="ae-logo" style="width: 150px; height: 150px;" src="images/aggie-experts-logo-primary.png" />
         </div>
         <div class="row row-min">
           <h1>Aggie Experts</h1>
-        </div>
-        <div class="row">
-          <h3>Discover research and collaborate with experts across all disciplines at UC Davis</h3>
+          <h2>Discover research and collaborate with experts across all disciplines at UC Davis</h2>
         </div>
         <div class="row" style="padding-bottom: 0;">
           <a class="btn btn--primary btn--lg login" href="/auth/login">Sign In (UC Davis CAS)</a>
         </div>
+        <div class="row"></div>
+        <div class="row"></div>
       </div>
     </div>
   </body>
