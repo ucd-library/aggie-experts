@@ -20,7 +20,7 @@ const program = new Command();
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { versions } from 'process';
+import { exit, versions } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -42,22 +42,25 @@ program
 let opt = program.opts();
 
 if (opt.env === 'PROD') {
-  opt.prefix = 'PROD/Prod_UCD_';
+  opt.prefix = 'Prod_UCD_';
 } else if (opt.env === 'QA') {
-  opt.prefix = 'QA/';
+  opt.prefix = '';
 } else {
   opt.prefix = '';
 }
-opt.output = opt.output + '/gen' + opt.generation + '/' + opt.env;
 
+// opt.output = opt.output + '/gen' + opt.generation + '/' + opt.env;
 console.log('Options:', opt);
 
+const graphName = 'http://www.ucdavis.edu/aggie_enterprise_' + opt.generation
 
 const ftpConfig = {
   host: opt.host,
   port: opt.port || 22,
   username: opt.username,
 };
+
+// const fuseki = new FusekiClient({
 
 const storage = new Storage();
 
@@ -82,7 +85,7 @@ const fuseki = new FusekiClient({
   type: 'tdb2',
   db: opt.fuseki || 'aggie',
   replace: true,
-  'delete': false
+  'delete': false,
 });
 
 // SFTP configuration
@@ -107,56 +110,61 @@ async function uploadFile(localFilePath, remoteFileName) {
   }
 }
 
-async function downloadFile(bucketName, fileName, destinationPath, generation) {
-
-  console.log(`Downloading file ${fileName} from bucket ${bucketName} to ${destinationPath}`);
-
+async function getXmlVersions(bucketName, fileName) {
   const bucket = storage.bucket(bucketName);
-  const meta = bucket.file(fileName);
   const latestTwoGenerations = [];
-
-  bucket.getFiles({
-    versions: true,
-    // prefix: 'ae-grants'
-  }, function (err, files) {
-    // Each file is scoped to its generation.
-    files.forEach(function (file) {
-      console.log(`File: ${file.name}, Generation: ${file.metadata.generation}`);
-    });
-  });
 
   return new Promise((resolve, reject) => {
     try {
-      meta.getMetadata()
-        .then(([metadata]) => {
-          if (metadata.hasOwnProperty('generations')) {
-            // Sort the generations in descending order and take the first two
-            latestTwoGenerations = metadata.generations.sort((a, b) => b - a).slice(0, 2);
-            const versionedFile = bucket.file(filePath, { generation: latestTwoGenerations[0] });
-            versionedFile.download()
-              .then((data) => {
-                console.log(`Downloaded version ${generation} of file ${filePath}`);
-                // Write the file to the local file system
-                fs.writeFileSync(destinationPath, data.toString());
-                resolve();
-              })
-              .catch((err) => {
-                console.error(`Failed to download version ${generation} of file ${filePath}:`, err);
-                reject(err);
-              }
-              );
-            console.log('File has generations:', metadata);
-          } else {
-            console.error('File does not have generations:', metadata);
-            reject();
+      bucket.getFiles({
+        versions: true,
+        // prefix: fileName
+      }, function (err, files) {
+        // Each file is scoped to its generation.
+        files.forEach(function (file) {
+          console.log(`File: ${file.name}, Generation: ${file.metadata.generation}`);
+          console.log(file.metadata.generation);
+          console.log(file.name);
+          console.log(fileName);
+          if (file.name == fileName) {
+            latestTwoGenerations.push(file.metadata.generation);
+            console.log(file.metadata.generation);
           }
-        }
-        )
+        });
+
+        // Sort the generations in descending order and take the first two
+        resolve(latestTwoGenerations.sort((a, b) => b - a).slice(0, 2));
+      });
+    }
+    catch (err) {
+      console.error('Error getting file versions:', err);
+      reject(err);
+    }
+  });
+}
+
+async function downloadFile(bucketName, fileName, destinationPath, generation) {
+
+  console.log(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
+
+  const bucket = storage.bucket(bucketName);
+  const meta = bucket.file(fileName);
+
+  return new Promise((resolve, reject) => {
+    try {
+      const versionedFile = bucket.file(fileName, { generation: generation });
+      versionedFile.download()
+        .then((data) => {
+          console.log(`Downloaded version ${generation} of file ${fileName}`);
+                // Write the file to the local file system
+          fs.writeFileSync(destinationPath, data.toString());
+          resolve();
+        })
         .catch((err) => {
-          console.error('Failed to get file metadata:', err);
+          console.error(`Failed to download version ${generation} of file ${fileName}:`, err);
           reject(err);
         }
-        )
+        );
     }
     catch (err) {
       console.error('Error downloading file:', err);
@@ -165,10 +173,12 @@ async function downloadFile(bucketName, fileName, destinationPath, generation) {
   });
 }
 
-async function createGraphFromJsonLdFile(db, jsonld) {
+async function createGraphFromJsonLdFile(db, jsonld, graphName) {
   // Construct URL for uploading the data to the graph
   // Don't include a graphname to use what's in the jsonld file
+  // const url = `${db.url}/${db.db}/data?graph=${encodeURIComponent(graphName)}`;
   const url = `${db.url}/${db.db}/data`;
+  console.log('URL:', url);
 
   // Set request options
   const options = {
@@ -217,9 +227,10 @@ async function executeUpdate(db, query) {
   return await response.text();
 }
 
-async function executeCsvQuery(db, query) {
+async function executeCsvQuery(db, query, graphName) {
   // Construct URL for uploading the data to the graph
   // Don't include a graphname to use what's in the jsonld file
+  // const url = `${db.url}/${db.db}/query?graph=${encodeURIComponent(graphName)}`;
   const url = `${db.url}/${db.db}/query`;
 
   // Set request options
@@ -271,11 +282,16 @@ async function main(opt) {
   let localFilePath = opt.output + "/xml/" + opt.fileName;
   console.log('Local file path:', localFilePath);
 
-  console.log('Downloading file from GCS:', opt.filePath + ' - ' + opt.fileName);
+  console.log('Downloading file from GCS:', opt.filePath);
 
   // First download the file from GCS
-  await downloadFile(opt.bucket, opt.filePath, localFilePath, opt.generation);
+  const fileVersions = await getXmlVersions(opt.bucket, opt.filePath);
+  console.log('File versions:', fileVersions);
+
+  await downloadFile(opt.bucket, opt.filePath, localFilePath, fileVersions[opt.generation]);
   const xml = fs.readFileSync(localFilePath, 'utf8');
+
+  // exit(0);
 
   // Convert the XML to JSON
   let json = parser.toJson(xml, { object: true, arrayNotation: false });
@@ -322,7 +338,8 @@ async function main(opt) {
   fs.writeFileSync(opt.output + "/grants.jsonld", jsonld);
 
   // Create a graph from the JSON-LD file
-  console.log(createGraphFromJsonLdFile(db, jsonld));
+  console.log('Creating graph from JSON-LD file ' + graphName + '...');
+  console.log(createGraphFromJsonLdFile(db, jsonld, graphName));
 
   // Apply the grants2vivo.rq SPARQL update to the graph
   const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.rq', 'utf8');
@@ -345,17 +362,17 @@ async function main(opt) {
   // Exexute the SPARQL queries to to export the csv files
   const grantFile = opt.output + '/' + opt.prefix + 'grants_metadata.csv';
   const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
-  fs.writeFileSync(grantFile, await executeCsvQuery(db, grantQ));
+  fs.writeFileSync(grantFile, await executeCsvQuery(db, grantQ, graphName));
   replaceHeaderHyphens(grantFile);
 
   const linkFile = opt.output + '/' + opt.prefix + 'grants_links.csv';
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
-  fs.writeFileSync(linkFile, await executeCsvQuery(db, linkQ));
+  fs.writeFileSync(linkFile, await executeCsvQuery(db, linkQ, graphName));
   replaceHeaderHyphens(linkFile);
 
   const roleFile = opt.output + '/' + opt.prefix + 'grants_persons.csv';
   const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
-  fs.writeFileSync(roleFile, await executeCsvQuery(db, roleQ));
+  fs.writeFileSync(roleFile, await executeCsvQuery(db, roleQ, graphName));
   replaceHeaderHyphens(roleFile);
 
   // Perform the SFTP upload

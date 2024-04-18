@@ -19,7 +19,8 @@ program
   .option('--env <env>', '', 'QA')
   .requiredOption('-n, --new <new>', 'New grant file set path')
   .requiredOption('-p, --prev <prev>', 'Previous grant file set path')
-  .requiredOption('-o, --output <output>', 'Local output file path')
+  .requiredOption('-d, --delta <delta>', 'Delta grant file set path')
+  // .requiredOption('-o, --output <output>', 'Local output file path')
   .parse(process.argv);
 
 let opt = program.opts();
@@ -58,8 +59,8 @@ var newPersons = [];
 var oldPersons = [];
 
 // Ensure the output directory exists
-if (!fs.existsSync(opt.output)) {
-  fs.mkdirSync(opt.output, { recursive: true });
+if (!fs.existsSync(opt.delta)) {
+  fs.mkdirSync(opt.delta, { recursive: true });
 }
 
 async function readGrants() {
@@ -145,7 +146,7 @@ async function readLinks() {
         });
         console.log('Delta-links:', deltaLinks.length);
         // Write the delta object to a new CSV file.
-        const deltaFilePath = opt.output + '/' + opt.prefix + 'links.csv'; // replace with your desired delta CSV file path
+        const deltaFilePath = opt.delta + '/' + opt.prefix + 'links.csv'; // replace with your desired delta CSV file path
         fs.writeFileSync(deltaFilePath, 'category-1,id-1,category-2,id-2,link-type-id,visible\n' + deltaLinks.map((item) => Object.values(item).join(',')).join('\n'));
         resolve();
       });
@@ -194,8 +195,8 @@ async function readPersons() {
 
         console.log('Delta-persons:', deltaPersons.length);
         // Write the delta object to a new CSV file.
-        const deltaFilePath = opt.output + '/' + opt.prefix + 'persons.csv'; // replace with your desired delta CSV file path
-        fs.writeFileSync(deltaFilePath, 'category,id,field-name,surname,first-name,full-name\n' + deltaPersons.map((item) => Object.values(item).join(',')).join('\n'));
+            const deltaFilePath = opt.delta + '/' + opt.prefix + 'persons.csv'; // replace with your desired delta CSV file path
+            fs.writeFileSync(deltaFilePath, 'category,id,field-name,surname,first-name,full-name\n' + deltaPersons.map((item) => Object.values(item).join(',')).join('\n'));
             resolve();
           });
       }
@@ -248,7 +249,7 @@ await addGrantsOfPersons(); // add any grant that is referenced in the personsAr
 
 console.log('Delta-grants:', deltaGrants.length);
 // Write the delta object to a new CSV file.
-const deltaFilePath = opt.output + '/' + opt.prefix + 'grants_metadata.csv'; // replace with your desired delta CSV file path
+const deltaFilePath = opt.delta + '/' + opt.prefix + 'grants_metadata.csv'; // replace with your desired delta CSV file path
 fs.writeFileSync(deltaFilePath, 'id,category,type,title,c-pi,funder-name,funder-reference,start-date,end-date,amount-value,amount-currency-code,funding-type,c-ucop-sponsor,c-flow-thru-funding,visible\n' + deltaGrants.map((item) => Object.values(item).join(',')).join('\n'));
 
 
