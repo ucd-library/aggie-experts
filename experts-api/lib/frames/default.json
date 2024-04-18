@@ -185,7 +185,7 @@
     "URL_company":{"@id":"ucdlib:URL_company"},
     "URL_department":{"@id":"ucdlib:URL_department"},
     "URL_figshare":{"@id":"ucdlib:URL_figshare"},
-    "URL_google_scholar":{"@id":"ucdlib:URL_google_scholar"},
+    "URL_googlescholar":{"@id":"ucdlib:URL_googlescholar"},
     "URL_laboratory":{"@id":"ucdlib:URL_laboratory"},
     "URL_linkedin":{"@id":"ucdlib:URL_linkedin"},
     "URL_mendeley":{"@id":"ucdlib:URL_mendeley"},
@@ -193,7 +193,7 @@
     "URL_personal":{"@id":"ucdlib:URL_personal"},
     "URL_portfolio":{"@id":"ucdlib:URL_portfolio"},
     "URL_researchgate":{"@id":"ucdlib:URL_researchgate"},
-    "URL_rss_feed":{"@id":"ucdlib:URL_rss_feed"},
+    "URL_rssfeed":{"@id":"ucdlib:URL_rssfeed"},
     "URL_twitter":{"@id":"ucdlib:URL_twitter"},
     "volume":{"@id":"cite:volume"},
     "Work":"ucdlib:Work"
