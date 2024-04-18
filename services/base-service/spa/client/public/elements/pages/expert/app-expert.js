@@ -163,19 +163,19 @@ export default class AppExpert extends Mixin(LitElement)
 
           try {
             // also set custom icon depending on type of website
-            if( url['@type'].includes('ucdlib:URL_googlescholar') ) {
+            if( url['@type'].includes('URL_googlescholar') ) {
               url.icon = 'fa-google-scholar';
-            } else if( url['@type'].includes('ucdlib:URL_researchgate') ) {
+            } else if( url['@type'].includes('URL_researchgate') ) {
               url.icon = 'fa-researchgate';
-            } else if( url['@type'].includes('ucdlib:URL_linkedin') ) {
+            } else if( url['@type'].includes('URL_linkedin') ) {
               url.icon = 'fa-linkedin';
-            } else if( url['@type'].includes('ucdlib:URL_twitter') ) {
+            } else if( url['@type'].includes('URL_twitter') ) {
               url.icon = 'fa-x-twitter';
-            } else if( url['@type'].includes('ucdlib:URL_mendeley') ) {
+            } else if( url['@type'].includes('URL_mendeley') ) {
               url.icon = 'fa-mendeley';
-            } else if( url['@type'].includes('ucdlib:URL_rss') ) {
+            } else if( url['@type'].includes('URL_rss') ) {
               url.icon = 'fa-square-rss';
-            } else if( url['@type'].includes('ucdlib:URL_figshare') ) {
+            } else if( url['@type'].includes('URL_figshare') ) {
               url.icon = 'ai-figshare';
             }
           } catch(e) {
