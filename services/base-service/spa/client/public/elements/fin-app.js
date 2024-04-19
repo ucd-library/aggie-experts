@@ -65,6 +65,29 @@ export default class FinApp extends Mixin(LitElement)
 
     this.render = render.bind(this);
     this._init404();
+
+    this.addEventListener('click', this.pageClick.bind(this));
+  }
+
+  pageClick(e) {
+    // hack, make sure header popups are collapsed
+    let header = this.shadowRoot.querySelector('ucd-theme-header');
+    if( header ) {
+      let searchPopup = header.querySelector('ucd-theme-search-popup');
+      let quickLinks = header.querySelector('ucd-theme-quick-links');
+
+      let searchClicked = e.composedPath().some(el => el.tagName === 'UCD-THEME-SEARCH-POPUP');
+      let quickLinksClicked = e.composedPath().some(el => el.tagName === 'UCD-THEME-QUICK-LINKS');
+
+      if( !searchClicked && searchPopup?.opened ) searchPopup.close();
+      if( !quickLinksClicked && quickLinks?.opened ) quickLinks.close();
+    }
+  }
+
+  _closeHeader() {
+    // hack, make sure header popups are collapsed
+    let header = this.shadowRoot.querySelector('ucd-theme-header');
+    if( header && header.opened ) header.close();
   }
 
   /**
@@ -108,6 +131,8 @@ export default class FinApp extends Mixin(LitElement)
     this.pathInfo = e.location.pathname.split('/media')[0];
 
     this.firstAppStateUpdate = false;
+
+    this._closeHeader();
   }
 
   /**
@@ -202,6 +227,7 @@ export default class FinApp extends Mixin(LitElement)
    */
   _onSearch(e) {
     if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.searchTerm.trim());
+    this._closeHeader();
   }
 
   /**
