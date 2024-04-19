@@ -22,18 +22,12 @@ CONSTRUCT {
   ?user a vivo:Person,ucdlib:Expert;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
-               schema:identifier ?oapolicy_ark,?user_id;
+               schema:identifier ?oapolicy_ark;
                ucdlib:is-visible ?visible;
                ?field_predicate ?field_value;
                .
 
   ?user ?id_pred ?id_value.
-
-#  ?user ucdlib:identifier ?identifier_oapolicy_id.
-#  ?identifier_oapolicy_id a ucdlib:Identifier;
-#                          ucdlib:scheme "oapolicy";
-#                          ucdlib:value  ?oapolicy_id;
-#                          .
 
 #  ?user ucdlib:identifier ?assoc_identifier.
 #  ?assoc_identifier a ucdlib:Identifier;
@@ -67,7 +61,6 @@ CONSTRUCT {
 }
 WHERE {
   bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
-  bind(concat('expert:',MD5(?USERNAME__)) as ?user_id)
   graph <http://iam.ucdavis.edu/> {
     ?user a ucdlib:Expert;
           ucdlib:is-visible true;
@@ -105,8 +98,7 @@ WHERE {
     bind(xsd:boolean(?visible_str) as ?visible)
 
     ?assoc :user-id ?oapolicy_id.
-    bind(concat('ark:/87287/d7mh2m/user/',?oapolicy_id) as ?oapolicy_ark)
-    bind(uri(concat(str(?user),"#oapolicyId")) as ?identifier_oapolicy_id)
+    bind(uri(concat('ark:/87287/d7mh2m/user/',?oapolicy_id)) as ?oapolicy_ark)
 
     OPTIONAL {
       values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
@@ -140,14 +132,18 @@ WHERE {
                             :web-addresses/:web-address [ list:index(?pos ?elem) ]
                           ].
 
-        ?elem :label ?web_label;
+        ?elem :url ?web_url;
               :privacy "public";
-              :type ?web_type_text;
-              :url ?web_url;
               .
+        OPTIONAL {
+          ?elem :label ?web_label.
+          }
 
+        OPTIONAL {
+          ?elem :type ?web_type_text.
+          bind(uri(concat(str(ucdlib:),"URL_",?web_type_text)) as ?web_type)
+        }
         bind(?pos as ?web_rank)
-        bind(uri(concat(str(ucdlib:),"URL_",?web_type_text)) as ?web_type)
       }
       values (?field_name ?field_predicate ) {
         ("overview" vivo:overview)
