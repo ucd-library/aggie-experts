@@ -45,7 +45,6 @@ CONSTRUCT {
                  .
     ?vcard_url a vcard:URL;
                vcard:url ?website;
-               ucdlib:urlType ucdlib:URLType_other;
                .
 
 } WHERE {
