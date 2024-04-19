@@ -173,7 +173,7 @@ export default class AppExpert extends Mixin(LitElement)
               url.icon = 'fa-x-twitter';
             } else if( url['@type'].includes('URL_mendeley') ) {
               url.icon = 'fa-mendeley';
-            } else if( url['@type'].includes('URL_rss') ) {
+            } else if( url['@type'].includes('URL_rssfeed') ) {
               url.icon = 'fa-square-rss';
             } else if( url['@type'].includes('URL_figshare') ) {
               url.icon = 'ai-figshare';
