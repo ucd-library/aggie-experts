@@ -12,6 +12,8 @@ import Client from 'ssh2-sftp-client';
 import { Storage } from '@google-cloud/storage';
 import { GoogleSecret } from '@ucd-lib/experts-api';
 import parser from 'xml2json';
+import { logger } from '../lib/logger.js';
+
 
 const gs = new GoogleSecret();
 
@@ -49,8 +51,7 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
-// opt.output = opt.output + '/gen' + opt.generation + '/' + opt.env;
-console.log('Options:', opt);
+logger.info('Options:', opt);
 
 const graphName = 'http://www.ucdavis.edu/aggie_enterprise_' + opt.generation
 
@@ -74,9 +75,9 @@ if (opt.xml.startsWith('gs://')) {
   opt.filePath = filePath;
   // get the file name from the path
   opt.fileName = filePathParts[filePathParts.length - 1];
-  console.log(`File Name: ${opt.fileName}`);
-  console.log(`Bucket: ${bucketName}`);
-  console.log(`File: ${filePath}`);
+  logger.info(`File Name: ${opt.fileName}`);
+  logger.info(`Bucket: ${bucketName}`);
+  logger.info(`File: ${filePath}`);
 }
 
 const fuseki = new FusekiClient({
@@ -98,13 +99,13 @@ const sftp = new Client();
 async function uploadFile(localFilePath, remoteFileName) {
   try {
     await sftp.connect(ftpConfig);
-    console.log(localFilePath, remoteFileName);
+    logger.info(localFilePath, remoteFileName);
 
     await sftp.put(fs.createReadStream(localFilePath), remoteFileName);
 
-    console.log(`File uploaded successfully: ${localFilePath} -> ${remoteFileName}`);
+    logger.info(`File uploaded successfully: ${localFilePath} -> ${remoteFileName}`);
   } catch (error) {
-    console.error('Error uploading file:', error.message);
+    logger.error('Error uploading file:', error.message);
   } finally {
     await sftp.end();
   }
@@ -122,13 +123,9 @@ async function getXmlVersions(bucketName, fileName) {
       }, function (err, files) {
         // Each file is scoped to its generation.
         files.forEach(function (file) {
-          console.log(`File: ${file.name}, Generation: ${file.metadata.generation}`);
-          console.log(file.metadata.generation);
-          console.log(file.name);
-          console.log(fileName);
           if (file.name == fileName) {
             latestTwoGenerations.push(file.metadata.generation);
-            console.log(file.metadata.generation);
+            logger.info(`File: ${file.name}, Generation: ${file.metadata.generation}`);
           }
         });
 
@@ -138,6 +135,7 @@ async function getXmlVersions(bucketName, fileName) {
     }
     catch (err) {
       console.error('Error getting file versions:', err);
+      logger.error('Error getting file versions:', err);
       reject(err);
     }
   });
@@ -145,7 +143,7 @@ async function getXmlVersions(bucketName, fileName) {
 
 async function downloadFile(bucketName, fileName, destinationPath, generation) {
 
-  console.log(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
+  logger.info(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
 
   const bucket = storage.bucket(bucketName);
   const meta = bucket.file(fileName);
@@ -155,19 +153,21 @@ async function downloadFile(bucketName, fileName, destinationPath, generation) {
       const versionedFile = bucket.file(fileName, { generation: generation });
       versionedFile.download()
         .then((data) => {
-          console.log(`Downloaded version ${generation} of file ${fileName}`);
+          logger.info(`Downloaded version ${generation} of file ${fileName}`);
                 // Write the file to the local file system
           fs.writeFileSync(destinationPath, data.toString());
           resolve();
         })
         .catch((err) => {
           console.error(`Failed to download version ${generation} of file ${fileName}:`, err);
+          logger.error(`Failed to download version ${generation} of file ${fileName}:`, err);
           reject(err);
         }
         );
     }
     catch (err) {
       console.error('Error downloading file:', err);
+      logger.error('Error downloading file:', err);
       reject(err);
     }
   });
@@ -178,7 +178,7 @@ async function createGraphFromJsonLdFile(db, jsonld, graphName) {
   // Don't include a graphname to use what's in the jsonld file
   // const url = `${db.url}/${db.db}/data?graph=${encodeURIComponent(graphName)}`;
   const url = `${db.url}/${db.db}/data`;
-  console.log('URL:', url);
+  logger.info('Creating graph from JSON-LD file...');
 
   // Set request options
   const options = {
@@ -273,16 +273,14 @@ async function main(opt) {
   // Start a fresh database
   let db = await fuseki.createDb(fuseki.db);
 
-  // Where are we?
-  console.log('Working dir: ' + __dirname);
   // Ensure the output directory exists
   if (!fs.existsSync(opt.output + "/xml")) {
     fs.mkdirSync(opt.output + "/xml", { recursive: true });
   }
   let localFilePath = opt.output + "/xml/" + opt.fileName;
-  console.log('Local file path:', localFilePath);
+  logger.info('Local XML file path:', localFilePath);
 
-  console.log('Downloading file from GCS:', opt.filePath);
+  logger.info('Downloading file from GCS:', opt.filePath);
 
   // First download the file from GCS
   const fileVersions = await getXmlVersions(opt.bucket, opt.filePath);
@@ -291,11 +289,9 @@ async function main(opt) {
   await downloadFile(opt.bucket, opt.filePath, localFilePath, fileVersions[opt.generation]);
   const xml = fs.readFileSync(localFilePath, 'utf8');
 
-  // exit(0);
-
   // Convert the XML to JSON
   let json = parser.toJson(xml, { object: true, arrayNotation: false });
-  console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
+  // console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
 
   // Create the JSON-LD context
   let contextObj = {
@@ -339,6 +335,7 @@ async function main(opt) {
 
   // Create a graph from the JSON-LD file
   console.log('Creating graph from JSON-LD file ' + graphName + '...');
+  logger.info('Creating graph from JSON-LD file ' + graphName + '...');
   console.log(createGraphFromJsonLdFile(db, jsonld, graphName));
 
   // Apply the grants2vivo.rq SPARQL update to the graph
@@ -347,7 +344,7 @@ async function main(opt) {
 
   // Add the CDL-users graph to the fuseki database to include proprietary IDs
   // Command-line parameters to pass to the script
-  const params = ['--cdl.groups=431', '--fuseki.db=aggie'];
+  const params = ['--cdl.groups=431', '--fuseki.db=' + fuseki.db];
   const result = spawnSync('node', [__dirname + '/experts-cdl-users.js', ...params], { encoding: 'utf8' });
 
   console.log('Output:', result.stdout);
