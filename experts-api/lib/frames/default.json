@@ -129,7 +129,7 @@
         "name":{"@id":"vcard:title"}
       }
     },
-    "identifier":{"@id":"schema:identifier"},
+    "identifier":{"@id":"schema:identifier","@type":"@id"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
     "is-open-access":{"@id":"ucdlib:is-open-access"},
