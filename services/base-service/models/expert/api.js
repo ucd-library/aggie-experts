@@ -1,10 +1,12 @@
 const router = require('express').Router();
-const {dataModels, logger} = require('@ucd-lib/fin-service-utils');
+const {config, dataModels, logger} = require('@ucd-lib/fin-service-utils');
 const ExpertModel = require('./model.js');
 const {defaultEsApiGenerator} = dataModels;
 const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
 const model= new ExpertModel();
+
+const openapi = require('@wesleytodd/openapi')
 
 function expert_uri_from_path(path) {
   const id=[model.id,decodeURIComponent(path).split('/').slice(1,2)].join('/');
@@ -60,6 +62,39 @@ function sanitize(req, res, next) {
     }
   }
 }
+
+const oapi = openapi({
+  openapi: '3.0.3',
+  info: {
+    title: 'Express',
+    description: 'The Experts API specifies updates to a particular expert. Publically available API endpoints can be used for access to an experts data.  The permissions of current user allow additional access to the data.',
+    version: '1.0.0',
+    termsOfService: 'http://swagger.io/terms/',
+    contact: {
+      email: 'aggie-experts@ucdavis.edu'
+    },
+    license: {
+      name: 'Apache 2.0',
+      url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    },
+    version: config.version,
+  },
+  servers: [
+    {
+      url: `${config.host}/api/expert`
+    }
+  ],
+  tags: [
+    {
+      name: 'expert',
+      description: 'Expert Information'
+    }
+  ]
+})
+
+// This will serve the generated json document(s)
+// (as well as the swagger-ui if configured)
+router.use(oapi)
 
 router.route(
   '/[a-zA-Z0-9]+/ark\:\/87287\/d7mh2m\/relationship\/[0-9]+'
@@ -128,11 +163,43 @@ router.route(
 
 // this path is used instead of the defined version in the defaultEsApiGenerator
 router.route(
- '/[a-zA-Z0-9]+/?$'
+  '/:expertId'
 ).get(
+  oapi.path(
+    {
+      "description": "Get an expert by id",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "expertId",
+          "description": "The id of the expert to get",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "The expert",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Expert"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Expert not found"
+        }
+      }
+    }
+  ),
   async (req, res, next) => {
-    let id = model.id+decodeURIComponent(req.path).replace(/\/$/,'');
-    try {
+    console.log(`expert ${req.params.expertId}`);
+    let id = model.id+'/'+req.params.expertId;
+     try {
       let opts = {
         admin: req.query.admin ? true : false,
       }
