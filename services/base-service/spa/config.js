@@ -16,7 +16,7 @@ config.client = {
   enableGA4Stats : process.env.GA4_ENABLE_STATS === 'true',
   gaId : process.env.GA4_MEASUREMENT_ID || '',
   assets : (env === 'prod') ? 'dist' : 'public',
-  appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'works', 'works-edit', 'browse', 'grants', 'grants-edit'],
+  appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse'],
   versions : {
     bundle : clientPackageVersion,
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')

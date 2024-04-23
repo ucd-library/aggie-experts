@@ -15,6 +15,7 @@ CONSTRUCT {
         rdfs:label ?label;
         schema:identifier ?aggie_ark;
         ucdlib:userId ?kerb;
+        ucdlib:email ?default_email;
         ucdlib:is-visible ?is_visible;
         .
 
@@ -50,7 +51,6 @@ CONSTRUCT {
 
   ?vcard_url a vcard:URL;
              vcard:url ?website;
-             ucdlib:urlType ucdlib:URLType_other;
              .
 }
 WHERE {
@@ -92,7 +92,7 @@ WHERE {
     bind(concat(?kerb,"@ucdavis.edu") as ?username)
     bind(md5(?username) as ?user_id)
     bind(uri(concat(str(expert:),?user_id)) as ?user)
-    bind(uri(concat('ark:/87287/d7c08j/',md5(concat('mothra/'?mothra_id)))) as ?aggie_ark)
+    bind(uri(concat('ark:/87287/d7c08j/',md5(concat('mothra/',?mothra_id)))) as ?aggie_ark)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
     bind(uri(concat(str(?user),"#name")) as ?vcard_name)
   }
