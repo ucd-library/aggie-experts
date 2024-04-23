@@ -39,6 +39,7 @@ program
   .requiredOption('--fuseki <db>', 'Fuseki database name')
   .option('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .option('-g, --generation <generation>', 'GCS (XML) file generation', 0)
+  .option('-sp, --secretpath <secretpath>', 'Secret Manager secret path', 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password')
   .parse(process.argv);
 
 let opt = program.opts();
@@ -92,8 +93,6 @@ const fuseki = new FusekiClient({
 // SFTP configuration
 const remoteFilePath = opt.env.toUpperCase();
 
-opt.secretpath = 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password';
-
 const sftp = new Client();
 
 async function uploadFile(localFilePath, remoteFileName) {
@@ -113,7 +112,7 @@ async function uploadFile(localFilePath, remoteFileName) {
 
 async function getXmlVersions(bucketName, fileName) {
   const bucket = storage.bucket(bucketName);
-  const latestTwoGenerations = [];
+  const xmlGenerations = [];
 
   return new Promise((resolve, reject) => {
     try {
@@ -124,13 +123,14 @@ async function getXmlVersions(bucketName, fileName) {
         // Each file is scoped to its generation.
         files.forEach(function (file) {
           if (file.name == fileName) {
-            latestTwoGenerations.push(file.metadata.generation);
+            xmlGenerations.push(file.metadata.generation);
             logger.info(`File: ${file.name}, Generation: ${file.metadata.generation}`);
           }
         });
 
         // Sort the generations in descending order and take the first two
-        resolve(latestTwoGenerations.sort((a, b) => b - a).slice(0, 2));
+        // resolve(xmlGenerations.sort((a, b) => b - a).slice(0, 2));
+        resolve(xmlGenerations.sort((a, b) => b - a));
       });
     }
     catch (err) {
@@ -282,10 +282,11 @@ async function main(opt) {
 
   logger.info('Downloading file from GCS:', opt.filePath);
 
-  // First download the file from GCS
+  // First get an array of file versions from GCS. 0 is the current version, 1 is the previous version, etc.
   const fileVersions = await getXmlVersions(opt.bucket, opt.filePath);
   console.log('File versions:', fileVersions);
 
+  // Download the file version asked for from GCS
   await downloadFile(opt.bucket, opt.filePath, localFilePath, fileVersions[opt.generation]);
   const xml = fs.readFileSync(localFilePath, 'utf8');
 
