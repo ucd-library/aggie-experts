@@ -1,8 +1,10 @@
-prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
-prefix expert: <http://experts.ucdavis.edu/expert/>
+PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-select distinct (?username as ?USERNAME__) ?filename where {
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+select distinct (?username as ?USERNAME__) (?email as ?KEYCLOAK_EMAIL__) ?filename where {
   graph oap: {
     [] :username ?username;
        :is-public "true";
@@ -14,6 +16,8 @@ select distinct (?username as ?USERNAME__) ?filename where {
     bind(uri(concat(str(expert:),md5(?username))) as ?expert)
     ?expert a ucdlib:Expert;
             ucdlib:is-visible true;
+            obo:ARG_2000028/vcard:hasEmail ?email_url;
             .
+    bind(replace(str(?email_url),"^mailto:","") as ?email)
   }
 }

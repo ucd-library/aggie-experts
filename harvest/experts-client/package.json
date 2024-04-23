@@ -26,6 +26,7 @@
     "@comunica/bindings-factory": "^2.10.0",
     "@comunica/query-sparql": "^2.10.0",
     "@google-cloud/storage": "^7.7.0",
+    "@keycloak/keycloak-admin-client": "^24.0.3",
     "bunyan": "^1.8.15",
     "classic-level": "^1.2.0",
     "commander": "^10.0.0",
