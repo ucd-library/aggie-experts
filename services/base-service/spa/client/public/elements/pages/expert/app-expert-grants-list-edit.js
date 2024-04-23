@@ -272,7 +272,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     if( !body.length ) return;
 
-    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of CoPIs'];
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
