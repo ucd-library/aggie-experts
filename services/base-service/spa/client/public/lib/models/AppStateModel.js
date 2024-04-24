@@ -21,7 +21,8 @@ class AppStateModelImpl extends AppStateModel {
       update.lastLocation = clone(this.store.data.location);
 
       let page = update.location.path ? update.location.path[0] : 'home';
-      if( !page ) page = 'home'
+      if( page === 'expert' && update.location.path.length > 2 ) page = update.location.path[2]; // works / works-edit / grants / grants-edit
+      if( !page ) page = 'home';
 
       update.location.page = page;
     }

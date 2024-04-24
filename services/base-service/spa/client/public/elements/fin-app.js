@@ -124,7 +124,8 @@ export default class FinApp extends Mixin(LitElement)
     this._validateLoggedInUser();
 
     let page = e.location.page;
-    if( !APP_CONFIG.appRoutes.includes(e.location.page) ) page = '404';
+    let route = e.location.path[0] === 'expert' ? 'expert' : (e.location.page || 'home');
+    if( !APP_CONFIG.appRoutes.includes(route) ) page = '404';
 
     if( this.page === page ) return;
     this.page = page;
