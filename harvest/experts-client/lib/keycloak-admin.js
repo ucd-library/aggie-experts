@@ -9,6 +9,11 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
   // create a constructor that just calls the super constructor with the same arguments
   constructor(options) {
     super(options);
+    if (options.logger) {
+      this.log = options.logger;
+    } else {
+      this.log = logger;
+    }
   }
 
   mintExpertId() {
@@ -40,7 +45,7 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
       //return the user(s) with the expertId
       return users;
     } catch (error) {
-      logger.error(error);
+      this.log.error(error);
       throw error;
     }
   }
@@ -67,7 +72,7 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     //if one user is found
     if (users.length === 1) {
       if (users[0].id === user.id) {
-         return user;
+         return users[0];
       } else {
         throw new Error(`User with expert:${expertId} ${users[0].id} != ${userId}`);
       }
@@ -99,8 +104,8 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
            }
         ]
       });
-      await this.verifyExpertId(userId,expertId);
-      return userId;
+      let user = await this.verifyExpertId(userId,expertId);
+      return user;
     } catch (error) {
       logger.error(error);
       throw error;
@@ -125,5 +130,24 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     } catch (error) {
       throw new Error(`Error finding user by email: ${error.message}`);
     }
+  }
+
+  /*
+   * Find a user by IDP email, or create a new user if the user does not exist.
+   * @param {string} email - The email of the user
+   * @param {Object} username - The IDP userName
+   * @returns {Promise} - A promise that resolves with the user expertId
+   */
+  async getOrCreateExpert(email,username) {
+    let user= await this.findByEmail(email);
+    if (! user) {
+      const idp = {
+        userName: username,
+        userId: username
+      };
+      this.log.info(`new User: email: ${email} and idp username: ${username}`);
+      user=await this.createByIDP(email,idp);
+    }
+    return user
   }
 }

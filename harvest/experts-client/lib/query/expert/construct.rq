@@ -15,21 +15,21 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
   # This  just copies IAM info
-  ?iam_s ?iam_p ?iam_o.
-  ?iam_o vcard:title ?iam_o_title.
+  ?iam_expert_s ?iam_p ?iam_expert_o.
+  ?iam_expert_o vcard:title ?iam_o_title.
 
   # This adds the CDL information
-  ?user a vivo:Person,ucdlib:Expert;
+  ?expert a vivo:Person,ucdlib:Expert;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
-               schema:identifier ?oapolicy_ark;
+               schema:identifier ?expert, ?oapolicy_ark;
                ucdlib:is-visible ?visible;
                ?field_predicate ?field_value;
                .
 
-  ?user ?id_pred ?id_value.
+  ?expert ?id_pred ?id_value.
 
-#  ?user ucdlib:identifier ?assoc_identifier.
+#  ?expert ucdlib:identifier ?assoc_identifier.
 #  ?assoc_identifier a ucdlib:Identifier;
 #                    ucdlib:scheme ?assoc_scheme;
 #                    ucdlib:value  ?assoc_value;
@@ -56,13 +56,14 @@ CONSTRUCT {
              .
 
   # Research Areas
-  ?user vivo:hasResearchArea ?concept.
-  ?concept vivo:researchAreaOf ?user.
+  ?expert vivo:hasResearchArea ?concept.
+  ?concept vivo:researchAreaOf ?expert.
 }
 WHERE {
   bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
   graph <http://iam.ucdavis.edu/> {
     ?user a ucdlib:Expert;
+          ucdlib:expert ?expert;
           ucdlib:is-visible true;
           .
     ?iam_s ?iam_p ?iam_o.
@@ -72,6 +73,8 @@ WHERE {
     }
     filter(regex(str(?iam_s),concat('^',str(?user),'#?')))
     filter(?iam_p != ucdlib:userId)
+    bind(uri(replace(str(?iam_s),concat('^',str(?user)),str(?expert))) as ?iam_expert_s)
+    bind(if(isuri(?iam_o),uri(replace(str(?iam_o),concat('^',str(?user)),str(?expert))),?iam_o) as ?iam_expert_o)
   }
   GRAPH <http://oapolicy.universityofcalifornia.edu/> {
   ?cdl_id :category "user";
@@ -93,7 +96,7 @@ WHERE {
 
     bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
     bind(concat(?fn," ",?ln) as ?name)
-    bind(uri(concat(str(?user),"#vcard-oap-1")) as ?vcard)
+    bind(uri(concat(str(?expert),"#vcard-oap-1")) as ?vcard)
     bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
     bind(xsd:boolean(?visible_str) as ?visible)
 
@@ -104,7 +107,7 @@ WHERE {
       values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
       ?assoc :user-identifier-association [ :field-value  ?assoc_value ; :scheme ?assoc_scheme ].
     }
-    bind(uri(concat(str(?user),"#identifier-",?assoc_scheme,"-",?assoc_value)) as ?assoc_identifier)
+    bind(uri(concat(str(?expert),"#identifier-",?assoc_scheme,"-",?assoc_value)) as ?assoc_identifier)
 
     OPTIONAL {
       values (?oap_scheme ?id_pred) {

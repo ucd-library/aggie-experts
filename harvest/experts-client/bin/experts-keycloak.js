@@ -8,7 +8,6 @@ import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 import ExpertsKcAdminClient from '../lib/keycloak-admin.js';
 
-
 const program = new Command();
 
 async function main(opt) {
@@ -16,7 +15,7 @@ async function main(opt) {
   if ( ! opt.clientSecret ) {
     throw new Error('client-secret is required');
   }
-  
+
   const admin = new ExpertsKcAdminClient(
     {
       baseUrl: opt.keycloakUrl,
@@ -34,33 +33,27 @@ async function main(opt) {
 
   //const profile = await admin.users.getProfile();
   //console.log(profile);
-  
+
   const experts = program.args;
   for (let expert of experts) {
+    let user
     try {
       if (expert.match(/^expertId:/)) {
         expert = expert.replace(/^expertId:/, '');
-        const user = await admin.findByExpertId(expert);
+        user = await admin.findByExpertId(expert);
         console.log(user);
       } else {
         // if email is a email:cas pair seperated by a colon, split it
-        let [email,cas] = expert.split(':');      
-        console.log(`finding user with email: ${email}`);
-        let user= await admin.findByEmail(email);
+        let [email,cas] = expert.split(':');
+        if ( cas && opt.create) {
+          user = await admin.getOrCreateExpert(email, cas);
+        } else {
+          user = await admin.findByEmail(email);
+        }
         if (user) {
           console.log(user);
         } else {
-          if (cas && opt.create) {
-            const idp = {
-              userName: cas,
-              userId: cas
-            };
-            console.log(`user not found, creating user with email: ${email} and cas: ${cas}`);
-            user=await admin.createByIDP(email,idp);
-            console.log(user);
-          } else {
-            console.log(`${email} not found`);
-          }
+          console.log(`User not found: ${expert}`);
         }
       }
     } catch (e) {

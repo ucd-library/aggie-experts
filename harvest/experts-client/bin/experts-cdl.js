@@ -11,6 +11,8 @@ import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
+import ExpertsKcAdminClient from '../lib/keycloak-admin.js';
+
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
@@ -32,7 +34,6 @@ const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb2',
-  db: 'CAS',
   replace: true,
   'delete': true
 });
@@ -52,6 +53,23 @@ async function main(opt) {
       opt.cdl.auth = entry.auth.raw_auth;
     }
   }
+
+  const keycloak_admin = new ExpertsKcAdminClient(
+    {
+      baseUrl: opt.keycloakUrl,
+      realmName: opt.realmName,
+    },
+  );
+
+  await keycloak_admin.auth(
+    {
+      grantType: 'client_credentials',
+      clientId: opt.clientId,
+      clientSecret: opt.clientSecret
+    }
+  );
+
+  opt.keycloak_admin = keycloak_admin;
 
   const ec = new ExpertsClient(opt);
 
@@ -91,26 +109,54 @@ async function main(opt) {
   }
 
   let db
-  // If fuseki.db is const, then create it
-  if (fuseki.db !== 'CAS' && fuseki.db !== 'CAS-XX') {
-    db = await fuseki.createDb(fuseki.db);
-  }
+
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
     let dbname
     let md=md5(`${user}@ucdavis.edu`);
 
-    if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${md}.jsonld.json`)) {
+    const response = await fetch(
+      opt.expertsService,
+      {
+        method: 'POST',
+        body: `PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#> SELECT ?email WHERE { graph <http://iam.ucdavis.edu/> { [] ucdlib:userId "${user}"; ucdlib:email ?email.} }`,
+        headers: {
+          'Content-Type': 'application/sparql-query',
+          'Accept': 'application/sparql-results+json'
+        }
+      });
+
+    if (!response.ok) {
+      throw new Error(`Failed to execute update. Status code: ${response.status}`);
+    }
+
+    let json = await response.json();
+    let email = json.results.bindings[0].email.value;
+    if (!email) {
+      logger.error(`User ${user} does not have an email address`);
+      continue;
+    } else {
+      logger.info(`Processing user ${user} with email ${email}`);
+    }
+    const expert=await keycloak_admin.getOrCreateExpert(email);
+    let expertId=null;
+    if (!expert) {
+      logger.error(`Failed getOrCreateExpert for ${email}`);
+      continue;
+    } else {
+      expertId=expert.attributes['expertId'];
+      logger.info({user,email,expertId}, `expertId found`);
+    }
+
+    if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${expertId}.jsonld.json`)) {
       logger.info({mark:user},'skipping ' + user);
       continue;
     }
     logger.info({mark:user},'user ' + user);
-    if (fuseki.db==='CAS-XX' || fuseki.db==='CAS') {
-      dbname = user+(fuseki.db==='CAS-XX'?'-'+nanoid(2):'');
-      let exists = await fuseki.existsDb(dbname);
-      db = await fuseki.createDb(dbname);
-      logger.info({measure:[user],user},`fuseki.createDb(${dbname})`);
-    }
+    dbname = user;
+    let exists = await fuseki.existsDb(dbname);
+    db = await fuseki.createDb(dbname);
+    logger.info({measure:[user],user},`fuseki.createDb(${dbname})`)
 
     // const profile = await ec.getCDLprofile(user, opt);
 
@@ -133,7 +179,11 @@ async function main(opt) {
     if (opt.splay) {
       logger.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
-        { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
+        { EXPERTS_SERVICE__: DF.namedNode(`http://localhost:3030/experts/query`),
+          EXPERT__: DF.namedNode(`http://experts.ucdavis.edu/expert/${expertId}`),
+          EXPERTID__: DF.literal(expertId),
+          KEYCLOAK_EMAIL__: DF.literal(email)
+        }
       );
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
       await ec.insert({ ...iam, bindings, db });
@@ -186,7 +236,6 @@ program.name('cdl-profile')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
-  .option('--fuseki.db <name>', 'specify db. There are two special names; CAS which uses a new database w/ the users CAS identifier and CAS-XXXX which uses a database with the users CAS plus a random id.', fuseki.db)
   .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki["delete"])
   .option('--no-fuseki.delete')
   .option('--fuseki.replace', 'Replace the fuseki.db (delete before import)', true)
@@ -196,6 +245,11 @@ program.name('cdl-profile')
   .option('--no-fetch', 'fetch the data', true)
   .option('--skip-existing-user', 'skip if expert/md5(${user}@ucdavis.edu`) exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
+  .option('--keycloak-url <keycloak-url>', 'Keycloak URL', 'https://auth.library.ucdavis.edu')
+  .option('--realm-name <keycloak-realm>', 'Keycloak realm', 'aggie-experts')
+  .option('--client-id <client-id>', 'Keycloak client id', 'harvester')
+  .option('--client-secret <client-secret>', 'Keycloak client secret')
+
 
 
 program.parse(process.argv);
