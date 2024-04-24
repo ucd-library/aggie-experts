@@ -142,41 +142,36 @@ export default class FinApp extends Mixin(LitElement)
    * for logged in user
    */
   async _validateLoggedInUser() {
-    let expertId = APP_CONFIG.user?.expertId || '';
-    if( expertId ) {
-      this.expertId = expertId;
+    this.expertId = APP_CONFIG.user?.expertId || '';
 
-      // this.expertId = 'expert/66356b7eec24c51f01e757af2b27ebb8'; // hack for testing as QH
+    // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
+    let header = this.shadowRoot.querySelector('ucd-theme-header');
+    let quickLinks = header?.querySelector('ucd-theme-quick-links');
 
-      // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
-      let header = this.shadowRoot.querySelector('ucd-theme-header');
-      let quickLinks = header?.querySelector('ucd-theme-quick-links');
+    if( APP_CONFIG.user?.hasProfile ) {
+      if( quickLinks ) {
+        quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
+      }
+    } else {
+      console.warn('expert ' + this.expertId + ' not found for logged in user');
 
-      if( APP_CONFIG.user?.hasProfile ) {
-        if( quickLinks ) {
-          quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
-        }
-      } else {
-        console.warn('expert ' + this.expertId + ' not found for logged in user');
+      if( quickLinks ) {
+        quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
+        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
+        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(3)').style.top = '3.2175rem';
+        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '0';
 
-        if( quickLinks ) {
-          quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(3)').style.top = '3.2175rem';
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '0';
-
-          if( window.innerWidth > 991 ) {
-            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '6.5325rem';
-            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '1rem';
-          } else  {
-            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '0';
-          }
+        if( window.innerWidth > 991 ) {
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '6.5325rem';
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '1rem';
+        } else  {
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '0';
         }
       }
-
-      let appExpert = this.shadowRoot.querySelector('app-expert');
-      if( appExpert ) appExpert.toggleAdminUi();
     }
+
+    let appExpert = this.shadowRoot.querySelector('app-expert');
+    if( appExpert ) appExpert.toggleAdminUi();
 
     this._styleImpersonateButton();
   }
