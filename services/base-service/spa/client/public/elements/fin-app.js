@@ -144,8 +144,6 @@ export default class FinApp extends Mixin(LitElement)
   async _validateLoggedInUser() {
     this.expertId = APP_CONFIG.user?.expertId || '';
 
-    // this.expertId = 'expert/66356b7eec24c51f01e757af2b27ebb8'; // hack for testing as QH
-
     // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
     let header = this.shadowRoot.querySelector('ucd-theme-header');
     let quickLinks = header?.querySelector('ucd-theme-quick-links');
