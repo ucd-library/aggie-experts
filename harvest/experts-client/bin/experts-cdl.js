@@ -138,7 +138,7 @@ async function main(opt) {
     } else {
       logger.info(`Processing user ${user} with email ${email}`);
     }
-    const expert=await keycloak_admin.getOrCreateExpert(email);
+    const expert=await keycloak_admin.getOrCreateExpert(email,user);
     let expertId=null;
     if (!expert) {
       logger.error(`Failed getOrCreateExpert for ${email}`);
