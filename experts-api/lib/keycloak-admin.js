@@ -14,16 +14,13 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     return nanoid();
   }
 
-
   /**
-   * Find user(s) by expertId
-   * @param {string} expertId - The expertId to search for
-   * @returns {Promise} - The user(s) with the expertId
+   * Find user(s) by attribute
+   * @param {string} - attribute:value
+    * @returns {Promise} - The user(s) with the attribute
    */
-  async findByExpertId(expertId) {
-    //try to get the user(s) with the expertId
+  async findByAttribute(keyVal) {
     try {
-      //get the user(s) with the expertId
       const q_req = await this.users.makeRequest(
         {
           method: 'GET',
@@ -32,14 +29,13 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
       );
       const users = await q_req(
         {
-            q: `expertId:${expertId}`
+            q: keyVal
         }
       );
 
       //return the user(s) with the expertId
       return users;
     } catch (error) {
-      this.log.error(error);
       throw error;
     }
   }
@@ -50,7 +46,7 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
    * @returns {Promise} - The user object with a verified expertId
    */
   async verifyExpertId(user,expertId) {
-    const users = await this.findByExpertId(expertId);
+    const users = await this.findByAttribute(`expertId:${expertId}`);
     //if multiple users are found
     if (users.length > 1) {
       //throw new Error(`Multiple users found with expertId: ${expertId}`);
@@ -138,7 +134,6 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
         userName: username,
         userId: username
       };
-      this.log.info(`new User: email: ${email} and idp username: ${username}`);
       user=await this.createByIDP(email,idp);
     }
     return user

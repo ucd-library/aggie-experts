@@ -15,6 +15,7 @@ async function fetchExpertId (req, res, next) {
       const oidcbaseURL = config.oidc.baseUrl;
       const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
 
+      console.log(match[1], match[2]);
       if (match) {
         AdminClient = new ExpertsKcAdminClient(
           {
@@ -29,26 +30,27 @@ async function fetchExpertId (req, res, next) {
     const token = await keycloak.getServiceAccountToken();
     AdminClient.accessToken = token
   }
-  if (req.query.email) {
-    const email = req.query.email;
-    const user = await AdminClient.findByEmail(email);
-    if (user && user.attribute.expertId) {
-      req.expertId = expertId;
-      return next();
-    } else {
-      return res.status(404).send({error: `No expert found with email ${email}`});
+  let user;
+  try {
+    if (req.query.email) {
+      const email = req.query.email;
+      user = await AdminClient.findByEmail(email);
+    } else if (req.query.ucdPersonUUID) {
+      const ucdPersonUUID = req.query.ucdPersonUUID;
+      console.log(`ucdPersonUUID:${ucdPersonUUID}`);
+      user = await AdminClient.findByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
     }
-  } else if (req.query.ucdPersonUUID) {
-    const ucdPersonUUID = req.query.ucdPersonUUID;
-    const expertId = await AdminClient.findByUcdPersonUUID(ucdPersonUUID);
-    if (user && user.attribute.expertId) {
-      req.expertId = expertId;
-      return next();
-    } else {
-      return res.status(404).send({error: `No expert found with ucdPersonUUID ${ucdPersonUUID}`});
-    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send({error: 'Error finding expert'});
+  }
+
+  if (user && user?.attributes?.expertId) {
+    const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
+    req.query.expertId = expertId;
+    return next();
   } else {
-    return res.status(400).send({error: 'Missing email or ucdPersonUUID query parameter'});
+    return res.status(404).send({error: `No expert found`});
   }
 }
 
@@ -65,7 +67,16 @@ function is_miv(req, res, next) {
 router.get(
   '/user',
   is_miv,
-  fetchExpertId
+  fetchExpertId,
+  async (req, res) => {
+    const expertId = req.query.expertId;
+    try {
+      res.send(expertId);
+    } catch (err) {
+      console.error(err);
+      res.status(400).send(err);
+    }
+  }
 );
 
 router.get(

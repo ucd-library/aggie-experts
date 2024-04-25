@@ -38,8 +38,7 @@ async function main(opt) {
     let user
     try {
       if (expert.match(/^expertId:/)) {
-        expert = expert.replace(/^expertId:/, '');
-        user = await admin.findByExpertId(expert);
+        user = await admin.findByAttribute(expert);
         console.log(user);
       } else {
         // if email is a email:cas pair seperated by a colon, split it
