@@ -32,9 +32,25 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
             q: keyVal
         }
       );
-
-      //return the user(s) with the expertId
       return users;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+    /**
+   * Find one user by attribute
+   * @param {string} - attribute:value
+   * @returns {Promise} - The user with the attribute
+   * @throws {Error} - If multiple users are not found
+   */
+  async findOneByAttribute(keyVal) {
+    try {
+      const users = await this.findByAttribute(keyVal);
+      if (users.length > 1) {
+        throw new Error('Multiple users found');
+      }
+      return users[0];
     } catch (error) {
       throw error;
     }

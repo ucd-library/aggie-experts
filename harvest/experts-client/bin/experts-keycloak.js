@@ -3,7 +3,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
-import { GoogleSecret ExpertsKcAdminClient } from '@ucd-lib/experts-api';
+import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 
@@ -37,7 +37,8 @@ async function main(opt) {
   for (let expert of experts) {
     let user
     try {
-      if (expert.match(/^expertId:/)) {
+      if (expert.match(/^(expertId|ucdPersonUUID):/)) {
+        console.log(`Fetching expert by attribute ${expert}`);
         user = await admin.findByAttribute(expert);
         console.log(user);
       } else {

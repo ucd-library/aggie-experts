@@ -2,7 +2,6 @@
 const router = require('express').Router();
 const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
-const md5 = require('md5');
 const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
 const {config, keycloak} = require('@ucd-lib/fin-service-utils');
@@ -15,7 +14,6 @@ async function fetchExpertId (req, res, next) {
       const oidcbaseURL = config.oidc.baseUrl;
       const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
 
-      console.log(match[1], match[2]);
       if (match) {
         AdminClient = new ExpertsKcAdminClient(
           {
@@ -37,12 +35,11 @@ async function fetchExpertId (req, res, next) {
       user = await AdminClient.findByEmail(email);
     } else if (req.query.ucdPersonUUID) {
       const ucdPersonUUID = req.query.ucdPersonUUID;
-      console.log(`ucdPersonUUID:${ucdPersonUUID}`);
-      user = await AdminClient.findByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
+      user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
     }
   } catch (err) {
     console.error(err);
-    return res.status(500).send({error: 'Error finding expert'});
+    return res.status(500).send({error: 'Error finding expert with ${req.query}'});
   }
 
   if (user && user?.attributes?.expertId) {
@@ -82,12 +79,10 @@ router.get(
 router.get(
   '/grants',
   is_miv,
+  fetchExpertId,
   async (req, res) => {
     const params = {};
-
-    if (req.query.userId) {
-      params.expert = 'expert/'+md5(`${req.query.userId}@ucdavis.edu`);
-    }
+    opt.expert = `expert/${req.query.expertId}`;
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
@@ -100,6 +95,8 @@ router.get(
       id: template.id,
       params
     };
+    console.log(req.query);
+    console.log(opts);
     try {
       await expert.verify_template(template);
       const find = await expert.search(opts);
@@ -141,12 +138,10 @@ router.get(
 router.get(
   '/raw_grants',
   is_miv,
+  fetchExpertId,
   async (req, res) => {
     const params = {};
-
-    if (req.query.userId) {
-      params.expert = 'expert/'+md5(`${req.query.userId}@ucdavis.edu`);
-    }
+    opt.expert = `expert/${req.query.expertId}`;
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
@@ -154,6 +149,7 @@ router.get(
         params[key] = template.script.params[key];
       }
     }
+    params.expert = `expert/${req.query.expertId}`;
 
     opts = {
       id: template.id,
