@@ -3,17 +3,11 @@ import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { customAlphabet } from 'nanoid';
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const nanoid = customAlphabet(alphabet, 8);
-import { logger } from './logger.js';
 
 export default class ExpertsKcAdminClient extends KcAdminClient {
   // create a constructor that just calls the super constructor with the same arguments
   constructor(options) {
     super(options);
-    if (options.logger) {
-      this.log = options.logger;
-    } else {
-      this.log = logger;
-    }
   }
 
   mintExpertId() {
@@ -107,7 +101,6 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
       let user = await this.verifyExpertId(userId,expertId);
       return user;
     } catch (error) {
-      logger.error(error);
       throw error;
     }
   }

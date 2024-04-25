@@ -5,6 +5,52 @@ const utils = require('../utils.js')
 const md5 = require('md5');
 const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
+const {config, keycloak} = require('@ucd-lib/fin-service-utils');
+let AdminClient=null;
+
+async function fetchExpertId (req, res, next) {
+  if (req.query.email || req.query.ucdPersonUUID) {
+    if (! AdminClient) {
+      const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+      const oidcbaseURL = config.oidc.baseUrl;
+      const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+      if (match) {
+        AdminClient = new ExpertsKcAdminClient(
+          {
+            baseUrl: match[1],
+            realmName: match[2]
+          }
+        );
+      } else {
+        throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+      }
+    }
+    const token = await keycloak.getServiceAccountToken();
+    AdminClient.accessToken = token
+  }
+  if (req.query.email) {
+    const email = req.query.email;
+    const user = await AdminClient.findByEmail(email);
+    if (user && user.attribute.expertId) {
+      req.expertId = expertId;
+      return next();
+    } else {
+      return res.status(404).send({error: `No expert found with email ${email}`});
+    }
+  } else if (req.query.ucdPersonUUID) {
+    const ucdPersonUUID = req.query.ucdPersonUUID;
+    const expertId = await AdminClient.findByUcdPersonUUID(ucdPersonUUID);
+    if (user && user.attribute.expertId) {
+      req.expertId = expertId;
+      return next();
+    } else {
+      return res.status(404).send({error: `No expert found with ucdPersonUUID ${ucdPersonUUID}`});
+    }
+  } else {
+    return res.status(400).send({error: 'Missing email or ucdPersonUUID query parameter'});
+  }
+}
 
 function is_miv(req, res, next) {
   if (!req.user) {
@@ -15,6 +61,12 @@ function is_miv(req, res, next) {
   }
   return res.status(403).send('Not Authorized');
 }
+
+router.get(
+  '/user',
+  is_miv,
+  fetchExpertId
+);
 
 router.get(
   '/grants',

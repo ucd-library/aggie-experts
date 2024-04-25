@@ -11,11 +11,10 @@ import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
-import ExpertsKcAdminClient from '../lib/keycloak-admin.js';
 
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
-import { GoogleSecret } from '@ucd-lib/experts-api';
+import { GoogleSecret ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 

@@ -3,10 +3,9 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
-import { GoogleSecret } from '@ucd-lib/experts-api';
+import { GoogleSecret ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
-import ExpertsKcAdminClient from '../lib/keycloak-admin.js';
 
 const program = new Command();
 
