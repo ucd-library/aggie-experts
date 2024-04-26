@@ -19,18 +19,11 @@ function user_can_edit(req, res, next) {
   if ( req.user?.roles?.includes('admin')) {
     return next();
   }
-  let user_roles = req.user.roles.filter(r => r.match(/@ucdavis.edu$/));
-  if (user_roles.length) {
-    user_roles=user_roles.filter(r=>id==='expert/'+md5(r))
-    if (user_roles.length) {
-      return next();
-    } else {
-      return res.status(403).send('Not Authorized');
-    }
-  }
-  if (id === 'expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) {
+
+  if( id === req.user.expertId ) {
     return next();
   }
+
   return res.status(403).send('Not Authorized');
 }
 

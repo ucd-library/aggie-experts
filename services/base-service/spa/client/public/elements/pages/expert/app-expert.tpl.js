@@ -172,7 +172,8 @@ return html`
     }
 
     .roles-websites .link-row span {
-      padding-left: 0.625rem;
+      padding: .25rem 0 .25rem 0.625rem;
+      line-height: 1.5rem;
     }
 
     .introduction {
@@ -773,8 +774,8 @@ return html`
           ${this.websites.map(
           (site) => html`
           <div class="link-row">
-            <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-            <span><a href="${site.url}">${site.name}</a></span>
+            <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon>
+            <span><a href="${site.url}">${site.name || site.url}</a></span>
           </div>
           `
         )}

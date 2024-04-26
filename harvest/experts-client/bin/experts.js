@@ -25,6 +25,7 @@ program
   //  .command('query', 'query aggie experts')
   .command('iam', 'import profiles from IAM')
   .command('cache', 'cache data for aggie experts')
+  .command('keycloak', 'get/create experts with Keycloak')
   .command('cdl', 'import profiles from CDL')
   .command('cdl-users', 'import user ids from CDL')
   .command('cdl-edit', 'Edit User Relationships')

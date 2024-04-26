@@ -10,7 +10,7 @@
     "dev":{
       "mount":"spa",
       "auth": {
-        "server":"sandbox",
+        "server":"prod",
         "client_id":"local-dev",
         "service_account":"local-dev-service-account"
       },
@@ -29,7 +29,7 @@
       "tag":"$(${G[git]} describe --always --dirty)",
       "branch":"!^(dev|main)",
       "auth": {
-        "server":"sandbox",
+        "server":"prod",
         "client_id":"local-dev",
         "service_account":"local-dev-service-account"
       },
@@ -44,8 +44,8 @@
       "tag":"$(${G[git]} describe --always --dirty)",
       "branch":".*",
       "auth": {
-        "server":"sandbox",
-        "client_id":"sandbox",
+        "server":"prod",
+        "client_id":"local-dev",
         "service_account":"local-dev-service-account"
       },
       "server":"experts.library.ucdavis.edu",
@@ -59,7 +59,7 @@
       "tag":"$(${G[git]} describe --always --dirty)",
       "server":"^(blue|gold).experts.library.ucdavis.edu",
       "auth": {
-        "server":"sandbox",
+        "server":"prod",
         "client_id":"aggie-experts",
         "service_account":"aggie-experts-service-account"
       },
@@ -74,7 +74,7 @@
       "tag":"$(${G[git]} describe --always --dirty)",
       "server":"^(blue|gold).experts.library.ucdavis.edu",
       "auth": {
-        "server":"sandbox",
+        "server":"prod",
         "client_id":"aggie-experts",
         "service_account":"aggie-experts-service-account"
       },
@@ -89,7 +89,7 @@
       "tag":"$(${G[git]} describe --always --dirty)",
       "server":"^(blue|gold).experts.library.ucdavis.edu",
       "auth": {
-        "server":"sandbox",
+        "server":"prod",
         "client_id":"aggie-experts",
         "service_account":"aggie-experts-service-account"
       },
@@ -123,7 +123,7 @@
   },
   "fin":{
     "org":"gcr.io/ucdlib-pubreg",
-    "tag":"2.5.4"
+    "tag":"2.6.2"
   },
   "git":{
     "root":"$(${G[git]} rev-parse --show-toplevel)",

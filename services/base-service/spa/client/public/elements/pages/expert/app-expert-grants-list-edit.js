@@ -101,7 +101,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     this.modifiedGrants = false;
-    let expertId = e.location.pathname.replace('/grants-edit/', '');
+    let expertId = e.location.pathname.replace('/grants-edit', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
@@ -272,7 +273,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     if( !body.length ) return;
 
-    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of CoPIs'];
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';

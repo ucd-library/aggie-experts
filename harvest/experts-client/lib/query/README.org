@@ -102,7 +102,7 @@ Some of the sparql queries are written in this area
 
 *** Complete Query
    #+name: expert
-   #+begin_src sparql :noweb yes :tangle expert/foo.rq :url http://localhost:3030/quinn/sparql :formatx raw :wrapx _SRC ttl
+   #+begin_src sparql :noweb yes :tangle expert/construct.rqBROKEN :url http://localhost:3030/quinn/sparql :formatx raw :wrapx _SRC ttl
        <<prefixes>>
        select *
        WHERE {
@@ -261,7 +261,7 @@ relationship here for testing.
     The binds are all moved to the bottom, because for whatever reason that
     makes the query go faster.
  #+name: complete
- #+begin_src sparql :noweb yes :tangle authorship/construct.rq :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
+ #+begin_src sparql :noweb yes :tangle authorship/construct.rqBROKEN :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
    <<prefixes>>
    construct {
      ?authorship a vivo:Authorship, ucdlib:Authorship;
@@ -597,7 +597,7 @@ relationship here for testing.
 
 *** Complete Grant Query
  #+name: grant
- #+begin_src sparql :noweb yes :tangle grant_role/construct.rq :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
+ #+begin_src sparql :noweb yes :tangle grant_role/construct.rqBROKEN :url http://localhost:3030/jeisen/sparql :format raw :wrap _SRC ttl
    <<prefixes>>
    construct {
      ?grant_role a ucdlib:GrantRole, ?role;

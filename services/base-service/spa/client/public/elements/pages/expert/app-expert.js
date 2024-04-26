@@ -154,6 +154,36 @@ export default class AppExpert extends Mixin(LitElement)
     let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
     websites.forEach(w => {
       if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
+
+      // create 'name' label with abbrev url if not present
+      w.hasURL.forEach(url => {
+        if( !url.name ) {
+          // remove http(s)://, www., and trailing slashes
+          url.name = url.url?.replace(/^(http:\/\/|https:\/\/)|www\.|\/*$/g, '');
+        }
+
+        try {
+          // also set custom icon depending on type of website
+          if( url['@type'].includes('URL_googlescholar') ) {
+            url.icon = 'fa-google-scholar';
+          } else if( url['@type'].includes('URL_researchgate') ) {
+            url.icon = 'fa-researchgate';
+          } else if( url['@type'].includes('URL_linkedin') ) {
+            url.icon = 'fa-linkedin';
+          } else if( url['@type'].includes('URL_twitter') ) {
+            url.icon = 'fa-x-twitter';
+          } else if( url['@type'].includes('URL_mendeley') ) {
+            url.icon = 'fa-mendeley';
+          } else if( url['@type'].includes('URL_rssfeed') ) {
+            url.icon = 'fa-square-rss';
+          } else if( url['@type'].includes('URL_figshare') ) {
+            url.icon = 'ai-figshare';
+          }
+        } catch(e) {
+          console.warn('error setting website icon', e);
+        }
+      });
+
       this.websites.push(...w.hasURL);
     });
 
@@ -356,7 +386,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( !body.length ) return;
 
-    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of CoPIs'];
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
@@ -383,7 +413,7 @@ export default class AppExpert extends Mixin(LitElement)
   _seeAllGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/grants/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants');
   }
 
   /**
@@ -392,8 +422,7 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _seeAllWorks(e) {
     e.preventDefault();
-
-    this.AppStateModel.setLocation('/works/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/works');
   }
 
   /**
@@ -549,7 +578,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/grants-edit/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit');
   }
 
   /**
@@ -559,7 +588,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editWorks(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/works-edit/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit');
   }
 
   /**

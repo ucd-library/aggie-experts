@@ -222,6 +222,7 @@ export class FusekiClientDB {
 
     const response = await fetch(url, options);
 
+
     if (!response.ok) {
       throw new Error(`Failed to execute update. Status code: ${response.status}`);
     }
