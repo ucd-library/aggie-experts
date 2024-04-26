@@ -44,7 +44,7 @@ module.exports = async (app) => {
         if( !user.roles ) user.roles = [];
         if( user.roles.includes('admin') ) user.admin = true;
         user.loggedIn = true;
-        user.expertId = 'expert/'+ md5(user.preferred_username+'@ucdavis.edu');
+        if( user.attributes?.expertId ) user.expertId = 'expert/'+ user.attributes.expertId;
 
         try {
           const esResult = await esClient.get(

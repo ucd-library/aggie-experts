@@ -386,7 +386,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( !body.length ) return;
 
-    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of CoPIs'];
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
@@ -413,7 +413,7 @@ export default class AppExpert extends Mixin(LitElement)
   _seeAllGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/grants/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants');
   }
 
   /**
@@ -422,8 +422,7 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _seeAllWorks(e) {
     e.preventDefault();
-
-    this.AppStateModel.setLocation('/works/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/works');
   }
 
   /**
@@ -579,7 +578,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/grants-edit/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit');
   }
 
   /**
@@ -589,7 +588,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editWorks(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/works-edit/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit');
   }
 
   /**

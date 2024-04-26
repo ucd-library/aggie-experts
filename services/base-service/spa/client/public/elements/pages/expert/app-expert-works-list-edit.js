@@ -101,7 +101,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     this.modifiedWorks = false;
-    let expertId = e.location.pathname.replace('/works-edit/', '');
+    let expertId = e.location.pathname.replace('/works-edit', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
+
     let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
