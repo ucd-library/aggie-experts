@@ -21,7 +21,7 @@ construct {
   ?authorship a vivo:Authorship, ucdlib:Authorship;
                 ucdlib:favorite ?favorite;
                 ucdlib:is-visible ?visible;
-                vivo:relates ?expert,?work;
+                vivo:relates ?EXPERT__,?work;
                 vivo:rank ?user_rank;
                 .
 
@@ -70,7 +70,7 @@ WHERE {
             {
                 select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
               WHERE {
-                
+
                 graph cdl: {
                       VALUES (?source ?order) {
                        ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
@@ -78,16 +78,16 @@ WHERE {
                         ("arxiv" 10)("orcid" 11)("dblp" 12)
                         ("cinqii-english" 13)("figshare" 14)
                         ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
-              
+
                   ?RELATIONSHIP__ :type "publication-user-authorship";
                                   :related ?pub;
                                   .
-              
+
                   # This needs to include grants later
                   ?pub :category "publication";
                                :records/:record ?record.
                       ?record :source-name ?source.
-              
+
                   OPTIONAL {
                     ?record :native/:field/:name "doi".
                     bind(-10 as ?boost)
@@ -141,7 +141,7 @@ WHERE {
     {
         select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
       WHERE {
-        
+
         graph cdl: {
               VALUES (?source ?order) {
                ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
@@ -149,16 +149,16 @@ WHERE {
                 ("arxiv" 10)("orcid" 11)("dblp" 12)
                 ("cinqii-english" 13)("figshare" 14)
                 ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
-      
+
           ?RELATIONSHIP__ :type "publication-user-authorship";
                           :related ?pub;
                           .
-      
+
           # This needs to include grants later
           ?pub :category "publication";
                        :records/:record ?record.
               ?record :source-name ?source.
-      
+
           OPTIONAL {
             ?record :native/:field/:name "doi".
             bind(-10 as ?boost)
@@ -232,12 +232,12 @@ WHERE {
     }
   }
   {
-    select ?username ?relationship (?pos+1 as ?user_rank)
+    select ?relationship (?pos+1 as ?user_rank)
     WHERE {
       {
           select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
         WHERE {
-          
+
           graph cdl: {
                 VALUES (?source ?order) {
                  ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
@@ -245,16 +245,16 @@ WHERE {
                   ("arxiv" 10)("orcid" 11)("dblp" 12)
                   ("cinqii-english" 13)("figshare" 14)
                   ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
-        
+
             ?RELATIONSHIP__ :type "publication-user-authorship";
                             :related ?pub;
                             .
-        
+
             # This needs to include grants later
             ?pub :category "publication";
                          :records/:record ?record.
                 ?record :source-name ?source.
-        
+
             OPTIONAL {
               ?record :native/:field/:name "doi".
               bind(-10 as ?boost)
@@ -267,14 +267,14 @@ WHERE {
         ?relationship :related ?user.
         ?user :category "user";
               :is-public "true";
-              :username ?username;
+              :username ?USERNAME__;
               .
-    
+
         ?record :native/:field ?field.
         ?field :name "authors";
                :people/:person [ list:index(?pos ?elem) ] .
         ?elem :links/:link ?user.   # This is the link to the relationship user
-    
+
       }
     } limit 1
   }
@@ -324,7 +324,6 @@ WHERE {
   BIND(concat(?begin,coalesce(concat('-',?end),'')) AS ?page)
   bind(uri(replace(str(?relationship),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?authorship)
   bind(uri(replace(str(?pub),str(cdl:),"ark:/87287/d7mh2m/publication/")) as ?work)
-  bind(uri(concat(str(expert:),md5(?username))) as ?expert)
   # pub date
   BIND(concat("-",IF(xsd:integer(?pub_m_raw) < 10, CONCAT("0", ?pub_m_raw), ?pub_m_raw)) AS ?pub_month)
   BIND(concat("-",IF(xsd:integer(?pub_d_raw) < 10, CONCAT("0", ?pub_d_raw), ?pub_d_raw)) AS ?pub_day)

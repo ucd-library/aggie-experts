@@ -21,8 +21,8 @@ construct {
   ?grant_role a ucdlib:GrantRole, ?role;
                 ucdlib:favorite ?favorite;
                 ucdlib:is-visible ?visible;
-                vivo:relates ?grant,?expert;
-                obo:RO_0000052 ?expert;
+                vivo:relates ?grant,?EXPERT__;
+                obo:RO_0000052 ?EXPERT__;
                 .
 
   ?grant a vivo:Grant,?grant_type;
@@ -273,7 +273,6 @@ WHERE {
   bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
   bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?cdl_ark)
   bind(uri(?grant_id) as ?grant)
-  bind(uri(concat(str(expert:),md5(?username))) as ?expert)
   bind(xsd:boolean(?visible_str) as ?visible)
   bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
 
