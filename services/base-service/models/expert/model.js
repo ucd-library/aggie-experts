@@ -188,6 +188,7 @@ class ExpertModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     // If a doc exists, update this node only, otherwise create a new doc.
+    logger.info(`ExpertModel.update(${root_node['@id']})`);
     try {
       let expert = await this.client_get(root_node['@id']);
       await this.update_graph_node(expert['@id'],root_node);
