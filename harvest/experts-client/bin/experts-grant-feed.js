@@ -36,7 +36,7 @@ program
   .option('--upload', 'Upload the file to the SFTP server')
   .option('-h, --host <host>', 'SFTP server hostname')
   .option('-u, --username <username>', 'SFTP username')
-  .requiredOption('--fuseki <db>', 'Fuseki database name')
+  .option('--fuseki <db>', 'Fuseki database name', 'ae-grants')
   .option('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .option('-g, --generation <generation>', 'GCS (XML) file generation', 0)
   .option('-sp, --secretpath <secretpath>', 'Secret Manager secret path', 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password')
@@ -52,15 +52,11 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
+opt.output += '/generation-' + opt.generation;
+
 logger.info('Options:', opt);
 
 const graphName = 'http://www.ucdavis.edu/aggie_enterprise_' + opt.generation
-
-const ftpConfig = {
-  host: opt.host,
-  port: opt.port || 22,
-  username: opt.username,
-};
 
 // const fuseki = new FusekiClient({
 

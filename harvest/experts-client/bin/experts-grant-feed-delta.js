@@ -19,10 +19,10 @@ program
   .description('Upload a file to a remote SFTP server')
   .option('--env <env>', '', 'QA')
   .option('--debug <debug>', '')
+  .requiredOption('-o, --dir <dir>', 'Working directory')
   .requiredOption('-n, --new <new>', 'New grant file set path')
   .requiredOption('-p, --prev <prev>', 'Previous grant file set path')
   .requiredOption('-d, --delta <delta>', 'Delta grant file set path')
-  // .requiredOption('-o, --output <output>', 'Local output file path')
   .parse(process.argv);
 
 let opt = program.opts();
@@ -35,12 +35,12 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
-const newGrantsPath = opt.new + '/' + opt.prefix + 'grants_metadata.csv';
-const oldGrantsPath = opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
-const newLinksPath = opt.new + '/' + opt.prefix + 'grants_links.csv';
-const oldLinksPath = opt.prev + '/' + opt.prefix + 'grants_links.csv';
-const newPersonsPath = opt.new + '/' + opt.prefix + 'grants_persons.csv';
-const oldPersonsPath = opt.prev + '/' + opt.prefix + 'grants_persons.csv';
+const newGrantsPath = opt.dir + '/' + opt.new + '/' + opt.prefix + 'grants_metadata.csv';
+const oldGrantsPath = opt.dir + '/' + opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
+const newLinksPath = opt.dir + '/' + opt.new + '/' + opt.prefix + 'grants_links.csv';
+const oldLinksPath = opt.dir + '/' + opt.prev + '/' + opt.prefix + 'grants_links.csv';
+const newPersonsPath = opt.dir + '/' + opt.new + '/' + opt.prefix + 'grants_persons.csv';
+const oldPersonsPath = opt.dir + '/' + opt.prev + '/' + opt.prefix + 'grants_persons.csv';
 
 if (opt.debug) {
   logger.info('New grants path:', newGrantsPath);
