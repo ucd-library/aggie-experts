@@ -29,12 +29,6 @@ CONSTRUCT {
 
   ?expert ?id_pred ?id_value.
 
-#  ?expert ucdlib:identifier ?assoc_identifier.
-#  ?assoc_identifier a ucdlib:Identifier;
-#                    ucdlib:scheme ?assoc_scheme;
-#                    ucdlib:value  ?assoc_value;
-#                    .
-
   ?vcard a vcard:Individual;
          vivo:rank 20;
          schema:name ?vcard_label;
@@ -93,21 +87,8 @@ WHERE {
       ?cdl_id :department ?dept.
     }
 
-
-    bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
-    bind(concat(?fn," ",?ln) as ?name)
-    bind(uri(concat(str(?expert),"#vcard-oap-1")) as ?vcard)
-    bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
-    bind(xsd:boolean(?visible_str) as ?visible)
-
     ?assoc :user-id ?oapolicy_id.
     bind(uri(concat('ark:/87287/d7mh2m/user/',?oapolicy_id)) as ?oapolicy_ark)
-
-    OPTIONAL {
-      values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
-      ?assoc :user-identifier-association [ :field-value  ?assoc_value ; :scheme ?assoc_scheme ].
-    }
-    bind(uri(concat(str(?expert),"#identifier-",?assoc_scheme,"-",?assoc_value)) as ?assoc_identifier)
 
     OPTIONAL {
       values (?oap_scheme ?id_pred) {
@@ -121,26 +102,26 @@ WHERE {
       ?cdl_id :records/:record/:native ?native.
       OPTIONAL {
         ?native :field [ :name "email-addresses";
-                            :type "email-address-list";
-                            :email-addresses [
-                                                  :email-address [
-                                                                      :address ?email;
-                                                                      :privacy "public";
-                                                                    ]
-                                                ]
-                          ].
+                         :type "email-address-list";
+                         :email-addresses [
+                                            :email-address [
+                                                             :address ?email;
+                                                             :privacy "public";
+                                                           ]
+                                          ]
+                       ].
       }
       OPTIONAL {
         ?native :field [ :name "personal-websites";
-                            :web-addresses/:web-address [ list:index(?pos ?elem) ]
-                          ].
+                         :web-addresses/:web-address [ list:index(?pos ?elem) ]
+                       ].
 
         ?elem :url ?web_url;
               :privacy "public";
               .
         OPTIONAL {
           ?elem :label ?web_label.
-          }
+        }
 
         OPTIONAL {
           ?elem :type ?web_type_text.
@@ -154,33 +135,32 @@ WHERE {
         ("teaching-summary" ucdlib:teachingSummary)
       }
       ?native :field [ :name ?field_name;
-                          :text [ :field-value ?field_value;
-                                     :privacy "public"; ]
-                        ].
+                       :text [ :field-value ?field_value;
+                               :privacy "public"; ]
+                     ].
     }
-    bind(uri(concat('mailto:',str(?email))) as ?vcard_email)
-    bind(uri(concat(str(?vcard),"-web-",str(?pos))) as ?vcard_web)
-    bind(coalesce(concat(" § ",?title,coalesce(concat(", ",?dept),"")),
-                  "") as ?title_dept)
-
-    bind(concat(
-                concat(?ln,coalesce(concat(", ",?fn),"")),
-                coalesce(?title_dept,"")
-                ) as ?vcard_label)
-
-
-  OPTIONAL {
-    values (?scheme ?vocab) { ("for" FoR:) }
-       ?cdl_id :all-labels [
-                           :type "keyword-list";
-                           :keywords/:keyword [
-                                                      :field-value ?value;
-                                                      :scheme ?scheme;
-                                                    ]
-                         ].
-    bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
-    bind(true as ?keyword_list)
+    OPTIONAL {
+      values (?scheme ?vocab) { ("for" FoR:) }
+      ?cdl_id :all-labels [
+                            :type "keyword-list";
+                            :keywords/:keyword [
+                                                 :field-value ?value;
+                                                 :scheme ?scheme;
+                                               ]
+                          ].
+      bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
     }
-  bind(coalesce(?keyword_list,false) as ?user_supplied_concepts)
   }
+  bind(concat(?fn," ",?ln) as ?name)
+  bind(uri(concat(str(?expert),"#vcard-oap-1")) as ?vcard)
+  bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
+  bind(xsd:boolean(?visible_str) as ?visible)
+  bind(uri(concat('mailto:',str(?email))) as ?vcard_email)
+  bind(uri(concat(str(?vcard),"-web-",str(?web_rank))) as ?vcard_web)
+  bind(coalesce(concat(" § ",?title,coalesce(concat(", ",?dept),"")),
+                "") as ?title_dept)
+  bind(concat(
+              concat(?ln,coalesce(concat(", ",?fn),"")),
+              coalesce(?title_dept,"")
+              ) as ?vcard_label)
 }
