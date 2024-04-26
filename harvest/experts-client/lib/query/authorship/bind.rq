@@ -7,7 +7,7 @@ prefix expert: <http://experts.ucdavis.edu/expert/>
 prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
-select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
+select distinct (?username as ?USERNAME__) (?expert as ?EXPERT__) (?relationship as ?RELATIONSHIP__) ?filename where {
     VALUES(?oap_type ?cite_include ?bibo_type ?cite_type ?cite_genre) {
       ("book" true bibo:Book "book" "")
       ("chapter" true bibo:Chapter "chapter" "")
@@ -42,13 +42,15 @@ select distinct (?relationship as ?RELATIONSHIP__) ?filename where {
           .
   }
   graph <http://iam.ucdavis.edu/> {
-    bind(uri(concat(str(expert:),md5(?username))) as ?expert)
-    ?expert a ucdlib:Expert;
-            ucdlib:is-visible true;
-            .
+    bind(uri(concat(str(expert:),md5(?username))) as ?iam)
+    ?iam a ucdlib:Expert;
+         ucdlib:expert ?expert;
+         ucdlib:expertId ?expertId;
+         ucdlib:is-visible true;
+         .
   }
 
   bind(replace(str(?relationship),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
   filter(regex(?username,"@ucdavis.edu"))
-  bind(concat("expert/",md5(?username),"/",?id,".jsonld.json") as ?filename)
+  bind(concat("expert/",?expertId,"/",?id,".jsonld.json") as ?filename)
 }

@@ -7,7 +7,15 @@ PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 
 
-insert { graph iam: { ?s ?p ?o. ?o vcard:title ?title } } where {
+insert {
+  graph iam: {
+    ?user ucdlib:expert ?EXPERT__;
+          ucdlib:expertId ?EXPERTID__;
+          .
+    ?s ?p ?o.
+    ?o vcard:title ?title
+  }
+} where {
   SERVICE ?EXPERTS_SERVICE__ {
     bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
     graph iam: {

@@ -15,6 +15,7 @@ CONSTRUCT {
         rdfs:label ?label;
         schema:identifier ?aggie_ark;
         ucdlib:userId ?kerb;
+        ucdlib:ucdPersonUUId ?mothra_id;
         ucdlib:email ?default_email;
         ucdlib:is-visible ?is_visible;
         .

@@ -148,7 +148,6 @@ class GrantRoleModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
-    logger.info(`GrantRoleModel.update(${doc['@id']})`);
     await this.update_or_create_main_node_doc(doc);
 
     const have_part={};
@@ -182,16 +181,16 @@ class GrantRoleModel extends BaseModel {
     if (have_part.Expert && have_part.Grant) {
       // Add Grant as snippet to Expert, relationship is in Grant
       const node = grantModel.snippet(have_part.Grant.node)
-      logger.info(`${have_part.Expert.id} ==> ${have_part.Grant.id}`);
+      logger.info(`GrantRoleModel.update(${doc['@id']}) ${have_part.Expert.id} ==> ${have_part.Grant.id}`);
       await expertModel.update_graph_node(have_part.Expert.id,node);
     } else {
       if (have_part.Expert) {
-        logger.info(`${have_part.Expert.id} =>? ?Grant?`);
+        logger.info(`GrantRoleModel.update(${doc['@id']}) ${have_part.Expert.id} =>? ?Grant?`);
       } else {
         if (have_part.Grant) {
-          logger.info(`?Expert? ?=> ${have_part.Grant.id}`);
+          logger.info(`GrantRoleModel.update(${doc['@id']}) ?Expert? ?=> ${have_part.Grant.id}`);
         } else {
-          logger.info(`?Expert? ?=? ?Grant?`);
+          logger.info(`GrantRoleModel.update(${doc['@id']}) ?Expert? ?=? ?Grant?`);
         }
       }
     }
