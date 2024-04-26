@@ -143,7 +143,6 @@ router.get(
   fetchExpertId,
   async (req, res) => {
     const params = {};
-    opt.expert = `expert/${req.query.expertId}`;
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
