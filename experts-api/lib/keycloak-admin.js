@@ -86,30 +86,18 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
   }
 
     /**
-     * Create a user by IDP
-     * @param {object} IDP - The IDP object to create the user by
+     * Create a new expert
+     * @param {object} profile - The user's profile
      * @returns {Promise} - The user object created
      */
-  async createByIDP(email,idp) {
+  async createExpert(email,profile) {
     //try to create a new user
     try {
       //create a new user with the username=IDP.email, and link the user to the IDP
       const expertId = this.mintExpertId();
-      const userId = await this.users.create({
-        username: email,
-        email: email,
-        emailVerified: true,
-        enabled: true,
-        attributes: {
-          expertId: expertId,
-        },
-        federatedIdentities:[
-          {identityProvider: "cas-oidc",
-           userId:idp.userId,
-           userName:idp.userName
-           }
-        ]
-      });
+      profile.attributes ||= {};
+      profile.attributes.expertId = expertId;
+      const userId = await this.users.create(profile);
       let user = await this.verifyExpertId(userId,expertId);
       return user;
     } catch (error) {
@@ -143,14 +131,27 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
    * @param {Object} username - The IDP userName
    * @returns {Promise} - A promise that resolves with the user expertId
    */
-  async getOrCreateExpert(email,username) {
+  async getOrCreateExpert(email,username,profile) {
     let user= await this.findByEmail(email);
     if (! user) {
-      const idp = {
-        userName: username,
-        userId: username
+      const new_user = {
+        email:email,
+        username:email,
+        emailVerified: true,
+        enabled: true,
+        federatedIdentities:[
+          { identityProvider: "cas-oidc",
+            userId:username,
+            userName:username
+          }
+        ]
       };
-      user=await this.createByIDP(email,idp);
+      ['firstName','lastName','attributes'].forEach((key) => {
+        if (profile[key]) {
+          new_user[key] = profile[key];
+        }
+      });
+      user=await this.createExpert(email,new_user);
     }
     return user
   }

@@ -5,7 +5,6 @@ dotenv.config();
 import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
-import { nanoid } from 'nanoid';
 
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
@@ -14,7 +13,7 @@ import ExpertsClient from '../lib/experts-client.js';
 
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
-import { GoogleSecret ExpertsKcAdminClient } from '@ucd-lib/experts-api';
+import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 
@@ -53,22 +52,25 @@ async function main(opt) {
     }
   }
 
-  const keycloak_admin = new ExpertsKcAdminClient(
-    {
-      baseUrl: opt.keycloakUrl,
-      realmName: opt.realmName,
-    },
-  );
+  //  get keycloak token
+  let keycloak_admin
+  try {
+    const keycloakResp=await gs.getSecret('projects/325574696734/secrets/service-account-harvester')
+    const keycloak = JSON.parse(keycloakResp);
 
-  await keycloak_admin.auth(
-    {
-      grantType: 'client_credentials',
-      clientId: opt.clientId,
-      clientSecret: opt.clientSecret
-    }
-  );
+    keycloak_admin = new ExpertsKcAdminClient(
+      {
+      baseUrl: keycloak.baseUrl,
+      realmName: keycloak.realmName
+      },
+    );
 
-  opt.keycloak_admin = keycloak_admin;
+    await keycloak_admin.auth(keycloak.auth);
+    keycloak_admin = keycloak_admin;
+  } catch (e) {
+    logger.error('Error getting keycloak authorized', e);
+    process.exit(1);
+  }
 
   const ec = new ExpertsClient(opt);
 
@@ -114,11 +116,20 @@ async function main(opt) {
     let dbname
     let md=md5(`${user}@ucdavis.edu`);
 
+    const query=`
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+select * WHERE { graph <http://iam.ucdavis.edu/> {
+    [] ucdlib:userId "${user}" ;
+       ucdlib:email ?email;
+       ucdlib:ucdPersonUUId ?ucdPersonUUID;
+       vcard:hasName [vcard:givenName ?firstName; vcard:familyName ?lastName ].
+  } }`;
     const response = await fetch(
       opt.expertsService,
       {
         method: 'POST',
-        body: `PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#> SELECT ?email WHERE { graph <http://iam.ucdavis.edu/> { [] ucdlib:userId "${user}"; ucdlib:email ?email.} }`,
+        body: query,
         headers: {
           'Content-Type': 'application/sparql-query',
           'Accept': 'application/sparql-results+json'
@@ -130,14 +141,20 @@ async function main(opt) {
     }
 
     let json = await response.json();
-    let email = json.results.bindings[0].email.value;
-    if (!email) {
-      logger.error(`User ${user} does not have an email address`);
+    const profile = {};
+    let email;
+    try {
+      email = json.results.bindings[0].email.value;
+      profile.firstName = json.results.bindings[0].firstName.value;
+      profile.lastName = json.results.bindings[0].lastName.value;
+      profile.attributes = {};
+      profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
+    } catch (e) {
+      logger.error(json, `${user} missing values`);
       continue;
-    } else {
-      logger.info(`Processing user ${user} with email ${email}`);
     }
-    const expert=await keycloak_admin.getOrCreateExpert(email,user);
+    logger.info(`Processing ${user}(${email},${profile.attributes.ucdPersonUUID})`);
+    const expert=await keycloak_admin.getOrCreateExpert(email,user,profile);
     let expertId=null;
     if (!expert) {
       logger.error(`Failed getOrCreateExpert for ${email}`);
@@ -244,16 +261,13 @@ program.name('cdl-profile')
   .option('--no-fetch', 'fetch the data', true)
   .option('--skip-existing-user', 'skip if expert/md5(${user}@ucdavis.edu`) exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
-  .option('--keycloak-url <keycloak-url>', 'Keycloak URL', 'https://auth.library.ucdavis.edu')
-  .option('--realm-name <keycloak-realm>', 'Keycloak realm', 'aggie-experts')
-  .option('--client-id <client-id>', 'Keycloak client id', 'harvester')
-  .option('--client-secret <client-secret>', 'Keycloak client secret')
 
 
 
 program.parse(process.argv);
 
 let opt = program.opts();
+
 
 // fusekize opt
 Object.keys(opt).forEach((k) => {

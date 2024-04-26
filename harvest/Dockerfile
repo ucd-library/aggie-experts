@@ -110,7 +110,7 @@ RUN cd ${AE_API} && npm link #&& yarn link
 ARG AE_CLIENT=/usr/local/lib/aggie-experts/experts-client
 COPY experts-client ${AE_CLIENT}
 #RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && yarn global add simple-copy typescript  && yarn link @ucd-lib/experts-api && yarn install
-RUN cd ${AE_CLIENT} && rm -rf node_modules && npm link @ucd-lib/experts-api && npm install -g
+RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && npm link @ucd-lib/experts-api && npm install -g
 
 # Setup a place to hold the Makefile data
 RUN mkdir /usr/local/lib/harvest
