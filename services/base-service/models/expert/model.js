@@ -31,6 +31,9 @@ class ExpertModel extends BaseModel {
 
     // Get only best contact info
     if (node.contactInfo) {
+      if (!Array.isArray(node.contactInfo)) {
+        node.contactInfo = [node.contactInfo];
+      }
       let best=node.contactInfo.sort((a,b) => {
         (a['rank'] || 100) - (b['rank'] || 100)})[0];
       ['hasOrganizationalUnit','hasTitle','hasURL','rank'].forEach(x => delete best[x]);
