@@ -531,7 +531,7 @@ function setup() {
 
     [[ "$env" == "clean" ]] && env='dev'
 
-    local srv=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa} AND labels.auth:${auth}" | jq -r '.[0].name'))
+    local srv=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
 
     srv_env=$(gcloud secrets versions access latest --secret="$srv")
 
