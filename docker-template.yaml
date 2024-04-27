@@ -1,6 +1,14 @@
 version: '3'
-
 services:
+  ###
+  # Front end apache server for proxying to gateway from host port
+  ###
+  lb:
+    image: ${FIN_ORG}/fin-apache-lb:${FIN_TAG}
+    ports:
+      - ${HOST_PORT:-3000}:80
+    restart: unless-stopped
+
   gateway:
     image: &BASE ${ORG}/base-service:${TAG}
     volumes:
@@ -8,13 +16,160 @@ services:
       - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-./service-account.json}:/etc/fin/service-account.json
       - &DEV_MOUNT_MODELS ./services/base-service/models:/fin/services/models
       - &DEV_MOUNT_MODELS_API ./experts-api:/experts-api
-    ports:
-      - ${HOST_PORT:-80}:3001
     env_file:
       - .env
+    environment:
+      - FIN_SERVICE_NAME=gateway
+    depends_on:
+      - fcrepo
+      - redis
+      - elasticsearch
     restart: unless-stopped
     command: npm run gateway
     # command: bash -c 'tail -f /dev/null'
+
+  ###
+  # Fedora Repository
+  ###
+  fcrepo:
+    image: ${FIN_ORG}/fin-fcrepo:${FIN_TAG}
+    env_file:
+      - .env
+    ports:
+      - ${FCREPO_PORT}:8080
+    volumes:
+      - fedora-data:/usr/local/tomcat/fcrepo-home/data
+      - activemq-data:/usr/local/tomcat/ActiveMQ
+      - *SERVICE_ACCOUNT
+
+  ###
+  # Fedora Postgres Service
+  ###
+  postgres:
+    image: ${FIN_ORG}/fin-postgres:${FIN_TAG}
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  init:
+    image: ${ORG}/init:${TAG}
+    env_file:
+      - .env
+    volumes:
+      - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
+    environment:
+      - FIN_SERVICE_NAME=init
+
+  redis:
+    image: redis:3.2
+    volumes:
+      - redis-data:/data
+    depends_on:
+      - fcrepo
+    restart: unless-stopped
+
+  ###
+  # RabbitMQ - for messaging
+  ###
+  rabbitmq:
+    image: ${FIN_ORG}/fin-rabbitmq:${FIN_TAG}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  uber:
+    image: *BASE
+    volumes:
+      - fs-tests:/fs-tests
+      - *SERVICE_ACCOUNT
+    environment:
+      - FIN_SERVICE_NAME=uber
+      # - OTEL_LOG_LEVEL=DEBUG
+      - FIN_METRICS_ENABLED=${FIN_METRICS_ENABLED:-true}
+      - FIN_METRICS_FS_ENABLED=${FIN_METRICS_FS_ENABLED:-true}
+      - FIN_METRICS_FIN_ENABLED=${FIN_METRICS_FIN_ENABLED:-true}
+      - FIN_METRICS_FCREPO_ENABLED=${FIN_METRICS_FCREPO_ENABLED:-true}
+      - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    command: npm run uber
+
+  spa:
+    image: *BASE
+    volumes:
+      - *SERVICE_ACCOUNT
+      - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
+    depends_on:
+      - elasticsearch
+    command: node spa/index.js
+    environment:
+      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-false}
+      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
+
+  ###
+  # External Database Sync Services
+  ###
+  dbsync:
+    image: *BASE
+    env_file:
+      - .env
+    environment:
+      - FIN_SERVICE_NAME=dbsync
+    volumes:
+      - *SERVICE_ACCOUNT
+      - *DEV_MOUNT_MODELS
+      - *DEV_MOUNT_MODELS_API
+    restart: unless-stopped
+    command: npm run dbsync
+    # command: bash -c 'tail -f /dev/null'
+
+  # ###
+  # # GCS - Sccess & Sync
+  # ###
+  gcs:
+    image: *BASE
+    environment:
+      - GCS=${GCS:-fcrepo-dev}
+      - FIN_SERVICE_NAME=gcs
+    env_file:
+      - .env
+    depends_on:
+      - gateway
+    volumes:
+      - *SERVICE_ACCOUNT
+    command: npm run gcs
+    # command: bash -c 'tail -f /dev/null'
+
+  ###
+  # Search
+  ###
+  elasticsearch:
+    image: ${FIN_ORG}/fin-elastic-search:${FIN_TAG}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    depends_on:
+      - fcrepo
+    restart: unless-stopped
+    # command: bash -c 'tail -f /dev/null'
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.4.3
+    ports:
+      - ${KIBANA_PORT}:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - xpack.security.enabled=false
+      - telemetry.enabled=false
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
 
   # Fuseki is used to harvest data, and as a check on data as well
   fuseki:
@@ -33,192 +188,49 @@ services:
       HDT=import server
     # command: bash -c 'tail -f /dev/null'
 
-
-  ###
-  # Fedora Repository
-  ###
-  fcrepo:
-    image: ${FIN_ORG}/fin-fcrepo:${FIN_TAG}
-    env_file:
-      - .env
-    ports:
-      - ${FCREPO_PORT}:8080
-    # Example for change logging.  Note, don't forget to still include the fcrepo.properties file location!
-    # See: https://wiki.lyrasis.org/display/FEDORA6x/Logging
-    # environment:
-    #  - CATALINA_OPTS=-Dfcrepo.log.auth=DEBUG -Dfcrepo.config.file=/etc/fin/fcrepo.properties
-    volumes:
-      - fedora-data:/usr/local/tomcat/fcrepo-home/data
-      - *SERVICE_ACCOUNT
-      #- &DEV_MOUNT_FCREPO_ACTIVEMQ ./services/fcrepo/activemq.xml:/usr/local/tomcat/webapps/fcrepo/WEB-INF/classes/config/activemq.xml
-      #- &DEV_MOUNT_FCREPO_PROPERTIES ./fin/services/fcrepo/fcrepo.properties:/etc/fin/fcrepo.properties
-      #- &DEV_MOUNT_FCREPO_ROOT_AUTH ./fin/services/fcrepo/root-authorization.ttl:/etc/fin/root-authorization.ttl
-
-  ###
-  # Fedora Postgres Service
-  ###
-  postgres:
-    image: ${FIN_ORG}/fin-postgres:${FIN_TAG}
-    environment:
-      - POSTGRES_HOST_AUTH_METHOD=trust
-    volumes:
-      - pg-data:/var/lib/postgresql/data
-
-  init:
-    image: ${ORG}/init:${TAG}
-    env_file:
-      - .env
-    volumes:
-      #- &DEV_MOUNT_INIT_POSTGRES ./services/init/postgres:/etc/ucdlib-service-init/postgres
-      - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
-      - *SERVICE_ACCOUNT
-
-  redis:
-    image: redis:3.2
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-
-  ###
-  # RabbitMQ - for messaging
-  ###
-  rabbitmq:
-    image: ${FIN_ORG}/fin-rabbitmq:${FIN_TAG}
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-
-  spa:
-    image: *BASE
-    volumes:
-      - *SERVICE_ACCOUNT
-      - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
-    command: node spa/index.js
-    environment:
-      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-false}
-      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
-
-  ###
-  # External Database Sync Services
-  ###
-  dbsync:
-    image: *BASE
-    env_file:
-      - .env
-    volumes:
-      - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_MODELS
-      - *DEV_MOUNT_MODELS_API
-    restart: unless-stopped
-    command: npm run dbsync
-    # command: bash -c 'tail -f /dev/null'
-
-  # ###
-  # # GCS - Sccess & Sync
-  # ###
-  gcs:
-    image: *BASE
-    environment:
-      - GCS=${GCS:-fcrepo-dev}
-    env_file:
-      - .env
-    volumes:
-      - *SERVICE_ACCOUNT
-    command: npm run gcs
-    # command: bash -c 'tail -f /dev/null'
-
-  ###
-  # Search
-  ###
-  elasticsearch:
-    image: ${FIN_ORG}/fin-elastic-search:${FIN_TAG}
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - es-data:/usr/share/elasticsearch/data
-    restart: unless-stopped
-    # command: bash -c 'tail -f /dev/null'
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.4.3
-    ports:
-      - ${KIBANA_PORT}:5601
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - xpack.security.enabled=false
-      - telemetry.enabled=false
-
-  uber:
-    image: *BASE
-    environment:
-      - FIN_SERVICE_NAME=uber
-      # - OTEL_LOG_LEVEL=DEBUG
-      - FIN_METRICS_ENABLED=${FIN_METRICS_ENABLED:-true}
-      - FIN_METRICS_FS_ENABLED=${FIN_METRICS_FS_ENABLED:-true}
-      - FIN_METRICS_FIN_ENABLED=${FIN_METRICS_FIN_ENABLED:-true}
-      - FIN_METRICS_FCREPO_ENABLED=${FIN_METRICS_FCREPO_ENABLED:-true}
-      - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
-    volumes:
-      - uber-data:/fs-tests
-      - *SERVICE_ACCOUNT
-      - *DEV_MOUNT_SPA
-      - *DEV_MOUNT_MODELS
-      - *DEV_MOUNT_MODELS_API
-    env_file:
-      - .env
-    depends_on:
-      - elasticsearch
-    command: npm run uber
-  # command: bash -c 'tail -f /dev/null'
-
-  # ###
-  # # Fin Workflows
-  # ###
-  # workflow:
-  #   image: *BASE
-  #   volumes:
-      # - *SERVICE_ACCOUNT
-  #   # command: bash -c 'tail -f /dev/null'
-
-  # keycloak container only enabled with deploy --dev
-  keycloak:
-    image: ${ORG}/keycloak:${TAG}
-    environment:
-      KC_HEALTH_ENABLED: 1
-      KC_METRICS_ENABLED: 1
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres/postgres
-      KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: postgres
-      KC_HOSTNAME: localhost
-      KC_LOCAL_DEV_REALM: ${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}
-      KC_SSODEV_OIDC_SECRET: ${KC_SSODEV_OIDC_SECRET:-***ssodev_oidc_secret_missing***}
-      KC_SSODEV_OIDC_CLIENT_ID: ${KC_SSODEV_OIDC_CLIENT_ID:-***ssdev_client_id_missing***}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-***app_client_id_missing***}
-      OIDC_SECRET: ${OIDC_SECRET:-***client_secret_missing***}
-      OIDC_BASE_URL: ${OIDC_BASE_URL:-https://keycloak:8443/realms/${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}}
-    ports:
-      - 8081:8080
-      - 8443:8443
-    command: ["start-dev --import-realm"]
+  # # keycloak container only enabled with deploy --dev
+  # keycloak:
+  #   image: ${ORG}/keycloak:${TAG}
+  #   environment:
+  #     KC_HEALTH_ENABLED: 1
+  #     KC_METRICS_ENABLED: 1
+  #     KEYCLOAK_ADMIN: admin
+  #     KEYCLOAK_ADMIN_PASSWORD: admin
+  #     KC_DB: postgres
+  #     KC_DB_URL: jdbc:postgresql://postgres/postgres
+  #     KC_DB_USERNAME: postgres
+  #     KC_DB_PASSWORD: postgres
+  #     KC_HOSTNAME: localhost
+  #     KC_LOCAL_DEV_REALM: ${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}
+  #     KC_SSODEV_OIDC_SECRET: ${KC_SSODEV_OIDC_SECRET:-***ssodev_oidc_secret_missing***}
+  #     KC_SSODEV_OIDC_CLIENT_ID: ${KC_SSODEV_OIDC_CLIENT_ID:-***ssdev_client_id_missing***}
+  #     OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-***app_client_id_missing***}
+  #     OIDC_SECRET: ${OIDC_SECRET:-***client_secret_missing***}
+  #     OIDC_BASE_URL: ${OIDC_BASE_URL:-https://keycloak:8443/realms/${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}}
+  #   ports:
+  #     - 8081:8080
+  #     - 8443:8443
+  #   command: ["start-dev --import-realm"]
 
   pg-rest:
     image: ${FIN_ORG}/fin-pg-rest:${FIN_TAG}
     volumes:
       - *SERVICE_ACCOUNT
+    environment:
+      - FIN_SERVICE_NAME=pg-rest
     # command: bash -c "tail -f /dev/null"
 
 ###
 # Docker data volumes
 ###
 volumes:
+  fs-tests:
+    driver: local
   fuseki-data:
     driver: local
   fedora-data:
+    driver: local
+  activemq-data:
     driver: local
   pg-data:
     driver: local
