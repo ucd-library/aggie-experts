@@ -240,5 +240,3 @@ volumes:
     driver: local
   rabbitmq-data:
     driver: local
-  uber-data:
-    driver: local
