@@ -36,6 +36,8 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     this.render = render.bind(this);
   }
@@ -73,13 +75,16 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     }
     window.scrollTo(0, 0);
 
-    let expertId = e.location.pathname.replace('/grants/', '');
+    let expertId = e.location.pathname.replace('/grants', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( expertId === this.expertId ) return;
 
     try {
       let expert = await this.ExpertModel.get(expertId);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -102,9 +107,10 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.grants = utils.parseGrants(this.expertId, grants);

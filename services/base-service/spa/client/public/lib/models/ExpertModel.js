@@ -78,6 +78,31 @@ class ExpertModel extends BaseModel {
     return await this.service.updateGrantVisibility(id, grantId, visible);
   }
 
+  /**
+   * @method updateExpertVisibility
+   * @description update visibility of an expert
+   *
+   * @param {String} id expert id
+   * @param {Boolean} visible true if visible
+   *
+   * @returns {Promise} resolves to record
+   */
+  async updateExpertVisibility(id, visible=false) {
+    return await this.service.updateExpertVisibility(id, visible);
+  }
+
+  /**
+   * @method deleteExpert
+   * @description delete expert from aggie experts and cdl
+   *
+   * @param {String} id expert id
+   *
+   * @returns {Promise} resolves to record
+  */
+  async deleteExpert(id) {
+    return await this.service.deleteExpert(id);
+  }
+
 }
 
 module.exports = new ExpertModel();

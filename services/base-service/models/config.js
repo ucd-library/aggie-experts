@@ -6,9 +6,12 @@ const models_package = require('./package.json');
 config.experts = {
   version: models_package.version,
   cdl: {
+    expert: {
+      propagate: (process.env.CDL_PROPAGATE_CHANGES === "true") || false,
+      instance:"prod" },
     grant_role: {
       propagate: (process.env.CDL_PROPAGATE_CHANGES === "true") || false,
-      instance:"qa"},
+      instance:"prod"},
     authorship: {
       propagate: (process.env.CDL_PROPAGATE_CHANGES === "true") || false,
       instance:"prod"

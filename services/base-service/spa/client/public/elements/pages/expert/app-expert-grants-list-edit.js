@@ -64,6 +64,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hideOaPolicyLink = false;
     this.errorMode = false;
     this.downloads = [];
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.isVisible = true;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -99,7 +101,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     this.modifiedGrants = false;
-    let expertId = e.location.pathname.replace('/grants-edit/', '');
+    let expertId = e.location.pathname.replace('/grants-edit', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
@@ -108,6 +111,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     try {
       let expert = await this.ExpertModel.get(expertId, canEdit);
       this._onExpertUpdate(expert);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -129,9 +134,10 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
+    this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.totalGrants = grants.length;
@@ -259,15 +265,15 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
         '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
-        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + grant.types.join(', ') + '"',                           // Type of Grant
         '"' + (grant.role || '') + '"',                               // Role of Grant
-        '?', // List of contributors (role) {separate contributors by ";"}
+        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (CoPIs)
       ]);
     });
 
     if( !body.length ) return;
 
-    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of Contributors'];
+    let headers = ['Title', 'Funding Agency', 'Grant Id', 'Start Date', 'End Date', 'Type of Grant', 'Role', 'List of PIs and CoPIs'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
@@ -283,6 +289,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'grants_download', {});
   }
 
   /**

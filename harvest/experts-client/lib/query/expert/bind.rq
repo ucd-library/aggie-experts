@@ -1,12 +1,23 @@
-prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
-prefix expert: <http://experts.ucdavis.edu/expert/>
-PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
+PREFIX oap: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 select distinct (?username as ?USERNAME__) ?filename where {
-  graph harvest_oap: {
+  graph oap: {
     [] :username ?username;
        :is-public "true";
        .
-    bind(md5(?username) as ?id)
-    bind(concat("expert/",?id,".jsonld.json") as ?filename)
+  }
+  graph <http://iam.ucdavis.edu/> {
+    bind(uri(concat(str(expert:),md5(?username))) as ?expert)
+    ?expert a ucdlib:Expert;
+            ucdlib:userId ?userId;
+            ucdlib:expertId ?expertId;
+            ucdlib:email ?email;
+            ucdlib:is-visible true;
+            .
+    bind(concat("expert/",?expertId,".jsonld.json") as ?filename)
   }
 }

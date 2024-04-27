@@ -9,7 +9,7 @@ import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
 import utils from '../../../lib/utils';
 
 export default class AppExpert extends Mixin(LitElement)
@@ -38,8 +38,10 @@ export default class AppExpert extends Mixin(LitElement)
       totalGrants : { type : Number },
       totalCitations : { type : Number },
       canEdit : { type : Boolean },
+      isAdmin : { type : Boolean },
       modalTitle : { type : String },
       modalContent : { type : String },
+      modalAction : { type : String },
       showModal : { type : Boolean },
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
@@ -50,6 +52,8 @@ export default class AppExpert extends Mixin(LitElement)
       worksPerPage : { type : Number },
       expertImpersonating : { type : String },
       hideImpersonate : { type : Boolean },
+      isVisible : { type : Boolean },
+      elementsUserId : { type : String }
     }
   }
 
@@ -74,6 +78,8 @@ export default class AppExpert extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
+    this.expertImpersonating = utils.getCookie('impersonateId');
+
     if( e.location.page !== 'expert' ) return;
     window.scrollTo(0, 0);
 
@@ -83,11 +89,14 @@ export default class AppExpert extends Mixin(LitElement)
 
     this._reset();
 
-    if( this.expertImpersonating === this.expertId ) this.canEdit = true;
+    if( (this.expertImpersonating === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
+    if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, true);
+      let expert = await this.ExpertModel.get(expertId, this.canEdit);
       this._onExpertUpdate(expert, modified);
+
+      if( !this.isAdmin && !this.isVisible ) throw new Error();
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -113,10 +122,13 @@ export default class AppExpert extends Mixin(LitElement)
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId;
 
+    this.isVisible = this.expert['is-visible'];
+
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
+    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('/user'))?.[0]?.split('/')?.pop() || '';
 
-    this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     // max 500 characters, unless 'show me more' is clicked
     this.introduction = graphRoot.overview || '';
@@ -142,6 +154,36 @@ export default class AppExpert extends Mixin(LitElement)
     let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
     websites.forEach(w => {
       if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
+
+      // create 'name' label with abbrev url if not present
+      w.hasURL.forEach(url => {
+        if( !url.name ) {
+          // remove http(s)://, www., and trailing slashes
+          url.name = url.url?.replace(/^(http:\/\/|https:\/\/)|www\.|\/*$/g, '');
+        }
+
+        try {
+          // also set custom icon depending on type of website
+          if( url['@type'].includes('URL_googlescholar') ) {
+            url.icon = 'fa-google-scholar';
+          } else if( url['@type'].includes('URL_researchgate') ) {
+            url.icon = 'fa-researchgate';
+          } else if( url['@type'].includes('URL_linkedin') ) {
+            url.icon = 'fa-linkedin';
+          } else if( url['@type'].includes('URL_twitter') ) {
+            url.icon = 'fa-x-twitter';
+          } else if( url['@type'].includes('URL_mendeley') ) {
+            url.icon = 'fa-mendeley';
+          } else if( url['@type'].includes('URL_rssfeed') ) {
+            url.icon = 'fa-square-rss';
+          } else if( url['@type'].includes('URL_figshare') ) {
+            url.icon = 'ai-figshare';
+          }
+        } catch(e) {
+          console.warn('error setting website icon', e);
+        }
+      });
+
       this.websites.push(...w.hasURL);
     });
 
@@ -149,13 +191,6 @@ export default class AppExpert extends Mixin(LitElement)
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.totalGrants = grants.length;
-
-    // throw errors if any citations/grants have is-visible:false
-    let invalidCitations = this.citations.filter(c => !c['is-visible']);
-    let invalidGrants = this.grants.filter(g => !g.isVisible);
-
-    if( invalidCitations.length ) console.warn('Invalid citation is-visible, should be true', invalidCitations);
-    if( invalidGrants.length ) console.warn('Invalid grant is-visible, should be true', invalidGrants);
 
     this.grants = utils.parseGrants(this.expertId, grants);
 
@@ -191,7 +226,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.grantsCompletedDisplayed = [];
     this.totalGrants = 0;
     this.totalCitations = 0;
-    this.canEdit = (acExpertId === this.expertId || impersonatingExpertId === this.expertId);
+    this.canEdit = (acExpertId === this.expertId || (impersonatingExpertId === this.expertId && this.expertId.length > 0));
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
@@ -203,6 +238,10 @@ export default class AppExpert extends Mixin(LitElement)
     this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
+    this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.modalAction = '';
+    this.isVisible = true;
+    this.elementsUserId = '';
 
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
@@ -238,7 +277,6 @@ export default class AppExpert extends Mixin(LitElement)
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
     this.totalCitations = citations.length;
-    citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
     citations = citations.map(c => {
       let citation = { ...c };
@@ -250,21 +288,34 @@ export default class AppExpert extends Mixin(LitElement)
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      // validate issue date
+      let validation = Citation.validateIssueDate(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // validate title
+      validation = Citation.validateTitle(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+
       this.totalCitations = citations.length;
     }
 
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(0, this.worksPerPage));
+    // filter out non is-visible citations
+    let citationValidation = Citation.validateIsVisible(citations);
+    if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
+    citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
-    this.citationsDisplayed = citationResults.map(c => c.value);
+    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
+
+    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     this.citationsDisplayed.forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
       if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) ) {
         delete cite.issued;
@@ -306,6 +357,8 @@ export default class AppExpert extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'works_download', {});
   }
 
   /**
@@ -325,9 +378,9 @@ export default class AppExpert extends Mixin(LitElement)
         '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
         '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
-        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + grant.types.join(', ') + '"',                           // Type of Grant
         '"' + (grant.role || '') + '"',                               // Role of Grant
-        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (PIs and CoPIs)
+        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (CoPIs)
       ]);
     });
 
@@ -349,6 +402,8 @@ export default class AppExpert extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'grants_download', {});
   }
 
   /**
@@ -358,7 +413,7 @@ export default class AppExpert extends Mixin(LitElement)
   _seeAllGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/grants/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants');
   }
 
   /**
@@ -367,8 +422,121 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _seeAllWorks(e) {
     e.preventDefault();
+    this.AppStateModel.setLocation('/'+this.expertId+'/works');
+  }
 
-    this.AppStateModel.setLocation('/works/'+this.expertId);
+  /**
+   * @method _onSave
+   * @description modal save, only used when hiding expert
+   */
+  async _onSave(e) {
+    this.showModal = false;
+
+    if( this.isAdmin && this.modalAction === 'hide-expert' ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
+      try {
+        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        this.isVisible = false;
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        let modelContent = `<p>Hiding expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+    } else if( this.isAdmin && this.modalAction === 'delete-expert' ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
+      try {
+        let res = await this.ExpertModel.deleteExpert(this.expertId);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        // redirect to home page
+        this.AppStateModel.setLocation('/');
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+
+    } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
+      let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
+      window.open(`https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`, '_blank');
+    }
+
+    this.modalAction = '';
+  }
+
+  /**
+   * @method _showExpert
+   * @description update expert visibility to true
+   */
+  async _showExpert(e) {
+    if( this.isAdmin ) {
+      this.dispatchEvent(new CustomEvent("loading", {}));
+      try {
+        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        this.isVisible = true;
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        let modelContent = `<p>Showing expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+      }
+    }
+  }
+
+  /**
+   * @method _hideExpert
+   * @description show modal confirming expert should be hidden
+   */
+  _hideExpert(e) {
+    this.modalAction = 'hide-expert';
+    this.modalTitle = 'Hide Expert';
+    this.modalContent = `<p>The expert will be hidden from Aggie Experts, but this change will not appear in Elements. This is a safeguard available only to admins, in case "Delete Expert" does not work because Elements is not reachable. It is the admin's responsibility to manually change visibility in Elements. Are you sure you would like to continue?</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _deleteExpert
+   * @description show modal confirming expert should be deleted from Aggie Experts and CDL
+   */
+  _deleteExpert(e) {
+    this.modalAction = 'delete-expert';
+    this.modalTitle = 'Delete Expert';
+    this.modalContent = `<p>The expert will be removed from Aggie Experts. In the <a href="https://oapolicy.universityofcalifornia.edu">UC Publication Management System</a> their privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in the UC Publication Management System. Are you sure you would like to continue?</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
   }
 
   /**
@@ -376,6 +544,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit websites
    */
   _editWebsites(e) {
+    this.modalAction = 'edit-websites';
     this.modalTitle = 'Edit Links';
     this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
@@ -391,6 +560,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @description show modal with link to edit intro/research interests
    */
   _editAboutMe(e) {
+    this.modalAction = 'edit-about-me';
     this.modalTitle = 'Edit Introduction';
     this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
     this.showModal = true;
@@ -408,7 +578,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/grants-edit/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit');
   }
 
   /**
@@ -418,7 +588,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editWorks(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/works-edit/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit');
   }
 
   /**

@@ -1,28 +1,9 @@
 const router = require('express').Router();
-const BaseModel = require('../base/model.js');
+const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
+const template = require('./template/family_prefix.json');
 
-const experts = new BaseModel();
-
-router.get('/render', async (req, res) => {
-  const params = {
-    size:25
-  };
-  ["size","page","p"].forEach((key) => {
-    if (req.query[key]) { params[key] = req.query[key]; }
-  });
-  opts = {
-    index: "expert-read",
-    id: "family_prefix",
-    params
-  };
-  try {
-  const template = await experts.render(opts);
-    res.send(template);
-  } catch (err) {
-    res.status(400).send('Invalid request');
-  }
-});
+const experts = new ExpertModel();
 
 router.get('/', async (req, res) => {
   const params = {
@@ -31,28 +12,32 @@ router.get('/', async (req, res) => {
   ["size","page","p"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
-  opts = {
-    index: "expert-read",
-    id: "family_prefix",
-    params
-  };
+
   if (params.p) {
-  try {
-    const template = await experts.search(opts);
-    res.send(template);
-  } catch (err) {
-    res.status(400).send('Invalid request');
-  }
+    const opts = {
+      index: "expert-read",
+      id: "family_prefix",
+      params
+    };
+
+    try {
+      await experts.verify_template(template);
+      const find = await experts.search(opts);
+      res.send(find);
+    } catch (err) {
+      res.status(400).send('Invalid request');
+    }
   } else {
     try {
+      await experts.verify_template(template);
       const search_templates=[];
       ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O",
        "P","Q","R","S","T","U","V","W","X","Y","Z"].forEach((letter) => {
          search_templates.push({});
          search_templates.push({id:"family_prefix",params:{p:letter,size:0}});
         });
-      const templates = await experts.msearch({search_templates});
-      res.send(templates);
+      const finds = await experts.msearch({search_templates});
+      res.send(finds);
     } catch (err) {
       res.status(400).send('Invalid request');
     }

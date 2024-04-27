@@ -7,7 +7,7 @@ class ExpertService extends BaseService {
     super();
     this.store = ExpertStore;
 
-    this.baseUrl = '/api/expert';
+    this.baseUrl = '/api';
   }
 
   get(id, noSanitize=false) {
@@ -65,6 +65,45 @@ class ExpertService extends BaseService {
           "@id" : grantId,
           "visible" : visible,
           "grant" : true
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async updateExpertVisibility(id, visible) {
+    return this.request({
+      url : `${this.baseUrl}/${id}`,
+      fetchOptions : {
+        method : 'PATCH',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "@id" : id,
+          "visible" : visible
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async deleteExpert(id) {
+    return this.request({
+      url : `${this.baseUrl}/${id}`,
+      fetchOptions : {
+        method : 'DELETE',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "@id" : id,
         })
       },
       checkCached : () => null,

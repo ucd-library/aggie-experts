@@ -61,12 +61,28 @@ class GrantRoleModel extends BaseModel {
     try {
       expert = await expertModel.client_get(expertId);
       node = this.get_node_by_related_id(expert,id);
-      let node_id = node['@id'].replace("ark:/87287/d7mh2m/grant/","");
+
       if (!patch.objectId) {
-        patch.objectId = node_id;
+        // loop through node.identifiers and find the one that matches 'ark:/87287/d7mh2m/grant/'
+        if (typeof node?.identifier === 'string') {
+          node.identifier = [node.identifier];
+        }
+        for (let i=0; i<node?.identifier?.length; i++) {
+          console.log(`${i}:${node.identifier[i]}`);
+          if (node.identifier[i].startsWith('ark:/87287/d7mh2m/grant/')) {
+            patch.objectId = node.identifier[i].replace('ark:/87287/d7mh2m/grant/','');
+            break;
+          }
+        }
+        if (!patch.objectId) {
+          throw {
+            status: 500,
+            message: `CDL identifier not found in expert ${expertId}`
+          }
+        }
       }
     } catch(e) {
-      e.message = `relatedBy[{@id${id} not found in expert ${expertId}: ${e.message}`;
+      e.message = `relatedBy[${id} not found in expert ${expertId}: ${e.message}`;
       e.status=500;
       throw e;
     };
@@ -132,7 +148,6 @@ class GrantRoleModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
-    logger.info(`GrantRoleModel.update(${doc['@id']})`);
     await this.update_or_create_main_node_doc(doc);
 
     const have_part={};
@@ -166,16 +181,16 @@ class GrantRoleModel extends BaseModel {
     if (have_part.Expert && have_part.Grant) {
       // Add Grant as snippet to Expert, relationship is in Grant
       const node = grantModel.snippet(have_part.Grant.node)
-      logger.info(`${have_part.Expert.id} ==> ${have_part.Grant.id}`);
+      logger.info(`GrantRoleModel.update(${doc['@id']}) ${have_part.Expert.id} ==> ${have_part.Grant.id}`);
       await expertModel.update_graph_node(have_part.Expert.id,node);
     } else {
       if (have_part.Expert) {
-        logger.info(`${have_part.Expert.id} =>? ?Grant?`);
+        logger.info(`GrantRoleModel.update(${doc['@id']}) ${have_part.Expert.id} =>? ?Grant?`);
       } else {
         if (have_part.Grant) {
-          logger.info(`?Expert? ?=> ${have_part.Grant.id}`);
+          logger.info(`GrantRoleModel.update(${doc['@id']}) ?Expert? ?=> ${have_part.Grant.id}`);
         } else {
-          logger.info(`?Expert? ?=? ?Grant?`);
+          logger.info(`GrantRoleModel.update(${doc['@id']}) ?Expert? ?=? ?Grant?`);
         }
       }
     }

@@ -1,0 +1,67 @@
+{
+  "id": "family_prefix",
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "bool": {
+          "filter": {
+            "bool":{
+              "must": [
+                { "exists": { "field": "is-visible" }},
+                { "term" : {"is-visible": true } }
+              ]
+            }
+          },
+          "must":{
+            "nested": {
+              "path": "@graph",
+              "query": {
+                "bool": {
+                  "must": [
+                    {
+                      "prefix": {
+                        "@graph.hasName.family.kw": "{{p}}"
+                      }
+                    },
+                    {
+                      "term": {
+                        "@graph.@type": "Expert"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "_source": [
+        "@id",
+        "name",
+        "contactInfo"
+      ],
+      "sort": {
+        "@graph.hasName.family.kw" : {
+          "mode" :  "max",
+          "order" : "asc",
+          "nested" : {
+            "path" : "@graph"
+          }
+        },
+        "@graph.hasName.given.kw" : {
+          "mode" :  "max",
+          "order" : "asc",
+          "nested" : {
+            "path" : "@graph"
+          }
+        }
+      },
+      "from": "{{from}}{{^from}}0{{/from}}",
+      "size": "{{size}}{{^size}}25{{/size}}"
+    },
+    "params": {
+      "p": "H"
+    }
+  }
+}

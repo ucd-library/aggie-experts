@@ -4,6 +4,7 @@ const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
 
+
 /**
  * @class BaseModel
  * @description Base class for Aggie Experts data models.  This class provides
@@ -23,7 +24,7 @@ class BaseModel extends FinEsDataModel {
 //    "http://vivoweb.org/ontology/core#Grant",
   ];
 
-  constructor(name='experts') {
+  constructor(name='base') {
 
     super(name);
     this.schema = schema;  // Common schema for all experts data models
@@ -237,18 +238,31 @@ class BaseModel extends FinEsDataModel {
     return params;
   }
 
-  async verify_template(options) {
-    // Check if template exists, install if not
-    try {
-      const result = await this.client.getScript({id:options.id});
-//      console.log(`render: template ${options.id} exists`);
-    } catch (err) {
-      logger.info(`adding template ./template/${options.id}`);
-      const template = require(`./template/${options.id}.json`);
-      const result = await this.client.putScript(template);
+  /**
+   * @method verify_template
+   * @description Adds template to elastic search if it doesn't exist
+   */
+  async verify_template(template) {
+    if (!Array.isArray(template)) {
+      template = [template];
+    }
+    for (let t of template) {
+      try {
+        logger.info(`checking template ${t.id}`);
+        let result = await this.client.getScript({id:t.id});
+        logger.info(`template ${t.id} ${result}`);
+      } catch (err) {
+        try {
+          logger.info(`adding template ${t.id}`);
+          const result=await this.client.putScript(t);
+        } catch (err) {
+          throw new Error(`verify_template: ${err}`);
+        }
+      }
     }
     return true;
   }
+
 
   compact_search_results(results,params) {
     const compact = {
@@ -292,18 +306,21 @@ class BaseModel extends FinEsDataModel {
     return template;
   }
 
+  /**
+   * @method search
+   * @description ES search using a template
+   * @returns {Object} ES results
+   */
   async search(opts) {
 
     const params = this.common_parms(opts.params);
 
+    console.log(`searching ${this.readIndexAlias} with ${JSON.stringify(params)}`);
     const options = {
       id: (opts.id)?opts.id:"default",
-      index: "expert-read",
+      index: this.readIndexAlias,
       params
     }
-    // Check if template exists, install if not
-    await this.verify_template(options);
-
     const res=await this.client.searchTemplate(options);
     return this.compact_search_results(res,params);
   }
@@ -317,9 +334,6 @@ class BaseModel extends FinEsDataModel {
       let template=opts.search_templates[i];
       if(template?.params) {
         template.params = this.common_parms(template.params);
-      }
-      if (template?.id) {
-        await this.verify_template(template);
       }
     }
 
@@ -395,19 +409,15 @@ class BaseModel extends FinEsDataModel {
    * @returns {Promise} resolves to elasticsearch result
    */
   async get(id, opts={}, index) {
+    if( id[0] === '/' ) id = id.substring(1);
     let _source_excludes = true;
     if( opts.admin ) _source_excludes = false;
     else if( opts.compact ) _source_excludes = 'compact';
 
-    let identifier = id.replace(/^\//, '').split('/');
-    identifier.shift();
-    identifier = identifier.join('/');
-    //console.log(`FinEsNestedModel.get(${identifier}) on ${this.readIndexAlias}`);
-
     let result= await this.client.get(
       {
         index: this.readIndexAlias,
-        id: identifier,
+        id: id,
         _source: true,
 	      _source_excludes: _source_excludes
       }

@@ -124,7 +124,6 @@ class AuthorshipModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
-    logger.info(`AuthorshipModel.update(${doc['@id']})`);
     await this.update_or_create_main_node_doc(doc);
 
     const have_part={};
@@ -156,19 +155,19 @@ class AuthorshipModel extends BaseModel {
       }
       if (have_part.Expert && have_part.Work) {
         // Add Work as snippet to Expert
-        logger.info(`${have_part.Expert.id} ==> ${have_part.Work.id}`);
+        logger.info(`AuthorshipModel.update(${doc['@id']}) ${have_part.Expert.id} ==> ${have_part.Work.id}`);
         {
           const node = workModel.snippet(have_part.Work.node);
           await expertModel.update_graph_node(have_part.Expert.id,node);
         }
       } else {
         if (have_part.Expert) {
-          logger.info(`${have_part.Expert.id} =>? ?Work?`);
+          logger.info(`AuthorshipModel.update(${doc['@id']}) ${have_part.Expert.id} =>? ?Work?`);
         } else {
           if (have_part.Work) {
-            logger.info(`?Expert? ?=> ${have_part.Work.id}`);
+            logger.info(`AuthorshipModel.update(${doc['@id']}) ?Expert? ?=> ${have_part.Work.id}`);
           } else {
-            logger.info(`?Expert? ?=? ?Work?`);
+            logger.info(`AuthorshipModel.update(${doc['@id']}) ?Expert? ?=? ?Work?`);
           }
         }
       }

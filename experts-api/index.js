@@ -3,8 +3,9 @@ import GoogleSecret from './lib/googleSecret.js';
 import ElementsClient from './lib/elements-client.js';
 import config from './lib/config.js';
 
+import ExpertsKcAdminClient from './lib/keycloak-admin.js';
 export const frames = {
   default: defaultFrame
 };
 
-export { GoogleSecret, ElementsClient };
+export { GoogleSecret, ElementsClient, ExpertsKcAdminClient };

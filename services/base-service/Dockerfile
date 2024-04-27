@@ -19,8 +19,8 @@ WORKDIR ${FIN_SERVICE_ROOT}
 COPY spa spa
 WORKDIR ${FIN_SERVICE_ROOT}/spa
 RUN find . -name node_modules -type d | xargs rm -rf
-RUN npm ci && \
-    (cd client/public && npm ci) && \
+RUN npm install && \
+    (cd client/public && npm install) && \
     npm link @ucd-lib/fin-service-utils && \
     npm link @ucd-lib/fin-api &&\
     npm run dist

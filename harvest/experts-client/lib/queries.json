@@ -23,7 +23,7 @@
   "@graph":[
     {"@id":"insert_iam",
      "@type":"InsertQuery",
-     "bind@":"expert/bind.rq",
+     "bind@":"iam/bind.rq",
      "insert@":"iam/insert.ru"
     },
     {"@id":"insert_grants",
