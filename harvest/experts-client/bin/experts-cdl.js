@@ -4,15 +4,16 @@ dotenv.config();
 
 import path from 'path';
 import fs from 'fs-extra';
-import { Command } from 'commander';
 
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
-
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
+import { Command } from '../lib/experts-commander.js';
+
+
 import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
@@ -116,84 +117,78 @@ async function main(opt) {
     let dbname
     let md=md5(`${user}@ucdavis.edu`);
 
-    const query=`
-PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-select * WHERE { graph <http://iam.ucdavis.edu/> {
-    [] ucdlib:userId "${user}" ;
-       ucdlib:email ?email;
-       ucdlib:ucdPersonUUId ?ucdPersonUUID;
-       vcard:hasName [vcard:givenName ?firstName; vcard:familyName ?lastName ].
-  } }`;
-    const response = await fetch(
-      opt.expertsService,
-      {
-        method: 'POST',
-        body: query,
-        headers: {
-          'Content-Type': 'application/sparql-query',
-          'Accept': 'application/sparql-results+json'
-        }
-      });
-
-    if (!response.ok) {
-      throw new Error(`Failed to execute update. Status code: ${response.status}`);
+    let profile;
+    { // Add in profile
+      performance.mark(`iam(${user})`);
+      const pd = path.join('saved_xml',user,'ark:','87287','d7c08j');
+      if (!fs.existsSync(pd)) {
+        fs.mkdirSync(pd,{recursive:true});
+      }
+      // iam profile
+      try {
+        profile=await opt.iam.profile(user);
+        fs.writeFileSync(path.join(pd,'profile.jsonld'),
+                         JSON.stringify(profile,null,2));
+        opt.log.info({measure:`iam(${user})`,user},'► ◄ iam(${user})');
+      } catch (e) {
+        opt.log.error({measure:`iam(${user})`,error:e.message,user},`'►E◄ iam(${user})`);
+      }
     }
+    profile=profile["@graph"][0];
 
-    let json = await response.json();
-    const profile = {};
+    const kc_user = {};
     let email;
     try {
-      email = json.results.bindings[0].email.value;
-      profile.firstName = json.results.bindings[0].firstName.value;
-      profile.lastName = json.results.bindings[0].lastName.value;
-      profile.attributes = {};
-      profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
+      email = profile.email;
+      kc_user.firstName = profile.oFirstName;
+      kc_user.lastName = profile.oLastName;
+      kc_user.attributes = {};
+      kc_user.attributes.ucdPersonUUID=profile.mothraId
+      kc_user.attributes.iamId=profile.iamId
     } catch (e) {
-      logger.error(json, `${user} missing values`);
+      opt.log.error(json, `${user} missing values`);
       continue;
     }
-    logger.info(`Processing ${user}(${email},${profile.attributes.ucdPersonUUID})`);
-    const expert=await keycloak_admin.getOrCreateExpert(email,user,profile);
+    opt.log.info(kc_user,`Processing keycloak(${email})`);
+    const expert=await keycloak_admin.getOrCreateExpert(email,user,kc_user);
     let expertId=null;
     if (!expert) {
-      logger.error(`Failed getOrCreateExpert for ${email}`);
+      opt.log.error(`Failed getOrCreateExpert for ${email}`);
       continue;
     } else {
       expertId=expert.attributes['expertId'];
-      logger.info({user,email,expertId}, `expertId found`);
+      opt.log.info({user,email,expertId}, `expertId found`);
     }
 
     if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${expertId}.jsonld.json`)) {
-      logger.info({mark:user},'skipping ' + user);
+      opt.log.info({mark:user},'skipping ' + user);
       continue;
     }
-    logger.info({mark:user},'user ' + user);
+    opt.log.info({mark:user},'user ' + user);
     dbname = user;
     let exists = await fuseki.existsDb(dbname);
     db = await fuseki.createDb(dbname);
-    logger.info({measure:[user],user},`fuseki.createDb(${dbname})`)
+    opt.log.info({measure:[user],user},`fuseki.createDb(${dbname})`)
 
-    // const profile = await ec.getCDLprofile(user, opt);
 
     if (opt.fetch) {
       try {
         await ec.getPostUser(db,user)
-        logger.info({measure:[user],user},`getPostUser`);
+        opt.log.info({measure:[user],user},`getPostUser`);
 
         // Step 3: Get User Relationships from CDL
         // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
         await ec.getPostUserRelationships(db,user,'detail=full');
-        logger.info({measure:[user],user},`getPostUserRelationships`);
+        opt.log.info({measure:[user],user},`getPostUserRelationships`);
 
       }
       catch (e) {
-        logger.error({ user, error: e }, `error ${user}`);
+        opt.log.error({ user, error: e }, `error ${user}`);
       }
     }
 
     if (opt.splay) {
-      logger.info({mark:'splay',user},`splay`);
+      opt.log.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
         { EXPERTS_SERVICE__: DF.namedNode(`http://localhost:3030/experts/query`),
           EXPERT__: DF.namedNode(`http://experts.ucdavis.edu/expert/${expertId}`),
@@ -203,27 +198,27 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
       );
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
       await ec.insert({ ...iam, bindings, db });
-      logger.info({measure:['splay'],user},`insert`);
+      opt.log.info({measure:['splay'],user},`insert`);
 
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        logger.info({mark:n,user},`splay ${n}`);
+        opt.log.info({mark:n,user},`splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
           return await ec.splay({ ...splay, bindings, db, output: opt.output, user });
         })(n);
-        logger.info({measure:[n],user},`splayed ${n}`);
+        opt.log.info({measure:[n],user},`splayed ${n}`);
         performance.clearMarks(n);
       };
-      logger.info({measure:['splay',user],user},`splayed`);
+      opt.log.info({measure:['splay',user],user},`splayed`);
       performance.clearMarks('splay');
     }
     // Any other value don't delete
     if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db);
     }
-    logger.info({measure:[user],user},`completed`);
+    opt.log.info({measure:[user],user},`completed`);
     performance.clearMarks(user);
   }
 }
@@ -261,7 +256,8 @@ program.name('cdl-profile')
   .option('--no-fetch', 'fetch the data', true)
   .option('--skip-existing-user', 'skip if expert/md5(${user}@ucdavis.edu`) exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
-
+  .option_iam()
+  .option_log()
 
 
 program.parse(process.argv);
@@ -300,5 +296,4 @@ else if (opt.environment === 'production') {
   opt.cdl.authname = 'oapolicy';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
-logger.info({ opt }, 'options');
 await main(opt);
