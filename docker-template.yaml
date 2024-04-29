@@ -140,6 +140,11 @@ services:
   ###
   elasticsearch:
     image: ${FIN_ORG}/fin-elastic-search:${FIN_TAG}
+    environment:
+      - node.name=elasticsearch
+      - discovery.seed_hosts=elasticsearch
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ulimits:
       memlock:
         soft: -1
