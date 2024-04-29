@@ -35,6 +35,7 @@ async function fetchExpertId (req, res, next) {
       user = await AdminClient.findByEmail(email);
     } else if (req.query.ucdPersonUUID) {
       const ucdPersonUUID = req.query.ucdPersonUUID;
+//      console.log('ucdPersonUUID', ucdPersonUUID);
       user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
     }
   } catch (err) {
@@ -82,7 +83,7 @@ router.get(
   fetchExpertId,
   async (req, res) => {
     const params = {};
-    opt.expert = `expert/${req.query.expertId}`;
+    req.query.expert = `expert/${req.query.expertId}`;
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
@@ -90,40 +91,40 @@ router.get(
         params[key] = template.script.params[key];
       }
     }
+    params.expert = req.query.expert;
 
     opts = {
       id: template.id,
       params
     };
-    console.log(req.query);
-    console.log(opts);
     try {
       await expert.verify_template(template);
       const find = await expert.search(opts);
-      // Modify for MIV format (old version)
       //jq '.hits[0]["_inner_hits"][0]| {"@id","title":.name,"end_date":.dateTimeInterval.end.dateTime,"start_date":.dateTimeInterval.start.dateTime,"grant_amount":.totalAwardAmount,"sponsor_id":.sponsorAwardId,"sponsor_name":.assignedBy.name,"type":.["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"].name,"role_label":(.relatedBy[] | select(.inheres_in) | .["@type"])}' new.json
       let grants = [];
-      for (const hit of find.hits[0]._inner_hits) {
-        grants.push({
-          '@id': hit['@id'],
-          title: hit.name,
-          end_date: hit.dateTimeInterval.end.dateTime,
-          start_date: hit.dateTimeInterval.start.dateTime,
-          grant_amount: hit.totalAwardAmount,
-          sponsor_id: hit.sponsorAwardId,
-          sponsor_name: hit.assignedBy.name,
-          type: hit['@type'],
-          role_label: hit.relatedBy.find(x => x.inheres_in)['@type']
-        });
-        hit.relatedBy.forEach((x) => {
-          if (! x.inheres_in) {
-            grants.push({
-              '@id': x['@id'],
-              name: x.relates[0].name,
-              role: x['@type']
+      if (find?.hits[0]) {
+        for (const hit of find.hits[0]._inner_hits) {
+          grants.push({
+            '@id': hit['@id'],
+            title: hit.name,
+            end_date: hit.dateTimeInterval.end.dateTime,
+            start_date: hit.dateTimeInterval.start.dateTime,
+            grant_amount: hit.totalAwardAmount,
+            sponsor_id: hit.sponsorAwardId,
+            sponsor_name: hit.assignedBy.name,
+            type: hit['@type'],
+            role_label: hit.relatedBy.find(x => x.inheres_in)['@type']
+          });
+          hit.relatedBy.forEach((x) => {
+            if (! x.inheres_in) {
+              grants.push({
+                '@id': x['@id'],
+                name: x.relates[0].name,
+                role: x['@type']
             });
-          }
-        });
+            }
+          });
+        }
       }
       res.send({"@graph": grants});
     } catch (err) {
@@ -141,7 +142,7 @@ router.get(
   fetchExpertId,
   async (req, res) => {
     const params = {};
-    opt.expert = `expert/${req.query.expertId}`;
+    req.expert = `expert/${req.query.expertId}`;
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
