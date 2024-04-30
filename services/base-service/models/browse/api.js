@@ -2,10 +2,189 @@ const router = require('express').Router();
 const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
 const template = require('./template/family_prefix.json');
+const {config} = require('@ucd-lib/fin-service-utils');
 
 const experts = new ExpertModel();
 
-router.get('/', async (req, res) => {
+const openapi = require('@wesleytodd/openapi')
+
+const oapi = openapi({
+  openapi: '3.0.3',
+  info: {
+    title: 'Express',
+    description: 'The Browse API returns a list of experts.',
+    version: '1.0.0',
+    termsOfService: 'http://swagger.io/terms/',
+    contact: {
+      email: 'aggie-experts@ucdavis.edu'
+    },
+    license: {
+      name: 'Apache 2.0',
+      url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    },
+    version: config.experts.version,
+  },
+  servers: [
+    {
+      url: `${config.server.url}/api/browse`
+    }
+  ],
+  tags: [
+    {
+      name: 'browse',
+      description: 'Browse Expert Information'
+    }
+  ]
+})
+
+// This will serve the generated json document(s)
+// (as well as the swagger-ui if configured)
+router.use(oapi);
+
+router.get('/',
+  oapi.validPath(
+    {
+      "description": "Returns counts for experts A - Z, or if sending query param p={letter}, will return results for experts with last names of that letter",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "p",
+          "description": "The letter the experts last name starts with",
+          "required": false,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "page",
+          "description": "The pagination of results to return, defaults to 1",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "in": "query",
+          "name": "size",
+          "description": "The number of results to return per page, defaults to 25",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful operation",
+          "content": {
+            "application/json": {
+              "total": {
+                "type": "integer"
+              },
+              "hits": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "contactInfo": {
+                      "type": "object",
+                      "properties": {
+                        "hasURL": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "@type": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "@id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "rank": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "hasEmail": {
+                          "type": "string"
+                        },
+                        "hasName": {
+                          "type": "object",
+                          "properties": {
+                            "given": {
+                              "type": "string"
+                            },
+                            "@type": {
+                              "type": "string"
+                            },
+                            "pronouns": {
+                              "type": "string"
+                            },
+                            "@id": {
+                              "type": "string"
+                            },
+                            "family": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "hasTitle": {
+                          "type": "object",
+                          "properties": {
+                            "@type": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "@id": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "hasOrganizationalUnit": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "@id": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "@id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ),
+  async (req, res) => {
   const params = {
     size: 25
   };
