@@ -4,5 +4,5 @@ module.exports = {
   model: new SiteFarmModel(),
   schema: require('../base/schema/minimal.json'),
   transform: require('../base/transform.js'),
-  swagger: 'sitefarm.yaml'
+  swagger: 'swagger.json'
 }
