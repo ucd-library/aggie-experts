@@ -4,5 +4,5 @@ module.exports = {
   model : new ExpertModel(),
   schema : require('../base/schema/minimal.json'),
   transform: require('../base/transform.js'),
-  swagger: 'expert.yaml'
+  swagger: 'swagger.json'
 }
