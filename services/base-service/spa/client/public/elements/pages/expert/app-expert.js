@@ -89,7 +89,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     this._reset();
 
-    if( this.expertImpersonating === this.expertId && this.expertId.length > 0 ) this.canEdit = true;
+    if( (this.expertImpersonating === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
@@ -128,7 +128,7 @@ export default class AppExpert extends Mixin(LitElement)
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('/user'))?.[0]?.split('/')?.pop() || '';
 
-    this.expertName = Array.isArray(graphRoot.name) ? graphRoot.name[0] : graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     // max 500 characters, unless 'show me more' is clicked
     this.introduction = graphRoot.overview || '';
@@ -154,6 +154,36 @@ export default class AppExpert extends Mixin(LitElement)
     let websites = graphRoot.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
     websites.forEach(w => {
       if( !Array.isArray(w.hasURL) ) w.hasURL = [w.hasURL];
+
+      // create 'name' label with abbrev url if not present
+      w.hasURL.forEach(url => {
+        if( !url.name ) {
+          // remove http(s)://, www., and trailing slashes
+          url.name = url.url?.replace(/^(http:\/\/|https:\/\/)|www\.|\/*$/g, '');
+        }
+
+        try {
+          // also set custom icon depending on type of website
+          if( url['@type'].includes('URL_googlescholar') ) {
+            url.icon = 'fa-google-scholar';
+          } else if( url['@type'].includes('URL_researchgate') ) {
+            url.icon = 'fa-researchgate';
+          } else if( url['@type'].includes('URL_linkedin') ) {
+            url.icon = 'fa-linkedin';
+          } else if( url['@type'].includes('URL_twitter') ) {
+            url.icon = 'fa-x-twitter';
+          } else if( url['@type'].includes('URL_mendeley') ) {
+            url.icon = 'fa-mendeley';
+          } else if( url['@type'].includes('URL_rssfeed') ) {
+            url.icon = 'fa-square-rss';
+          } else if( url['@type'].includes('URL_figshare') ) {
+            url.icon = 'ai-figshare';
+          }
+        } catch(e) {
+          console.warn('error setting website icon', e);
+        }
+      });
+
       this.websites.push(...w.hasURL);
     });
 
@@ -248,11 +278,6 @@ export default class AppExpert extends Mixin(LitElement)
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
     this.totalCitations = citations.length;
 
-    // filter out non is-visible citations
-    let citationValidation = Citation.validateIsVisible(citations);
-    if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
-    citations = citations.filter(c => c.relatedBy?.['is-visible']);
-
     citations = citations.map(c => {
       let citation = { ...c };
       citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
@@ -276,6 +301,11 @@ export default class AppExpert extends Mixin(LitElement)
 
       this.totalCitations = citations.length;
     }
+
+    // filter out non is-visible citations
+    let citationValidation = Citation.validateIsVisible(citations);
+    if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
+    citations = citations.filter(c => c.relatedBy?.['is-visible']);
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
@@ -327,6 +357,8 @@ export default class AppExpert extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'works_download', {});
   }
 
   /**
@@ -346,9 +378,9 @@ export default class AppExpert extends Mixin(LitElement)
         '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
         '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
-        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + grant.types.join(', ') + '"',                           // Type of Grant
         '"' + (grant.role || '') + '"',                               // Role of Grant
-        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (PIs and CoPIs)
+        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (CoPIs)
       ]);
     });
 
@@ -370,6 +402,8 @@ export default class AppExpert extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'grants_download', {});
   }
 
   /**
@@ -379,7 +413,7 @@ export default class AppExpert extends Mixin(LitElement)
   _seeAllGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/grants/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants');
   }
 
   /**
@@ -388,8 +422,7 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _seeAllWorks(e) {
     e.preventDefault();
-
-    this.AppStateModel.setLocation('/works/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/works');
   }
 
   /**
@@ -440,7 +473,8 @@ export default class AppExpert extends Mixin(LitElement)
       }
 
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
-      window.location.href = `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId : ''}`
+      let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
+      window.open(`https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`, '_blank');
     }
 
     this.modalAction = '';
@@ -544,7 +578,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/grants-edit/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit');
   }
 
   /**
@@ -554,7 +588,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editWorks(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/works-edit/'+this.expertId);
+    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit');
   }
 
   /**

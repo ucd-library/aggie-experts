@@ -12,7 +12,6 @@ import fetch from 'node-fetch';
 import { QueryEngine } from '@comunica/query-sparql';
 import { DataFactory } from 'rdf-data-factory';
 import JsonLdProcessor from 'jsonld';
-import { nanoid } from 'nanoid';
 import path from 'path';
 import parser from 'xml2json';
 import { count } from 'console';

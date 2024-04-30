@@ -97,6 +97,7 @@ async function downloadFile(bucketName, fileName, destinationPath) {
 
   return new Promise((resolve, reject) => {
     try {
+      console.log(`Downloading file from GCS: ${fileName} -> ${destinationPath}`);
       // Create a read stream from the file and pipe it to a local file
       const readStream = file.createReadStream();
       const writeStream = fs.createWriteStream(destinationPath);
@@ -210,6 +211,10 @@ function replaceHeaderHyphens(filename) {
 
 async function main(opt) {
 
+  // Ensure the output directory exists
+  if (!fs.existsSync(opt.output)) {
+    fs.mkdirSync(opt.output, { recursive: true });
+  }
   // Start a fresh database
   let db = await fuseki.createDb(fuseki.db);
 
@@ -272,6 +277,7 @@ async function main(opt) {
   contextObj["@graph"] = json["Document"]["award"];
 
   let jsonld = JSON.stringify(contextObj);
+  fs.writeFileSync(opt.output + "/grants.jsonld", jsonld);
 
   // Create a graph from the JSON-LD file
   console.log(createGraphFromJsonLdFile(db, jsonld));

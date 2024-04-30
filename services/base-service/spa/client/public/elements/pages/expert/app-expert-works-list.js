@@ -69,7 +69,8 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     }
     window.scrollTo(0, 0);
 
-    let expertId = e.location.pathname.replace('/works/', '');
+    let expertId = e.location.pathname.replace('/works', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
@@ -101,7 +102,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     await this._loadCitations();
   }

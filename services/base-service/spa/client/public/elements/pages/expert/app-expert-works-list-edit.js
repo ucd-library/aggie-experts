@@ -101,7 +101,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     this.modifiedWorks = false;
-    let expertId = e.location.pathname.replace('/works-edit/', '');
+    let expertId = e.location.pathname.replace('/works-edit', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
+
     let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
@@ -135,7 +137,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     await this._loadCitations();
   }
@@ -310,6 +312,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'works_download', {});
   }
 
   /**

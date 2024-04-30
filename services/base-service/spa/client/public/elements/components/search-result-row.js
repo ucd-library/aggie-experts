@@ -25,7 +25,7 @@ export class SearchResultRow extends LitElement {
 
     this.result = {};
     this.hideCheckbox = false;
-    this.hideSearchMatches = false;
+    this.hideSearchMatches = true; // bringing back search matches in next release
   }
 
 }

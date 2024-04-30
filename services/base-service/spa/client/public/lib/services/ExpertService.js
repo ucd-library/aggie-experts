@@ -22,7 +22,7 @@ class ExpertService extends BaseService {
 
   async updateCitationVisibility(id, citationId, visible) {
     return this.request({
-      url : `${this.baseUrl}/${id}/${citationId}`,
+      url : `${this.baseUrl}/${id}/${encodeURIComponent(citationId)}`,
       fetchOptions : {
         method : 'PATCH',
         headers : {
@@ -42,7 +42,7 @@ class ExpertService extends BaseService {
 
   async rejectCitation(id, citationId) {
     return this.request({
-      url : `${this.baseUrl}/${id}/${citationId}`,
+      url : `${this.baseUrl}/${id}/${encodeURIComponent(citationId)}`,
       fetchOptions : {
         method : 'DELETE'
       },
@@ -55,7 +55,7 @@ class ExpertService extends BaseService {
 
   async updateGrantVisibility(id, grantId, visible) {
     return this.request({
-      url : `${this.baseUrl}/${id}/${grantId}`,
+      url : `${this.baseUrl}/${id}/${encodeURIComponent(grantId)}`,
       fetchOptions : {
         method : 'PATCH',
         headers : {

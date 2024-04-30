@@ -31,6 +31,9 @@ class ExpertModel extends BaseModel {
 
     // Get only best contact info
     if (node.contactInfo) {
+      if (!Array.isArray(node.contactInfo)) {
+        node.contactInfo = [node.contactInfo];
+      }
       let best=node.contactInfo.sort((a,b) => {
         (a['rank'] || 100) - (b['rank'] || 100)})[0];
       ['hasOrganizationalUnit','hasTitle','hasURL','rank'].forEach(x => delete best[x]);
@@ -57,24 +60,37 @@ class ExpertModel extends BaseModel {
     if (doc["is-visible"] === false) {
       throw {status: 404, message: "Not found"};
     }
+
+    function spliceOut(i) {
+      if (doc["@graph"][i]?.["@type"] === "Expert") {
+        throw {status: 404, message: "Not found"};
+      } else {
+        logger.info({function:"sanitize"},`_x_${doc["@graph"][i]["@id"]}`);
+        doc["@graph"].splice(i, 1);
+      }
+    }
+
     for(let i=0; i<doc["@graph"].length; i++) {
       logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
-      if ((("is-visible" in doc["@graph"][i])
-           && doc["@graph"][i]?.["is-visible"] !== true) ||
-          (doc["@graph"][i].relatedBy && ("is-visible" in doc["@graph"][i].relatedBy)
-           && doc["@graph"][i]?.relatedBy?.["is-visible"] !== true))
-      { // remove this graph node
-        if (doc["@graph"][i]?.["@type"] === "Expert") {
-          throw {status: 404, message: "Not found"};
-        } else {
-          logger.info({function:"sanitize"},`_x_${doc["@graph"][i]["@id"]}`);
-          doc["@graph"].splice(i, 1);
-          i--;
-        }
-      } else { // sanitize this graph node
-        logger.info({function:"sanitize"},`Deleting totalAwardAmount=${doc["@graph"][i]?.["totalAwardAmount"]}`);
-        delete doc["@graph"][i]["totalAwardAmount"];
+      // Node is not visible
+      if (("is-visible" in doc["@graph"][i]) &&
+          doc["@graph"][i]?.["is-visible"] !== true) {
+        spliceOut(i--);
       }
+
+      if (doc["@graph"][i].relatedBy) {
+        // relatedby is doc["@graph"][i]["relatedBy"] but always an array
+        const relatedBy = Array.isArray(doc["@graph"][i].relatedBy) ?
+              doc["@graph"][i].relatedBy : [doc["@graph"][i].relatedBy];
+        for (let j=0; j<relatedBy.length; j++) {
+          if ("is-visible" in relatedBy[j] && relatedBy[j]?.["is-visible"] !== true) {
+            spliceOut(i--);
+            break;
+          }
+        }
+      }
+      // Sanitize this node if it is an Grant (esp.)
+      delete doc["@graph"][i]["totalAwardAmount"];
     }
     return doc;
   }
@@ -185,6 +201,7 @@ class ExpertModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     // If a doc exists, update this node only, otherwise create a new doc.
+    logger.info(`ExpertModel.update(${root_node['@id']})`);
     try {
       let expert = await this.client_get(root_node['@id']);
       await this.update_graph_node(expert['@id'],root_node);

@@ -172,7 +172,8 @@ return html`
     }
 
     .roles-websites .link-row span {
-      padding-left: 0.625rem;
+      padding: .25rem 0 .25rem 0.625rem;
+      line-height: 1.5rem;
     }
 
     .introduction {
@@ -622,7 +623,7 @@ return html`
           </div>
         </div>
         <h1>${this.expertName}
-          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
             <span class="tooltip edit-name" data-text="Edit name">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
             </span>
@@ -693,7 +694,7 @@ return html`
 
         <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
           <h4>Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
               <span class="tooltip edit-roles" data-text="Edit roles">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
@@ -704,7 +705,7 @@ return html`
 
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
               <span class="tooltip edit-roles" data-text="Edit roles">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
@@ -717,10 +718,10 @@ return html`
             <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <div class="link-row" ?hidden="${!role.websiteUrl}">
+            <!-- <div class="link-row" ?hidden="${!role.websiteUrl}">
               <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
               <span><a href="${role.websiteUrl}">${role.websiteUrl}</a></span>
-            </div>
+            </div> -->
             <div class="link-row" ?hidden="${!role.email}">
               <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
               <span><a href="mailto:${role.email}">${role.email}</a></span>
@@ -773,8 +774,8 @@ return html`
           ${this.websites.map(
           (site) => html`
           <div class="link-row">
-            <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-            <span><a href="${site.url}">${site.name}</a></span>
+            <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon>
+            <span><a href="${site.url}">${site.name || site.url}</a></span>
           </div>
           `
         )}

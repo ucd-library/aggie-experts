@@ -1,11 +1,12 @@
 const express = require('express');
 const router = require('express').Router();
-const { dataModels, logger } = require('@ucd-lib/fin-service-utils');
+const { config, dataModels, logger } = require('@ucd-lib/fin-service-utils');
 const SiteFarmModel = require('./model.js');
 const { defaultEsApiGenerator } = dataModels;
 const md5 = require('md5');
 const path = require('path');
 
+const openapi = require('@wesleytodd/openapi')
 
 function siteFarmFormat(req, res, next) {
 
@@ -57,9 +58,9 @@ function json_only(req, res, next) {
 async function sanitize(req, res, next) {
   logger.info({ function: 'sanitize' }, JSON.stringify(req.query));
   let id = '/' + model.id + decodeURIComponent(req.path);
+
   if (('no-sanitize' in req.query) && req.user &&
-    (id === '/expert/' + md5(req.user.preferred_username + "@ucdavis.edu") ||
-      req.user?.roles?.includes('admin'))
+    (id === req.user.expertId || req.user?.roles?.includes('admin'))
   ) {
     return next();
   } else {
@@ -97,8 +98,75 @@ async function sanitize(req, res, next) {
   }
 }
 
+const oapi = openapi({
+  openapi: '3.0.3',
+  info: {
+    title: 'Express',
+    description: 'The SiteFarm API returns an array of expert profiles matching a provided list of IDs. This allows external systems including UCD SiteFarm to integrate Aggie Experts data into their sites. Publically available API endpoints can be used for access to experts data.',
+    version: '1.0.0',
+    termsOfService: 'http://swagger.io/terms/',
+    contact: {
+      email: 'aggie-experts@ucdavis.edu'
+    },
+    license: {
+      name: 'Apache 2.0',
+      url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    },
+    version: config.experts.version,
+  },
+  servers: [
+    {
+      url: `${config.server.url}/api/sitefarm`
+    }
+  ],
+  tags: [
+    {
+      name: 'sitefarm',
+      description: 'SiteFarm Information'
+    }
+  ]
+})
 
-router.get('/experts/:ids', json_only, async (req, res, next) => {
+// This will serve the generated json document(s)
+// (as well as the swagger-ui if configured)
+router.use(oapi);
+
+router.get('/experts/:ids',
+  oapi.validPath(
+    {
+      "description": "Returns an array of expert profiles",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "ids",
+          "description": "A comma separated list of expert IDs",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful operation",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid ID supplied"
+        },
+        "404": {
+          "description": "Expert not found"
+        }
+      }
+    }
+  ),
+  json_only, async (req, res, next) => {
   const id_array = req.params.ids.replace('ids=', '').split(',');
   const expert_model = await model.get_model('expert');
   res.doc_array = [];
@@ -126,7 +194,7 @@ router.get('/experts/:ids', json_only, async (req, res, next) => {
   }
 );
 
-router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
+// router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
 
 const model = new SiteFarmModel();
 module.exports = defaultEsApiGenerator(model, { router });

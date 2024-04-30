@@ -13,8 +13,10 @@ config.client = {
   title : 'Aggie Experts',
   description : 'Aggie Experts is a research networking and expertise discovery tool for UC Davis.',
   appName : process.env.FIN_APP_NAME || 'spa',
+  enableGA4Stats : process.env.GA4_ENABLE_STATS === 'true',
+  gaId : process.env.GA4_MEASUREMENT_ID || '',
   assets : (env === 'prod') ? 'dist' : 'public',
-  appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'works', 'works-edit', 'browse', 'grants', 'grants-edit'],
+  appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse'],
   versions : {
     bundle : clientPackageVersion,
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')
@@ -30,6 +32,7 @@ config.client = {
     BUILD_NUM : process.env.BUILD_NUM || '',
     FIN_SERVER_IMAGE : process.env.FIN_SERVER_IMAGE || ''
   }
+
 };
 
 module.exports = config;
