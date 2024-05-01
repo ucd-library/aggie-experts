@@ -6,25 +6,112 @@ const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
 const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 let AdminClient=null;
+let MIVClient=null;
+
+const jwt = require('jsonwebtoken');
+
+async function validate_admin_client(req, res, next) {
+  if (! AdminClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      AdminClient = new ExpertsKcAdminClient(
+        {
+          baseUrl: match[1],
+          realmName: match[2]
+        }
+      );
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  next();
+}
+
+async function validate_miv_client(req, res, next) {
+  if (! MIVClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      MIVClient = new ExpertsKcAdminClient(
+        {
+          baseUrl: match[1],
+          realmName: "miv"
+        }
+      );
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  next();
+}
+
+function is_miv(req, res, next) {
+  if (!req.user) {
+    // Try MIV Service Account
+    return is_miv_service_account(req, res, next);
+  }
+  if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
+    return next();
+  }
+  return res.status(403).send('Not Authorized');
+}
+
+// Middleware to validate client credential token
+async function is_miv_service_account(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token not provided' });
+  }
+
+  try {
+    // Fetch Keycloak realm public keys
+    const { keys } = await MIVClient.realms.getCertificate();
+    console.log('Keys:', keys);
+
+    // Verify the token's signature using the public key
+    const verifiedToken = jwt.verify(token, keys[0].publicKey);
+
+    // Validate issuer
+    if (verifiedToken.iss !== 'http://auth.library.ucdavis.edu/auth/realms/miv') {
+      return res.status(401).json({ error: 'Invalid token issuer' });
+    }
+
+    // Validate audience
+    if (verifiedToken.aud !== 'miv') {
+      return res.status(401).json({ error: 'Invalid token audience' });
+    }
+
+    // Validate expiration
+    if (Date.now() >= verifiedToken.exp * 1000) {
+      return res.status(401).json({ error: 'Token has expired' });
+    }
+
+    // Validate request source (optional)
+    if (req.hostname !== keycloakAdminClient.clientHost) {
+      return res.status(401).json({ error: 'Invalid request source' });
+    }
+
+    // Custom authorization logic
+    // Implement your own logic here based on token claims
+    if (! req.resource_access.miv.roles.includes('access')) {
+      return res.status(403).json({ error: 'No Access Role' });
+    }
+    next();
+
+  } catch (error) {
+    console.error('Error validating token:', error.message);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
 
 async function fetchExpertId (req, res, next) {
   if (req.query.email || req.query.ucdPersonUUID) {
-    if (! AdminClient) {
-      const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
-      const oidcbaseURL = config.oidc.baseUrl;
-      const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
-
-      if (match) {
-        AdminClient = new ExpertsKcAdminClient(
-          {
-            baseUrl: match[1],
-            realmName: match[2]
-          }
-        );
-      } else {
-        throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
-      }
-    }
     const token = await keycloak.getServiceAccountToken();
     AdminClient.accessToken = token
   }
@@ -52,18 +139,9 @@ async function fetchExpertId (req, res, next) {
   }
 }
 
-function is_miv(req, res, next) {
-  if (!req.user) {
-    return res.status(401).send('Unauthorized');
-  }
-  if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
-    return next();
-  }
-  return res.status(403).send('Not Authorized');
-}
-
 router.get(
   '/user',
+  validate_miv_client,
   is_miv,
   fetchExpertId,
   async (req, res) => {
@@ -79,6 +157,7 @@ router.get(
 
 router.get(
   '/grants',
+  validate_admin_client,
   is_miv,
   fetchExpertId,
   async (req, res) => {
