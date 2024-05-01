@@ -100,11 +100,29 @@ export class IAM {
    * @throws {Error} - Throws an error if the person is not found.
    **/
   async profile(expert) {
-    this.log.trace({mark:`profile(${expert})`,expert:expert},`profile(${expert})`);
+    console.log('profile', expert);
     let key=await this.getKey();
-    expert = expert.replace(/^mailto:/, '').replace(/@ucdavis.edu$/, '');
+    let url=`${this.url}/people/profile/search?key=${key}`
+    this.log.info(`url: ${url}`);
 
-    let url = encodeURI(`${this.url}/people/profile/search?key=${key}&userId=${expert}`);
+    if (typeof expert === 'object') {
+      if (expert.email) {
+        url = encodeURI(`${url}&email=${expert.email}`);
+        this.log.info(`url: ${url}`);
+      } else if (expert.userId) {
+        url = encodeURI(`${url}&userId=${expert.userId}`);
+      } else {
+        throw new Error('Invalid expert object');
+      }
+    }
+    else {  // if expert is not a string, throw an error
+      if (typeof expert !== 'string') {
+        throw new Error('Invalid expert');
+      }
+      this.log.trace({mark:`profile(${expert})`,expert:expert},`profile(${expert})`);
+      expert = expert.replace(/^mailto:/, '').replace(/@ucdavis.edu$/, '');
+      url = encodeURI(`${url}&userId=${expert}`);
+    }
 
     const response = await fetch(url);
 

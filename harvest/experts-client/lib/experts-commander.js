@@ -25,7 +25,7 @@ export class Command extends OriginalCommand {
   }
 
   option_log() {
-    this.addOption(new Option('--log <>', 'log level').choices(['info', 'warn','error','fatal']).default('fatal'));
+    this.addOption(new Option('--log <>', 'log level').choices(['debug','info', 'warn','error','fatal']).default('fatal'));
     return this;
   }
 

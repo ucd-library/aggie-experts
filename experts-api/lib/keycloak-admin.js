@@ -15,6 +15,22 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
   }
 
   /**
+   * List all users
+   * @returns {Promise} a promise that will resolve with the list of users
+   */
+  async list() {
+    return this.users.find({enabled: true, briefRepresentation: false, max: 10000});
+  }
+
+  /**
+   * User count
+   * @returns {Promise} a promise that will resolve with the number of users
+   */
+  async count() {
+    return this.users.count();
+  }
+
+  /**
    * Find user(s) by attribute
    * @param {string} - attribute:value
     * @returns {Promise} - The user(s) with the attribute
@@ -67,8 +83,7 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     if (users.length > 1) {
       //throw new Error(`Multiple users found with expertId: ${expertId}`);
       exertId = this.mintExpertId();
-      user.attributes={expertId: expertId};
-      user=await this.users.update(user);
+      await this.users.update({id:user.id},{attributes:{expertId: expertId}});
       return this.verifyExpertId(user,expertId);
     }
     //if no users are found
@@ -85,9 +100,13 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     }
   }
 
+  async update(user,update) {
+    return this.users.update(user,update);
+  }
+
     /**
      * Create a new expert
-     * @param {object} profile - The user's profile
+     * @param {object} profile - The usr's profile
      * @returns {Promise} - The user object created
      */
   async createExpert(email,profile) {
