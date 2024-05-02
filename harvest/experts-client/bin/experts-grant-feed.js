@@ -8,7 +8,6 @@ import path from 'path';
 import { Command } from 'commander';
 import { spawnSync } from 'child_process';
 import FusekiClient from '../lib/fuseki-client.js';
-import Client from 'ssh2-sftp-client';
 import { Storage } from '@google-cloud/storage';
 import { GoogleSecret } from '@ucd-lib/experts-api';
 import parser from 'xml2json';
@@ -34,12 +33,9 @@ program
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
   .option('--upload', 'Upload the file to the SFTP server')
-  .option('-h, --host <host>', 'SFTP server hostname')
-  .option('-u, --username <username>', 'SFTP username')
   .option('--fuseki <db>', 'Fuseki database name', 'ae-grants')
   .option('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .option('-g, --generation <generation>', 'GCS (XML) file generation', 0)
-  .option('-sp, --secretpath <secretpath>', 'Secret Manager secret path', 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password')
   .parse(process.argv);
 
 let opt = program.opts();
@@ -57,8 +53,6 @@ opt.output += '/generation-' + opt.generation;
 logger.info('Options:', opt);
 
 const graphName = 'http://www.ucdavis.edu/aggie_enterprise_' + opt.generation
-
-// const fuseki = new FusekiClient({
 
 const storage = new Storage();
 
@@ -85,26 +79,6 @@ const fuseki = new FusekiClient({
   replace: true,
   'delete': false,
 });
-
-// SFTP configuration
-const remoteFilePath = opt.env.toUpperCase();
-
-const sftp = new Client();
-
-async function uploadFile(localFilePath, remoteFileName) {
-  try {
-    await sftp.connect(ftpConfig);
-    logger.info(localFilePath, remoteFileName);
-
-    await sftp.put(fs.createReadStream(localFilePath), remoteFileName);
-
-    logger.info(`File uploaded successfully: ${localFilePath} -> ${remoteFileName}`);
-  } catch (error) {
-    logger.error('Error uploading file:', error.message);
-  } finally {
-    await sftp.end();
-  }
-}
 
 async function getXmlVersions(bucketName, fileName) {
   const bucket = storage.bucket(bucketName);
@@ -369,14 +343,6 @@ async function main(opt) {
   fs.writeFileSync(roleFile, await executeCsvQuery(db, roleQ, graphName));
   replaceHeaderHyphens(roleFile);
 
-  // Perform the SFTP upload
-  if (opt.upload) {
-    // Retrieve the SFTP password from GCS Secret Manager
-    ftpConfig.password = await gs.getSecret(opt.secretpath);
-    await uploadFile(grantFile, opt.prefix + "grants_metadata.csv");
-    await uploadFile(linkFile, opt.prefix + "grants_links.csv");
-    await uploadFile(roleFile, opt.prefix + "grants_persons.csv");
-  }
 }
 
 await main(opt);

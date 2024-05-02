@@ -22,7 +22,6 @@ program
   .requiredOption('-o, --dir <dir>', 'Working directory')
   .requiredOption('-n, --new <new>', 'New grant file set path')
   .requiredOption('-p, --prev <prev>', 'Previous grant file set path')
-  .requiredOption('-d, --delta <delta>', 'Delta grant file set path')
   .parse(process.argv);
 
 let opt = program.opts();
@@ -35,12 +34,12 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
-const newGrantsPath = opt.dir + '/' + opt.new + '/' + opt.prefix + 'grants_metadata.csv';
-const oldGrantsPath = opt.dir + '/' + opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
-const newLinksPath = opt.dir + '/' + opt.new + '/' + opt.prefix + 'grants_links.csv';
-const oldLinksPath = opt.dir + '/' + opt.prev + '/' + opt.prefix + 'grants_links.csv';
-const newPersonsPath = opt.dir + '/' + opt.new + '/' + opt.prefix + 'grants_persons.csv';
-const oldPersonsPath = opt.dir + '/' + opt.prev + '/' + opt.prefix + 'grants_persons.csv';
+const newGrantsPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_metadata.csv';
+const oldGrantsPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
+const newLinksPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_links.csv';
+const oldLinksPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_links.csv';
+const newPersonsPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_persons.csv';
+const oldPersonsPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_persons.csv';
 
 if (opt.debug) {
   logger.info('New grants path:', newGrantsPath);
@@ -63,8 +62,8 @@ var newPersons = [];
 var oldPersons = [];
 
 // Ensure the output directory exists
-if (!fs.existsSync(opt.delta)) {
-  fs.mkdirSync(opt.delta, { recursive: true });
+if (!fs.existsSync(opt.dir + '/' + 'delta')) {
+  fs.mkdirSync(opt.dir + '/' + 'delta', { recursive: true });
 }
 
 async function readGrants() {
@@ -293,7 +292,7 @@ async function executeInOrder() {
 executeInOrder().then(() => {
   logger.info('Delta-grants:', deltaGrants.length);
   // Write the delta object to a new CSV file.
-  const deltaFilePath = opt.delta + '/' + opt.prefix; // replace with your desired delta CSV file path
+  const deltaFilePath = opt.dir + '/delta/' + opt.prefix; // replace with your desired delta CSV file path
   fs.writeFileSync(deltaFilePath + 'grants_metadata.csv', 'id,category,type,title,c-pi,funder-name,funder-reference,start-date,end-date,amount-value,amount-currency-code,funding-type,c-ucop-sponsor,c-flow-thru-funding,visible\n' + deltaGrants.map((item) => Object.values(item).map(value => `"${value}"`).join(',')).join('\n'));
 
   logger.info('Delta-links:', deltaLinks.length);
