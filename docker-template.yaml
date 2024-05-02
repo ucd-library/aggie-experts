@@ -12,6 +12,10 @@ services:
       - ${HOST_PORT:-80}:3001
     env_file:
       - .env
+    depends_on:
+      - fcrepo
+      - redis
+      - elasticsearch
     restart: unless-stopped
     command: npm run gateway
     # command: bash -c 'tail -f /dev/null'
@@ -49,10 +53,8 @@ services:
     #  - CATALINA_OPTS=-Dfcrepo.log.auth=DEBUG -Dfcrepo.config.file=/etc/fin/fcrepo.properties
     volumes:
       - fedora-data:/usr/local/tomcat/fcrepo-home/data
+      - activemq-data:/usr/local/tomcat/ActiveMQ
       - *SERVICE_ACCOUNT
-      #- &DEV_MOUNT_FCREPO_ACTIVEMQ ./services/fcrepo/activemq.xml:/usr/local/tomcat/webapps/fcrepo/WEB-INF/classes/config/activemq.xml
-      #- &DEV_MOUNT_FCREPO_PROPERTIES ./fin/services/fcrepo/fcrepo.properties:/etc/fin/fcrepo.properties
-      #- &DEV_MOUNT_FCREPO_ROOT_AUTH ./fin/services/fcrepo/root-authorization.ttl:/etc/fin/root-authorization.ttl
 
   ###
   # Fedora Postgres Service
@@ -63,11 +65,14 @@ services:
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - pg-data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   init:
     image: ${ORG}/init:${TAG}
     env_file:
       - .env
+    environment:
+      - FIN_SERVICE_NAME=init
     volumes:
       #- &DEV_MOUNT_INIT_POSTGRES ./services/init/postgres:/etc/ucdlib-service-init/postgres
       - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
@@ -96,6 +101,8 @@ services:
     environment:
       - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-false}
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
+    depends_on:
+      - elasticsearch
 
   ###
   # External Database Sync Services
@@ -121,6 +128,8 @@ services:
       - GCS=${GCS:-fcrepo-dev}
     env_file:
       - .env
+    depends_on:
+      - gateway
     volumes:
       - *SERVICE_ACCOUNT
     command: npm run gcs
@@ -131,6 +140,10 @@ services:
   ###
   elasticsearch:
     image: ${FIN_ORG}/fin-elastic-search:${FIN_TAG}
+    environment:
+      - node.name=elasticsearch
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
     ulimits:
       memlock:
         soft: -1
@@ -138,6 +151,8 @@ services:
     volumes:
       - es-data:/usr/share/elasticsearch/data
     restart: unless-stopped
+    depends_on:
+      - fcrepo
     # command: bash -c 'tail -f /dev/null'
 
   kibana:
@@ -149,6 +164,8 @@ services:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - xpack.security.enabled=false
       - telemetry.enabled=false
+    depends_on:
+      - elasticsearch
 
   uber:
     image: *BASE
@@ -161,7 +178,7 @@ services:
       - FIN_METRICS_FCREPO_ENABLED=${FIN_METRICS_FCREPO_ENABLED:-true}
       - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
     volumes:
-      - uber-data:/fs-tests
+      - fs-tests:/fs-tests
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_SPA
       - *DEV_MOUNT_MODELS
@@ -172,15 +189,6 @@ services:
       - elasticsearch
     command: npm run uber
   # command: bash -c 'tail -f /dev/null'
-
-  # ###
-  # # Fin Workflows
-  # ###
-  # workflow:
-  #   image: *BASE
-  #   volumes:
-      # - *SERVICE_ACCOUNT
-  #   # command: bash -c 'tail -f /dev/null'
 
   # keycloak container only enabled with deploy --dev
   keycloak:
@@ -216,6 +224,10 @@ services:
 # Docker data volumes
 ###
 volumes:
+  fs-tests:
+    driver: local
+  activemq-data:
+    driver: local
   fuseki-data:
     driver: local
   fedora-data:
@@ -227,6 +239,4 @@ volumes:
   redis-data:
     driver: local
   rabbitmq-data:
-    driver: local
-  uber-data:
     driver: local
