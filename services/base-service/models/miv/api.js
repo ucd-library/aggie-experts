@@ -158,8 +158,9 @@ router.get(
 
 router.get(
   '/grants',
-  validate_admin_client,
+  validate_miv_client,
   is_miv,
+  validate_admin_client,
   fetchExpertId,
   async (req, res) => {
     const params = {};
