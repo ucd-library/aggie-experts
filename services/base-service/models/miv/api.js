@@ -6,9 +6,11 @@ const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
 const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 let AdminClient=null;
-let MIVClient=null;
 
 const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
+
+let MIVJWKSClient=null;
 
 async function validate_admin_client(req, res, next) {
   if (! AdminClient) {
@@ -31,18 +33,18 @@ async function validate_admin_client(req, res, next) {
 }
 
 async function validate_miv_client(req, res, next) {
-  if (! MIVClient) {
+  if (! MIVJWKSClient) {
     const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
     const oidcbaseURL = config.oidc.baseUrl;
     const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
 
     if (match) {
-      MIVClient = new ExpertsKcAdminClient(
-        {
-          baseUrl: match[1],
-          realmName: "miv"
-        }
-      );
+      MIVJWKSClient = await jwksClient({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 10,
+        jwksUri: `${match[1]}/realms/aggie-experts-miv/protocol/openid-connect/certs`
+      });
     } else {
       throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
     }
@@ -70,20 +72,18 @@ async function is_miv_service_account(req, res, next) {
   }
 
   try {
-    // Fetch Keycloak realm public keys
-    const { keys } = await MIVClient.realms.getCertificate();
-    console.log('Keys:', keys);
-
+    // Get the public key from the JWKS endpoint
+    const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
     // Verify the token's signature using the public key
-    const verifiedToken = jwt.verify(token, keys[0].publicKey);
+    const verifiedToken = jwt.verify(token, key.getPublicKey(), { algorithms: ['RS256'] });
 
     // Validate issuer
-    if (verifiedToken.iss !== 'http://auth.library.ucdavis.edu/auth/realms/miv') {
+    if (verifiedToken.iss !== 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv') {
       return res.status(401).json({ error: 'Invalid token issuer' });
     }
 
     // Validate audience
-    if (verifiedToken.aud !== 'miv') {
+    if (verifiedToken.aud !== 'account') {
       return res.status(401).json({ error: 'Invalid token audience' });
     }
 
@@ -93,19 +93,19 @@ async function is_miv_service_account(req, res, next) {
     }
 
     // Validate request source (optional)
-    if (req.hostname !== keycloakAdminClient.clientHost) {
-      return res.status(401).json({ error: 'Invalid request source' });
-    }
+    //console.log('req', req.ip);
+    //if (req.hostname !== verifiedToken.clientHost) {
+    //  return res.status(401).json({ error: 'Invalid request source' });
+    //}
 
     // Custom authorization logic
     // Implement your own logic here based on token claims
-    if (! req.resource_access.miv.roles.includes('access')) {
+    if (! verifiedToken.resource_access.miv.roles.includes('access')) {
       return res.status(403).json({ error: 'No Access Role' });
     }
     next();
 
   } catch (error) {
-    console.error('Error validating token:', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -143,6 +143,7 @@ router.get(
   '/user',
   validate_miv_client,
   is_miv,
+  validate_admin_client,
   fetchExpertId,
   async (req, res) => {
     const expertId = req.query.expertId;
