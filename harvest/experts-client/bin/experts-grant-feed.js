@@ -219,7 +219,9 @@ async function executeCsvQuery(db, query, graphName) {
 
   // Check if the request was successful
   if (!response.ok) {
+
     throw new Error(`Query Failed. Status code: ${response.status}` + response.statusText);
+    return response.statusText;
   }
 
   return await response.text();

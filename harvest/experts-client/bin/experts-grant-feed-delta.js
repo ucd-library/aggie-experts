@@ -84,7 +84,7 @@ async function readGrants() {
           let isNew = !oldGrants.find((oldItem) => oldItem.id === newItem.id);
           //if isNew or the grant has been updated
           if (isNew) {
-            logger.info('New grant:', newItem.id);
+            // logger.info('New grant:', newItem.id);
             return true;
           }
           else {
@@ -94,8 +94,8 @@ async function readGrants() {
             // If isUpdated is true, return true
             for (let key in oldItem) {
               if (oldItem[key] !== newItem[key]) {
-                logger.info('Updated Grant: ' + oldItem.id + ' Old:' + key, oldItem[key]);
-                logger.info('Updated Grant: ' + newItem.id + ' New:' + key, newItem[key]);
+                // logger.info('Updated Grant: ' + oldItem.id + ' Old:' + key, oldItem[key]);
+                // logger.info('Updated Grant: ' + newItem.id + ' New:' + key, newItem[key]);
                 isUpdated = true;
               }
             }
