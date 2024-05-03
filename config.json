@@ -84,7 +84,7 @@
       "branch":"(dev|main)",
       "gaid":"G-GM57B0V0WC"
     },
-    "prev-test":{
+    "prev":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
       "tag":"$(${G[git]} describe --always --dirty)",
       "server":"^(blue|gold).experts.library.ucdavis.edu",
@@ -95,7 +95,7 @@
       },
       "gcs":"fcrepo-prod",
       "port":"10480",
-      "host":"https://prev_test.experts.library.ucdavis.edu",
+      "host":"https://prev.experts.library.ucdavis.edu",
       "branch":"(dev|main)",
       "gaid":"G-GM57B0V0WC"
     },
