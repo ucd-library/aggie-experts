@@ -9,43 +9,10 @@ const md5 = require('md5');
 const model= new ExpertModel();
 
 const openapi = require('@wesleytodd/openapi')
+const { json_only, user_can_edit } = require('../middleware.js')
 
-function expert_uri_from_path(path) {
-  const id=[model.id,decodeURIComponent(path).split('/').slice(1,2)].join('/');
-  return id;
-}
-
-function user_can_edit(req, res, next) {
-  let id = expert_uri_from_path(req.path);
-  if (!req.user) {
-    return res.status(401).send('Unauthorized');
-  }
-  if ( req.user?.roles?.includes('admin')) {
-    return next();
-  }
-
-  if( id === req.user.expertId ) {
-    return next();
-  }
-
-  return res.status(403).send('Not Authorized');
-}
-
-// Custom middleware to check Content-Type
-function json_only(req, res, next) {
-  const contentType = req.get('Content-Type');
-  if (contentType === 'application/json' || contentType === 'application/ld+json') {
-    // Content-Type is acceptable
-    return next();
-  } else {
-    // Content-Type is not acceptable
-    res.status(400).json({ error: 'Invalid Content-Type. Only application/json or application/ld+json is allowed.' });
-  }
-}
 
 function sanitize(req, res, next) {
-  logger.info({function:'sanitize'}, JSON.stringify(req.query));
-  let id = expert_uri_from_path(req.path);
   if ('no-sanitize' in req.query) {
       user_can_edit(req, res, next);
   } else {
@@ -61,7 +28,7 @@ function sanitize(req, res, next) {
 const oapi = openapi({
   openapi: '3.0.3',
   info: {
-    title: 'Express',
+    title: 'Experts',
     description: 'The Experts API specifies updates to a particular expert. Publically available API endpoints can be used for access to an experts data.  The permissions of current user allow additional access to the data.',
     version: '1.0.0',
     termsOfService: 'http://swagger.io/terms/',
@@ -203,7 +170,7 @@ router.route(
   user_can_edit,
   json_only,
   async (req, res, next) => {
-    let expertId=expert_uri_from_path(req.path);
+    let expertId=req.params.expertId;
     let data = req.body;
 
     try {
@@ -267,7 +234,7 @@ router.route(
     logger.info(`DELETE ${req.url}`);
 
     try {
-      let expertId = expert_uri_from_path(req.path);
+      let expertId = `expert/${req.params.expertId}`;
       let id = decodeURIComponent(req.path).replace(/^\/[a-zA-Z0-9]+\//,'');
 
       const authorshipModel = await model.get_model('authorship');
