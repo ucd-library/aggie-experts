@@ -40,8 +40,8 @@ export default class FinApp extends Mixin(LitElement)
       imageAltText: { type: String },
       pathInfo: { type: String },
       expertId: { type: String },
-      expertNameImpersonating: { type: String },
-      hideImpersonate: { type: Boolean },
+      expertNameEditing: { type: String },
+      hideEdit: { type: Boolean },
       loading: { type: Boolean },
     }
   }
@@ -58,9 +58,9 @@ export default class FinApp extends Mixin(LitElement)
     this.imageSrc = '';
     this.imageAltText = '';
     this.pathInfo = '';
-    this.expertId = utils.getCookie('impersonateId');
-    this.expertNameImpersonating = utils.getCookie('impersonateName');
-    this.hideImpersonate = !utils.getCookie('impersonateId');
+    this.expertId = utils.getCookie('editingExpertId');
+    this.expertNameEditing = utils.getCookie('editingExpertName');
+    this.hideEdit = !utils.getCookie('editingExpertId');
     this.loading = false;
 
     this.render = render.bind(this);
@@ -173,45 +173,45 @@ export default class FinApp extends Mixin(LitElement)
     let appExpert = this.shadowRoot.querySelector('app-expert');
     if( appExpert ) appExpert.toggleAdminUi();
 
-    this._styleImpersonateButton();
+    this._styleEditExpertButton();
   }
 
   /**
-   * @method _styleImpersonateButton
-   * @description style impersonate button based on screen width to ensure impersonate button doesn't overlap header
+   * @method _styleEditExpertButton
+   * @description style edit button based on screen width to ensure edit button doesn't overlap header
    */
-  _styleImpersonateButton() {
-    let impersonateBtn = this.shadowRoot.querySelector('.impersonate-btn');
-    let impersonateContainer = this.shadowRoot.querySelector('.impersonate-container');
+  _styleEditExpertButton() {
+    let editExpertBtn = this.shadowRoot.querySelector('.edit-expert-btn');
+    let editExpertContainer = this.shadowRoot.querySelector('.edit-expert-container');
     let headerLogoContainer = this.shadowRoot.querySelector('ucd-theme-header')?.shadowRoot.querySelector('.site-branding');
     let mainContent = this.shadowRoot.querySelector('.main-content');
     let minSpace = parseFloat(getComputedStyle(document.documentElement).fontSize);
 
-    if( !impersonateBtn || !headerLogoContainer ) return;
+    if( !editExpertBtn || !headerLogoContainer ) return;
 
-    const impersonateContainerDisplay = this.hideImpersonate ? 'none' : 'flex' ;
-    impersonateContainer.style.display = impersonateContainerDisplay;
+    const editExpertContainerDisplay = this.hideEdit ? 'none' : 'flex' ;
+    editExpertContainer.style.display = editExpertContainerDisplay;
 
-    if (impersonateContainerDisplay === 'none') impersonateContainer.style.display = 'flex';
+    if (editExpertContainerDisplay === 'none') editExpertContainer.style.display = 'flex';
 
-    let impersonateBtnRect = impersonateBtn.getBoundingClientRect();
+    let editExpertBtnRect = editExpertBtn.getBoundingClientRect();
     let headerLogoContainerRect = headerLogoContainer.getBoundingClientRect();
 
-    if (impersonateContainerDisplay === 'none') impersonateContainer.style.display = impersonateContainerDisplay;
+    if (editExpertContainerDisplay === 'none') editExpertContainer.style.display = editExpertContainerDisplay;
 
-    let collapse = !(headerLogoContainerRect.right < impersonateBtnRect.left - minSpace ||
-      headerLogoContainerRect.left > impersonateBtnRect.right + minSpace ||
-      headerLogoContainerRect.bottom < impersonateBtnRect.top - minSpace ||
-      headerLogoContainerRect.top > impersonateBtnRect.bottom + minSpace);
+    let collapse = !(headerLogoContainerRect.right < editExpertBtnRect.left - minSpace ||
+      headerLogoContainerRect.left > editExpertBtnRect.right + minSpace ||
+      headerLogoContainerRect.bottom < editExpertBtnRect.top - minSpace ||
+      headerLogoContainerRect.top > editExpertBtnRect.bottom + minSpace);
 
-    if( collapse && !this.hideImpersonate ) {
+    if( collapse && !this.hideEdit ) {
       mainContent.classList.add('collapse');
-      mainContent.classList.add('impersonating');
-      impersonateContainer.classList.add('collapse');
+      mainContent.classList.add('editing');
+      editExpertContainer.classList.add('collapse');
     } else {
       mainContent.classList.remove('collapse');
-      mainContent.classList.remove('impersonating');
-      impersonateContainer.classList.remove('collapse');
+      mainContent.classList.remove('editing');
+      editExpertContainer.classList.remove('collapse');
     }
   }
 
@@ -227,45 +227,45 @@ export default class FinApp extends Mixin(LitElement)
   }
 
   /**
-   * @method _impersonateClick
-   * @description impersonate expert
+   * @method _editExpertClick
+   * @description edit expert
    *
    * @param {Object} e
    */
-  _impersonateClick(e) {
+  _editExpertClick(e) {
     e.preventDefault();
 
     if( !(APP_CONFIG.user?.roles || []).includes('admin') ) return;
 
-    // show button showing who we're impersonating
-    this.hideImpersonate = false;
+    // show button showing who we're editing
+    this.hideEdit = false;
 
-    document.cookie = 'impersonateId='+e.detail.expertId+'; path=/';
-    document.cookie = 'impersonateName='+e.detail.expertName+'; path=/';
+    document.cookie = 'editingExpertId='+e.detail.expertId+'; path=/';
+    document.cookie = 'editingExpertName='+e.detail.expertName+'; path=/';
 
-    this.expertNameImpersonating = e.detail.expertName;
-    this._styleImpersonateButton();
+    this.expertNameEditing = e.detail.expertName;
+    this._styleEditExpertButton();
   }
 
   /**
-   * @method _cancelImpersonateClick
-   * @description cancel impersonating an expert
+   * @method _cancelEditExpertClick
+   * @description cancel editing an expert
    *
    * @param {Object} e
    */
-  _cancelImpersonateClick(e) {
+  _cancelEditExpertClick(e) {
     e.preventDefault();
 
-    this.hideImpersonate = true;
+    this.hideEdit = true;
 
-    document.cookie = "impersonateId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
-    document.cookie = "impersonateName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+    document.cookie = "editingExpertId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+    document.cookie = "editingExpertName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
 
-    this.expertNameImpersonating = '';
+    this.expertNameEditing = '';
 
     let appExpert = this.shadowRoot.querySelector('app-expert');
-    if( appExpert ) appExpert.cancelImpersonate();
-    this._styleImpersonateButton();
+    if( appExpert ) appExpert.cancelEditExpert();
+    this._styleEditExpertButton();
   }
 
 }

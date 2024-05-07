@@ -103,7 +103,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.modifiedGrants = false;
     let expertId = e.location.pathname.replace('/grants-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( expertId === this.expertId || !canEdit ) return;
