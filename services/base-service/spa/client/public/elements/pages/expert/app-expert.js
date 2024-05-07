@@ -245,7 +245,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( !this.expertImpersonating ) {
       this.expertImpersonating = '';
-      this.hideImpersonate = (
+      this.hideImpersonate = true || (
         ((acExpertId && acExpertId !== this.expertId) &&
         (impersonatingExpertId && impersonatingExpertId !== this.expertId)) ||
         !(APP_CONFIG.user?.roles || []).includes('admin')
@@ -625,7 +625,7 @@ export default class AppExpert extends Mixin(LitElement)
   cancelImpersonate() {
     this.expertImpersonating = '';
 
-    this.hideImpersonate = APP_CONFIG.user?.expertId === this.expertId;
+    this.hideImpersonate = true || APP_CONFIG.user?.expertId === this.expertId;
 
     if( APP_CONFIG.user?.expertId !== this.expertId ) this.canEdit = false;
   }

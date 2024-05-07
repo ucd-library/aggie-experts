@@ -87,15 +87,14 @@ function user_can_impersonate(req, res, next) {
 }
 
 function user_can_edit(req, res, next) {
-  let id = expert_uri_from_path(req.path);
+  let id= req.params.expertId;
   if (!req.user) {
     return res.status(401).send('Unauthorized');
   }
   if ( req.user?.roles?.includes('admin')) {
     return next();
   }
-
-  if( id === req.user.expertId ) {
+  if( id === req.user?.attributes?.expertId ) {
     return next();
   }
 
@@ -115,8 +114,7 @@ function json_only(req, res, next) {
 }
 
 function sanitize(req, res, next) {
-  logger.info({function:'sanitize'}, JSON.stringify(req.query));
-  let id = expert_uri_from_path(req.path);
+//  logger.info({function:'sanitize'}, JSON.stringify(req.query));
   if ('no-sanitize' in req.query) {
       user_can_edit(req, res, next);
   } else {
@@ -230,20 +228,14 @@ router.route(
   ),
   user_can_edit,
   async (req, res, next) => {
-    //    res.status(200).json(JSON.stringify(req));
-    logger.info({function:"GET :expert/ark:/87287/d7mh2m/relationship/:id"},`req.path=${req.path}`);
-    let id = decodeURIComponent(req.path).replace(/^\/[a-zA-Z0-9]+\//,'');
-  logger.info({function:"GET :expert/ark:/87287/d7mh2m/relationship/:id"},`req.path=${req.path} id=${id}`);
+    let id = req.params.relationshipId;
     try {
       const authorship_model = await model.get_model('authorship');
-      let opts = {
-        admin : req.query.admin ? true : false,
-      }
-      res.thisDoc = await authorship_model.get(id, opts);
+      res.thisDoc = await authorship_model.get(id);
       logger.info({function:'get'},JSON.stringify(res.thisDoc));
       return next();
     } catch(e) {
-     res.status(404).json(`${id} from ${req.path} HELP ${e.message}`);
+     res.status(404).json(`${id} from ${req.path} - ${e.message}`);
     }
   },
   async (req, res, next) => {
@@ -293,7 +285,7 @@ router.route(
   user_can_edit,
   json_only,
   async (req, res, next) => {
-    let expertId=expert_uri_from_path(req.path);
+    let expertId=`expert/${req.params.expertId}`
     let data = req.body;
 
     try {
@@ -357,7 +349,7 @@ router.route(
     logger.info(`DELETE ${req.url}`);
 
     try {
-      let expertId = expert_uri_from_path(req.path);
+      let expertId = `expert/${req.params.expertId}`;
       let id = decodeURIComponent(req.path).replace(/^\/[a-zA-Z0-9]+\//,'');
 
       const authorshipModel = await model.get_model('authorship');
@@ -411,12 +403,9 @@ router.route(
     })
   },
   async (req, res, next) => {
-    let id = model.id+'/'+req.params.expertId;
-     try {
-      let opts = {
-        admin: req.query.admin ? true : false,
-      }
-      res.thisDoc = await model.get(id, opts);
+    let expertId = `expert/${req.params.expertId}`;
+    try {
+      res.thisDoc = await model.get(expertId);
       next();
     } catch (e) {
       return res.status(404).json(`${req.path} resource not found`);
