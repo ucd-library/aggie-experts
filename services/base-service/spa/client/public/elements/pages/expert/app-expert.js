@@ -50,8 +50,8 @@ export default class AppExpert extends Mixin(LitElement)
       errorMode : { type : Boolean },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
-      expertImpersonating : { type : String },
-      hideImpersonate : { type : Boolean },
+      expertEditing : { type : String },
+      hideEdit : { type : Boolean },
       isVisible : { type : Boolean },
       elementsUserId : { type : String }
     }
@@ -78,7 +78,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    this.expertImpersonating = utils.getCookie('impersonateId');
+    this.expertEditing = utils.getCookie('editingExpertId');
 
     if( e.location.page !== 'expert' ) return;
     window.scrollTo(0, 0);
@@ -89,7 +89,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     this._reset();
 
-    if( (this.expertImpersonating === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
+    if( (this.expertEditing === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
@@ -120,7 +120,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
-    this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId;
+    this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('editingExpertId') === this.expertId;
 
     this.isVisible = this.expert['is-visible'];
 
@@ -206,7 +206,7 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _reset() {
     let acExpertId = APP_CONFIG.user?.expertId;
-    let impersonatingExpertId = utils.getCookie('impersonateId');
+    let editingExpertId = utils.getCookie('editingExpertId');
 
     this.expert = {};
     this.expertName = '';
@@ -226,7 +226,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.grantsCompletedDisplayed = [];
     this.totalGrants = 0;
     this.totalCitations = 0;
-    this.canEdit = (acExpertId === this.expertId || (impersonatingExpertId === this.expertId && this.expertId.length > 0));
+    this.canEdit = (acExpertId === this.expertId || (editingExpertId === this.expertId && this.expertId.length > 0));
     this.modalTitle = '';
     this.modalContent = '';
     this.showModal = false;
@@ -243,11 +243,11 @@ export default class AppExpert extends Mixin(LitElement)
     this.isVisible = true;
     this.elementsUserId = '';
 
-    if( !this.expertImpersonating ) {
-      this.expertImpersonating = '';
-      this.hideImpersonate = true || (
-        ((acExpertId && acExpertId !== this.expertId) &&
-        (impersonatingExpertId && impersonatingExpertId !== this.expertId)) ||
+    if( !this.expertEditing ) {
+      this.expertEditing = '';
+      this.hideEdit = (
+        (acExpertId && acExpertId !== this.expertId) ||
+        (editingExpertId && editingExpertId !== this.expertId) ||
         !(APP_CONFIG.user?.roles || []).includes('admin')
       );
     }
@@ -259,7 +259,7 @@ export default class AppExpert extends Mixin(LitElement)
    *
   */
   toggleAdminUi() {
-    this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || utils.getCookie('impersonateId') === this.expertId);
+    this.canEdit = (APP_CONFIG.user?.expertId === this.expertId || utils.getCookie('editingExpertId') === this.expertId);
   }
 
   _showMoreAboutMeClick(e) {
@@ -592,22 +592,22 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
-   * @method _impersonateClick
-   * @description impersonate expert
+   * @method _editExpertClick
+   * @description edit expert
    */
-  _impersonateClick(e) {
+  _editExpertClick(e) {
     e.preventDefault();
 
     let user = APP_CONFIG.user;
     if( !user || !(user.roles || []).filter(r => r === 'admin')[0] ) return;
 
-    this.hideImpersonate = true;
-    this.expertImpersonating = this.expertId;
+    this.hideEdit = true;
+    this.expertEditing = this.expertId;
 
 
     // dispatch event to fin-app
     this.dispatchEvent(
-      new CustomEvent("impersonate", {
+      new CustomEvent("cancel-edit-expert", {
         detail : {
           expertId : this.expertId,
           expertName : this.expertName
@@ -619,13 +619,13 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
-   * @method cancelImpersonate
-   * @description cancel impersonating an expert
+   * @method cancelEditExpert
+   * @description cancel editing an expert
    */
-  cancelImpersonate() {
-    this.expertImpersonating = '';
+  cancelEditExpert() {
+    this.expertEditing = '';
 
-    this.hideImpersonate = true || APP_CONFIG.user?.expertId === this.expertId;
+    this.hideEdit = APP_CONFIG.user?.expertId === this.expertId;
 
     if( APP_CONFIG.user?.expertId !== this.expertId ) this.canEdit = false;
   }
