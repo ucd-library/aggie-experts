@@ -10,9 +10,80 @@ const model= new ExpertModel();
 
 const openapi = require('@wesleytodd/openapi')
 
+class KeycloakClient {
+  static ExpertsKcAdminClient=null;
+  static connect={ baseUrl:null,
+                   realmName:null };
+
+
+  static async keycloak_client(req, res, next) {
+    if (! this.ExpertsKcAdminClient ) {
+      const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+      this.ExpertsKcAdminClient = ExpertsKcAdminClient;
+      const oidcbaseURL = config.oidc.baseUrl;
+      const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+      if (match) {
+        this.connect.baseUrl = match[1];
+        this.connect.realmName = match[2];
+      } else {
+        throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+      }
+
+    }
+    if (req.user && req.cookies['fin-jwt']) {
+      req.keycloak_client = new (this.ExpertsKcAdminClient)(this.connect);
+      req.keycloak_client.accessToken = req.cookies['fin-jwt'];
+      next();
+    } else {
+      res.status(401).send('Unauthorized');
+    }
+  }
+}
+keycloak_client = KeycloakClient.keycloak_client.bind(KeycloakClient);
+
+class AdminClient {
+  static AdminClient=null;
+
+  static async admin_client(req, res, next) {
+    if (! AdminClient) {
+      const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+      const oidcbaseURL = config.oidc.baseUrl;
+      const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+      if (match) {
+        AdminClient = new ExpertsKcAdminClient(
+          {
+            baseUrl: match[1],
+            realmName: match[2]
+          }
+        );
+      } else {
+        throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+      }
+    }
+    const token = await keycloak.getServiceAccountToken();
+    AdminClient.accessToken = token
+    req.AdminClient = AdminClient;
+    next();
+  }
+}
+admin_client = AdminClient.admin_client.bind(AdminClient);
+
 function expert_uri_from_path(path) {
   const id=[model.id,decodeURIComponent(path).split('/').slice(1,2)].join('/');
   return id;
+}
+
+function user_can_impersonate(req, res, next) {
+  if (!req.user) {
+    return res.status(401).send('Unauthorized');
+  }
+  if ( req.user?.roles?.includes('admin') ||
+       req.user?.roles?.includes('impersonate') ) {
+    return next();
+  }
+  return res.status(403).send('Not Authorized');
 }
 
 function user_can_edit(req, res, next) {
@@ -94,6 +165,25 @@ router.get('/', (req, res) => {
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
 router.use(oapi);
+
+// Valid users can retrieve an impersonated expert token
+router.route(
+  '/:expertId/impersonation'
+).get(
+  user_can_impersonate,
+  keycloak_client,
+  async (req, res,next) => {
+    try {
+      let user= await req.keycloak_client.findOneByAttribute(`expertId:${req.params.expertId}`);
+      console.log('user', user);
+      let token = await req.keycloak_client.users.impersonation({id:user.id});
+      console.log('client', req.keycloak_client.users);
+      res.status(200).json({token: token});
+    } catch (e) {
+      res.status(e.status || 500).json({error:e.message});
+    }
+  }
+);
 
 router.route(
   '/:expertId/:relationshipId'
@@ -321,7 +411,6 @@ router.route(
     })
   },
   async (req, res, next) => {
-    console.log(`expert ${req.params.expertId}`);
     let id = model.id+'/'+req.params.expertId;
      try {
       let opts = {
