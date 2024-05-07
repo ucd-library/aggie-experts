@@ -60,7 +60,7 @@ export default class FinApp extends Mixin(LitElement)
     this.pathInfo = '';
     this.expertId = utils.getCookie('impersonateId');
     this.expertNameImpersonating = utils.getCookie('impersonateName');
-    this.hideImpersonate = !utils.getCookie('impersonateId');
+    this.hideImpersonate = true || !utils.getCookie('impersonateId');
     this.loading = false;
 
     this.render = render.bind(this);
@@ -238,7 +238,8 @@ export default class FinApp extends Mixin(LitElement)
     if( !(APP_CONFIG.user?.roles || []).includes('admin') ) return;
 
     // show button showing who we're impersonating
-    this.hideImpersonate = false;
+    this.hideImpersonate = true; //false;
+    return;
 
     document.cookie = 'impersonateId='+e.detail.expertId+'; path=/';
     document.cookie = 'impersonateName='+e.detail.expertName+'; path=/';
