@@ -255,7 +255,7 @@ router.route(
 
     try {
       let expertId = `expert/${req.params.expertId}`;
-      let id = decodeURIComponent(req.path).replace(/^\/[a-zA-Z0-9]+\//,'');
+      let id = req.params.relationshipId;
 
       const authorshipModel = await model.get_model('authorship');
       await authorshipModel.delete(id, expertId);
@@ -361,11 +361,11 @@ router.route(
   user_can_edit,
   json_only,
   async (req, res, next) => {
-    let id = decodeURIComponent(req.path).replace(/^\//, '');
+    expertId = `expert/${req.params.expertId}`;
     let data = req.body;
     try {
       let resp;
-      patched=await model.patch(data,id);
+      patched=await model.patch(data,expertId);
       res.status(204).json();
     } catch(e) {
       next(e);
@@ -412,8 +412,8 @@ router.route(
   user_can_edit,
   async (req, res, next) => {
     try {
-      let id = decodeURIComponent(req.path).replace(/^\//, '');
-      await model.delete(id);
+      let expertId = `expert/${req.params.expertId}`;
+      await model.delete(expertId);
       res.status(204).json({status: "ok"});
     } catch(e) {
       next(e);
