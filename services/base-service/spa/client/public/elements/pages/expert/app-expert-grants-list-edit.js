@@ -101,8 +101,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     this.modifiedGrants = false;
-    let expertId = e.location.pathname.replace('/grants-edit/', '');
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
+    let expertId = e.location.pathname.replace('/grants-edit', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( expertId === this.expertId || !canEdit ) return;
@@ -136,7 +137,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     this.totalGrants = grants.length;
@@ -264,9 +265,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         '"' + (grant.sponsorAwardId || '') + '"',                     // Grant id {the one given by the agency, not ours}
         '"' + (grant.dateTimeInterval?.start?.dateTime || '') + '"',  // Start date
         '"' + (grant.dateTimeInterval?.end?.dateTime || '') + '"',    // End date
-        '"' + (grant.type || '') + '"',                               // Type of Grant
+        '"' + grant.types.join(', ') + '"',                           // Type of Grant
         '"' + (grant.role || '') + '"',                               // Role of Grant
-        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (PIs and CoPIs)
+        '"' + grant.contributors.map(c => c.name).join('; ') + '"',   // List of contributors (CoPIs)
       ]);
     });
 
@@ -288,6 +289,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'grants_download', {});
   }
 
   /**

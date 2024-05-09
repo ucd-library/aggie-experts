@@ -172,7 +172,8 @@ return html`
     }
 
     .roles-websites .link-row span {
-      padding-left: 0.625rem;
+      padding: .25rem 0 .25rem 0.625rem;
+      line-height: 1.5rem;
     }
 
     .introduction {
@@ -482,7 +483,7 @@ return html`
       line-height: var(--lh-html);
     }
 
-    .impersonate-btn {
+    .edit-expert-btn {
       margin-left: 1.19rem;
       border-radius: 1.25em;
       display: inline-flex;
@@ -510,7 +511,7 @@ return html`
       background-color: transparent;
     }
 
-    .impersonate-btn:hover {
+    .edit-expert-btn:hover {
       background-color: #ffbf00;
       color: #022851;
       border-color: #ffbf00;
@@ -606,23 +607,23 @@ return html`
         <div class="experts">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT</span>
-          <button ?hidden="${this.hideImpersonate}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
-          <div ?hidden="${!this.isAdmin || !this.hideImpersonate || (this.expertImpersonating !== this.expertId)}" style="position: relative; display: flex;">
-            <span ?hidden="${!this.isVisible}" class="tooltip hide-expert" data-text="Hide expert">
+          <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
+          <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+            <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
               <ucdlib-icon icon="ucdlib-experts:fa-eye" @click=${this._hideExpert}></ucdlib-icon>
             </span>
             <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">
               <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._showExpert}></ucdlib-icon>
             </span>
           </div>
-          <div ?hidden="${!this.isAdmin || !this.hideImpersonate || (this.expertImpersonating !== this.expertId)}" style="position: relative; display: flex;">
+          <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span class="tooltip delete-expert" data-text="Delete expert">
               <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._deleteExpert}></ucdlib-icon>
             </span>
           </div>
         </div>
         <h1>${this.expertName}
-          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
             <span class="tooltip edit-name" data-text="Edit name">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
             </span>
@@ -693,7 +694,7 @@ return html`
 
         <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
           <h4>Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
               <span class="tooltip edit-roles" data-text="Edit roles">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
@@ -704,7 +705,7 @@ return html`
 
         <div class="roles" ?hidden="${!this.roles.length}">
           <h4>Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;">
+            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
               <span class="tooltip edit-roles" data-text="Edit roles">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
@@ -717,10 +718,10 @@ return html`
             <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <div class="link-row" ?hidden="${!role.websiteUrl}">
+            <!-- <div class="link-row" ?hidden="${!role.websiteUrl}">
               <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
               <span><a href="${role.websiteUrl}">${role.websiteUrl}</a></span>
-            </div>
+            </div> -->
             <div class="link-row" ?hidden="${!role.email}">
               <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
               <span><a href="mailto:${role.email}">${role.email}</a></span>
@@ -773,8 +774,8 @@ return html`
           ${this.websites.map(
           (site) => html`
           <div class="link-row">
-            <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-            <span><a href="${site.url}">${site.name}</a></span>
+            <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon>
+            <span><a href="${site.url}">${site.name || site.url}</a></span>
           </div>
           `
         )}

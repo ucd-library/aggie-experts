@@ -1,0 +1,60 @@
+{
+  "id": "miv_grants",
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "bool": {
+          "filter": {
+            "bool":{
+              "must": [
+                { "term" : {"@id": "{{expert}}" } }
+              ]
+            }
+          },
+          "must":{
+            "nested": {
+              "path": "@graph",
+              "query": {
+                "bool" : {
+                  "must": [{
+                  "range": {
+                    "@graph.dateTimeInterval.start.dateTime": {
+                      "gte": "{{since}}",
+                      "lte": "{{until}}"
+                    }
+                  }}],
+                  "filter": [
+                    {
+                    "bool": {
+                      "must": [
+                        { "exists": { "field": "@graph.@type" }},
+                        { "term": { "@graph.@type": "Grant" }}
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "inner_hits": {
+                "size": "{{inner_hits_size}}{{^inner_hits_size}}99{{/inner_hits_size}}",
+                "_source": true,
+                "sort":["@graph.@id"]
+              }
+            }
+          }
+        }
+      },
+      "_source": [
+        "@id",
+        "contactInfo.name"
+      ],
+      "sort": [ "@id" ]
+    },
+    "params": {
+      "expert": "expert/66356b7eec24c51f01e757af2b27ebb8",
+      "since":"1980-01-01",
+      "until":"2024-03-01"
+    }
+  }
+}

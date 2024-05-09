@@ -40,8 +40,8 @@ export default class FinApp extends Mixin(LitElement)
       imageAltText: { type: String },
       pathInfo: { type: String },
       expertId: { type: String },
-      expertNameImpersonating: { type: String },
-      hideImpersonate: { type: Boolean },
+      expertNameEditing: { type: String },
+      hideEdit: { type: Boolean },
       loading: { type: Boolean },
     }
   }
@@ -58,13 +58,36 @@ export default class FinApp extends Mixin(LitElement)
     this.imageSrc = '';
     this.imageAltText = '';
     this.pathInfo = '';
-    this.expertId = utils.getCookie('impersonateId');
-    this.expertNameImpersonating = utils.getCookie('impersonateName');
-    this.hideImpersonate = !utils.getCookie('impersonateId');
+    this.expertId = utils.getCookie('editingExpertId');
+    this.expertNameEditing = utils.getCookie('editingExpertName');
+    this.hideEdit = !utils.getCookie('editingExpertId');
     this.loading = false;
 
     this.render = render.bind(this);
     this._init404();
+
+    this.addEventListener('click', this.pageClick.bind(this));
+  }
+
+  pageClick(e) {
+    // hack, make sure header popups are collapsed
+    let header = this.shadowRoot.querySelector('ucd-theme-header');
+    if( header ) {
+      let searchPopup = header.querySelector('ucd-theme-search-popup');
+      let quickLinks = header.querySelector('ucd-theme-quick-links');
+
+      let searchClicked = e.composedPath().some(el => el.tagName === 'UCD-THEME-SEARCH-POPUP');
+      let quickLinksClicked = e.composedPath().some(el => el.tagName === 'UCD-THEME-QUICK-LINKS');
+
+      if( !searchClicked && searchPopup?.opened ) searchPopup.close();
+      if( !quickLinksClicked && quickLinks?.opened ) quickLinks.close();
+    }
+  }
+
+  _closeHeader() {
+    // hack, make sure header popups are collapsed
+    let header = this.shadowRoot.querySelector('ucd-theme-header');
+    if( header && header.opened ) header.close();
   }
 
   /**
@@ -101,13 +124,16 @@ export default class FinApp extends Mixin(LitElement)
     this._validateLoggedInUser();
 
     let page = e.location.page;
-    if( !APP_CONFIG.appRoutes.includes(e.location.page) ) page = '404';
+    let route = e.location.path[0] === 'expert' ? 'expert' : (e.location.page || 'home');
+    if( !APP_CONFIG.appRoutes.includes(route) ) page = '404';
 
     if( this.page === page ) return;
     this.page = page;
     this.pathInfo = e.location.pathname.split('/media')[0];
 
     this.firstAppStateUpdate = false;
+
+    this._closeHeader();
   }
 
   /**
@@ -116,81 +142,76 @@ export default class FinApp extends Mixin(LitElement)
    * for logged in user
    */
   async _validateLoggedInUser() {
-    let expertId = APP_CONFIG.user?.expertId || '';
-    if( expertId ) {
-      this.expertId = expertId;
+    this.expertId = APP_CONFIG.user?.expertId || '';
 
-      // this.expertId = 'expert/66356b7eec24c51f01e757af2b27ebb8'; // hack for testing as QH
+    // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
+    let header = this.shadowRoot.querySelector('ucd-theme-header');
+    let quickLinks = header?.querySelector('ucd-theme-quick-links');
 
-      // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
-      let header = this.shadowRoot.querySelector('ucd-theme-header');
-      let quickLinks = header?.querySelector('ucd-theme-quick-links');
+    if( APP_CONFIG.user?.hasProfile ) {
+      if( quickLinks ) {
+        quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
+      }
+    } else {
+      console.warn('expert ' + this.expertId + ' not found for logged in user');
 
-      if( APP_CONFIG.user?.hasProfile ) {
-        if( quickLinks ) {
-          quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
-        }
-      } else {
-        console.warn('expert ' + this.expertId + ' not found for logged in user');
+      if( quickLinks ) {
+        quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
+        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
+        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(3)').style.top = '3.2175rem';
+        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '0';
 
-        if( quickLinks ) {
-          quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(3)').style.top = '3.2175rem';
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '0';
-
-          if( window.innerWidth > 991 ) {
-            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '6.5325rem';
-            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '1rem';
-          } else  {
-            quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '0';
-          }
+        if( window.innerWidth > 991 ) {
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '6.5325rem';
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '1rem';
+        } else  {
+          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '0';
         }
       }
-
-      let appExpert = this.shadowRoot.querySelector('app-expert');
-      if( appExpert ) appExpert.toggleAdminUi();
     }
 
-    this._styleImpersonateButton();
+    let appExpert = this.shadowRoot.querySelector('app-expert');
+    if( appExpert ) appExpert.toggleAdminUi();
+
+    this._styleEditExpertButton();
   }
 
   /**
-   * @method _styleImpersonateButton
-   * @description style impersonate button based on screen width to ensure impersonate button doesn't overlap header
+   * @method _styleEditExpertButton
+   * @description style edit button based on screen width to ensure edit button doesn't overlap header
    */
-  _styleImpersonateButton() {
-    let impersonateBtn = this.shadowRoot.querySelector('.impersonate-btn');
-    let impersonateContainer = this.shadowRoot.querySelector('.impersonate-container');
+  _styleEditExpertButton() {
+    let editExpertBtn = this.shadowRoot.querySelector('.edit-expert-btn');
+    let editExpertContainer = this.shadowRoot.querySelector('.edit-expert-container');
     let headerLogoContainer = this.shadowRoot.querySelector('ucd-theme-header')?.shadowRoot.querySelector('.site-branding');
     let mainContent = this.shadowRoot.querySelector('.main-content');
     let minSpace = parseFloat(getComputedStyle(document.documentElement).fontSize);
 
-    if( !impersonateBtn || !headerLogoContainer ) return;
+    if( !editExpertBtn || !headerLogoContainer ) return;
 
-    const impersonateContainerDisplay = this.hideImpersonate ? 'none' : 'flex' ;
-    impersonateContainer.style.display = impersonateContainerDisplay;
+    const editExpertContainerDisplay = this.hideEdit ? 'none' : 'flex' ;
+    editExpertContainer.style.display = editExpertContainerDisplay;
 
-    if (impersonateContainerDisplay === 'none') impersonateContainer.style.display = 'flex';
+    if (editExpertContainerDisplay === 'none') editExpertContainer.style.display = 'flex';
 
-    let impersonateBtnRect = impersonateBtn.getBoundingClientRect();
+    let editExpertBtnRect = editExpertBtn.getBoundingClientRect();
     let headerLogoContainerRect = headerLogoContainer.getBoundingClientRect();
 
-    if (impersonateContainerDisplay === 'none') impersonateContainer.style.display = impersonateContainerDisplay;
+    if (editExpertContainerDisplay === 'none') editExpertContainer.style.display = editExpertContainerDisplay;
 
-    let collapse = !(headerLogoContainerRect.right < impersonateBtnRect.left - minSpace ||
-      headerLogoContainerRect.left > impersonateBtnRect.right + minSpace ||
-      headerLogoContainerRect.bottom < impersonateBtnRect.top - minSpace ||
-      headerLogoContainerRect.top > impersonateBtnRect.bottom + minSpace);
+    let collapse = !(headerLogoContainerRect.right < editExpertBtnRect.left - minSpace ||
+      headerLogoContainerRect.left > editExpertBtnRect.right + minSpace ||
+      headerLogoContainerRect.bottom < editExpertBtnRect.top - minSpace ||
+      headerLogoContainerRect.top > editExpertBtnRect.bottom + minSpace);
 
-    if( collapse && !this.hideImpersonate ) {
+    if( collapse && !this.hideEdit ) {
       mainContent.classList.add('collapse');
-      mainContent.classList.add('impersonating');
-      impersonateContainer.classList.add('collapse');
+      mainContent.classList.add('editing');
+      editExpertContainer.classList.add('collapse');
     } else {
       mainContent.classList.remove('collapse');
-      mainContent.classList.remove('impersonating');
-      impersonateContainer.classList.remove('collapse');
+      mainContent.classList.remove('editing');
+      editExpertContainer.classList.remove('collapse');
     }
   }
 
@@ -202,48 +223,49 @@ export default class FinApp extends Mixin(LitElement)
    */
   _onSearch(e) {
     if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.searchTerm.trim());
+    this._closeHeader();
   }
 
   /**
-   * @method _impersonateClick
-   * @description impersonate expert
+   * @method _editExpertClick
+   * @description edit expert
    *
    * @param {Object} e
    */
-  _impersonateClick(e) {
+  _editExpertClick(e) {
     e.preventDefault();
 
     if( !(APP_CONFIG.user?.roles || []).includes('admin') ) return;
 
-    // show button showing who we're impersonating
-    this.hideImpersonate = false;
+    // show button showing who we're editing
+    this.hideEdit = false;
 
-    document.cookie = 'impersonateId='+e.detail.expertId+'; path=/';
-    document.cookie = 'impersonateName='+e.detail.expertName+'; path=/';
+    document.cookie = 'editingExpertId='+e.detail.expertId+'; path=/';
+    document.cookie = 'editingExpertName='+e.detail.expertName+'; path=/';
 
-    this.expertNameImpersonating = e.detail.expertName;
-    this._styleImpersonateButton();
+    this.expertNameEditing = e.detail.expertName;
+    this._styleEditExpertButton();
   }
 
   /**
-   * @method _cancelImpersonateClick
-   * @description cancel impersonating an expert
+   * @method _cancelEditExpertClick
+   * @description cancel editing an expert
    *
    * @param {Object} e
    */
-  _cancelImpersonateClick(e) {
+  _cancelEditExpertClick(e) {
     e.preventDefault();
 
-    this.hideImpersonate = true;
+    this.hideEdit = true;
 
-    document.cookie = "impersonateId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
-    document.cookie = "impersonateName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+    document.cookie = "editingExpertId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+    document.cookie = "editingExpertName=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
 
-    this.expertNameImpersonating = '';
+    this.expertNameEditing = '';
 
     let appExpert = this.shadowRoot.querySelector('app-expert');
-    if( appExpert ) appExpert.cancelImpersonate();
-    this._styleImpersonateButton();
+    if( appExpert ) appExpert.cancelEditExpert();
+    this._styleEditExpertButton();
   }
 
 }

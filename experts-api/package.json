@@ -19,9 +19,11 @@
   ],
   "dependencies": {
     "@google-cloud/secret-manager": "^4.2.2",
+    "@keycloak/keycloak-admin-client": "^24.0.3",
     "fetch-cookie": "^2.1.0",
     "form-data": "^4.0.0",
     "jsdom": "^22.1.0",
+    "nanoid": "^5.0.7",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {

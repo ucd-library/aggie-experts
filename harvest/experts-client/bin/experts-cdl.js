@@ -5,15 +5,15 @@ dotenv.config();
 import path from 'path';
 import fs from 'fs-extra';
 import { Command } from 'commander';
-import { nanoid } from 'nanoid';
 
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
+
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
-import { GoogleSecret } from '@ucd-lib/experts-api';
+import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 
@@ -32,7 +32,6 @@ const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb2',
-  db: 'CAS',
   replace: true,
   'delete': true
 });
@@ -43,35 +42,6 @@ const cdl = {
   secretpath: '',
 };
 
-async function temp_get_qa_grants(ec, db, user) {
-  logger.info({ mark: 'grants' }, 'temp_get_qa_grants ' + user);
-  const grant_id_types = "2,12,43,44,94,95,96,97,116,117,118,119,120,121,122,123,124,125,126,133,134,135,136,137,138,139,140,141"
-  const orig_opt = ec.opt;
-  const opt = {
-    ...orig_opt,
-    debugRelationshipDir: 'grants',
-    cdl: {
-      url: 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-      authname: 'qa-oapolicy',
-      secretpath: 'projects/325574696734/secrets/cdl-elements-json'
-    }
-  }
-  let secretResp = await gs.getSecret(opt.cdl.secretpath);
-  let secretJson = JSON.parse(secretResp);
-  for (const entry of secretJson) {
-    if (entry['@id'] == opt.cdl.authname) {
-      opt.cdl.auth = entry.auth.raw_auth;
-    }
-  }
-
-  const qa = new ExpertsClient(opt);
-  qa.userId = ec.userId
-  await qa.getPostUserRelationships(db, user, `detail=full&types=${grant_id_types}`);
-  logger.info({ measure: 'grants' }, 'temp_get_qa_grants ' + user);
-
-}
-
-
 async function main(opt) {
   // get the secret JSON
   let secretResp = await gs.getSecret(opt.cdl.secretpath);
@@ -80,6 +50,26 @@ async function main(opt) {
     if (entry['@id'] == opt.cdl.authname) {
       opt.cdl.auth = entry.auth.raw_auth;
     }
+  }
+
+  //  get keycloak token
+  let keycloak_admin
+  try {
+    const keycloakResp=await gs.getSecret('projects/325574696734/secrets/service-account-harvester')
+    const keycloak = JSON.parse(keycloakResp);
+
+    keycloak_admin = new ExpertsKcAdminClient(
+      {
+      baseUrl: keycloak.baseUrl,
+      realmName: keycloak.realmName
+      },
+    );
+
+    await keycloak_admin.auth(keycloak.auth);
+    keycloak_admin = keycloak_admin;
+  } catch (e) {
+    logger.error('Error getting keycloak authorized', e);
+    process.exit(1);
   }
 
   const ec = new ExpertsClient(opt);
@@ -120,26 +110,69 @@ async function main(opt) {
   }
 
   let db
-  // If fuseki.db is const, then create it
-  if (fuseki.db !== 'CAS' && fuseki.db !== 'CAS-XX') {
-    db = await fuseki.createDb(fuseki.db);
-  }
+
   // Step 2: Get User Profiles and relationships from CDL
   for (const user of users) {
     let dbname
     let md=md5(`${user}@ucdavis.edu`);
 
-    if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${md}.jsonld.json`)) {
+    const query=`
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+select * WHERE { graph <http://iam.ucdavis.edu/> {
+    [] ucdlib:userId "${user}" ;
+       ucdlib:email ?email;
+       ucdlib:ucdPersonUUId ?ucdPersonUUID;
+       vcard:hasName [vcard:givenName ?firstName; vcard:familyName ?lastName ].
+  } }`;
+    const response = await fetch(
+      opt.expertsService,
+      {
+        method: 'POST',
+        body: query,
+        headers: {
+          'Content-Type': 'application/sparql-query',
+          'Accept': 'application/sparql-results+json'
+        }
+      });
+
+    if (!response.ok) {
+      throw new Error(`Failed to execute update. Status code: ${response.status}`);
+    }
+
+    let json = await response.json();
+    const profile = {};
+    let email;
+    try {
+      email = json.results.bindings[0].email.value;
+      profile.firstName = json.results.bindings[0].firstName.value;
+      profile.lastName = json.results.bindings[0].lastName.value;
+      profile.attributes = {};
+      profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
+    } catch (e) {
+      logger.error(json, `${user} missing values`);
+      continue;
+    }
+    logger.info(`Processing ${user}(${email},${profile.attributes.ucdPersonUUID})`);
+    const expert=await keycloak_admin.getOrCreateExpert(email,user,profile);
+    let expertId=null;
+    if (!expert) {
+      logger.error(`Failed getOrCreateExpert for ${email}`);
+      continue;
+    } else {
+      expertId=expert.attributes['expertId'];
+      logger.info({user,email,expertId}, `expertId found`);
+    }
+
+    if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${expertId}.jsonld.json`)) {
       logger.info({mark:user},'skipping ' + user);
       continue;
     }
     logger.info({mark:user},'user ' + user);
-    if (fuseki.db==='CAS-XX' || fuseki.db==='CAS') {
-      dbname = user+(fuseki.db==='CAS-XX'?'-'+nanoid(2):'');
-      let exists = await fuseki.existsDb(dbname);
-      db = await fuseki.createDb(dbname);
-      logger.info({measure:[user],user},`fuseki.createDb(${dbname})`);
-    }
+    dbname = user;
+    let exists = await fuseki.existsDb(dbname);
+    db = await fuseki.createDb(dbname);
+    logger.info({measure:[user],user},`fuseki.createDb(${dbname})`)
 
     // const profile = await ec.getCDLprofile(user, opt);
 
@@ -153,9 +186,6 @@ async function main(opt) {
         await ec.getPostUserRelationships(db,user,'detail=full');
         logger.info({measure:[user],user},`getPostUserRelationships`);
 
-        // Step 3a: Get User Grants from CDL (qa-oapolicy only)
-        await temp_get_qa_grants(ec,db,user);
-        logger.info({measure:[user],user},`temp_get_qa_grant`);
       }
       catch (e) {
         logger.error({ user, error: e }, `error ${user}`);
@@ -165,7 +195,11 @@ async function main(opt) {
     if (opt.splay) {
       logger.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
-        { EXPERTS_SERVICE__: DF.namedNode(opt.expertsService) }
+        { EXPERTS_SERVICE__: DF.namedNode(`http://localhost:3030/experts/query`),
+          EXPERT__: DF.namedNode(`http://experts.ucdavis.edu/expert/${expertId}`),
+          EXPERTID__: DF.literal(expertId),
+          KEYCLOAK_EMAIL__: DF.literal(email)
+        }
       );
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
       await ec.insert({ ...iam, bindings, db });
@@ -212,12 +246,12 @@ program.name('cdl-profile')
   .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--cdl.timeout <timeout>', 'Specify CDL API timeout in milliseconds', 30000)
   .option('--author-truncate-to <max>', 'Truncate authors to max', null)
-  .option('--author-trim-info', 'Remove extraneous author info', false)
+  .option('--author-trim-info', 'Remove extraneous author info', true)
+  .option('--no-author-trim-info')
   .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
-  .option('--fuseki.db <name>', 'specify db. There are two special names; CAS which uses a new database w/ the users CAS identifier and CAS-XXXX which uses a database with the users CAS plus a random id.', fuseki.db)
   .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki["delete"])
   .option('--no-fuseki.delete')
   .option('--fuseki.replace', 'Replace the fuseki.db (delete before import)', true)
@@ -229,9 +263,11 @@ program.name('cdl-profile')
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
 
 
+
 program.parse(process.argv);
 
 let opt = program.opts();
+
 
 // fusekize opt
 Object.keys(opt).forEach((k) => {

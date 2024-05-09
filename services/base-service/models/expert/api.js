@@ -1,25 +1,28 @@
+const path = require('path');
+const express = require('express');
 const router = require('express').Router();
-const {dataModels, logger} = require('@ucd-lib/fin-service-utils');
+const {config, dataModels, logger} = require('@ucd-lib/fin-service-utils');
 const ExpertModel = require('./model.js');
 const {defaultEsApiGenerator} = dataModels;
 const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
+const model= new ExpertModel();
 
+const openapi = require('@wesleytodd/openapi')
 
 function user_can_edit(req, res, next) {
-  let id = decodeURIComponent(req.path);
-  console.log('usercanedit', id);//
-  // logger.info('Checking if user can edit', id, req.user);
-  id = id.split('/').slice(0,3).join('/');
-  console.log('usercanedit', id);//
-  console.log('usercanedit', '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu"));
-  if (req.user &&
-      (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) ||
-       req.user?.roles?.includes('admin')
-     ) {
+  let id= req.params.expertId;
+  if (!req.user) {
+    return res.status(401).send('Unauthorized');
+  }
+  if ( req.user?.roles?.includes('admin')) {
     return next();
   }
-  res.status(403).send('Forbidden');
+  if( id === req.user?.attributes?.expertId ) {
+    return next();
+  }
+
+  return res.status(403).send('Not Authorized');
 }
 
 // Custom middleware to check Content-Type
@@ -34,84 +37,160 @@ function json_only(req, res, next) {
   }
 }
 
-async function sanitize(req, res, next) {
-  logger.info({function:'sanitize'}, JSON.stringify(req.query));
-  let id = decodeURIComponent(req.path);
-//  console.log('sanitize', id);//
-//  console.log('sanitize', '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu"));
+function sanitize(req, res, next) {
+//  logger.info({function:'sanitize'}, JSON.stringify(req.query));
   if ('no-sanitize' in req.query) {
-    if (req.user &&
-        (id === '/expert/'+md5(req.user.preferred_username+"@ucdavis.edu")) ||
-         req.user?.roles?.includes('admin')
-       ) {
-      return next();
-    } else {
-      res.status(403).send('Forbidden');
-    }
+      user_can_edit(req, res, next);
   } else {
-    let doc = res.thisDoc;
-    if (doc["is-visible"] === false) {
-      res.status(404).send('Not Found');
+    try {
+      res.thisDoc = model.sanitize(res.thisDoc);
+      next();
+    } catch (e) {
+      res.status(e.status || 500).json({error:e.message});
     }
-    // logger.info('Sanitizing', doc);
-    for(let i=0; i<doc["@graph"].length; i++) {
-      logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
-      if ((("is-visible" in doc["@graph"][i])
-           && doc["@graph"][i]?.["is-visible"] !== true) ||
-          (doc["@graph"][i].relatedBy && ("is-visible" in doc["@graph"][i].relatedBy)
-           && doc["@graph"][i]?.relatedBy?.["is-visible"] !== true))
-      { // remove this graph node
-        if (doc["@graph"][i]?.["@type"] === "Expert") {
-          res.status(404).json(`${req.path} resource not found`);
-          // alternatively, we could return the parent resource
-          //delete doc["@graph"];
-          //break;
-        } else {
-          logger.info({function:"sanitize"},`_x_${doc["@graph"][i]["@id"]}`);
-          doc["@graph"].splice(i, 1);
-          i--;
-        }
-      } else { // sanitize this graph node
-        logger.info({function:"sanitize"},`Deleting totalAwardAmount=${doc["@graph"][i]?.["totalAwardAmount"]}`);
-        delete doc["@graph"][i]["totalAwardAmount"];
-      }
-    }
-    res.thisDoc = doc;
-    return next();
   }
 }
 
+const oapi = openapi({
+  openapi: '3.0.3',
+  info: {
+    title: 'Express',
+    description: 'The Experts API specifies updates to a particular expert. Publically available API endpoints can be used for access to an experts data.  The permissions of current user allow additional access to the data.',
+    version: '1.0.0',
+    termsOfService: 'http://swagger.io/terms/',
+    contact: {
+      email: 'aggie-experts@ucdavis.edu'
+    },
+    license: {
+      name: 'Apache 2.0',
+      url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    },
+    version: config.experts.version,
+  },
+  servers: [
+    {
+      url: `${config.server.url}/api/expert`
+    }
+  ],
+  tags: [
+    {
+      name: 'expert',
+      description: 'Expert Information'
+    }
+  ]
+})
+
+router.get('/', (req, res) => {
+  res.redirect('/api/expert/openapi.json');
+});
+
+// This will serve the generated json document(s)
+// (as well as the swagger-ui if configured)
+router.use(oapi);
+
 router.route(
-  /expert\/[a-zA-Z0-9]+\/ark\:\/87287\/d7mh2m\/relationship\/[0-9]+/
+  '/:expertId/:relationshipId'
 ).get(
+  oapi.validPath(
+    {
+      "description": "Get an expert relationship by id",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "expertId",
+          "description": "The id of the expert to get",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "relationshipId",
+          "description": "The id of the relationship to get",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "The relationship",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Expert"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Relationship not found"
+        }
+      }
+    }
+  ),
   user_can_edit,
   async (req, res, next) => {
-    //    res.status(200).json(JSON.stringify(req));
-    logger.info({function:"GET /expert/:id/ark:/87287/d7mh2m/relationship/:id"},`req.path=${req.path}`);
-    let pathParts = decodeURIComponent(req.path).split('/');
-    let id = '/' + model.id + '/' + pathParts.splice(3).join('/');
-
+    let id = req.params.relationshipId;
     try {
       const authorship_model = await model.get_model('authorship');
-      let opts = {
-        admin : req.query.admin ? true : false,
-      }
-      res.thisDoc = await authorship_model.get(id, opts);
+      res.thisDoc = await authorship_model.get(id);
       logger.info({function:'get'},JSON.stringify(res.thisDoc));
       return next();
     } catch(e) {
-     res.status(404).json(`${id} from ${req.path} HELP ${e.message}`);
+     res.status(404).json(`${id} from ${req.path} - ${e.message}`);
     }
   },
   async (req, res, next) => {
    res.status(200).json(res.thisDoc);
   }
 ).patch(
+  oapi.validPath(
+    {
+      "description": "Update an expert relationship by id",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "expertId",
+          "description": "The id of the expert to get",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "relationshipId",
+          "description": "The id of the relationship to update",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "The update status",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Expert"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Relationship not found"
+        }
+      }
+    }
+  ),
   user_can_edit,
   json_only,
   async (req, res, next) => {
-    let pathParts = decodeURIComponent(req.path).split('/');
-    let expertId = model.id + '/' + (pathParts[2] || '');
+    let expertId=`expert/${req.params.expertId}`
     let data = req.body;
 
     try {
@@ -130,14 +209,53 @@ router.route(
     }
   }
 ).delete(
+  oapi.validPath(
+    {
+      "description": "Delete an expert relationship by id",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "expertId",
+          "description": "The id of the expert to delete",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "relationshipId",
+          "description": "The id of the relationship to delete",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "The delete status",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Expert"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Relationship not found"
+        }
+      }
+    }
+  ),
   user_can_edit,
   async (req, res, next) => {
     logger.info(`DELETE ${req.url}`);
 
     try {
-      let pathParts = decodeURIComponent(req.path).split('/');
-      let expertId = model.id + '/' + (pathParts[2] || '');
-      let id = pathParts.slice(3).join('/');
+      let expertId = `expert/${req.params.expertId}`;
+      let id = req.params.relationshipId;
 
       const authorshipModel = await model.get_model('authorship');
       await authorshipModel.delete(id, expertId);
@@ -149,17 +267,50 @@ router.route(
 );
 
 
-// this path is used instead of the defined version in the defaultEsApiGenerator
 router.route(
-  /expert\/[a-zA-Z0-9]+$/
+  '/:expertId'
 ).get(
-  async (req, res, next) => {
-    let id = '/'+ model.id + decodeURIComponent(req.path);
-    try {
-      let opts = {
-        admin: req.query.admin ? true : false,
+  oapi.validPath(
+    {
+      "description": "Get an expert by id",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "expertId",
+          "description": "The id of the expert to get",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "The expert",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Expert"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Expert not found"
+        }
       }
-      res.thisDoc = await model.get(id, opts);
+    }
+  ), (err, req, res, next) => {
+    res.status(err.status).json({
+      error: err.message,
+      validation: err.validationErrors,
+      schema: err.validationSchema
+    })
+  },
+  async (req, res, next) => {
+    let expertId = `expert/${req.params.expertId}`;
+    try {
+      res.thisDoc = await model.get(expertId);
       next();
     } catch (e) {
       return res.status(404).json(`${req.path} resource not found`);
@@ -170,33 +321,104 @@ router.route(
     res.status(200).json(res.thisDoc);
   }
 ).patch(
+  oapi.validPath(
+    {
+      "description": "Update an experts visibility by expert id",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "expertId",
+          "description": "The id of the expert to update",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "The expert",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Expert"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Expert not found"
+        }
+      }
+    }
+  ), (err, req, res, next) => {
+    res.status(err.status).json({
+      error: err.message,
+      validation: err.validationErrors,
+      schema: err.validationSchema
+    })
+  },
   user_can_edit,
   json_only,
   async (req, res, next) => {
-    let id = decodeURIComponent(req.path).replace(/^\//, '');
+    expertId = `expert/${req.params.expertId}`;
     let data = req.body;
     try {
       let resp;
-      patched=await model.patch(data,id);
+      patched=await model.patch(data,expertId);
       res.status(204).json();
     } catch(e) {
       next(e);
     }
   }
 ).delete(
+  oapi.validPath(
+    {
+      "description": "Delete an expert by id",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "expertId",
+          "description": "The id of the expert to delete",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "The expert",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Expert"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Expert not found"
+        }
+      }
+    }
+  ), (err, req, res, next) => {
+    res.status(err.status).json({
+      error: err.message,
+      validation: err.validationErrors,
+      schema: err.validationSchema
+    })
+  },
   user_can_edit,
   async (req, res, next) => {
     try {
-      let id = decodeURIComponent(req.path).replace(/^\//, '');
-      await model.delete(id);
+      let expertId = `expert/${req.params.expertId}`;
+      await model.delete(expertId);
       res.status(204).json({status: "ok"});
     } catch(e) {
       next(e);
     }
   }
 );
-
-const model = new ExpertModel();
-module.exports = defaultEsApiGenerator(model, {router});
 
 module.exports = router;

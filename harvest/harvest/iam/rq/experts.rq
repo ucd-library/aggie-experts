@@ -13,8 +13,10 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 CONSTRUCT {
   ?user a ?emp_type,ucdlib:Expert;
         rdfs:label ?label;
-        schema:identifier ?user_identifier,?aggie_ark;
+        schema:identifier ?aggie_ark;
         ucdlib:userId ?kerb;
+        ucdlib:ucdPersonUUId ?mothra_id;
+        ucdlib:email ?default_email;
         ucdlib:is-visible ?is_visible;
         .
 
@@ -50,7 +52,6 @@ CONSTRUCT {
 
   ?vcard_url a vcard:URL;
              vcard:url ?website;
-             ucdlib:urlType ucdlib:URLType_other;
              .
 }
 WHERE {
@@ -58,7 +59,7 @@ WHERE {
   graph harvest_iam: {
     ?s iam:email ?default_email;
        iam:userID ?kerb;
-       iam:employeeId ?employee_id;
+       iam:mothraId ?mothra_id;
        iam:dLastName ?iam_lname;
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty;
@@ -91,9 +92,8 @@ WHERE {
 
     bind(concat(?kerb,"@ucdavis.edu") as ?username)
     bind(md5(?username) as ?user_id)
-    bind(concat('expert/',?user_id) as ?user_identifier)
     bind(uri(concat(str(expert:),?user_id)) as ?user)
-    bind(concat('ark:/87287/d7c08j/',md5(concat('employeeId/',?employee_id))) as ?aggie_ark)
+    bind(uri(concat('ark:/87287/d7c08j/',md5(concat('mothra/',?mothra_id)))) as ?aggie_ark)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
     bind(uri(concat(str(?user),"#name")) as ?vcard_name)
   }

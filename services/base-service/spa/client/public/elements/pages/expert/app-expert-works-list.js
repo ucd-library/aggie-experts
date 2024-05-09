@@ -5,7 +5,7 @@ import {render} from "./app-expert-works-list.tpl.js";
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
 
 export default class AppExpertWorksList extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -69,7 +69,8 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     }
     window.scrollTo(0, 0);
 
-    let expertId = e.location.pathname.replace('/works/', '');
+    let expertId = e.location.pathname.replace('/works', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
@@ -101,7 +102,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     await this._loadCitations();
   }
@@ -124,17 +125,22 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      // validate issue date
+      let validation = Citation.validateIssueDate(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
+      // validate title
+      validation = Citation.validateTitle(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
     }
 
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
 
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 

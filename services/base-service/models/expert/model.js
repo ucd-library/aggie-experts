@@ -1,6 +1,7 @@
 // Can use this to get the fin configuration
 const {models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
+const validate = require('../validate.js');
 
 const finApi = require('@ucd-lib/fin-api/lib/api.js');
 const config = require('../config');
@@ -30,6 +31,9 @@ class ExpertModel extends BaseModel {
 
     // Get only best contact info
     if (node.contactInfo) {
+      if (!Array.isArray(node.contactInfo)) {
+        node.contactInfo = [node.contactInfo];
+      }
       let best=node.contactInfo.sort((a,b) => {
         (a['rank'] || 100) - (b['rank'] || 100)})[0];
       ['hasOrganizationalUnit','hasTitle','hasURL','rank'].forEach(x => delete best[x]);
@@ -44,6 +48,51 @@ class ExpertModel extends BaseModel {
       }
     });
     return s;
+  }
+
+  /**
+   * @method sanitize
+   * @description Sanitize document
+   * @param {Object} doc
+   * @returns {Object} : sanitized document
+   **/
+  sanitize(doc) {
+    if (doc["is-visible"] === false) {
+      throw {status: 404, message: "Not found"};
+    }
+
+    function spliceOut(i) {
+      if (doc["@graph"][i]?.["@type"] === "Expert") {
+        throw {status: 404, message: "Not found"};
+      } else {
+        logger.info({function:"sanitize"},`_x_${doc["@graph"][i]["@id"]}`);
+        doc["@graph"].splice(i, 1);
+      }
+    }
+
+    for(let i=0; i<doc["@graph"].length; i++) {
+      logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
+      // Node is not visible
+      if (("is-visible" in doc["@graph"][i]) &&
+          doc["@graph"][i]?.["is-visible"] !== true) {
+        spliceOut(i--);
+      }
+
+      if (doc["@graph"][i].relatedBy) {
+        // relatedby is doc["@graph"][i]["relatedBy"] but always an array
+        const relatedBy = Array.isArray(doc["@graph"][i].relatedBy) ?
+              doc["@graph"][i].relatedBy : [doc["@graph"][i].relatedBy];
+        for (let j=0; j<relatedBy.length; j++) {
+          if ("is-visible" in relatedBy[j] && relatedBy[j]?.["is-visible"] !== true) {
+            spliceOut(i--);
+            break;
+          }
+        }
+      }
+      // Sanitize this node if it is an Grant (esp.)
+      delete doc["@graph"][i]["totalAwardAmount"];
+    }
+    return doc;
   }
 
   /**
@@ -152,6 +201,7 @@ class ExpertModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     // If a doc exists, update this node only, otherwise create a new doc.
+    logger.info(`ExpertModel.update(${root_node['@id']})`);
     try {
       let expert = await this.client_get(root_node['@id']);
       await this.update_graph_node(expert['@id'],root_node);
@@ -179,6 +229,10 @@ class ExpertModel extends BaseModel {
     }
   }
 
+  async validate(jsonld) {
+    return validate.validateExpert(jsonld);
+  }
+
   /**
    * @method patch
    * @description Patch an expert as visible or not.
@@ -190,7 +244,7 @@ class ExpertModel extends BaseModel {
     let expert;
      let resp;
 
-    logger.info(`expert.patch(${expertId}):`,patch);
+    logger.info(patch,`expert.patch(${expertId})`);
     if (patch.visible == null ) {
       throw new Error('Invalid patch, visible is required');
     }
@@ -260,7 +314,6 @@ class ExpertModel extends BaseModel {
     try {
       expert = await this.client_get(expertId);
     } catch(e) {
-      console.error(e.message);
       logger.info(`expert @id ${expertId} not found`);
       return 404
     };

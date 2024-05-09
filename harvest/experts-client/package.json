@@ -36,7 +36,6 @@
     "json-query": "^2.2.2",
     "jsonld": "^8.1.1",
     "md5": "^2.3.0",
-    "nanoid": "^4.0.2",
     "node-fetch": "^3.3.2",
     "ssh2-sftp-client": "^9.1.0",
     "xml2js": "^0.6.0",

@@ -6,7 +6,7 @@ import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import '../../components/modal-overlay.js';
 
-import { generateCitations } from '../../utils/citation.js';
+import Citation from '../../../lib/utils/citation.js';
 
 import utils from '../../../lib/utils';
 
@@ -101,8 +101,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     this.modifiedWorks = false;
-    let expertId = e.location.pathname.replace('/works-edit/', '');
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
+    let expertId = e.location.pathname.replace('/works-edit', '');
+    if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
+
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
@@ -135,7 +137,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.expertName = graphRoot.name;
+    this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     await this._loadCitations();
   }
@@ -162,9 +164,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       // sort by issued date desc, then by title asc
       citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     } catch (error) {
-      let invalidCitations = citations.filter(c => typeof c.issued !== 'string');
-      if( invalidCitations.length ) console.warn('Invalid citation issue date, should be a string value', invalidCitations);
-      if( citations.filter(c => typeof c.title !== 'string').length ) console.warn('Invalid citation title, should be a string value');
+      // validate issue date
+      let validation = Citation.validateIssueDate(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // validate title
+      validation = Citation.validateTitle(citations);
+      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+
+      // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
       this.totalCitations = citations.length;
     }
@@ -172,7 +180,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
 
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await generateCitations(this.citations) : await generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
@@ -304,6 +312,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    gtag('event', 'works_download', {});
   }
 
   /**

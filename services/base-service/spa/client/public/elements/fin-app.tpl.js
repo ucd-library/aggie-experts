@@ -22,7 +22,7 @@ export function styles() {
 export function render() {
 return html`
   <style>
-    .impersonate-btn {
+    .edit-expert-btn {
       margin-left: 1.19rem;
       border-radius: 1.45em;
       display: inline-flex;
@@ -48,13 +48,13 @@ return html`
       background-color: white;
     }
 
-    .impersonate-btn:hover ucdlib-icon {
+    .edit-expert-btn:hover ucdlib-icon {
       fill: white;
       background-color: #ffbf00;
       border-radius: 50%;
     }
 
-    .impersonate-btn ucdlib-icon {
+    .edit-expert-btn ucdlib-icon {
       margin-left: 0.62rem;
       height: 15px;
       width: 15px;
@@ -64,13 +64,13 @@ return html`
       padding: 3px;
     }
 
-    .impersonate-container {
+    .edit-expert-container {
       position: absolute;
       top: 5rem;
       right: 1rem;
     }
 
-    .impersonate-container.collapse {
+    .edit-expert-container.collapse {
       background-color: white;
       width: 100%;
       right: 0;
@@ -81,7 +81,7 @@ return html`
       padding-right: 0.5rem;
     }
 
-    .main-content.impersonating.collapse {
+    .main-content.editing.collapse {
       padding-top: 3rem;
     }
 
@@ -170,9 +170,9 @@ return html`
 
   </ucd-theme-header>
 
-  <div ?hidden="${this.hideImpersonate}" class="impersonate-container">
-    <button @click="${this._cancelImpersonateClick}" class="impersonate-btn">
-      ${this.expertNameImpersonating}
+  <div ?hidden="${this.hideEdit}" class="edit-expert-container">
+    <button @click="${this._cancelEditExpertClick}" class="edit-expert-btn">
+      ${this.expertNameEditing}
       <div id="close">
         <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
       </div>
@@ -190,7 +190,7 @@ return html`
       <app-expert
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
-        @impersonate="${this._impersonateClick}"
+        @cancel-edit-expert="${this._editExpertClick}"
         id="expert"
         @show-404="${(e) => this.page = '404'}">
       </app-expert>
