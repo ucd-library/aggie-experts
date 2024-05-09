@@ -246,9 +246,9 @@ export default class AppExpert extends Mixin(LitElement)
     if( !this.expertEditing ) {
       this.expertEditing = '';
       this.hideEdit = (
-        (acExpertId && acExpertId !== this.expertId) ||
+        (!this.isAdmin && acExpertId && acExpertId !== this.expertId) ||
         (editingExpertId && editingExpertId !== this.expertId) ||
-        !(APP_CONFIG.user?.roles || []).includes('admin')
+        !this.isAdmin
       );
     }
   }

@@ -609,7 +609,7 @@ return html`
           <span>EXPERT</span>
           <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
           <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
-            <span ?hidden="${!this.isVisible}" class="tooltip hide-expert" data-text="Hide expert">
+            <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
               <ucdlib-icon icon="ucdlib-experts:fa-eye" @click=${this._hideExpert}></ucdlib-icon>
             </span>
             <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">

@@ -244,7 +244,7 @@ class ExpertModel extends BaseModel {
     let expert;
      let resp;
 
-    logger.info(`expert.patch(${expertId}):`,patch);
+    logger.info(patch,`expert.patch(${expertId})`);
     if (patch.visible == null ) {
       throw new Error('Invalid patch, visible is required');
     }
