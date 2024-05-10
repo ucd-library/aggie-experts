@@ -21,7 +21,7 @@ class BaseModel extends FinEsDataModel {
 //    "http://schema.library.ucdavis.edu/schema#Work",
 //    "http://schema.library.ucdavis.edu/schema#Authorship",
 //    "http://vivoweb.org/ontology/core#Authorship",
-//    "http://vivoweb.org/ontology/core#Grant",
+//    "http://vivoweb.org/ontology/core#Grankt",
   ];
 
   constructor(name='base') {
