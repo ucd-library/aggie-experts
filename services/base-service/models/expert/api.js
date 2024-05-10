@@ -25,12 +25,6 @@ function user_can_edit(req, res, next) {
   return res.status(403).send('Not Authorized');
 }
 
-function is_user(req,res,next) {
-  if (!req.user) {
-    return res.status(401).send('Unauthorized');
-  }
-  return next();
-}
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
@@ -277,7 +271,6 @@ router.route(
 router.route(
   '/:expertId'
 ).get(
-  is_user,
   oapi.validPath(
     {
       "description": "Get an expert by id",
