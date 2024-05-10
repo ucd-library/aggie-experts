@@ -327,7 +327,7 @@ class ExpertModel extends BaseModel {
     );
 
     if (config.experts.cdl.expert.propagate) {
-      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.expert);
+      const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
       if (patch.visible != null) {
         let resp = await cdl_user.updateUserPrivacyLevel({
           userId: expertId,
