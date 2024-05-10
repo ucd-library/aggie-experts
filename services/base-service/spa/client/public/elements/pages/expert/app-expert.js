@@ -358,7 +358,7 @@ export default class AppExpert extends Mixin(LitElement)
     link.click();
     document.body.removeChild(link);
 
-    gtag('event', 'works_download', {});
+    if( window.gtag ) gtag('event', 'citation_download', {});
   }
 
   /**
@@ -403,7 +403,7 @@ export default class AppExpert extends Mixin(LitElement)
     link.click();
     document.body.removeChild(link);
 
-    gtag('event', 'grants_download', {});
+    if( window.gtag ) gtag('event', 'grant_download', {});
   }
 
   /**
@@ -438,6 +438,13 @@ export default class AppExpert extends Mixin(LitElement)
         let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
         this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = false;
+
+        if( window.gtag ) {
+          gtag('event', 'expert_is_visible', {
+            'description': 'expert ' + this.expertId + ' hidden',
+            'fatal': false
+          });
+        }
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
         let modelContent = `<p>Hiding expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
@@ -450,12 +457,27 @@ export default class AppExpert extends Mixin(LitElement)
         this.hideOK = false;
         this.hideOaPolicyLink = true;
         this.errorMode = true;
+
+        if( window.gtag ) {
+          gtag('event', 'expert_is_visible', {
+            'description': 'attempted to hide expert ' + this.expertId + ' but failed',
+            'fatal': false
+          });
+        }
       }
     } else if( this.isAdmin && this.modalAction === 'delete-expert' ) {
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.ExpertModel.deleteExpert(this.expertId);
         this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        if( window.gtag ) {
+          gtag('event', 'expert_delete', {
+            'description': 'expert ' + this.expertId + ' deleted',
+            'fatal': false
+          });
+        }
+
         // redirect to home page
         this.AppStateModel.setLocation('/');
       } catch (error) {
@@ -470,6 +492,13 @@ export default class AppExpert extends Mixin(LitElement)
         this.hideOK = false;
         this.hideOaPolicyLink = true;
         this.errorMode = true;
+
+        if( window.gtag ) {
+          gtag('event', 'expert_delete', {
+            'description': 'attempted to delete expert ' + this.expertId + ' but failed',
+            'fatal': false
+          });
+        }
       }
 
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
@@ -491,6 +520,13 @@ export default class AppExpert extends Mixin(LitElement)
         let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
         this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = true;
+
+        if( window.gtag ) {
+          gtag('event', 'expert_is_visible', {
+            'description': 'expert ' + this.expertId + ' shown',
+            'fatal': false
+          });
+        }
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
         let modelContent = `<p>Showing expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
@@ -503,6 +539,13 @@ export default class AppExpert extends Mixin(LitElement)
         this.hideOK = false;
         this.hideOaPolicyLink = true;
         this.errorMode = true;
+
+        if( window.gtag ) {
+          gtag('event', 'expert_is_visible', {
+            'description': 'attempted to show expert ' + this.expertId + ' but failed',
+            'fatal': false
+          });
+        }
       }
     }
   }
