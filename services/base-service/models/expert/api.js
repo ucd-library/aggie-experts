@@ -25,6 +25,7 @@ function user_can_edit(req, res, next) {
   return res.status(403).send('Not Authorized');
 }
 
+
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
   const contentType = req.get('Content-Type');
