@@ -329,7 +329,6 @@ class ExpertModel extends BaseModel {
     if (config.experts.cdl.expert.propagate) {
       const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
       let resp = await cdl_user.updateUserPrivacyLevel({
-        userId: expertId,
         privacy: 'internal'
       })
       logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
