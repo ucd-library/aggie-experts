@@ -359,9 +359,10 @@ export class Impersonator {
       public: 0,
       internal: 50
     };
+    // use the userId you are impersonating
      return await this.userprofile({
        com: 'updateUserPrivacyLevel',
-       userId: data.userId,
+       userId: this.userId,
        privacyLevel: level[data.privacy]
     });
   }
