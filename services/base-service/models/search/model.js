@@ -8,6 +8,7 @@ const BaseModel = require('../base/model.js');
 class SearchModel extends BaseModel {
   constructor(name='search') {
     super(name);
+    this.readIndexAlias = 'expert-read';
   }
 }
 

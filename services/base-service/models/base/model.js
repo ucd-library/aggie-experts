@@ -385,7 +385,7 @@ class BaseModel extends FinEsDataModel {
    * @param {String} id : _id of document to get
    * @param {Object} options : options for get (like _source:false)
    */
-  async client_get(id,options) {
+  async client_get(id,options={}) {
     // console.log(`FinEsNestedModel.client_get(${id}) on ${this.readIndexAlias}`);
     const result = await this.client.get(
       {
