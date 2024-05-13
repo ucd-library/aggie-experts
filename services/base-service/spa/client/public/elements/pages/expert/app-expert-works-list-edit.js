@@ -348,6 +348,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
           'description': 'citation ' + this.citationId + ' shown for expert ' + this.expertId,
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
           'fatal': false
         });
       }
@@ -369,6 +371,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
           'description': 'attempted to show citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
           'fatal': false
         });
       }
@@ -404,6 +408,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
             'description': 'citation ' + this.citationId + ' hidden for expert ' + this.expertId,
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
             'fatal': false
           });
         }
@@ -425,6 +431,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
             'description': 'attempted to hide citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
             'fatal': false
           });
         }
