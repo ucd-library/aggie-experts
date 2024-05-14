@@ -8,6 +8,15 @@ const experts = new ExpertModel();
 
 const openapi = require('@wesleytodd/openapi')
 
+// This is destined for middleware.js
+function is_user(req,res,next) {
+  if (!req.user) {
+    return res.status(401).send('Unauthorized');
+  }
+  return next();
+}
+
+
 const oapi = openapi({
   openapi: '3.0.3',
   info: {
@@ -41,7 +50,9 @@ const oapi = openapi({
 // (as well as the swagger-ui if configured)
 router.use(oapi);
 
-router.get('/',
+router.get(
+  '/',
+  is_user,
   oapi.validPath(
     {
       "description": "Returns counts for experts A - Z, or if sending query param p={letter}, will return results for experts with last names of that letter",
