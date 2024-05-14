@@ -16,13 +16,7 @@ const settings = require('./schema/settings.json');
 class BaseModel extends FinEsDataModel {
 
   // Base Model never matches
-  static types = [
-//    "http://schema.library.ucdavis.edu/schema#Person",
-//    "http://schema.library.ucdavis.edu/schema#Work",
-//    "http://schema.library.ucdavis.edu/schema#Authorship",
-//    "http://vivoweb.org/ontology/core#Authorship",
-//    "http://vivoweb.org/ontology/core#Grankt",
-  ];
+  static types = [];
 
   constructor(name='base') {
 
