@@ -451,7 +451,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
       }
-    } else if( this.isAdmin && this.modalAction === 'delete-expert' ) {
+    } else if( this.modalAction === 'delete-expert' ) {
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.ExpertModel.deleteExpert(this.expertId);
