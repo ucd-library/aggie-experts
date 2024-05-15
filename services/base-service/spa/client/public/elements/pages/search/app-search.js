@@ -198,7 +198,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( !selectedPersons.length ) return;
 
     // columns for the spreadsheet:
-    //  Name | AE landing page | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
+    //  Name | Aggie Experts Webpage | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
 
     let body = [];
     let hits = (this.rawSearchData?.hits || []);
@@ -206,7 +206,7 @@ export default class AppSearch extends Mixin(LitElement)
       let result = hits[h];
       if( selectedPersons.includes(result['@id']) ) {
         let name = result.name?.split('§')?.[0]?.trim();
-        let landingPage = 'https://sandbox.experts.library.ucdavis.edu/' + result['@id'];
+        let landingPage = 'https://experts.ucdavis.edu/' + result['@id'];
         let numberOfWorks = (result['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
         let numberOfGrants = (result['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
         let urls = (result.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
@@ -223,7 +223,7 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( !body.length ) return;
 
-    let headers = ['Name', 'AE landing page', 'Number of works that match the keyword', 'Number of grants that match the keyword', 'URLs from the profile'];
+    let headers = ['Name', 'Aggie Experts Webpage', 'Number of works that match the keyword', 'Number of grants that match the keyword', 'URLs from the profile'];
     let text = headers.join(',') + '\n';
     body.forEach(row => {
       text += row.join(',') + '\n';
