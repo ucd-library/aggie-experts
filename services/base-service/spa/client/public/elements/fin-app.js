@@ -88,6 +88,9 @@ export default class FinApp extends Mixin(LitElement)
     // hack, make sure header popups are collapsed
     let header = this.shadowRoot.querySelector('ucd-theme-header');
     if( header && header.opened ) header.close();
+
+    let searchPopup = header.querySelector('ucd-theme-search-popup');
+    if( searchPopup?.opened ) searchPopup.close();
   }
 
   /**
