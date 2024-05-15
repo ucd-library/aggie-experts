@@ -313,7 +313,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     link.click();
     document.body.removeChild(link);
 
-    gtag('event', 'works_download', {});
+    if( window.gtag ) gtag('event', 'citation_download', {});
   }
 
   /**
@@ -344,6 +344,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     try {
       let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
       this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      if( window.gtag ) {
+        gtag('event', 'citation_is_visible', {
+          'description': 'citation ' + this.citationId + ' shown for expert ' + this.expertId,
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
+          'fatal': false
+        });
+      }
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -358,6 +367,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.hideOK = false;
       this.hideOaPolicyLink = true;
       this.errorMode = true;
+
+      if( window.gtag ) {
+        gtag('event', 'citation_is_visible', {
+          'description': 'attempted to show citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
+          'fatal': false
+        });
+      }
 
       return;
     }
@@ -386,6 +404,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       try {
         let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
         this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        if( window.gtag ) {
+          gtag('event', 'citation_is_visible', {
+            'description': 'citation ' + this.citationId + ' hidden for expert ' + this.expertId,
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -401,6 +428,14 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
 
+        if( window.gtag ) {
+          gtag('event', 'citation_is_visible', {
+            'description': 'attempted to hide citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
       }
 
       // update graph/display data
@@ -417,6 +452,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       try {
         let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
         this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        if( window.gtag ) {
+          gtag('event', 'citation_reject', {
+            'description': 'citation ' + this.citationId + ' rejected for expert ' + this.expertId,
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -432,6 +476,14 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
 
+        if( window.gtag ) {
+          gtag('event', 'citation_reject', {
+            'description': 'attempted to reject citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
       }
 
       // remove citation from graph/display data
