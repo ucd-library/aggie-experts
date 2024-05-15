@@ -456,6 +456,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'citation_reject', {
             'description': 'citation ' + this.citationId + ' rejected for expert ' + this.expertId,
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
             'fatal': false
           });
         }
@@ -477,6 +479,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'citation_reject', {
             'description': 'attempted to reject citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
             'fatal': false
           });
         }

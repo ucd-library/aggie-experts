@@ -325,6 +325,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       if( window.gtag ) {
         gtag('event', 'grant_is_visible', {
           'description': 'grant ' + this.grantId + ' shown for expert ' + this.expertId,
+          'relationshipId': this.grantId,
+          'expertId': this.expertId,
           'fatal': false
         });
       }
@@ -346,6 +348,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       if( window.gtag ) {
         gtag('event', 'grant_is_visible', {
           'description': 'attempted to show grant ' + this.grantId + ' for expert ' + this.expertId + ' but failed',
+          'relationshipId': this.grantId,
+          'expertId': this.expertId,
           'fatal': false
         });
       }
@@ -388,6 +392,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'grant_is_visible', {
             'description': 'grant ' + this.grantId + ' hidden for expert ' + this.expertId,
+            'relationshipId': this.grantId,
+            'expertId': this.expertId,
             'fatal': false
           });
         }
@@ -409,6 +415,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'grant_is_visible', {
             'description': 'attempted to hide grant ' + this.grantId + ' for expert ' + this.expertId + ' but failed',
+            'relationshipId': this.grantId,
+            'expertId': this.expertId,
             'fatal': false
           });
         }

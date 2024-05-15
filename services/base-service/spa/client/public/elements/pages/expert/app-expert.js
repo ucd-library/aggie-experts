@@ -196,8 +196,6 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
-
-    console.log({ grants : this.grants });
   }
 
   /**
@@ -442,6 +440,7 @@ export default class AppExpert extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
             'description': 'expert ' + this.expertId + ' hidden',
+            'expertId': this.expertId,
             'fatal': false
           });
         }
@@ -461,6 +460,7 @@ export default class AppExpert extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
             'description': 'attempted to hide expert ' + this.expertId + ' but failed',
+            'expertId': this.expertId,
             'fatal': false
           });
         }
@@ -474,6 +474,7 @@ export default class AppExpert extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'expert_delete', {
             'description': 'expert ' + this.expertId + ' deleted',
+            'expertId': this.expertId,
             'fatal': false
           });
         }
@@ -496,6 +497,7 @@ export default class AppExpert extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'expert_delete', {
             'description': 'attempted to delete expert ' + this.expertId + ' but failed',
+            'expertId': this.expertId,
             'fatal': false
           });
         }
@@ -524,6 +526,7 @@ export default class AppExpert extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
             'description': 'expert ' + this.expertId + ' shown',
+            'expertId': this.expertId,
             'fatal': false
           });
         }
@@ -543,6 +546,7 @@ export default class AppExpert extends Mixin(LitElement)
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
             'description': 'attempted to show expert ' + this.expertId + ' but failed',
+            'expertId': this.expertId,
             'fatal': false
           });
         }
