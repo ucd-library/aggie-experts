@@ -82,6 +82,10 @@ return html`
       line-height: var(--lh-html);
     }
 
+    .main-content .work {
+      max-width: calc(90vw - 100px);
+    }
+
     .main-content .work h5 {
       color: black;
       margin: 0 0 0.5rem 0;
@@ -191,6 +195,7 @@ return html`
 
     h3.first {
       margin-top: 0;
+      padding-top: 1.19rem;
     }
 
     .tooltip {
@@ -284,6 +289,12 @@ return html`
       padding-right: 1.5em;
       padding-left: 0.75em;
     }
+
+    .works-results > div {
+      flex-shrink: 1;
+      word-wrap: break-word;
+    }
+
   </style>
 
   <div class="content">
@@ -331,7 +342,7 @@ return html`
         (cite, index) => html`
           <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h3>
           <hr class="work-seperator">
-          <div style="display: flex; justify-content: space-between;" class="${!cite.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
+          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
