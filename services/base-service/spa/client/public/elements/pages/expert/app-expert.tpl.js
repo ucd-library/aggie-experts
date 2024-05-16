@@ -4,6 +4,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { sharedStyles } from '../../styles/shared-styles';
 
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
+import headingsCss from "@ucd-lib/theme-sass/2_base_class/_headings.css";
 
 import utils from '../../../lib/utils';
 
@@ -12,6 +13,7 @@ return html`
   <style>
     ${sharedStyles}
     ${buttonsCss}
+    ${headingsCss}
 
     :host {
       display: block;
@@ -78,9 +80,9 @@ return html`
     .hero-main .experts span.hide-expert:hover ucdlib-icon,
     .hero-main .experts span.show-expert:hover ucdlib-icon,
     .hero-main .experts span.delete-expert:hover ucdlib-icon,
-    .introduction h4 ucdlib-icon:hover,
-    .roles-websites .roles h4 ucdlib-icon:hover,
-    .roles-websites .websites h4 ucdlib-icon:hover,
+    .introduction h3 ucdlib-icon:hover,
+    .roles-websites .roles h3 ucdlib-icon:hover,
+    .roles-websites .websites h3 ucdlib-icon:hover,
     .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover,
     .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon:hover {
       fill: var(--color-aggie-gold);
@@ -91,8 +93,8 @@ return html`
     .hero-main .experts span.hide-expert ucdlib-icon,
     .hero-main .experts span.show-expert ucdlib-icon,
     .hero-main .experts span.delete-expert ucdlib-icon,
-    .introduction h4 ucdlib-icon,
-    .roles-websites h4 ucdlib-icon {
+    .introduction h3 ucdlib-icon,
+    .roles-websites h3 ucdlib-icon {
       display: inline-block;
       width: 1.2rem;
       height: 1.2rem;
@@ -180,7 +182,7 @@ return html`
       padding-bottom: 1rem;
     }
 
-    .introduction h4 {
+    .introduction h3 {
       margin-bottom: 0;
       margin-top: 0;
     }
@@ -231,8 +233,8 @@ return html`
       padding-right: 1rem;
     }
 
-    .roles-websites .roles h4,
-    .roles-websites .websites h4  {
+    .roles-websites .roles h3,
+    .roles-websites .websites h3  {
       padding-top: 0;
       margin-top: 0;
       margin-bottom: .5rem;
@@ -586,6 +588,10 @@ return html`
       }
     }
 
+    h3.heading--highlight {
+      font-weight: 700;
+    }
+
   </style>
 
   <div class="content">
@@ -647,7 +653,7 @@ return html`
       <hr class="about-me seperator">
 
       <div class="introduction no-introduction" ?hidden="${!this.canEdit || this.introduction || this.researchInterests}">
-        <h4>Introduction
+        <h3 class="heading--highlight">Introduction
           <span ?hidden="${!this.canEdit}" style="position: relative;">
             <span class="tooltip edit-about-me" data-text="Edit Introduction">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -655,11 +661,11 @@ return html`
               </ucdlib-icon>
             </span>
           </span>
-        </h4>
+        </h3>
         <div class="no-display-data">No data to display</div>
       </div>
       <div class="introduction" ?hidden="${!this.introduction && !this.researchInterests}">
-        <h4>Introduction
+        <h3 class="heading--highlight">Introduction
           <span ?hidden="${!this.canEdit}" style="position: relative;">
             <span class="tooltip edit-about-me" data-text="Edit Introduction">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -667,7 +673,7 @@ return html`
               </ucdlib-icon>
             </span>
           </span>
-        </h4>
+        </h3>
         <ucdlib-md ?hidden="${!this.introduction}">
           <ucdlib-md-content>
             ${this.truncateIntroduction ? this.introduction.substr(0, 500) + '...' : this.introduction}
@@ -693,24 +699,24 @@ return html`
       <div class="roles-websites">
 
         <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
-          <h4>Roles
+          <h3 class="heading--highlight">Roles
             <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
               <span class="tooltip edit-roles" data-text="Edit roles">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
             </a>
-          </h4>
+          </h3>
           <div class="no-display-data">No data to display</div>
         </div>
 
         <div class="roles" ?hidden="${!this.roles.length}">
-          <h4>Roles
+          <h3 class="heading--highlight">Roles
             <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
               <span class="tooltip edit-roles" data-text="Edit roles">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
               </span>
             </a>
-          </h4>
+          </h3>
 
           ${this.roles.map(
           (role) => html`
@@ -732,7 +738,7 @@ return html`
         </div>
 
         <div class="websites no-websites" ?hidden="${!this.canEdit || this.websites.length || this.orcId || this.scopusId || this.researcherId}">
-          <h4>Links
+          <h3 class="heading--highlight">Links
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -740,12 +746,12 @@ return html`
                 </ucdlib-icon>
               </span>
             </span>
-          </h4>
+          </h3>
           <div class="no-display-data">No data to display</div>
         </div>
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
-          <h4>Links
+          <h3 class="heading--highlight">Links
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -753,7 +759,7 @@ return html`
                 </ucdlib-icon>
               </span>
             </span>
-          </h4>
+          </h3>
           <div class="link-row" ?hidden="${!this.orcId}">
             <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
             <span><a href="https://orcid.org/${this.orcId}">${this.orcId}</a></span>
@@ -814,7 +820,7 @@ return html`
         <hr class="seperator">
         ${this.grantsActiveDisplayed.map(
           (grant, index) => html`
-            <h4 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h4>
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
             <div class="grant">
               <h5>${unsafeHTML(grant.name)}</h5>
               <div class="grant-details">
@@ -830,7 +836,7 @@ return html`
         )}
         ${this.grantsCompletedDisplayed.map(
           (grant, index) => html`
-            <h4 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h4>
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h3>
             <div class="grant">
               <h5>${unsafeHTML(grant.name)}</h5>
               <div class="grant-details">
@@ -882,7 +888,7 @@ return html`
         <hr class="seperator">
         ${this.citationsDisplayed.map(
           (cite) => html`
-            <h4 style="margin: 1.19rem 0;">${cite.issued?.[0]}</h4>
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
             <div class="work">
               <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
               <div class="work-details">
