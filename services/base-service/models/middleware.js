@@ -54,7 +54,7 @@ const openapi = OpenAPI(
       version: config.experts.version,
     },
     components: {
-      Parameters: {
+      parameters: {
         expertId: {
           name: 'expertId',
           in: 'path',
@@ -75,20 +75,117 @@ const openapi = OpenAPI(
             description: 'A unique identifier for an expert relationship'
           }
         },
-      },
-      "Responses": {
-        "Expert": {
-          "description": "The expert",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Expert"
-              }
-            }
+        fakeId: {
+          name: 'fakeId',
+          in: 'query',
+          required: true,
+          schema: {
+            type: 'string',
+            format: 'nano(\\d{8})',
+            description: 'A fake identifier for testing validation'
           }
-        },
-        "Expert_not_found": {
-          "description": "Expert not found"
+        }
+      },
+      schemas: {
+        Expert: {
+          type: 'object',
+          properties: {
+            '@id': {
+              type: 'string',
+              description: 'The unique identifier for the expert.',
+            },
+            '@type': {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              description: 'The type of the expert.',
+            },
+            'rank': {
+              type: 'integer',
+              description: 'The rank of the expert.',
+            },
+            'name': {
+              type: 'string',
+              description: 'The name of the expert.',
+            },
+            'url': {
+              type: 'string',
+              format: 'url',
+              description: 'The URL related to the expert.',
+            },
+            'hasEmail': {
+              type: 'string',
+              format: 'email',
+              description: 'The email address of the expert.',
+            },
+            'hasName': {
+              type: 'object',
+              properties: {
+                '@id': {
+                  type: 'string',
+                  description: 'The unique identifier for the name.',
+                },
+                '@type': {
+                  type: 'string',
+                  description: 'The type of the name.',
+                },
+                'family': {
+                  type: 'string',
+                  description: 'The family name of the expert.',
+                },
+                'given': {
+                  type: 'string',
+                  description: 'The given name of the expert.',
+                },
+                'pronouns': {
+                  type: 'string',
+                  description: 'The pronouns of the expert.',
+                },
+              },
+              required: ['@id', '@type', 'family', 'given', 'pronouns'],
+            },
+            'hasTitle': {
+              type: 'object',
+              properties: {
+                '@id': {
+                  type: 'string',
+                  description: 'The unique identifier for the title.',
+                },
+                '@type': {
+                  type: 'string',
+                  description: 'The type of the title.',
+                },
+                'name': {
+                  type: 'string',
+                  description: 'The title of the expert.',
+                },
+              },
+              required: ['@id', '@type', 'name'],
+            },
+            'hasOrganizationalUnit': {
+              type: 'object',
+              properties: {
+                '@id': {
+                  type: 'string',
+                  description: 'The unique identifier for the organizational unit.',
+                },
+                'name': {
+                  type: 'string',
+                  description: 'The name of the organizational unit.',
+                },
+              },
+              required: ['@id', 'name'],
+            },
+            'roles': {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              description: 'The roles of the expert.',
+            },
+          },
+          required: ['@id', '@type', 'rank', 'name', 'url', 'hasEmail', 'hasName', 'hasTitle', 'hasOrganizationalUnit', 'roles'],
         }
       },
       securitySchemes: {
@@ -109,7 +206,8 @@ const openapi = OpenAPI(
         description: 'Expert Information'
       }
     ]
-  });
+  }
+);
 
 openapi.response(
   'Expert',
@@ -117,13 +215,25 @@ openapi.response(
     "description": "The expert",
     "content": {
       "application/json": {
-        "schema": {
-          "$ref": "#/components/schemas/Expert"
-        }
+        "schema": openapi.schema('Expert')
       }
     }
   }
 );
+
+openapi.response(
+  'Expert_not_found',
+  {
+    "description": "Expert not found"
+  }
+);
+
+openapi.response(
+  'Expert_deleted',
+  {
+    "description": "Expert deleted"
+  }
+)
 
 // export this middleware functions
 module.exports = {

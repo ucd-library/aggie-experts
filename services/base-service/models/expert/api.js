@@ -10,39 +10,12 @@ const model= new ExpertModel();
 
 const { openapi, schema_error, json_only, user_can_edit } = require('../middleware.js')
 
-function user_can_edit(req, res, next) {
-  let id= req.params.expertId;
-  if (!req.user) {
-    return res.status(401).send('Unauthorized');
-  }
-  if ( req.user?.roles?.includes('admin')) {
-    return next();
-  }
-  if( id === req.user?.attributes?.expertId ) {
-    return next();
-  }
-
-  return res.status(403).send('Not Authorized');
-}
-
 // This is destined for middleware.js
 function is_user(req,res,next) {
   if (!req.user) {
     return res.status(401).send('Unauthorized');
   }
   return next();
-}
-
-// Custom middleware to check Content-Type
-function json_only(req, res, next) {
-  const contentType = req.get('Content-Type');
-  if (contentType === 'application/json' || contentType === 'application/ld+json') {
-    // Content-Type is acceptable
-    return next();
-  } else {
-    // Content-Type is not acceptable
-    res.status(400).json({ error: 'Invalid Content-Type. Only application/json or application/ld+json is allowed.' });
-  }
 }
 
 function sanitize(req, res, next) {
@@ -71,12 +44,37 @@ router.route(
   '/:expertId/:relationshipId'
 ).get(
   is_user,
-  oapi.validPath(
+  openapi.validPath(
     {
       "description": "Get an expert relationship by id",
       "parameters": [
-        "#components/parameters/expertId",
-        "#components/parameters/relationshipId"
+        // {
+        //   "in": "path",
+        //   "name": "expertId",
+        //   "description": "The id of the expert to get",
+        //   "required": true,
+        //   "schema": {
+        //     "type": "string"
+        //   }
+        // },
+        {
+          "in": "path",
+          "name": "relationshipId",
+          "description": "The id of the relationship to get",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "fakeId",
+          "description": "The id of something fake for testing validation",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
       ],
       "responses": {
         "200": {
@@ -115,7 +113,7 @@ router.route(
     {
       "description": "Update an expert relationship by id",
       "parameters": [
-        "#components/parameters/expertId",
+        // "#components/parameters/expertId",
         "#components/parameters/relationshipId"
       ],
       "responses": {
@@ -161,7 +159,7 @@ router.route(
     {
       "description": "Delete an expert relationship by id",
       "parameters": [
-        "#components/parameters/expertId",
+        // "#components/parameters/expertId",
         "#components/parameters/relationshipId"
       ],
       "responses": {
@@ -198,29 +196,71 @@ router.route(
   }
 );
 
-function expert_valid_path(options) {
+function expert_valid_path(options={}) {
+  // TODO for parameters, if we let them auto build (from express route params), then they work..
+  // but if we add a ref to the component by calling openapi.parameters('someId')..
+  // then it duplicates and doesn't tie the auto built param to the ref param..
+
   const def = {
-    "description": "Get an expert by id",
+    "description": "Get an expert",
     "parameters": [
-      "#components/parameters/expertId"
-    ],
-    "responses": {
-      "Expert": "#/components/responses/Expert",
-      "$ref": "#/components/responses/404_Expert_not_found"
-    }
+      // this duplicates with the auto built param
+      // openapi.parameters('expertId'),
+
+      // this works to override expertId from auto built param if needed
+      // {
+      //   name: 'expertId',
+      //   in: 'path',
+      //   required: true,
+      //   schema: {
+      //     type: 'number',
+      //     format: 'nano(\\d{8})',
+      //     description: 'The unique identifier for the expert'
+      //   }
+      // }
+
+    //   {
+    //     name: 'fakeId',
+    //     in: 'path',
+    //     required: true,
+    //     schema: {
+    //       type: 'number',
+    //       description: 'A unique id to break validation'
+    //     }
+    //   }
+
+      // interestingly, this fails to validate, even though required is true
+      // so even if the ref param worked above, the validation doesn't seem to. so we may need to just let them auto build..
+      // or explicitly define custom params when not using express route params
+      // openapi.parameters('fakeId'),
+    ]
   };
-  const this_path=openapi.validPath({...def, ...options})
-  return this_path;
-//  return (req, res,next) => {
-//    this_path(req,res,()=>{schema_error(req, res, next)})
-//  };
+
+  return openapi.validPath({...def, ...options});
+}
+
+function expert_valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
 }
 
 router.route(
   '/:expertId'
 ).get(
   is_user,
-  expert_valid_path({description: "Get an expert by id"}),
+  expert_valid_path(
+    {
+      description: "Get an expert by id",
+      responses: {
+        "200": openapi.response('Expert'),
+        "404": openapi.response('Expert_not_found')
+      }
+    }
+  ),
+  expert_valid_path_error,
   async (req, res, next) => {
     let expertId = `expert/${req.params.expertId}`;
     try {
@@ -236,15 +276,20 @@ router.route(
   }
 ).patch(
   expert_valid_path(
-    {"description": "Update an experts visibility by expert id",
-     "content": {
-       "application/json": {
-         "schema": {
-           // Valid schema
-         }
-       }
-     }
-    }),
+    {
+      "description": "Update an experts visibility by expert id",
+
+      // TODO this doesn't really do anything, what syntax do we need?
+      "content": {
+        "application/json": {
+          "schema": {
+            // Valid schema
+          }
+        }
+      }
+    }
+  ),
+  expert_valid_path_error,
   user_can_edit,
   json_only,
   async (req, res, next) => {
@@ -259,7 +304,15 @@ router.route(
     }
   }
 ).delete(
-  expert_valid_path({"description": "Delete an expert by id"}),
+  expert_valid_path(
+    {
+      "description": "Delete an expert by id",
+      "responses": {
+        "204": openapi.response('Expert_deleted')
+      }
+    }
+  ),
+  expert_valid_path_error,
   user_can_edit,
   async (req, res, next) => {
     try {
