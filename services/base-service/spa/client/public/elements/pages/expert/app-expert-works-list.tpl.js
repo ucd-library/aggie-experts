@@ -113,6 +113,12 @@ return html`
       }
     }
 
+    .main-content h2 {
+      margin-bottom: 0;
+      margin-top: 0;
+      color: var(--color-black-60);
+    }
+
   </style>
 
   <div class="content">
@@ -134,7 +140,7 @@ return html`
 
       ${this.citationsDisplayed.map(
       (cite) => html`
-        <h3 style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
+        <h2 style="margin: 1.19rem 0;">${cite.issued?.[0]}</h2>
         <div class="work-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
           <div class="work">

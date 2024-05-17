@@ -8,6 +8,7 @@ const BaseModel = require('../base/model.js');
 class BrowseModel extends BaseModel {
   constructor(name='browse') {
     super(name);
+    this.readIndexAlias = 'expert-read';
   }
 }
 
