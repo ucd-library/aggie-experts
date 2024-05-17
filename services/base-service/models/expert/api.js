@@ -25,6 +25,13 @@ function user_can_edit(req, res, next) {
   return res.status(403).send('Not Authorized');
 }
 
+// This is destined for middleware.js
+function is_user(req,res,next) {
+  if (!req.user) {
+    return res.status(401).send('Unauthorized');
+  }
+  return next();
+}
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
@@ -63,7 +70,8 @@ router.use(openapi);
 router.route(
   '/:expertId/:relationshipId'
 ).get(
-  openapi.validPath(
+  is_user,
+  oapi.validPath(
     {
       "description": "Get an expert relationship by id",
       "parameters": [
@@ -211,6 +219,7 @@ function expert_valid_path(options) {
 router.route(
   '/:expertId'
 ).get(
+  is_user,
   expert_valid_path({description: "Get an expert by id"}),
   async (req, res, next) => {
     let expertId = `expert/${req.params.expertId}`;
