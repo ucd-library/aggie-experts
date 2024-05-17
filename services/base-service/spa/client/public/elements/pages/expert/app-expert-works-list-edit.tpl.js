@@ -77,6 +77,12 @@ return html`
       padding-top: 2.38rem;
     }
 
+    .main-content h2 {
+      margin-bottom: 0;
+      margin-top: 0;
+      color: var(--color-black-60);
+    }
+
     .csl-bib-body, .csl-entry {
       display: inline;
       line-height: var(--lh-html);
@@ -185,11 +191,11 @@ return html`
       fill: var(--color-aggie-gold);
     }
 
-    h3 {
+    h2 {
       margin: 1.19rem 0;
     }
 
-    h3.first {
+    h2.first {
       margin-top: 0;
     }
 
@@ -329,7 +335,7 @@ return html`
 
         ${this.citationsDisplayed.map(
         (cite, index) => html`
-          <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h3>
+          <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h2>
           <hr class="work-seperator">
           <div style="display: flex; justify-content: space-between;" class="${!cite.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
