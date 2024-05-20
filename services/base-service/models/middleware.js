@@ -398,6 +398,84 @@ const openapi = OpenAPI(
               }
             }
           }
+        },
+        Search: {
+          type: 'object',
+          properties: {
+            "total": { "type": "integer" },
+            "hits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "contactInfo": {
+                    "type": "object",
+                    "properties": {
+                      "hasEmail": { "type": "string" },
+                      "hasName": {
+                        "type": "object",
+                        "properties": {
+                          "given": { "type": "string" },
+                          "@type": { "type": "string" },
+                          "@id": { "type": "string" },
+                          "family": { "type": "string" }
+                        }
+                      },
+                      "name": { "type": "string" },
+                      "hasTitle": {
+                        "type": "object",
+                        "properties": {
+                          "@type": { "type": "string" },
+                          "name": { "type": "string" },
+                          "@id": { "type": "string" }
+                        }
+                      },
+                      "hasOrganizationalUnit": {
+                        "type": "object",
+                        "properties": {
+                          "name": { "type": "string" },
+                          "@id": { "type": "string" }
+                        }
+                      }
+                    }
+                  },
+                  "@type": { "type": "string" },
+                  "name": { "type": "string" },
+                  "@id": { "type": "string" },
+                  "_inner_hits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "volume": { "type": "string" },
+                        "@type": { "type": "array", "items": { "type": "string" } },
+                        "author": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "given": { "type": "string" },
+                              "rank": { "type": "integer" },
+                              "@id": { "type": "string" },
+                              "family": { "type": "string" }
+                            }
+                          }
+                        },
+                        "container-title": { "type": "string" },
+                        "ISSN": { "type": "string" },
+                        "abstract": { "type": "string" },
+                        "page": { "type": "string" },
+                        "title": { "type": "string" },
+                        "type": { "type": "string" },
+                        "issued": { "type": "string" },
+                        "status": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       },
       securitySchemes: {
@@ -489,6 +567,18 @@ openapi.response(
   'Invalid_request',
   {
     "description": "Invalid request"
+  }
+);
+
+openapi.response(
+  'Search',
+  {
+    "description": "The list of search results",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('Search')
+      }
+    }
   }
 );
 

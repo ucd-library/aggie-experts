@@ -5,7 +5,7 @@ const template = require('./template/default.json');
 const experts = new ExpertModel();
 const {config} = require('@ucd-lib/fin-service-utils');
 
-const openapi = require('@wesleytodd/openapi')
+const { openapi } = require('../middleware.js')
 
 // This is destined for middleware.js
 function is_user(req,res,next) {
@@ -15,158 +15,47 @@ function is_user(req,res,next) {
   return next();
 }
 
-const oapi = openapi({
-  openapi: '3.0.3',
-  info: {
-    title: 'Express',
-    description: 'The Search API returns a list of experts.',
-    version: '1.0.0',
-    termsOfService: 'http://swagger.io/terms/',
-    contact: {
-      email: 'aggie-experts@ucdavis.edu'
-    },
-    license: {
-      name: 'Apache 2.0',
-      url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-    },
-    version: config.experts.version,
-  },
-  servers: [
-    {
-      url: `${config.server.url}/api/search`
-    }
-  ],
-  tags: [
-    {
-      name: 'search',
-      description: 'Search Expert Information'
-    }
-  ]
-})
+function search_valid_path(options={}) {
+  const def = {
+    "description": "Search of experts",
+    "parameters": [],
+  };
+
+  (options.parameters || []).forEach((param) => {
+    def.parameters.push(openapi.parameters(param));
+  });
+
+  delete options.parameters;
+
+  return openapi.validPath({...def, ...options});
+}
+
+function search_valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
+}
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
-router.use(oapi);
+router.use(openapi);
 
 router.get(
   '/',
   is_user,
-  oapi.validPath(
+  search_valid_path(
     {
-      "description": "Returns matching search results for experts, including the number of matching works and grants",
-      "parameters": [
-        {
-          "in": "query",
-          "name": "q",
-          "description": "The search term",
-          "required": false,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "in": "query",
-          "name": "page",
-          "description": "The pagination of results to return, defaults to 1",
-          "required": false,
-          "schema": {
-            "type": "integer"
-          }
-        },
-        {
-          "in": "query",
-          "name": "size",
-          "description": "The number of results to return per page, defaults to 25",
-          "required": false,
-          "schema": {
-            "type": "integer"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful operation",
-          "content": {
-            "application/json": {
-              "total": { "type": "integer" },
-              "hits": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "contactInfo": {
-                      "type": "object",
-                      "properties": {
-                        "hasEmail": { "type": "string" },
-                        "hasName": {
-                          "type": "object",
-                          "properties": {
-                            "given": { "type": "string" },
-                            "@type": { "type": "string" },
-                            "@id": { "type": "string" },
-                            "family": { "type": "string" }
-                          }
-                        },
-                        "name": { "type": "string" },
-                        "hasTitle": {
-                          "type": "object",
-                          "properties": {
-                            "@type": { "type": "string" },
-                            "name": { "type": "string" },
-                            "@id": { "type": "string" }
-                          }
-                        },
-                        "hasOrganizationalUnit": {
-                          "type": "object",
-                          "properties": {
-                            "name": { "type": "string" },
-                            "@id": { "type": "string" }
-                          }
-                        }
-                      }
-                    },
-                    "@type": { "type": "string" },
-                    "name": { "type": "string" },
-                    "@id": { "type": "string" },
-                    "_inner_hits": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "volume": { "type": "string" },
-                          "@type": { "type": "array", "items": { "type": "string" } },
-                          "author": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "given": { "type": "string" },
-                                "rank": { "type": "integer" },
-                                "@id": { "type": "string" },
-                                "family": { "type": "string" }
-                              }
-                            }
-                          },
-                          "container-title": { "type": "string" },
-                          "ISSN": { "type": "string" },
-                          "abstract": { "type": "string" },
-                          "page": { "type": "string" },
-                          "title": { "type": "string" },
-                          "type": { "type": "string" },
-                          "issued": { "type": "string" },
-                          "status": { "type": "string" }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+      description: "Returns matching search results for experts, including the number of matching works and grants",
+      parameters: ['p', 'page', 'size'],
+      responses: {
+        "200": openapi.response('Search'),
+        "400": openapi.response('Invalid_request')
       }
     }
   ),
+  search_valid_path_error,
   async (req, res) => {
   const params = {};
 
