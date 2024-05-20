@@ -84,6 +84,33 @@ const openapi = OpenAPI(
             format: 'nano(\\d{8})',
             description: 'A fake identifier for testing validation'
           }
+        },
+        p: {
+          in: "query",
+          name: "p",
+          description: "The letter the experts last name starts with",
+          required: false,
+          schema: {
+            type: "string"
+          }
+        },
+        page: {
+          in: "query",
+          name: "page",
+          description: "The pagination of results to return, defaults to 1",
+          required: false,
+          schema: {
+            type: "integer"
+          }
+        },
+        size: {
+          in: "query",
+          name: "size",
+          description: "The number of results to return per page, defaults to 25",
+          required: false,
+          schema: {
+            type: "integer"
+          }
         }
       },
       schemas: {
@@ -267,6 +294,110 @@ const openapi = OpenAPI(
             }
           },
           "required": ["@id", "@type", "@graph", "roles"]
+        },
+        Browse: {
+          type: 'object',
+          properties: {
+            "total": {
+              "type": "integer"
+            },
+            "hits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "contactInfo": {
+                    "type": "object",
+                    "properties": {
+                      "hasURL": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "@type": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "@id": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "rank": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      },
+                      "hasEmail": {
+                        "type": "string"
+                      },
+                      "hasName": {
+                        "type": "object",
+                        "properties": {
+                          "given": {
+                            "type": "string"
+                          },
+                          "@type": {
+                            "type": "string"
+                          },
+                          "pronouns": {
+                            "type": "string"
+                          },
+                          "@id": {
+                            "type": "string"
+                          },
+                          "family": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "hasTitle": {
+                        "type": "object",
+                        "properties": {
+                          "@type": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "@id": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "hasOrganizationalUnit": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "@id": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "@id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         }
       },
       securitySchemes: {
@@ -339,6 +470,25 @@ openapi.response(
   'Relationship_not_found',
   {
     "description": "Relationship not found"
+  }
+);
+
+openapi.response(
+  'Browse',
+  {
+    "description": "The list of experts",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('Browse')
+      }
+    }
+  }
+);
+
+openapi.response(
+  'Invalid_request',
+  {
+    "description": "Invalid request"
   }
 );
 
