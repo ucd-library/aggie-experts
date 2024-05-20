@@ -116,6 +116,15 @@ return html`
       animation: loading 0.75s ease infinite;
     }
 
+    .overlay {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: rgba(255, 255, 255, .6);
+    }
+
     @keyframes loading {
       from {
         transform: rotate(0turn);
@@ -213,9 +222,11 @@ return html`
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
 
-    <div class="spinner-container" ?hidden="${!this.loading}">
-      <div ?hidden="${!this.loading}" class="spinner"></div>
-      <h3>Saving Changes</h3>
+    <div class="overlay" ?hidden="${!this.loading}">
+      <div class="spinner-container" ?hidden="${!this.loading}">
+        <div ?hidden="${!this.loading}" class="spinner"></div>
+        <h3>Saving Changes</h3>
+      </div>
     </div>
 
     <div class="footer site-frame">
