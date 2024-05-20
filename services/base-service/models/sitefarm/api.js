@@ -6,8 +6,7 @@ const { defaultEsApiGenerator } = dataModels;
 const md5 = require('md5');
 const path = require('path');
 
-const openapi = require('@wesleytodd/openapi')
-const { json_only } = require('../middleware.js')
+const { openapi, json_only } = require('../middleware.js')
 
 function siteFarmFormat(req, res, next) {
 
@@ -43,75 +42,56 @@ function siteFarmFormat(req, res, next) {
   next();
 }
 
-const oapi = openapi({
-  openapi: '3.0.3',
-  info: {
-    title: 'Express',
-    description: 'The SiteFarm API returns an array of expert profiles matching a provided list of IDs. This allows external systems including UCD SiteFarm to integrate Aggie Experts data into their sites. Publically available API endpoints can be used for access to experts data.',
-    version: '1.0.0',
-    termsOfService: 'http://swagger.io/terms/',
-    contact: {
-      email: 'aggie-experts@ucdavis.edu'
-    },
-    license: {
-      name: 'Apache 2.0',
-      url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-    },
-    version: config.experts.version,
-  },
-  servers: [
-    {
-      url: `${config.server.url}/api/sitefarm`
-    }
-  ],
-  tags: [
-    {
-      name: 'sitefarm',
-      description: 'SiteFarm Information'
-    }
-  ]
-})
+function sitefarm_valid_path(options={}) {
+  const def = {
+    "description": "List of expert profiles",
+    "parameters": [
+      {
+        "in": "path",
+        "name": "ids",
+        "description": "A comma separated list of expert IDs",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+  };
+
+  (options.parameters || []).forEach((param) => {
+    def.parameters.push(openapi.parameters(param));
+  });
+
+  delete options.parameters;
+
+  return openapi.validPath({...def, ...options});
+}
+
+function sitefarm_valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
+}
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
-router.use(oapi);
+router.use(openapi);
 
 router.get(
   '/experts/:ids',
-  oapi.validPath(
+  sitefarm_valid_path(
     {
-      "description": "Returns an array of expert profiles",
-      "parameters": [
-        {
-          "in": "path",
-          "name": "ids",
-          "description": "A comma separated list of expert IDs",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful operation",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "400": {
-          "description": "Invalid ID supplied"
-        },
-        "404": {
-          "description": "Expert not found"
-        }
+      description: "Returns a list of expert profiles",
+      responses: {
+        "200": openapi.response('Successful_operation'),
+        "400": openapi.response('Invalid_ID_supplied'),
+        "404": openapi.response('Expert_not_found')
       }
     }
   ),
+  sitefarm_valid_path_error,
   json_only,
   async (req, res, next) => {
     const id_array = req.params.ids.replace('ids=', '').split(',');

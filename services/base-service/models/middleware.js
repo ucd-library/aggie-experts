@@ -582,6 +582,20 @@ openapi.response(
   }
 );
 
+openapi.response(
+  'Successful_operation',
+  {
+    "description": "Successful operation"
+  }
+);
+
+openapi.response(
+  'Invalid_ID_supplied',
+  {
+    "description": "Invalid ID supplied"
+  }
+);
+
 // export this middleware functions
 module.exports = {
   json_only,
