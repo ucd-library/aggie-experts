@@ -44,55 +44,16 @@ router.route(
   '/:expertId/:relationshipId'
 ).get(
   is_user,
-  openapi.validPath(
+  expert_valid_path(
     {
-      "description": "Get an expert relationship by id",
-      "parameters": [
-        // {
-        //   "in": "path",
-        //   "name": "expertId",
-        //   "description": "The id of the expert to get",
-        //   "required": true,
-        //   "schema": {
-        //     "type": "string"
-        //   }
-        // },
-        {
-          "in": "path",
-          "name": "relationshipId",
-          "description": "The id of the relationship to get",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "in": "query",
-          "name": "fakeId",
-          "description": "The id of something fake for testing validation",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "The relationship",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Expert"
-              }
-            }
-          }
-        },
-        "404": {
-          "description": "Relationship not found"
-        }
+      description: "Get an expert relationship by id",
+      responses: {
+        "200": openapi.response('Relationship'),
+        "404": openapi.response('Relationship_not_found')
       }
     }
   ),
+  expert_valid_path_error,
   user_can_edit,
   async (req, res, next) => {
     let id = req.params.relationshipId;
@@ -109,30 +70,16 @@ router.route(
    res.status(200).json(res.thisDoc);
   }
 ).patch(
-  openapi.validPath(
+  expert_valid_path(
     {
-      "description": "Update an expert relationship by id",
-      "parameters": [
-        // "#components/parameters/expertId",
-        "#components/parameters/relationshipId"
-      ],
-      "responses": {
-        "204": {
-          "description": "The update status",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Expert"
-              }
-            }
-          }
-        },
-        "404": {
-          "description": "Relationship not found"
-        }
+      description: "Update an expert relationship by id",
+      responses: {
+        "204": openapi.response('No_content'),
+        "404": openapi.response('Relationship_not_found')
       }
     }
   ),
+  expert_valid_path_error,
   user_can_edit,
   json_only,
   async (req, res, next) => {
@@ -155,30 +102,16 @@ router.route(
     }
   }
 ).delete(
-  openapi.validPath(
+  expert_valid_path(
     {
-      "description": "Delete an expert relationship by id",
-      "parameters": [
-        // "#components/parameters/expertId",
-        "#components/parameters/relationshipId"
-      ],
-      "responses": {
-        "204": {
-          "description": "The delete status",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Expert"
-              }
-            }
-          }
-        },
-        "404": {
-          "description": "Relationship not found"
-        }
+      description: "Update an expert relationship by id",
+      responses: {
+        "204": openapi.response('No_content'),
+        "404": openapi.response('Relationship_not_found')
       }
     }
   ),
+  expert_valid_path_error,
   user_can_edit,
   async (req, res, next) => {
     logger.info(`DELETE ${req.url}`);

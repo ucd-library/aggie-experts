@@ -186,6 +186,87 @@ const openapi = OpenAPI(
             },
           },
           required: ['@id', '@type', 'rank', 'name', 'url', 'hasEmail', 'hasName', 'hasTitle', 'hasOrganizationalUnit', 'roles'],
+        },
+        Relationship: {
+          "type": "object",
+          "properties": {
+            "@id": {
+              "type": "string"
+            },
+            "@type": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "@graph": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "@id": {
+                    "type": "string"
+                  },
+                  "@type": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "is-visible": {
+                    "type": "boolean"
+                  },
+                  "rank": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "relates": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "_": {
+                    "type": "object",
+                    "properties": {
+                      "event": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updateType": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["id", "timestamp", "updateType"]
+                      },
+                      "updated": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": ["event", "updated"]
+                  }
+                },
+                "required": ["@id", "@type", "is-visible", "rank", "relates", "_"]
+              }
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["@id", "@type", "@graph", "roles"]
         }
       },
       securitySchemes: {
@@ -233,7 +314,33 @@ openapi.response(
   {
     "description": "Expert deleted"
   }
-)
+);
+
+openapi.response(
+  'No_content',
+  {
+    "description": "No Content"
+  }
+);
+
+openapi.response(
+  'Relationship',
+  {
+    "description": "The relationship",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('Relationship')
+      }
+    }
+  }
+);
+
+openapi.response(
+  'Relationship_not_found',
+  {
+    "description": "Relationship not found"
+  }
+);
 
 // export this middleware functions
 module.exports = {
