@@ -77,6 +77,12 @@ return html`
       padding-top: 2.38rem;
     }
 
+    .main-content h2 {
+      margin-bottom: 0;
+      margin-top: 0;
+      color: var(--color-black-60);
+    }
+
     .csl-bib-body, .csl-entry {
       display: inline;
       line-height: var(--lh-html);
@@ -185,11 +191,11 @@ return html`
       fill: var(--color-aggie-gold);
     }
 
-    h3 {
+    h2 {
       margin: 1.19rem 0;
     }
 
-    h3.first {
+    h2.first {
       margin-top: 0;
     }
 
@@ -304,7 +310,7 @@ return html`
 
         ${this.grantsActiveDisplayed.map(
         (grant, index) => html`
-          <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}"><span ?hidden="${index > 0}">Active</span></h3>
+          <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}"><span ?hidden="${index > 0}">Active</span></h2>
           <hr class="grant-seperator">
           <div style="display: flex; justify-content: space-between; padding-bottom: 1.19rem;" class="${!grant.isVisible ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
@@ -336,7 +342,7 @@ return html`
 
         ${this.grantsCompletedDisplayed.map(
         (grant, index) => html`
-          <h3 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}" style="padding-top: 1.19rem;"><span ?hidden="${index > 0}">Completed</span></h3>
+          <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}" style="padding-top: 1.19rem;"><span ?hidden="${index > 0}">Completed</span></h2>
           <hr class="grant-seperator">
           <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!grant.isVisible ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">

@@ -345,14 +345,11 @@ class ExpertModel extends BaseModel {
     );
 
     if (config.experts.cdl.expert.propagate) {
-      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.expert);
-      if (patch.visible != null) {
-        let resp = await cdl_user.updateUserPrivacyLevel({
-          userId: expertId,
-          privacy: patch.visible ? 'public' : 'internal'
-        })
-        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
-      }
+      const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
+      let resp = await cdl_user.updateUserPrivacyLevel({
+        privacy: 'internal'
+      })
+      logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
     } else {
       logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
     }
