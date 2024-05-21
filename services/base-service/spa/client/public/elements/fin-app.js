@@ -184,38 +184,42 @@ export default class FinApp extends Mixin(LitElement)
    * @description style edit button based on screen width to ensure edit button doesn't overlap header
    */
   _styleEditExpertButton() {
-    let editExpertBtn = this.shadowRoot.querySelector('.edit-expert-btn');
-    let editExpertContainer = this.shadowRoot.querySelector('.edit-expert-container');
-    let headerLogoContainer = this.shadowRoot.querySelector('ucd-theme-header')?.shadowRoot.querySelector('.site-branding');
-    let mainContent = this.shadowRoot.querySelector('.main-content');
-    let minSpace = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    requestAnimationFrame(() => {
+      let editExpertBtn = this.shadowRoot.querySelector('.edit-expert-btn');
+      let editExpertContainer = this.shadowRoot.querySelector('.edit-expert-container');
+      let headerLogoContainer = this.shadowRoot.querySelector('ucd-theme-header')?.shadowRoot.querySelector('.site-branding');
+      let mainContent = this.shadowRoot.querySelector('.main-content');
+      let minSpace = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      let headerLogoMin = 300; // hack sometimes this runs before the header component renders the logo, this works well as fallback
 
-    if( !editExpertBtn || !headerLogoContainer ) return;
+      if( !editExpertBtn || !headerLogoContainer ) return;
 
-    const editExpertContainerDisplay = this.hideEdit ? 'none' : 'flex' ;
-    editExpertContainer.style.display = editExpertContainerDisplay;
+      const editExpertContainerDisplay = this.hideEdit ? 'none' : 'flex' ;
+      editExpertContainer.style.display = editExpertContainerDisplay;
 
-    if (editExpertContainerDisplay === 'none') editExpertContainer.style.display = 'flex';
+      if (editExpertContainerDisplay === 'none') editExpertContainer.style.display = 'flex';
 
-    let editExpertBtnRect = editExpertBtn.getBoundingClientRect();
-    let headerLogoContainerRect = headerLogoContainer.getBoundingClientRect();
+      let editExpertBtnRect = editExpertBtn.getBoundingClientRect();
+      let headerLogoContainerRect = headerLogoContainer.getBoundingClientRect();
 
-    if (editExpertContainerDisplay === 'none') editExpertContainer.style.display = editExpertContainerDisplay;
+      if (editExpertContainerDisplay === 'none') editExpertContainer.style.display = editExpertContainerDisplay;
 
-    let collapse = !(headerLogoContainerRect.right < editExpertBtnRect.left - minSpace ||
-      headerLogoContainerRect.left > editExpertBtnRect.right + minSpace ||
-      headerLogoContainerRect.bottom < editExpertBtnRect.top - minSpace ||
-      headerLogoContainerRect.top > editExpertBtnRect.bottom + minSpace);
+      let collapse = !((headerLogoContainerRect.right < editExpertBtnRect.left - minSpace &&
+        headerLogoMin < editExpertBtnRect.left - minSpace) ||
+        headerLogoContainerRect.left > editExpertBtnRect.right + minSpace ||
+        headerLogoContainerRect.bottom < editExpertBtnRect.top - minSpace ||
+        headerLogoContainerRect.top > editExpertBtnRect.bottom + minSpace);
 
-    if( collapse && !this.hideEdit ) {
-      mainContent.classList.add('collapse');
-      mainContent.classList.add('editing');
-      editExpertContainer.classList.add('collapse');
-    } else {
-      mainContent.classList.remove('collapse');
-      mainContent.classList.remove('editing');
-      editExpertContainer.classList.remove('collapse');
-    }
+      if( collapse && !this.hideEdit ) {
+        mainContent.classList.add('collapse');
+        mainContent.classList.add('editing');
+        editExpertContainer.classList.add('collapse');
+      } else {
+        mainContent.classList.remove('collapse');
+        mainContent.classList.remove('editing');
+        editExpertContainer.classList.remove('collapse');
+      }
+    });
   }
 
   /**
