@@ -4,10 +4,5 @@ const WorkModel = require('./model.js');
 const utils = require('../utils.js')
 const {defaultEsApiGenerator} = dataModels;
 
-router.get('/test', async (req, res) => {
-  logger.info('test');
-  res.send('ok');
-});
-
 const model = new WorkModel();
-module.exports = defaultEsApiGenerator(model, {router});
+//module.exports = defaultEsApiGenerator(model, {router});

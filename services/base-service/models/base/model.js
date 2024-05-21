@@ -16,13 +16,7 @@ const settings = require('./schema/settings.json');
 class BaseModel extends FinEsDataModel {
 
   // Base Model never matches
-  static types = [
-//    "http://schema.library.ucdavis.edu/schema#Person",
-//    "http://schema.library.ucdavis.edu/schema#Work",
-//    "http://schema.library.ucdavis.edu/schema#Authorship",
-//    "http://vivoweb.org/ontology/core#Authorship",
-//    "http://vivoweb.org/ontology/core#Grant",
-  ];
+  static types = [];
 
   constructor(name='base') {
 
@@ -385,7 +379,7 @@ class BaseModel extends FinEsDataModel {
    * @param {String} id : _id of document to get
    * @param {Object} options : options for get (like _source:false)
    */
-  async client_get(id,options={admin:false}) {
+  async client_get(id,options={}) {
     // console.log(`FinEsNestedModel.client_get(${id}) on ${this.readIndexAlias}`);
     const result = await this.client.get(
       {
