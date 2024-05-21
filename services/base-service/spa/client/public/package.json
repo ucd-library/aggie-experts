@@ -13,7 +13,7 @@
     "@ucd-lib/cork-app-load": "^0.3.2",
     "@ucd-lib/cork-app-state": "^2.0.1",
     "@ucd-lib/cork-app-utils": "^5.1.1",
-    "@ucd-lib/theme-elements": "^2.1.1",
+    "@ucd-lib/theme-elements": "^2.1.2",
     "@ucd-lib/theme-sass": "^6.0.1",
     "citation-js": "^0.6.9",
     "dompurify": "^2.3.6",
