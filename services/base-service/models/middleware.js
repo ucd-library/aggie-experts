@@ -45,7 +45,7 @@ const openapi = OpenAPI(
       description: 'The Experts API specifies updates to a particular expert. Publically available API endpoints can be used for access to an experts data.  The permissions of current user allow additional access to the data.',
       termsOfService: 'http://swagger.io/terms/',
       contact: {
-        email: 'aggie-experts@ucdavis.edu'
+        email: 'experts@ucdavis.edu'
        },
       license: {
         name: 'Apache 2.0',
