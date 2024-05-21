@@ -70,19 +70,9 @@ const openapi = OpenAPI(
           in: 'path',
           required: true,
           schema: {
-            type: 'uri',
+            type: 'string',
             format: 'urlencoded',
             description: 'A unique identifier for an expert relationship'
-          }
-        },
-        fakeId: {
-          name: 'fakeId',
-          in: 'query',
-          required: true,
-          schema: {
-            type: 'string',
-            format: 'nano(\\d{8})',
-            description: 'A fake identifier for testing validation'
           }
         },
         p: {
@@ -593,6 +583,51 @@ openapi.response(
   'Invalid_ID_supplied',
   {
     "description": "Invalid ID supplied"
+  }
+);
+
+openapi.requestBodies(
+  'Relationship_patch',
+  {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "@id": {
+              "type": "string"
+            },
+            "visible": {
+              "type": 'boolean'
+            },
+            "grant": {
+              "type": 'boolean'
+            }
+          }
+        }
+      }
+    }
+  }
+);
+
+openapi.requestBodies(
+  'Expert_patch',
+  {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "@id": {
+              "type": "string"
+            },
+            "visible": {
+              "type": 'boolean'
+            }
+          }
+        }
+      }
+    }
   }
 );
 

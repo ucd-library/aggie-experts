@@ -11,4 +11,6 @@ info:
     url: https://library.ucdavis.edu/online-strategy/
 components:
   schemas: {}
+  parameters: {}
+  responses: {}
 paths:

@@ -73,6 +73,7 @@ router.route(
   expert_valid_path(
     {
       description: "Update an expert relationship by id",
+      requestBody: openapi.requestBodies('Relationship_patch'),
       responses: {
         "204": openapi.response('No_content'),
         "404": openapi.response('Relationship_not_found')
@@ -130,7 +131,7 @@ router.route(
 );
 
 function expert_valid_path(options={}) {
-  // TODO for parameters, if we let them auto build (from express route params), then they work..
+  // for parameters, if we let them auto build (from express route params), then they work..
   // but if we add a ref to the component by calling openapi.parameters('someId')..
   // then it duplicates and doesn't tie the auto built param to the ref param..
 
@@ -210,15 +211,10 @@ router.route(
 ).patch(
   expert_valid_path(
     {
-      "description": "Update an experts visibility by expert id",
-
-      // TODO this doesn't really do anything, what syntax do we need?
-      "content": {
-        "application/json": {
-          "schema": {
-            // Valid schema
-          }
-        }
+      description: "Update an experts visibility by expert id",
+      requestBody: openapi.requestBodies('Expert_patch'),
+      responses: {
+        "204": openapi.response('No_content')
       }
     }
   ),
@@ -239,8 +235,8 @@ router.route(
 ).delete(
   expert_valid_path(
     {
-      "description": "Delete an expert by id",
-      "responses": {
+      description: "Delete an expert by id",
+      responses: {
         "204": openapi.response('Expert_deleted')
       }
     }
