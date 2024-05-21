@@ -267,7 +267,7 @@ return html`
         </ucdlib-site-footer-column>
         <ucdlib-site-footer-column header="Copyright">
           <ul>
-            <li>©2023 The Regents of the University of California, Davis</li>
+            <li>&copy;2024 The Regents of the University of California, Davis</li>
           </ul>
         </ucdlib-site-footer-column>
       </ucdlib-site-footer>
