@@ -228,8 +228,13 @@ return html`
       /* padding-top: 1rem; */
     }
 
-    .roles-websites .roles {
+    .roles-websites .roles,
+    .roles-websites .websites {
       width: 50%;
+      overflow-wrap: anywhere;
+    }
+
+    .roles-websites .roles {
       padding-right: 1rem;
     }
 
