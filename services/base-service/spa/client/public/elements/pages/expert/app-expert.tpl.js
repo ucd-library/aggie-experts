@@ -588,7 +588,8 @@ return html`
         display: block;
       }
 
-      .roles-websites .roles {
+      .roles-websites .roles,
+      .roles-websites .websites {
         width: 100%;
       }
     }
