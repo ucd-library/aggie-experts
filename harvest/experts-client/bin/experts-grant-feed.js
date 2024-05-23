@@ -311,8 +311,8 @@ async function main(opt) {
   logger.info('Creating graph from JSON-LD file ' + graphName + '...');
   console.log(createGraphFromJsonLdFile(db, jsonld, graphName));
 
-  // Apply the grants2vivo.rq SPARQL update to the graph
-  const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.rq', 'utf8');
+  // Apply the grants2vivo.ru SPARQL update to the graph
+  const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.ru', 'utf8');
   console.log(await executeUpdate(db, vivo));
 
   // Add the CDL-users graph to the fuseki database to include proprietary IDs

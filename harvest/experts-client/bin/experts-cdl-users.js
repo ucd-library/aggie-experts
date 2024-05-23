@@ -6,7 +6,6 @@ import path from 'path';
 import fs from 'fs-extra';
 import md5 from 'md5';
 import { Command } from 'commander';
-import { nanoid } from 'nanoid';
 
 // import { DataFactory } from 'rdf-data-factory';
 // import { BindingsFactory } from '@comunica/bindings-factory';

@@ -105,16 +105,17 @@ WHERE {
                                       .
       }
       bind(uri(replace(str(?g),str(aggie:),"ark:/87287/d7c08j/grant/")) as ?grant)
+      bind(md5(replace(str(?aggie_person_id),str(aggie:),'')) as ?employee_id)
       bind(md5(replace(str(?aggie_person_id),str(aggie:),'employeeId/')) as ?role_ark_id)
       BIND(uri(concat(str(?grant), "#role_",?role_ark_id)) AS ?role)
       bind(concat('ark:/87287/d7c08j/',?role_ark_id) as ?role_ark)
     }
   }
   OPTIONAL {
-    select ?role_expert ?role_ark (min(?l) as ?role_label) WHERE {
+    select ?role_expert ?employee_id (min(?l) as ?role_label) WHERE {
       SERVICE <http://localhost:3030/experts/query> {
         graph <http://iam.ucdavis.edu/> {
-          ?role_expert schema:identifier ?role_ark;
+          ?role_expert ucdlib:employeeId ?employee_id;
                        rdfs:label ?l
           .
         }
