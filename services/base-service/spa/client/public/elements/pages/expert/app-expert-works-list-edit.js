@@ -436,6 +436,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+
+        return; // does this break other things..?
       }
 
       // update graph/display data
@@ -484,6 +486,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+
+        return; // does this break other things..?
       }
 
       // remove citation from graph/display data
