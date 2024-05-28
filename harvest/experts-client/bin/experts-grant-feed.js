@@ -272,12 +272,6 @@ async function main(opt) {
       "@version": 1.1,
       "@base": "http://www.ucdavis.edu/aggie_enterprise/",
       "@vocab": "http://www.ucdavis.edu/aggie_enterprise#",
-      "number": { "@id": "@id", "@type": "@id" },
-      "principal_investigator": {
-        "@context": {
-          "number": { "@id": "id", "@type": "@id" }
-        }
-      },
       "organization_credit": {
         "@context": {
           "number": { "@id": "organization", "@type": "@id" }
@@ -314,20 +308,6 @@ async function main(opt) {
   // Apply the grants2vivo.ru SPARQL update to the graph
   const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.ru', 'utf8');
   console.log(await executeUpdate(db, vivo));
-
-  // Add the CDL-users graph to the fuseki database to include proprietary IDs
-  // Command-line parameters to pass to the script
-  const params = ['--cdl.groups=431', '--fuseki.db=' + fuseki.db];
-  const result = spawnSync('node', [__dirname + '/experts-cdl-users.js', ...params], { encoding: 'utf8' });
-
-  console.log('Output:', result.stdout);
-  console.error('Error Output:', result.stderr);
-
-  if (result.error) {
-    console.error('Execution error:', result.error);
-  }
-
-  console.log('Exit code:', result.status);
 
   // Exexute the SPARQL queries to to export the csv files
   const grantFile = opt.output + '/' + opt.prefix + 'grants_metadata.csv';

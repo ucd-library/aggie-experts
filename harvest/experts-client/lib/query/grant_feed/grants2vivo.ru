@@ -28,13 +28,27 @@ insert { graph <ark:/87287/d7c08j/> {
          ucdlib:flowThruFunding ?super_funding_org;
          .
 
+  ?pi_role a vivo:GrantRole, vivo:PrincipalInvestigatorRole;
+          obo:RO_0000052 ?pi;
+          vivo:relatedBy ?grant;
+          ucdlib:percentage 100;
+          .
+
+  ?pi a vivo:FacultyMember;
+      rdfs:label ?aggie_person_name;
+      ucdlib:proprietary_id ?pi_id;
+      .
+
   ?role a vivo:GrantRole, ?role_type;
-          rdfs:label ?role_label;
           obo:RO_0000052 ?role_expert;
           vivo:relatedBy ?grant;
-          ucdlib:role ?role_role;
           ucdlib:percentage ?role_percentage;
           .
+
+  ?role_expert a vivo:FacultyMember;
+      rdfs:label ?participant_name;
+      ucdlib:proprietary_id ?participant_id;
+      .
 
   # Link Back
   ?role_expert obo:RO_0000053 ?role.
@@ -72,55 +86,24 @@ WHERE {
 
   ?g :name ?title;
      :type ?type;
+     :number ?number;
      :status ?status;
      ?g_pred ?g_value;
      .
-  bind(uri(replace(str(?g),str(aggie:),"ark:/87287/d7c08j/grant/")) as ?grant)
 
+  ?g :principal_investigator [:name ?aggie_person_name;
+                             :number ?pi_id;
+                             :email ?aggie_person_email];
+                             .
+
+  OPTIONAL {
+    ?g :start_date ?start_ymd.
+  }
+  OPTIONAL {
+    ?g :end_date ?end_ymd.
+  }
   OPTIONAL {
     ?g :assistance_listing_numbers/:assistance_listing_number ?assistanceListingNumber.
-  }
-
-  {
-    select ?g ?role ?role_ark ?role_percentage ?role_type ?aggie_person_name
-    WHERE {
-      {
-        ?g :principal_investigator [:name ?aggie_person_name;
-                                   :id ?aggie_person_id;
-                                   :email ?aggie_person_email];
-                                   .
-        bind("100" as ?role_percentage)
-        bind(vivo:PrincipalInvestigatorRole as ?role_type)
-      } union {
-        values (?role_role ?role_type) {
-          ("Co-Principal Investigator" vivo:CoPrincipalInvestigatorRole )
-          ("Project Manager" vivo:ProjectManagerRole )
-          ("Project Administrator" vivo:ProjectAdministratorRole )
-          ("Grants Administrator" vivo:GrantsAdministratorRole )
-          ("Principal Investigator" vivo:PrincipalInvestigatorRole )
-        }
-        ?g :participants/:participant [:person ?aggie_person_id;
-                                      :percentage ?role_percentage;
-                                      :role ?role_role];
-                                      .
-      }
-      bind(uri(replace(str(?g),str(aggie:),"ark:/87287/d7c08j/grant/")) as ?grant)
-      bind(md5(replace(str(?aggie_person_id),str(aggie:),'')) as ?employee_id)
-      bind(md5(replace(str(?aggie_person_id),str(aggie:),'employeeId/')) as ?role_ark_id)
-      BIND(uri(concat(str(?grant), "#role_",?role_ark_id)) AS ?role)
-      bind(concat('ark:/87287/d7c08j/',?role_ark_id) as ?role_ark)
-    }
-  }
-  OPTIONAL {
-    select ?role_expert ?employee_id (min(?l) as ?role_label) WHERE {
-      SERVICE <http://localhost:3030/experts/query> {
-        graph <http://iam.ucdavis.edu/> {
-          ?role_expert ucdlib:employeeId ?employee_id;
-                       rdfs:label ?l
-          .
-        }
-      }
-    } group by ?role_expert ?role_ark
   }
 
   OPTIONAL {
@@ -138,21 +121,6 @@ WHERE {
   }
 
   OPTIONAL {
-    ?g :start_date ?start_ymd.
-    bind(xsd:date(replace(?start_ymd,'/','-')) as ?start_date)
-    bind(uri(replace(str(?g),str(aggie:),"ark:/87287/d7c08j/grant/")) as ?grant)
-    BIND(uri(concat(str(?grant), "#duration")) AS ?duration)
-    BIND(uri(concat(str(?grant), "#start")) AS ?start)
-  }
-  OPTIONAL {
-    ?g :end_date ?end_ymd.
-    BIND(uri(concat(str(?grant), "#end")) AS ?end)
-    bind(uri(replace(str(?g),str(aggie:),"ark:/87287/d7c08j/grant/")) as ?grant)
-    BIND(uri(concat(str(?grant), "#duration")) AS ?duration)
-    bind(xsd:date(replace(?end_ymd,'/','-')) as ?end_date)
-  }
-
-  OPTIONAL {
     ?g :financial/:funding_sources/:funding_source ?funding_org.
     bind(vivo:FundingOrganization as ?funder_type)
     OPTIONAL {
@@ -163,4 +131,34 @@ WHERE {
   OPTIONAL {
     ?g :financial/:flow_thru_funding ?super_funding_org.
   }
+
+  OPTIONAL {
+    values (?role_role ?role_type) {
+      ("Co-Principal Investigator" vivo:CoPrincipalInvestigatorRole )
+      ("Project Manager" vivo:ProjectManagerRole )
+      ("Project Administrator" vivo:ProjectAdministratorRole )
+      ("Grants Administrator" vivo:GrantsAdministratorRole )
+      ("Principal Investigator" vivo:PrincipalInvestigatorRole )
+    }
+    ?g :participants/:participant [:person ?participant;
+                                  :percentage ?role_percentage;
+                                  :role ?role_role];
+                                  .
+    ?participant :number ?participant_number;
+                 :name ?participant_name;
+                 :email ?participant_email.
+  }
+
+  bind(uri(concat("ark:/87287/d7c08j/grant/",?number)) as ?grant)
+  bind(uri(concat("ark:/87287/d7c08j/",md5(?pi_id))) as ?pi)
+  BIND(uri(concat(str(?grant), "#role_",md5(?pi_id))) AS ?pi_role)
+
+  bind(uri(concat("ark:/87287/d7c08j/",md5(?participant_number))) as ?role_expert)
+  BIND(uri(concat(str(?grant), "#role_",md5(?participant_number))) AS ?role)
+
+  bind(xsd:date(replace(?start_ymd,'/','-')) as ?start_date)
+  BIND(uri(concat(str(?grant), "#duration")) AS ?duration)
+  BIND(uri(concat(str(?grant), "#start")) AS ?start)
+  BIND(uri(concat(str(?grant), "#end")) AS ?end)
+  bind(xsd:date(replace(?end_ymd,'/','-')) as ?end_date)
 }
