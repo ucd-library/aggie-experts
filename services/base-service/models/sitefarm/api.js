@@ -1,12 +1,56 @@
 const express = require('express');
 const router = require('express').Router();
-const { config, dataModels, logger } = require('@ucd-lib/fin-service-utils');
+const { config, keycloak, dataModels, logger } = require('@ucd-lib/fin-service-utils');
 const SiteFarmModel = require('./model.js');
 const { defaultEsApiGenerator } = dataModels;
+// const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
 const path = require('path');
 
 const openapi = require('@wesleytodd/openapi')
+let AdminClient=null;
+
+async function validate_admin_client(req, res, next) {
+  if (! AdminClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      AdminClient = new ExpertsKcAdminClient(
+        {
+          baseUrl: match[1],
+          realmName: match[2]
+        }
+      );
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  next();
+}
+
+async function convertIds(req, res, next) {
+  const id_array = req.params.ids.replace('ids=', '').split(',');
+
+  let user;
+  // for each id, get the expertId
+  for (const ucdPersonUUID of id_array) {
+    try {
+           console.log('ucdPersonUUID', ucdPersonUUID);
+      user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
+    }
+    catch (err) {
+      console.error(err);
+    }
+
+    if (user && user?.attributes?.expertId) {
+      const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
+      req.query.expertId = expertId;
+    }
+  }
+  return next();
+}
 
 function siteFarmFormat(req, res, next) {
 
@@ -166,27 +210,30 @@ router.get('/experts/:ids',
       }
     }
   ),
-  json_only, async (req, res, next) => {
-  const id_array = req.params.ids.replace('ids=', '').split(',');
-  const expert_model = await model.get_model('expert');
-  res.doc_array = [];
-  var doc;
+  json_only,
+  validate_admin_client,
+  convertIds,
+  async (req, res, next) => {
+    const id_array = req.params.ids.replace('ids=', '').split(',');
+    const expert_model = await model.get_model('expert');
+    res.doc_array = [];
+    var doc;
 
-  for (const id of id_array) {
-    const full = expert_model.id + '/' + id;
-    try {
-      let opts = {
-        admin: req.query.admin ? true : false,
+    for (const id of id_array) {
+      const full = expert_model.id + '/' + id;
+      try {
+        let opts = {
+          admin: req.query.admin ? true : false,
+        }
+        doc = await expert_model.get(full, opts);
+        res.doc_array.push(doc);
+      } catch (e) {
+        // log the error - couldn't find the resource. But continue to the next one
+        logger.error(`Could not get ${full}`);
       }
-      doc = await expert_model.get(full, opts);
-      res.doc_array.push(doc);
-    } catch (e) {
-      // log the error - couldn't find the resource. But continue to the next one
-      logger.error(`Could not get ${full}`);
     }
-  }
-  next();
-},
+    next();
+  },
   sanitize,
   siteFarmFormat,
   (req, res) => {
