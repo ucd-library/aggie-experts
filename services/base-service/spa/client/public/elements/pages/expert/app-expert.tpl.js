@@ -332,7 +332,7 @@ return html`
       cursor: pointer;
     }
 
-    .tooltip:before {
+    .tooltip:hover:before {
       content: attr(data-text);
       position: absolute;
       bottom: 35px;
@@ -351,7 +351,7 @@ return html`
       transition: .2s opacity ease-out;
     }
 
-    .tooltip:after {
+    .tooltip:hover:after {
       content: "";
       position: absolute;
       bottom: 25px;
@@ -368,13 +368,13 @@ return html`
       opacity: 1;
     }
 
-    .tooltip.edit-name:before {
+    .tooltip.edit-name:hover:before {
       width: 80px;
       bottom: 53px;
       right: -40px;
     }
 
-    .tooltip.edit-name:after {
+    .tooltip.edit-name:hover:after {
       bottom: 43px;
       right: 5px;
     }
