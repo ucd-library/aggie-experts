@@ -208,7 +208,7 @@ router.get(
             sponsor_name: hit.assignedBy.name,
             type: hit['@type'],
             role_label: hit.relatedBy.find(x => x.inheres_in)['@type'],
-            people: people
+            contributors: people
           });
         }
       }
