@@ -29,7 +29,7 @@ construct {
          rdfs:label ?grant_label;
          schema:name ?grant_title;
          schema:identifier ?cdl_ark;
-         vivo:totalAwardAmount ?amount;
+         vivo:totalAwardAmount ?total_award_amount;
          vivo:sponsorAwardId ?sponsor_award_id;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
