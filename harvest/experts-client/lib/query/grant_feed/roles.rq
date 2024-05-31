@@ -26,7 +26,10 @@ WHERE {
            vivo:relates ?related
     .
    	?related a ?role_type;
-             rdfs:label ?full_name;
+             obo:RO_0000052  ?expert;
+             .
+
+    ?expert rdfs:label ?full_name;
              .
   }
 
