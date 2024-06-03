@@ -106,6 +106,7 @@ services:
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
     depends_on:
       - elasticsearch
+    restart: unless-stopped
 
   ###
   # External Database Sync Services
