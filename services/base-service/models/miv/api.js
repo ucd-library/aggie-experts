@@ -7,24 +7,111 @@ const expert = new ExpertModel();
 const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 let AdminClient=null;
 
+const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
+
+let MIVJWKSClient=null;
+
+async function validate_admin_client(req, res, next) {
+  if (! AdminClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      AdminClient = new ExpertsKcAdminClient(
+        {
+          baseUrl: match[1],
+          realmName: match[2]
+        }
+      );
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  next();
+}
+
+async function validate_miv_client(req, res, next) {
+  if (! MIVJWKSClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      MIVJWKSClient = await jwksClient({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 10,
+        jwksUri: `${match[1]}/realms/aggie-experts-miv/protocol/openid-connect/certs`
+      });
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  next();
+}
+
+function is_miv(req, res, next) {
+  if (!req.user) {
+    // Try MIV Service Account
+    return is_miv_service_account(req, res, next);
+  }
+  if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
+    return next();
+  }
+  return res.status(403).send('Not Authorized');
+}
+
+// Middleware to validate client credential token
+async function is_miv_service_account(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token not provided' });
+  }
+
+  try {
+    // Get the public key from the JWKS endpoint
+    const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
+    // Verify the token's signature using the public key
+    const verifiedToken = jwt.verify(token, key.getPublicKey(), { algorithms: ['RS256'] });
+
+    // Validate issuer
+    if (verifiedToken.iss !== 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv') {
+      return res.status(401).json({ error: 'Invalid token issuer' });
+    }
+
+    // Validate audience
+    if (verifiedToken.aud !== 'account') {
+      return res.status(401).json({ error: 'Invalid token audience' });
+    }
+
+    // Validate expiration
+    if (Date.now() >= verifiedToken.exp * 1000) {
+      return res.status(401).json({ error: 'Token has expired' });
+    }
+
+    // Validate request source (optional)
+    //console.log('req', req.ip);
+    //if (req.hostname !== verifiedToken.clientHost) {
+    //  return res.status(401).json({ error: 'Invalid request source' });
+    //}
+
+    // Custom authorization logic
+    // Implement your own logic here based on token claims
+    if (! verifiedToken.resource_access.miv.roles.includes('access')) {
+      return res.status(403).json({ error: 'No Access Role' });
+    }
+    next();
+
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 async function fetchExpertId (req, res, next) {
   if (req.query.email || req.query.ucdPersonUUID) {
-    if (! AdminClient) {
-      const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
-      const oidcbaseURL = config.oidc.baseUrl;
-      const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
-
-      if (match) {
-        AdminClient = new ExpertsKcAdminClient(
-          {
-            baseUrl: match[1],
-            realmName: match[2]
-          }
-        );
-      } else {
-        throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
-      }
-    }
     const token = await keycloak.getServiceAccountToken();
     AdminClient.accessToken = token
   }
@@ -52,19 +139,11 @@ async function fetchExpertId (req, res, next) {
   }
 }
 
-function is_miv(req, res, next) {
-  if (!req.user) {
-    return res.status(401).send('Unauthorized');
-  }
-  if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
-    return next();
-  }
-  return res.status(403).send('Not Authorized');
-}
-
 router.get(
   '/user',
+  validate_miv_client,
   is_miv,
+  validate_admin_client,
   fetchExpertId,
   async (req, res) => {
     const expertId = req.query.expertId;
@@ -79,7 +158,9 @@ router.get(
 
 router.get(
   '/grants',
+  validate_miv_client,
   is_miv,
+  validate_admin_client,
   fetchExpertId,
   async (req, res) => {
     const params = {};
@@ -104,6 +185,19 @@ router.get(
       let grants = [];
       if (find?.hits[0]) {
         for (const hit of find.hits[0]._inner_hits) {
+          // create a people array
+          let people = [];
+          if (hit.relatedBy) {
+            hit.relatedBy.forEach((x) => {
+              if (! x.inheres_in) {
+                people.push({
+                  '@id': x['@id'],
+                  name: x.relates[0].name,
+                  role: x['@type']
+                });
+              }
+            });
+          }
           grants.push({
             '@id': hit['@id'],
             title: hit.name,
@@ -113,16 +207,8 @@ router.get(
             sponsor_id: hit.sponsorAwardId,
             sponsor_name: hit.assignedBy.name,
             type: hit['@type'],
-            role_label: hit.relatedBy.find(x => x.inheres_in)['@type']
-          });
-          hit.relatedBy.forEach((x) => {
-            if (! x.inheres_in) {
-              grants.push({
-                '@id': x['@id'],
-                name: x.relates[0].name,
-                role: x['@type']
-            });
-            }
+            role_label: hit.relatedBy.find(x => x.inheres_in)['@type'],
+            contributors: people
           });
         }
       }

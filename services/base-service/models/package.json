@@ -12,6 +12,7 @@
     "@ucd-lib/experts-api": "^1.1.0",
     "@wesleytodd/openapi": "^1.0.0",
     "jsonld": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
     "md5": "^2.3.0",
     "path": "^0.12.7",
     "swagger-ui-express": "^5.0.0",

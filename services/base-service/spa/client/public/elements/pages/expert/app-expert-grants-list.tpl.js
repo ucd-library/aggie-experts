@@ -74,6 +74,12 @@ return html`
       padding-top: 2.38rem;
     }
 
+    .main-content h2 {
+      margin-bottom: 0;
+      margin-top: 0;
+      color: var(--color-black-60);
+    }
+
     .csl-bib-body, .csl-entry {
       display: inline;
       line-height: var(--lh-html);
@@ -135,7 +141,7 @@ return html`
 
       ${this.grantsActiveDisplayed.map(
       (grant, index) => html`
-        <h3 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
+        <h2 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h2>
         <div class="grant-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
           <div class="grant">
@@ -155,7 +161,7 @@ return html`
 
       ${this.grantsCompletedDisplayed.map(
       (grant, index) => html`
-        <h3 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h3>
+        <h2 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h2>
         <div class="grant-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
           <div class="grant">

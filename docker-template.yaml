@@ -50,7 +50,10 @@ services:
     # Example for change logging.  Note, don't forget to still include the fcrepo.properties file location!
     # See: https://wiki.lyrasis.org/display/FEDORA6x/Logging
     # environment:
-    #  - CATALINA_OPTS=-Dfcrepo.log.auth=DEBUG -Dfcrepo.config.file=/etc/fin/fcrepo.properties
+    #  - CATALINA_OPTS=-Dfcrepo.log.auth=DEBUG
+    #  -Dfcrepo.config.file=/etc/fin/fcrepo.properties
+    environment:
+      - CATALINA_OPTS=-Dfcrepo.config.file=/etc/fin/fcrepo.properties -Djava.awt.headless=true -Dfile.encoding=UTF-8 -Xms2G -Xmx6G -XX:+UseG1GC -XX:+DisableExplicitGC
     volumes:
       - fedora-data:/usr/local/tomcat/fcrepo-home/data
       - activemq-data:/usr/local/tomcat/ActiveMQ
@@ -103,6 +106,7 @@ services:
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
     depends_on:
       - elasticsearch
+    restart: unless-stopped
 
   ###
   # External Database Sync Services

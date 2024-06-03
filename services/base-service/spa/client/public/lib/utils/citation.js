@@ -61,11 +61,11 @@ class Citation {
             ris,
           });
         } catch(e) {
-          console.log('error generating citation for ' + citation.data[0]['@id'], e);
+          console.warn('error generating citation for ' + citation.data[0]['@id'], e);
           reject({data: citation.data[0], error: e});
         }
       }).catch(e => {
-        console.log('error generating citation for ' + citation.data[0]['@id'], e);
+        console.warn('error generating citation for ' + citation.data[0]['@id'], e);
         reject({data: citation.data[0], error: e});
       });
     });

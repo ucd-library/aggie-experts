@@ -7,6 +7,14 @@ const {config} = require('@ucd-lib/fin-service-utils');
 
 const openapi = require('@wesleytodd/openapi')
 
+// This is destined for middleware.js
+function is_user(req,res,next) {
+  if (!req.user) {
+    return res.status(401).send('Unauthorized');
+  }
+  return next();
+}
+
 const oapi = openapi({
   openapi: '3.0.3',
   info: {
@@ -40,7 +48,9 @@ const oapi = openapi({
 // (as well as the swagger-ui if configured)
 router.use(oapi);
 
-router.get('/',
+router.get(
+  '/',
+  is_user,
   oapi.validPath(
     {
       "description": "Returns matching search results for experts, including the number of matching works and grants",

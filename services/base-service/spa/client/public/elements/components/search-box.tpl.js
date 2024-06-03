@@ -79,6 +79,11 @@ export default function render() {
       input.gold {
         background: var(--ucd-gold-40, #FFF4D2);
       }
+
+      .search-button ucdlib-icon {
+        fill: var(--color-aggie-blue);
+        color: var(--color-aggie-blue);
+      }
     </style>
 
     <div class="root search-bar" ?hidden="${this.searchRounded}">

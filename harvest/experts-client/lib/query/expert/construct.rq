@@ -129,15 +129,17 @@ WHERE {
         }
         bind(?pos as ?web_rank)
       }
-      values (?field_name ?field_predicate ) {
-        ("overview" vivo:overview)
-        ("research-interests" ucdlib:researchInterests)
-        ("teaching-summary" ucdlib:teachingSummary)
-      }
-      ?native :field [ :name ?field_name;
-                       :text [ :field-value ?field_value;
-                               :privacy "public"; ]
-                     ].
+      OPTIONAL {
+        values (?field_name ?field_predicate ) {
+          ("overview" vivo:overview)
+          ("research-interests" ucdlib:researchInterests)
+          ("teaching-summary" ucdlib:teachingSummary)
+        }
+        ?native :field [ :name ?field_name;
+                         :text [ :field-value ?field_value;
+                                 :privacy "public"; ]
+                       ].
+        }
     }
     OPTIONAL {
       values (?scheme ?vocab) { ("for" FoR:) }

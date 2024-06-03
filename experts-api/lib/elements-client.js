@@ -89,7 +89,6 @@ export class Impersonator {
         ...options,
         signal: controller.signal
       });
-      clearTimeout(id);
     } catch (e) {
       if (e.name === 'AbortError') {
         const error=new Error('Request timed out');
@@ -97,6 +96,8 @@ export class Impersonator {
         throw error;
       }
       throw e;
+    } finally {
+      clearTimeout(id);
     }
 
     if (resp.status !== 204 && resp.status !== 200) {
@@ -359,9 +360,10 @@ export class Impersonator {
       public: 0,
       internal: 50
     };
+    // use the userId you are impersonating
      return await this.userprofile({
        com: 'updateUserPrivacyLevel',
-       userId: data.userId,
+       userId: this.userId,
        privacyLevel: level[data.privacy]
     });
   }
