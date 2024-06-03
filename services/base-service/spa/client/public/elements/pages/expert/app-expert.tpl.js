@@ -228,8 +228,13 @@ return html`
       /* padding-top: 1rem; */
     }
 
-    .roles-websites .roles {
+    .roles-websites .roles,
+    .roles-websites .websites {
       width: 50%;
+      overflow-wrap: anywhere;
+    }
+
+    .roles-websites .roles {
       padding-right: 1rem;
     }
 
@@ -332,7 +337,7 @@ return html`
       cursor: pointer;
     }
 
-    .tooltip:before {
+    .tooltip:hover:before {
       content: attr(data-text);
       position: absolute;
       bottom: 35px;
@@ -351,7 +356,7 @@ return html`
       transition: .2s opacity ease-out;
     }
 
-    .tooltip:after {
+    .tooltip:hover:after {
       content: "";
       position: absolute;
       bottom: 25px;
@@ -368,13 +373,13 @@ return html`
       opacity: 1;
     }
 
-    .tooltip.edit-name:before {
+    .tooltip.edit-name:hover:before {
       width: 80px;
       bottom: 53px;
       right: -40px;
     }
 
-    .tooltip.edit-name:after {
+    .tooltip.edit-name:hover:after {
       bottom: 43px;
       right: 5px;
     }
@@ -583,7 +588,8 @@ return html`
         display: block;
       }
 
-      .roles-websites .roles {
+      .roles-websites .roles,
+      .roles-websites .websites {
         width: 100%;
       }
     }
@@ -612,7 +618,7 @@ return html`
       <div class="hero-text">
         <div class="experts">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
-          <span>EXPERT</span>
+          <span>EXPERT ${!this.isVisible ? '(HIDDEN)' : ''}</span>
           <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
           <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">

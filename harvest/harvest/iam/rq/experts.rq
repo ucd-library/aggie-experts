@@ -14,6 +14,7 @@ CONSTRUCT {
   ?user a ?emp_type,ucdlib:Expert;
         rdfs:label ?label;
         schema:identifier ?aggie_ark;
+        ucdlib:employeeId ?employee_id;
         ucdlib:userId ?kerb;
         ucdlib:ucdPersonUUId ?mothra_id;
         ucdlib:email ?default_email;
@@ -60,6 +61,7 @@ WHERE {
     ?s iam:email ?default_email;
        iam:userID ?kerb;
        iam:mothraId ?mothra_id;
+       iam:employeeId ?employee_id;
        iam:dLastName ?iam_lname;
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty;
