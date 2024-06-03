@@ -5,6 +5,10 @@
     "default":{
       "cdl":{
         "propagate_changes":"false"
+      },
+      "analytics":{
+        "gaid":"G-GM57B0V0WC",
+        "enable":"false"
       }
     },
     "dev":{
@@ -21,8 +25,7 @@
       "port":"80",
       "host":"http://localhost",
       "gcs":"fcrepo-dev",
-      "gcs-subscription":"local-dev",
-      "gaid":"G-GM57B0V0WC"
+      "gcs-subscription":"local-dev"
     },
     "clean":{
       "org":"localhost/aggie-experts",
@@ -36,8 +39,7 @@
       "server":"!(experts.library.ucdavis.edu)",
       "port":"80",
       "host":"http://localhost",
-      "gcs":"fcrepo-dev",
-      "gaid":"G-GM57B0V0WC"
+      "gcs":"fcrepo-dev"
     },
     "sandbox":{
       "org":"localhost/aggie-experts",
@@ -51,8 +53,7 @@
       "server":"experts.library.ucdavis.edu",
       "port":"10180",
       "host":"https://sandbox.experts.library.ucdavis.edu",
-      "gcs":"fcrepo-sandbox",
-      "gaid":"G-GM57B0V0WC"
+      "gcs":"fcrepo-sandbox"
     },
     "stage":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
@@ -66,8 +67,7 @@
       "gcs":"fcrepo-prod",
       "port":"10380",
       "host":"https://stage.experts.library.ucdavis.edu",
-      "branch":"(dev|main)",
-      "gaid":"G-GM57B0V0WC"
+      "branch":"(dev|main)"
     },
     "test":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
@@ -81,8 +81,7 @@
       "gcs":"fcrepo-prod",
       "port":"10280",
       "host":"https://test.experts.library.ucdavis.edu",
-      "branch":"(dev|main)",
-      "gaid":"G-GM57B0V0WC"
+      "branch":"(dev|main)"
     },
     "prev":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
@@ -96,8 +95,7 @@
       "gcs":"fcrepo-prod",
       "port":"10480",
       "host":"https://prev.experts.library.ucdavis.edu",
-      "branch":"(dev|main)",
-      "gaid":"G-GM57B0V0WC"
+      "branch":"(dev|main)"
     },
     "build":{
       "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
@@ -118,7 +116,9 @@
       "cdl":{
         "propagate_changes":"true"
       },
-      "gaid":"G-GM57B0V0WC"
+      "analytics":{
+        "enable":"true"
+      }
     }
   },
   "fin":{
