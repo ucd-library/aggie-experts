@@ -641,6 +641,7 @@ openapi.requestBodies(
 
 // export this middleware functions
 module.exports = {
+  is_user,
   json_only,
   user_can_edit,
   openapi,
