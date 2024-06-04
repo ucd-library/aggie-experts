@@ -6,15 +6,7 @@ const {config} = require('@ucd-lib/fin-service-utils');
 
 const experts = new ExpertModel();
 
-const { openapi } = require('../middleware.js')
-
-// This is destined for middleware.js
-function is_user(req,res,next) {
-  if (!req.user) {
-    return res.status(401).send('Unauthorized');
-  }
-  return next();
-}
+const { openapi, is_user } = require('../middleware.js')
 
 function browse_valid_path(options={}) {
   const def = {

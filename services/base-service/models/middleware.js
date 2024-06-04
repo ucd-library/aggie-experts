@@ -13,6 +13,14 @@ function json_only(req, res, next) {
   }
 }
 
+function is_user(req,res,next) {
+  if (!req.user) {
+    return res.status(401).send('Unauthorized');
+  }
+  return next();
+}
+
+
 function user_can_edit(req, res, next) {
   let expertId = `expert/${req.params.expertId}`;
   if (!req.user) {

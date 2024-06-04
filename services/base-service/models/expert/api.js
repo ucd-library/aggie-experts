@@ -8,15 +8,7 @@ const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
 const model= new ExpertModel();
 
-const { openapi, schema_error, json_only, user_can_edit } = require('../middleware.js')
-
-// This is destined for middleware.js
-function is_user(req,res,next) {
-  if (!req.user) {
-    return res.status(401).send('Unauthorized');
-  }
-  return next();
-}
+const { openapi, schema_error, json_only, user_can_edit, is_user } = require('../middleware.js')
 
 function sanitize(req, res, next) {
 //  logger.info({function:'sanitize'}, JSON.stringify(req.query));
