@@ -32,8 +32,6 @@ WHERE {
     ?related a ?role_type ;
            obo:RO_0000052 ?expert;
     .
-  }
-  GRAPH cdl: {
 	  ?expert ucdlib:proprietary_id ?ucpath .
   }
 } order by ?id_2 ?id_1

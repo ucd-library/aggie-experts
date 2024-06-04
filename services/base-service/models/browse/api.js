@@ -6,195 +6,49 @@ const {config} = require('@ucd-lib/fin-service-utils');
 
 const experts = new ExpertModel();
 
-const openapi = require('@wesleytodd/openapi')
+const { openapi, is_user } = require('../middleware.js')
 
-// This is destined for middleware.js
-function is_user(req,res,next) {
-  if (!req.user) {
-    return res.status(401).send('Unauthorized');
-  }
-  return next();
+function browse_valid_path(options={}) {
+  const def = {
+    "description": "Browse a list of experts",
+    "parameters": [],
+  };
+
+  (options.parameters || []).forEach((param) => {
+    def.parameters.push(openapi.parameters(param));
+  });
+
+  delete options.parameters;
+
+  return openapi.validPath({...def, ...options});
 }
 
-
-const oapi = openapi({
-  openapi: '3.0.3',
-  info: {
-    title: 'Express',
-    description: 'The Browse API returns a list of experts.',
-    version: '1.0.0',
-    termsOfService: 'http://swagger.io/terms/',
-    contact: {
-      email: 'aggie-experts@ucdavis.edu'
-    },
-    license: {
-      name: 'Apache 2.0',
-      url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-    },
-    version: config.experts.version,
-  },
-  servers: [
-    {
-      url: `${config.server.url}/api/browse`
-    }
-  ],
-  tags: [
-    {
-      name: 'browse',
-      description: 'Browse Expert Information'
-    }
-  ]
-})
+function browse_valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
+}
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
-router.use(oapi);
+router.use(openapi);
 
 router.get(
   '/',
   is_user,
-  oapi.validPath(
+  browse_valid_path(
     {
-      "description": "Returns counts for experts A - Z, or if sending query param p={letter}, will return results for experts with last names of that letter",
-      "parameters": [
-        {
-          "in": "query",
-          "name": "p",
-          "description": "The letter the experts last name starts with",
-          "required": false,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "in": "query",
-          "name": "page",
-          "description": "The pagination of results to return, defaults to 1",
-          "required": false,
-          "schema": {
-            "type": "integer"
-          }
-        },
-        {
-          "in": "query",
-          "name": "size",
-          "description": "The number of results to return per page, defaults to 25",
-          "required": false,
-          "schema": {
-            "type": "integer"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful operation",
-          "content": {
-            "application/json": {
-              "total": {
-                "type": "integer"
-              },
-              "hits": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "contactInfo": {
-                      "type": "object",
-                      "properties": {
-                        "hasURL": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "@type": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "@id": {
-                                "type": "string"
-                              },
-                              "url": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "rank": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        },
-                        "hasEmail": {
-                          "type": "string"
-                        },
-                        "hasName": {
-                          "type": "object",
-                          "properties": {
-                            "given": {
-                              "type": "string"
-                            },
-                            "@type": {
-                              "type": "string"
-                            },
-                            "pronouns": {
-                              "type": "string"
-                            },
-                            "@id": {
-                              "type": "string"
-                            },
-                            "family": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "hasTitle": {
-                          "type": "object",
-                          "properties": {
-                            "@type": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "@id": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "hasOrganizationalUnit": {
-                          "type": "object",
-                          "properties": {
-                            "name": {
-                              "type": "string"
-                            },
-                            "@id": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "@id": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+      description: "Returns counts for experts A - Z, or if sending query param p={letter}, will return results for experts with last names of that letter",
+      parameters: ['p', 'page', 'size'],
+      responses: {
+        "200": openapi.response('Browse'),
+        "400": openapi.response('Invalid_request')
       }
     }
   ),
+  browse_valid_path_error,
   async (req, res) => {
   const params = {
     size: 25

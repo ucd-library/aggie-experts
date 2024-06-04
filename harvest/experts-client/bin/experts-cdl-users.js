@@ -6,7 +6,6 @@ import path from 'path';
 import fs from 'fs-extra';
 import md5 from 'md5';
 import { Command } from 'commander';
-import { nanoid } from 'nanoid';
 
 // import { DataFactory } from 'rdf-data-factory';
 // import { BindingsFactory } from '@comunica/bindings-factory';
@@ -58,7 +57,7 @@ async function main(opt) {
     "@context": {
       "@base": "http://experts.ucdavis.edu/",
       "@vocab": "http://vivoweb.org/ontology/core#",
-      "expert": "http://experts.ucdavis.edu/expert/",
+      "expert": "ark:/87287/d7c08j/",
       "schema": "http://schema.org/",
       "ucdlib": "http://schema.library.ucdavis.edu/schema#",
       "identifier": { "@id": "schema:identifier" },
@@ -145,7 +144,7 @@ async function main(opt) {
     console.log(jsonld);
   }
   else if (opt.output) {
-    fs.writeFileSync(opt.output, jsonld);
+    fs.writeFileSync(opt.output, jsonld);b
   }
 
   console.log(`Graph created successfully in dataset '${fuseki.db}'.`);

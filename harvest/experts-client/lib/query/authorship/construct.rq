@@ -231,7 +231,7 @@ WHERE {
       }
     }
   }
-  {
+  OPTIONAL {
     select ?relationship (?pos+1 as ?user_rank)
     WHERE {
       {
