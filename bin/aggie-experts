@@ -558,14 +558,12 @@ function setup() {
 
   function compose() {
     local keycloak=
-    local env org tag mount gcs
-    read env org tag gcs mount <<<$(G "[.env,
-                                        .org // .${G[env]}.org,
-                                        .tag // .${G[env]}.tag,
-                                        .gcs // .${G[env]}.gcs,
-                                        .mount // .${G[env]}.mount] | @tsv")
+    local org tag gcs
+    read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs] | @tsv")
 
     local yq='.'
+    local env=${G[env]}
+    local mount=${G[mount]}
 
     eval "$(cat .env)"
     # Delete unused PORTS
@@ -588,6 +586,9 @@ function setup() {
       fi
       if [[ ! "$mount" =~ "models" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS*" or alias=="DEV_MOUNT_MODELS*"))'
+      fi
+      if [[ ! "$mount" =~ "client" ]]; then
+        yq+='| del(.. | select(anchor=="DEV_MOUNT_CLIENT*" or alias=="DEV_MOUNT_CLIENT*"))'
       fi
       if [[ ! "$mount" =~ "init-fcrepo" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
@@ -713,13 +714,6 @@ function main.cmd() {
     if [[ -n $G[cloudsdk_active_config_name] ]]; then
       export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
     fi
-
-    # Read .configuration paramters
-    while [[ "$1" =~ ^\..*=.* ]]; do
-      local cmd="$(sed -e 's/=\(.*\)$/="\1"/' <<<"$1")"
-      G[jq]="${G[jq]}|$cmd"
-      shift
-    done
 
     # Now command(s)
     for cmd in "$@"; do
