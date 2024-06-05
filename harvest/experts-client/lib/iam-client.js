@@ -42,13 +42,13 @@ export class IAM {
     dev: {
       url: 'https://iet-ws-stage.ucdavis.edu/api/iam/',
       authname: 'iet-ws-stage',
-      secretpath: 'projects/326679616213/secrets/ucdid_auth',
+      secretpath: 'projects/325574696734/secrets/ucdid_auth',
       timeout: 30000
     },
     prod: {
       url: 'https://iet-ws.ucdavis.edu/api/iam/',
       authname: 'iet-ws',
-      secretpath: 'projects/326679616213/secrets/ucdid_auth',
+      secretpath: 'projects/325574696734/secrets/ucdid_auth',
       timeout: 30000
     }
   };

@@ -234,11 +234,6 @@ program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
   .option('--output <output>', 'output directory','.')
-  .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
-  .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
-  .option('--cdl.affected <affected>', 'affected since')
-  .option('--cdl.modified <modified>', 'modified since (YYYY-MM-DD)')
-  .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--cdl.timeout <timeout>', 'Specify CDL API timeout in milliseconds', 30000)
   .option('--author-truncate-to <max>', 'Truncate authors to max', null)
   .option('--author-trim-info', 'Remove extraneous author info', true)
@@ -288,7 +283,6 @@ Object.keys(opt).forEach((k) => {
 if (opt.environment === 'development') {
   opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'qa-oapolicy';
-  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 else if (opt.environment === 'production') {

@@ -137,12 +137,12 @@ Object.keys(opt).forEach((k) => {
 if (opt.environment === 'development') {
   opt.iam.url = 'https://iet-ws-stage.ucdavis.edu/api/iam/';
   opt.iam.authname = 'iet-ws-stage';
-  opt.iam.secretpath = 'projects/326679616213/secrets/ucdid_auth';
+  opt.iam.secretpath = 'projects/325574696734/secrets/ucdid_auth';
 }
 else if (opt.environment === 'production') {
   opt.iam.url = 'https://iet-ws.ucdavis.edu/api/iam/';
   opt.iam.authname = 'iet-ws';
-  opt.iam.secretpath = 'projects/326679616213/secrets/ucdid_auth';
+  opt.iam.secretpath = 'projects/325574696734/secrets/ucdid_auth';
 }
 
 await main(opt);

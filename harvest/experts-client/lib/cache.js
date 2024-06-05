@@ -45,6 +45,7 @@ export class Cache {
     priority: 10,
     deprioritize: false,
     domain: 'ucdavis.edu',
+    cdl: null, // Must be passed in
     iam: null  // Must Be passed in
   };
 
@@ -139,13 +140,14 @@ export class Cache {
       }
       { // Add in cdl cache
         try {
-          await this.cdl.getPostUser(db,user)
-          this.log.info({measure:[user],user},`getPostUser`);
-          await this.cdl.getPostUserRelationships(db,user,'detail=full');
-          this.log.info({measure:[user],user},`getPostUserRelationships`);
+          let db = await this.fuseki.createDb(expert);
+          await this.cdl.getPostUser(db,expert)
+          this.log.info({measure:[expert],expert},`getPostUser`);
+          await this.cdl.getPostUserRelationships(db,expert,'detail=full');
+          this.log.info({measure:[expert],expert},`getPostUserRelationships`);
         }
         catch (e) {
-          this.log.error({ user, error: e }, `error ${user}`);
+          this.log.error({ expert, error: e }, `error ${expert}`);
         }
       }
 

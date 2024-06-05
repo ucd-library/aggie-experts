@@ -1,5 +1,5 @@
 import { Command as OriginalCommand, Option } from 'commander';
-import { ElementsClient } from '@ucd-lib/experts-api';
+import { CdlClient } from './cdl-client.js';
 import { logger } from './logger.js';
 import { IAM } from './iam-client.js';
 
@@ -10,6 +10,7 @@ export class Command extends OriginalCommand {
 
   option_cdl() {
     this.addOption(new Option('--cdl <env>', 'cdl environment').choices(['qa', 'prod']).default('prod'));
+    this.addOption(new Option('--cdl.timeout <timeout>', 'Specify CDL API timeout in milliseconds').default(30000))
     return this;
   }
 
@@ -35,7 +36,11 @@ export class Command extends OriginalCommand {
       opts.log=logger.child({level:opts.log});
     }
     if (opts.cdl) {
-      opts.cdl=ElementsClient.info(opts.cdl);
+      opts.cdl=new CdlClient(
+        { env:opts.cdl,
+          timeout:opts["cdl.timeout"],
+          log:opts.log
+        });
     }
     if (opts.fuseki) {
       opts.fuseki={url:opts.fuseki,type:'tdb2'};

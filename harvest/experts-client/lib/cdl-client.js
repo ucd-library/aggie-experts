@@ -26,13 +26,13 @@ export class CdlClient {
     qa:{
       url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
       authname : 'qa-oapolicy',
-      secretpath : 'projects/326679616213/secrets/cdl_elements_json',
+      secretpath : 'projects/325574696734/secrets/cdl-elements-json',
       timeout : 30000
     },
     prod: {
       url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
       authname : 'oapolicy',
-      secretpath : 'projects/326679616213/secrets/cdl_elements_json',
+      secretpath : 'projects/325574696734/secrets/cdl-elements-json',
       timeout : 30000
     }
   };
@@ -61,7 +61,7 @@ export class CdlClient {
   constructor(opt) {
 
     this.timeout = opt.timeout || 30000;
-    this.logger = opt.logger || logger;
+    this.log = opt.log || logger;
     this.env = opt.env || 'prod';
     this.url = CdlClient.ENV[this.env].url;
     this.authname = CdlClient.ENV[this.env].authname;
@@ -76,9 +76,6 @@ export class CdlClient {
     // Author options
     this.author_truncate_to = opt.authorTruncateTo || 10000;
     this.author_trim_info = opt.authorTrimInfo || false
-    // debugging
-    this.debug_save_xml = opt.debugSaveXml || false
-    this.save_dir = 'saved_xml'
   }
 
   // Get the auth token from the secret manager
@@ -128,6 +125,7 @@ export class CdlClient {
 
   }
 
+
   /**
    * @description Fetch one XML page, save if debugging
    * @param {
@@ -135,59 +133,53 @@ export class CdlClient {
    * @returns XML
    *
    */
-  async getXMLPageAsObj(page, name = 'query', count = 0) {
-    const dir = path.join(this.save_dir, name);
+  async fetchXmlWithTimeout(page, dir, options={}) {
+    const { timeout = this.timeout,
+            count=0,
+            dir='.' } = options;
+
     const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
-    let xml;
 
-    if (this.debug_save_xml) {
-      if (fs.existsSync(fn)) {
-        this.logger.info({fn,action:"read"},`DEBUG: Reading saved: ${fn}`);
-        xml = fs.readFileSync(fn);
+    this.getAuth();
+
+    const controller = options.abort_controller || new AbortController();
+    delete options.abort_controller;
+    const id = setTimeout(() => controller.abort(), timeout);
+
+    let resp;
+    try {
+      resp = await this.fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + this.cdl.authBasic,
+          'Content-Type': 'text/xml'
+        },
+        ...options,
+        signal: controller.signal
+      });
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        const error=new Error('Request timed out');
+        error.status=504;
+        throw error;
       }
+      throw e;
+    } finally {
+      clearTimeout(id);
     }
-    // If not saved, or not found, then fetch
-    if (!xml) {
-      this.getAuth();
-      const requestTimeout = this.timeout; // Set the timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
 
-      try {
-        const response = await fetch(page, {
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'Authorization': 'Basic ' + this.cdl.authBasic,
-            'Content-Type': 'text/xml'
-          }
-        })
-
-        clearTimeout(timeoutId); // Clear the timeout as the request was successful
-
-        if (response.status !== 200) {
-          this.logger.error(`Did not get an OK from the server. Code: ${response.status}`);
-          return null;
-        }
-        xml = await response.text();
-
-      } catch (error) {
-        this.logger.error(`Error fetching ${page}: ${error}`);
-        return null;
-      }
-
-      if (this.debug_save_xml) {
-        try {
-          this.logger.info({action:"save",fn},`DEBUG: writing ${fn}`);
-          fs.ensureFileSync(fn);
-          fs.writeFileSync(fn, xml);
-        } catch (error) {
-          this.logger.error(`Error creating or writing the file: ${error}`);
-        }
-      }
+    if (resp.status !== 200) {
+      let error = new Error(`Error fetching ${url} status ${resp.status}`);
+      error.status = resp.status;
+      throw error;
     }
+    let xml = await response.text();
+
+    fs.ensureFileSync(fn);
+    fs.writeFileSync(fn, xml);
+
     // convert the xml atom feed to json
-    this.logger.info(`Converting ${fn} to json`);
+    this.log.info(`Converting ${fn} to json`);
     const json = await parser.toJson(xml, { object: true, arrayNotation: false });
     return json;
   }
@@ -220,21 +212,21 @@ export class CdlClient {
     performance.mark(name);
     while (nextPage) {
       performance.mark(`${name}_${count}`);
-      const page = await this.getXMLPageAsObj(nextPage,name, count);
-      this.logger.info(
+      const page = await this.getXMLPageAsObj(nextPage,name, {count});
+      this.log.info(
         {measure:[`${name}_${count}`],
          page:count},`fetched`)
-      if (this.debug_save_xml) {
-        const dir = path.join(this.save_dir,name);
-        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
-        try {
-          fs.ensureFileSync(fn);
-          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
-         this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
-        } catch (error) {
-          this.logger.error(`Error creating or writing ${fn}: ${error}`);
-        }
+
+      const dir = path.join(this.save_dir,name);
+      const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
+      try {
+        fs.ensureFileSync(fn);
+        fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+        this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+      } catch (error) {
+        this.log.error(`Error creating or writing ${fn}: ${error}`);
       }
+
       // add the entries to the results array
       if (page?.feed?.entry) {
         results = results.concat(page.feed.entry);
@@ -265,23 +257,22 @@ export class CdlClient {
 
     while (nextPage) {
       let results=[];
-      performance.mark(`${user}_${count}`);
-      const page = await this.getXMLPageAsObj(nextPage,user, count);
-      this.logger.info(
+      performance.mark(`${user}_${cunt}`);
+      const page = await this.getXMLPageAsObj(nextPage,user, {count});
+      this.log.info(
         {measure:[`${user}_${count}`],
          post:"expert",
          user:user,
          page:count},`fetched`)
-      if (this.debug_save_xml) {
-        const dir = path.join(this.save_dir,user);
-        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
-        try {
-          fs.ensureFileSync(fn);
-          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
-          this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
-        } catch (error) {
-          this.logger.error(`Error creating or writing ${fn}: ${error}`);
-        }
+
+      const dir = path.join(this.save_dir,user);
+      const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
+      try {
+        fs.ensureFileSync(fn);
+        fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+        this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+      } catch (error) {
+        this.log.error(`Error creating or writing ${fn}: ${error}`);
       }
 
       // add the entries to the results array
@@ -294,22 +285,21 @@ export class CdlClient {
         contextObj["@graph"] = results;
         let jsonld = JSON.stringify(contextObj);
 
-        if (this.debug_save_xml) {
-          const dir = path.join(this.save_dir,user);
-          const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
-          try {
-            fs.ensureFileSync(fn);
-            fs.writeFileSync(fn, jsonld);
-            this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
-          } catch (error) {
-            this.logger.error(`Error creating or writing ${fn}: ${error}`);
-          }
+        const dir = path.join(this.save_dir,user);
+        const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
+        try {
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, jsonld);
+          this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+        } catch (error) {
+          this.log.error(`Error creating or writing ${fn}: ${error}`);
         }
+
         // Insert into our local Fuseki DB
         await db.createGraphFromJsonLdFile(jsonld);
       }
       // Fetch the next page
-      this.logger.info(
+      this.log.info(
         {
           measure:[`${user}_${count}`,`${user}_${count}_post`],
           user:user,
@@ -349,7 +339,7 @@ export class CdlClient {
       let records = work?.['api:object']?.['api:records']?.['api:record'] || [];
       Array.isArray(records) || (records = [records]);
       records.forEach((record) => {
-        // logger.info(`record: ${record.id}`);
+        // log.info(`record: ${record.id}`);
         let fields = record?.['api:native']?.['api:field'] || [];
         Array.isArray(fields) || (fields = [fields]);
         fields.forEach((field) => {
@@ -377,9 +367,9 @@ export class CdlClient {
 
       performance.mark(`${user}_rel_${count}`);
 
-      const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),count);
+      const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),{count});
       performance.mark(`${user}_rel_${count}_post`);
-      this.logger.info(
+      this.log.info(
         {
           measure:[`${user}_rel_${count}`],
           post:"relationship",
@@ -387,17 +377,16 @@ export class CdlClient {
           page:count},`fetched`);
 
       // Bad writing here
-      if (this.debug_save_xml) {
-        const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
-        const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
-        try {
-          fs.ensureFileSync(fn);
-          fs.writeFileSync(fn, JSON.stringify(page, null, 2));
-          this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
-        } catch (error) {
-          this.logger.error(`Error creating or writing ${fn}: ${error}`);
-        }
+      const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
+      const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
+      try {
+        fs.ensureFileSync(fn);
+        fs.writeFileSync(fn, JSON.stringify(page, null, 2));
+        this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+      } catch (error) {
+        this.log.error(`Error creating or writing ${fn}: ${error}`);
       }
+
       // add the entries to the results array
       if (page?.feed?.entry) {
         entries = entries.concat(page.feed.entry);
@@ -423,23 +412,21 @@ export class CdlClient {
         let jsonld = JSON.stringify(contextObj, null, 2);
 
         // Bad writing here
-        if (this.debug_save_xml) {
-          const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
-          const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
-          try {
-            fs.ensureFileSync(fn);
-            fs.writeFileSync(fn, jsonld);
-            this.logger.info({fn,action:"save",count},`DEBUG: write ${fn}`);
-          } catch (error) {
-            this.logger.error(`Error creating or writing ${fn}: ${error}`);
-          }
+        const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
+        const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
+        try {
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, jsonld);
+          this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+        } catch (error) {
+          this.log.error(`Error creating or writing ${fn}: ${error}`);
         }
 
         // Insert into our local Fuseki DB
         await db.createGraphFromJsonLdFile(jsonld);
       }
       // Fetch the next page
-      this.logger.info(
+      this.log.info(
         {
           measure:[`${user}_rel_${count}`,`${user}_rel_${count}_post`],
           user:user,
