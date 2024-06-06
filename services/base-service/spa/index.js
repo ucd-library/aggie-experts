@@ -13,8 +13,8 @@ app.use((req, res, next) => {
   let user = req.get('x-fin-user');
   if( typeof user === 'string' ) user = JSON.parse(user);
 
-  // skip images
-  if (/\.(png|jpg|jpeg|svg)$/i.test(req.url)) {
+  // skip images/manifests
+  if (/\.(png|jpg|jpeg|svg|json)$/i.test(req.url)) {
     next();
     return;
   }
