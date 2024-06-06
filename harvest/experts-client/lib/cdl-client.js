@@ -13,8 +13,9 @@ import JsonLdProcessor from 'jsonld';
 import path from 'path';
 import parser from 'xml2json';
 import { logger } from './logger.js';
-
+import { GoogleSecret } from '@ucd-lib/experts-api';
 const jp = new JsonLdProcessor();
+const gs = new GoogleSecret();
 
 /** Exports a class
 * @class
@@ -99,7 +100,7 @@ export class CdlClient {
   }
 
   context() {
-    return JSON.parse(JSON.stringify(ExpertsClient.context));
+    return JSON.parse(JSON.stringify(CdlClient.context));
   }
 
   getUserId(user) {
@@ -133,30 +134,30 @@ export class CdlClient {
    * @returns XML
    *
    */
-  async fetchXmlWithTimeout(page, dir, options={}) {
+  async fetchXmlWithTimeout(url, options={}) {
     const { timeout = this.timeout,
             count=0,
             dir='.' } = options;
 
     const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
 
-    this.getAuth();
+    await this.getAuth();
 
     const controller = options.abort_controller || new AbortController();
     delete options.abort_controller;
     const id = setTimeout(() => controller.abort(), timeout);
 
     let resp;
-    try {
-      resp = await this.fetch(url, {
+    const headers = {
         method: 'GET',
         headers: {
-          'Authorization': 'Basic ' + this.cdl.authBasic,
-          'Content-Type': 'text/xml'
-        },
-        ...options,
-        signal: controller.signal
-      });
+          'Authorization': 'Basic ' + this.authBasic,
+          'Accept': 'text/xml'
+        }
+//        signal: controller.signal
+      }
+    try {
+      resp = await fetch(url, headers);
     } catch (e) {
       if (e.name === 'AbortError') {
         const error=new Error('Request timed out');
@@ -173,7 +174,7 @@ export class CdlClient {
       error.status = resp.status;
       throw error;
     }
-    let xml = await response.text();
+    let xml = await resp.text();
 
     fs.ensureFileSync(fn);
     fs.writeFileSync(fn, xml);
@@ -205,7 +206,7 @@ export class CdlClient {
   async getCDLentries(query,name='getCDLentries') {
     let lastPage = false
     let results = [];
-    let nextPage = `${this.cdl.url}/${query}`
+    let nextPage = `${this.url}/${query}`
 
     let count = 0;
 
@@ -245,35 +246,25 @@ export class CdlClient {
    * @returns
    *
    */
-  async getPostUser(db, user, query = 'detail=full') {
+  async getPostUser(db, user, options={}) {
+    const { dir='.' } = options;
     let lastPage = false
     // Get a full profile for the user
-    let nextPage = `${this.cdl.url}/users?username=${user}@ucdavis.edu`
-    if (query) {
-      nextPage += `&${query}`
-    }
+    // remove leading mailto: from user
+    let user_id = user.replace(/^mailto:/, '');
+    let nextPage = `${this.url}/users?username=${user_id}&detail=full`
 
     let count = 0;
 
     while (nextPage) {
       let results=[];
-      performance.mark(`${user}_${cunt}`);
-      const page = await this.getXMLPageAsObj(nextPage,user, {count});
+      performance.mark(`${user}_${count}`);
+      const page = await this.fetchXmlWithTimeout(nextPage,{...options,count});
       this.log.info(
         {measure:[`${user}_${count}`],
          post:"expert",
          user:user,
          page:count},`fetched`)
-
-      const dir = path.join(this.save_dir,user);
-      const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
-      try {
-        fs.ensureFileSync(fn);
-        fs.writeFileSync(fn, JSON.stringify(page, null, 2));
-        this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
-      } catch (error) {
-        this.log.error(`Error creating or writing ${fn}: ${error}`);
-      }
 
       // add the entries to the results array
       if (page?.feed?.entry) {
@@ -285,18 +276,23 @@ export class CdlClient {
         contextObj["@graph"] = results;
         let jsonld = JSON.stringify(contextObj);
 
-        const dir = path.join(this.save_dir,user);
         const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
         try {
           fs.ensureFileSync(fn);
           fs.writeFileSync(fn, jsonld);
-          this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+          this.log.info(
+            {measure:[`${user}_${count}`],
+             post:"expert",
+             user:user,
+             page:count},`to jsonld ${fn}`);
         } catch (error) {
           this.log.error(`Error creating or writing ${fn}: ${error}`);
         }
 
         // Insert into our local Fuseki DB
         await db.createGraphFromJsonLdFile(jsonld);
+      } else {
+        this.log.error(`No entries found for ${user}`);
       }
       // Fetch the next page
       this.log.info(
@@ -323,7 +319,7 @@ export class CdlClient {
   async getPostUserRelationships(db, user, query = 'detail=full') {
     let lastPage = false
     const cdlId = this.getUserId(user);
-    let nextPage = `${this.cdl.url}/users/${cdlId}/relationships`
+    let nextPage = `${this.url}/users/${cdlId}/relationships`
     if (query) {
       nextPage += `?${query}`
     }

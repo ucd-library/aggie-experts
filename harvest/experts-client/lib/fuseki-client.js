@@ -40,27 +40,18 @@ export class FusekiClient {
     }
   }
 
-  async existsDb(opt) {
-    if(typeof opt === 'string') {
-      opt={db:opt};
-    }
-    opt.type ||= this.type;
-    opt.replace ||= this.replace;
-
+  async existsDb(db) {
     let exists = false;
 
     if (!this.url) {
       throw new Error('No Fuseki url specified');
     }
-    if (!opt.type) {
-      throw new Error('No Fuseki type specified');
-    }
-    if (!opt.db) {
+    if (!db) {
       throw new Error('No Fuseki db specified');
     }
 
     const res = await fetch(
-      `${this.url}/\$/datasets/${opt.db}`,
+      `${this.url}/\$/datasets/${db}`,
       {
         method: 'GET',
         headers: {
@@ -72,17 +63,16 @@ export class FusekiClient {
     } else if (res.status === 404) {
       return false;
     } else {
-      throw new Error(`Error checking for db ${opt.db}: ${res.status} ${res.statusText}`);
+      throw new Error(`Error checking for db ${db}: ${res.status} ${res.statusText}`);
     }
   }
 
 
-  async createDb(opt,files) {
-    if(typeof opt === 'string') {
-      opt={db:opt};
+  async createDb(db,opt={},files) {
+    if(typeof opt === 'object') {
+      opt.type ||= this.type;
+      opt.replace ||= this.replace;
     }
-    opt.type ||= this.type;
-    opt.replace ||= this.replace;
 
     let exists = false;
 
@@ -92,12 +82,12 @@ export class FusekiClient {
     if (!opt.type) {
       throw new Error('No Fuseki type specified');
     }
-    if (!opt.db) {
+    if (!db) {
       throw new Error('No Fuseki db specified');
     }
 
     const res = await fetch(
-      `${this.url}/\$/datasets/${opt.db}`,
+      `${this.url}/\$/datasets/${db}`,
       {
         method: 'GET',
         headers: {
@@ -106,10 +96,10 @@ export class FusekiClient {
       });
     if (res.ok) {
       if (opt.replace) {
-        this.log.info({db:opt.db,op:'delete'},`Deleting existing fuseki dataset ${opt.db}`);
-        await this.dropDb(opt);
+        this.log.info({service:'fuseki',db:db,op:'delete'},`Deleting ${db}`);
+        await this.dropDb(db,opt);
       } else {
-        this.log.info({db:opt.db,op:'reuse'},`Using existing fuseki dataset ${opt.db}`);
+        this.log.info({service:'fuseki',db:db,op:'reuse'},`Using ${db}`);
         exists = true;
       }
     }
@@ -119,13 +109,13 @@ export class FusekiClient {
         `${this.url}/\$/datasets`,
         {
           method: 'POST',
-          body: new URLSearchParams({ 'dbName': opt.db, 'dbType': opt.type }),
+          body: new URLSearchParams({ 'dbName': db, 'dbType': opt.type }),
           headers: {
             'Authorization': `Basic ${this.authBasic}`
           }
         });
       if (!res.ok) {
-        throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+        throw new Error(`Create db ${db} failed . Code: ${res.status}`);
       }
     }
 
@@ -141,17 +131,13 @@ export class FusekiClient {
     return db;
   }
 
-  async dropDb(opt) {
-    if(typeof opt === 'string') {
-      opt={db:opt};
-    }
-
-    if (!opt.db) {
+  async dropDb(db) {
+    if (!db) {
       throw new Error('No Fuseki db specified');
     }
 
-    if (this.url && opt.db ) {
-      const res = await fetch(`${this.url}/\$/datasets/${opt.db}`,
+    if (this.url && db ) {
+      const res = await fetch(`${this.url}/\$/datasets/${db}`,
         {
           method: 'DELETE',
           headers: {
@@ -181,14 +167,14 @@ export class FusekiClientDB {
    * upload file to fuseki.  We unambiguousely specify the fuseki endpoint.
    And right now, you can't specify a default graph name for the jsonld file.
   */
-  async addToDb(files) {
+  async addToDb(db,files) {
     files instanceof Array ? files : [files]
     const results = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const jsonld = fs.readFileSync(file);
       // Be good to have verbose output better NDJSON for debugging
-      const res = await fetch(`${this.url}/${opt.db}/data`, {
+      const res = await fetch(`${this.url}/${db}/data`, {
         method: 'POST',
         body: jsonld,
         headers: {
@@ -279,6 +265,10 @@ export class FusekiClientDB {
   async createGraphFromJsonLdFile(jsonld) {
     // Construct URL for uploading the data to the graph
     // Don't include a graphname to use what's in the jsonld file
+    // if jsonld is an object JSON.stringify it
+    if (typeof jsonld === 'object') {
+      jsonld = JSON.stringify(jsonld);
+    }
     const url = `${this.url}/${this.db}/data`;
 
     // Set request options
@@ -290,7 +280,6 @@ export class FusekiClientDB {
       },
       body: jsonld,
     };
-
     // Send the request to upload the data to the graph
     const response = await fetch(url, options);
 

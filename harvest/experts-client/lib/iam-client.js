@@ -24,17 +24,27 @@ export class IAM {
   static context ={
     "@context": {
       "@version":1.1,
-      "@base":"http://iam.ucdavis.edu/",
-      "@vocab":"http://iam.ucdavis.edu/schema#",
-      "iamId":"@id",
-      "orgOId":"@id",
-      "bouOrgOId":{
-        "@type":"@id"
+      "@base":"ark:/87287/d7c08j/user/",
+      "@vocab":"ark:/87287/d7c08j/schema#",
+      "iamId":{
+        "@type":"@id",
+        "@id":"@id",
+        "@context": {
+          "@base":"ark:/87287/d7c08j/user/"
+        }
       },
-      "titleCode":{"@type":"@id",
-                   "@id":"@id",
-                   "@base":"http://experts.ucdavis.edu/position/"
-                  }
+      "bouOrgoid":{
+        "@type":"@id",
+        "@context": {
+          "@base":"ark:/87287/d7c08j/organization/"
+        }
+      },
+      "titleCode":{
+        "@type":"@id",
+        "@context": {
+          "@base":"ark:/87287/d7c08j/position/"
+        }
+      }
     }
   };
 
@@ -100,16 +110,16 @@ export class IAM {
    * @throws {Error} - Throws an error if the person is not found.
    **/
   async profile(expert) {
-    console.log('profile', expert);
     let key=await this.getKey();
     let url=`${this.url}/people/profile/search?key=${key}`
-    this.log.info(`url: ${url}`);
 
+    let id
     if (typeof expert === 'object') {
       if (expert.email) {
+        id = expert.email;
         url = encodeURI(`${url}&email=${expert.email}`);
-        this.log.info(`url: ${url}`);
       } else if (expert.userId) {
+        id = expert.userId;
         url = encodeURI(`${url}&userId=${expert.userId}`);
       } else {
         throw new Error('Invalid expert object');
@@ -119,11 +129,11 @@ export class IAM {
       if (typeof expert !== 'string') {
         throw new Error('Invalid expert');
       }
-      this.log.trace({mark:`profile(${expert})`,expert:expert},`profile(${expert})`);
+      id = expert;
       expert = expert.replace(/^mailto:/, '').replace(/@ucdavis.edu$/, '');
       url = encodeURI(`${url}&userId=${expert}`);
     }
-
+    performance.mark(`profile(${id})`);
     const response = await fetch(url);
 
     if (response.status !== 200) {
@@ -133,9 +143,11 @@ export class IAM {
     if (res == null) {
       throw new Error(`No profiles returned from IAM.`);
     }
-    this.log.info({measure:`profile(${expert})`,expert:expert},`profile(${expert})`);
+    this.log.info({service:'iam',measure:`profile(${id})`},`►profile(${id})◄`);
+    performance.clearMarks(`profile(${id})`);
     return {
-      "@context":this.context(),
+      ...this.context(),
+      "@id":`http://iam.ucdavis.edu/`,
       "@graph":res.responseData.results || []
     };
   }

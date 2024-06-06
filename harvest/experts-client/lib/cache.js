@@ -113,6 +113,7 @@ export class Cache {
     experts=this.normalize_experts(experts);
 
     let expert;
+    let db;
 
     while ((!n || n--)) {
       let next = await this.next(experts);
@@ -120,7 +121,7 @@ export class Cache {
         break;
       }
       let expert = next.expert;
-      this.log.info({mark:expert,expert},`► process(${expert})`);
+      this.log.info({mark:expert,expert},`►process(${expert})`);
       const d=path.join(this.base,expert);
       { // Add in profile
         performance.mark(`iam(${expert})`);
@@ -128,30 +129,35 @@ export class Cache {
         if (!fs.existsSync(pd)) {
           fs.mkdirSync(pd,{recursive:true});
         }
-        // iam profile
         try {
           const profile=await this.iam.profile(expert);
           fs.writeFileSync(path.join(pd,'profile.jsonld'),
                            JSON.stringify(profile,null,2));
-          this.log.info({measure:`iam(${expert})`,expert},'► ◄ iam(${expert})');
+          db = await this.fuseki.createDb(expert,{replace:true});
+          await db.createGraphFromJsonLdFile(profile);
+          this.log.info({measure:`iam(${expert})`,expert},'►iam(${expert})◄');
         } catch (e) {
-          this.log.error({measure:`iam(${expert})`,error:e.message,expert},`'►E◄ iam(${expert})`);
+          this.log.error({measure:`iam(${expert})`,error:e.message,expert},`E iam(${expert})`);
         }
+        performance.clearMarks(`iam(${expert})`);
       }
       { // Add in cdl cache
-        try {
-          let db = await this.fuseki.createDb(expert);
-          await this.cdl.getPostUser(db,expert)
-          this.log.info({measure:[expert],expert},`getPostUser`);
-          await this.cdl.getPostUserRelationships(db,expert,'detail=full');
-          this.log.info({measure:[expert],expert},`getPostUserRelationships`);
-        }
-        catch (e) {
-          this.log.error({ expert, error: e }, `error ${expert}`);
-        }
+        performance.mark(`cdl(${expert})`);
+//        try {
+          const cdl_path=path.join(d,'ark:','87287','d7nh2m');
+          await this.cdl.getPostUser(db,expert,{dir:cdl_path});
+          this.log.info({measure:[expert,`cdl(${expert})`],expert},`getPostUser(${expert})◄`);
+          //await this.cdl.getPostUserRelationships(db,expert,'detail=full');
+          //this.log.info({measure:[expert],expert},`getPostUserRelationships`);
+//        }
+//        catch (e) {
+//          this.log.error({ expert, error: e }, `error ${expert}`);
+//        }
+        this.log.info({measure:`cdl(${expert})`,expert},'►cdl(${expert})◄');
+        performance.clearMarks(`cdl(${expert})`);
       }
 
-      this.log.info({measure:expert,expert},`◄ process($expert)`);
+      this.log.info({measure:expert,expert},`process($expert)◄`);
       performance.clearMarks(expert);
     }
   }
