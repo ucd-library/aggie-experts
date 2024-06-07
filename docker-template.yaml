@@ -26,6 +26,8 @@ services:
     volumes:
       - *SERVICE_ACCOUNT
       - fuseki-data:/home/ucd.process
+      - &DEV_MOUNT_CLIENT ./harvest/experts-client:/usr/local/lib/aggie-experts/experts-client
+      - &DEV_MOUNT_CLIENT_API ./experts-api:/usr/local/lib/experts-api
     ports:
       - ${FUSEKI_PORT}:3030
     environment:
