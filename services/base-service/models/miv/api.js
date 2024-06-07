@@ -52,16 +52,16 @@ async function validate_miv_client(req, res, next) {
   next();
 }
 
-function is_miv(req, res, next) {
-  if (!req.user) {
-    // Try MIV Service Account
-    return is_miv_service_account(req, res, next);
-  }
-  if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
-    return next();
-  }
-  return res.status(403).send('Not Authorized');
-}
+// function is_miv(req, res, next) {
+//   if (!req.user) {
+//     // Try MIV Service Account
+//     return is_miv_service_account(req, res, next);
+//   }
+//   if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
+//     return next();
+//   }
+//   return res.status(403).send('Not Authorized');
+// }
 
 // Middleware to validate client credential token
 async function is_miv_service_account(req, res, next) {
@@ -142,7 +142,7 @@ async function fetchExpertId (req, res, next) {
 router.get(
   '/user',
   validate_miv_client,
-  is_miv,
+  // is_miv,
   validate_admin_client,
   fetchExpertId,
   async (req, res) => {
@@ -159,7 +159,8 @@ router.get(
 router.get(
   '/grants',
   validate_miv_client,
-  is_miv,
+  has_access('miv'),
+  // is_miv,
   validate_admin_client,
   fetchExpertId,
   async (req, res) => {

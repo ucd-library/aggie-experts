@@ -1,10 +1,25 @@
 const OpenAPI = require('@wesleytodd/openapi')
-const {config} = require('@ucd-lib/fin-service-utils');
+const { config } = require('@ucd-lib/fin-service-utils');
+
+function has_access(client) {
+
+  return function(req, res, next) {
+    if (!req.user) {
+      // Try MIV Service Account
+      // return is_miv_service_account(req, res, next);
+      return res.status(401).send('Unauthorized');
+    }
+    if (req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv')) {
+      return next();
+    }
+    return res.status(403).send('Not Authorized');
+  }
+}
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
   const contentType = req.get('Content-Type');
-  if (contentType === 'application/json' || contentType === 'application/ld+json') {
+  if (contentType.startsWith('application/json') || contentType.startsWith('application/ld+json')) {
     // Content-Type is acceptable
     return next();
   } else {
@@ -13,7 +28,7 @@ function json_only(req, res, next) {
   }
 }
 
-function is_user(req,res,next) {
+function is_user(req, res, next) {
   if (!req.user) {
     return res.status(401).send('Unauthorized');
   }
@@ -26,18 +41,18 @@ function user_can_edit(req, res, next) {
   if (!req.user) {
     return res.status(401).send('Unauthorized');
   }
-  if ( req.user?.roles?.includes('admin')) {
+  if (req.user?.roles?.includes('admin')) {
     return next();
   }
 
-  if( expertId === req.user.expertId ) {
+  if (expertId === req.user.expertId) {
     return next();
   }
 
   return res.status(403).send('Not Authorized');
 }
 
-function schema_error (err, req, res, next) {
+function schema_error(err, req, res, next) {
   res.status(err.status).json({
     error: err.message,
     validation: err.validationErrors,
@@ -54,7 +69,7 @@ const openapi = OpenAPI(
       termsOfService: 'http://swagger.io/terms/',
       contact: {
         email: 'experts@ucdavis.edu'
-       },
+      },
       license: {
         name: 'Apache 2.0',
         url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
@@ -643,6 +658,7 @@ openapi.requestBodies(
 module.exports = {
   is_user,
   json_only,
+  has_access,
   user_can_edit,
   openapi,
   schema_error
