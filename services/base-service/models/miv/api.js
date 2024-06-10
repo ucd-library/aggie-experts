@@ -10,6 +10,9 @@ let AdminClient=null;
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 
+const { has_access, is_miv } = require('../middleware.js')
+
+
 let MIVJWKSClient=null;
 
 async function validate_admin_client(req, res, next) {
@@ -225,7 +228,7 @@ router.get(
 
 router.get(
   '/raw_grants',
-  is_miv,
+  // is_miv,
   fetchExpertId,
   async (req, res) => {
     const params = {};
