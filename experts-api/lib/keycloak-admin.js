@@ -135,8 +135,9 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     //try to find the user in keycloak using the IDP email as the username
     try {
       //get the users from keycloak
-      const users = await this.users.findOne({
+      const users = await this.users.find({
         email: email,
+        exact: true
       });
       return users[0];
     } catch (error) {

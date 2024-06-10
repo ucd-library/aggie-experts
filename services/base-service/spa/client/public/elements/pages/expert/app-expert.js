@@ -294,18 +294,21 @@ export default class AppExpert extends Mixin(LitElement)
       validation = Citation.validateTitle(citations);
       if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
+    } finally {
       // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
 
+      // filter out non is-visible citations
+      let citationValidation = Citation.validateIsVisible(citations);
+      if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
+      citations = citations.filter(c => c.relatedBy?.['is-visible']);
+
+      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+
       this.totalCitations = citations.length;
+      this.citations = citations;
     }
 
-    // filter out non is-visible citations
-    let citationValidation = Citation.validateIsVisible(citations);
-    if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
-    citations = citations.filter(c => c.relatedBy?.['is-visible']);
-
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
     let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
 
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);

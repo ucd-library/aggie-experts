@@ -172,12 +172,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       validation = Citation.validateTitle(citations);
       if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
+    } finally {
       // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-      this.totalCitations = citations.length;
-    }
 
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+
+      this.totalCitations = citations.length;
+      this.citations = citations;
+    }
 
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
     let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
