@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "csv-stringify": "^6.5.0"
+  }
+}
