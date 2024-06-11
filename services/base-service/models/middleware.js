@@ -1,20 +1,159 @@
 const OpenAPI = require('@wesleytodd/openapi')
-const { config } = require('@ucd-lib/fin-service-utils');
+const {config, keycloak} = require('@ucd-lib/fin-service-utils');
+const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
+
+let AdminClient=null;
+
+let MIVJWKSClient=null;
+
+async function fetchExpertId (req, res, next) {
+  if (req.query.email || req.query.ucdPersonUUID) {
+    const token = await keycloak.getServiceAccountToken();
+    AdminClient.accessToken = token
+  }
+  let user;
+  try {
+    if (req.query.email) {
+      const email = req.query.email;
+      user = await AdminClient.findByEmail(email);
+    } else if (req.query.ucdPersonUUID) {
+      const ucdPersonUUID = req.query.ucdPersonUUID;
+//      console.log('ucdPersonUUID', ucdPersonUUID);
+      user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send({error: 'Error finding expert with ${req.query}'});
+  }
+
+  if (user && user?.attributes?.expertId) {
+    const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
+    req.query.expertId = expertId;
+    return next();
+  } else {
+    return res.status(404).send({error: `No expert found`});
+  }
+}
+
+async function validate_admin_client(req, res, next) {
+  if (! AdminClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      AdminClient = new ExpertsKcAdminClient(
+        {
+          baseUrl: match[1],
+          realmName: match[2]
+        }
+      );
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  next();
+}
+
+async function validate_miv_client(req, res, next) {
+  console.log('validate_miv_client');
+  if (! MIVJWKSClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      MIVJWKSClient = await jwksClient({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 10,
+        jwksUri: `${match[1]}/realms/aggie-experts-miv/protocol/openid-connect/certs`
+      });
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  console.log('validate_miv_client next');
+  next();
+}
 
 function has_access(client) {
+  console.log('has_access');
 
   return function(req, res, next) {
     if (!req.user) {
       // Try MIV Service Account
-      // return is_miv_service_account(req, res, next);
+      return is_miv_service_account(req, res, next);
       return res.status(401).send('Unauthorized');
     }
     if (req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv')) {
+      console.log('has_access next');
       return next();
     }
+    console.log('has_access 403');
     return res.status(403).send('Not Authorized');
   }
 }
+
+// Middleware to validate client credential token
+async function is_miv_service_account(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token not provided' });
+  }
+
+  try {
+    // Get the public key from the JWKS endpoint
+    const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
+    // Verify the token's signature using the public key
+    const verifiedToken = jwt.verify(token, key.getPublicKey(), { algorithms: ['RS256'] });
+
+    // Validate issuer
+    if (verifiedToken.iss !== 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv') {
+      return res.status(401).json({ error: 'Invalid token issuer' });
+    }
+
+    // Validate audience
+    if (verifiedToken.aud !== 'account') {
+      return res.status(401).json({ error: 'Invalid token audience' });
+    }
+
+    // Validate expiration
+    if (Date.now() >= verifiedToken.exp * 1000) {
+      return res.status(401).json({ error: 'Token has expired' });
+    }
+
+    // Validate request source (optional)
+    //console.log('req', req.ip);
+    //if (req.hostname !== verifiedToken.clientHost) {
+    //  return res.status(401).json({ error: 'Invalid request source' });
+    //}
+
+    // Custom authorization logic
+    // Implement your own logic here based on token claims
+    if (! verifiedToken.resource_access.miv.roles.includes('access')) {
+      return res.status(403).json({ error: 'No Access Role' });
+    }
+    next();
+
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// function is_miv(req, res, next) {
+//   if (!req.user) {
+//     // Try MIV Service Account
+//     return is_miv_service_account(req, res, next);
+//   }
+//   if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
+//     return next();
+//   }
+//   return res.status(403).send('Not Authorized');
+// }
+
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
@@ -658,7 +797,11 @@ openapi.requestBodies(
 module.exports = {
   is_user,
   json_only,
+  validate_miv_client,
+  is_miv_service_account,
   has_access,
+  validate_admin_client,
+  fetchExpertId,
   user_can_edit,
   openapi,
   schema_error

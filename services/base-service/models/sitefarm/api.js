@@ -7,28 +7,9 @@ const { defaultEsApiGenerator } = dataModels;
 const md5 = require('md5');
 const path = require('path');
 
-const { openapi, json_only } = require('../middleware.js')
+const { validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware.js')
+
 let AdminClient=null;
-
-async function validate_admin_client(req, res, next) {
-  if (! AdminClient) {
-    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
-    const oidcbaseURL = config.oidc.baseUrl;
-    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
-
-    if (match) {
-      AdminClient = new ExpertsKcAdminClient(
-        {
-          baseUrl: match[1],
-          realmName: match[2]
-        }
-      );
-    } else {
-      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
-    }
-  }
-  next();
-}
 
 async function convertIds(req, res, next) {
   const id_array = req.params.ids.replace('ids=', '').split(',');
