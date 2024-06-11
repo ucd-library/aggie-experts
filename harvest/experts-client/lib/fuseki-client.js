@@ -103,7 +103,6 @@ export class FusekiClient {
         exists = true;
       }
     }
-
     if (! exists) {
       const res = await fetch(
         `${this.url}/\$/datasets`,
@@ -119,16 +118,17 @@ export class FusekiClient {
       }
     }
 
-    const db=new FusekiClientDB(
-      {url:this.url,
+    const dbclient=new FusekiClientDB(
+      {db:db,
+       url:this.url,
        auth:this.auth,
        authBasic:this.authBasic,
        ...opt});
 
     if (files) {
-      this.files = await db.addToDb(files);
+      this.files = await dbclient.addToDb(files);
     }
-    return db;
+    return dbclient;
   }
 
   async dropDb(db) {
@@ -210,7 +210,7 @@ export class FusekiClientDB {
 
 
     if (!response.ok) {
-      throw new Error(`Failed to execute update. Status code: ${response.status}`);
+      throw new Error(`Failed to execute ${url}. Status code: ${response.status}`);
     }
 
     return await response.text();
@@ -246,7 +246,7 @@ export class FusekiClientDB {
     const options = {
       method: 'POST',
       headers: {
-         'Content-Type': 'application/sparql-query',
+        'Content-Type': 'application/sparql-query',
         'Authorization': `Basic ${this.authBasic}`,
         'Accept': 'application/ld+json'
       },

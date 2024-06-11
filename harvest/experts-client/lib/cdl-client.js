@@ -40,10 +40,10 @@ export class CdlClient {
 
   static context = {
     "@context": {
-      "@base": "http://oapolicy.universityofcalifornia.edu/",
-      "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
-      "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+      "@base": "ark:/87287/d7nh2m/",
+      "@vocab": "ark:/87287/d7nh2m/schema#",
+      "oap": "ark:/87287/d7nh2m/schema#",
+      "api": "ark:/87287/d7nh2m/schema#",
       "id": { "@type": "@id", "@id": "@id" },
       "field-name": "api:field-name",
       "field-number": "api:field-number",
@@ -52,7 +52,7 @@ export class CdlClient {
       "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
     },
-    "@id":'http://oapolicy.universityofcalifornia.edu/'
+    "@id":'ark:/87287/d7nh2m/'
   };
 
   /**
@@ -137,9 +137,10 @@ export class CdlClient {
   async fetchXmlWithTimeout(url, options={}) {
     const { timeout = this.timeout,
             count=0,
+            name='page',
             dir='.' } = options;
 
-    const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.xml');
+    const fn = path.join(dir, `${name}_${count.toString().padStart(3, '0')}.xml`);
 
     await this.getAuth();
 
@@ -197,49 +198,6 @@ export class CdlClient {
   }
 
   /**
-   * @description Generic function to get all the entries from a CDL collection
-   * @param {
-   * } opt
-   * @returns
-   *
-   */
-  async getCDLentries(query,name='getCDLentries') {
-    let lastPage = false
-    let results = [];
-    let nextPage = `${this.url}/${query}`
-
-    let count = 0;
-
-    performance.mark(name);
-    while (nextPage) {
-      performance.mark(`${name}_${count}`);
-      const page = await this.getXMLPageAsObj(nextPage,name, {count});
-      this.log.info(
-        {measure:[`${name}_${count}`],
-         page:count},`fetched`)
-
-      const dir = path.join(this.save_dir,name);
-      const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
-      try {
-        fs.ensureFileSync(fn);
-        fs.writeFileSync(fn, JSON.stringify(page, null, 2));
-        this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
-      } catch (error) {
-        this.log.error(`Error creating or writing ${fn}: ${error}`);
-      }
-
-      // add the entries to the results array
-      if (page?.feed?.entry) {
-        results = results.concat(page.feed.entry);
-      }
-      performance.clearMarks(`${name}_${count}`);
-      count++;
-      nextPage = this.nextPage(page?.feed?.['api:pagination']);
-    }
-    return results;
-  }
-
-  /**
    * @description Get user from CDL and post to a fuseki database
    * @param {
    * } opt
@@ -259,7 +217,7 @@ export class CdlClient {
     while (nextPage) {
       let results=[];
       performance.mark(`${user}_${count}`);
-      const page = await this.fetchXmlWithTimeout(nextPage,{...options,count});
+      const page = await this.fetchXmlWithTimeout(nextPage,{...options,name:'user',count});
       this.log.info(
         {measure:[`${user}_${count}`],
          post:"expert",
@@ -276,7 +234,7 @@ export class CdlClient {
         contextObj["@graph"] = results;
         let jsonld = JSON.stringify(contextObj);
 
-        const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
+        const fn = path.join(dir, `user_${count.toString().padStart(3, '0')}.jsonld`);
         try {
           fs.ensureFileSync(fn);
           fs.writeFileSync(fn, jsonld);
@@ -316,13 +274,11 @@ export class CdlClient {
   * @returns
   *
   */
-  async getPostUserRelationships(db, user, query = 'detail=full') {
+  async getPostUserRelationships(db, user, options={}) {
+    const { dir='.' } = options;
     let lastPage = false
     const cdlId = this.getUserId(user);
-    let nextPage = `${this.url}/users/${cdlId}/relationships`
-    if (query) {
-      nextPage += `?${query}`
-    }
+    let nextPage = `${this.url}/users/${cdlId}/relationships?detail=full`
 
     // Trim extraneous info from authors
     function author_trim_info(author) {
@@ -363,7 +319,7 @@ export class CdlClient {
 
       performance.mark(`${user}_rel_${count}`);
 
-      const page=await this.getXMLPageAsObj(nextPage,path.join(user,this.debugRelationshipDir),{count});
+      const page=await this.fetchXmlWithTimeout(nextPage,{...options,name:'rel',count});
       performance.mark(`${user}_rel_${count}_post`);
       this.log.info(
         {
@@ -371,17 +327,6 @@ export class CdlClient {
           post:"relationship",
           user:user,
           page:count},`fetched`);
-
-      // Bad writing here
-      const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
-      const fn = path.join(dir, 'page_' + count.toString().padStart(3, '0') + '.json');
-      try {
-        fs.ensureFileSync(fn);
-        fs.writeFileSync(fn, JSON.stringify(page, null, 2));
-        this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
-      } catch (error) {
-        this.log.error(`Error creating or writing ${fn}: ${error}`);
-      }
 
       // add the entries to the results array
       if (page?.feed?.entry) {
@@ -408,12 +353,15 @@ export class CdlClient {
         let jsonld = JSON.stringify(contextObj, null, 2);
 
         // Bad writing here
-        const dir = path.join(this.save_dir,user, this.debugRelationshipDir);
-        const fn = path.join(dir, 'jsonld_' + count.toString().padStart(3, '0') + '.json');
+        const fn = path.join(dir, `rel_${count.toString().padStart(3, '0')}.jsonld`);
         try {
           fs.ensureFileSync(fn);
           fs.writeFileSync(fn, jsonld);
-          this.log.info({fn,action:"save",count},`DEBUG: write ${fn}`);
+          this.log.info(
+            {measure:[`${user}_${count}`],
+             post:"relationship",
+             user:user,
+             page:count},`to jsonld ${fn}`);
         } catch (error) {
           this.log.error(`Error creating or writing ${fn}: ${error}`);
         }

@@ -147,7 +147,7 @@ export class IAM {
     performance.clearMarks(`profile(${id})`);
     return {
       ...this.context(),
-      "@id":`http://iam.ucdavis.edu/`,
+      "@id":'ark:/87287/d7c08j/',
       "@graph":res.responseData.results || []
     };
   }

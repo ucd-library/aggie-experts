@@ -1,0 +1,23 @@
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
+PREFIX oap: <ark:/87287/d7nh2m/schema#>
+PREFIX iam: <ark:/87287/d7c08j/schema#>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+select ?EXPERT__ ?EDUROAM__ ?USERID__ ?EMAIL__
+where {
+  graph <ark:/87287/d7nh2m/> {
+    [] oap:username ?EDUROAM__;
+       oap:is-public "true";
+       .
+    bind(replace(?EDUROAM,'@ucdavis.edu','') as ?USERID__)
+  }
+  graph <ark:/87287/d7c08j/> {
+    [] iam:userID ?USERID__;
+          iam:email ?EMAIL__;
+          iam:expertId ?expertId;
+          iam:directory/iam:displayName/iam:nameWwwFlag "Y" ;
+          .
+  }
+  bind(iri(concat("http://experts.ucdavis.edu/expert/",?expertId)) as ?EXPERT__)
+}

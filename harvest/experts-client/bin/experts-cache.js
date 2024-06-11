@@ -1,7 +1,7 @@
 #! /usr/bin/env -S node --no-warnings
 'use strict';
 import { Command } from '../lib/experts-commander.js';
-import Cache from '../lib/cache.js';
+import Cache from '../lib/cache/index.js';
 
 const program = new Command();
 
@@ -24,9 +24,10 @@ program.name('cdl-cache')
   .option_cdl()
   .option_log()
   .option_iam()
+  .option_kcadmin()
   .parse(process.argv);
 
-let opt = program.opts();
+let opt = await program.opts();
 const log = opt.log;
 log.info({mark:'experts-cache'}, 'experts-cache');
 
