@@ -29,7 +29,6 @@ router.get(
   '/grants',
   validate_miv_client,
   has_access('miv'),
-  // is_miv,
   validate_admin_client,
   fetchExpertId,
   async (req, res) => {

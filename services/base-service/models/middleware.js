@@ -8,7 +8,7 @@ let AdminClient=null;
 let MIVJWKSClient=null;
 
 async function fetchExpertId (req, res, next) {
-  if (req.query.email || req.query.ucdPersonUUID) {
+  if (req.query.email || req.query.ucdPersonUUID || req.query.iamId) {
     const token = await keycloak.getServiceAccountToken();
     AdminClient.accessToken = token
   }
@@ -19,8 +19,13 @@ async function fetchExpertId (req, res, next) {
       user = await AdminClient.findByEmail(email);
     } else if (req.query.ucdPersonUUID) {
       const ucdPersonUUID = req.query.ucdPersonUUID;
-//      console.log('ucdPersonUUID', ucdPersonUUID);
+     console.log('ucdPersonUUID', ucdPersonUUID);
       user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
+    }
+    else if (req.query.iamId) {
+      const iamId = req.query.iamId;
+      console.log('iamId', iamId);
+      user = await AdminClient.findOneByAttribute(`iamId:${iamId}`);
     }
   } catch (err) {
     console.error(err);
@@ -36,8 +41,36 @@ async function fetchExpertId (req, res, next) {
   }
 }
 
+async function convertIds(req, res, next) {
+  console.log('convertIds', req.params.ids);
+  const id_array = req.params.ids.replace('ids=', '').split(',');
+
+  const token = await keycloak.getServiceAccountToken();
+  AdminClient.accessToken = token
+
+  let user;
+  req.query.expertIds = [];
+  // for each id, get the expertId
+  for (const iamId of id_array) {
+    try {
+          console.log('iamId', iamId);
+          user = await AdminClient.findOneByAttribute(`iamId:${iamId}`);
+    }
+    catch (err) {
+      console.error(err);
+    }
+
+    if (user && user?.attributes?.expertId) {
+      const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
+      req.query.expertIds.push(expertId);
+    }
+  }
+  return next();
+}
+
 async function validate_admin_client(req, res, next) {
   if (! AdminClient) {
+    console.log('validate_admin_client - creating new client');
     const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
     const oidcbaseURL = config.oidc.baseUrl;
     const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
@@ -49,6 +82,7 @@ async function validate_admin_client(req, res, next) {
           realmName: match[2]
         }
       );
+      console.log('validate_admin_client - created new client');
     } else {
       throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
     }
@@ -57,7 +91,7 @@ async function validate_admin_client(req, res, next) {
 }
 
 async function validate_miv_client(req, res, next) {
-  console.log('validate_miv_client');
+  // console.log('validate_miv_client');
   if (! MIVJWKSClient) {
     const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
     const oidcbaseURL = config.oidc.baseUrl;
@@ -74,12 +108,10 @@ async function validate_miv_client(req, res, next) {
       throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
     }
   }
-  console.log('validate_miv_client next');
   next();
 }
 
 function has_access(client) {
-  console.log('has_access');
 
   return function(req, res, next) {
     if (!req.user) {
@@ -87,11 +119,11 @@ function has_access(client) {
       return is_miv_service_account(req, res, next);
       return res.status(401).send('Unauthorized');
     }
-    if (req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv')) {
+    if (req.user?.roles?.includes('admin') || req.user?.roles?.includes(client)) {
       console.log('has_access next');
       return next();
     }
-    console.log('has_access 403');
+    // console.log('has_access 403');
     return res.status(403).send('Not Authorized');
   }
 }
@@ -142,17 +174,6 @@ async function is_miv_service_account(req, res, next) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
-
-// function is_miv(req, res, next) {
-//   if (!req.user) {
-//     // Try MIV Service Account
-//     return is_miv_service_account(req, res, next);
-//   }
-//   if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
-//     return next();
-//   }
-//   return res.status(403).send('Not Authorized');
-// }
 
 
 // Custom middleware to check Content-Type
@@ -802,6 +823,7 @@ module.exports = {
   has_access,
   validate_admin_client,
   fetchExpertId,
+  convertIds,
   user_can_edit,
   openapi,
   schema_error

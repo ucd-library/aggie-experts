@@ -7,31 +7,7 @@ const { defaultEsApiGenerator } = dataModels;
 const md5 = require('md5');
 const path = require('path');
 
-const { validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware.js')
-
-let AdminClient=null;
-
-async function convertIds(req, res, next) {
-  const id_array = req.params.ids.replace('ids=', '').split(',');
-
-  let user;
-  // for each id, get the expertId
-  for (const ucdPersonUUID of id_array) {
-    try {
-           console.log('ucdPersonUUID', ucdPersonUUID);
-      user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
-    }
-    catch (err) {
-      console.error(err);
-    }
-
-    if (user && user?.attributes?.expertId) {
-      const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
-      req.query.expertId = expertId;
-    }
-  }
-  return next();
-}
+const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware.js')
 
 function siteFarmFormat(req, res, next) {
 
@@ -118,13 +94,16 @@ router.get(
   ),
   sitefarm_valid_path_error,
   json_only,
+  validate_admin_client,
+  validate_miv_client,
+  has_access('sitefarm'),
+  convertIds, // convert submitted iamIds to expertIds
   async (req, res, next) => {
-    const id_array = req.params.ids.replace('ids=', '').split(',');
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
     var doc;
 
-    for (const id of id_array) {
+    for (const id of req.query.expertIds) {
       const expertId = `${expert_model.id}/${id}`;
       try {
         let opts = {
