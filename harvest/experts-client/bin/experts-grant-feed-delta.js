@@ -5,6 +5,7 @@ const { csv } = pkg;
 import fs from 'fs';
 import { Command } from 'commander';
 import { logger } from '../lib/logger.js';
+import { stringify } from 'csv-stringify';
 
 const program = new Command();
 
@@ -289,19 +290,57 @@ async function executeInOrder() {
   await addUserLinks(); // add any user link that references a grant included in the deltaGrants array
 }
 
-executeInOrder().then(() => {
+executeInOrder().then(async () => {
   logger.info('Delta-grants:', deltaGrants.length);
   // Write the delta object to a new CSV file.
   const deltaFilePath = opt.dir + '/delta/' + opt.prefix; // replace with your desired delta CSV file path
-  fs.writeFileSync(deltaFilePath + 'grants_metadata.csv', 'id,category,type,title,c-pi,funder-name,funder-reference,start-date,end-date,amount-value,amount-currency-code,funding-type,c-ucop-sponsor,c-flow-thru-funding,visible\n' + deltaGrants.map((item) => Object.values(item).map(value => `"${value}"`).join(',')).join('\n'));
+  let csvData = deltaGrants.map((item) => Object.values(item));
+  let columns = Object.keys(deltaGrants[0]);
+  const csvString = await new Promise((resolve, reject) => {
+    stringify(csvData, { header: true, columns: columns  }, (err, output) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(output);
+      }
+    });
+  });
 
-  logger.info('Delta-links:', deltaLinks.length);
-  // Write the delta object to a new CSV file.
-  fs.writeFileSync(deltaFilePath + 'grants_links.csv', 'category-1,id-1,category-2,id-2,link-type-id,visible\n' + deltaLinks.map((item) => Object.values(item).map(value => `"${value}"`).join(',')).join('\n'));
+  fs.writeFileSync(deltaFilePath + 'grants_metadata.csv', csvString);
+
+  // Write the deltaLinks object to a new CSV file.
+  csvData = deltaLinks.map((item) => Object.values(item));
+  columns = Object.keys(deltaLinks[0]);
+
+  const csvStringLinks = await new Promise((resolve, reject) => {
+    stringify(csvData, { header: true, columns: columns }, (err, output) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(output);
+      }
+    });
+  }
+  );
+
+  fs.writeFileSync(deltaFilePath + 'grants_links.csv', csvStringLinks);
 
   logger.info('Delta-persons:', deltaPersons.length);
   // Write the delta object to a new CSV file.
-  fs.writeFileSync(deltaFilePath + 'grants_persons.csv', 'category,id,field-name,surname,first-name,full-name\n' + deltaPersons.map((item) => Object.values(item).map(value => `"${value}"`).join(', ')).join('\n'));
+
+  csvData = deltaPersons.map((item) => Object.values(item));
+  columns = Object.keys(deltaPersons[0]);
+  const csvStringPersons = await new Promise((resolve, reject) => {
+    stringify(csvData, { header: true, columns: columns}, (err, output) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(output);
+      }
+    });
+  });
+
+  fs.writeFileSync(deltaFilePath + 'grants_persons.csv', csvStringPersons);
 
   // Count deltaGrants that don't have a link
   let count = 0;

@@ -31,5 +31,6 @@ program
   .command('cdl-edit', 'Edit User Relationships')
   .command('grant-feed', 'Create a CDL Sympletic grant feed')
   .command('grant-feed-delta', 'Create a CDL Sympletic grant feed delta')
+  .command('grant-feed-process', 'Run all the grant feed process steps')
 
 program.parse(process.argv);
