@@ -65,7 +65,7 @@ router.route(
   expert_valid_path(
     {
       description: "Update an expert relationship by id",
-      requestBody: openapi.requestBodies('Relationship_patch'),
+      // requestBody: openapi.requestBodies('Relationship_patch'),
       responses: {
         "204": openapi.response('No_content'),
         "404": openapi.response('Relationship_not_found')
@@ -204,7 +204,7 @@ router.route(
   expert_valid_path(
     {
       description: "Update an experts visibility by expert id",
-      requestBody: openapi.requestBodies('Expert_patch'),
+      // requestBody: openapi.requestBodies('Expert_patch'),
       responses: {
         "204": openapi.response('No_content')
       }
