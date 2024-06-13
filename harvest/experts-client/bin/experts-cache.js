@@ -29,7 +29,7 @@ program.name('cdl-cache')
 
 let opt = await program.opts();
 const log = opt.log;
-log.info({mark:'experts-cache'}, 'experts-cache');
+//log.info({mark:'experts-cache'}, 'experts-cache');
 
 const cache= new Cache(opt);
 
@@ -69,4 +69,4 @@ if (list) {
   log.info({cache: cache}, 'cache');
 }
 
-log.info({measure:'experts-cache'}, 'experts-cache');
+//log.info({measure:'experts-cache'}, 'experts-cache');

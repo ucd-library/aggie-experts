@@ -77,6 +77,7 @@ export class CdlClient {
     // Author options
     this.author_truncate_to = opt.authorTruncateTo || 10000;
     this.author_trim_info = opt.authorTrimInfo || false
+
   }
 
   // Get the auth token from the secret manager
@@ -204,13 +205,19 @@ export class CdlClient {
    * @returns
    *
    */
-  async getPostUser(db, user, options={}) {
-    const { dir='.' } = options;
+  async getPostUser(user, options={}) {
+    const { dir='.', db=null, refetch=false } = options;
     let lastPage = false
     // Get a full profile for the user
     // remove leading mailto: from user
     let user_id = user.replace(/^mailto:/, '');
     let nextPage = `${this.url}/users?username=${user_id}&detail=full`
+
+    const fn = path.join(dir, `user_000.jsonld`);
+    if (!refetch && fs.existsSync(fn)) {
+      this.log.info(`Skipping ${user_id} already fetched`);
+      return;
+    }
 
     let count = 0;
 
@@ -248,7 +255,9 @@ export class CdlClient {
         }
 
         // Insert into our local Fuseki DB
-        await db.createGraphFromJsonLdFile(jsonld);
+        if (db) {
+          await db.createGraphFromJsonLdFile(jsonld);
+        }
       } else {
         this.log.error(`No entries found for ${user}`);
       }
@@ -274,11 +283,17 @@ export class CdlClient {
   * @returns
   *
   */
-  async getPostUserRelationships(db, user, options={}) {
-    const { dir='.' } = options;
+  async getPostUserRelationships(user, options={}) {
+    const { dir='.',db=null, refetch=false } = options;
     let lastPage = false
-    const cdlId = this.getUserId(user);
+    const cdlId = this.getUserId(user_id);
     let nextPage = `${this.url}/users/${cdlId}/relationships?detail=full`
+
+    const fn = path.join(dir, `rel_000.jsonld`);
+    if (!refetch && fs.existsSync(fn)) {
+      this.log.info(`Skipping ${user} relationships already fetched`);
+      return;
+    }
 
     // Trim extraneous info from authors
     function author_trim_info(author) {
@@ -367,7 +382,9 @@ export class CdlClient {
         }
 
         // Insert into our local Fuseki DB
-        await db.createGraphFromJsonLdFile(jsonld);
+        if (db) {
+          await db.createGraphFromJsonLdFile(jsonld);
+        }
       }
       // Fetch the next page
       this.log.info(

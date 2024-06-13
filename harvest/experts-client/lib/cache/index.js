@@ -53,13 +53,14 @@ export class Cache {
     priority: 10,
     deprioritize: false,
     domain: 'ucdavis.edu',
+    refetch: false,
     cdl: null, // Must be passed in
     iam: null,  // Must Be passed in
     kcadmin: null // Must be passed in
   };
 
   constructor(opt) {
-    opt = opt || {};
+     opt = opt || {};
     for (let k in Cache.DEF) {
       this[k] = opt[k] || Cache.DEF[k];
     }
@@ -102,67 +103,66 @@ export class Cache {
   invalidate(users) {
   }
 
-  list(users) {}
-
-
-
   /**
-   * @method transform
-   * @description transform experts into a standard format
-   * @param {Array} experts - limit to these experts
-   * @returns {Array} - an array of processed cache
+   * @method list
+   * @description Show the current cache, perhaps filtered by expert
+   * @param {string or Array} experts - expert or array of experts
+   * @returns {Array} - array of cache ordered by date
    **/
-  async transform(expert,db) {
-//    for (const n of ['expert', 'authorship', 'grant_role']) {
-    for (const n of ['expert']) {
-//      this.log.info({mark:n,user},`splay ${n}`);
+  async list(experts,opts) {
+    let priority =this.priority;
 
-      await (async (n) => {
-        let bind=fs.readFileSync(path.join(__dirname,`query/${n}/bind.rq`),'utf8');
-        let construct=fs.readFileSync(path.join(__dirname,`query/${n}/construct.rq`),'utf8');
-        async function constructRecord(bindings) {
-          let fn = 1; // write to stdout by default
-          if (bindings.get('filename') && bindings.get('filename').value) {
-            if (this.output) {
-              fn = path.join(opt.output, bindings.get('filename').value);
-            } else {
-              fn = bindings.get('filename').value
-            }
-            bindings = bindings.delete('filename');
-          }
-          performance.mark(fn);
+    await this.createCacheDb();
+    let values='';
+    if(experts && experts.length>0) {
+      experts=this.normalize_experts(experts);
+      values=`VALUES ?expert { ${experts.map(expert => `<${expert}>`).join(' ')} }`;
+    }
+    let priority_filter='';
+    if (priority != 'all') {
+      priority_filter=`?expert_queue :priority ?priority.
+                      filter(?priority = ${priority})`;
+    }
+    let limit='';
+    if (opts?.limit) {
+      limit=`limit ${opts.limit}`;
+    }
 
-          for (const [key, value] of bindings) {
-            if (value.termType === 'Literal') {
-              construct = construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
-            } else if (value.termType === 'NamedNode') {
-              construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
-            }
-          }
-          let doc=db.construct(construct);
-//          doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
-          fs.ensureFileSync(fn);
-          fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
-          this.logger.info({measure:[fn],quads:quads.length,user:opt.user},'record');
-          performance.clearMarks(fn);
-        }
+    let query=`
+PREFIX : <http://schema.library.ucdavis.edu/schema/cache#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+construct {
+?expert_queue :iat ?iat;
+	:priority ?priority;
+  :expert ?expert ;
+	.
+} WHERE {
+	select ?expert ?expert_queue ?iat ?priority where {
+    ${values}
+    ?expert :queue ?expert_queue.
+    ?expert_queue :priority ?priority;
+                  :iat ?iat .
+    ${priority_filter}
+    } ORDER BY ?priority ?iat ${limit}
+}
+      `;
 
-        let bindings = await db.query(bind);
-        console.log(bindings);
+    let queue=await this.cacheDb.construct(query);
+    let context=Cache.context;
+    context.iat={};
+    context.priority={};
+    let framed = await jsonld.frame(queue,Cache.context,{omitGraph:false});
 
-//        const queue = new readablePromiseQueue
-//        (
-//          bindingStream, constructRecord,
-//          { name: 'splay', max_promises: 5, logger: this.log }
-//        );
-//        return queue.execute({ via: 'start' });
-      })(n);
-//      this.log.info({measure:[n],user},`splayed ${n}`);
-//      performance.clearMarks(n);
-    };
-//    this.log.info({measure:['splay',user],user},`splayed`);
-//    performance.clearMarks('splay');
+    // Order authors by rank
+    if (! Array.isArray(framed["Queue"])) {
+      framed["Queue"]= [ framed["Queue"] ];
+    }
+    framed["Queue"].sort((a,b) => a.priority-b.priority || a.iat - b.iat);
+    framed["@context"] = "http://schema.library.ucdavis.edu/schema/cache#";
+    return framed;
   }
+
+
 
   /**
    * @method process
@@ -179,80 +179,15 @@ export class Cache {
     }
     experts=this.normalize_experts(experts);
 
-    let expert;
-    let db;
-
     while ((!n || n--)) {
       let next = await this.next(experts);
       if (!next.expert) {
         break;
       }
-      let expert = next.expert;
-      this.log.info({mark:expert,expert},`►process(${expert})`);
-      const d=path.join(this.base,expert);
+      let expert=new CacheExpert(this,next.expert);
 
-      // create new fuseki db
-      db = await this.fuseki.createDb(expert,{replace:true});
-      this.log.info({measure:expert,expert},`✔ fuseki(${expert})`);
-
-      { // Add in profile
-        performance.mark(`iam(${expert})`);
-        const pd = path.join(d,'ark:','87287','d7c08j');
-        if (fs.existsSync(pd)) {
-          fs.rmdirSync(d,{recursive:true});
-          this.log.info({measure:expert,expert},`✖ ${pd}`);
-        }
-        fs.mkdirSync(pd,{recursive:true});
-        this.log.info({measure:expert,expert},`✔ ${pd}`);
-        try {
-          const profile=await this.iam.profile(expert);
-
-          if (this.kcadmin) { // Add keycloak
-            const p=profile['@graph'][0];
-            const kc_user = {
-              firstName : p.oFirstName,
-              lastName : p.oLastName,
-              attributes : {
-                ucdPersonUUID:p.mothraId,
-                iamId:p.iamId
-              }
-            };
-            const kc=await this.kcadmin.getOrCreateExpert(p.email,p.userID,kc_user);
-            const fn=path.join(d,'keycloak.json');
-            fs.writeFileSync(fn,JSON.stringify(kc,null,2));
-            profile['@graph'][0].expertId=kc.attributes['expertId'][0];
-            this.log.info({measure:expert,expert},
-                          `✔ kc(${expert}) expertId=${kc.attributes['expertId'][0]}`);
-          }
-          fs.writeFileSync(path.join(pd,'profile.jsonld'),
-                           JSON.stringify(profile,null,2));
-
-          await db.createGraphFromJsonLdFile(profile);
-          this.log.info({measure:`iam(${expert})`,expert},'✔ iam(${expert})');
-        } catch (e) {
-          this.log.error({measure:`iam(${expert})`,error:e.message,expert},`✖ iam(${expert})`);
-        }
-        performance.clearMarks(`iam(${expert})`);
-      }
-      { // Add in cdl cache
-        performance.mark(`cdl(${expert})`);
-        try {
-          const cdl_path=path.join(d,'ark:','87287','d7nh2m');
-          await this.cdl.getPostUser(db,expert,{dir:cdl_path});
-          this.log.info({measure:[expert,`cdl(${expert})`],expert},`✔ getPostUser(${expert})`);
-        await this.cdl.getPostUserRelationships(db,expert,{dir:cdl_path});
-        this.log.info({measure:[expert,`cdl(${expert}()`],expert},`✔ getPostUserRelationships`);
-        }
-        catch (e) {
-          this.log.error({ expert, error: e }, `error ${expert}`);
-        }
-        this.log.info({measure:`cdl(${expert})`,expert},'✔ cdl(${expert})');
-        performance.clearMarks(`cdl(${expert})`);
-      }
-
-      this.log.info({measure:expert,expert},`✔ fetched($expert)`);
-      this.transform(expert,db);
-      performance.clearMarks(expert);
+      await expert.fetch();
+      await expert.transform();
     }
   }
 
@@ -439,4 +374,167 @@ DELETE {
     return {};
   }
 }
+
+export class CacheExpert {
+  constructor(cache,expert,opts={}) {
+    this.cache=cache;
+    this.log=this.cache.log;
+    this.expert=expert;
+    this.cdl=this.cache.cdl;
+    performance.mark(this.expert);
+    this.base=path.join(this.cache.base,expert);
+  }
+
+  async db() {
+    if (! this._db ) {
+      // create new fuseki db
+      this._db = await this.cache.fuseki.createDb(this.expert,{replace:true});
+      this.log.info({measure:this.expert,expert:this.expert},`✔ fuseki(${this.expert})`);
+    }
+    return this._db;
+  }
+
+  async createGraphFromJsonLd(jsonld) {
+    try {
+      let db=await this.db();
+
+      return await db.createGraphFromJsonld(jsonld);
+      this.log.info({measure:this.expert,expert:this.expert},
+                    `✔ createGraphFromJsonLd(${this.expert})`);
+    } catch (e) {
+      this.log.error({error:e,expert:this.expert},
+                     `✘ createGraphFromJsonLd(${this.expert})`);
+    }
+  }
+
+  async fetch() {
+    const expert=this.expert;
+    this.log.info({measure:expert,expert},`►fetch(${expert})`);
+
+    let db=await this.db();
+
+    { // Add in profile
+      performance.mark(`iam(${expert})`);
+      const pd = path.join(this.base,'ark:','87287','d7c08j');
+      if (fs.existsSync(pd)) {
+        fs.rmdirSync(this.base,{recursive:true});
+        this.log.info({measure:expert,expert},`✖ ${pd}`);
+      }
+      fs.mkdirSync(pd,{recursive:true});
+      this.log.info({measure:expert,expert},`✔ ${pd}`);
+      try {
+        const fn=path.join(pd,'profile.jsonld');
+
+        if ( !fs.existsSync(fn) || this.refetch) {
+          const profile=await this.iam.profile(expert);
+
+          const kc_fn=path.join(this.base,'keycloak.json');
+          if (this.kcadmin && (! fs.existsSync(kc_fn) || this.refetch)) {
+            const p=profile['@graph'][0];
+            const kc_user = {
+              firstName : p.oFirstName,
+              lastName : p.oLastName,
+              attributes : {
+                ucdPersonUUID:p.mothraId,
+                iamId:p.iamId
+              }
+            };
+            const kc=await this.kcadmin.getOrCreateExpert(p.email,p.userID,kc_user);
+            fs.writeFileSync(kc_fn,JSON.stringify(kc,null,2));
+            profile['@graph'][0].expertId=kc.attributes['expertId'][0];
+            this.log.info({measure:expert,expert},
+                          `✔ kc(${expert}) expertId=${kc.attributes['expertId'][0]}`);
+          }
+          fs.writeFileSync(path.join(pd,'profile.jsonld'),
+                           JSON.stringify(profile,null,2));
+          if (this.load_db) {
+            await db.createGraphFromJsonLdFile(profile);
+          }
+          this.log.info({measure:`iam(${expert})`,expert},`✔ iam(${expert})`);
+        }
+      } catch (e) {
+        this.log.error({measure:`iam(${expert})`,
+                        error:e.message,expert},`✘ iam(${expert})`);
+      }
+      performance.clearMarks(`iam(${expert})`);
+    }
+    { // Add in cdl cache
+      performance.mark(`cdl(${expert})`);
+      const cdl_path=path.join(this.base,'ark:','87287','d7nh2m');
+      try {
+        await this.cdl.getPostUser(expert,{dir:cdl_path,db,refetch:this.refetch});
+        this.log.info({measure:[expert,`cdl(${expert})`],expert},`✔ getPostUser(${expert})`);
+        await this.cdl.getPostUserRelationships(expert,{dir:cdl_path,db,refetch:this.refetch});
+        this.log.info({measure:[expert,`cdl(${expert}()`],expert},`✔ getPostUserRelationships`);
+      } catch (e) {
+        this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
+      }
+      this.log.info({measure:`cdl(${expert})`,expert},`✔ cdl(${expert})`);
+      performance.clearMarks(`cdl(${expert})`);
+    }
+    performance.clearMarks(expert);
+  }
+
+  /**
+   * @method transform
+   * @description transform experts into a standard format
+   * @param {Array} experts - limit to these experts
+   * @returns {Array} - an array of processed cache
+   **/
+  async transform() {
+//    for (const n of ['expert', 'authorship', 'grant_role']) {
+    for (const n of ['expert']) {
+//      this.log.info({mark:n,user},`splay ${n}`);
+
+      await (async (n) => {
+        let bind=fs.readFileSync(path.join(__dirname,`query/${n}/bind.rq`),'utf8');
+        let construct=fs.readFileSync(path.join(__dirname,`query/${n}/construct.rq`),'utf8');
+        let db=await this.db();
+        async function constructRecord(bindings) {
+          let fn = 1; // write to stdout by default
+          if (bindings.get('filename') && bindings.get('filename').value) {
+            if (this.output) {
+              fn = path.join(opt.output, bindings.get('filename').value);
+            } else {
+              fn = bindings.get('filename').value
+            }
+            bindings = bindings.delete('filename');
+          }
+          performance.mark(fn);
+
+          for (const [key, value] of bindings) {
+            if (value.termType === 'Literal') {
+              construct = construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+            } else if (value.termType === 'NamedNode') {
+              construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+            }
+          }
+          let doc=await db.construct(construct);
+//          doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
+          fs.ensureFileSync(fn);
+          fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
+          this.logger.info({measure:[fn],quads:quads.length,user:opt.user},'record');
+          performance.clearMarks(fn);
+        }
+
+        let bindings = await db.query(bind);
+        console.log(JSON.stringify(bindings,null,2));
+
+//        const queue = new readablePromiseQueue
+//        (
+//          bindingStream, constructRecord,
+//          { name: 'splay', max_promises: 5, logger: this.log }
+//        );
+//        return queue.execute({ via: 'start' });
+      })(n);
+//      this.log.info({measure:[n],user},`splayed ${n}`);
+//      performance.clearMarks(n);
+    };
+//    this.log.info({measure:['splay',user],user},`splayed`);
+//    performance.clearMarks('splay');
+  }
+
+}
+
+
 export default Cache;
