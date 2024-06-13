@@ -461,14 +461,14 @@ export class CacheExpert {
     { // Add in cdl cache
       performance.mark(`cdl(${expert})`);
       const cdl_path=path.join(this.base,'ark:','87287','d7nh2m');
-      try {
+//      try {
         await this.cdl.getPostUser(expert,{dir:cdl_path,db,refetch:this.refetch});
         this.log.info({measure:[expert,`cdl(${expert})`],expert},`✔ getPostUser(${expert})`);
         await this.cdl.getPostUserRelationships(expert,{dir:cdl_path,db,refetch:this.refetch});
         this.log.info({measure:[expert,`cdl(${expert}()`],expert},`✔ getPostUserRelationships`);
-      } catch (e) {
-        this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
-      }
+//      } catch (e) {
+//        this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
+//      }
       this.log.info({measure:`cdl(${expert})`,expert},`✔ cdl(${expert})`);
       performance.clearMarks(`cdl(${expert})`);
     }

@@ -286,7 +286,7 @@ export class CdlClient {
   async getPostUserRelationships(user, options={}) {
     const { dir='.',db=null, refetch=false } = options;
     let lastPage = false
-    const cdlId = this.getUserId(user_id);
+    const cdlId = this.getUserId(user);
     let nextPage = `${this.url}/users/${cdlId}/relationships?detail=full`
 
     const fn = path.join(dir, `rel_000.jsonld`);
