@@ -8,6 +8,7 @@ PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX schema: <http://schema.org/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
@@ -49,9 +50,18 @@ CONSTRUCT {
              vcard:title ?web_label;
              .
 
+  # FOR Research Areas
+  ?expert vivo:hasResearchArea ?FoR_concept.
+  ?FoR_concept vivo:researchAreaOf ?expert.
+
   # Research Areas
   ?expert vivo:hasResearchArea ?concept.
   ?concept vivo:researchAreaOf ?expert.
+
+  ?concept a skos:Concept;
+           skos:inScheme ?scheme;
+           skos:prefLabel ?concept_label;
+           .
 }
 WHERE {
   bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
@@ -142,16 +152,28 @@ WHERE {
         }
     }
     OPTIONAL {
-      values (?scheme ?vocab) { ("for" FoR:) }
       ?cdl_id :all-labels [
                             :type "keyword-list";
                             :keywords/:keyword [
                                                  :field-value ?value;
-                                                 :scheme ?scheme;
+                                                 :scheme "for";
                                                ]
                           ].
-      bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
+      bind(uri(concat(str(FoR:),replace(?value," .*",""))) as ?FoR_concept)
     }
+    OPTIONAL {
+      values ?scheme_label { "c-ucd-avail" }
+      ?cdl_id :all-labels [
+                            :type "keyword-list";
+                            :keywords/:keyword [
+                                                 :field-value ?concept_label;
+                                                 :scheme ?scheme_label;
+                                               ]
+                          ].
+      bind(uri(concat("ark:/87287/d7nh2m/keyword/",encode_for_uri(?scheme),"/")) as ?scheme)
+      bind(uri(concat(str(?scheme),encode_for_uri(?concept_label))) as ?concept)
+    }
+
   }
   bind(concat(?fn," ",?ln) as ?name)
   bind(uri(concat(str(?expert),"#vcard-oap-1")) as ?vcard)
