@@ -358,6 +358,50 @@ function expand(){
   done
 }
 
+: <<'=cut'
+=pod
+
+=head2 expand_template
+
+Use shell expansion to expand docker-template.yaml with defaults
+
+=cut
+#https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
+function expand_template(){
+  local env=${G[env]}
+  local root="$(${G[git]} rev-parse --show-toplevel)"
+
+#  echo "Expanding ${root}/docker-template.yaml"
+  declare -g -A D
+
+  read D[org] D[tag] D[fin_org] D[fin_tag] \
+       D[host] D[port] \
+       D[gcs_init_data_hydration]\
+       <<<$(G "[.${G[env]}.org,
+           .${G[env]}.tag,
+           .def.fin.org,
+           .def.fin.tag,
+           .${G[env]}.host,
+           .${G[env]}.port,
+           .${G[env]}.gcs.init_data_hydration // .def.gcs.init_data_hydration
+          ] |@tsv")
+
+#  declare -p D
+  local line lineEscaped
+  # the `||` clause ensures that the last line is read even if it doesn't end with \n
+  while IFS= read -r line || [[ -n $line ]]; do
+    # Escape ALL chars. that could trigger an expansion..
+    IFS= read -r -d '' lineEscaped < <(printf %s "$line" | tr '`([$' '\1\2\3\4')
+    #IFS= read -r -d '' lineEscaped < <(printf %s "$line" | tr '($' '\2\4')
+    # ... then selectively reenable ${D[_*_]} references
+    lineEscaped=${lineEscaped//$'\4'\{D$'\3'/\$\{D[} # Variables
+    # Finally, escape embedded double quotes to preserve them.
+    lineEscaped=${lineEscaped//\"/\\\"}
+    eval "printf '%s\n' \"$lineEscaped\"" | tr '\1\2\3\4' '`([$'
+  done < ${root}/docker-template.yaml
+}
+
+
 function prune() {
   local N=${G[dry-run]};
   declare -a services=(init fcrepo base-service)
@@ -510,22 +554,16 @@ function push() {
 function setup() {
   local N=${G[dry-run]};
   local env=${G[env]}
-  local root="$(${G[git]} rev-parse --show-toplevel)"
 
   function env_file() {
     local env=${G[env]}
-    local org tag fin_org fin_tag host port auth client_id sa gcs gaid enable_gaid propagate
-    read org tag fin_org fin_tag host port auth client_id sa gcs gaid enable_gaid propagate\
-          <<<$(G "[.${G[env]}.org,
-                   .${G[env]}.tag,
-                   .def.fin.org,
-                   .def.fin.tag,
-                   .${G[env]}.host,
-                   .${G[env]}.port,
+    local auth client_id sa gcs gaid enable_gaid propagate
+    read auth client_id sa gcs gaid enable_gaid propagate\
+         <<<$(G "[
                    .${G[env]}.auth.server,
                    .${G[env]}.auth.client_id,
                    .${G[env]}.auth.service_account,
-                   .${G[env]}.gcs,
+                   .${G[env]}.gcs.bucket,
                    .${G[env]}.analytics.gaid // .def.analytics.gaid,
                    .${G[env]}.analytics.enable // .def.analytics.enable,
                    .${G[env]}.cdl.propagate_changes // .def.cdl.propagate_changes
@@ -540,12 +578,12 @@ function setup() {
     local oidc=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
     local oidc_env=$(gcloud secrets versions access latest --secret="$oidc")
 
-    echo -e "FIN_URL=$host\nHOST_PORT=$port"
+    if [[ -n ${G[gcs]} ]]; then
+      echo "GCS_BUCKET=${gcs}\n"
+    fi
+
     echo "$srv_env"
-    echo -e "LOCAL_KEYCLOAK=false"
     echo "$oidc_env"
-    echo -e "FIN_ORG=$fin_org\nFIN_TAG=$fin_tag\nORG=$org\nTAG=$tag"
-    echo -e "GCS=$gcs"
     echo -e "CDL_PROPAGATE_CHANGES=$propagate"
     echo -e "GA4_ENABLE_STATS=${enable_gaid}\nGA4_MEASUREMENT_ID=$gaid"
   }
@@ -559,11 +597,14 @@ function setup() {
   function compose() {
     local keycloak=
     local org tag gcs
-    read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs] | @tsv")
+    read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs.bucket] | @tsv")
 
     local yq='.'
     local env=${G[env]}
     local mount=${G[mount]}
+
+    local template=expand_template
+    local root="$(${G[git]} rev-parse --show-toplevel)"
 
     eval "$(cat .env)"
     # Delete unused PORTS
@@ -598,12 +639,12 @@ function setup() {
       fi
     # These are potential others
     else
-      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*")) | del(.services.keycloak)'
+      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
     fi
     if [[ -n $N ]]; then
-      echo "yq '${yq}' < ${root}/docker-template.yaml"
+      echo "yq '${yq}' <<<'${template}'"
     else
-      yq "${yq}" < ${root}/docker-template.yaml
+      yq "${yq}" <<<"${template}"
     fi
   }
   function setup_files() {
@@ -734,11 +775,6 @@ function main.cmd() {
           # Fix mount if exists
           G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
 
-          # Add gcs if exists
-          if [[ -n ${G[gcs]} ]]; then
-            G[jq]="${G[jq]}|.gcs=\"${G[gcs]}\""
-          fi
-
 	        $cmd
 	        ;;
 
@@ -757,6 +793,11 @@ function main.cmd() {
 
         config | G )
           G "$@" ;
+          exit 0
+          ;;
+
+        expand_template )
+          expand_template
           exit 0
           ;;
 

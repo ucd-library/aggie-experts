@@ -1,10 +1,10 @@
 {
   "sync" : {
     "containers" : [{
-      "bucket" : "{{GCS}}",
+      "bucket" : "{{GCS_BUCKET}}",
       "basePath" : "/",
       "direction" : "gcs-to-fcrepo",
-      "initDataHydration" : true
+      "initDataHydration" : {{GCS_INIT_DATA_HYDRATION}},
     }]
   }
 }
