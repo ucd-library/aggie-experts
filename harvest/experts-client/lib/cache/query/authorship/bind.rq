@@ -1,13 +1,14 @@
-prefix : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX : <ark:/87287/d7nh2m/schema#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
-prefix cdl: <ark:/87287/d7_cdltest_/>
 prefix experts: <http://experts.ucdavis.edu/>
-prefix oap: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX oap: <ark:/87287/d7nh2m/schema#>
 prefix expert: <http://experts.ucdavis.edu/expert/>
 prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX iam: <ark:/87287/d7c08j/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
-select distinct (?username as ?USERNAME__) (?expert as ?EXPERT__) (?relationship as ?RELATIONSHIP__) ?filename where {
+select distinct ?filename ?EXPERTID__ ?RELATIONSHIP__
+where {
     VALUES(?oap_type ?cite_include ?bibo_type ?cite_type ?cite_genre) {
       ("book" true bibo:Book "book" "")
       ("chapter" true bibo:Chapter "chapter" "")
@@ -26,8 +27,8 @@ select distinct (?username as ?USERNAME__) (?expert as ?EXPERT__) (?relationship
       #("software" false ucdlib:Work "software" "")
       #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
     }
-  graph oap: {
-    ?relationship :type "publication-user-authorship";
+  graph <ark:/87287/d7nh2m/> {
+    ?RELATIONSHIP__ :type "publication-user-authorship";
 #                  :effective-privacy-level "Public";
 #                  :is-visible "true";
                   :related ?pub;
@@ -41,16 +42,14 @@ select distinct (?username as ?USERNAME__) (?expert as ?EXPERT__) (?relationship
           :is-public "true";
           .
   }
-  graph <http://iam.ucdavis.edu/> {
-    bind(uri(concat(str(expert:),md5(?username))) as ?iam)
-    ?iam a ucdlib:Expert;
-         ucdlib:expert ?expert;
-         ucdlib:expertId ?expertId;
-         ucdlib:is-visible true;
-         .
+  graph <ark:/87287/d7c08j/> {
+    [] iam:userID ?USERID__;
+          iam:email ?EMAIL__;
+          iam:expertId ?EXPERTID__;
+          iam:directory/iam:displayName/iam:nameWwwFlag "Y" ;
+          .
   }
-
-  bind(replace(str(?relationship),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
-  filter(regex(?username,"@ucdavis.edu"))
-  bind(concat("expert/",?expertId,"/",?id,".jsonld.json") as ?filename)
+  bind(iri(concat("http://experts.ucdavis.edu/expert/",?EXPERTID__)) as ?EXPERT__)
+  bind(replace(str(?RELATIONSHIP__),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
+  bind(concat(?EXPERTID__,"/",?id,".jsonld.json") as ?filename)
 }

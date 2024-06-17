@@ -2,6 +2,7 @@ import { Command as OriginalCommand, Option } from 'commander';
 import { CdlClient } from './cdl-client.js';
 import { logger } from './logger.js';
 import { IAM } from './iam-client.js';
+import { FusekiClient } from './fuseki-client.js';
 import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 
 export class Command extends OriginalCommand {
@@ -52,7 +53,10 @@ export class Command extends OriginalCommand {
         });
     }
     if (opts.fuseki) {
-      opts.fuseki={url:opts.fuseki,type:'tdb2'};
+      console.log('FusekiClient');
+      opts.fuseki=new FusekiClient({url:opts.fuseki,
+                                    type:'tdb2',
+                                    log:opts.log});
     }
     if (opts.iam) {
       opts.iam=new IAM(

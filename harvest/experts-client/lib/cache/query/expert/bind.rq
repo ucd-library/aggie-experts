@@ -4,7 +4,7 @@ PREFIX iam: <ark:/87287/d7c08j/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-select ?EXPERT__ ?EDUROAM__ ?USERID__ ?EMAIL__
+select ?filename ?EXPERT__ ?EXPERTID__ ?EDUROAM__ ?USERID__ ?EMAIL__
 where {
   graph <ark:/87287/d7nh2m/> {
     [] oap:username ?EDUROAM__;
@@ -15,9 +15,10 @@ where {
   graph <ark:/87287/d7c08j/> {
     [] iam:userID ?USERID__;
           iam:email ?EMAIL__;
-          iam:expertId ?expertId;
+          iam:expertId ?EXPERTID__;
           iam:directory/iam:displayName/iam:nameWwwFlag "Y" ;
           .
   }
-  bind(iri(concat("http://experts.ucdavis.edu/expert/",?expertId)) as ?EXPERT__)
+  bind(concat(?EXPERTID__,'.jsonld') as ?filename)
+  bind(iri(concat("http://experts.ucdavis.edu/expert/",?EXPERTID__)) as ?EXPERT__)
 }

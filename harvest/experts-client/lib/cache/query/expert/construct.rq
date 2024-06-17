@@ -15,10 +15,10 @@ PREFIX iam: <ark:/87287/d7c08j/schema#>
 
 CONSTRUCT {
   # This add IAM information
-  ?expert a ?emp_type,vivo:Person,ucdlib:Expert;
+  ?EXPERT__ a ?emp_type,vivo:Person,ucdlib:Expert;
           rdfs:label ?label;
-          schema:identifier ?expert,?s;
-          ucdlib:email ?default_email;
+          schema:identifier ?EXPERT__,?s;
+          ucdlib:email ?EMAIL__;
           ucdlib:is-visible ?is_visible;
           vcard:hasName ?vcard_name;
           obo:ARG_2000028 ?vcard;
@@ -54,7 +54,7 @@ CONSTRUCT {
              .
 
   # This adds the CDL information
-  ?expert obo:ARG_2000028 ?oa_vcard;
+  ?EXPERT__ obo:ARG_2000028 ?oa_vcard;
           schema:identifier ?oapolicy_ark;
           ?field_predicate ?field_value;
           ?id_pred ?id_value;
@@ -81,17 +81,17 @@ CONSTRUCT {
              .
 
   # Research Areas
-  ?expert vivo:hasResearchArea ?concept.
-  ?concept vivo:researchAreaOf ?expert.
+  ?EXPERT__ vivo:hasResearchArea ?concept.
+  ?concept vivo:researchAreaOf ?EXPERT__.
 }
   WHERE {
-  bind(uri(concat("http://experts.ucdavis.edu/expert/", "quinn")) as ?expert)
   graph <ark:/87287/d7c08j/> {
-    ?s iam:email ?default_email;
+    ?s iam:email ?default_emai;
        iam:dLastName ?iam_lname;
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty;
-       iam:directory/iam:displayName/iam:nameWwwFlag "Y" .
+       iam:userID ?USERID__;
+       iam:directory/iam:displayName/iam:nameWwwFlag "Y" ;
        .
 
     OPTIONAL { ?s iam:dMiddleName ?iam_mname . }
@@ -121,7 +121,7 @@ CONSTRUCT {
     bind(true as ?is_visible)
 
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
-    bind(uri(concat(str(?expert),"#name")) as ?vcard_name)
+    bind(uri(concat(str(?EXPERT__),"#name")) as ?vcard_name)
   }
   OPTIONAL {
     {
@@ -183,8 +183,8 @@ CONSTRUCT {
       }
     }
   }
-  bind(uri(concat(str(?expert),"#vcard-",?vid)) as ?vcard)
-  bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?default_email,?undefined_var)) as ?email)
+  bind(uri(concat(str(?EXPERT__),"#vcard-",?vid)) as ?vcard)
+  bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?EMAIL__,?undefined_var)) as ?email)
   bind(if(bound(?email),uri(concat("mailto:",?email)),?undefined_var) as ?email_uri)
   bind(coalesce(?ucd_title,uri(concat(str(?vcard),"-title"))) as ?vcard_title)
   bind(if(bound(?website),uri(concat(str(?vcard),"-url")),?undefined_var) as ?vcard_url)
@@ -272,7 +272,7 @@ CONSTRUCT {
       bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
     }
   }
-  bind(uri(concat(str(?expert),"#vcard-oap-1")) as ?oa_vcard)
+  bind(uri(concat(str(?EXPERT__),"#vcard-oap-1")) as ?oa_vcard)
   bind(uri(concat(str(?oa_vcard),"-name")) as ?oa_vcard_name)
   bind(uri(concat('mailto:',str(?email))) as ?oa_vcard_email)
   bind(uri(concat(str(?oa_vcard),"-web-",str(?web_rank))) as ?oa_vcard_web)

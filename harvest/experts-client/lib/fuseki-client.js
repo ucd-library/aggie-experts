@@ -1,15 +1,14 @@
 import fetch from 'node-fetch';
-import { logger } from './logger.js';
 
 export class FusekiClient {
   static DEF= {
     url: 'http://admin:testing123@localhost:3030',
     replace: false,
     type: 'tdb2',
-    log: logger
+    log: null
   };
 
-  constructor(opt) {
+  constructor(opt={}) {
     opt = opt || {};
     for (let k in FusekiClient.DEF) {
       this[k] = opt[k] || FusekiClient.DEF[k];
@@ -86,6 +85,7 @@ export class FusekiClient {
       throw new Error('No Fuseki db specified');
     }
 
+    console.log(`Creating db ${db} with options ${JSON.stringify(opt)}`);
     const res = await fetch(
       `${this.url}/\$/datasets/${db}`,
       {
@@ -96,11 +96,11 @@ export class FusekiClient {
       });
     if (res.ok) {
       if (opt.replace) {
-        this.log.info({service:'fuseki',db:db,op:'delete'},`Deleting ${db}`);
         await this.dropDb(db,opt);
+        this.log.info({lib:'fuseki',db:db,op:'delete'},`✖ dropDb(${db})`);
       } else {
-        this.log.info({service:'fuseki',db:db,op:'reuse'},`Using ${db}`);
         exists = true;
+        this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ existsDb(${db})`);
       }
     }
     if (! exists) {
@@ -114,16 +114,13 @@ export class FusekiClient {
           }
         });
       if (!res.ok) {
-        throw new Error(`Create db ${db} failed . Code: ${res.status}`);
+        console.log(`✘ createDb(${db}) Code: ${res.status}`);
+        throw new Error(`✘ createDb(${db}) Code: ${res.status}`);
       }
+      this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ createDb(${db})`);
     }
 
-    const dbclient=new FusekiClientDB(
-      {db:db,
-       url:this.url,
-       auth:this.auth,
-       authBasic:this.authBasic,
-       ...opt});
+    const dbclient=new FusekiClientDB(this,db,opt);
 
     if (files) {
       this.files = await dbclient.addToDb(files);
@@ -150,11 +147,13 @@ export class FusekiClient {
 }
 
 export class FusekiClientDB {
-  constructor(opts) {
-    this.url = opts.url;
-    this.auth = opts.auth;
-    this.authBasic = opts.authBasic;
-    this.db = opts.db;
+  constructor(client,db,opts) {
+    this.client = client;
+    this.url = client.url;
+    this.auth = client.auth;
+    this.authBasic = client.authBasic;
+    this.log=client.log;
+    this.db = db;
     this.type = opts.type;
     this.replace = opts.replace;
   }
@@ -239,7 +238,7 @@ export class FusekiClientDB {
     return await response.json();
   }
 
-  async construct(query) {
+  async construct(query,opts={}) {
     const url = `${this.url}/${this.db}/query`;
 
     // Set request options
@@ -248,7 +247,8 @@ export class FusekiClientDB {
       headers: {
         'Content-Type': 'application/sparql-query',
         'Authorization': `Basic ${this.authBasic}`,
-        'Accept': 'application/ld+json'
+        'Accept': 'application/ld+json',
+        ...opts
       },
       body: query,
     };
@@ -259,13 +259,18 @@ export class FusekiClientDB {
       throw new Error(`Failed to execute construct. Status code: ${response.status}`);
     }
 
-    return await response.json();
+    if (opts.Accept && opts.Accept !== 'application/ld+json') {
+      return await response.text();
+    } else {
+      return await response.json();
+    }
   }
 
-  async createGraphFromJsonLdFile(jsonld) {
+  async createGraphFromJsonld(jsonld) {
     // Construct URL for uploading the data to the graph
     // Don't include a graphname to use what's in the jsonld file
     // if jsonld is an object JSON.stringify it
+    performance.mark('createGraphFromJsonLdFile');
     if (typeof jsonld === 'object') {
       jsonld = JSON.stringify(jsonld);
     }
@@ -287,6 +292,8 @@ export class FusekiClientDB {
     if (!response.ok) {
       throw new Error(`Failed to create graph. Status code: ${response.status}` + response.statusText);
     }
+    this.log.info({lib:'fuseki',measure:['createGraphFromJsonLdFile'],db:this.db,op:'load'},`✔ createGraphFromJsonLdFile(${this.db})`);
+    performance.clearMarks('createGraphFromJsonLdFile');
 
     return await response.text();
   }

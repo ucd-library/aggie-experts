@@ -1,7 +1,6 @@
 import fs from 'fs-extra';
 import fetch from 'node-fetch';
 import { logger } from '../logger.js';
-import { FusekiClient } from '../fuseki-client.js';
 import jsonld from 'jsonld';
 import path from 'path';
 import { performance } from 'node:perf_hooks';
@@ -13,6 +12,8 @@ import { dirname } from 'path';
 import { exit, versions } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const jp = new jsonld();
 
 export class Cache {
 
@@ -42,11 +43,12 @@ export class Cache {
   };
 
   static DEF = {
-    fuseki: {
-      url: 'http://admin:testing123@fuseki:3030',
-      type: 'tdb2'
-    },
-    log: logger,
+//    fuseki: {
+//      url: 'http://admin:testing123@fuseki:3030',
+//      type: 'tdb2'
+    //    },
+    fuseki:null,
+    log: null,
     max: 'empty',
     timeout: 30000,
     base: './cache',
@@ -59,20 +61,18 @@ export class Cache {
     kcadmin: null // Must be passed in
   };
 
-  constructor(opt) {
-     opt = opt || {};
+  constructor(opt={}) {
     for (let k in Cache.DEF) {
       this[k] = opt[k] || Cache.DEF[k];
     }
-    this.fuseki.log = this.log;
+//    this.fuseki.log = this.log;
   }
 
   async createCacheDb() {
     if (! this.cacheDb) {
-      if (!this.fuseki.url) {
+      if (!this.fuseki) {
         throw new Error('No fuseki url provided');
       }
-      this.fuseki = new FusekiClient(this.fuseki);
       this.cacheDb = await this.fuseki.createDb('cache');
     }
     return this.cacheDb;
@@ -187,7 +187,10 @@ construct {
       let expert=new CacheExpert(this,next.expert);
 
       await expert.fetch();
+      await expert.load();
+      console.log(`Loaded ${expert.expert}`);
       await expert.transform();
+      console.log(`Transformed ${expert.expert}`);
     }
   }
 
@@ -378,9 +381,13 @@ DELETE {
 export class CacheExpert {
   constructor(cache,expert,opts={}) {
     this.cache=cache;
-    this.log=this.cache.log;
-    this.expert=expert;
+    this.iam=cache.iam;
     this.cdl=this.cache.cdl;
+    this.log=this.cache.log;
+    this.kcadmin=this.cache.kcadmin;
+    this.refetch=cache.refetch;
+
+    this.expert=expert;
     performance.mark(this.expert);
     this.base=path.join(this.cache.base,expert);
   }
@@ -388,91 +395,137 @@ export class CacheExpert {
   async db() {
     if (! this._db ) {
       // create new fuseki db
-      this._db = await this.cache.fuseki.createDb(this.expert,{replace:true});
-      this.log.info({measure:this.expert,expert:this.expert},`✔ fuseki(${this.expert})`);
+      const fuseki=this.cache.fuseki;
+      this._db = await fuseki.createDb(this.expert,{replace:false});
     }
     return this._db;
   }
 
-  async createGraphFromJsonLd(jsonld) {
-    try {
-      let db=await this.db();
-
+ async createGraphFromJsonLd(jsonld) {
+   //    try {
+    let db=await this.db();
       return await db.createGraphFromJsonld(jsonld);
-      this.log.info({measure:this.expert,expert:this.expert},
+      this.log.info({lib:'cache',measure:this.expert,expert:this.expert},
                     `✔ createGraphFromJsonLd(${this.expert})`);
-    } catch (e) {
-      this.log.error({error:e,expert:this.expert},
-                     `✘ createGraphFromJsonLd(${this.expert})`);
-    }
+//    } catch (e) {
+//      this.log.error({lib:'cache',error:e,expert:this.expert},
+//                     `✘ createGraphFromJsonLd(${this.expert})`);
+//    }
   }
 
   async fetch() {
     const expert=this.expert;
-    this.log.info({measure:expert,expert},`►fetch(${expert})`);
-
-    let db=await this.db();
+    this.log.info({lib:'cache',measure:expert,expert},`► fetch(${expert})`);
 
     { // Add in profile
       performance.mark(`iam(${expert})`);
       const pd = path.join(this.base,'ark:','87287','d7c08j');
       if (fs.existsSync(pd)) {
-        fs.rmdirSync(this.base,{recursive:true});
-        this.log.info({measure:expert,expert},`✖ ${pd}`);
-      }
-      fs.mkdirSync(pd,{recursive:true});
-      this.log.info({measure:expert,expert},`✔ ${pd}`);
-      try {
-        const fn=path.join(pd,'profile.jsonld');
-
-        if ( !fs.existsSync(fn) || this.refetch) {
-          const profile=await this.iam.profile(expert);
-
-          const kc_fn=path.join(this.base,'keycloak.json');
-          if (this.kcadmin && (! fs.existsSync(kc_fn) || this.refetch)) {
-            const p=profile['@graph'][0];
-            const kc_user = {
-              firstName : p.oFirstName,
-              lastName : p.oLastName,
-              attributes : {
-                ucdPersonUUID:p.mothraId,
-                iamId:p.iamId
-              }
-            };
-            const kc=await this.kcadmin.getOrCreateExpert(p.email,p.userID,kc_user);
-            fs.writeFileSync(kc_fn,JSON.stringify(kc,null,2));
-            profile['@graph'][0].expertId=kc.attributes['expertId'][0];
-            this.log.info({measure:expert,expert},
-                          `✔ kc(${expert}) expertId=${kc.attributes['expertId'][0]}`);
-          }
-          fs.writeFileSync(path.join(pd,'profile.jsonld'),
-                           JSON.stringify(profile,null,2));
-          if (this.load_db) {
-            await db.createGraphFromJsonLdFile(profile);
-          }
-          this.log.info({measure:`iam(${expert})`,expert},`✔ iam(${expert})`);
+        if (this.refetch) {
+          fs.rmdirSync(this.base,{recursive:true});
+          this.log.info({lib:'cache',measure:expert,expert},`✖ ${pd}`);
+        } else {
+          this.log.info({lib:'cache',measure:expert,expert},`✔* ${pd}`);
         }
-      } catch (e) {
-        this.log.error({measure:`iam(${expert})`,
-                        error:e.message,expert},`✘ iam(${expert})`);
+      } else {
+        fs.mkdirSync(pd,{recursive:true});
+        this.log.info({lib:'cache',measure:expert,expert},`✔ ${pd}`);
       }
+//      try {
+        const fn=path.join(pd,'profile.jsonld');
+        let profile
+        if ( !fs.existsSync(fn) || this.refetch) {
+          profile=await this.iam.profile(expert);
+        } else {
+          profile=JSON.parse(fs.readFileSync(fn));
+          this.log.info({lib:'cache',measure:expert,expert},`✔* ${fn}`);
+        }
+
+        const kc_fn=path.join(this.base,'keycloak.json');
+        if (this.kcadmin && (! fs.existsSync(kc_fn) || this.refetch)) {
+          const p=profile['@graph'][0];
+          const kc_user = {
+            firstName : p.oFirstName,
+            lastName : p.oLastName,
+            attributes : {
+              ucdPersonUUID:p.mothraId,
+              iamId:p.iamId
+            }
+          };
+          const kc=await this.kcadmin.getOrCreateExpert(p.email,p.userID,kc_user);
+          fs.writeFileSync(kc_fn,JSON.stringify(kc,null,2));
+          this.log.info({lib:'cache',measure:expert,expert},
+                        `✔ ${kc_fn} expertId=${kc.attributes['expertId'][0]}`);
+          profile['@graph'][0].expertId=kc.attributes['expertId'][0];
+          fs.writeFileSync(fn,JSON.stringify(profile,null,2));
+          this.log.info({lib:'cache',measure:expert,expert},`✔ ${fn}`);
+        } else {
+          this.log.info({lib:'cache',measure:expert,expert},`✔* ${kc_fn}`);
+        }
+        this.log.info({lib:'cache',measure:`iam(${expert})`,expert},`✔ iam(${expert})`);
+//      } catch (e) {
+//        this.log.error({lib:'cache',measure:`iam(${expert})`,
+//                        error:e.message,expert},`✘ iam(${expert})`);
+//      }
       performance.clearMarks(`iam(${expert})`);
     }
     { // Add in cdl cache
       performance.mark(`cdl(${expert})`);
-      const cdl_path=path.join(this.base,'ark:','87287','d7nh2m');
-//      try {
-        await this.cdl.getPostUser(expert,{dir:cdl_path,db,refetch:this.refetch});
-        this.log.info({measure:[expert,`cdl(${expert})`],expert},`✔ getPostUser(${expert})`);
-        await this.cdl.getPostUserRelationships(expert,{dir:cdl_path,db,refetch:this.refetch});
-        this.log.info({measure:[expert,`cdl(${expert}()`],expert},`✔ getPostUserRelationships`);
-//      } catch (e) {
-//        this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
-//      }
-      this.log.info({measure:`cdl(${expert})`,expert},`✔ cdl(${expert})`);
+      const pd=path.join(this.base,'ark:','87287','d7nh2m');
+      if (fs.existsSync(pd)) {
+        if (this.refetch) {
+          fs.rmdirSync(this.base,{recursive:true});
+          this.log.info({lib:'cache',measure:expert,expert},`✖ ${pd}`);
+        } else {
+          this.log.info({lib:'cache',measure:expert,expert},`✔* ${pd}`);
+        }
+      } else {
+        fs.mkdirSync(pd,{recursive:true});
+        this.log.info({lib:'cache',measure:expert,expert},`✔ ${pd}`);
+      }
+
+      const fn=path.join(pd,'user_000.jsonld');
+
+      if ( !fs.existsSync(fn) || this.refetch) {
+//        try {
+          await this.cdl.getPostUser(expert,{dir:pd,refetch:this.refetch});
+          this.log.info({lib:'cache',measure:[expert,`cdl(${expert})`],expert},`✔ getPostUser(${expert})`);
+          await this.cdl.getPostUserRelationships(expert,{dir:pd,refetch:this.refetch});
+        this.log.info({lib:'cache',measure:[expert,`cdl(${expert}()`],expert},`✔ getPostUserRelationships`);
+        this.log.info({lib:'cache',measure:`cdl(${expert})`,expert},`✔ cdl(${expert})`);
+//         } catch (e) {
+//           this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
+//         }
+      } else {
+        this.log.info({lib:'cache',measure:`cdl(${expert})`,expert},`✔* cdl(${expert})`);
+      }
       performance.clearMarks(`cdl(${expert})`);
     }
     performance.clearMarks(expert);
+  }
+
+  async load() {
+    const expert=this.expert;
+    this.log.info({lib:'cache',mark:`load(${expert})`,expert},`► load(${expert})`);
+
+    let db=await this.db();
+
+    const dirs=[ {mark:'base',dir:this.base},
+                 {mark:`iam(${expert})`,dir:path.join(this.base,'ark:','87287','d7c08j')},
+                 {mark:`cdl(${expert})`,dir:path.join(this.base,'ark:','87287','d7nh2m')}
+               ];
+
+    for (const d of dirs) {
+      performance.mark(d.mark);
+      const files=fs.readdirSync(d.dir);
+      const jsonFiles = files.filter(file => path.extname(file) === '.jsonld');
+      for (const file of jsonFiles) {
+        const profile=JSON.parse(fs.readFileSync(path.join(d.dir,file)));
+        await this.createGraphFromJsonLd(profile);
+      }
+    }
+    this.log.info({lib:'cache',measure:`load(${expert})`,expert},`✔ load(${expert})`);
+    performance.clearMarks(`load(${expert})`);
   }
 
   /**
@@ -482,9 +535,12 @@ export class CacheExpert {
    * @returns {Array} - an array of processed cache
    **/
   async transform() {
-//    for (const n of ['expert', 'authorship', 'grant_role']) {
-    for (const n of ['expert']) {
-//      this.log.info({mark:n,user},`splay ${n}`);
+    const base = path.join(this.base, 'fcrepo');
+    const log = this.log;
+
+    //    for (const n of ['expert', 'authorship', 'grant_role']) {
+    for (const n of ['expert', 'authorship']) {
+      //      this.log.info({lib:'cache',mark:n,user},`splay ${n}`);
 
       await (async (n) => {
         let bind=fs.readFileSync(path.join(__dirname,`query/${n}/bind.rq`),'utf8');
@@ -492,45 +548,44 @@ export class CacheExpert {
         let db=await this.db();
         async function constructRecord(bindings) {
           let fn = 1; // write to stdout by default
-          if (bindings.get('filename') && bindings.get('filename').value) {
-            if (this.output) {
-              fn = path.join(opt.output, bindings.get('filename').value);
-            } else {
-              fn = bindings.get('filename').value
-            }
-            bindings = bindings.delete('filename');
+          if (bindings['filename']) {
+            fn = path.join(base, bindings['filename'].value);
+            delete bindings['filename'];
           }
           performance.mark(fn);
 
-          for (const [key, value] of bindings) {
-            if (value.termType === 'Literal') {
-              construct = construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
-            } else if (value.termType === 'NamedNode') {
-              construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+          for (const key in bindings) {
+            const value = bindings[key];
+            if (value.type === 'literal') {
+              construct = construct.replace(new RegExp(`\\?${key}`, 'g'), `"${value.value}"`);
+            } else if (value.type === 'uri')
+            {
+              construct = construct.replace(new RegExp('\\?' + key, 'g'), `<${value.value}>`);
             }
           }
-          let doc=await db.construct(construct);
-//          doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
+//          let doc=await db.construct(construct);
+////          doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
+//          const nquads = await jsonld.canonize(doc, {format: 'application/n-quads'});
+          //          const num = (nquads.match(/\r|\r\n|\n/g) || '').length;
+          const num = 0
           fs.ensureFileSync(fn);
-          fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
-          this.logger.info({measure:[fn],quads:quads.length,user:opt.user},'record');
+//          fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
+          fs.writeFileSync(`${fn}.rq`, construct);
+//          fs.writeFileSync(`${fn}.nq`, nquads);
+          log.info({lib:'cache',measure:[fn],quads:num},'record');
           performance.clearMarks(fn);
         }
 
-        let bindings = await db.query(bind);
-        console.log(JSON.stringify(bindings,null,2));
-
-//        const queue = new readablePromiseQueue
-//        (
-//          bindingStream, constructRecord,
-//          { name: 'splay', max_promises: 5, logger: this.log }
-//        );
-//        return queue.execute({ via: 'start' });
+        let result = await db.query(bind);
+        console.log(JSON.stringify(result, null, 2));
+        for (const bindings of result.results.bindings) {
+          await constructRecord(bindings);
+        }
       })(n);
-//      this.log.info({measure:[n],user},`splayed ${n}`);
+      //      this.log.info({lib:'cache',measure:[n],user},`splayed ${n}`);
 //      performance.clearMarks(n);
     };
-//    this.log.info({measure:['splay',user],user},`splayed`);
+    //    this.log.info({lib:'cache',measure:['splay',user],user},`splayed`);
 //    performance.clearMarks('splay');
   }
 

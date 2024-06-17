@@ -215,7 +215,7 @@ export class CdlClient {
 
     const fn = path.join(dir, `user_000.jsonld`);
     if (!refetch && fs.existsSync(fn)) {
-      this.log.info(`Skipping ${user_id} already fetched`);
+      this.log.info(`✔* getPostUser(${user_id})`);
       return;
     }
 
@@ -253,11 +253,6 @@ export class CdlClient {
         } catch (error) {
           this.log.error(`Error creating or writing ${fn}: ${error}`);
         }
-
-        // Insert into our local Fuseki DB
-        if (db) {
-          await db.createGraphFromJsonLdFile(jsonld);
-        }
       } else {
         this.log.error(`No entries found for ${user}`);
       }
@@ -284,7 +279,7 @@ export class CdlClient {
   *
   */
   async getPostUserRelationships(user, options={}) {
-    const { dir='.',db=null, refetch=false } = options;
+    const { dir='.',refetch=false } = options;
     let lastPage = false
     const cdlId = this.getUserId(user);
     let nextPage = `${this.url}/users/${cdlId}/relationships?detail=full`
@@ -379,11 +374,6 @@ export class CdlClient {
              page:count},`to jsonld ${fn}`);
         } catch (error) {
           this.log.error(`Error creating or writing ${fn}: ${error}`);
-        }
-
-        // Insert into our local Fuseki DB
-        if (db) {
-          await db.createGraphFromJsonLdFile(jsonld);
         }
       }
       // Fetch the next page
