@@ -42,19 +42,22 @@ async function fetchExpertId (req, res, next) {
 }
 
 async function convertIds(req, res, next) {
-  console.log('convertIds', req.params.ids);
+  // console.log('convertIds', req.params.ids);
   const id_array = req.params.ids.replace('ids=', '').split(',');
 
   const token = await keycloak.getServiceAccountToken();
   AdminClient.accessToken = token
 
   let user;
+
   req.query.expertIds = [];
   // for each id, get the expertId
-  for (const iamId of id_array) {
+  for (const theId of id_array) {
     try {
-          console.log('iamId', iamId);
-          user = await AdminClient.findOneByAttribute(`iamId:${iamId}`);
+          //Split the id into the type and the id
+          let idParts = theId.split(':');
+          console.log(idParts[0], idParts[1]);
+          user = await AdminClient.findOneByAttribute(`${idParts[0]}:${idParts[1]}`);
     }
     catch (err) {
       console.error(err);
