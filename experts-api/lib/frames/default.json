@@ -32,6 +32,7 @@
       }
     },
     "Authorship":"vivo:Authorship",
+    "availabilityOf":{"@id":"ucdlib:availabilityOf","@type":"@id"},
     "available-date":{"@id":"cite:available-date"},
     "bearer-of":{"@id":"obo:RO_0000053","@type":"@id"},
     "collection-number":{"@id":"cite:collection-number"},
@@ -94,6 +95,7 @@
       "@type":"@id"
     },
     "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
+    "hasAvailability":{"@id":"ucdlib:hasAvailability","@type":"@id" },
     "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
     "hasName": {
       "@id": "vcard:hasName",

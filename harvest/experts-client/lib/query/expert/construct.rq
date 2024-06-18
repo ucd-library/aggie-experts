@@ -50,13 +50,9 @@ CONSTRUCT {
              vcard:title ?web_label;
              .
 
-  # FOR Research Areas
-  ?expert vivo:hasResearchArea ?FoR_concept.
-  ?FoR_concept vivo:researchAreaOf ?expert.
-
   # Research Areas
-  ?expert vivo:hasResearchArea ?concept.
-  ?concept vivo:researchAreaOf ?expert.
+  ?expert ?hasConcept ?concept.
+  ?concept ?isConceptOf ?expert.
 
   ?concept a skos:Concept;
            skos:inScheme ?scheme;
@@ -161,7 +157,11 @@ WHERE {
     #                       ].
     # }
     OPTIONAL {
-      values ?scheme_label { "c-ucd-avail" "for"}
+      values (?scheme_label ?hasConcept ?isConceptOf) {
+        ("c-ucd-avail" ucdlib:hasAvailability ucdlib:availabilityOf)
+        ("for" vivo:hasResearchArea vivo:researchAreaOf )
+      }
+
       ?cdl_id :all-labels [
                             :type "keyword-list";
                             :keywords/:keyword [
