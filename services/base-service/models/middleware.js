@@ -200,15 +200,14 @@ function is_user(req, res, next) {
 
 
 function user_can_edit(req, res, next) {
-  let expertId = `expert/${req.params.expertId}`;
+  let expertId = `${req.params.expertId}`;
   if (!req.user) {
     return res.status(401).send('Unauthorized');
   }
   if (req.user?.roles?.includes('admin')) {
     return next();
   }
-
-  if (expertId === req.user.expertId) {
+  if( expertId === req?.user?.attributes?.expertId ) {
     return next();
   }
 
