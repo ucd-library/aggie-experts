@@ -34,6 +34,7 @@ construct {
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
+         ucdlib:flowThruFunding ?flow_thru_funding;
          .
 
   ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
@@ -54,6 +55,10 @@ construct {
 
   ?funder a vivo:FundingOrganization;
           schema:name ?funder_label;
+          .
+
+  ?flow_thru_funding a vivo:FundingOrganization;
+                     rdfs:label ?flow_thru_funding_label;
           .
 
   ?interval
@@ -186,6 +191,13 @@ WHERE {
     }
 
     OPTIONAL {
+      ?field :name "c-flow-thru-funding";
+             :type "text";
+             :text ?flow_thru_funding_str;
+             .
+    }
+
+    OPTIONAL {
       ?field :name "funder-name";
              :type "text";
              :text ?funder_label;
@@ -280,6 +292,7 @@ WHERE {
   bind(uri(concat(str(?grant),'#end_date')) as ?ed)
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
+  bind(uri(?flow_thru_funding_str) as ?flow_thru_funding)
   bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
   bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
   bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
