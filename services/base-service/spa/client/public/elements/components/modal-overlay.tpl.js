@@ -109,15 +109,27 @@ export default function render() {
           display: block;
         }
 
+        .overlay .footer-section .footer-buttons {
+          display: flex;
+          flex-direction: column-reverse;
+        }
+
         .overlay .footer-buttons button {
           margin-left: 0;
           display: block;
           width: 100%;
-        }
-
-        .overlay .footer-buttons .btn--primary {
           margin-top: 1rem;
         }
+
+        .btn--primary:before,
+        .btn--invert:before {
+          padding-right: .3rem;
+        }
+      }
+
+      input[type="checkbox"] {
+        height: 1rem;
+        width: 1rem;
       }
     </style>
 
@@ -134,7 +146,7 @@ export default function render() {
         <div class="footer-section">
           <div class="footer-buttons">
             <button ?hidden="${this.hideCancel}" class="btn btn--invert" @click="${this._onCancel}">Cancel</button>
-            <button ?hidden="${this.hideSave}" class="btn btn--primary" @click="${this._onSave}">${this.title}</button>
+            <button ?hidden="${this.hideSave}" class="btn btn--primary" @click="${this._onSave}">${this.saveText || this.title}</button>
             <a ?hidden="${this.hideOaPolicyLink}" href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=3&am=false&cid=1&ipr=false&iqf=true" class="btn btn--primary">${(this.title || '').replace('New ', '')}</a>
             <button ?hidden="${this.hideOK}" class="btn btn--primary ok" @click="${this._onCancel}">OK</button>
           </div>
