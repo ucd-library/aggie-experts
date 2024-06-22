@@ -63,7 +63,10 @@ class Utils {
         break;
     }
 
-    return readableType;
+    // return title case
+    return readableType.split(' ')
+                       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                       .join(' ');
   }
 
   /**

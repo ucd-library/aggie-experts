@@ -4,7 +4,6 @@ PREFIX ae: <ark:/87287/d7c08j/>
 PREFIX iam: <http://iam.ucdavis.edu/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX grant: <ark:/87287/d7gt0q/grant/>
-PREFIX ae:  <ark:/87287/d7c08j/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>

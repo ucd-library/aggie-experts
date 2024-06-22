@@ -1,3 +1,6 @@
+const SearchModel = require('./model.js');
+
 module.exports = {
-  api : require('./api.js')
+  api : require('./api.js'),
+  model : new SearchModel()
 }

@@ -1,0 +1,13 @@
+* Siege Testing
+
+  This Makefile performs some siege testing on an Aggie Experts instance.  There
+  are browse, experts, and search tests, although searches seem to be the only
+  ones that tax the system. Run like:
+
+#+begin_src bash
+  make host=${host} urls=search d=results/stage32 siege
+#+end_src
+
+Where host is the aggie-experts host, d is the results directory, and ~urls~ are
+the tests to run eg. ~urls="search experts browse" See the Makefile for other
+parameters.

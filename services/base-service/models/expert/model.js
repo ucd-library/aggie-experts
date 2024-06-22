@@ -60,24 +60,46 @@ class ExpertModel extends BaseModel {
     if (doc["is-visible"] === false) {
       throw {status: 404, message: "Not found"};
     }
-    for(let i=0; i<doc["@graph"].length; i++) {
-      logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
-      if ((("is-visible" in doc["@graph"][i])
-           && doc["@graph"][i]?.["is-visible"] !== true) ||
-          (doc["@graph"][i].relatedBy && ("is-visible" in doc["@graph"][i].relatedBy)
-           && doc["@graph"][i]?.relatedBy?.["is-visible"] !== true))
-      { // remove this graph node
-        if (doc["@graph"][i]?.["@type"] === "Expert") {
-          throw {status: 404, message: "Not found"};
-        } else {
-          logger.info({function:"sanitize"},`_x_${doc["@graph"][i]["@id"]}`);
-          doc["@graph"].splice(i, 1);
-          i--;
-        }
-      } else { // sanitize this graph node
-        logger.info({function:"sanitize"},`Deleting totalAwardAmount=${doc["@graph"][i]?.["totalAwardAmount"]}`);
-        delete doc["@graph"][i]["totalAwardAmount"];
+
+    function spliceOut(i) {
+      if (doc["@graph"][i]?.["@type"] === "Expert") {
+        throw {status: 404, message: "Not found"};
+      } else {
+        logger.info({function:"sanitize/spliceOut",i},`_x_${doc["@graph"][i]["@id"]}`);
+        doc["@graph"].splice(i, 1);
       }
+    }
+
+    graph_loop: for(let i=0; i<doc["@graph"].length; i++) {
+      // logger.info({function:"sanitize",i,visible:(("is-visible" in doc["@graph"][i]) &&
+      //    doc["@graph"][i]?.["is-visible"] !== true)},`${doc["@graph"][i]["@id"]}`);
+      // Node is not visible
+      if (("is-visible" in doc["@graph"][i]) &&
+          doc["@graph"][i]?.["is-visible"] !== true) {
+        spliceOut(i--);
+        continue graph_loop;
+      }
+
+      if (doc["@graph"][i].relatedBy) {
+        // relatedby is doc["@graph"][i]["relatedBy"] but always an array
+        const relatedBy = Array.isArray(doc["@graph"][i].relatedBy) ?
+              doc["@graph"][i].relatedBy : [doc["@graph"][i].relatedBy];
+        for (let j=0; j<relatedBy.length; j++) {
+          if ("is-visible" in relatedBy[j] && relatedBy[j]?.["is-visible"] !== true) {
+            spliceOut(i--);
+            continue graph_loop;
+          }
+        }
+      }
+      // Sanitize this node if it is an Grant (esp.)
+      delete doc["@graph"][i]["totalAwardAmount"];
+      // Sanitize identifiers (This is no longer required)
+      // TODO: Remove this after testing
+      ["ucdlib:email","ucdlib:employeeId","ucdlib:ucdPersonUUId"].forEach((key) => {
+        if (doc["@graph"]?.[i]?.[key]) {
+          delete doc["@graph"][i][key];
+        }
+      });
     }
     return doc;
   }
@@ -231,7 +253,7 @@ class ExpertModel extends BaseModel {
     let expert;
      let resp;
 
-    logger.info(`expert.patch(${expertId}):`,patch);
+    logger.info(patch,`expert.patch(${expertId})`);
     if (patch.visible == null ) {
       throw new Error('Invalid patch, visible is required');
     }
@@ -314,14 +336,11 @@ class ExpertModel extends BaseModel {
     );
 
     if (config.experts.cdl.expert.propagate) {
-      const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.expert);
-      if (patch.visible != null) {
-        let resp = await cdl_user.updateUserPrivacyLevel({
-          userId: expertId,
-          privacy: patch.visible ? 'public' : 'internal'
-        })
-        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
-      }
+      const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
+      let resp = await cdl_user.updateUserPrivacyLevel({
+        privacy: 'internal'
+      })
+      logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
     } else {
       logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
     }

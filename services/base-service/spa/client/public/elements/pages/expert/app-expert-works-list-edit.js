@@ -104,7 +104,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let expertId = e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('impersonateId') === expertId);
+    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
@@ -172,12 +172,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       validation = Citation.validateTitle(citations);
       if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
+    } finally {
       // filter out invalid citations
       citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-      this.totalCitations = citations.length;
-    }
 
-    this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+
+      this.totalCitations = citations.length;
+      this.citations = citations;
+    }
 
     let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
     let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
@@ -313,7 +316,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     link.click();
     document.body.removeChild(link);
 
-    gtag('event', 'works_download', {});
+    if( window.gtag ) gtag('event', 'citation_download', {});
   }
 
   /**
@@ -344,6 +347,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     try {
       let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
       this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      if( window.gtag ) {
+        gtag('event', 'citation_is_visible', {
+          'description': 'citation ' + this.citationId + ' shown for expert ' + this.expertId,
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
+          'fatal': false
+        });
+      }
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -358,6 +370,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.hideOK = false;
       this.hideOaPolicyLink = true;
       this.errorMode = true;
+
+      if( window.gtag ) {
+        gtag('event', 'citation_is_visible', {
+          'description': 'attempted to show citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
+          'fatal': false
+        });
+      }
 
       return;
     }
@@ -386,6 +407,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       try {
         let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
         this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        if( window.gtag ) {
+          gtag('event', 'citation_is_visible', {
+            'description': 'citation ' + this.citationId + ' hidden for expert ' + this.expertId,
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -401,6 +431,14 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
 
+        if( window.gtag ) {
+          gtag('event', 'citation_is_visible', {
+            'description': 'attempted to hide citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
       }
 
       // update graph/display data
@@ -417,6 +455,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       try {
         let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
         this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        if( window.gtag ) {
+          gtag('event', 'citation_reject', {
+            'description': 'citation ' + this.citationId + ' rejected for expert ' + this.expertId,
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -432,6 +479,14 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.hideOaPolicyLink = true;
         this.errorMode = true;
 
+        if( window.gtag ) {
+          gtag('event', 'citation_reject', {
+            'description': 'attempted to reject citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+            'relationshipId': this.citationId,
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
       }
 
       // remove citation from graph/display data

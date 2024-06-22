@@ -2,10 +2,54 @@ const router = require('express').Router();
 const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
 const template = require('./template/family_prefix.json');
+const {config} = require('@ucd-lib/fin-service-utils');
 
 const experts = new ExpertModel();
 
-router.get('/', async (req, res) => {
+const { openapi, is_user } = require('../middleware.js')
+
+function browse_valid_path(options={}) {
+  const def = {
+    "description": "Browse a list of experts",
+    "parameters": [],
+  };
+
+  (options.parameters || []).forEach((param) => {
+    def.parameters.push(openapi.parameters(param));
+  });
+
+  delete options.parameters;
+
+  return openapi.validPath({...def, ...options});
+}
+
+function browse_valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
+}
+
+// This will serve the generated json document(s)
+// (as well as the swagger-ui if configured)
+router.use(openapi);
+
+router.get(
+  '/',
+  is_user,
+  browse_valid_path(
+    {
+      description: "Returns counts for experts A - Z, or if sending query param p={letter}, will return results for experts with last names of that letter",
+      parameters: ['p', 'page', 'size'],
+      responses: {
+        "200": openapi.response('Browse'),
+        "400": openapi.response('Invalid_request')
+      }
+    }
+  ),
+  browse_valid_path_error,
+  async (req, res) => {
   const params = {
     size: 25
   };
