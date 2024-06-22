@@ -8,6 +8,9 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.
 
 import "../../components/search-box";
 import "../../components/search-result-row";
+import "../../components/category-filter-controller.js";
+// import '../../components/date-range-filter.js';
+// import '../../components/histogram.js';
 
 import utils from '../../../lib/utils';
 
@@ -24,6 +27,7 @@ export default class AppSearch extends Mixin(LitElement)
       totalResultsCount : { type : Number },
       rawSearchData : { type : Object },
       resultsLoading : { type : String },
+      filters : { type : Array },
     }
   }
 
@@ -40,6 +44,14 @@ export default class AppSearch extends Mixin(LitElement)
     this.totalResultsCount = 0;
     this.rawSearchData = {};
     this.resultsLoading = '...';
+
+    this.filters = [
+      { label: 'All Results', count: 1000, icon: 'fa-infinity', active: true },
+      { label: 'Experts', count: 100, icon: 'fa-user', active: false },
+      { label: 'Grants', count: 50, icon: 'fa-file-invoice-dollar', active: false },
+      { label: 'Works', count: 500, icon: 'fa-book-open', active: false },
+      { label: 'Subjects', count: 350, icon: 'lightbulb-on', active: false }
+    ];
 
     this.render = render.bind(this);
   }
@@ -239,6 +251,10 @@ export default class AppSearch extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  _onFilterChange(e) {
+    console.log('TODO handle filter change', e.detail);
   }
 
 }

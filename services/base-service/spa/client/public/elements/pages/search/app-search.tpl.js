@@ -54,11 +54,63 @@ return html`
       margin-right: .3rem;
     }
 
-    .search-content {
-      display: block;
-      width: 53.5rem;
-      padding: 3rem 0rem 4.1875rem 0rem;
-      margin: 0 auto;
+    .search-container {
+      display: flex;
+      padding: 3rem 3.5625rem 4.1875rem 3.5625rem;
+      align-items: flex-start;
+      align-content: flex-start;
+      gap: 0rem 3.5625rem;
+      flex-wrap: wrap;
+      margin: auto;
+    }
+
+    .search-container .refine-search {
+      display: flex;
+      padding: 1.1875rem 1.1875rem 1.1875rem 0;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 15rem;
+    }
+
+    .search-container .refine-search h3 {
+      color: var(--ucd-blue-100, #022851);
+      font-size: 2.06938rem;
+      font-style: italic;
+      font-weight: 700;
+      line-height: 2.48313rem;
+      margin-top: 0;
+      margin-bottom: 1.78rem;
+    }
+
+    .search-container .search-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.1875rem;
+      flex-grow: 1;
+    }
+
+    .search-container .search-content > * {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .search-container .open-to {
+      display: flex;
+      padding: 0rem 0.59375rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.59375rem;
+      align-self: stretch;
+    }
+
+    .search-container .open-to label {
+      display: flex;
+      align-items: center;
+    }
+
+    .search-container .open-to label input[type="checkbox"] {
+      margin-right: .5rem;
     }
 
     .search-results-heading {
@@ -68,13 +120,26 @@ return html`
       padding-top: .8rem;
     }
 
+    .search-container .open-to-heading h4 {
+      margin-bottom: 1.19rem;
+      margin-top: 0;
+    }
+
+    .search-container .date-filter-heading h4 {
+      margin-top: 2.38rem;
+      margin-bottom: 1.78rem;
+    }
+
     .results-count {
       flex: 1 0 0;
       color: var(--ucd-blue-100, #022851);
       font-size: 1.3rem;
-      font-style: italic;
       font-weight: 700;
       line-height: 1.74625rem;
+    }
+
+    .results-count {
+      font-style: italic;
     }
 
     .btn.download {
@@ -88,6 +153,11 @@ return html`
       border-top: 1px solid var(--color-aggie-blue-40);
       padding: 0;
       margin: 1.19rem 0;
+    }
+
+    .refine-search .search-seperator {
+      width: 100%;
+      margin: 2.38rem 0;
     }
 
     .select-page-size {
@@ -148,6 +218,14 @@ return html`
       justify-content: space-between;
     }
 
+    category-filter-controller {
+      width: 100%;
+    }
+
+    date-range-filter {
+      width: 100%;
+    }
+
     @media (max-width: 992px) {
       .search-content {
         width: 90%;
@@ -167,58 +245,97 @@ return html`
     </div>
   </div>
 
-  <div class="search-content">
-    <app-search-box
-      id="searchBox"
-      is-gold
-      search-rounded
-      @search="${this._onSearch}"
-      placeholder="search"
-      search-term="${this.searchTerm}">
-    </app-search-box>
+  <div class="search-container">
+    <div class="refine-search">
 
-    <div class="search-results-heading">
-      <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
-      <div class="download">
-        <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
+      <!-- <h3>Refine Results</h3> -->
+      <!-- <category-filter-controller @filter-change="${this._onFilterChange}" .filters="${this.filters}"></category-filter-controller>
+
+      <hr class="search-seperator"> -->
+
+      <div class="open-to-heading">
+        <h4>Experts Open To</h4>
       </div>
+      <div class="open-to">
+        <label>
+          <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
+          Collaborative Projects
+        </label>
+        <label>
+          <input type="checkbox" id="comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}">
+          Community Partnerships
+        </label>
+        <label>
+          <input type="checkbox" id="indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}">
+          Industry Projects
+        </label>
+        <label>
+          <input type="checkbox" id="media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}">
+          Media Interviews
+        </label>
+      </div>
+
+      <!-- <div class="date-filter-heading">
+        <h4>Date (Works, Grants)</h4>
+      </div>
+      <date-range-filter></date-range-filter> -->
+
+      <!-- <range-slider-with-histogram></range-slider-with-histogram> -->
+
     </div>
+    <div class="search-content">
+      <app-search-box
+        id="searchBox"
+        is-gold
+        search-rounded
+        @search="${this._onSearch}"
+        placeholder="search"
+        search-term="${this.searchTerm}">
+      </app-search-box>
 
-    <div class="search-results">
-      <div class="search-heading">
-        <div class="select-page-size">
-          <select name="page-size" id="page-size" @change="${this._onPageSizeChange}">
-            <option value="25" ?selected="${this.resultsPerPage === 25}">25</option>
-            <option value="50" ?selected="${this.resultsPerPage === 50}">50</option>
-            <option value="100" ?selected="${this.resultsPerPage === 100}">100</option>
-          </select>
+      <div class="search-results-heading">
+        <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
+        <div class="download">
+          <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
+        </div>
+      </div>
 
-          <span>items per page</span>
+      <div class="search-results">
+        <div class="search-heading">
+          <div class="select-page-size">
+            <select name="page-size" id="page-size" @change="${this._onPageSizeChange}">
+              <option value="25" ?selected="${this.resultsPerPage === 25}">25</option>
+              <option value="50" ?selected="${this.resultsPerPage === 50}">50</option>
+              <option value="100" ?selected="${this.resultsPerPage === 100}">100</option>
+            </select>
+
+            <span>items per page</span>
+          </div>
+          <div class="select-all">
+            <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
+            <label for="select-all">Select All</label>
+          </div>
+
         </div>
-        <div class="select-all">
-          <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
-          <label for="select-all">Select All</label>
-        </div>
+        <hr class="search-seperator">
+
+        ${this.displayedResults.map(
+          (result) => html`
+            <app-search-result-row search-result="${result.position}" .result=${result}></app-search-result-row>
+            <hr class="search-seperator">
+          `
+        )}
+
+        <ucd-theme-pagination
+          ?hidden="${this.paginationTotal < 2}"
+          current-page=${this.currentPage}
+          max-pages=${this.paginationTotal}
+          @page-change=${this._onPaginationChange}
+          xs-screen
+          ellipses>
+        </ucd-theme-pagination>
 
       </div>
-      <hr class="search-seperator">
-
-      ${this.displayedResults.map(
-        (result) => html`
-          <app-search-result-row search-result="${result.position}" .result=${result}></app-search-result-row>
-          <hr class="search-seperator">
-        `
-      )}
-
-      <ucd-theme-pagination
-        ?hidden="${this.paginationTotal < 2}"
-        current-page=${this.currentPage}
-        max-pages=${this.paginationTotal}
-        @page-change=${this._onPaginationChange}
-        xs-screen
-        ellipses>
-      </ucd-theme-pagination>
-
     </div>
   </div>
 
