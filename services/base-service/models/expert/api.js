@@ -32,6 +32,25 @@ router.get('/', (req, res) => {
 // (as well as the swagger-ui if configured)
 router.use(openapi);
 
+// Valid users can retrieve an impersonated expert token
+router.route(
+  '/:expertId/impersonation'
+).get(
+  user_can_impersonate,
+  keycloak_client,
+  async (req, res,next) => {
+    try {
+      let user= await req.keycloak_client.findOneByAttribute(`expertId:${req.params.expertId}`);
+      console.log('user', user);
+      let token = await req.keycloak_client.users.impersonation({id:user.id});
+      console.log('client', req.keycloak_client.users);
+      res.status(200).json({token: token});
+    } catch (e) {
+      res.status(e.status || 500).json({error:e.message});
+    }
+  }
+);
+
 router.route(
   '/:expertId/:relationshipId'
 ).get(
