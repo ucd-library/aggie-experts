@@ -82,9 +82,10 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     //if multiple users are found
     if (users.length > 1) {
       //throw new Error(`Multiple users found with expertId: ${expertId}`);
-      exertId = this.mintExpertId();
-      await this.users.update({id:user.id},{attributes:{expertId: expertId}});
-      return this.verifyExpertId(user,expertId);
+      const attributes = user.attributes || {};
+      attributes.expertId = this.mintExpertId();
+      await this.users.update({id:user.id},{attributes});
+      return this.verifyExpertId(user,attributes.expertId);
     }
     //if no users are found
     if (users.length === 0) {
@@ -124,7 +125,6 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     }
   }
 
-
   /**
    * Find a user by IDP email
    * @param {Object} idp - The IDP object
@@ -160,24 +160,37 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
   async getOrCreateExpert(email,username,profile) {
     let user= await this.findByEmail(email);
     if (! user) {
-      const new_user = {
-        email:email,
-        username:email,
-        emailVerified: true,
-        enabled: true,
-        federatedIdentities:[
-          { identityProvider: "cas-oidc",
-            userId:username,
-            userName:username
+      if (username && profile) {
+        const new_user = {
+          email:email,
+          username:email,
+          emailVerified: true,
+          enabled: true,
+          federatedIdentities:[
+            { identityProvider: "cas-oidc",
+              userId:username,
+              userName:username
+            }
+          ]
+        };
+        ['firstName','lastName','attributes'].forEach((key) => {
+          if (profile[key]) {
+            new_user[key] = profile[key];
           }
-        ]
-      };
-      ['firstName','lastName','attributes'].forEach((key) => {
-        if (profile[key]) {
-          new_user[key] = profile[key];
-        }
-      });
-      user=await this.createExpert(email,new_user);
+        });
+        user=await this.createExpert(email,new_user);
+      } else {
+        console.log(username)
+        console.log(profile)
+        throw new Error(`No user found with email: ${email} and no creation parameters`);
+      }
+    } else {
+      if (! user?.attributes?.expertId) {
+        const attributes = user.attributes || {};
+        attributes.expertId = this.mintExpertId();
+        await this.users.update({id:user.id},{attributes});
+        await this.verifyExpertId(user,attributes.expertId);
+      }
     }
     return user
   }

@@ -83,6 +83,14 @@ export class Command extends OriginalCommand {
         process.exit(1);
       }
     }
+    if (opts.iam) {
+      opts.iam=new IAM(
+        {env:opts.iam,
+         timeout:opts['iam.timeout'],
+         log:opts.log}
+      );
+    }
+
     return opts;
   }
 }

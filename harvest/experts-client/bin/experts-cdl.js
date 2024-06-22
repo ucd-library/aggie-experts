@@ -117,36 +117,44 @@ async function main(opt) {
     let dbname
     let md=md5(`${user}@ucdavis.edu`);
 
-    let profile;
-    { // Add in profile
-      performance.mark(`iam(${user})`);
-      const pd = path.join('saved_xml',user,'ark:','87287','d7c08j');
-      if (!fs.existsSync(pd)) {
-        fs.mkdirSync(pd,{recursive:true});
-      }
-      // iam profile
-      try {
-        profile=await opt.iam.profile(user);
-        fs.writeFileSync(path.join(pd,'profile.jsonld'),
-                         JSON.stringify(profile,null,2));
-        opt.log.info({measure:`iam(${user})`,user},'► ◄ iam(${user})');
-      } catch (e) {
-        opt.log.error({measure:`iam(${user})`,error:e.message,user},`'►E◄ iam(${user})`);
-      }
+    const query=`
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+select * WHERE { graph <http://iam.ucdavis.edu/> {
+    [] ucdlib:userId "${user}" ;
+       ucdlib:email ?email;
+       ucdlib:ucdPersonUUId ?ucdPersonUUID;
+       ucdlib:iamId ?iamId;
+       vcard:hasName [vcard:givenName ?firstName; vcard:familyName ?lastName ].
+  } }`;
+    const response = await fetch(
+      opt.expertsService,
+      {
+        method: 'POST',
+        body: query,
+        headers: {
+          'Content-Type': 'application/sparql-query',
+          'Accept': 'application/sparql-results+json'
+        }
+      });
+
+    if (!response.ok) {
+      throw new Error(`Failed to execute update. Status code: ${response.status}`);
     }
     profile=profile["@graph"][0];
 
     const kc_user = {};
     let email;
     try {
-      email = profile.email;
-      kc_user.firstName = profile.oFirstName;
-      kc_user.lastName = profile.oLastName;
-      kc_user.attributes = {};
-      kc_user.attributes.ucdPersonUUID=profile.mothraId
-      kc_user.attributes.iamId=profile.iamId
+      email = json.results.bindings[0].email.value;
+      profile.firstName = json.results.bindings[0].firstName.value;
+      profile.lastName = json.results.bindings[0].lastName.value;
+      profile.attributes = {};
+      profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
+      profile.attributes.iamId=json.results.bindings[0].iamId.value;
     } catch (e) {
-      opt.log.error(json, `${user} missing values`);
+      console.log(JSON.stringify(json));
+      logger.error(json, `${user} missing values`);
       continue;
     }
     opt.log.info(kc_user,`Processing keycloak(${email})`);

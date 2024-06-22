@@ -80,6 +80,7 @@ async function main(opt) {
         // if email is a email:cas pair seperated by a colon, split it
         const email = expert;
         user = await keycloak_admin.findByEmail(email);
+//        user = await keycloak_admin.getOrCreateExpert(email);
       }
       if (user) {
         if (opt.add) {
