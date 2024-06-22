@@ -65,17 +65,19 @@ class ExpertModel extends BaseModel {
       if (doc["@graph"][i]?.["@type"] === "Expert") {
         throw {status: 404, message: "Not found"};
       } else {
-        logger.info({function:"sanitize"},`_x_${doc["@graph"][i]["@id"]}`);
+        logger.info({function:"sanitize/spliceOut",i},`_x_${doc["@graph"][i]["@id"]}`);
         doc["@graph"].splice(i, 1);
       }
     }
 
-    for(let i=0; i<doc["@graph"].length; i++) {
-      logger.info({function:"sanitize"},`${doc["@graph"][i]["@id"]}`);
+    graph_loop: for(let i=0; i<doc["@graph"].length; i++) {
+      // logger.info({function:"sanitize",i,visible:(("is-visible" in doc["@graph"][i]) &&
+      //    doc["@graph"][i]?.["is-visible"] !== true)},`${doc["@graph"][i]["@id"]}`);
       // Node is not visible
       if (("is-visible" in doc["@graph"][i]) &&
           doc["@graph"][i]?.["is-visible"] !== true) {
         spliceOut(i--);
+        continue graph_loop;
       }
 
       if (doc["@graph"][i].relatedBy) {
@@ -85,12 +87,19 @@ class ExpertModel extends BaseModel {
         for (let j=0; j<relatedBy.length; j++) {
           if ("is-visible" in relatedBy[j] && relatedBy[j]?.["is-visible"] !== true) {
             spliceOut(i--);
-            break;
+            continue graph_loop;
           }
         }
       }
       // Sanitize this node if it is an Grant (esp.)
       delete doc["@graph"][i]["totalAwardAmount"];
+      // Sanitize identifiers (This is no longer required)
+      // TODO: Remove this after testing
+      ["ucdlib:email","ucdlib:employeeId","ucdlib:ucdPersonUUId"].forEach((key) => {
+        if (doc["@graph"]?.[i]?.[key]) {
+          delete doc["@graph"][i][key];
+        }
+      });
     }
     return doc;
   }
