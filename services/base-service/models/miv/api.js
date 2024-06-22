@@ -185,6 +185,19 @@ router.get(
       let grants = [];
       if (find?.hits[0]) {
         for (const hit of find.hits[0]._inner_hits) {
+          // create a people array
+          let people = [];
+          if (hit.relatedBy) {
+            hit.relatedBy.forEach((x) => {
+              if (! x.inheres_in) {
+                people.push({
+                  '@id': x['@id'],
+                  name: x.relates[0].name,
+                  role: x['@type']
+                });
+              }
+            });
+          }
           grants.push({
             '@id': hit['@id'],
             title: hit.name,
@@ -194,16 +207,8 @@ router.get(
             sponsor_id: hit.sponsorAwardId,
             sponsor_name: hit.assignedBy.name,
             type: hit['@type'],
-            role_label: hit.relatedBy.find(x => x.inheres_in)['@type']
-          });
-          hit.relatedBy.forEach((x) => {
-            if (! x.inheres_in) {
-              grants.push({
-                '@id': x['@id'],
-                name: x.relates[0].name,
-                role: x['@type']
-            });
-            }
+            role_label: hit.relatedBy.find(x => x.inheres_in)['@type'],
+            contributors: people
           });
         }
       }

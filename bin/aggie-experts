@@ -176,8 +176,8 @@ function guess-env() {
   local envs=()
   local tag=$(${G[git]} describe --always --dirty)
 
-  for e in $(G '.envs|keys[]' ); do
-    local env_server=$(G ".envs.${e}.server")
+  for e in $(G '.keys[]' ); do
+    local env_server=$(G ".${e}.server")
     if [[ "$env_server" = "null" ]]; then
       continue
     fi
@@ -229,8 +229,8 @@ Tests the environment, with respect to the hostname and git tag.
 
 =cut
 function test_env() {
-  local env=$(G .env)
-  local tag=$(G .tag // .envs.${G[env]}.tag)
+  local env=${G[env]}
+  local tag=$(G .${G[env]}.tag)
 
   function not_dirty() {
     if [[ "$tag" =~ "dirty" ]]; then
@@ -247,8 +247,8 @@ function test_env() {
   }
 
   function branch() {
-    local expected_branch=$(G .branch // .envs.${G[env]}.branch)
-    local this_branch=$(G .git.branch)
+    local expected_branch=$(G .${G[env]}.branch)
+    local this_branch=$(${G[git]} branch --show-current)
     if [[ "$expected_branch" =~ ^! ]]; then
       expected_branch=${expected_branch#!}
       if [[ "$this_branch" =~ "$expected_branch" ]]; then
@@ -276,7 +276,7 @@ function test_env() {
   }
 
   function server() {
-    local expected_server=$(G .server // .envs.${G[env]}.server)
+    local expected_server=$(G .${G[env]}.server)
     local this_server=$(hostname --fqdn)
     if [[ "$expected_server" =~ ^! ]]; then
       expected_server=${expected_server#!}
@@ -362,10 +362,10 @@ function prune() {
   local N=${G[dry-run]};
   declare -a services=(init fcrepo base-service)
 
-  local org=$(G .org // .envs.${G[env]}.org)
-  local tag=$(G .tag // .envs.${G[env]}.tag)
+  local org=$(G .${G[env]}.org)
+  local tag=$(G .${G[env]}.tag)
 
-  local fin_rm=$(docker image list --format=json | jq -r "select(.Repository | test(\"fin-\")) | (select(.Repository | test(\"$(G .fin.org)\") | not),select(.Tag != \"$(G .fin.tag)\")) | .Repository+\":\"+.Tag")
+  local fin_rm=$(docker image list --format=json | jq -r "select(.Repository | test(\"fin-\")) | (select(.Repository | test(\"$(G .def.fin.org)\") | not),select(.Tag != \"$(G .def.fin.tag)\")) | .Repository+\":\"+.Tag")
 
   local experts_rm=$(docker image list --format=json | jq -r 'select(.Repository | test("aggie-experts")) | (select(.Repository | test("init$")),select(.Repository | test("fcrepo$")),select(.Repository | test("base-service"))) | select(.Tag != "dirty") | .Repository+":"+.Tag')
 
@@ -391,11 +391,11 @@ function build() {
   local tag
   local N=${G[dry-run]};
 
-  local fin_org=$(G .fin.org)
-  local fin_tag=$(G .fin.tag)
+  local fin_org=$(G .def.fin.org)
+  local fin_tag=$(G .def.fin.tag)
 
-  local org=$(G .org // .envs.${G[env]}.org)
-  local tag=$(G .tag // .envs.${G[env]}.tag)
+  local org=$(G .${G[env]}.org)
+  local tag=$(G .${G[env]}.tag)
 
   local setup=
 
@@ -448,7 +448,7 @@ function build() {
       ;;
   esac
 
-  cd $(G .git.root)
+  cd "$(${G[git]} rev-parse --show-toplevel)"
 
   for i in experts-api fuseki harvest services/base-service services/init; do
     local n=$(basename $i)
@@ -483,8 +483,8 @@ function build() {
 
 function push() {
   local N=${G[dry-run]};
-  local org=$(G .org // .envs.${G[env]}.org)
-  local tag=$(G .tag // .envs.${G[env]}.tag)
+  local org=$(G .${G[env]}.org)
+  local tag=$(G .${G[env]}.tag)
 
   case ${G[env]} in
     dev | clean | sandbox | test | prev-test | stage | prod ) # Never push
@@ -509,25 +509,27 @@ function push() {
 
 function setup() {
   local N=${G[dry-run]};
-  local env root
-  read env root <<<$(G "[.env,.git.root] | @tsv" )
+  local env=${G[env]}
+  local root="$(${G[git]} rev-parse --show-toplevel)"
 
   function env_file() {
-    local env org tag fin_org fin_tag host port auth client_id sa gcs gaid propagate
-    read  env org tag fin_org fin_tag host port auth client_id sa gcs gaid propagate\
-          <<<$(G "[.env,
-                   .org // .envs.${G[env]}.org,
-                   .tag // .envs.${G[env]}.tag,
-                   .fin.org,
-                   .fin.tag,
-                   .envs.${G[env]}.host,
-                   .envs.${G[env]}.port,
-                   .envs.${G[env]}.auth.server,
-                   .envs.${G[env]}.auth.client_id,
-                   .envs.${G[env]}.auth.service_account,
-                   .gcs // .envs.${G[env]}.gcs,
-                   .gaid // .envs.${G[env]}.gaid,
-                   .envs.${G[env]}.cdl.propagate_changes // .envs.default.cdl.propagate_changes]|@tsv")
+    local env=${G[env]}
+    local org tag fin_org fin_tag host port auth client_id sa gcs gaid enable_gaid propagate
+    read org tag fin_org fin_tag host port auth client_id sa gcs gaid enable_gaid propagate\
+          <<<$(G "[.${G[env]}.org,
+                   .${G[env]}.tag,
+                   .def.fin.org,
+                   .def.fin.tag,
+                   .${G[env]}.host,
+                   .${G[env]}.port,
+                   .${G[env]}.auth.server,
+                   .${G[env]}.auth.client_id,
+                   .${G[env]}.auth.service_account,
+                   .${G[env]}.gcs,
+                   .${G[env]}.analytics.gaid // .def.analytics.gaid,
+                   .${G[env]}.analytics.enable // .def.analytics.enable,
+                   .${G[env]}.cdl.propagate_changes // .def.cdl.propagate_changes
+                  ] |@tsv")
 
     [[ "$env" == "clean" ]] && env='dev'
 
@@ -545,7 +547,7 @@ function setup() {
     echo -e "FIN_ORG=$fin_org\nFIN_TAG=$fin_tag\nORG=$org\nTAG=$tag"
     echo -e "GCS=$gcs"
     echo -e "CDL_PROPAGATE_CHANGES=$propagate"
-    echo -e "GA4_ENABLE_STATS=false\nGA4_MEASUREMENT_ID=$gaid"
+    echo -e "GA4_ENABLE_STATS=${enable_gaid}\nGA4_MEASUREMENT_ID=$gaid"
   }
 
   function service_account() {
@@ -556,14 +558,12 @@ function setup() {
 
   function compose() {
     local keycloak=
-    local env org tag mount gcs
-    read env org tag gcs mount <<<$(G "[.env,
-                                        .org // .envs.${G[env]}.org,
-                                        .tag // .envs.${G[env]}.tag,
-                                        .gcs // .envs.${G[env]}.gcs,
-                                        .mount // .envs.${G[env]}.mount] | @tsv")
+    local org tag gcs
+    read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs] | @tsv")
 
     local yq='.'
+    local env=${G[env]}
+    local mount=${G[mount]}
 
     eval "$(cat .env)"
     # Delete unused PORTS
@@ -586,6 +586,9 @@ function setup() {
       fi
       if [[ ! "$mount" =~ "models" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS*" or alias=="DEV_MOUNT_MODELS*"))'
+      fi
+      if [[ ! "$mount" =~ "client" ]]; then
+        yq+='| del(.. | select(anchor=="DEV_MOUNT_CLIENT*" or alias=="DEV_MOUNT_CLIENT*"))'
       fi
       if [[ ! "$mount" =~ "init-fcrepo" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_INIT_FCREPO" or alias=="DEV_MOUNT_INIT_FCREPO"))'
@@ -642,7 +645,7 @@ function setup() {
         exit 0
       fi
       setup_files
-      local mount=$(G .mount // .envs.${G[env]}.mount)
+      local mount=$(G .mount // .${G[env]}.mount)
       if [[ -n $mount && "$mount" != "null" ]]; then
         >&2 echo "#======MOUNTS=======#"
         >&2 echo "mount=$mount"
@@ -711,13 +714,6 @@ function main.cmd() {
     if [[ -n $G[cloudsdk_active_config_name] ]]; then
       export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
     fi
-
-    # Read .configuration paramters
-    while [[ "$1" =~ ^\..*=.* ]]; do
-      local cmd="$(sed -e 's/=\(.*\)$/="\1"/' <<<"$1")"
-      G[jq]="${G[jq]}|$cmd"
-      shift
-    done
 
     # Now command(s)
     for cmd in "$@"; do

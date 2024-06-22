@@ -9,4 +9,8 @@ info:
   contact:
     name: Online Strategy - UC Davis Library
     url: https://library.ucdavis.edu/online-strategy/
+components:
+  schemas: {}
+  parameters: {}
+  responses: {}
 paths:

@@ -6,7 +6,7 @@ const { defaultEsApiGenerator } = dataModels;
 const md5 = require('md5');
 const path = require('path');
 
-const openapi = require('@wesleytodd/openapi')
+const { openapi, json_only } = require('../middleware.js')
 
 function siteFarmFormat(req, res, next) {
 
@@ -42,152 +42,79 @@ function siteFarmFormat(req, res, next) {
   next();
 }
 
-
-// Custom middleware to check Content-Type
-function json_only(req, res, next) {
-  const contentType = req.get('Accept');
-  if (contentType.startsWith('application/json') || contentType.startsWith('application/ld+json')) {
-    // Content-Type is acceptable
-    return next();
-  } else {
-    // Content-Type is not acceptable
-    res.status(400).json({ error: 'Invalid Content-Type. Only application/json or application/ld+json is allowed.' });
-  }
-}
-
-async function sanitize(req, res, next) {
-  logger.info({ function: 'sanitize' }, JSON.stringify(req.query));
-  let id = '/' + model.id + decodeURIComponent(req.path);
-
-  if (('no-sanitize' in req.query) && req.user &&
-    (id === req.user.expertId || req.user?.roles?.includes('admin'))
-  ) {
-    return next();
-  } else {
-    var newArray = [];
-    for (let i in res.doc_array) {
-
-      let doc = res.doc_array[i];
-      let newDoc = {};
-
-      for (let i = 0; i < doc["@graph"].length; i++) {
-        logger.info({ function: "sanitize" }, `${doc["@graph"][i]["@id"]}`);
-        if ((("is-visible" in doc["@graph"][i])
-          && doc["@graph"][i]?.["is-visible"] !== true) ||
-          (doc["@graph"][i].relatedBy && ("is-visible" in doc["@graph"][i].relatedBy)
-            && doc["@graph"][i]?.relatedBy?.["is-visible"] !== true)) { // remove this graph node
-          if (doc["@graph"][i]?.["@type"] === "Expert") {
-            res.status(404).json(`${req.path} resource not found`);
-            // alternatively, we could return the parent resource
-            //delete doc["@graph"];
-            //break;
-          } else {
-            logger.info({ function: "sanitize" }, `_x_${doc["@graph"][i]["@id"]}`);
-            doc["@graph"].splice(i, 1);
-            i--;
-          }
-        } else { // sanitize this graph node
-          logger.info({ function: "sanitize" }, `Deleting totalAwardAmount=${doc["@graph"][i]?.["totalAwardAmount"]}`);
-          delete doc["@graph"][i]["totalAwardAmount"];
+function sitefarm_valid_path(options={}) {
+  const def = {
+    "description": "List of expert profiles",
+    "parameters": [
+      {
+        "in": "path",
+        "name": "ids",
+        "description": "A comma separated list of expert IDs",
+        "required": true,
+        "schema": {
+          "type": "string"
         }
       }
-      newArray.push(doc);
-    }
-    res.doc_array = newArray;
-    return next();
-  }
+    ],
+  };
+
+  (options.parameters || []).forEach((param) => {
+    def.parameters.push(openapi.parameters(param));
+  });
+
+  delete options.parameters;
+
+  return openapi.validPath({...def, ...options});
 }
 
-const oapi = openapi({
-  openapi: '3.0.3',
-  info: {
-    title: 'Express',
-    description: 'The SiteFarm API returns an array of expert profiles matching a provided list of IDs. This allows external systems including UCD SiteFarm to integrate Aggie Experts data into their sites. Publically available API endpoints can be used for access to experts data.',
-    version: '1.0.0',
-    termsOfService: 'http://swagger.io/terms/',
-    contact: {
-      email: 'aggie-experts@ucdavis.edu'
-    },
-    license: {
-      name: 'Apache 2.0',
-      url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-    },
-    version: config.experts.version,
-  },
-  servers: [
-    {
-      url: `${config.server.url}/api/sitefarm`
-    }
-  ],
-  tags: [
-    {
-      name: 'sitefarm',
-      description: 'SiteFarm Information'
-    }
-  ]
-})
+function sitefarm_valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
+}
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
-router.use(oapi);
+router.use(openapi);
 
-router.get('/experts/:ids',
-  oapi.validPath(
+router.get(
+  '/experts/:ids',
+  sitefarm_valid_path(
     {
-      "description": "Returns an array of expert profiles",
-      "parameters": [
-        {
-          "in": "path",
-          "name": "ids",
-          "description": "A comma separated list of expert IDs",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful operation",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "400": {
-          "description": "Invalid ID supplied"
-        },
-        "404": {
-          "description": "Expert not found"
-        }
+      description: "Returns a list of expert profiles",
+      responses: {
+        "200": openapi.response('Successful_operation'),
+        "400": openapi.response('Invalid_ID_supplied'),
+        "404": openapi.response('Expert_not_found')
       }
     }
   ),
-  json_only, async (req, res, next) => {
-  const id_array = req.params.ids.replace('ids=', '').split(',');
-  const expert_model = await model.get_model('expert');
-  res.doc_array = [];
-  var doc;
+  sitefarm_valid_path_error,
+  json_only,
+  async (req, res, next) => {
+    const id_array = req.params.ids.replace('ids=', '').split(',');
+    const expert_model = await model.get_model('expert');
+    res.doc_array = [];
+    var doc;
 
-  for (const id of id_array) {
-    const full = expert_model.id + '/' + id;
-    try {
-      let opts = {
-        admin: req.query.admin ? true : false,
+    for (const id of id_array) {
+      const expertId = `${expert_model.id}/${id}`;
+      try {
+        let opts = {
+          admin: req.query.admin ? true : false,
+        }
+        doc = await expert_model.get(expertId, opts);
+        doc=expert_model.sanitize(doc);
+        res.doc_array.push(doc);
+      } catch (e) {
+        // log the error - couldn't find the resource. But continue to the next one
+        logger.error(`Could not get ${expertId}`, e);
       }
-      doc = await expert_model.get(full, opts);
-      res.doc_array.push(doc);
-    } catch (e) {
-      // log the error - couldn't find the resource. But continue to the next one
-      logger.error(`Could not get ${full}`);
     }
-  }
-  next();
-},
-  sanitize,
+    next();
+  },
   siteFarmFormat,
   (req, res) => {
     res.status(200).json(res.doc_array);

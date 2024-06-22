@@ -26,6 +26,8 @@ services:
     volumes:
       - *SERVICE_ACCOUNT
       - fuseki-data:/home/ucd.process
+      - &DEV_MOUNT_CLIENT ./harvest/experts-client:/usr/local/lib/aggie-experts/experts-client
+      - &DEV_MOUNT_CLIENT_API ./experts-api:/usr/local/lib/experts-api
     ports:
       - ${FUSEKI_PORT}:3030
     environment:
@@ -106,6 +108,7 @@ services:
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
     depends_on:
       - elasticsearch
+    restart: unless-stopped
 
   ###
   # External Database Sync Services
@@ -165,6 +168,8 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - SERVER_BASEPATH=/kibana
+      - SERVER_REWRITEBASEPATH=true
       - xpack.security.enabled=false
       - telemetry.enabled=false
     depends_on:
