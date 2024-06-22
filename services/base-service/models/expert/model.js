@@ -93,9 +93,9 @@ class ExpertModel extends BaseModel {
       }
       // Sanitize this node if it is an Grant (esp.)
       delete doc["@graph"][i]["totalAwardAmount"];
-      // Sanitize identifiers
-      ["ucdlib:email","ucdlib:expert","ucdlib:expertId",
-       "ucdlib:employeeId","ucdlib:ucdPersonUUId"].forEach((key) => {
+      // Sanitize identifiers (This is no longer required)
+      // TODO: Remove this after testing
+      ["ucdlib:email","ucdlib:employeeId","ucdlib:ucdPersonUUId"].forEach((key) => {
         if (doc["@graph"]?.[i]?.[key]) {
           delete doc["@graph"][i][key];
         }
