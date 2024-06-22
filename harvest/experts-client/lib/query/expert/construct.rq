@@ -6,6 +6,7 @@ PREFIX fedora: <http://fedora.info/definitions/v4/repository#>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX schema: <http://schema.org/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -66,13 +67,20 @@ WHERE {
           ucdlib:expert ?expert;
           ucdlib:is-visible true;
           .
+    values ?iam_p {obo:ARG_2000028
+      rdf:type rdfs:label schema:identifier schema:name
+      ucdlib:is-visible ucdlib:isPreferred
+      vcard:familyName vcard:givenName vcard:hasEmail vcard:hasName
+      vcard:hasOrganizationalUnit vcard:hasTitle vcard:hasURL vcard:middleName
+      vcard:pronouns vcard:title vcard:url
+      vivo:rank}
+
     ?iam_s ?iam_p ?iam_o.
     # This is soo hacky,
     OPTIONAL {
       ?iam_o vcard:title ?iam_o_title.
     }
     filter(regex(str(?iam_s),concat('^',str(?user),'#?')))
-    filter(?iam_p != ucdlib:userId)
     bind(uri(replace(str(?iam_s),concat('^',str(?user)),str(?expert))) as ?iam_expert_s)
     bind(if(isuri(?iam_o),uri(replace(str(?iam_o),concat('^',str(?user)),str(?expert))),?iam_o) as ?iam_expert_o)
   }

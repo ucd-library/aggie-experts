@@ -123,6 +123,7 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     [] ucdlib:userId "${user}" ;
        ucdlib:email ?email;
        ucdlib:ucdPersonUUId ?ucdPersonUUID;
+       ucdlib:iamId ?iamId;
        vcard:hasName [vcard:givenName ?firstName; vcard:familyName ?lastName ].
   } }`;
     const response = await fetch(
@@ -149,7 +150,9 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
       profile.lastName = json.results.bindings[0].lastName.value;
       profile.attributes = {};
       profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
+      profile.attributes.iamId=json.results.bindings[0].iamId.value;
     } catch (e) {
+      console.log(JSON.stringify(json));
       logger.error(json, `${user} missing values`);
       continue;
     }

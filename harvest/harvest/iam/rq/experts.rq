@@ -19,6 +19,7 @@ CONSTRUCT {
         ucdlib:ucdPersonUUId ?mothra_id;
         ucdlib:email ?default_email;
         ucdlib:is-visible ?is_visible;
+        ucdlib:iamId ?iam_id;
         .
 
   ?user a ?emp_type;
@@ -98,6 +99,7 @@ WHERE {
     bind(uri(concat('ark:/87287/d7c08j/',md5(concat('mothra/',?mothra_id)))) as ?aggie_ark)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
     bind(uri(concat(str(?user),"#name")) as ?vcard_name)
+    bind(replace(str(?s),"http://iam.ucdavis.edu/","") as ?iam_id)
   }
   OPTIONAL {
     {
