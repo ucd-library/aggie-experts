@@ -45,12 +45,12 @@ function siteFarmFormat(req, res, next) {
 
 function sitefarm_valid_path(options={}) {
   const def = {
-    "description": "List of expert profiles",
+    "description": "A JSON array of expert profiles including their publications",
     "parameters": [
       {
         "in": "path",
         "name": "ids",
-        "description": "A comma separated list of expert IDs",
+        "description": "A comma separated list of expert IDs. Ids are in the format of '{idType}:{Id}'. For example 'expertId:12345'",
         "required": true,
         "schema": {
           "type": "string"
@@ -84,7 +84,7 @@ router.get(
   '/experts/:ids',
   sitefarm_valid_path(
     {
-      description: "Returns a list of expert profiles",
+      description: "Returns a JSON array of expert profiles",
       responses: {
         "200": openapi.response('Successful_operation'),
         "400": openapi.response('Invalid_ID_supplied'),
