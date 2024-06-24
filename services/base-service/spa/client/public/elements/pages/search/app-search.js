@@ -28,6 +28,7 @@ export default class AppSearch extends Mixin(LitElement)
       rawSearchData : { type : Object },
       resultsLoading : { type : String },
       filters : { type : Array },
+      refineSearchCollapsed : { type : Boolean },
     }
   }
 
@@ -44,6 +45,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.totalResultsCount = 0;
     this.rawSearchData = {};
     this.resultsLoading = '...';
+    this.refineSearchCollapsed = true;
 
     this.filters = [
       { label: 'All Results', count: 1000, icon: 'fa-infinity', active: true },

@@ -31,7 +31,7 @@ return html`
       font-weight: 700;
       line-height: 2.5rem;
       padding-right: .7rem;
-      padding-left: .7rem;
+      padding-left: 1rem;
     }
     svg {
       width: 20.22471911px;
@@ -60,7 +60,7 @@ return html`
       align-items: flex-start;
       align-content: flex-start;
       gap: 0rem 3.5625rem;
-      flex-wrap: wrap;
+      /* flex-wrap: wrap; */
       margin: auto;
     }
 
@@ -230,12 +230,94 @@ return html`
       .search-content {
         width: 90%;
       }
+
+      .search-container {
+        width: 90%;
+        padding-right: 0;
+        padding-left: 0;
+        gap: 0;
+      }
     }
+
+    .refine-search-mobile {
+      display: none;
+    }
+
+    @media (max-width: 767px) {
+      .search-header {
+        justify-content: space-between;
+      }
+
+      .color-border svg {
+        display: none;
+      }
+
+      .color-border {
+        width: 1.125rem;
+        background-color: #DBEAF7;
+      }
+
+      .search-container .refine-search {
+        display: none;
+      }
+
+      .refine-search-mobile {
+        display: block;
+      }
+    }
+
+    .refine-search-dropdown {
+      display: flex;
+      padding: 0.625rem 1rem;
+      align-items: center;
+      gap: 1rem;
+      justify-content: space-between;
+      align-self: stretch;
+      background: var(--ucd-blue-80, #13639E);
+      color: white;
+    }
+
+    /* .refine-search-dropdown.open {
+
+    } */
+
+    .refine-search-dropdown svg {
+      fill: white;
+      height: 15px;
+      width: 15px;
+    }
+
+    .refine-search-label {
+      font-size: 1.1875rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 1.92125rem;
+    }
+
+    .refine-search-mobile.open {
+      background: var(--ucd-blue-30, #EBF3FA);
+    }
+
+    .refine-search-contents {
+      /* transform-origin: center top;
+      transition: transform .2s, opacity .2s;
+      opacity: 0;
+      transform: scaleY(0); */
+
+      padding: 1rem;
+    }
+
+    /* .refine-search-contents.open {
+      display: block;
+      opacity: 1;
+      transform: scaleY(1);
+    } */
+
   </style>
 
   <div class="search-header">
     <div class="search-label">Search</div>
-    <div style="display: flex; height: 75px;">
+    <div class="color-border" style="display: flex; height: 75px;">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
         <path d="M21.6 0L0 89H24V0H21.6Z" fill="#DBEAF7"/>
       </svg>
@@ -292,6 +374,37 @@ return html`
         placeholder="search"
         search-term="${this.searchTerm}">
       </app-search-box>
+
+      <div class="refine-search-mobile ${this.refineSearchCollapsed ? '' : 'open'}">
+        <div class="refine-search-dropdown ${this.refineSearchCollapsed ? '' : 'open'}" @click=${() => this.refineSearchCollapsed = !this.refineSearchCollapsed}>
+          <span class="refine-search-label">Refine Results</span>
+          <span class="refine-search-arrow down" ?hidden="${this.refineSearchCollapsed}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z"/></svg></span>
+          <span class="refine-search-arrow right" ?hidden="${!this.refineSearchCollapsed}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z"/></svg></span>
+        </div>
+        <div class="refine-search-contents ${this.refineSearchCollapsed ? '' : 'open'}" ?hidden="${this.refineSearchCollapsed}">
+          <div class="open-to-heading">
+            <h4>Experts Open To</h4>
+          </div>
+          <div class="open-to" style="padding: 0">
+            <label>
+              <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
+              Collaborative Projects
+            </label>
+            <label>
+              <input type="checkbox" id="comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}">
+              Community Partnerships
+            </label>
+            <label>
+              <input type="checkbox" id="indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}">
+              Industry Projects
+            </label>
+            <label>
+              <input type="checkbox" id="media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}">
+              Media Interviews
+            </label>
+          </div>
+        </div>
+      </div>
 
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
