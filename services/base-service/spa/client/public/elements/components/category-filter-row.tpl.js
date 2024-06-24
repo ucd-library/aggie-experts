@@ -68,6 +68,17 @@ export default function render() {
       .filter-result:not(.active):hover svg path {
         fill: var(--color-aggie-blue-40);
       }
+
+      @media (max-width: 767px) {
+        .filter-result.active svg,
+        .filter-result:hover svg {
+          display: none !important;
+        }
+
+        .filter-result.active {
+          background: var(--ucd-blue-100, #022851);
+        }
+      }
     </style>
 
     <div class="filter-result ${this.active ? 'active' : ''}">
