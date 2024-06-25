@@ -72,6 +72,11 @@
         "type": "pattern_replace",
         "pattern": "(/|doi:|https://doi.org/)?(10\\.\\d{4,})",
         "replacement": "doi:$2"
+      },
+      "article_filter": {
+        "type": "pattern_replace",
+        "pattern": "^(The|A|An)\\s+",
+        "replacement": ""
       }
     },
     "normalizer" : {
@@ -107,10 +112,11 @@
           "asciifolding"
         ]
       },
-      "prefix_analyzer": {
+      "title_prefix_analyzer": {
         "tokenizer": "autocomplete",
         "filter": [
-          "lowercase"
+          "lowercase",
+          "article_filter"
         ]
       },
       "autocomplete": {

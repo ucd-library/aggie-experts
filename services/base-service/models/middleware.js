@@ -44,6 +44,28 @@ function schema_error (err, req, res, next) {
   })
 }
 
+function valid_path(options={}) {
+  const def = {
+    "description": "API Path",
+    "parameters": []
+  };
+
+  // what would this do, overwritten below w/ ...options
+//  (options.parameters || []).forEach((param) => {
+//    def.parameters.push(openapi.parameters(param));
+//  });
+
+  return openapi.validPath({...def, ...options});
+}
+
+function valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
+}
+
 const openapi = OpenAPI(
   {
     openapi: '3.0.3',
@@ -111,6 +133,9 @@ const openapi = OpenAPI(
         }
       },
       schemas: {
+        Grant: {
+          type: 'object'
+        },
         Expert: {
           type: 'object',
           properties: {
@@ -493,6 +518,25 @@ const openapi = OpenAPI(
         description: 'Expert Information'
       }
     ]
+  }
+);
+
+openapi.response(
+  'Grant',
+  {
+    "description": "Grant",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('Grant')
+      }
+    }
+  }
+);
+
+openapi.response(
+  'not_found',
+  {
+    "description": "Resource not found"
   }
 );
 

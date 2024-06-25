@@ -11,6 +11,21 @@
       "type" : "date",
       "format" : "strict_date_optional_time||epoch_millis"
     },
+    "name" : {
+      "type" : "text",
+      "analyzer" : "article_filter",
+      "index_prefixes" : {
+        "min_chars" : 1,
+        "max_chars" : 7
+      }
+      "fields" : {
+        "kw" : {
+          "type" : "keyword",
+          "analyzer" : "title_prefix_analyzer",
+          "ignore_above" : 256
+        }
+      }
+    },
     "@graph": {
       "type": "nested",
       "properties" : {
