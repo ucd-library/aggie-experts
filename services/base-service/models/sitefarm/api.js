@@ -76,9 +76,14 @@ function sitefarm_valid_path_error(err, req, res, next) {
   })
 }
 
+
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
 router.use(openapi);
+
+router.get('/', (req, res) => {
+  res.redirect('/api/sitefarm/openapi.json');
+});
 
 router.get(
   '/experts/:ids',
