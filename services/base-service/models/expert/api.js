@@ -16,13 +16,11 @@ function sanitize(req, res, next) {
       user_can_edit(req, res, next);
   } else {
     try {
-      // res.thisDoc = model.sanitize(res.thisDoc);
-      res.thisDoc = model.subselect(res.thisDoc, {
-        sanitize : true,
-        expert : true,
-        // grants : { page : 2, size : 1 },
-        works : { page : 1, size : 5 }
-      });
+      let options = {};
+      if( 'options' in req.query ) {
+        options = JSON.parse(req.query.options);
+      }
+      res.thisDoc = model.subselect(res.thisDoc, options);
       next();
     } catch (e) {
       res.status(e.status || 500).json({error:e.message});
