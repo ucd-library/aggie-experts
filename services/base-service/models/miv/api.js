@@ -25,6 +25,20 @@ router.get(
   }
 );
 
+function miv_valid_path(options={}) {
+  const def = {
+    "description": "A JSON array an expert's grants",
+  };
+
+  (options.parameters || []).forEach((param) => {
+    def.parameters.push(openapi.parameters(param));
+  });
+
+  delete options.parameters;
+
+  return openapi.validPath({...def, ...options});
+}
+
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
 router.use(openapi);
@@ -40,6 +54,16 @@ router.get('/', (req, res) => {
 
 router.get(
   '/grants',
+  miv_valid_path(
+    {
+      description: "Returns a JSON array of an expert's grants",
+      responses: {
+        "200": openapi.response('Successful_operation'),
+        "400": openapi.response('Invalid_ID_supplied'),
+        "404": openapi.response('Expert_not_found')
+      }
+    }
+  ),
   validate_miv_client,
   has_access('miv'),
   validate_admin_client,
