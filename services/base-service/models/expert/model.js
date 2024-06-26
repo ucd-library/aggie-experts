@@ -51,12 +51,13 @@ class ExpertModel extends BaseModel {
   }
 
   /**
-   * @method sanitize
-   * @description Sanitize document
+   * @method subselect
+   * @description Sanitize document, and subselect works/grants if requested
    * @param {Object} doc
+   * @param {Object} options, ie {sanitize:true, expert:true|false, grants:{ page:1,size:25}, works:{page:1,size:25}}
    * @returns {Object} : sanitized document
    **/
-  sanitize(doc) {
+  subselect(doc, options={}) {
     if (doc["is-visible"] === false) {
       throw {status: 404, message: "Not found"};
     }
@@ -69,6 +70,32 @@ class ExpertModel extends BaseModel {
         doc["@graph"].splice(i, 1);
       }
     }
+
+    function getFilterRange(page, size) {
+      let startIndex = (page-1) * size;
+      let endIndex = startIndex + size;
+      return { startIndex, endIndex };
+    }
+
+    let filterWorks = false, worksStartIndex, worksEndIndex;
+    if( 'works' in options ) {
+      // default to page 1 and size 10
+      let { startIndex, endIndex } = getFilterRange(options.works.page || 1, options.works.size || 10);
+      worksStartIndex = startIndex;
+      worksEndIndex = endIndex;
+      filterWorks = true;
+    }
+
+    let filterGrants = false, grantsStartIndex, grantsEndIndex;
+    if( 'grants' in options ) {
+      // default to page 1 and size 5
+      let { startIndex, endIndex } = getFilterRange(options.grants.page || 1, options.grants.size || 5);
+      grantsStartIndex = startIndex;
+      grantsEndIndex = endIndex;
+      filterGrants = true;
+    }
+
+
 
     graph_loop: for(let i=0; i<doc["@graph"].length; i++) {
       // logger.info({function:"sanitize",i,visible:(("is-visible" in doc["@graph"][i]) &&
@@ -101,6 +128,28 @@ class ExpertModel extends BaseModel {
         }
       });
     }
+
+    if( filterWorks || filterGrants ) {
+      // sort works and grants from @graph to allow subselect of ranges
+      let expertGraph = doc["@graph"].find(g => g['@id'] === doc['@id']);
+      let worksGraph = doc["@graph"].filter(g => g["@type"] === "Work" || g["@type"].includes("Work"));
+      let grantsGraph = doc["@graph"].filter(g => g["@type"] === "Grant" || g["@type"].includes("Grant"));
+
+
+      // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
+      worksGraph.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+
+      // console.log({worksStartIndex, worksEndIndex, worksGraph})
+
+      if( filterWorks ) {
+        worksGraph = worksGraph.slice(worksStartIndex, worksEndIndex);
+      }
+
+      // TODO same sort with grants once we analyze them
+
+      doc['@graph'] = [expertGraph, ...worksGraph, ...grantsGraph];
+    }
+
     return doc;
   }
 
