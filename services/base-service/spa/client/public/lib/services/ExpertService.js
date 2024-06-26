@@ -16,7 +16,7 @@ class ExpertService extends BaseService {
       grants : { page : 2, size : 1 },
     };
     return this.request({
-      url : `${this.baseUrl}/${id}${noSanitize ? '?no-sanitize' : ''}?options=${encodeURIComponent(JSON.stringify(defOptions))}`,
+      url : `${this.baseUrl}/${id}${noSanitize ? '?no-sanitize&' : '?'}options=${encodeURIComponent(JSON.stringify(defOptions))}`,
       checkCached : () => this.store.getExpert(id),
       onLoading : request => this.store.setExpertLoading(id, request),
       onLoad : result => this.store.setExpertLoaded(id, result.body),
