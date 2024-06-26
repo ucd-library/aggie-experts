@@ -5,9 +5,9 @@ const SiteFarmModel = require('./model.js');
 const { defaultEsApiGenerator } = dataModels;
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
-const path = require('path');
 
 const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware.js')
+
 
 function siteFarmFormat(req, res, next) {
 
@@ -81,8 +81,12 @@ function sitefarm_valid_path_error(err, req, res, next) {
 // (as well as the swagger-ui if configured)
 router.use(openapi);
 
+const path = require('path');
+
 router.get('/', (req, res) => {
-  res.redirect('/api/sitefarm/openapi.json');
+  // Send the pre-made swagger.json file
+  res.sendFile(path.join(__dirname, 'swagger.json'));
+  // res.redirect('/api/sitefarm/openapi.json');
 });
 
 router.get(
