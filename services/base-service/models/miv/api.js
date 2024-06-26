@@ -5,7 +5,7 @@ const utils = require('../utils.js')
 const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
 
-const { validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware.js')
+const { openapi, validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware.js')
 
 router.get(
   '/user',
@@ -24,6 +24,19 @@ router.get(
     }
   }
 );
+
+// This will serve the generated json document(s)
+// (as well as the swagger-ui if configured)
+router.use(openapi);
+
+const path = require('path');
+
+router.get('/', (req, res) => {
+  // Send the pre-made swagger.json file
+  // res.sendFile(path.join(__dirname, 'swagger.json'));
+  res.redirect('/api/miv/openapi.json');
+});
+
 
 router.get(
   '/grants',
