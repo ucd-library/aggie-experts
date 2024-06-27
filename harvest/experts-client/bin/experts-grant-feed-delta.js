@@ -69,6 +69,8 @@ if (!fs.existsSync(opt.dir + '/' + 'delta')) {
 
 async function readGrants() {
 
+  var addedGrants = [];
+
   return new Promise((resolve, reject) => {
     csv()
   .fromFile(newGrantsPath)
@@ -85,7 +87,8 @@ async function readGrants() {
           let isNew = !oldGrants.find((oldItem) => oldItem.id === newItem.id);
           //if isNew or the grant has been updated
           if (isNew) {
-            // logger.info('New grant:', newItem.id);
+            logger.info('New grant:', newItem.id);
+            addedGrants.push(newItem);
             return true;
           }
           else {
@@ -103,6 +106,7 @@ async function readGrants() {
             return isUpdated;
           }
         });
+        console.log('New grants:', addedGrants.length);
         resolve();
       });
   });
