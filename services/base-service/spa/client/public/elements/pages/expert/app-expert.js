@@ -514,7 +514,42 @@ export default class AppExpert extends Mixin(LitElement)
       let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
       window.open(`https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`, '_blank');
     } else if( this.modalAction === 'edit-availability' ) {
-      // TODO save availability to cdl
+      // save availability to cdl
+      this.dispatchEvent(new CustomEvent("loading", {}));
+      try {
+        let res = await this.ExpertModel.updateExpertAvailability(this.expertId);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        if( window.gtag ) {
+          gtag('event', 'expert_availability_change', {
+            'description': 'expert ' + this.expertId + ' availablity label change',
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
+
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+        // let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+
+        // this.modalTitle = 'Error: Update Failed';
+        // this.modalSaveText = '';
+        // this.modalContent = modelContent;
+        // this.showModal = true;
+        // this.hideCancel = true;
+        // this.hideSave = true;
+        // this.hideOK = false;
+        // this.hideOaPolicyLink = true;
+        // this.errorMode = true;
+
+        if( window.gtag ) {
+          gtag('event', 'expert_availability_change', {
+            'description': 'attempted to change availability labels for expert ' + this.expertId + ' but failed',
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
+      }
     }
 
     this.modalAction = '';

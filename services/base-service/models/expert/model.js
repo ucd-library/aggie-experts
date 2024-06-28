@@ -346,5 +346,39 @@ class ExpertModel extends BaseModel {
     }
   }
 
+  /**
+   * @method patch
+   * @description Patch an experts availability labels
+   * @param {Object} data :  { "labelsToAddOrEdit", "labelsToRemove" }
+   * @param {String} expertId : Expert Id
+   *
+   * @returns {Object} : document object
+   **/
+  async patchAvailability(data, expertId) {
+    let expert;
+
+    try {
+      expert = await this.client_get(expertId);
+    } catch(e) {
+      logger.info(`expert @id ${expertId} not found`);
+      return 404
+    };
+
+    // TODO update fcrepo
+
+
+    // update cdl
+    if (config.experts.cdl.expert.propagate) {
+      const cdl_user = await this._impersonate_cdl_user(expert, config.experts.cdl.expert);
+      let resp = await cdl_user.updateUserAvailabilityLabels({
+        labelsToAddOrEdit: data.labelsToAddOrEdit,
+        labelsToRemove: data.labelsToRemove
+      });
+      logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
+    } else {
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
+    }
+  }
+
 }
 module.exports = ExpertModel;
