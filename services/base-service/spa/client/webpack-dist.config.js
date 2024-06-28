@@ -3,7 +3,7 @@ let config = require('@ucd-lib/cork-app-build').dist({
     root : __dirname,
     entry : 'public/index.js',
     // folder where bundle.js and ie-bundle.js will be written
-    dist : 'public/js',
+    dist : 'dist/js',
     preview : 'public/js',
     clientModules : 'public/node_modules'
   });

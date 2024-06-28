@@ -6,3 +6,4 @@ docker-compose.yaml
 /service-account.json
 services/base-service/spa/client/public/bundle.js
 services/base-service/spa/client/public/js/
+services/base-service/spa/client/dist/
