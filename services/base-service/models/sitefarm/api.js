@@ -8,7 +8,6 @@ const md5 = require('md5');
 
 const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware.js')
 
-
 function siteFarmFormat(req, res, next) {
 
   var newArray = [];
@@ -53,7 +52,9 @@ function sitefarm_valid_path(options={}) {
         "description": "A comma separated list of expert IDs. Ids are in the format of '{idType}:{Id}'. For example 'expertId:12345'",
         "required": true,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "pattern": '^(\w+:\d+(,\s*\w+:\d+)*)$',
+          "example": 'expertId:AbcdEfgh,iamId:1000009069'
         }
       }
     ],
@@ -133,8 +134,6 @@ router.get(
     res.status(200).json(res.doc_array);
   }
 );
-
-// router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
 
 const model = new SiteFarmModel();
 module.exports = defaultEsApiGenerator(model, { router });
