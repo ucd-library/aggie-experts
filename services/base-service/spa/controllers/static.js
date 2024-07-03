@@ -9,7 +9,7 @@ const esClient = require('@ucd-lib/fin-service-utils').esClient;
 module.exports = async (app) => {
 
   // path to your spa assets dir
-  let assetsDir = path.join(__dirname, '..', 'client', 'public');
+  let assetsDir = path.join(__dirname, '..', 'client', config.client.assets);
 
   /**
    * Setup SPA app routes
