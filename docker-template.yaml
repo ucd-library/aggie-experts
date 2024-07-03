@@ -11,10 +11,18 @@ services:
     ports:
       - ${HOST_PORT:-${D[port]}}:3001
     environment:
-      - FIN_URL=${FIN_URL:${D[host]}
+      - FIN_URL=${FIN_URL:-${D[host]}}
+      - HOST_PORT=${HOST_PORT:-${D[port]}}
       - LOCAL_KEYCLOAK=false
-    env_file:
-      - .env
+      - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     depends_on:
       - fcrepo
       - redis
@@ -36,7 +44,6 @@ services:
     environment:
       - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
       - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
-      - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON:-}
     restart: unless-stopped
     command:
       HDT=import server
@@ -48,10 +55,6 @@ services:
   ###
   fcrepo:
     image: ${D[fin_org]}/fin-fcrepo:${D[fin_tag]}
-    environment:
-      - LOCAL_KEYCLOAK=false
-    env_file:
-      - .env
     ports:
       - ${FCREPO_PORT}:8080
     # Example for change logging.  Note, don't forget to still include the fcrepo.properties file location!
@@ -80,14 +83,14 @@ services:
 
   init:
     image: ${D[org]}/init:${D[tag]}
-    env_file:
-      - .env
     environment:
       - FIN_SERVICE_NAME=init
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
+
       - GCS_BUCKET=${GCS_BUCKET:-${D[gcs_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
     volumes:
-      #- &DEV_MOUNT_INIT_POSTGRES ./services/init/postgres:/etc/ucdlib-service-init/postgres
       - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
       - *SERVICE_ACCOUNT
 
@@ -112,9 +115,10 @@ services:
       - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
     command: node spa/index.js
     environment:
-      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-false}
-      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
-      - FIN_URL=${FIN_URL:${D[host]}
+      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-${D[enable_gaid]}}
+      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-${D[gaid]}}
+      - FIN_URL=${FIN_URL:-${D[host]}}
+      - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
     depends_on:
       - elasticsearch
     restart: unless-stopped
@@ -126,8 +130,14 @@ services:
     image: *BASE
     environment:
       - LOCAL_KEYCLOAK=false
-    env_file:
-      - .env
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     volumes:
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_MODELS
@@ -142,10 +152,16 @@ services:
   gcs:
     image: *BASE
     environment:
-      - GCS=${GCS:-fcrepo-dev}
+      - GCS=${GCS_BUCKET:-${D[gcs_bucket]}}
       - LOCAL_KEYCLOAK=false
-    env_file:
-      - .env
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     depends_on:
       - gateway
     volumes:
@@ -198,14 +214,20 @@ services:
       - FIN_METRICS_FCREPO_ENABLED=${FIN_METRICS_FCREPO_ENABLED:-true}
       - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
       - LOCAL_KEYCLOAK=false
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     volumes:
       - fs-tests:/fs-tests
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_SPA
       - *DEV_MOUNT_MODELS
       - *DEV_MOUNT_MODELS_API
-    env_file:
-      - .env
     depends_on:
       - elasticsearch
     command: npm run uber
