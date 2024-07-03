@@ -106,6 +106,7 @@ services:
     environment:
       - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-false}
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
+      - CLIENT_ENV=${CLIENT_ENV:-prod}
     depends_on:
       - elasticsearch
     restart: unless-stopped
