@@ -52,10 +52,10 @@ class ExpertModel extends BaseModel {
 
   /**
    * @method subselect
-   * @description Sanitize document, and subselect works/grants if requested
+   * @description return all or part of a document, with optionally sanitized and subselections of works/grants when requested
    * @param {Object} doc
-   * @param {Object} options, ie {sanitize:true, expert:true|false, grants:{ page:1,size:25}, works:{page:1,size:25}}
-   * @returns {Object} : sanitized document
+   * @param {Object} options, ie {'no-sanitize':true, expert:true|false, grants:{ page:1,size:25}, works:{page:1,size:25}}
+   * @returns {Object} : document
    **/
   subselect(doc, options={}) {
     if (doc["is-visible"] === false) {
@@ -66,7 +66,7 @@ class ExpertModel extends BaseModel {
       if (doc["@graph"][i]?.["@type"] === "Expert") {
         throw {status: 404, message: "Not found"};
       } else {
-        logger.info({function:"sanitize/spliceOut",i},`_x_${doc["@graph"][i]["@id"]}`);
+        logger.info({function:"subselect/spliceOut",i},`_x_${doc["@graph"][i]["@id"]}`);
         doc["@graph"].splice(i, 1);
       }
     }
@@ -76,6 +76,8 @@ class ExpertModel extends BaseModel {
       let endIndex = startIndex + size;
       return { startIndex, endIndex };
     }
+
+    let noSanitize = options['no-sanitize'] || false;
 
     let filterWorks = false, worksStartIndex, worksEndIndex;
     if( 'works' in options ) {
@@ -95,19 +97,17 @@ class ExpertModel extends BaseModel {
       filterGrants = true;
     }
 
-
-
     graph_loop: for(let i=0; i<doc["@graph"].length; i++) {
       // logger.info({function:"sanitize",i,visible:(("is-visible" in doc["@graph"][i]) &&
       //    doc["@graph"][i]?.["is-visible"] !== true)},`${doc["@graph"][i]["@id"]}`);
       // Node is not visible
-      if (("is-visible" in doc["@graph"][i]) &&
+      if (!noSanitize && ("is-visible" in doc["@graph"][i]) &&
           doc["@graph"][i]?.["is-visible"] !== true) {
         spliceOut(i--);
         continue graph_loop;
       }
 
-      if (doc["@graph"][i].relatedBy) {
+      if (!noSanitize && doc["@graph"][i].relatedBy) {
         // relatedby is doc["@graph"][i]["relatedBy"] but always an array
         const relatedBy = Array.isArray(doc["@graph"][i].relatedBy) ?
               doc["@graph"][i].relatedBy : [doc["@graph"][i].relatedBy];
@@ -129,25 +129,59 @@ class ExpertModel extends BaseModel {
       });
     }
 
+    // TODO if we want counts of hidden works/grants when noSanitize is false, they'll already be removed in the above loop.. should we get counts before the loop?
+    // or can we just remove that splice logic completely? would array filter()'s be better?
     if( filterWorks || filterGrants ) {
-      // sort works and grants from @graph to allow subselect of ranges
-      let expertGraph = doc["@graph"].find(g => g['@id'] === doc['@id']);
-      let worksGraph = doc["@graph"].filter(g => g["@type"] === "Work" || g["@type"].includes("Work"));
-      let grantsGraph = doc["@graph"].filter(g => g["@type"] === "Grant" || g["@type"].includes("Grant"));
+      try {
+        // sort works and grants from @graph to allow subselect of ranges
+        let expertGraph = doc["@graph"].find(g => g['@id'] === doc['@id']);
+        let worksGraph = doc["@graph"].filter(g => g["@type"] === "Work" || g["@type"].includes("Work"));
+        let grantsGraph = doc["@graph"].filter(g => g["@type"] === "Grant" || g["@type"].includes("Grant"));
+
+        // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
+        // this will definitely fail for works that have an array for title or issued, which happens
+        // in that case we still want to show in the ui, but that it's malformed, so they can fix it
+        worksGraph.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+
+        // TODO same sort with grants once we analyze them
+
+        // also pass back the total grants/works count for the expert
+        let totalWorks = worksGraph.length;
+        let totalGrants = grantsGraph.length;
+        let hiddenWorks = worksGraph.filter(c => c.relatedBy?.['is-visible']).length;
+
+        let hiddenGrants = 42; // TODO, more complicated because we need to loop over the relatedBy field
+                               //   to find the record with the current relationship id, then check that visibility
+
+        doc.hits = {
+          works: {
+            total: totalWorks,
+            visible: hiddenWorks
+          },
+          grants: {
+            total: totalGrants,
+            visible: hiddenGrants
+          }
+        };
 
 
-      // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
-      worksGraph.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+        if( filterWorks ) {
+          worksGraph = worksGraph.slice(worksStartIndex, worksEndIndex);
+        }
 
-      // console.log({worksStartIndex, worksEndIndex, worksGraph})
+        if( filterGrants ) {
+          grantsGraph = grantsGraph.slice(grantsStartIndex, grantsEndIndex);
+        }
 
-      if( filterWorks ) {
-        worksGraph = worksGraph.slice(worksStartIndex, worksEndIndex);
+        if( 'expert' in options && options.expert === false ) {
+          doc['@graph'] = [...worksGraph, ...grantsGraph];
+        } else {
+          doc['@graph'] = [expertGraph, ...worksGraph, ...grantsGraph];
+        }
+
+      } catch(e) {
+        // TODO
       }
-
-      // TODO same sort with grants once we analyze them
-
-      doc['@graph'] = [expertGraph, ...worksGraph, ...grantsGraph];
     }
 
     return doc;

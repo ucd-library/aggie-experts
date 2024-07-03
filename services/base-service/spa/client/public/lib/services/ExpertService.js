@@ -11,12 +11,14 @@ class ExpertService extends BaseService {
   }
 
   get(id, noSanitize=false) {
-    let defOptions = {
-      works : { page : 1, size : 2 },
-      grants : { page : 2, size : 1 },
+    let options = {
+      works : { page : 1, size : 10 },
+      grants : { page : 1, size : 5 },
+      'no-sanitize' : noSanitize, // return is-visible:false items - if true
+      expert : true // this could be used on the pagination pages of works/grants to exclude the expert - if false
     };
     return this.request({
-      url : `${this.baseUrl}/${id}${noSanitize ? '?no-sanitize&' : '?'}options=${encodeURIComponent(JSON.stringify(defOptions))}`,
+      url : `${this.baseUrl}/${id}?options=${encodeURIComponent(JSON.stringify(options))}`,
       checkCached : () => this.store.getExpert(id),
       onLoading : request => this.store.setExpertLoading(id, request),
       onLoad : result => this.store.setExpertLoaded(id, result.body),

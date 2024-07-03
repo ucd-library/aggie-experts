@@ -11,20 +11,22 @@ const model= new ExpertModel();
 const { openapi, schema_error, json_only, user_can_edit, is_user } = require('../middleware.js')
 
 function sanitize(req, res, next) {
-//  logger.info({function:'sanitize'}, JSON.stringify(req.query));
-  if ('no-sanitize' in req.query) {
-      user_can_edit(req, res, next);
-  } else {
-    try {
-      let options = {};
-      if( 'options' in req.query ) {
-        options = JSON.parse(req.query.options);
-      }
-      res.thisDoc = model.subselect(res.thisDoc, options);
-      next();
-    } catch (e) {
-      res.status(e.status || 500).json({error:e.message});
+  try {
+    let options = {};
+    if( 'options' in req.query ) {
+      options = JSON.parse(req.query.options);
     }
+
+    // only allow no-sanitize if they are an admin or the expert
+    let expertId = `${req.params.expertId}`;
+    if (!req.user?.roles?.includes('admin') && expertId !== req?.user?.attributes?.expertId) {
+      options['no-sanitize'] = false;
+    }
+
+    res.thisDoc = model.subselect(res.thisDoc, options);
+    next();
+  } catch (e) {
+    res.status(e.status || 500).json({error:e.message});
   }
 }
 
