@@ -1,24 +1,24 @@
 const router = require('express').Router();
 const { openapi } = require('../middleware.js')
 
-let Config = null;
-router.route(
-  '/'
-).get(
-  async (req, res) => {
-    if (Config === null) {
-      const {config } = await import('@ucd-lib/experts-api');
-      Config = config;
-    }
-    res.status(200).json(Config);
-  }
-)
+//let SCHEMA=null;
+let Schema=null;
 
 router.route(
-  '/:version'
+  '/:version?'
 ).get(
   async (req, res) => {
-      res.status(200).json({quinn: 'is_great',version: req.params.version})
+    if (Schema === null) {
+      const api = await import('@ucd-lib/experts-api');
+      Schema=api.Schema;
+    }
+    try {
+      const version = req.params.version;
+      const context=await Schema.context('expert',version)
+      res.status(200).json(context);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   }
 )
 
