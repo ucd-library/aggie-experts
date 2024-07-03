@@ -170,7 +170,7 @@ return html`
 
     .roles-websites .link-row {
       display: flex;
-      align-items: center;
+      align-items: start;
       line-height: 2rem;
     }
 
@@ -248,6 +248,7 @@ return html`
 
     .roles-websites ucdlib-icon {
       fill: var(--color-aggie-blue-60);
+      margin-top: .2rem;
     }
 
     .roles-websites .title-dept {
