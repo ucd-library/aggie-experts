@@ -170,6 +170,9 @@ Below are some common variables that might be overridden.
      on that that port.  You often run with ~FUSEKI_PORT=8080~ to test linked
      data processing.
 
+   - ~CLIENT_ENV~ sets whether to serve the smaller ~prod~ bundles or the ~dev~
+     bundles that are easier to debug.
+
 ** Initialization Buckets
 
 When any system starts up, it will initialize using a given GCS bucket.  Much of
