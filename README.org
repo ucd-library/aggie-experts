@@ -1,30 +1,335 @@
 * Aggie Experts
 
+* Development stages and associated best practices
+** Stages
+The following table shows the various stages for development for Aggie Experts,
+and some associated pointers.
 
-** FCREPO Services
+|---------+------------+--------+----------+------------------+------------------------------------|
+| stage   | role       | branch | tag      | dns              | docker org/tag                     |
+|---------+------------+--------+----------+------------------+------------------------------------|
+| dev     | dev        | *any*  | *dirty*  | localhost        | localhost/aggie-experts:dirty      |
+| clean   | dev        | *any*  | *clean*  | localhost        | localhost/aggie-experts:*tag*      |
+| sandbox | dev/deploy | *any*  | *clean*  | sandbox          | localhost/aggie-experts:*tag*      |
+| stage    | deploy     | dev    | 1.??-dev | stage (blue/gold) | gcr.io/aggie-experts:*dev-tag*     |
+| prod    | deploy     | main   | 2.?.?    | rc2  (blue/gold) | gcr.io/aggie-experts:*version-tag* |
+|---------+------------+--------+----------+------------------+------------------------------------|
 
-   fcrepo services are small functions that can be run on items in Aggie
-   experts. This are used by internal services, but can also be used as
-   debugging tools.  The following services are helpful:
+Tags are very important in the development process.  Aggie Experts tags are almost
+always based on the following git command ~tag="$(git describe --always
+--dirty)"~.  See the docs for more information, but with the exception of ~dev~
+stage, tags *always* refer to a specific commit.  stage and production stages
+need to be set to a specific annotated tag.
+
+The important caveat to this, is that when you are in ~dev~ stage, the tag is
+always simply ~dirty~.  This primarily simplifies the development steps, as the
+tag is never changing.  ~dev~ is the only stage that ever allows a ~dirty~ tag.
+
+*** dev
+Developers typically develop in the ~dev~ stage.  Every aggie expert image is
+built locally on their machines, and they have the freedom to bind mount various
+directories over containers for quicker testing.  Every build will continously
+overwrite the localhost/aggie-experts/??:dirty images.
+
+In terms of git, users should *never* be developing on the ~dev~ branch.  They
+should always be working on a branch specific to the issue(s) they are working
+on.  Because of this, developers are encouraged to push as often as they'd like
+to github.  Not all commits need to have great commit messages either.  However,
+if a developer has made 10 local commits, it's not a terrible idea to rebase
+these into a single commit before pushing.  But don't worry too much about that,
+and avoid any rebasing that affects the pushed commits, it can be troublesome.
+
+*** clean
+In the clean stage, developers build their image on a clean git repository, and
+build/deploy a specific tagged image to application.  Bind mounts are *never*
+allowed on ~clean~ deploy.  This means that developers typically need to setup
+their environment, for ~clean~ testing.
+
+Every pull request should be tested in the ~clean~ environment before being move
+from draft for review.
+
+#+begin_src bash
+  aggie-experts --env=clean setup build
+#+end_src
+
+Note, that it is possible to create an image that can't be replicated, for
+example you might include a file in your builds that you never bother to commit.
+Because of this the ~aggie-experts~ script will complain if you have unstaged
+files. This should encourage you to keep your repository tidy, but you can skip
+that error with the ~--unstaged-ok~ flag to ~aggie-experts~.
+
+#+begin_src bash
+  aggie-experts --unstaged-ok --env=clean setup build
+#+end_src
+
+*** sandbox
+The sandbox stage allows any clean commit to be built and deployed on
+sandbox.experts.library.ucdavis.edu.  The images are built locally on sandbox,
+both to test the build and to prevent images that are not expected to be
+deployed to be added to the aggie-experts container repository.
+
+If you are replacing an existing data instance that's running on sandbox, you
+can use:
+
+#+begin_src bash
+  num=[existing_number]
+  cd /etc/aggie-experts/s${num}
+  git checkout [branch or commit ]
+  bin/aggie-experts --env=sandbox build setup
+  dc down
+  dc up -d
+#+end_src
+
+If you are creating a new data instance, then the path is more like:
+
+#+begin_src bash
+  num=[next_number]
+  cd /etc/aggie-experts/
+  git clone --branch=[branch] s{$num}
+  git reset --hard ${commit} # Only if you are testing a commit not on a branch head
+  cd s${num}
+  bin/aggie-experts --env=clean build setup
+  dc up -d
+  # Now populate your instance
+  # Then
+  dc down
+  aggie-experts --env=sandbox setup
+  dc up -d
+#+end_src
+
+*** build
+You use the ~build~ environment to build and push new docker instances to the
+registry in preparation of using them on a new ~stage~ or ~prod~ environment.
+Builds can currently take place anywhere.  A typical example is:
+
+#+begin_src bash
+  git checkout dev
+  git pull
+  aggie-experts --env=build build push
+#+end_src
+
+~aggie-experts~ will complain if the checked out commit does not correspond to
+an annotated tag.
+
+*** stage
+The ~stage~ environment is only run on ~(blue|gold).experts.library.ucdavis.edu~
+and only uses images that are pulled from the registry.
+
+If you are updating an existing dataset instance:
+#+begin_src bash
+  num=[existing_number]
+  tag=[version to run]
+  cd /etc/aggie-experts/v${num}
+  git checkout tag
+  bin/aggie-experts --env=stage setup
+  dc down
+  dc up -d
+#+end_src
+
+If you are creating a new dataset environment, then
+
+#+begin_src bash
+  num=[next_number]
+  tag=[version to run]
+  cd /etc/aggie-experts/
+  git clone --branch=$tag v${num}
+  cd v${num}
+  ../bin/aggie-experts --env=stage setup
+  dc up -d
+  # Now populate your instance
+#+end_src
+
+*** production
+
+** .env File
+
+   When you setup a particular environment, the default configuration (taken
+from the [[config.json][config.json]] file), along with secrets from the Google secret manager
+are added directly to the ~docker-compose.yaml~ file.  This allows deployments
+without any ~.env~ file.  This file can be used to override some defaults
+however.  A complete list of parameters that can be overridden can be seen in
+the ~docker-compose.yaml~ file itself, or the [[docker-template.yaml][docker-template.yaml]] template.
+Below are some common variables that might be overridden.
+
+   - ~FIN_URL~ can be used to override the dns version.  For example, you could
+     setup the sandbox environment ~bin/aggie-experts --env=sandbox setup~ but
+     override the ~FIN_URL~ to run on some special host for testing
+
+   - ~HOST_PORT~ might be useful for development. You could, for example, run
+     two different development versions and change the ~HOST_PORT~ so they can
+     run at the same time.
+
+   - ~CDL_PROPAGATE_CHANGES~ usually is false while testing, so you don't affect
+     the CDL database, but you might set to ~true~ to test edits on a
+     development machine.
+
+   - ~GA4_ENABLE_STATS~ is usually false in development as well, but you might
+     set to ~true~ to monitor statistics.
+
+   - ~FUSEKI_PORT~ is usually not defined, but if it is, then fuseki is exposed
+     on that that port.  You often run with ~FUSEKI_PORT=8080~ to test linked
+     data processing.
+
+** Initialization Buckets
+
+When any system starts up, it will initialize using a given GCS bucket.  Much of
+the development can depend on the data within the these buckets, for in every
+development phase, developers are encouraged to create their own buckets, and
+alter those components.  Buckets should have the ~fcrepo-~ prefix, and be tagged
+as ~fcrepo~ as well.
+
+|---------+-------+----------------|
+| stage   | alter | gcs bucket     |
+|---------+-------+----------------|
+| dev     | Y     | fcrepo-dev     |
+| clean   | Y     | fcrepo-dev     |
+| sandbox | Y     | fcrepo-sandbox |
+| stage   | N     | fcrepo-1       |
+| prod    | N     | fcrepo-1       |
+|---------+-------+----------------|
+
+** Authorization
+
+Except under extraordinary circumstances, developers will always use the
+authorization server at sandbox.auth.library.ucdavis.edu, and test and
+production instances will use auth.library.ucdavis.edu.  It's important to
+understand that the client is different between dev/clean and sandbox.  This is
+why they require different secrets in their setup.
+
+|---------+-------------+----------------------------------|
+| stage   | auth-client | auth-server                      |
+|---------+-------------+----------------------------------|
+| dev     | local-dev   | auth.library.ucdavis.edu         |
+| clean   | local-dev   | auth.library.ucdavis.edu         |
+| sandbox | sandbox     | auth.library.ucdavis.edu         |
+| test    | experts     | auth.library.ucdavis.edu         |
+| prod    | experts     | auth.library.ucdavis.edu         |
+|---------+-------------+----------------------------------|
+
+* TODO aggie-experts command-line utility
+
+* Production Deployment
+
+The production deployment depends on multiple VMs and docker constellations,
+controlled with docker-compose files.  An [[https://docs.google.com/drawings/d/1fLANXV295-rPT_NLGNDRyE1cVLNi30JMLDXwReywRjU/edit?usp=sharing][Overview Document]] gives a general
+description of the deployment setup.  All traffic to the website is directed to
+an apache instance that acts as a routing service to the underlying backend
+service.  The router does some coarse scale redirection; maintains the SSL
+certificates, but mostly monitors which of two potential backend services are
+currently operational. It does this by monitoring specific ports from two VMs
+gold and blue. Note blue and gold are only available within the libraries staff
+VPN.  The router (router.experts.library.ucdavis.edu) will dynamically switch
+between the backends based on which is currently operational.  If both are
+operational, it will switch between them, if neither, it will throw a 400 error.
+For Aggie Experts only one backend should be operational at any one time, but
+the router doesn't care about that.
+
+|------------------------------------+-------------------|
+| machine                            | specs             |
+|------------------------------------+-------------------|
+| blue.experts.library.ucdavis.edu   | 32Gb, 2.5Tb, 8cpu |
+| gold.experts.library.experts.edu   | 32Gb, 2.5Tb, 8cpu |
+| router.experts.library.ucdavis.edu | 4Gb, 25Gb, 8cpu   |
+|------------------------------------+-------------------|
+
+On a typical redeployment of the system, you should never need to worry about
+the router configuration. However, you are often very interested in what backend
+server is operational.
+
+The router manages this by including a routing indicator in the clients cookies.
+The example below shows that the ROUTEID is set to `experts.blue`.
+
+#+begin_src bash
+curl -I https://experts.ucdavis.edu
+#+end_src
+
+#+begin_example
+HTTP/1.1 200 OK
+Date: Thu, 23 May 2024 22:47:05 GMT
+Server: Apache/2.4.53 (Red Hat Enterprise Linux) OpenSSL/3.0.7
+x-powered-by: Express
+accept-ranges: bytes
+cache-control: public, max-age=0
+last-modified: Fri, 26 Apr 2024 22:28:56 GMT
+etag: W/"1d2a-18f1c86a040"
+content-type: text/html; charset=UTF-8
+content-length: 7466
+Set-Cookie: ROUTEID=experts.blue; path=/
+#+end_example
+
+The router will try and maintain the same connection with the backend if
+possible, but if not it will reset this cookie, and switch to whatever backend
+is working.
+
+In our setup, there should never be two instances working, except for the few
+minutes where a redeployment is in progress.  The general setup is relatively
+straightforward.  The only major consideration, is that while you are preparing
+your system, you need to make sure that you are *not* using the production
+deployment port, otherwise the router will include your setup prematurely.
+
+Here are the steps to deploy to blue and gold. Each new deployment should target
+the non-running instance, alternating between blue and gold.
+
+** Deployment Steps
 
 
-*** svc:node
-    This service shows how an item is represented in the elasticsearch
-    documents.  A complete elastic search document is a set of nodes, this only
-    shows the node related to a particular item.
+*** Identify server
+  Since we switch between blue and gold servers, you are never really sure which
+  is in production, so you have to check the ROUTEID cookie with ~curl -I
+  https://experts.ucdavis.edu~.
 
-*** svc:cite
-    When applied to a work, this shows that citationstyles json for a work.
-    This should be directly importable into a citation manager like zotero
+  Fill in the following instructions with this value:
+
+  #+begin_src bash
+  cur=gold # or blue
+  case $cur in "gold") new="blue";; "blue") new="gold";; *) new="BAD"; esac
+  version=1.0.0 # or whatever
+  dir=1.0-1 # Major.Minor-ServerInstance
+
+  alias dc=docker-compose # or 'docker compose'
+  #+end_src
 
 
+*** Initialize new service
 
-** Kibana
+  First, initialize your new service.  This example shows where you are simply
+  updating the production images, but the steps are required for any changes.
+  These commands simply drop any previous data, and get the latest required
+  versions.
 
+  #+begin_src bash
+    ssh ${new}.experts.library.ucdavis.edu
+    cd /etc/aggie-experts
+    git clone https://github.com/ucd-library/aggie-experts.git ${major}.${minor}-1
+    cd ${major}-${minor}-1
+    git checkout ${version}
+    bin/aggie-experts --env=prod|stage setup
+    dc pull
+  #+end_src
 
-** Questions / Comments?
- To report an issue or provide feedback go to [[https://github.com/ucd-library/aggie-experts-public-issues/issues/new/choose][new issues]]
+  If you run into an error when pulling the images, one of the following might
+  be your issue:
+  - docker is not authorized to pull images: `gcloud auth configure-docker`
+  - you are not logged into gcloud: `gcloud auth login`
+  - you have the wrong project set: `gcloud config set project aggie-experts`
 
- Click [[https://github.com/ucd-library/aggie-experts-public-issues/issues][Issues]]
+  #+begin_src bash
+  dc up -d
+  #+end_src
 
- Thanks for taking an active role in the development of Aggie Experts!
+  You can follow along and monitor the logs to see that the initialization script
+  worked properly.
+
+*** Retire current service
+
+  At this point, you can vist the production pages, and verify that both backends
+  are running.  This is okay, since you cannot write to the current server.  Once
+  you have convinced yourself that things look good, you can stop (but don't bring
+  down) the cur (now old) server.  You stop it, so if there is a big problem, you
+  can
+
+  #+begin_src bash
+  ssh ${cur}.library.ucdavis.edu
+  cd /etc/aggie-experts/${old}
+  dc stop
+  #+end_src

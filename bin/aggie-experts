@@ -468,21 +468,7 @@ function build() {
   local setup=
 
   function post_build() {
-    if [[ -f ${G[base]}/.env ]]; then
-      local cur_org=$(grep '^ *ORG=' ${G[base]}/.env | sed 's/ORG=//')
-      local cur_tag=$(grep '^ *TAG=' ${G[base]}/.env | sed 's/TAG=//')
-      if [[ "$cur_tag" != "$tag" ]]; then
-        >&2 echo "WARN: .env (${G[env]}) TAG $cur_tag != $tag"
-        setup=1
-      fi
-      if [[ "$cur_org" != "$org" ]]; then
-        >&2 echo "WARN: .env (${G[env]}) ORG $cur_org != $org"
-        setup=1
-      fi
-    else
-      setup=1
-    fi
-    if [[ $setup ]]; then
+    if [[ $tag != "dirty" ]]; then
         >&2 echo "WARN: You may want to run aggie-experts setup"
     fi
   }
