@@ -45,10 +45,6 @@ The test and prod environments are for the production code.  They require
 specific tags, and deploy only from images pushed to the aggie-experts
 repository.
 
-=item B<--no-fuseki>
-
-Do not bring up the fuseki server.
-
 =item B<--mount=I<api,spa,models,init>>
 
 In the dev environment, you can specify which bind mounts you want to use.  This
@@ -358,6 +354,78 @@ function expand(){
   done
 }
 
+: <<'=cut'
+=pod
+
+=head2 expand_template
+
+Use shell expansion to expand docker-template.yaml with defaults
+
+=cut
+#https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
+function expand_template(){
+  local env=${G[env]}
+  local root="$(${G[git]} rev-parse --show-toplevel)"
+  local git_tag="$(${G[git]} describe --always --dirty)",
+  local sa client_id auth
+#  echo "Expanding ${root}/docker-template.yaml"
+  declare -g -A D
+
+  read D[org] D[tag] D[fin_org] D[fin_tag] \
+       D[host] D[port] \
+       D[gcs_bucket] D[gcs_init_data_hydration]\
+       D[client_env] \
+       sa client_id auth \
+       <<<$(G "[.${G[env]}.org // .def.org,
+           .${G[env]}.tag // .def.tag,
+           .def.fin.org,
+           .def.fin.tag,
+           .${G[env]}.host,
+           .${G[env]}.port,
+           .${G[env]}.gcs.bucket // .def.gcs.bucket,
+           .${G[env]}.gcs.init_data_hydration // .def.gcs.init_data_hydration,
+           .${G[env]}.client.env // .def.client.env,
+           .${G[env]}.auth.service_account // .def.auth.service_account,
+           .${G[env]}.auth.client_id // .def.auth.client_id,
+           .${G[env]}.auth.server // .def.auth.server
+          ] |@tsv")
+
+  #Get OIDC INFO
+  local oidc_secret=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
+  eval $(gcloud secrets versions access latest --secret="$oidc_secret")
+  D[jwt_secret]=$JWT_SECRET
+  D[jwt_issuer]=$JWT_ISSUER
+  D[jwt_jwks_uri]=$JWT_JWKS_URI
+  D[oidc_client_id]=$OIDC_CLIENT_ID
+  D[oidc_secret]=$OIDC_SECRET
+  D[oidc_base_url]=$OIDC_BASE_URL
+
+  #Get service account info
+  local srv_secret=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
+  eval $(gcloud secrets versions access latest --secret="$srv_secret")
+  D[fin_service_account_name]=$FIN_SERVICE_ACCOUNT_NAME
+  D[fin_service_account_secret]=$FIN_SERVICE_ACCOUNT_SECRET
+
+  # Tag is the git tag, unless specified
+  if [[ ${D[tag]} == "__git__" ]]; then
+    D[tag]="${git_tag}"
+  fi
+#  declare -p D
+  local line lineEscaped
+  # the `||` clause ensures that the last line is read even if it doesn't end with \n
+  while IFS= read -r line || [[ -n $line ]]; do
+    # Escape ALL chars. that could trigger an expansion..
+    IFS= read -r -d '' lineEscaped < <(printf %s "$line" | tr '`([$' '\1\2\3\4')
+    #IFS= read -r -d '' lineEscaped < <(printf %s "$line" | tr '($' '\2\4')
+    # ... then selectively reenable ${D[_*_]} references
+    lineEscaped=${lineEscaped//$'\4'\{D$'\3'/\$\{D[} # Variables
+    # Finally, escape embedded double quotes to preserve them.
+    lineEscaped=${lineEscaped//\"/\\\"}
+    eval "printf '%s\n' \"$lineEscaped\"" | tr '\1\2\3\4' '`([$'
+  done < ${root}/docker-template.yaml
+}
+
+
 function prune() {
   local N=${G[dry-run]};
   declare -a services=(init fcrepo base-service)
@@ -400,21 +468,7 @@ function build() {
   local setup=
 
   function post_build() {
-    if [[ -f ${G[base]}/.env ]]; then
-      local cur_org=$(grep '^ *ORG=' ${G[base]}/.env | sed 's/ORG=//')
-      local cur_tag=$(grep '^ *TAG=' ${G[base]}/.env | sed 's/TAG=//')
-      if [[ "$cur_tag" != "$tag" ]]; then
-        >&2 echo "WARN: .env (${G[env]}) TAG $cur_tag != $tag"
-        setup=1
-      fi
-      if [[ "$cur_org" != "$org" ]]; then
-        >&2 echo "WARN: .env (${G[env]}) ORG $cur_org != $org"
-        setup=1
-      fi
-    else
-      setup=1
-    fi
-    if [[ $setup ]]; then
+    if [[ $tag != "dirty" ]]; then
         >&2 echo "WARN: You may want to run aggie-experts setup"
     fi
   }
@@ -510,45 +564,6 @@ function push() {
 function setup() {
   local N=${G[dry-run]};
   local env=${G[env]}
-  local root="$(${G[git]} rev-parse --show-toplevel)"
-
-  function env_file() {
-    local env=${G[env]}
-    local org tag fin_org fin_tag host port auth client_id sa gcs gaid enable_gaid propagate
-    read org tag fin_org fin_tag host port auth client_id sa gcs gaid enable_gaid propagate\
-          <<<$(G "[.${G[env]}.org,
-                   .${G[env]}.tag,
-                   .def.fin.org,
-                   .def.fin.tag,
-                   .${G[env]}.host,
-                   .${G[env]}.port,
-                   .${G[env]}.auth.server,
-                   .${G[env]}.auth.client_id,
-                   .${G[env]}.auth.service_account,
-                   .${G[env]}.gcs,
-                   .${G[env]}.analytics.gaid // .def.analytics.gaid,
-                   .${G[env]}.analytics.enable // .def.analytics.enable,
-                   .${G[env]}.cdl.propagate_changes // .def.cdl.propagate_changes
-                  ] |@tsv")
-
-    [[ "$env" == "clean" ]] && env='dev'
-
-    local srv=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
-
-    srv_env=$(gcloud secrets versions access latest --secret="$srv")
-
-    local oidc=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
-    local oidc_env=$(gcloud secrets versions access latest --secret="$oidc")
-
-    echo -e "FIN_URL=$host\nHOST_PORT=$port"
-    echo "$srv_env"
-    echo -e "LOCAL_KEYCLOAK=false"
-    echo "$oidc_env"
-    echo -e "FIN_ORG=$fin_org\nFIN_TAG=$fin_tag\nORG=$org\nTAG=$tag"
-    echo -e "GCS=$gcs"
-    echo -e "CDL_PROPAGATE_CHANGES=$propagate"
-    echo -e "GA4_ENABLE_STATS=${enable_gaid}\nGA4_MEASUREMENT_ID=$gaid"
-  }
 
   function service_account() {
     local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.type:service-account-key" | jq -r '.[0].name'))
@@ -559,11 +574,14 @@ function setup() {
   function compose() {
     local keycloak=
     local org tag gcs
-    read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs] | @tsv")
+    read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs.bucket] | @tsv")
 
     local yq='.'
     local env=${G[env]}
     local mount=${G[mount]}
+
+    local template=$(expand_template)
+    local root="$(${G[git]} rev-parse --show-toplevel)"
 
     eval "$(cat .env)"
     # Delete unused PORTS
@@ -598,20 +616,16 @@ function setup() {
       fi
     # These are potential others
     else
-      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*")) | del(.services.keycloak)'
+      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
     fi
     if [[ -n $N ]]; then
-      echo "yq '${yq}' < ${root}/docker-template.yaml"
+      echo "yq '${yq}' <<<'${template}'"
     else
-      yq "${yq}" < ${root}/docker-template.yaml
+      yq "${yq}" <<<"${template}"
     fi
   }
   function setup_files() {
     if [[ -n $N ]]; then
-      if [[ -n ${G[setup_env]} ]] ; then
-        echo "#===== .env  =====#"
-        env_file
-      fi
       if [[ -n ${G[setup_compose]} ]] ; then
         echo "#===== docker-compose.yaml =====#"
         compose
@@ -621,17 +635,17 @@ function setup() {
         service_account
       fi
     else
-      if [[ -n ${G[setup_env]} ]] ; then
-        >&2 echo ".env"
-        env_file > ${G[base]}/.env
-      fi
       if [[ -n ${G[setup_compose]} ]] ; then
         >&2 echo "docker-compose.yaml"
         compose > ${G[base]}/docker-compose.yaml
       fi
       if [[ -n ${G[setup_service_account]} ]] ; then
-        >&2 echo "service-account.json"
-        service_account > ${G[base]}/service-account.json
+        if [[ -f ${G[base]}/service-account.json ]]; then
+          >&2 echo "service-account.json already exists"
+        else
+          >&2 echo "service-account.json"
+          service_account > ${G[base]}/service-account.json
+        fi
       fi
     fi
   }
@@ -672,7 +686,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,no-fuseki,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -694,8 +708,7 @@ function main.cmd() {
         --mount) CMD[mount]=$2; shift 2;;
         --no-test) CMD[test_env]=; shift;;
         --no-compose) CMD[setup_compose]=; shift;;
-        --no-env) CMD[setup_env]=; shift;;
-        --no-fuseki) CMD[include_fuseki]=; shift;;
+        --service-account) CMD[setup_service_account]=1; shift;;
         --no-service-account) CMD[setup_service_account]=; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
         -h | --help) pod2text $0; exit 0;;
@@ -734,11 +747,6 @@ function main.cmd() {
           # Fix mount if exists
           G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
 
-          # Add gcs if exists
-          if [[ -n ${G[gcs]} ]]; then
-            G[jq]="${G[jq]}|.gcs=\"${G[gcs]}\""
-          fi
-
 	        $cmd
 	        ;;
 
@@ -757,6 +765,11 @@ function main.cmd() {
 
         config | G )
           G "$@" ;
+          exit 0
+          ;;
+
+        expand_template )
+          expand_template
           exit 0
           ;;
 
@@ -791,10 +804,6 @@ exit $?
 To setup the full stack:
 
 C<aggie-expert --env=dev setup>
-
-To skip fuseki:
-
-C<aggie-expert --env=dev --no-fuseki setup>
 
 =head1 AUTHOR
 
