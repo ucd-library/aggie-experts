@@ -1,13 +1,14 @@
 const express = require('express');
 const {keycloak} = require('@ucd-lib/fin-service-utils');
 const path = require('path');
+const config = require('./config');
 
 const app = express();
 
 app.use(keycloak.setUser);
 
 // path to your spa assets dir
-let assetsDir = path.join(__dirname, 'client', 'public');
+let assetsDir = path.join(__dirname, 'client', config.client.assets);
 
 app.use((req, res, next) => {
   let user = req.get('x-fin-user');

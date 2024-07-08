@@ -6,6 +6,17 @@ const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('@ucd-lib/fin-service-utils').esClient;
 
+const loaderPath = path.join(__dirname, '..', 'client', config.client.assets, 'loader', 'loader.js');
+const loaderSrc = fs.readFileSync(loaderPath, 'utf-8');
+const bundle = `
+  <script>
+    var CORK_LOADER_VERSIONS = {
+      loader : '${config.client.versions.loader}',
+      bundle : '${config.client.versions.bundle}'
+    }
+  </script>
+  <script>${loaderSrc}</script>`;
+
 module.exports = async (app) => {
 
   // path to your spa assets dir
@@ -71,12 +82,16 @@ module.exports = async (app) => {
         appRoutes : config.client.appRoutes,
         env : config.client.env,
         enableGA4Stats : config.client.enableGA4Stats,
-        gaId : config.client.gaId,
+        gaId : config.client.gaId
       });
     },
 
     template : async (req, res, next) => {
-      return next({title: 'Aggie Experts', gaId: config.client.gaId});
+      return next({
+        title : 'Aggie Experts',
+        gaId : config.client.gaId,
+        bundle
+      });
     }
   });
 
