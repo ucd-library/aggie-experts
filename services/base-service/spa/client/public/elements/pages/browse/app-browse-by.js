@@ -1,7 +1,9 @@
 import { LitElement } from 'lit';
 import {render} from "./app-browse-by.tpl.js";
 
+import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import '../../components/ucdlib-browse-az.js';
+import '../../components/search-result-row.js';
 
 export default class AppBrowseBy extends Mixin(LitElement)
   .with(LitCorkUtils) {
