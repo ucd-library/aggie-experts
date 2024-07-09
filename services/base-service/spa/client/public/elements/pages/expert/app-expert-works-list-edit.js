@@ -360,7 +360,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
       let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
-      let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+      let modelContent = `
+        <p>
+          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
+          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
+        </p>
+        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
+      `;
 
       this.modalTitle = 'Error: Update Failed';
       this.modalContent = modelContent;
@@ -420,7 +426,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
-        let modelContent = `<p>Changes to the visibility of (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>
+          <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
+        `;
 
         this.modalTitle = 'Error: Update Failed';
         this.modalContent = modelContent;
@@ -468,7 +480,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
-        let modelContent = `<p>Rejecting (${citationTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>
+          <p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>
+        `;
 
         this.modalTitle = 'Error: Update Failed';
         this.modalContent = modelContent;

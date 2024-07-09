@@ -790,22 +790,22 @@ return html`
 
         <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
           <h3 class="heading--highlight">Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" @click=${this._editRoles}></ucdlib-icon>
               </span>
-            </a>
+            </span>
           </h3>
           <div class="no-display-data">No data to display</div>
         </div>
 
         <div class="roles" ?hidden="${!this.roles.length}">
           <h3 class="heading--highlight">Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" @click=${this._editRoles}></ucdlib-icon>
               </span>
-            </a>
+            </span>
           </h3>
 
           ${this.roles.map(

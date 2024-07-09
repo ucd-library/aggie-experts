@@ -451,7 +451,11 @@ export default class AppExpert extends Mixin(LitElement)
         }
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `<p>Hiding expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>`;
 
         this.modalTitle = 'Error: Update Failed';
         this.modalSaveText = '';
@@ -489,7 +493,11 @@ export default class AppExpert extends Mixin(LitElement)
         this.AppStateModel.setLocation('/');
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>`;
 
         this.modalTitle = 'Error: Update Failed';
         this.modalSaveText = '';
@@ -513,6 +521,8 @@ export default class AppExpert extends Mixin(LitElement)
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
       let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
       window.open(`https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`, '_blank');
+    } else if( this.modalAction === 'edit-roles' ) {
+      window.open('https://org.ucdavis.edu/odr/', '_blank');
     } else if( this.modalAction === 'edit-availability' ) {
       // save availability to cdl
       this.dispatchEvent(new CustomEvent("loading", {}));
@@ -530,17 +540,22 @@ export default class AppExpert extends Mixin(LitElement)
 
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        // let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>Availability labels</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>
+        `;
 
-        // this.modalTitle = 'Error: Update Failed';
-        // this.modalSaveText = '';
-        // this.modalContent = modelContent;
-        // this.showModal = true;
-        // this.hideCancel = true;
-        // this.hideSave = true;
-        // this.hideOK = false;
-        // this.hideOaPolicyLink = true;
-        // this.errorMode = true;
+        this.modalTitle = 'Error: Update Failed';
+        this.modalSaveText = '';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
 
         if( window.gtag ) {
           gtag('event', 'expert_availability_change', {
@@ -576,7 +591,11 @@ export default class AppExpert extends Mixin(LitElement)
         }
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `<p>Showing expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>`;
 
         this.modalTitle = 'Error: Update Failed';
         this.modalSaveText = '';
@@ -657,6 +676,23 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _editRoles
+   * @description show modal with link to edit roles
+   */
+  _editRoles(e) {
+    this.modalAction = 'edit-roles';
+    this.modalTitle = 'Edit Roles';
+    this.modalSaveText = '';
+    this.modalContent = `<p>Roles are managed via CDL.</p><p>You will be redirected to this system in a new tab.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
    * @method _editWebsites
    * @description show modal with link to edit websites
    */
@@ -664,7 +700,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalAction = 'edit-websites';
     this.modalTitle = 'Edit Links';
     this.modalSaveText = '';
-    this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
+    this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system in a new tab.</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
@@ -681,7 +717,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalAction = 'edit-about-me';
     this.modalTitle = 'Edit Introduction';
     this.modalSaveText = '';
-    this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
+    this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system in a new tab.</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
