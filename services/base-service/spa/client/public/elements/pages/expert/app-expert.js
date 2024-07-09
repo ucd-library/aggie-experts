@@ -683,7 +683,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalAction = 'edit-roles';
     this.modalTitle = 'Edit Roles';
     this.modalSaveText = '';
-    this.modalContent = `<p>Roles are managed via CDL.</p><p>You will be redirected to this system in a new tab.</p>`;
+    this.modalContent = `<p>Academic roles and titles are managed via the UC Davis Online Directory.</p><p>You will be redirected to this system in a new tab.</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
