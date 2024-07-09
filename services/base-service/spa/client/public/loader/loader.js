@@ -26,10 +26,10 @@
     ele.src = src;
     document.head.appendChild(ele);
   }
-  
+
   function load() {
     console.log('Webcomponents ready: '+(WebComponents.noPolyRequired ? 'native' : 'polyfill'));
-  
+
     var version = '';
     if( window.CORK_LOADER_VERSIONS ) {
       version = '?_='+CORK_LOADER_VERSIONS.bundle;
@@ -37,9 +37,8 @@
     } else {
       console.warn('No client bundle version specified');
     }
-  
+
     if( classSupport() ) addScript(bundleRootPath()+'/bundle.js'+version);
-    else addScript(bundleRootPath()+'/bundle-ie.js'+version);
   }
 
   var version = '';
@@ -50,12 +49,9 @@
     console.warn('No loader version specified');
   }
 
-  
+
   if( !classSupport() ) {
-    console.log('No class support, adding babel polyfills. using ie compatibility build');
-    document.open();
-    document.write('<script src="'+loaderRootPath()+'/polyfills/polyfills.js'+version+'"><\/script>');
-    document.close();
+    console.log('No class support, polyfills needed');
   }
 
   if( document.head.attachShadow && ('customElements' in window) && ('content' in document.createElement('template')) ) {
@@ -64,12 +60,9 @@
       noPolyRequired : true
     }
   } else {
-    document.open();
-    document.write('<script src="'+loaderRootPath()+'/polyfills/webcomponents-loader.js'+version+'" ><\/script>');
-    document.close();
+    console.log('No webcomponents support, polyfills needed');
   }
 
   if( window.WebComponents && WebComponents.ready) load();
-else window.addEventListener('WebComponentsReady', load);
+  else window.addEventListener('WebComponentsReady', load);
 })();
-

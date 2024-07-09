@@ -11,7 +11,7 @@ cp -r public/images dist/
 cp -r public/fonts dist/
 cp -r public/lib dist/
 cp -r public/elements dist/
-cp -R -L public/loader dist/
+# cp -R -L public/loader dist/
 
 cp public/index.html dist/
 cp public/login.html dist/
