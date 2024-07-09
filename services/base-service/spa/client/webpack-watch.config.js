@@ -12,6 +12,11 @@ let config = require('@ucd-lib/cork-app-build').watch({
     clientModules : 'public/node_modules'
   });
 
+  if( !Array.isArray(config) ) config = [config];
+  config.forEach(conf => {
+    conf.output.publicPath = '/js/';
+  });
+
   // optionaly you can run:
   // require('@ucd-lib/cork-app-build').watch(config, true)
   // Adding the second flag will generate a ie build as well as a modern
