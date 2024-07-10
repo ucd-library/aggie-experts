@@ -159,10 +159,12 @@ class ExpertModel extends BaseModel {
       works.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
       */
       try {
-
         // TODO sort array should be applied to a single sort by order in the array, not multiple sorts
         // ie sort by date, then title, then author, etc, using || in same sort function
         // ref: works.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+
+
+
 
         // works.sort((a,b) => {
         //   let sort = 0;
@@ -192,15 +194,21 @@ class ExpertModel extends BaseModel {
 
     // TODO sort grants if requested
 
-    // TODO subset works if requested
+    // subset works if requested
+    if( options.works?.page && options.works?.size ) {
+      works = works.slice((options.works.page-1) * options.works.size, options.works.page * options.works.size);
+    }
 
-    // TODO subset grants if requested
+    // subset grants if requested
+    if( options.grants?.page && options.grants?.size ) {
+      grants = grants.slice((options.grants.page-1) * options.grants.size, options.grants.page * options.grants.size);
+    }
 
-    // TODO filter works by field(s) if requested
-
-    // TODO filter grants by field(s) if requested
-
-
+    /*
+      TODO tbd in the future, for search we'll want to filter by dates and potentially other values
+      // filter works by field(s) if requested
+      // filter grants by field(s) if requested
+    */
 
     // filter out expert graph if not requested
     // TODO ask QH, this assumes all options are explicit, and that if they are not passed in, they are not included
