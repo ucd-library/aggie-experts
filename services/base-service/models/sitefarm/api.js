@@ -119,7 +119,7 @@ router.get(
           admin: req.query.admin ? true : false,
         }
         doc = await expert_model.get(expertId, opts);
-        doc=expert_model.sanitize(doc);
+        doc=expert_model.subselect(doc);
         res.doc_array.push(doc);
       } catch (e) {
         // log the error - couldn't find the resource. But continue to the next one

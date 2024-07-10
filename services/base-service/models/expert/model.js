@@ -52,9 +52,9 @@ class ExpertModel extends BaseModel {
 
   /**
    * @method subselect
-   * @description return all or part of a document, with optionally sanitized and subselections of works/grants when requested
+   * @description return all or part of a document, with optional subsets of works/grants when requested
    * @param {Object} doc
-   * @param {Object} options, ie {'no-sanitize':true, expert:true|false, grants:{ page:1,size:25}, works:{page:1,size:25}}
+   * @param {Object} options, ie {admin:true|false, subset:true|false, expert:true|false, grants:{page:1,size:25,sanitize:true|false}, works:{page:1,size:25,sanitize:true|false}}
    * @returns {Object} : document
    **/
   subselect(doc, options={}) {
@@ -62,128 +62,157 @@ class ExpertModel extends BaseModel {
       throw {status: 404, message: "Not found"};
     }
 
-    function spliceOut(i) {
-      if (doc["@graph"][i]?.["@type"] === "Expert") {
-        throw {status: 404, message: "Not found"};
-      } else {
-        logger.info({function:"subselect/spliceOut",i},`_x_${doc["@graph"][i]["@id"]}`);
-        doc["@graph"].splice(i, 1);
+    /*
+    options example:
+      {
+        'is-visible' : true|false,
+        expert : { include : true },
+        grants : {
+          page : 1,
+          size : 25,
+          exclude : [ 'totalAwardAmount' ],
+          sort : [
+            {
+              field : 'name',
+              sort : 'desc',
+              type : 'string'|'number'|'date'|'year'(to apply .split('-')[0] to the value),
+
+              // experimental, impl later
+              // might just be `type: title` to skip various words, but what other types and how defined?
+              skip : 'A|The|An'
+            }
+          ],
+          filter : [
+            {
+              date : {
+                min : 2000|'none',
+                max : 2020|'none'
+              }
+            }
+          ]
+        },
+        works : { include : false }
       }
+    */
+
+    // split graph by type
+    let expert = doc["@graph"].filter(graph => graph['@id'] === doc['@id']);
+    let works = doc["@graph"].filter(graph => graph["@type"] === "Work" || graph["@type"].includes("Work"));
+    let grants = doc["@graph"].filter(graph => graph["@type"] === "Grant" || graph["@type"].includes("Grant"));
+
+    // to store totals of works/grants before filtering out any
+    let totalWorks = works.length;
+    let totalGrants = grants.length;
+    let hiddenWorks = 0, hiddenGrants = 0;
+
+    // by default, filter out hidden works/grants if not requested to include them
+    // TODO ask QH, should we also filter out hidden works/grants if they're not an admin/the expert?
+    if( options['is-visible'] !== false ) {
+      works = works.filter(w => w.relatedBy?.['is-visible']);
+      hiddenWorks = totalWorks - works.length;
+
+      grants = grants.filter(g =>
+        g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
+      );
+      hiddenGrants = totalGrants - grants.length;
     }
 
-    function getFilterRange(page, size) {
-      let startIndex = (page-1) * size;
-      let endIndex = startIndex + size;
-      return { startIndex, endIndex };
-    }
-
-    let noSanitize = options['no-sanitize'] || false;
-
-    let filterWorks = false, worksStartIndex, worksEndIndex;
-    if( 'works' in options ) {
-      // default to page 1 and size 10
-      let { startIndex, endIndex } = getFilterRange(options.works.page || 1, options.works.size || 10);
-      worksStartIndex = startIndex;
-      worksEndIndex = endIndex;
-      filterWorks = true;
-    }
-
-    let filterGrants = false, grantsStartIndex, grantsEndIndex;
-    if( 'grants' in options ) {
-      // default to page 1 and size 5
-      let { startIndex, endIndex } = getFilterRange(options.grants.page || 1, options.grants.size || 5);
-      grantsStartIndex = startIndex;
-      grantsEndIndex = endIndex;
-      filterGrants = true;
-    }
-
-    graph_loop: for(let i=0; i<doc["@graph"].length; i++) {
-      // logger.info({function:"sanitize",i,visible:(("is-visible" in doc["@graph"][i]) &&
-      //    doc["@graph"][i]?.["is-visible"] !== true)},`${doc["@graph"][i]["@id"]}`);
-      // Node is not visible
-      if (!noSanitize && ("is-visible" in doc["@graph"][i]) &&
-          doc["@graph"][i]?.["is-visible"] !== true) {
-        spliceOut(i--);
-        continue graph_loop;
-      }
-
-      if (!noSanitize && doc["@graph"][i].relatedBy) {
-        // relatedby is doc["@graph"][i]["relatedBy"] but always an array
-        const relatedBy = Array.isArray(doc["@graph"][i].relatedBy) ?
-              doc["@graph"][i].relatedBy : [doc["@graph"][i].relatedBy];
-        for (let j=0; j<relatedBy.length; j++) {
-          if ("is-visible" in relatedBy[j] && relatedBy[j]?.["is-visible"] !== true) {
-            spliceOut(i--);
-            continue graph_loop;
-          }
-        }
-      }
-      // Sanitize this node if it is an Grant (esp.)
-      delete doc["@graph"][i]["totalAwardAmount"];
-      // Sanitize identifiers (This is no longer required)
-      // TODO: Remove this after testing
-      ["ucdlib:email","ucdlib:employeeId","ucdlib:ucdPersonUUId"].forEach((key) => {
-        if (doc["@graph"]?.[i]?.[key]) {
-          delete doc["@graph"][i][key];
-        }
+    // remove excluded fields in works if requested
+    if( options.works?.exclude && options.works.exclude.length ) {
+      works = works.map(work => {
+        options.works.exclude.forEach(field => {
+          delete work[field];
+        });
+        return work;
       });
     }
 
-    // TODO if we want counts of hidden works/grants when noSanitize is false, they'll already be removed in the above loop.. should we get counts before the loop?
-    // or can we just remove that splice logic completely? would array filter()'s be better?
-    if( filterWorks || filterGrants ) {
+    // remove excluded fields in grants if requested
+    if( options.grants?.exclude && options.grants.exclude.length ) {
+      grants = grants.map(grant => {
+        options.grants.exclude.forEach(field => {
+          delete grant[field];
+        });
+        return grant;
+      });
+    }
+
+    // sort works if requested
+    if( options.works?.sort && options.works.sort.length ) {
+      /*
+      sort : [
+        {
+          field : 'issued',
+          sort : 'desc',
+          type : 'string'|'number'|'date'|'year'(to apply .split('-')[0] to the value)
+        }
+      ],
+      */
+      /*
+      // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
+      // this will definitely fail for works that have an array for title or issued, which happens
+      // in that case we still want to show in the ui, but that it's malformed, so they can fix it
+
+      // FROM VE (in https://github.com/ucd-library/aggie-experts/issues/540):
+      // Can you apply the "misformated citation, contact admin" label here?
+      // There isn't a good default solution to the handful of examples I've seen when the titles clash.
+      works.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+      */
       try {
-        // sort works and grants from @graph to allow subselect of ranges
-        let expertGraph = doc["@graph"].find(g => g['@id'] === doc['@id']);
-        let worksGraph = doc["@graph"].filter(g => g["@type"] === "Work" || g["@type"].includes("Work"));
-        let grantsGraph = doc["@graph"].filter(g => g["@type"] === "Grant" || g["@type"].includes("Grant"));
 
-        // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
-        // this will definitely fail for works that have an array for title or issued, which happens
-        // in that case we still want to show in the ui, but that it's malformed, so they can fix it
-        worksGraph.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+        // TODO sort array should be applied to a single sort by order in the array, not multiple sorts
+        // ie sort by date, then title, then author, etc, using || in same sort function
+        // ref: works.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
 
-        // TODO same sort with grants once we analyze them
-
-        // also pass back the total grants/works count for the expert
-        let totalWorks = worksGraph.length;
-        let totalGrants = grantsGraph.length;
-        let hiddenWorks = worksGraph.filter(c => c.relatedBy?.['is-visible']).length;
-
-        let hiddenGrants = 42; // TODO, more complicated because we need to loop over the relatedBy field
-                               //   to find the record with the current relationship id, then check that visibility
-
-        doc.hits = {
-          works: {
-            total: totalWorks,
-            visible: hiddenWorks
-          },
-          grants: {
-            total: totalGrants,
-            visible: hiddenGrants
-          }
-        };
-
-
-        if( filterWorks ) {
-          worksGraph = worksGraph.slice(worksStartIndex, worksEndIndex);
-        }
-
-        if( filterGrants ) {
-          grantsGraph = grantsGraph.slice(grantsStartIndex, grantsEndIndex);
-        }
-
-        if( 'expert' in options && options.expert === false ) {
-          doc['@graph'] = [...worksGraph, ...grantsGraph];
-        } else {
-          doc['@graph'] = [expertGraph, ...worksGraph, ...grantsGraph];
-        }
-
+        // works.sort((a,b) => {
+        //   let sort = 0;
+        //   options.works.sort.forEach(sorter => {
+        //     let valA = a[sorter.field];
+        //     let valB = b[sorter.field];
+        //     if( sorter.type === 'date' ) {
+        //       valA = valA.split('-')[0];
+        //       valB = valB.split('-')[0];
+        //     } else if( sorter.type === 'year' ) {
+        //       valA = valA.split('-')[0];
+        //       valB = valB.split('-')[0];
+        //     }
+        //     if( valA < valB ) {
+        //       sort = sorter.sort === 'asc' ? -1 : 1;
+        //     } else if( valA > valB ) {
+        //       sort = sorter.sort === 'asc' ? 1 : -1;
+        //     }
+        //   });
+        //   return sort;
+        // });
       } catch(e) {
         // TODO
       }
+
     }
 
+    // TODO sort grants if requested
+
+    // TODO subset works if requested
+
+    // TODO subset grants if requested
+
+    // TODO filter works by field(s) if requested
+
+    // TODO filter grants by field(s) if requested
+
+
+
+    // filter out expert graph if not requested
+    // TODO ask QH, this assumes all options are explicit, and that if they are not passed in, they are not included
+    if( !options.expert?.include ) expert = [];
+
+    // filter out works graph if not requested
+    if( !options.works && !options.works?.include ) works = [];
+
+    // filter out grants graph if not requested
+    if( !options.grants && !options.grants?.include ) grants = [];
+
+    doc['@graph'] = [...expert, ...works, ...grants]
     return doc;
   }
 
