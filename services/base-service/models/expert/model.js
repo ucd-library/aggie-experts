@@ -62,6 +62,50 @@ class ExpertModel extends BaseModel {
       throw {status: 404, message: "Not found"};
     }
 
+    function sortGraph(a, b, sort=[]) {
+      /*
+      sort : [
+        {
+          field : 'issued',
+          sort : 'desc',
+          type : 'year' (to apply .split('-')[0] to the value)
+        },
+        {
+          field : 'title',
+          sort : 'asc' (optional, default 'asc'),
+          type : 'string'
+        }
+      ],
+      */
+
+      for( let sortBy of sort ) {
+        let aValue = a[sortBy.field];
+        let bValue = b[sortBy.field];
+
+        // custom processing by data type
+        if( sortBy.type === 'year' ) {
+          aValue = aValue.split('-')[0];
+          bValue = bValue.split('-')[0];
+        } else if (sortBy.type === 'string') {
+          let comparisonResult = aValue.localeCompare(bValue);
+          if (comparisonResult !== 0) {
+            return sortBy.sort === 'desc' ? -comparisonResult : comparisonResult;
+          }
+        }
+        // TODO handle date/number sorting
+
+
+        if( aValue < bValue ) {
+          return sortBy.sort === 'desc' ? 1 : -1;
+        }
+        if( aValue > bValue ) {
+          return sortBy.sort === 'desc' ? -1 : 1;
+        }
+      }
+
+      return 0; // sorts match
+    }
+
     /*
     options example:
       {
@@ -139,53 +183,15 @@ class ExpertModel extends BaseModel {
 
     // sort works if requested
     if( options.works?.sort && options.works.sort.length ) {
-      /*
-      sort : [
-        {
-          field : 'issued',
-          sort : 'desc',
-          type : 'string'|'number'|'date'|'year'(to apply .split('-')[0] to the value)
-        }
-      ],
-      */
-      /*
-      // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
-      // this will definitely fail for works that have an array for title or issued, which happens
-      // in that case we still want to show in the ui, but that it's malformed, so they can fix it
-
-      // FROM VE (in https://github.com/ucd-library/aggie-experts/issues/540):
-      // Can you apply the "misformated citation, contact admin" label here?
-      // There isn't a good default solution to the handful of examples I've seen when the titles clash.
-      works.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-      */
       try {
-        // TODO sort array should be applied to a single sort by order in the array, not multiple sorts
-        // ie sort by date, then title, then author, etc, using || in same sort function
-        // ref: works.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+        // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
+        // this will definitely fail for works that have an array for title or issued, which happens
+        // in that case we still want to show in the ui, but that it's malformed, so they can fix it
+        // FROM VE (in https://github.com/ucd-library/aggie-experts/issues/540):
+        // Can you apply the "misformated citation, contact admin" label here?
+        // There isn't a good default solution to the handful of examples I've seen when the titles clash.
+        works.sort((a,b) => sortGraph(a, b, options.works.sort));
 
-
-
-
-        // works.sort((a,b) => {
-        //   let sort = 0;
-        //   options.works.sort.forEach(sorter => {
-        //     let valA = a[sorter.field];
-        //     let valB = b[sorter.field];
-        //     if( sorter.type === 'date' ) {
-        //       valA = valA.split('-')[0];
-        //       valB = valB.split('-')[0];
-        //     } else if( sorter.type === 'year' ) {
-        //       valA = valA.split('-')[0];
-        //       valB = valB.split('-')[0];
-        //     }
-        //     if( valA < valB ) {
-        //       sort = sorter.sort === 'asc' ? -1 : 1;
-        //     } else if( valA > valB ) {
-        //       sort = sorter.sort === 'asc' ? 1 : -1;
-        //     }
-        //   });
-        //   return sort;
-        // });
       } catch(e) {
         // TODO
       }
@@ -193,6 +199,8 @@ class ExpertModel extends BaseModel {
     }
 
     // TODO sort grants if requested
+
+
 
     // subset works if requested
     if( options.works?.page && options.works?.size ) {
@@ -205,7 +213,8 @@ class ExpertModel extends BaseModel {
     }
 
     /*
-      TODO tbd in the future, for search we'll want to filter by dates and potentially other values
+      TODO tbd in the future, for search we'll want to filter by dates and potentially other values,
+          will implement once search is built out more
       // filter works by field(s) if requested
       // filter grants by field(s) if requested
     */
@@ -219,6 +228,15 @@ class ExpertModel extends BaseModel {
 
     // filter out grants graph if not requested
     if( !options.grants && !options.grants?.include ) grants = [];
+
+    // return total visible/hidden works/grants
+    // TODO ask QH, does this need to be hidden if not admin/expert?
+    doc.totals = {
+      works: totalWorks,
+      grants: totalGrants,
+      hiddenWorks,
+      hiddenGrants
+    };
 
     doc['@graph'] = [...expert, ...works, ...grants]
     return doc;
