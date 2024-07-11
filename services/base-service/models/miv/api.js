@@ -25,7 +25,7 @@ router.get(
   }
 );
 
-function miv_valid_path(options={}) {
+function miv_valid_path(options = {}) {
   const def = {
     "description": "A JSON array an expert's grants",
   };
@@ -36,7 +36,7 @@ function miv_valid_path(options={}) {
 
   delete options.parameters;
 
-  return openapi.validPath({...def, ...options});
+  return openapi.validPath({ ...def, ...options });
 }
 
 // This will serve the generated json document(s)
@@ -91,16 +91,25 @@ router.get(
       let grants = [];
       if (find?.hits[0]) {
         for (const hit of find.hits[0]._inner_hits) {
+          // Util function to ensure an array
+          function ensureArray(value) {
+            if (!Array.isArray(value)) {
+              return [value];
+            }
+            return value;
+          }
           // create a people array
           let people = [];
           if (hit.relatedBy) {
             hit.relatedBy.forEach((x) => {
-              if (! x.inheres_in) {
-                people.push({
-                  '@id': x['@id'],
-                  name: x.relates[0].name,
-                  role: x['@type']
-                });
+              if (!x.inheres_in) {
+                if (ensureArray(x['@type']).includes('CoPrincipalInvestigatorRole')) {
+                  people.push({
+                    '@id': x['@id'],
+                    name: x.relates[0].name,
+                    role: x['@type']
+                  });
+                }
               }
             });
           }
@@ -118,7 +127,7 @@ router.get(
           });
         }
       }
-      res.send({"@graph": grants});
+      res.send({ "@graph": grants });
     } catch (err) {
       // Write the error message to the console
       console.error(err);

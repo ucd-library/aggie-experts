@@ -211,6 +211,18 @@ services:
     image: *BASE
     environment:
       - FIN_SERVICE_NAME=uber
+      - FIN_URL=${FIN_URL:-${D[host]}}
+      - HOST_PORT=${HOST_PORT:-${D[port]}}
+      - LOCAL_KEYCLOAK=false
+      - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
+       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
       # - OTEL_LOG_LEVEL=DEBUG
       - FIN_METRICS_ENABLED=${FIN_METRICS_ENABLED:-true}
       - FIN_METRICS_FS_ENABLED=${FIN_METRICS_FS_ENABLED:-true}
