@@ -366,7 +366,7 @@ Use shell expansion to expand docker-template.yaml with defaults
 function expand_template(){
   local env=${G[env]}
   local root="$(${G[git]} rev-parse --show-toplevel)"
-  local git_tag="$(${G[git]} describe --always --dirty)",
+  local git_tag="$(${G[git]} describe --always --dirty)"
   local sa client_id auth
 #  echo "Expanding ${root}/docker-template.yaml"
   declare -g -A D
@@ -409,6 +409,7 @@ function expand_template(){
   # Tag is the git tag, unless specified
   if [[ ${D[tag]} == "__git__" ]]; then
     D[tag]="${git_tag}"
+    echo tag=${D[tag]}
   fi
 #  declare -p D
   local line lineEscaped
@@ -455,15 +456,22 @@ function prune() {
 #    local image=$org/${service}:$tag
 }
 function build() {
-  local org
-  local tag
+  local org fin_org tag fin_tag
   local N=${G[dry-run]};
 
-  local fin_org=$(G .def.fin.org)
-  local fin_tag=$(G .def.fin.tag)
+  read org tag fin_org fin_tag \
+       <<<$(G "[.${G[env]}.org // .def.org,
+           .${G[env]}.tag // .def.tag,
+           .def.fin.org,
+           .def.fin.tag] | @tsv") #\
 
-  local org=$(G .${G[env]}.org)
-  local tag=$(G .${G[env]}.tag)
+  local git_tag="$(${G[git]} describe --always --dirty)"
+  echo "${G[git]} describe --always --dirty)",
+  # Tag is the git tag, unless specified
+  if [[ $tag == "__git__" ]]; then
+    tag="${git_tag}"
+  fi
+
 
   local setup=
 

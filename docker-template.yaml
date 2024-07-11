@@ -122,6 +122,7 @@ services:
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-${D[gaid]}}
       - FIN_URL=${FIN_URL:-${D[host]}}
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
+      - APP_VERSION=${APP_VERSION:-${D[tag]}}
     depends_on:
       - elasticsearch
     restart: unless-stopped
