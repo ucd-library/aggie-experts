@@ -19,16 +19,14 @@ async function fetchExpertId (req, res, next) {
       user = await AdminClient.findByEmail(email);
     } else if (req.query.ucdPersonUUID) {
       const ucdPersonUUID = req.query.ucdPersonUUID;
-     console.log('ucdPersonUUID', ucdPersonUUID);
       user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
     }
     else if (req.query.iamId) {
       const iamId = req.query.iamId;
-      console.log('iamId', iamId);
       user = await AdminClient.findOneByAttribute(`iamId:${iamId}`);
     }
   } catch (err) {
-    console.error(err);
+    // console.error(err);
     return res.status(500).send({error: 'Error finding expert with ${req.query}'});
   }
 
@@ -42,7 +40,6 @@ async function fetchExpertId (req, res, next) {
 }
 
 async function convertIds(req, res, next) {
-  // console.log('convertIds', req.params.ids);
   const id_array = req.params.ids.replace('ids=', '').split(',');
 
   const token = await keycloak.getServiceAccountToken();
@@ -54,13 +51,12 @@ async function convertIds(req, res, next) {
   // for each id, get the expertId
   for (const theId of id_array) {
     try {
-          //Split the id into the type and the id
-          let idParts = theId.split(':');
-          console.log(idParts[0], idParts[1]);
-          user = await AdminClient.findOneByAttribute(`${idParts[0]}:${idParts[1]}`);
+      //Split the id into the type and the id
+      let idParts = theId.split(':');
+      user = await AdminClient.findOneByAttribute(`${idParts[0]}:${idParts[1]}`);
     }
     catch (err) {
-      console.error(err);
+      // console.error(err);
     }
 
     if (user && user?.attributes?.expertId) {
@@ -73,7 +69,6 @@ async function convertIds(req, res, next) {
 
 async function validate_admin_client(req, res, next) {
   if (! AdminClient) {
-    console.log('validate_admin_client - creating new client');
     const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
     const oidcbaseURL = config.oidc.baseUrl;
     const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
@@ -85,7 +80,6 @@ async function validate_admin_client(req, res, next) {
           realmName: match[2]
         }
       );
-      console.log('validate_admin_client - created new client');
     } else {
       throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
     }
@@ -94,7 +88,6 @@ async function validate_admin_client(req, res, next) {
 }
 
 async function validate_miv_client(req, res, next) {
-  // console.log('validate_miv_client');
   if (! MIVJWKSClient) {
     const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
     const oidcbaseURL = config.oidc.baseUrl;
@@ -116,65 +109,57 @@ async function validate_miv_client(req, res, next) {
 
 function has_access(client) {
 
-  return function(req, res, next) {
+  return async function(req, res, next) {
     if (!req.user) {
-      // Try MIV Service Account
-      return is_miv_service_account(req, res, next);
-      return res.status(401).send('Unauthorized');
+      // Try Service Account
+      const token = req.headers.authorization?.split(' ')[1];
+
+      if (!token) {
+        return res.status(401).json({ error: 'Token not provided' });
+      }
+
+      try {
+        // Get the public key from the JWKS endpoint
+        const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
+        // Verify the token's signature using the public key
+        const verifiedToken = jwt.verify(token, key.getPublicKey(), { algorithms: ['RS256'] });
+
+        // Validate issuer
+        if (verifiedToken.iss !== 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv') {
+          return res.status(401).json({ error: 'Invalid token issuer' });
+        }
+
+        // Validate audience
+        if (verifiedToken.aud !== 'account') {
+          return res.status(401).json({ error: 'Invalid token audience' });
+        }
+
+        // Validate expiration
+        if (Date.now() >= verifiedToken.exp * 1000) {
+          return res.status(401).json({ error: 'Token has expired' });
+        }
+
+        // Validate request source (optional)
+        //if (req.hostname !== verifiedToken.clientHost) {
+        //  return res.status(401).json({ error: 'Invalid request source' });
+        //}
+
+        // Custom authorization logic
+        // Implement your own logic here based on token claims
+        if (! verifiedToken?.resource_access?.[client]?.roles?.includes('access')) {
+          return res.status(403).json({ error: 'No Access Role' });
+        }
+        // return res.status(401).send('Unauthorized');
+        if (req.user?.roles?.includes('admin') || req.user?.roles?.includes(client)) {
+          return next();
+        }
+        return next();
+      }
+      catch (error) {
+        // console.error(error);
+        return res.status(403).json({ error: 'Internal server error' });
+      }
     }
-    if (req.user?.roles?.includes('admin') || req.user?.roles?.includes(client)) {
-      console.log('has_access next');
-      return next();
-    }
-    // console.log('has_access 403');
-    return res.status(403).send('Not Authorized');
-  }
-}
-
-// Middleware to validate client credential token
-async function is_miv_service_account(req, res, next) {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token not provided' });
-  }
-
-  try {
-    // Get the public key from the JWKS endpoint
-    const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
-    // Verify the token's signature using the public key
-    const verifiedToken = jwt.verify(token, key.getPublicKey(), { algorithms: ['RS256'] });
-
-    // Validate issuer
-    if (verifiedToken.iss !== 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv') {
-      return res.status(401).json({ error: 'Invalid token issuer' });
-    }
-
-    // Validate audience
-    if (verifiedToken.aud !== 'account') {
-      return res.status(401).json({ error: 'Invalid token audience' });
-    }
-
-    // Validate expiration
-    if (Date.now() >= verifiedToken.exp * 1000) {
-      return res.status(401).json({ error: 'Token has expired' });
-    }
-
-    // Validate request source (optional)
-    //console.log('req', req.ip);
-    //if (req.hostname !== verifiedToken.clientHost) {
-    //  return res.status(401).json({ error: 'Invalid request source' });
-    //}
-
-    // Custom authorization logic
-    // Implement your own logic here based on token claims
-    if (! verifiedToken.resource_access.miv.roles.includes('access')) {
-      return res.status(403).json({ error: 'No Access Role' });
-    }
-    next();
-
-  } catch (error) {
-    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -821,7 +806,6 @@ module.exports = {
   is_user,
   json_only,
   validate_miv_client,
-  is_miv_service_account,
   has_access,
   validate_admin_client,
   fetchExpertId,
