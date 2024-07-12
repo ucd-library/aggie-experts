@@ -409,7 +409,6 @@ function expand_template(){
   # Tag is the git tag, unless specified
   if [[ ${D[tag]} == "__git__" ]]; then
     D[tag]="${git_tag}"
-    echo tag=${D[tag]}
   fi
 #  declare -p D
   local line lineEscaped
@@ -580,6 +579,7 @@ function setup() {
   }
 
   function compose() {
+    local N=${G[dry-run]};
     local keycloak=
     local org tag gcs
     read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs.bucket] | @tsv")
