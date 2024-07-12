@@ -4,7 +4,7 @@ ARG JENA_VERSION=4.9.0
 ARG HDT_VERSION=v3.0.9
 
 # We install hdt binaries completely seperately from our fuseki extras below
-from $MAVEN as hdt-java
+FROM $MAVEN AS hdt-java
 ARG HDT_VERSION
 
 USER root
@@ -23,7 +23,7 @@ RUN git clone --branch=$HDT_VERSION https://github.com/rdfhdt/hdt-java.git \
   && mv target/hdt-java-*/hdt-java-* /opt/hdt-java
 
 # This is where HDT modules are installed
-from $MAVEN as extra
+FROM $MAVEN AS extra
 
 USER root
 
@@ -39,7 +39,7 @@ COPY extra/pom.xml .
 # From http://www.jcgonzalez.com/maven-just-copy-dependencies
 RUN mvn dependency:copy-dependencies -DoutputDirectory=/fuseki/extra
 
-FROM $OPENJDK as openjdk
+FROM $OPENJDK AS openjdk
 
 ENV YQ_VERSION="3.3.2"
 
@@ -48,7 +48,7 @@ ENV YQ_VERSION="3.3.2"
 #RUN useradd --system --no-user-group --home-dir /home/ucd.process --create-home --shell /bin/bash --uid ${UID} --gid 0 ucd.process && \
 
 #   Ensure that the local paths are preferred
-ENV PATH /usr/local/bin:$PATH
+ENV PATH=/usr/local/bin:$PATH
 ENV LANG=C.UTF-8
 
 #   The two lines below are there to prevent a red line error to be shown about
@@ -98,23 +98,23 @@ ARG FUSEKI_BASE=/etc/fuseki
 
 
 USER root
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
 RUN set -eux && \
     apt-get update; \
     apt-get install -y --no-install-recommends \
        bash curl ca-certificates findutils coreutils pwgen procps wait-for-it && \
     rm -rf /var/lib/apt/lists/*
 
-LABEL org.opencontainers.image.documentation https://jena.apache.org/documentation/fuseki2/
-LABEL org.opencontainers.image.title "Apache Jena Fuseki"
-LABEL org.opencontainers.image.version ${JENA_VERSION}
-LABEL org.opencontainers.image.licenses "(Apache-2.0 AND (GPL-2.0 WITH Classpath-exception-2.0) AND GPL-3.0)"
+LABEL org.opencontainers.image.documentation=https://jena.apache.org/documentation/fuseki2/
+LABEL org.opencontainers.image.title="Apache Jena Fuseki"
+LABEL org.opencontainers.image.version=${JENA_VERSION}
+LABEL org.opencontainers.image.licenses="(Apache-2.0 AND (GPL-2.0 WITH Classpath-exception-2.0) AND GPL-3.0)"
 #LABEL org.opencontainers.image.authors "Apache Jena Fuseki by https://jena.apache.org/; this image by https://orcid.org/0000-0001-9842-9718"
 
 # Add HDT data
 COPY --from=hdt-java /opt/hdt-java/ /opt/hdt-java/
 # Add to PATH
-ENV PATH $PATH:/opt/hdt-java/bin
+ENV PATH=$PATH:/opt/hdt-java/bin
 
 
 # Add in Jena files
@@ -134,7 +134,7 @@ RUN tar zxf jena.tar.gz && \
 	cd /usr/local/apache-jena && rm -rf *javadoc* *src* bat
 
 # Add to PATH
-ENV PATH $PATH:/usr/local/apache-jena/bin
+ENV PATH=$PATH:/usr/local/apache-jena/bin
 # Check it works
 RUN riot  --version
 

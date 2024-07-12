@@ -366,7 +366,7 @@ Use shell expansion to expand docker-template.yaml with defaults
 function expand_template(){
   local env=${G[env]}
   local root="$(${G[git]} rev-parse --show-toplevel)"
-  local git_tag="$(${G[git]} describe --always --dirty)",
+  local git_tag="$(${G[git]} describe --always --dirty)"
   local sa client_id auth
 #  echo "Expanding ${root}/docker-template.yaml"
   declare -g -A D
@@ -455,15 +455,22 @@ function prune() {
 #    local image=$org/${service}:$tag
 }
 function build() {
-  local org
-  local tag
+  local org fin_org tag fin_tag
   local N=${G[dry-run]};
 
-  local fin_org=$(G .def.fin.org)
-  local fin_tag=$(G .def.fin.tag)
+  read org tag fin_org fin_tag \
+       <<<$(G "[.${G[env]}.org // .def.org,
+           .${G[env]}.tag // .def.tag,
+           .def.fin.org,
+           .def.fin.tag] | @tsv") #\
 
-  local org=$(G .${G[env]}.org)
-  local tag=$(G .${G[env]}.tag)
+  local git_tag="$(${G[git]} describe --always --dirty)"
+  echo "${G[git]} describe --always --dirty)",
+  # Tag is the git tag, unless specified
+  if [[ $tag == "__git__" ]]; then
+    tag="${git_tag}"
+  fi
+
 
   local setup=
 
@@ -518,19 +525,6 @@ function build() {
 
   done
 
-  if [[ "$(G .keycloak)" = "local" ]]; then
-    for service in "keycloak"; do
-      local image=localhost/aggie-experts/${service}:dirty
-
-      $N docker build \
-         --build-arg FIN_REPO_TAG=${G[ref_name]} \
-         --build-arg FIN_SERVER_REPO_HASH=${G[sha]} \
-         -t $image  \
-         --cache-from $image \
-         ${service}
-    done
-  fi
-
   post_build
 }
 
@@ -572,7 +566,7 @@ function setup() {
   }
 
   function compose() {
-    local keycloak=
+    local N=${G[dry-run]};
     local org tag gcs
     read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs.bucket] | @tsv")
 
@@ -595,9 +589,6 @@ function setup() {
     if [[ "$env" = "dev" ]]; then
       if [[ -z ${G[include_fuseki]} ]]; then
           yq+='| del(.services.fuseki) | del(.volumes.fuseki-data)'
-      fi
-      if [[ "$keycloak" != "local" ]]; then
-        yq+='| del(.services.keycloak)'
       fi
       if [[ -z "$gcs" ]]; then
         yq+='| del(.services.gcs)'
