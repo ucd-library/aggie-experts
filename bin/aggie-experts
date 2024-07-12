@@ -525,19 +525,6 @@ function build() {
 
   done
 
-  if [[ "$(G .keycloak)" = "local" ]]; then
-    for service in "keycloak"; do
-      local image=localhost/aggie-experts/${service}:dirty
-
-      $N docker build \
-         --build-arg FIN_REPO_TAG=${G[ref_name]} \
-         --build-arg FIN_SERVER_REPO_HASH=${G[sha]} \
-         -t $image  \
-         --cache-from $image \
-         ${service}
-    done
-  fi
-
   post_build
 }
 
@@ -580,7 +567,6 @@ function setup() {
 
   function compose() {
     local N=${G[dry-run]};
-    local keycloak=
     local org tag gcs
     read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs.bucket] | @tsv")
 
@@ -603,9 +589,6 @@ function setup() {
     if [[ "$env" = "dev" ]]; then
       if [[ -z ${G[include_fuseki]} ]]; then
           yq+='| del(.services.fuseki) | del(.volumes.fuseki-data)'
-      fi
-      if [[ "$keycloak" != "local" ]]; then
-        yq+='| del(.services.keycloak)'
       fi
       if [[ -z "$gcs" ]]; then
         yq+='| del(.services.gcs)'

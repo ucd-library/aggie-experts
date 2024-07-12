@@ -13,7 +13,6 @@ services:
     environment:
       - FIN_URL=${FIN_URL:-${D[host]}}
       - HOST_PORT=${HOST_PORT:-${D[port]}}
-      - LOCAL_KEYCLOAK=false
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
@@ -133,7 +132,6 @@ services:
   dbsync:
     image: *BASE
     environment:
-      - LOCAL_KEYCLOAK=false
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
@@ -158,7 +156,6 @@ services:
     environment:
       - GCS=${GCS_BUCKET:-${D[gcs_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
-      - LOCAL_KEYCLOAK=false
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
@@ -214,7 +211,6 @@ services:
       - FIN_SERVICE_NAME=uber
       - FIN_URL=${FIN_URL:-${D[host]}}
       - HOST_PORT=${HOST_PORT:-${D[port]}}
-      - LOCAL_KEYCLOAK=false
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
        - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
@@ -240,30 +236,6 @@ services:
       - elasticsearch
     command: npm run uber
   # command: bash -c 'tail -f /dev/null'
-
-  # keycloak container only enabled with deploy --dev
-  keycloak:
-    image: ${D[org]}/keycloak:${D[tag]}
-    environment:
-      KC_HEALTH_ENABLED: 1
-      KC_METRICS_ENABLED: 1
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres/postgres
-      KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: postgres
-      KC_HOSTNAME: localhost
-      KC_LOCAL_DEV_REALM: ${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}
-      KC_SSODEV_OIDC_SECRET: ${KC_SSODEV_OIDC_SECRET:-***ssodev_oidc_secret_missing***}
-      KC_SSODEV_OIDC_CLIENT_ID: ${KC_SSODEV_OIDC_CLIENT_ID:-***ssdev_client_id_missing***}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-***app_client_id_missing***}
-      OIDC_SECRET: ${OIDC_SECRET:-***client_secret_missing***}
-      OIDC_BASE_URL: ${OIDC_BASE_URL:-https://keycloak:8443/realms/${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}}
-    ports:
-      - 8081:8080
-      - 8443:8443
-    command: ["start-dev --import-realm"]
 
   pg-rest:
     image: ${D[fin_org]}/fin-pg-rest:${D[fin_tag]}
