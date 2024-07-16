@@ -4,6 +4,9 @@ import {render} from "./app-expert-grants-list-edit.tpl.js";
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+
+import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
 import utils from '../../../lib/utils';
@@ -109,7 +112,16 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( expertId === this.expertId || !canEdit ) return;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, canEdit);
+      let expert = await this.ExpertModel.get(
+        expertId,
+        `/grants-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+        utils.getExpertApiOptions({
+          includeWorks : false,
+          grantsPage : this.currentPage,
+          grantsSize : this.resultsPerPage,
+          includeHidden : true
+        })
+      );
       this._onExpertUpdate(expert);
 
       if( !this.isAdmin && !this.isVisible ) throw new Error();
@@ -132,7 +144,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants-edit' ) return;
 
-    this.expertId = e.id;
+    this.expertId = e.id.split('/grants-edit')[0];
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.isVisible = this.expert['is-visible'];
 
@@ -140,15 +152,18 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.totalGrants = grants.length;
+    // this.totalGrants = grants.length;
 
     this.grants = utils.parseGrants(this.expertId, grants, false); // don't filter hidden grants
-    this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+    // this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
-    this.paginationTotal = Math.ceil(this.grants.length / this.resultsPerPage);
+    this.hiddenGrants = this.expert?.totals?.hiddenGrants || 0;
+    this.totalGrants = (this.expert?.totals?.grants || 0);
+
+    this.paginationTotal = Math.ceil(this.totalGrants / this.resultsPerPage);
   }
 
   /**
@@ -161,30 +176,42 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.allSelected = true;
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
-    if( maxIndex > this.grants.length ) maxIndex = this.grants.length;
+    if( maxIndex > this.totalGrants ) maxIndex = this.totalGrants;
 
     this.currentPage = e.detail.page;
 
-    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []); //.slice(e.detail.startIndex, maxIndex);
-    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []); //.slice(e.detail.startIndex - this.grantsActiveDisplayed.length, maxIndex - this.grantsActiveDisplayed.length);
+    // this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []); //.slice(e.detail.startIndex, maxIndex);
+    // this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []); //.slice(e.detail.startIndex - this.grantsActiveDisplayed.length, maxIndex - this.grantsActiveDisplayed.length);
 
-    let grantsActiveCount = this.grantsActiveDisplayed.length;
-    let grantsCompletedCount = this.grantsCompletedDisplayed.length;
+    // let grantsActiveCount = this.grantsActiveDisplayed.length;
+    // let grantsCompletedCount = this.grantsCompletedDisplayed.length;
 
-    // if first page, load grantsActive under this.resultsPerPage and remaining from grantsCompleted
-    // else if second page+, remove grants from active and completed in order
-    if( this.currentPage === 1 ) {
-      this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(0, this.resultsPerPage);
-      this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
-    } else {
-      let currentIndex = this.resultsPerPage * (this.currentPage - 1);
-      this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(currentIndex, this.resultsPerPage);
+    // // if first page, load grantsActive under this.resultsPerPage and remaining from grantsCompleted
+    // // else if second page+, remove grants from active and completed in order
+    // if( this.currentPage === 1 ) {
+    //   this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(0, this.resultsPerPage);
+    //   this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
+    // } else {
+    //   let currentIndex = this.resultsPerPage * (this.currentPage - 1);
+    //   this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(currentIndex, this.resultsPerPage);
 
-      // TODO broken..
-      // what if active grants are 50?
-      // what if 0 active grants and 50 completed grants?
-      this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(currentIndex - grantsActiveCount, currentIndex - grantsActiveCount + this.resultsPerPage);
-    }
+    //   // TODO broken..
+    //   // what if active grants are 50?
+    //   // what if 0 active grants and 50 completed grants?
+    //   this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(currentIndex - grantsActiveCount, currentIndex - grantsActiveCount + this.resultsPerPage);
+    // }
+
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/grants-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeWorks : false,
+        grantsPage : this.currentPage,
+        grantsSize : this.resultsPerPage,
+        includeHidden : true
+      })
+    );
+    this._onExpertUpdate(expert);
 
     // loop over checkboxes to see if any are checked
     let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
@@ -365,8 +392,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
     if( grant ) grant.isVisible = true;
 
-    this.totalGrants = this.grants.length;
-    this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+    // this.totalGrants = this.grants.length;
+    // this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
 
     this.requestUpdate();
   }
@@ -430,8 +457,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
       if( grant ) grant.isVisible = false;
 
-      this.totalGrants = this.grants.length;
-      this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
+      // this.totalGrants = this.grants.length;
+      // this.hiddenGrants = this.grants.filter(g => !g.isVisible).length;
 
       this.requestUpdate();
     }

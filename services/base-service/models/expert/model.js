@@ -58,54 +58,6 @@ class ExpertModel extends BaseModel {
    * @returns {Object} : document
    **/
   subselect(doc, options={}) {
-    if (doc["is-visible"] === false) {
-      throw {status: 404, message: "Not found"};
-    }
-
-    function sortGraph(a, b, sort=[]) {
-      /*
-      sort : [
-        {
-          field : 'issued',
-          sort : 'desc',
-          type : 'year' (to apply .split('-')[0] to the value)
-        },
-        {
-          field : 'title',
-          sort : 'asc' (optional, default 'asc'),
-          type : 'string'
-        }
-      ],
-      */
-
-      for( let sortBy of sort ) {
-        let aValue = a[sortBy.field];
-        let bValue = b[sortBy.field];
-
-        // custom processing by data type
-        if( sortBy.type === 'year' ) {
-          aValue = aValue.split('-')[0];
-          bValue = bValue.split('-')[0];
-        } else if (sortBy.type === 'string') {
-          let comparisonResult = aValue.localeCompare(bValue);
-          if (comparisonResult !== 0) {
-            return sortBy.sort === 'desc' ? -comparisonResult : comparisonResult;
-          }
-        }
-        // TODO handle date/number sorting
-
-
-        if( aValue < bValue ) {
-          return sortBy.sort === 'desc' ? 1 : -1;
-        }
-        if( aValue > bValue ) {
-          return sortBy.sort === 'desc' ? -1 : 1;
-        }
-      }
-
-      return 0; // sorts match
-    }
-
     /*
     options example:
       {
@@ -139,6 +91,47 @@ class ExpertModel extends BaseModel {
       }
     */
 
+    if (doc["is-visible"] === false) {
+      throw {status: 404, message: "Not found"};
+    }
+
+    function getNestedProperty(obj, path) {
+      return path.split('.').reduce((acc, part) => acc && acc[part] ? acc[part] : undefined, obj);
+    }
+
+    function sortGraph(a, b, sort=[]) {
+      for( let sortBy of sort ) {
+        let aValue = getNestedProperty(a, sortBy.field);
+        let bValue = getNestedProperty(b, sortBy.field);
+
+        // custom processing by data type
+        if( sortBy.type === 'year' ) {
+          aValue = aValue.split('-')[0];
+          bValue = bValue.split('-')[0];
+        } else if( sortBy.type === 'string' ) {
+          let comparisonResult = aValue.localeCompare(bValue);
+          if (comparisonResult !== 0) {
+            return sortBy.sort === 'desc' ? -comparisonResult : comparisonResult;
+          }
+        } else if( sortBy.type === 'date' ) {
+          aValue = new Date(aValue);
+          bValue = new Date(bValue);
+        } else if( sortBy.type === 'number' ) {
+          aValue = parseFloat(aValue);
+          bValue = parseFloat(bValue);
+        }
+
+        if( aValue < bValue ) {
+          return sortBy.sort === 'desc' ? 1 : -1;
+        }
+        if( aValue > bValue ) {
+          return sortBy.sort === 'desc' ? -1 : 1;
+        }
+      }
+
+      return 0; // sorts match
+    }
+
     // split graph by type
     let expert = doc["@graph"].filter(graph => graph['@id'] === doc['@id']);
     let works = doc["@graph"].filter(graph => graph["@type"] === "Work" || graph["@type"].includes("Work"));
@@ -147,18 +140,19 @@ class ExpertModel extends BaseModel {
     // to store totals of works/grants before filtering out any
     let totalWorks = works.length;
     let totalGrants = grants.length;
-    let hiddenWorks = 0, hiddenGrants = 0;
+    let hiddenWorks = totalWorks - works.filter(w => w.relatedBy?.['is-visible']).length;
+    let hiddenGrants = totalGrants - grants.filter(g =>
+      g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
+    ).length;
 
     // by default, filter out hidden works/grants if not requested to include them
     // TODO ask QH, should we also filter out hidden works/grants if they're not an admin/the expert?
     if( options['is-visible'] !== false ) {
       works = works.filter(w => w.relatedBy?.['is-visible']);
-      hiddenWorks = totalWorks - works.length;
 
       grants = grants.filter(g =>
         g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
       );
-      hiddenGrants = totalGrants - grants.length;
     }
 
     // remove excluded fields in works if requested
@@ -185,22 +179,34 @@ class ExpertModel extends BaseModel {
     if( options.works?.sort && options.works.sort.length ) {
       try {
         // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
-        // this will definitely fail for works that have an array for title or issued, which happens
+        // THIS WILL DEFINITELY FAIL ATM for works that have an array for title or issued, which happens
         // in that case we still want to show in the ui, but that it's malformed, so they can fix it
         // FROM VE (in https://github.com/ucd-library/aggie-experts/issues/540):
         // Can you apply the "misformated citation, contact admin" label here?
         // There isn't a good default solution to the handful of examples I've seen when the titles clash.
-        works.sort((a,b) => sortGraph(a, b, options.works.sort));
+
+
+
+
+        // TODO 7/11
+        // test with /expert/0a4HWjVZ (ark:/87287/d7mh2m/publication/1422547) and /expert/0atLvttS (ark:/87287/d7mh2m/publication/780095)
+        // will need to compare against other works of theirs to see if it's working as expected
+        works = works.sort((a,b) => sortGraph(a, b, options.works.sort));
+
 
       } catch(e) {
-        // TODO
+        // TODO what to do if title or issued is not string/array? or other sort data is unexpected?
       }
-
     }
 
-    // TODO sort grants if requested
-
-
+    // sort grants if requested
+    if( options.grants?.sort && options.grants.sort.length ) {
+      try {
+        grants = grants.sort((a,b) => sortGraph(a, b, options.grants.sort));
+      } catch(e) {
+        // TODO what to do if dateTime or name is not string/array? or other sort data is unexpected?
+      }
+    }
 
     // subset works if requested
     if( options.works?.page && options.works?.size ) {
@@ -224,10 +230,10 @@ class ExpertModel extends BaseModel {
     if( !options.expert?.include ) expert = [];
 
     // filter out works graph if not requested
-    if( !options.works && !options.works?.include ) works = [];
+    if( !options.works || !options.works?.include ) works = [];
 
     // filter out grants graph if not requested
-    if( !options.grants && !options.grants?.include ) grants = [];
+    if( !options.grants || !options.grants?.include ) grants = [];
 
     // return total visible/hidden works/grants
     // TODO ask QH, does this need to be hidden if not admin/expert?

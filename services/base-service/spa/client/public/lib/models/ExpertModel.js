@@ -17,24 +17,27 @@ class ExpertModel extends BaseModel {
    * @description load a expert by id from elastic search
    *
    * @param {String} id expert id
-   * @param {Boolean} noSanitize if true, returns is-visible:false records
+   * @param {String} subpage subpage of expert, ie works or grants list/edit pages
+   * @param {Object} options for request
    *
    * @returns {Promise} resolves to expert
    */
-  async get(id, noSanitize=false) {
-    let state = this.store.getExpert(id, noSanitize);
+  async get(id, subpage='', options={}) {
+    // TODO how to use subpage for store and service, so store saves different pages of results
+    // but the service just hits the expert api without the subpage
+    let state = this.store.getExpert(id, subpage, options);
 
     if( state && state.request ) {
       await state.request;
     } else if( state && state.state === 'loaded' ) {
-      if( state.id !== id ) {
-        this.store.setExpertLoaded(id, state.payload)
+      if( state.id !== (id+subpage) ) {
+        this.store.setExpertLoaded(id+subpage, state.payload)
       }
     } else {
-      await this.service.get(id, noSanitize);
+      await this.service.get(id, subpage, options);
     }
 
-    return this.store.getExpert(id);
+    return this.store.getExpert(id, subpage);
   }
 
   /**

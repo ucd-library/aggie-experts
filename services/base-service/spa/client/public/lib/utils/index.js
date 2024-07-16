@@ -189,7 +189,7 @@ class Utils {
     });
 
     parsedGrants = parsedGrants.filter(g => g); // remove undefined
-    parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime) || a.name.localeCompare(b.name));
+    // parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime) || a.name.localeCompare(b.name));
     return parsedGrants;
   }
 
@@ -214,6 +214,74 @@ class Utils {
     return null;
   }
 
+  /**
+   * @method getExpertApiOptions
+   * @description return options for expert api, optionally override options with passed in object
+   *
+   * @param {Object} options object with api request options
+   *
+   * @return {Object} options final object
+   */
+  getExpertApiOptions(options={}) {
+    let defaults = {
+      ...{
+        includeExpert : true,
+        includeWorks : true,
+        includeGrants : true,
+        includeHidden : false,
+        worksPage : 1,
+        worksSize : 10,
+        worksSort : [
+          {
+            field : 'issued',
+            sort : 'desc',
+            type : 'year',
+          },
+          {
+            field : 'title',
+            sort : 'asc',
+            type : 'string',
+          }
+        ],
+        worksExclude : [],
+        grantsPage : 1,
+        grantsSize : 5,
+        grantsSort : [
+          {
+            field : 'dateTimeInterval.end.dateTime',
+            sort : 'desc',
+            type : 'date',
+          },
+          {
+            field : 'name',
+            sort : 'asc',
+            type : 'string',
+          }
+        ],
+        grantsExclude : [ 'totalAwardAmount' ]
+      },
+      ...options
+    };
+
+    return {
+      'is-visible' : !defaults.includeHidden,
+      expert : { include : defaults.includeExpert },
+      grants : {
+        include : defaults.includeGrants,
+        page : defaults.grantsPage,
+        size : defaults.grantsSize,
+        exclude : defaults.grantsExclude,
+        sort : defaults.grantsSort
+      },
+      works : {
+        include : defaults.includeWorks,
+        page : defaults.worksPage,
+        size : defaults.worksSize,
+        exclude : defaults.worksExclude,
+        sort : defaults.worksSort
+      }
+    };
+  }
 }
 
 module.exports = new Utils();

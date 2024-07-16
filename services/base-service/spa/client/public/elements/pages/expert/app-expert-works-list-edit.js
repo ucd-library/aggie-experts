@@ -4,6 +4,9 @@ import {render} from "./app-expert-works-list-edit.tpl.js";
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+
+import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
 import Citation from '../../../lib/utils/citation.js';
@@ -109,7 +112,16 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
-      let expert = await this.ExpertModel.get(expertId, canEdit);
+      let expert = await this.ExpertModel.get(
+        expertId,
+        `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+        utils.getExpertApiOptions({
+          includeGrants : false,
+          worksPage : this.currentPage,
+          worksSize : this.resultsPerPage,
+          includeHidden : true
+        })
+      );
       this._onExpertUpdate(expert);
 
       if( !this.isAdmin && !this.isVisible ) throw new Error();
@@ -132,12 +144,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'works-edit' ) return;
 
-    this.expertId = e.id;
+    this.expertId = e.id.split('/works-edit')[0];
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
+
+    this.hiddenCitations = this.expert?.totals?.hiddenWorks || 0;
+    this.totalCitations = (this.expert?.totals?.works || 0);
 
     await this._loadCitations();
   }
@@ -151,40 +166,41 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
   async _loadCitations(all=false) {
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
-    this.totalCitations = citations.length;
-    this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
+    // this.totalCitations = citations.length;
+    // this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
 
-    citations = citations.map(c => {
+    this.citations = citations.map(c => {
       let citation = { ...c };
       citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
       return citation;
     });
 
-    try {
-      // sort by issued date desc, then by title asc
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    } catch (error) {
-      // validate issue date
-      let validation = Citation.validateIssueDate(citations);
-      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+    // try {
+    //   // sort by issued date desc, then by title asc
+    //   citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    // } catch (error) {
+    //   // validate issue date
+    //   let validation = Citation.validateIssueDate(citations);
+    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
-      // validate title
-      validation = Citation.validateTitle(citations);
-      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+    //   // validate title
+    //   validation = Citation.validateTitle(citations);
+    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
-    } finally {
-      // filter out invalid citations
-      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+    // } finally {
+    //   // filter out invalid citations
+    //   citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
 
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+    //   citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
 
-      this.totalCitations = citations.length;
-      this.citations = citations;
-    }
+    //   // this.totalCitations = citations.length;
+    //   this.citations = citations;
+    // }
 
-    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+    // let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
+    // let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
+    let citationResults = await Citation.generateCitations(this.citations);
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
@@ -208,7 +224,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
     });
 
-    this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+    this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
     this.requestUpdate();
   }
@@ -223,10 +239,21 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.allSelected = true;
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
-    if( maxIndex > this.citations.length ) maxIndex = this.citations.length;
+    if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
 
     this.currentPage = e.detail.page;
-    await this._loadCitations();
+    // await this._loadCitations();
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksPage : this.currentPage,
+        worksSize : this.resultsPerPage,
+        includeHidden : true
+      })
+    );
+    this._onExpertUpdate(expert);
 
     // loop over checkboxes to see if any are checked
     let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
@@ -496,9 +523,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.expert['@graph'] = this.expert['@graph'].filter(c => c.relatedBy?.['@id'] !== this.citationId);
       this._onPaginationChange({ detail: { page: this.currentPage } });
 
-      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
-      this.totalCitations = this.citations.length;
-      this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+      // this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+      // this.totalCitations = this.citations.length;
+      this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
       this.requestUpdate();
     }

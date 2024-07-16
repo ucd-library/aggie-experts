@@ -10,19 +10,13 @@ class ExpertService extends BaseService {
     this.baseUrl = '/api';
   }
 
-  get(id, noSanitize=false) {
-    let options = {
-      works : { page : 1, size : 10 },
-      grants : { page : 1, size : 5 },
-      'no-sanitize' : noSanitize, // return is-visible:false items - if true
-      expert : true // this could be used on the pagination pages of works/grants to exclude the expert - if false
-    };
+  get(id, subpage, options={}) {
     return this.request({
       url : `${this.baseUrl}/${id}?options=${encodeURIComponent(JSON.stringify(options))}`,
-      checkCached : () => this.store.getExpert(id),
-      onLoading : request => this.store.setExpertLoading(id, request),
-      onLoad : result => this.store.setExpertLoaded(id, result.body),
-      onError : e => this.store.setExpertError(id, e)
+      checkCached : () => this.store.getExpert(id+subpage),
+      onLoading : request => this.store.setExpertLoading(id+subpage, request),
+      onLoad : result => this.store.setExpertLoaded(id+subpage, result.body),
+      onError : e => this.store.setExpertError(id+subpage, e)
     });
   }
 
