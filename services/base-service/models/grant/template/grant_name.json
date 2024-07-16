@@ -19,7 +19,7 @@
                 { "term" : {"is-visible": true } }
               ]
             }
-          },
+          }
         }
       },
       "_source": [
@@ -33,7 +33,7 @@
           "nested" : {
             "path" : "@graph"
           }
-        },
+        }
       },
       "from": "{{from}}{{^from}}0{{/from}}",
       "size": "{{size}}{{^size}}25{{/size}}"

@@ -218,7 +218,7 @@ function valid_path(options={}) {
 //    def.parameters.push(openapi.parameters(param));
 //  });
 
-  return openapi.validPath({...def, ...options});
+   return openapi.validPath({...def, ...options});
 }
 
 function valid_path_error(err, req, res, next) {
@@ -847,14 +847,16 @@ openapi.requestBodies(
 
 // export this middleware functions
 module.exports = {
+  convertIds,
+  fetchExpertId,
+  has_access,
   is_user,
   json_only,
-  validate_miv_client,
-  has_access,
-  validate_admin_client,
-  fetchExpertId,
-  convertIds,
-  user_can_edit,
   openapi,
-  schema_error
+  schema_error,
+  user_can_edit,
+  validate_admin_client,
+  validate_miv_client,
+  valid_path,
+  valid_path_error
 };

@@ -182,6 +182,7 @@ class BaseModel extends FinEsDataModel {
    **/
   promote_node_to_doc(node) {
     const doc = {
+      "@context": config?.server?.url+"/api/schema/1/context.jsonld",
       "@id": node['@id'],
       name: node['name'],
       "@graph": [node]

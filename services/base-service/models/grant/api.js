@@ -3,7 +3,7 @@ const {dataModels,logger} = require('@ucd-lib/fin-service-utils');
 const GrantModel = require('./model.js');
 const utils = require('../utils.js')
 const {defaultEsApiGenerator} = dataModels;
-const template = require('./template/name.json');
+const template = require('./template/grant_name.json');
 
 const { openapi, schema_error, json_only, user_can_edit, is_user, valid_path, valid_path_error } = require('../middleware.js')
 
@@ -71,7 +71,7 @@ router.route(
 router.route(
   '/:grantId'
 ).get(
-  is_user,
+//  is_user,
   valid_path(
     {
       description: "Get a grant by id",
@@ -81,14 +81,14 @@ router.route(
       }
     }
   ),
- valid_path_error(),
+ valid_path_error,
   async (req, res, next) => {
-    let grantId = `grant/${req.params.grantId}`;
+    const grantId=req.params.grantId;
     try {
       res.thisDoc = await model.get(grantId);
       next();
     } catch (e) {
-      return res.status(404).json(`${req.path} resource not found`);
+      return res.status(404).json(`${grantId} resource not found`);
     }
   },
   (req, res) => {

@@ -13,15 +13,15 @@
     },
     "name" : {
       "type" : "text",
-      "analyzer" : "article_filter",
+      "analyzer" : "title_sort",
       "index_prefixes" : {
         "min_chars" : 1,
         "max_chars" : 7
-      }
+      },
       "fields" : {
         "kw" : {
           "type" : "keyword",
-          "analyzer" : "title_prefix_analyzer",
+          "normalizer" : "title_prefix_analyzer",
           "ignore_above" : 256
         }
       }

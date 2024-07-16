@@ -38,8 +38,6 @@ module.exports = async function(path, graph, headers, utils) {
     }
   });
 
-  delete framed["roles"];
-  delete framed["_"];
   framed["@id"] = path;
   framed["@context"] = config?.server?.url+"/api/schema/1/context.jsonld";
   return framed;
