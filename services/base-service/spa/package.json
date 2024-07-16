@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "cd client && webpack --config webpack-watch.config.js --watch",
-    "dist": "cd client && webpack --config webpack-dist.config.js"
+    "dist": "cd client && ./dist.sh",
+    "watch": "cd client && ./watch.sh"
   },
   "author": "qjhart@ucdavis.edu",
   "license": "MIT",

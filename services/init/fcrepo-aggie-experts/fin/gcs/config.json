@@ -2,9 +2,9 @@
   "sync" : {
     "containers" : [{
       "bucket" : "{{GCS}}",
-      "basePath" : "/",
+      "basePath" : "/expert",
       "direction" : "gcs-to-fcrepo",
-      "initDataHydration" : true
+      "initDataHydration" : {{GCS_INIT_DATA_HYDRATION}}
     }]
   }
 }

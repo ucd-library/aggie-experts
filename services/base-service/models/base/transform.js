@@ -1,4 +1,5 @@
 const ioUtils = require('@ucd-lib/fin-api/lib/io/utils.js');
+const config = require('../config.js');
 const jsonld = require('jsonld');
 const expand=jsonld.expand;
 
@@ -37,7 +38,9 @@ module.exports = async function(path, graph, headers, utils) {
     }
   });
 
+  delete framed["roles"];
+  delete framed["_"];
   framed["@id"] = path;
-  framed["@context"] = "info:fedora/context/experts.json";
+  framed["@context"] = config?.server?.url+"/api/schema/1/context.jsonld";
   return framed;
 }
