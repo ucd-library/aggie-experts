@@ -141,8 +141,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onExpertUpdate(e) {
-    if( e.state !== 'loaded' ) return;
+    if( e?.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'works-edit' ) return;
+    if( e.id.includes('/works-download') ) return;
 
     this.expertId = e.id.split('/works-edit')[0];
     this.expert = JSON.parse(JSON.stringify(e.payload));
@@ -162,60 +163,35 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description load citations for expert async
    *
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
+   * @param {Object} apiResponse optional response from ExpertModel.get
    */
-  async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
+  async _loadCitations(all=false, apiResponse={}) {
+    let citations = all ? JSON.parse(JSON.stringify((apiResponse['@graph'] || []).filter(g => g.issued))) : JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
-    // this.totalCitations = citations.length;
-    // this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
-
-    this.citations = citations.map(c => {
+    citations = citations.map(c => {
       let citation = { ...c };
       citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
       return citation;
     });
 
-    // try {
-    //   // sort by issued date desc, then by title asc
-    //   citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    // } catch (error) {
-    //   // validate issue date
-    //   let validation = Citation.validateIssueDate(citations);
-    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+    if( !all ) this.citations = citations;
 
-    //   // validate title
-    //   validation = Citation.validateTitle(citations);
-    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
-
-    // } finally {
-    //   // filter out invalid citations
-    //   citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-
-    //   citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-
-    //   // this.totalCitations = citations.length;
-    //   this.citations = citations;
-    // }
-
-    // let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    // let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
-
-    let citationResults = await Citation.generateCitations(this.citations);
-    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
+    let citationResults = await Citation.generateCitations(citations);
+    citationResults = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
-    this.citationsDisplayed.forEach((cite, i) => {
+    citationResults.forEach((cite, i) => {
       if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
+      if( i > 0 && ( newIssueDate === citationResults[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
       }
     });
 
     // update doi links to be anchor tags
-    this.citationsDisplayed.forEach(cite => {
+    citationResults.forEach(cite => {
       if( cite.DOI && cite.apa ) {
         // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
         cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
@@ -226,6 +202,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
+    if( all ) return citationResults;
+
+    this.citationsDisplayed = citationResults;
     this.requestUpdate();
   }
 
@@ -253,25 +232,27 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         includeHidden : true
       })
     );
-    this._onExpertUpdate(expert);
+    await this._onExpertUpdate(expert);
 
-    // loop over checkboxes to see if any are checked
-    let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-    checkboxes.forEach(checkbox => {
-      if( this.downloads.includes(checkbox.dataset.id) ) {
-        checkbox.checked = true;
-      } else {
-        checkbox.checked = false;
-        this.allSelected = false;
+    requestAnimationFrame(() => {
+      // loop over checkboxes to see if any are checked
+      let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
+      checkboxes.forEach(checkbox => {
+        if( this.downloads.includes(checkbox.dataset.id) ) {
+          checkbox.checked = true;
+        } else {
+          checkbox.checked = false;
+          this.allSelected = false;
+        }
+      });
+
+      let selectAllCheckbox = this.shadowRoot.querySelector('#select-all');
+      if( selectAllCheckbox && !this.allSelected ) {
+        selectAllCheckbox.checked = false;
+      } else if( selectAllCheckbox ) {
+        selectAllCheckbox.checked = true;
       }
     });
-
-    let selectAllCheckbox = this.shadowRoot.querySelector('#select-all');
-    if( selectAllCheckbox && !this.allSelected ) {
-      selectAllCheckbox.checked = false;
-    } else if( selectAllCheckbox ) {
-      selectAllCheckbox.checked = true;
-    }
 
     window.scrollTo(0, 0);
   }
@@ -324,12 +305,19 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _downloadClicked(e) {
     e.preventDefault();
-    await this._loadCitations(true);
 
-    let downloads = this.citationsDisplayed.filter(c => this.downloads.includes(c['@id']));
+    let res = await this.ExpertModel.get(
+      this.expertId,
+      '/works-download', // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksSize : 10000,
+        includeHidden : false
+      })
+    );
 
-    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    this.citationsDisplayed = this.citationsDisplayed.slice(startIndex, startIndex + this.resultsPerPage)
+    let allCitations = await this._loadCitations(true, res.payload);
+    let downloads = allCitations.filter(c => this.downloads.includes(c['@id']));
 
     let text = downloads.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
@@ -413,7 +401,17 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.modifiedWorks = true;
 
-    let expert = await this.ExpertModel.get(this.expertId, true);
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksPage : this.currentPage,
+        worksSize : this.resultsPerPage,
+        includeHidden : true
+      }),
+      true // clear cache
+    );
     this._onExpertUpdate(expert);
   }
 
@@ -522,6 +520,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.citationsDisplayed = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] !== this.citationId);
       this.expert['@graph'] = this.expert['@graph'].filter(c => c.relatedBy?.['@id'] !== this.citationId);
       this._onPaginationChange({ detail: { page: this.currentPage } });
+
+      // TODO the counts will be broken, however calling the api again to get the current data will be cached, so would that work even if we try to update the totals here?
 
       // this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
       // this.totalCitations = this.citations.length;

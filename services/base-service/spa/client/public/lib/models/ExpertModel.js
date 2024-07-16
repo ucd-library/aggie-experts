@@ -19,13 +19,14 @@ class ExpertModel extends BaseModel {
    * @param {String} id expert id
    * @param {String} subpage subpage of expert, ie works or grants list/edit pages
    * @param {Object} options for request
+   * @param {Boolean} clearCache true to clear cache
    *
    * @returns {Promise} resolves to expert
    */
-  async get(id, subpage='', options={}) {
+  async get(id, subpage='', options={}, clearCache=false) {
     // TODO how to use subpage for store and service, so store saves different pages of results
     // but the service just hits the expert api without the subpage
-    let state = this.store.getExpert(id, subpage, options);
+    let state = this.store.getExpert(id, subpage, clearCache);
 
     if( state && state.request ) {
       await state.request;
@@ -37,7 +38,7 @@ class ExpertModel extends BaseModel {
       await this.service.get(id, subpage, options);
     }
 
-    return this.store.getExpert(id, subpage);
+    return this.store.getExpert(id, subpage, clearCache);
   }
 
   /**
