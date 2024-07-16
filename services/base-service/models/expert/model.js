@@ -257,6 +257,7 @@ class ExpertModel extends BaseModel {
   promote_node_to_doc(node) {
     const doc = {
       "@id": node['@id'],
+      "@context": config?.server?.url+"/api/schema/1/context.jsonld",
       "@graph": [node]
     };
     return this.move_fields_to_doc(node, doc);
