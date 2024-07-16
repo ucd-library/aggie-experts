@@ -132,6 +132,7 @@ services:
   dbsync:
     image: *BASE
     environment:
+      - FIN_URL=${FIN_URL:-${D[host]}}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}

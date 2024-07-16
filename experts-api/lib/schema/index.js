@@ -26,12 +26,12 @@ export default class Schema {
     if (! Context[id][version]) {
       // get major and minor version, by splitting on '.'
       const [major, minor] = version.split('.');
-      let file = path.join(__dirname,`context/${id}/${major}.${minor}.json`);
+      let file = path.join(__dirname,`${id}/${major}.${minor}/context.jsonld`);
       // if the file does not exist, try the major version
       if (! fs.existsSync(file)) {
-        file = path.join(__dirname,`context/${id}/${major}.json`);
+        file = path.join(__dirname,`${id}/${major}/context.jsonld`);
         if (! fs.existsSync(file)) {
-          throw new Error(`context/${id}/${version} not found`);
+          throw new Error(`${id}/${version}/context.jsonld not found`);
         }
       }
       const fileContents = fs.readFileSync(file, 'utf8');
@@ -39,3 +39,4 @@ export default class Schema {
     }
     return Context[id][version];
   }
+}

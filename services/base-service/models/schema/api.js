@@ -5,7 +5,7 @@ const { openapi } = require('../middleware.js')
 let Schema=null;
 
 router.route(
-  '/:version?'
+  '/:version?/context.jsonld'
 ).get(
   async (req, res) => {
     if (Schema === null) {
@@ -13,7 +13,7 @@ router.route(
       Schema=api.Schema;
     }
     try {
-      const version = req.params.version;
+      const version = req.params.version || '1';
       const context=await Schema.context('expert',version)
       res.status(200).json(context);
     } catch (e) {

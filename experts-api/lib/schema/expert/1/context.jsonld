@@ -15,7 +15,7 @@
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "abstract":{"@id":"cite:abstract"},
     "ArchivalGroup":"fedora:ArchivalGroup",
-    "assignedBy": { "@type":"@id"},
+    "assignedBy": { "@id":"vivo:assignedBy", "@type":"@id"},
     "author":{
       "@id":"cite:author",
       "@context": {
@@ -142,7 +142,7 @@
     "label":{"@id":"rdfs:label"},
     "language":{"@id":"cite:language"},
     "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime"},
-    "LeaderRole":"vivo:LeaderRole",
+    "LeaderRole":{ "@id":"vivo:LeaderRole" },
     "license":{"@id":"cite:license"},
     "Name":{"@id":"vcard:Name"},
     "name":{"@id":"schema:name"},
@@ -150,19 +150,16 @@
     "note":{"@id":"cite:note"},
     "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
-    "PrincipalInvestigatorRole":"vivo:PrincipalInvestigatorRole",
+    "PrincipalInvestigatorRole":{"@id":"vivo:PrincipalInvestigatorRole"},
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
     "rank":{"@id":"vivo:rank"},
-    "relatedByReverse":{
-      "@reverse":"vivo:relates"
-    },
     "relatedBy":{
       "@id":"vivo:relatedBy"
     },
     "relates": { "@id":"vivo:relates", "@type":"@id" },
-    "relatesx": { "@id":"vivo:relatesX",
+    "relatesX": { "@id":"vivo:relatesX",
                   "@type":"@id",
                  "@context":{
                    "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
@@ -171,7 +168,7 @@
                  }
                },
     "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
-    "ResearcherRole":"vivo:ResearcherRole",
+    "ResearcherRole":{"@id":"vivo:ResearcherRole"},
     "researchInterests":{"@id":"ucdlib:researchInterests"},
     "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
     "status":{"@id":"cite:status"},
@@ -196,15 +193,6 @@
     "URL_rssfeed":{"@id":"ucdlib:URL_rssfeed"},
     "URL_twitter":{"@id":"ucdlib:URL_twitter"},
     "volume":{"@id":"cite:volume"},
-    "Work":"ucdlib:Work"
-  },
-  "Grant": {
-    "@embed":"@always",
-    "@omitDefault":true,
-    "@default":"@null"
-  },
-  "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
-  "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
-  "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
-  "relatedBy": { "@embed":"@always", "@omitDefault":true, "@default":"@null" }
+    "Work":{"@id":"ucdlib:Work"}
+  }
 }
