@@ -33,23 +33,15 @@ construct {
          vivo:sponsorAwardId ?sponsor_award_id;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
-         vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
+         vivo:relatedBy ?grant_role,?labeled_only_role;
          .
 
-  ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
-                        vivo:relates ?labeled_only_pi,?grant;
-                        .
-
-  ?labeled_only_pi a vivo:Person;
-                   schema:name ?labeled_only_pi_name;
-                   .
-
-  ?labeled_only_co_pi_role a vivo:CoPrincipalInvestigatorRole;
-                           vivo:relates ?labeled_only_co_pi,?grant;
+  ?labeled_only_role a vivo:CoPrincipalInvestigatorRole;
+                           vivo:relates ?labeled_only_person,?grant;
                            .
 
-  ?labeled_only_co_pi a vivo:Person;
-                      schema:name ?labeled_only_co_pi_name;
+  ?labeled_only_person a vivo:Person;
+                      schema:name ?labeled_only_name;
                       .
 
   ?funder a vivo:FundingOrganization;
@@ -150,21 +142,13 @@ WHERE {
              .
     }
 
-    # PI is expanded to a relationship / Not optional
-    OPTIONAL {
-      ?field :name "c-pi";
-             :type "text";
-             :text ?labeled_only_pi_name;
-             .
-    }
-
     # Co-PIs are optional
     OPTIONAL {
       ?field :name "c-co-pis";
              :people/:person [ list:index(?pos ?elem) ] .
-      ?elem :last-name ?labeled_only_co_pi_name_last .
+      ?elem :last-name ?labeled_only_name_last .
       OPTIONAL {
-        ?elem :first-names ?labeled_only_co_pi_name_first .
+        ?elem :first-names ?labeled_only_name_first .
       }
     }
 
@@ -280,9 +264,7 @@ WHERE {
   bind(uri(concat(str(?grant),'#end_date')) as ?ed)
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
-  bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
-  bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
-  bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
-  bind(uri(concat(str(?grant),"#co_pi_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi)
-  bind(uri(concat(str(?grant),"#co_pi_role_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi_role)
+  bind(concat(?labeled_only_name_last,coalesce(concat(', ',?labeled_only_name_first),"")) as ?labeled_only_name)
+  bind(uri(concat(str(?grant),"#",md5(?labeled_only_name))) as ?labeled_only_person)
+  bind(uri(concat(str(?grant),"#role_",md5(?labeled_only_name))) as ?labeled_only_role)
 }

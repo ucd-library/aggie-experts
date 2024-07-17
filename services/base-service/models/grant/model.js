@@ -30,31 +30,32 @@ class GrantModel extends BaseModel {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
 
-    const grantRoleModel=await this.get_model('grant_role');
-    const expertModel=await this.get_model('expert');
-
-    // Update all GrantRole with this grant as well
-    let grantRole = grantRoleModel.get_expected_model_node(transformed);
-
-    let relates=grantRole.relates.filter(x => x !== doc['@id']);
-
-    if (relates.length != 1) {
-      // console.log("ERROR: doc['@id']="+doc['@id']+" relates="+JSON.stringify(relates));
-      throw new Error(`Expected 1 relates, got ${relates.length}`);
-    }
-    const expert_id=relates[0];
-    let expert=await expertModel.client_get(expert_id);
-    expert=expertModel.get_expected_model_node(expert);
-    const role = {
-      ...expertModel.snippet(expert),
-      ...grantRoleModel.snippet(grantRole),
-      '@type': 'GrantRole',
-    };
-    delete role.relates;
-    delete role['@id'];
-    // Role(expert) is added/delete to Grant
     await this.update_or_create_main_node_doc(doc);
-    await this.update_graph_node(doc['@id'],role);
+
+    try {
+      // Update all GrantRole with this grant as well
+      const grantRoleModel=await this.get_model('grant_role');
+      const grantRole = grantRoleModel.get_expected_model_node(transformed);
+
+      const relates=grantRole.relates.filter(x => x !== doc['@id']);
+
+      if (relates.length != 1) {
+        throw new Error(`Expected 1 relates, got ${relates.length}`);
+      }
+      const expert_id=relates[0];
+
+      const expertModel=await this.get_model('expert');
+      let expert=await expertModel.client_get(expert_id);
+      expert=expertModel.get_expected_model_node(expert);
+//      if (expert.is_visible) {
+        expert=expertModel.snippet(expert);
+        // Role(expert) is added/delete to Grant
+        await this.update_graph_node(doc['@id'],expert);
+        logger.info(`GrantModel.update(${doc['@id']}) $doc ==> ${expert_id}`);
+//      }
+    } catch (e) {
+      logger.error(`GrantModel.update(${doc['@id']})[!GrantRole] ${e}`);
+    }
 
     // Now determine visibility of the grant itself
     try {
