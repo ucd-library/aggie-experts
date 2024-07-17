@@ -19,9 +19,10 @@ function sanitize(req, res, next) {
 
     // only allow no-sanitize if they are an admin or the expert
     let expertId = `${req.params.expertId}`;
-    if (!req.user?.roles?.includes('admin') && expertId !== req?.user?.attributes?.expertId) {
-      options['no-sanitize'] = false;
-    }
+    // if (!req.user?.roles?.includes('admin') && expertId !== req?.user?.attributes?.expertId) {
+    //   options['no-sanitize'] = false;
+    // }
+    options.admin = req.user?.roles?.includes('admin') || expertId === req?.user?.attributes?.expertId;
 
     res.thisDoc = model.subselect(res.thisDoc, options);
     next();
