@@ -266,6 +266,15 @@ return html`
       color: var(--ucd-black-50, #999);
     }
 
+    .grant-results .grant h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .grant-results .grant h5 a {
+      text-decoration: none;
+    }
+
   </style>
 
   <div class="content">
@@ -324,7 +333,7 @@ return html`
               </span>
             </div>
             <div class="grant">
-              <h5>${unsafeHTML(grant.name)}</h5>
+              <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
@@ -356,7 +365,7 @@ return html`
               </span>
             </div>
             <div class="grant">
-              <h5>${unsafeHTML(grant.name)}</h5>
+              <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>

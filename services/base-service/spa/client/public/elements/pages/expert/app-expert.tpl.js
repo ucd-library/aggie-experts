@@ -334,6 +334,15 @@ return html`
       cursor: pointer;
     }
 
+    .grants-abbreviated .grant h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .grants-abbreviated .grant h5 a {
+      text-decoration: none;
+    }
+
     .tooltip {
       cursor: pointer;
     }
@@ -829,7 +838,7 @@ return html`
           (grant, index) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
             <div class="grant">
-              <h5>${unsafeHTML(grant.name)}</h5>
+              <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
@@ -845,7 +854,7 @@ return html`
           (grant, index) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h3>
             <div class="grant">
-              <h5>${unsafeHTML(grant.name)}</h5>
+              <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
