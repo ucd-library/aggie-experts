@@ -12,7 +12,14 @@ class ExpertService extends BaseService {
 
   get(id, subpage, options={}) {
     return this.request({
-      url : `${this.baseUrl}/${id}?options=${encodeURIComponent(JSON.stringify(options))}`,
+      url : `${this.baseUrl}/${id}`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify(options)
+      },
       checkCached : () => this.store.getExpert(id+subpage),
       onLoading : request => this.store.setExpertLoading(id+subpage, request),
       onLoad : result => this.store.setExpertLoaded(id+subpage, result.body),
