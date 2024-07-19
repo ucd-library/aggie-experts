@@ -530,9 +530,12 @@ function build() {
 
 
 function push() {
+  local org tag
   local N=${G[dry-run]};
-  local org=$(G .${G[env]}.org)
-  local tag=$(G .${G[env]}.tag)
+
+  read org tag \
+       <<<$(G "[.${G[env]}.org // .def.org,
+           .${G[env]}.tag // .def.tag | @tsv") #\
 
   case ${G[env]} in
     dev | clean | sandbox | test | prev-test | stage | prod ) # Never push
