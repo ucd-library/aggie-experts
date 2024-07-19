@@ -226,7 +226,13 @@ Tests the environment, with respect to the hostname and git tag.
 =cut
 function test_env() {
   local env=${G[env]}
-  local tag=$(G .${G[env]}.tag)
+  local tag=$(G .${G[env]}.tag // .def.tag)
+  local git_tag="$(${G[git]} describe --always --dirty)"
+
+  # Tag is the git tag, unless specified
+  if [[ ${tag} == "__git__" ]]; then
+    tag="${git_tag}"
+  fi
 
   function not_dirty() {
     if [[ "$tag" =~ "dirty" ]]; then
@@ -465,7 +471,6 @@ function build() {
            .def.fin.tag] | @tsv") #\
 
   local git_tag="$(${G[git]} describe --always --dirty)"
-  echo "${G[git]} describe --always --dirty)",
   # Tag is the git tag, unless specified
   if [[ $tag == "__git__" ]]; then
     tag="${git_tag}"
@@ -530,9 +535,18 @@ function build() {
 
 
 function push() {
+  local org tag
   local N=${G[dry-run]};
-  local org=$(G .${G[env]}.org)
-  local tag=$(G .${G[env]}.tag)
+
+  read org tag \
+       <<<$(G "[.${G[env]}.org // .def.org, .${G[env]}.tag // .def.tag ] | @tsv")
+
+  local git_tag="$(${G[git]} describe --always --dirty)"
+
+  # Tag is the git tag, unless specified
+  if [[ ${tag} == "__git__" ]]; then
+    tag="${git_tag}"
+  fi
 
   case ${G[env]} in
     dev | clean | sandbox | test | prev-test | stage | prod ) # Never push
