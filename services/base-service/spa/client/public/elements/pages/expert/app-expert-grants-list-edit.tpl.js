@@ -266,12 +266,12 @@ return html`
       color: var(--ucd-black-50, #999);
     }
 
-    .grant-results .grant h5 {
+    .grants-results .grant h5 {
       color: var(--ucd-blue-80, #13639E);
       cursor: pointer;
     }
 
-    .grant-results .grant h5 a {
+    .grants-results .grant h5 a {
       text-decoration: none;
     }
 
