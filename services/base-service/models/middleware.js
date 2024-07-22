@@ -1,5 +1,168 @@
 const OpenAPI = require('@wesleytodd/openapi')
-const {config} = require('@ucd-lib/fin-service-utils');
+const {config, keycloak} = require('@ucd-lib/fin-service-utils');
+const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
+
+let AdminClient=null;
+
+let MIVJWKSClient=null;
+
+async function fetchExpertId (req, res, next) {
+  if (req.query.email || req.query.ucdPersonUUID || req.query.iamId) {
+    const token = await keycloak.getServiceAccountToken();
+    AdminClient.accessToken = token
+  }
+  let user;
+  try {
+    if (req.query.email) {
+      const email = req.query.email;
+      user = await AdminClient.findByEmail(email);
+    } else if (req.query.ucdPersonUUID) {
+      const ucdPersonUUID = req.query.ucdPersonUUID;
+      user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
+    }
+    else if (req.query.iamId) {
+      const iamId = req.query.iamId;
+      user = await AdminClient.findOneByAttribute(`iamId:${iamId}`);
+    }
+  } catch (err) {
+    // console.error(err);
+    return res.status(500).send({error: 'Error finding expert with ${req.query}'});
+  }
+
+  if (user && user?.attributes?.expertId) {
+    const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
+    req.query.expertId = expertId;
+    return next();
+  } else {
+    return res.status(404).send({error: `No expert found`});
+  }
+}
+
+async function convertIds(req, res, next) {
+  const id_array = req.params.ids.replace('ids=', '').split(',');
+
+  const token = await keycloak.getServiceAccountToken();
+  AdminClient.accessToken = token
+
+  let user;
+
+  req.query.expertIds = [];
+  // for each id, get the expertId
+  for (const theId of id_array) {
+    try {
+      //Split the id into the type and the id
+      let idParts = theId.split(':');
+      user = await AdminClient.findOneByAttribute(`${idParts[0]}:${idParts[1]}`);
+    }
+    catch (err) {
+      // console.error(err);
+    }
+
+    if (user && user?.attributes?.expertId) {
+      const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
+      req.query.expertIds.push(expertId);
+    }
+  }
+  return next();
+}
+
+async function validate_admin_client(req, res, next) {
+  if (! AdminClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      AdminClient = new ExpertsKcAdminClient(
+        {
+          baseUrl: match[1],
+          realmName: match[2]
+        }
+      );
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  next();
+}
+
+async function validate_miv_client(req, res, next) {
+  if (! MIVJWKSClient) {
+    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const oidcbaseURL = config.oidc.baseUrl;
+    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
+
+    if (match) {
+      MIVJWKSClient = await jwksClient({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 10,
+        jwksUri: `${match[1]}/realms/aggie-experts-miv/protocol/openid-connect/certs`
+      });
+    } else {
+      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
+    }
+  }
+  next();
+}
+
+function has_access(client) {
+
+  return async function(req, res, next) {
+    if (!req.user) {
+      // Try Service Account
+      const token = req.headers.authorization?.split(' ')[1];
+
+      if (!token) {
+        return res.status(401).json({ error: 'Token not provided' });
+      }
+
+      try {
+        // Get the public key from the JWKS endpoint
+        const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
+        // Verify the token's signature using the public key
+        const verifiedToken = jwt.verify(token, key.getPublicKey(), { algorithms: ['RS256'] });
+
+        // Validate issuer
+        if (verifiedToken.iss !== 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv') {
+          return res.status(401).json({ error: 'Invalid token issuer' });
+        }
+
+        // Validate audience
+        if (verifiedToken.aud !== 'account') {
+          return res.status(401).json({ error: 'Invalid token audience' });
+        }
+
+        // Validate expiration
+        if (Date.now() >= verifiedToken.exp * 1000) {
+          return res.status(401).json({ error: 'Token has expired' });
+        }
+
+        // Validate request source (optional)
+        //if (req.hostname !== verifiedToken.clientHost) {
+        //  return res.status(401).json({ error: 'Invalid request source' });
+        //}
+
+        // Custom authorization logic
+        // Implement your own logic here based on token claims
+        if (! verifiedToken?.resource_access?.[client]?.roles?.includes('access')) {
+          return res.status(403).json({ error: 'No Access Role' });
+        }
+        // return res.status(401).send('Unauthorized');
+        if (req.user?.roles?.includes('admin') || req.user?.roles?.includes(client)) {
+          return next();
+        }
+        return next();
+      }
+      catch (error) {
+        // console.error(error);
+        return res.status(403).json({ error: 'Internal server error' });
+      }
+    }
+  }
+}
+
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
@@ -13,7 +176,7 @@ function json_only(req, res, next) {
   }
 }
 
-function is_user(req,res,next) {
+function is_user(req, res, next) {
   if (!req.user) {
     return res.status(401).send('Unauthorized');
   }
@@ -26,7 +189,7 @@ function user_can_edit(req, res, next) {
   if (!req.user) {
     return res.status(401).send('Unauthorized');
   }
-  if ( req.user?.roles?.includes('admin')) {
+  if (req.user?.roles?.includes('admin')) {
     return next();
   }
   if( expertId === req?.user?.attributes?.expertId ) {
@@ -36,7 +199,7 @@ function user_can_edit(req, res, next) {
   return res.status(403).send('Not Authorized');
 }
 
-function schema_error (err, req, res, next) {
+function schema_error(err, req, res, next) {
   res.status(err.status).json({
     error: err.message,
     validation: err.validationErrors,
@@ -53,7 +216,7 @@ const openapi = OpenAPI(
       termsOfService: 'http://swagger.io/terms/',
       contact: {
         email: 'experts@ucdavis.edu'
-       },
+      },
       license: {
         name: 'Apache 2.0',
         url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
@@ -642,6 +805,11 @@ openapi.requestBodies(
 module.exports = {
   is_user,
   json_only,
+  validate_miv_client,
+  has_access,
+  validate_admin_client,
+  fetchExpertId,
+  convertIds,
   user_can_edit,
   openapi,
   schema_error

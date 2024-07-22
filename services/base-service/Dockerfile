@@ -4,7 +4,7 @@ ARG FIN_ORG
 ARG FIN_TAG
 
 # Experts API is shared
-FROM $ORG/experts-api:$TAG as api
+FROM $ORG/experts-api:$TAG AS api
 
 FROM ${FIN_ORG}/fin-base-service:${FIN_TAG}
 
@@ -39,6 +39,5 @@ RUN mv package-lock.json package-lock.json- && npm link @ucd-lib/experts-api && 
 WORKDIR ${FIN_SERVICE_ROOT}
 # PROJECT_NAME is application label
 ENV PROJECT_NAME=aggie-experts
-ENV APP_VERSION=${TAG}
 
 CMD [ "bash", "-c", "tail -f /dev/null"]

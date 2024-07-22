@@ -4,145 +4,14 @@ const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
 const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
-const {config, keycloak} = require('@ucd-lib/fin-service-utils');
-let AdminClient=null;
 
-const jwt = require('jsonwebtoken');
-const jwksClient = require('jwks-rsa');
-
-let MIVJWKSClient=null;
-
-async function validate_admin_client(req, res, next) {
-  if (! AdminClient) {
-    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
-    const oidcbaseURL = config.oidc.baseUrl;
-    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
-
-    if (match) {
-      AdminClient = new ExpertsKcAdminClient(
-        {
-          baseUrl: match[1],
-          realmName: match[2]
-        }
-      );
-    } else {
-      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
-    }
-  }
-  next();
-}
-
-async function validate_miv_client(req, res, next) {
-  if (! MIVJWKSClient) {
-    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
-    const oidcbaseURL = config.oidc.baseUrl;
-    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
-
-    if (match) {
-      MIVJWKSClient = await jwksClient({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 10,
-        jwksUri: `${match[1]}/realms/aggie-experts-miv/protocol/openid-connect/certs`
-      });
-    } else {
-      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
-    }
-  }
-  next();
-}
-
-function is_miv(req, res, next) {
-  if (!req.user) {
-    // Try MIV Service Account
-    return is_miv_service_account(req, res, next);
-  }
-  if ( req.user?.roles?.includes('admin') || req.user?.roles?.includes('miv') ) {
-    return next();
-  }
-  return res.status(403).send('Not Authorized');
-}
-
-// Middleware to validate client credential token
-async function is_miv_service_account(req, res, next) {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token not provided' });
-  }
-
-  try {
-    // Get the public key from the JWKS endpoint
-    const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
-    // Verify the token's signature using the public key
-    const verifiedToken = jwt.verify(token, key.getPublicKey(), { algorithms: ['RS256'] });
-
-    // Validate issuer
-    if (verifiedToken.iss !== 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv') {
-      return res.status(401).json({ error: 'Invalid token issuer' });
-    }
-
-    // Validate audience
-    if (verifiedToken.aud !== 'account') {
-      return res.status(401).json({ error: 'Invalid token audience' });
-    }
-
-    // Validate expiration
-    if (Date.now() >= verifiedToken.exp * 1000) {
-      return res.status(401).json({ error: 'Token has expired' });
-    }
-
-    // Validate request source (optional)
-    //console.log('req', req.ip);
-    //if (req.hostname !== verifiedToken.clientHost) {
-    //  return res.status(401).json({ error: 'Invalid request source' });
-    //}
-
-    // Custom authorization logic
-    // Implement your own logic here based on token claims
-    if (! verifiedToken.resource_access.miv.roles.includes('access')) {
-      return res.status(403).json({ error: 'No Access Role' });
-    }
-    next();
-
-  } catch (error) {
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-}
-
-async function fetchExpertId (req, res, next) {
-  if (req.query.email || req.query.ucdPersonUUID) {
-    const token = await keycloak.getServiceAccountToken();
-    AdminClient.accessToken = token
-  }
-  let user;
-  try {
-    if (req.query.email) {
-      const email = req.query.email;
-      user = await AdminClient.findByEmail(email);
-    } else if (req.query.ucdPersonUUID) {
-      const ucdPersonUUID = req.query.ucdPersonUUID;
-//      console.log('ucdPersonUUID', ucdPersonUUID);
-      user = await AdminClient.findOneByAttribute(`ucdPersonUUID:${ucdPersonUUID}`);
-    }
-  } catch (err) {
-    console.error(err);
-    return res.status(500).send({error: 'Error finding expert with ${req.query}'});
-  }
-
-  if (user && user?.attributes?.expertId) {
-    const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
-    req.query.expertId = expertId;
-    return next();
-  } else {
-    return res.status(404).send({error: `No expert found`});
-  }
-}
+const { openapi, validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware.js')
 
 router.get(
   '/user',
   validate_miv_client,
-  is_miv,
+  has_access('miv'),
+  // is_miv,
   validate_admin_client,
   fetchExpertId,
   async (req, res) => {
@@ -156,10 +25,47 @@ router.get(
   }
 );
 
+function miv_valid_path(options = {}) {
+  const def = {
+    "description": "A JSON array an expert's grants",
+  };
+
+  (options.parameters || []).forEach((param) => {
+    def.parameters.push(openapi.parameters(param));
+  });
+
+  delete options.parameters;
+
+  return openapi.validPath({ ...def, ...options });
+}
+
+// This will serve the generated json document(s)
+// (as well as the swagger-ui if configured)
+router.use(openapi);
+
+const path = require('path');
+
+router.get('/', (req, res) => {
+  // Send the pre-made swagger.json file
+  // res.sendFile(path.join(__dirname, 'swagger.json'));
+  res.redirect('/api/miv/openapi.json');
+});
+
+
 router.get(
   '/grants',
+  miv_valid_path(
+    {
+      description: "Returns a JSON array of an expert's grants",
+      responses: {
+        "200": openapi.response('Successful_operation'),
+        "400": openapi.response('Invalid_ID_supplied'),
+        "404": openapi.response('Expert_not_found')
+      }
+    }
+  ),
   validate_miv_client,
-  is_miv,
+  has_access('miv'),
   validate_admin_client,
   fetchExpertId,
   async (req, res) => {
@@ -185,16 +91,25 @@ router.get(
       let grants = [];
       if (find?.hits[0]) {
         for (const hit of find.hits[0]._inner_hits) {
+          // Util function to ensure an array
+          function ensureArray(value) {
+            if (!Array.isArray(value)) {
+              return [value];
+            }
+            return value;
+          }
           // create a people array
           let people = [];
           if (hit.relatedBy) {
             hit.relatedBy.forEach((x) => {
-              if (! x.inheres_in) {
-                people.push({
-                  '@id': x['@id'],
-                  name: x.relates[0].name,
-                  role: x['@type']
-                });
+              if (!x.inheres_in) {
+                if (ensureArray(x['@type']).includes('CoPrincipalInvestigatorRole')) {
+                  people.push({
+                    '@id': x['@id'],
+                    name: x.relates[0].name,
+                    role: x['@type']
+                  });
+                }
               }
             });
           }
@@ -212,7 +127,7 @@ router.get(
           });
         }
       }
-      res.send({"@graph": grants});
+      res.send({ "@graph": grants });
     } catch (err) {
       // Write the error message to the console
       console.error(err);
@@ -224,7 +139,7 @@ router.get(
 
 router.get(
   '/raw_grants',
-  is_miv,
+  // is_miv,
   fetchExpertId,
   async (req, res) => {
     const params = {};
