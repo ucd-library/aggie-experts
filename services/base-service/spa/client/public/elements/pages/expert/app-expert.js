@@ -423,7 +423,7 @@ export default class AppExpert extends Mixin(LitElement)
   _seeAllGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/'+this.expertId+'/grants');
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants/25/1/');
   }
 
   /**
@@ -432,7 +432,7 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _seeAllWorks(e) {
     e.preventDefault();
-    this.AppStateModel.setLocation('/'+this.expertId+'/works');
+    this.AppStateModel.setLocation('/'+this.expertId+'/works/25/1/');
   }
 
   /**
@@ -637,7 +637,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit');
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit/25/1/');
   }
 
   /**
@@ -647,7 +647,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editWorks(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit');
+    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit/25/1/');
   }
 
   /**

@@ -101,10 +101,20 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return;
     }
 
+    // parse /size/page/ from url, or append if trying to access /works-edit
+    let page = e.location.pathname.split('/works-edit/')?.[1];
+    if( page ) {
+      let parts = page.split('/');
+      this.currentPage = Number(parts?.[1] || 1);
+      this.resultsPerPage = Number(parts?.[0] || 25);
+    } else {
+      this.AppStateModel.setLocation(this.AppStateModel.location.fullpath+'/'+this.resultsPerPage+'/'+this.currentPage+'/');
+    }
+
     window.scrollTo(0, 0);
 
     this.modifiedWorks = false;
-    let expertId = e.location.pathname.replace('/works-edit', '');
+    let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
     let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
@@ -154,6 +164,14 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.hiddenCitations = this.expert?.totals?.hiddenWorks || 0;
     this.totalCitations = (this.expert?.totals?.works || 0);
+
+    // only expert graph record, no works for this pagination of results
+    if( this.expert['@graph'].length === 1 ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
 
     await this._loadCitations();
   }
@@ -221,6 +239,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
 
     this.currentPage = e.detail.page;
+    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit/'+this.resultsPerPage+'/'+this.currentPage+'/');
+
+
     // await this._loadCitations();
     let expert = await this.ExpertModel.get(
       this.expertId,

@@ -101,10 +101,20 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       return;
     }
 
+    // parse /size/page/ from url, or append if trying to access /works
+    let page = e.location.pathname.split('/grants-edit/')?.[1];
+    if( page ) {
+      let parts = page.split('/');
+      this.currentPage = Number(parts?.[1] || 1);
+      this.resultsPerPage = Number(parts?.[0] || 25);
+    } else {
+      this.AppStateModel.setLocation(this.AppStateModel.location.fullpath+'/'+this.resultsPerPage+'/'+this.currentPage+'/');
+    }
+
     window.scrollTo(0, 0);
 
     this.modifiedGrants = false;
-    let expertId = e.location.pathname.replace('/grants-edit', '');
+    let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/grants-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
 
@@ -165,6 +175,14 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hiddenGrants = this.expert?.totals?.hiddenGrants || 0;
     this.totalGrants = (this.expert?.totals?.grants || 0);
 
+    // only expert graph record, no works for this pagination of results
+    if( this.expert['@graph'].length === 1 ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
+
     this.paginationTotal = Math.ceil(this.totalGrants / this.resultsPerPage);
   }
 
@@ -181,6 +199,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( maxIndex > this.totalGrants ) maxIndex = this.totalGrants;
 
     this.currentPage = e.detail.page;
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit/'+this.resultsPerPage+'/'+this.currentPage+'/');
 
     let expert = await this.ExpertModel.get(
       this.expertId,

@@ -67,14 +67,21 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'works' ) {
-      // reset data to first page of results
-      this.currentPage = 1;
-      return;
+    if( e.location.page !== 'works' ) return;
+
+    // parse /size/page/ from url, or append if trying to access /works
+    let page = e.location.pathname.split('/works/')?.[1];
+    if( page ) {
+      let parts = page.split('/');
+      this.currentPage = Number(parts?.[1] || 1);
+      this.resultsPerPage = Number(parts?.[0] || 25);
+    } else {
+      this.AppStateModel.setLocation(this.AppStateModel.location.fullpath+'/'+this.resultsPerPage+'/'+this.currentPage+'/');
     }
+
     window.scrollTo(0, 0);
 
-    let expertId = e.location.pathname.replace('/works', '');
+    let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
@@ -118,6 +125,14 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
     this.totalCitations = (this.expert?.totals?.works || 0) - (this.expert?.totals?.hiddenWorks || 0);
+
+    // only expert graph record, no works for this pagination of results
+    if( this.expert['@graph'].length === 1 ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
 
     await this._loadCitations();
   }
@@ -202,6 +217,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
 
     this.currentPage = e.detail.page;
+    this.AppStateModel.setLocation('/'+this.expertId+'/works/'+this.resultsPerPage+'/'+this.currentPage+'/');
 
     // await this._loadCitations();
     let expert = await this.ExpertModel.get(
