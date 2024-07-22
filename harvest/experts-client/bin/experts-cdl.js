@@ -4,15 +4,16 @@ dotenv.config();
 
 import path from 'path';
 import fs from 'fs-extra';
-import { Command } from 'commander';
 
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
 
 import ExpertsClient from '../lib/experts-client.js';
-
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
+import { Command } from '../lib/experts-commander.js';
+
+
 import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
@@ -140,9 +141,9 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     if (!response.ok) {
       throw new Error(`Failed to execute update. Status code: ${response.status}`);
     }
+    profile=profile["@graph"][0];
 
-    let json = await response.json();
-    const profile = {};
+    const kc_user = {};
     let email;
     try {
       email = json.results.bindings[0].email.value;
@@ -156,47 +157,46 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
       logger.error(json, `${user} missing values`);
       continue;
     }
-    logger.info(`Processing ${user}(${email},${profile.attributes.ucdPersonUUID})`);
-    const expert=await keycloak_admin.getOrCreateExpert(email,user,profile);
+    opt.log.info(kc_user,`Processing keycloak(${email})`);
+    const expert=await keycloak_admin.getOrCreateExpert(email,user,kc_user);
     let expertId=null;
     if (!expert) {
-      logger.error(`Failed getOrCreateExpert for ${email}`);
+      opt.log.error(`Failed getOrCreateExpert for ${email}`);
       continue;
     } else {
       expertId=expert.attributes['expertId'];
-      logger.info({user,email,expertId}, `expertId found`);
+      opt.log.info({user,email,expertId}, `expertId found`);
     }
 
     if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${expertId}.jsonld.json`)) {
-      logger.info({mark:user},'skipping ' + user);
+      opt.log.info({mark:user},'skipping ' + user);
       continue;
     }
-    logger.info({mark:user},'user ' + user);
+    opt.log.info({mark:user},'user ' + user);
     dbname = user;
     let exists = await fuseki.existsDb(dbname);
     db = await fuseki.createDb(dbname);
-    logger.info({measure:[user],user},`fuseki.createDb(${dbname})`)
+    opt.log.info({measure:[user],user},`fuseki.createDb(${dbname})`)
 
-    // const profile = await ec.getCDLprofile(user, opt);
 
     if (opt.fetch) {
       try {
         await ec.getPostUser(db,user)
-        logger.info({measure:[user],user},`getPostUser`);
+        opt.log.info({measure:[user],user},`getPostUser`);
 
         // Step 3: Get User Relationships from CDL
         // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
         await ec.getPostUserRelationships(db,user,'detail=full');
-        logger.info({measure:[user],user},`getPostUserRelationships`);
+        opt.log.info({measure:[user],user},`getPostUserRelationships`);
 
       }
       catch (e) {
-        logger.error({ user, error: e }, `error ${user}`);
+        opt.log.error({ user, error: e }, `error ${user}`);
       }
     }
 
     if (opt.splay) {
-      logger.info({mark:'splay',user},`splay`);
+      opt.log.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
         { EXPERTS_SERVICE__: DF.namedNode(`http://localhost:3030/experts/query`),
           EXPERT__: DF.namedNode(`http://experts.ucdavis.edu/expert/${expertId}`),
@@ -206,27 +206,27 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
       );
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
       await ec.insert({ ...iam, bindings, db });
-      logger.info({measure:['splay'],user},`insert`);
+      opt.log.info({measure:['splay'],user},`insert`);
 
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        logger.info({mark:n,user},`splay ${n}`);
+        opt.log.info({mark:n,user},`splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
           return await ec.splay({ ...splay, bindings, db, output: opt.output, user });
         })(n);
-        logger.info({measure:[n],user},`splayed ${n}`);
+        opt.log.info({measure:[n],user},`splayed ${n}`);
         performance.clearMarks(n);
       };
-      logger.info({measure:['splay',user],user},`splayed`);
+      opt.log.info({measure:['splay',user],user},`splayed`);
       performance.clearMarks('splay');
     }
     // Any other value don't delete
     if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db);
     }
-    logger.info({measure:[user],user},`completed`);
+    opt.log.info({measure:[user],user},`completed`);
     performance.clearMarks(user);
   }
 }
@@ -242,11 +242,6 @@ program.name('cdl-profile')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
   .option('--output <output>', 'output directory','.')
-  .option('--cdl.url <url>', 'Specify CDL endpoint', cdl.url)
-  .option('--cdl.groups <groups>', 'Specify CDL group ids', cdl.groups)
-  .option('--cdl.affected <affected>', 'affected since')
-  .option('--cdl.modified <modified>', 'modified since (YYYY-MM-DD)')
-  .option('--cdl.auth <user:password>', 'Specify CDL authorization', cdl.auth)
   .option('--cdl.timeout <timeout>', 'Specify CDL API timeout in milliseconds', 30000)
   .option('--author-truncate-to <max>', 'Truncate authors to max', 40)
   .option('--author-trim-info', 'Remove extraneous author info', true)
@@ -264,7 +259,8 @@ program.name('cdl-profile')
   .option('--no-fetch', 'fetch the data', true)
   .option('--skip-existing-user', 'skip if expert/md5(${user}@ucdavis.edu`) exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
-
+  .option_iam()
+  .option_log()
 
 
 program.parse(process.argv);
@@ -296,12 +292,10 @@ if (opt.environment === 'development') {
   opt.cdl.url = 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'qa-oapolicy';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
-  opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 else if (opt.environment === 'production') {
   opt.cdl.url = 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5';
   opt.cdl.authname = 'oapolicy';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
-logger.info({ opt }, 'options');
 await main(opt);

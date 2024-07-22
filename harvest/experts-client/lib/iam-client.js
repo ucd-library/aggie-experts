@@ -141,9 +141,9 @@ export class IAM {
     }
     let res = await response.json();
     if (res == null) {
-      throw new Error(`No profiles returned from IAM.`);
+      throw new Error(`✘ profile(${id}) - not found`);
     }
-    this.log.info({service:'iam',measure:`profile(${id})`},`►profile(${id})◄`);
+    this.log.info({lib:'iam',measure:`profile(${id})`},`✔ profile(${id})`);
     performance.clearMarks(`profile(${id})`);
     return {
       ...this.context(),

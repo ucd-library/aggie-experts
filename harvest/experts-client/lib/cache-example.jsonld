@@ -1,0 +1,56 @@
+{
+  "@context": {
+    "@vocab": "http://schema.library.ucdavis.edu/schema/cache#",
+    "schema": "http://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "Cached": {"@type": "@id"},
+    "Empty": {"@type": "@id"},
+    "Error": {"@type": "@id"},
+    "FetchError": {"@type": "@id"},
+    "ParseError": {"@type": "@id"},
+    "Pending": {"@type": "@id"},
+    "SplayError": {"@type": "@id"},
+    "WriteError": {"@type": "@id"},
+    "base": { "@type": "@id" },
+    "cache": {"@type": "@id"},
+    "error": { "@type": "@id" },
+    "expert": { "@type": "@id" },
+    "iat": {"@type": "xsd:double" },
+    "priority": {"@type": "xsd:integer" },
+    "queue": {"@type": "@id"},
+    "url": {"@type": "@id" }
+  },
+  "@graph":[
+    {
+      "@id":"mailto:quinn@ucdavis.edu",
+      "@type":"Cached",
+      "cache": {
+        "@id":"mailto:quinn@ucdavis.edu#cache",
+        "iat":1703258355,
+        "base":"file:///.",
+        "error": [
+          {"@id":"mailto:quinn@ucdavis.edu#error_timestamp",
+           "@type":"FetchError",
+           "iat":1703258355.835531719,
+           "url":"https://www.library.ucdavis.edu/",
+           "status":404
+          }
+        ]
+      },
+      "queue": {
+        "@id":"mailto:quinn@ucdavis.edu#queue",
+        "iat":1703258355.835531719,
+        "priority":10
+      }
+    },
+    {
+      "@id":"mailto:jrmerz@ucdavis.edu",
+      "@type":"Empty",
+      "queue": {
+        "@id":"mailto:jrmerz@ucdavis.edu#queue",
+        "iat":1703258365.836531719,
+        "priority":1
+      }
+    }
+  ]
+}

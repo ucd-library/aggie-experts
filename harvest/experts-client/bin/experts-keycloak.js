@@ -109,7 +109,6 @@ async function main(opt) {
             opt.log.error({error:e.message},`►E◄ update(${user.email})`);
           }
         }
-        console.log(JSON.stringify(user));
       } else {
         console.log(`User not found: ${expert}`);
       }

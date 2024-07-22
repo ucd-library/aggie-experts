@@ -1,0 +1,285 @@
+PREFIX oap: <ark:/87287/d7nh2m/schema#>
+PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
+PREFIX expert: <http://experts.ucdavis.edu/expert/>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX fedora: <http://fedora.info/definitions/v4/repository#>
+PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX schema: <http://schema.org/>
+PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX iam: <ark:/87287/d7c08j/schema#>
+
+CONSTRUCT {
+  # This add IAM information
+  ?EXPERT__ a ?emp_type,vivo:Person,ucdlib:Expert;
+          rdfs:label ?label;
+          schema:identifier ?EXPERT__,?s;
+          ucdlib:email ?EMAIL__;
+          ucdlib:is-visible ?is_visible;
+          vcard:hasName ?vcard_name;
+          obo:ARG_2000028 ?vcard;
+        .
+
+  ?vcard_name a vcard:Name;
+              vcard:givenName ?fname;
+              vcard:middleName ?mname;
+              vcard:familyName ?lname;
+              vcard:pronouns ?pronoun;
+              .
+
+  ?vcard a vcard:Individual;
+         vivo:rank ?order;
+         vcard:hasName ?vcard_name;
+         vcard:hasTitle ?vcard_title;
+         vcard:hasOrganizationalUnit ?vcard_unit;
+         vcard:hasEmail ?email_uri;
+         vcard:hasURL ?vcard_url;
+         ucdlib:isPreferred ?is_preferred;
+         .
+
+  ?vcard_title a vcard:Title;
+               vcard:title ?title;
+               .
+
+  ?vcard_unit a vcard:Organization;
+              vcard:title ?dept;
+              .
+
+  ?vcard_url a vcard:URL;
+             vcard:url ?website;
+             .
+
+  # This adds the CDL information
+  ?EXPERT__ obo:ARG_2000028 ?oa_vcard;
+          schema:identifier ?oapolicy_ark;
+          ?field_predicate ?field_value;
+          ?id_pred ?id_value;
+          .
+
+  ?oa_vcard a vcard:Individual;
+         vivo:rank 20;
+         schema:name ?oa_vcard_label;
+         vcard:hasName ?oa_vcard_name;
+         vcard:hasEmail ?oa_vcard_email;
+         vcard:hasURL ?oa_vcard_web;
+         ucdlib:isPreferred false;
+         .
+
+  ?oa_vcard_name a vcard:Name;
+              vcard:givenName ?fn;
+              vcard:familyName ?ln;
+              .
+
+  ?oa_vcard_web a vcard:URL, ?web_type;
+             vcard:url ?web_url;
+             vivo:rank ?web_rank;
+             vcard:title ?web_label;
+             .
+
+  # Research Areas
+  ?EXPERT__ vivo:hasResearchArea ?concept.
+  ?concept vivo:researchAreaOf ?EXPERT__.
+}
+  WHERE {
+  graph <ark:/87287/d7c08j/> {
+    ?s iam:email ?default_emai;
+       iam:dLastName ?iam_lname;
+       iam:dFirstName ?iam_fname;
+       iam:isFaculty ?faculty;
+       iam:userID ?USERID__;
+       iam:directory/iam:displayName/iam:nameWwwFlag "Y" ;
+       .
+
+    OPTIONAL { ?s iam:dMiddleName ?iam_mname . }
+#    OPTIONAL {
+#      ?s iam:directory/iam:displayName/iam:nameWwwFlag "N" .
+#      bind(false as ?odr_is_visible)
+#    }
+    OPTIONAL {
+      ?s iam:directory/iam:displayName ?dname.
+      ?dname iam:nameWwwFlag "Y";
+             iam:preferredFname ?better_fname;
+             iam:preferredLname ?better_lname;
+             .
+      OPTIONAL {
+        ?dname iam:preferredMname ?better_mname .
+        bind(concat(?better_fname," ",?better_mname," ",?better_lname) as ?better_mlabel)
+      }
+      OPTIONAL {
+        ?dname iam:preferredPronouns ?pronoun .
+      }
+    }
+    bind(coalesce(?better_fname,?iam_fname) as ?fname)
+    bind(coalesce(?better_lname,?iam_lname) as ?lname)
+    bind(?better_mname as ?mname)
+    bind(coalesce(?better_mlabel,concat(?fname," ",?lname)) as ?label)
+    #    bind(coalesce(?odr_is_visible,true) as ?is_visible)
+    bind(true as ?is_visible)
+
+    bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
+    bind(uri(concat(str(?EXPERT__),"#name")) as ?vcard_name)
+  }
+  OPTIONAL {
+    {
+      select ?s ?vid ?vcard_unit ?title ?dept ?order ?website ?title_email ?is_preferred
+      WHERE {
+        graph <ark:/87287/d7c08j/> {
+          ?s iam:directory ?dir .
+          ?dir iam:listings ?list.
+          OPTIONAL {
+            ?list iam:deptWwwFlag "Y";
+                  iam:listingOrder ?order;
+                  iam:deptName ?dept;
+                  iam:deptCode ?deptCode;
+                  .
+          }
+          OPTIONAL {
+            ?list iam:titleWwwFlag "Y";
+                  iam:title ?title;
+                  .
+          }
+          OPTIONAL {
+            ?list iam:websiteWwwFlag "Y";
+                  iam:website ?website;
+                  .
+          }
+          OPTIONAL {
+            ?list iam:emailWwwFlag "Y";
+                  iam:email ?title_email;
+                  .
+          }
+          bind(concat("odr-",str(?order)) as ?vid)
+          bind(true as ?is_preferred)
+        }
+        bind(uri(concat(str(experts:),"dept/odr/",?deptCode)) as ?vcard_unit)
+      }
+    }
+    UNION {
+      select ?s ?vid ?vcard_unit ?ucd_title ?title ?dept ?order ?use_default_email ?is_preferred
+      where {
+        graph <ark:/87287/d7c08j/> {
+          ?s iam:ppsAssociations [iam:assocRank ?a_order;
+                                 iam:titleOfficialName ?otitle;
+                                 iam:titleCode ?titleCode;
+                                 iam:deptCode ?deptCode;
+                                 iam:deptOfficialName ?dept ];
+                                                      .
+          OPTIONAL {
+            ?s iam:directory/iam:listings/iam:title [].
+            bind(true as ?has_odr)
+          }
+          bind(replace(?otitle," -.*","") as ?title)
+          bind(xsd:integer(?a_order)+10 as ?order)
+          bind(concat("pps-",str(?a_order)) as ?vid)
+          bind(true as ?use_default_email)
+          bind(coalesce((! ?has_odr),true) as ?is_preferred)
+          bind(uri(concat(str(experts:),"dept/pps/",?deptCode)) as ?vcard_unit)
+          bind(uri(concat(str(experts:),"title/pps/",?titleCode)) as ?ucd_title)
+        }
+      }
+    }
+  }
+  bind(uri(concat(str(?EXPERT__),"#vcard-",?vid)) as ?vcard)
+  bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?EMAIL__,?undefined_var)) as ?email)
+  bind(if(bound(?email),uri(concat("mailto:",?email)),?undefined_var) as ?email_uri)
+  bind(coalesce(?ucd_title,uri(concat(str(?vcard),"-title"))) as ?vcard_title)
+  bind(if(bound(?website),uri(concat(str(?vcard),"-url")),?undefined_var) as ?vcard_url)
+
+  GRAPH <ark:/87287/d7nh2m/> {
+  ?cdl_id oap:category "user";
+        oap:is-public "true";
+        oap:is-login-allowed "true";
+        oap:username ?EDUROAM__;
+        oap:last-name ?ln;
+        oap:first-name ?fn;
+        oap:user-identifier-associations ?assoc;
+        .
+
+    OPTIONAL {
+      ?cdl_id oap:position ?title.
+    }
+    OPTIONAL {
+      ?cdl_id oap:department ?dept.
+    }
+
+    ?assoc oap:user-id ?oapolicy_id.
+    bind(uri(concat('ark:/87287/d7mh2m/user/',?oapolicy_id)) as ?oapolicy_ark)
+
+    OPTIONAL {
+      values (?oap_scheme ?id_pred) {
+        ("researcherid" vivo:researcherId)
+        ("orcid" vivo:orcidId)
+        ("scopus-author-id" vivo:scopusId) }
+      ?assoc oap:user-identifier-association [ oap:field-value  ?id_value ; oap:scheme ?oap_scheme ].
+    }
+
+    OPTIONAL {
+      ?cdl_id oap:records/oap:record/oap:native ?native.
+      OPTIONAL {
+        ?native oap:field [ oap:name "email-addresses";
+                            oap:type "email-address-list";
+                            oap:email-addresses [
+                                                  oap:email-address [
+                                                                      oap:address ?email;
+                                                                      oap:privacy "public";
+                                                                    ]
+                                          ]
+                          ].
+      }
+      OPTIONAL {
+        ?native oap:field [ oap:name "personal-websites";
+                         oap:web-addresses/oap:web-address [ list:index(?pos ?elem) ]
+                       ].
+
+        ?elem oap:url ?web_url;
+              oap:privacy "public";
+              .
+        OPTIONAL {
+          ?elem oap:label ?web_label.
+        }
+
+        OPTIONAL {
+          ?elem oap:type ?web_type_text.
+          bind(uri(concat(str(ucdlib:),"URL_",?web_type_text)) as ?web_type)
+        }
+        bind(?pos as ?web_rank)
+      }
+      OPTIONAL {
+        values (?field_name ?field_predicate ) {
+          ("overview" vivo:overview)
+          ("research-interests" ucdlib:researchInterests)
+          ("teaching-summary" ucdlib:teachingSummary)
+        }
+        ?native oap:field [ oap:name ?field_name;
+                         oap:text [ oap:field-value ?field_value;
+                                 oap:privacy "public"; ]
+                       ].
+        }
+    }
+    OPTIONAL {
+      values (?scheme ?vocab) { ("for" FoR:) }
+      ?cdl_id oap:all-labels [
+                            oap:type "keyword-list";
+                            oap:keywords/oap:keyword [
+                                                 oap:field-value ?value;
+                                                 oap:scheme ?scheme;
+                                               ]
+                          ].
+      bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
+    }
+  }
+  bind(uri(concat(str(?EXPERT__),"#vcard-oap-1")) as ?oa_vcard)
+  bind(uri(concat(str(?oa_vcard),"-name")) as ?oa_vcard_name)
+  bind(uri(concat('mailto:',str(?email))) as ?oa_vcard_email)
+  bind(uri(concat(str(?oa_vcard),"-web-",str(?web_rank))) as ?oa_vcard_web)
+  bind(coalesce(concat(" § ",?title,coalesce(concat(", ",?dept),"")),
+                "") as ?title_dept)
+  bind(concat(
+              concat(?ln,coalesce(concat(", ",?fn),"")),
+              coalesce(?title_dept,"")
+              ) as ?oa_vcard_label)
+}

@@ -139,6 +139,12 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
         email: email,
         exact: true
       });
+      if (users.length === 0) {
+        throw new Error(`No user found with email: ${email}`);
+      }
+      if (users[0].attributes['expertId'] === undefined) {
+        throw new Error(`User with email: ${email} does not have an expertId`);
+      }
       return users[0];
     } catch (error) {
       throw new Error(`Error finding user by email: ${error.message}`);

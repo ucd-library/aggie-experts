@@ -3,11 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import { performance } from 'node:perf_hooks';
 
-const streams = [
-  // Log to the console
-  { stream: process.stdout }
-];
-
 function markSerializer(mark) {
   if (mark && (typeof mark === 'string' || mark instanceof String)) {
     performance.mark(mark);
@@ -35,13 +30,13 @@ function measureSerializer(measure) {
 
 export const logger = bunyan.createLogger({
   name: 'experts',
-  level: 'info',
+  level: 'fatal',
+  stream: process.stderr,
   serializers: {
     mark: markSerializer,
     measure: measureSerializer,
     err: bunyan.stdSerializers.err,
     req: bunyan.stdSerializers.req,
     res: bunyan.stdSerializers.res
-  },
-  streams: streams,
+  }
 });

@@ -1,0 +1,23 @@
+{
+  "@context":{
+    "@base":"http://schema.library.ucdavis.edu/",
+    "@vocab":"http://schema.library.ucdavis.edu/",
+    "experts":"http://experts.ucdavis.edu/",
+    "name":"http://schema.org/name",
+    "description":"http://schema.org/description"
+  },
+  "@id":"",
+  "@type":[ "ConstructQuery" ],
+  "name":"UC Davis IAM profile to VIVO work",
+  "rdfs:description":"This query will create a VIVO Person from the UC Davis IAM profile",
+  "parameter":[
+    {
+    "bind":{
+      "@id":"#userId",
+      "@type":"QueryBinding",
+      "cmd:bindName":"userId"
+    },
+    "required":true
+  }
+  ]
+}
