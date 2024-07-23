@@ -1,0 +1,24 @@
+### Test date
+
+### Reason for testing:
+- [ ] New feature
+- [ ] New data
+
+### Tasks
+- [ ] Impersonate a user using keycloak
+- [ ] Confirm works can be downloaded from the profile
+- [ ] Confirm grants can be downloaded from the profile
+- [ ] Navigate to their Edit Works; review citations
+- [ ] Change visibility of a work and confirm change in Elements
+- [ ] Reverse visibility through AE UI
+- [ ] Navigate to their Edit grants; review citations
+- [ ] Change visibility of a grant and confirm change in Elements
+- [ ] Reverse visibility through AE UI
+- [ ] Search 0130. There should be only one hit
+- [ ] Navigate to user's page: can you see it?
+
+### More extensive testing
+- [ ] As an admin search for 0130. There should be only one hit
+- [ ] Edit user and hide that grant
+- [ ] Repeat search: confirm no results are returned
+- [ ] Review grants CSV download, particularly coPI list
