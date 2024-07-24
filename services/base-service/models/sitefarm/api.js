@@ -1,7 +1,8 @@
 const express = require('express');
 const router = require('express').Router();
 const { config, keycloak, dataModels, logger } = require('@ucd-lib/fin-service-utils');
-const SiteFarmModel = require('./model.js');
+const ExpertModel = require('../expert/model.js');
+const expert = new ExpertModel();
 const { defaultEsApiGenerator } = dataModels;
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
@@ -136,7 +137,7 @@ router.get(
 
 // router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
 
-const model = new SiteFarmModel();
+const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, { router });
 
 module.exports = router;
