@@ -5,6 +5,7 @@ import {render} from "./app-expert-works-list-edit.tpl.js";
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
 
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
@@ -36,6 +37,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
+      manageWorksLabel : { type : String },
+      worksWithErrors : { type : Array },
     }
   }
 
@@ -69,6 +72,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.downloads = [];
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
     this.isVisible = true;
+    this.manageWorksLabel = 'Manage My Works';
+    this.worksWithErrors = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -129,7 +134,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           includeGrants : false,
           worksPage : this.currentPage,
           worksSize : this.resultsPerPage,
-          includeHidden : true
+          includeHidden : true,
+          includeWorksMisformatted : true
         })
       );
       this._onExpertUpdate(expert);
@@ -164,6 +170,25 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.hiddenCitations = this.expert?.totals?.hiddenWorks || 0;
     this.totalCitations = (this.expert?.totals?.works || 0);
+
+    if( this.hiddenCitations === 0 ) {
+      this.manageWorksLabel = `Manage My Works (${this.totalCitations})`;
+    } else {
+      this.manageWorksLabel = `Manage My Works (${this.totalCitations} Public, ${this.hiddenCitations} Hidden)`;
+    }
+
+    this.worksWithErrors = this.expert.invalidWorks || [];
+    this.worksWithErrors.sort((a, b) => {
+      // sort issued descending
+      let issuedA = a.issued?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(a.issued?.split('-')?.[0]);
+      let issuedB = b.issued?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(b.issued?.split('-')?.[0]);
+
+      if (issuedA !== issuedB) {
+        return issuedB - issuedA;
+      }
+
+      return a.title.localeCompare(b.title);
+    })
 
     // only expert graph record, no works for this pagination of results
     if( this.expert['@graph'].length === 1 ) {
@@ -250,7 +275,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         includeGrants : false,
         worksPage : this.currentPage,
         worksSize : this.resultsPerPage,
-        includeHidden : true
+        includeHidden : true,
+        includeWorksMisformatted : true
       })
     );
     await this._onExpertUpdate(expert);
@@ -429,7 +455,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         includeGrants : false,
         worksPage : this.currentPage,
         worksSize : this.resultsPerPage,
-        includeHidden : true
+        includeHidden : true,
+        includeWorksMisformatted : true
       }),
       true // clear cache
     );

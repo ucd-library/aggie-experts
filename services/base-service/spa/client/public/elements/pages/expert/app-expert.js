@@ -192,11 +192,11 @@ export default class AppExpert extends Mixin(LitElement)
 
     await this._loadCitations();
 
-    this.totalCitations = (this.expert?.totals?.works || 0) - (this.expert?.totals?.hiddenWorks || 0);
+    this.totalCitations = this.expert?.totals?.works || 0;
     this.hiddenCitations = this.expert?.totals?.hiddenWorks || 0;
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.totalGrants = (this.expert?.totals?.grants || 0) - (this.expert?.totals?.hiddenGrants || 0);
+    this.totalGrants = this.expert?.totals?.grants || 0;
     this.hiddenGrants = this.expert?.totals?.hiddenGrants || 0;
 
     this.grants = utils.parseGrants(this.expertId, grants);

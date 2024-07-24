@@ -5,6 +5,7 @@ const validate = require('../validate.js');
 
 const finApi = require('@ucd-lib/fin-api/lib/api.js');
 const config = require('../config');
+const Citation = require('../../spa/client/public/lib/utils/citation.js');
 
 /**
  * @class ExpertModel
@@ -67,6 +68,7 @@ class ExpertModel extends BaseModel {
           page : 1,
           size : 25,
           exclude : [ 'totalAwardAmount' ],
+          includeMisformatted : true,
           sort : [
             {
               field : 'name',
@@ -144,10 +146,20 @@ class ExpertModel extends BaseModel {
     let hiddenGrants = totalGrants - grants.filter(g =>
       g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
     ).length;
+    let invalidWorks = [];
+    let invalidGrants = [];
 
-    // by default, filter out hidden works/grants if not requested to include them
-    // TODO ask QH, should we also filter out hidden works/grants if they're not an admin/the expert?
-    if( options['is-visible'] !== false ) {
+    // filter out expert graph if not requested
+    if( !options.expert?.include ) expert = [];
+
+    // filter out works graph if not requested
+    if( !options.works || !options.works?.include ) works = [];
+
+    // filter out grants graph if not requested
+    if( !options.grants || !options.grants?.include ) grants = [];
+
+    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    if( options['is-visible'] !== false || !options.admin ) {
       works = works.filter(w => w.relatedBy?.['is-visible']);
 
       grants = grants.filter(g =>
@@ -176,35 +188,82 @@ class ExpertModel extends BaseModel {
     }
 
     // sort works if requested
-    if( options.works?.sort && options.works.sort.length ) {
+    if( options.works?.include && options.works?.sort && options.works.sort.length ) {
       try {
-        // TODO analyze variation in 'issued' and 'title', add try/catch to prevent exceptions for unexpected data
-        // THIS WILL DEFINITELY FAIL ATM for works that have an array for title or issued, which happens
-        // in that case we still want to show in the ui, but that it's malformed, so they can fix it
-        // FROM VE (in https://github.com/ucd-library/aggie-experts/issues/540):
-        // Can you apply the "misformated citation, contact admin" label here?
-        // There isn't a good default solution to the handful of examples I've seen when the titles clash.
+        // remove works with invalid issue date or title before sorting
+        let invalidTitle = Citation.validateTitle(works);
+        if( invalidTitle.citations?.length ) {
+          works = works.filter(w1 => !invalidTitle.citations.some(w2 => w2["@id"] === w1["@id"]));
+          hiddenWorks += invalidTitle.citations.length;
+          invalidTitle.citations = invalidTitle.citations.map(c => {
+            return {
+              ...c,
+              title: 'Title Unknown'
+            };
+          });
+        }
 
+        let invalidIssueDate = Citation.validateIssueDate(works);
+        if( invalidIssueDate.citations?.length ) {
+          works = works.filter(w1 => !invalidIssueDate.citations.some(w2 => w2["@id"] === w1["@id"]));
+          hiddenWorks += invalidIssueDate.citations.length;
+          invalidIssueDate.citations = invalidIssueDate.citations.map(c => {
+            return {
+              ...c,
+              issued: 'Date Unknown'
+            };
+          });
+        }
 
-
-
-        // TODO 7/11
-        // test with /expert/0a4HWjVZ (ark:/87287/d7mh2m/publication/1422547) and /expert/0atLvttS (ark:/87287/d7mh2m/publication/780095)
-        // will need to compare against other works of theirs to see if it's working as expected
         works = works.sort((a,b) => sortGraph(a, b, options.works.sort));
+        if( options.works?.includeMisformatted ) {
+          invalidWorks = [...(invalidTitle.citations || []), ...(invalidIssueDate.citations || [])];
+          doc.invalidWorks = invalidWorks;
+        }
 
-
+        totalWorks = works.length;
       } catch(e) {
-        // TODO what to do if title or issued is not string/array? or other sort data is unexpected?
+        // no sorting if unexpected exception
       }
     }
 
     // sort grants if requested
-    if( options.grants?.sort && options.grants.sort.length ) {
+    if( options.grants?.include && options.grants?.sort && options.grants.sort.length ) {
       try {
+        let invalidName = grants.filter(g => typeof g.name !== 'string');
+        if( invalidName.length ) {
+          grants = grants.filter(g1 => !invalidName.some(g2 => g2["@id"] === g1["@id"]));
+          hiddenGrants += invalidName.length;
+          invalidName = invalidName.map(g => {
+            return {
+              ...g,
+              name: 'Name Unknown'
+            };
+          });
+        }
+
+        let invalidEndDate = grants.filter(g => isNaN(new Date(g.dateTimeInterval?.end?.dateTime)));
+        if( invalidEndDate.length ) {
+          grants = grants.filter(g1 => !invalidEndDate.some(g2 => g2["@id"] === g1["@id"]));
+          hiddenGrants += invalidEndDate.length;
+          invalidEndDate = invalidEndDate.map(g => {
+            return {
+              ...g,
+             dateTimeInterval: { end : { dateTime : 'Date Unknown' } }
+            };
+          });
+        }
+
         grants = grants.sort((a,b) => sortGraph(a, b, options.grants.sort));
+
+        if( options.grants?.includeMisformatted ) {
+          invalidGrants = [...invalidName, ...invalidEndDate];
+          doc.invalidGrants = invalidGrants;
+        }
+
+        totalGrants = grants.length;
       } catch(e) {
-        // TODO what to do if dateTime or name is not string/array? or other sort data is unexpected?
+        // no sorting if unexpected exception
       }
     }
 
@@ -224,16 +283,6 @@ class ExpertModel extends BaseModel {
       // filter works by field(s) if requested
       // filter grants by field(s) if requested
     */
-
-    // filter out expert graph if not requested
-    // TODO ask QH, this assumes all options are explicit, and that if they are not passed in, they are not included
-    if( !options.expert?.include ) expert = [];
-
-    // filter out works graph if not requested
-    if( !options.works || !options.works?.include ) works = [];
-
-    // filter out grants graph if not requested
-    if( !options.grants || !options.grants?.include ) grants = [];
 
     // return total visible/hidden works/grants
     // TODO ask QH, does this need to be hidden if not admin/expert?

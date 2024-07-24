@@ -5,6 +5,7 @@ import {render} from "./app-expert-grants-list-edit.tpl.js";
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
 
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
@@ -35,6 +36,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
+      manageGrantsLabel : { type : String },
+      grantsWithErrors : { type : Array }
     }
   }
 
@@ -69,6 +72,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.downloads = [];
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
     this.isVisible = true;
+    this.manageGrantsLabel = 'Manage My Grants';
+    this.grantsWithErrors = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -129,7 +134,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           includeWorks : false,
           grantsPage : this.currentPage,
           grantsSize : this.resultsPerPage,
-          includeHidden : true
+          includeHidden : true,
+          includeGrantsMisformatted : true
         })
       );
       this._onExpertUpdate(expert);
@@ -175,6 +181,26 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hiddenGrants = this.expert?.totals?.hiddenGrants || 0;
     this.totalGrants = (this.expert?.totals?.grants || 0);
 
+    if( this.hiddenGrants === 0 ) {
+      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants})`;
+    } else {
+      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants} Public, ${this.hiddenGrants} Hidden)`;
+    }
+
+    this.grantsWithErrors = this.expert.invalidGrants || [];
+    console.log('this.grantsWithErrors', this.grantsWithErrors);
+    this.grantsWithErrors.sort((a, b) => {
+      // sort end date descending
+      let endDateA = a.dateTimeInterval?.end?.dateTime?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(a.dateTimeInterval?.end?.dateTime?.split('-')?.[0]);
+      let endDateB = b.dateTimeInterval?.end?.dateTime?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(b.dateTimeInterval?.end?.dateTime?.split('-')?.[0]);
+
+      if (endDateA !== endDateB) {
+        return endDateB - endDateA;
+      }
+
+      return 0;
+    })
+
     // only expert graph record, no works for this pagination of results
     if( this.expert['@graph'].length === 1 ) {
       this.dispatchEvent(
@@ -208,7 +234,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         includeWorks : false,
         grantsPage : this.currentPage,
         grantsSize : this.resultsPerPage,
-        includeHidden : true
+        includeHidden : true,
+        includeGrantsMisformatted : true
       })
     );
     await this._onExpertUpdate(expert);

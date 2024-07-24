@@ -124,7 +124,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
-    this.totalCitations = (this.expert?.totals?.works || 0) - (this.expert?.totals?.hiddenWorks || 0);
+    this.totalCitations = this.expert?.totals?.works || 0;
 
     // only expert graph record, no works for this pagination of results
     if( this.expert['@graph'].length === 1 ) {

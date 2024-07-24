@@ -229,6 +229,8 @@ class Utils {
         includeWorks : true,
         includeGrants : true,
         includeHidden : false,
+        includeWorksMisformatted : false,
+        includeGrantsMisformatted : false,
         worksPage : 1,
         worksSize : 10,
         worksSort : [
@@ -271,6 +273,7 @@ class Utils {
         page : defaults.grantsPage,
         size : defaults.grantsSize,
         exclude : defaults.grantsExclude,
+        includeMisformatted : defaults.includeGrantsMisformatted,
         sort : defaults.grantsSort
       },
       works : {
@@ -278,6 +281,7 @@ class Utils {
         page : defaults.worksPage,
         size : defaults.worksSize,
         exclude : defaults.worksExclude,
+        includeMisformatted : defaults.includeWorksMisformatted,
         sort : defaults.worksSort
       }
     };

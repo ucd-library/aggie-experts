@@ -143,7 +143,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
-    this.totalGrants = (this.expert?.totals?.grants || 0) - (this.expert?.totals?.hiddenGrants || 0);
+    this.totalGrants = this.expert?.totals?.grants || 0;
 
     // only expert graph record, no grants for this pagination of results
     if( this.expert['@graph'].length === 1 ) {
