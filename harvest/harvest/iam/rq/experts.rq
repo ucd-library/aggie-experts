@@ -147,7 +147,7 @@ WHERE {
                                  iam:deptOfficialName ?dept ];
                                                       .
           OPTIONAL {
-            ?s iam:directory/iam:listings/deptWwwFlag "Y".
+            ?s iam:directory/iam:listings/iam:deptWwwFlag "Y".
             bind(true as ?has_odr)
           }
           bind(replace(?otitle," -.*","") as ?title)
