@@ -26,7 +26,7 @@ return html`
       font-weight: 700;
       line-height: 2.5rem;
       padding-right: .7rem;
-      padding-left: .7rem;
+      padding-left: 1rem;
     }
     svg {
       width: 20.22471911px;
@@ -113,11 +113,26 @@ return html`
         width: 90%;
       }
     }
+
+    @media (max-width: 767px) {
+      .browse-header {
+        justify-content: space-between;
+      }
+
+      .color-border svg {
+        display: none;
+      }
+
+      .color-border {
+        width: 1.125rem;
+        background-color: #FFBF00;
+      }
+    }
   </style>
 
   <div class="browse-header">
     <div class="browse-label">Experts</div>
-    <div style="display: flex; height: 75px;">
+    <div class="color-border" style="display: flex; height: 75px;">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
         <path d="M21.6 0L0 89H24V0H21.6Z" fill="#FFBF00"/>
       </svg>

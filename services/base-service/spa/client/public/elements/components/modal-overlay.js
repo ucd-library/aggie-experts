@@ -15,6 +15,7 @@ export class ModalOverlay extends LitElement {
     return {
       visible : { type : Boolean },
       title : { type : String },
+      saveText : { type : String },
       content : { type : String },
       hideCancel : { type : Boolean },
       hideSave : { type : Boolean },
@@ -30,6 +31,7 @@ export class ModalOverlay extends LitElement {
 
     this.visible = false;
     this.title = '';
+    this.saveText = '';
     this.content = '';
     this.hideCancel = false;
     this.hideSave = false;

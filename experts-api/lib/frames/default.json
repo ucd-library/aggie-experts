@@ -9,6 +9,7 @@
     "obo": "http://purl.obolibrary.org/obo/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "schema": "http://schema.org/",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
     "ucdlib": "http://schema.library.ucdavis.edu/schema#",
     "vcard":"http://www.w3.org/2006/vcard/ns#",
     "vivo": "http://vivoweb.org/ontology/core#",
@@ -31,9 +32,11 @@
       }
     },
     "Authorship":"vivo:Authorship",
+    "availabilityOf":{"@id":"ucdlib:availabilityOf","@type":"@id"},
     "available-date":{"@id":"cite:available-date"},
     "bearer-of":{"@id":"obo:RO_0000053","@type":"@id"},
     "collection-number":{"@id":"cite:collection-number"},
+    "Concept":"skos:Concept",
     "contactInfo": {
       "@id":"obo:ARG_2000028",
       "@type":"@id",
@@ -92,6 +95,7 @@
       "@type":"@id"
     },
     "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
+    "hasAvailability":{"@id":"ucdlib:hasAvailability","@type":"@id" },
     "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
     "hasName": {
       "@id": "vcard:hasName",
@@ -132,6 +136,7 @@
     "identifier":{"@id":"schema:identifier","@type":"@id"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
+    "inScheme":{"@id":"skos:inScheme","@type":"@id"},
     "is-open-access":{"@id":"ucdlib:is-open-access"},
     "is-visible":{"@id":"ucdlib:is-visible"},
     "ISBN": {"@id":"cite:ISBN"},
@@ -151,6 +156,7 @@
     "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
     "PrincipalInvestigatorRole":"vivo:PrincipalInvestigatorRole",
+    "prefLabel":{"@id":"skos:prefLabel"},
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},

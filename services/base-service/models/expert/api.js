@@ -32,6 +32,31 @@ router.get('/', (req, res) => {
 // (as well as the swagger-ui if configured)
 router.use(openapi);
 
+router.patch('/:expertId/availability',
+  // expert_valid_path(
+  //   {
+  //     description: "Update an experts visibility by expert id",
+  //     // requestBody: openapi.requestBodies('Expert_patch'),
+  //     responses: {
+  //       "204": openapi.response('No_content')
+  //     }
+  //   }
+  // ),
+  // expert_valid_path_error,
+  user_can_edit,
+  json_only,
+  async (req, res, next) => {
+    expertId = `expert/${req.params.expertId}`;
+    let data = req.body;
+    try {
+      let resp = await model.patchAvailability(data, expertId);
+      res.status(204).json();
+    } catch(e) {
+      next(e);
+    }
+  }
+)
+
 router.route(
   '/:expertId/:relationshipId'
 ).get(
