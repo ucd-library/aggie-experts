@@ -8,4 +8,5 @@ module.exports = {
   grant_role: require('./grant_role/index.js'),
   sitefarm: require('./sitefarm/index.js'),
   miv: require('./miv/index.js'),
+  schema: require('./schema/index.js'),
 }

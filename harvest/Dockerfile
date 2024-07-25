@@ -4,7 +4,7 @@ ARG FIN_TAG
 ARG FIN_ORG
 
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
-FROM $ORG/fuseki:$TAG as more
+FROM $ORG/fuseki:$TAG AS more
 
 #The Oracle SQL developer CLI.  This is a java tool that provides
 #a command-line interface to Oracle Services.
@@ -39,10 +39,10 @@ RUN set -x ; mkdir -p /tmp/builder && \
 
 
 # Experts API is shared
-FROM $ORG/experts-api:$TAG as api
+FROM $ORG/experts-api:$TAG AS api
 
 # fin-service is also shared
-FROM $FIN_ORG/fin-base-service:$FIN_TAG as fin-base-service
+FROM $FIN_ORG/fin-base-service:$FIN_TAG AS fin-base-service
 
 # Now build from fuseki
 FROM $ORG/fuseki:$TAG
