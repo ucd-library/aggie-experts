@@ -1,3 +1,12 @@
+---
+name: QC testing via UI
+about: Checklist for testing a new version of the deployed code.
+title: 'Testing '
+labels: ''
+assignees: ''
+
+---
+
 ### Test date
 
 ### Reason for testing:
