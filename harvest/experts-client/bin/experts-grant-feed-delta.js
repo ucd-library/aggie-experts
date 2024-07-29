@@ -132,6 +132,24 @@ async function findDeletedLinks() {
       return false;
     }
   );
+  // Reformat the deleteLinks array to remove the "visible", "category-1", and "category-2" fields
+  deleteLinks = deleteLinks.map((item) => {
+    let newItem = {};
+    for (let key in item) {
+      // if (key !== 'visible' && key !== 'category-1' && key !== 'category-2') {
+      if (key == 'id-1') {
+        newItem['user_proprietary_id'] = item[key];
+      }
+      else if (key == 'id-2') {
+        newItem['record_proprietary_id'] = item[key];
+      }
+      else if (key == 'link_type_id') {
+        newItem[key] = item[key];
+      }
+    }
+    return newItem;
+  }
+);
   resolve(deleteLinks);
 });
 }
@@ -380,7 +398,9 @@ const csvStringPersons = await new Promise((resolve, reject) => {
 fs.writeFileSync(deltaFilePath + 'grants_persons.csv', csvStringPersons);
 
 // Write the delta object to a new CSV file.
+
 csvData = deleteLinks.map((item) => Object.values(item));
+// select the columns to fit the links_to_delete schema
 columns = Object.keys(deleteLinks[0]);
 const csvStringDeletes = await new Promise((resolve, reject) => {
   stringify(csvData, { header: true, columns: columns}, (err, output) => {
@@ -392,7 +412,7 @@ const csvStringDeletes = await new Promise((resolve, reject) => {
   });
 });
 
-fs.writeFileSync(deltaFilePath + 'links_to_delete.csv', csvStringDeletes);
+fs.writeFileSync(deltaFilePath + 'delete_user_grants_links.csv', csvStringDeletes);
 
 // Count deltaGrants that don't have a link
 let count = 0;
