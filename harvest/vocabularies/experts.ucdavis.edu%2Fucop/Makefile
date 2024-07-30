@@ -2,19 +2,19 @@
 SH:=/bin/bash
 
 academic_titles:=academic_titles.txt
+ae_titles:=titles-ae.csv
 
 define cto_context
 {"@context": {"@vocab": "http://schema.org/","@base": "http://experts.ucdavis.edu/cto/"}}
 endef
 
-define pos_context
-{"@context": {\
+pos_context:=\
+'{"@context": {\
 "@vocab": "http://schema.org/",\
 "@base": "http://experts.ucdavis.edu/position/",\
 "c": "http://experts.ucdavis.edu/cto/",\
 "cto": { "@type":"@id","@id":"http://schema.library.ucdavis.edu/schema#cto"}\
-}}
-endef
+}}'
 
 info::
 	@echo '${context}'
@@ -24,9 +24,10 @@ cto_codes.jsonld: ${academic_titles}
 	sed -e 's/\([^ ]*\) \(.*\)/{"@id":"\1","name":"\2"}/' |\
 	jq --slurp '${cto_context} + {"@graph":.}' > $@
 
-pos_codes.jsonld: ${academic_titles}
-	sed -e 's/^\(...\).* \([0-9C][0-9W][0-9R]..[0-9]\) \(.*\)/{"cto":"c:\1","@id":"\2", "name":"\3"}/' $< |\
-	jq --slurp '${pos_context} + {"@graph":.}' > $@
+pos_codes.jsonld: ${ae_titles}
+	sed -E 's/^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*).*/{"name":"\1","@id":"\2","cto":"c:\4","preferred_name":"\6"}/' $< | \
+	 jq -s 'def lpad(n; pad): if (n - length > 0) then (n - length) as $$len | pad * $$len + . else . end; def format_cto(cto): "c:" + (cto | tostring | lpad(3; "0")); map(.["@id"] |= (tostring | lpad(6; "0"))) | map(.cto |= format_cto(.cto))' | \
+	 jq --slurp '${pos_context} + {"@graph":.}' > $@
 
 pps.titles.jsonld:
 	../../ucdid fetch --format=jsonld pps.titles > $@
