@@ -143,8 +143,8 @@ async function findDeletedLinks() {
       else if (key == 'id-2') {
         newItem['record_proprietary_id'] = item[key];
       }
-      else if (key == 'link_type_id') {
-        newItem[key] = item[key];
+      else if (key == 'link-type-id') {
+        newItem['link_type_id'] = item[key];
       }
     }
     return newItem;
