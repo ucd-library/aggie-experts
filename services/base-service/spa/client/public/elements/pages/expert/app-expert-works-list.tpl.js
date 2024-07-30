@@ -128,7 +128,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.expertName}</span>
         </div>
-        <h1>${this.citations.length || 0} Works</h1>
+        <h1>${this.totalCitations || 0} Works</h1>
       </div>
     </div>
 

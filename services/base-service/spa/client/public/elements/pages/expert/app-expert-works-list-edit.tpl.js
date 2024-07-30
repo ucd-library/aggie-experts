@@ -301,6 +301,13 @@ return html`
       word-wrap: break-word;
     }
 
+    /* styles for collapsed dropdown */
+    .custom-collapse {
+      --collapse-background-color: #FFFBED;
+      --collapse-border-color: #FFBF00;
+      padding: 1.19rem 0;
+    }
+
   </style>
 
   <div class="content">
@@ -323,7 +330,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.expertName}</span>
         </div>
-        <h1>Manage My Works (${this.totalCitations - this.hiddenCitations} Public, ${this.hiddenCitations} Hidden)</h1>
+        <h1>${this.manageWorksLabel}</h1>
         <button class="btn btn--round btn--alt2 add-work" @click="${this._addNewWorkClicked}">Add New Work</button>
       </div>
     </div>
@@ -332,6 +339,34 @@ return html`
       <div class="return-to-profile" @click="${this._returnToProfile}">
         <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-left"></ucdlib-icon>
         <span>RETURN TO PROFILE</span>
+      </div>
+
+      <div class="custom-collapse" ?hidden="${this.worksWithErrors.length === 0}">
+        <ucd-theme-collapse brand-class="category-brand--secondary" title="Works with Errors (${this.worksWithErrors.length})">
+
+          ${this.worksWithErrors.map(
+            (work, index) => html`
+              <div style="display: flex; justify-content: space-between; margin: ${index === 0 ? '0' : '1.19rem'} 0 ${index+1 === this.worksWithErrors.length ? '0' : '1.19rem'};">
+                <div class="work">
+                  <h5 data-id=${work['@id']}>${work.issued.split('-')?.[0]}
+                    <span style="padding: 0 0.25rem;
+                      color: black;
+                      font-size: 1.1875rem;
+                      font-style: normal;
+                      font-weight: 700;
+                      line-height: 1.92125rem;
+                      text-transform: uppercase;
+                      position: relative;
+                      bottom: 0.25rem;"
+                    class="dot">.</span> ${work.title}</h5>
+                  <p style="margin-bottom: 0;">Error: Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>
+                </div>
+              </div>
+              <hr style="border-color: #CCE0F3;" ?hidden=${index+1 === this.worksWithErrors.length}>
+            `)
+          }
+
+        </ucd-theme-collapse>
       </div>
 
       <div style="display: flex; flex-direction: row-reverse;">
