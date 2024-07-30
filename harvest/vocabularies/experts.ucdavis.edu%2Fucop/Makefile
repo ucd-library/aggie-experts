@@ -8,13 +8,14 @@ define cto_context
 {"@context": {"@vocab": "http://schema.org/","@base": "http://experts.ucdavis.edu/cto/"}}
 endef
 
-pos_context:=\
-'{"@context": {\
+define pos_context
+{"@context": {\
 "@vocab": "http://schema.org/",\
 "@base": "http://experts.ucdavis.edu/position/",\
 "c": "http://experts.ucdavis.edu/cto/",\
 "cto": { "@type":"@id","@id":"http://schema.library.ucdavis.edu/schema#cto"}\
-}}'
+}}
+endef
 
 info::
 	@echo '${context}'
@@ -26,8 +27,8 @@ cto_codes.jsonld: ${academic_titles}
 
 pos_codes.jsonld: ${ae_titles}
 	sed -E 's/^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*).*/{"name":"\1","@id":"\2","cto":"c:\4","preferred_name":"\6"}/' $< | \
-	 jq -s 'def lpad(n; pad): if (n - length > 0) then (n - length) as $$len | pad * $$len + . else . end; def format_cto(cto): "c:" + (cto | tostring | lpad(3; "0")); map(.["@id"] |= (tostring | lpad(6; "0"))) | map(.cto |= format_cto(.cto))' | \
-	 jq --slurp '${pos_context} + {"@graph":.}' > $@
+	jq -s 'def lpad(n; pad): if (n - length > 0) then (n - length) as $$len | pad * $$len + . else . end; def format_cto(cto): "c:" + (cto | capture("(?<num>[0-9]+)") | .num | tonumber | tostring | lpad(3; "0")); map(.["@id"] |= (tostring | lpad(6; "0"))) | map(.cto |= format_cto(.))' |\
+  jq --slurp '${pos_context} + {"@graph":.}' > $@
 
 pps.titles.jsonld:
 	../../ucdid fetch --format=jsonld pps.titles > $@
