@@ -804,11 +804,11 @@ return html`
         </div>
       </div>
 
-      <div class="grants-abbreviated" ?hidden="${this.grants.length === 0 && (!this.canEdit || this.totalGrants === 0)}">
+      <div class="grants-abbreviated" ?hidden="${this.totalGrants === 0 && (!this.canEdit || this.totalGrants === 0)}">
         <div class="grants-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="file-invoice-dollar" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
-            <h2>${this.grants.length} Grants</h2>
+            <h2>${this.totalGrants} Grants</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
             <span ?hidden="${!this.canEdit}" style="position: relative;">
@@ -829,8 +829,8 @@ return html`
             </span>
           </div>
         </div>
-        <span class="hidden-grants-label" ?hidden="${this.totalGrants === this.grants.length || !this.canEdit}">
-          ${this.totalGrants - this.grants.length} additional grant${this.totalGrants - this.grants.length === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+        <span class="hidden-grants-label" ?hidden="${this.hiddenGrants === 0 || !this.canEdit}">
+          ${this.hiddenGrants} additional grant${this.hiddenGrants === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
         </span>
 
         <hr class="seperator">
@@ -866,17 +866,17 @@ return html`
             <br>
           `
         )}
-        <div class="see-all-grants" ?hidden= "${this.grants.length < this.grantsPerPage + 1}" @click="${this._seeAllGrants}">
+        <div class="see-all-grants" ?hidden= "${this.totalGrants < this.grantsPerPage + 1}" @click="${this._seeAllGrants}">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
-          <span>SEE ALL ${this.grants.length} GRANTS</span>
+          <span>SEE ALL ${this.totalGrants} GRANTS</span>
         </div>
       </div>
 
-      <div class="works-abbreviated" ?hidden="${this.citations.length === 0 && (!this.canEdit || this.totalCitations === 0)}">
+      <div class="works-abbreviated" ?hidden="${this.totalCitations === 0 && (!this.canEdit || this.totalCitations === 0)}">
         <div class="works-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
-            <h2>${this.citations.length} Works</h2>
+            <h2>${this.totalCitations} Works</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
             <span ?hidden="${!this.canEdit}" style="position: relative;">
@@ -897,8 +897,8 @@ return html`
             </span>
           </div>
         </div>
-        <span class="hidden-works-label" ?hidden="${this.totalCitations === this.citations.length || !this.canEdit}">
-          ${this.totalCitations - this.citations.length} additional work${this.totalCitations - this.citations.length === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+        <span class="hidden-works-label" ?hidden="${this.hiddenCitations === 0 || !this.canEdit}">
+          ${this.hiddenCitations} additional work${this.hiddenCitations === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
         </span>
 
         <hr class="seperator">
@@ -916,9 +916,9 @@ return html`
             <br>
           `
         )}
-        <div class="see-all-works" ?hidden= "${this.citations.length < this.worksPerPage + 1}" @click="${this._seeAllWorks}">
+        <div class="see-all-works" ?hidden= "${this.totalCitations < this.worksPerPage + 1}" @click="${this._seeAllWorks}">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
-          <span>SEE ALL ${this.citations.length} WORKS</span>
+          <span>SEE ALL ${this.totalCitations} WORKS</span>
         </div>
       </div>
     </div>
