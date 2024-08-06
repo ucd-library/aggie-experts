@@ -125,7 +125,7 @@ async function main(opt) {
     let md=md5(`${user}@ucdavis.edu`);
     fuseki.expert_assembler = fuseki.expert_assembler.replace(/__USER__/g, user);
 
-    console.log('assembler : ',fuseki.expert_assembler);
+    // console.log('assembler : ',fuseki.expert_assembler);
 
     const query=`
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -163,7 +163,6 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
       profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
       profile.attributes.iamId=json.results.bindings[0].iamId.value;
     } catch (e) {
-      console.log(JSON.stringify(json));
       logger.error(json, `${user} missing values`);
       continue;
     }
@@ -215,9 +214,10 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
           KEYCLOAK_EMAIL__: DF.literal(email)
         }
       );
+      // Remove iam insert now that iam is included as hdt.
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
-      await ec.insert({ ...iam, bindings, db });
-      logger.info({measure:['splay'],user},`insert`);
+      // await ec.insert({ ...iam, bindings, db });
+      // logger.info({measure:['splay'],user},`insert`);
 
       for (const n of ['expert', 'authorship', 'grant_role']) {
         logger.info({mark:n,user},`splay ${n}`);
