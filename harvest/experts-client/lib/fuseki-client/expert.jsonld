@@ -13,16 +13,16 @@
     "fuseki:dataset" : {"@type" : "@id"},
     "fuseki:operation": {"@type" : "@id"}
   },
-      "@id":"expert",
+      "@id":"quinn",
       "@type":"fuseki:Service",
-      "fuseki:name":"expert",
+      "fuseki:name":"quinn",
       "fuseki:dataset": {
         "@type":"ja:RDFDataset",
         "ja:defaultGraph": {
           "@type":"tdb2:GraphTDB2",
           "tdb2:dataset": {
             "@type":"tdb2:DatasetTDB2",
-            "tdb2:location":"databases/expert"
+            "tdb2:location":"databases/quinn"
           }
         },
         "ja:namedGraph": [

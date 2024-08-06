@@ -27,14 +27,18 @@ const gs = new GoogleSecret();
 
 const program = new Command();
 
+// const
+
 // This also reads data from .env file via dotenv
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb2',
   replace: true,
-  'delete': true
+  'delete': true,
 });
+
+fuseki.expert_assembler = '';
 
 const cdl = {
   url: '',
@@ -112,9 +116,17 @@ async function main(opt) {
   let db
 
   // Step 2: Get User Profiles and relationships from CDL
+
+  // Custom config for expert dataset with hdt assembler setup
+  fuseki.expert_assembler = JSON.parse(fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld').toString());
+  console.log('assembler : ',fuseki.expert_assembler);
+
   for (const user of users) {
     let dbname
     let md=md5(`${user}@ucdavis.edu`);
+    fuseki.expert_assembler["@"] = user;
+    fuseki.expert_assembler["fuseki.name"] = user;
+    fuseki.expert_assembler["fuseki.dataset"]["ja:defaultGraph"]["tdb2:dataset"]["tdb2:location"] = "databases/" + user;
 
     const query=`
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -174,8 +186,8 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     logger.info({mark:user},'user ' + user);
     dbname = user;
     let exists = await fuseki.existsDb(dbname);
-    db = await fuseki.createDb(dbname);
-    logger.info({measure:[user],user},`fuseki.createDb(${dbname})`)
+    db = await fuseki.createGraphFromJsonLdFile(JSON.stringify(fuseki.expert_assembler));
+    // logger.info({measure:[user],user},`createGraphFromJsonLdFile(${dbname})`)
 
     // const profile = await ec.getCDLprofile(user, opt);
 
@@ -234,6 +246,7 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { exit } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename).replace('/bin', '/lib');
 
