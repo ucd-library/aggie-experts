@@ -185,7 +185,7 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     logger.info({mark:user},'user ' + user);
     dbname = user;
     let exists = await fuseki.existsDb(dbname);
-    await fuseki.createGraphFromJsonLdFile(fuseki.expert_assembler);
+    db = await fuseki.createDatasetFromJsonLdFile(dbname,fuseki.expert_assembler);
     // logger.info({measure:[user],user},`createGraphFromJsonLdFile(${dbname})`)
 
     // const profile = await ec.getCDLprofile(user, opt);
