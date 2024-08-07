@@ -150,7 +150,7 @@ async function findDeletedLinks() {
     return newItem;
   }
 );
-  resolve(deleteLinks);
+resolve(deleteLinks);
 });
 }
 
@@ -347,10 +347,11 @@ async function executeInOrder() {
 
 executeInOrder().then(async () => {
   logger.info('Delta-grants:', deltaGrants.length);
+  // If the delta object is empty, create an empty CSV file.
   // Write the delta object to a new CSV file.
-  const deltaFilePath = opt.dir + '/delta/' + opt.prefix; // replace with your desired delta CSV file path
+  const deltaFilePath = opt.dir + '/delta/' + opt.prefix;
   let csvData = deltaGrants.map((item) => Object.values(item));
-  let columns = Object.keys(deltaGrants[0]);
+  let columns = Object.keys(newGrants[0]); // Use the columns from the newGrants object as the header incase of no deltas.
   const csvString = await new Promise((resolve, reject) => {
     stringify(csvData, { header: true, columns: columns  }, (err, output) => {
       if (err) {
@@ -365,7 +366,7 @@ executeInOrder().then(async () => {
 
   // Write the deltaLinks object to a new CSV file.
   csvData = deltaLinks.map((item) => Object.values(item));
-  columns = Object.keys(deltaLinks[0]);
+  columns = Object.keys(newLinks[0]);
 
   const csvStringLinks = await new Promise((resolve, reject) => {
     stringify(csvData, { header: true, columns: columns }, (err, output) => {
@@ -384,7 +385,7 @@ logger.info('Delta-persons:', deltaPersons.length);
 
 // Write the delta object to a new CSV file.
 csvData = deltaPersons.map((item) => Object.values(item));
-columns = Object.keys(deltaPersons[0]);
+columns = Object.keys(newPersons[0]);
 const csvStringPersons = await new Promise((resolve, reject) => {
   stringify(csvData, { header: true, columns: columns}, (err, output) => {
     if (err) {
@@ -401,7 +402,7 @@ fs.writeFileSync(deltaFilePath + 'grants_persons.csv', csvStringPersons);
 
 csvData = deleteLinks.map((item) => Object.values(item));
 // select the columns to fit the links_to_delete schema
-columns = Object.keys(deleteLinks[0]);
+columns = Object.keys(newLinks[0]);
 const csvStringDeletes = await new Promise((resolve, reject) => {
   stringify(csvData, { header: true, columns: columns}, (err, output) => {
     if (err) {
