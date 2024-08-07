@@ -75,6 +75,7 @@ export class FusekiClient {
     opt.type ||= this.type;
     opt.replace ||= this.replace;
     opt.delete ||= this.delete;
+    opt.expert_assembler ||= this.expert_assembler;
 
     let exists = false;
 
@@ -111,7 +112,7 @@ export class FusekiClient {
         `${this.url}/\$/datasets`,
         {
           method: 'POST',
-          body: new URLSearchParams({ 'dbName': opt.db, 'dbType': opt.type }),
+          body: opt.expert_assembler,
           headers: {
             'Authorization': `Basic ${this.authBasic}`
           }
@@ -130,6 +131,47 @@ export class FusekiClient {
     if (files) {
       this.files = await db.addToDb(files);
     }
+    return db;
+  }
+
+  async createDatasetFromJsonLdFile(opt,jsonld) {
+
+    if(typeof opt === 'string') {
+      opt={db:opt};
+    }
+    opt.type ||= this.type;
+    opt.replace ||= this.replace;
+    opt.delete ||= this.delete;
+    opt.expert_assembler ||= this.expert_assembler;
+
+    // Construct URL for uploading the data to the graph
+    // Don't include a graphname to use what's in the jsonld file
+    const url = `${this.url}/$/datasets`;
+
+    // Set request options
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/ld+json',
+        'Authorization': `Basic ${this.authBasic}`
+      },
+      body: jsonld,
+    };
+
+    // Send the request to upload the data to the graph
+    const response = await fetch(url, options);
+
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error(`Failed to create graph. Status code: ${response.status}` + response.statusText);
+    }
+
+    const db=new FusekiClientDB(
+      {url:this.url,
+       auth:this.auth,
+       authBasic:this.authBasic,
+       ...opt});
+
     return db;
   }
 
@@ -248,5 +290,6 @@ export class FusekiClientDB {
 
     return await response.text();
   }
+
 }
 export default FusekiClient;
