@@ -207,6 +207,28 @@ function schema_error(err, req, res, next) {
   })
 }
 
+function valid_path(options={}) {
+  const def = {
+    "description": "API Path",
+    "parameters": []
+  };
+
+  // what would this do, overwritten below w/ ...options
+//  (options.parameters || []).forEach((param) => {
+//    def.parameters.push(openapi.parameters(param));
+//  });
+
+   return openapi.validPath({...def, ...options});
+}
+
+function valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
+}
+
 const openapi = OpenAPI(
   {
     openapi: '3.0.3',
@@ -274,6 +296,9 @@ const openapi = OpenAPI(
         }
       },
       schemas: {
+        Grant: {
+          type: 'object'
+        },
         Expert: {
           type: 'object',
           properties: {
@@ -660,6 +685,25 @@ const openapi = OpenAPI(
 );
 
 openapi.response(
+  'Grant',
+  {
+    "description": "Grant",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('Grant')
+      }
+    }
+  }
+);
+
+openapi.response(
+  'not_found',
+  {
+    "description": "Resource not found"
+  }
+);
+
+openapi.response(
   'Expert',
   {
     "description": "The expert",
@@ -803,14 +847,16 @@ openapi.requestBodies(
 
 // export this middleware functions
 module.exports = {
+  convertIds,
+  fetchExpertId,
+  has_access,
   is_user,
   json_only,
-  validate_miv_client,
-  has_access,
-  validate_admin_client,
-  fetchExpertId,
-  convertIds,
-  user_can_edit,
   openapi,
-  schema_error
+  schema_error,
+  user_can_edit,
+  validate_admin_client,
+  validate_miv_client,
+  valid_path,
+  valid_path_error
 };
