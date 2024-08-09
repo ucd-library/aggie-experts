@@ -188,7 +188,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     }
 
     this.grantsWithErrors = this.expert.invalidGrants || [];
-    console.log('this.grantsWithErrors', this.grantsWithErrors);
+    if( this.grantsWithErrors.length ) this.logger.warn('grants with errors', { expertId : this.expertId, grantsWithErrors : this.grantsWithErrors });
+
     this.grantsWithErrors.sort((a, b) => {
       // sort end date descending
       let endDateA = a.dateTimeInterval?.end?.dateTime?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(a.dateTimeInterval?.end?.dateTime?.split('-')?.[0]);
