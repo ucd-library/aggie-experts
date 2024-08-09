@@ -21,7 +21,34 @@ config.client = {
     bundle : clientPackageVersion,
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')
   },
+  logger : {
+    // default log level for all loggers.  If not provided, they
+    // will default to 'info'.
+    // logLevel : 'warn', // possibly set warn for production?
 
+    // report errors (both uncaught exceptions on the window and logger.error calls) to a provided url endpoint.
+    reportErrors : {
+      // must be set to true to report
+      // enabled : false,
+
+      // urls to call
+      // url : '',
+
+      // HTTP Method to use.  Defaults to POST
+      // method : 'POST',
+
+      // key to send as `x-api-key` header
+      // key : '',
+
+      // custom headers to send in request
+      // headers : {},
+
+      // custom attributes to send in request body
+      customAttributes : {
+        app : 'aggie-experts'
+      }
+    }
+  },
   env : {
     CLIENT_ENV : env,
     FIN_APP_VERSION : process.env.FIN_APP_VERSION || '',

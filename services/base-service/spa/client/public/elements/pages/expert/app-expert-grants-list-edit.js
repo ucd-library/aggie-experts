@@ -2,7 +2,7 @@ import { LitElement } from 'lit';
 import {render} from "./app-expert-grants-list-edit.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
@@ -360,6 +360,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     document.body.removeChild(link);
 
     if( window.gtag ) gtag('event', 'grant_download', {});
+    this.logger.info('grants downloaded for expert', { expertId : this.expertId, csv : body });
   }
 
   /**
@@ -399,6 +400,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           'fatal': false
         });
       }
+      this.logger.info('setting grant to be visible', { grantId : this.grantId, expertId : this.expertId });
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -423,6 +425,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           'fatal': false
         });
       }
+      this.logger.error('failed to set grant to be visible', { grantId : this.grantId, expertId : this.expertId });
     }
 
     this.modifiedGrants = true;
@@ -467,6 +470,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+        this.logger.info('setting grant to be hidden', { grantId : this.grantId, expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
         updated = false;
@@ -491,6 +495,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+        this.logger.error('failed to set grant to be hidden', { grantId : this.grantId, expertId : this.expertId });
       }
 
       // update graph/display data
