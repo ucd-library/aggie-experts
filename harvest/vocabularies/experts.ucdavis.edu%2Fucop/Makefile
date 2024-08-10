@@ -46,7 +46,7 @@ upload:cto_codes.jsonld pos_codes.jsonld
 	${http} POST ${db}/${dbName}/data Content-type:application/ld+json < pps.titles.jsonld
 
 positions.n3:
-	${http} POST ${db}/${dbName}/query Content-type:application/sparql-query Accept:text/n3 < positions.rq
+	${http} POST ${db}/${dbName}/query Content-type:application/sparql-query Accept:application/n-triples < positions.rq > $@
 
 positions.hdt:positions.n3
-	rdf2hdt -index -rdftype ntriples $< $@
+	rdf2hdt.sh -index -rdftype ntriples $< $@

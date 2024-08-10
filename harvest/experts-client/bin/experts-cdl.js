@@ -27,14 +27,18 @@ const gs = new GoogleSecret();
 
 const program = new Command();
 
+// const
+
 // This also reads data from .env file via dotenv
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb2',
   replace: true,
-  'delete': true
+  'delete': true,
 });
+
+fuseki.expert_assembler = '';
 
 const cdl = {
   url: '',
@@ -112,9 +116,16 @@ async function main(opt) {
   let db
 
   // Step 2: Get User Profiles and relationships from CDL
+
+  // Read custom config for expert dataset with hdt assembler setup
+  fuseki.expert_assembler = fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld', 'utf8');
+
   for (const user of users) {
     let dbname
     let md=md5(`${user}@ucdavis.edu`);
+    fuseki.expert_assembler = fuseki.expert_assembler.replace(/__USER__/g, user);
+
+    // console.log('assembler : ',fuseki.expert_assembler);
 
     const query=`
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
@@ -152,7 +163,6 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
       profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
       profile.attributes.iamId=json.results.bindings[0].iamId.value;
     } catch (e) {
-      console.log(JSON.stringify(json));
       logger.error(json, `${user} missing values`);
       continue;
     }
@@ -174,8 +184,8 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     logger.info({mark:user},'user ' + user);
     dbname = user;
     let exists = await fuseki.existsDb(dbname);
-    db = await fuseki.createDb(dbname);
-    logger.info({measure:[user],user},`fuseki.createDb(${dbname})`)
+    db = await fuseki.createDatasetFromJsonLdFile(dbname,fuseki.expert_assembler);
+    // logger.info({measure:[user],user},`createGraphFromJsonLdFile(${dbname})`)
 
     // const profile = await ec.getCDLprofile(user, opt);
 
@@ -204,9 +214,10 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
           KEYCLOAK_EMAIL__: DF.literal(email)
         }
       );
+      // Remove iam insert now that iam is included as hdt.
       const iam = ql.getQuery('insert_iam', 'InsertQuery');
-      await ec.insert({ ...iam, bindings, db });
-      logger.info({measure:['splay'],user},`insert`);
+      // await ec.insert({ ...iam, bindings, db });
+      // logger.info({measure:['splay'],user},`insert`);
 
       for (const n of ['expert', 'authorship', 'grant_role']) {
         logger.info({mark:n,user},`splay ${n}`);
@@ -234,6 +245,7 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { exit } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename).replace('/bin', '/lib');
 

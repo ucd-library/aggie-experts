@@ -20,15 +20,15 @@ CONSTRUCT {
   ?iam_expert_o vcard:title ?iam_o_title.
 
   # This adds the CDL information
-  ?expert a vivo:Person,ucdlib:Expert;
+  ?EXPERT__ a vivo:Person,ucdlib:Expert;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
-               schema:identifier ?expert, ?oapolicy_ark;
+               schema:identifier ?EXPERT__, ?oapolicy_ark;
                ucdlib:is-visible ?visible;
                ?field_predicate ?field_value;
                .
 
-  ?expert ?id_pred ?id_value.
+  ?EXPERT__ ?id_pred ?id_value.
 
   ?vcard a vcard:Individual;
          vivo:rank 20;
@@ -51,14 +51,13 @@ CONSTRUCT {
              .
 
   # Research Areas
-  ?expert vivo:hasResearchArea ?concept.
-  ?concept vivo:researchAreaOf ?expert.
+  ?EXPERT__ vivo:hasResearchArea ?concept.
+  ?concept vivo:researchAreaOf ?EXPERT__.
 }
 WHERE {
   bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
   graph <http://iam.ucdavis.edu/> {
     ?user a ucdlib:Expert;
-          ucdlib:expert ?expert;
           ucdlib:is-visible true;
           .
     values ?iam_p {obo:ARG_2000028
@@ -75,8 +74,8 @@ WHERE {
       ?iam_o vcard:title ?iam_o_title.
     }
     filter(regex(str(?iam_s),concat('^',str(?user),'#?')))
-    bind(uri(replace(str(?iam_s),concat('^',str(?user)),str(?expert))) as ?iam_expert_s)
-    bind(if(isuri(?iam_o),uri(replace(str(?iam_o),concat('^',str(?user)),str(?expert))),?iam_o) as ?iam_expert_o)
+    bind(uri(replace(str(?iam_s),concat('^',str(?user)),str(?EXPERT__))) as ?iam_expert_s)
+    bind(if(isuri(?iam_o),uri(replace(str(?iam_o),concat('^',str(?user)),str(?EXPERT__))),?iam_o) as ?iam_expert_o)
   }
   GRAPH <http://oapolicy.universityofcalifornia.edu/> {
   ?cdl_id :category "user";
@@ -162,7 +161,7 @@ WHERE {
     }
   }
   bind(concat(?fn," ",?ln) as ?name)
-  bind(uri(concat(str(?expert),"#vcard-oap-1")) as ?vcard)
+  bind(uri(concat(str(?EXPERT__),"#vcard-oap-1")) as ?vcard)
   bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
   bind(xsd:boolean(?visible_str) as ?visible)
   bind(uri(concat('mailto:',str(?email))) as ?vcard_email)

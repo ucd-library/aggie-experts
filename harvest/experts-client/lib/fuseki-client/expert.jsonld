@@ -1,77 +1,85 @@
 {
-  "@context" : {
+  "@context": {
     "@base": "http://experts.udavis.edu",
-    "@vocab" : "http://experts.ucdavis.edu/#",
-    "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-    "tdb2" : "http://jena.apache.org/2016/tdb#",
-    "ja" : "http://jena.hpl.hp.com/2005/11/Assembler#",
-    "hdt" : "http://www.rdfhdt.org/fuseki#",
-    "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
-    "fuseki" : "http://jena.apache.org/fuseki#",
-    "ja:graph" : {"@type" : "@id"},
-    "ja:graphName" : {"@type" : "@id"},
-    "fuseki:dataset" : {"@type" : "@id"},
-    "fuseki:operation": {"@type" : "@id"}
+    "@vocab": "http://experts.ucdavis.edu/#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "tdb2": "http://jena.apache.org/2016/tdb#",
+    "ja": "http://jena.hpl.hp.com/2005/11/Assembler#",
+    "hdt": "http://www.rdfhdt.org/fuseki#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "fuseki": "http://jena.apache.org/fuseki#",
+    "ja:graph": {
+      "@type": "@id"
+    },
+    "ja:graphName": {
+      "@type": "@id"
+    },
+    "fuseki:dataset": {
+      "@type": "@id"
+    },
+    "fuseki:operation": {
+      "@type": "@id"
+    }
   },
-  "@id":"quinn",
-  "@type":"fuseki:Service",
-  "fuseki:name":"quinn",
+  "@id": "__USER__",
+  "@type": "fuseki:Service",
+  "fuseki:name": "__USER__",
   "fuseki:dataset": {
-    "@type":"ja:RDFDataset",
+    "@type": "ja:RDFDataset",
     "ja:defaultGraph": {
-      "@type":"tdb2:GraphTDB2",
+      "@type": "tdb2:GraphTDB2",
       "tdb2:dataset": {
-        "@type":"tdb2:DatasetTDB2",
-        "tdb2:location":"databases/quinn"
+        "@type": "tdb2:DatasetTDB2",
+        "tdb2:location": "databases/__USER__"
       }
     },
     "ja:namedGraph": [
       {
-        "ja:graphName":"http://experts.ucdavis.edu/concept/FoR/",
-        "ja:graph":    {
-          "@type":"hdt:HDTGraph",
-          "rdfs:label":"Fields of Research",
-          "hdt:fileName":"/var/lib/fuseki/hdt/FoR.hdt"
+        "ja:graphName": "http://experts.ucdavis.edu/concept/FoR/",
+        "ja:graph": {
+          "@type": "hdt:HDTGraph",
+          "rdfs:label": "Fields of Research",
+          "hdt:fileName": "/var/lib/fuseki/hdt/FoR.hdt"
         }
       },
       {
-        "ja:graphName":"http://experts.ucdavis.edu/ucop/",
+        "ja:graphName": "http://experts.ucdavis.edu/ucop/",
         "ja:graph": {
-          "@type":"hdt:HDTGraph",
-          "rdfs:label":"UC Path Positions",
-          "hdt:fileName":"/var/lib/fuseki/hdt/positions.hdt"
+          "@type": "hdt:HDTGraph",
+          "rdfs:label": "UC Path Positions",
+          "hdt:fileName": "/var/lib/fuseki/hdt/positions.hdt"
         }
       },
       {
-        "ja:graphName":"http://iam.ucdavis.edu/",
+        "ja:graphName": "http://iam.ucdavis.edu/",
         "ja:graph": {
-          "@type":"hdt:HDTGraph",
-          "rdfs:label":"UC Faculty and Staff IAM",
-          "hdt:fileName":"/home/ucd.process/databases/hdt/iam.hdt"
+          "@type": "hdt:HDTGraph",
+          "rdfs:label": "UC Faculty and Staff IAM",
+          "hdt:fileName": "/home/ucd.process/databases/hdt/iam.hdt"
         }
       }
     ]
   },
   "fuseki:endpoint": [
     {
-      "fuseki:operation":"fuseki:query",
-      "fuseki:name":"sparql"
+      "fuseki:operation": "fuseki:query",
+      "fuseki:name": "sparql"
     },
     {
-      "fuseki:operation":"fuseki:query",
-      "fuseki:name":"query"
+      "fuseki:operation": "fuseki:query",
+      "fuseki:name": "query"
     },
     {
-      "fuseki:operation":"fuseki:update",
-      "fuseki:name":["update"]
+      "fuseki:operation": "fuseki:update",
+      "fuseki:name": "update"
     },
     {
-      "fuseki:operation":"fuseki:upload",
-      "fuseki:name":["upload"]
+      "fuseki:operation": "fuseki:upload",
+      "fuseki:name": "upload"
     },
     {
-      "fuseki:operation":"fuseki:gsp-rw",
-      "fuseki:name":["data"]
+      "fuseki:operation": "fuseki:gsp-rw",
+      "fuseki:name": "data"
     }
   ]
 }
