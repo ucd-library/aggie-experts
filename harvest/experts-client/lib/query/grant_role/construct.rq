@@ -37,30 +37,28 @@ construct {
          .
 
   ?labeled_only_role a vivo:CoPrincipalInvestigatorRole;
-                           vivo:relates ?labeled_only_person,?grant;
+                     vivo:relates ?labeled_only_person,?grant;
                            .
 
   ?labeled_only_person a vivo:Person;
-                      schema:name ?labeled_only_name;
-                      .
+                       schema:name ?labeled_only_name;
+                       ucdlib:name_match ?labeled_only_name_match,?labeled_only_name_match_f;
+                       .
 
   ?funder a vivo:FundingOrganization;
           schema:name ?funder_label;
           .
 
-  ?interval
-  vivo:start ?sd;
-  vivo:end ?ed;
-  .
+  ?interval vivo:start ?sd;
+            vivo:end ?ed;
+            .
 
-  ?sd
-  vivo:dateTimePrecision ?start_date_precision;
-  vivo:dateTime ?start_date;
-  .
-  ?ed
-  vivo:dateTimePrecision ?end_date_precision;
-  vivo:dateTime ?end_date;
-  .
+  ?sd vivo:dateTimePrecision ?start_date_precision;
+      vivo:dateTime ?start_date;
+      .
+  ?ed vivo:dateTimePrecision ?end_date_precision;
+      vivo:dateTime ?end_date;
+      .
 }
 WHERE {
   graph cdl: {
@@ -265,6 +263,8 @@ WHERE {
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
   bind(concat(?labeled_only_name_last,coalesce(concat(', ',?labeled_only_name_first),"")) as ?labeled_only_name)
-  bind(uri(concat(str(?grant),"#",md5(?labeled_only_name))) as ?labeled_only_person)
-  bind(uri(concat(str(?grant),"#role_",md5(?labeled_only_name))) as ?labeled_only_role)
+  bind(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_first),""))) as ?labeled_only_name_match)
+  bind(lcase(concat(?labeled_only_name_last,coalesce(concat('_',substring(?labeled_only_name_first,1,1)),""))) as ?labeled_only_name_match_short)
+  bind(uri(concat(str(?grant),"#",md5(?labeled_only_name_match))) as ?labeled_only_person)
+  bind(uri(concat(str(?grant),"#roleof_",md5(?labeled_only_name))) as ?labeled_only_role)
 }

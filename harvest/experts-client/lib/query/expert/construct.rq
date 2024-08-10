@@ -23,8 +23,9 @@ CONSTRUCT {
   ?expert a vivo:Person,ucdlib:Expert;
                rdfs:label ?name;
                obo:ARG_2000028 ?vcard;
-               schema:identifier ?expert, ?oapolicy_ark;
+               schema:identifier ?expert,?oapolicy_ark;
                ucdlib:is-visible ?visible;
+               ucdlib:name_match ?name_match,?name_match_f;
                ?field_predicate ?field_value;
                .
 
@@ -61,6 +62,7 @@ WHERE {
           ucdlib:expert ?expert;
           ucdlib:is-visible true;
           .
+    # This is soo hacky,
     values ?iam_p {obo:ARG_2000028
       rdf:type rdfs:label schema:identifier schema:name
       ucdlib:is-visible ucdlib:isPreferred
@@ -70,7 +72,6 @@ WHERE {
       vivo:rank}
 
     ?iam_s ?iam_p ?iam_o.
-    # This is soo hacky,
     OPTIONAL {
       ?iam_o vcard:title ?iam_o_title.
     }
@@ -162,6 +163,8 @@ WHERE {
     }
   }
   bind(concat(?fn," ",?ln) as ?name)
+  bind(lcase(concat(?ln,"_",?fn)) as ?name_match)
+  bind(lcase(concat(?ln,"_",substr(?fn,1,1)) as ?name_match_f)
   bind(uri(concat(str(?expert),"#vcard-oap-1")) as ?vcard)
   bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
   bind(xsd:boolean(?visible_str) as ?visible)
