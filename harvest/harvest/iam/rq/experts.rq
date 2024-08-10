@@ -13,13 +13,12 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 CONSTRUCT {
   ?user a ?emp_type,ucdlib:Expert;
         rdfs:label ?label;
-        schema:identifier ?aggie_ark;
+        schema:identifier ?user;
         ucdlib:employeeId ?employee_id;
         ucdlib:userId ?kerb;
         ucdlib:ucdPersonUUId ?mothra_id;
         ucdlib:email ?default_email;
         ucdlib:is-visible ?is_visible;
-        ucdlib:iamId ?iam_id;
         .
 
   ?user a ?emp_type;
@@ -93,13 +92,9 @@ WHERE {
     bind(coalesce(?better_mlabel,concat(?fname," ",?lname)) as ?label)
     bind(coalesce(?odr_is_visible,true) as ?is_visible)
 
-    bind(concat(?kerb,"@ucdavis.edu") as ?username)
-    bind(md5(?username) as ?user_id)
-    bind(uri(concat(str(expert:),?user_id)) as ?user)
-    bind(uri(concat('ark:/87287/d7c08j/',md5(concat('mothra/',?mothra_id)))) as ?aggie_ark)
+    bind(uri(replace(str(?s),"http://iam.ucdavis.edu/","ark:/87287/d7c08j/iam/")) as ?user)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
     bind(uri(concat(str(?user),"#name")) as ?vcard_name)
-    bind(replace(str(?s),"http://iam.ucdavis.edu/","") as ?iam_id)
   }
   OPTIONAL {
     {

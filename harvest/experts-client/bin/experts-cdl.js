@@ -214,11 +214,6 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
           KEYCLOAK_EMAIL__: DF.literal(email)
         }
       );
-      // Remove iam insert now that iam is included as hdt.
-      const iam = ql.getQuery('insert_iam', 'InsertQuery');
-      // await ec.insert({ ...iam, bindings, db });
-      // logger.info({measure:['splay'],user},`insert`);
-
       for (const n of ['expert', 'authorship', 'grant_role']) {
         logger.info({mark:n,user},`splay ${n}`);
         await (async (n) => {
