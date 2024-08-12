@@ -22,28 +22,12 @@ config.client = {
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')
   },
   logger : {
-    // default log level for all loggers.  If not provided, they
-    // will default to 'info'.
-    // logLevel : 'warn', // possibly set warn for production?
-
-    // report errors (both uncaught exceptions on the window and logger.error calls) to a provided url endpoint.
+    logLevel : env.CLIENT_LOG_LEVEL || 'info',
+    logLevels : env.CLIENT_LOG_LEVELS ? JSON.parse(env.CLIENT_LOG_LEVELS) : {},
     reportErrors : {
-      // must be set to true to report
-      // enabled : false,
-
-      // urls to call
-      // url : '',
-
-      // HTTP Method to use.  Defaults to POST
-      // method : 'POST',
-
-      // key to send as `x-api-key` header
-      // key : '',
-
-      // custom headers to send in request
-      // headers : {},
-
-      // custom attributes to send in request body
+      enabled : env.CLIENT_ERROR_REPORTING_ENABLED === 'true',
+      url : env.CLIENT_ERROR_REPORTING_URL || '',
+      key : env.CLIENT_ERROR_REPORTING_KEY || '',
       customAttributes : {
         app : 'aggie-experts'
       }
