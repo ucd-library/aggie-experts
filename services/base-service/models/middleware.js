@@ -756,51 +756,6 @@ openapi.response(
   }
 );
 
-openapi.requestBodies(
-  'Relationship_patch',
-  {
-    "content": {
-      "application/json": {
-        "schema": {
-          "type": "object",
-          "properties": {
-            "@id": {
-              "type": "string"
-            },
-            "visible": {
-              "type": 'boolean'
-            },
-            "grant": {
-              "type": 'boolean'
-            }
-          }
-        }
-      }
-    }
-  }
-);
-
-openapi.requestBodies(
-  'Expert_patch',
-  {
-    "content": {
-      "application/json": {
-        "schema": {
-          "type": "object",
-          "properties": {
-            "@id": {
-              "type": "string"
-            },
-            "visible": {
-              "type": 'boolean'
-            }
-          }
-        }
-      }
-    }
-  }
-);
-
 // export this middleware functions
 module.exports = {
   is_user,
