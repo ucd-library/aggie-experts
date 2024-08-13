@@ -5,14 +5,16 @@ academic_titles:=academic_titles.txt
 ae_titles:=titles-ae.csv
 
 define cto_context
-{"@context": {"@vocab": "http://schema.org/","@base": "http://experts.ucdavis.edu/cto/"}}
+{"@context": {"@vocab": "http://schema.org/","@base":"ark:/87287/d7c08j/cto/"}}
 endef
 
 define pos_context
 {"@context": {\
 "@vocab": "http://schema.org/",\
-"@base": "http://experts.ucdavis.edu/position/",\
+"@base":"ark:/87287/d7c08j/position/",\
+"skos":"http://www.w3.org/2004/02/skos/core#",\
 "c": "http://experts.ucdavis.edu/cto/",\
+"prefLabel": {"@id":"skos:prefLabel"},\
 "cto": { "@type":"@id","@id":"http://schema.library.ucdavis.edu/schema#cto"}\
 }}
 endef
@@ -26,7 +28,7 @@ cto_codes.jsonld: ${academic_titles}
 	jq --slurp '${cto_context} + {"@graph":.}' > $@
 
 pos_codes.jsonld: ${ae_titles}
-	sed -E 's/^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*).*/{"name":"\1","@id":"\2","cto":"c:\4","preferred_name":"\6"}/' $< | \
+	sed -E 's/^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*).*/{"name":"\1","@id":"\2","cto":"c:\4","prefLabel":"\6"}/' $< | \
 	jq -s 'def lpad(n; pad): if (n - length > 0) then (n - length) as $$len | pad * $$len + . else . end; def format_cto(cto): "c:" + (cto | capture("(?<num>[0-9]+)") | .num | tonumber | tostring | lpad(3; "0")); map(.["@id"] |= (tostring | lpad(6; "0"))) | map(.cto |= format_cto(.))' |\
   jq --slurp '${pos_context} + {"@graph":.}' > $@
 

@@ -323,15 +323,16 @@ function fetch() {
   read -d '' def_context <<'CONTEXT';
 {"@context": {
   "@version":1.1,
-  "@base":"http://iam.ucdavis.edu/",
-  "@vocab":"http://iam.ucdavis.edu/schema#",
+  "@base":"ark:/87287/d7c08j/",
+  "@vocab":"ark:/87287/d7c08j/schema#",
   "iamId":"@id",
   "orgOId":"@id",
   "bouOrgOId":{
     "@type":"@id"
   },
   "titleCode":{
-    "@type":"@id"
+    "@type":"@id",
+    "@context": { "@base":"ark:/87287/d7c08j/position/" }
   }
 }}
 CONTEXT
@@ -339,8 +340,8 @@ CONTEXT
   read -d '' titles_context <<'CONTEXT';
 {"@context": {
   "@version":1.1,
-  "@base":"http://experts.ucdavis.edu/position/",
-  "@vocab":"http://iam.ucdavis.edu/schema#",
+  "@base":"ark:/87287/d7c08j/position/",
+  "@vocab":"ark:/87287/d7c08j/schema#",
   "iamId":"@id",
   "orgOId":"@id",
   "bouOrgOId":{
