@@ -9,15 +9,17 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX schema: <http://schema.org/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX ucop: <http://experts.ucdavis.edu/ucop/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
   ?EXPERT__ a vivo:Person,ucdlib:Expert,?type;
             rdfs:label ?name;
-            vcard:hasName ?name;
+            vcard:hasName ?vcard_name;
             obo:ARG_2000028 ?vcard,?oap_vcard;
                schema:identifier ?EXPERT__, ?oapolicy_ark;
                ucdlib:is-visible ?visible;
@@ -27,7 +29,7 @@ CONSTRUCT {
 
   ?EXPERT__ ?id_pred ?id_value.
 
-  ?name ?np ?no.
+  ?vcard_name ?np ?no.
 
     ?vcard vcard:hasOrganizationalUnit ?unit;
     vcard:hasTitle ?position;
@@ -69,20 +71,19 @@ CONSTRUCT {
   ?concept vivo:researchAreaOf ?EXPERT__.
 }
 WHERE {
-  bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
   graph <http://iam.ucdavis.edu/> {
     values ?p {rdfs:label schema:identifier schema:name
       ucdlib:is-visible }
 
     ?user a ?type;
-          ucdlib:userId ?USERNAME__;
+          ucdlib:eduroam ?USERNAME__;
           ucdlib:is-visible true;
-          vcard:hasName ?name;
+          vcard:hasName ?vcard_name;
           obo:ARG_2000028 ?vcard;
           ?p ?o;
           .
 
-	  ?name ?np ?no.
+	  ?vcard_name ?np ?no.
 
 	  ?vcard ?vp ?vo.
     OPTIONAL {

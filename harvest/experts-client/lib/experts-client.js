@@ -221,11 +221,13 @@ export class ExpertsClient {
       let construct = opt.construct;
       for (const [key, value] of bindings) {
         if (value.termType === 'Literal') {
+          console.log(`replacing ${key.value} with "${value.value}"`);
           construct = construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
         } else if (value.termType === 'NamedNode') {
           construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
+      console.log(construct);
       const quadStream = await q.queryQuads(
         construct,
         { //initialBindings:bindings,
@@ -243,6 +245,14 @@ export class ExpertsClient {
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
       this.logger.info({measure:[fn],quads:quads.length,user:opt.user},'record');
       performance.clearMarks(fn);
+    }
+
+    for (const [key, value] of opt.bindings) {
+      if (value.termType === 'Literal') {
+        opt.bind = opt.bind.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+      } else if (value.termType === 'NamedNode') {
+        opt.bind = opt.bind.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+      }
     }
 
     const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()], fetch })

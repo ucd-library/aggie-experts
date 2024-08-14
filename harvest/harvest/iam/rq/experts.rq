@@ -16,6 +16,7 @@ CONSTRUCT {
         schema:identifier ?user;
         ucdlib:employeeId ?employee_id;
         ucdlib:userId ?kerb;
+        ucdlib:eduroam ?eduroam_email;
         ucdlib:ucdPersonUUId ?mothra_id;
         ucdlib:email ?default_email_uri;
         ucdlib:is-visible ?is_visible;
@@ -135,6 +136,8 @@ WHERE {
       }
     }
   }
+  # identifiers
+  bind(concat(?kerb,"@ucdavis.edu") as ?eduroam_email)
   # ODR Name
   bind(coalesce(?better_fname,?iam_fname) as ?fname)
   bind(coalesce(?better_lname,?iam_lname) as ?lname)

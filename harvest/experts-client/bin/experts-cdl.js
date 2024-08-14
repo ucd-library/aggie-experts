@@ -131,11 +131,11 @@ async function main(opt) {
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 select * WHERE { graph <http://iam.ucdavis.edu/> {
-    [] ucdlib:userId "${user}" ;
+    ?s ucdlib:userId "${user}" ;
        ucdlib:email ?email;
        ucdlib:ucdPersonUUId ?ucdPersonUUID;
-       ucdlib:iamId ?iamId;
        vcard:hasName [vcard:givenName ?firstName; vcard:familyName ?lastName ].
+       bind(replace(str(?s),"ark:/87287/d7c08j/","") as ?iamId)
   } }`;
     const response = await fetch(
       opt.expertsService,
@@ -156,7 +156,7 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     const profile = {};
     let email;
     try {
-      email = json.results.bindings[0].email.value;
+      email = json.results.bindings[0].email.value.replace('mailto:', '');
       profile.firstName = json.results.bindings[0].firstName.value;
       profile.lastName = json.results.bindings[0].lastName.value;
       profile.attributes = {};
@@ -208,8 +208,7 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     if (opt.splay) {
       logger.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
-        { EXPERTS_SERVICE__: DF.namedNode(`http://localhost:3030/experts/query`),
-          EXPERT__: DF.namedNode(`http://experts.ucdavis.edu/expert/${expertId}`),
+        {
           EXPERTID__: DF.literal(expertId),
           KEYCLOAK_EMAIL__: DF.literal(email)
         }

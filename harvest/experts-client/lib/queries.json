@@ -21,11 +21,6 @@
   },
   "@id":"queries",
   "@graph":[
-    {"@id":"insert_iam",
-     "@type":"InsertQuery",
-     "bind@":"iam/bind.rq",
-     "insert@":"iam/insert.ru"
-    },
     {"@id":"insert_grants",
      "@type":"InsertQuery",
      "bind@":"expert/bind.rq",
