@@ -136,7 +136,6 @@ async function findDeletedLinks() {
   deleteLinks = deleteLinks.map((item) => {
     let newItem = {};
     for (let key in item) {
-      // if (key !== 'visible' && key !== 'category-1' && key !== 'category-2') {
       if (key == 'id-1') {
         newItem['user_proprietary_id'] = item[key];
       }
@@ -399,10 +398,12 @@ const csvStringPersons = await new Promise((resolve, reject) => {
 fs.writeFileSync(deltaFilePath + 'grants_persons.csv', csvStringPersons);
 
 // Write the delta object to a new CSV file.
-
-csvData = deleteLinks.map((item) => Object.values(item));
 // select the columns to fit the links_to_delete schema
-columns = Object.keys(newLinks[0]);
+columns = ['record_proprietary_id','user_proprietary_id','link_type_id'];
+
+// Map the deleteLinks objects to arrays following the desired column order
+csvData = deleteLinks.map((item) => columns.map((key) => item[key]));
+
 const csvStringDeletes = await new Promise((resolve, reject) => {
   stringify(csvData, { header: true, columns: columns}, (err, output) => {
     if (err) {
