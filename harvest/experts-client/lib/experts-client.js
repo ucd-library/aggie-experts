@@ -221,13 +221,12 @@ export class ExpertsClient {
       let construct = opt.construct;
       for (const [key, value] of bindings) {
         if (value.termType === 'Literal') {
-          console.log(`replacing ${key.value} with "${value.value}"`);
+          //console.log(`replacing ${key.value} with "${value.value}"`);
           construct = construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
         } else if (value.termType === 'NamedNode') {
           construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
         }
       }
-      console.log(construct);
       const quadStream = await q.queryQuads(
         construct,
         { //initialBindings:bindings,

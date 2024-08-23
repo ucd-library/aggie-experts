@@ -58,9 +58,13 @@ CONSTRUCT {
          vcard:hasOrganizationalUnit ?odr_vcard_unit;
          vcard:hasName ?vcard_name;
          vcard:hasTitle ?odr_vcard_title;
-         vcard:hasURL ?odr_website_uri;
+         vcard:hasURL ?odr_vcard_url;
          ucdlib:isPreferred ?odr_is_preferred;
          .
+
+  ?odr_vcard_url a vcard:URL;
+                 vcard:url ?odr_website;
+                 .
 
   ?odr_vcard_title a vcard:Title;
                vcard:title ?odr_title;
@@ -163,4 +167,5 @@ WHERE {
   bind(uri(concat("ark:/87287/d7c08j/position/odr/",md5(?odr_title))) as ?odr_vcard_title)
   bind(uri(concat("ark:/87287/d7c08j/dept/odr/",?odr_dept_code)) as ?odr_vcard_unit)
   bind(uri(concat(str(?user),"#",?odr_vid)) as ?odr_vcard)
+  bind(if(bound(?odr_website),uri(concat(str(?odr_vcard),"-url")),?undefined_var) as ?odr_vcard_url)
 }

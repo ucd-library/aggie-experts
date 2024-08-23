@@ -21,22 +21,6 @@
   },
   "@id":"queries",
   "@graph":[
-    {"@id":"insert_grants",
-     "@type":"InsertQuery",
-     "bind@":"expert/bind.rq",
-     "insert@":"grants/insert.ru"
-    },
-    {"@id":"insert_enterprise_grants",
-     "@type":"InsertQuery",
-     "bind@":"expert/bind.rq",
-     "insert@":"enterprise_grants/insert.ru"
-    },
-    {
-      "@id":"work",
-      "@type":"SplayQuery",
-      "construct@" : "work/construct.rq",
-      "bind@" : "work/bind.rq"
-    },
     {
       "@id":"authorship",
       "@type":"SplayQuery",

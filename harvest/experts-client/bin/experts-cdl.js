@@ -17,8 +17,6 @@ import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 
-import md5 from 'md5';
-
 const DF = new DataFactory();
 const BF = new BindingsFactory();
 
@@ -36,9 +34,8 @@ const fuseki = new FusekiClient({
   type: 'tdb2',
   replace: true,
   'delete': true,
+  assembler: ''
 });
-
-fuseki.expert_assembler = '';
 
 const cdl = {
   url: '',
@@ -118,15 +115,9 @@ async function main(opt) {
   // Step 2: Get User Profiles and relationships from CDL
 
   // Read custom config for expert dataset with hdt assembler setup
-  fuseki.expert_assembler = fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld', 'utf8');
+  let assembler_template = fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld', 'utf8');
 
   for (const user of users) {
-    let dbname
-    let md=md5(`${user}@ucdavis.edu`);
-    fuseki.expert_assembler = fuseki.expert_assembler.replace(/__USER__/g, user);
-
-    // console.log('assembler : ',fuseki.expert_assembler);
-
     const query=`
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
@@ -182,12 +173,10 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
       continue;
     }
     logger.info({mark:user},'user ' + user);
-    dbname = user;
-    let exists = await fuseki.existsDb(dbname);
-    db = await fuseki.createDatasetFromJsonLdFile(dbname,fuseki.expert_assembler);
-    // logger.info({measure:[user],user},`createGraphFromJsonLdFile(${dbname})`)
-
-    // const profile = await ec.getCDLprofile(user, opt);
+    db = await fuseki.createDb({
+      db:user,
+      assembler: assembler_template.replace(/__USER__/g, user)
+    });
 
     if (opt.fetch) {
       try {
@@ -268,7 +257,7 @@ program.name('cdl-profile')
   .option('--environment <env>', 'specify environment', 'production')
   .option('--no-splay', 'splay data', true)
   .option('--no-fetch', 'fetch the data', true)
-  .option('--skip-existing-user', 'skip if expert/md5(${user}@ucdavis.edu`) exists', false)
+  .option('--skip-existing-user', 'skip if expert exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
 
 

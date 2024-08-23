@@ -10,6 +10,7 @@ export class FusekiClient {
     this.delete=opt.delete;
     this.db=opt.db;
     this.logger=opt.logger || logger;
+    this.assembler=opt.assembler || '';
     this.reauth();
   }
 
@@ -75,7 +76,7 @@ export class FusekiClient {
     opt.type ||= this.type;
     opt.replace ||= this.replace;
     opt.delete ||= this.delete;
-    opt.expert_assembler ||= this.expert_assembler;
+    opt.assembler ||= this.assembler;
 
     let exists = false;
 
@@ -112,9 +113,10 @@ export class FusekiClient {
         `${this.url}/\$/datasets`,
         {
           method: 'POST',
-          body: opt.expert_assembler,
+          body: opt.assembler,
           headers: {
-            'Authorization': `Basic ${this.authBasic}`
+            'Authorization': `Basic ${this.authBasic}`,
+            'Content-Type': 'application/ld+json'
           }
         });
       if (!res.ok) {

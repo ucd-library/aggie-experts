@@ -32,12 +32,17 @@ CONSTRUCT {
   ?vcard_name ?np ?no.
 
     ?vcard vcard:hasOrganizationalUnit ?unit;
-    vcard:hasTitle ?position;
+           vcard:hasTitle ?position;
+           vcard:hasURL ?hasurl;
     ?vp ?vo;
     .
 
   ?unit a ?unit_type;
     vcard:title ?unit_title;
+    .
+
+  ?hasurl a ?url_type;
+    vcard:url ?url;
     .
 
   ?position a ?position_type, ?ucop_type;
@@ -96,6 +101,12 @@ WHERE {
 		?vcard vcard:hasTitle ?position.
     	?position a ?position_type;
         		   vcard:title ?position_title;
+           .
+    }
+    OPTIONAL {
+		?vcard vcard:hasURL ?hasurl.
+    	?hasurl a ?url_type;
+        		   vcard:url ?url;
            .
     }
   }
