@@ -4,6 +4,9 @@ import {render} from "./app-home.tpl.js";
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
 
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import '../../utils/app-icons.js';
+
 import "../../components/search-box";
 
 export default class AppHome extends Mixin(LitElement)

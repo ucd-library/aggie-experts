@@ -4,6 +4,10 @@ import {render} from "./app-expert-works-list-edit.tpl.js";
 // sets globals Mixin and EventInterface
 import "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
+
+import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 
 import Citation from '../../../lib/utils/citation.js';
@@ -33,6 +37,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       errorMode : { type : Boolean },
       downloads : { type : Array },
       resultsPerPage : { type : Number },
+      manageWorksLabel : { type : String },
+      worksWithErrors : { type : Array },
     }
   }
 
@@ -66,6 +72,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.downloads = [];
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
     this.isVisible = true;
+    this.manageWorksLabel = 'Manage My Works';
+    this.worksWithErrors = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -98,10 +106,20 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return;
     }
 
+    // parse /size/page/ from url, or append if trying to access /works-edit
+    let page = e.location.pathname.split('/works-edit/')?.[1];
+    if( page ) {
+      let parts = page.split('/');
+      this.currentPage = Number(parts?.[1] || 1);
+      this.resultsPerPage = Number(parts?.[0] || 25);
+    } else {
+      this.AppStateModel.setLocation(this.AppStateModel.location.fullpath+'/'+this.resultsPerPage+'/'+this.currentPage+'/');
+    }
+
     window.scrollTo(0, 0);
 
     this.modifiedWorks = false;
-    let expertId = e.location.pathname.replace('/works-edit', '');
+    let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
     let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
@@ -109,7 +127,17 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
-      let expert = await this.ExpertModel.get(expertId, canEdit);
+      let expert = await this.ExpertModel.get(
+        expertId,
+        `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+        utils.getExpertApiOptions({
+          includeGrants : false,
+          worksPage : this.currentPage,
+          worksSize : this.resultsPerPage,
+          includeHidden : true,
+          includeWorksMisformatted : true
+        })
+      );
       this._onExpertUpdate(expert);
 
       if( !this.isAdmin && !this.isVisible ) throw new Error();
@@ -129,15 +157,46 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onExpertUpdate(e) {
-    if( e.state !== 'loaded' ) return;
+    if( e?.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'works-edit' ) return;
+    if( e.id.includes('/works-download') ) return;
 
-    this.expertId = e.id;
+    this.expertId = e.id.split('/works-edit')[0];
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
+
+    this.hiddenCitations = this.expert?.totals?.hiddenWorks || 0;
+    this.totalCitations = (this.expert?.totals?.works || 0);
+
+    if( this.hiddenCitations === 0 ) {
+      this.manageWorksLabel = `Manage My Works (${this.totalCitations})`;
+    } else {
+      this.manageWorksLabel = `Manage My Works (${this.totalCitations} Public, ${this.hiddenCitations} Hidden)`;
+    }
+
+    this.worksWithErrors = this.expert.invalidWorks || [];
+    this.worksWithErrors.sort((a, b) => {
+      // sort issued descending
+      let issuedA = a.issued?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(a.issued?.split('-')?.[0]);
+      let issuedB = b.issued?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(b.issued?.split('-')?.[0]);
+
+      if (issuedA !== issuedB) {
+        return issuedB - issuedA;
+      }
+
+      return a.title.localeCompare(b.title);
+    })
+
+    // only expert graph record, no works for this pagination of results
+    if( this.expert['@graph'].length === 1 ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
 
     await this._loadCitations();
   }
@@ -147,12 +206,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description load citations for expert async
    *
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
+   * @param {Object} apiResponse optional response from ExpertModel.get
    */
-  async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
-
-    this.totalCitations = citations.length;
-    this.hiddenCitations = citations.filter(c => !c.relatedBy?.['is-visible']).length;
+  async _loadCitations(all=false, apiResponse={}) {
+    let citations = all ? JSON.parse(JSON.stringify((apiResponse['@graph'] || []).filter(g => g.issued))) : JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     citations = citations.map(c => {
       let citation = { ...c };
@@ -160,46 +217,24 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return citation;
     });
 
-    try {
-      // sort by issued date desc, then by title asc
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    } catch (error) {
-      // validate issue date
-      let validation = Citation.validateIssueDate(citations);
-      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+    if( !all ) this.citations = citations;
 
-      // validate title
-      validation = Citation.validateTitle(citations);
-      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
-
-    } finally {
-      // filter out invalid citations
-      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-
-      this.totalCitations = citations.length;
-      this.citations = citations;
-    }
-
-    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
-
-    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
+    let citationResults = await Citation.generateCitations(citations);
+    citationResults = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
-    this.citationsDisplayed.forEach((cite, i) => {
+    citationResults.forEach((cite, i) => {
       if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
+      if( i > 0 && ( newIssueDate === citationResults[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
       }
     });
 
     // update doi links to be anchor tags
-    this.citationsDisplayed.forEach(cite => {
+    citationResults.forEach(cite => {
       if( cite.DOI && cite.apa ) {
         // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
         cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
@@ -208,8 +243,11 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
     });
 
-    this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+    this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
+    if( all ) return citationResults;
+
+    this.citationsDisplayed = citationResults;
     this.requestUpdate();
   }
 
@@ -223,28 +261,45 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.allSelected = true;
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
-    if( maxIndex > this.citations.length ) maxIndex = this.citations.length;
+    if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
 
     this.currentPage = e.detail.page;
-    await this._loadCitations();
+    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit/'+this.resultsPerPage+'/'+this.currentPage+'/');
 
-    // loop over checkboxes to see if any are checked
-    let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-    checkboxes.forEach(checkbox => {
-      if( this.downloads.includes(checkbox.dataset.id) ) {
-        checkbox.checked = true;
-      } else {
-        checkbox.checked = false;
-        this.allSelected = false;
+
+    // await this._loadCitations();
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksPage : this.currentPage,
+        worksSize : this.resultsPerPage,
+        includeHidden : true,
+        includeWorksMisformatted : true
+      })
+    );
+    await this._onExpertUpdate(expert);
+
+    requestAnimationFrame(() => {
+      // loop over checkboxes to see if any are checked
+      let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
+      checkboxes.forEach(checkbox => {
+        if( this.downloads.includes(checkbox.dataset.id) ) {
+          checkbox.checked = true;
+        } else {
+          checkbox.checked = false;
+          this.allSelected = false;
+        }
+      });
+
+      let selectAllCheckbox = this.shadowRoot.querySelector('#select-all');
+      if( selectAllCheckbox && !this.allSelected ) {
+        selectAllCheckbox.checked = false;
+      } else if( selectAllCheckbox ) {
+        selectAllCheckbox.checked = true;
       }
     });
-
-    let selectAllCheckbox = this.shadowRoot.querySelector('#select-all');
-    if( selectAllCheckbox && !this.allSelected ) {
-      selectAllCheckbox.checked = false;
-    } else if( selectAllCheckbox ) {
-      selectAllCheckbox.checked = true;
-    }
 
     window.scrollTo(0, 0);
   }
@@ -297,12 +352,19 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   async _downloadClicked(e) {
     e.preventDefault();
-    await this._loadCitations(true);
 
-    let downloads = this.citationsDisplayed.filter(c => this.downloads.includes(c['@id']));
+    let res = await this.ExpertModel.get(
+      this.expertId,
+      '/works-download', // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksSize : 10000,
+        includeHidden : false
+      })
+    );
 
-    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    this.citationsDisplayed = this.citationsDisplayed.slice(startIndex, startIndex + this.resultsPerPage)
+    let allCitations = await this._loadCitations(true, res.payload);
+    let downloads = allCitations.filter(c => this.downloads.includes(c['@id']));
 
     let text = downloads.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
@@ -392,7 +454,18 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.modifiedWorks = true;
 
-    let expert = await this.ExpertModel.get(this.expertId, true);
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksPage : this.currentPage,
+        worksSize : this.resultsPerPage,
+        includeHidden : true,
+        includeWorksMisformatted : true
+      }),
+      true // clear cache
+    );
     this._onExpertUpdate(expert);
   }
 
@@ -514,9 +587,11 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.expert['@graph'] = this.expert['@graph'].filter(c => c.relatedBy?.['@id'] !== this.citationId);
       this._onPaginationChange({ detail: { page: this.currentPage } });
 
-      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
-      this.totalCitations = this.citations.length;
-      this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+      // TODO the counts will be broken, however calling the api again to get the current data will be cached, so would that work even if we try to update the totals here?
+
+      // this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+      // this.totalCitations = this.citations.length;
+      this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
       this.requestUpdate();
     }
