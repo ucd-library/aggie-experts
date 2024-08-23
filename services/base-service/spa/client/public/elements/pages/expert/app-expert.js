@@ -37,6 +37,8 @@ export default class AppExpert extends Mixin(LitElement)
       grantsCompletedDisplayed : { type : Array },
       totalGrants : { type : Number },
       totalCitations : { type : Number },
+      hiddenGrants : { type : Number },
+      hiddenCitations : { type : Number },
       canEdit : { type : Boolean },
       isAdmin : { type : Boolean },
       modalTitle : { type : String },
@@ -93,7 +95,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, this.canEdit);
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions());
       this._onExpertUpdate(expert, modified);
 
       if( !this.isAdmin && !this.isVisible ) throw new Error();
@@ -117,6 +119,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'expert' ) return;
     if( e.id === this.expertId && !modified ) return;
+    if( e.id.includes('/works-download') || e.id.includes('/grants-download') ) return;
 
     this.expertId = e.id;
     this.expert = JSON.parse(JSON.stringify(e.payload));
@@ -189,8 +192,12 @@ export default class AppExpert extends Mixin(LitElement)
 
     await this._loadCitations();
 
+    this.totalCitations = this.expert?.totals?.works || 0;
+    this.hiddenCitations = this.expert?.totals?.hiddenWorks || 0;
+
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    this.totalGrants = grants.length;
+    this.totalGrants = this.expert?.totals?.grants || 0;
+    this.hiddenGrants = this.expert?.totals?.hiddenGrants || 0;
 
     this.grants = utils.parseGrants(this.expertId, grants);
 
@@ -224,6 +231,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.grantsCompletedDisplayed = [];
     this.totalGrants = 0;
     this.totalCitations = 0;
+    this.hiddenGrants = 0;
+    this.hiddenCitations = 0;
     this.canEdit = (acExpertId === this.expertId || (editingExpertId === this.expertId && this.expertId.length > 0));
     this.modalTitle = '';
     this.modalContent = '';
@@ -233,7 +242,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideOK = false;
     this.hideOaPolicyLink = false;
     this.errorMode = false;
-    this.resultsPerPage = 25;
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
@@ -270,11 +278,11 @@ export default class AppExpert extends Mixin(LitElement)
    * @method _loadCitations
    * @description load citations for expert async
    *
-   * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
+   * @param {Boolean} all load all citations, not just first 10, used for downloading all citations
+   * @param {Object} apiResponse optional response from ExpertModel.get
    */
-  async _loadCitations(all=false) {
-    let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
-    this.totalCitations = citations.length;
+  async _loadCitations(all=false, apiResponse={}) {
+    let citations = all ? JSON.parse(JSON.stringify((apiResponse['@graph'] || []).filter(g => g.issued))) : JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     citations = citations.map(c => {
       let citation = { ...c };
@@ -282,50 +290,24 @@ export default class AppExpert extends Mixin(LitElement)
       return citation;
     });
 
-    try {
-      // sort by issued date desc, then by title asc
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    } catch (error) {
-      // validate issue date
-      let validation = Citation.validateIssueDate(citations);
-      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+    if( !all ) this.citations = citations;
 
-      // validate title
-      validation = Citation.validateTitle(citations);
-      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
-
-    } finally {
-      // filter out invalid citations
-      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-
-      // filter out non is-visible citations
-      let citationValidation = Citation.validateIsVisible(citations);
-      if( citationValidation.citations?.length ) console.warn(citationValidation.error, citationValidation.citations);
-      citations = citations.filter(c => c.relatedBy?.['is-visible']);
-
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-
-      this.totalCitations = citations.length;
-      this.citations = citations;
-    }
-
-    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
-
-    this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
+    let citationResults = all ? await Citation.generateCitations(citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
+    citationResults = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
-    this.citationsDisplayed.forEach((cite, i) => {
+    citationResults.forEach((cite, i) => {
       if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
       let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === this.citationsDisplayed[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) ) {
+      if( i > 0 && ( newIssueDate === citationResults[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) ) {
         delete cite.issued;
         lastPrintedYear = newIssueDate;
       }
     });
 
     // update doi links to be anchor tags
-    this.citationsDisplayed.forEach(cite => {
+    citationResults.forEach(cite => {
       if( cite.DOI && cite.apa ) {
         // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
         cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
@@ -334,6 +316,9 @@ export default class AppExpert extends Mixin(LitElement)
       }
     });
 
+    if( all ) return citationResults;
+
+    this.citationsDisplayed = citationResults;
     this.requestUpdate();
   }
 
@@ -345,9 +330,20 @@ export default class AppExpert extends Mixin(LitElement)
    */
   async _downloadWorks(e) {
     e.preventDefault();
-    await this._loadCitations(true);
 
-    let text = this.citationsDisplayed.map(c => c.ris).join('\n');
+    let res = await this.ExpertModel.get(
+      this.expertId,
+      '/works-download', // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksSize : 10000,
+        includeHidden : false
+      })
+    );
+
+    let allCitations = await this._loadCitations(true, res.payload);
+
+    let text = allCitations.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
     let url = URL.createObjectURL(blob);
 
@@ -371,8 +367,21 @@ export default class AppExpert extends Mixin(LitElement)
   async _downloadGrants(e) {
     e.preventDefault();
 
+    let res = await this.ExpertModel.get(
+      this.expertId,
+      '/grants-download', // subpage
+      utils.getExpertApiOptions({
+        includeWorks : false,
+        grantsSize : 10000,
+        includeHidden : false
+      })
+    );
+
+    let allGrants = JSON.parse(JSON.stringify((res?.payload?.['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
+    allGrants = utils.parseGrants(this.expertId, allGrants);
+
     let body = [];
-    this.grants.forEach(grant => {
+    allGrants.forEach(grant => {
       body.push([
         '"' + (grant.name || '') + '"',                               // Title
         '"' + (grant.awardedBy || '') + '"',                          // Funding Agency
@@ -414,7 +423,7 @@ export default class AppExpert extends Mixin(LitElement)
   _seeAllGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/'+this.expertId+'/grants');
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants/25/1/');
   }
 
   /**
@@ -423,7 +432,7 @@ export default class AppExpert extends Mixin(LitElement)
    */
   _seeAllWorks(e) {
     e.preventDefault();
-    this.AppStateModel.setLocation('/'+this.expertId+'/works');
+    this.AppStateModel.setLocation('/'+this.expertId+'/works/25/1/');
   }
 
   /**
@@ -628,7 +637,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editGrants(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit');
+    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit/25/1/');
   }
 
   /**
@@ -638,7 +647,7 @@ export default class AppExpert extends Mixin(LitElement)
   _editWorks(e) {
     e.preventDefault();
 
-    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit');
+    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit/25/1/');
   }
 
   /**

@@ -41,7 +41,7 @@ services:
     ports:
       - ${FUSEKI_PORT}:3030
     environment:
-      - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
+      - JVM_ARGS=${JVM_ARGS:- -Xmx16g -Djena.scripting=true}
       - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
     restart: unless-stopped
     command:
@@ -213,6 +213,7 @@ services:
       - FIN_URL=${FIN_URL:-${D[host]}}
       - HOST_PORT=${HOST_PORT:-${D[port]}}
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
+      - CDL_PROPAGATE_CHANGES=${CDL_PROPAGATE_CHANGES:-${D[cdl_propagate_changes]}}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}

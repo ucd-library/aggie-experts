@@ -14,6 +14,8 @@ import '@ucd-lib/theme-elements/brand/ucd-theme-search-form/ucd-theme-search-for
 import '@ucd-lib/theme-elements/brand/ucd-theme-quick-links/ucd-theme-quick-links.js';
 import '@ucd-lib/theme-elements/ucdlib/ucdlib-pages/ucdlib-pages.js';
 
+import './pages/404/app-404.js';
+
 import utils from '../lib/utils';
 
 export default class FinApp extends Mixin(LitElement)

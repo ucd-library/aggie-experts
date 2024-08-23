@@ -6,6 +6,18 @@
     "metadata": {}
   },
   {
+    "kind": 2,
+    "language": "sparql",
+    "value": "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>\n\nSELECT DISTINCT ?class ?property\nWHERE {\n  graph <http://iam.ucdavis.edu/> { \n  {\n    ?class a ucdlib:Expert;\n    ?property ?p\n    .\n  }\n  # FILTER(ucdlib:userId = \"quinn\")\n  }\n}\nLIMIT 15",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "sparql",
+    "value": "PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>\nPREFIX expert: <http://experts.ucdavis.edu/expert/>\nPREFIX oap: <http://oapolicy.universityofcalifornia.edu/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nPREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>\nPREFIX vcard: <http://www.w3.org/2006/vcard/ns#>\nselect distinct (\"quinn\" as ?USERNAME__) ?EXPERT__ ?filename where {\n  graph oap: {\n    [] :username ?username;\n       :is-public \"true\";\n       .\n  }\n  graph <http://iam.ucdavis.edu/> {\n    ?expert a ucdlib:Expert;\n            ucdlib:userId ?username;\n            ucdlib:is-visible true;\n            .\n    bind(\"JHGJHG\" as ?EXPERTID__)\n    bind(concat(\"expert/\",?EXPERTID__,\".jsonld.json\") as ?filename)\n    bind(uri(concat(\"http://experts.ucdavis.edu/expert/\",?EXPERTID__)) as ?EXPERT__)\n  }\n}\n\nLIMIT 15\n",
+    "metadata": {}
+  },
+  {
     "kind": 1,
     "language": "markdown",
     "value": "",
