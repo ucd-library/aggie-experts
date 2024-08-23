@@ -32,6 +32,11 @@
      ja:cxtValue "${FUSEKI_JS_LIBRARY:-${FUSEKI_HOME}/sparql-js-functions.js}"
    ] ;
 
+   ja:context [
+     ja:cxtName "arq:scriptAllowList" ;
+     ja:cxtValue "toTitleCase","levenshteinDistance","distanceFromTitleCase","toCamelCase"
+   ] ;
+
    # https://jena.apache.org/documentation/tdb/optimizer.html
    ja:context [
      ja:cxtName "arq:logExec" ;

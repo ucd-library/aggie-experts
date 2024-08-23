@@ -10,17 +10,22 @@ const model= new ExpertModel();
 
 const { openapi, schema_error, json_only, user_can_edit, is_user } = require('../middleware.js')
 
-function sanitize(req, res, next) {
-//  logger.info({function:'sanitize'}, JSON.stringify(req.query));
-  if ('no-sanitize' in req.query) {
-      user_can_edit(req, res, next);
-  } else {
-    try {
-      res.thisDoc = model.sanitize(res.thisDoc);
-      next();
-    } catch (e) {
-      res.status(e.status || 500).json({error:e.message});
+function subselect(req, res, next) {
+  try {
+    // parse params
+    let params = Object.assign({}, req.params || {}, req.query || {}, req.body || {});
+    if( params.options ) {
+      params = Object.assign(params, JSON.parse(params.options));
     }
+
+    // only allow no-sanitize if they are an admin or the expert
+    let expertId = `${req.params.expertId}`;
+    params.admin = req.user?.roles?.includes('admin') || expertId === req?.user?.attributes?.expertId;
+
+    res.thisDoc = model.subselect(res.thisDoc, params);
+    next();
+  } catch (e) {
+    res.status(e.status || 500).json({error:e.message});
   }
 }
 
@@ -196,7 +201,32 @@ router.route(
       return res.status(404).json(`${req.path} resource not found`);
     }
   },
-  sanitize, // Remove the graph nodes that are not visible
+  subselect, // filter results
+  (req, res) => {
+    res.status(200).json(res.thisDoc);
+  }
+).post(
+  is_user,
+  expert_valid_path(
+    {
+      description: "Get an expert by id",
+      responses: {
+        "200": openapi.response('Expert'),
+        "404": openapi.response('Expert_not_found')
+      }
+    }
+  ),
+  expert_valid_path_error,
+  async (req, res, next) => {
+    let expertId = `expert/${req.params.expertId}`;
+    try {
+      res.thisDoc = await model.get(expertId);
+      next();
+    } catch (e) {
+      return res.status(404).json(`${req.path} resource not found`);
+    }
+  },
+  subselect, // filter results
   (req, res) => {
     res.status(200).json(res.thisDoc);
   }

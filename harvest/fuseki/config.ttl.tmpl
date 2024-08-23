@@ -26,6 +26,22 @@
    ] ;
    ja:loadClass "org.rdfhdt.hdtjena.HDTGraphAssembler" ;
 
+   ja:context [
+     ja:cxtName "arq:js-library" ;
+     ja:cxtValue "${FUSEKI_JS_LIBRARY:-${FUSEKI_HOME}/sparql-js-functions.js}"
+   ] ;
+
+   ja:context [
+     ja:cxtName "arq:scriptAllowList" ;
+     ja:cxtValue "capitalizeName", "toTitleCase","levenshteinDistance","distanceFromTitleCase","toCamelCase"
+   ] ;
+
+   # https://jena.apache.org/documentation/fuseki2/fuseki-logging.html
+   ja:context [
+     ja:cxtName "arq:logExec" ;
+     ja:cxtValue "${FUSEKI_ARQ_LOGEXEC:-info}"
+   ] ;
+
    # End triples.
    .
 

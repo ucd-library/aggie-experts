@@ -120,7 +120,26 @@ router.get(
           admin: req.query.admin ? true : false,
         }
         doc = await expert_model.get(expertId, opts);
-        doc=expert_model.sanitize(doc);
+
+        let subselectOpts = {
+          "is-visible": true,
+          "expert": { "include": true },
+          "grants": {
+            "include": false
+          },
+          "works": {
+            "include": true,
+            "page": 1,
+            "size": 5,
+            "exclude": [],
+            "includeMisformatted": false,
+            "sort": [
+              { "field": "issued", "sort": "desc", "type": "year" },
+              { "field": "title", "sort": "asc", "type": "string" }
+            ]
+          }
+        };
+        doc=expert_model.subselect(doc, subselectOpts);
         res.doc_array.push(doc);
       } catch (e) {
         // log the error - couldn't find the resource. But continue to the next one

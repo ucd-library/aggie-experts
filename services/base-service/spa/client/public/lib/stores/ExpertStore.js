@@ -21,9 +21,9 @@ class ExpertStore extends BaseStore {
     }
   }
 
-  getExpert(id='', noSanitize=false) {
-    if( noSanitize ) this.data.byId[id] = null;
-    return this.data.byId[id];
+  getExpert(id='', subpage='', clearCache=false) {
+    if( clearCache ) this.data.byId[id+subpage] = null;
+    return this.data.byId[id+subpage];
   }
 
   /**

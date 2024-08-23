@@ -8,11 +8,47 @@ function log10(v) {
   return java.lang.Math.log10(v)
 }
 
+function capitalizeName(name) {
+  if (!name) return '';
+
+  // Check if the entire string is either all uppercase or all lowercase
+  const isAllUpperCase = name === name.toUpperCase();
+  const isAllLowerCase = name === name.toLowerCase();
+
+  // Only proceed with capitalization if the string is all upper or lower case
+  if (isAllUpperCase || isAllLowerCase) {
+    // Split the name into words
+    name = name.toLowerCase();
+    const words = name.split(' ');
+
+    // Capitalize each word and handle hyphenated and apostrophized parts
+    const capitalizedWords = words.map(word => {
+      // Split by hyphen or apostrophe, capitalize each part, and join them back
+      const capitalizeParts = (word, delimiter) => {
+        return word.split(delimiter).map(part => {
+          if (part.length === 0) return part;
+          return part[0].toUpperCase() + part.slice(1);
+        }).join(delimiter);
+      };
+
+      // First handle hyphens
+      word = capitalizeParts(word, '-');
+      // Then handle apostrophes
+      word = capitalizeParts(word, '\'');
+
+      return word;
+    });
+
+    // Join the capitalized words back into a single string
+    return capitalizedWords.join(' ');
+  }
+
+  // Return the original string if it's not all upper or lower case
+  return name;
+}
 
 // CamelCase a string
 // Words to be combined are separated by a space in the string.
-
-
 function toTitleCase(str) {
   return str.toLowerCase().split(' ').map(function(word) {
     return word.replace(word[0], word[0].toUpperCase());
