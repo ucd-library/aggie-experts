@@ -31,9 +31,10 @@ CONSTRUCT {
 
   ?vcard_name ?np ?no.
 
-    ?vcard vcard:hasOrganizationalUnit ?unit;
-           vcard:hasTitle ?position;
-           vcard:hasURL ?hasurl;
+  ?vcard schema:name ?vcard_label;
+         vcard:hasOrganizationalUnit ?unit;
+         vcard:hasTitle ?position;
+         vcard:hasURL ?hasurl;
     ?vp ?vo;
     .
 
@@ -49,7 +50,6 @@ CONSTRUCT {
     vcard:title ?position_title;
     skos:prefLabel ?prefLabel;
     .
-
 
   ?oap_vcard a vcard:Individual;
          vivo:rank 20;
@@ -88,7 +88,12 @@ WHERE {
           ?p ?o;
           .
 
-	  ?vcard_name ?np ?no.
+	  ?vcard_name ?np ?no;
+               vcard:familyName ?ln;
+               .
+    OPTIONAL {
+      ?vcard_name vcard:givenName ?fn.
+    }
 
 	  ?vcard ?vp ?vo.
     OPTIONAL {
@@ -118,20 +123,20 @@ WHERE {
     }
   }
   GRAPH <http://oapolicy.universityofcalifornia.edu/> {
-  ?cdl_id :category "user";
+    ?cdl_id :category "user";
         :is-public "true",?visible_str;
         :is-login-allowed "true";
         :username ?USERNAME__;
-        :last-name ?ln;
-        :first-name ?fn;
+        :last-name ?oap_ln;
+        :first-name ?oap_fn;
         :user-identifier-associations ?assoc;
         .
 
     OPTIONAL {
-      ?cdl_id :position ?title.
+      ?cdl_id :position ?oap_title.
     }
     OPTIONAL {
-      ?cdl_id :department ?dept.
+      ?cdl_id :department ?oap_dept.
     }
 
     ?assoc :user-id ?oapolicy_id.
@@ -152,7 +157,7 @@ WHERE {
                          :type "email-address-list";
                          :email-addresses [
                                             :email-address [
-                                                             :address ?email;
+                                                             :address ?oap_email;
                                                              :privacy "public";
                                                            ]
                                           ]
@@ -200,16 +205,29 @@ WHERE {
       bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
     }
   }
-  bind(concat(?fn," ",?ln) as ?name)
-  bind(uri(concat(str(?EXPERT__),"#vcard-oap-1")) as ?oap_vcard)
-  bind(uri(concat(str(?oap_vcard),"-name")) as ?oap_vcard_name)
-  bind(xsd:boolean(?visible_str) as ?visible)
-  bind(uri(concat('mailto:',str(?email))) as ?oap_vcard_email)
-  bind(uri(concat(str(?oap_vcard),"-web-",str(?web_rank))) as ?oap_vcard_web)
-  bind(coalesce(concat(" § ",?title,coalesce(concat(", ",?dept),"")),
-                "") as ?title_dept)
+  bind(concat(coalesce(concat(?fn," "),""),?ln) as ?name)
+
+  bind(coalesce(concat(" § ",
+                       coalesce(?prefLabel,?position_title),
+                       coalesce(concat(", ",?unit_title),"")),"") as ?title_dept)
+
   bind(concat(
               concat(?ln,coalesce(concat(", ",?fn),"")),
               coalesce(?title_dept,"")
+              ) as ?vcard_label)
+
+  bind(concat(?oap_fn," ",?oap_ln) as ?oap_name)
+  bind(uri(concat(str(?EXPERT__),"#vcard-oap-1")) as ?oap_vcard)
+  bind(uri(concat(str(?oap_vcard),"-name")) as ?oap_vcard_name)
+  bind(xsd:boolean(?visible_str) as ?visible)
+
+  bind(uri(concat('mailto:',str(?oap_email))) as ?oap_vcard_email)
+  bind(uri(concat(str(?oap_vcard),"-web-",str(?web_rank))) as ?oap_vcard_web)
+  bind(coalesce(concat(" § ",?oap_title,coalesce(concat(", ",?oap_dept),"")),
+                "") as ?oap_title_dept)
+  bind(concat(
+              concat(?oap_ln,coalesce(concat(", ",?oap_fn),"")),
+              coalesce(?oap_title_dept,"")
               ) as ?oap_vcard_label)
+
 }
