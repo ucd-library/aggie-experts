@@ -78,7 +78,7 @@ CONSTRUCT {
 WHERE {
   graph <http://iam.ucdavis.edu/> {
     values ?p {rdfs:label schema:identifier schema:name
-      ucdlib:is-visible }
+      ucdlib:isPreferred ucdlib:is-visible }
 
     ?user a ?type;
           ucdlib:eduroam ?USERNAME__;
