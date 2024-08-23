@@ -63,7 +63,7 @@ export class ExpertsClient {
     this.timeout = opt.timeout || 30000;
 
     this.cdl = opt.cdl || {};
-    if (this.cdl?.auth.match(':')) {
+    if (this.cdl && this.cdl.auth && this.cdl.auth.match(':')) {
       this.cdl.authBasic = Buffer.from(this.cdl.auth).toString('base64');
     } else {
       this.cdl.authBasic = this.cdl.auth;
@@ -86,12 +86,12 @@ export class ExpertsClient {
     throw new Error(`User ${user} not found in crosswalk`);
   }
 
-  async getIAMProfiles(opt, scope) {
+  async getIAMProfiles(scope) {
 
-    let url = encodeURI(opt.iam.url + 'people/profile/search?key=' + opt.iam.auth);
+    let url = encodeURI(this.opt.iam.url + 'people/profile/search?key=' + this.opt.iam.auth);
     // add a user(cas) id(s) to the iam endpoint if specified
-    if (scope === 'users' && opt.users.length > 0) {
-      url += '&userId=' + opt.users;
+    if (scope === 'users' && this.opt.users.length > 0) {
+      url += '&userId=' + this.opt.users.join(',');
     }
     // if no specified users, then add the staff or the faculty flag
     else if (scope === 'faculty') {

@@ -4,10 +4,11 @@ dotenv.config();
 
 import path from 'path';
 import fs from 'fs-extra';
-import { Command } from 'commander';
+// import { Command } from 'commander';
 import ExpertsClient from '../lib/experts-client.js';
 import FusekiClient from '../lib/fuseki-client.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
+import { Command } from '../lib/experts-commander.js';
 
 const gs = new GoogleSecret();
 
@@ -19,9 +20,25 @@ const fuseki = new FusekiClient({
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb',
   replace: false,
-  'delete': false,
-  db: 'experts'
+  'delete': false
 });
+
+const context = {
+  "@context": {
+    "@base": "http://oapolicy.universityofcalifornia.edu/",
+    "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "id": { "@type": "@id", "@id": "@id" },
+    "field-name": "api:field-name",
+    "field-number": "api:field-number",
+    "$t": "api:field-value",
+    "api:person": { "@container": "@list" },
+    "api:first-names-X": { "@container": "@list" },
+    "api:web-address": { "@container": "@list" }
+  }
+};
+
 
 const iam = {
   url: '',
@@ -38,7 +55,7 @@ async function main(opt) {
   let secretJson = JSON.parse(secretResp);
   for (const entry of secretJson) {
     if (entry['@id'] == opt.iam.authname) {
-      opt.iam.auth = entry.auth.raw_auth;
+      opt.iam.auth = entry.auth.raw_auth.replace(/^ucd:/, '');
     }
   }
 
@@ -48,18 +65,20 @@ async function main(opt) {
 
   if (opt.users.length === 0) {
     if (opt.staff) {
-      await ec.getIAMProfiles('isStaff=true');
+      await ec.getIAMProfiles('staff');
     }
     if (opt.faculty) {
-      await ec.getIAMProfiles('isFaculty=true');
+      await ec.getIAMProfiles('faculty');
     }
   }
   else {
-    await ec.getIAMProfiles('userId=' + opt.users);
+    await ec.getIAMProfiles('users');
   }
 
   console.log('starting createJsonLd');
+
   let contextObj = context;
+
   contextObj["@id"] = 'http://iam.ucdavis.edu/';
   contextObj["@graph"] = ec.experts;
 
@@ -97,8 +116,8 @@ program.name('experts-iam')
   .option('--environment <env>', 'specify environment', 'production')
 
   // IAM endpoint and auth are now in Google Secret Manager, and a function of the environment.
-  .option('--iam.url <url>', 'Specify CDL endpoint', iam.url)
-  .option('--iam.auth <user:password>', 'Specify CDL authorization', iam.auth)
+  .option('--iam.url <url>', 'Specify IAM endpoint', iam.url)
+  .option('--iam.auth <user:password>', 'Specify IAM authorization', iam.auth)
 
   // Whether to download all staff
   .option('--no-staff', 'Do not include staff')
@@ -109,6 +128,9 @@ program.name('experts-iam')
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
   .option('--fuseki.db <name>', 'specify fuseki db', fuseki.db)
+  // .option_iam()
+  // .option_log()
+
 
 program.parse(process.argv);
 
