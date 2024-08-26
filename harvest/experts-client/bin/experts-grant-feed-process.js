@@ -21,7 +21,7 @@ const __dirname = dirname(__filename);
 program
   .version('1.0.0')
   .description('Process the Aggie Enterprise grant feed')
-  .option('--env <env>', '', 'QA')
+  .option('--env <env>', '', 'PROD')
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
   .option('--upload', 'Upload the file to the SFTP server')

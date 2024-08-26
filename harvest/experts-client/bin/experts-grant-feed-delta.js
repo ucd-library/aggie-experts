@@ -1,7 +1,7 @@
 import pkg from 'csvtojson';
 const { csv } = pkg;
 
-import fs from 'fs';
+import fs, { link } from 'fs';
 import { Command } from 'commander';
 import { logger } from '../lib/logger.js';
 import { stringify } from 'csv-stringify';
@@ -63,14 +63,36 @@ var newPersons = [];
 var oldPersons = [];
 var deleteLinks = [];
 
+var grantHeaders = [];
+var linkHeaders = [];
+var personHeaders = [];
+
 // Ensure the output directory exists
 if (!fs.existsSync(opt.dir + '/' + 'delta')) {
   fs.mkdirSync(opt.dir + '/' + 'delta', { recursive: true });
 }
 
+function getCsvHeaders(csvPath) {
+  return new Promise((resolve, reject) => {
+    const headers = [];
+    fs.createReadStream(csvPath)
+      .pipe(csv_p())
+      .on('headers', (headers) => {
+        console.log('CSV Headers:', headers);
+        resolve(headers);
+      })
+      .on('error', (error) => {
+        reject(error);
+      });
+  });
+}
+
+
 async function readGrants() {
 
   var addedGrants = [];
+  var innerNewGrants = [];
+  var innerOldGrants = [];
 
   return new Promise((resolve, reject) => {
     csv()
@@ -334,6 +356,12 @@ async function addGrantsOfPersons() {
 }
 
 async function executeInOrder() {
+  try {
+
+    grantHeaders = await getCsvHeaders(newGrantsPath);
+    linkHeaders = await getCsvHeaders(newLinksPath);
+    personHeaders = await getCsvHeaders(newPersonsPath);
+
   await readGrants(); // read the new and old grants files
   await readLinks(); // read the new and old links files
   await getDeltaLinks(); // get the deltaLinks array
@@ -342,6 +370,10 @@ async function executeInOrder() {
   await addLinks(); // add all links in newLinks to deltaLinks that reference a grant in the deltaGrants array
   await addUserLinks(); // add any user link that references a grant included in the deltaGrants array
   deleteLinks = await findDeletedLinks(); // find oldLinks that are not in newLinks
+  }
+  catch (error) {
+    logger.error('Error:', error);
+  }
 }
 
 executeInOrder().then(async () => {
@@ -350,7 +382,8 @@ executeInOrder().then(async () => {
   // Write the delta object to a new CSV file.
   const deltaFilePath = opt.dir + '/delta/' + opt.prefix;
   let csvData = deltaGrants.map((item) => Object.values(item));
-  let columns = Object.keys(newGrants[0]); // Use the columns from the newGrants object as the header incase of no deltas.
+  // let columns = Object.keys(newGrants[0]); // Use the columns from the newGrants object as the header incase of no deltas.
+  let columns = grantHeaders; // Use the columns from the newGrants object as the header incase of no deltas.
   const csvString = await new Promise((resolve, reject) => {
     stringify(csvData, { header: true, columns: columns  }, (err, output) => {
       if (err) {
@@ -365,7 +398,8 @@ executeInOrder().then(async () => {
 
   // Write the deltaLinks object to a new CSV file.
   csvData = deltaLinks.map((item) => Object.values(item));
-  columns = Object.keys(newLinks[0]);
+  // columns = Object.keys(newLinks[0]);
+  columns = linkHeaders; // Use the columns from the newGrants object as the header incase of no deltas.
 
   const csvStringLinks = await new Promise((resolve, reject) => {
     stringify(csvData, { header: true, columns: columns }, (err, output) => {
@@ -384,7 +418,7 @@ logger.info('Delta-persons:', deltaPersons.length);
 
 // Write the delta object to a new CSV file.
 csvData = deltaPersons.map((item) => Object.values(item));
-columns = Object.keys(newPersons[0]);
+columns = personHeaders; // Use the columns from the newGrants object as the header incase of no deltas.
 const csvStringPersons = await new Promise((resolve, reject) => {
   stringify(csvData, { header: true, columns: columns}, (err, output) => {
     if (err) {
