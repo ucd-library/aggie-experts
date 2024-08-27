@@ -92,11 +92,6 @@ WHERE {
                               iam:deptCode ?pps_dept_code;
                               iam:deptOfficialName ?pps_dept ];
                                                    .
-    OPTIONAL {
-      ?user iam:directory/iam:listings/iam:deptWwwFlag "Y".
-      bind(true as ?has_odr)
-    }
-
     OPTIONAL { ?user iam:dMiddleName ?iam_mname . }
     OPTIONAL {
       ?user iam:directory/iam:displayName/iam:nameWwwFlag "N" .
@@ -116,18 +111,17 @@ WHERE {
         ?dname iam:preferredPronouns ?pronoun .
       }
     }
+
     OPTIONAL {
       ?user iam:directory/iam:listings ?list.
       ?list iam:listingOrder ?odr_list_order;
+            iam:deptWwwFlag "Y".
             iam:deptName ?odr_dept;
             iam:deptCode ?odr_dept_code;
+            iam:titleWwwFlag "Y";
+            iam:title ?odr_title;
             .
 
-      OPTIONAL {
-        ?list iam:titleWwwFlag "Y";
-              iam:title ?odr_title;
-              .
-      }
       OPTIONAL {
         ?list iam:websiteWwwFlag "Y";
               iam:website ?odr_website;
@@ -138,6 +132,7 @@ WHERE {
               iam:email ?odr_title_email;
               .
       }
+      bind(true as ?has_odr)
     }
   }
   # identifiers
