@@ -115,7 +115,7 @@ WHERE {
     OPTIONAL {
       ?user iam:directory/iam:listings ?list.
       ?list iam:listingOrder ?odr_list_order;
-            iam:deptWwwFlag "Y".
+            iam:deptWwwFlag "Y";
             iam:deptName ?odr_dept;
             iam:deptCode ?odr_dept_code;
             iam:titleWwwFlag "Y";
