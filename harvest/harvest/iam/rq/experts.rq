@@ -108,18 +108,15 @@ WHERE {
         graph harvest_iam: {
           ?s iam:directory ?dir .
           ?dir iam:listings ?list.
-          OPTIONAL {
-            ?list iam:deptWwwFlag "Y";
-                  iam:listingOrder ?order;
-                  iam:deptName ?dept;
-                  iam:deptCode ?deptCode;
-                  .
-          }
-          OPTIONAL {
-            ?list iam:titleWwwFlag "Y";
-                  iam:title ?title;
-                  .
-          }
+
+          ?list iam:deptWwwFlag "Y";
+                iam:listingOrder ?order;
+                iam:deptName ?dept;
+                iam:deptCode ?deptCode;
+                iam:titleWwwFlag "Y";
+                iam:title ?title;
+                .
+
           OPTIONAL {
             ?list iam:websiteWwwFlag "Y";
                   iam:website ?website;
