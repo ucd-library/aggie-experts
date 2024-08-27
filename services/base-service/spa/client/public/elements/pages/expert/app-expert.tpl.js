@@ -708,15 +708,15 @@ return html`
             </span>
           </span>
         </div>
-        <div class="open-to">
+        <div class="open-to" ?hidden="${this.hideAvailability && !this.expertEditing}">
           <span class="desktop-edit-availability">Open to:</span>
-          <span>Collaborative Projects</span>
-          <span class="dot">.</span>
-          <span>Community Partnerships</span>
-          <span class="dot">.</span>
-          <span>Industry Projects</span>
-          <span class="dot">.</span>
-          <span>Media Interviews</span>
+          <span ?hidden="${!this.collabProjects}">Collaborative Projects</span>
+          <span class="dot" ?hidden="${!this.collabProjects || !this.commPartner}">.</span>
+          <span ?hidden="${!this.commPartner}">Community Partnerships</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner) || !this.industProjects}">.</span>
+          <span ?hidden="${!this.industProjects}">Industry Projects</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">.</span>
+          <span ?hidden="${!this.mediaInterviews}">Media Interviews</span>
           <span class="desktop-edit-availability" ?hidden="${!this.canEdit}" style="position: relative; padding-left: 0">
             <span class="tooltip edit-availability" data-text="Edit availability">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"

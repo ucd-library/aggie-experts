@@ -56,7 +56,12 @@ export default class AppExpert extends Mixin(LitElement)
       expertEditing : { type : String },
       hideEdit : { type : Boolean },
       isVisible : { type : Boolean },
-      elementsUserId : { type : String }
+      elementsUserId : { type : String },
+      hideAvailability : { type : Boolean },
+      collabProjects : { type : Boolean },
+      commPartner : { type : Boolean },
+      industProjects : { type : Boolean },
+      mediaInterviews : { type : Boolean }
     }
   }
 
@@ -250,6 +255,11 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalAction = '';
     this.isVisible = true;
     this.elementsUserId = '';
+    this.hideAvailability = true;
+    this.collabProjects = false;
+    this.commPartner = false;
+    this.industProjects = false;
+    this.mediaInterviews = false;
 
     if( !this.expertEditing ) {
       this.expertEditing = '';
@@ -536,7 +546,27 @@ export default class AppExpert extends Mixin(LitElement)
       // save availability to cdl
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
-        let res = await this.ExpertModel.updateExpertAvailability(this.expertId);
+        let collabProjects = e.currentTarget?.shadowRoot?.querySelector('#collab-projects')?.checked || false;
+        let commPartner = e.currentTarget?.shadowRoot?.querySelector('#comm-partner')?.checked || false;
+        let industProjects = e.currentTarget?.shadowRoot?.querySelector('#indust-projects')?.checked || false;
+        let mediaInterviews = e.currentTarget?.shadowRoot?.querySelector('#media-interviews')?.checked || false;
+
+        let openTo = {
+          collabProjects,
+          commPartner,
+          industProjects,
+          mediaInterviews
+        };
+        let prevOpenTo = {
+          collabProjects : this.collabProjects,
+          commPartner : this.commPartner,
+          industProjects : this.industProjects,
+          mediaInterviews : this.mediaInterviews
+        };
+        let labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
+
+        debugger;
+        let res = await this.ExpertModel.updateExpertAvailability(this.expertId, labels);
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         if( window.gtag ) {
@@ -546,6 +576,12 @@ export default class AppExpert extends Mixin(LitElement)
             'fatal': false
           });
         }
+
+        this.collabProjects = collabProjects;
+        this.commPartner = commPartner;
+        this.industProjects = industProjects;
+        this.mediaInterviews = mediaInterviews;
+        this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews);
 
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -671,10 +707,10 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalSaveText = 'Save Changes';
     this.modalContent = `
       <p>I am open to:</p>
-      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}"> Collaborative Projects </label>
-      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}"> Community Partnerships </label>
-      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}"> Industry Projects </label>
-      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}"> Media Interviews </label>
+      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ${this.collabProjects ? 'checked' : ''}> Collaborative Projects </label>
+      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="comm-partner" name="comm-partner" value="comm-partner" ${this.commPartner ? 'checked' : ''}> Community Partnerships </label>
+      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="indust-projects" name="indust-projects" value="indust-projects" ${this.industProjects ? 'checked' : ''}> Industry Projects </label>
+      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="media-interviews" name="media-interviews" value="media-interviews" ${this.mediaInterviews ? 'checked' : ''}> Media Interviews </label>
     `;
     this.showModal = true;
     this.hideCancel = false;

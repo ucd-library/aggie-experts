@@ -120,7 +120,7 @@ class ExpertService extends BaseService {
     });
   }
 
-  async updateExpertAvailability(id) {
+  async updateExpertAvailability(id, labels={}) {
     return this.request({
       url : `${this.baseUrl}/${id}/availability`,
       fetchOptions : {
@@ -128,10 +128,9 @@ class ExpertService extends BaseService {
         headers : {
           'Content-Type' : 'application/json'
         },
-        // TODO pull from ui using correct vocab
         body : JSON.stringify({
-          labelsToAddOrEdit : [{"value":"Collaborative projects","percentage":null}],
-          labelsToRemove : ["Career advice"]
+          labelsToAddOrEdit: labels.labelsToAddOrEdit || [],
+          labelsToRemove: labels.labelsToRemove || []
         })
       },
       checkCached : () => null,

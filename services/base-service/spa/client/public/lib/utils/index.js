@@ -286,6 +286,57 @@ class Utils {
       }
     };
   }
+
+  /**
+   * @method buildAvailabilityPayload
+   * @description return availability label payload for updating cdl
+   *
+   * @param {Object} openTo object with keys for each type of colab
+   * @param {Object} prevOpenTo object with keys for each type of colab currently saved in cdl
+   *
+   * @return {Object} payload
+   */
+  buildAvailabilityPayload(openTo={}, prevOpenTo={}) {
+    let options = {
+      labelsToAddOrEdit: [],
+      labelsToRemove: []
+    };
+
+    if( openTo.collabProjects !== prevOpenTo.collabProjects ) {
+      if( openTo.collabProjects ) {
+        options.labelsToAddOrEdit.push({ value: 'Collaborative projects', percentage: null });
+      } else {
+        options.labelsToRemove.push('Collaborative projects');
+      }
+    }
+
+    if( openTo.commPartner !== prevOpenTo.commPartner ) {
+      if( openTo.commPartner ) {
+        options.labelsToAddOrEdit.push({ value: 'Community partnerships', percentage: null });
+      } else {
+        options.labelsToRemove.push('Community partnerships');
+      }
+    }
+
+    if( openTo.industProjects !== prevOpenTo.industProjects ) {
+      if( openTo.industProjects ) {
+        options.labelsToAddOrEdit.push({ value: 'Industry Projects', percentage: null });
+      } else {
+        options.labelsToRemove.push('Industry Projects');
+      }
+    }
+
+    if( openTo.mediaInterviews !== prevOpenTo.mediaInterviews ) {
+      if( openTo.mediaInterviews ) {
+        options.labelsToAddOrEdit.push({ value: 'Media enquiries', percentage: null });
+      } else {
+        options.labelsToRemove.push('Media enquiries');
+      }
+    }
+
+    return options;
+  }
+
 }
 
 module.exports = new Utils();

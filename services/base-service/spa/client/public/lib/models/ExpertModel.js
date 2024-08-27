@@ -112,11 +112,12 @@ class ExpertModel extends BaseModel {
    * @description update an experts availability in aggie experts and cdl
    *
    * @param {String} id expert id
+   * @param {Object} labels object with labels to add and remove
    *
    * @returns {Promise} resolves to record
   */
-  async updateExpertAvailability(id) {
-    return await this.service.updateExpertAvailability(id);
+  async updateExpertAvailability(id, labels={}) {
+    return await this.service.updateExpertAvailability(id, labels);
   }
 
 }
