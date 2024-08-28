@@ -1,3538 +1,4327 @@
 {
   "@context": {
     "@vocab": "http://schema.org/",
-    "@base": "http://experts.ucdavis.edu/position/",
+    "@base": "ark:/87287/d7c08j/position/",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
     "c": "http://experts.ucdavis.edu/cto/",
+    "prefLabel": {
+      "@id": "skos:prefLabel"
+    },
     "cto": {
       "@type": "@id",
       "@id": "http://schema.library.ucdavis.edu/schema#cto"
     }
   },
   "@graph": [
-    {
-      "cto": "c:010",
-      "@id": "001100",
-      "name": "PROF-AY 1"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001103",
-      "name": "PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001104",
-      "name": "UNIV PROF"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001110",
-      "name": "PROF-FY 2"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001143",
-      "name": "PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001144",
-      "name": "PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001145",
-      "name": "PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001180",
-      "name": "PROF-AY-LAW 8"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001181",
-      "name": "PROF-AY-1/9-LAW 8"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001200",
-      "name": "ASSOC PROF-AY 1"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001203",
-      "name": "ASSOC PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001210",
-      "name": "ASSOC PROF-FY 2"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001243",
-      "name": "ASSOC PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001244",
-      "name": "ASSOC PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001245",
-      "name": "ASSOC PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001719",
-      "name": "ASSOC PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001721",
-      "name": "PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001899",
-      "name": "ASSOC PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:010",
-      "@id": "001901",
-      "name": "PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001300",
-      "name": "ASST PROF-AY 1"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001303",
-      "name": "ASST PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001310",
-      "name": "ASST PROF-FY 2"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001343",
-      "name": "ASST PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001344",
-      "name": "ASST PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001345",
-      "name": "ASST PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001403",
-      "name": "INSTR-AY-1/9 1"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001715",
-      "name": "INSTR-HCOMP 5"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001717",
-      "name": "ASST PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001895",
-      "name": "INSTR-SFT-VM 7"
-    },
-    {
-      "cto": "c:011",
-      "@id": "001897",
-      "name": "ASST PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:012",
-      "@id": "001699",
-      "name": "RECALL TEACHING NON-SENATE 1*"
-    },
-    {
-      "cto": "c:012",
-      "@id": "001700",
-      "name": "RECALL TEACHING 1*"
-    },
-    {
-      "cto": "c:012",
-      "@id": "001701",
-      "name": "RECALL HCOMP 5*"
-    },
-    {
-      "cto": "c:012",
-      "@id": "001702",
-      "name": "RECALL FACULTY 1*"
-    },
-    {
-      "cto": "c:016",
-      "@id": "001132",
-      "name": "PROF EMERITUS(WOS)"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001101",
-      "name": "ACT PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001107",
-      "name": "ACT PROF-AY 1"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001117",
-      "name": "ACT PROF-FY 2"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001182",
-      "name": "ACT PROF-AY-LAW 8"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001183",
-      "name": "ACT PROF-AY-1/9-LAW 8"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001201",
-      "name": "ACT ASSOC PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001207",
-      "name": "ACT ASSOC PROF-AY 1"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001217",
-      "name": "ACT ASSOC PROF-FY 2"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001540",
-      "name": "ACT ASSOC PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001542",
-      "name": "ACT PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001900",
-      "name": "ACT ASSOC PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001902",
-      "name": "ACT PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001971",
-      "name": "ACT PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001972",
-      "name": "ACT PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001973",
-      "name": "ACT PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001974",
-      "name": "ACT ASSOC PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001975",
-      "name": "ACT ASSOC PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:114",
-      "@id": "001976",
-      "name": "ACT ASSOC PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:124",
-      "@id": "001301",
-      "name": "ACT ASST PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:124",
-      "@id": "001307",
-      "name": "ACT ASST PROF-AY 1"
-    },
-    {
-      "cto": "c:124",
-      "@id": "001317",
-      "name": "ACT ASST PROF-FY 2"
-    },
-    {
-      "cto": "c:124",
-      "@id": "001564",
-      "name": "ACT ASST PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:124",
-      "@id": "001898",
-      "name": "ACT ASST PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:124",
-      "@id": "001977",
-      "name": "ACT ASST PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:124",
-      "@id": "001978",
-      "name": "ACT ASST PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:124",
-      "@id": "001979",
-      "name": "ACT ASST PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001603",
-      "name": "SR LECT SOE-AY 1-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001604",
-      "name": "SR LECT SOE-AY-1/9 1-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001607",
-      "name": "LECT SOE-AY 1-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001608",
-      "name": "LECT SOE-AY-1/9 1-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001612",
-      "name": "SR LECT SOE-AY-1/10 1-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001613",
-      "name": "SR LECT SOE-FY 2-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001614",
-      "name": "LECT SOE-AY-1/10 1-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001617",
-      "name": "LECT SOE-FY 2-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001618",
-      "name": "LECT SOE-HCOMP 5-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001619",
-      "name": "SR LECT SOE-HCOMP 5-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001656",
-      "name": "SR LECT SOE-AY-1/9-LAW 8-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001658",
-      "name": "SR LECT SOE-AY-1/10-LAW 8-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001668",
-      "name": "SR LECT SOE-SFT-VM 7-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001669",
-      "name": "LECT SOE-SFT-VM 7-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001672",
-      "name": "SR LECT SOE-AY-1/10-B/E/E 3-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001673",
-      "name": "LECT SOE-AY-1/10-B/E/E 3-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001686",
-      "name": "SR LECT SOE-AY-B/E/E 3-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001687",
-      "name": "LECT SOE-AY-B/E/E 3-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001689",
-      "name": "SR LECT SOE-FY-B/E/E 4-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001690",
-      "name": "LECT SOE-FY-B/E/E 4-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001692",
-      "name": "SR LECT SOE-AY-1/9-B/E/E 3-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001693",
-      "name": "SR LECT SOE-AY-LAW 8-L"
-    },
-    {
-      "cto": "c:210",
-      "@id": "001695",
-      "name": "LECT SOE-AY-1/9-B/E/E 3-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001657",
-      "name": "LECT PSOE-AY-1/9-LAW 8-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001659",
-      "name": "LECT PSOE-AY-1/10-LAW 8-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001670",
-      "name": "LECT PSOE-SFT-VM 7-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001674",
-      "name": "LECT PSOE-AY-1/10-B/E/E 3-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001678",
-      "name": "LECT PSOE-AY-1/10 1-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001679",
-      "name": "LECT PSOE-HCOMP 5-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001680",
-      "name": "LECT PSOE-AY 1-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001681",
-      "name": "LECT PSOE-AY-1/9 1-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001682",
-      "name": "LECT PSOE-FY 2-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001688",
-      "name": "LECT PSOE-AY-B/E/E 3-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001691",
-      "name": "LECT PSOE-FY-B/E/E 4-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001694",
-      "name": "LECT PSOE-AY-LAW 8-L"
-    },
-    {
-      "cto": "c:211",
-      "@id": "001696",
-      "name": "LECT PSOE-AY-1/9-B/E/E 3-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001580",
-      "name": "ACT SR LECT SOE-AY 1-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001581",
-      "name": "ACT LECT SOE-AY 1-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001583",
-      "name": "ACT SR LECT SOE-FY 2-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001584",
-      "name": "ACT LECT SOE-FY 2-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001586",
-      "name": "ACT SR LECT SOE-AY-B/E/E 3-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001587",
-      "name": "ACT LECT SOE-AY-B/E/E 3-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001589",
-      "name": "ACT SR LECT SOE-FY-B/E/E 4-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001590",
-      "name": "ACT LECT SOE-FY-B/E/E 4-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001592",
-      "name": "ACT SR LECT SOE-AY-LAW 8-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001594",
-      "name": "ACT SR LECT SOE-SFT-VM 7-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001595",
-      "name": "ACT LECT SOE-SFT-VM 7-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001597",
-      "name": "ACT SR LECT SOE-HCOMP 5-L"
-    },
-    {
-      "cto": "c:214",
-      "@id": "001598",
-      "name": "ACT LECT SOE-HCOMP 5-L"
-    },
-    {
-      "cto": "c:216",
-      "@id": "001620",
-      "name": "LECT SOE-EMERITUS(WOS)"
-    },
-    {
-      "cto": "c:216",
-      "@id": "001621",
-      "name": "SR LECT SOE-EMERITUS (WOS)"
-    },
-    {
-      "cto": "c:224",
-      "@id": "001582",
-      "name": "ACT LECT PSOE-AY 1-L"
-    },
-    {
-      "cto": "c:224",
-      "@id": "001585",
-      "name": "ACT LECT PSOE-FY 2-L"
-    },
-    {
-      "cto": "c:224",
-      "@id": "001588",
-      "name": "ACT LECT PSOE-AY-B/E/E 3-L"
-    },
-    {
-      "cto": "c:224",
-      "@id": "001591",
-      "name": "ACT LECT PSOE-FY-B/E/E 4-L"
-    },
-    {
-      "cto": "c:224",
-      "@id": "001593",
-      "name": "ACT LECT PSOE-AY-LAW 8-L"
-    },
-    {
-      "cto": "c:224",
-      "@id": "001596",
-      "name": "ACT LECT PSOE-SFT-VM 7-L"
-    },
-    {
-      "cto": "c:224",
-      "@id": "001599",
-      "name": "ACT LECT PSOE-HCOMP 5-L"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001630",
-      "name": "LECT-AY 15"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001631",
-      "name": "LECT-AY-CONTINUING 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001632",
-      "name": "LECT-AY-1/9 15"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001633",
-      "name": "LECT-AY-1/9-CONTINUING 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001634",
-      "name": "LECT-FY 15"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001635",
-      "name": "LECT-FY-CONTINUING 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001636",
-      "name": "LECT-AY-1/10 15"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001637",
-      "name": "LECT-AY-1/10-CONTINUING 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001638",
-      "name": "PRE-SIX YR APPT-TEMP SUPP-FY 15"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001641",
-      "name": "SR LECT-AY-CONTINUING 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001643",
-      "name": "SR LECT-AY-1/9-CONTINUING 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001645",
-      "name": "SR LECT-FY-CONTINUING 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001647",
-      "name": "SR LECT-AY-1/10-CONTINUING 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001648",
-      "name": "PRE-SIX YR APPT-TEMP SUPP-AY 15"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001649",
-      "name": "PRE-SIX YR APPT-TEMP SUPP-1/9 15"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001651",
-      "name": "PRE-SIX YR APPT-TEMP SUPP-1/10 15"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001652",
-      "name": "CONTINUING APPT-TEMP AUG-AY 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001653",
-      "name": "CONTINUING APPT-TEMP AUG-1/9 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001654",
-      "name": "CONTINUING APPT-TEMP-AUG-1/10 16"
-    },
-    {
-      "cto": "c:225",
-      "@id": "001655",
-      "name": "CONTINUING APPT-TEMP AUG-FY 16"
-    },
-    {
-      "cto": "c:311",
-      "@id": "001723",
-      "name": "INSTR IN RES-HCOMP 5"
-    },
-    {
-      "cto": "c:311",
-      "@id": "001724",
-      "name": "ASST PROF IN RES-HCOMP 5"
-    },
-    {
-      "cto": "c:311",
-      "@id": "001725",
-      "name": "ASSOC PROF IN RES-HCOMP 5"
-    },
-    {
-      "cto": "c:311",
-      "@id": "001726",
-      "name": "PROF IN RES-HCOMP 5"
-    },
-    {
-      "cto": "c:311",
-      "@id": "001904",
-      "name": "ASST PROF IN RES-SFT-VM 7"
-    },
-    {
-      "cto": "c:311",
-      "@id": "001905",
-      "name": "ASSOC PROF IN RES-SFT-VM 7"
-    },
-    {
-      "cto": "c:311",
-      "@id": "001906",
-      "name": "PROF IN RES-SFT-VM 7"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003250",
-      "name": "PROF IN RES-AY 1"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003251",
-      "name": "PROF IN RES-FY 2"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003260",
-      "name": "ASSOC PROF IN RES-AY 1"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003261",
-      "name": "ASSOC PROF IN RES-FY 2"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003270",
-      "name": "ASST PROF IN RES-AY 1"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003271",
-      "name": "ASST PROF IN RES-FY 2"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003345",
-      "name": "PROF IN RES-AY-1/10-B/E/E 3"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003346",
-      "name": "ASSOC PROF IN RES-AY-1/10-B/E/E 3"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003347",
-      "name": "ASST PROF IN RES-AY-1/10-B/E/E 3"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003351",
-      "name": "ASST PROF IN RES-AY-1/9 1"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003352",
-      "name": "ASSOC PROF IN RES-AY-1/9 1"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003353",
-      "name": "PROF IN RES-AY-1/9 1"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003381",
-      "name": "PROF IN RES-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003382",
-      "name": "PROF IN RES-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003383",
-      "name": "PROF IN RES-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003384",
-      "name": "ASSOC PROF IN RES-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003385",
-      "name": "ASSOC PROF IN RES-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003386",
-      "name": "ASSOC PROF IN RES-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003387",
-      "name": "ASST PROF IN RES-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003388",
-      "name": "ASST PROF IN RES-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:311",
-      "@id": "003389",
-      "name": "ASST PROF IN RES-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:316",
-      "@id": "003249",
-      "name": "SENATE EMERITUS (WOS)"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001450",
-      "name": "PROF OF CLIN-FY 2"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001451",
-      "name": "ASSOC PROF OF CLIN-FY 2"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001452",
-      "name": "ASST PROF OF CLIN-FY 2"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001453",
-      "name": "PROF OF CLIN-HCOMP 5"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001454",
-      "name": "ASSOC PROF OF CLIN-HCOMP 5"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001455",
-      "name": "ASST PROF OF CLIN-HCOMP 5"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001915",
-      "name": "ASST PROF OF CLIN-SFT-VM 7"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001916",
-      "name": "ASSOC PROF OF CLIN-SFT-VM 7"
-    },
-    {
-      "cto": "c:317",
-      "@id": "001917",
-      "name": "PROF OF CLIN-SFT-VM 7"
-    },
-    {
-      "cto": "c:323",
-      "@id": "001108",
-      "name": "VIS PROF 1*"
-    },
-    {
-      "cto": "c:323",
-      "@id": "001208",
-      "name": "VIS ASSOC PROF 1*"
-    },
-    {
-      "cto": "c:323",
-      "@id": "001308",
-      "name": "VIS ASST PROF 1*"
-    },
-    {
-      "cto": "c:323",
-      "@id": "001712",
-      "name": "VIS ASST PROF-HCOMP 5*"
-    },
-    {
-      "cto": "c:323",
-      "@id": "001713",
-      "name": "VIS ASSOC PROF-HCOMP 5*"
-    },
-    {
-      "cto": "c:323",
-      "@id": "001714",
-      "name": "VIS PROF-HCOMP 5*"
-    },
-    {
-      "cto": "c:335",
-      "@id": "001727",
-      "name": "ADJ INSTR-HCOMP 5"
-    },
-    {
-      "cto": "c:335",
-      "@id": "001728",
-      "name": "ASST ADJ PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:335",
-      "@id": "001729",
-      "name": "ASSOC ADJ PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:335",
-      "@id": "001730",
-      "name": "ADJ PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:335",
-      "@id": "001908",
-      "name": "ASST ADJ PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:335",
-      "@id": "001909",
-      "name": "ASSOC ADJ PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:335",
-      "@id": "001910",
-      "name": "ADJ PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003258",
-      "name": "ADJ PROF-AY 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003259",
-      "name": "ADJ PROF-FY 2"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003268",
-      "name": "ASSOC ADJ PROF-AY 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003269",
-      "name": "ASSOC ADJ PROF-FY 2"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003278",
-      "name": "ASST ADJ PROF-AY 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003279",
-      "name": "ASST ADJ PROF-FY 2"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003288",
-      "name": "ADJ INSTR-AY 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003289",
-      "name": "ADJ INSTR-FY 2"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003361",
-      "name": "ASST ADJ PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003362",
-      "name": "ASSOC ADJ PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003363",
-      "name": "ADJ PROF-AY-1/9 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003365",
-      "name": "ASST ADJ PROF-AY-1/10 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003366",
-      "name": "ASSOC ADJ PROF-AY-1/10 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003367",
-      "name": "ADJ PROF-AY-1/10 1"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003368",
-      "name": "ASST ADJ PROF-AY-1/10-BEE 3"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003369",
-      "name": "ASSOC ADJ PROF-AY-1/10-BEE 3"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003371",
-      "name": "ASST ADJ PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003372",
-      "name": "ASST ADJ PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003373",
-      "name": "ASST ADJ PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003374",
-      "name": "ASSOC ADJ PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003375",
-      "name": "ASSOC ADJ PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003376",
-      "name": "ASSOC ADJ PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003377",
-      "name": "ADJ PROF-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003378",
-      "name": "ADJ PROF-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003379",
-      "name": "ADJ PROF-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:335",
-      "@id": "003380",
-      "name": "ADJ PROF-AY-1/10-BEE 3"
-    },
-    {
-      "cto": "c:341",
-      "@id": "001731",
-      "name": "HS CLIN INSTR-HCOMP 5"
-    },
-    {
-      "cto": "c:341",
-      "@id": "001732",
-      "name": "HS ASST CLIN PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:341",
-      "@id": "001733",
-      "name": "HS ASSOC CLIN PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:341",
-      "@id": "001734",
-      "name": "HS CLIN PROF-HCOMP 5"
-    },
-    {
-      "cto": "c:341",
-      "@id": "001911",
-      "name": "HS CLIN INSTR-SFT-VM 7"
-    },
-    {
-      "cto": "c:341",
-      "@id": "001912",
-      "name": "HS ASST CLIN PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:341",
-      "@id": "001913",
-      "name": "HS ASSOC CLIN PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:341",
-      "@id": "001914",
-      "name": "HS CLIN PROF-SFT-VM 7"
-    },
-    {
-      "cto": "c:341",
-      "@id": "002000",
-      "name": "HS CLIN PROF-AY 1"
-    },
-    {
-      "cto": "c:341",
-      "@id": "002010",
-      "name": "HS CLIN PROF-FY 2"
-    },
-    {
-      "cto": "c:341",
-      "@id": "002020",
-      "name": "HS ASSOC CLIN PROF-AY 1"
-    },
-    {
-      "cto": "c:341",
-      "@id": "002030",
-      "name": "HS ASSOC CLIN PROF-FY 2"
-    },
-    {
-      "cto": "c:341",
-      "@id": "002040",
-      "name": "HS ASST CLIN PROF-AY 1"
-    },
-    {
-      "cto": "c:341",
-      "@id": "002050",
-      "name": "HS ASST CLIN PROF-FY 2"
-    },
-    {
-      "cto": "c:341",
-      "@id": "002060",
-      "name": "HS CLIN INSTR-AY 1"
-    },
-    {
-      "cto": "c:341",
-      "@id": "002070",
-      "name": "HS CLIN INSTR-FY 2"
-    },
-    {
-      "cto": "c:346",
-      "@id": "002017",
-      "name": "CLIN PROF-VOL"
-    },
-    {
-      "cto": "c:346",
-      "@id": "002037",
-      "name": "ASSOC CLIN PROF-VOL"
-    },
-    {
-      "cto": "c:346",
-      "@id": "002057",
-      "name": "ASST CLIN PROF-VOL"
-    },
-    {
-      "cto": "c:346",
-      "@id": "002077",
-      "name": "CLIN INSTR-VOL"
-    },
-    {
-      "cto": "c:357",
-      "@id": "001550",
-      "name": "LECT IN SUMMER SESSION"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002220",
-      "name": "SUPV TEACHER ED-AY 32"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002221",
-      "name": "SUPV TEACHER ED-AY-CONTINUING 32"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002222",
-      "name": "SUPV TEACHER ED-FY 33"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002223",
-      "name": "SUPV TEACHER ED-FY-CONTINUING 33"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002240",
-      "name": "COORD FLD WK-AY 15"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002241",
-      "name": "COORD FLD WK-AY-CONTINUING 16"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002245",
-      "name": "COORD FLD WK-FY 15"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002246",
-      "name": "COORD FLD WK-FY-CONTINUING 16"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002250",
-      "name": "FLD WK SUPV-AY 15"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002251",
-      "name": "FLD WK SUPV-AY-CONTINUING 16"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002255",
-      "name": "FLD WK SUPV-FY 15"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002256",
-      "name": "FLD WK SUPV-FY-CONTINUING 16"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002260",
-      "name": "FLD WK CONSULT-AY 15"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002261",
-      "name": "FLD WK CONSULT-AY-CONTINUING 16"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002265",
-      "name": "FLD WK CONSULT-FY 15"
-    },
-    {
-      "cto": "c:357",
-      "@id": "002266",
-      "name": "FLD WK CONSULT-FY-CONTINUING 16"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002300",
-      "name": "TEACHG FELLOW-GSHIP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002301",
-      "name": "TEACHG FELLOW-NON GSHIP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002302",
-      "name": "TEACHG FELLOW-GSHIP/NON REP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002303",
-      "name": "TEACHG FELLOW-NON GSHIP/NONREP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002310",
-      "name": "TEACHG ASST-GSHIP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002311",
-      "name": "TEACHG ASST-NON GSHIP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002312",
-      "name": "TEACHG ASST-GSHIP/NON REP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002313",
-      "name": "TEACHG ASST-NON GSHIP/NON REP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002320",
-      "name": "TEACHG ASST-1/10-GSHIP 18"
-    },
-    {
-      "cto": "c:426",
-      "@id": "002321",
-      "name": "TEACHG ASST-1/10-NON GSHIP 18"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003140",
-      "name": "GSR-FELLOWSHIP-NO REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003141",
-      "name": "GSR-FELLOWSHIP-TUIT&FEE REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003150",
-      "name": "GSR-TRAINEE-NO REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003151",
-      "name": "GSR-TRAINEE-TUIT&FEE REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003160",
-      "name": "GSR TRAINEE/FELLOW SUPPLEMENT 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003262",
-      "name": "GSR-TUIT & FEE REM-UCSD-GRP E 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003263",
-      "name": "GSR-TUIT & FEE REM-UCSD-GRP F 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003264",
-      "name": "GSR-TUIT & FEE REM-UCSD-GRP G 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003266",
-      "name": "GSR-NO REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003276",
-      "name": "GSR-PARTIAL FEE REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003282",
-      "name": "GSR-FULL FEE REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003283",
-      "name": "GSR-FULL TUIT&PARTIAL FEE REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003284",
-      "name": "GSR-TUIT & FEE REM 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003285",
-      "name": "GSR-TUIT & FEE REM-UCSD-GRP B 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003286",
-      "name": "GSR-TUIT & FEE REM-UCSD-GRP C 22"
-    },
-    {
-      "cto": "c:436",
-      "@id": "003287",
-      "name": "GSR-TUIT & FEE REM-UCSD-GRP D 22"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002708",
-      "name": "RESID PHYS I/NON REP 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002709",
-      "name": "RESID PHYS I/REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002714",
-      "name": "INTERN-VET MED/NON REP 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002715",
-      "name": "INTERN-CLINICAL PSYCHOLOGY 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002723",
-      "name": "RESID PHYS II-VIII/REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002724",
-      "name": "RESID PHYS II-VIII/NON REP 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002725",
-      "name": "CHIEF RESID PHYS-NON REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002726",
-      "name": "RESID PHYS/SUBSPEC 4-8/NON REP 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002727",
-      "name": "POST DDS I-VI/NON REP 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002730",
-      "name": "RESID-VET MED/NON REP 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002732",
-      "name": "OTH POST-MD TRAIN 2-8/NON REP 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002733",
-      "name": "OTH POST-MD TRAIN 2-8/REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002736",
-      "name": "RESID PHYS/SUBSPEC 4-8/REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002737",
-      "name": "OTH POST DDS/NON REP 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002738",
-      "name": "CHIEF RESID PHYS-REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002740",
-      "name": "NON-PHYS CLIN TRAIN 21"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002743",
-      "name": "RESID PHYS I/REP-OV"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002744",
-      "name": "RESID PHYS II-VIII/REP-OV"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002745",
-      "name": "CHIEF RESID PHYS-REP-OV"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002746",
-      "name": "RESID PHYS/SUBSPEC 4-8/REP-OV"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002747",
-      "name": "OTH POST-MD TRAIN 2-8/REP-OV"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002749",
-      "name": "RESID PHYS/SUBSPEC/T32/NON REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002750",
-      "name": "RESID PHYS/SUBSPEC/T32/REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002753",
-      "name": "RESID PHYS MOONLTNG NON REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002754",
-      "name": "RESID PHYS MOONLTNG REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002757",
-      "name": "POST DDS I-VI/REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002758",
-      "name": "OTH POST DDS/REP"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002760",
-      "name": "RESID PHYS I/REP-FNO"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002761",
-      "name": "RESID PHYS II-VIII/REP-FNO"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002762",
-      "name": "CHIEF RESID PHYS-REP-FNO"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002763",
-      "name": "RESID PHYS/SUBSPEC 4-8/REP-FNO"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002764",
-      "name": "OTH POST-MD TRAIN 2-8/REP-FNO"
-    },
-    {
-      "cto": "c:446",
-      "@id": "002766",
-      "name": "HEAL OTH POST-MD 4-6/REP"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002270",
-      "name": "REMD TUT I-NON GSHIP/NON REP 20"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002271",
-      "name": "REMD TUT I-GSHIP/NON REP 20"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002272",
-      "name": "REMD TUT II NON-GSHIP/NON REP 20"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002273",
-      "name": "REMD TUT II-GSHIP/NON REP 20"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002280",
-      "name": "REMD TUT I-NON GSHIP 20"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002288",
-      "name": "REMD TUT I-GSHIP 20"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002289",
-      "name": "REMD TUT II-GSHIP 20"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002290",
-      "name": "REMD TUT II-NON GSHIP 20"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002382",
-      "name": "K-12 ASST-NON GSHIP/NONREP"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002850",
-      "name": "READER-GSHIP 18"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002851",
-      "name": "READER-NON GSHIP 18"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002852",
-      "name": "SPECIAL READER-UCLA-GSHIP"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002853",
-      "name": "SPECIAL READER-UCLA-NON GSHIP"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002854",
-      "name": "READER-GSHIP/NON REP 18"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002855",
-      "name": "READER-NON GSHIP/NON REP 18"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002860",
-      "name": "TUT-GSHIP"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002861",
-      "name": "TUT-NON GSHIP"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002862",
-      "name": "TUT-GSHIP/NON REP"
-    },
-    {
-      "cto": "c:456",
-      "@id": "002863",
-      "name": "TUT-NON GSHIP/NON REP"
-    },
-    {
-      "cto": "c:467",
-      "@id": "001501",
-      "name": "ASSOC IN ____-AY-GSHIP 19"
-    },
-    {
-      "cto": "c:467",
-      "@id": "001502",
-      "name": "ASSOC IN __-AY-NON-GSHIP 19"
-    },
-    {
-      "cto": "c:467",
-      "@id": "001506",
-      "name": "ASSOC IN __ -AY-1/9-GSHIP 19"
-    },
-    {
-      "cto": "c:467",
-      "@id": "001507",
-      "name": "ASSOC IN__-AY- 1/9 -NON-GSHIP 19"
-    },
-    {
-      "cto": "c:467",
-      "@id": "001508",
-      "name": "ASSOC IN __ -AY-1/10-GSHIP 19"
-    },
-    {
-      "cto": "c:467",
-      "@id": "001509",
-      "name": "ASSOC IN__-AY- 1/10 -NON-GSHIP 19"
-    },
-    {
-      "cto": "c:467",
-      "@id": "001511",
-      "name": "ASSOC IN __- FY-GSHIP 19"
-    },
-    {
-      "cto": "c:467",
-      "@id": "001512",
-      "name": "ASSOC IN __-FY-NON-GSHIP 19"
-    },
-    {
-      "cto": "c:520",
-      "@id": "003100",
-      "name": "ASTRONOMER 2"
-    },
-    {
-      "cto": "c:520",
-      "@id": "003110",
-      "name": "ASSOC ASTRONOMER 2"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003000",
-      "name": "AGRON AES 2"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003001",
-      "name": "AGRON AES-SFT-VM 7"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003010",
-      "name": "ASSOC AGRON AES 2"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003011",
-      "name": "ASSOC AGRON AES-SFT-VM 7"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003012",
-      "name": "AGRON AES-B/E/E 4"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003013",
-      "name": "ASSOC AGRON AES-B/E/E 4"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003060",
-      "name": "AGRON AES-AY 1"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003062",
-      "name": "AGRON AES-B/E/E-AY 3"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003070",
-      "name": "ASSOC AGRON AES-AY 1"
-    },
-    {
-      "cto": "c:530",
-      "@id": "003072",
-      "name": "ASSOC AGRON AES-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:531",
-      "@id": "003015",
-      "name": "ASST AGRON AES-B/E/E 4"
-    },
-    {
-      "cto": "c:531",
-      "@id": "003020",
-      "name": "ASST AGRON AES 2"
-    },
-    {
-      "cto": "c:531",
-      "@id": "003021",
-      "name": "ASST AGRON AES-SFT-VM 7"
-    },
-    {
-      "cto": "c:531",
-      "@id": "003080",
-      "name": "ASST AGRON AES-AY 1"
-    },
-    {
-      "cto": "c:531",
-      "@id": "003082",
-      "name": "ASST AGRON AES-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003007",
-      "name": "ACT AGRON AES 2"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003009",
-      "name": "ACT AGRON AES-SFT-VM 7"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003017",
-      "name": "ACT ASSOC AGRON AES 2"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003019",
-      "name": "ACT ASSOC AGRON AES-SFT-VM 7"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003027",
-      "name": "ACT ASST AGRON AES 2"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003029",
-      "name": "ACT ASST AGRON AES-SFT-VM 7"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003044",
-      "name": "ACT AGRON AES-B/E/E 4"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003045",
-      "name": "ACT ASSOC AGRON AES-B/E/E 4"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003046",
-      "name": "ACT ASST AGRON AES-B/E/E 4"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003064",
-      "name": "ACT AGRON AES-AY 1"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003066",
-      "name": "ACT AGRON AES-B/E/E-AY 3"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003074",
-      "name": "ACT ASSOC AGRON AES-AY 1"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003076",
-      "name": "ACT ASSOC AGRON AES-B/E/E-AY 3"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003084",
-      "name": "ACT ASST AGRON AES-AY 1"
-    },
-    {
-      "cto": "c:534",
-      "@id": "003086",
-      "name": "ACT ASST AGRON AES-B/E/E/-AY 3"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001935",
-      "name": "RES SCRIPPS-AY"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001936",
-      "name": "ASSOC RES SCRIPPS-AY"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001937",
-      "name": "ASST RES SCRIPPS-AY"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001981",
-      "name": "RES-LR SCL-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001982",
-      "name": "RES-LR SCL-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001983",
-      "name": "ASSOC RES-LR SCL-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001984",
-      "name": "ASSOC RES-LR SCL-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001985",
-      "name": "ASST RES-LR SCL-AY-B/E/E 3"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001986",
-      "name": "ASST RES-LR SCL-AY-1/9-B/E/E 3"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001987",
-      "name": "RES-FY-B/E/E 14B"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001988",
-      "name": "ASSOC RES-FY-B/E/E 14B"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001989",
-      "name": "ASST RES-FY-B/E/E 14B"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001990",
-      "name": "RES-LR SCL-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001991",
-      "name": "ASSOC RES-LR SCL-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001992",
-      "name": "ASST RES-LR SCL-FY-B/E/E 4"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001993",
-      "name": "RES-FY-B/E/E-NON REP 14A"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001994",
-      "name": "ASSOC RES-FY-B/E/E-NON REP 14A"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001995",
-      "name": "ASST RES-FY-B/E/E-NON REP 14A"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001997",
-      "name": "RES-FY-B/E/E NEX 14B(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001998",
-      "name": "ASSOC RES-FY-B/E/E NEX 14B(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "001999",
-      "name": "ASST RES-FY-B/E/E NEX 14B(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "002007",
-      "name": "RES-FY-B/E/E NEX NON REP 14A(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "002008",
-      "name": "ASSOC RES-FY-B/E/E NEX NON REP 14A(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "002009",
-      "name": "ASST RES-FY-B/E/E NEX NON REP 14A(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003170",
-      "name": "RES-FY NEX 13B(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003171",
-      "name": "RES-FY NEX NON REP 13A(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003176",
-      "name": "RES-SFT NEX"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003180",
-      "name": "ASSOC RES-FY NEX 13B(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003181",
-      "name": "ASSOC RES-FY NEX NON REP 13A(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003186",
-      "name": "ASSOC RES-SFT NEX"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003190",
-      "name": "ASST RES-FY NEX 13B(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003191",
-      "name": "ASST RES-FY NEX NON REP 13A(N)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003196",
-      "name": "ASST RES-SFT NEX"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003200",
-      "name": "RES-FY 13B"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003201",
-      "name": "RES-LR SCL-FY 2"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003202",
-      "name": "RES (WOS)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003203",
-      "name": "RES-LR SCL-AY 1"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003205",
-      "name": "RES-LR SCL-AY-1/9 1"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003206",
-      "name": "RES-SFT"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003207",
-      "name": "RES-FY-NON REP 13A"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003210",
-      "name": "ASSOC RES-FY 13B"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003211",
-      "name": "ASSOC RES-LR SCL-FY 2"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003212",
-      "name": "ASSOC RES (WOS)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003213",
-      "name": "ASSOC RES-LR SCL-AY 1"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003215",
-      "name": "ASSOC RES-LR SCL-AY-1/9 1"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003216",
-      "name": "ASSOC RES-SFT"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003217",
-      "name": "ASSOC RES-FY-NON REP 13A"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003220",
-      "name": "ASST RES-FY 13B"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003221",
-      "name": "ASST RES-LR SCL-FY 2"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003222",
-      "name": "ASST RES (WOS)"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003223",
-      "name": "ASST RES-LR SCL-AY 1"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003225",
-      "name": "ASST RES-LR SCL-AY-1/9 1"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003226",
-      "name": "ASST RES-SFT"
-    },
-    {
-      "cto": "c:541",
-      "@id": "003227",
-      "name": "ASST RES-FY-NON REP 13A"
-    },
-    {
-      "cto": "c:543",
-      "@id": "003178",
-      "name": "VIS RES NEX 13A(N)*"
-    },
-    {
-      "cto": "c:543",
-      "@id": "003188",
-      "name": "VIS ASSOC RES NEX 13A(N)*"
-    },
-    {
-      "cto": "c:543",
-      "@id": "003198",
-      "name": "VIS ASST RES NEX 13A(N)*"
-    },
-    {
-      "cto": "c:543",
-      "@id": "003208",
-      "name": "VIS RES 13A*"
-    },
-    {
-      "cto": "c:543",
-      "@id": "003218",
-      "name": "VIS ASSOC RES 13A*"
-    },
-    {
-      "cto": "c:543",
-      "@id": "003228",
-      "name": "VIS ASST RES 13A*"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003300",
-      "name": "SPECIALIST 24B"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003301",
-      "name": "SPECIALIST NEX 24B(N)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003302",
-      "name": "SPECIALIST (WOS)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003303",
-      "name": "SPECIALIST NON REP 24A"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003304",
-      "name": "SPECIALIST NEX NON REP 24A(N)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003310",
-      "name": "ASSOC SPECIALIST 24B"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003311",
-      "name": "ASSOC SPECIALIST NEX 24B(N)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003312",
-      "name": "ASSOC SPECIALIST (WOS)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003313",
-      "name": "ASSOC SPECIALIST NON REP 24A"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003314",
-      "name": "ASSOC SPECIALIST NEX NON REP 24A(N)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003320",
-      "name": "ASST SPECIALIST 24B"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003321",
-      "name": "ASST SPECIALIST NEX 24B(N)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003322",
-      "name": "ASST SPECIALIST (WOS)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003323",
-      "name": "ASST SPECIALIST NON REP 24A"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003324",
-      "name": "ASST SPECIALIST NEX NON REP 24A(N)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003328",
-      "name": "JR SPECIALIST (WOS)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003329",
-      "name": "JR SPECIALIST NEX 24B(N)"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003330",
-      "name": "JR SPECIALIST 24B"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003333",
-      "name": "JR SPECIALIST NON REP 24A"
-    },
-    {
-      "cto": "c:551",
-      "@id": "003334",
-      "name": "JR SPECIALIST NEX NON REP 24A(N)"
-    },
-    {
-      "cto": "c:553",
-      "@id": "003305",
-      "name": "VIS SPECIALIST 24A*"
-    },
-    {
-      "cto": "c:553",
-      "@id": "003306",
-      "name": "VIS SPECIALIST NEX 24A(N)*"
-    },
-    {
-      "cto": "c:553",
-      "@id": "003315",
-      "name": "VIS ASSOC SPECIALIST 24A*"
-    },
-    {
-      "cto": "c:553",
-      "@id": "003316",
-      "name": "VIS ASSOC SPECIALIST NEX 24A(N)*"
-    },
-    {
-      "cto": "c:553",
-      "@id": "003325",
-      "name": "VIS ASST SPECIALIST 24A*"
-    },
-    {
-      "cto": "c:553",
-      "@id": "003326",
-      "name": "VIS ASST SPECIALIST NEX 24A(N)*"
-    },
-    {
-      "cto": "c:553",
-      "@id": "003335",
-      "name": "VIS JR SPECIALIST 24A*"
-    },
-    {
-      "cto": "c:553",
-      "@id": "003336",
-      "name": "VIS JR SPECIALIST NEX 24A(N)*"
-    },
-    {
-      "cto": "c:557",
-      "@id": "003004",
-      "name": "SPECIALIST AES 24A"
-    },
-    {
-      "cto": "c:557",
-      "@id": "003014",
-      "name": "ASSOC SPECIALIST AES 24A"
-    },
-    {
-      "cto": "c:557",
-      "@id": "003024",
-      "name": "ASST SPECIALIST AES 24A"
-    },
-    {
-      "cto": "c:557",
-      "@id": "003104",
-      "name": "SPECIALIST AES NEX 24A(N)"
-    },
-    {
-      "cto": "c:557",
-      "@id": "003114",
-      "name": "ASSOC SPECIALIST AES NEX 24A(N)"
-    },
-    {
-      "cto": "c:557",
-      "@id": "003124",
-      "name": "ASST SPECIALIST AES NEX 24A(N)"
-    },
-    {
-      "cto": "c:566",
-      "@id": "003290",
-      "name": "RES PROF-MILLER INST-AY 1"
-    },
-    {
-      "cto": "c:566",
-      "@id": "003291",
-      "name": "RES PROF-MILLER INST-FY 2"
-    },
-    {
-      "cto": "c:566",
-      "@id": "003292",
-      "name": "ASSOC RES PROF-MILLER INST-AY 1"
-    },
-    {
-      "cto": "c:566",
-      "@id": "003293",
-      "name": "ASSOC RES PROF-MILLER INST-FY 2"
-    },
-    {
-      "cto": "c:566",
-      "@id": "003297",
-      "name": "CHI GREEN SCHOLAR-UCSD"
-    },
-    {
-      "cto": "c:575",
-      "@id": "003252",
-      "name": "POSTDOC-EMPLOYEE 23"
-    },
-    {
-      "cto": "c:575",
-      "@id": "003253",
-      "name": "POSTDOC-FELLOW 23"
-    },
-    {
-      "cto": "c:575",
-      "@id": "003254",
-      "name": "POSTDOC-PAID DIRECT 23"
-    },
-    {
-      "cto": "c:575",
-      "@id": "003255",
-      "name": "POSTDOC-EMPLOYEE NEX 23N"
-    },
-    {
-      "cto": "c:575",
-      "@id": "003256",
-      "name": "INTRM POSTDOC SCHOLAR-EMPLOYEE 23"
-    },
-    {
-      "cto": "c:577",
-      "@id": "003237",
-      "name": "FACULTY FELLOW RES-AY"
-    },
-    {
-      "cto": "c:577",
-      "@id": "003238",
-      "name": "FACULTY FELLOW RES-AY-1/9"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003390",
-      "name": "PROJ SCIENTIST-FY 37B"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003391",
-      "name": "PROJ SCIENTIST-FY-B/E/E 38B"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003392",
-      "name": "ASSOC PROJ SCIENTIST-FY 37B"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003393",
-      "name": "ASSOC PROJ SCIENTIST-FY-B/E/E 38B"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003394",
-      "name": "ASST PROJ SCIENTIST-FY 37B"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003395",
-      "name": "ASST PROJ SCIENTIST-FY-B/E/E 38B"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003403",
-      "name": "PROJ SCIENTIST-FY NON REP 37A"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003404",
-      "name": "PROJ SCIENTIST-FY-B/E/E NONREP 38A"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003405",
-      "name": "ASSOC PROJ SCI-FY NON REP 37A"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003406",
-      "name": "ASSOC PROJ SCI-FY-B/E/E NONREP 38A"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003407",
-      "name": "ASST PROJ SCIENTIST-FY NON REP 37A"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003408",
-      "name": "ASST PROJ SCI-FY-B/E/E NON REP 38A"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003413",
-      "name": "PROJ SCI-FY NEX NON REP 37A(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003414",
-      "name": "PROJ SCI-FY-B/E/E NEX NON REP 38A(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003415",
-      "name": "ASSOC PROJ SCI-FY NEX NON REP 37A(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003416",
-      "name": "ASSOC PROJSC-FY-BEE NEX NONREP 38A(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003417",
-      "name": "ASST PROJ SCI-FY NEX NON REP 37A(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003418",
-      "name": "ASST PROJSCI-FY-BEE NEX NONREP 38A(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003487",
-      "name": "PROJ SCIENTIST (WOS)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003488",
-      "name": "ASSOC PROJ SCIENTIST (WOS)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003489",
-      "name": "ASST PROJ SCIENTIST (WOS)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003490",
-      "name": "PROJ SCIENTIST-FY NEX 37B(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003491",
-      "name": "PROJ SCIENTIST-FY-B/E/E NEX 38B(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003492",
-      "name": "ASSOC PROJ SCIENTIST-FY NEX 37B(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003493",
-      "name": "ASSOC PROJ SCNTST-FY-B/E/E NEX 38B(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003494",
-      "name": "ASST PROJ SCIENTIST-FY NEX 37B(N)"
-    },
-    {
-      "cto": "c:581",
-      "@id": "003495",
-      "name": "ASST PROJ SCNTST-FY-B/E/E NEX 38B(N)"
-    },
-    {
-      "cto": "c:583",
-      "@id": "003396",
-      "name": "VIS PROJ SCIENTIST 37A*"
-    },
-    {
-      "cto": "c:583",
-      "@id": "003397",
-      "name": "VIS ASSOC PROJ SCIENTIST 37A*"
-    },
-    {
-      "cto": "c:583",
-      "@id": "003398",
-      "name": "VIS ASST PROJ SCIENTIST 37A*"
-    },
-    {
-      "cto": "c:583",
-      "@id": "003496",
-      "name": "VIS PROJ SCIENTIST NEX 37A(N)*"
-    },
-    {
-      "cto": "c:583",
-      "@id": "003497",
-      "name": "VIS ASSOC PROJ SCIENTIST NEX 37A(N)*"
-    },
-    {
-      "cto": "c:583",
-      "@id": "003498",
-      "name": "VIS ASST PROJ SCIENTIST NEX 37A(N)*"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003602",
-      "name": "LIBRARIAN-CAREER NON REP 26A"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003603",
-      "name": "LIBRARIAN-POTNTLCAREER NON REP 26A"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003604",
-      "name": "ASSOC LIBRARIAN-CAREER NON REP 26A"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003605",
-      "name": "ASSOC LIBRARIAN-POTLCAR NONREP 26A"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003606",
-      "name": "ASST LIBRARIAN-CAREER NON REP 26A"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003607",
-      "name": "ASST LIBRARIAN-POTLCAR NONREP 26A"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003612",
-      "name": "LIBRARIAN-CAREER STATUS 26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "CAREER",
-      "name": "STATUS 26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003614",
-      "name": "LIBRARIAN-TEMP STATUS 26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003616",
-      "name": "ASSOC LIBRARIAN -CAREER STATUS 26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "CAREER",
-      "name": "26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003618",
-      "name": "ASSOC LIBRARIAN-TEMP STATUS 26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003620",
-      "name": "ASST LIBRARIAN-CAREER STATUS 26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "CAREER",
-      "name": "26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003622",
-      "name": "ASST LIBRARIAN-TEMP STATUS 26B"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003662",
-      "name": "LIBRARIAN-CAREER STATUS NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:621",
-      "@id": "CAREER",
-      "name": "NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003664",
-      "name": "LIBRARIAN-TEMP STATUS NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003666",
-      "name": "ASSOC LIBRARIAN-CAREER NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003667",
-      "name": "ASSOC LIBRARIAN-POTNTL CAR NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003668",
-      "name": "ASSOC LIBRARIAN-TEMP NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003670",
-      "name": "ASST LIBRARIAN-CAREER NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003671",
-      "name": "ASST LIBRARIAN-POTNTL CAR NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:621",
-      "@id": "003672",
-      "name": "ASST LIBRARIAN-TEMP STATUS NEX 26A/B(N)"
-    },
-    {
-      "cto": "c:623",
-      "@id": "003615",
-      "name": "VIS LIBRARIAN 26A*"
-    },
-    {
-      "cto": "c:623",
-      "@id": "003665",
-      "name": "VIS LIBRARIAN NEX 26A(N)*"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003600",
-      "name": "ASSOC UNIV LIBRARIAN 27"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003601",
-      "name": "ASSOC UNIV LIBRARIAN NEX 27N"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003610",
-      "name": "ASST UNIV LIBRARIAN 27"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003611",
-      "name": "ASST UNIV LIBRARIAN NEX 27N"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003635",
-      "name": "LAW LIBRARIAN"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003636",
-      "name": "LAW LIBRARIAN NEX"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003637",
-      "name": "ASST LAW LIBRARIAN"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003638",
-      "name": "ASST LAW LIBRARIAN NEX"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003639",
-      "name": "ASSOC LAW LIBRARIAN"
-    },
-    {
-      "cto": "c:627",
-      "@id": "003640",
-      "name": "ASSOC LAW LIBRARIAN NEX"
-    },
-    {
-      "cto": "c:728",
-      "@id": "003441",
-      "name": "COOP EXT ADVISOR 28"
-    },
-    {
-      "cto": "c:728",
-      "@id": "003442",
-      "name": "COOP EXT ADVISOR NEX 28N"
-    },
-    {
-      "cto": "c:728",
-      "@id": "003451",
-      "name": "ASSOC COOP EXT ADVISOR 28"
-    },
-    {
-      "cto": "c:728",
-      "@id": "003452",
-      "name": "ASSOC COOP EXT ADVISOR NEX 28N"
-    },
-    {
-      "cto": "c:728",
-      "@id": "003461",
-      "name": "ASST COOP EXT ADVISOR 28"
-    },
-    {
-      "cto": "c:728",
-      "@id": "003462",
-      "name": "ASST COOP EXT ADVISOR NEX 28N"
-    },
-    {
-      "cto": "c:729",
-      "@id": "003475",
-      "name": "ASST SPECIALIST COOP EXT 29"
-    },
-    {
-      "cto": "c:729",
-      "@id": "003476",
-      "name": "ASST SPECIALIST COOP EXT NEX 29N"
-    },
-    {
-      "cto": "c:729",
-      "@id": "003477",
-      "name": "ASSOC SPECIALIST COOP EXT 29"
-    },
-    {
-      "cto": "c:729",
-      "@id": "003478",
-      "name": "ASSOC SPECIALIST COOP EXT NEX 29N"
-    },
-    {
-      "cto": "c:729",
-      "@id": "003479",
-      "name": "SPECIALIST COOP EXT 29"
-    },
-    {
-      "cto": "c:729",
-      "@id": "003480",
-      "name": "SPECIALIST COOP EXT NEX 29N"
-    },
-    {
-      "cto": "c:825",
-      "@id": "003520",
-      "name": "CONTINUING EDUCATOR I 31"
-    },
-    {
-      "cto": "c:825",
-      "@id": "003521",
-      "name": "CONTINUING EDUCATOR II 31"
-    },
-    {
-      "cto": "c:825",
-      "@id": "003522",
-      "name": "CONTINUING EDUCATOR III 31"
-    },
-    {
-      "cto": "c:825",
-      "@id": "003530",
-      "name": "CONTINUING EDUCATOR I NEX 31N"
-    },
-    {
-      "cto": "c:825",
-      "@id": "003531",
-      "name": "CONTINUING EDUCATOR II NEX 31N"
-    },
-    {
-      "cto": "c:825",
-      "@id": "003532",
-      "name": "CONTINUING EDUCATOR III NEX 31N"
-    },
-    {
-      "cto": "c:828",
-      "@id": "003539",
-      "name": "PROGRAM COORDINATOR NEX"
-    },
-    {
-      "cto": "c:828",
-      "@id": "003540",
-      "name": "PROG COORD"
-    },
-    {
-      "cto": "c:828",
-      "@id": "003570",
-      "name": "TEACHER-UNEX-CONTRACT YR"
-    },
-    {
-      "cto": "c:828",
-      "@id": "003572",
-      "name": "ASST TEACHER-UNEX"
-    },
-    {
-      "cto": "c:828",
-      "@id": "003574",
-      "name": "TEACHER-UNEX"
-    },
-    {
-      "cto": "c:828",
-      "@id": "003575",
-      "name": "SPEAKER-UNEX"
-    },
-    {
-      "cto": "c:828",
-      "@id": "COURSE",
-      "name": "AUTHOR-UNEX"
-    },
-    {
-      "cto": "c:828",
-      "@id": "COURSE",
-      "name": "AUTHOR-UNEX NEX"
-    },
-    {
-      "cto": "c:927",
-      "@id": "001070",
-      "name": "DIRECTOR-EAP STUDY CENTER"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003230",
-      "name": "FLD PROG SUPV"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003234",
-      "name": "ASSOC FLD PROG SUPV"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003557",
-      "name": "COORD PUB PROG NON REP 30A"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003558",
-      "name": "COORD PUBLIC PROG 30B"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003559",
-      "name": "ASSOC COORD PUB PROG NON REP 30A"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003560",
-      "name": "ASSOC COORD PUBLIC PROG 30B"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003561",
-      "name": "ASST COORD PUB PROG NON REP 30A"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003562",
-      "name": "ASST COORD PUBLIC PROG 30B"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003650",
-      "name": "CURATOR 1"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003651",
-      "name": "ASSOC CURATOR 1"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003652",
-      "name": "ASST CURATOR 1"
-    },
-    {
-      "cto": "c:927",
-      "@id": "003700",
-      "name": "FACULTY CONSULTANT"
-    },
-    {
-      "cto": "c:928",
-      "@id": "000800",
-      "name": "ACADEMIC ASST TO VICE CHANC"
-    },
-    {
-      "cto": "c:928",
-      "@id": "000801",
-      "name": "ACADEMIC ASST TO CHANC"
-    },
-    {
-      "cto": "c:928",
-      "@id": "000802",
-      "name": "ASST VICE CHANC"
-    },
-    {
-      "cto": "c:928",
-      "@id": "000803",
-      "name": "ASSOC VICE CHANC"
-    },
-    {
-      "cto": "c:928",
-      "@id": "000804",
-      "name": "ACT/INTERIM ASSOC VICE CHANC"
-    },
-    {
-      "cto": "c:928",
-      "@id": "000810",
-      "name": "GRADUATE ADVISOR"
-    },
-    {
-      "cto": "c:928",
-      "@id": "000812",
-      "name": "FACULTY ADVISOR"
-    },
-    {
-      "cto": "c:928",
-      "@id": "000880",
-      "name": "OMBUDSMAN-ACAD"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001044",
-      "name": "FACULTY ASST TO CHANC"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001045",
-      "name": "FACULTY ASST TO VICE CHANC"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001055",
-      "name": "FACULTY ASST TO PROVOST/DEAN"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001059",
-      "name": "CHAIR-SEN ASMBLY&ACADEMIC CNCL"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001650",
-      "name": "LECT-MISCELLANEOUS/PART TIME"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001675",
-      "name": "EDUCATOR (WOS)"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001958",
-      "name": "REGENTS' PROF"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001968",
-      "name": "REGENTS' LECT"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001969",
-      "name": "HHMI INVESTIGATOR"
-    },
-    {
-      "cto": "c:928",
-      "@id": "001970",
-      "name": "LUDWIG INVESTIGATOR"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002081",
-      "name": "CLIN ASSOCIATE-FY"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002210",
-      "name": "DEMO TEACHER"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002211",
-      "name": "DEMO TEACHER-CONTINUING"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002284",
-      "name": "CHILD DEV DEMO LECT-CONTINUING 16"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002285",
-      "name": "CHILD DEV DEMO LECT 15"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002427",
-      "name": "SUBSTITUTE TEACHER"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002428",
-      "name": "SUBSTITUTE TEACHER-CONTINUING"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002430",
-      "name": "GEFFEN K-12 INSTRUCTOR-AY"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002431",
-      "name": "GEFFEN K-12 INSTRUCTOR-AY-CONT"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002432",
-      "name": "GEFFEN K-12 INSTRUCTOR-AY-1/10"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002433",
-      "name": "GEFFEN K-12 INSTR-AY-1/10-CONT"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002434",
-      "name": "GEFFEN K-12 INSTR SUMMER PROG"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002440",
-      "name": "K-12 INSTRUCTOR-AY"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002441",
-      "name": "K-12 INSTRUCTOR-AY-1/10"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002442",
-      "name": "K-12 DAILY SUBSTITUTE/NONREP"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002447",
-      "name": "PREUSS K-12 COUNSELOR-AY"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002448",
-      "name": "PREUSS K-12 COUNSELOR-AY-1/10"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002460",
-      "name": "TEACHER-SPEC PROG"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002461",
-      "name": "TEACHER-SPEC PROG-CONTINUING"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002500",
-      "name": "READER-NON STDNT 18"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002510",
-      "name": "TUT-NON STDNT"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002520",
-      "name": "READER-NON STDNT/NON REP 18"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002521",
-      "name": "TUT-NON STDNT/NON REP"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002600",
-      "name": "MILITARY/AIR SCI&TACTICS ASST 25"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002650",
-      "name": "TEACHER-LHS"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002651",
-      "name": "TEACHER-LHS-CONTINUING"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002716",
-      "name": "INTERN-CLIN PSYCH-GENL CAMP 21"
-    },
-    {
-      "cto": "c:928",
-      "@id": "002741",
-      "name": "NON-PHYS CLIN TRAIN-GENL CAMP 21"
-    },
-    {
-      "cto": "c:928",
-      "@id": "003800",
-      "name": "NON-SENATE ACAD EMERITUS(WOS)"
-    },
-    {
-      "cto": "c:928",
-      "@id": "003802",
-      "name": "RECALL NON-FACULTY ACAD"
-    },
-    {
-      "cto": "c:928",
-      "@id": "003812",
-      "name": "RECALL NON-FACULTY ACAD NEX"
-    },
-    {
-      "cto": "c:928",
-      "@id": "003900",
-      "name": "FACULTY ADMIN TRANSITION LV-AY"
-    },
-    {
-      "cto": "c:928",
-      "@id": "003910",
-      "name": "FACULTY ADMIN TRANSITION LV-FY"
-    },
-    {
-      "cto": "c:928",
-      "@id": "003999",
-      "name": "MISCELLANEOUS"
-    },
-    {
-      "cto": "c:999",
-      "@id": "001092",
-      "name": "STIPEND-RESID"
-    },
-    {
-      "cto": "c:999",
-      "@id": "001098",
-      "name": "SUMMER DIFFERENTIAL"
-    },
-    {
-      "cto": "c:999",
-      "@id": "001099",
-      "name": "ADMIN STIPEND"
-    },
-    {
-      "cto": "c:999",
-      "@id": "002735",
-      "name": "STIPEND-OTH POST-MD TRAIN"
-    },
-    {
-      "cto": "c:999",
-      "@id": "003990",
-      "name": "ADDL COMP-HGH&OLIVE VIEW MCS"
-    },
-    {
-      "cto": "c:999",
-      "@id": "003993",
-      "name": "FACULTY RECRUITMENT ALLOW 40"
-    },
-    {
-      "cto": "c:999",
-      "@id": "003995",
-      "name": "EAP-TEMP FACULTY HOUSING ALLOW"
-    },
-    {
-      "cto": "c:999",
-      "@id": "003998",
-      "name": "SALARY SUPPLEMENTATION"
-    },
-    {
-      "cto": "c:CWR",
-      "@id": "CWR003",
-      "name": "VISITING STUDENT RES-GRADUATE"
-    },
-    {
-      "cto": "c:CWR",
-      "@id": "CWR007",
-      "name": "CLIN ASSOC/ADMITTING PHYSICIAN"
-    },
-    {
-      "cto": "c:CWR",
-      "@id": "CWR015",
-      "name": "VISITING SCHOLAR"
-    },
-    {
-      "cto": "c:CWR",
-      "@id": "CWR016",
-      "name": "VISITING STUDENT RES-UNDERGRAD"
-    },
-    {
-      "cto": "c:CWR",
-      "@id": "CWR021",
-      "name": "RESEARCH FELLOW"
-    },
-    {
-      "cto": "c:CWR",
-      "@id": "CWR022",
-      "name": "RESEARCH ASSOCIATE"
-    },
-    {
-      "cto": "c:S21",
-      "@id": "001000",
-      "name": "DEAN DEAN"
-    },
-    {
-      "cto": "c:S21",
-      "@id": "001010",
-      "name": "ASSOC DEAN"
-    },
-    {
-      "cto": "c:S21",
-      "@id": "001011",
-      "name": "ASSOC DEAN-AY"
-    },
-    {
-      "cto": "c:S21",
-      "@id": "001020",
-      "name": "ASST DEAN"
-    },
-    {
-      "cto": "c:S21",
-      "@id": "001040",
-      "name": "DEAN-EXTENDED LEARNING"
-    },
-    {
-      "cto": "c:S24",
-      "@id": "001007",
-      "name": "ACT/INTERIM DEAN DEAN"
-    },
-    {
-      "cto": "c:S24",
-      "@id": "001017",
-      "name": "ACT/INTERIM ASSOC DEAN"
-    },
-    {
-      "cto": "c:S24",
-      "@id": "001027",
-      "name": "ACT/INTERIM ASSISTANT DEAN"
-    },
-    {
-      "cto": "c:S24",
-      "@id": "001037",
-      "name": "ACT/INTERIM DIVISIONAL DEAN"
-    },
-    {
-      "cto": "c:S24",
-      "@id": "001047",
-      "name": "ACT/INTERIM COLLEGE PROVOST"
-    },
-    {
-      "cto": "c:S24",
-      "@id": "001077",
-      "name": "ACT/INTERIM VICE PROVOST"
-    },
-    {
-      "cto": "c:S24",
-      "@id": "001087",
-      "name": "ACT/INTERIM ASSOC VICE PROVOST"
-    },
-    {
-      "cto": "c:S26",
-      "@id": "001030",
-      "name": "DIVISIONAL DEAN"
-    },
-    {
-      "cto": "c:S26",
-      "@id": "001032",
-      "name": "ASSOC DIVISIONAL DEAN"
-    },
-    {
-      "cto": "c:S27",
-      "@id": "001051",
-      "name": "ASST COLLEGE PROVOST"
-    },
-    {
-      "cto": "c:S27",
-      "@id": "001052",
-      "name": "ASSOC COLLEGE PROVOST"
-    },
-    {
-      "cto": "c:S27",
-      "@id": "001060",
-      "name": "COLLEGE PROVOST"
-    },
-    {
-      "cto": "c:S27",
-      "@id": "001068",
-      "name": "VICE PROVOST"
-    },
-    {
-      "cto": "c:S27",
-      "@id": "001069",
-      "name": "ASSOC VICE PROVOST"
-    },
-    {
-      "cto": "c:S31",
-      "@id": "000900",
-      "name": "DIRECTOR"
-    },
-    {
-      "cto": "c:S31",
-      "@id": "000910",
-      "name": "ASSOC DIRECTOR"
-    },
-    {
-      "cto": "c:S31",
-      "@id": "000920",
-      "name": "ASST DIRECTOR"
-    },
-    {
-      "cto": "c:S34",
-      "@id": "000907",
-      "name": "ACT/INTERIM DIRECTOR"
-    },
-    {
-      "cto": "c:S34",
-      "@id": "000917",
-      "name": "ACT/INTERIM ASSOC DIRECTOR"
-    },
-    {
-      "cto": "c:S34",
-      "@id": "000927",
-      "name": "ACT/INTERIM ASST DIRECTOR"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000840",
-      "name": "ACADEMIC COORD I-AY 35"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000841",
-      "name": "ACADEMIC COORD I-FY 36"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000842",
-      "name": "ACADEMIC COORD II-AY 35"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000843",
-      "name": "ACADEMIC COORD II-FY 36"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000844",
-      "name": "ACADEMIC COORD III-AY 35"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000845",
-      "name": "ACADEMIC COORD III-FY 36"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000850",
-      "name": "ACADEMIC COORD I-AY NEX **"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000851",
-      "name": "ACADEMIC COORD I-FY NEX 36N"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000852",
-      "name": "ACADEMIC COORD II-AY NEX **"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000853",
-      "name": "ACADEMIC COORD II-FY NEX 36N"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000854",
-      "name": "ACADEMIC COORD III-AY NEX **"
-    },
-    {
-      "cto": "c:S46",
-      "@id": "000855",
-      "name": "ACADEMIC COORD III-FY NEX 36N"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "000961",
-      "name": "ACADEMIC ADMINISTRATOR I NEX 34N"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "000962",
-      "name": "ACADEMIC ADMINISTRATOR II NEX 34N"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "000963",
-      "name": "ACADEMIC ADMINISTRATOR III NEX 34N"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "000964",
-      "name": "ACADEMIC ADMINISTRATOR IV NEX 34N"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "000965",
-      "name": "ACADEMIC ADMINISTRATOR V NEX 34N"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "000966",
-      "name": "ACADEMIC ADMINISTRATOR VI NEX 34N"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "000967",
-      "name": "ACADEMIC ADMINISTRATOR VII NEX 34N"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "001061",
-      "name": "ACADEMIC ADMINISTRATOR I 34"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "001062",
-      "name": "ACADEMIC ADMINISTRATOR II 34"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "001063",
-      "name": "ACADEMIC ADMINISTRATOR III 34"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "001064",
-      "name": "ACADEMIC ADMINISTRATOR IV 34"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "001065",
-      "name": "ACADEMIC ADMINISTRATOR V 34"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "001066",
-      "name": "ACADEMIC ADMINISTRATOR VI 34"
-    },
-    {
-      "cto": "c:S56",
-      "@id": "001067",
-      "name": "ACADEMIC ADMINISTRATOR VII 34"
-    },
-    {
-      "cto": "c:S61",
-      "@id": "001094",
-      "name": "DEPARTMENT VICE CHAIR"
-    },
-    {
-      "cto": "c:S61",
-      "@id": "001096",
-      "name": "DEPARTMENT CHAIR"
-    },
-    {
-      "cto": "c:S64",
-      "@id": "001095",
-      "name": "ACT/INTERIM DEPARTMENT CHAIR"
-    }
+    [
+      {
+        "name": "ASSOC PROF-AY",
+        "@id": "001200",
+        "cto": "c:010",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF-AY-1/9",
+        "@id": "001203",
+        "cto": "c:010",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF-AY-1/9-B/E/E",
+        "@id": "001245",
+        "cto": "c:010",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF-AY-B/E/E",
+        "@id": "001243",
+        "cto": "c:010",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF-FY",
+        "@id": "001210",
+        "cto": "c:010",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF-FY-B/E/E",
+        "@id": "001244",
+        "cto": "c:010",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF-HCOMP",
+        "@id": "001719",
+        "cto": "c:010",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF-SFT-VM",
+        "@id": "001899",
+        "cto": "c:010",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "PROF-AY",
+        "@id": "001100",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-AY-1/9",
+        "@id": "001103",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-AY-1/9-B/E/E",
+        "@id": "001145",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-AY-1/9-LAW",
+        "@id": "001181",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-AY-B/E/E",
+        "@id": "001143",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-AY-LAW",
+        "@id": "001180",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-FY",
+        "@id": "001110",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-FY-B/E/E",
+        "@id": "001144",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-HCOMP",
+        "@id": "001721",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF-SFT-VM",
+        "@id": "001901",
+        "cto": "c:010",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "UNIV PROF",
+        "@id": "001104",
+        "cto": "c:010",
+        "prefLabel": "University Professor"
+      },
+      {
+        "name": "ASST PROF-AY",
+        "@id": "001300",
+        "cto": "c:011",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF-AY-1/9",
+        "@id": "001303",
+        "cto": "c:011",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF-AY-1/9-B/E/E",
+        "@id": "001345",
+        "cto": "c:011",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF-AY-B/E/E",
+        "@id": "001343",
+        "cto": "c:011",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF-FY",
+        "@id": "001310",
+        "cto": "c:011",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF-FY-B/E/E",
+        "@id": "001344",
+        "cto": "c:011",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF-HCOMP",
+        "@id": "001717",
+        "cto": "c:011",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF-SFT-VM",
+        "@id": "001897",
+        "cto": "c:011",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "INSTR-AY-1/9",
+        "@id": "001403",
+        "cto": "c:011",
+        "prefLabel": "Instructor"
+      },
+      {
+        "name": "INSTR-HCOMP",
+        "@id": "001715",
+        "cto": "c:011",
+        "prefLabel": "Instructor"
+      },
+      {
+        "name": "INSTR-SFT-VM",
+        "@id": "001895",
+        "cto": "c:011",
+        "prefLabel": "Instructor"
+      },
+      {
+        "name": "RECALL FACULTY",
+        "@id": "001702",
+        "cto": "c:012",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "RECALL HCOMP",
+        "@id": "001701",
+        "cto": "c:012",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "RECALL TEACHING",
+        "@id": "001700",
+        "cto": "c:012",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "RECALL TEACHING NON-SENATE",
+        "@id": "001699",
+        "cto": "c:012",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF EMERITUS(WOS)",
+        "@id": "001132",
+        "cto": "c:016",
+        "prefLabel": "Professor-Emeritus"
+      },
+      {
+        "name": "ACT ASSOC PROF-AY",
+        "@id": "001207",
+        "cto": "c:114",
+        "prefLabel": "Acting Associate Professor"
+      },
+      {
+        "name": "ACT ASSOC PROF-AY-1/9",
+        "@id": "001201",
+        "cto": "c:114",
+        "prefLabel": "Acting Associate Professor"
+      },
+      {
+        "name": "ACT ASSOC PROF-AY-1/9-B/E/E",
+        "@id": "001976",
+        "cto": "c:114",
+        "prefLabel": "Acting Associate Professor"
+      },
+      {
+        "name": "ACT ASSOC PROF-AY-B/E/E",
+        "@id": "001974",
+        "cto": "c:114",
+        "prefLabel": "Acting Associate Professor"
+      },
+      {
+        "name": "ACT ASSOC PROF-FY",
+        "@id": "001217",
+        "cto": "c:114",
+        "prefLabel": "Acting Associate Professor"
+      },
+      {
+        "name": "ACT ASSOC PROF-FY-B/E/E",
+        "@id": "001975",
+        "cto": "c:114",
+        "prefLabel": "Acting Associate Professor"
+      },
+      {
+        "name": "ACT ASSOC PROF-HCOMP",
+        "@id": "001540",
+        "cto": "c:114",
+        "prefLabel": "Acting Associate Professor"
+      },
+      {
+        "name": "ACT ASSOC PROF-SFT-VM",
+        "@id": "001900",
+        "cto": "c:114",
+        "prefLabel": "Acting Associate Professor"
+      },
+      {
+        "name": "ACT PROF-AY",
+        "@id": "001107",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-AY-1/9",
+        "@id": "001101",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-AY-1/9-B/E/E",
+        "@id": "001973",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-AY-1/9-LAW",
+        "@id": "001183",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-AY-B/E/E",
+        "@id": "001971",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-AY-LAW",
+        "@id": "001182",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-FY",
+        "@id": "001117",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-FY-B/E/E",
+        "@id": "001972",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-HCOMP",
+        "@id": "001542",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT PROF-SFT-VM",
+        "@id": "001902",
+        "cto": "c:114",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT ASST PROF-AY",
+        "@id": "001307",
+        "cto": "c:124",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT ASST PROF-AY-1/9",
+        "@id": "001301",
+        "cto": "c:124",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT ASST PROF-AY-1/9-B/E/E",
+        "@id": "001979",
+        "cto": "c:124",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT ASST PROF-AY-B/E/E",
+        "@id": "001977",
+        "cto": "c:124",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT ASST PROF-FY",
+        "@id": "001317",
+        "cto": "c:124",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT ASST PROF-FY-B/E/E",
+        "@id": "001978",
+        "cto": "c:124",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT ASST PROF-HCOMP",
+        "@id": "001564",
+        "cto": "c:124",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ACT ASST PROF-SFT-VM",
+        "@id": "001898",
+        "cto": "c:124",
+        "prefLabel": "Acting Professor"
+      },
+      {
+        "name": "ASSOC PROF OF TEACH-AY",
+        "@id": "001607",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF OF TEACH-AY-1/10",
+        "@id": "001614",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF OF TEACH-AY-1/9",
+        "@id": "001608",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF OF TEACH-AY-B/E/E",
+        "@id": "001687",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF OF TEACH-FY",
+        "@id": "001617",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF OF TEACH-FY-B/E/E",
+        "@id": "001690",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF OF TEACH-HCOMP",
+        "@id": "001618",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF OF TEACH-SFT-VM",
+        "@id": "001669",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF TEACH-AY-1/10-B/E/E",
+        "@id": "001673",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF TEACH-AY-1/9-B/E/E",
+        "@id": "001695",
+        "cto": "c:210",
+        "prefLabel": "Associate Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY",
+        "@id": "001603",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY-1/10",
+        "@id": "001612",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY-1/10-B/E/E",
+        "@id": "001672",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY-1/10-LAW",
+        "@id": "001658",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY-1/9",
+        "@id": "001604",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY-1/9-B/E/E",
+        "@id": "001692",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY-1/9-LAW",
+        "@id": "001656",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY-B/E/E",
+        "@id": "001686",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-AY-LAW",
+        "@id": "001693",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-FY",
+        "@id": "001613",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-FY-B/E/E",
+        "@id": "001689",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-HCOMP",
+        "@id": "001619",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "PROF OF TEACH-SFT-VM",
+        "@id": "001668",
+        "cto": "c:210",
+        "prefLabel": "Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-AY",
+        "@id": "001680",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-AY-1/10",
+        "@id": "001678",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-AY-1/10-LAW",
+        "@id": "001659",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-AY-1/9",
+        "@id": "001681",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-AY-1/9-LAW",
+        "@id": "001657",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-AY-B/E/E",
+        "@id": "001688",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-AY-LAW",
+        "@id": "001694",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-FY",
+        "@id": "001682",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-FY-B/E/E",
+        "@id": "001691",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-HCOMP",
+        "@id": "001679",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF OF TEACH-SFT-VM",
+        "@id": "001670",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF TEACH-AY-1/10-B/E/E",
+        "@id": "001674",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ASST PROF TEACH-AY-1/9-B/E/E",
+        "@id": "001696",
+        "cto": "c:211",
+        "prefLabel": "Assistant Professor of Teaching"
+      },
+      {
+        "name": "ACT ASSOC PROF OF TEACH-AY",
+        "@id": "001581",
+        "cto": "c:214",
+        "prefLabel": "Acting Associate Professor of Teaching"
+      },
+      {
+        "name": "ACT ASSOC PROF OF TEACH-FY",
+        "@id": "001584",
+        "cto": "c:214",
+        "prefLabel": "Acting Associate Professor of Teaching"
+      },
+      {
+        "name": "ACT ASSOC PROF OF TEACH-HCOMP",
+        "@id": "001598",
+        "cto": "c:214",
+        "prefLabel": "Acting Associate Professor of Teaching"
+      },
+      {
+        "name": "ACT ASSOC PROF OF TEACH-SFT-VM",
+        "@id": "001595",
+        "cto": "c:214",
+        "prefLabel": "Acting Associate Professor of Teaching"
+      },
+      {
+        "name": "ACT ASSOC PROF TEACH-AY-B/E/E",
+        "@id": "001587",
+        "cto": "c:214",
+        "prefLabel": "Acting Associate Professor of Teaching"
+      },
+      {
+        "name": "ACT ASSOC PROF TEACH-FY-B/E/E",
+        "@id": "001590",
+        "cto": "c:214",
+        "prefLabel": "Acting Associate Professor of Teaching"
+      },
+      {
+        "name": "ACT PROF OF TEACH-AY",
+        "@id": "001580",
+        "cto": "c:214",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT PROF OF TEACH-AY-B/E/E",
+        "@id": "001586",
+        "cto": "c:214",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT PROF OF TEACH-AY-LAW",
+        "@id": "001592",
+        "cto": "c:214",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT PROF OF TEACH-FY",
+        "@id": "001583",
+        "cto": "c:214",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT PROF OF TEACH-FY-B/E/E",
+        "@id": "001589",
+        "cto": "c:214",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT PROF OF TEACH-HCOMP",
+        "@id": "001597",
+        "cto": "c:214",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT PROF OF TEACH-SFT-VM",
+        "@id": "001594",
+        "cto": "c:214",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ASSOC PROF TEACH-EMERITUS(WOS)",
+        "@id": "001620",
+        "cto": "c:216",
+        "prefLabel": "Associate Professor of Teaching-Emeritus"
+      },
+      {
+        "name": "PROF OF TEACH-EMERITUS(WOS)",
+        "@id": "001621",
+        "cto": "c:216",
+        "prefLabel": "Professor of Teaching-Emeritus"
+      },
+      {
+        "name": "ACT ASST PROF OF TEACH-AY",
+        "@id": "001582",
+        "cto": "c:224",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT ASST PROF OF TEACH-AY-LAW",
+        "@id": "001593",
+        "cto": "c:224",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT ASST PROF OF TEACH-FY",
+        "@id": "001585",
+        "cto": "c:224",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT ASST PROF OF TEACH-HCOMP",
+        "@id": "001599",
+        "cto": "c:224",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT ASST PROF OF TEACH-SFT-VM",
+        "@id": "001596",
+        "cto": "c:224",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT ASST PROF TEACH-AY-B/E/E",
+        "@id": "001588",
+        "cto": "c:224",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "ACT ASST PROF TEACH-FY-B/E/E",
+        "@id": "001591",
+        "cto": "c:224",
+        "prefLabel": "Acting Professor of Teaching"
+      },
+      {
+        "name": "CONTINUING APPT-TEMP AUG-1/9",
+        "@id": "001653",
+        "cto": "c:225",
+        "prefLabel": "Continuing Lecturer"
+      },
+      {
+        "name": "CONTINUING APPT-TEMP AUG-AY",
+        "@id": "001652",
+        "cto": "c:225",
+        "prefLabel": "Continuing Lecturer"
+      },
+      {
+        "name": "CONTINUING APPT-TEMP AUG-FY",
+        "@id": "001655",
+        "cto": "c:225",
+        "prefLabel": "Continuing Lecturer"
+      },
+      {
+        "name": "CONTINUING APPT-TEMP-AUG-1/10",
+        "@id": "001654",
+        "cto": "c:225",
+        "prefLabel": "Continuing Lecturer"
+      },
+      {
+        "name": "LECT-AY",
+        "@id": "001630",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "LECT-AY-1/10",
+        "@id": "001636",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "LECT-AY-1/10-CONTINUING",
+        "@id": "001637",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "LECT-AY-1/9",
+        "@id": "001632",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "LECT-AY-1/9-CONTINUING",
+        "@id": "001633",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "LECT-AY-CONTINUING",
+        "@id": "001631",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "LECT-FY",
+        "@id": "001634",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "LECT-FY-CONTINUING",
+        "@id": "001635",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "PRE-SIX YR APPT-TEMP SUPP-1/10",
+        "@id": "001651",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "PRE-SIX YR APPT-TEMP SUPP-1/9",
+        "@id": "001649",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "PRE-SIX YR APPT-TEMP SUPP-AY",
+        "@id": "001648",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "PRE-SIX YR APPT-TEMP SUPP-FY",
+        "@id": "001638",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "SR LECT-AY-1/10-CONTINUING",
+        "@id": "001647",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "SR LECT-AY-1/9-CONTINUING",
+        "@id": "001643",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "SR LECT-AY-CONTINUING",
+        "@id": "001641",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "SR LECT-FY-CONTINUING",
+        "@id": "001645",
+        "cto": "c:225",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "ASSOC PROF IN RES-AY",
+        "@id": "003260",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF IN RES-AY-1/10-B/E/E",
+        "@id": "003346",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF IN RES-AY-1/9",
+        "@id": "003352",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF IN RES-AY-1/9-B/E/E",
+        "@id": "003386",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF IN RES-AY-B/E/E",
+        "@id": "003384",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF IN RES-FY",
+        "@id": "003261",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF IN RES-FY-B/E/E",
+        "@id": "003385",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF IN RES-HCOMP",
+        "@id": "001725",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASSOC PROF IN RES-SFT-VM",
+        "@id": "001905",
+        "cto": "c:311",
+        "prefLabel": "Associate Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-AY",
+        "@id": "003270",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-AY-1/10-B/E/E",
+        "@id": "003347",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-AY-1/9",
+        "@id": "003351",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-AY-1/9-B/E/E",
+        "@id": "003389",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-AY-B/E/E",
+        "@id": "003387",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-FY",
+        "@id": "003271",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-FY-B/E/E",
+        "@id": "003388",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-HCOMP",
+        "@id": "001724",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "ASST PROF IN RES-SFT-VM",
+        "@id": "001904",
+        "cto": "c:311",
+        "prefLabel": "Assistant Professor"
+      },
+      {
+        "name": "INSTR IN RES-HCOMP",
+        "@id": "001723",
+        "cto": "c:311",
+        "prefLabel": "Instructor"
+      },
+      {
+        "name": "PROF IN RES-AY",
+        "@id": "003250",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF IN RES-AY-1/10-B/E/E",
+        "@id": "003345",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF IN RES-AY-1/9",
+        "@id": "003353",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF IN RES-AY-1/9-B/E/E",
+        "@id": "003383",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF IN RES-AY-B/E/E",
+        "@id": "003381",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF IN RES-FY",
+        "@id": "003251",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF IN RES-FY-B/E/E",
+        "@id": "003382",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF IN RES-HCOMP",
+        "@id": "001726",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "PROF IN RES-SFT-VM",
+        "@id": "001906",
+        "cto": "c:311",
+        "prefLabel": "Professor"
+      },
+      {
+        "name": "SENATE EMERITUS (WOS)",
+        "@id": "003249",
+        "cto": "c:316",
+        "prefLabel": "Senate-Emeritus"
+      },
+      {
+        "name": "ASSOC PROF OF CLIN-FY",
+        "@id": "001451",
+        "cto": "c:317",
+        "prefLabel": "Associate Clinical Professor"
+      },
+      {
+        "name": "ASSOC PROF OF CLIN-HCOMP",
+        "@id": "001454",
+        "cto": "c:317",
+        "prefLabel": "Associate Clinical Professor"
+      },
+      {
+        "name": "ASSOC PROF OF CLIN-SFT-VM",
+        "@id": "001916",
+        "cto": "c:317",
+        "prefLabel": "Associate Clinical Professor"
+      },
+      {
+        "name": "ASST PROF OF CLIN-FY",
+        "@id": "001452",
+        "cto": "c:317",
+        "prefLabel": "Assistant Professor of Clinical"
+      },
+      {
+        "name": "ASST PROF OF CLIN-HCOMP",
+        "@id": "001455",
+        "cto": "c:317",
+        "prefLabel": "Assistant Professor of Clinical"
+      },
+      {
+        "name": "ASST PROF OF CLIN-SFT-VM",
+        "@id": "001915",
+        "cto": "c:317",
+        "prefLabel": "Assistant Professor of Clinical"
+      },
+      {
+        "name": "PROF OF CLIN-FY",
+        "@id": "001450",
+        "cto": "c:317",
+        "prefLabel": "Clinical Professor"
+      },
+      {
+        "name": "PROF OF CLIN-HCOMP",
+        "@id": "001453",
+        "cto": "c:317",
+        "prefLabel": "Clinical Professor"
+      },
+      {
+        "name": "PROF OF CLIN-SFT-VM",
+        "@id": "001917",
+        "cto": "c:317",
+        "prefLabel": "Clinical Professor"
+      },
+      {
+        "name": "VIS ASSOC PROF",
+        "@id": "001208",
+        "cto": "c:323",
+        "prefLabel": "Visiting Associate Professor"
+      },
+      {
+        "name": "VIS ASSOC PROF-HCOMP",
+        "@id": "001713",
+        "cto": "c:323",
+        "prefLabel": "Visiting Associate Professor"
+      },
+      {
+        "name": "VIS ASST PROF",
+        "@id": "001308",
+        "cto": "c:323",
+        "prefLabel": "Visiting Assistant Professor"
+      },
+      {
+        "name": "VIS ASST PROF-HCOMP",
+        "@id": "001712",
+        "cto": "c:323",
+        "prefLabel": "Visiting Assistant Professor"
+      },
+      {
+        "name": "VIS PROF",
+        "@id": "001108",
+        "cto": "c:323",
+        "prefLabel": "Visiting Professor"
+      },
+      {
+        "name": "VIS PROF-HCOMP",
+        "@id": "001714",
+        "cto": "c:323",
+        "prefLabel": "Visiting Professor"
+      },
+      {
+        "name": "ADJ INSTR-AY",
+        "@id": "003288",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ INSTR-FY",
+        "@id": "003289",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ INSTR-HCOMP",
+        "@id": "001727",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-AY",
+        "@id": "003258",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-AY-1/10",
+        "@id": "003367",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-AY-1/10-BEE",
+        "@id": "003380",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-AY-1/9",
+        "@id": "003363",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-AY-1/9-B/E/E",
+        "@id": "003379",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-AY-B/E/E",
+        "@id": "003377",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-FY",
+        "@id": "003259",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-FY-B/E/E",
+        "@id": "003378",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-HCOMP",
+        "@id": "001730",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ADJ PROF-SFT-VM",
+        "@id": "001910",
+        "cto": "c:335",
+        "prefLabel": "Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-AY",
+        "@id": "003268",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-AY-1/10",
+        "@id": "003366",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-AY-1/10-BEE",
+        "@id": "003369",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-AY-1/9",
+        "@id": "003362",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-AY-1/9-B/E/E",
+        "@id": "003376",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-AY-B/E/E",
+        "@id": "003374",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-FY",
+        "@id": "003269",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-FY-B/E/E",
+        "@id": "003375",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-HCOMP",
+        "@id": "001729",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASSOC ADJ PROF-SFT-VM",
+        "@id": "001909",
+        "cto": "c:335",
+        "prefLabel": "Associate Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-AY",
+        "@id": "003278",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-AY-1/10",
+        "@id": "003365",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-AY-1/10-BEE",
+        "@id": "003368",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-AY-1/9",
+        "@id": "003361",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-AY-1/9-B/E/E",
+        "@id": "003373",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-AY-B/E/E",
+        "@id": "003371",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-FY",
+        "@id": "003279",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-FY-B/E/E",
+        "@id": "003372",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-HCOMP",
+        "@id": "001728",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "ASST ADJ PROF-SFT-VM",
+        "@id": "001908",
+        "cto": "c:335",
+        "prefLabel": "Assistant Adjunct Professor"
+      },
+      {
+        "name": "HS ASSOC CLIN PROF-AY",
+        "@id": "002020",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Associate Clinical Professor"
+      },
+      {
+        "name": "HS ASSOC CLIN PROF-FY",
+        "@id": "002030",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Associate Clinical Professor"
+      },
+      {
+        "name": "HS ASSOC CLIN PROF-HCOMP",
+        "@id": "001733",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Associate Clinical Professor"
+      },
+      {
+        "name": "HS ASSOC CLIN PROF-SFT-VM",
+        "@id": "001913",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Associate Clinical Professor"
+      },
+      {
+        "name": "HS ASST CLIN PROF-AY",
+        "@id": "002040",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Assistant Clinical Professor"
+      },
+      {
+        "name": "HS ASST CLIN PROF-FY",
+        "@id": "002050",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Assistant Clinical Professor"
+      },
+      {
+        "name": "HS ASST CLIN PROF-HCOMP",
+        "@id": "001732",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Assistant Clinical Professor"
+      },
+      {
+        "name": "HS ASST CLIN PROF-SFT-VM",
+        "@id": "001912",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Assistant Clinical Professor"
+      },
+      {
+        "name": "HS CLIN INSTR-AY",
+        "@id": "002060",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Clinical Instructor"
+      },
+      {
+        "name": "HS CLIN INSTR-FY",
+        "@id": "002070",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Clinical Instructor"
+      },
+      {
+        "name": "HS CLIN INSTR-HCOMP",
+        "@id": "001731",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Clinical Instructor"
+      },
+      {
+        "name": "HS CLIN INSTR-SFT-VM",
+        "@id": "001911",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Clinical Instructor"
+      },
+      {
+        "name": "HS CLIN PROF-AY",
+        "@id": "002000",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Clinical Professor"
+      },
+      {
+        "name": "HS CLIN PROF-FY",
+        "@id": "002010",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Clinical Professor"
+      },
+      {
+        "name": "HS CLIN PROF-HCOMP",
+        "@id": "001734",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Clinical Professor"
+      },
+      {
+        "name": "HS CLIN PROF-SFT-VM",
+        "@id": "001914",
+        "cto": "c:341",
+        "prefLabel": "Health Sciences Clinical Professor"
+      },
+      {
+        "name": "ASSOC CLIN PROF-VOL",
+        "@id": "002037",
+        "cto": "c:346",
+        "prefLabel": "Volunteer Associate Clinical Professor"
+      },
+      {
+        "name": "ASST CLIN PROF-VOL",
+        "@id": "002057",
+        "cto": "c:346",
+        "prefLabel": "Volunteer Assistant Clinical Professor"
+      },
+      {
+        "name": "CLIN INSTR-VOL",
+        "@id": "002077",
+        "cto": "c:346",
+        "prefLabel": "Volunteer Clinical Professor"
+      },
+      {
+        "name": "CLIN PROF-VOL",
+        "@id": "002017",
+        "cto": "c:346",
+        "prefLabel": "Volunteer Clinical Professor"
+      },
+      {
+        "name": "COORD FLD WK-AY",
+        "@id": "002240",
+        "cto": "c:357",
+        "prefLabel": "Field Work Coordinator-Instructional Assistant"
+      },
+      {
+        "name": "COORD FLD WK-AY-CONTINUING",
+        "@id": "002241",
+        "cto": "c:357",
+        "prefLabel": "Field Work Coordinator-Instructional Assistant"
+      },
+      {
+        "name": "COORD FLD WK-FY",
+        "@id": "002245",
+        "cto": "c:357",
+        "prefLabel": "Field Work Coordinator-Instructional Assistant"
+      },
+      {
+        "name": "COORD FLD WK-FY-CONTINUING",
+        "@id": "002246",
+        "cto": "c:357",
+        "prefLabel": "Field Work Coordinator-Instructional Assistant"
+      },
+      {
+        "name": "FLD WK CONSULT-AY",
+        "@id": "002260",
+        "cto": "c:357",
+        "prefLabel": "Fieldwork Consultant"
+      },
+      {
+        "name": "FLD WK CONSULT-AY-CONTINUING",
+        "@id": "002261",
+        "cto": "c:357",
+        "prefLabel": "Fieldwork Consultant"
+      },
+      {
+        "name": "FLD WK CONSULT-FY",
+        "@id": "002265",
+        "cto": "c:357",
+        "prefLabel": "Fieldwork Consultant"
+      },
+      {
+        "name": "FLD WK CONSULT-FY-CONTINUING",
+        "@id": "002266",
+        "cto": "c:357",
+        "prefLabel": "Fieldwork Consultant"
+      },
+      {
+        "name": "FLD WK SUPV-AY",
+        "@id": "002250",
+        "cto": "c:357",
+        "prefLabel": "Fieldwork Supervisor"
+      },
+      {
+        "name": "FLD WK SUPV-AY-CONTINUING",
+        "@id": "002251",
+        "cto": "c:357",
+        "prefLabel": "Fieldwork Supervisor"
+      },
+      {
+        "name": "FLD WK SUPV-FY",
+        "@id": "002255",
+        "cto": "c:357",
+        "prefLabel": "Fieldwork Supervisor"
+      },
+      {
+        "name": "FLD WK SUPV-FY-CONTINUING",
+        "@id": "002256",
+        "cto": "c:357",
+        "prefLabel": "Fieldwork Supervisor"
+      },
+      {
+        "name": "LECT IN SUMMER SESSION",
+        "@id": "001550",
+        "cto": "c:357",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "SUPV TEACHER ED-AY",
+        "@id": "002220",
+        "cto": "c:357",
+        "prefLabel": "Teaching Supervisor"
+      },
+      {
+        "name": "SUPV TEACHER ED-AY-CONTINUING",
+        "@id": "002221",
+        "cto": "c:357",
+        "prefLabel": "Teaching Supervisor"
+      },
+      {
+        "name": "SUPV TEACHER ED-FY",
+        "@id": "002222",
+        "cto": "c:357",
+        "prefLabel": "Teaching Supervisor"
+      },
+      {
+        "name": "SUPV TEACHER ED-FY-CONTINUING",
+        "@id": "002223",
+        "cto": "c:357",
+        "prefLabel": "Teaching Supervisor"
+      },
+      {
+        "name": "TEACHG ASST-1/10-GSHIP",
+        "@id": "002320",
+        "cto": "c:426",
+        "prefLabel": "Teaching Assistant"
+      },
+      {
+        "name": "TEACHG ASST-1/10-NON GSHIP",
+        "@id": "002321",
+        "cto": "c:426",
+        "prefLabel": "Teaching Assistant"
+      },
+      {
+        "name": "TEACHG ASST-GSHIP",
+        "@id": "002310",
+        "cto": "c:426",
+        "prefLabel": "Teaching Assistant"
+      },
+      {
+        "name": "TEACHG ASST-GSHIP/NON REP",
+        "@id": "002312",
+        "cto": "c:426",
+        "prefLabel": "Teaching Assistant"
+      },
+      {
+        "name": "TEACHG ASST-NON GSHIP",
+        "@id": "002311",
+        "cto": "c:426",
+        "prefLabel": "Teaching Assistant"
+      },
+      {
+        "name": "TEACHG ASST-NON GSHIP/NON REP",
+        "@id": "002313",
+        "cto": "c:426",
+        "prefLabel": "Teaching Assistant"
+      },
+      {
+        "name": "TEACHG FELLOW-GSHIP",
+        "@id": "002300",
+        "cto": "c:426",
+        "prefLabel": "Teaching Fellow"
+      },
+      {
+        "name": "TEACHG FELLOW-GSHIP/NON REP",
+        "@id": "002302",
+        "cto": "c:426",
+        "prefLabel": "Teaching Fellow"
+      },
+      {
+        "name": "TEACHG FELLOW-NON GSHIP",
+        "@id": "002301",
+        "cto": "c:426",
+        "prefLabel": "Teaching Fellow"
+      },
+      {
+        "name": "TEACHG FELLOW-NON GSHIP/NONREP",
+        "@id": "002303",
+        "cto": "c:426",
+        "prefLabel": "Teaching Fellow"
+      },
+      {
+        "name": "GSR TRAINEE/FELLOW SUPPLEMENT",
+        "@id": "003160",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Research Fellow"
+      },
+      {
+        "name": "GSR-FELLOW-NO REM",
+        "@id": "003144",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Research Fellow"
+      },
+      {
+        "name": "GSR-FELLOW-PAID DIR-NO REM",
+        "@id": "003142",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Research Fellow"
+      },
+      {
+        "name": "GSR-FELLOW-PAID DIR-TUIT REM",
+        "@id": "003143",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Research Fellow"
+      },
+      {
+        "name": "GSR-FELLOW-TUIT REM",
+        "@id": "003145",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Research Fellow"
+      },
+      {
+        "name": "GSR-FULL FEE REM",
+        "@id": "003282",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-FULL TUIT&PARTIAL FEE REM",
+        "@id": "003283",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-NO REM",
+        "@id": "003266",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-PARTIAL FEE REM",
+        "@id": "003276",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TRAINEE-NO REM",
+        "@id": "003154",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TRAINEE-PAID DIR-NO REM",
+        "@id": "003152",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TRAINEE-PAID DIR-TUIT REM",
+        "@id": "003153",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TRAINEE-TUIT REM",
+        "@id": "003155",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TUIT & FEE REM",
+        "@id": "003284",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TUIT & FEE REM-UCSD-GRP B",
+        "@id": "003285",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TUIT & FEE REM-UCSD-GRP C",
+        "@id": "003286",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TUIT & FEE REM-UCSD-GRP D",
+        "@id": "003287",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TUIT & FEE REM-UCSD-GRP E",
+        "@id": "003262",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TUIT & FEE REM-UCSD-GRP F",
+        "@id": "003263",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "GSR-TUIT & FEE REM-UCSD-GRP G",
+        "@id": "003264",
+        "cto": "c:436",
+        "prefLabel": "Graduate Student Researcher"
+      },
+      {
+        "name": "CHIEF RESID PHYS-NON REP",
+        "@id": "002725",
+        "cto": "c:446",
+        "prefLabel": "Chief Resident Physician"
+      },
+      {
+        "name": "CHIEF RESID PHYS-REP",
+        "@id": "002738",
+        "cto": "c:446",
+        "prefLabel": "Chief Resident Physician"
+      },
+      {
+        "name": "CHIEF RESID PHYS-REP-FNO",
+        "@id": "002762",
+        "cto": "c:446",
+        "prefLabel": "Chief Resident Physician"
+      },
+      {
+        "name": "CHIEF RESID PHYS-REP-OV",
+        "@id": "002745",
+        "cto": "c:446",
+        "prefLabel": "Chief Resident Physician"
+      },
+      {
+        "name": "HEAL OTH POST-MD 4-6/REP",
+        "@id": "002766",
+        "cto": "c:446",
+        "prefLabel": "Intern or Resident"
+      },
+      {
+        "name": "INTERN-CLINICAL PSYCHOLOGY",
+        "@id": "002715",
+        "cto": "c:446",
+        "prefLabel": "Psychology Clinical Intern"
+      },
+      {
+        "name": "INTERN-CLINICAL PSYCHOLOGY NEX",
+        "@id": "002717",
+        "cto": "c:446",
+        "prefLabel": "Psychology Clinical Intern"
+      },
+      {
+        "name": "INTERN-VET MED/NON REP",
+        "@id": "002714",
+        "cto": "c:446",
+        "prefLabel": "Veterinary Medicine Intern"
+      },
+      {
+        "name": "NON-PHYS CLIN TRAIN",
+        "@id": "002740",
+        "cto": "c:446",
+        "prefLabel": "Clinical Trainee"
+      },
+      {
+        "name": "NON-PHYS CLIN TRAIN NEX",
+        "@id": "002739",
+        "cto": "c:446",
+        "prefLabel": "Clinical Trainee"
+      },
+      {
+        "name": "OTH POST DDS/NON REP",
+        "@id": "002737",
+        "cto": "c:446",
+        "prefLabel": "Trainee"
+      },
+      {
+        "name": "OTH POST DDS/REP",
+        "@id": "002758",
+        "cto": "c:446",
+        "prefLabel": "Trainee"
+      },
+      {
+        "name": "OTH POST-MD TRAIN 2-8/NON REP",
+        "@id": "002732",
+        "cto": "c:446",
+        "prefLabel": "Trainee"
+      },
+      {
+        "name": "OTH POST-MD TRAIN 2-8/REP",
+        "@id": "002733",
+        "cto": "c:446",
+        "prefLabel": "Trainee"
+      },
+      {
+        "name": "OTH POST-MD TRAIN 2-8/REP-FNO",
+        "@id": "002764",
+        "cto": "c:446",
+        "prefLabel": "Trainee"
+      },
+      {
+        "name": "OTH POST-MD TRAIN 2-8/REP-OV",
+        "@id": "002747",
+        "cto": "c:446",
+        "prefLabel": "Trainee"
+      },
+      {
+        "name": "POST DDS I-VI/NON REP",
+        "@id": "002727",
+        "cto": "c:446",
+        "prefLabel": "Trainee"
+      },
+      {
+        "name": "POST DDS I-VI/REP",
+        "@id": "002757",
+        "cto": "c:446",
+        "prefLabel": "Trainee"
+      },
+      {
+        "name": "RESID PHYS I/NON REP",
+        "@id": "002708",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS I/REP",
+        "@id": "002709",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS I/REP-FNO",
+        "@id": "002760",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS I/REP-OV",
+        "@id": "002743",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS II-VIII/NON REP",
+        "@id": "002724",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS II-VIII/REP",
+        "@id": "002723",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS II-VIII/REP-FNO",
+        "@id": "002761",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS II-VIII/REP-OV",
+        "@id": "002744",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS MOONLTNG NON REP",
+        "@id": "002753",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS MOONLTNG REP",
+        "@id": "002754",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS/SUBSPEC 4-8/NON REP",
+        "@id": "002726",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS/SUBSPEC 4-8/REP",
+        "@id": "002736",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS/SUBSPEC 4-8/REP-FNO",
+        "@id": "002763",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS/SUBSPEC 4-8/REP-OV",
+        "@id": "002746",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS/SUBSPEC/T32/NON REP",
+        "@id": "002749",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID PHYS/SUBSPEC/T32/REP",
+        "@id": "002750",
+        "cto": "c:446",
+        "prefLabel": "Resident Physician"
+      },
+      {
+        "name": "RESID-VET MED/NON REP",
+        "@id": "002730",
+        "cto": "c:446",
+        "prefLabel": "Veterinary Medicine Resident"
+      },
+      {
+        "name": "K-12 ASST-NON GSHIP/NONREP",
+        "@id": "002382",
+        "cto": "c:456",
+        "prefLabel": "K-12 Assistant"
+      },
+      {
+        "name": "READER-GSHIP",
+        "@id": "002850",
+        "cto": "c:456",
+        "prefLabel": "Reader"
+      },
+      {
+        "name": "READER-GSHIP/NON REP",
+        "@id": "002854",
+        "cto": "c:456",
+        "prefLabel": "Reader"
+      },
+      {
+        "name": "READER-NON GSHIP",
+        "@id": "002851",
+        "cto": "c:456",
+        "prefLabel": "Reader"
+      },
+      {
+        "name": "READER-NON GSHIP/NON REP",
+        "@id": "002855",
+        "cto": "c:456",
+        "prefLabel": "Reader"
+      },
+      {
+        "name": "REMD TUT I-GSHIP",
+        "@id": "002288",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "REMD TUT I-GSHIP/NON REP",
+        "@id": "002271",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "REMD TUT II NON-GSHIP/NON REP",
+        "@id": "002272",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "REMD TUT II-GSHIP",
+        "@id": "002289",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "REMD TUT II-GSHIP/NON REP",
+        "@id": "002273",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "REMD TUT II-NON GSHIP",
+        "@id": "002290",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "REMD TUT I-NON GSHIP",
+        "@id": "002280",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "REMD TUT I-NON GSHIP/NON REP",
+        "@id": "002270",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "SPECIAL READER-UCLA-GSHIP",
+        "@id": "002852",
+        "cto": "c:456",
+        "prefLabel": "Special Reader"
+      },
+      {
+        "name": "SPECIAL READER-UCLA-NON GSHIP",
+        "@id": "002853",
+        "cto": "c:456",
+        "prefLabel": "Special Reader"
+      },
+      {
+        "name": "TUT-GSHIP",
+        "@id": "002860",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "TUT-GSHIP/NON REP",
+        "@id": "002862",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "TUT-NON GSHIP",
+        "@id": "002861",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "TUT-NON GSHIP/NON REP",
+        "@id": "002863",
+        "cto": "c:456",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "ASSOC IN   -AY-1/10-GSHIP",
+        "@id": "001508",
+        "cto": "c:467",
+        "prefLabel": "Student Associate"
+      },
+      {
+        "name": "ASSOC IN   -AY-1/9-GSHIP",
+        "@id": "001506",
+        "cto": "c:467",
+        "prefLabel": "Student Associate"
+      },
+      {
+        "name": "ASSOC IN  - FY-GSHIP",
+        "@id": "001511",
+        "cto": "c:467",
+        "prefLabel": "Student Associate"
+      },
+      {
+        "name": "ASSOC IN  -AY-GSHIP",
+        "@id": "001501",
+        "cto": "c:467",
+        "prefLabel": "Student Associate"
+      },
+      {
+        "name": "ASSOC IN  -AY-NON-GSHIP",
+        "@id": "001502",
+        "cto": "c:467",
+        "prefLabel": "Student Associate"
+      },
+      {
+        "name": "ASSOC IN  -FY-NON-GSHIP",
+        "@id": "001512",
+        "cto": "c:467",
+        "prefLabel": "Student Associate"
+      },
+      {
+        "name": "ASSOC IN -AY- 1/10 -NON-GSHIP",
+        "@id": "001509",
+        "cto": "c:467",
+        "prefLabel": "Student Associate"
+      },
+      {
+        "name": "ASSOC IN -AY- 1/9 -NON-GSHIP",
+        "@id": "001507",
+        "cto": "c:467",
+        "prefLabel": "Student Associate"
+      },
+      {
+        "name": "ASSOC ASTRONOMER",
+        "@id": "003110",
+        "cto": "c:520",
+        "prefLabel": "Associate Astronomer"
+      },
+      {
+        "name": "ASTRONOMER",
+        "@id": "003100",
+        "cto": "c:520",
+        "prefLabel": "Astronomer"
+      },
+      {
+        "name": "AGRON AES",
+        "@id": "003000",
+        "cto": "c:530",
+        "prefLabel": "Agronomist"
+      },
+      {
+        "name": "AGRON AES-AY",
+        "@id": "003060",
+        "cto": "c:530",
+        "prefLabel": "Agronomist"
+      },
+      {
+        "name": "AGRON AES-B/E/E",
+        "@id": "003012",
+        "cto": "c:530",
+        "prefLabel": "Agronomist"
+      },
+      {
+        "name": "AGRON AES-B/E/E-AY",
+        "@id": "003062",
+        "cto": "c:530",
+        "prefLabel": "Agronomist"
+      },
+      {
+        "name": "AGRON AES-SFT-VM",
+        "@id": "003001",
+        "cto": "c:530",
+        "prefLabel": "Agronomist"
+      },
+      {
+        "name": "ASSOC AGRON AES",
+        "@id": "003010",
+        "cto": "c:530",
+        "prefLabel": "Associate Agronomist"
+      },
+      {
+        "name": "ASSOC AGRON AES-AY",
+        "@id": "003070",
+        "cto": "c:530",
+        "prefLabel": "Associate Agronomist"
+      },
+      {
+        "name": "ASSOC AGRON AES-AY-B/E/E",
+        "@id": "003072",
+        "cto": "c:530",
+        "prefLabel": "Associate Agronomist"
+      },
+      {
+        "name": "ASSOC AGRON AES-B/E/E",
+        "@id": "003013",
+        "cto": "c:530",
+        "prefLabel": "Associate Agronomist"
+      },
+      {
+        "name": "ASSOC AGRON AES-SFT-VM",
+        "@id": "003011",
+        "cto": "c:530",
+        "prefLabel": "Associate Agronomist"
+      },
+      {
+        "name": "ASST AGRON AES",
+        "@id": "003020",
+        "cto": "c:531",
+        "prefLabel": "Assistant Agronomist"
+      },
+      {
+        "name": "ASST AGRON AES-AY",
+        "@id": "003080",
+        "cto": "c:531",
+        "prefLabel": "Assistant Agronomist"
+      },
+      {
+        "name": "ASST AGRON AES-AY-B/E/E",
+        "@id": "003082",
+        "cto": "c:531",
+        "prefLabel": "Assistant Agronomist"
+      },
+      {
+        "name": "ASST AGRON AES-B/E/E",
+        "@id": "003015",
+        "cto": "c:531",
+        "prefLabel": "Assistant Agronomist"
+      },
+      {
+        "name": "ASST AGRON AES-SFT-VM",
+        "@id": "003021",
+        "cto": "c:531",
+        "prefLabel": "Assistant Agronomist"
+      },
+      {
+        "name": "ACT AGRON AES",
+        "@id": "003007",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ACT AGRON AES-AY",
+        "@id": "003064",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ACT AGRON AES-B/E/E",
+        "@id": "003044",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ACT AGRON AES-B/E/E-AY",
+        "@id": "003066",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ACT AGRON AES-SFT-VM",
+        "@id": "003009",
+        "cto": "c:534",
+        "prefLabel": "Acting Associate Agronomist"
+      },
+      {
+        "name": "ACT ASSOC AGRON AES",
+        "@id": "003017",
+        "cto": "c:534",
+        "prefLabel": "Acting Associate Agronomist"
+      },
+      {
+        "name": "ACT ASSOC AGRON AES-AY",
+        "@id": "003074",
+        "cto": "c:534",
+        "prefLabel": "Acting Associate Agronomist"
+      },
+      {
+        "name": "ACT ASSOC AGRON AES-B/E/E",
+        "@id": "003045",
+        "cto": "c:534",
+        "prefLabel": "Acting Associate Agronomist"
+      },
+      {
+        "name": "ACT ASSOC AGRON AES-B/E/E-AY",
+        "@id": "003076",
+        "cto": "c:534",
+        "prefLabel": "Acting Associate Agronomist"
+      },
+      {
+        "name": "ACT ASSOC AGRON AES-SFT-VM",
+        "@id": "003019",
+        "cto": "c:534",
+        "prefLabel": "Acting Associate Agronomist"
+      },
+      {
+        "name": "ACT ASST AGRON AES",
+        "@id": "003027",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ACT ASST AGRON AES-AY",
+        "@id": "003084",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ACT ASST AGRON AES-B/E/E",
+        "@id": "003046",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ACT ASST AGRON AES-B/E/E/-AY",
+        "@id": "003086",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ACT ASST AGRON AES-SFT-VM",
+        "@id": "003029",
+        "cto": "c:534",
+        "prefLabel": "Acting Agronomist"
+      },
+      {
+        "name": "ASSOC RES (WOS)",
+        "@id": "003212",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES SCRIPPS-AY",
+        "@id": "001936",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-FY",
+        "@id": "003210",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-FY NEX",
+        "@id": "003180",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-FY NEX NON REP",
+        "@id": "003181",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-FY-B/E/E",
+        "@id": "001988",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-FY-B/E/E NEX",
+        "@id": "001998",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-FY-B/E/E NEX NON REP",
+        "@id": "002008",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-FY-B/E/E-NON REP",
+        "@id": "001994",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-FY-NON REP",
+        "@id": "003217",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-LR SCL-AY",
+        "@id": "003213",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-LR SCL-AY-1/9",
+        "@id": "003215",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-LR SCL-AY-1/9-B/E/E",
+        "@id": "001984",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-LR SCL-AY-B/E/E",
+        "@id": "001983",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-LR SCL-FY",
+        "@id": "003211",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-LR SCL-FY-B/E/E",
+        "@id": "001991",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-SFT",
+        "@id": "003216",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASSOC RES-SFT NEX",
+        "@id": "003186",
+        "cto": "c:541",
+        "prefLabel": "Associate Professional Researcher"
+      },
+      {
+        "name": "ASST RES (WOS)",
+        "@id": "003222",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES SCRIPPS-AY",
+        "@id": "001937",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-FY",
+        "@id": "003220",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-FY NEX",
+        "@id": "003190",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-FY NEX NON REP",
+        "@id": "003191",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-FY-B/E/E",
+        "@id": "001989",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-FY-B/E/E NEX",
+        "@id": "001999",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-FY-B/E/E NEX NON REP",
+        "@id": "002009",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-FY-B/E/E-NON REP",
+        "@id": "001995",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-FY-NON REP",
+        "@id": "003227",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-LR SCL-AY",
+        "@id": "003223",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-LR SCL-AY-1/9",
+        "@id": "003225",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-LR SCL-AY-1/9-B/E/E",
+        "@id": "001986",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-LR SCL-AY-B/E/E",
+        "@id": "001985",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-LR SCL-FY",
+        "@id": "003221",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-LR SCL-FY-B/E/E",
+        "@id": "001992",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-SFT",
+        "@id": "003226",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "ASST RES-SFT NEX",
+        "@id": "003196",
+        "cto": "c:541",
+        "prefLabel": "Assistant Professional Researcher"
+      },
+      {
+        "name": "RES (WOS)",
+        "@id": "003202",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES SCRIPPS-AY",
+        "@id": "001935",
+        "cto": "c:541",
+        "prefLabel": "Scripps Professional Researcher"
+      },
+      {
+        "name": "RES-FY",
+        "@id": "003200",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-FY NEX",
+        "@id": "003170",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-FY NEX NON REP",
+        "@id": "003171",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-FY-B/E/E",
+        "@id": "001987",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-FY-B/E/E NEX",
+        "@id": "001997",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-FY-B/E/E NEX NON REP",
+        "@id": "002007",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-FY-B/E/E-NON REP",
+        "@id": "001993",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-FY-NON REP",
+        "@id": "003207",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-LR SCL-AY",
+        "@id": "003203",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-LR SCL-AY-1/9",
+        "@id": "003205",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-LR SCL-AY-1/9-B/E/E",
+        "@id": "001982",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-LR SCL-AY-B/E/E",
+        "@id": "001981",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-LR SCL-FY",
+        "@id": "003201",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-LR SCL-FY-B/E/E",
+        "@id": "001990",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-SFT",
+        "@id": "003206",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "RES-SFT NEX",
+        "@id": "003176",
+        "cto": "c:541",
+        "prefLabel": "Professional Researcher"
+      },
+      {
+        "name": "VIS ASSOC RES",
+        "@id": "003218",
+        "cto": "c:543",
+        "prefLabel": "Visiting Associate Researcher"
+      },
+      {
+        "name": "VIS ASSOC RES NEX",
+        "@id": "003188",
+        "cto": "c:543",
+        "prefLabel": "Visiting Associate Researcher"
+      },
+      {
+        "name": "VIS ASST RES",
+        "@id": "003228",
+        "cto": "c:543",
+        "prefLabel": "Visiting Assistant Researcher"
+      },
+      {
+        "name": "VIS ASST RES NEX",
+        "@id": "003198",
+        "cto": "c:543",
+        "prefLabel": "Visiting Assistant Researcher"
+      },
+      {
+        "name": "VIS RES",
+        "@id": "003208",
+        "cto": "c:543",
+        "prefLabel": "Visiting Resident"
+      },
+      {
+        "name": "VIS RES NEX",
+        "@id": "003178",
+        "cto": "c:543",
+        "prefLabel": "Visiting Resident"
+      },
+      {
+        "name": "ASSOC SPECIALIST",
+        "@id": "003310",
+        "cto": "c:551",
+        "prefLabel": "Associate Specialist"
+      },
+      {
+        "name": "ASSOC SPECIALIST (WOS)",
+        "@id": "003312",
+        "cto": "c:551",
+        "prefLabel": "Associate Specialist"
+      },
+      {
+        "name": "ASSOC SPECIALIST NEX",
+        "@id": "003311",
+        "cto": "c:551",
+        "prefLabel": "Associate Specialist"
+      },
+      {
+        "name": "ASSOC SPECIALIST NEX NON REP",
+        "@id": "003314",
+        "cto": "c:551",
+        "prefLabel": "Associate Specialist"
+      },
+      {
+        "name": "ASSOC SPECIALIST NON REP",
+        "@id": "003313",
+        "cto": "c:551",
+        "prefLabel": "Associate Specialist"
+      },
+      {
+        "name": "ASST SPECIALIST",
+        "@id": "003320",
+        "cto": "c:551",
+        "prefLabel": "Assistant Specialist"
+      },
+      {
+        "name": "ASST SPECIALIST (WOS)",
+        "@id": "003322",
+        "cto": "c:551",
+        "prefLabel": "Assistant Specialist"
+      },
+      {
+        "name": "ASST SPECIALIST NEX",
+        "@id": "003321",
+        "cto": "c:551",
+        "prefLabel": "Assistant Specialist"
+      },
+      {
+        "name": "ASST SPECIALIST NEX NON REP",
+        "@id": "003324",
+        "cto": "c:551",
+        "prefLabel": "Assistant Specialist"
+      },
+      {
+        "name": "ASST SPECIALIST NON REP",
+        "@id": "003323",
+        "cto": "c:551",
+        "prefLabel": "Assistant Specialist"
+      },
+      {
+        "name": "JR SPECIALIST",
+        "@id": "003330",
+        "cto": "c:551",
+        "prefLabel": "Junior Specialist"
+      },
+      {
+        "name": "JR SPECIALIST (WOS)",
+        "@id": "003328",
+        "cto": "c:551",
+        "prefLabel": "Junior Specialist"
+      },
+      {
+        "name": "JR SPECIALIST NEX",
+        "@id": "003329",
+        "cto": "c:551",
+        "prefLabel": "Junior Specialist"
+      },
+      {
+        "name": "JR SPECIALIST NEX NON REP",
+        "@id": "003334",
+        "cto": "c:551",
+        "prefLabel": "Junior Specialist"
+      },
+      {
+        "name": "JR SPECIALIST NON REP",
+        "@id": "003333",
+        "cto": "c:551",
+        "prefLabel": "Junior Specialist"
+      },
+      {
+        "name": "SPECIALIST",
+        "@id": "003300",
+        "cto": "c:551",
+        "prefLabel": "Specialist"
+      },
+      {
+        "name": "SPECIALIST (WOS)",
+        "@id": "003302",
+        "cto": "c:551",
+        "prefLabel": "Specialist"
+      },
+      {
+        "name": "SPECIALIST NEX",
+        "@id": "003301",
+        "cto": "c:551",
+        "prefLabel": "Specialist"
+      },
+      {
+        "name": "SPECIALIST NEX NON REP",
+        "@id": "003304",
+        "cto": "c:551",
+        "prefLabel": "Specialist"
+      },
+      {
+        "name": "SPECIALIST NON REP",
+        "@id": "003303",
+        "cto": "c:551",
+        "prefLabel": "Specialist"
+      },
+      {
+        "name": "VIS ASSOC SPECIALIST",
+        "@id": "003315",
+        "cto": "c:553",
+        "prefLabel": "Visiting Associate Specialist"
+      },
+      {
+        "name": "VIS ASSOC SPECIALIST NEX",
+        "@id": "003316",
+        "cto": "c:553",
+        "prefLabel": "Visiting Associate Specialist"
+      },
+      {
+        "name": "VIS ASST SPECIALIST",
+        "@id": "003325",
+        "cto": "c:553",
+        "prefLabel": "Visiting Assistant Specialist"
+      },
+      {
+        "name": "VIS ASST SPECIALIST NEX",
+        "@id": "003326",
+        "cto": "c:553",
+        "prefLabel": "Visiting Assistant Specialist"
+      },
+      {
+        "name": "VIS JR SPECIALIST",
+        "@id": "003335",
+        "cto": "c:553",
+        "prefLabel": "Visiting Junior Specialist"
+      },
+      {
+        "name": "VIS JR SPECIALIST NEX",
+        "@id": "003336",
+        "cto": "c:553",
+        "prefLabel": "Visiting Junior Specialist"
+      },
+      {
+        "name": "VIS SPECIALIST",
+        "@id": "003305",
+        "cto": "c:553",
+        "prefLabel": "Visiting Specialist"
+      },
+      {
+        "name": "VIS SPECIALIST NEX",
+        "@id": "003306",
+        "cto": "c:553",
+        "prefLabel": "Visiting Specialist"
+      },
+      {
+        "name": "ASSOC SPECIALIST AES",
+        "@id": "003014",
+        "cto": "c:557",
+        "prefLabel": "Associate Specialist"
+      },
+      {
+        "name": "ASSOC SPECIALIST AES NEX",
+        "@id": "003114",
+        "cto": "c:557",
+        "prefLabel": "Associate Specialist"
+      },
+      {
+        "name": "ASST SPECIALIST AES",
+        "@id": "003024",
+        "cto": "c:557",
+        "prefLabel": "Assistant Specialist in Agricultural Experiment Station"
+      },
+      {
+        "name": "ASST SPECIALIST AES NEX",
+        "@id": "003124",
+        "cto": "c:557",
+        "prefLabel": "Assistant Specialist in Agricultural Experiment Station"
+      },
+      {
+        "name": "SPECIALIST AES",
+        "@id": "003004",
+        "cto": "c:557",
+        "prefLabel": "Specialist in Agricultural Experiment Station"
+      },
+      {
+        "name": "SPECIALIST AES NEX",
+        "@id": "003104",
+        "cto": "c:557",
+        "prefLabel": "Specialist in Agricultural Experiment Station"
+      },
+      {
+        "name": "ASSOC RES PROF-MILLER INST-AY",
+        "@id": "003292",
+        "cto": "c:566",
+        "prefLabel": "Associate Researcher"
+      },
+      {
+        "name": "ASSOC RES PROF-MILLER INST-FY",
+        "@id": "003293",
+        "cto": "c:566",
+        "prefLabel": "Associate Researcher"
+      },
+      {
+        "name": "CHI GREEN SCHOLAR-UCSD",
+        "@id": "003297",
+        "cto": "c:566",
+        "prefLabel": ""
+      },
+      {
+        "name": "RES PROF-MILLER INST-AY",
+        "@id": "003290",
+        "cto": "c:566",
+        "prefLabel": "Miller Institute Professional Researcher"
+      },
+      {
+        "name": "RES PROF-MILLER INST-FY",
+        "@id": "003291",
+        "cto": "c:566",
+        "prefLabel": "Miller Institute Professional Researcher"
+      },
+      {
+        "name": "INTRM POSTDOC SCHOLAR-EMPLOYEE",
+        "@id": "003256",
+        "cto": "c:575",
+        "prefLabel": "Postdoctoral Scholar"
+      },
+      {
+        "name": "POSTDOC-EMPLOYEE",
+        "@id": "003252",
+        "cto": "c:575",
+        "prefLabel": "Postdoctoral Scholar"
+      },
+      {
+        "name": "POSTDOC-EMPLOYEE NEX",
+        "@id": "003255",
+        "cto": "c:575",
+        "prefLabel": "Postdoctoral Scholar"
+      },
+      {
+        "name": "POSTDOC-FELLOW",
+        "@id": "003253",
+        "cto": "c:575",
+        "prefLabel": "Postdoctoral Fellow"
+      },
+      {
+        "name": "POSTDOC-PAID DIRECT",
+        "@id": "003254",
+        "cto": "c:575",
+        "prefLabel": "Postdoctoral Scholar"
+      },
+      {
+        "name": "FACULTY FELLOW RES-AY",
+        "@id": "003237",
+        "cto": "c:577",
+        "prefLabel": "Faculty Fellow"
+      },
+      {
+        "name": "FACULTY FELLOW RES-AY-1/9",
+        "@id": "003238",
+        "cto": "c:577",
+        "prefLabel": "Faculty Fellow"
+      },
+      {
+        "name": "ASSOC PROJ SCIENTIST (WOS)",
+        "@id": "003488",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASSOC PROJ SCIENTIST-FY",
+        "@id": "003392",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASSOC PROJ SCIENTIST-FY NEX",
+        "@id": "003492",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASSOC PROJ SCIENTIST-FY-B/E/E",
+        "@id": "003393",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASSOC PROJ SCI-FY NEX NON REP",
+        "@id": "003415",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASSOC PROJ SCI-FY NON REP",
+        "@id": "003405",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASSOC PROJ SCI-FY-B/E/E NONREP",
+        "@id": "003406",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASSOC PROJ SCNTST-FY-B/E/E NEX",
+        "@id": "003493",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASSOC PROJSC-FY-BEE NEX NONREP",
+        "@id": "003416",
+        "cto": "c:581",
+        "prefLabel": "Associate Project Scientist"
+      },
+      {
+        "name": "ASST PROJ SCIENTIST (WOS)",
+        "@id": "003489",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "ASST PROJ SCIENTIST-FY",
+        "@id": "003394",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "ASST PROJ SCIENTIST-FY NEX",
+        "@id": "003494",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "ASST PROJ SCIENTIST-FY NON REP",
+        "@id": "003407",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "ASST PROJ SCIENTIST-FY-B/E/E",
+        "@id": "003395",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "ASST PROJ SCI-FY NEX NON REP",
+        "@id": "003417",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "ASST PROJ SCI-FY-B/E/E NON REP",
+        "@id": "003408",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "ASST PROJ SCNTST-FY-B/E/E NEX",
+        "@id": "003495",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "ASST PROJSCI-FY-BEE NEX NONREP",
+        "@id": "003418",
+        "cto": "c:581",
+        "prefLabel": "Assistant Project Scientist"
+      },
+      {
+        "name": "PROJ SCIENTIST (WOS)",
+        "@id": "003487",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "PROJ SCIENTIST-FY",
+        "@id": "003390",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "PROJ SCIENTIST-FY NEX",
+        "@id": "003490",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "PROJ SCIENTIST-FY NON REP",
+        "@id": "003403",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "PROJ SCIENTIST-FY-B/E/E",
+        "@id": "003391",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "PROJ SCIENTIST-FY-B/E/E NEX",
+        "@id": "003491",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "PROJ SCIENTIST-FY-B/E/E NONREP",
+        "@id": "003404",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "PROJ SCI-FY NEX NON REP",
+        "@id": "003413",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "PROJ SCI-FY-B/E/E NEX NON REP",
+        "@id": "003414",
+        "cto": "c:581",
+        "prefLabel": "Project Scientist"
+      },
+      {
+        "name": "VIS ASSOC PROJ SCIENTIST",
+        "@id": "003397",
+        "cto": "c:583",
+        "prefLabel": "Visiting Associate Project Scientist"
+      },
+      {
+        "name": "VIS ASSOC PROJ SCIENTIST NEX",
+        "@id": "003497",
+        "cto": "c:583",
+        "prefLabel": "Visiting Associate Project Scientist"
+      },
+      {
+        "name": "VIS ASST PROJ SCIENTIST",
+        "@id": "003398",
+        "cto": "c:583",
+        "prefLabel": "Visiting Assistant Project Scientist"
+      },
+      {
+        "name": "VIS ASST PROJ SCIENTIST NEX",
+        "@id": "003498",
+        "cto": "c:583",
+        "prefLabel": "Visiting Assistant Project Scientist"
+      },
+      {
+        "name": "VIS PROJ SCIENTIST",
+        "@id": "003396",
+        "cto": "c:583",
+        "prefLabel": "Visiting Project Scientist"
+      },
+      {
+        "name": "VIS PROJ SCIENTIST NEX",
+        "@id": "003496",
+        "cto": "c:583",
+        "prefLabel": "Visiting Project Scientist"
+      },
+      {
+        "name": "ASSOC LIBRARIAN -CAREER STATUS",
+        "@id": "003616",
+        "cto": "c:621",
+        "prefLabel": "Associate Librarian"
+      },
+      {
+        "name": "ASSOC LIBRARIAN-CAREER NEX",
+        "@id": "003666",
+        "cto": "c:621",
+        "prefLabel": "Associate Librarian"
+      },
+      {
+        "name": "ASSOC LIBRARIAN-CAREER NON REP",
+        "@id": "003604",
+        "cto": "c:621",
+        "prefLabel": "Associate Librarian"
+      },
+      {
+        "name": "ASSOC LIBRARIAN-POTLCAR NONREP",
+        "@id": "003605",
+        "cto": "c:621",
+        "prefLabel": "Associate Librarian"
+      },
+      {
+        "name": "ASSOC LIBRARIAN-POTNTL CAR NEX",
+        "@id": "003667",
+        "cto": "c:621",
+        "prefLabel": "Associate Librarian"
+      },
+      {
+        "name": "ASSOC LIBRARIAN-POTNTL CAREER",
+        "@id": "003617",
+        "cto": "c:621",
+        "prefLabel": "Associate Librarian"
+      },
+      {
+        "name": "ASSOC LIBRARIAN-TEMP NEX",
+        "@id": "003668",
+        "cto": "c:621",
+        "prefLabel": "Associate Librarian"
+      },
+      {
+        "name": "ASSOC LIBRARIAN-TEMP STATUS",
+        "@id": "003618",
+        "cto": "c:621",
+        "prefLabel": "Associate Librarian"
+      },
+      {
+        "name": "ASST LIBRARIAN-CAREER NEX",
+        "@id": "003670",
+        "cto": "c:621",
+        "prefLabel": "Assistant Librarian"
+      },
+      {
+        "name": "ASST LIBRARIAN-CAREER NON REP",
+        "@id": "003606",
+        "cto": "c:621",
+        "prefLabel": "Assistant Librarian"
+      },
+      {
+        "name": "ASST LIBRARIAN-CAREER STATUS",
+        "@id": "003620",
+        "cto": "c:621",
+        "prefLabel": "Assistant Librarian"
+      },
+      {
+        "name": "ASST LIBRARIAN-POTLCAR NONREP",
+        "@id": "003607",
+        "cto": "c:621",
+        "prefLabel": "Assistant Librarian"
+      },
+      {
+        "name": "ASST LIBRARIAN-POTNTL CAR NEX",
+        "@id": "003671",
+        "cto": "c:621",
+        "prefLabel": "Assistant Librarian"
+      },
+      {
+        "name": "ASST LIBRARIAN-POTNTL CAREER",
+        "@id": "003621",
+        "cto": "c:621",
+        "prefLabel": "Assistant Librarian"
+      },
+      {
+        "name": "ASST LIBRARIAN-TEMP STATUS",
+        "@id": "003622",
+        "cto": "c:621",
+        "prefLabel": "Assistant Librarian"
+      },
+      {
+        "name": "ASST LIBRARIAN-TEMP STATUS NEX",
+        "@id": "003672",
+        "cto": "c:621",
+        "prefLabel": "Assistant Librarian"
+      },
+      {
+        "name": "LIBRARIAN-CAREER NON REP",
+        "@id": "003602",
+        "cto": "c:621",
+        "prefLabel": "Librarian"
+      },
+      {
+        "name": "LIBRARIAN-CAREER STATUS",
+        "@id": "003612",
+        "cto": "c:621",
+        "prefLabel": "Librarian"
+      },
+      {
+        "name": "LIBRARIAN-CAREER STATUS NEX",
+        "@id": "003662",
+        "cto": "c:621",
+        "prefLabel": "Librarian"
+      },
+      {
+        "name": "LIBRARIAN-POTNTL CAREER NEX",
+        "@id": "003663",
+        "cto": "c:621",
+        "prefLabel": "Librarian"
+      },
+      {
+        "name": "LIBRARIAN-POTNTL CAREER STATUS",
+        "@id": "003613",
+        "cto": "c:621",
+        "prefLabel": "Librarian"
+      },
+      {
+        "name": "LIBRARIAN-POTNTLCAREER NON REP",
+        "@id": "003603",
+        "cto": "c:621",
+        "prefLabel": "Librarian"
+      },
+      {
+        "name": "LIBRARIAN-TEMP STATUS",
+        "@id": "003614",
+        "cto": "c:621",
+        "prefLabel": "Librarian"
+      },
+      {
+        "name": "LIBRARIAN-TEMP STATUS NEX",
+        "@id": "003664",
+        "cto": "c:621",
+        "prefLabel": "Librarian"
+      },
+      {
+        "name": "VIS LIBRARIAN",
+        "@id": "003615",
+        "cto": "c:623",
+        "prefLabel": "Visiting Librarian"
+      },
+      {
+        "name": "VIS LIBRARIAN NEX",
+        "@id": "003665",
+        "cto": "c:623",
+        "prefLabel": "Visiting Librarian"
+      },
+      {
+        "name": "ASSOC LAW LIBRARIAN",
+        "@id": "003639",
+        "cto": "c:627",
+        "prefLabel": "Associate Law Librarian"
+      },
+      {
+        "name": "ASSOC LAW LIBRARIAN NEX",
+        "@id": "003640",
+        "cto": "c:627",
+        "prefLabel": "Associate Law Librarian"
+      },
+      {
+        "name": "ASSOC UNIV LIBRARIAN",
+        "@id": "003600",
+        "cto": "c:627",
+        "prefLabel": "Associate University Librarian"
+      },
+      {
+        "name": "ASSOC UNIV LIBRARIAN NEX",
+        "@id": "003601",
+        "cto": "c:627",
+        "prefLabel": "Associate University Librarian"
+      },
+      {
+        "name": "ASST LAW LIBRARIAN",
+        "@id": "003637",
+        "cto": "c:627",
+        "prefLabel": "Assistant Law Librarian"
+      },
+      {
+        "name": "ASST LAW LIBRARIAN NEX",
+        "@id": "003638",
+        "cto": "c:627",
+        "prefLabel": "Assistant Law Librarian"
+      },
+      {
+        "name": "ASST UNIV LIBRARIAN",
+        "@id": "003610",
+        "cto": "c:627",
+        "prefLabel": "Assistant University Librarian"
+      },
+      {
+        "name": "ASST UNIV LIBRARIAN NEX",
+        "@id": "003611",
+        "cto": "c:627",
+        "prefLabel": "Assistant University Librarian"
+      },
+      {
+        "name": "LAW LIBRARIAN",
+        "@id": "003635",
+        "cto": "c:627",
+        "prefLabel": "Law Librarian"
+      },
+      {
+        "name": "LAW LIBRARIAN NEX",
+        "@id": "003636",
+        "cto": "c:627",
+        "prefLabel": "Law Librarian"
+      },
+      {
+        "name": "ASSOC COOP EXT ADVISOR",
+        "@id": "003451",
+        "cto": "c:728",
+        "prefLabel": "Associate Cooperative Extension Advisor"
+      },
+      {
+        "name": "ASSOC COOP EXT ADVISOR NEX",
+        "@id": "003452",
+        "cto": "c:728",
+        "prefLabel": "Associate Cooperative Extension Advisor"
+      },
+      {
+        "name": "ASST COOP EXT ADVISOR",
+        "@id": "003461",
+        "cto": "c:728",
+        "prefLabel": "Assistant Cooperative Extension Advisor"
+      },
+      {
+        "name": "ASST COOP EXT ADVISOR NEX",
+        "@id": "003462",
+        "cto": "c:728",
+        "prefLabel": "Assistant Cooperative Extension Advisor"
+      },
+      {
+        "name": "COOP EXT ADVISOR",
+        "@id": "003441",
+        "cto": "c:728",
+        "prefLabel": "Cooperative Extension Advisor"
+      },
+      {
+        "name": "COOP EXT ADVISOR NEX",
+        "@id": "003442",
+        "cto": "c:728",
+        "prefLabel": "Cooperative Extension Advisor"
+      },
+      {
+        "name": "ASSOC SPECIALIST COOP EXT",
+        "@id": "003477",
+        "cto": "c:729",
+        "prefLabel": "Associate Specialist in Cooperative Extension"
+      },
+      {
+        "name": "ASSOC SPECIALIST COOP EXT NEX",
+        "@id": "003478",
+        "cto": "c:729",
+        "prefLabel": "Associate Specialist in Cooperative Extension"
+      },
+      {
+        "name": "ASST SPECIALIST COOP EXT",
+        "@id": "003475",
+        "cto": "c:729",
+        "prefLabel": "Assistant Specialist in Cooperative Extension"
+      },
+      {
+        "name": "ASST SPECIALIST COOP EXT NEX",
+        "@id": "003476",
+        "cto": "c:729",
+        "prefLabel": "Assistant Specialist in Cooperative Extension"
+      },
+      {
+        "name": "SPECIALIST COOP EXT",
+        "@id": "003479",
+        "cto": "c:729",
+        "prefLabel": "Specialist in Cooperative Extension"
+      },
+      {
+        "name": "SPECIALIST COOP EXT NEX",
+        "@id": "003480",
+        "cto": "c:729",
+        "prefLabel": "Specialist in Cooperative Extension"
+      },
+      {
+        "name": "CONTINUING EDUCATOR I",
+        "@id": "003520",
+        "cto": "c:825",
+        "prefLabel": "Contining Educator"
+      },
+      {
+        "name": "CONTINUING EDUCATOR I NEX",
+        "@id": "003530",
+        "cto": "c:825",
+        "prefLabel": "Contining Educator"
+      },
+      {
+        "name": "CONTINUING EDUCATOR II",
+        "@id": "003521",
+        "cto": "c:825",
+        "prefLabel": "Contining Educator"
+      },
+      {
+        "name": "CONTINUING EDUCATOR II NEX",
+        "@id": "003531",
+        "cto": "c:825",
+        "prefLabel": "Contining Educator"
+      },
+      {
+        "name": "CONTINUING EDUCATOR III",
+        "@id": "003522",
+        "cto": "c:825",
+        "prefLabel": "Contining Educator"
+      },
+      {
+        "name": "CONTINUING EDUCATOR III NEX",
+        "@id": "003532",
+        "cto": "c:825",
+        "prefLabel": "Contining Educator"
+      },
+      {
+        "name": "ASST TEACHER-UNEX",
+        "@id": "003572",
+        "cto": "c:828",
+        "prefLabel": "Assistant Teacher"
+      },
+      {
+        "name": "COURSE AUTHOR-UNEX",
+        "@id": "003580",
+        "cto": "c:828",
+        "prefLabel": "Course Author"
+      },
+      {
+        "name": "COURSE AUTHOR-UNEX NEX",
+        "@id": "003581",
+        "cto": "c:828",
+        "prefLabel": "Course Author"
+      },
+      {
+        "name": "PROG COORD",
+        "@id": "003540",
+        "cto": "c:828",
+        "prefLabel": "Program Coordinator"
+      },
+      {
+        "name": "PROGRAM COORDINATOR NEX",
+        "@id": "003539",
+        "cto": "c:828",
+        "prefLabel": "Program Coordinator"
+      },
+      {
+        "name": "SPEAKER-UNEX",
+        "@id": "003575",
+        "cto": "c:828",
+        "prefLabel": "University Extension Speaker"
+      },
+      {
+        "name": "TEACHER-UNEX",
+        "@id": "003574",
+        "cto": "c:828",
+        "prefLabel": "Teacher"
+      },
+      {
+        "name": "TEACHER-UNEX-CONTRACT YR",
+        "@id": "003570",
+        "cto": "c:828",
+        "prefLabel": "Teacher"
+      },
+      {
+        "name": "ASSOC COORD PUB PROG NON REP",
+        "@id": "003559",
+        "cto": "c:927",
+        "prefLabel": "Associate Coordinator of Public Programs"
+      },
+      {
+        "name": "ASSOC COORD PUBLIC PROG",
+        "@id": "003560",
+        "cto": "c:927",
+        "prefLabel": "Associate Coordinator of Public Programs"
+      },
+      {
+        "name": "ASSOC COORD PUBLIC PROG NEX",
+        "@id": "003564",
+        "cto": "c:927",
+        "prefLabel": "Associate Coordinator of Public Programs"
+      },
+      {
+        "name": "ASSOC COORD PUBPROG NEX NONREP",
+        "@id": "003567",
+        "cto": "c:927",
+        "prefLabel": "Associate Coordinator of Public Programs"
+      },
+      {
+        "name": "ASSOC CURATOR",
+        "@id": "003651",
+        "cto": "c:927",
+        "prefLabel": "Associate Curator"
+      },
+      {
+        "name": "ASSOC FLD PROG SUPV",
+        "@id": "003234",
+        "cto": "c:927",
+        "prefLabel": "Associate Field Programs Supervisor"
+      },
+      {
+        "name": "ASST COORD PUB PROG NEX NONREP",
+        "@id": "003568",
+        "cto": "c:927",
+        "prefLabel": "Assistant Coordinator of Public Programs"
+      },
+      {
+        "name": "ASST COORD PUB PROG NON REP",
+        "@id": "003561",
+        "cto": "c:927",
+        "prefLabel": "Assistant Coordinator of Public Programs"
+      },
+      {
+        "name": "ASST COORD PUBLIC PROG",
+        "@id": "003562",
+        "cto": "c:927",
+        "prefLabel": "Assistant Coordinator of Public Programs"
+      },
+      {
+        "name": "ASST COORD PUBLIC PROG NEX",
+        "@id": "003565",
+        "cto": "c:927",
+        "prefLabel": "Assistant Coordinator of Public Programs"
+      },
+      {
+        "name": "ASST CURATOR",
+        "@id": "003652",
+        "cto": "c:927",
+        "prefLabel": "Assistant Curator"
+      },
+      {
+        "name": "COORD PUB PROG NEX NON REP",
+        "@id": "003566",
+        "cto": "c:927",
+        "prefLabel": "Public Programs Coordinator"
+      },
+      {
+        "name": "COORD PUB PROG NON REP",
+        "@id": "003557",
+        "cto": "c:927",
+        "prefLabel": "Public Programs Coordinator"
+      },
+      {
+        "name": "COORD PUBLIC PROG",
+        "@id": "003558",
+        "cto": "c:927",
+        "prefLabel": "Public Programs Coordinator"
+      },
+      {
+        "name": "COORD PUBLIC PROG NEX",
+        "@id": "003563",
+        "cto": "c:927",
+        "prefLabel": "Public Programs Coordinator"
+      },
+      {
+        "name": "CURATOR",
+        "@id": "003650",
+        "cto": "c:927",
+        "prefLabel": "Curator"
+      },
+      {
+        "name": "DIRECTOR-EAP STUDY CENTER",
+        "@id": "001070",
+        "cto": "c:927",
+        "prefLabel": "Education Abroad Program Study Center Director"
+      },
+      {
+        "name": "FACULTY CONSULTANT",
+        "@id": "003700",
+        "cto": "c:927",
+        "prefLabel": "Faculty Consultant"
+      },
+      {
+        "name": "FLD PROG SUPV",
+        "@id": "003230",
+        "cto": "c:927",
+        "prefLabel": "Field Program Supervisor"
+      },
+      {
+        "name": "ACADEMIC ASST TO CHANC",
+        "@id": "000801",
+        "cto": "c:928",
+        "prefLabel": "Academic Assistant to Chancellor"
+      },
+      {
+        "name": "ACADEMIC ASST TO VICE CHANC",
+        "@id": "000800",
+        "cto": "c:928",
+        "prefLabel": "Academic Assistant to Vice Chancellor"
+      },
+      {
+        "name": "ACT/INTERIM ASSOC VICE CHANC",
+        "@id": "000804",
+        "cto": "c:928",
+        "prefLabel": "Acting Associate Vice Chancellor"
+      },
+      {
+        "name": "ASSOC VICE CHANC",
+        "@id": "000803",
+        "cto": "c:928",
+        "prefLabel": "Associate Vice Chancellor"
+      },
+      {
+        "name": "ASST VICE CHANC",
+        "@id": "000802",
+        "cto": "c:928",
+        "prefLabel": "Assistant Vice Chancellor"
+      },
+      {
+        "name": "CHAIR-SEN ASMBLY&ACADEMIC CNCL",
+        "@id": "001059",
+        "cto": "c:928",
+        "prefLabel": "Chair of Senate Assembly and Academic Council"
+      },
+      {
+        "name": "CHILD DEV DEMO LECT",
+        "@id": "002285",
+        "cto": "c:928",
+        "prefLabel": "Child Development Demonstration Lecturer"
+      },
+      {
+        "name": "CHILD DEV DEMO LECT-CONTINUING",
+        "@id": "002284",
+        "cto": "c:928",
+        "prefLabel": "Child Development Lecturer"
+      },
+      {
+        "name": "CLIN ASSOCIATE-FY",
+        "@id": "002081",
+        "cto": "c:928",
+        "prefLabel": "Clinical Associate"
+      },
+      {
+        "name": "DEMO TEACHER",
+        "@id": "002210",
+        "cto": "c:928",
+        "prefLabel": "Demonstration Teacher"
+      },
+      {
+        "name": "DEMO TEACHER-CONTINUING",
+        "@id": "002211",
+        "cto": "c:928",
+        "prefLabel": "Demonstration Continuing Teacher"
+      },
+      {
+        "name": "EDUCATOR (WOS)",
+        "@id": "001675",
+        "cto": "c:928",
+        "prefLabel": "Educator"
+      },
+      {
+        "name": "FACULTY ADMIN TRANSITION LV-AY",
+        "@id": "003900",
+        "cto": "c:928",
+        "prefLabel": "Faculty Administrative Transition"
+      },
+      {
+        "name": "FACULTY ADMIN TRANSITION LV-FY",
+        "@id": "003910",
+        "cto": "c:928",
+        "prefLabel": "Faculty Administrative Transition"
+      },
+      {
+        "name": "FACULTY ADVISOR",
+        "@id": "000812",
+        "cto": "c:928",
+        "prefLabel": "Faculty Advisor"
+      },
+      {
+        "name": "FACULTY ASST TO CHANC",
+        "@id": "001044",
+        "cto": "c:928",
+        "prefLabel": "Faculty Assistant to Chancellor"
+      },
+      {
+        "name": "FACULTY ASST TO PROVOST/DEAN",
+        "@id": "001055",
+        "cto": "c:928",
+        "prefLabel": "Faculty Assistant to Dean"
+      },
+      {
+        "name": "FACULTY ASST TO VICE CHANC",
+        "@id": "001045",
+        "cto": "c:928",
+        "prefLabel": "Faculty Assistant to Vice Chancellor"
+      },
+      {
+        "name": "GEFFEN K-12 INSTR SUMMER PROG",
+        "@id": "002434",
+        "cto": "c:928",
+        "prefLabel": "Geffen K-12 Summer Program Instructor"
+      },
+      {
+        "name": "GEFFEN K-12 INSTR-AY-1/10-CONT",
+        "@id": "002433",
+        "cto": "c:928",
+        "prefLabel": "Geffen K-12 Summer Program Instructor"
+      },
+      {
+        "name": "GEFFEN K-12 INSTRUCTOR-AY",
+        "@id": "002430",
+        "cto": "c:928",
+        "prefLabel": "Geffen K-12 Summer Program Instructor"
+      },
+      {
+        "name": "GEFFEN K-12 INSTRUCTOR-AY-1/10",
+        "@id": "002432",
+        "cto": "c:928",
+        "prefLabel": "Geffen K-12 Summer Program Instructor"
+      },
+      {
+        "name": "GEFFEN K-12 INSTRUCTOR-AY-CONT",
+        "@id": "002431",
+        "cto": "c:928",
+        "prefLabel": "Geffen K-12 Summer Program Instructor"
+      },
+      {
+        "name": "GRADUATE ADVISOR",
+        "@id": "000810",
+        "cto": "c:928",
+        "prefLabel": "Graduate Advisor"
+      },
+      {
+        "name": "HHMI INVESTIGATOR",
+        "@id": "001969",
+        "cto": "c:928",
+        "prefLabel": "Howard Hughes Medical Institute Investigator"
+      },
+      {
+        "name": "INTERN-CLIN PSYCH-GEN CAMP NEX",
+        "@id": "002718",
+        "cto": "c:928",
+        "prefLabel": "General Psychology Clinical Intern"
+      },
+      {
+        "name": "INTERN-CLIN PSYCH-GENL CAMP",
+        "@id": "002716",
+        "cto": "c:928",
+        "prefLabel": "General Psychology Clinical Intern"
+      },
+      {
+        "name": "K-12 DAILY SUBSTITUTE/NONREP",
+        "@id": "002442",
+        "cto": "c:928",
+        "prefLabel": "K-12 Daily Substitute"
+      },
+      {
+        "name": "K-12 INSTRUCTOR-AY",
+        "@id": "002440",
+        "cto": "c:928",
+        "prefLabel": "K-12 Instructor"
+      },
+      {
+        "name": "K-12 INSTRUCTOR-AY-1/10",
+        "@id": "002441",
+        "cto": "c:928",
+        "prefLabel": "K-12 Instructor"
+      },
+      {
+        "name": "LECT-MISCELLANEOUS/PART TIME",
+        "@id": "001650",
+        "cto": "c:928",
+        "prefLabel": "Lecturer"
+      },
+      {
+        "name": "LUDWIG INVESTIGATOR",
+        "@id": "001970",
+        "cto": "c:928",
+        "prefLabel": "Ludwig Investigator"
+      },
+      {
+        "name": "MILITARY/AIR SCI&TACTICS ASST",
+        "@id": "002600",
+        "cto": "c:928",
+        "prefLabel": "Military Science Assistant"
+      },
+      {
+        "name": "MISCELLANEOUS",
+        "@id": "003999",
+        "cto": "c:928",
+        "prefLabel": ""
+      },
+      {
+        "name": "NON-PHYS CLIN TRAIN-GENCMP NEX",
+        "@id": "002742",
+        "cto": "c:928",
+        "prefLabel": "Clinical Trainee"
+      },
+      {
+        "name": "NON-PHYS CLIN TRAIN-GENL CAMP",
+        "@id": "002741",
+        "cto": "c:928",
+        "prefLabel": "Clinical Trainee"
+      },
+      {
+        "name": "NON-SENATE ACAD EMERITUS(WOS)",
+        "@id": "003800",
+        "cto": "c:928",
+        "prefLabel": "Academic-Emeritus"
+      },
+      {
+        "name": "OMBUDSMAN-ACAD",
+        "@id": "000880",
+        "cto": "c:928",
+        "prefLabel": "Ombudsman"
+      },
+      {
+        "name": "PREUSS K-12 COUNSELOR-AY",
+        "@id": "002447",
+        "cto": "c:928",
+        "prefLabel": "Preuss K-12 Counselor"
+      },
+      {
+        "name": "PREUSS K-12 COUNSELOR-AY-1/10",
+        "@id": "002448",
+        "cto": "c:928",
+        "prefLabel": "Preuss K-12 Counselor"
+      },
+      {
+        "name": "READER-NON STDNT",
+        "@id": "002500",
+        "cto": "c:928",
+        "prefLabel": "Reader"
+      },
+      {
+        "name": "READER-NON STDNT/NON REP",
+        "@id": "002520",
+        "cto": "c:928",
+        "prefLabel": "Reader"
+      },
+      {
+        "name": "RECALL NON-FACULTY ACAD",
+        "@id": "003802",
+        "cto": "c:928",
+        "prefLabel": "Recall-Academic"
+      },
+      {
+        "name": "RECALL NON-FACULTY ACAD NEX",
+        "@id": "003812",
+        "cto": "c:928",
+        "prefLabel": "Recall-Academic"
+      },
+      {
+        "name": "REGENTS' LECT",
+        "@id": "001968",
+        "cto": "c:928",
+        "prefLabel": "Regents' Lecturer"
+      },
+      {
+        "name": "REGENTS' PROF",
+        "@id": "001958",
+        "cto": "c:928",
+        "prefLabel": "Regents' Professor"
+      },
+      {
+        "name": "SUBSTITUTE TEACHER",
+        "@id": "002427",
+        "cto": "c:928",
+        "prefLabel": "Substitute Teacher"
+      },
+      {
+        "name": "SUBSTITUTE TEACHER-CONTINUING",
+        "@id": "002428",
+        "cto": "c:928",
+        "prefLabel": "Substitute Teacher"
+      },
+      {
+        "name": "TEACHER-LHS",
+        "@id": "002650",
+        "cto": "c:928",
+        "prefLabel": "Teacher"
+      },
+      {
+        "name": "TEACHER-LHS-CONTINUING",
+        "@id": "002651",
+        "cto": "c:928",
+        "prefLabel": "Teacher"
+      },
+      {
+        "name": "TEACHER-SPEC PROG",
+        "@id": "002460",
+        "cto": "c:928",
+        "prefLabel": "Special Programs Teacher"
+      },
+      {
+        "name": "TEACHER-SPEC PROG-CONTINUING",
+        "@id": "002461",
+        "cto": "c:928",
+        "prefLabel": "Special Programs Teacher"
+      },
+      {
+        "name": "TUT-NON STDNT",
+        "@id": "002510",
+        "cto": "c:928",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "TUT-NON STDNT/NON REP",
+        "@id": "002521",
+        "cto": "c:928",
+        "prefLabel": "Gradute Student Researcher"
+      },
+      {
+        "name": "ADDL COMP-HGH&OLIVE VIEW MCS",
+        "@id": "003990",
+        "cto": "c:999",
+        "prefLabel": ""
+      },
+      {
+        "name": "ADMIN STIPEND",
+        "@id": "001099",
+        "cto": "c:999",
+        "prefLabel": ""
+      },
+      {
+        "name": "EAP-TEMP FACULTY HOUSING ALLOW",
+        "@id": "003995",
+        "cto": "c:999",
+        "prefLabel": ""
+      },
+      {
+        "name": "FACULTY RECRUITMENT ALLOW",
+        "@id": "003993",
+        "cto": "c:999",
+        "prefLabel": ""
+      },
+      {
+        "name": "SALARY SUPPLEMENTATION",
+        "@id": "003998",
+        "cto": "c:999",
+        "prefLabel": ""
+      },
+      {
+        "name": "STIPEND-OTH POST-MD TRAIN",
+        "@id": "002735",
+        "cto": "c:999",
+        "prefLabel": ""
+      },
+      {
+        "name": "STIPEND-RESID",
+        "@id": "001092",
+        "cto": "c:999",
+        "prefLabel": ""
+      },
+      {
+        "name": "SUMMER DIFFERENTIAL",
+        "@id": "001098",
+        "cto": "c:999",
+        "prefLabel": ""
+      },
+      {
+        "name": "CLIN ASSOC/ADMITTING PHYSICIAN",
+        "@id": "CWR007",
+        "prefLabel": "Clinical Associate Physician"
+      },
+      {
+        "name": "RESEARCH ASSOCIATE",
+        "@id": "CWR022",
+        "prefLabel": "Research Associate"
+      },
+      {
+        "name": "RESEARCH FELLOW",
+        "@id": "CWR021",
+        "prefLabel": "Research Fellow"
+      },
+      {
+        "name": "VISITING SCHOLAR",
+        "@id": "CWR015",
+        "prefLabel": "Visiting Scholar"
+      },
+      {
+        "name": "VISITING STUDENT RES-GRADUATE",
+        "@id": "CWR003",
+        "prefLabel": "Visiting Undergraduate Student"
+      },
+      {
+        "name": "VISITING STUDENT RES-UNDERGRAD",
+        "@id": "CWR016",
+        "prefLabel": "Visiting Graduate Student"
+      },
+      {
+        "name": "ASSOC DEAN",
+        "@id": "001010",
+        "cto": "c:021",
+        "prefLabel": "Associate Dean"
+      },
+      {
+        "name": "ASSOC DEAN-AY",
+        "@id": "001011",
+        "cto": "c:021",
+        "prefLabel": "Associate Dean"
+      },
+      {
+        "name": "ASST DEAN",
+        "@id": "001020",
+        "cto": "c:021",
+        "prefLabel": "Assistant Dean"
+      },
+      {
+        "name": "DEAN",
+        "@id": "001000",
+        "cto": "c:021",
+        "prefLabel": "Dean"
+      },
+      {
+        "name": "DEAN-EXTENDED LEARNING",
+        "@id": "001040",
+        "cto": "c:021",
+        "prefLabel": "Extended Learning Dean"
+      },
+      {
+        "name": "ACT/INTERIM ASSISTANT DEAN",
+        "@id": "001027",
+        "cto": "c:024",
+        "prefLabel": "Acting Assistant Dean"
+      },
+      {
+        "name": "ACT/INTERIM ASSOC DEAN",
+        "@id": "001017",
+        "cto": "c:024",
+        "prefLabel": "Acting Associate Dean"
+      },
+      {
+        "name": "ACT/INTERIM ASSOC VICE PROVOST",
+        "@id": "001087",
+        "cto": "c:024",
+        "prefLabel": "Acting Associate Vice Provost"
+      },
+      {
+        "name": "ACT/INTERIM COLLEGE PROVOST",
+        "@id": "001047",
+        "cto": "c:024",
+        "prefLabel": "Acting College Provost"
+      },
+      {
+        "name": "ACT/INTERIM DEAN",
+        "@id": "001007",
+        "cto": "c:024",
+        "prefLabel": "Acting Dean"
+      },
+      {
+        "name": "ACT/INTERIM DIVISIONAL DEAN",
+        "@id": "001037",
+        "cto": "c:024",
+        "prefLabel": "Acting Divisional Dean"
+      },
+      {
+        "name": "ACT/INTERIM VICE PROVOST",
+        "@id": "001077",
+        "cto": "c:024",
+        "prefLabel": "Acting Vice Provost"
+      },
+      {
+        "name": "ASSOC DIVISIONAL DEAN",
+        "@id": "001032",
+        "cto": "c:026",
+        "prefLabel": "Associate Divisional Dean"
+      },
+      {
+        "name": "DIVISIONAL DEAN",
+        "@id": "001030",
+        "cto": "c:026",
+        "prefLabel": "Divisional Dean"
+      },
+      {
+        "name": "ASSOC COLLEGE PROVOST",
+        "@id": "001052",
+        "cto": "c:027",
+        "prefLabel": "Associate College Provost"
+      },
+      {
+        "name": "ASSOC VICE PROVOST",
+        "@id": "001069",
+        "cto": "c:027",
+        "prefLabel": "Associate Vice Provost"
+      },
+      {
+        "name": "ASST COLLEGE PROVOST",
+        "@id": "001051",
+        "cto": "c:027",
+        "prefLabel": "Assistant College Provost"
+      },
+      {
+        "name": "COLLEGE PROVOST",
+        "@id": "001060",
+        "cto": "c:027",
+        "prefLabel": "College Provost"
+      },
+      {
+        "name": "VICE PROVOST",
+        "@id": "001068",
+        "cto": "c:027",
+        "prefLabel": "Vice Provost"
+      },
+      {
+        "name": "ASSOC DIRECTOR",
+        "@id": "000910",
+        "cto": "c:031",
+        "prefLabel": "Associate Director"
+      },
+      {
+        "name": "ASST DIRECTOR",
+        "@id": "000920",
+        "cto": "c:031",
+        "prefLabel": "Assistant Director"
+      },
+      {
+        "name": "DIRECTOR",
+        "@id": "000900",
+        "cto": "c:031",
+        "prefLabel": "Director"
+      },
+      {
+        "name": "ACT/INTERIM ASSOC DIRECTOR",
+        "@id": "000917",
+        "cto": "c:034",
+        "prefLabel": "Acting Associate Director"
+      },
+      {
+        "name": "ACT/INTERIM ASST DIRECTOR",
+        "@id": "000927",
+        "cto": "c:034",
+        "prefLabel": "Acting Assistant Director"
+      },
+      {
+        "name": "ACT/INTERIM DIRECTOR",
+        "@id": "000907",
+        "cto": "c:034",
+        "prefLabel": "Acting Director"
+      },
+      {
+        "name": "ACADEMIC COORD I-AY",
+        "@id": "000840",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD I-AY NEX",
+        "@id": "000850",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD I-FY",
+        "@id": "000841",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD I-FY NEX",
+        "@id": "000851",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD II-AY",
+        "@id": "000842",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD II-AY NEX",
+        "@id": "000852",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD II-FY",
+        "@id": "000843",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD II-FY NEX",
+        "@id": "000853",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD III-AY",
+        "@id": "000844",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD III-AY NEX",
+        "@id": "000854",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD III-FY",
+        "@id": "000845",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC COORD III-FY NEX",
+        "@id": "000855",
+        "cto": "c:046",
+        "prefLabel": "Academic Coordinator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR I",
+        "@id": "001061",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR I NEX",
+        "@id": "000961",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR II",
+        "@id": "001062",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR II NEX",
+        "@id": "000962",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR III",
+        "@id": "001063",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR III NEX",
+        "@id": "000963",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR IV",
+        "@id": "001064",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR IV NEX",
+        "@id": "000964",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR V",
+        "@id": "001065",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR V NEX",
+        "@id": "000965",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR VI",
+        "@id": "001066",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR VI NEX",
+        "@id": "000966",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR VII",
+        "@id": "001067",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "ACADEMIC ADMINISTRATOR VII NEX",
+        "@id": "000967",
+        "cto": "c:056",
+        "prefLabel": "Academic Administrator"
+      },
+      {
+        "name": "DEPARTMENT CHAIR",
+        "@id": "001096",
+        "cto": "c:061",
+        "prefLabel": "Department Chair"
+      },
+      {
+        "name": "DEPARTMENT VICE CHAIR",
+        "@id": "001094",
+        "cto": "c:061",
+        "prefLabel": "Department Chair"
+      },
+      {
+        "name": "ACT/INTERIM DEPARTMENT CHAIR",
+        "@id": "001095",
+        "cto": "c:064",
+        "prefLabel": "Acting Department Chair"
+      }
+    ]
   ]
 }

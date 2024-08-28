@@ -9,90 +9,134 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX schema: <http://schema.org/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX ucop: <http://experts.ucdavis.edu/ucop/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
-  # This  just copies IAM info
-  ?iam_expert_s ?iam_p ?iam_expert_o.
-  ?iam_expert_o vcard:title ?iam_o_title.
-
-  # This adds the CDL information
-  ?expert a vivo:Person,ucdlib:Expert;
-               rdfs:label ?name;
-               obo:ARG_2000028 ?vcard;
-               schema:identifier ?expert, ?oapolicy_ark;
+  ?EXPERT__ a vivo:Person,ucdlib:Expert,?type;
+            rdfs:label ?name;
+            vcard:hasName ?vcard_name;
+            obo:ARG_2000028 ?vcard,?oap_vcard;
+               schema:identifier ?EXPERT__, ?oapolicy_ark;
                ucdlib:is-visible ?visible;
                ?field_predicate ?field_value;
+               ?p ?o
                .
 
-  ?expert ?id_pred ?id_value.
+  ?EXPERT__ ?id_pred ?id_value.
 
-  ?vcard a vcard:Individual;
+  ?vcard_name ?np ?no.
+
+  ?vcard schema:name ?vcard_label;
+         vcard:hasOrganizationalUnit ?unit;
+         vcard:hasTitle ?position;
+         vcard:hasURL ?hasurl;
+    ?vp ?vo;
+    .
+
+  ?unit a ?unit_type;
+    vcard:title ?unit_title;
+    .
+
+  ?hasurl a ?url_type;
+    vcard:url ?url;
+    .
+
+  ?position a ?position_type, ?ucop_type;
+    vcard:title ?position_title;
+    skos:prefLabel ?prefLabel;
+    .
+
+  ?oap_vcard a vcard:Individual;
          vivo:rank 20;
-         schema:name ?vcard_label;
-         vcard:hasName ?vcard_name;
-         vcard:hasEmail ?vcard_email;
-         vcard:hasURL ?vcard_web;
+         schema:name ?oap_vcard_label;
+         vcard:hasName ?oap_vcard_name;
+         vcard:hasEmail ?oap_vcard_email;
+         vcard:hasURL ?oap_vcard_web;
          ucdlib:isPreferred false;
          .
 
-  ?vcard_name a vcard:Name;
+  ?oap_vcard_name a vcard:Name;
               vcard:givenName ?fn;
               vcard:familyName ?ln;
               .
 
-  ?vcard_web a vcard:URL, ?web_type;
+  ?oap_vcard_web a vcard:URL, ?web_type;
              vcard:url ?web_url;
              vivo:rank ?web_rank;
              vcard:title ?web_label;
              .
 
   # Research Areas
-  ?expert vivo:hasResearchArea ?concept.
-  ?concept vivo:researchAreaOf ?expert.
+  ?EXPERT__ vivo:hasResearchArea ?concept.
+  ?concept vivo:researchAreaOf ?EXPERT__.
 }
 WHERE {
-  bind(uri(concat(str(expert:),MD5(?USERNAME__))) as ?user)
   graph <http://iam.ucdavis.edu/> {
-    ?user a ucdlib:Expert;
-          ucdlib:expert ?expert;
-          ucdlib:is-visible true;
-          .
-    values ?iam_p {obo:ARG_2000028
-      rdf:type rdfs:label schema:identifier schema:name
-      ucdlib:is-visible ucdlib:isPreferred
-      vcard:familyName vcard:givenName vcard:hasEmail vcard:hasName
-      vcard:hasOrganizationalUnit vcard:hasTitle vcard:hasURL vcard:middleName
-      vcard:pronouns vcard:title vcard:url
-      vivo:rank}
+    values ?p {rdfs:label schema:identifier schema:name
+      ucdlib:isPreferred ucdlib:is-visible }
 
-    ?iam_s ?iam_p ?iam_o.
-    # This is soo hacky,
+    ?user a ?type;
+          ucdlib:eduroam ?USERNAME__;
+          ucdlib:is-visible true;
+          vcard:hasName ?vcard_name;
+          obo:ARG_2000028 ?vcard;
+          ?p ?o;
+          .
+
+	  ?vcard_name ?np ?no;
+               vcard:familyName ?ln;
+               .
     OPTIONAL {
-      ?iam_o vcard:title ?iam_o_title.
+      ?vcard_name vcard:givenName ?fn.
     }
-    filter(regex(str(?iam_s),concat('^',str(?user),'#?')))
-    bind(uri(replace(str(?iam_s),concat('^',str(?user)),str(?expert))) as ?iam_expert_s)
-    bind(if(isuri(?iam_o),uri(replace(str(?iam_o),concat('^',str(?user)),str(?expert))),?iam_o) as ?iam_expert_o)
+
+	  ?vcard ?vp ?vo.
+    OPTIONAL {
+	    ?vcard vcard:hasOrganizationalUnit ?unit.
+    	?unit a ?unit_type;
+        	   vcard:title ?unit_title;
+           .
+    }
+    OPTIONAL {
+		?vcard vcard:hasTitle ?position.
+    	?position a ?position_type;
+        		   vcard:title ?position_title;
+           .
+    }
+    OPTIONAL {
+		?vcard vcard:hasURL ?hasurl.
+    	?hasurl a ?url_type;
+        		   vcard:url ?url;
+           .
+    }
+  }
+  OPTIONAL {
+    graph ucop: {
+      ?position a ?ucop_type;
+             skos:prefLabel ?prefLabel;
+                .
+    }
   }
   GRAPH <http://oapolicy.universityofcalifornia.edu/> {
-  ?cdl_id :category "user";
+    ?cdl_id :category "user";
         :is-public "true",?visible_str;
         :is-login-allowed "true";
         :username ?USERNAME__;
-        :last-name ?ln;
-        :first-name ?fn;
+        :last-name ?oap_ln;
+        :first-name ?oap_fn;
         :user-identifier-associations ?assoc;
         .
 
     OPTIONAL {
-      ?cdl_id :position ?title.
+      ?cdl_id :position ?oap_title.
     }
     OPTIONAL {
-      ?cdl_id :department ?dept.
+      ?cdl_id :department ?oap_dept.
     }
 
     ?assoc :user-id ?oapolicy_id.
@@ -113,7 +157,7 @@ WHERE {
                          :type "email-address-list";
                          :email-addresses [
                                             :email-address [
-                                                             :address ?email;
+                                                             :address ?oap_email;
                                                              :privacy "public";
                                                            ]
                                           ]
@@ -161,16 +205,29 @@ WHERE {
       bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
     }
   }
-  bind(concat(?fn," ",?ln) as ?name)
-  bind(uri(concat(str(?expert),"#vcard-oap-1")) as ?vcard)
-  bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
-  bind(xsd:boolean(?visible_str) as ?visible)
-  bind(uri(concat('mailto:',str(?email))) as ?vcard_email)
-  bind(uri(concat(str(?vcard),"-web-",str(?web_rank))) as ?vcard_web)
-  bind(coalesce(concat(" § ",?title,coalesce(concat(", ",?dept),"")),
-                "") as ?title_dept)
+  bind(concat(coalesce(concat(?fn," "),""),?ln) as ?name)
+
+  bind(coalesce(concat(" § ",
+                       coalesce(?prefLabel,?position_title),
+                       coalesce(concat(", ",?unit_title),"")),"") as ?title_dept)
+
   bind(concat(
               concat(?ln,coalesce(concat(", ",?fn),"")),
               coalesce(?title_dept,"")
               ) as ?vcard_label)
+
+  bind(concat(?oap_fn," ",?oap_ln) as ?oap_name)
+  bind(uri(concat(str(?EXPERT__),"#vcard-oap-1")) as ?oap_vcard)
+  bind(uri(concat(str(?oap_vcard),"-name")) as ?oap_vcard_name)
+  bind(xsd:boolean(?visible_str) as ?visible)
+
+  bind(uri(concat('mailto:',str(?oap_email))) as ?oap_vcard_email)
+  bind(uri(concat(str(?oap_vcard),"-web-",str(?web_rank))) as ?oap_vcard_web)
+  bind(coalesce(concat(" § ",?oap_title,coalesce(concat(", ",?oap_dept),"")),
+                "") as ?oap_title_dept)
+  bind(concat(
+              concat(?oap_ln,coalesce(concat(", ",?oap_fn),"")),
+              coalesce(?oap_title_dept,"")
+              ) as ?oap_vcard_label)
+
 }

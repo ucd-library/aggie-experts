@@ -18,8 +18,6 @@ import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
 import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
 
-import md5 from 'md5';
-
 const DF = new DataFactory();
 const BF = new BindingsFactory();
 
@@ -28,13 +26,16 @@ const gs = new GoogleSecret();
 
 const program = new Command();
 
+// const
+
 // This also reads data from .env file via dotenv
 const fuseki = new FusekiClient({
   url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb2',
   replace: true,
-  'delete': true
+  'delete': true,
+  assembler: ''
 });
 
 const cdl = {
@@ -113,19 +114,20 @@ async function main(opt) {
   let db
 
   // Step 2: Get User Profiles and relationships from CDL
-  for (const user of users) {
-    let dbname
-    let md=md5(`${user}@ucdavis.edu`);
 
+  // Read custom config for expert dataset with hdt assembler setup
+  let assembler_template = fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld', 'utf8');
+
+  for (const user of users) {
     const query=`
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 select * WHERE { graph <http://iam.ucdavis.edu/> {
-    [] ucdlib:userId "${user}" ;
+    ?s ucdlib:userId "${user}" ;
        ucdlib:email ?email;
        ucdlib:ucdPersonUUId ?ucdPersonUUID;
-       ucdlib:iamId ?iamId;
        vcard:hasName [vcard:givenName ?firstName; vcard:familyName ?lastName ].
+       bind(replace(str(?s),"ark:/87287/d7c08j/","") as ?iamId)
   } }`;
     const response = await fetch(
       opt.expertsService,
@@ -146,14 +148,13 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     const kc_user = {};
     let email;
     try {
-      email = json.results.bindings[0].email.value;
+      email = json.results.bindings[0].email.value.replace('mailto:', '');
       profile.firstName = json.results.bindings[0].firstName.value;
       profile.lastName = json.results.bindings[0].lastName.value;
       profile.attributes = {};
       profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
       profile.attributes.iamId=json.results.bindings[0].iamId.value;
     } catch (e) {
-      console.log(JSON.stringify(json));
       logger.error(json, `${user} missing values`);
       continue;
     }
@@ -172,12 +173,11 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
       opt.log.info({mark:user},'skipping ' + user);
       continue;
     }
-    opt.log.info({mark:user},'user ' + user);
-    dbname = user;
-    let exists = await fuseki.existsDb(dbname);
-    db = await fuseki.createDb(dbname);
-    opt.log.info({measure:[user],user},`fuseki.createDb(${dbname})`)
-
+    logger.info({mark:user},'user ' + user);
+    db = await fuseki.createDb({
+      db:user,
+      assembler: assembler_template.replace(/__USER__/g, user)
+    });
 
     if (opt.fetch) {
       try {
@@ -198,8 +198,7 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
     if (opt.splay) {
       opt.log.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
-        { EXPERTS_SERVICE__: DF.namedNode(`http://localhost:3030/experts/query`),
-          EXPERT__: DF.namedNode(`http://experts.ucdavis.edu/expert/${expertId}`),
+        {
           EXPERTID__: DF.literal(expertId),
           KEYCLOAK_EMAIL__: DF.literal(email)
         }
@@ -234,6 +233,7 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { exit } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename).replace('/bin', '/lib');
 
@@ -257,7 +257,7 @@ program.name('cdl-profile')
   .option('--environment <env>', 'specify environment', 'production')
   .option('--no-splay', 'splay data', true)
   .option('--no-fetch', 'fetch the data', true)
-  .option('--skip-existing-user', 'skip if expert/md5(${user}@ucdavis.edu`) exists', false)
+  .option('--skip-existing-user', 'skip if expert exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
   .option_iam()
   .option_log()

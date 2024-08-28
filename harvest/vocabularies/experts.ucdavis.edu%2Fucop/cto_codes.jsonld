@@ -1,7 +1,7 @@
 {
   "@context": {
     "@vocab": "http://schema.org/",
-    "@base": "http://experts.ucdavis.edu/cto/"
+    "@base": "ark:/87287/d7c08j/cto/"
   },
   "@graph": [
     {

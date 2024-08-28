@@ -1,24 +1,15 @@
 import fetch from 'node-fetch';
 
 export class FusekiClient {
-  static DEF= {
-    url: 'http://admin:testing123@localhost:3030',
-    replace: false,
-    type: 'tdb2',
-    log: null
-  };
-
-  constructor(opt={}) {
-    opt = opt || {};
-    for (let k in FusekiClient.DEF) {
-      this[k] = opt[k] || FusekiClient.DEF[k];
-    }
-
-    if (opt.url) {
-      let url = new URL(opt.url);
-      this.auth=opt.auth || url.username+':'+url.password;
-      this.url = url.origin;
-    }
+  constructor(opt) {
+    this.url = opt.url;
+    this.auth=opt.auth;
+    this.type=opt.type;
+    this.replace=opt.replace;
+    this.delete=opt.delete;
+    this.db=opt.db;
+    this.logger=opt.logger || logger;
+    this.assembler=opt.assembler || '';
     this.reauth();
   }
 
@@ -67,11 +58,14 @@ export class FusekiClient {
   }
 
 
-  async createDb(db,opt={},files) {
-    if(typeof opt === 'object') {
-      opt.type ||= this.type;
-      opt.replace ||= this.replace;
+  async createDb(opt,files) {
+    if(typeof opt === 'string') {
+      opt={db:opt};
     }
+    opt.type ||= this.type;
+    opt.replace ||= this.replace;
+    opt.delete ||= this.delete;
+    opt.assembler ||= this.assembler;
 
     let exists = false;
 
@@ -108,24 +102,69 @@ export class FusekiClient {
         `${this.url}/\$/datasets`,
         {
           method: 'POST',
-          body: new URLSearchParams({ 'dbName': db, 'dbType': opt.type }),
+          body: opt.assembler,
           headers: {
-            'Authorization': `Basic ${this.authBasic}`
+            'Authorization': `Basic ${this.authBasic}`,
+            'Content-Type': 'application/ld+json'
           }
         });
       if (!res.ok) {
-        console.log(`✘ createDb(${db}) Code: ${res.status}`);
-        throw new Error(`✘ createDb(${db}) Code: ${res.status}`);
+        throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
       }
       this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ createDb(${db})`);
     }
 
-    const dbclient=new FusekiClientDB(this,db,opt);
+    const db=new FusekiClientDB(
+      {url:this.url,
+       auth:this.auth,
+       authBasic:this.authBasic,
+       ...opt});
 
     if (files) {
-      this.files = await dbclient.addToDb(files);
+      this.files = await db.addToDb(files);
     }
-    return dbclient;
+    return db;
+  }
+
+  async createDatasetFromJsonLdFile(opt,jsonld) {
+
+    if(typeof opt === 'string') {
+      opt={db:opt};
+    }
+    opt.type ||= this.type;
+    opt.replace ||= this.replace;
+    opt.delete ||= this.delete;
+    opt.expert_assembler ||= this.expert_assembler;
+
+    // Construct URL for uploading the data to the graph
+    // Don't include a graphname to use what's in the jsonld file
+    const url = `${this.url}/$/datasets`;
+
+    // Set request options
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/ld+json',
+        'Authorization': `Basic ${this.authBasic}`
+      },
+      body: jsonld,
+    };
+
+    // Send the request to upload the data to the graph
+    const response = await fetch(url, options);
+
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error(`Failed to create graph. Status code: ${response.status}` + response.statusText);
+    }
+
+    const db=new FusekiClientDB(
+      {url:this.url,
+       auth:this.auth,
+       authBasic:this.authBasic,
+       ...opt});
+
+    return db;
   }
 
   async dropDb(db) {
@@ -297,5 +336,6 @@ export class FusekiClientDB {
 
     return await response.text();
   }
+
 }
 export default FusekiClient;
