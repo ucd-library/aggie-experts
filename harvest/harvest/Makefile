@@ -43,7 +43,7 @@ server_bg: server_startup
 # gcloud import/export
 #
 # USES GCS_GRAPH_STORAGE if set as env variable
-GCS_GRAPH_STORAGE ?= gs://fuseki-db
+GCS_GRAPH_STORAGE ?= gs://fuseki-db-2
 
 hdt-bucket:=${GCS_GRAPH_STORAGE}
 
