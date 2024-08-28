@@ -15,7 +15,6 @@
     "vivo": "http://vivoweb.org/ontology/core#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "abstract":{"@id":"cite:abstract"},
-    "ArchivalGroup":"fedora:ArchivalGroup",
     "assignedBy": { "@type":"@id"},
     "author":{
       "@id":"cite:author",
@@ -155,6 +154,7 @@
     "note":{"@id":"cite:note"},
     "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
+    "prefLabel":{"@id":"skos:prefLabel"},
     "PrincipalInvestigatorRole":"vivo:PrincipalInvestigatorRole",
     "prefLabel":{"@id":"skos:prefLabel"},
     "pronouns":{"@id":"vcard:pronouns"},
@@ -213,6 +213,6 @@
   "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
   "relatedBy": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
-  "@embed": "@always",
+  "@embed": "@once",
   "@type": ["Expert","Work","Grant","Authorship","GrantRole"]
 }
