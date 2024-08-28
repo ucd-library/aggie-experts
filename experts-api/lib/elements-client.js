@@ -382,7 +382,7 @@ export class Impersonator {
     // use the userId you are impersonating
     return await this.userprofile({
       com: 'updateLabels',
-      userId: 292837, // TODO remove and use this.userId,
+      userId: this.userId,
       schemeId: 17,
       labelsToAddOrEdit: data.labelsToAddOrEdit,
       labelsToRemove: data.labelsToRemove

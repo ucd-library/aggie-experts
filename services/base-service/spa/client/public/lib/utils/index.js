@@ -301,36 +301,42 @@ class Utils {
       labelsToAddOrEdit: [],
       labelsToRemove: []
     };
+    let labels = {
+      collab : 'Collaborative projects',
+      community : 'Community partnerships',
+      industry : 'Industry Projects',
+      media : 'Media enquiries'
+    };
 
     if( openTo.collabProjects !== prevOpenTo.collabProjects ) {
       if( openTo.collabProjects ) {
-        options.labelsToAddOrEdit.push({ value: 'Collaborative projects', percentage: null });
+        options.labelsToAddOrEdit.push({ value: labels.collab, percentage: null });
       } else {
-        options.labelsToRemove.push('Collaborative projects');
+        options.labelsToRemove.push(labels.collab);
       }
     }
 
     if( openTo.commPartner !== prevOpenTo.commPartner ) {
       if( openTo.commPartner ) {
-        options.labelsToAddOrEdit.push({ value: 'Community partnerships', percentage: null });
+        options.labelsToAddOrEdit.push({ value: labels.community, percentage: null });
       } else {
-        options.labelsToRemove.push('Community partnerships');
+        options.labelsToRemove.push(labels.community);
       }
     }
 
     if( openTo.industProjects !== prevOpenTo.industProjects ) {
       if( openTo.industProjects ) {
-        options.labelsToAddOrEdit.push({ value: 'Industry Projects', percentage: null });
+        options.labelsToAddOrEdit.push({ value: labels.industry, percentage: null });
       } else {
-        options.labelsToRemove.push('Industry Projects');
+        options.labelsToRemove.push(labels.industry);
       }
     }
 
     if( openTo.mediaInterviews !== prevOpenTo.mediaInterviews ) {
       if( openTo.mediaInterviews ) {
-        options.labelsToAddOrEdit.push({ value: 'Media enquiries', percentage: null });
+        options.labelsToAddOrEdit.push({ value: labels.media, percentage: null });
       } else {
-        options.labelsToRemove.push('Media enquiries');
+        options.labelsToRemove.push(labels.media);
       }
     }
 

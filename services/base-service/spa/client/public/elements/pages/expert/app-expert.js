@@ -565,7 +565,6 @@ export default class AppExpert extends Mixin(LitElement)
         };
         let labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
 
-        debugger;
         let res = await this.ExpertModel.updateExpertAvailability(this.expertId, labels);
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -585,10 +584,12 @@ export default class AppExpert extends Mixin(LitElement)
 
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
         let modelContent = `
           <p>
             <strong>Availability labels</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+            <a href="https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}" target="_blank">UC Publication Management System (opens in new tab).</a>
           </p>
         `;
 
