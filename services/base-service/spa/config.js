@@ -29,7 +29,8 @@ config.client = {
       url : env.CLIENT_ERROR_REPORTING_URL || '',
       key : env.CLIENT_ERROR_REPORTING_KEY || '',
       customAttributes : {
-        app : 'aggie-experts'
+        appName : 'aggie-experts',
+        appOwner : 'digital'
       }
     }
   },
