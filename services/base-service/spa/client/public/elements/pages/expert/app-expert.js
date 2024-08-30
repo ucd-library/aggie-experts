@@ -149,8 +149,8 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true).map(c => {
       return {
-        title : c.hasTitle?.name,
-        department : c.hasOrganizationalUnit?.name,
+        title : c.hasTitle?.prefLabel || c.hasTitle?.name,
+        department : c.hasOrganizationalUnit?.prefLabel || c.hasOrganizationalUnit?.name,
         email : c?.hasEmail?.replace('mailto:', ''),
         websiteUrl : c.hasURL?.['url']
       }
