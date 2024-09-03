@@ -561,26 +561,37 @@ class ExpertModel extends BaseModel {
     // TODO FIX: if adding label that didn't exist previously for an expert,
     // doesn't get seeded with prefLabel/inSchema etc, so ui broken
 
+
     // update fcrepo
     let options = {
       path: expertId,
       content: `
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-        PREFIX expert: <http://experts.ucdavis.edu/${expertId}>
+        PREFIX hasAvail: <ark:/87287/d7nh2m/keyword/c-ucd-avail/>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
-        DELETE {
-          expert: ucdlib:hasAvailability ?a .
-        }
-        INSERT {
-          ${data.currentLabels
-            .map(label =>
-              'expert: ucdlib:hasAvailability <ark:/87287/d7nh2m/keyword/c-ucd-avail/' + encodeURIComponent(label) + '> . ')
-            .join('\n')
-          }
-        }
-        WHERE {
-          OPTIONAL { expert: ucdlib:hasAvailability ?a . }
-        }
+delete {
+    ?expert ucdlib:hasAvailability ?cur.
+?cur ?curP ?curO.
+}
+insert {
+  ?expert ucdlib:hasAvailability ?add.
+  ?add a skos:Concept;
+    skos:inScheme hasAvail: ;
+    skos:prefLabel ?addLabel;
+    .
+    ?add ucdlib:availabilityOf ?expert.
+}
+where {
+  values ?addLabel { ${data.currentLabels.join(' ')} }
+
+  ?expert ucdlib:hasAvailability ?cur.
+  ?cur ?curP ?curO.
+  bind(uri(concat(str(hasAvail:),encode_for_uri(?addLabel))) as ?add)
+
+  filter(?add != ?cur)
+
+}
       `
     };
 
