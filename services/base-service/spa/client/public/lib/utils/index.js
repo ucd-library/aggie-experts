@@ -299,7 +299,8 @@ class Utils {
   buildAvailabilityPayload(openTo={}, prevOpenTo={}) {
     let options = {
       labelsToAddOrEdit: [],
-      labelsToRemove: []
+      labelsToRemove: [],
+      currentLabels: []
     };
     let labels = {
       collab : 'Collaborative projects',
@@ -307,6 +308,11 @@ class Utils {
       industry : 'Industry Projects',
       media : 'Media enquiries'
     };
+
+    if( openTo.collabProjects ) options.currentLabels.push(labels.collab);
+    if( openTo.commPartner ) options.currentLabels.push(labels.community);
+    if( openTo.industProjects ) options.currentLabels.push(labels.industry);
+    if( openTo.mediaInterviews ) options.currentLabels.push(labels.media);
 
     if( openTo.collabProjects !== prevOpenTo.collabProjects ) {
       if( openTo.collabProjects ) {

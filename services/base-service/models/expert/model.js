@@ -543,7 +543,7 @@ class ExpertModel extends BaseModel {
   /**
    * @method patch
    * @description Patch an experts availability labels
-   * @param {Object} data :  { "labelsToAddOrEdit", "labelsToRemove" }
+   * @param {Object} data :  { "labelsToAddOrEdit", "labelsToRemove", "currentLabels" }
    * @param {String} expertId : Expert Id
    *
    * @returns {Object} : document object
@@ -558,8 +558,33 @@ class ExpertModel extends BaseModel {
       return 404
     };
 
-    // TODO update fcrepo
+    // TODO FIX: if adding label that didn't exist previously for an expert,
+    // doesn't get seeded with prefLabel/inSchema etc, so ui broken
 
+    // update fcrepo
+    let options = {
+      path: expertId,
+      content: `
+        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        PREFIX expert: <http://experts.ucdavis.edu/${expertId}>
+
+        DELETE {
+          expert: ucdlib:hasAvailability ?a .
+        }
+        INSERT {
+          ${data.currentLabels
+            .map(label =>
+              'expert: ucdlib:hasAvailability <ark:/87287/d7nh2m/keyword/c-ucd-avail/' + encodeURIComponent(label) + '> . ')
+            .join('\n')
+          }
+        }
+        WHERE {
+          OPTIONAL { expert: ucdlib:hasAvailability ?a . }
+        }
+      `
+    };
+
+    const api_resp = await finApi.patch(options);
 
     // update cdl
     if (config.experts.cdl.expert.propagate) {

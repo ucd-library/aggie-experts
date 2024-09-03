@@ -218,10 +218,14 @@ export default class AppExpert extends Mixin(LitElement)
       media : 'Media enquiries'
     };
 
+    if( !graphRoot.hasAvailability ) graphRoot.hasAvailability = [];
+    if( !Array.isArray(graphRoot.hasAvailability) ) graphRoot.hasAvailability = [graphRoot.hasAvailability];
+
     this.collabProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.collab);
     this.commPartner = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.community);
     this.industProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.industry);
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
+    this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
   }
 
   /**
@@ -593,7 +597,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.commPartner = commPartner;
         this.industProjects = industProjects;
         this.mediaInterviews = mediaInterviews;
-        this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews);
+        this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
 
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));

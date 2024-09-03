@@ -129,8 +129,9 @@ class ExpertService extends BaseService {
           'Content-Type' : 'application/json'
         },
         body : JSON.stringify({
-          labelsToAddOrEdit: labels.labelsToAddOrEdit || [],
-          labelsToRemove: labels.labelsToRemove || []
+          labelsToAddOrEdit : labels.labelsToAddOrEdit || [],
+          labelsToRemove : labels.labelsToRemove || [],
+          currentLabels : labels.currentLabels || []
         })
       },
       checkCached : () => null,
