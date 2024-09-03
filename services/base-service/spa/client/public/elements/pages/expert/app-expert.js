@@ -209,6 +209,19 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
+
+    // availability
+    let availLabels = {
+      collab : 'Collaborative projects',
+      community : 'Community partnerships',
+      industry : 'Industry Projects',
+      media : 'Media enquiries'
+    };
+
+    this.collabProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.collab);
+    this.commPartner = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.community);
+    this.industProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.industry);
+    this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
   }
 
   /**
