@@ -10,7 +10,7 @@ export class FusekiClient {
     this.delete=opt.delete;
     this.db=opt.db;
     this.logger=opt.logger || logger;
-    this.assembler=opt.assembler || '';
+    this.assembler=opt.assembler;
     this.reauth();
   }
 
@@ -108,19 +108,37 @@ export class FusekiClient {
       }
     }
 
-    if (! exists) {
-      const res = await fetch(
-        `${this.url}/\$/datasets`,
-        {
-          method: 'POST',
-          body: opt.assembler,
-          headers: {
-            'Authorization': `Basic ${this.authBasic}`,
-            'Content-Type': 'application/ld+json'
-          }
-        });
-      if (!res.ok) {
-        throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+    if (!exists) {
+      if (opt.assembler) {
+        // Create a new dataset using an assembler
+        const res = await fetch(
+          `${this.url}/\$/datasets`,
+          {
+            method: 'POST',
+            body: opt.assembler,
+            headers: {
+              'Authorization': `Basic ${this.authBasic}`,
+              'Content-Type': 'application/ld+json'
+            }
+          });
+        if (!res.ok) {
+          throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+        }
+      }
+      else {
+        // Create a new dataset using the dbName and dbType
+        const res = await fetch(
+          `${this.url}/\$/datasets`,
+          {
+            method: 'POST',
+            body: new URLSearchParams({ 'dbName': opt.db, 'dbType': opt.type }),
+            headers: {
+              'Authorization': `Basic ${this.authBasic}`
+            }
+          });
+        if (!res.ok) {
+          throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+        }
       }
     }
 
