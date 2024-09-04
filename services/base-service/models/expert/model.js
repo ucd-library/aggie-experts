@@ -572,7 +572,10 @@ class ExpertModel extends BaseModel {
 
 delete {
     ?expert ucdlib:hasAvailability ?cur.
-?cur ?curP ?curO.
+    ?cur skos:prefLabel ?curLabel.
+    ?cur skos:inScheme ?curScheme.
+    ?cur a skos:Concept.
+    ?cur ucdlib:availabilityOf ?expert.
 }
 insert {
   ?expert ucdlib:hasAvailability ?add.
@@ -583,16 +586,20 @@ insert {
     ?add ucdlib:availabilityOf ?expert.
 }
 where {
-  values ?addLabel { ${data.currentLabels.join(' ')} }
-
-  ?expert ucdlib:hasAvailability ?cur.
-  ?cur ?curP ?curO.
+  values ?addLabel {  ${data.currentLabels.map(label => `"${label}"`).join(' ')} }
   bind(uri(concat(str(hasAvail:),encode_for_uri(?addLabel))) as ?add)
 
+OPTIONAL {
+  ?expert ucdlib:hasAvailability ?cur.
+  OPTIONAL {
+    ?cur skos:prefLabel ?curLabel.
+  }
+  OPTIONAL {
+    ?cur skos:inScheme ?curScheme.
+  }
   filter(?add != ?cur)
-
-}
-      `
+ }
+}`
     };
 
     const api_resp = await finApi.patch(options);
