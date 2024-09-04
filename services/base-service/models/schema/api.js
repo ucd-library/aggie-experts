@@ -13,7 +13,7 @@ router.route(
       Schema=api.Schema;
     }
     try {
-      const version = req.params.version || '1';
+      const version = req.params.version || '2';
       const context=await Schema.context('expert',version)
       res.status(200).json(context);
     } catch (e) {
