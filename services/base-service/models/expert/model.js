@@ -558,18 +558,12 @@ class ExpertModel extends BaseModel {
       return 404
     };
 
-    // TODO FIX: if adding label that didn't exist previously for an expert,
-    // doesn't get seeded with prefLabel/inSchema etc, so ui broken
-
-
-    // update fcrepo
-    let options = {
-      path: expertId,
-      content: `
-        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+    var patch=`PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         PREFIX hasAvail: <ark:/87287/d7nh2m/keyword/c-ucd-avail/>
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>`;
 
+    if (data.currentLabels.length > 0) {
+      patch+=`
 delete {
     ?expert ucdlib:hasAvailability ?cur.
     ?cur skos:prefLabel ?curLabel.
@@ -600,6 +594,30 @@ OPTIONAL {
   filter(?add != ?cur)
  }
 }`
+    } else {
+      patch+=`
+delete {
+    ?expert ucdlib:hasAvailability ?cur.
+    ?cur skos:prefLabel ?curLabel.
+    ?cur skos:inScheme ?curScheme.
+    ?cur a skos:Concept.
+    ?cur ucdlib:availabilityOf ?expert.
+}
+where {
+  ?expert ucdlib:hasAvailability ?cur.
+  OPTIONAL {
+    ?cur skos:prefLabel ?curLabel.
+  }
+  OPTIONAL {
+    ?cur skos:inScheme ?curScheme.
+  }
+}`;
+    }
+
+    // update fcrepo
+    let options = {
+      path: expertId,
+      content: patch
     };
 
     const api_resp = await finApi.patch(options);
