@@ -112,9 +112,11 @@ if (opt.upload) {
   const grantFile = opt.output + '/delta/' + opt.prefix + 'grants_metadata.csv';
   const linkFile = opt.output + '/delta/' + opt.prefix + 'grants_links.csv';
   const personFile = opt.output + '/delta/' + opt.prefix + 'grants_persons.csv';
+  const deleteLinks = opt.output + '/delta/' + opt.prefix + 'delete_user_grants_links.csv';
   await uploadFile(grantFile, opt.env + '/' + opt.prefix + "grants_metadata.csv");
   await uploadFile(linkFile, opt.env + '/' + opt.prefix + "grants_links.csv");
   await uploadFile(personFile, opt.env + '/' + opt.prefix + "grants_persons.csv");
+  await uploadFile(deleteLinks, opt.env + '/' + opt.prefix + "delete_user_grants_links.csv");
 }
 
 
