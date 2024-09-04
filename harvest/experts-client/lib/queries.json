@@ -21,17 +21,6 @@
   },
   "@id":"queries",
   "@graph":[
-    {"@id":"insert_iam",
-     "@type":"InsertQuery",
-     "bind@":"iam/bind.rq",
-     "insert@":"iam/insert.ru"
-    },
-    {
-      "@id":"work",
-      "@type":"SplayQuery",
-      "construct@" : "work/construct.rq",
-      "bind@" : "work/bind.rq"
-    },
     {
       "@id":"authorship",
       "@type":"SplayQuery",

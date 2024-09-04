@@ -10,6 +10,7 @@ export class FusekiClient {
     this.delete=opt.delete;
     this.db=opt.db;
     this.logger=opt.logger || logger;
+    this.assembler=opt.assembler;
     this.reauth();
   }
 
@@ -75,6 +76,7 @@ export class FusekiClient {
     opt.type ||= this.type;
     opt.replace ||= this.replace;
     opt.delete ||= this.delete;
+    opt.assembler ||= this.assembler;
 
     let exists = false;
 
@@ -106,18 +108,37 @@ export class FusekiClient {
       }
     }
 
-    if (! exists) {
-      const res = await fetch(
-        `${this.url}/\$/datasets`,
-        {
-          method: 'POST',
-          body: new URLSearchParams({ 'dbName': opt.db, 'dbType': opt.type }),
-          headers: {
-            'Authorization': `Basic ${this.authBasic}`
-          }
-        });
-      if (!res.ok) {
-        throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+    if (!exists) {
+      if (opt.assembler) {
+        // Create a new dataset using an assembler
+        const res = await fetch(
+          `${this.url}/\$/datasets`,
+          {
+            method: 'POST',
+            body: opt.assembler,
+            headers: {
+              'Authorization': `Basic ${this.authBasic}`,
+              'Content-Type': 'application/ld+json'
+            }
+          });
+        if (!res.ok) {
+          throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+        }
+      }
+      else {
+        // Create a new dataset using the dbName and dbType
+        const res = await fetch(
+          `${this.url}/\$/datasets`,
+          {
+            method: 'POST',
+            body: new URLSearchParams({ 'dbName': opt.db, 'dbType': opt.type }),
+            headers: {
+              'Authorization': `Basic ${this.authBasic}`
+            }
+          });
+        if (!res.ok) {
+          throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+        }
       }
     }
 
@@ -130,6 +151,47 @@ export class FusekiClient {
     if (files) {
       this.files = await db.addToDb(files);
     }
+    return db;
+  }
+
+  async createDatasetFromJsonLdFile(opt,jsonld) {
+
+    if(typeof opt === 'string') {
+      opt={db:opt};
+    }
+    opt.type ||= this.type;
+    opt.replace ||= this.replace;
+    opt.delete ||= this.delete;
+    opt.expert_assembler ||= this.expert_assembler;
+
+    // Construct URL for uploading the data to the graph
+    // Don't include a graphname to use what's in the jsonld file
+    const url = `${this.url}/$/datasets`;
+
+    // Set request options
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/ld+json',
+        'Authorization': `Basic ${this.authBasic}`
+      },
+      body: jsonld,
+    };
+
+    // Send the request to upload the data to the graph
+    const response = await fetch(url, options);
+
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error(`Failed to create graph. Status code: ${response.status}` + response.statusText);
+    }
+
+    const db=new FusekiClientDB(
+      {url:this.url,
+       auth:this.auth,
+       authBasic:this.authBasic,
+       ...opt});
+
     return db;
   }
 
@@ -248,5 +310,6 @@ export class FusekiClientDB {
 
     return await response.text();
   }
+
 }
 export default FusekiClient;
