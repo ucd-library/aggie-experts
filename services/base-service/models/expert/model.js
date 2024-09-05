@@ -560,10 +560,7 @@ class ExpertModel extends BaseModel {
 
     var patch=`PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         PREFIX hasAvail: <ark:/87287/d7nh2m/keyword/c-ucd-avail/>
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>`;
-
-    if (data.currentLabels.length > 0) {
-      patch+=`
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 delete {
     ?expert ucdlib:hasAvailability ?cur.
     ?cur skos:prefLabel ?curLabel.
@@ -571,6 +568,18 @@ delete {
     ?cur a skos:Concept.
     ?cur ucdlib:availabilityOf ?expert.
 }
+where {
+  ?expert ucdlib:hasAvailability ?cur.
+  OPTIONAL {
+    ?cur skos:prefLabel ?curLabel.
+  }
+  OPTIONAL {
+    ?cur skos:inScheme ?curScheme.
+  }
+};`;
+
+    if (data.currentLabels.length > 0) {
+      patch+=`
 insert {
   ?expert ucdlib:hasAvailability ?add.
   ?add a skos:Concept;
@@ -580,40 +589,11 @@ insert {
     ?add ucdlib:availabilityOf ?expert.
 }
 where {
+  ?expert a ucdlib:Expert.
   values ?addLabel {  ${data.currentLabels.map(label => `"${label}"`).join(' ')} }
   bind(uri(concat(str(hasAvail:),encode_for_uri(?addLabel))) as ?add)
-
-OPTIONAL {
-  ?expert ucdlib:hasAvailability ?cur.
-  OPTIONAL {
-    ?cur skos:prefLabel ?curLabel.
-  }
-  OPTIONAL {
-    ?cur skos:inScheme ?curScheme.
-  }
-  filter(?add != ?cur)
- }
-}`
-    } else {
-      patch+=`
-delete {
-    ?expert ucdlib:hasAvailability ?cur.
-    ?cur skos:prefLabel ?curLabel.
-    ?cur skos:inScheme ?curScheme.
-    ?cur a skos:Concept.
-    ?cur ucdlib:availabilityOf ?expert.
-}
-where {
-  ?expert ucdlib:hasAvailability ?cur.
-  OPTIONAL {
-    ?cur skos:prefLabel ?curLabel.
-  }
-  OPTIONAL {
-    ?cur skos:inScheme ?curScheme.
-  }
-}`;
+};`;
     }
-
     // update fcrepo
     let options = {
       path: expertId,
