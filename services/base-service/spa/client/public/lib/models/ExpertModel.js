@@ -107,6 +107,19 @@ class ExpertModel extends BaseModel {
     return await this.service.deleteExpert(id);
   }
 
+  /**
+   * @method updateExpertAvailability
+   * @description update an experts availability in aggie experts and cdl
+   *
+   * @param {String} id expert id
+   * @param {Object} labels object with labels to add and remove
+   *
+   * @returns {Promise} resolves to record
+  */
+  async updateExpertAvailability(id, labels={}) {
+    return await this.service.updateExpertAvailability(id, labels);
+  }
+
 }
 
 module.exports = new ExpertModel();
