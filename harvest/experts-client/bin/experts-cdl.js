@@ -1,32 +1,16 @@
 'use strict';
-import * as dotenv from 'dotenv';
-dotenv.config();
-
-import path from 'path';
-import fs from 'fs-extra';
-import { Command } from 'commander';
-
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsFactory } from '@comunica/bindings-factory';
-
 import ExpertsClient from '../lib/experts-client.js';
-import Cache from '../lib/cache/index.js';
-
 import QueryLibrary from '../lib/query-library.js';
 import FusekiClient from '../lib/fuseki-client.js';
-import { GoogleSecret, ExpertsKcAdminClient } from '@ucd-lib/experts-api';
-import { logger } from '../lib/logger.js';
 import { performance } from 'node:perf_hooks';
+import { Command } from '../lib/experts-commander.js';
+import { Cache, CacheExpert } from '../lib/cache/index.js';
 
 const DF = new DataFactory();
 const BF = new BindingsFactory();
-
 const ql = await new QueryLibrary().load();
-const gs = new GoogleSecret();
-
-const program = new Command();
-
-// const
 
 // This also reads data from .env file via dotenv
 const fuseki = new FusekiClient({
@@ -35,7 +19,7 @@ const fuseki = new FusekiClient({
   type: 'tdb2',
   replace: true,
   'delete': true,
-  assembler: ''
+  assembler: null
 });
 
 const cdl = {
@@ -44,34 +28,14 @@ const cdl = {
   secretpath: '',
 };
 
-async function main(opt) {
+async function main(opt, cache) {
   // get the secret JSON
-  let secretResp = await gs.getSecret(opt.cdl.secretpath);
+  let secretResp = await program.gs.getSecret(opt.cdl.secretpath);
   let secretJson = JSON.parse(secretResp);
   for (const entry of secretJson) {
     if (entry['@id'] == opt.cdl.authname) {
       opt.cdl.auth = entry.auth.raw_auth;
     }
-  }
-
-  //  get keycloak token
-  let keycloak_admin
-  try {
-    const keycloakResp=await gs.getSecret('projects/325574696734/secrets/service-account-harvester')
-    const keycloak = JSON.parse(keycloakResp);
-
-    keycloak_admin = new ExpertsKcAdminClient(
-      {
-      baseUrl: keycloak.baseUrl,
-      realmName: keycloak.realmName
-      },
-    );
-
-    await keycloak_admin.auth(keycloak.auth);
-    keycloak_admin = keycloak_admin;
-  } catch (e) {
-    logger.error('Error getting keycloak authorized', e);
-    process.exit(1);
   }
 
   const ec = new ExpertsClient(opt);
@@ -107,96 +71,18 @@ async function main(opt) {
         users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
       }
 
-      logger.info(users.length + ' users found');
+      log.info(users.length + ' users found');
     }
   }
+  let normalized = cache.normalize_experts(users);
 
-  let db
-
-  // Step 2: Get User Profiles and relationships from CDL
-
-  // Read custom config for expert dataset with hdt assembler setup
-  let assembler_template = fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld', 'utf8');
-
-  for (const user of users) {
-    const query=`
-PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-select * WHERE { graph <http://iam.ucdavis.edu/> {
-    ?s ucdlib:userId "${user}" ;
-       ucdlib:email ?email;
-       ucdlib:ucdPersonUUId ?ucdPersonUUID;
-       vcard:hasName [vcard:givenName ?firstName; vcard:familyName ?lastName ].
-       bind(replace(str(?s),"ark:/87287/d7c08j/","") as ?iamId)
-  } }`;
-    const response = await fetch(
-      opt.expertsService,
-      {
-        method: 'POST',
-        body: query,
-        headers: {
-          'Content-Type': 'application/sparql-query',
-          'Accept': 'application/sparql-results+json'
-        }
-      });
-
-    if (!response.ok) {
-      throw new Error(`Failed to execute update. Status code: ${response.status}`);
-    }
-
-    let json = await response.json();
-    const profile = {};
-    let email;
-    try {
-      email = json.results.bindings[0].email.value.replace('mailto:', '');
-      profile.firstName = json.results.bindings[0].firstName.value;
-      profile.lastName = json.results.bindings[0].lastName.value;
-      profile.attributes = {};
-      profile.attributes.ucdPersonUUID=json.results.bindings[0].ucdPersonUUID.value;
-      profile.attributes.iamId=json.results.bindings[0].iamId.value;
-    } catch (e) {
-      logger.error(json, `${user} missing values`);
-      continue;
-    }
-    logger.info(`Processing ${user}(${email},${profile.attributes.ucdPersonUUID})`);
-    const expert=await keycloak_admin.getOrCreateExpert(email,user,profile);
-    let expertId=null;
-    if (!expert) {
-      logger.error(`Failed getOrCreateExpert for ${email}`);
-      continue;
-    } else {
-      expertId=expert.attributes['expertId'];
-      logger.info({user,email,expertId}, `expertId found`);
-    }
-
-    if (opt.skipExistingUser && fs.existsSync(`${opt.output}/expert/${expertId}.jsonld.json`)) {
-      logger.info({mark:user},'skipping ' + user);
-      continue;
-    }
-    logger.info({mark:user},'user ' + user);
-    db = await fuseki.createDb({
-      db:user,
-      assembler: assembler_template.replace(/__USER__/g, user)
-    });
-
-    if (opt.fetch) {
-      try {
-        await ec.getPostUser(db,user)
-        logger.info({measure:[user],user},`getPostUser`);
-
-        // Step 3: Get User Relationships from CDL
-        // fetch all relations for user post to Fuseki. Note that the may be grants, etc.
-        await ec.getPostUserRelationships(db,user,'detail=full');
-        logger.info({measure:[user],user},`getPostUserRelationships`);
-
-      }
-      catch (e) {
-        logger.error({ user, error: e }, `error ${user}`);
-      }
+  for (const user of normalized) {
+      let expert = new CacheExpert(cache,user);
+      expert.fetch(user);
     }
 
     if (opt.splay) {
-      logger.info({mark:'splay',user},`splay`);
+      log.info({mark:'splay',user},`splay`);
       const bindings = BF.fromRecord(
         {
           EXPERTID__: DF.literal(expertId),
@@ -204,27 +90,26 @@ select * WHERE { graph <http://iam.ucdavis.edu/> {
         }
       );
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        logger.info({mark:n,user},`splay ${n}`);
+        log.info({mark:n,user},`splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
           return await ec.splay({ ...splay, bindings, db, output: opt.output, user });
         })(n);
-        logger.info({measure:[n],user},`splayed ${n}`);
+        log.info({measure:[n],user},`splayed ${n}`);
         performance.clearMarks(n);
       };
-      logger.info({measure:['splay',user],user},`splayed`);
+      log.info({measure:['splay',user],user},`splayed`);
       performance.clearMarks('splay');
     }
     // Any other value don't delete
     if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db);
     }
-    logger.info({measure:[user],user},`completed`);
-    performance.clearMarks(user);
+    // log.info({measure:[user],user},`completed`);
+    // performance.clearMarks(user);
   }
-}
 
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
@@ -232,6 +117,8 @@ import { dirname } from 'path';
 import { exit } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename).replace('/bin', '/lib');
+
+const program = new Command();
 
 performance.mark('start');
 program.name('cdl-profile')
@@ -260,14 +147,20 @@ program.name('cdl-profile')
   .option('--no-fetch', 'fetch the data', true)
   .option('--skip-existing-user', 'skip if expert exists', false)
   .option('--debug-save-xml', 'Save fetched XML, use it instead of fetching if exists', false)
+  .option_fuseki()
+  .option_cdl()
+  .option_log()
+  .option_iam()
+  .option_kcadmin()
+  .parse(process.argv);
 
-
-
-program.parse(process.argv);
-
-let opt = program.opts();
+let opt = await program.opts();
+const log = opt.log;
 
 const cache= new Cache(opt);
+
+let queue=null;
+let list=null;
 
 // fusekize opt
 Object.keys(opt).forEach((k) => {
@@ -300,5 +193,6 @@ else if (opt.environment === 'production') {
   opt.cdl.authname = 'oapolicy';
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
-logger.info({ opt }, 'options');
-await main(opt);
+
+log.info({ opt }, 'options');
+await main(opt, cache);

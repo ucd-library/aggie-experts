@@ -415,6 +415,7 @@ export class CacheExpert {
 
   async fetch() {
     const expert=this.expert;
+
     this.log.info({lib:'cache',measure:expert,expert},`► fetch(${expert})`);
 
     { // Add in profile
@@ -441,27 +442,32 @@ export class CacheExpert {
           this.log.info({lib:'cache',measure:expert,expert},`✔* ${fn}`);
         }
 
-        const kc_fn=path.join(this.base,'keycloak.json');
-        if (this.kcadmin && (! fs.existsSync(kc_fn) || this.refetch)) {
-          const p=profile['@graph'][0];
+      const kc_fn = path.join(this.base, 'keycloak.json');
+      if (this.kcadmin && (!fs.existsSync(kc_fn) || this.refetch)) {
+        const p = profile['@graph'][0];
+        if (p) {
           const kc_user = {
-            firstName : p.oFirstName,
-            lastName : p.oLastName,
-            attributes : {
-              ucdPersonUUID:p.mothraId,
-              iamId:p.iamId
+            firstName: p.oFirstName,
+            lastName: p.oLastName,
+            attributes: {
+              ucdPersonUUID: p.mothraId,
+              iamId: p.iamId
             }
           };
-          const kc=await this.kcadmin.getOrCreateExpert(p.email,p.userID,kc_user);
-          fs.writeFileSync(kc_fn,JSON.stringify(kc,null,2));
-          this.log.info({lib:'cache',measure:expert,expert},
-                        `✔ ${kc_fn} expertId=${kc.attributes['expertId'][0]}`);
-          profile['@graph'][0].expertId=kc.attributes['expertId'][0];
-          fs.writeFileSync(fn,JSON.stringify(profile,null,2));
-          this.log.info({lib:'cache',measure:expert,expert},`✔ ${fn}`);
-        } else {
-          this.log.info({lib:'cache',measure:expert,expert},`✔* ${kc_fn}`);
         }
+        // If an IAM user is not found, we will not be able to create a keycloak user
+        if (p) {
+          const kc = await this.kcadmin.getOrCreateExpert(p.email, p.userID, kc_user);
+          fs.writeFileSync(kc_fn, JSON.stringify(kc, null, 2));
+          this.log.info({ lib: 'cache', measure: expert, expert },
+            `✔ ${kc_fn} expertId=${kc.attributes['expertId'][0]}`);
+          profile['@graph'][0].expertId = kc.attributes['expertId'][0];
+          fs.writeFileSync(fn, JSON.stringify(profile, null, 2));
+          this.log.info({ lib: 'cache', measure: expert, expert }, `✔ ${fn}`);
+        } else {
+          this.log.info({ lib: 'cache', measure: expert, expert }, `✔* ${kc_fn}`);
+        }
+      }
         this.log.info({lib:'cache',measure:`iam(${expert})`,expert},`✔ iam(${expert})`);
 //      } catch (e) {
 //        this.log.error({lib:'cache',measure:`iam(${expert})`,
