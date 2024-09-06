@@ -188,7 +188,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     }
 
     this.grantsWithErrors = this.expert.invalidGrants || [];
-    if( this.grantsWithErrors.length ) this.logger.warn('grants with errors', { expertId : this.expertId, grantsWithErrors : this.grantsWithErrors });
+    if( this.grantsWithErrors.length ) this.logger.error('grants with errors', { expertId : this.expertId, grantsWithErrors : this.grantsWithErrors });
 
     this.grantsWithErrors.sort((a, b) => {
       // sort end date descending
