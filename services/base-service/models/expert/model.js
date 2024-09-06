@@ -540,5 +540,80 @@ class ExpertModel extends BaseModel {
     }
   }
 
+  /**
+   * @method patch
+   * @description Patch an experts availability labels
+   * @param {Object} data :  { "labelsToAddOrEdit", "labelsToRemove", "currentLabels" }
+   * @param {String} expertId : Expert Id
+   *
+   * @returns {Object} : document object
+   **/
+  async patchAvailability(data, expertId) {
+    let expert;
+
+    try {
+      expert = await this.client_get(expertId);
+    } catch(e) {
+      logger.info(`expert @id ${expertId} not found`);
+      return 404
+    };
+
+    var patch=`PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        PREFIX hasAvail: <ark:/87287/d7nh2m/keyword/c-ucd-avail/>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+delete {
+    ?expert ucdlib:hasAvailability ?cur.
+    ?cur skos:prefLabel ?curLabel.
+    ?cur skos:inScheme ?curScheme.
+    ?cur a skos:Concept.
+    ?cur ucdlib:availabilityOf ?expert.
+}
+where {
+  ?expert ucdlib:hasAvailability ?cur.
+  OPTIONAL {
+    ?cur skos:prefLabel ?curLabel.
+  }
+  OPTIONAL {
+    ?cur skos:inScheme ?curScheme.
+  }
+};`;
+
+    if (data.currentLabels.length > 0) {
+      patch+=`
+insert {
+  ?expert ucdlib:hasAvailability ?add.
+  ?add a skos:Concept;
+    skos:inScheme hasAvail: ;
+    skos:prefLabel ?addLabel;
+    .
+    ?add ucdlib:availabilityOf ?expert.
+}
+where {
+  ?expert a ucdlib:Expert.
+  values ?addLabel {  ${data.currentLabels.map(label => `"${label}"`).join(' ')} }
+  bind(uri(concat(str(hasAvail:),encode_for_uri(?addLabel))) as ?add)
+};`;
+    }
+    // update fcrepo
+    let options = {
+      path: expertId,
+      content: patch
+    };
+
+    const api_resp = await finApi.patch(options);
+
+    // update cdl
+    if (config.experts.cdl.expert.propagate) {
+      const cdl_user = await this._impersonate_cdl_user(expert, config.experts.cdl.expert);
+      let resp = await cdl_user.updateUserAvailabilityLabels({
+        labelsToAddOrEdit: data.labelsToAddOrEdit,
+        labelsToRemove: data.labelsToRemove
+      });
+      logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
+    } else {
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
+    }
+  }
+
 }
 module.exports = ExpertModel;

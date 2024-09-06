@@ -28,7 +28,7 @@ return html`
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
-      height: 12.25rem;
+      min-height: 12.25rem;
     }
 
     .color-light {
@@ -72,7 +72,7 @@ return html`
     h1 {
       margin-top: .5rem;
       margin-bottom: 0;
-      padding-bottom: 0;
+      padding-bottom: .5rem;
       color: var(--color-aggie-blue);
     }
 
@@ -90,6 +90,7 @@ return html`
 
 
     .hero-main h1 ucdlib-icon,
+    .edit-availability ucdlib-icon,
     .hero-main .experts span.hide-expert ucdlib-icon,
     .hero-main .experts span.show-expert ucdlib-icon,
     .hero-main .experts span.delete-expert ucdlib-icon,
@@ -310,6 +311,7 @@ return html`
       margin: .5rem 0;
     }
 
+    .open-to .dot,
     .grant-details .dot,
     .work-details .dot {
       padding: 0 0.25rem;
@@ -460,6 +462,18 @@ return html`
       right: 5px;
     }
 
+    .tooltip.edit-availability:before {
+      width: 130px;
+      bottom: 35px;
+      right: -55px;
+      font-style: normal;
+    }
+
+    .tooltip.edit-availability:after {
+      bottom: 25px;
+      right: 15px;
+    }
+
     .tooltip.edit-grants:before,
     .tooltip.edit-works:before {
       width: 80px;
@@ -608,6 +622,45 @@ return html`
       font-weight: 700;
     }
 
+    .open-to {
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      color: var(--ucd-black-70, #4C4C4C);
+    }
+
+    .open-to span {
+      padding: 0 .3rem;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="checkbox"] {
+      height: 1rem;
+      width: 1rem;
+    }
+
+    .open-to input[type="checkbox"] {
+      margin-right: .5rem;
+    }
+
+    .mobile-edit-availability {
+      display: none;
+      color: var(--ucd-black-70, #4C4C4C);
+    }
+
+    @media (max-width: 600px) {
+      .mobile-edit-availability {
+        display: flex;
+        align-items: center;
+      }
+
+      .open-to .desktop-edit-availability {
+        display: none;
+      }
+    }
+
   </style>
 
   <div class="content">
@@ -615,6 +668,7 @@ return html`
       ?hidden="${!this.showModal}"
       .visible="${this.showModal}"
       .title="${this.modalTitle}"
+      .saveText="${this.modalSaveText}"
       .content="${this.modalContent}"
       .hideCancel="${this.hideCancel}"
       .hideSave="${this.hideSave}"
@@ -644,6 +698,7 @@ return html`
             </span>
           </div>
         </div>
+
         <h1>${this.expertName}
           <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
             <span class="tooltip edit-name" data-text="Edit name">
@@ -651,6 +706,34 @@ return html`
             </span>
           </a>
         </h1>
+
+        <div class="mobile-edit-availability" style="padding: 0 .3rem;">
+          Open to:
+          <span ?hidden="${!this.canEdit}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem">
+            <span class="tooltip edit-availability" data-text="Edit availability">
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                @click=${this._editAvailability}>
+              </ucdlib-icon>
+            </span>
+          </span>
+        </div>
+        <div class="open-to" ?hidden="${this.hideAvailability && !this.expertEditing}">
+          <span class="desktop-edit-availability">Open to:</span>
+          <span ?hidden="${!this.collabProjects}">Collaborative Projects</span>
+          <span class="dot" ?hidden="${!this.collabProjects || !this.commPartner}">.</span>
+          <span ?hidden="${!this.commPartner}">Community Partnerships</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner) || !this.industProjects}">.</span>
+          <span ?hidden="${!this.industProjects}">Industry Projects</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">.</span>
+          <span ?hidden="${!this.mediaInterviews}">Media Interviews</span>
+          <span class="desktop-edit-availability" ?hidden="${!this.canEdit}" style="position: relative; padding-left: 0">
+            <span class="tooltip edit-availability" data-text="Edit availability">
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                @click=${this._editAvailability}>
+              </ucdlib-icon>
+            </span>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -716,22 +799,22 @@ return html`
 
         <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
           <h3 class="heading--highlight">Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" @click=${this._editRoles}></ucdlib-icon>
               </span>
-            </a>
+            </span>
           </h3>
           <div class="no-display-data">No data to display</div>
         </div>
 
         <div class="roles" ?hidden="${!this.roles.length}">
           <h3 class="heading--highlight">Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" @click=${this._editRoles}></ucdlib-icon>
               </span>
-            </a>
+            </span>
           </h3>
 
           ${this.roles.map(

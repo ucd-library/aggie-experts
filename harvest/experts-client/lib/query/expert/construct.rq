@@ -72,9 +72,13 @@ CONSTRUCT {
              vcard:title ?web_label;
              .
 
-  # Research Areas
-  ?EXPERT__ vivo:hasResearchArea ?concept.
-  ?concept vivo:researchAreaOf ?EXPERT__.
+  ?EXPERT__ ?hasConcept ?concept.
+  ?concept ?isConceptOf ?EXPERT__.
+
+  ?concept a skos:Concept;
+           skos:inScheme ?scheme;
+           skos:prefLabel ?pref_label;
+           .
 }
 WHERE {
   graph <http://iam.ucdavis.edu/> {
@@ -195,17 +199,31 @@ WHERE {
         }
     }
     OPTIONAL {
-      values (?scheme ?vocab) { ("for" FoR:) }
+      values (?scheme_label ?hasConcept ?isConceptOf) {
+        ("c-ucd-avail" ucdlib:hasAvailability ucdlib:availabilityOf)
+        ("for" vivo:hasResearchArea vivo:researchAreaOf )
+      }
+
       ?cdl_id :all-labels [
                             :type "keyword-list";
                             :keywords/:keyword [
-                                                 :field-value ?value;
-                                                 :scheme ?scheme;
+                                                 :field-value ?concept_label;
+                                                 :scheme ?scheme_label;
                                                ]
                           ].
-      bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
     }
+
   }
+    bind(uri(concat("ark:/87287/d7nh2m/keyword/",
+                  encode_for_uri(?scheme_label),"/")) as ?scheme)
+
+  bind(uri(concat(str(?scheme),
+                  if(?scheme_label="for",replace(?concept_label," .*",""),
+                     encode_for_uri(?concept_label)))) as ?concept)
+
+  bind(if(?scheme_label="for",
+          replace(?concept_label,"^[0-9]* ",""),?concept_label) as ?pref_label)
+
   bind(concat(coalesce(concat(?fn," "),""),?ln) as ?name)
 
   bind(coalesce(concat(" § ",
@@ -224,11 +242,11 @@ WHERE {
 
   bind(uri(concat('mailto:',str(?oap_email))) as ?oap_vcard_email)
   bind(uri(concat(str(?oap_vcard),"-web-",str(?web_rank))) as ?oap_vcard_web)
+
   bind(coalesce(concat(" § ",?oap_title,coalesce(concat(", ",?oap_dept),"")),
                 "") as ?oap_title_dept)
   bind(concat(
               concat(?oap_ln,coalesce(concat(", ",?oap_fn),"")),
               coalesce(?oap_title_dept,"")
               ) as ?oap_vcard_label)
-
 }
