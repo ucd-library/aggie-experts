@@ -26,7 +26,7 @@ return html`
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
-      height: 12.25rem;
+      min-height: 12.25rem;
     }
 
     .hero-text {

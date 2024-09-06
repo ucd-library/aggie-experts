@@ -120,6 +120,27 @@ class ExpertService extends BaseService {
     });
   }
 
+  async updateExpertAvailability(id, labels={}) {
+    return this.request({
+      url : `${this.baseUrl}/${id}/availability`,
+      fetchOptions : {
+        method : 'PATCH',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          labelsToAddOrEdit : labels.labelsToAddOrEdit || [],
+          labelsToRemove : labels.labelsToRemove || [],
+          currentLabels : labels.currentLabels || []
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
 }
 
 module.exports = new ExpertService();

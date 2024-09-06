@@ -42,6 +42,7 @@ export default class AppExpert extends Mixin(LitElement)
       canEdit : { type : Boolean },
       isAdmin : { type : Boolean },
       modalTitle : { type : String },
+      modalSaveText : { type : String },
       modalContent : { type : String },
       modalAction : { type : String },
       showModal : { type : Boolean },
@@ -55,7 +56,12 @@ export default class AppExpert extends Mixin(LitElement)
       expertEditing : { type : String },
       hideEdit : { type : Boolean },
       isVisible : { type : Boolean },
-      elementsUserId : { type : String }
+      elementsUserId : { type : String },
+      hideAvailability : { type : Boolean },
+      collabProjects : { type : Boolean },
+      commPartner : { type : Boolean },
+      industProjects : { type : Boolean },
+      mediaInterviews : { type : Boolean }
     }
   }
 
@@ -203,6 +209,23 @@ export default class AppExpert extends Mixin(LitElement)
 
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.grantsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.grantsPerPage - this.grantsActiveDisplayed.length);
+
+    // availability
+    let availLabels = {
+      collab : 'Collaborative projects',
+      community : 'Community partnerships',
+      industry : 'Industry Projects',
+      media : 'Media enquiries'
+    };
+
+    if( !graphRoot.hasAvailability ) graphRoot.hasAvailability = [];
+    if( !Array.isArray(graphRoot.hasAvailability) ) graphRoot.hasAvailability = [graphRoot.hasAvailability];
+
+    this.collabProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.collab);
+    this.commPartner = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.community);
+    this.industProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.industry);
+    this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
+    this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
   }
 
   /**
@@ -235,6 +258,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.hiddenCitations = 0;
     this.canEdit = (acExpertId === this.expertId || (editingExpertId === this.expertId && this.expertId.length > 0));
     this.modalTitle = '';
+    this.modalSaveText = '';
     this.modalContent = '';
     this.showModal = false;
     this.hideCancel = false;
@@ -248,6 +272,11 @@ export default class AppExpert extends Mixin(LitElement)
     this.modalAction = '';
     this.isVisible = true;
     this.elementsUserId = '';
+    this.hideAvailability = true;
+    this.collabProjects = false;
+    this.commPartner = false;
+    this.industProjects = false;
+    this.mediaInterviews = false;
 
     if( !this.expertEditing ) {
       this.expertEditing = '';
@@ -461,9 +490,14 @@ export default class AppExpert extends Mixin(LitElement)
         this.logger.info('expert hidden', { expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `<p>Hiding expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>`;
 
         this.modalTitle = 'Error: Update Failed';
+        this.modalSaveText = '';
         this.modalContent = modelContent;
         this.showModal = true;
         this.hideCancel = true;
@@ -500,9 +534,14 @@ export default class AppExpert extends Mixin(LitElement)
         this.AppStateModel.setLocation('/');
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `<p>Deleting expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>`;
 
         this.modalTitle = 'Error: Update Failed';
+        this.modalSaveText = '';
         this.modalContent = modelContent;
         this.showModal = true;
         this.hideCancel = true;
@@ -524,6 +563,77 @@ export default class AppExpert extends Mixin(LitElement)
     } else if( this.modalAction === 'edit-websites' || this.modalAction === 'edit-about-me' ) {
       let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
       window.open(`https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`, '_blank');
+    } else if( this.modalAction === 'edit-roles' ) {
+      window.open('https://org.ucdavis.edu/odr/', '_blank');
+    } else if( this.modalAction === 'edit-availability' ) {
+      // save availability to cdl
+      this.dispatchEvent(new CustomEvent("loading", {}));
+      try {
+        let collabProjects = e.currentTarget?.shadowRoot?.querySelector('#collab-projects')?.checked || false;
+        let commPartner = e.currentTarget?.shadowRoot?.querySelector('#comm-partner')?.checked || false;
+        let industProjects = e.currentTarget?.shadowRoot?.querySelector('#indust-projects')?.checked || false;
+        let mediaInterviews = e.currentTarget?.shadowRoot?.querySelector('#media-interviews')?.checked || false;
+
+        let openTo = {
+          collabProjects,
+          commPartner,
+          industProjects,
+          mediaInterviews
+        };
+        let prevOpenTo = {
+          collabProjects : this.collabProjects,
+          commPartner : this.commPartner,
+          industProjects : this.industProjects,
+          mediaInterviews : this.mediaInterviews
+        };
+        let labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
+
+        let res = await this.ExpertModel.updateExpertAvailability(this.expertId, labels);
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        if( window.gtag ) {
+          gtag('event', 'expert_availability_change', {
+            'description': 'expert ' + this.expertId + ' availablity label change',
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
+
+        this.collabProjects = collabProjects;
+        this.commPartner = commPartner;
+        this.industProjects = industProjects;
+        this.mediaInterviews = mediaInterviews;
+        this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
+
+      } catch (error) {
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
+        let modelContent = `
+          <p>
+            <strong>Availability labels</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>
+        `;
+
+        this.modalTitle = 'Error: Update Failed';
+        this.modalSaveText = '';
+        this.modalContent = modelContent;
+        this.showModal = true;
+        this.hideCancel = true;
+        this.hideSave = true;
+        this.hideOK = false;
+        this.hideOaPolicyLink = true;
+        this.errorMode = true;
+
+        if( window.gtag ) {
+          gtag('event', 'expert_availability_change', {
+            'description': 'attempted to change availability labels for expert ' + this.expertId + ' but failed',
+            'expertId': this.expertId,
+            'fatal': false
+          });
+        }
+      }
     }
 
     this.modalAction = '';
@@ -551,9 +661,14 @@ export default class AppExpert extends Mixin(LitElement)
         this.logger.info('expert visibility set to true', { expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `<p>Showing expert could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>`;
 
         this.modalTitle = 'Error: Update Failed';
+        this.modalSaveText = '';
         this.modalContent = modelContent;
         this.showModal = true;
         this.hideCancel = true;
@@ -581,6 +696,7 @@ export default class AppExpert extends Mixin(LitElement)
   _hideExpert(e) {
     this.modalAction = 'hide-expert';
     this.modalTitle = 'Hide Expert';
+    this.modalSaveText = '';
     this.modalContent = `<p>The expert will be hidden from Aggie Experts, but this change will not appear in Elements. This is a safeguard available only to admins, in case "Delete Expert" does not work because Elements is not reachable. It is the admin's responsibility to manually change visibility in Elements. Are you sure you would like to continue?</p>`;
     this.showModal = true;
     this.hideCancel = true;
@@ -597,9 +713,50 @@ export default class AppExpert extends Mixin(LitElement)
   _deleteExpert(e) {
     this.modalAction = 'delete-expert';
     this.modalTitle = 'Delete Expert';
+    this.modalSaveText = '';
     this.modalContent = `<p>The expert will be removed from Aggie Experts. In the <a href="https://oapolicy.universityofcalifornia.edu">UC Publication Management System</a> their privacy will be set to internal. To show the expert again in Aggie Experts, you would need to update the privacy setting to public in the UC Publication Management System. Are you sure you would like to continue?</p>`;
     this.showModal = true;
     this.hideCancel = true;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _editAvailability
+   * @description show modal confirming expert availibility changes to cdl
+   */
+  _editAvailability(e) {
+    this.modalAction = 'edit-availability';
+    this.modalTitle = 'Edit Availability';
+    this.modalSaveText = 'Save Changes';
+    this.modalContent = `
+      <p>I am open to:</p>
+      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ${this.collabProjects ? 'checked' : ''}> Collaborative Projects </label>
+      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="comm-partner" name="comm-partner" value="comm-partner" ${this.commPartner ? 'checked' : ''}> Community Partnerships </label>
+      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="indust-projects" name="indust-projects" value="indust-projects" ${this.industProjects ? 'checked' : ''}> Industry Projects </label>
+      <label style="display: flex; align-items: center; line-height: 1.92125rem;"><input style="margin-right: .4rem;" type="checkbox" id="media-interviews" name="media-interviews" value="media-interviews" ${this.mediaInterviews ? 'checked' : ''}> Media Interviews </label>
+    `;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = false;
+    this.hideOK = true;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
+
+  /**
+   * @method _editRoles
+   * @description show modal with link to edit roles
+   */
+  _editRoles(e) {
+    this.modalAction = 'edit-roles';
+    this.modalTitle = 'Edit Roles';
+    this.modalSaveText = '';
+    this.modalContent = `<p>Academic roles and titles are managed via the <strong>UC Davis Online Directory.</strong></p><p>You will be redirected to this system in a new tab.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
     this.hideSave = false;
     this.hideOK = true;
     this.hideOaPolicyLink = true;
@@ -613,7 +770,8 @@ export default class AppExpert extends Mixin(LitElement)
   _editWebsites(e) {
     this.modalAction = 'edit-websites';
     this.modalTitle = 'Edit Links';
-    this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system.</p>`;
+    this.modalSaveText = '';
+    this.modalContent = `<p>Links are managed via your <strong>UC Publication Management System</strong> profile's "Web addresses and social media" section.</p><p>You will be redirected to this system in a new tab.</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
@@ -629,7 +787,8 @@ export default class AppExpert extends Mixin(LitElement)
   _editAboutMe(e) {
     this.modalAction = 'edit-about-me';
     this.modalTitle = 'Edit Introduction';
-    this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system.</p>`;
+    this.modalSaveText = '';
+    this.modalContent = `<p>Your profile introduction is managed view your <strong>UC Publication Management System</strong> profile's "About" section.</p><p>You will be redirected to this system in a new tab.</p>`;
     this.showModal = true;
     this.hideCancel = false;
     this.hideSave = false;
@@ -709,6 +868,7 @@ export default class AppExpert extends Mixin(LitElement)
     // TODO trigger api call to refresh profile
 
     this.modalTitle = 'Your Profile is Updating';
+    this.modalSaveText = '';
     this.modalContent = `<p>The latest data is currently being retrieved for your profile. You will receive an email confirmation when the process is complete.</p>`;
     this.showModal = true;
     this.hideCancel = true;
@@ -722,6 +882,7 @@ export default class AppExpert extends Mixin(LitElement)
     e.preventDefault();
 
     this.modalTitle = 'Error: Update Failed';
+    this.modalSaveText = '';
     let rejectFailureMsg = `<p>Rejecting (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
     let visibilityFailureMsgGrant = `<p>Changes to the visibility of (Title of Grant) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
     let visibilityFailureMsgWork = `<p>Changes to the visibility of (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
