@@ -381,6 +381,8 @@ function expand_template(){
        D[host] D[port] \
        D[gcs_bucket] D[gcs_init_data_hydration]\
        D[client_env] D[cdl_propagate_changes] \
+       D[client_error_reporting_enabled] \
+       D[client_error_reporting_url] D[client_error_reporting_key_secret] \
        sa client_id auth \
        <<<$(G "[.${G[env]}.org // .def.org,
            .${G[env]}.tag // .def.tag,
@@ -392,10 +394,16 @@ function expand_template(){
            .${G[env]}.gcs.init_data_hydration // .def.gcs.init_data_hydration,
            .${G[env]}.client.env // .def.client.env,
            .${G[env]}.cdl.propagate_changes // .def.cdl.propagate_changes,
+           .${G[env]}.client_error_reporting.enabled // .def.client_error_reporting.enabled,
+           .${G[env]}.client_error_reporting.url // .def.client_error_reporting.url,
+           .${G[env]}.client_error_reporting.key_secret // .def.client_error_reporting.key_secret,
            .${G[env]}.auth.service_account // .def.auth.service_account,
            .${G[env]}.auth.client_id // .def.auth.client_id,
            .${G[env]}.auth.server // .def.auth.server
           ] |@tsv")
+
+  #decode client_error_reporting_key_secret
+  D[client_error_reporting_key]=$(gcloud secrets versions access latest --secret=${D[client_error_reporting_key_secret]})
 
   #Get OIDC INFO
   local oidc_secret=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))

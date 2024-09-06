@@ -2,7 +2,7 @@ import { LitElement } from 'lit';
 import {render} from "./app-expert-works-list-edit.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
@@ -178,6 +178,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     }
 
     this.worksWithErrors = this.expert.invalidWorks || [];
+    if( this.worksWithErrors.length ) this.logger.error('works with errors', { expertId : this.expertId, worksWithErrors : this.worksWithErrors });
+
     this.worksWithErrors.sort((a, b) => {
       // sort issued descending
       let issuedA = a.issued?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(a.issued?.split('-')?.[0]);
@@ -379,6 +381,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     document.body.removeChild(link);
 
     if( window.gtag ) gtag('event', 'citation_download', {});
+    this.logger.info('citations downloaded for expert', { expertId : this.expertId, ris : text });
   }
 
   /**
@@ -418,6 +421,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           'fatal': false
         });
       }
+      this.logger.info('setting citation to be visible', { citationId : this.citationId, expertId : this.expertId });
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -447,6 +451,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           'fatal': false
         });
       }
+      this.logger.error('failed to set citation to be visible', { citationId : this.citationId, expertId : this.expertId });
 
       return;
     }
@@ -495,6 +500,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+        this.logger.info('setting citation to be hidden', { citationId : this.citationId, expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -524,6 +530,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+        this.logger.error('failed to set citation to be hidden', { citationId : this.citationId, expertId : this.expertId });
       }
 
       // update graph/display data
@@ -549,6 +556,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+        this.logger.info('setting citation to be rejected', { citationId : this.citationId, expertId : this.expertId });
+
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -578,6 +587,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+        this.logger.error('failed to set citation to be rejected', { citationId : this.citationId, expertId : this.expertId });
+
       }
 
       // remove citation from graph/display data
