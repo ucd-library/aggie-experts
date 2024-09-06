@@ -28,7 +28,7 @@
       "tag":"2.6.3"
     },
     "gcs":{
-      "bucket":"fcrepo-1",
+      "bucket":"fcrepo-2",
       "init_data_hydration":false
     }
   },
