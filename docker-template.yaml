@@ -120,7 +120,7 @@ services:
       - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-${D[enable_gaid]}}
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-${D[gaid]}}
       - CLIENT_ERROR_REPORTING_URL=${D[client_error_reporting_url]}
-      - CLIENT_ERROR_REPORTING_URL=${D[client_error_reporting_key]}
+      - CLIENT_ERROR_REPORTING_KEY=${D[client_error_reporting_key]}
       - CLIENT_ERROR_REPORTING_ENABLED=${CLIENT_ERROR_REPORTING_ENABLED:-${D[client_error_reporting_enabled]}}
       - FIN_URL=${FIN_URL:-${D[host]}}
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}

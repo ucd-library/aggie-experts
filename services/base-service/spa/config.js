@@ -22,12 +22,12 @@ config.client = {
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')
   },
   logger : {
-    logLevel : env.CLIENT_LOG_LEVEL || 'info',
-    logLevels : env.CLIENT_LOG_LEVELS ? JSON.parse(env.CLIENT_LOG_LEVELS) : {},
+    logLevel : process.env.CLIENT_LOG_LEVEL || 'info',
+    logLevels : process.env.CLIENT_LOG_LEVELS ? JSON.parse(process.env.CLIENT_LOG_LEVELS) : {},
     reportErrors : {
-      enabled : env.CLIENT_ERROR_REPORTING_ENABLED === 'true',
-      url : env.CLIENT_ERROR_REPORTING_URL || '',
-      key : env.CLIENT_ERROR_REPORTING_KEY || '',
+      enabled : process.env.CLIENT_ERROR_REPORTING_ENABLED === 'true',
+      url : process.env.CLIENT_ERROR_REPORTING_URL || '',
+      key : process.env.CLIENT_ERROR_REPORTING_KEY || '',
       customAttributes : {
         appName : 'aggie-experts',
         appOwner : 'digital'
