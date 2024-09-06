@@ -2,6 +2,8 @@ import { LitElement, html, svg } from 'lit';
 import {render, styles} from "./ucdlib-site-footer.tpl.js";
 import ThemeUtils from "../themeUtils";
 
+import {Mixin} from "@ucd-lib/cork-app-utils";
+
 /**
  * @class UcdlibSiteFooter
  * @description UI component class for displaying the standard UC Davis site footer

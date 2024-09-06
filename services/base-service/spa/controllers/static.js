@@ -1,7 +1,4 @@
-const express = require('express');
 const path = require('path');
-const fs = require('fs');
-const md5 = require('md5');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('@ucd-lib/fin-service-utils').esClient;
@@ -72,6 +69,7 @@ module.exports = async (app) => {
         env : config.client.env,
         enableGA4Stats : config.client.enableGA4Stats,
         gaId : config.client.gaId,
+        logger : config.client.logger
       });
     },
 

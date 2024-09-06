@@ -8,6 +8,11 @@
       "client_id":"aggie-experts",
       "service_account":"aggie-experts-service-account"
     },
+    "client_error_reporting":{
+      "enabled":false,
+      "url":"https://client-error-reporter-akwemh35fa-uw.a.run.app",
+      "key_secret":"client_error_reporting_key"
+    },
     "cdl":{
       "propagate_changes":"false"
     },
@@ -104,6 +109,9 @@
   "prod":{
     "port":"10180",
     "host":"https://experts.ucdavis.edu",
+    "client_error_reporting":{
+      "enabled":true
+    },
     "cdl":{
       "propagate_changes":"true"
     },

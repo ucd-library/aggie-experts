@@ -5,7 +5,7 @@ import '../elements/components/site/ucdlib-site-footer.js';
 import '../elements/components/site/ucdlib-site-footer-column.js';
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js';
 import '@ucd-lib/theme-elements/brand/ucd-theme-primary-nav/ucd-theme-primary-nav.js';
