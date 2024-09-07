@@ -445,8 +445,9 @@ export class CacheExpert {
       const kc_fn = path.join(this.base, 'keycloak.json');
       if (this.kcadmin && (!fs.existsSync(kc_fn) || this.refetch)) {
         const p = profile['@graph'][0];
+        let kc_user = {};
         if (p) {
-          const kc_user = {
+          kc_user = {
             firstName: p.oFirstName,
             lastName: p.oLastName,
             attributes: {
@@ -465,7 +466,8 @@ export class CacheExpert {
           fs.writeFileSync(fn, JSON.stringify(profile, null, 2));
           this.log.info({ lib: 'cache', measure: expert, expert }, `✔ ${fn}`);
         } else {
-          this.log.info({ lib: 'cache', measure: expert, expert }, `✔* ${kc_fn}`);
+          this.log.error({ lib: 'cache', measure: expert, expert }, `✖ iam(${expert})`);
+          this.iam = null;
         }
       }
         this.log.info({lib:'cache',measure:`iam(${expert})`,expert},`✔ iam(${expert})`);
@@ -475,6 +477,8 @@ export class CacheExpert {
 //      }
       performance.clearMarks(`iam(${expert})`);
     }
+    if (this.iam) {
+      // Only fetch cdl if we have an iam
     { // Add in cdl cache
       performance.mark(`cdl(${expert})`);
       const pd=path.join(this.base,'ark:','87287','d7nh2m');
@@ -506,6 +510,7 @@ export class CacheExpert {
         this.log.info({lib:'cache',measure:`cdl(${expert})`,expert},`✔* cdl(${expert})`);
       }
       performance.clearMarks(`cdl(${expert})`);
+    }
     }
     performance.clearMarks(expert);
   }

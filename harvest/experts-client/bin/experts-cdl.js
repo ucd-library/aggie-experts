@@ -77,12 +77,20 @@ async function main(opt, cache) {
   let normalized = cache.normalize_experts(users);
 
   for (const user of normalized) {
-      let expert = new CacheExpert(cache,user);
-      expert.fetch(user);
-    }
+    let expert = new CacheExpert(cache, user);
+    await expert.fetch();
+    await expert.load();
+    console.log(`Loaded ${expert.expert}`);
+    await expert.transform();
+    console.log(`Transformed ${expert.expert}`);
 
+    // Get username from mailto
+    let email = user.replace(/^.*:/, '');
+    let expertId = email.replace(/@.*/, '');
+
+    let db = expert.db;
     if (opt.splay) {
-      log.info({mark:'splay',user},`splay`);
+      log.info({ mark: 'splay', expertId }, `splay`);
       const bindings = BF.fromRecord(
         {
           EXPERTID__: DF.literal(expertId),
@@ -90,17 +98,18 @@ async function main(opt, cache) {
         }
       );
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        log.info({mark:n,user},`splay ${n}`);
+        log.info({ mark: n, expertId }, `splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
-          return await ec.splay({ ...splay, bindings, db, output: opt.output, user });
+          db = expert.db;
+          return await ec.splay({ ...splay, bindings, db, output: opt.output, expertId });
         })(n);
-        log.info({measure:[n],user},`splayed ${n}`);
+        log.info({ measure: [n], expertId }, `splayed ${n}`);
         performance.clearMarks(n);
       };
-      log.info({measure:['splay',user],user},`splayed`);
+      log.info({ measure: ['splay', user], expertId }, `splayed`);
       performance.clearMarks('splay');
     }
     // Any other value don't delete
@@ -110,6 +119,7 @@ async function main(opt, cache) {
     // log.info({measure:[user],user},`completed`);
     // performance.clearMarks(user);
   }
+}
 
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
