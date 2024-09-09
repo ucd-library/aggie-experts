@@ -1,4 +1,3 @@
-# THIS FILE GENERATED FROM ../README.org
 PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
@@ -42,7 +41,7 @@ construct {
 
   ?labeled_only_person a vivo:Person;
                        schema:name ?labeled_only_name;
-                       ucdlib:name_match ?labeled_only_name_match,?labeled_only_name_match_f;
+                       ucdlib:name_match ?labeled_only_name_match,?labeled_only_name_match_first,?labeled_only_name_match_i,?labeled_only_name_match_f;
                        .
 
   ?funder a vivo:FundingOrganization;
@@ -147,6 +146,9 @@ WHERE {
       ?elem :last-name ?labeled_only_name_last .
       OPTIONAL {
         ?elem :first-names ?labeled_only_name_first .
+      }
+      OPTIONAL {
+        ?elem :initials ?labeled_only_name_initials .
       }
     }
 
@@ -263,8 +265,13 @@ WHERE {
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
   bind(concat(?labeled_only_name_last,coalesce(concat(', ',?labeled_only_name_first),"")) as ?labeled_only_name)
-  bind(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_first),""))) as ?labeled_only_name_match)
-  bind(lcase(concat(?labeled_only_name_last,coalesce(concat('_',substring(?labeled_only_name_first,1,1)),""))) as ?labeled_only_name_match_short)
+
+  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_first),""))),"[^a-z_]","") as ?labeled_only_name_match)
+  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',strbefore(?labeled_only_name_first," ")),""))),,"[^a-z_]","") as ?labeled_only_name_match_first)
+
+  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_initials),""))),"[^a-z_]","") as ?labeled_only_name_match_i)
+  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',substr(?labeled_only_name_initials,1,1)),""))),"[^a-z_]","") as ?labeled_only_name_match_f)
+
   bind(uri(concat(str(?grant),"#",md5(?labeled_only_name_match))) as ?labeled_only_person)
   bind(uri(concat(str(?grant),"#roleof_",md5(?labeled_only_name))) as ?labeled_only_role)
 }

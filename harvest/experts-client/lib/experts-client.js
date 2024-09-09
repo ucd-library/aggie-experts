@@ -41,7 +41,6 @@ export class ExpertsClient {
       "field-number": "api:field-number",
       "$t": "api:field-value",
       "api:person": { "@container": "@list" },
-      "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
     },
     "@id":'http://oapolicy.universityofcalifornia.edu/'
