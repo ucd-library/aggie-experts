@@ -19,11 +19,12 @@ class SearchModel extends BaseModel {
    * @param {String} searchTerm search term
    * @param {Number} page page number, defaults to 1
    * @param {Number} size number of results per page, defaults to 10
+   * @param {Array} hasAvailability array of availability filters
    *
    * @returns {Promise} resolves to expert
    */
-  async search(searchTerm, page=1, size=10) {
-    let state = this.store.search(searchTerm, page, size);
+  async search(searchTerm, page=1, size=10, hasAvailability=[]) {
+    let state = this.store.search(searchTerm, page, size, hasAvailability);
 
     if( state && state.request ) {
       await state.request;
@@ -32,10 +33,10 @@ class SearchModel extends BaseModel {
         this.store.setSearchLoaded(searchTerm, state.payload)
       }
     } else {
-      await this.service.search(searchTerm, page, size);
+      await this.service.search(searchTerm, page, size, hasAvailability);
     }
 
-    return this.store.search(searchTerm, page, size);
+    return this.store.search(searchTerm, page, size, hasAvailability);
   }
 
 }
