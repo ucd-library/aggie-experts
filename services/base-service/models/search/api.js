@@ -51,7 +51,7 @@ router.get(
   async (req, res) => {
   const params = {};
 
-  ["inner_hit_size","size","page","q"].forEach((key) => {
+  ["inner_hit_size","size","page","q","hasAvailability"].forEach((key) => {
     if (req.query[key]) { params[key] = req.query[key]; }
   });
   opts = {
