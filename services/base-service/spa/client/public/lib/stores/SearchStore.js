@@ -17,8 +17,9 @@ class SearchStore extends BaseStore {
     }
   }
 
-  search(searchTerm='') {
-    return this.data.bySearchTerm[searchTerm];
+  search(searchTerm='', page=1, size=10, hasAvailability=[]) {
+    let searchQuery = `q=${searchTerm}&page=${page}&size=${size}&hasAvailability=${encodeURIComponent(hasAvailability)}`;
+    return this.data.bySearchTerm[searchQuery];
   }
 
   /**

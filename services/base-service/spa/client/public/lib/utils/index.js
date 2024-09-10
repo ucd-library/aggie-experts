@@ -349,6 +349,32 @@ class Utils {
     return options;
   }
 
+  /**
+   * @method buildSearchAvailability
+   * @description return availability array for search api
+   *
+   * @param {Object} openTo object with keys for each type of availability
+   *
+   * @return {Array} hasAvailability
+   */
+  buildSearchAvailability(openTo) {
+    let availability = [];
+
+    let arks = {
+      collab : 'ark:/87287/d7nh2m/keyword/c-ucd-avail/Collaborative%20projects',
+      community : 'ark:/87287/d7nh2m/keyword/c-ucd-avail/Community%20partnerships',
+      industry : 'ark:/87287/d7nh2m/keyword/c-ucd-avail/Industry%20Projects',
+      media : 'ark:/87287/d7nh2m/keyword/c-ucd-avail/Media%20enquiries'
+    };
+
+    if( openTo.collabProjects ) availability.push(arks.collab);
+    if( openTo.commPartner ) availability.push(arks.community);
+    if( openTo.industProjects ) availability.push(arks.industry);
+    if( openTo.mediaInterviews ) availability.push(arks.media);
+
+    return availability;
+  }
+
 }
 
 module.exports = new Utils();
