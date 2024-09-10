@@ -8,8 +8,19 @@
           "filter": {
             "bool":{
               "must": [
-                { "exists": { "field": "is-visible" }},
-                { "term" : {"is-visible": true } }
+                "bool": {
+                  "must": [
+                    { "exists": { "field": "is-visible" }},
+                    { "term" : {"is-visible": true } }
+                  ]
+                },
+                {{#hasAvailibility}}
+                {
+                  "terms": {
+                    "status": [{{#hasAvailibility}}"{{.}}"{{^last}},{{/last}}{{/hasAvailibility}}]
+                  }
+                }
+                {{/hasAvailibility}}
               ]
             }
           },

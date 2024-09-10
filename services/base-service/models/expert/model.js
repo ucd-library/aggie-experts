@@ -318,7 +318,9 @@ class ExpertModel extends BaseModel {
     if (node["is-visible"]) {
       doc["is-visible"] = node["is-visible"];
     }
-
+    if (node["hasAvailability"]) {
+      doc["hasAvailability"] = node["hasAvailability"];
+    }
 
     // Order the vcards, and get the first one
     let contact
