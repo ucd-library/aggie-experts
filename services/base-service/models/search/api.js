@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
-const template = require('./template/default.json');
+const template = require('./template/default.js');
 const experts = new ExpertModel();
 const {config} = require('@ucd-lib/fin-service-utils');
 

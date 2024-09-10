@@ -319,7 +319,10 @@ class ExpertModel extends BaseModel {
       doc["is-visible"] = node["is-visible"];
     }
     if (node["hasAvailability"]) {
-      doc["hasAvailability"] = node["hasAvailability"];
+      doc["hasAvailability"] = [];
+      node["hasAvailability"].forEach(availability => {
+        doc["hasAvailability"].push(availability["@id"]);
+      });
     }
 
     // Order the vcards, and get the first one

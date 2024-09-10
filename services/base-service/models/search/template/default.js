@@ -1,8 +1,8 @@
-{
-  "id": "default",
-  "script": {
+template = {
+  id: "default",
+  script: {
     "lang": "mustache",
-    "source": '{
+    "source": `{
       "query": {
         "bool": {
           "filter": {
@@ -15,19 +15,19 @@
                       { "term" : {"is-visible": true } }
                     ]
                   }
-                },
-                {{#hasAvailibility}},
-                {
+                }
+                {{#hasAvailability}}
+                ,{
                   "bool": {
                     "must": [
                       { "exists": { "field": "hasAvailability" }},
                       { "terms": {
-                        "hasAvailability": [{{#hasAvailibility}}"{{.}}"{{^last}},{{/last}}{{/hasAvailibility}}]
-                      }}
+                        "hasAvailability": [{{#hasAvailability}}"{{.}}",{{/hasAvailability}}"none"]
+                       }}
                     ]
                   }
-                },
-                {{/hasAvailibility}}
+                }
+                {{/hasAvailability}}
               ]
             }
           },
@@ -134,5 +134,7 @@
     "params": {
       "q": "My query string"
     }
-  }'
-}
+  }`
+  }
+};
+module.exports = template;
