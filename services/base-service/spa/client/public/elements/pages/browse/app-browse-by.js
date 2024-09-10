@@ -1,6 +1,9 @@
 import { LitElement } from 'lit';
 import {render} from "./app-browse-by.tpl.js";
 
+// sets globals Mixin and EventInterface
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
+
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import '../../components/ucdlib-browse-az.js';
 import '../../components/search-result-row.js';

@@ -286,6 +286,69 @@ class Utils {
       }
     };
   }
+
+  /**
+   * @method buildAvailabilityPayload
+   * @description return availability label payload for updating cdl
+   *
+   * @param {Object} openTo object with keys for each type of colab
+   * @param {Object} prevOpenTo object with keys for each type of colab currently saved in cdl
+   *
+   * @return {Object} payload
+   */
+  buildAvailabilityPayload(openTo={}, prevOpenTo={}) {
+    let options = {
+      labelsToAddOrEdit: [],
+      labelsToRemove: [],
+      currentLabels: []
+    };
+    let labels = {
+      collab : 'Collaborative projects',
+      community : 'Community partnerships',
+      industry : 'Industry Projects',
+      media : 'Media enquiries'
+    };
+
+    if( openTo.collabProjects ) options.currentLabels.push(labels.collab);
+    if( openTo.commPartner ) options.currentLabels.push(labels.community);
+    if( openTo.industProjects ) options.currentLabels.push(labels.industry);
+    if( openTo.mediaInterviews ) options.currentLabels.push(labels.media);
+
+    if( openTo.collabProjects !== prevOpenTo.collabProjects ) {
+      if( openTo.collabProjects ) {
+        options.labelsToAddOrEdit.push({ value: labels.collab, percentage: null });
+      } else {
+        options.labelsToRemove.push(labels.collab);
+      }
+    }
+
+    if( openTo.commPartner !== prevOpenTo.commPartner ) {
+      if( openTo.commPartner ) {
+        options.labelsToAddOrEdit.push({ value: labels.community, percentage: null });
+      } else {
+        options.labelsToRemove.push(labels.community);
+      }
+    }
+
+    if( openTo.industProjects !== prevOpenTo.industProjects ) {
+      if( openTo.industProjects ) {
+        options.labelsToAddOrEdit.push({ value: labels.industry, percentage: null });
+      } else {
+        options.labelsToRemove.push(labels.industry);
+      }
+    }
+
+    if( openTo.mediaInterviews !== prevOpenTo.mediaInterviews ) {
+      if( openTo.mediaInterviews ) {
+        options.labelsToAddOrEdit.push({ value: labels.media, percentage: null });
+      } else {
+        options.labelsToRemove.push(labels.media);
+      }
+    }
+
+    return options;
+  }
+
 }
 
 module.exports = new Utils();

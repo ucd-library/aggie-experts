@@ -2,7 +2,7 @@ import { LitElement } from 'lit';
 import {render} from "./app-expert-grants-list-edit.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
@@ -188,7 +188,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     }
 
     this.grantsWithErrors = this.expert.invalidGrants || [];
-    console.log('this.grantsWithErrors', this.grantsWithErrors);
+    if( this.grantsWithErrors.length ) this.logger.error('grants with errors', { expertId : this.expertId, grantsWithErrors : this.grantsWithErrors });
+
     this.grantsWithErrors.sort((a, b) => {
       // sort end date descending
       let endDateA = a.dateTimeInterval?.end?.dateTime?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(a.dateTimeInterval?.end?.dateTime?.split('-')?.[0]);
@@ -360,6 +361,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     document.body.removeChild(link);
 
     if( window.gtag ) gtag('event', 'grant_download', {});
+    this.logger.info('grants downloaded for expert', { expertId : this.expertId, csv : body });
   }
 
   /**
@@ -399,12 +401,19 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           'fatal': false
         });
       }
+      this.logger.info('setting grant to be visible', { grantId : this.grantId, expertId : this.expertId });
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
       updated = false;
       let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
-      let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+      let modelContent = `
+        <p>
+          <strong>${grantTitle}</strong> could not be updated. Please try again later or make your changes directly in the
+          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=" target="_blank">UC Publication Management System (opens in new tab).</a>
+        </p>
+        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
+      `;
 
       this.modalTitle = 'Error: Update Failed';
       this.modalContent = modelContent;
@@ -423,6 +432,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           'fatal': false
         });
       }
+      this.logger.error('failed to set grant to be visible', { grantId : this.grantId, expertId : this.expertId });
     }
 
     this.modifiedGrants = true;
@@ -467,12 +477,19 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+        this.logger.info('setting grant to be hidden', { grantId : this.grantId, expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
         updated = false;
 
         let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
-        let modelContent = `<p>Changes to the visibility of (${grantTitle}) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+        let modelContent = `
+          <p>
+            <strong>${grantTitle}</strong> could not be updated. Please try again later or make your changes directly in the
+            <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=" target="_blank">UC Publication Management System (opens in new tab).</a>
+          </p>
+          <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
+        `;
 
         this.modalTitle = 'Error: Update Failed';
         this.modalContent = modelContent;
@@ -491,6 +508,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
             'fatal': false
           });
         }
+        this.logger.error('failed to set grant to be hidden', { grantId : this.grantId, expertId : this.expertId });
       }
 
       // update graph/display data

@@ -9,13 +9,13 @@
     "obo": "http://purl.obolibrary.org/obo/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "schema": "http://schema.org/",
-    "skos": "http://www.w3.org/2004/02/skos/core#",
     "ucdlib": "http://schema.library.ucdavis.edu/schema#",
     "vcard":"http://www.w3.org/2006/vcard/ns#",
     "vivo": "http://vivoweb.org/ontology/core#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "abstract":{"@id":"cite:abstract"},
-    "assignedBy": { "@type":"@id"},
+    "ArchivalGroup":"fedora:ArchivalGroup",
+    "assignedBy": { "@id":"vivo:assignedBy", "@type":"@id"},
     "author":{
       "@id":"cite:author",
       "@context": {
@@ -31,11 +31,9 @@
       }
     },
     "Authorship":"vivo:Authorship",
-    "availabilityOf":{"@id":"ucdlib:availabilityOf","@type":"@id"},
     "available-date":{"@id":"cite:available-date"},
     "bearer-of":{"@id":"obo:RO_0000053","@type":"@id"},
     "collection-number":{"@id":"cite:collection-number"},
-    "Concept":"skos:Concept",
     "contactInfo": {
       "@id":"obo:ARG_2000028",
       "@type":"@id",
@@ -94,7 +92,6 @@
       "@type":"@id"
     },
     "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
-    "hasAvailability":{"@id":"ucdlib:hasAvailability","@type":"@id" },
     "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
     "hasName": {
       "@id": "vcard:hasName",
@@ -135,7 +132,6 @@
     "identifier":{"@id":"schema:identifier","@type":"@id"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
-    "inScheme":{"@id":"skos:inScheme","@type":"@id"},
     "is-open-access":{"@id":"ucdlib:is-open-access"},
     "is-visible":{"@id":"ucdlib:is-visible"},
     "ISBN": {"@id":"cite:ISBN"},
@@ -146,7 +142,7 @@
     "label":{"@id":"rdfs:label"},
     "language":{"@id":"cite:language"},
     "lastModifiedDateTime":{"@id":"ucdlib:lastModifiedDateTime"},
-    "LeaderRole":"vivo:LeaderRole",
+    "LeaderRole":{ "@id":"vivo:LeaderRole" },
     "license":{"@id":"cite:license"},
     "Name":{"@id":"vcard:Name"},
     "name":{"@id":"schema:name"},
@@ -154,21 +150,16 @@
     "note":{"@id":"cite:note"},
     "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
-    "prefLabel":{"@id":"skos:prefLabel"},
-    "PrincipalInvestigatorRole":"vivo:PrincipalInvestigatorRole",
-    "prefLabel":{"@id":"skos:prefLabel"},
+    "PrincipalInvestigatorRole":{"@id":"vivo:PrincipalInvestigatorRole"},
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
     "rank":{"@id":"vivo:rank"},
-    "relatedByReverse":{
-      "@reverse":"vivo:relates"
-    },
     "relatedBy":{
       "@id":"vivo:relatedBy"
     },
     "relates": { "@id":"vivo:relates", "@type":"@id" },
-    "relatesx": { "@id":"vivo:relatesX",
+    "relatesX": { "@id":"vivo:relatesX",
                   "@type":"@id",
                  "@context":{
                    "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
@@ -177,7 +168,7 @@
                  }
                },
     "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
-    "ResearcherRole":"vivo:ResearcherRole",
+    "ResearcherRole":{"@id":"vivo:ResearcherRole"},
     "researchInterests":{"@id":"ucdlib:researchInterests"},
     "sponsorAwardId": {"@id":"vivo:sponsorAwardId"},
     "status":{"@id":"cite:status"},
@@ -202,17 +193,6 @@
     "URL_rssfeed":{"@id":"ucdlib:URL_rssfeed"},
     "URL_twitter":{"@id":"ucdlib:URL_twitter"},
     "volume":{"@id":"cite:volume"},
-    "Work":"ucdlib:Work"
-  },
-  "Grant": {
-    "@embed":"@always",
-    "@omitDefault":true,
-    "@default":"@null"
-  },
-  "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
-  "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
-  "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
-  "relatedBy": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
-  "@embed": "@once",
-  "@type": ["Expert","Work","Grant","Authorship","GrantRole"]
+    "Work":{"@id":"ucdlib:Work"}
+  }
 }
