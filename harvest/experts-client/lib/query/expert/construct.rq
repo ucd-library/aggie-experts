@@ -23,11 +23,9 @@ CONSTRUCT {
             obo:ARG_2000028 ?vcard,?oap_vcard;
                schema:identifier ?EXPERT__, ?oapolicy_ark;
                ucdlib:is-visible ?visible;
-               ucdlib:name_match ?match,?match_first,?match_i,?match_f;
-               ucdlib:name_match ?oap_match,?oap_match_fn,?oap_match_i,?oap_match_f
-
+               ucdlib:name_match ?oap_match,?oap_match_fn,?oap_match_i,?oap_match_f;
                ?field_predicate ?field_value;
-               ?p ?o
+               ?p ?o;
                .
 
   ?EXPERT__ ?id_pred ?id_value.
@@ -85,7 +83,7 @@ CONSTRUCT {
 WHERE {
   graph <http://iam.ucdavis.edu/> {
     values ?p {rdfs:label schema:identifier schema:name
-      ucdlib:isPreferred ucdlib:is-visible }
+      ucdlib:isPreferred ucdlib:is-visible ucdlib:name_match}
 
     ?user a ?type;
           ucdlib:eduroam ?USERNAME__;
@@ -240,12 +238,6 @@ WHERE {
               concat(?ln,coalesce(concat(", ",?fn),"")),
               coalesce(?title_dept,"")
               ) as ?vcard_label)
-
-  bind(replace(lcase(concat(?ln,coalesce(concat('_',concat(?fn,' ',coalesce(?mn,""))),""))),"[^a-z_]","") as ?match)
-  bind(replace(lcase(concat(?ln,coalesce(concat('_',?fn),""))),"[^a-z_]","") as ?match_fn)
-  bind(replace(lcase(concat(?ln,coalesce(concat('_',substr(?fn,1,1),coalesce(substr(?mn,1,1),"")),""))),"[^a-z_]","") as ?match_i)
-  bind(replace(lcase(concat(?ln,coalesce(concat('_',substr(?fn,1,1)),""))),"[^a-z_]","") as ?match_f)
-
 
   bind(concat(?oap_fn," ",?oap_ln) as ?oap_name)
   bind(uri(concat(str(?EXPERT__),"#vcard-oap-1")) as ?oap_vcard)

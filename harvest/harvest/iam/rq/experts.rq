@@ -20,7 +20,9 @@ CONSTRUCT {
         ucdlib:ucdPersonUUId ?mothra_id;
         ucdlib:email ?default_email_uri;
         ucdlib:is-visible ?is_visible;
+        ucdlib:name_match ?match,?match_firstm,?match_first,?match_i,?match_f;
         .
+
 
   ?user a ?emp_type;
         vcard:hasName ?vcard_name;
@@ -141,6 +143,12 @@ WHERE {
   bind(coalesce(?better_fname,?iam_fname) as ?fname)
   bind(coalesce(?better_lname,?iam_lname) as ?lname)
   bind(?better_mname as ?mname)
+  bind(replace(lcase(concat(?lname,coalesce(concat('_',concat(?fname,' ',coalesce(?mname,""))),""))),"[^a-z_]","") as ?match)
+  bind(replace(lcase(concat(?lname,coalesce(concat('_',concat(?fname,' ',coalesce(substr(?mname,1,1),""))),""))),"[^a-z_]","") as ?match_firstm)
+  bind(replace(lcase(concat(?lname,coalesce(concat('_',?fname),""))),"[^a-z_]","") as ?match_first)
+  bind(replace(lcase(concat(?lname,coalesce(concat('_',substr(?fname,1,1),coalesce(substr(?mname,1,1),"")),""))),"[^a-z_]","") as ?match_i)
+  bind(replace(lcase(concat(?lname,coalesce(concat('_',substr(?fname,1,1)),""))),"[^a-z_]","") as ?match_f)
+
   bind(coalesce(?better_mlabel,concat(?fname," ",?lname)) as ?label)
   bind(coalesce(?odr_is_visible,true) as ?is_visible)
   bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
