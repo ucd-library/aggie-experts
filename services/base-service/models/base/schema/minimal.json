@@ -7,9 +7,10 @@
     "is-visible" : {
       "type" : "boolean"
     },
-    "_.updated" : {
-      "type" : "date",
-      "format" : "strict_date_optional_time||epoch_millis"
+    "hasAvailability": {
+      "type": "keyword",
+      "normalizer": "identifier",
+      "ignore_above": 128
     },
     "@graph": {
       "type": "nested",
