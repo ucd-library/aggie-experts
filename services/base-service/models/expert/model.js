@@ -320,6 +320,9 @@ class ExpertModel extends BaseModel {
     }
     if (node["hasAvailability"]) {
       doc["hasAvailability"] = [];
+      if (! Array.isArray(node["hasAvailability"])) {
+        node["hasAvailability"] = [node["hasAvailability"]];
+      }
       node["hasAvailability"].forEach(availability => {
         doc["hasAvailability"].push(availability["@id"]);
       });
