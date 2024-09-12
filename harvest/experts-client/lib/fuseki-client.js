@@ -1,18 +1,26 @@
 import fetch from 'node-fetch';
 
 export class FusekiClient {
-  constructor(opt) {
-    this.url = opt.url;
-    this.auth=opt.auth;
-    this.type=opt.type;
-    this.replace=opt.replace;
-    this.delete=opt.delete;
-    this.db=opt.db;
-    this.logger=opt.logger || logger;
-    this.assembler=opt.assembler;
+  static DEF= {
+    url: 'http://admin:testing123@localhost:3030',
+    replace: false,
+    type: 'tdb2',
+    log: null
+  };
+
+  constructor(opt={}) {
+    opt = opt || {};
+    for (let k in FusekiClient.DEF) {
+      this[k] = opt[k] || FusekiClient.DEF[k];
+    }
+
+    if (opt.url) {
+      let url = new URL(opt.url);
+      this.auth=opt.auth || url.username+':'+url.password;
+      this.url = url.origin;
+    }
     this.reauth();
   }
-
   /**
    * @method auth
    * @description Authenticate to Fuseki server.  Sets authBasic property.

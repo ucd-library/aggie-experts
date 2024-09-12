@@ -7,6 +7,7 @@ import FusekiClient from '../lib/fuseki-client.js';
 import { performance } from 'node:perf_hooks';
 import { Command } from '../lib/experts-commander.js';
 import { Cache, CacheExpert } from '../lib/cache/index.js';
+import fs from 'fs-extra';
 
 const DF = new DataFactory();
 const BF = new BindingsFactory();
@@ -18,8 +19,7 @@ const fuseki = new FusekiClient({
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb2',
   replace: true,
-  'delete': true,
-  assembler: null
+  'delete': true
 });
 
 const cdl = {
@@ -77,18 +77,20 @@ async function main(opt, cache) {
   let normalized = cache.normalize_experts(users);
 
   for (const user of normalized) {
-    let expert = new CacheExpert(cache, user);
+    // Get username from mailto
+
+    let expert = new CacheExpert(cache, user, opt);
     await expert.fetch();
     await expert.load();
     console.log(`Loaded ${expert.expert}`);
     await expert.transform();
     console.log(`Transformed ${expert.expert}`);
 
-    // Get username from mailto
-    let email = user.replace(/^.*:/, '');
+    // get the bare expert id
+    let email = expert.expert.replace(/^.*:/, '');
     let expertId = email.replace(/@.*/, '');
 
-    let db = expert.db;
+    let db = expert._db;
     if (opt.splay) {
       log.info({ mark: 'splay', expertId }, `splay`);
       const bindings = BF.fromRecord(
@@ -103,7 +105,7 @@ async function main(opt, cache) {
           const splay = ql.getSplay(n);
           // While we test, remove frame
           delete splay['frame'];
-          db = expert.db;
+          // db = expert.db;
           return await ec.splay({ ...splay, bindings, db, output: opt.output, expertId });
         })(n);
         log.info({ measure: [n], expertId }, `splayed ${n}`);
@@ -127,6 +129,9 @@ import { dirname } from 'path';
 import { exit } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename).replace('/bin', '/lib');
+
+// Read custom config for expert dataset with hdt assembler setup
+const assembler = fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld', 'utf8');
 
 const program = new Command();
 
@@ -204,5 +209,6 @@ else if (opt.environment === 'production') {
   opt.cdl.secretpath = 'projects/325574696734/secrets/cdl-elements-json';
 }
 
+opt.assembler = assembler;
 log.info({ opt }, 'options');
 await main(opt, cache);

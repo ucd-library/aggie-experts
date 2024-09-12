@@ -386,7 +386,7 @@ export class CacheExpert {
     this.log=this.cache.log;
     this.kcadmin=this.cache.kcadmin;
     this.refetch=cache.refetch;
-
+    this.assembler=opts.assembler;
     this.expert=expert;
     performance.mark(this.expert);
     this.base=path.join(this.cache.base,expert);
@@ -396,7 +396,8 @@ export class CacheExpert {
     if (! this._db ) {
       // create new fuseki db
       const fuseki=this.cache.fuseki;
-      this._db = await fuseki.createDb(this.expert,{replace:false});
+      let assembler_binded = this.assembler.replace(/__USER__/g, this.expert);
+      this._db = await fuseki.createDb(this.expert,{replace:true,assembler:assembler_binded});
     }
     return this._db;
   }
