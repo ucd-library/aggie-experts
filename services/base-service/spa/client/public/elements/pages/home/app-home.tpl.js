@@ -191,7 +191,7 @@ return html`
         </app-search-box>
         <span>
           <span class="tooltip search-help"
-            data-text="Tip: Keywords are automatically combined with AND. Singular and plural forms may yield different results. Improvements coming soon!"
+            data-text="Tip: Keywords are automatically combined with OR. Singular and plural forms may yield different results. Improvements coming soon!"
             @click="${(e) => e.currentTarget.classList.toggle('clicked')}">
             <ucdlib-icon class="search-help-icon" icon="ucdlib-experts:fa-question-circle"></ucdlib-icon>
           </span>
