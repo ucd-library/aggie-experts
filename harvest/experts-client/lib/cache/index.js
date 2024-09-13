@@ -547,8 +547,8 @@ export class CacheExpert {
    * @returns {Array} - an array of processed cache
    **/
   async transform() {
-    const base = path.join(this.base, 'fcrepo');
     const log = this.log;
+    const base = this.base;
 
     //    for (const n of ['expert', 'authorship', 'grant_role']) {
     for (const n of ['expert', 'authorship']) {
@@ -556,12 +556,15 @@ export class CacheExpert {
 
       await (async (n) => {
         let bind=fs.readFileSync(path.join(__dirname,`query/${n}/bind.rq`),'utf8');
-        let construct=fs.readFileSync(path.join(__dirname,`query/${n}/construct.rq`),'utf8');
+        const construct_template=fs.readFileSync(path.join(__dirname,`query/${n}/construct.rq`),'utf8');
         let db=await this.db();
         async function constructRecord(bindings) {
           let fn = 1; // write to stdout by default
+          let rq = 1; // write to stdout by default
+          let construct = construct_template;
           if (bindings['filename']) {
-            fn = path.join(base, bindings['filename'].value);
+            fn = path.join(base,'fcrepo', 'expert', bindings['filename'].value);
+            rq = path.join(base,'rq', bindings['filename'].value);
             delete bindings['filename'];
           }
           performance.mark(fn);
@@ -575,22 +578,23 @@ export class CacheExpert {
               construct = construct.replace(new RegExp('\\?' + key, 'g'), `<${value.value}>`);
             }
           }
-//          let doc=await db.construct(construct);
-////          doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
+          let doc=await db.construct(construct);
+          doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
 //          const nquads = await jsonld.canonize(doc, {format: 'application/n-quads'});
           //          const num = (nquads.match(/\r|\r\n|\n/g) || '').length;
           const num = 0
           fs.ensureFileSync(fn);
-//          fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
-          fs.writeFileSync(`${fn}.rq`, construct);
+          fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
+          fs.ensureFileSync(`${rq}.rq`);
+          fs.writeFileSync(`${rq}.rq`, construct);
 //          fs.writeFileSync(`${fn}.nq`, nquads);
           log.info({lib:'cache',measure:[fn],quads:num},'record');
           performance.clearMarks(fn);
         }
 
         let result = await db.query(bind);
-        console.log(JSON.stringify(result, null, 2));
         for (const bindings of result.results.bindings) {
+          console.log('constructRecord',bindings);
           await constructRecord(bindings);
         }
       })(n);

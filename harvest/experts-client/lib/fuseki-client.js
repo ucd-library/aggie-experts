@@ -132,7 +132,7 @@ export class FusekiClient {
             }
           });
         if (!res.ok) {
-          throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+          throw new Error(`Create db ${db} failed . Code: ${res.status}`);
         }
       }
       this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ createDb(${db})`);
