@@ -129,7 +129,7 @@ WHERE {
       }
       OPTIONAL {
         ?list iam:emailWwwFlag "Y";
-              iam:email ?odr_title_email;
+              iam:email ?odr_email;
               .
       }
       bind(true as ?has_odr)
