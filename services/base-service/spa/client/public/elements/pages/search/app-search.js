@@ -122,11 +122,18 @@ export default class AppSearch extends Mixin(LitElement)
     this.searchTerm = e.detail.trim();
     this.totalResultsCount = null;
 
+    let hasAvailability = utils.buildSearchAvailability({
+      collabProjects : this.collabProjects,
+      commPartner : this.commPartner,
+      industProjects : this.industProjects,
+      mediaInterviews : this.mediaInterviews
+    });
+
     this.AppStateModel.setLocation(`/search/${this.searchTerm}`);
 
     this.currentPage = 1;
 
-    await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage);
+    await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability);
   }
 
   _onSearchUpdate(e) {
@@ -189,6 +196,46 @@ export default class AppSearch extends Mixin(LitElement)
     this.currentPage = e.detail.page;
     await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage);
     window.scrollTo(0, 0);
+  }
+
+  /**
+   * @method _selectCollabProjects
+   * @description bound to change events of the collab projects checkbox
+   * @param {Object} e change event
+   */
+  _selectCollabProjects(e) {
+    this.collabProjects = e.currentTarget.checked;
+    this._onSearch({ detail: this.searchTerm });
+  }
+
+  /**
+   * @method _selectCommPartner
+   * @description bound to change events of the community partnerships checkbox
+   * @param {Object} e change event
+   */
+  _selectCommPartner(e) {
+    this.commPartner = e.currentTarget.checked;
+    this._onSearch({ detail: this.searchTerm });
+  }
+
+  /**
+   * @method _selectIndustProjects
+   * @description bound to change events of the industry projects checkbox
+   * @param {Object} e change event
+   */
+  _selectIndustProjects(e) {
+    this.industProjects = e.currentTarget.checked;
+    this._onSearch({ detail: this.searchTerm });
+  }
+
+  /**
+   * @method _selectMediaInterviews
+   * @description bound to change events of the media interviews checkbox
+   * @param {Object} e change event
+   */
+  _selectMediaInterviews(e) {
+    this.mediaInterviews = e.currentTarget.checked;
+    this._onSearch({ detail: this.searchTerm });
   }
 
   /**
