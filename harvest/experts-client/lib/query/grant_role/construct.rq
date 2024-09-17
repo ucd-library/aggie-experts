@@ -267,7 +267,7 @@ WHERE {
   bind(concat(?labeled_only_name_last,coalesce(concat(', ',?labeled_only_name_first),"")) as ?labeled_only_name)
 
   bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_first),""))),"[^a-z_]","") as ?labeled_only_name_match)
-  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',strbefore(?labeled_only_name_first," ")),""))),,"[^a-z_]","") as ?labeled_only_name_match_first)
+  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',strbefore(?labeled_only_name_first," ")),""))),"[^a-z_]","") as ?labeled_only_name_match_first)
 
   bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_initials),""))),"[^a-z_]","") as ?labeled_only_name_match_i)
   bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',substr(?labeled_only_name_initials,1,1)),""))),"[^a-z_]","") as ?labeled_only_name_match_f)

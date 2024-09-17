@@ -13,7 +13,8 @@ class AuthorshipModel extends BaseModel {
 
   static transformed_types = [ 'Authorship' ];
   static types = [
-    "http://vivoweb.org/ontology/core#Authorship" ];
+//    "http://vivoweb.org/ontology/core#Authorship"
+  ];
 
   constructor(name='authorship') {
     super(name);
