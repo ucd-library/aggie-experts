@@ -106,14 +106,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return;
     }
 
-    // parse /size/page/ from url, or append if trying to access /works-edit
+    // parse /page/size from url, or append if trying to access /works-edit
     let page = e.location.pathname.split('/works-edit/')?.[1];
     if( page ) {
       let parts = page.split('/');
-      this.currentPage = Number(parts?.[1] || 1);
-      this.resultsPerPage = Number(parts?.[0] || 25);
-    } else {
-      this.AppStateModel.setLocation(this.AppStateModel.location.fullpath+'/'+this.resultsPerPage+'/'+this.currentPage+'/');
+      this.currentPage = Number(parts?.[0] || 1);
+      this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
     window.scrollTo(0, 0);
@@ -269,10 +267,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
 
     this.currentPage = e.detail.page;
-    this.AppStateModel.setLocation('/'+this.expertId+'/works-edit/'+this.resultsPerPage+'/'+this.currentPage+'/');
 
+    let path = '/'+this.expertId+'/works-edit';
+    if( this.currentPage > 1 || this.resultsPerPage !== 25 ) path += '/'+this.currentPage;
+    if( this.resultsPerPage !== 25 ) path += '/'+this.resultsPerPage;
+    this.AppStateModel.setLocation(path);
 
-    // await this._loadCitations();
     let expert = await this.ExpertModel.get(
       this.expertId,
       `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
