@@ -181,6 +181,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( this.worksWithErrors.length ) this.logger.error('works with errors', { expertId : this.expertId, worksWithErrors : this.worksWithErrors });
 
     this.worksWithErrors.sort((a, b) => {
+      if( typeof a.issued !== 'string' ) a.issued = 'Date Unknown';
+      if( typeof b.issued !== 'string' ) b.issued = 'Date Unknown';
+
       // sort issued descending
       let issuedA = a.issued?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(a.issued?.split('-')?.[0]);
       let issuedB = b.issued?.split('-')?.[0] === 'Date Unknown' ? -Infinity : Number(b.issued?.split('-')?.[0]);
