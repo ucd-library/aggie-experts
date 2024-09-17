@@ -19,7 +19,6 @@ const fuseki = new FusekiClient({
   auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
   type: 'tdb2',
   replace: true,
-  'delete': true
 });
 
 const cdl = {
@@ -76,15 +75,18 @@ async function main(opt, cache) {
   }
   let normalized = cache.normalize_experts(users);
 
+  //console.log(`Normalized ${normalized.length} users`, normalized);
+
   for (const user of normalized) {
     // Get username from mailto
 
     let expert = new CacheExpert(cache, user, opt);
     await expert.fetch();
+    //console.log(`Fetched ${expert.expert}`);
     await expert.load();
-    console.log(`Loaded ${expert.expert}`);
+    //console.log(`Loaded ${expert.expert}`);
     await expert.transform();
-    console.log(`Transformed ${expert.expert}`);
+    //console.log(`Transformed ${expert.expert}`);
 
     // get the bare expert id
     let email = expert.expert.replace(/^.*:/, '');
@@ -100,7 +102,8 @@ async function main(opt, cache) {
         }
       );
       for (const n of ['expert', 'authorship', 'grant_role']) {
-        log.info({ mark: n, expertId }, `splay ${n}`);
+      // for (const n of ['expert']) {
+          log.info({ mark: n, expertId }, `splay ${n}`);
         await (async (n) => {
           const splay = ql.getSplay(n);
           // While we test, remove frame
@@ -116,7 +119,7 @@ async function main(opt, cache) {
     }
     // Any other value don't delete
     if (fuseki.delete === true) {
-      const dropped = await fuseki.dropDb(db);
+      const dropped = await fuseki.dropDb(db.db);
     }
     // log.info({measure:[user],user},`completed`);
     // performance.clearMarks(user);
@@ -153,7 +156,7 @@ program.name('cdl-profile')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
-  .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki["delete"])
+  .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki.delete)
   .option('--no-fuseki.delete')
   .option('--fuseki.replace', 'Replace the fuseki.db (delete before import)', true)
   .option('--no-fuseki.replace')

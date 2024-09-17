@@ -4,6 +4,7 @@ export class FusekiClient {
   static DEF= {
     url: 'http://admin:testing123@localhost:3030',
     replace: false,
+    delete: true,
     type: 'tdb2',
     log: null
   };

@@ -529,6 +529,12 @@ export class CacheExpert {
 
     for (const d of dirs) {
       performance.mark(d.mark);
+      // If the directory does not exist, skip
+      if (!fs.existsSync(d.dir)) {
+        this.log.info({lib:'cache',measure:d.mark,expert},`✖ ${d.dir}`);
+        performance.clearMarks(d.mark);
+        continue;
+      }
       const files=fs.readdirSync(d.dir);
       const jsonFiles = files.filter(file => path.extname(file) === '.jsonld');
       for (const file of jsonFiles) {
