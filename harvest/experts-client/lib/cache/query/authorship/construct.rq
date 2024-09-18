@@ -81,7 +81,6 @@ WHERE {
                                   :related ?pub;
                                   .
 
-                  # This needs to include grants later
                   ?pub :category "publication";
                                :records/:record ?record.
                       ?record :source-name ?source.
@@ -152,7 +151,6 @@ WHERE {
                           :related ?pub;
                           .
 
-          # This needs to include grants later
           ?pub :category "publication";
                        :records/:record ?record.
               ?record :source-name ?source.

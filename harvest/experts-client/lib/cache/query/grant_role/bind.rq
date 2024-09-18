@@ -1,18 +1,20 @@
-PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX : <ark:/87287/d7nh2m/schema#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cdl: <ark:/87287/d7_cdltest_/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX iam: <ark:/87287/d7c08j/schema#>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 
-select distinct (?username as ?USERNAME__) (?expert as ?EXPERT__) (?relationship as ?RELATIONSHIP__) ?filename where {
-  graph oap: {
-    ?relationship :type ?type;
-                  :related ?grant;
-                  :related ?user;
-                  .
+select distinct ?filename ?EXPERT__ ?RELATIONSHIP__
+where {
+  graph <ark:/87287/d7nh2m/> {
+    ?RELATIONSHIP__ :type ?type;
+                    :related ?grant;
+                    :related ?user;
+                    .
     ?grant :category "grant";
          .
     ?user :category "user";
@@ -20,15 +22,14 @@ select distinct (?username as ?USERNAME__) (?expert as ?EXPERT__) (?relationship
           :is-public "true";
           .
   }
-  graph <http://iam.ucdavis.edu/> {
-    bind(uri(concat(str(expert:),md5(?username))) as ?iam)
-    ?iam a ucdlib:Expert;
-         ucdlib:is-visible true;
-         ucdlib:expert ?expert;
-         ucdlib:expertId ?expertId;
-         .
+  graph <ark:/87287/d7c08j/> {
+    [] iam:userID ?USERID__;
+       iam:email ?EMAIL__;
+       iam:expertId ?EXPERTID__;
+       iam:directory/iam:displayName/iam:nameWwwFlag "Y" ;
+          .
   }
-  bind(replace(str(?relationship),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
-  filter(regex(?username,"@ucdavis.edu"))
-  bind(concat('expert/',?expertId,"/",?id,".jsonld.json") as ?filename)
+  bind(iri(concat("http://experts.ucdavis.edu/expert/",?EXPERTID__)) as ?EXPERT__)
+  bind(replace(str(?RELATIONSHIP__),str(oap:),"ark:/87287/d7mh2m/relationship/") as ?id)
+  bind(concat(?EXPERTID__,"/",?id,".jsonld.json") as ?filename)
 }

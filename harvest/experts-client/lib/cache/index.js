@@ -556,8 +556,7 @@ export class CacheExpert {
     const log = this.log;
     const base = this.base;
 
-    //    for (const n of ['expert', 'authorship', 'grant_role']) {
-    for (const n of ['expert', 'authorship']) {
+    for (const n of ['expert', 'authorship', 'grant_role']) {
       //      this.log.info({lib:'cache',mark:n,user},`splay ${n}`);
 
       await (async (n) => {
@@ -584,6 +583,8 @@ export class CacheExpert {
               construct = construct.replace(new RegExp('\\?' + key, 'g'), `<${value.value}>`);
             }
           }
+          fs.ensureFileSync(`${rq}.rq`);
+          fs.writeFileSync(`${rq}.rq`, construct);
           let doc=await db.construct(construct);
           doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
 //          const nquads = await jsonld.canonize(doc, {format: 'application/n-quads'});
@@ -591,8 +592,6 @@ export class CacheExpert {
           const num = 0
           fs.ensureFileSync(fn);
           fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
-          fs.ensureFileSync(`${rq}.rq`);
-          fs.writeFileSync(`${rq}.rq`, construct);
 //          fs.writeFileSync(`${fn}.nq`, nquads);
           log.info({lib:'cache',measure:[fn],quads:num},'record');
           performance.clearMarks(fn);

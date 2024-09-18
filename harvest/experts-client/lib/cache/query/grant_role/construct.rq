@@ -1,7 +1,5 @@
-# THIS FILE GENERATED FROM ../README.org
-PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX : <ark:/87287/d7nh2m/schema#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
-PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts: <http://experts.ucdavis.edu/>
@@ -71,7 +69,7 @@ construct {
   .
 }
 WHERE {
-  graph cdl: {
+  graph <ark:/87287/d7nh2m/> {
     ?RELATIONSHIP__
     :is-visible ?visible_str;
     :type ?cdl_type;
@@ -109,7 +107,7 @@ WHERE {
           select ?relationship ?g (min(?id) as ?wanted_source_id)
           WHERE {
             bind(?RELATIONSHIP__ as ?relationship)
-            graph cdl: {
+            graph <ark:/87287/d7nh2m/> {
               ?RELATIONSHIP__ :related ?g.
 
               ?g :category "grant";
@@ -202,7 +200,7 @@ WHERE {
               select ?relationship ?g (min(?id) as ?wanted_source_id)
               WHERE {
                 bind(?RELATIONSHIP__ as ?relationship)
-                graph cdl: {
+                graph <ark:/87287/d7nh2m/> {
                   ?RELATIONSHIP__ :related ?g.
 
                   ?g :category "grant";
@@ -270,8 +268,8 @@ WHERE {
       }
     }
   }
-  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
-  bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?cdl_ark)
+  bind(uri(replace(str(?RELATIONSHIP__),str(<ark:/87287/d7nh2m/>),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
+  bind(uri(replace(str(?g),str(<ark:/87287/d7nh2m/>),"ark:/87287/d7mh2m/grant/")) as ?cdl_ark)
   bind(uri(?grant_id) as ?grant)
   bind(xsd:boolean(?visible_str) as ?visible)
   bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
