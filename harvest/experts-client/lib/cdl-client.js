@@ -75,8 +75,8 @@ export class CdlClient {
     this.userId = {};
 
     // Author options
-    this.author_truncate_to = opt.authorTruncateTo || 10000;
-    this.author_trim_info = opt.authorTrimInfo || false
+    this.author_truncate_to = opt.authorTruncateTo || 400;
+    this.author_trim_info = opt.authorTrimInfo || true
 
   }
 
