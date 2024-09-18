@@ -106,14 +106,12 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       return;
     }
 
-    // parse /size/page/ from url, or append if trying to access /works
+    // parse /page/size from url, or append if trying to access /works
     let page = e.location.pathname.split('/grants-edit/')?.[1];
     if( page ) {
       let parts = page.split('/');
-      this.currentPage = Number(parts?.[1] || 1);
-      this.resultsPerPage = Number(parts?.[0] || 25);
-    } else {
-      this.AppStateModel.setLocation(this.AppStateModel.location.fullpath+'/'+this.resultsPerPage+'/'+this.currentPage+'/');
+      this.currentPage = Number(parts?.[0] || 1);
+      this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
     window.scrollTo(0, 0);
@@ -226,7 +224,11 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( maxIndex > this.totalGrants ) maxIndex = this.totalGrants;
 
     this.currentPage = e.detail.page;
-    this.AppStateModel.setLocation('/'+this.expertId+'/grants-edit/'+this.resultsPerPage+'/'+this.currentPage+'/');
+
+    let path = '/'+this.expertId+'/grants-edit';
+    if( this.currentPage > 1 || this.resultsPerPage !== 25 ) path += '/'+this.currentPage;
+    if( this.resultsPerPage !== 25 ) path += '/'+this.resultsPerPage;
+    this.AppStateModel.setLocation(path);
 
     let expert = await this.ExpertModel.get(
       this.expertId,

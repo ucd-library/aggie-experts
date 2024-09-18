@@ -69,14 +69,12 @@ export default class AppExpertWorksList extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'works' ) return;
 
-    // parse /size/page/ from url, or append if trying to access /works
+    // parse /page/size from url, or append if trying to access /works
     let page = e.location.pathname.split('/works/')?.[1];
     if( page ) {
       let parts = page.split('/');
-      this.currentPage = Number(parts?.[1] || 1);
-      this.resultsPerPage = Number(parts?.[0] || 25);
-    } else {
-      this.AppStateModel.setLocation(this.AppStateModel.location.fullpath+'/'+this.resultsPerPage+'/'+this.currentPage+'/');
+      this.currentPage = Number(parts?.[0] || 1);
+      this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
     window.scrollTo(0, 0);
@@ -217,9 +215,12 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
 
     this.currentPage = e.detail.page;
-    this.AppStateModel.setLocation('/'+this.expertId+'/works/'+this.resultsPerPage+'/'+this.currentPage+'/');
 
-    // await this._loadCitations();
+    let path = '/'+this.expertId+'/works';
+    if( this.currentPage > 1 || this.resultsPerPage !== 25 ) path += '/'+this.currentPage;
+    if( this.resultsPerPage !== 25 ) path += '/'+this.resultsPerPage;
+    this.AppStateModel.setLocation(path);
+
     let expert = await this.ExpertModel.get(
       this.expertId,
       `/works?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
