@@ -88,35 +88,7 @@ async function main(opt, cache) {
     await expert.transform();
     //console.log(`Transformed ${expert.expert}`);
 
-    // get the bare expert id
-    let email = expert.expert.replace(/^.*:/, '');
-    let expertId = email.replace(/@.*/, '');
-
     let db = expert._db;
-    if (opt.splay) {
-      log.info({ mark: 'splay', expertId }, `splay`);
-      const bindings = BF.fromRecord(
-        {
-          EXPERTID__: DF.literal(expertId),
-          KEYCLOAK_EMAIL__: DF.literal(email)
-        }
-      );
-      for (const n of ['expert', 'authorship', 'grant_role']) {
-      // for (const n of ['expert']) {
-          log.info({ mark: n, expertId }, `splay ${n}`);
-        await (async (n) => {
-          const splay = ql.getSplay(n);
-          // While we test, remove frame
-          delete splay['frame'];
-          // db = expert.db;
-          return await ec.splay({ ...splay, bindings, db, output: opt.output, expertId });
-        })(n);
-        log.info({ measure: [n], expertId }, `splayed ${n}`);
-        performance.clearMarks(n);
-      };
-      log.info({ measure: ['splay', user], expertId }, `splayed`);
-      performance.clearMarks('splay');
-    }
     // Any other value don't delete
     if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db.db);
@@ -139,7 +111,7 @@ const assembler = fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld', 'u
 const program = new Command();
 
 performance.mark('start');
-program.name('cdl-profile')
+program.name('experts-cdl')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
   .option('--output <output>', 'output directory','.')
@@ -152,7 +124,6 @@ program.name('cdl-profile')
   .option('--author-truncate-to <max>', 'Truncate authors to max', 40)
   .option('--author-trim-info', 'Remove extraneous author info', true)
   .option('--no-author-trim-info')
-  .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
@@ -161,8 +132,6 @@ program.name('cdl-profile')
   .option('--fuseki.replace', 'Replace the fuseki.db (delete before import)', true)
   .option('--no-fuseki.replace')
   .option('--environment <env>', 'specify environment', 'production')
-  .option('--no-splay', 'splay data', true)
-  .option('--no-fetch', 'fetch the data', true)
   .option('--skip-existing-user', 'skip if expert exists', false)
   .option_fuseki()
   .option_cdl()
