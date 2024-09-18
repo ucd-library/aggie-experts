@@ -214,5 +214,5 @@
   "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
   "relatedBy": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
   "@embed": "@once",
-  "@type": ["Expert","Work","Grant","Authorship","GrantRole"]
+  "@type": ["Expert","Work","Grant","Authorship"]
 }

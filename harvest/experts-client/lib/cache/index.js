@@ -556,7 +556,7 @@ export class CacheExpert {
     const log = this.log;
     const base = this.base;
 
-    for (const n of ['expert', 'authorship', 'grant_role']) {
+    for (const n of ['expert', 'authorship', 'grant']) {
       //      this.log.info({lib:'cache',mark:n,user},`splay ${n}`);
 
       await (async (n) => {
