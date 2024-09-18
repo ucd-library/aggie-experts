@@ -85,7 +85,7 @@ export class FusekiClient {
       throw new Error('No Fuseki db specified');
     }
 
-    console.log(`Creating db ${db} with options ${JSON.stringify(opt)}`);
+    // log.info(`Creating db ${db} with options ${JSON.stringify(opt)}`);
     const res = await fetch(
       `${this.url}/\$/datasets/${db}`,
       {

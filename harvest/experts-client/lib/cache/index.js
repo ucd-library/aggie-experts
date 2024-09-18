@@ -188,9 +188,9 @@ construct {
 
       await expert.fetch();
       await expert.load();
-      console.log(`Loaded ${expert.expert}`);
+      log.info(`Loaded ${expert.expert}`);
       await expert.transform();
-      console.log(`Transformed ${expert.expert}`);
+      log.info(`Transformed ${expert.expert}`);
     }
   }
 
@@ -599,7 +599,7 @@ export class CacheExpert {
 
         let result = await db.query(bind);
         for (const bindings of result.results.bindings) {
-          console.log('constructRecord',bindings);
+          // log.info('constructRecord',bindings);
           await constructRecord(bindings);
         }
       })(n);

@@ -112,7 +112,6 @@ export class ExpertsClient {
     }
     else if (response.status === 200) {
       let respJson = await response.json();
-      // console.log(this.doc);
       if (respJson == null) {
         throw new Error(`No profiles returned from IAM.`);
       }
@@ -203,8 +202,6 @@ export class ExpertsClient {
     const q = new QueryEngine();
     const factory = new DataFactory();
 
-    // console.log(opt)
-
     async function constructRecord(bindings) {
       let fn = 1; // write to stdout by default
       if (bindings.get('filename') && bindings.get('filename').value) {
@@ -221,7 +218,6 @@ export class ExpertsClient {
       let construct = opt.construct;
       for (const [key, value] of bindings) {
         if (value.termType === 'Literal') {
-          //console.log(`replacing ${key.value} with "${value.value}"`);
           construct = construct.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
         } else if (value.termType === 'NamedNode') {
           construct = construct.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
