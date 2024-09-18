@@ -49,7 +49,9 @@ export class Command extends OriginalCommand {
       opts.cdl=new CdlClient(
         { env:opts.cdl,
           timeout:opts["cdl.timeout"],
-          log:opts.log
+          log:opts.log,
+          authorTruncateTo:opts['authorTruncateTo'],
+          authorTrimInfo:opts['authorTrimInfo']
         });
     }
     if (opts.fuseki) {
