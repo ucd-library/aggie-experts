@@ -78,9 +78,10 @@ export class IAM {
     for (let k in IAM.DEF) {
       this[k] = opt[k] || IAM.DEF[k];
     }
-    this.url = IAM.ENV[this.env].url;
-    this.authname = IAM.ENV[this.env].authname;
-    this.secretpath = IAM.ENV[this.env].secretpath;
+    let env = IAM.DEF.env;
+    this.url = IAM.ENV[env].url;
+    this.authname = IAM.ENV[env].authname;
+    this.secretpath = IAM.ENV[env].secretpath;
     this.key = null;
   }
 
@@ -141,9 +142,9 @@ export class IAM {
     }
     let res = await response.json();
     if (res == null) {
-      throw new Error(`No profiles returned from IAM.`);
+      throw new Error(`✘ profile(${id}) - not found`);
     }
-    this.log.info({service:'iam',measure:`profile(${id})`},`►profile(${id})◄`);
+    this.log.info({lib:'iam',measure:`profile(${id})`},`✔ profile(${id})`);
     performance.clearMarks(`profile(${id})`);
     return {
       ...this.context(),
