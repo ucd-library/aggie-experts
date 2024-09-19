@@ -1,6 +1,6 @@
 const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
-
+const ExpertModel = require('../expert/model.js');
 /**
  * @class GrantModel
  * @description Base class for Aggie Experts data models.
@@ -30,49 +30,97 @@ class GrantModel extends BaseModel {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
 
-    await this.update_or_create_main_node_doc(doc);
+    const relatedBy = {};
 
-    try {
-      // Update all GrantRole with this grant as well
-      const grantRoleModel=await this.get_model('grant_role');
-      const grantRole = grantRoleModel.get_expected_model_node(transformed);
-
-      const relates=grantRole.relates.filter(x => x !== doc['@id']);
-
-      if (relates.length != 1) {
-        throw new Error(`Expected 1 relates, got ${relates.length}`);
+    // combine relatedBy (ordered)
+    function addRelatedBy(doc) {
+      if (doc.relatedBy) {
+        Array.isArray(doc.relatedBy) || (doc.relatedBy = [doc.relatedBy]);
+        existing.relatedBy.forEach((rel) => {
+          relatedBy[rel['@id']] = rel;
+          });
       }
-      const expert_id=relates[0];
-
-      const expertModel=await this.get_model('expert');
-      let expert=await expertModel.client_get(expert_id);
-      expert=expertModel.get_expected_model_node(expert);
-//      if (expert.is_visible) {
-        expert=expertModel.snippet(expert);
-        // Role(expert) is added/delete to Grant
-        await this.update_graph_node(doc['@id'],expert);
-        logger.info(`GrantModel.update(${doc['@id']}) $doc ==> ${expert_id}`);
-//      }
-    } catch (e) {
-      logger.error(`GrantModel.update(${doc['@id']})[!GrantRole] ${e}`);
     }
 
-    // Now determine visibility of the grant itself
     try {
-      let grant=await this.client_get(doc['@id']);
-      const grant_node=this.get_expected_model_node(grant);
-      grant_node["is-visible"]=false;
-      const authors=this.get_nodes_by_type(grant,'GrantRole');
-      for (let i=0; i<authors.length; i++) {
-        if (authors[i]['is-visible']) {
-          grant_node["is-visible"]=true;
-          break;
+      let existing = await this.client_get(doc['@id']);
+      addRelatedBy(existing);
+    } catch(e) {
+    }
+    addRelatedBy(doc);
+
+    // for each value in relatedBy, if it has .inheres_in, fetch expert
+    function nameMatches(expert) {
+      const name_match={}
+      let name=expert?.contactInfo?.hasName;
+      let last=name.family.toLowerCase().replace(/[^a-z]/g,'');
+      if (name.given && name.given.length) {
+        let first=name.given.toLowerCase().replace(/[^a-z]/g,'');
+        name_match[`${last}_${first}`]=expert;
+        name_match[`${last}_$first[0]`]=expert;
+        if (name.middle && name.middle.length) {
+          let middle=name.middle.toLowerCase().replace(/[^a-z]/g,'');
+          name_match[`${last}_${first[0]}${middle[0]}`]=expert;
+        }
+      } else if (name.middle && name.middle.length) {
+        let middle=name.middle.toLowerCase().replace(/[^a-z]/g,'');
+        name_match[`${last}_$middle[0]`]=expert;
+      } else {
+        name_match[last]=expert;
+      }
+      return Object.values(name_match);
+    }
+
+    // get all name matches
+    const name_match = {}
+    const experts=[];
+    for (var rel in relatedBy) {
+      if (relatedBy[rel].inheres_in) {
+        try {
+          let expert = await expertModel.client_get(rel.inheres_in['@id']);
+          expert=expertModel.get_expected_model_node(expert);
+          if (name_match[expert]) {
+            delete relatedBy[rel['@id']];
+          }
+        } catch(e) {
         }
       }
-    } catch (e) {
-      logger.info(`${doc["@id"]} visibility error`);
-     }
+    }
+    // finally remove relatedBy with names that match experts
+    for (var rel in relatedBy) {
+      if (! relatedBy[rel].inheres_in) {
+        nameMatches(rel).forEach((nm) => {
+          if (name_match[nm]) {
+            delete relatedBy[rel];
+            next;
+          }
+        });
+      }
+    }
+    relatedBy.keys().forEach((key) => {
+      if (name_match[key]) {
+        delete relatedBy[key];
+      }
+    });
+    // add to doc
+    doc.relatedBy=Object.values(relatedBy);
+    await this.update_or_create_main_node_doc(doc);
 
+    const grant_snippet = this.snippet(doc);
+    for (expert in experts) {
+      try {
+        await this.update_graph_node(doc['@id'], expertModel.snippet(expert));
+        logger.info(`GrantModel.update() ${doc['@id']} <== ${expert['@id']}`);
+      } catch(e) {
+        logger.info(`GrantModel.update() ${doc['@id']} <XX ${expert['@id']}`);
+      }
+      try {
+        expertModel.update_graph_node(expert['@id'], grant_snippet);
+        logger.info(`GrantModel.update() ${doc['@id']} ==> ${expert['@id']}`);
+      } catch(e) {
+        logger.info(`GrantModel.update() ${doc['@id']} XX> ${expert['@id']}`);
+      }
+    }
   }
 }
 module.exports = GrantModel;
