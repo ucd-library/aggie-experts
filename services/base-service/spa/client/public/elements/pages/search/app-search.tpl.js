@@ -363,7 +363,7 @@ return html`
         id="searchBox"
         is-gold
         search-rounded
-        @search="${this._onSearch}"
+        @search="${(e) => this._onSearch(e, true)}"
         placeholder="search"
         search-term="${this.searchTerm}">
       </app-search-box>
