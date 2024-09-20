@@ -1,6 +1,5 @@
 const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
-const ExpertModel = require('../expert/model.js');
 /**
  * @class GrantModel
  * @description Base class for Aggie Experts data models.
@@ -28,31 +27,30 @@ class GrantModel extends BaseModel {
    */
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
-    const doc = this.promote_node_to_doc(root_node);
 
     const relatedBy = {};
 
     // combine relatedBy (ordered)
-    function addRelatedBy(doc) {
-      if (doc.relatedBy) {
-        Array.isArray(doc.relatedBy) || (doc.relatedBy = [doc.relatedBy]);
-        existing.relatedBy.forEach((rel) => {
+    function addRelatedBy(node) {
+      if (node.relatedBy) {
+        Array.isArray(node.relatedBy) || (node.relatedBy = [node.relatedBy]);
+        node.relatedBy.forEach((rel) => {
           relatedBy[rel['@id']] = rel;
           });
       }
     }
 
     try {
-      let existing = await this.client_get(doc['@id']);
+      let existing = await this.client_get(root_node['@id']);
+      existing=this.get_expected_model_node(existing);
       addRelatedBy(existing);
     } catch(e) {
     }
-    addRelatedBy(doc);
+    addRelatedBy(root_node);
 
     // for each value in relatedBy, if it has .inheres_in, fetch expert
-    function nameMatches(expert) {
+    function nameMatches(name) {
       const name_match={}
-      let name=expert?.contactInfo?.hasName;
       let last=name.family.toLowerCase().replace(/[^a-z]/g,'');
       if (name.given && name.given.length) {
         let first=name.given.toLowerCase().replace(/[^a-z]/g,'');
@@ -71,25 +69,35 @@ class GrantModel extends BaseModel {
       return Object.values(name_match);
     }
 
+    const expertModel = await this.get_model('expert');
     // get all name matches
     const name_match = {}
     const experts=[];
     for (var rel in relatedBy) {
-      if (relatedBy[rel].inheres_in) {
-        try {
-          let expert = await expertModel.client_get(rel.inheres_in['@id']);
+      let role=relatedBy[rel];
+      if (role.inheres_in) {
+        let id = role.inheres_in['@id'] || role.inheres_in;
+//        try {
+        let expert = await expertModel.client_get(role.inheres_in);
           expert=expertModel.get_expected_model_node(expert);
-          if (name_match[expert]) {
-            delete relatedBy[rel['@id']];
+          experts.push(expert);
+          if (expert?.contactInfo?.hasName) {
+            console.log('name:', expert.contactInfo.hasName);
+            nameMatches(expert?.contactInfo?.hasName).forEach((n) => {
+              name_match[n]=expert;
+            });
           }
-        } catch(e) {
-        }
+//        } catch(e) {
+//          logger.error(`GrantModel.update expert '${id}' not found`);
+//        }
       }
     }
     // finally remove relatedBy with names that match experts
     for (var rel in relatedBy) {
-      if (! relatedBy[rel].inheres_in) {
-        nameMatches(rel).forEach((nm) => {
+      let role=relatedBy[rel];
+      if (! role.inheres_in && role?.relates?.hasName) {
+        console.log('other name:', role.hasName);
+        nameMatches(rel.hasName).forEach((nm) => {
           if (name_match[nm]) {
             delete relatedBy[rel];
             next;
@@ -97,17 +105,13 @@ class GrantModel extends BaseModel {
         });
       }
     }
-    relatedBy.keys().forEach((key) => {
-      if (name_match[key]) {
-        delete relatedBy[key];
-      }
-    });
-    // add to doc
-    doc.relatedBy=Object.values(relatedBy);
+    root_node.relatedBy=Object.values(relatedBy);
+    const doc = this.promote_node_to_doc(root_node);
     await this.update_or_create_main_node_doc(doc);
 
-    const grant_snippet = this.snippet(doc);
-    for (expert in experts) {
+    const grant_snippet = this.snippet(root_node);
+    for (var i in experts) {
+      let expert = experts[i];
       try {
         await this.update_graph_node(doc['@id'], expertModel.snippet(expert));
         logger.info(`GrantModel.update() ${doc['@id']} <== ${expert['@id']}`);

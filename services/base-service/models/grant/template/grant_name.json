@@ -1,4 +1,4 @@
-{
+ {
   "id": "grant_name",
   "script": {
     "lang": "mustache",

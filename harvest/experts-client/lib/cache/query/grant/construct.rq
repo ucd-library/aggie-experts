@@ -34,19 +34,18 @@ construct {
          vivo:relatedBy ?RELATIONSHIP__,?labeled_only_role;
          .
 
-  ?EXPERT__ a vivo:Person;
-            schema:name ?user_name;
-            vcard:familyName ?user_name_last;
-            vcard:givenName ?user_name_first;
-            vcard:initials ?user_initials;
-             .
+#  ?EXPERT__ schema:name ?user_name.
 
   ?labeled_only_role a vivo:CoPrincipalInvestigatorRole;
                            vivo:relates ?labeled_only_person,?grant;
                            .
 
-  ?labeled_only_person a vivo:Person;
+  ?labeled_only_person
                        schema:name ?labeled_only_name;
+                       vcard:hasName ?labeled_only_person_vcard;
+                       .
+
+  ?labeled_only_person_vcard
                        vcard:familyName ?labeled_only_name_last;
                        vcard:givenName ?labeled_only_name_first;
                        vcard:initials ?labeled_only_initials;
@@ -301,12 +300,13 @@ WHERE {
   bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_initials),""))),"[^a-z_]","") as ?labeled_only_name_match_i)
   bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',substr(?labeled_only_name_initials,1,1)),""))),"[^a-z_]","") as ?labeled_only_name_match_f)
 
-  bind(uri(concat(str(?grant),"#",md5(?labeled_only_name_match))) as ?labeled_only_person)
+  bind(uri(concat(str(?grant),"#",?labeled_only_name_match)) as ?labeled_only_person)
+  bind(uri(concat(str(?grant),"#vcard_",?labeled_only_name_match)) as ?labeled_only_person_vcard)
   bind(if(!(?user_name_match = ?labeled_only_name_match ||
      ?user_name_match_first = ?labeled_only_name_match_first ||
      ?user_name_match_i = ?labeled_only_name_match_i ||
        ?user_name_match_f = ?labeled_only_name_match_f),
-          uri(concat(str(?grant),"#roleof_",md5(?labeled_only_name))),
+          uri(concat(str(?grant),"#roleof_",?labeled_only_name_match)),
           ?undefined)
        as ?labeled_only_role)
 }
