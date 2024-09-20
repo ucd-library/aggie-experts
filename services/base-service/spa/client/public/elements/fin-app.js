@@ -5,7 +5,7 @@ import '../elements/components/site/ucdlib-site-footer.js';
 import '../elements/components/site/ucdlib-site-footer-column.js';
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js';
 import '@ucd-lib/theme-elements/brand/ucd-theme-primary-nav/ucd-theme-primary-nav.js';
@@ -13,6 +13,8 @@ import '@ucd-lib/theme-elements/brand/ucd-theme-search-popup/ucd-theme-search-po
 import '@ucd-lib/theme-elements/brand/ucd-theme-search-form/ucd-theme-search-form.js';
 import '@ucd-lib/theme-elements/brand/ucd-theme-quick-links/ucd-theme-quick-links.js';
 import '@ucd-lib/theme-elements/ucdlib/ucdlib-pages/ucdlib-pages.js';
+
+import './pages/404/app-404.js';
 
 import utils from '../lib/utils';
 
@@ -165,6 +167,8 @@ export default class FinApp extends Mixin(LitElement)
       return import(/* webpackChunkName: "page-works" */ "./pages/expert/app-expert-works-list");
     } else if( page === 'works-edit' ) {
       return import(/* webpackChunkName: "page-works-edit" */ "./pages/expert/app-expert-works-list-edit");
+    } else if( page === 'grant' ) {
+      return import(/* webpackChunkName: "page-grant" */ "./pages/grant/app-grant");
     } else if( page === 'grants' ) {
       return import(/* webpackChunkName: "page-grants" */ "./pages/expert/app-expert-grants-list");
     } else if( page === 'grants-edit' ) {
@@ -266,7 +270,7 @@ export default class FinApp extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.searchTerm.trim());
+    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.searchTerm.trim()));
     this._closeHeader();
   }
 

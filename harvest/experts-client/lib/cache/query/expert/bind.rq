@@ -19,6 +19,6 @@ where {
           iam:directory/iam:displayName/iam:nameWwwFlag "Y" ;
           .
   }
-  bind(concat(?EXPERTID__,'.jsonld') as ?filename)
+  bind(concat(?EXPERTID__,'.jsonld.json') as ?filename)
   bind(iri(concat("http://experts.ucdavis.edu/expert/",?EXPERTID__)) as ?EXPERT__)
 }

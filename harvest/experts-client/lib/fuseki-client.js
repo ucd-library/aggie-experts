@@ -4,6 +4,7 @@ export class FusekiClient {
   static DEF= {
     url: 'http://admin:testing123@localhost:3030',
     replace: false,
+    delete: true,
     type: 'tdb2',
     log: null
   };
@@ -21,7 +22,6 @@ export class FusekiClient {
     }
     this.reauth();
   }
-
   /**
    * @method auth
    * @description Authenticate to Fuseki server.  Sets authBasic property.
@@ -85,7 +85,11 @@ export class FusekiClient {
       throw new Error('No Fuseki db specified');
     }
 
+<<<<<<< HEAD
     console.log(`Creating db ${db} with options ${JSON.stringify(opt)}`);
+=======
+    // log.info(`Creating db ${db} with options ${JSON.stringify(opt)}`);
+>>>>>>> dev
     const res = await fetch(
       `${this.url}/\$/datasets/${db}`,
       {
@@ -103,6 +107,7 @@ export class FusekiClient {
         this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ existsDb(${db})`);
       }
     }
+<<<<<<< HEAD
     if (! exists) {
       const res = await fetch(
         `${this.url}/\$/datasets`,
@@ -117,6 +122,41 @@ export class FusekiClient {
         console.log(`✘ createDb(${db}) Code: ${res.status}`);
         throw new Error(`✘ createDb(${db}) Code: ${res.status}`);
       }
+=======
+
+    if (!exists) {
+      if (opt.assembler) {
+        // Create a new dataset using an assembler
+        const res = await fetch(
+          `${this.url}/\$/datasets`,
+          {
+            method: 'POST',
+            body: opt.assembler,
+            headers: {
+              'Authorization': `Basic ${this.authBasic}`,
+              'Content-Type': 'application/ld+json'
+            }
+          });
+        if (!res.ok) {
+          throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
+        }
+      }
+      else {
+        // Create a new dataset using the dbName and dbType
+        const res = await fetch(
+          `${this.url}/\$/datasets`,
+          {
+            method: 'POST',
+            body: new URLSearchParams({ 'dbName': opt.db, 'dbType': opt.type }),
+            headers: {
+              'Authorization': `Basic ${this.authBasic}`
+            }
+          });
+        if (!res.ok) {
+          throw new Error(`Create db ${db} failed . Code: ${res.status}`);
+        }
+      }
+>>>>>>> dev
       this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ createDb(${db})`);
     }
 

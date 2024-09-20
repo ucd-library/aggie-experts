@@ -2,7 +2,7 @@ import { LitElement } from 'lit';
 import {render} from "./app-work.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import '@ucd-lib/theme-elements/ucdlib/ucdlib-md/ucdlib-md.js';
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";

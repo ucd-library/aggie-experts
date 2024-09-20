@@ -49,11 +49,12 @@ export class Command extends OriginalCommand {
       opts.cdl=new CdlClient(
         { env:opts.cdl,
           timeout:opts["cdl.timeout"],
-          log:opts.log
+          log:opts.log,
+          authorTruncateTo:opts['authorTruncateTo'],
+          authorTrimInfo:opts['authorTrimInfo']
         });
     }
     if (opts.fuseki) {
-      console.log('FusekiClient');
       opts.fuseki=new FusekiClient({url:opts.fuseki,
                                     type:'tdb2',
                                     log:opts.log});
@@ -66,7 +67,7 @@ export class Command extends OriginalCommand {
       );
     }
     if (opts.kcadmin) {
-      console.log(`gs.getSecret(${opts['kcadmin.secret']});`);
+      //console.log(`gs.getSecret(${opts['kcadmin.secret']});`);
       const resp=await this.gs.getSecret(opts['kcadmin.secret']);
       const secret = JSON.parse(resp);
 

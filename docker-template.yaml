@@ -41,7 +41,7 @@ services:
     ports:
       - ${FUSEKI_PORT}:3030
     environment:
-      - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
+      - JVM_ARGS=${JVM_ARGS:- -Xmx16g -Djena.scripting=true}
       - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
     restart: unless-stopped
     command:
@@ -119,6 +119,9 @@ services:
     environment:
       - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-${D[enable_gaid]}}
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-${D[gaid]}}
+      - CLIENT_ERROR_REPORTING_URL=${D[client_error_reporting_url]}
+      - CLIENT_ERROR_REPORTING_KEY=${D[client_error_reporting_key]}
+      - CLIENT_ERROR_REPORTING_ENABLED=${CLIENT_ERROR_REPORTING_ENABLED:-${D[client_error_reporting_enabled]}}
       - FIN_URL=${FIN_URL:-${D[host]}}
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
       - APP_VERSION=${APP_VERSION:-${D[tag]}}
@@ -213,6 +216,7 @@ services:
       - FIN_URL=${FIN_URL:-${D[host]}}
       - HOST_PORT=${HOST_PORT:-${D[port]}}
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
+      - CDL_PROPAGATE_CHANGES=${CDL_PROPAGATE_CHANGES:-${D[cdl_propagate_changes]}}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}

@@ -6,7 +6,7 @@ class SearchStore extends BaseStore {
     super();
 
     this.data = {
-      bySearchTerm : {},
+      bySearchQuery : {},
       search : {
         state : this.STATE.INIT
       }
@@ -17,37 +17,37 @@ class SearchStore extends BaseStore {
     }
   }
 
-  search(searchTerm='') {
-    return this.data.bySearchTerm[searchTerm];
+  search(searchQuery='') {
+    return this.data.bySearchQuery[searchQuery];
   }
 
   /**
    * Search
    */
-  setSearchLoading(searchTerm, request) {
+  setSearchLoading(searchQuery, request) {
     this._setSearchState({
       state : this.STATE.LOADING,
-      request, searchTerm
+      request, searchQuery
     })
   }
 
-  setSearchLoaded(searchTerm, payload) {
+  setSearchLoaded(searchQuery, payload) {
     this._setSearchState({
       state : this.STATE.LOADED,
-      searchTerm, payload
+      searchQuery, payload
     })
   }
 
-  setSearchError(searchTerm, error) {
+  setSearchError(searchQuery, error) {
     this._setSearchState({
       state : this.STATE.ERROR,
-      searchTerm, error
+      searchQuery, error
     })
   }
 
   _setSearchState(state) {
-    this.data.search = state;
-    this.emit(this.events.SEARCH_UPDATE, this.data.search);
+    this.data.bySearchQuery[state.searchQuery] = state;
+    this.emit(this.events.SEARCH_UPDATE, state);
   }
 
 }

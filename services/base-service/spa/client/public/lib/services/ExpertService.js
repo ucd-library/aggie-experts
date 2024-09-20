@@ -10,13 +10,20 @@ class ExpertService extends BaseService {
     this.baseUrl = '/api';
   }
 
-  get(id, noSanitize=false) {
+  get(id, subpage, options={}) {
     return this.request({
-      url : `${this.baseUrl}/${id}${noSanitize ? '?no-sanitize' : ''}`,
-      checkCached : () => this.store.getExpert(id),
-      onLoading : request => this.store.setExpertLoading(id, request),
-      onLoad : result => this.store.setExpertLoaded(id, result.body),
-      onError : e => this.store.setExpertError(id, e)
+      url : `${this.baseUrl}/${id}`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify(options)
+      },
+      checkCached : () => this.store.getExpert(id+subpage),
+      onLoading : request => this.store.setExpertLoading(id+subpage, request),
+      onLoad : result => this.store.setExpertLoaded(id+subpage, result.body),
+      onError : e => this.store.setExpertError(id+subpage, e)
     });
   }
 
@@ -104,6 +111,27 @@ class ExpertService extends BaseService {
         },
         body : JSON.stringify({
           "@id" : id,
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async updateExpertAvailability(id, labels={}) {
+    return this.request({
+      url : `${this.baseUrl}/${id}/availability`,
+      fetchOptions : {
+        method : 'PATCH',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          labelsToAddOrEdit : labels.labelsToAddOrEdit || [],
+          labelsToRemove : labels.labelsToRemove || [],
+          currentLabels : labels.currentLabels || []
         })
       },
       checkCached : () => null,

@@ -1,7 +1,5 @@
-# THIS FILE GENERATED FROM ../README.org
-PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
+PREFIX : <ark:/87287/d7nh2m/schema#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
-PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts: <http://experts.ucdavis.edu/>
@@ -18,7 +16,7 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 construct {
-  ?grant_role a ucdlib:GrantRole, ?role;
+  ?RELATIONSHIP__ a ucdlib:GrantRole, ?role;
                 ucdlib:favorite ?favorite;
                 ucdlib:is-visible ?visible;
                 vivo:relates ?grant,?EXPERT__;
@@ -28,50 +26,48 @@ construct {
   ?grant a vivo:Grant,?grant_type;
          rdfs:label ?grant_label;
          schema:name ?grant_title;
-         schema:identifier ?cdl_ark;
+         schema:identifier ?grant,?g;
          vivo:totalAwardAmount ?total_award_amount;
          vivo:sponsorAwardId ?sponsor_award_id;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
-         vivo:relatedBy ?grant_role,?labeled_only_pi_role,?labeled_only_co_pi_role;
+         vivo:relatedBy ?RELATIONSHIP__,?labeled_only_role;
          .
 
-  ?labeled_only_pi_role a vivo:PrincipalInvestigatorRole;
-                        vivo:relates ?labeled_only_pi,?grant;
-                        .
+#  ?EXPERT__ schema:name ?user_name.
 
-  ?labeled_only_pi a vivo:Person;
-                   schema:name ?labeled_only_pi_name;
-                   .
-
-  ?labeled_only_co_pi_role a vivo:CoPrincipalInvestigatorRole;
-                           vivo:relates ?labeled_only_co_pi,?grant;
+  ?labeled_only_role a vivo:CoPrincipalInvestigatorRole;
+                           vivo:relates ?labeled_only_person,?grant;
                            .
 
-  ?labeled_only_co_pi a vivo:Person;
-                      schema:name ?labeled_only_co_pi_name;
+  ?labeled_only_person
+                       schema:name ?labeled_only_name;
+                       vcard:hasName ?labeled_only_person_vcard;
+                       .
+
+  ?labeled_only_person_vcard
+                       vcard:familyName ?labeled_only_name_last;
+                       vcard:givenName ?labeled_only_name_first;
+                       vcard:initials ?labeled_only_initials;
                       .
 
   ?funder a vivo:FundingOrganization;
           schema:name ?funder_label;
           .
 
-  ?interval
-  vivo:start ?sd;
-  vivo:end ?ed;
-  .
+  ?interval vivo:start ?sd;
+            vivo:end ?ed;
+            .
 
-  ?sd
-  vivo:dateTimePrecision ?start_date_precision;
-  vivo:dateTime ?start_date;
-  .
-  ?ed
-  vivo:dateTimePrecision ?end_date_precision;
-  vivo:dateTime ?end_date;
-  .
+  ?sd vivo:dateTimePrecision ?start_date_precision;
+      vivo:dateTime ?start_date;
+      .
+  ?ed vivo:dateTimePrecision ?end_date_precision;
+      vivo:dateTime ?end_date;
+      .
 }
 WHERE {
-  graph cdl: {
+  graph <ark:/87287/d7nh2m/> {
     ?RELATIONSHIP__
     :is-visible ?visible_str;
     :type ?cdl_type;
@@ -100,7 +96,15 @@ WHERE {
     ?user :category "user";
           :is-public "true";
           :username ?username;
+          :last-name ?user_name_last;
           .
+
+    OPTIONAL {
+      ?user :first-name ?user_name_first .
+    }
+    OPTIONAL {
+      ?user :initials ?user_name_initials .
+    }
 
     {
       select ?g ?relationship ?grant_id ?record ?source
@@ -109,7 +113,7 @@ WHERE {
           select ?relationship ?g (min(?id) as ?wanted_source_id)
           WHERE {
             bind(?RELATIONSHIP__ as ?relationship)
-            graph cdl: {
+            graph <ark:/87287/d7nh2m/> {
               ?RELATIONSHIP__ :related ?g.
 
               ?g :category "grant";
@@ -150,25 +154,18 @@ WHERE {
              .
     }
 
-    # PI is expanded to a relationship / Not optional
-    OPTIONAL {
-      ?field :name "c-pi";
-             :type "text";
-             :text ?labeled_only_pi_name;
-             .
-    }
-
-    # Co-PIs are optional
     OPTIONAL {
       ?field :name "c-co-pis";
              :people/:person [ list:index(?pos ?elem) ] .
-      ?elem :last-name ?labeled_only_co_pi_name_last .
+      ?elem :last-name ?labeled_only_name_last .
       OPTIONAL {
-        ?elem :first-names ?labeled_only_co_pi_name_first .
+        ?elem :first-names ?labeled_only_name_first .
+      }
+      OPTIONAL {
+        ?elem :initials ?labeled_only_name_initials .
       }
     }
 
-    # Funding type is a special case
     OPTIONAL {
       values (?grant_type ?funding_type_label) {
         (ucdlib:Grant_AcademicSupport "Academic Support" )
@@ -202,7 +199,7 @@ WHERE {
               select ?relationship ?g (min(?id) as ?wanted_source_id)
               WHERE {
                 bind(?RELATIONSHIP__ as ?relationship)
-                graph cdl: {
+                graph <ark:/87287/d7nh2m/> {
                   ?RELATIONSHIP__ :related ?g.
 
                   ?g :category "grant";
@@ -270,8 +267,7 @@ WHERE {
       }
     }
   }
-  bind(uri(replace(str(?RELATIONSHIP__),str(cdl:),"ark:/87287/d7mh2m/relationship/")) as ?grant_role)
-  bind(uri(replace(str(?g),str(cdl:),"ark:/87287/d7mh2m/grant/")) as ?cdl_ark)
+
   bind(uri(?grant_id) as ?grant)
   bind(xsd:boolean(?visible_str) as ?visible)
   bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
@@ -280,9 +276,37 @@ WHERE {
   bind(uri(concat(str(?grant),'#end_date')) as ?ed)
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
-  bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
-  bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
-  bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
-  bind(uri(concat(str(?grant),"#co_pi_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi)
-  bind(uri(concat(str(?grant),"#co_pi_role_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi_role)
+
+  bind(concat(?user_name_last,coalesce(concat(', ',?user_name_first),"")) as ?user_name)
+
+  bind(replace(lcase(concat(?user_name_last,coalesce(concat('_',?user_name_first),""))),"[^a-z_]","") as ?user_name_match)
+  bind(replace(lcase(concat(?user_name_last,
+                            coalesce(concat('_',
+                                            if(contains(?user_name_first," "),
+                                               strbefore(?user_name_first," "),
+                                               ?user_name_first)),""))),"[^a-z_]","") as ?user_name_match_first)
+  bind(replace(lcase(concat(?user_name_last,coalesce(concat('_',?user_name_initials),""))),"[^a-z_]","") as ?user_name_match_i)
+  bind(replace(lcase(concat(?user_name_last,coalesce(concat('_',substr(?user_name_initials,1,1)),""))),"[^a-z_]","") as ?user_name_match_f)
+
+
+  bind(concat(?labeled_only_name_last,coalesce(concat(', ',?labeled_only_name_first),"")) as ?labeled_only_name)
+
+  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_first),""))),"[^a-z_]","") as ?labeled_only_name_match)
+  bind(replace(lcase(concat(?labeled_only_name_last,
+                            coalesce(concat('_',
+                                            if(contains(?labeled_only_name_first," "),
+                                               strbefore(?labeled_only_name_first," "),
+                                               ?labeled_only_name_first)),""))),"[^a-z_]","") as ?labeled_only_name_match_first)
+  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',?labeled_only_name_initials),""))),"[^a-z_]","") as ?labeled_only_name_match_i)
+  bind(replace(lcase(concat(?labeled_only_name_last,coalesce(concat('_',substr(?labeled_only_name_initials,1,1)),""))),"[^a-z_]","") as ?labeled_only_name_match_f)
+
+  bind(uri(concat(str(?grant),"#",?labeled_only_name_match)) as ?labeled_only_person)
+  bind(uri(concat(str(?grant),"#vcard_",?labeled_only_name_match)) as ?labeled_only_person_vcard)
+  bind(if(!(?user_name_match = ?labeled_only_name_match ||
+     ?user_name_match_first = ?labeled_only_name_match_first ||
+     ?user_name_match_i = ?labeled_only_name_match_i ||
+       ?user_name_match_f = ?labeled_only_name_match_f),
+          uri(concat(str(?grant),"#roleof_",?labeled_only_name_match)),
+          ?undefined)
+       as ?labeled_only_role)
 }

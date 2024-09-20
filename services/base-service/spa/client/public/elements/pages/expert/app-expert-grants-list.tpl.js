@@ -26,7 +26,7 @@ return html`
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
-      height: 12.25rem;
+      min-height: 12.25rem;
     }
 
     .hero-text {
@@ -119,6 +119,15 @@ return html`
       }
     }
 
+    .grant-item .grant h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .grant-item .grant h5 a {
+      text-decoration: none;
+    }
+
   </style>
 
   <div class="content">
@@ -128,7 +137,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.expertName}</span>
         </div>
-        <h1>${this.grants.length || 0} Grants</h1>
+        <h1>${this.totalGrants || 0} Grants</h1>
       </div>
     </div>
 
@@ -145,7 +154,7 @@ return html`
         <div class="grant-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
           <div class="grant">
-            <h5>${unsafeHTML(grant.name)}</h5>
+            <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
             <div class="grant-details">
               <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
               <span class="dot">.</span>
@@ -165,7 +174,7 @@ return html`
         <div class="grant-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
           <div class="grant">
-            <h5>${unsafeHTML(grant.name)}</h5>
+            <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
             <div class="grant-details">
               <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
               <span class="dot">.</span>

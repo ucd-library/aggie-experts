@@ -7,9 +7,25 @@
     "is-visible" : {
       "type" : "boolean"
     },
-    "_.updated" : {
-      "type" : "date",
-      "format" : "strict_date_optional_time||epoch_millis"
+    "hasAvailability": {
+      "type": "keyword",
+      "normalizer": "identifier",
+      "ignore_above": 128
+    },
+    "name" : {
+      "type" : "text",
+      "analyzer" : "title_sort",
+      "index_prefixes" : {
+        "min_chars" : 1,
+        "max_chars" : 7
+      },
+      "fields" : {
+        "kw" : {
+          "type" : "keyword",
+          "normalizer" : "title_prefix_analyzer",
+          "ignore_above" : 256
+        }
+      }
     },
     "@graph": {
       "type": "nested",

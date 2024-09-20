@@ -2,12 +2,15 @@ import { LitElement } from 'lit';
 import {render} from "./app-search.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
 import "../../components/search-box";
 import "../../components/search-result-row";
+import "../../components/category-filter-controller.js";
+// import '../../components/date-range-filter.js';
+// import '../../components/histogram.js';
 
 import utils from '../../../lib/utils';
 
@@ -24,6 +27,12 @@ export default class AppSearch extends Mixin(LitElement)
       totalResultsCount : { type : Number },
       rawSearchData : { type : Object },
       resultsLoading : { type : String },
+      filters : { type : Array },
+      refineSearchCollapsed : { type : Boolean },
+      collabProjects : { type : Boolean },
+      commPartner : { type : Boolean },
+      industProjects : { type : Boolean },
+      mediaInterviews : { type : Boolean }
     }
   }
 
@@ -32,6 +41,7 @@ export default class AppSearch extends Mixin(LitElement)
     this._injectModel('AppStateModel', 'SearchModel');
 
     this.searchTerm = '';
+    this.lastQueryParams = {};
     this.searchResults = [];
     this.displayedResults = [];
     this.paginationTotal = 1;
@@ -40,6 +50,19 @@ export default class AppSearch extends Mixin(LitElement)
     this.totalResultsCount = 0;
     this.rawSearchData = {};
     this.resultsLoading = '...';
+    this.refineSearchCollapsed = true;
+    this.collabProjects = false;
+    this.commPartner = false;
+    this.industProjects = false;
+    this.mediaInterviews = false;
+
+    this.filters = [
+      { label: 'All Results', count: 1000, icon: 'fa-infinity', active: true },
+      { label: 'Experts', count: 100, icon: 'fa-user', active: false },
+      { label: 'Grants', count: 50, icon: 'fa-file-invoice-dollar', active: false },
+      { label: 'Works', count: 500, icon: 'fa-book-open', active: false },
+      { label: 'Subjects', count: 350, icon: 'lightbulb-on', active: false }
+    ];
 
     this.render = render.bind(this);
   }
@@ -47,8 +70,44 @@ export default class AppSearch extends Mixin(LitElement)
   firstUpdated() {
     if( this.AppStateModel.location.page !== 'search' ) return;
 
+    let query = this.AppStateModel.location.query;
+    this.lastQueryParams = query;
+
+    // if url contains query params, then parse filters before searching
+    if( Object.keys(query).length ) {
+      this.searchTerm = decodeURI(query.q);
+
+      this.collabProjects = query.hasAvailability.includes('collab');
+      this.commPartner = query.hasAvailability.includes('community');
+      this.industProjects = query.hasAvailability.includes('industry');
+      this.mediaInterviews = query.hasAvailability.includes('media');
+
+      if( query.hasAvailability.includes('ark:') ) {
+        if( query.hasAvailability.includes('ark:/87287/d7nh2m/keyword/c-ucd-avail/Community partnerships') ) this.commPartner = true;
+        if( query.hasAvailability.includes('ark:/87287/d7nh2m/keyword/c-ucd-avail/Collaborative projects') ) this.collabProjects = true;
+        if( query.hasAvailability.includes('ark:/87287/d7nh2m/keyword/c-ucd-avail/Industry Projects') ) this.industProjects = true;
+        if( query.hasAvailability.includes('ark:/87287/d7nh2m/keyword/c-ucd-avail/Media enquiries') ) this.mediaInterviews = true;
+        this._updateLocation();
+      }
+
+      let page = this.AppStateModel.location?.path?.[1];
+      if( page ) this.currentPage = page;
+
+      let resultsPerPage = this.AppStateModel.location?.path?.[2];
+      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
+
+      this._onSearch({ detail: this.searchTerm });
+      return;
+    }
+
     // update search term
-    this.searchTerm = decodeURI(this.AppStateModel.location.fullpath.replace('/search/', ''));
+    this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
+
+    let page = this.AppStateModel.location?.path?.[2];
+    if( page ) this.currentPage = page;
+
+    let resultsPerPage = this.AppStateModel.location?.path?.[3];
+    if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
 
     this._onSearch({ detail: this.searchTerm });
   }
@@ -73,8 +132,22 @@ export default class AppSearch extends Mixin(LitElement)
   _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
-    let searchTerm = e.location.fullpath.replace('/search/', '');
-    if( searchTerm === this.searchTerm ) return;
+    let searchTerm = decodeURIComponent(e.location.query?.q || e.location.path?.[1] || '');
+
+    if( JSON.stringify(e.location.query) === JSON.stringify(this.lastQueryParams) && searchTerm === this.searchTerm ) return;
+
+    this.lastQueryParams = e.location.query;
+
+    this.collabProjects = (this.lastQueryParams.hasAvailability || '').includes('collab');
+    this.commPartner = (this.lastQueryParams.hasAvailability || '').includes('community');
+    this.industProjects = (this.lastQueryParams.hasAvailability || '').includes('industry');
+    this.mediaInterviews = (this.lastQueryParams.hasAvailability || '').includes('media');
+
+    // hack for checkboxes not updating consistently even with requestUpdate (mostly an issue with back/forward buttons)
+    this.shadowRoot.querySelector('#collab-projects').checked = this.collabProjects;
+    this.shadowRoot.querySelector('#comm-partner').checked = this.commPartner;
+    this.shadowRoot.querySelector('#indust-projects').checked = this.industProjects;
+    this.shadowRoot.querySelector('#media-interviews').checked = this.mediaInterviews;
 
     this.totalResultsCount = null;
     this.searchTerm = searchTerm;
@@ -91,8 +164,11 @@ export default class AppSearch extends Mixin(LitElement)
    */
   _onPageSizeChange(e) {
     this.resultsPerPage = e.currentTarget.value;
+    this.currentPage = 1;
 
-    this._onSearch({ detail: this.searchTerm });
+    this._updateLocation();
+
+    this._onSearch({ detail: this.searchTerm }, true); // reset to first page
   }
 
   /**
@@ -100,19 +176,43 @@ export default class AppSearch extends Mixin(LitElement)
    * @description called from the search box button is clicked or
    * the enter key is hit. search
    * @param {Object} e
+   * @param {Boolean} resetPage reset pagination to page 1
    */
-  async _onSearch(e) {
+  async _onSearch(e, resetPage=false) {
     if( !e.detail?.trim().length ) return;
 
     // update url
     this.searchTerm = e.detail.trim();
     this.totalResultsCount = null;
 
-    this.AppStateModel.setLocation(`/search/${this.searchTerm}`);
+    let hasAvailability = utils.buildSearchAvailability({
+      collabProjects : this.collabProjects,
+      commPartner : this.commPartner,
+      industProjects : this.industProjects,
+      mediaInterviews : this.mediaInterviews
+    });
 
-    this.currentPage = 1;
+    if( resetPage ) {
+      this.currentPage = 1;
+      this._updateLocation();
+    }
 
-    await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage);
+    await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability);
+  }
+
+  _updateLocation() {
+    // url should be /search/<searchTerm> if no search filters, otherwise /search?=<searchTerm>&hasAvailability=collab,community,industry,media etc
+    let hasAvailability = [];
+    if( this.collabProjects ) hasAvailability.push('collab');
+    if( this.commPartner ) hasAvailability.push('community');
+    if( this.industProjects ) hasAvailability.push('industry');
+    if( this.mediaInterviews ) hasAvailability.push('media');
+
+    let path = hasAvailability.length ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
+    if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
+    if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
+    if( hasAvailability.length ) path += `?q=${encodeURIComponent(this.searchTerm)}&hasAvailability=${hasAvailability.join(',')}`;
+    this.AppStateModel.setLocation(path);
   }
 
   _onSearchUpdate(e) {
@@ -173,8 +273,61 @@ export default class AppSearch extends Mixin(LitElement)
 
     // this.displayedResults = this.searchResults.slice(e.detail.startIndex, maxIndex);
     this.currentPage = e.detail.page;
-    await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage);
+
+    this._updateLocation();
+
+    let hasAvailability = utils.buildSearchAvailability({
+      collabProjects : this.collabProjects,
+      commPartner : this.commPartner,
+      industProjects : this.industProjects,
+      mediaInterviews : this.mediaInterviews
+    });
+    await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability);
     window.scrollTo(0, 0);
+  }
+
+  /**
+   * @method _selectCollabProjects
+   * @description bound to change events of the collab projects checkbox
+   * @param {Object} e change event
+   */
+  _selectCollabProjects(e) {
+    this.collabProjects = e.currentTarget.checked;
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  /**
+   * @method _selectCommPartner
+   * @description bound to change events of the community partnerships checkbox
+   * @param {Object} e change event
+   */
+  _selectCommPartner(e) {
+    this.commPartner = e.currentTarget.checked;
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  /**
+   * @method _selectIndustProjects
+   * @description bound to change events of the industry projects checkbox
+   * @param {Object} e change event
+   */
+  _selectIndustProjects(e) {
+    this.industProjects = e.currentTarget.checked;
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  /**
+   * @method _selectMediaInterviews
+   * @description bound to change events of the media interviews checkbox
+   * @param {Object} e change event
+   */
+  _selectMediaInterviews(e) {
+    this.mediaInterviews = e.currentTarget.checked;
+    this.currentPage = 1;
+    this._updateLocation();
   }
 
   /**
@@ -239,6 +392,10 @@ export default class AppSearch extends Mixin(LitElement)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  _onFilterChange(e) {
+    console.log('TODO handle filter change', e.detail);
   }
 
 }

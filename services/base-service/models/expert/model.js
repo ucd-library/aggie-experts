@@ -5,6 +5,7 @@ const validate = require('../validate.js');
 
 const finApi = require('@ucd-lib/fin-api/lib/api.js');
 const config = require('../config');
+const Citation = require('../../spa/client/public/lib/utils/citation.js');
 
 /**
  * @class ExpertModel
@@ -27,7 +28,7 @@ class ExpertModel extends BaseModel {
    * by elasticsearch.
    */
   snippet(node) {
-    const snippet= ["identifier","orcidId","name","contactInfo"];
+    const snippet= ["@id","@type","identifier","orcidId","name","contactInfo"];
 
     // Get only best contact info
     if (node.contactInfo) {
@@ -51,56 +52,248 @@ class ExpertModel extends BaseModel {
   }
 
   /**
-   * @method sanitize
-   * @description Sanitize document
+   * @method subselect
+   * @description return all or part of a document, with optional subsets of works/grants when requested
    * @param {Object} doc
-   * @returns {Object} : sanitized document
+   * @param {Object} options, ie {admin:true|false, subset:true|false, expert:true|false, grants:{page:1,size:25,sanitize:true|false}, works:{page:1,size:25,sanitize:true|false}}
+   * @returns {Object} : document
    **/
-  sanitize(doc) {
+  subselect(doc, options={}) {
+    /*
+    options example:
+      {
+        'is-visible' : true|false,
+        expert : { include : true },
+        grants : {
+          page : 1,
+          size : 25,
+          exclude : [ 'totalAwardAmount' ],
+          includeMisformatted : true,
+          sort : [
+            {
+              field : 'name',
+              sort : 'desc',
+              type : 'string'|'number'|'date'|'year'(to apply .split('-')[0] to the value),
+
+              // experimental, impl later
+              // might just be `type: title` to skip various words, but what other types and how defined?
+              skip : 'A|The|An'
+            }
+          ],
+          filter : [
+            {
+              date : {
+                min : 2000|'none',
+                max : 2020|'none'
+              }
+            }
+          ]
+        },
+        works : { include : false }
+      }
+    */
+
     if (doc["is-visible"] === false) {
       throw {status: 404, message: "Not found"};
     }
 
-    function spliceOut(i) {
-      if (doc["@graph"][i]?.["@type"] === "Expert") {
-        throw {status: 404, message: "Not found"};
-      } else {
-        logger.info({function:"sanitize/spliceOut",i},`_x_${doc["@graph"][i]["@id"]}`);
-        doc["@graph"].splice(i, 1);
-      }
+    function getNestedProperty(obj, path) {
+      return path.split('.').reduce((acc, part) => acc && acc[part] ? acc[part] : undefined, obj);
     }
 
-    graph_loop: for(let i=0; i<doc["@graph"].length; i++) {
-      // logger.info({function:"sanitize",i,visible:(("is-visible" in doc["@graph"][i]) &&
-      //    doc["@graph"][i]?.["is-visible"] !== true)},`${doc["@graph"][i]["@id"]}`);
-      // Node is not visible
-      if (("is-visible" in doc["@graph"][i]) &&
-          doc["@graph"][i]?.["is-visible"] !== true) {
-        spliceOut(i--);
-        continue graph_loop;
+    function sortGraph(a, b, sort=[]) {
+      for( let sortBy of sort ) {
+        let aValue = getNestedProperty(a, sortBy.field);
+        let bValue = getNestedProperty(b, sortBy.field);
+
+        // custom processing by data type
+        if( sortBy.type === 'year' ) {
+          aValue = aValue.split('-')[0];
+          bValue = bValue.split('-')[0];
+        } else if( sortBy.type === 'string' ) {
+          let comparisonResult = aValue.localeCompare(bValue);
+          if (comparisonResult !== 0) {
+            return sortBy.sort === 'desc' ? -comparisonResult : comparisonResult;
+          }
+        } else if( sortBy.type === 'date' ) {
+          aValue = new Date(aValue);
+          bValue = new Date(bValue);
+        } else if( sortBy.type === 'number' ) {
+          aValue = parseFloat(aValue);
+          bValue = parseFloat(bValue);
+        }
+
+        if( aValue < bValue ) {
+          return sortBy.sort === 'desc' ? 1 : -1;
+        }
+        if( aValue > bValue ) {
+          return sortBy.sort === 'desc' ? -1 : 1;
+        }
       }
 
-      if (doc["@graph"][i].relatedBy) {
-        // relatedby is doc["@graph"][i]["relatedBy"] but always an array
-        const relatedBy = Array.isArray(doc["@graph"][i].relatedBy) ?
-              doc["@graph"][i].relatedBy : [doc["@graph"][i].relatedBy];
-        for (let j=0; j<relatedBy.length; j++) {
-          if ("is-visible" in relatedBy[j] && relatedBy[j]?.["is-visible"] !== true) {
-            spliceOut(i--);
-            continue graph_loop;
-          }
-        }
-      }
-      // Sanitize this node if it is an Grant (esp.)
-      delete doc["@graph"][i]["totalAwardAmount"];
-      // Sanitize identifiers (This is no longer required)
-      // TODO: Remove this after testing
-      ["ucdlib:email","ucdlib:employeeId","ucdlib:ucdPersonUUId"].forEach((key) => {
-        if (doc["@graph"]?.[i]?.[key]) {
-          delete doc["@graph"][i][key];
-        }
+      return 0; // sorts match
+    }
+
+    // split graph by type
+    let expert = doc["@graph"].filter(graph => graph['@id'] === doc['@id']);
+    let works = doc["@graph"].filter(graph => graph["@type"] === "Work" || graph["@type"].includes("Work"));
+    let grants = doc["@graph"].filter(graph => graph["@type"] === "Grant" || graph["@type"].includes("Grant"));
+
+    // to store totals of works/grants before filtering out any
+    let totalWorks = works.length;
+    let totalGrants = grants.length;
+    let hiddenWorks = totalWorks - works.filter(w => w.relatedBy?.['is-visible']).length;
+    let hiddenGrants = totalGrants - grants.filter(g =>
+      g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
+    ).length;
+    let invalidWorks = [];
+    let invalidGrants = [];
+
+    // filter out expert graph if not requested
+    if( !options.expert?.include ) expert = [];
+
+    // filter out works graph if not requested
+    if( !options.works || !options.works?.include ) works = [];
+
+    // filter out grants graph if not requested
+    if( !options.grants || !options.grants?.include ) grants = [];
+
+    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    if( options['is-visible'] !== false || !options.admin ) {
+      works = works.filter(w => w.relatedBy?.['is-visible']);
+
+      grants = grants.filter(g =>
+        g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
+      );
+    }
+
+    // remove excluded fields in works if requested
+    if( options.works?.exclude && options.works.exclude.length ) {
+      works = works.map(work => {
+        options.works.exclude.forEach(field => {
+          delete work[field];
+        });
+        return work;
       });
     }
+
+    // remove excluded fields in grants if requested
+    if( options.grants?.exclude && options.grants.exclude.length ) {
+      grants = grants.map(grant => {
+        options.grants.exclude.forEach(field => {
+          delete grant[field];
+        });
+        return grant;
+      });
+    }
+
+    // sort works if requested
+    if( options.works?.include && options.works?.sort && options.works.sort.length ) {
+      try {
+        // remove works with invalid issue date or title before sorting
+        let invalidTitle = Citation.validateTitle(works);
+        if( invalidTitle.citations?.length ) {
+          works = works.filter(w1 => !invalidTitle.citations.some(w2 => w2["@id"] === w1["@id"]));
+          hiddenWorks += invalidTitle.citations.length;
+          invalidTitle.citations = invalidTitle.citations.map(c => {
+            return {
+              ...c,
+              title: 'Title Unknown'
+            };
+          });
+        }
+
+        let invalidIssueDate = Citation.validateIssueDate(works);
+        if( invalidIssueDate.citations?.length ) {
+          works = works.filter(w1 => !invalidIssueDate.citations.some(w2 => w2["@id"] === w1["@id"]));
+          hiddenWorks += invalidIssueDate.citations.length;
+          invalidIssueDate.citations = invalidIssueDate.citations.map(c => {
+            return {
+              ...c,
+              issued: 'Date Unknown'
+            };
+          });
+        }
+
+        works = works.sort((a,b) => sortGraph(a, b, options.works.sort));
+        if( options.works?.includeMisformatted ) {
+          invalidWorks = [...(invalidTitle.citations || []), ...(invalidIssueDate.citations || [])];
+          doc.invalidWorks = invalidWorks;
+        }
+
+        totalWorks = works.length;
+      } catch(e) {
+        // no sorting if unexpected exception
+      }
+    }
+
+    // sort grants if requested
+    if( options.grants?.include && options.grants?.sort && options.grants.sort.length ) {
+      try {
+        let invalidName = grants.filter(g => typeof g.name !== 'string');
+        if( invalidName.length ) {
+          grants = grants.filter(g1 => !invalidName.some(g2 => g2["@id"] === g1["@id"]));
+          hiddenGrants += invalidName.length;
+          invalidName = invalidName.map(g => {
+            return {
+              ...g,
+              name: 'Name Unknown'
+            };
+          });
+        }
+
+        let invalidEndDate = grants.filter(g => isNaN(new Date(g.dateTimeInterval?.end?.dateTime)));
+        if( invalidEndDate.length ) {
+          grants = grants.filter(g1 => !invalidEndDate.some(g2 => g2["@id"] === g1["@id"]));
+          hiddenGrants += invalidEndDate.length;
+          invalidEndDate = invalidEndDate.map(g => {
+            return {
+              ...g,
+             dateTimeInterval: { end : { dateTime : 'Date Unknown' } }
+            };
+          });
+        }
+
+        grants = grants.sort((a,b) => sortGraph(a, b, options.grants.sort));
+
+        if( options.grants?.includeMisformatted ) {
+          invalidGrants = [...invalidName, ...invalidEndDate];
+          doc.invalidGrants = invalidGrants;
+        }
+
+        totalGrants = grants.length;
+      } catch(e) {
+        // no sorting if unexpected exception
+      }
+    }
+
+    // subset works if requested
+    if( options.works?.page && options.works?.size ) {
+      works = works.slice((options.works.page-1) * options.works.size, options.works.page * options.works.size);
+    }
+
+    // subset grants if requested
+    if( options.grants?.page && options.grants?.size ) {
+      grants = grants.slice((options.grants.page-1) * options.grants.size, options.grants.page * options.grants.size);
+    }
+
+    /*
+      TODO tbd in the future, for search we'll want to filter by dates and potentially other values,
+          will implement once search is built out more
+      // filter works by field(s) if requested
+      // filter grants by field(s) if requested
+    */
+
+    // return total visible/hidden works/grants
+    // TODO ask QH, does this need to be hidden if not admin/expert?
+    doc.totals = {
+      works: totalWorks,
+      grants: totalGrants,
+      hiddenWorks,
+      hiddenGrants
+    };
+
+    doc['@graph'] = [...expert, ...works, ...grants]
     return doc;
   }
 
@@ -125,7 +318,15 @@ class ExpertModel extends BaseModel {
     if (node["is-visible"]) {
       doc["is-visible"] = node["is-visible"];
     }
-
+    if (node["hasAvailability"]) {
+      doc["hasAvailability"] = [];
+      if (! Array.isArray(node["hasAvailability"])) {
+        node["hasAvailability"] = [node["hasAvailability"]];
+      }
+      node["hasAvailability"].forEach(availability => {
+        doc["hasAvailability"].push(availability["@id"]);
+      });
+    }
 
     // Order the vcards, and get the first one
     let contact
@@ -341,6 +542,81 @@ class ExpertModel extends BaseModel {
       let resp = await cdl_user.updateUserPrivacyLevel({
         privacy: 'internal'
       })
+      logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
+    } else {
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
+    }
+  }
+
+  /**
+   * @method patch
+   * @description Patch an experts availability labels
+   * @param {Object} data :  { "labelsToAddOrEdit", "labelsToRemove", "currentLabels" }
+   * @param {String} expertId : Expert Id
+   *
+   * @returns {Object} : document object
+   **/
+  async patchAvailability(data, expertId) {
+    let expert;
+
+    try {
+      expert = await this.client_get(expertId);
+    } catch(e) {
+      logger.info(`expert @id ${expertId} not found`);
+      return 404
+    };
+
+    var patch=`PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        PREFIX hasAvail: <ark:/87287/d7nh2m/keyword/c-ucd-avail/>
+        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+delete {
+    ?expert ucdlib:hasAvailability ?cur.
+    ?cur skos:prefLabel ?curLabel.
+    ?cur skos:inScheme ?curScheme.
+    ?cur a skos:Concept.
+    ?cur ucdlib:availabilityOf ?expert.
+}
+where {
+  ?expert ucdlib:hasAvailability ?cur.
+  OPTIONAL {
+    ?cur skos:prefLabel ?curLabel.
+  }
+  OPTIONAL {
+    ?cur skos:inScheme ?curScheme.
+  }
+};`;
+
+    if (data.currentLabels.length > 0) {
+      patch+=`
+insert {
+  ?expert ucdlib:hasAvailability ?add.
+  ?add a skos:Concept;
+    skos:inScheme hasAvail: ;
+    skos:prefLabel ?addLabel;
+    .
+    ?add ucdlib:availabilityOf ?expert.
+}
+where {
+  ?expert a ucdlib:Expert.
+  values ?addLabel {  ${data.currentLabels.map(label => `"${label}"`).join(' ')} }
+  bind(uri(concat(str(hasAvail:),encode_for_uri(?addLabel))) as ?add)
+};`;
+    }
+    // update fcrepo
+    let options = {
+      path: expertId,
+      content: patch
+    };
+
+    const api_resp = await finApi.patch(options);
+
+    // update cdl
+    if (config.experts.cdl.expert.propagate) {
+      const cdl_user = await this._impersonate_cdl_user(expert, config.experts.cdl.expert);
+      let resp = await cdl_user.updateUserAvailabilityLabels({
+        labelsToAddOrEdit: data.labelsToAddOrEdit,
+        labelsToRemove: data.labelsToRemove
+      });
       logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
     } else {
       logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);

@@ -41,7 +41,6 @@ export class ExpertsClient {
       "field-number": "api:field-number",
       "$t": "api:field-value",
       "api:person": { "@container": "@list" },
-      "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
     },
     "@id":'http://oapolicy.universityofcalifornia.edu/'
@@ -112,7 +111,6 @@ export class ExpertsClient {
     }
     else if (response.status === 200) {
       let respJson = await response.json();
-      // console.log(this.doc);
       if (respJson == null) {
         throw new Error(`No profiles returned from IAM.`);
       }
@@ -203,8 +201,6 @@ export class ExpertsClient {
     const q = new QueryEngine();
     const factory = new DataFactory();
 
-    // console.log(opt)
-
     async function constructRecord(bindings) {
       let fn = 1; // write to stdout by default
       if (bindings.get('filename') && bindings.get('filename').value) {
@@ -243,6 +239,14 @@ export class ExpertsClient {
       fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
       this.logger.info({measure:[fn],quads:quads.length,user:opt.user},'record');
       performance.clearMarks(fn);
+    }
+
+    for (const [key, value] of opt.bindings) {
+      if (value.termType === 'Literal') {
+        opt.bind = opt.bind.replace(new RegExp(`\\?${key.value}`, 'g'), `"${value.value}"`);
+      } else if (value.termType === 'NamedNode') {
+        opt.bind = opt.bind.replace(new RegExp('\\?' + key.value, 'g'), `<${value.value}>`);
+      }
     }
 
     const bindingStream = q.queryBindings(opt.bind, { sources: [opt.db.source()], fetch })

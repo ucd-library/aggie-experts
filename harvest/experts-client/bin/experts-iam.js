@@ -23,6 +23,21 @@ const fuseki = new FusekiClient({
   db: 'experts'
 });
 
+const context = {
+  "@context": {
+    "@base": "http://oapolicy.universityofcalifornia.edu/",
+    "@vocab": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "oap": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "api": "http://oapolicy.universityofcalifornia.edu/vocab#",
+    "id": { "@type": "@id", "@id": "@id" },
+    "field-name": "api:field-name",
+    "field-number": "api:field-number",
+    "$t": "api:field-value",
+    "api:person": { "@container": "@list" },
+    "api:web-address": { "@container": "@list" }
+  }
+};
+
 const iam = {
   url: '',
   auth: '',

@@ -78,9 +78,10 @@ export class IAM {
     for (let k in IAM.DEF) {
       this[k] = opt[k] || IAM.DEF[k];
     }
-    this.url = IAM.ENV[this.env].url;
-    this.authname = IAM.ENV[this.env].authname;
-    this.secretpath = IAM.ENV[this.env].secretpath;
+    let env = IAM.DEF.env;
+    this.url = IAM.ENV[env].url;
+    this.authname = IAM.ENV[env].authname;
+    this.secretpath = IAM.ENV[env].secretpath;
     this.key = null;
   }
 

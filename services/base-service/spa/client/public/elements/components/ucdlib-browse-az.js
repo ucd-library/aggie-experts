@@ -2,7 +2,7 @@ import { LitElement } from 'lit';
 import {render, styles} from "./ucdlib-browse-az.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 export default class UcdlibBrowseAZ extends Mixin(LitElement)
   .with(LitCorkUtils) {

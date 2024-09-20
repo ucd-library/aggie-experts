@@ -8,6 +8,11 @@
       "client_id":"aggie-experts",
       "service_account":"aggie-experts-service-account"
     },
+    "client_error_reporting":{
+      "enabled":false,
+      "url":"https://client-error-reporter-akwemh35fa-uw.a.run.app",
+      "key_secret":"client_error_reporting_key"
+    },
     "cdl":{
       "propagate_changes":"false"
     },
@@ -23,9 +28,11 @@
       "tag":"2.6.3"
     },
     "gcs":{
-      "bucket":"fcrepo-1",
+      "bucket":"fcrepo-2",
       "init_data_hydration":false
     }
+  },
+  "build":{
   },
   "dev":{
     "client":{
@@ -80,6 +87,11 @@
       "init_data_hydration":true
     }
   },
+  "prev":{
+    "port":"10480",
+    "host":"https://prev.experts.library.ucdavis.edu",
+    "branch":"(dev|main)"
+  },
   "stage":{
     "gcs":{
       "init_data_hydration":true
@@ -87,20 +99,19 @@
     "port":"10380",
     "host":"https://stage.experts.library.ucdavis.edu",
     "branch":"(dev|main)",
+    "cdl":{
+      "propagate_changes":"true"
+    },
     "analytics":{
       "enable":"true"
     }
   },
-  "prev":{
-    "port":"10480",
-    "host":"https://prev.experts.library.ucdavis.edu",
-    "branch":"(dev|main)"
-  },
-  "build":{
-  },
   "prod":{
     "port":"10180",
     "host":"https://experts.ucdavis.edu",
+    "client_error_reporting":{
+      "enabled":true
+    },
     "cdl":{
       "propagate_changes":"true"
     },

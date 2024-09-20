@@ -188,9 +188,9 @@ construct {
 
       await expert.fetch();
       await expert.load();
-      console.log(`Loaded ${expert.expert}`);
+      log.info(`Loaded ${expert.expert}`);
       await expert.transform();
-      console.log(`Transformed ${expert.expert}`);
+      log.info(`Transformed ${expert.expert}`);
     }
   }
 
@@ -386,7 +386,7 @@ export class CacheExpert {
     this.log=this.cache.log;
     this.kcadmin=this.cache.kcadmin;
     this.refetch=cache.refetch;
-
+    this.assembler=opts.assembler;
     this.expert=expert;
     performance.mark(this.expert);
     this.base=path.join(this.cache.base,expert);
@@ -396,7 +396,8 @@ export class CacheExpert {
     if (! this._db ) {
       // create new fuseki db
       const fuseki=this.cache.fuseki;
-      this._db = await fuseki.createDb(this.expert,{replace:false});
+      let assembler_binded = this.assembler.replace(/__USER__/g, this.expert);
+      this._db = await fuseki.createDb(this.expert,{replace:true,assembler:assembler_binded});
     }
     return this._db;
   }
@@ -415,6 +416,7 @@ export class CacheExpert {
 
   async fetch() {
     const expert=this.expert;
+
     this.log.info({lib:'cache',measure:expert,expert},`► fetch(${expert})`);
 
     { // Add in profile
@@ -441,27 +443,34 @@ export class CacheExpert {
           this.log.info({lib:'cache',measure:expert,expert},`✔* ${fn}`);
         }
 
-        const kc_fn=path.join(this.base,'keycloak.json');
-        if (this.kcadmin && (! fs.existsSync(kc_fn) || this.refetch)) {
-          const p=profile['@graph'][0];
-          const kc_user = {
-            firstName : p.oFirstName,
-            lastName : p.oLastName,
-            attributes : {
-              ucdPersonUUID:p.mothraId,
-              iamId:p.iamId
+      const kc_fn = path.join(this.base, 'keycloak.json');
+      if (this.kcadmin && (!fs.existsSync(kc_fn) || this.refetch)) {
+        const p = profile['@graph'][0];
+        let kc_user = {};
+        if (p) {
+          kc_user = {
+            firstName: p.oFirstName,
+            lastName: p.oLastName,
+            attributes: {
+              ucdPersonUUID: p.mothraId,
+              iamId: p.iamId
             }
           };
-          const kc=await this.kcadmin.getOrCreateExpert(p.email,p.userID,kc_user);
-          fs.writeFileSync(kc_fn,JSON.stringify(kc,null,2));
-          this.log.info({lib:'cache',measure:expert,expert},
-                        `✔ ${kc_fn} expertId=${kc.attributes['expertId'][0]}`);
-          profile['@graph'][0].expertId=kc.attributes['expertId'][0];
-          fs.writeFileSync(fn,JSON.stringify(profile,null,2));
-          this.log.info({lib:'cache',measure:expert,expert},`✔ ${fn}`);
-        } else {
-          this.log.info({lib:'cache',measure:expert,expert},`✔* ${kc_fn}`);
         }
+        // If an IAM user is not found, we will not be able to create a keycloak user
+        if (p) {
+          const kc = await this.kcadmin.getOrCreateExpert(p.email, p.userID, kc_user);
+          fs.writeFileSync(kc_fn, JSON.stringify(kc, null, 2));
+          this.log.info({ lib: 'cache', measure: expert, expert },
+            `✔ ${kc_fn} expertId=${kc.attributes['expertId'][0]}`);
+          profile['@graph'][0].expertId = kc.attributes['expertId'][0];
+          fs.writeFileSync(fn, JSON.stringify(profile, null, 2));
+          this.log.info({ lib: 'cache', measure: expert, expert }, `✔ ${fn}`);
+        } else {
+          this.log.error({ lib: 'cache', measure: expert, expert }, `✖ iam(${expert})`);
+          this.iam = null;
+        }
+      }
         this.log.info({lib:'cache',measure:`iam(${expert})`,expert},`✔ iam(${expert})`);
 //      } catch (e) {
 //        this.log.error({lib:'cache',measure:`iam(${expert})`,
@@ -469,6 +478,8 @@ export class CacheExpert {
 //      }
       performance.clearMarks(`iam(${expert})`);
     }
+    if (this.iam) {
+      // Only fetch cdl if we have an iam
     { // Add in cdl cache
       performance.mark(`cdl(${expert})`);
       const pd=path.join(this.base,'ark:','87287','d7nh2m');
@@ -501,7 +512,8 @@ export class CacheExpert {
       }
       performance.clearMarks(`cdl(${expert})`);
     }
-    performance.clearMarks(expert);
+    }
+    this.log.info({lib:'cache',measure:expert,expert},`◄ fetch(${expert})`);
   }
 
   async load() {
@@ -517,6 +529,12 @@ export class CacheExpert {
 
     for (const d of dirs) {
       performance.mark(d.mark);
+      // If the directory does not exist, skip
+      if (!fs.existsSync(d.dir)) {
+        this.log.info({lib:'cache',measure:d.mark,expert},`✖ ${d.dir}`);
+        performance.clearMarks(d.mark);
+        continue;
+      }
       const files=fs.readdirSync(d.dir);
       const jsonFiles = files.filter(file => path.extname(file) === '.jsonld');
       for (const file of jsonFiles) {
@@ -524,7 +542,7 @@ export class CacheExpert {
         await this.createGraphFromJsonLd(profile);
       }
     }
-    this.log.info({lib:'cache',measure:`load(${expert})`,expert},`✔ load(${expert})`);
+    this.log.info({lib:'cache',measure:[expert,`load(${expert})`],expert},`◄  load(${expert})`);
     performance.clearMarks(`load(${expert})`);
   }
 
@@ -535,21 +553,25 @@ export class CacheExpert {
    * @returns {Array} - an array of processed cache
    **/
   async transform() {
-    const base = path.join(this.base, 'fcrepo');
     const log = this.log;
+    const base = this.base;
+    const expert = this.expert;
 
-    //    for (const n of ['expert', 'authorship', 'grant_role']) {
-    for (const n of ['expert', 'authorship']) {
-      //      this.log.info({lib:'cache',mark:n,user},`splay ${n}`);
+    performance.mark('transform');
+    for (const n of ['expert', 'authorship', 'grant']) {
+      this.log.info({lib:'cache',mark:n},`splay ${n}`);
 
       await (async (n) => {
         let bind=fs.readFileSync(path.join(__dirname,`query/${n}/bind.rq`),'utf8');
-        let construct=fs.readFileSync(path.join(__dirname,`query/${n}/construct.rq`),'utf8');
+        const construct_template=fs.readFileSync(path.join(__dirname,`query/${n}/construct.rq`),'utf8');
         let db=await this.db();
         async function constructRecord(bindings) {
           let fn = 1; // write to stdout by default
+          let rq = 1; // write to stdout by default
+          let construct = construct_template;
           if (bindings['filename']) {
-            fn = path.join(base, bindings['filename'].value);
+            fn = path.join(base,'fcrepo', 'expert', bindings['filename'].value);
+            rq = path.join(base,'rq', bindings['filename'].value);
             delete bindings['filename'];
           }
           performance.mark(fn);
@@ -563,30 +585,31 @@ export class CacheExpert {
               construct = construct.replace(new RegExp('\\?' + key, 'g'), `<${value.value}>`);
             }
           }
-//          let doc=await db.construct(construct);
-////          doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
+          fs.ensureFileSync(`${rq}.rq`);
+          fs.writeFileSync(`${rq}.rq`, construct);
+          let doc=await db.construct(construct);
+          doc = await jp.expand(doc, { omitGraph: false, safe: false, ordered: true });
 //          const nquads = await jsonld.canonize(doc, {format: 'application/n-quads'});
           //          const num = (nquads.match(/\r|\r\n|\n/g) || '').length;
           const num = 0
           fs.ensureFileSync(fn);
-//          fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
-          fs.writeFileSync(`${fn}.rq`, construct);
+          fs.writeFileSync(fn, JSON.stringify(doc, null, 2));
 //          fs.writeFileSync(`${fn}.nq`, nquads);
           log.info({lib:'cache',measure:[fn],quads:num},'record');
           performance.clearMarks(fn);
         }
 
         let result = await db.query(bind);
-        console.log(JSON.stringify(result, null, 2));
         for (const bindings of result.results.bindings) {
+          // log.info('constructRecord',bindings);
           await constructRecord(bindings);
         }
       })(n);
-      //      this.log.info({lib:'cache',measure:[n],user},`splayed ${n}`);
-//      performance.clearMarks(n);
+      this.log.info({lib:'cache',measure:[n],expert:expert},`splayed ${n}`);
+      performance.clearMarks(n);
     };
-    //    this.log.info({lib:'cache',measure:['splay',user],user},`splayed`);
-//    performance.clearMarks('splay');
+    this.log.info({lib:'cache',measure:['transform',expert],expert:expert},`transform`);
+    performance.clearMarks('transform');
   }
 
 }

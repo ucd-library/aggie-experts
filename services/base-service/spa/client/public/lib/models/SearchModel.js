@@ -18,24 +18,25 @@ class SearchModel extends BaseModel {
    *
    * @param {String} searchTerm search term
    * @param {Number} page page number, defaults to 1
-   * @param {Number} size number of results per page, defaults to 10
+   * @param {Number} size number of results per page, defaults to 25
+   * @param {Array} hasAvailability array of availability filters
    *
    * @returns {Promise} resolves to expert
    */
-  async search(searchTerm, page=1, size=10) {
-    let state = this.store.search(searchTerm, page, size);
+  async search(searchTerm, page=1, size=25, hasAvailability=[]) {
+    let searchQuery = `q=${searchTerm}&page=${page}&size=${size}&hasAvailability=${encodeURIComponent(hasAvailability)}`;
+
+    let state = this.store.search(searchQuery);
 
     if( state && state.request ) {
       await state.request;
     } else if( state && state.state === 'loaded' ) {
-      if( state.searchTerm !== searchTerm ) {
-        this.store.setSearchLoaded(searchTerm, state.payload)
-      }
+      this.store.setSearchLoaded(searchQuery, state.payload);
     } else {
-      await this.service.search(searchTerm, page, size);
+      await this.service.search(searchQuery);
     }
 
-    return this.store.search(searchTerm, page, size);
+    return this.store.search(searchQuery);
   }
 
 }

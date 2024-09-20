@@ -10,13 +10,13 @@ class SearchService extends BaseService {
     this.baseUrl = '/api/search';
   }
 
-  search(searchTerm, page=1, size=25) {
+  search(searchQuery) {
     return this.request({
-      url : `${this.baseUrl}?q=${searchTerm}&page=${page}&size=${size}`,
-      checkCached : () => this.store.search(searchTerm),
-      onLoading : request => this.store.setSearchLoading(searchTerm, request),
-      onLoad : result => this.store.setSearchLoaded(searchTerm, result.body),
-      onError : e => this.store.setSearchError(searchTerm, e)
+      url : `${this.baseUrl}?${searchQuery}`,
+      checkCached : () => this.store.search(searchQuery),
+      onLoading : request => this.store.setSearchLoading(searchQuery, request),
+      onLoad : result => this.store.setSearchLoaded(searchQuery, result.body),
+      onError : e => this.store.setSearchError(searchQuery, e)
     });
   }
 
