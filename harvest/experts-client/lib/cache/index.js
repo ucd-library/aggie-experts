@@ -56,6 +56,8 @@ export class Cache {
     deprioritize: false,
     domain: 'ucdavis.edu',
     refetch: false,
+    assembler: null,
+    assembler_file: path.join(__dirname,'expert_assembler.jsonld'),
     cdl: null, // Must be passed in
     iam: null,  // Must Be passed in
     kcadmin: null // Must be passed in
@@ -64,6 +66,9 @@ export class Cache {
   constructor(opt={}) {
     for (let k in Cache.DEF) {
       this[k] = opt[k] || Cache.DEF[k];
+    }
+    if (this.assembler_file) {
+      this.assembler = fs.readFileSync(this.assembler_file, 'utf8');;
     }
 //    this.fuseki.log = this.log;
   }
@@ -385,8 +390,7 @@ export class CacheExpert {
     this.cdl=this.cache.cdl;
     this.log=this.cache.log;
     this.kcadmin=this.cache.kcadmin;
-    this.refetch=cache.refetch;
-    this.assembler=opts.assembler;
+    this.refetch=this.cache.refetch;
     this.expert=expert;
     performance.mark(this.expert);
     this.base=path.join(this.cache.base,expert);
@@ -396,8 +400,11 @@ export class CacheExpert {
     if (! this._db ) {
       // create new fuseki db
       const fuseki=this.cache.fuseki;
-      let assembler_binded = this.assembler.replace(/__USER__/g, this.expert);
-      this._db = await fuseki.createDb(this.expert,{replace:true,assembler:assembler_binded});
+      let assembler=null;
+      if (this.cache.assembler) {
+        assembler = this.cache.assembler.replace(/__USER__/g, this.expert);
+      }
+      this._db = await fuseki.createDb(this.expert,{replace:true,assembler});
     }
     return this._db;
   }
