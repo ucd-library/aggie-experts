@@ -81,10 +81,6 @@ WHERE {
                                   :related ?pub;
                                   .
 
-<<<<<<< HEAD
-                  # This needs to include grants later
-=======
->>>>>>> dev
                   ?pub :category "publication";
                                :records/:record ?record.
                       ?record :source-name ?source.
@@ -267,10 +263,6 @@ WHERE {
         ?relationship :related ?user.
         ?user :category "user";
               :is-public "true";
-<<<<<<< HEAD
-              :username ?USERNAME__;
-=======
->>>>>>> dev
               .
 
         ?record :native/:field ?field.

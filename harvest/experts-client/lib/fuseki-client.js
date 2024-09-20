@@ -85,11 +85,7 @@ export class FusekiClient {
       throw new Error('No Fuseki db specified');
     }
 
-<<<<<<< HEAD
-    console.log(`Creating db ${db} with options ${JSON.stringify(opt)}`);
-=======
     // log.info(`Creating db ${db} with options ${JSON.stringify(opt)}`);
->>>>>>> dev
     const res = await fetch(
       `${this.url}/\$/datasets/${db}`,
       {
@@ -107,22 +103,6 @@ export class FusekiClient {
         this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ existsDb(${db})`);
       }
     }
-<<<<<<< HEAD
-    if (! exists) {
-      const res = await fetch(
-        `${this.url}/\$/datasets`,
-        {
-          method: 'POST',
-          body: new URLSearchParams({ 'dbName': db, 'dbType': opt.type }),
-          headers: {
-            'Authorization': `Basic ${this.authBasic}`
-          }
-        });
-      if (!res.ok) {
-        console.log(`✘ createDb(${db}) Code: ${res.status}`);
-        throw new Error(`✘ createDb(${db}) Code: ${res.status}`);
-      }
-=======
 
     if (!exists) {
       if (opt.assembler) {
@@ -156,7 +136,6 @@ export class FusekiClient {
           throw new Error(`Create db ${db} failed . Code: ${res.status}`);
         }
       }
->>>>>>> dev
       this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ createDb(${db})`);
     }
 
