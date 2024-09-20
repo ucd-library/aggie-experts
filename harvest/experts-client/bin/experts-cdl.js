@@ -41,35 +41,32 @@ async function main(opt, cache) {
 
   const users = program.args;
 
-  if (opt.fetch) {
-    // Step 1: Get Usernames from CDL using any cmd line args if no users specified
-    if (users.length === 0 && opt.cdl.groups) {
-      var uquery = `users?detail=ref&per-page=1000&groups=${opt.cdl.groups}`;
-      var sinceFilter = '';
+  // Step 1: Get Usernames from CDL using any cmd line args if no users specified
+  if (users.length === 0 && opt.cdl.groups) {
+    var uquery = `users?detail=ref&per-page=1000&groups=${opt.cdl.groups}`;
+    var sinceFilter = '';
 
-      if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
-        // We need the date in XML ISO format
-        var date = new Date();
-        date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
-        sinceFilter = '&affected-since=' + date.toISOString();
-        uquery += sinceFilter;
-      }
-      else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
-        // We need the date in XML ISO format
-        var date = new Date(opt.cdl.modified);
-        sinceFilter = '&modified-since=' + date.toISOString();
-        uquery += sinceFilter;
-      }
+    if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
+      // We need the date in XML ISO format
+      var date = new Date();
+      date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
+      sinceFilter = '&affected-since=' + date.toISOString();
+      uquery += sinceFilter;
+    }
+    else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
+      // We need the date in XML ISO format
+      var date = new Date(opt.cdl.modified);
+      sinceFilter = '&modified-since=' + date.toISOString();
+      uquery += sinceFilter;
+    }
 
-      // Get the users from CDL that meet the criteria
-      const entries = await ec.getCDLentries(uquery, 'users_via_groups');
-
-      // Add them to the users array
+    // Get the users from CDL that meet the criteria
+    const entries = await ec.getCDLentries(uquery, 'users_via_groups');
+    if (entries) {
       for (let entry of entries) {
         entry = entry['api:object'];
         users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
       }
-
       log.info(users.length + ' users found');
     }
   }
@@ -78,23 +75,15 @@ async function main(opt, cache) {
   //console.log(`Normalized ${normalized.length} users`, normalized);
 
   for (const user of normalized) {
-    // Get username from mailto
-
     let expert = new CacheExpert(cache, user, opt);
     await expert.fetch();
-    //console.log(`Fetched ${expert.expert}`);
     await expert.load();
-    //console.log(`Loaded ${expert.expert}`);
     await expert.transform();
-    //console.log(`Transformed ${expert.expert}`);
-
     let db = expert._db;
     // Any other value don't delete
     if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db.db);
     }
-    // log.info({measure:[user],user},`completed`);
-    // performance.clearMarks(user);
   }
 }
 
@@ -181,5 +170,4 @@ else if (opt.environment === 'production') {
 }
 
 opt.assembler = assembler;
-log.info({ opt }, 'options');
 await main(opt, cache);
