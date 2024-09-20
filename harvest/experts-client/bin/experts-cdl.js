@@ -75,23 +75,15 @@ async function main(opt, cache) {
   //console.log(`Normalized ${normalized.length} users`, normalized);
 
   for (const user of normalized) {
-    // Get username from mailto
-
     let expert = new CacheExpert(cache, user, opt);
     await expert.fetch();
-    //console.log(`Fetched ${expert.expert}`);
     await expert.load();
-    //console.log(`Loaded ${expert.expert}`);
     await expert.transform();
-    //console.log(`Transformed ${expert.expert}`);
-
     let db = expert._db;
     // Any other value don't delete
     if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db.db);
     }
-    // log.info({measure:[user],user},`completed`);
-    // performance.clearMarks(user);
   }
 }
 
@@ -178,5 +170,4 @@ else if (opt.environment === 'production') {
 }
 
 opt.assembler = assembler;
-log.info({ opt }, 'options');
 await main(opt, cache);

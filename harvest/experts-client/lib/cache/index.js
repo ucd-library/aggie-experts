@@ -513,7 +513,7 @@ export class CacheExpert {
       performance.clearMarks(`cdl(${expert})`);
     }
     }
-    performance.clearMarks(expert);
+    this.log.info({lib:'cache',measure:expert,expert},`◄ fetch(${expert})`);
   }
 
   async load() {
@@ -542,7 +542,7 @@ export class CacheExpert {
         await this.createGraphFromJsonLd(profile);
       }
     }
-    this.log.info({lib:'cache',measure:`load(${expert})`,expert},`✔ load(${expert})`);
+    this.log.info({lib:'cache',measure:[expert,`load(${expert})`],expert},`◄  load(${expert})`);
     performance.clearMarks(`load(${expert})`);
   }
 
@@ -555,9 +555,11 @@ export class CacheExpert {
   async transform() {
     const log = this.log;
     const base = this.base;
+    const expert = this.expert;
 
+    performance.mark('transform');
     for (const n of ['expert', 'authorship', 'grant']) {
-      //      this.log.info({lib:'cache',mark:n,user},`splay ${n}`);
+      this.log.info({lib:'cache',mark:n},`splay ${n}`);
 
       await (async (n) => {
         let bind=fs.readFileSync(path.join(__dirname,`query/${n}/bind.rq`),'utf8');
@@ -603,11 +605,11 @@ export class CacheExpert {
           await constructRecord(bindings);
         }
       })(n);
-      //      this.log.info({lib:'cache',measure:[n],user},`splayed ${n}`);
-//      performance.clearMarks(n);
+      this.log.info({lib:'cache',measure:[n],expert:expert},`splayed ${n}`);
+      performance.clearMarks(n);
     };
-    //    this.log.info({lib:'cache',measure:['splay',user],user},`splayed`);
-//    performance.clearMarks('splay');
+    this.log.info({lib:'cache',measure:['transform',expert],expert:expert},`transform`);
+    performance.clearMarks('transform');
   }
 
 }
