@@ -10,14 +10,19 @@ class SearchService extends BaseService {
     this.baseUrl = '/api/search';
   }
 
-  search(searchQuery) {
-    return this.request({
+  async search(searchQuery) {
+    let id = 'search:'+searchQuery;
+    let ido = { search : searchQuery };
+
+    await this.request({
       url : `${this.baseUrl}?${searchQuery}`,
-      checkCached : () => this.store.search(searchQuery),
-      onLoading : request => this.store.setSearchLoading(searchQuery, request),
-      onLoad : result => this.store.setSearchLoaded(searchQuery, result.body),
-      onError : e => this.store.setSearchError(searchQuery, e)
+      checkCached : () => this.store.data.bySearchQuery.get(id),
+      onLoading : request => this.store.onSearchUpdate(ido, {request}),
+      onLoad : payload => this.store.onSearchUpdate(ido, {payload: payload.body}),
+      onError : error => this.store.onSearchUpdate(ido, {error})
     });
+
+    return this.store.data.bySearchQuery.get(id);
   }
 
 }

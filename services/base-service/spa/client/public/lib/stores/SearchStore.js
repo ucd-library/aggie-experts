@@ -1,4 +1,6 @@
-var {BaseStore} = require('@ucd-lib/cork-app-utils');
+var {BaseStore, LruStore} = require('@ucd-lib/cork-app-utils');
+const payloadUtils = require('../payload.js').default;
+
 
 class SearchStore extends BaseStore {
 
@@ -6,48 +8,25 @@ class SearchStore extends BaseStore {
     super();
 
     this.data = {
-      bySearchQuery : {},
-      search : {
-        state : this.STATE.INIT
-      }
+      bySearchQuery : new LruStore({name: 'search.bySearchQuery'})
     }
 
     this.events = {
-      SEARCH_UPDATE : 'search-update',
+      SEARCH_UPDATE : 'search-update'
     }
   }
 
-  search(searchQuery='') {
-    return this.data.bySearchQuery[searchQuery];
+  onSearchUpdate(ido, payload) {
+    this._set(
+      payloadUtils.generate(ido, payload),
+      this.data.bySearchQuery,
+      this.events.SEARCH_UPDATE
+    );
   }
 
-  /**
-   * Search
-   */
-  setSearchLoading(searchQuery, request) {
-    this._setSearchState({
-      state : this.STATE.LOADING,
-      request, searchQuery
-    })
-  }
-
-  setSearchLoaded(searchQuery, payload) {
-    this._setSearchState({
-      state : this.STATE.LOADED,
-      searchQuery, payload
-    })
-  }
-
-  setSearchError(searchQuery, error) {
-    this._setSearchState({
-      state : this.STATE.ERROR,
-      searchQuery, error
-    })
-  }
-
-  _setSearchState(state) {
-    this.data.bySearchQuery[state.searchQuery] = state;
-    this.emit(this.events.SEARCH_UPDATE, state);
+  _set(payload, store, event) {
+    store.set(payload.id, payload);
+    this.emit(event, payload);
   }
 
 }

@@ -13,13 +13,13 @@ class BrowseByModel extends BaseModel {
   }
 
   /**
-   * @method browseAZ
+   * @method browseExpertsAZ
    * @description search elastic search for available experts
    *
-   * @returns {Promise} resolves to experts results
+   * @returns {Promise} resolves to experts results per letter (last name)
    */
-  async browseAZ() {
-    return await this.service.browseAZ();
+  async browseExpertsAZ() {
+    return this.service.browseExpertsAZ();
   }
 
   /**
@@ -33,19 +33,7 @@ class BrowseByModel extends BaseModel {
    * @returns {Promise} resolves to experts results
    */
   async browseExperts(lastInitial, page=1, size=25) {
-    let state = this.store.browseExperts(lastInitial, page, size);
-
-    if( state && state.request ) {
-      await state.request;
-    } else if( state && state.state === 'loaded' ) {
-      if( state.lastInitial !== lastInitial ) {
-        this.store.setBrowseExpertsLoaded(lastInitial, state.payload)
-      }
-    } else {
-      await this.service.browseExperts(lastInitial, page, size);
-    }
-
-    return this.store.browseExperts(lastInitial, page, size);
+    return this.service.browseExperts(lastInitial, page, size);
   }
 
 }

@@ -1,5 +1,6 @@
 const {BaseService} = require('@ucd-lib/cork-app-utils');
 const ExpertStore = require('../stores/ExpertStore');
+const payload = require('../payload.js').default;
 
 class ExpertService extends BaseService {
 
@@ -10,9 +11,12 @@ class ExpertService extends BaseService {
     this.baseUrl = '/api';
   }
 
-  get(id, subpage, options={}) {
-    return this.request({
-      url : `${this.baseUrl}/${id}`,
+  async get(expertId, subpage, options={}, clearCache=false) {
+    let ido = { expertId, subpage };
+    let id = payload.getKey(ido);
+
+    await this.request({
+      url : `${this.baseUrl}/${expertId}`,
       fetchOptions : {
         method : 'POST',
         headers : {
@@ -20,11 +24,21 @@ class ExpertService extends BaseService {
         },
         body : JSON.stringify(options)
       },
-      checkCached : () => this.store.getExpert(id+subpage),
-      onLoading : request => this.store.setExpertLoading(id+subpage, request),
-      onLoad : result => this.store.setExpertLoaded(id+subpage, result.body),
-      onError : e => this.store.setExpertError(id+subpage, e)
+      checkCached : () => {
+        if( clearCache ) {
+          console.log('clearing cache for expert');
+          debugger; // TODO not sure this works, need to check when 'showing' works
+          return;
+        }
+        console.log('returning cached expert if exists');
+        return this.store.data.byId.get(id);
+      },
+      onLoading : request => this.store.onExpertUpdate(ido, {request}),
+      onLoad : payload => this.store.onExpertUpdate(ido, {payload: payload.body}),
+      onError : error => this.store.onExpertUpdate(ido, {error})
     });
+
+    return this.store.data.byId.get(id);
   }
 
   async updateCitationVisibility(id, citationId, visible) {

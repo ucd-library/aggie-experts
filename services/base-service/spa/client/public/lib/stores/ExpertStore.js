@@ -1,4 +1,5 @@
-var {BaseStore} = require('@ucd-lib/cork-app-utils');
+var {BaseStore, LruStore} = require('@ucd-lib/cork-app-utils');
+const payloadUtils = require('../payload.js').default;
 
 class ExpertStore extends BaseStore {
 
@@ -6,56 +7,25 @@ class ExpertStore extends BaseStore {
     super();
 
     this.data = {
-      byId : {},
-      overview : {
-        state : this.STATE.INIT
-      },
-      search : {
-        state : this.STATE.INIT
-      }
+      byId : new LruStore({name: 'expert.byId'})
     }
 
     this.events = {
-      EXPERT_UPDATE : 'expert-update',
-      EXPERT_SEARCH_UPDATE : 'expert-search-update'
+      EXPERT_UPDATE : 'expert-update'
     }
   }
 
-  getExpert(id='', subpage='', clearCache=false) {
-    if( clearCache ) this.data.byId[id+subpage] = null;
-    return this.data.byId[id+subpage];
+  onExpertUpdate(ido, payload) {
+    this._set(
+      payloadUtils.generate(ido, payload),
+      this.data.byId,
+      this.events.EXPERT_UPDATE
+    );
   }
 
-  /**
-   * Get
-   */
-  setExpertLoading(id, promise) {
-    this._setExpertState({
-      id,
-      state: this.STATE.LOADING,
-      request : promise
-    });
-  }
-
-  setExpertLoaded(id, payload) {
-    this._setExpertState({
-      id,
-      state: this.STATE.LOADED,
-      payload
-    });
-  }
-
-  setExpertError(id, error) {
-    this._setExpertState({
-      id,
-      state: this.STATE.ERROR,
-      error
-    });
-  }
-
-  _setExpertState(state) {
-    this.data.byId[state.id] = state;
-    this.emit(this.events.EXPERT_UPDATE, state);
+  _set(payload, store, event) {
+    store.set(payload.id, payload);
+    this.emit(event, payload);
   }
 
 }
