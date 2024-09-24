@@ -66,8 +66,12 @@ export default class AppBrowseBy extends Mixin(LitElement)
     }
 
     this.id = e.location.path[2];
+    let page = e.location.path[3];
+    let resultsPerPage = e.location.path[4];
+
     if( this.id ) {
-      this.currentPage = 1;
+      this.currentPage = parseInt(page) ? page : 1;
+      this.resultsPerPage = parseInt(resultsPerPage) ? resultsPerPage : 25;
       this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage);
     }
   }
@@ -114,7 +118,12 @@ export default class AppBrowseBy extends Mixin(LitElement)
    */
   _onPaginationChange(e) {
     this.currentPage = e.detail.page;
-    this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage);
+
+    let path = '/browse/expert/' + this.id;
+    if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
+    if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
+    this.AppStateModel.setLocation(path);
+
     window.scrollTo(0, 0);
   }
 

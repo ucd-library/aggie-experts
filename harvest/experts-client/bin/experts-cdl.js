@@ -41,35 +41,32 @@ async function main(opt, cache) {
 
   const users = program.args;
 
-  if (opt.fetch) {
-    // Step 1: Get Usernames from CDL using any cmd line args if no users specified
-    if (users.length === 0 && opt.cdl.groups) {
-      var uquery = `users?detail=ref&per-page=1000&groups=${opt.cdl.groups}`;
-      var sinceFilter = '';
+  // Step 1: Get Usernames from CDL using any cmd line args if no users specified
+  if (users.length === 0 && opt.cdl.groups) {
+    var uquery = `users?detail=ref&per-page=1000&groups=${opt.cdl.groups}`;
+    var sinceFilter = '';
 
-      if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
-        // We need the date in XML ISO format
-        var date = new Date();
-        date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
-        sinceFilter = '&affected-since=' + date.toISOString();
-        uquery += sinceFilter;
-      }
-      else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
-        // We need the date in XML ISO format
-        var date = new Date(opt.cdl.modified);
-        sinceFilter = '&modified-since=' + date.toISOString();
-        uquery += sinceFilter;
-      }
+    if (opt.cdl.affected !== undefined && opt.cdl.affected !== null) {
+      // We need the date in XML ISO format
+      var date = new Date();
+      date.setDate(date.getDate() - opt.cdl.affected); // Subtracts days
+      sinceFilter = '&affected-since=' + date.toISOString();
+      uquery += sinceFilter;
+    }
+    else if (opt.cdl.modified !== undefined && opt.cdl.modified !== null) {
+      // We need the date in XML ISO format
+      var date = new Date(opt.cdl.modified);
+      sinceFilter = '&modified-since=' + date.toISOString();
+      uquery += sinceFilter;
+    }
 
-      // Get the users from CDL that meet the criteria
-      const entries = await ec.getCDLentries(uquery, 'users_via_groups');
-
-      // Add them to the users array
+    // Get the users from CDL that meet the criteria
+    const entries = await ec.getCDLentries(uquery, 'users_via_groups');
+    if (entries) {
       for (let entry of entries) {
         entry = entry['api:object'];
         users.push(entry['username'].substring(0, entry['username'].indexOf('@')));
       }
-
       log.info(users.length + ' users found');
     }
   }
@@ -78,51 +75,15 @@ async function main(opt, cache) {
   log.info(`Normalized ${normalized.length} users`, normalized);
 
   for (const user of normalized) {
-    // Get username from mailto
-
     let expert = new CacheExpert(cache, user, opt);
     await expert.fetch();
-    log.info(`Fetched ${expert.expert}`);
     await expert.load();
-    log.info(`Loaded ${expert.expert}`);
     await expert.transform();
-    log.info(`Transformed ${expert.expert}`);
-
-    // get the bare expert id
-    let email = expert.expert.replace(/^.*:/, '');
-    let expertId = email.replace(/@.*/, '');
-
     let db = expert._db;
-    if (opt.splay) {
-      log.info({ mark: 'splay', expertId }, `splay`);
-      const bindings = BF.fromRecord(
-        {
-          EXPERTID__: DF.literal(expertId),
-          KEYCLOAK_EMAIL__: DF.literal(email)
-        }
-      );
-      for (const n of ['expert', 'authorship', 'grant_role']) {
-      // for (const n of ['expert']) {
-          log.info({ mark: n, expertId }, `splay ${n}`);
-        await (async (n) => {
-          const splay = ql.getSplay(n);
-          // While we test, remove frame
-          delete splay['frame'];
-          // db = expert.db;
-          return await ec.splay({ ...splay, bindings, db, output: opt.output, expertId });
-        })(n);
-        log.info({ measure: [n], expertId }, `splayed ${n}`);
-        performance.clearMarks(n);
-      };
-      log.info({ measure: ['splay', user], expertId }, `splayed`);
-      performance.clearMarks('splay');
-    }
     // Any other value don't delete
     if (fuseki.delete === true) {
       const dropped = await fuseki.dropDb(db.db);
     }
-    // log.info({measure:[user],user},`completed`);
-    // performance.clearMarks(user);
   }
 }
 
@@ -139,7 +100,7 @@ const assembler = fs.readFileSync(__dirname + '/fuseki-client/expert.jsonld', 'u
 const program = new Command();
 
 performance.mark('start');
-program.name('cdl-profile')
+program.name('experts-cdl')
   .usage('[options] <users...>')
   .description('Import CDL Researcher Profiles and Works')
   .option('--output <output>', 'output directory','.')
@@ -152,7 +113,6 @@ program.name('cdl-profile')
   .option('--author-truncate-to <max>', 'Truncate authors to max', 40)
   .option('--author-trim-info', 'Remove extraneous author info', true)
   .option('--no-author-trim-info')
-  .option('--experts-service <experts-service>', 'Experts Sparql Endpoint', 'http://localhost:3030/experts/sparql')
   .option('--fuseki.type <type>', 'specify type on dataset creation', fuseki.type)
   .option('--fuseki.url <url>', 'fuseki url', fuseki.url)
   .option('--fuseki.auth <auth>', 'fuseki authorization', fuseki.auth)
@@ -161,8 +121,6 @@ program.name('cdl-profile')
   .option('--fuseki.replace', 'Replace the fuseki.db (delete before import)', true)
   .option('--no-fuseki.replace')
   .option('--environment <env>', 'specify environment', 'production')
-  .option('--no-splay', 'splay data', true)
-  .option('--no-fetch', 'fetch the data', true)
   .option('--skip-existing-user', 'skip if expert exists', false)
   .option_fuseki()
   .option_cdl()
@@ -212,5 +170,4 @@ else if (opt.environment === 'production') {
 }
 
 opt.assembler = assembler;
-log.info({ opt }, 'options');
 await main(opt, cache);

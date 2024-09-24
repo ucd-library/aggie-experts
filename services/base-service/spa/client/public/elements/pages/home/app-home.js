@@ -30,7 +30,7 @@ export default class AppHome extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    if( e.detail?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.trim());
+    if( e.detail?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.trim()));
   }
 
 }

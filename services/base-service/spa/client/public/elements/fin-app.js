@@ -167,6 +167,8 @@ export default class FinApp extends Mixin(LitElement)
       return import(/* webpackChunkName: "page-works" */ "./pages/expert/app-expert-works-list");
     } else if( page === 'works-edit' ) {
       return import(/* webpackChunkName: "page-works-edit" */ "./pages/expert/app-expert-works-list-edit");
+    } else if( page === 'grant' ) {
+      return import(/* webpackChunkName: "page-grant" */ "./pages/grant/app-grant");
     } else if( page === 'grants' ) {
       return import(/* webpackChunkName: "page-grants" */ "./pages/expert/app-expert-grants-list");
     } else if( page === 'grants-edit' ) {
@@ -268,7 +270,7 @@ export default class FinApp extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.searchTerm.trim());
+    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.searchTerm.trim()));
     this._closeHeader();
   }
 

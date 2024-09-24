@@ -373,8 +373,7 @@ function xml2jsonld() {
     "field-name":"api:field-name",
     "field-number":"api:field-number",
     "$t":"api:field-value",
-    "api:person": { "@container": "@list" },
-    "api:first-name": { "@container": "@list"}
+    "api:person": { "@container": "@list" }
 }}';
 
   G[jsonld_context_no_map_id]='
