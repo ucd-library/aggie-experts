@@ -75,18 +75,18 @@ async function main(opt, cache) {
   }
   let normalized = cache.normalize_experts(users);
 
-  //console.log(`Normalized ${normalized.length} users`, normalized);
+  log.info(`Normalized ${normalized.length} users`, normalized);
 
   for (const user of normalized) {
     // Get username from mailto
 
     let expert = new CacheExpert(cache, user, opt);
     await expert.fetch();
-    //console.log(`Fetched ${expert.expert}`);
+    log.info(`Fetched ${expert.expert}`);
     await expert.load();
-    //console.log(`Loaded ${expert.expert}`);
+    log.info(`Loaded ${expert.expert}`);
     await expert.transform();
-    //console.log(`Transformed ${expert.expert}`);
+    log.info(`Transformed ${expert.expert}`);
 
     // get the bare expert id
     let email = expert.expert.replace(/^.*:/, '');
