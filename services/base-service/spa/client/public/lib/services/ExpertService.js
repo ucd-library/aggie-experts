@@ -1,6 +1,6 @@
 const {BaseService} = require('@ucd-lib/cork-app-utils');
 const ExpertStore = require('../stores/ExpertStore');
-const payload = require('../payload.js').default;
+const payloadUtils = require('../payload.js').default;
 
 class ExpertService extends BaseService {
 
@@ -13,7 +13,7 @@ class ExpertService extends BaseService {
 
   async get(expertId, subpage, options={}, clearCache=false) {
     let ido = { expertId, subpage };
-    let id = payload.getKey(ido);
+    let id = payloadUtils.getKey(ido);
 
     await this.request({
       url : `${this.baseUrl}/${expertId}`,
@@ -33,9 +33,10 @@ class ExpertService extends BaseService {
         console.log('returning cached expert if exists');
         return this.store.data.byId.get(id);
       },
-      onLoading : request => this.store.onExpertUpdate(ido, {request}),
-      onLoad : payload => this.store.onExpertUpdate(ido, {payload: payload.body}),
-      onError : error => this.store.onExpertUpdate(ido, {error})
+      onUpdate : resp => this.store.set(
+        payloadUtils.generate(ido, resp),
+        this.store.data.byId
+      )
     });
 
     return this.store.data.byId.get(id);
