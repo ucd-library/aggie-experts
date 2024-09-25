@@ -166,7 +166,6 @@ export function styles() {
       border: 0;
       padding: 0;
       margin: 0.625rem 0;
-      padding-bottom: 0.7rem;
     }
 
     .about.seperator {
@@ -185,8 +184,12 @@ export function styles() {
       padding-bottom: 3rem;
     }
 
+    .contributors-section .contributor-group {
+      margin-bottom: 2.38rem;
+    }
+
     app-contributor-row {
-      margin-bottom: 1.19rem;
+      margin-top: 1.19rem;
     }
 
     .hero-text .status {
@@ -260,12 +263,39 @@ return html`
           <h2>Known Contributors</h2>
         </div>
         <hr class="contributors seperator">
+        <div class="contributor-group">
+          <h3 class="heading--highlight" ?hidden="${this.pis.length === 0}">Principal Investigator</h3>
+          ${this.pis.map(
+            (result) => html`
+              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+            `
+          )}
+        </div>
+        <div class="contributor-group">
+          <h3 class="heading--highlight" ?hidden="${this.coPis.length === 0}">Co-Investigator</h3>
+          ${this.coPis.map(
+            (result) => html`
+              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+            `
+          )}
+        </div>
+        <div class="contributor-group">
+          <h3 class="heading--highlight" ?hidden="${this.leaders.length === 0}">Leader</h3>
+          ${this.leaders.map(
+            (result) => html`
+              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+            `
+          )}
+        </div>
+        <div class="contributor-group">
+          <h3 class="heading--highlight" ?hidden="${this.researchers.length === 0}">Researcher</h3>
+          ${this.researchers.map(
+            (result) => html`
+              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+            `
+          )}
+        </div>
 
-        ${this.contributors.map(
-          (result) => html`
-            <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
-          `
-        )}
       </div>
     </div>
   </div>

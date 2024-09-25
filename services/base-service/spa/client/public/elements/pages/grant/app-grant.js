@@ -10,7 +10,6 @@ import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../components/contributor-row.js';
 import '../../utils/app-icons.js';
 
-// import utils from '../../../lib/utils/index.js';
 
 export default class AppGrant extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -23,7 +22,10 @@ export default class AppGrant extends Mixin(LitElement)
       grantNumber : { type : String },
       grantAdmin : { type : String },
       purpose : { type : String },
-      contributors : { type : Array },
+      pis : { type : Array },
+      coPis : { type : Array },
+      leaders : { type : Array },
+      researchers : { type : Array },
       startDate : { type : String },
       endDate : { type : String },
       completed : { type : Boolean }
@@ -45,7 +47,10 @@ export default class AppGrant extends Mixin(LitElement)
     this.grantNumber = '';
     this.grantAdmin = '';
     this.purpose = '';
-    this.contributors = [];
+    this.pis = [];
+    this.coPis = [];
+    this.leaders = [];
+    this.researchers = [];
     this.startDate = '';
     this.endDate = '';
     this.completed = false;
@@ -87,7 +92,6 @@ export default class AppGrant extends Mixin(LitElement)
     let grantGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.grantId)?.[0] || {};
     let contributorsGraph = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
 
-    console.log({payload: e.payload});
     this.grantName = grantGraph.name || '';
     this.awardedBy = grantGraph.assignedBy?.name || '';
     this.grantNumber = grantGraph.sponsorAwardId || '';
@@ -99,26 +103,46 @@ export default class AppGrant extends Mixin(LitElement)
     this.startDate = start ? new Date(start).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
     this.endDate = end ? new Date(end).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
-    // TODO get grant role, to organize contributors by type
-    //  should we split contributors into different properties based on type, or filter in the template?
-    // grantGraph.relatedBy.filter(r => r['inheres_in'] === 'expert/LDdgBTXN')[0]['@type']
-    // utils.getGrantRole()
-
     if( this.endDate && new Date(this.endDate) < new Date() ) {
       this.completed = true;
     }
 
-    this.contributors = [];
+    this.pis = [];
+    this.coPis = [];
+    this.leaders = [];
+    this.researchers = [];
     contributorsGraph.forEach(contributor => {
       let name = contributor.contactInfo[0]?.name;
       let subtitle = name.split('§')?.pop()?.trim() || '';
       name = name.split('§')?.shift()?.trim() || '';
 
-      this.contributors.push({
-        id : contributor['@id'],
-        name,
-        subtitle,
-      });
+      let type = grantGraph.relatedBy.filter(r => r['inheres_in'] === contributor['@id'])?.[0]?.['@type'];
+      if( !Array.isArray(type) ) type = [type];
+      if( type.includes('PrincipalInvestigatorRole') ) {
+        this.pis.push({
+          id : contributor['@id'],
+          name,
+          subtitle
+        });
+      } else if( type.includes('CoPrincipalInvestigatorRole') ) {
+        this.coPis.push({
+          id : contributor['@id'],
+          name,
+          subtitle
+        });
+      } else if( type.includes('LeaderRole') ) {
+        this.leaders.push({
+          id : contributor['@id'],
+          name,
+          subtitle
+        });
+      } else {
+        this.researchers.push({
+          id : contributor['@id'],
+          name,
+          subtitle
+        });
+      }
     });
   }
 
