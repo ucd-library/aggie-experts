@@ -4,17 +4,16 @@ import {render, styles} from "./app-grant.tpl.js";
 // import {Mixin, MainDomElement} from '@ucd-lib/theme-elements/utils/mixins';
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../components/contributor-row.js';
 import '../../utils/app-icons.js';
 
-import utils from '../../../lib/utils/index.js';
+// import utils from '../../../lib/utils/index.js';
 
 export default class AppGrant extends Mixin(LitElement)
   .with(LitCorkUtils) {
-    // .with(MainDomElement, LitCorkUtils) { // TODO bring back once cork-app-utils (and theme?) has been updated
 
   static get properties() {
     return {
@@ -26,7 +25,8 @@ export default class AppGrant extends Mixin(LitElement)
       purpose : { type : String },
       contributors : { type : Array },
       startDate : { type : String },
-      endDate : { type : String }
+      endDate : { type : String },
+      completed : { type : Boolean }
     }
   }
 
@@ -48,6 +48,7 @@ export default class AppGrant extends Mixin(LitElement)
     this.contributors = [];
     this.startDate = '';
     this.endDate = '';
+    this.completed = false;
 
     this.render = render.bind(this);
   }
@@ -103,6 +104,9 @@ export default class AppGrant extends Mixin(LitElement)
     // grantGraph.relatedBy.filter(r => r['inheres_in'] === 'expert/LDdgBTXN')[0]['@type']
     // utils.getGrantRole()
 
+    if( this.endDate && new Date(this.endDate) < new Date() ) {
+      this.completed = true;
+    }
 
     this.contributors = [];
     contributorsGraph.forEach(contributor => {

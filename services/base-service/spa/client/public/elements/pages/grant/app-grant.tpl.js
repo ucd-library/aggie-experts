@@ -188,6 +188,25 @@ export function styles() {
     app-contributor-row {
       margin-bottom: 1.19rem;
     }
+
+    .hero-text .status {
+      text-transform: uppercase;
+      color: var(--color-aggie-blue);
+      font-weight: bold;
+
+      background-color: var(--color-black-20);
+      padding: 5px 8px;
+    }
+
+    .hero-text .heading--highlight {
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 992px) {
+      .main-content {
+          width: 90%;
+      }
+    }
   `;
 
   return [elementStyles];
@@ -204,6 +223,7 @@ return html`
         </div>
         <h1>${this.grantName}</h1>
         <h3 class="heading--highlight">${this.startDate} – ${this.endDate}</h3>
+        <span class="status">${this.completed ? 'Complete' : 'Active'}</span>
       </div>
     </div>
 
