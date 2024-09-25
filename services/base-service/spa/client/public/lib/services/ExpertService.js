@@ -25,12 +25,8 @@ class ExpertService extends BaseService {
         body : JSON.stringify(options)
       },
       checkCached : () => {
-        if( clearCache ) {
-          console.log('clearing cache for expert');
-          debugger; // TODO not sure this works, need to check when 'showing' works
-          return;
-        }
-        console.log('returning cached expert if exists');
+        if( clearCache ) return;
+
         return this.store.data.byId.get(id);
       },
       onUpdate : resp => this.store.set(
