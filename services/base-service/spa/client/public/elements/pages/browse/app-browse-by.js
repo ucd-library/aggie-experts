@@ -72,7 +72,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
     if( this.id ) {
       this.currentPage = parseInt(page) ? page : 1;
       this.resultsPerPage = parseInt(resultsPerPage) ? resultsPerPage : 25;
-      this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage);
+      this._onBrowseExpertsUpdate(await this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage));
     }
   }
 

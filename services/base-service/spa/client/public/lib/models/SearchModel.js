@@ -26,17 +26,7 @@ class SearchModel extends BaseModel {
   async search(searchTerm, page=1, size=25, hasAvailability=[]) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}&hasAvailability=${encodeURIComponent(hasAvailability)}`;
 
-    let state = this.store.search(searchQuery);
-
-    if( state && state.request ) {
-      await state.request;
-    } else if( state && state.state === 'loaded' ) {
-      this.store.setSearchLoaded(searchQuery, state.payload);
-    } else {
-      await this.service.search(searchQuery);
-    }
-
-    return this.store.search(searchQuery);
+    return this.service.search(searchQuery);
   }
 
 }
