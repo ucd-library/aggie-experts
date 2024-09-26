@@ -95,7 +95,28 @@ router.route(
   expert_valid_path(
     {
       description: "Update an expert relationship by id",
-      // requestBody: openapi.requestBodies('Relationship_patch'),
+      // hack, in the validate.js makeValidator() func of the npm package,
+      // it's looking for schema.requestBody.content to build from, and can't use the ref returned from openapi.requestBodies()
+      requestBody: {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "@id": {
+                  "type": "string"
+                },
+                "visible": {
+                  "type": 'boolean'
+                },
+                "grant": {
+                  "type": 'boolean'
+                }
+              }
+            }
+          }
+        }
+      },
       responses: {
         "204": openapi.response('No_content'),
         "404": openapi.response('Relationship_not_found')
@@ -235,6 +256,108 @@ router.route(
   expert_valid_path(
     {
       description: "Get an expert by id",
+      requestBody: {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "is-visible": {
+                  "type": "boolean"
+                },
+                "expert": {
+                  "type": "object",
+                  "properties": {
+                    "include": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "grants": {
+                  "type": "object",
+                  "properties": {
+                    "include": {
+                      "type": "boolean"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "exclude": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "includeMisformatted": {
+                      "type": "boolean"
+                    },
+                    "sort": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "sort": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "works": {
+                  "type": "object",
+                  "properties": {
+                    "include": {
+                      "type": "boolean"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "exclude": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "includeMisformatted": {
+                      "type": "boolean"
+                    },
+                    "sort": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "sort": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       responses: {
         "200": openapi.response('Expert'),
         "404": openapi.response('Expert_not_found')
@@ -259,7 +382,23 @@ router.route(
   expert_valid_path(
     {
       description: "Update an experts visibility by expert id",
-      // requestBody: openapi.requestBodies('Expert_patch'),
+      requestBody: {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "@id": {
+                  "type": "string"
+                },
+                "visible": {
+                  "type": 'boolean'
+                }
+              }
+            }
+          }
+        }
+      },
       responses: {
         "204": openapi.response('No_content')
       }

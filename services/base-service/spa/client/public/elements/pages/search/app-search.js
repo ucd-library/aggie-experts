@@ -197,7 +197,7 @@ export default class AppSearch extends Mixin(LitElement)
       this._updateLocation();
     }
 
-    await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability);
+    this._onSearchUpdate(await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability));
   }
 
   _updateLocation() {
@@ -216,7 +216,7 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _onSearchUpdate(e) {
-    if( e.state !== 'loaded' ) return;
+    if( e?.state !== 'loaded' ) return;
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
 
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
@@ -282,7 +282,7 @@ export default class AppSearch extends Mixin(LitElement)
       industProjects : this.industProjects,
       mediaInterviews : this.mediaInterviews
     });
-    await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability);
+    this._onSearchUpdate(await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability));
     window.scrollTo(0, 0);
   }
 

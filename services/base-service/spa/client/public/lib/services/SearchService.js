@@ -1,5 +1,6 @@
 const {BaseService} = require('@ucd-lib/cork-app-utils');
 const SearchStore = require('../stores/SearchStore');
+const payloadUtils = require('../payload.js').default;
 
 class SearchService extends BaseService {
 
@@ -10,14 +11,20 @@ class SearchService extends BaseService {
     this.baseUrl = '/api/search';
   }
 
-  search(searchQuery) {
-    return this.request({
+  async search(searchQuery) {
+    let id = 'search:'+searchQuery;
+    let ido = { search : searchQuery };
+
+    await this.request({
       url : `${this.baseUrl}?${searchQuery}`,
-      checkCached : () => this.store.search(searchQuery),
-      onLoading : request => this.store.setSearchLoading(searchQuery, request),
-      onLoad : result => this.store.setSearchLoaded(searchQuery, result.body),
-      onError : e => this.store.setSearchError(searchQuery, e)
+      checkCached : () => this.store.data.bySearchQuery.get(id),
+      onUpdate : resp => this.store.set(
+        payloadUtils.generate(ido, resp),
+        this.store.data.bySearchQuery
+      )
     });
+
+    return this.store.data.bySearchQuery.get(id);
   }
 
 }

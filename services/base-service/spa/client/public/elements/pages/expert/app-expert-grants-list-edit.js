@@ -160,7 +160,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( e.id.includes('/grants-download') ) return;
 
 
-    this.expertId = e.id.split('/grants-edit')[0];
+    this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.isVisible = this.expert['is-visible'];
 
