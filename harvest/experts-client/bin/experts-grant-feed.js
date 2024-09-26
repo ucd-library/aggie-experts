@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-/* Transform the Aggie Enterprise grant feed into VIVO RDF and upload to the Symplectic server
+/* Transform the Aggie Enterprise grant feed into VIVO RDF and create CSV file for Symplectic import
    rakunkel@ucdavis.edu */
 
 import fs from 'fs';
