@@ -74,8 +74,7 @@ export default class AppGrant extends Mixin(LitElement)
     window.scrollTo(0, 0);
 
     this.grantId = e.location.pathname.replace(/^\/grant\//, '');
-    let grant = await this.GrantModel.get(this.grantId);
-    this._onGrantUpdate(grant);
+    this._onGrantUpdate(await this.GrantModel.get(this.grantId));
   }
 
   /**
@@ -87,7 +86,7 @@ export default class AppGrant extends Mixin(LitElement)
   async _onGrantUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grant' ) return;
-    if( e.id !== this.grantId ) return;
+    if( e.grantId !== this.grantId ) return;
 
     let grantGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.grantId)?.[0] || {};
     let contributorsGraph = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
