@@ -1,4 +1,4 @@
-PREFIX : <ark:/87287/d7nh2m/schema#>
+PREFIX : <ark:/87287/d7mh2m/schema#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cdl: <ark:/87287/d7_cdltest_/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
@@ -10,7 +10,7 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 
 select distinct ?filename ?EXPERT__ ?RELATIONSHIP__
 where {
-  graph <ark:/87287/d7nh2m/> {
+  graph <ark:/87287/d7mh2m/> {
     ?RELATIONSHIP__ :type ?type;
                     :related ?grant;
                     :related ?user;

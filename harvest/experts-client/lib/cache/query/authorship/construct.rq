@@ -1,4 +1,4 @@
-PREFIX : <ark:/87287/d7nh2m/schema#>
+PREFIX : <ark:/87287/d7mh2m/schema#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
@@ -69,7 +69,7 @@ WHERE {
                 select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
               WHERE {
 
-                graph <ark:/87287/d7nh2m/>  {
+                graph <ark:/87287/d7mh2m/>  {
                       VALUES (?source ?order) {
                        ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
                         ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
@@ -93,7 +93,7 @@ WHERE {
                 }
               } order by ?score
             }
-            graph <ark:/87287/d7nh2m/> {
+            graph <ark:/87287/d7mh2m/> {
               ?record :native/:field/:name ?field_name
             }
           }  group by ?relationship ?pub ?field_name
@@ -139,7 +139,7 @@ WHERE {
         select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
       WHERE {
 
-        graph <ark:/87287/d7nh2m/>  {
+        graph <ark:/87287/d7mh2m/>  {
               VALUES (?source ?order) {
                ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
                 ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
@@ -163,7 +163,7 @@ WHERE {
         }
       } order by ?score
     }
-    graph <ark:/87287/d7nh2m/> {
+    graph <ark:/87287/d7mh2m/> {
       ?record :source-name ?source;
               :native/:field ?field.
       ?field :name ?field_name.
@@ -234,7 +234,7 @@ WHERE {
           select (?RELATIONSHIP__ as ?relationship) ?pub ?record ?source ?score
         WHERE {
 
-          graph <ark:/87287/d7nh2m/> {
+          graph <ark:/87287/d7mh2m/> {
                 VALUES (?source ?order) {
                  ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
                   ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
@@ -259,7 +259,7 @@ WHERE {
           }
         } order by ?score
       }
-      graph <ark:/87287/d7nh2m/> {
+      graph <ark:/87287/d7mh2m/> {
         ?relationship :related ?user.
         ?user :category "user";
               :is-public "true";
@@ -273,7 +273,7 @@ WHERE {
       }
     } limit 1
   }
-  graph <ark:/87287/d7nh2m/> {
+  graph <ark:/87287/d7mh2m/> {
     ?relationship :type "publication-user-authorship";
                   :is-visible ?visible_str;
                   :type ?type;
@@ -317,8 +317,8 @@ WHERE {
   # EXPERTS ids
   BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
   BIND(concat(?begin,coalesce(concat('-',?end),'')) AS ?page)
-  bind(uri(replace(str(?relationship),str(<ark:/87287/d7nh2m/>),"ark:/87287/d7mh2m/relationship/")) as ?authorship)
-  bind(uri(replace(str(?pub),str(<ark:/87287/d7nh2m/>),"ark:/87287/d7mh2m/publication/")) as ?work)
+  bind(uri(replace(str(?relationship),str(<ark:/87287/d7mh2m/>),"ark:/87287/d7mh2m/relationship/")) as ?authorship)
+  bind(uri(replace(str(?pub),str(<ark:/87287/d7mh2m/>),"ark:/87287/d7mh2m/publication/")) as ?work)
   # pub date
   BIND(concat("-",IF(xsd:integer(?pub_m_raw) < 10, CONCAT("0", ?pub_m_raw), ?pub_m_raw)) AS ?pub_month)
   BIND(concat("-",IF(xsd:integer(?pub_d_raw) < 10, CONCAT("0", ?pub_d_raw), ?pub_d_raw)) AS ?pub_day)
@@ -331,7 +331,7 @@ WHERE {
   # journal
   BIND(uri(concat(str(venue:),"urn:issn:",?issn)) as ?journalURI)
   # authors
-  BIND(uri(concat(replace(str(?pub),str(<ark:/87287/d7nh2m/>),"ark:/87287/d7mh2m/publication/"),"#",str(?pos+1))) as ?author)
+  BIND(uri(concat(replace(str(?pub),str(<ark:/87287/d7mh2m/>),"ark:/87287/d7mh2m/publication/"),"#",str(?pos+1))) as ?author)
   BIND(?pos+1 as ?rank)
 
 }
