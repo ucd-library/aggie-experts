@@ -570,7 +570,7 @@ class ExpertModel extends BaseModel {
     };
 
     var patch=`PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-        PREFIX hasAvail: <ark:/87287/d7nh2m/keyword/c-ucd-avail/>
+        PREFIX hasAvail: <ark:/87287/d7mh2m/keyword/c-ucd-avail/>
         PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 delete {
     ?expert ucdlib:hasAvailability ?cur.
@@ -663,8 +663,8 @@ class GrantRole {
         }
         for (let i=0; i<node?.identifier?.length; i++) {
           console.log(`${i}:${node.identifier[i]}`);
-          if (node.identifier[i].startsWith('ark:/87287/d7nh2m/')) {
-            patch.objectId = node.identifier[i].replace('ark:/87287/d7nh2m/','');
+          if (node.identifier[i].startsWith('ark:/87287/d7mh2m/')) {
+            patch.objectId = node.identifier[i].replace('ark:/87287/d7mh2m/','');
             break;
           }
         }

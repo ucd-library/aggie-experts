@@ -482,7 +482,7 @@ export class CacheExpert {
       // Only fetch cdl if we have an iam
     { // Add in cdl cache
       performance.mark(`cdl(${expert})`);
-      const pd=path.join(this.base,'ark:','87287','d7nh2m');
+      const pd=path.join(this.base,'ark:','87287','d7mh2m');
       if (fs.existsSync(pd)) {
         if (this.refetch) {
           fs.rmdirSync(this.base,{recursive:true});
@@ -524,7 +524,7 @@ export class CacheExpert {
 
     const dirs=[ {mark:'base',dir:this.base},
                  {mark:`iam(${expert})`,dir:path.join(this.base,'ark:','87287','d7c08j')},
-                 {mark:`cdl(${expert})`,dir:path.join(this.base,'ark:','87287','d7nh2m')}
+                 {mark:`cdl(${expert})`,dir:path.join(this.base,'ark:','87287','d7mh2m')}
                ];
 
     for (const d of dirs) {

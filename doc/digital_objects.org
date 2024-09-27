@@ -285,7 +285,7 @@
   Enterprise system. Add ~grant/[id]~ as the path, as in:
   ~ark:/87287/d7c08j/grant/K337D88~
 
-  *CDL Elements* - Use ~ark:/87287/d7nh2m/grant/[number]~ to reference CDL
+  *CDL Elements* - Use ~ark:/87287/d7mh2m/grant/[number]~ to reference CDL
   Elements identifiers.  Some, but not all CDL Elements grants will use either
   of the above identifiers as their local ids.
 

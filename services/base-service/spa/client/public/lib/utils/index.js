@@ -361,10 +361,10 @@ class Utils {
     let availability = [];
 
     let arks = {
-      collab : 'ark:/87287/d7nh2m/keyword/c-ucd-avail/Collaborative%20projects',
-      community : 'ark:/87287/d7nh2m/keyword/c-ucd-avail/Community%20partnerships',
-      industry : 'ark:/87287/d7nh2m/keyword/c-ucd-avail/Industry%20Projects',
-      media : 'ark:/87287/d7nh2m/keyword/c-ucd-avail/Media%20enquiries'
+      collab : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative%20projects',
+      community : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Community%20partnerships',
+      industry : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry%20Projects',
+      media : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Media%20enquiries'
     };
 
     if( openTo.collabProjects ) availability.push(arks.collab);
