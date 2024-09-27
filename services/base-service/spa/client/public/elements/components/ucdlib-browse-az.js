@@ -11,6 +11,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     return {
         url : { type : String },
         keySort : { type : String },
+        browseType : { type : String },
         selectedLetter : { type : String, attribute : 'selected-letter' },
         noResult : { type : String, attribute : 'no-result' },
         sort : { state : true },
@@ -58,6 +59,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     ];
 
     this.selectedLetter = 'a';
+    this.browseType = '';
     this.sort = this.defaultSort;
 
     this.parseLocation();
@@ -75,8 +77,12 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       this.selectedLetter = e.location.path[2]?.toLowerCase();
     }
 
-    // to get active filters/a-z
-    await this.BrowseByModel.browseExpertsAZ();
+    this.browseType = e.location.path[1];
+    if( this.browseType === 'expert' ) {
+      await this.BrowseByModel.browseExpertsAZ();
+    } else if( this.browseType === 'grant' ) {
+      // TODO
+    }
 
     this.requestUpdate();
   }
@@ -104,7 +110,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     if( !v || v.value === this.selectedLetter || !v.exists ) return;
 
     this.selectedLetter = v.value;
-    this.AppStateModel.setLocation(`/browse/expert/${this.selectedLetter}`);
+    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}`);
   }
 
 }
