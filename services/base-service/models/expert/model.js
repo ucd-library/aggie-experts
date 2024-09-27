@@ -715,22 +715,22 @@ class GrantRole {
       error.status=500;
       throw error;
     }
-    if (config.experts.cdl.grant_role.propagate) {
-      const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
+    if (config.experts.cdl.grant.propagate) {
+      const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant);
       if (patch.visible != null) {
         resp = await cdl_user.setLinkPrivacy({
           objectId: patch.objectId,
           categoryId: 2,
           privacy: patch.visible ? 'public' : 'internal'
         })
-        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.grant_role.propagate}`);
+        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.grant.propagate}`);
       }
       if (patch.favourite != null) {
         resp = await cdl_user.setFavourite(patch)
-        logger.info({cdl_response:resp},`CDL propagate favourite ${config.experts.cdl.grant_role.propagate}`);
+        logger.info({cdl_response:resp},`CDL propagate favourite ${config.experts.cdl.grant.propagate}`);
       }
     } else {
-      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.grant_role.propagate}`);
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.grant.propagate}`);
     }
   }
 
