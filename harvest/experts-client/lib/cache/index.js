@@ -434,7 +434,7 @@ export class CacheExpert {
         this.log.info({lib:'cache',measure:expert,expert},`✔ ${pd}`);
       }
 //      try {
-        const fn=path.join(pd,'profile.jsonld');
+         const fn=path.join(pd,'profile.jsonld');
         let profile
         if ( !fs.existsSync(fn) || this.refetch) {
           profile=await this.iam.profile(expert);
@@ -459,13 +459,19 @@ export class CacheExpert {
         }
         // If an IAM user is not found, we will not be able to create a keycloak user
         if (p) {
-          const kc = await this.kcadmin.getOrCreateExpert(p.email, p.userID, kc_user);
-          fs.writeFileSync(kc_fn, JSON.stringify(kc, null, 2));
-          this.log.info({ lib: 'cache', measure: expert, expert },
+          try {
+            const kc = await this.kcadmin.getOrCreateExpert(p.email, p.userID, kc_user);
+            fs.writeFileSync(kc_fn, JSON.stringify(kc, null, 2));
+            this.log.info({ lib: 'cache', measure: expert, expert },
             `✔ ${kc_fn} expertId=${kc.attributes['expertId'][0]}`);
-          profile['@graph'][0].expertId = kc.attributes['expertId'][0];
-          fs.writeFileSync(fn, JSON.stringify(profile, null, 2));
-          this.log.info({ lib: 'cache', measure: expert, expert }, `✔ ${fn}`);
+            profile['@graph'][0].expertId = kc.attributes['expertId'][0];
+            fs.writeFileSync(fn, JSON.stringify(profile, null, 2));
+            this.log.info({ lib: 'cache', measure: expert, expert }, `✔ ${fn}`);
+          } catch (e) {
+            this.iam=null;
+            this.log.error({ lib: 'cache', error: e, expert: expert },
+              `✘ ${kc_fn}`);
+          }
         } else {
           this.log.error({ lib: 'cache', measure: expert, expert }, `✖ iam(${expert})`);
           this.iam = null;
@@ -498,15 +504,15 @@ export class CacheExpert {
       const fn=path.join(pd,'user_000.jsonld');
 
       if ( !fs.existsSync(fn) || this.refetch) {
-//        try {
+        try {
           await this.cdl.getPostUser(expert,{dir:pd,refetch:this.refetch});
           this.log.info({lib:'cache',measure:[expert,`cdl(${expert})`],expert},`✔ getPostUser(${expert})`);
           await this.cdl.getPostUserRelationships(expert,{dir:pd,refetch:this.refetch});
         this.log.info({lib:'cache',measure:[expert,`cdl(${expert}()`],expert},`✔ getPostUserRelationships`);
         this.log.info({lib:'cache',measure:`cdl(${expert})`,expert},`✔ cdl(${expert})`);
-//         } catch (e) {
-//           this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
-//         }
+         } catch (e) {
+           this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
+         }
       } else {
         this.log.info({lib:'cache',measure:`cdl(${expert})`,expert},`✔* cdl(${expert})`);
       }
