@@ -22,6 +22,9 @@ class ExpertModel extends BaseModel {
     super(name);
   }
 
+  grantRole() {
+    return new GrantRole(this);
+  }
   /**
    * @method snippet
    * @description returns searchable snippet of a node
@@ -549,7 +552,7 @@ class ExpertModel extends BaseModel {
   }
 
   /**
-   * @method patch
+   * @method patchAvailability
    * @description Patch an experts availability labels
    * @param {Object} data :  { "labelsToAddOrEdit", "labelsToRemove", "currentLabels" }
    * @param {String} expertId : Expert Id
@@ -624,4 +627,114 @@ where {
   }
 
 }
+
+class GrantRole {
+  constructor(expertModel) {
+    this.expertModel = expertModel;
+  }
+
+  /**
+   * @method patch
+   * @description Patch an grant_role file.
+   * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
+   * @param {String} expertId : Expert Id
+   * @returns {Object} : document object
+   **/
+  async patch(patch, expertId) {
+    let id = patch['@id'];
+    let expert;
+    let node;
+    let resp;
+
+    logger.info({expert:expertId,patch},`expert.grantRole.patch(${expertId})`);
+    if (patch.visible == null && patch.favourite == null) {
+      return 400;
+    }
+
+    // Immediate Update Elasticsearch document
+    try {
+      expert = await this.expertModel.client_get(expertId);
+      node = this.expertModel.get_node_by_related_id(expert,id);
+
+      if (!patch.objectId) {
+        // loop through node.identifiers and find the one that matches 'ark:/87287/d7mh2m/grant/'
+        if (typeof node?.identifier === 'string') {
+          node.identifier = [node.identifier];
+        }
+        for (let i=0; i<node?.identifier?.length; i++) {
+          console.log(`${i}:${node.identifier[i]}`);
+          if (node.identifier[i].startsWith('ark:/87287/d7nh2m/')) {
+            patch.objectId = node.identifier[i].replace('ark:/87287/d7nh2m/','');
+            break;
+          }
+        }
+        if (!patch.objectId) {
+          throw {
+            status: 500,
+            message: `CDL identifier not found in expert ${expertId}`
+          }
+        }
+      }
+    } catch(e) {
+      e.message = `relatedBy[${id}] not found in expert ${expertId}: ${e.message}`;
+      e.status=500;
+      throw e;
+    };
+    if (patch.visible != null) {
+      node['relatedBy']['is-visible'] = patch.visible;
+    }
+    if (patch.favourite != null) {
+      node['relatedBy']['is-favourite'] = patch.favourite;
+    }
+    await this.expertModel.update_graph_node(expertId,node);
+
+    // Update FCREPO
+
+    let options = {
+      path: expertId + '/' + id,
+      content: `
+        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        DELETE {
+          ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`<${id}> ucdlib:is-favourite ?fav .`:''}
+        }
+        INSERT {
+          ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`<${id}> ucdlib:is-favourite ${patch.favourite} .`:''}
+        } WHERE {
+          <${id}> ucdlib:is-visible ?v .
+          OPTIONAL { <${id}> ucdlib:is-favourite ?fav } .
+        }
+      `
+    };
+    const api_resp = await finApi.patch(options);
+
+    if (api_resp.last.statusCode != 204) {
+      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`grant_role.patch for ${expertId}`);
+      const error=new Error(`Failed fcrepo patch to ${id}:${api_resp.last.body}`);
+      error.status=500;
+      throw error;
+    }
+    if (config.experts.cdl.grant_role.propagate) {
+      const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
+      if (patch.visible != null) {
+        resp = await cdl_user.setLinkPrivacy({
+          objectId: patch.objectId,
+          categoryId: 2,
+          privacy: patch.visible ? 'public' : 'internal'
+        })
+        logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.grant_role.propagate}`);
+      }
+      if (patch.favourite != null) {
+        resp = await cdl_user.setFavourite(patch)
+        logger.info({cdl_response:resp},`CDL propagate favourite ${config.experts.cdl.grant_role.propagate}`);
+      }
+    } else {
+      logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.grant_role.propagate}`);
+    }
+  }
+
+
+}
+
 module.exports = ExpertModel;

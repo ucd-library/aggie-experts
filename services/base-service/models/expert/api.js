@@ -134,7 +134,7 @@ router.route(
       let resp;
       let role_model;
       if( data.grant ) {
-        role_model = await model.get_model('grant_role');
+        role_model = model.grantRole();
       } else {
         role_model = await model.get_model('authorship');
       }

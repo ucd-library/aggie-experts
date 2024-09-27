@@ -111,12 +111,11 @@
 
   | ark:              | system           | example                                     | see         |
   |-------------------+------------------+---------------------------------------------+-------------|
-  | ark:/87287/d7nh2m | CDL Elements     | ark:/87287/d7mh2m/user/[number]             | [[*Identifiers][Identifiers]] |
+  | ark:/87287/d7mh2m | CDL Elements     | ark:/87287/d7mh2m/user/[number]             | [[*Identifiers][Identifiers]] |
   | ark:/87287/d7gt0q | DAFIS Grants     | ark:/87287/d7gt0q/grant/[number]            | [[*Identifiers][Identifiers]] |
   | ark:/87287/d7c08j | Aggie Enterprise | ark:/87287/d7c08j/grant/[id]                | [[*Identifiers][Identifiers]] |
   | ark:/87287/d7c08j | Aggie Enterprise | ark:/87287/d7c08j/user/md5(employeeId/[id]) |             |
   | ark:/87287/d7c08j | Aggie Enterprise | ark:/87287/d7c08j/rems/[id]                 |             |
-
 
 
 
