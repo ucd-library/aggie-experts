@@ -115,7 +115,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'works' ) return;
 
-    this.expertId = e.id.split('/works')[0];
+    this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.isVisible = this.expert['is-visible'];
 

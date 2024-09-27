@@ -1,12 +1,12 @@
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
-PREFIX oap: <ark:/87287/d7nh2m/schema#>
+PREFIX oap: <ark:/87287/d7mh2m/schema#>
 PREFIX iam: <ark:/87287/d7c08j/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 select ?filename ?EXPERT__ ?EXPERTID__ ?EDUROAM__ ?USERID__ ?EMAIL__
 where {
-  graph <ark:/87287/d7nh2m/> {
+  graph <ark:/87287/d7mh2m/> {
     [] oap:username ?EDUROAM__;
        oap:is-public "true";
        .

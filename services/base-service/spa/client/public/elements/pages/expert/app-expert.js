@@ -124,10 +124,11 @@ export default class AppExpert extends Mixin(LitElement)
   async _onExpertUpdate(e, modified=false) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'expert' ) return;
-    if( e.id === this.expertId && !modified ) return;
+
+    if( e.expertId === this.expertId && !modified ) return;
     if( e.id.includes('/works-download') || e.id.includes('/grants-download') ) return;
 
-    this.expertId = e.id;
+    this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('editingExpertId') === this.expertId;
 

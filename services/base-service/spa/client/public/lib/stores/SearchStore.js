@@ -1,4 +1,4 @@
-var {BaseStore} = require('@ucd-lib/cork-app-utils');
+var {BaseStore, LruStore} = require('@ucd-lib/cork-app-utils');
 
 class SearchStore extends BaseStore {
 
@@ -6,48 +6,12 @@ class SearchStore extends BaseStore {
     super();
 
     this.data = {
-      bySearchQuery : {},
-      search : {
-        state : this.STATE.INIT
-      }
+      bySearchQuery : new LruStore({name: 'search'})
     }
 
     this.events = {
-      SEARCH_UPDATE : 'search-update',
+      SEARCH_UPDATE : 'search-update'
     }
-  }
-
-  search(searchQuery='') {
-    return this.data.bySearchQuery[searchQuery];
-  }
-
-  /**
-   * Search
-   */
-  setSearchLoading(searchQuery, request) {
-    this._setSearchState({
-      state : this.STATE.LOADING,
-      request, searchQuery
-    })
-  }
-
-  setSearchLoaded(searchQuery, payload) {
-    this._setSearchState({
-      state : this.STATE.LOADED,
-      searchQuery, payload
-    })
-  }
-
-  setSearchError(searchQuery, error) {
-    this._setSearchState({
-      state : this.STATE.ERROR,
-      searchQuery, error
-    })
-  }
-
-  _setSearchState(state) {
-    this.data.bySearchQuery[state.searchQuery] = state;
-    this.emit(this.events.SEARCH_UPDATE, state);
   }
 
 }

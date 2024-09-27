@@ -40,10 +40,10 @@ export class CdlClient {
 
   static context = {
     "@context": {
-      "@base": "ark:/87287/d7nh2m/",
-      "@vocab": "ark:/87287/d7nh2m/schema#",
-      "oap": "ark:/87287/d7nh2m/schema#",
-      "api": "ark:/87287/d7nh2m/schema#",
+      "@base": "ark:/87287/d7mh2m/",
+      "@vocab": "ark:/87287/d7mh2m/schema#",
+      "oap": "ark:/87287/d7mh2m/schema#",
+      "api": "ark:/87287/d7mh2m/schema#",
       "id": { "@type": "@id", "@id": "@id" },
       "field-name": "api:field-name",
       "field-number": "api:field-number",
@@ -52,7 +52,7 @@ export class CdlClient {
       "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
     },
-    "@id":'ark:/87287/d7nh2m/'
+    "@id":'ark:/87287/d7mh2m/'
   };
 
   /**
