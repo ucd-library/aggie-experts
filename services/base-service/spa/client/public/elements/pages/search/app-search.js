@@ -32,7 +32,8 @@ export default class AppSearch extends Mixin(LitElement)
       collabProjects : { type : Boolean },
       commPartner : { type : Boolean },
       industProjects : { type : Boolean },
-      mediaInterviews : { type : Boolean }
+      mediaInterviews : { type : Boolean },
+      refineResultsTo : { type : String },
     }
   }
 
@@ -55,13 +56,14 @@ export default class AppSearch extends Mixin(LitElement)
     this.commPartner = false;
     this.industProjects = false;
     this.mediaInterviews = false;
+    this.refineResultsTo = '';
 
     this.filters = [
       { label: 'All Results', count: 1000, icon: 'fa-infinity', active: true },
       { label: 'Experts', count: 100, icon: 'fa-user', active: false },
       { label: 'Grants', count: 50, icon: 'fa-file-invoice-dollar', active: false },
-      { label: 'Works', count: 500, icon: 'fa-book-open', active: false },
-      { label: 'Subjects', count: 350, icon: 'lightbulb-on', active: false }
+      // { label: 'Works', count: 500, icon: 'fa-book-open', active: false },
+      // { label: 'Subjects', count: 350, icon: 'lightbulb-on', active: false }
     ];
 
     this.render = render.bind(this);
@@ -77,12 +79,18 @@ export default class AppSearch extends Mixin(LitElement)
     if( Object.keys(query).length ) {
       this.searchTerm = decodeURI(query.q);
 
-      this.collabProjects = query.hasAvailability.includes('collab');
-      this.commPartner = query.hasAvailability.includes('community');
-      this.industProjects = query.hasAvailability.includes('industry');
-      this.mediaInterviews = query.hasAvailability.includes('media');
+      if( query.refineResultsTo ) this.refineResultsTo = query.refineResultsTo;
+      this.filters = this.filters.map(f => {
+        f.active = f.label.toLowerCase() === this.refineResultsTo || (!this.refineResultsTo && f.label === 'All Results');
+        return f;
+      });
 
-      if( query.hasAvailability.includes('ark:') ) {
+      this.collabProjects = query.hasAvailability?.includes('collab');
+      this.commPartner = query.hasAvailability?.includes('community');
+      this.industProjects = query.hasAvailability?.includes('industry');
+      this.mediaInterviews = query.hasAvailability?.includes('media');
+
+      if( query.hasAvailability?.includes('ark:') ) {
         if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Community partnerships') ) this.commPartner = true;
         if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative projects') ) this.collabProjects = true;
         if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry Projects') ) this.industProjects = true;
@@ -208,10 +216,19 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) hasAvailability.push('industry');
     if( this.mediaInterviews ) hasAvailability.push('media');
 
-    let path = hasAvailability.length ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
+    // TODO also need to update url with other query params, like for refineResultsTo and date filters
+    // /search?q=climate    &hasAvailability=collab,community,industry,media     &refineResultsTo=grants     &startDate=2000&endDate=2025&includeUnknown=true
+
+    let hasQueryParams = hasAvailability.length || this.refineResultsTo.length; // TODO dates
+
+    let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
     if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
-    if( hasAvailability.length ) path += `?q=${encodeURIComponent(this.searchTerm)}&hasAvailability=${hasAvailability.join(',')}`;
+
+    if( hasQueryParams ) path += `?q=${encodeURIComponent(this.searchTerm)}`;
+    if( hasAvailability.length ) path += `&hasAvailability=${hasAvailability.join(',')}`;
+    if( this.refineResultsTo.length ) path += `&refineResultsTo=${this.refineResultsTo}`;
+
     this.AppStateModel.setLocation(path);
   }
 
@@ -395,7 +412,11 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _onFilterChange(e) {
-    console.log('TODO handle filter change', e.detail);
+    // update url with search filters
+    this.refineResultsTo = e.detail.label;
+    if( this.refineResultsTo === 'all results' ) this.refineResultsTo = '';
+    this.currentPage = 1;
+    this._updateLocation();
   }
 
 }

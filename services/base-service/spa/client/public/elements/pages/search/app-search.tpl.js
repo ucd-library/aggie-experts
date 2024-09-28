@@ -323,10 +323,10 @@ return html`
   <div class="search-container">
     <div class="refine-search">
 
-      <!-- <h3>Refine Results</h3>
+      <h3>Refine Results</h3>
       <category-filter-controller @filter-change="${this._onFilterChange}" .filters="${this.filters}"></category-filter-controller>
 
-      <hr class="search-seperator"> -->
+      <hr class="search-seperator">
 
       <div class="open-to-heading">
         <h4>Experts Open To</h4>

@@ -33,7 +33,7 @@ export class CategoryFilterController extends LitElement {
     if( label === this.filters.filter(f => f.active)[0]?.label ) return;
 
     this.dispatchEvent(new CustomEvent('filter-change', {
-      detail : { label }
+      detail : { label : label.toLowerCase() }
     }));
 
     this.filters = this.filters.map(f => {
