@@ -5,14 +5,8 @@
 
 import fs from 'fs';
 import { Command } from '../lib/experts-commander.js';
-import FusekiClient from '../lib/fuseki-client.js';
 import { Storage } from '@google-cloud/storage';
-import { GoogleSecret } from '@ucd-lib/experts-api';
 import parser from 'xml2json';
-
-const gs = new GoogleSecret();
-
-const program = new Command();
 
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
@@ -21,14 +15,7 @@ import { exit, versions } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-
-// This also reads data from .env file via dotenv
-const fuseki = new FusekiClient({
-  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
-  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-  type: 'tdb2',
-  replace: true,
-});
+const program = new Command();
 
 program
   .version('1.0.0')
@@ -36,16 +23,16 @@ program
   .option('--env <env>', '', 'QA')
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
-  .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki.delete)
-  .option('--no-fuseki.delete')
-  .option('-r, --remote <remote>', 'Remote file path on the Symplectic server')
+  // .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki.delete)
+  // .option('--no-fuseki.delete')
   .option('-g, --generation <generation>', 'GCS (XML) file generation', 0)
   .option_fuseki()
   .option_log()
   .parse(process.argv);
 
 let opt = await program.opts();
-fuseki.log = opt.log;
+
+opt.fuseki.log = opt.log;
 const log = opt.log;
 
 if (opt.env === 'PROD') {
@@ -69,8 +56,6 @@ Object.keys(opt).forEach((k) => {
   }
 });
 
-
-log.info('Options:', opt);
 
 const graphName = 'http://www.ucdavis.edu/aggie_enterprise_' + opt.generation
 
@@ -253,7 +238,7 @@ async function main(opt) {
     fs.mkdirSync(opt.output, { recursive: true });
   }
   // Start a fresh database
-  let db = await fuseki.createDb(opt.db,opt);
+  let db = await opt.fuseki.createDb(opt.db,opt);
 
   // Ensure the output directory exists
   if (!fs.existsSync(opt.output + "/xml")) {
@@ -312,11 +297,11 @@ async function main(opt) {
 
   // Create a graph from the JSON-LD file
   log.info('Creating graph from JSON-LD file ' + graphName + '...');
-  log.info(createGraphFromJsonLdFile(db, jsonld, graphName));
-
+  await createGraphFromJsonLdFile(db, jsonld, graphName);
 
   // Apply the grants2vivo.ru SPARQL update to the graph
   const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.ru', 'utf8');
+  console.log(vivo);
   log.info(await executeUpdate(db, vivo));
 
   // Exexute the SPARQL queries to to export the csv files

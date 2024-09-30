@@ -1,3 +1,8 @@
+// Creates the delta files for the grants, links, and persons CSV files.
+// The delta files are created by comparing the new and old CSV files.
+// The delta files are created in the delta directory.
+// Sub process of the experts-grant-feed-process.js script.
+
 import pkg from 'csvtojson';
 const { csv } = pkg;
 
@@ -17,7 +22,7 @@ const __dirname = dirname(__filename);
 
 program
 .version('1.0.0')
-.description('Upload a file to a remote SFTP server')
+.description('Creates the delta files for the grants, links, and persons CSV files')
 .option('--env <env>', '', 'QA')
 .option('--debug', 'Debug mode')
 .requiredOption('-o, --dir <dir>', 'Working directory')
@@ -78,7 +83,6 @@ function getCsvHeaders(csvPath) {
     fs.createReadStream(csvPath)
       .pipe(csv_p())
       .on('headers', (headers) => {
-        console.log('CSV Headers:', headers);
         resolve(headers);
       })
       .on('error', (error) => {
@@ -99,8 +103,6 @@ async function readGrants() {
     .fromFile(newGrantsPath)
     .then((innerNewGrants) => {
       newGrants = innerNewGrants;
-      // logger.info('New grants read');
-      // logger.info('New grants:', newGrants.length);
       csv()
       .fromFile(oldGrantsPath)
       .then((innerOldGrants) => {
@@ -112,7 +114,7 @@ async function readGrants() {
           let isNew = !oldGrants.find((oldItem) => oldItem["id"] === newItem["id"]);
           //if isNew or the grant has been updated
           if (isNew) {
-            logger.info('New grant:', newItem["id"]);
+            // logger.info('New grant:', newItem["id"]);
             addedGrants.push(newItem);
             return true;
           }
@@ -123,8 +125,6 @@ async function readGrants() {
             // If isUpdated is true, return true
             for (let key in oldItem) {
               if (oldItem[key] !== newItem[key]) {
-                // logger.info('Updated Grant: ' + oldItem["id"] + ' Old:' + key, oldItem[key]);
-                // logger.info('Updated Grant: ' + newItem["id"] + ' New:' + key, newItem[key]);
                 isUpdated = true;
               }
             }
@@ -183,13 +183,11 @@ async function readLinks() {
     .pipe(csv_p())
     .on('data', (data) => oldLinks.push(data))
     .on('end', () => {
-      logger.info('oldLink read');
       // Next read the new links file
       fs.createReadStream(newLinksPath)
       .pipe(csv_p())
       .on('data', (data) => newLinks.push(data))
       .on('end', () => {
-        logger.info('newLinks read');
         resolve();
       });
     });
@@ -203,7 +201,6 @@ async function getDeltaLinks() {
       let isNew = !oldLinks.find((oldItem) => oldItem["id-2"] === newItem["id-2"]);
       //if isNew or the grant has been updated
       if (isNew) {
-        logger.info('New link:', newItem["id-1"] + ' / ' + newItem["id-2"] + ' / ' + newItem["link-type-id"]);
         return true;
       }
       let oldItem = oldLinks.find((oldItem) => oldItem["id-1"] === newItem["id-1"] && oldItem["id-2"] === newItem["id-2"]);
@@ -212,8 +209,6 @@ async function getDeltaLinks() {
       // If isUpdated is true, return true
       for (let key in oldItem) {
         if (oldItem[key] !== newItem[key]) {
-          logger.info('Updated Link:' + oldItem["id-1"] + ' / ' + oldItem["id-2"] + ' Old:' + key, oldItem[key]);
-          logger.info('Updated Link:' + newItem["id-1"] + ' / ' + newItem["id-2"] + ' New:' + key, newItem[key]);
           isUpdated = true;
         }
       }
@@ -253,7 +248,6 @@ async function readPersons() {
           let isNew = !oldPersons.find((oldItem) => oldItem["id"] === newItem["id"] && oldItem["full-name"] === newItem["full-name"]);
           //if isNew or the grant has been updated
           if (isNew) {
-            logger.info('New Person:', newItem["full-name"] + ' / ' + newItem["id"]);
             return true;
           }
           else {
@@ -263,8 +257,6 @@ async function readPersons() {
             // If isUpdated is true, return true
             for (let key in oldItem) {
               if (oldItem[key] !== newItem[key]) {
-                logger.info('Updated Person: ' + oldItem["id"] + ' / ' + oldItem["full-name"] + ' Old:' + key, oldItem[key]);
-                logger.info('Updated Person: ' + newItem["id"] + ' / ' + newItem["full-name"] + ' New:' + key, newItem[key]);
                 isUpdated = true;
               }
             }
@@ -287,7 +279,6 @@ async function addGrantsLinked() {
         if (newGrants.find((grant) => grant["id"] === newLinks[i]["id-2"])) {
           let grant = newGrants.find((grant) => grant["id"] === newLinks[i]["id-2"]);
           deltaGrants.push(grant);
-          logger.info('New grant linked:', grant["id"]);
         }
       }
     }
@@ -306,7 +297,7 @@ async function addLinks() {
     for (let i = 0; i < newLinks.length; i++) {
       if (deltaGrants.find((grant) => grant["id"] === newLinks[i]["id-2"])) {
         deltaLinks.push(newLinks[i]);
-        logger.info('New link added:', newLinks[i]["id-1"] + ' / ' + newLinks[i]["id-2"]);
+        // logger.info('New link added:', newLinks[i]["id-1"] + ' / ' + newLinks[i]["id-2"]);
       }
     }
     resolve();
@@ -327,7 +318,7 @@ async function addUserLinks() {
         if (newLinks.find((link) => link["id-2"] === deltaGrants[i]["id"])) {
           let link = newLinks.find((link) => link["id-2"] === deltaGrants[i]["id"]);
           deltaLinks.push(link);
-          logger.info('New user link added for:', deltaGrants[i]["id"]);
+          // logger.info('New user link added for:', deltaGrants[i]["id"]);
         }
       }
     }
@@ -347,7 +338,7 @@ async function addGrantsOfPersons() {
           // and add it to the deltaGrants array
           let grant = newGrants.find((grant) => grant["id"] === newPersons[i]["id"]);
           deltaGrants.push(grant);
-          logger.info('New grant of person:', grant["id"]);
+          // logger.info('New grant of person:', grant["id"]);
         }
       }
     }
