@@ -124,14 +124,12 @@ async function downloadFile(bucketName, fileName, destinationPath, generation) {
           resolve();
         })
         .catch((err) => {
-          console.error(`Failed to download version ${generation} of file ${fileName}:`, err);
           log.error(`Failed to download version ${generation} of file ${fileName}:`, err);
           reject(err);
         }
         );
     }
     catch (err) {
-      console.error('Error downloading file:', err);
       log.error('Error downloading file:', err);
       reject(err);
     }
@@ -251,7 +249,6 @@ async function main(opt) {
 
   // First get an array of file versions from GCS. 0 is the current version, 1 is the previous version, etc.
   const fileVersions = await getXmlVersions(opt.bucket, opt.filePath);
-  console.log('File versions:', fileVersions);
 
   // Download the file version asked for from GCS
   await downloadFile(opt.bucket, opt.filePath, localFilePath, fileVersions[opt.generation]);
@@ -259,7 +256,6 @@ async function main(opt) {
 
   // Convert the XML to JSON
   let json = parser.toJson(xml, { object: true, arrayNotation: false });
-  // console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
 
   // Create the JSON-LD context
   let contextObj = {
@@ -301,7 +297,6 @@ async function main(opt) {
 
   // Apply the grants2vivo.ru SPARQL update to the graph
   const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.ru', 'utf8');
-  console.log(vivo);
   log.info(await executeUpdate(db, vivo));
 
   // Exexute the SPARQL queries to to export the csv files
