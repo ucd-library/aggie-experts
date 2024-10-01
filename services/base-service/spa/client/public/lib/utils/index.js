@@ -170,6 +170,7 @@ class Utils {
       // determine type(s) from all types excluding 'Grant', and split everything after 'Grant_' by uppercase letters with space
       // should just be one type, but just in case
       try {
+        if( g['@type'] && !Array.isArray(g['@type']) ) g['@type'] = [g['@type']];
         g.types = (g['@type'] || []).filter(t => t !== 'Grant').map(t => t.split('Grant_')[1].replace(/([A-Z])/g, ' $1').trim());
       } catch(e) {
         console.error('Error parsing grant types', g);
