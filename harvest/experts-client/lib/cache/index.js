@@ -421,110 +421,107 @@ export class CacheExpert {
 //    }
   }
 
-  async fetch() {
-    const expert=this.expert;
-
-    this.log.info({lib:'cache',measure:expert,expert},`► fetch(${expert})`);
-
-    { // Add in profile
-      performance.mark(`iam(${expert})`);
-      const pd = path.join(this.base,'ark:','87287','d7c08j');
-      if (fs.existsSync(pd)) {
-        if (this.refetch) {
-          fs.rmdirSync(this.base,{recursive:true});
-          this.log.info({lib:'cache',measure:expert,expert},`✖ ${pd}`);
-        } else {
-          this.log.info({lib:'cache',measure:expert,expert},`✔* ${pd}`);
-        }
+  verify_or_create_cache_directory(...parts) {
+    const pd = path.join(this.base,...parts);
+    let expert = this.expert;
+    if (fs.existsSync(pd)) {
+      if (this.refetch) {
+        fs.rmdirSync(this.base,{recursive:true});
+        this.log.trace({lib:'cache',measure:expert,expert},`✖ ${pd}`);
       } else {
-        fs.mkdirSync(pd,{recursive:true});
-        this.log.info({lib:'cache',measure:expert,expert},`✔ ${pd}`);
+        this.log.trace({lib:'cache',measure:expert,expert},`✔* ${pd}`);
       }
-//      try {
-         const fn=path.join(pd,'profile.jsonld');
-        let profile
-        if ( !fs.existsSync(fn) || this.refetch) {
-          profile=await this.iam.profile(expert);
-        } else {
-          profile=JSON.parse(fs.readFileSync(fn));
-          this.log.info({lib:'cache',measure:expert,expert},`✔* ${fn}`);
-        }
-
-      const kc_fn = path.join(this.base, 'keycloak.json');
-      if (this.kcadmin && (!fs.existsSync(kc_fn) || this.refetch)) {
-        const p = profile['@graph'][0];
-        let kc_user = {};
-        if (p) {
-          kc_user = {
-            firstName: p.oFirstName,
-            lastName: p.oLastName,
-            attributes: {
-              ucdPersonUUID: p.mothraId,
-              iamId: p.iamId
-            }
-          };
-        }
-        // If an IAM user is not found, we will not be able to create a keycloak user
-        if (p) {
-          try {
-            const kc = await this.kcadmin.getOrCreateExpert(p.email, p.userID, kc_user);
-            fs.writeFileSync(kc_fn, JSON.stringify(kc, null, 2));
-            this.log.info({ lib: 'cache', measure: expert, expert },
-            `✔ ${kc_fn} expertId=${kc.attributes['expertId'][0]}`);
-            profile['@graph'][0].expertId = kc.attributes['expertId'][0];
-            fs.writeFileSync(fn, JSON.stringify(profile, null, 2));
-            this.log.info({ lib: 'cache', measure: expert, expert }, `✔ ${fn}`);
-          } catch (e) {
-            this.iam=null;
-            this.log.error({ lib: 'cache', error: e, expert: expert },
-              `✘ ${kc_fn}`);
-          }
-        } else {
-          this.log.error({ lib: 'cache', measure: expert, expert }, `✖ iam(${expert})`);
-          this.iam = null;
-        }
-      }
-        this.log.info({lib:'cache',measure:`iam(${expert})`,expert},`✔ iam(${expert})`);
-//      } catch (e) {
-//        this.log.error({lib:'cache',measure:`iam(${expert})`,
-//                        error:e.message,expert},`✘ iam(${expert})`);
-//      }
-      performance.clearMarks(`iam(${expert})`);
+    } else {
+      fs.mkdirSync(pd,{recursive:true});
+      this.log.trace({lib:'cache',measure:expert,expert},`✔ ${pd}`);
     }
-    if (this.iam) {
-      // Only fetch cdl if we have an iam
-    { // Add in cdl cache
-      performance.mark(`cdl(${expert})`);
-      const pd=path.join(this.base,'ark:','87287','d7mh2m');
-      if (fs.existsSync(pd)) {
-        if (this.refetch) {
-          fs.rmdirSync(this.base,{recursive:true});
-          this.log.info({lib:'cache',measure:expert,expert},`✖ ${pd}`);
-        } else {
-          this.log.info({lib:'cache',measure:expert,expert},`✔* ${pd}`);
+    return pd;
+  }
+  // Fetch and cache a IAM profile.  Return JSON
+  async fetch_iam_profile() {
+    let expert=this.expert;
+    let profile;
+
+    performance.mark(`iam(${expert})`);
+    const pd=this.verify_or_create_cache_directory('ark:','87287','d7c08j');
+    const fn=path.join(pd,'profile.jsonld');
+    if ( !fs.existsSync(fn) || this.refetch) {
+      profile=await this.iam.profile(expert);
+    } else {
+      profile=JSON.parse(fs.readFileSync(fn));
+      this.log.info({lib:'cache',measure:expert,expert},`✔* ${fn}`);
+    }
+
+    const kc_fn = path.join(this.base, 'keycloak.json');
+    if (this.kcadmin && (!fs.existsSync(kc_fn) || this.refetch)) {
+      const p = profile['@graph'][0];
+      let kc_user = {};
+      if (p) {
+        kc_user = {
+          firstName: p.oFirstName,
+          lastName: p.oLastName,
+          attributes: {
+            ucdPersonUUID: p.mothraId,
+            iamId: p.iamId
+          }
+        };
+      }
+      // If an IAM user is not found, we will not be able to create a keycloak user
+      if (p) {
+        try {
+          const kc = await this.kcadmin.getOrCreateExpert(p.email, p.userID, kc_user);
+          fs.writeFileSync(kc_fn, JSON.stringify(kc, null, 2));
+          this.log.info({ lib: 'cache', measure: expert, expert },
+                        `✔ ${kc_fn} expertId=${kc.attributes['expertId'][0]}`);
+          profile['@graph'][0].expertId = kc.attributes['expertId'][0];
+          fs.writeFileSync(fn, JSON.stringify(profile, null, 2));
+          this.log.info({ lib: 'cache', measure: expert, expert }, `✔ ${fn}`);
+        } catch (e) {
+          this.iam=null;
+          this.log.error({ lib: 'cache', error: e, expert: expert },
+                         `✘ ${kc_fn}`);
         }
       } else {
-        fs.mkdirSync(pd,{recursive:true});
-        this.log.info({lib:'cache',measure:expert,expert},`✔ ${pd}`);
+        this.log.error({ lib: 'cache', measure: expert, expert }, `✖ iam(${expert})`);
+        this.iam = null;
       }
+    }
+    this.log.info({lib:'cache',measure:`iam(${expert})`,expert},`✔ iam(${expert})`);
+    //      } catch (e) {
+    //        this.log.error({lib:'cache',measure:`iam(${expert})`,
+    //                        error:e.message,expert},`✘ iam(${expert})`);
+    //      }
+    performance.clearMarks(`iam(${expert})`);
+  }
 
-      const fn=path.join(pd,'user_000.jsonld');
+  async fetch_cdl() {
+    let expert=this.expert;
+    performance.mark(`cdl(${expert})`);
+    const pd=this.verify_or_create_cache_directory('ark:','87287','d7mh2m');
+    const fn=path.join(pd,'user_000.jsonld');
 
-      if ( !fs.existsSync(fn) || this.refetch) {
-        try {
-          await this.cdl.getPostUser(expert,{dir:pd,refetch:this.refetch});
-          this.log.info({lib:'cache',measure:[expert,`cdl(${expert})`],expert},`✔ getPostUser(${expert})`);
-          await this.cdl.getPostUserRelationships(expert,{dir:pd,refetch:this.refetch});
+    if ( !fs.existsSync(fn) || this.refetch) {
+      try {
+        await this.cdl.getPostUser(expert,{dir:pd,refetch:this.refetch});
+        this.log.info({lib:'cache',measure:[expert,`cdl(${expert})`],expert},`✔ getPostUser(${expert})`);
+        await this.cdl.getPostUserRelationships(expert,{dir:pd,refetch:this.refetch});
         this.log.info({lib:'cache',measure:[expert,`cdl(${expert}()`],expert},`✔ getPostUserRelationships`);
         this.log.info({lib:'cache',measure:`cdl(${expert})`,expert},`✔ cdl(${expert})`);
-         } catch (e) {
-           this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
-         }
-      } else {
-        this.log.info({lib:'cache',measure:`cdl(${expert})`,expert},`✔* cdl(${expert})`);
+      } catch (e) {
+        this.log.error({ measure:[`cdl(${expert})`],expert, error: e }, `✘ cdl(${expert})`);
       }
-      performance.clearMarks(`cdl(${expert})`);
+    } else {
+      this.log.info({lib:'cache',measure:`cdl(${expert})`,expert},`✔* cdl(${expert})`);
     }
+    performance.clearMarks(`cdl(${expert})`);
+  }
+
+  async fetch() {
+    const expert=this.expert;
+    this.log.info({lib:'cache',measure:expert,expert},`► fetch(${expert})`);
+    let profile =await this.fetch_iam_profile();
+    if (this.iam) {
+      await this.fetch_cdl();
     }
     this.log.info({lib:'cache',measure:expert,expert},`◄ fetch(${expert})`);
   }
