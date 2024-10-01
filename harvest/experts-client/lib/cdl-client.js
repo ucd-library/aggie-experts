@@ -40,10 +40,10 @@ export class CdlClient {
 
   static context = {
     "@context": {
-      "@base": "ark:/87287/d7nh2m/",
-      "@vocab": "ark:/87287/d7nh2m/schema#",
-      "oap": "ark:/87287/d7nh2m/schema#",
-      "api": "ark:/87287/d7nh2m/schema#",
+      "@base": "ark:/87287/d7mh2m/",
+      "@vocab": "ark:/87287/d7mh2m/schema#",
+      "oap": "ark:/87287/d7mh2m/schema#",
+      "api": "ark:/87287/d7mh2m/schema#",
       "id": { "@type": "@id", "@id": "@id" },
       "field-name": "api:field-name",
       "field-number": "api:field-number",
@@ -52,7 +52,7 @@ export class CdlClient {
       "api:first-names-X": { "@container": "@list" },
       "api:web-address": { "@container": "@list" }
     },
-    "@id":'ark:/87287/d7nh2m/'
+    "@id":'ark:/87287/d7mh2m/'
   };
 
   /**
@@ -197,6 +197,52 @@ export class CdlClient {
     }
     return null;
   }
+
+  /**
+   * @description Get user from CDL and post to a fuseki database
+   * @param {
+   * } opt
+   * @returns
+   *
+   */
+  async getGroupList(groups) {
+    const users = [];
+    if (!groups) {
+      throw new Error('groups is required');
+    }
+    let lastPage = false;
+    let nextPage = `${this.url}/users?detail=ref&per-page=1000&groups=${groups}`;
+    // let sinceFilter = '';
+
+    // if (options.affected !== undefined && options.affected !== null) {
+    //   // We need the date in XML ISO format
+    //   var date = new Date();
+    //   date.setDate(date.getDate() - options.affected); // Subtracts days
+    //   sinceFilter = '&affected-since=' + date.toISOString();
+    //   query += sinceFilter;
+    // }
+    // else if (options.modified !== undefined && options.modified !== null) {
+    //   // We need the date in XML ISO format
+    //   var date = new Date(options.modified);
+    //   sinceFilter = '&modified-since=' + date.toISOString();
+    //   query += sinceFilter;
+    // }
+    let count = 0;
+    while (nextPage) {
+      let entries = [];
+      const page = await this.fetchXmlWithTimeout(nextPage,{name:'groups',count});
+      if (page?.feed?.entry) {
+        entries = entries.concat(page.feed.entry);
+        for (let entry of entries) {
+          entry= entry['api:object'];
+          users.push(entry['username']);
+        }
+      }
+      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+    }
+    return users;
+  }
+
 
   /**
    * @description Get user from CDL and post to a fuseki database
