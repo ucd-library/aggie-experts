@@ -115,9 +115,9 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
   async _onExpertUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants' ) return;
-    if( e.id === this.expertId ) return;
+    if( e.expertId === this.expertId ) return;
 
-    this.expertId = e.id.split('/grants')[0];
+    this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.isVisible = this.expert['is-visible'];
 
