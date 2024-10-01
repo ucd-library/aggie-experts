@@ -21,6 +21,7 @@ program
   .version('1.0.0')
   .description('Upload a file to a remote SFTP server')
   .option('--env <env>', '', 'QA')
+  .option('--debug', 'Debug mode')
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
   // .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki.delete)
@@ -45,7 +46,15 @@ if (opt.env === 'PROD') {
 
 opt.db = 'ae-grants';
 
-opt.output += '/generation-' + opt.generation;
+let outputSubDirectory = opt.output + '/generation-' + opt.generation + '/';
+
+// Write to
+if (opt.debug) console.log('Output subdirectory:', outputSubDirectory);
+
+// Ensure the output directory exists
+if (!fs.existsSync(outputSubDirectory)) {
+  fs.mkdirSync(outputSubDirectory, { recursive: true });
+}
 
 // fusekize opt
 Object.keys(opt).forEach((k) => {
@@ -71,9 +80,9 @@ if (opt.xml.startsWith('gs://')) {
   opt.filePath = filePath;
   // get the file name from the path
   opt.fileName = filePathParts[filePathParts.length - 1];
-  log.info(`File Name: ${opt.fileName}`);
-  log.info(`Bucket: ${bucketName}`);
-  log.info(`File: ${filePath}`);
+  if (opt.debug) console.log(`File Name: ${opt.fileName}`);
+  if (opt.debug) console.log(`Bucket: ${bucketName}`);
+  if (opt.debug) console.log(`File: ${filePath}`);
 }
 
 async function getXmlVersions(bucketName, fileName) {
@@ -90,7 +99,7 @@ async function getXmlVersions(bucketName, fileName) {
         files.forEach(function (file) {
           if (file.name == fileName) {
             xmlGenerations.push(file.metadata.generation);
-            log.info(`File: ${file.name}, Generation: ${file.metadata.generation}`);
+            if (opt.debug) console.log(`File: ${file.name}, Generation: ${file.metadata.generation}`);
           }
         });
 
@@ -108,7 +117,7 @@ async function getXmlVersions(bucketName, fileName) {
 
 async function downloadFile(bucketName, fileName, destinationPath, generation) {
 
-  log.info(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
+  if (opt.debug) console.log(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
 
   const bucket = storage.bucket(bucketName);
   const meta = bucket.file(fileName);
@@ -118,7 +127,7 @@ async function downloadFile(bucketName, fileName, destinationPath, generation) {
       const versionedFile = bucket.file(fileName, { generation: generation });
       versionedFile.download()
         .then((data) => {
-          log.info(`Downloaded version ${generation} of file ${fileName}`);
+          if (opt.debug) console.log(`Downloaded version ${generation} of file ${fileName}`);
                 // Write the file to the local file system
           fs.writeFileSync(destinationPath, data.toString());
           resolve();
@@ -141,7 +150,7 @@ async function createGraphFromJsonLdFile(db, jsonld, graphName) {
   // Don't include a graphname to use what's in the jsonld file
   // const url = `${db.url}/${db.db}/data?graph=${encodeURIComponent(graphName)}`;
   const url = `${db.url}/${db.db}/data`;
-  log.info('Creating graph from JSON-LD file...');
+  if (opt.debug) console.log('Creating graph from JSON-LD file...');
 
   // Set request options
   const options = {
@@ -231,21 +240,17 @@ function replaceHeaderHyphens(filename) {
 
 async function main(opt) {
 
-  // Ensure the output directory exists
-  if (!fs.existsSync(opt.output)) {
-    fs.mkdirSync(opt.output, { recursive: true });
-  }
   // Start a fresh database
   let db = await opt.fuseki.createDb(opt.db,opt);
 
   // Ensure the output directory exists
-  if (!fs.existsSync(opt.output + "/xml")) {
-    fs.mkdirSync(opt.output + "/xml", { recursive: true });
+  if (!fs.existsSync(outputSubDirectory + "/xml")) {
+    fs.mkdirSync(outputSubDirectory + "/xml", { recursive: true });
   }
-  let localFilePath = opt.output + "/xml/" + opt.fileName;
-  log.info('Local XML file path:', localFilePath);
+  let localFilePath = outputSubDirectory + "/xml/" + opt.fileName;
+  if (opt.debug) console.log('Local XML file path:', localFilePath);
 
-  log.info('Downloading file from GCS:', opt.filePath);
+  if (opt.debug) console.log('Downloading file from GCS:', opt.filePath);
 
   // First get an array of file versions from GCS. 0 is the current version, 1 is the previous version, etc.
   const fileVersions = await getXmlVersions(opt.bucket, opt.filePath);
@@ -289,28 +294,28 @@ async function main(opt) {
   contextObj["@graph"] = json["Document"]["award"];
 
   let jsonld = JSON.stringify(contextObj);
-  fs.writeFileSync(opt.output + "/grants.jsonld", jsonld);
+  fs.writeFileSync(outputSubDirectory + "/grants.jsonld", jsonld);
 
   // Create a graph from the JSON-LD file
-  log.info('Creating graph from JSON-LD file ' + graphName + '...');
+  if (opt.debug) console.log('Creating graph from JSON-LD file ' + graphName + '...');
   await createGraphFromJsonLdFile(db, jsonld, graphName);
 
   // Apply the grants2vivo.ru SPARQL update to the graph
   const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.ru', 'utf8');
-  log.info(await executeUpdate(db, vivo));
+  if (opt.debug) console.log(await executeUpdate(db, vivo));
 
   // Exexute the SPARQL queries to to export the csv files
-  const grantFile = opt.output + '/' + opt.prefix + 'grants_metadata.csv';
+  const grantFile = outputSubDirectory + '/' + opt.prefix + 'grants_metadata.csv';
   const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
   fs.writeFileSync(grantFile, await executeCsvQuery(db, grantQ, graphName));
   replaceHeaderHyphens(grantFile);
 
-  const linkFile = opt.output + '/' + opt.prefix + 'grants_links.csv';
+  const linkFile = outputSubDirectory + '/' + opt.prefix + 'grants_links.csv';
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
   fs.writeFileSync(linkFile, await executeCsvQuery(db, linkQ, graphName));
   replaceHeaderHyphens(linkFile);
 
-  const roleFile = opt.output + '/' + opt.prefix + 'grants_persons.csv';
+  const roleFile = outputSubDirectory + '/' + opt.prefix + 'grants_persons.csv';
   const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
   fs.writeFileSync(roleFile, await executeCsvQuery(db, roleQ, graphName));
   replaceHeaderHyphens(roleFile);

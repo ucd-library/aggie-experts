@@ -30,6 +30,8 @@
     "classic-level": "^1.2.0",
     "commander": "^10.0.0",
     "componentsjs": "^5.5.1",
+    "csv-parser": "^3.0.0",
+    "csv-stringify": "^6.5.1",
     "csvtojson": "^2.0.10",
     "dotenv": "^16.0.3",
     "fs-extra": "^11.1.1",

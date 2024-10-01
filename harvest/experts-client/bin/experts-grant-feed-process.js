@@ -19,6 +19,7 @@ program
   .version('1.0.0')
   .description('Process the Aggie Enterprise grant feed')
   .option('--env <env>', '', 'PROD')
+  .option('--debug', 'Debug mode')
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
   .option('--upload', 'Upload the file to the SFTP server')
@@ -51,17 +52,14 @@ const ftpConfig = {
   username: opt.username,
 };
 
-// SFTP configuration
-// const remoteFilePath = opt.env.toUpperCase();
-
 const sftp = new Client();
 
 async function uploadFile(localFilePath, remoteFileName) {
   try {
     await sftp.connect(ftpConfig);
-    //log.info(localFilePath, remoteFileName);
+    if (opt.debug) console.log(localFilePath, remoteFileName);
     await sftp.put(fs.createReadStream(localFilePath), remoteFileName);
-    log.info(`File uploaded successfully: ${localFilePath} -> ${remoteFileName}`);
+    if (opt.debug) console.log(`File uploaded successfully: ${localFilePath} -> ${remoteFileName}`);
   } catch (error) {
     log.error('Error uploading file:', error.message);
   } finally {
@@ -69,39 +67,46 @@ async function uploadFile(localFilePath, remoteFileName) {
   }
 }
 
+// Ensure the output directory exists
+if (!fs.existsSync(opt.output)) {
+  fs.mkdirSync(opt.output, { recursive: true });
+}
 
 // Command-line parameters to pass to experts-grant-feed.js
-const params = ['--env=' + opt.env, '--fuseki=' + opt.fuseki, '--xml=' + opt.xml, '--generation=' + opt.new, '--output=' + opt.output];
-log.info('Parameters1:', params);
-log.info(__dirname + '/experts-grant-feed.js', params);
+const params = ['--env=' + opt.env, '--xml=' + opt.xml, '--generation=' + opt.new, '--output=' + opt.output];
+if (opt.debug) params.push('--debug');
+if (opt.debug) console.log('Parameters1:', params);
+if (opt.debug) console.log(__dirname + '/experts-grant-feed.js', params);
 const result1 = spawnSync('node', [__dirname + '/experts-grant-feed.js', ...params], { encoding: 'utf8' });
 
-log.info('Output 1:', result1.stdout);
+if (opt.debug) console.log('Output 1:', result1.stdout);
 if (result1.error) {
   log.error('Execution error 1:', result1.error);
 }
-log.info('Exit code 1:', result1.status);
+if (opt.debug) console.log('Exit code 1:', result1.status);
 
-const params2 = ['--env=' + opt.env, '--fuseki=' + opt.fuseki, '--xml=' + opt.xml, '--generation=' + opt.prev, '--output=' + opt.output];
-log.info('Parameters2:', params2);
-log.info(__dirname + '/experts-grant-feed.js', params2);
+const params2 = ['--env=' + opt.env, '--xml=' + opt.xml, '--generation=' + opt.prev, '--output=' + opt.output];
+if (opt.debug) params2.push('--debug');
+
+if (opt.debug) console.log('Parameters2:', params2);
+if (opt.debug) console.log(__dirname + '/experts-grant-feed.js', params2);
 const result2 = spawnSync('node', [__dirname + '/experts-grant-feed.js', ...params2], { encoding: 'utf8' });
-log.info('Output 2:', result2.stdout);
+if (opt.debug) console.log('Output 2:', result2.stdout);
 if (result2.error) {
   log.error('Execution error 2:', result2.error);
 }
-log.info('Exit code 2:', result2.status);
+if (opt.debug) console.log('Exit code 2:', result2.status);
 
-log.info('Options:', opt);
+if (opt.debug) console.log('Options:', opt);
 const params3 = ['--env=' + opt.env, '--dir=' + opt.output, '--new=' + opt.new, '--prev=' + opt.prev];
-log.info('Parameters2:', params3);
-log.info(__dirname + '/experts-grant-feed-delta.js', params3);
+if (opt.debug) console.log('Parameters2:', params3);
+if (opt.debug) console.log(__dirname + '/experts-grant-feed-delta.js', params3);
 const result3 = spawnSync('node', [__dirname + '/experts-grant-feed-delta.js', ...params3], { encoding: 'utf8' });
-log.info('Output 3:', result3.stdout);
+if (opt.debug) console.log('Output 3:', result3.stdout);
 if (result3.error) {
   log.error('Execution error 3:', result3.error);
 }
-log.info('Exit code 3:', result3.status);
+if (opt.debug) console.log('Exit code 3:', result3.status);
 
 // Perform the SFTP upload
 if (opt.upload) {
