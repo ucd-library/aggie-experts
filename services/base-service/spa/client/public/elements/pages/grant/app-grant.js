@@ -89,7 +89,10 @@ export default class AppGrant extends Mixin(LitElement)
     if( e.grantId !== this.grantId ) return;
 
     let grantGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.grantId)?.[0] || {};
-    let contributorsGraph = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
+    if( !grantGraph ) return;
+
+    let aeContributors = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
+    let otherContributors = [];
 
     this.grantName = grantGraph.name || '';
     this.awardedBy = grantGraph.assignedBy?.name || '';
@@ -110,7 +113,13 @@ export default class AppGrant extends Mixin(LitElement)
     this.coPis = [];
     this.leaders = [];
     this.researchers = [];
-    contributorsGraph.forEach(contributor => {
+
+    let contributors = (grantGraph.relatedBy || []);
+    if( !Array.isArray(contributors) ) contributors = [contributors];
+
+    otherContributors = contributors.filter(c => !c['inheres_in']);
+
+    aeContributors.forEach(contributor => {
       let name = contributor.contactInfo[0]?.name;
       let subtitle = name.split('§')?.pop()?.trim() || '';
       name = name.split('§')?.shift()?.trim() || '';
@@ -119,30 +128,79 @@ export default class AppGrant extends Mixin(LitElement)
       if( !Array.isArray(type) ) type = [type];
       if( type.includes('PrincipalInvestigatorRole') ) {
         this.pis.push({
+          hasProfile : true,
           id : contributor['@id'],
           name,
           subtitle
         });
       } else if( type.includes('CoPrincipalInvestigatorRole') ) {
         this.coPis.push({
+          hasProfile : true,
           id : contributor['@id'],
           name,
           subtitle
         });
       } else if( type.includes('LeaderRole') ) {
         this.leaders.push({
+          hasProfile : true,
           id : contributor['@id'],
           name,
           subtitle
         });
       } else {
         this.researchers.push({
+          hasProfile : true,
           id : contributor['@id'],
           name,
           subtitle
         });
       }
     });
+
+    otherContributors.forEach(contributor => {
+      let type = contributor['@type'];
+      if( !Array.isArray(type) ) type = [type];
+
+
+      // pull in relates use id? but includes #roleof_
+      let relates = contributor['relates'];
+      if( !Array.isArray(relates) ) relates = [relates];
+
+      let personArk = contributor['@id']?.replace('roleof_', '') || '';
+      let name = relates.filter(r => r['@id'] === personArk)?.[0]?.name || '';
+
+      if( type.includes('PrincipalInvestigatorRole') ) {
+        this.pis.push({
+          hasProfile : false,
+          id : personArk,
+          name,
+          subtitle: ''
+        });
+      } else if( type.includes('CoPrincipalInvestigatorRole') ) {
+        this.coPis.push({
+          hasProfile : false,
+          id : personArk,
+          name,
+          subtitle: ''
+        });
+      } else if( type.includes('LeaderRole') ) {
+        this.leaders.push({
+          hasProfile : false,
+          id : personArk,
+          name,
+          subtitle: ''
+        });
+      } else {
+        this.researchers.push({
+          hasProfile : false,
+          id : personArk,
+          name,
+          subtitle: ''
+        });
+      }
+
+    });
+
   }
 
 }
