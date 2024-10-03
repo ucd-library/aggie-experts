@@ -61,7 +61,17 @@ export default class AppSearch extends Mixin(LitElement)
     this.filters = [
       { label: 'All Results', count: 1000, icon: 'fa-infinity', active: true },
       { label: 'Experts', count: 100, icon: 'fa-user', active: false },
-      { label: 'Grants', count: 50, icon: 'fa-file-invoice-dollar', active: false },
+      {
+        label : 'Grants',
+        count : 50,
+        icon : 'fa-file-invoice-dollar',
+        active : false,
+        subFilters : [
+          { label : 'Active', count : 15, active : false },
+          { label : 'Complete', count : 35, active : false }
+        ]
+      },
+
       // { label: 'Works', count: 500, icon: 'fa-book-open', active: false },
       // { label: 'Subjects', count: 350, icon: 'lightbulb-on', active: false }
     ];
