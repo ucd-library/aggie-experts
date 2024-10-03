@@ -247,7 +247,7 @@ return html`
         <p>${this.grantNumber}</p>
       </div>
 
-      <div ?hidden="${!this.grantAdmin}" class="grant-admin">
+      <div ?hidden="${!this.grantAdmin || true}" class="grant-admin">
         <h3 class="heading--highlight">Grant Admin</h3>
         <p>${this.grantAdmin}</p>
       </div>
