@@ -7,8 +7,7 @@ import pkg from 'csvtojson';
 const { csv } = pkg;
 
 import fs, { link } from 'fs';
-import { Command } from 'commander';
-import { logger } from '../lib/logger.js';
+import { Command } from '../lib/experts-commander.js';
 import { stringify } from 'csv-stringify';
 
 const program = new Command();
@@ -24,7 +23,6 @@ program
 .version('1.0.0')
 .description('Creates the delta files for the grants, links, and persons CSV files')
 .option('--env <env>', '', 'QA')
-.option('--debug', 'Debug mode')
 .requiredOption('-o, --dir <dir>', 'Working directory')
 .requiredOption('-n, --new <new>', 'New grant file set path')
 .requiredOption('-p, --prev <prev>', 'Previous grant file set path')
@@ -40,6 +38,8 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
+const log = opt.log;
+
 const newGrantsPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_metadata.csv';
 const oldGrantsPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
 const newLinksPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_links.csv';
@@ -47,13 +47,13 @@ const oldLinksPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'g
 const newPersonsPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_persons.csv';
 const oldPersonsPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_persons.csv';
 
-if (opt.debug) {
-  logger.info('New grants path:', newGrantsPath);
-  logger.info('Old grants path:', oldGrantsPath);
-  logger.info('New links path:', newLinksPath);
-  logger.info('Old links path:', oldLinksPath);
-  logger.info('New persons path:', newPersonsPath);
-  logger.info('Old persons path:', oldPersonsPath);
+{
+  log.info('New grants path:', newGrantsPath);
+  log.info('Old grants path:', oldGrantsPath);
+  log.info('New links path:', newLinksPath);
+  log.info('Old links path:', oldLinksPath);
+  log.info('New persons path:', newPersonsPath);
+  log.info('Old persons path:', oldPersonsPath);
 }
 
 
@@ -107,14 +107,14 @@ async function readGrants() {
       .fromFile(oldGrantsPath)
       .then((innerOldGrants) => {
         oldGrants = innerOldGrants;
-        if (opt.debug) logger.info('Old grants read');
+        log.info('Old grants read');
         // For each new object, check if it exists in the old object based on the "id" field.
         // If it doesn't exist, add it to the delta object.
         deltaGrants = newGrants.filter((newItem) => {
           let isNew = !oldGrants.find((oldItem) => oldItem["id"] === newItem["id"]);
           //if isNew or the grant has been updated
           if (isNew) {
-            // logger.info('New grant:', newItem["id"]);
+            // log.info('New grant:', newItem["id"]);
             addedGrants.push(newItem);
             return true;
           }
@@ -131,7 +131,7 @@ async function readGrants() {
             return isUpdated;
           }
         });
-        logger.info('New grants:', addedGrants.length);
+        log.info('New grants:', addedGrants.length);
         resolve();
       });
     });
@@ -143,12 +143,12 @@ async function readGrants() {
 // For each oldLink, check if it exists in the newLinks based on the "id-1" and "id-2" fields.
 // If it doesn't exist, add it to the deleteLinks array.
 async function findDeletedLinks() {
-  logger.info(' -- findDeletedLinks');
+  log.info(' -- findDeletedLinks');
   return new Promise((resolve, reject) => {
     let deleteLinks = oldLinks.filter((oldItem) => {
       let isDeleted = !newLinks.find((newItem) => newItem["id-1"] === oldItem["id-1"] && newItem["id-2"] === oldItem["id-2"]);
       if (isDeleted) {
-        logger.info('Deleted link:', oldItem["id-1"] + ' / ' + oldItem["id-2"]);
+        log.info('Deleted link:', oldItem["id-1"] + ' / ' + oldItem["id-2"]);
         return true;
       }
       return false;
@@ -221,9 +221,9 @@ async function getDeltaLinks() {
       }
       return false;
     });
-    if (opt.debug) logger.info('readLinks Delta links:', deltaLinks.length);
-    if (opt.debug) logger.info('readLinks Old links:', oldLinks.length);
-    if (opt.debug) logger.info('readLinks New links:', newLinks.length);
+    log.info('readLinks Delta links:', deltaLinks.length);
+    log.info('readLinks Old links:', oldLinks.length);
+    log.info('readLinks New links:', newLinks.length);
     resolve();
   });
 }
@@ -235,13 +235,13 @@ async function readPersons() {
     .fromFile(newPersonsPath)
     .then((innerNewPersons) => {
       newPersons = innerNewPersons;
-      if (opt.debug) logger.info('New persons read');
-      if (opt.debug) logger.info('New persons:', newPersons.length);
+      log.info('New persons read');
+      log.info('New persons:', newPersons.length);
       csv()
       .fromFile(oldPersonsPath)
       .then((innerOldPersons) => {
         oldPersons = innerOldPersons;
-        logger.info('Old persons read done');
+        log.info('Old persons read done');
         // For each new object, check if it exists in the old object based on the "id" field.
         // If it doesn't exist, add it to the delta object.
         deltaPersons = newPersons.filter((newItem) => {
@@ -290,14 +290,14 @@ async function addGrantsLinked() {
 // For each id-2 in the linksArray, check if it exists in the deltaGrants array
 async function addLinks() {
   return new Promise((resolve, reject) => {
-    if (opt.debug) logger.info('New links:', newLinks.length);
-    if (opt.debug) logger.info('Delta grants:', deltaGrants.length);
-    if (opt.debug) logger.info('Delta links:', deltaLinks.length);
+    log.info('New links:', newLinks.length);
+    log.info('Delta grants:', deltaGrants.length);
+    log.info('Delta links:', deltaLinks.length);
 
     for (let i = 0; i < newLinks.length; i++) {
       if (deltaGrants.find((grant) => grant["id"] === newLinks[i]["id-2"])) {
         deltaLinks.push(newLinks[i]);
-        // logger.info('New link added:', newLinks[i]["id-1"] + ' / ' + newLinks[i]["id-2"]);
+        // log.info('New link added:', newLinks[i]["id-1"] + ' / ' + newLinks[i]["id-2"]);
       }
     }
     resolve();
@@ -312,13 +312,13 @@ async function addUserLinks() {
     for (let i = 0; i < deltaGrants.length; i++) {
       // if no matching grant in the deltaLinks array
       if (!deltaLinks.find((link) => link["id-2"] === deltaGrants[i]["id"])) {
-        logger.info('No user link for:', deltaGrants[i]["id"]);
+        log.info('No user link for:', deltaGrants[i]["id"]);
         // get the link from the oldLinks array
-        logger.info('Checking for new user link for:', deltaGrants[i]["id"]);
+        log.info('Checking for new user link for:', deltaGrants[i]["id"]);
         if (newLinks.find((link) => link["id-2"] === deltaGrants[i]["id"])) {
           let link = newLinks.find((link) => link["id-2"] === deltaGrants[i]["id"]);
           deltaLinks.push(link);
-          // logger.info('New user link added for:', deltaGrants[i]["id"]);
+          // log.info('New user link added for:', deltaGrants[i]["id"]);
         }
       }
     }
@@ -338,7 +338,7 @@ async function addGrantsOfPersons() {
           // and add it to the deltaGrants array
           let grant = newGrants.find((grant) => grant["id"] === newPersons[i]["id"]);
           deltaGrants.push(grant);
-          // logger.info('New grant of person:', grant["id"]);
+          // log.info('New grant of person:', grant["id"]);
         }
       }
     }
@@ -363,12 +363,12 @@ async function executeInOrder() {
   deleteLinks = await findDeletedLinks(); // find oldLinks that are not in newLinks
   }
   catch (error) {
-    logger.error('Error:', error);
+    log.error('Error:', error);
   }
 }
 
 executeInOrder().then(async () => {
-  logger.info('Delta-grants:', deltaGrants.length);
+  log.info('Delta-grants:', deltaGrants.length);
   // If the delta object is empty, create an empty CSV file.
   // Write the delta object to a new CSV file.
   const deltaFilePath = opt.dir + '/delta/' + opt.prefix;
@@ -405,7 +405,7 @@ executeInOrder().then(async () => {
 
 fs.writeFileSync(deltaFilePath + 'grants_links.csv', csvStringLinks);
 
-logger.info('Delta-persons:', deltaPersons.length);
+log.info('Delta-persons:', deltaPersons.length);
 
 // Write the delta object to a new CSV file.
 csvData = deltaPersons.map((item) => Object.values(item));
@@ -448,7 +448,7 @@ for (let i = 0; i < deltaGrants.length; i++) {
     count++;
   }
 }
-logger.info('Delta grants without links:', count);
+log.info('Delta grants without links:', count);
 
 // Count newGrants that don't have a link
 count = 0;
@@ -457,6 +457,6 @@ for (let i = 0; i < newGrants.length; i++) {
     count++;
   }
 }
-logger.info('New grants without links:', count);
+log.info('New grants without links:', count);
 });
 

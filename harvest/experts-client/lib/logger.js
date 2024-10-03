@@ -5,7 +5,9 @@ import { performance } from 'node:perf_hooks';
 
 const streams = [
   // Log to the console
-  { stream: process.stdout }
+
+  { level: 'info', stream: process.stdout }
+
 ];
 
 function markSerializer(mark) {

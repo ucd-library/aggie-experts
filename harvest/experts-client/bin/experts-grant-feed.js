@@ -21,7 +21,6 @@ program
   .version('1.0.0')
   .description('Upload a file to a remote SFTP server')
   .option('--env <env>', '', 'QA')
-  .option('--debug', 'Debug mode')
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
   // .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki.delete)
@@ -49,7 +48,7 @@ opt.db = 'ae-grants';
 let outputSubDirectory = opt.output + '/generation-' + opt.generation + '/';
 
 // Write to
-if (opt.debug) console.log('Output subdirectory:', outputSubDirectory);
+console.log('Output subdirectory:', outputSubDirectory);
 
 // Ensure the output directory exists
 if (!fs.existsSync(outputSubDirectory)) {
@@ -80,9 +79,9 @@ if (opt.xml.startsWith('gs://')) {
   opt.filePath = filePath;
   // get the file name from the path
   opt.fileName = filePathParts[filePathParts.length - 1];
-  if (opt.debug) console.log(`File Name: ${opt.fileName}`);
-  if (opt.debug) console.log(`Bucket: ${bucketName}`);
-  if (opt.debug) console.log(`File: ${filePath}`);
+  console.log(`File Name: ${opt.fileName}`);
+  console.log(`Bucket: ${bucketName}`);
+  console.log(`File: ${filePath}`);
 }
 
 async function getXmlVersions(bucketName, fileName) {
@@ -99,7 +98,7 @@ async function getXmlVersions(bucketName, fileName) {
         files.forEach(function (file) {
           if (file.name == fileName) {
             xmlGenerations.push(file.metadata.generation);
-            if (opt.debug) console.log(`File: ${file.name}, Generation: ${file.metadata.generation}`);
+            console.log(`File: ${file.name}, Generation: ${file.metadata.generation}`);
           }
         });
 
@@ -117,7 +116,7 @@ async function getXmlVersions(bucketName, fileName) {
 
 async function downloadFile(bucketName, fileName, destinationPath, generation) {
 
-  if (opt.debug) console.log(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
+  console.log(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
 
   const bucket = storage.bucket(bucketName);
   const meta = bucket.file(fileName);
@@ -127,7 +126,7 @@ async function downloadFile(bucketName, fileName, destinationPath, generation) {
       const versionedFile = bucket.file(fileName, { generation: generation });
       versionedFile.download()
         .then((data) => {
-          if (opt.debug) console.log(`Downloaded version ${generation} of file ${fileName}`);
+          console.log(`Downloaded version ${generation} of file ${fileName}`);
                 // Write the file to the local file system
           fs.writeFileSync(destinationPath, data.toString());
           resolve();
@@ -150,7 +149,7 @@ async function createGraphFromJsonLdFile(db, jsonld, graphName) {
   // Don't include a graphname to use what's in the jsonld file
   // const url = `${db.url}/${db.db}/data?graph=${encodeURIComponent(graphName)}`;
   const url = `${db.url}/${db.db}/data`;
-  if (opt.debug) console.log('Creating graph from JSON-LD file...');
+  console.log('Creating graph from JSON-LD file...');
 
   // Set request options
   const options = {
@@ -248,9 +247,9 @@ async function main(opt) {
     fs.mkdirSync(outputSubDirectory + "/xml", { recursive: true });
   }
   let localFilePath = outputSubDirectory + "/xml/" + opt.fileName;
-  if (opt.debug) console.log('Local XML file path:', localFilePath);
+  console.log('Local XML file path:', localFilePath);
 
-  if (opt.debug) console.log('Downloading file from GCS:', opt.filePath);
+  console.log('Downloading file from GCS:', opt.filePath);
 
   // First get an array of file versions from GCS. 0 is the current version, 1 is the previous version, etc.
   const fileVersions = await getXmlVersions(opt.bucket, opt.filePath);
@@ -297,12 +296,12 @@ async function main(opt) {
   fs.writeFileSync(outputSubDirectory + "/grants.jsonld", jsonld);
 
   // Create a graph from the JSON-LD file
-  if (opt.debug) console.log('Creating graph from JSON-LD file ' + graphName + '...');
+  console.log('Creating graph from JSON-LD file ' + graphName + '...');
   await createGraphFromJsonLdFile(db, jsonld, graphName);
 
   // Apply the grants2vivo.ru SPARQL update to the graph
   const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.ru', 'utf8');
-  if (opt.debug) console.log(await executeUpdate(db, vivo));
+  console.log(await executeUpdate(db, vivo));
 
   // Exexute the SPARQL queries to to export the csv files
   const grantFile = outputSubDirectory + '/' + opt.prefix + 'grants_metadata.csv';
