@@ -88,8 +88,27 @@ export default class AppGrant extends Mixin(LitElement)
     if( this.AppStateModel.location.page !== 'grant' ) return;
     if( e.grantId !== this.grantId ) return;
 
+    // TODO handle 404 if grant not found
+
     let grantGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.grantId)?.[0] || {};
     if( !grantGraph ) return;
+
+    // Invisible grants still have resolvable landing pages. When the grant visibility has been changed, the expected behavior is:
+    // 1. If there are no public relationships, the grant landing page should return a 404 for all users, including the owner of the grant
+    let hasPublicRelationships = (grantGraph?.relatedBy || []).some(r => (r['inheres_in'] && r['is-visible']) || r['@id'].includes('#roleof_'));
+    if( !hasPublicRelationships ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
+
+    // TODO
+    // 2. If there are other experts related to the grant, the grant landing page will continue to resolve, but
+    //   --if the expert who changed the visibility setting is a PI or coPI, their name will continue to appear in the list of contributors, but not link back to their profile page
+    //   --if that expert is a different type of contributor, they will be removed from the list of contributors
+
+
 
     let aeContributors = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
     let otherContributors = [];
