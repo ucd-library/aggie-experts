@@ -48,15 +48,12 @@ const oldLinksPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'g
 const newPersonsPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_persons.csv';
 const oldPersonsPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_persons.csv';
 
-{
-  log.info('New grants path:', newGrantsPath);
-  log.info('Old grants path:', oldGrantsPath);
-  log.info('New links path:', newLinksPath);
-  log.info('Old links path:', oldLinksPath);
-  log.info('New persons path:', newPersonsPath);
-  log.info('Old persons path:', oldPersonsPath);
-}
-
+log.info('New grants path:', newGrantsPath);
+log.info('Old grants path:', oldGrantsPath);
+log.info('New links path:', newLinksPath);
+log.info('Old links path:', oldLinksPath);
+log.info('New persons path:', newPersonsPath);
+log.info('Old persons path:', oldPersonsPath);
 
 var deltaGrants = [];
 var deltaLinks = [];
