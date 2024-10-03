@@ -26,6 +26,7 @@ program
 .requiredOption('-o, --dir <dir>', 'Working directory')
 .requiredOption('-n, --new <new>', 'New grant file set path')
 .requiredOption('-p, --prev <prev>', 'Previous grant file set path')
+.option_log()
 .parse(process.argv);
 
 let opt = program.opts();
