@@ -18,6 +18,11 @@ export default function render() {
       ${this.filters.map(
         (f) => html`
           <category-filter-row @click="${this._onFilterChange}" label="${f.label}" count="${f.count}" icon="${f.icon}" ?active="${f.active}"></category-filter-row>
+          ${(f.subFilters || []).map(
+            (sf) => html`
+              <category-filter-row subfilter ?hidden="${!f.active && !(f.subFilters || []).some(f => f.active)}" @click="${this._onSubFilterChange}" parent-label="${f.label}" label="${sf.label}" count="${sf.count}" ?active="${sf.active}"></category-filter-row>
+            `
+          )}
         `
       )}
     </div>

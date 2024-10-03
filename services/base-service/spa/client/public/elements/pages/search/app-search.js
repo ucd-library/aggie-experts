@@ -429,6 +429,15 @@ export default class AppSearch extends Mixin(LitElement)
     this._updateLocation();
   }
 
+  _onSubFilterChange(e) {
+    // update url with search filters
+    this.refineResultsTo = e.detail.parentLabel;
+    // TODO do we need to use e.detail.label to filter on subfilters? should url change? revisit when backend ready
+
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
 }
 
 customElements.define('app-search', AppSearch);
