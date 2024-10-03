@@ -37,13 +37,13 @@ function measureSerializer(measure) {
 
 export const logger = bunyan.createLogger({
   name: 'experts',
-  level: 'info',
+  level: 'fatal',
+  stream: process.stderr,
   serializers: {
     mark: markSerializer,
     measure: measureSerializer,
     err: bunyan.stdSerializers.err,
     req: bunyan.stdSerializers.req,
     res: bunyan.stdSerializers.res
-  },
-  streams: streams,
+  }
 });

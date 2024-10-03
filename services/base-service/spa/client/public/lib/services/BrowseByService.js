@@ -1,5 +1,6 @@
 const {BaseService} = require('@ucd-lib/cork-app-utils');
 const BrowseByStore = require('../stores/BrowseByStore');
+const payloadUtils = require('../payload.js').default;
 
 class BrowseByService extends BaseService {
 
@@ -10,24 +11,37 @@ class BrowseByService extends BaseService {
     this.baseUrl = '/api/browse';
   }
 
-  browseAZ() {
-    return this.request({
-      url : `${this.baseUrl}`,
-      checkCached : () => null,
-      onLoading : null,
-      onLoad : null,
-      onError : null
+  async browseExpertsAZ() {
+    let id = 'browseExperts:az';
+    let ido = { browseExperts : 'az' };
+
+    await this.request({
+      url : this.baseUrl,
+      checkCached : () => this.store.data.byExpertsAZ.get(id),
+      onUpdate : resp => this.store.set(
+        payloadUtils.generate(ido, resp),
+        this.store.data.byExpertsAZ
+      )
     });
+
+    return this.store.data.byExpertsAZ.get(id);
   }
 
-  browseExperts(lastInitial, page=1, size=25) {
-    return this.request({
-      url : `${this.baseUrl}?p=${lastInitial.toUpperCase()}&page=${page}&size=${size}`,
-      checkCached : () => this.store.browseExperts(lastInitial),
-      onLoading : request => this.store.setBrowseExpertsLoading(lastInitial, request),
-      onLoad : result => this.store.setBrowseExpertsLoaded(lastInitial, result.body),
-      onError : e => this.store.setBrowseExpertsError(lastInitial, e)
+  async browseExperts(lastInitial, page=1, size=25) {
+    let ido = {lastInitial, page, size};
+    let id = payloadUtils.getKey(ido);
+
+    await this.request({
+      url : this.baseUrl,
+      qs : { page, size, p : lastInitial.toUpperCase() },
+      checkCached : () => this.store.data.byExpertsLastInitial.get(id),
+      onUpdate : resp => this.store.set(
+        payloadUtils.generate(ido, resp),
+        this.store.data.byExpertsLastInitial
+      )
     });
+
+    return this.store.data.byExpertsLastInitial.get(id);
   }
 
 }
