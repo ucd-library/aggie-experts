@@ -73,7 +73,9 @@ if (!fs.existsSync(opt.output)) {
 
 // Command-line parameters to pass to experts-grant-feed.js
 const params = ['--env=' + opt.env, '--xml=' + opt.xml, '--generation=' + opt.new, '--output=' + opt.output];
-params.push('--debug');
+if (opt.logLevel) {
+  params.push('--log=' + opt.logLevel);
+}
 log.info('Parameters1:', params);
 log.info(__dirname + '/experts-grant-feed.js', params);
 const result1 = spawnSync('node', [__dirname + '/experts-grant-feed.js', ...params], { encoding: 'utf8' });
@@ -85,7 +87,9 @@ if (result1.error) {
 log.info('Exit code 1:', result1.status);
 
 const params2 = ['--env=' + opt.env, '--xml=' + opt.xml, '--generation=' + opt.prev, '--output=' + opt.output];
-params2.push('--debug');
+if (opt.logLevel) {
+  params2.push('--log=' + opt.logLevel);
+}
 
 log.info('Parameters2:', params2);
 log.info(__dirname + '/experts-grant-feed.js', params2);
@@ -97,7 +101,10 @@ if (result2.error) {
 log.info('Exit code 2:', result2.status);
 
 log.info('Options:', opt);
-const params3 = ['--env=' + opt.env, '--dir=' + opt.output, '--new=' + opt.new, '--prev=' + opt.prev];
+const params3 = ['--env=' + opt.env, '--output=' + opt.output, '--new=' + opt.new, '--prev=' + opt.prev];
+if (opt.logLevel) {
+  params3.push('--log=' + opt.logLevel);
+}
 log.info('Parameters2:', params3);
 log.info(__dirname + '/experts-grant-feed-delta.js', params3);
 const result3 = spawnSync('node', [__dirname + '/experts-grant-feed-delta.js', ...params3], { encoding: 'utf8' });

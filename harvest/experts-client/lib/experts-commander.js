@@ -43,6 +43,7 @@ export class Command extends OriginalCommand {
   async opts() {
     const opts=super.opts();
     if (opts.log) {
+      opts.logLevel=opts.log; // perserve the original log level for subcommands
       opts.log=logger.child({level:opts.log});
     }
     if (opts.cdl) {

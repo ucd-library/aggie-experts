@@ -23,13 +23,13 @@ program
 .version('1.0.0')
 .description('Creates the delta files for the grants, links, and persons CSV files')
 .option('--env <env>', '', 'QA')
-.requiredOption('-o, --dir <dir>', 'Working directory')
+.requiredOption('-o, --output <output>', 'Working directory')
 .requiredOption('-n, --new <new>', 'New grant file set path')
 .requiredOption('-p, --prev <prev>', 'Previous grant file set path')
 .option_log()
 .parse(process.argv);
 
-let opt = program.opts();
+let opt = await program.opts();
 
 if (opt.env === 'PROD') {
   opt.prefix = 'Prod_UCD_';
@@ -41,12 +41,12 @@ if (opt.env === 'PROD') {
 
 const log = opt.log;
 
-const newGrantsPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_metadata.csv';
-const oldGrantsPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
-const newLinksPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_links.csv';
-const oldLinksPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_links.csv';
-const newPersonsPath = opt.dir + '/generation-' + opt.new + '/' + opt.prefix + 'grants_persons.csv';
-const oldPersonsPath = opt.dir + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_persons.csv';
+const newGrantsPath = opt.output + '/generation-' + opt.new + '/' + opt.prefix + 'grants_metadata.csv';
+const oldGrantsPath = opt.output + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_metadata.csv';
+const newLinksPath = opt.output + '/generation-' + opt.new + '/' + opt.prefix + 'grants_links.csv';
+const oldLinksPath = opt.output + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_links.csv';
+const newPersonsPath = opt.output + '/generation-' + opt.new + '/' + opt.prefix + 'grants_persons.csv';
+const oldPersonsPath = opt.output + '/generation-' + opt.prev + '/' + opt.prefix + 'grants_persons.csv';
 
 log.info('New grants path:', newGrantsPath);
 log.info('Old grants path:', oldGrantsPath);
@@ -71,8 +71,8 @@ var linkHeaders = [];
 var personHeaders = [];
 
 // Ensure the output directory exists
-if (!fs.existsSync(opt.dir + '/' + 'delta')) {
-  fs.mkdirSync(opt.dir + '/' + 'delta', { recursive: true });
+if (!fs.existsSync(opt.output + '/' + 'delta')) {
+  fs.mkdirSync(opt.output + '/' + 'delta', { recursive: true });
 }
 
 function getCsvHeaders(csvPath) {
@@ -369,7 +369,7 @@ executeInOrder().then(async () => {
   log.info('Delta-grants:', deltaGrants.length);
   // If the delta object is empty, create an empty CSV file.
   // Write the delta object to a new CSV file.
-  const deltaFilePath = opt.dir + '/delta/' + opt.prefix;
+  const deltaFilePath = opt.output + '/delta/' + opt.prefix;
   let csvData = deltaGrants.map((item) => Object.values(item));
   // let columns = Object.keys(newGrants[0]); // Use the columns from the newGrants object as the header incase of no deltas.
   let columns = grantHeaders; // Use the columns from the newGrants object as the header incase of no deltas.
