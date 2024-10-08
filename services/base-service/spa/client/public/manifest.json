@@ -1,0 +1,82 @@
+{
+  "name": "Aggie Experts",
+  "short_name": "Aggie Experts",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff",
+  "description": "Aggie Experts facilitates expert collaboration and research discovery across all disciplines at UC Davis.",
+  "icons": [
+    {
+      "src": "images/logos/logo-48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/logos/logo-48-maskable.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/logos/logo-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/logos/logo-72-maskable.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/logos/logo-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/logos/logo-96-maskable.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/logos/logo-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/logos/logo-144-maskable.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/logos/logo-168.png",
+      "sizes": "168x168",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/logos/logo-168-maskable.png",
+      "sizes": "168x168",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/logos/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/logos/logo-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

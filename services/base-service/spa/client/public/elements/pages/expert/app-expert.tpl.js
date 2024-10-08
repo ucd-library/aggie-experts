@@ -4,6 +4,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { sharedStyles } from '../../styles/shared-styles';
 
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
+import headingsCss from "@ucd-lib/theme-sass/2_base_class/_headings.css";
 
 import utils from '../../../lib/utils';
 
@@ -12,6 +13,7 @@ return html`
   <style>
     ${sharedStyles}
     ${buttonsCss}
+    ${headingsCss}
 
     :host {
       display: block;
@@ -26,7 +28,7 @@ return html`
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
-      height: 12.25rem;
+      min-height: 12.25rem;
     }
 
     .color-light {
@@ -70,7 +72,7 @@ return html`
     h1 {
       margin-top: .5rem;
       margin-bottom: 0;
-      padding-bottom: 0;
+      padding-bottom: .5rem;
       color: var(--color-aggie-blue);
     }
 
@@ -78,9 +80,9 @@ return html`
     .hero-main .experts span.hide-expert:hover ucdlib-icon,
     .hero-main .experts span.show-expert:hover ucdlib-icon,
     .hero-main .experts span.delete-expert:hover ucdlib-icon,
-    .introduction h4 ucdlib-icon:hover,
-    .roles-websites .roles h4 ucdlib-icon:hover,
-    .roles-websites .websites h4 ucdlib-icon:hover,
+    .introduction h3 ucdlib-icon:hover,
+    .roles-websites .roles h3 ucdlib-icon:hover,
+    .roles-websites .websites h3 ucdlib-icon:hover,
     .works-abbreviated .works-heading .works-edit-download ucdlib-icon:hover,
     .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon:hover {
       fill: var(--color-aggie-gold);
@@ -88,11 +90,12 @@ return html`
 
 
     .hero-main h1 ucdlib-icon,
+    .edit-availability ucdlib-icon,
     .hero-main .experts span.hide-expert ucdlib-icon,
     .hero-main .experts span.show-expert ucdlib-icon,
     .hero-main .experts span.delete-expert ucdlib-icon,
-    .introduction h4 ucdlib-icon,
-    .roles-websites h4 ucdlib-icon {
+    .introduction h3 ucdlib-icon,
+    .roles-websites h3 ucdlib-icon {
       display: inline-block;
       width: 1.2rem;
       height: 1.2rem;
@@ -167,7 +170,7 @@ return html`
 
     .roles-websites .link-row {
       display: flex;
-      align-items: center;
+      align-items: start;
       line-height: 2rem;
     }
 
@@ -180,7 +183,7 @@ return html`
       padding-bottom: 1rem;
     }
 
-    .introduction h4 {
+    .introduction h3 {
       margin-bottom: 0;
       margin-top: 0;
     }
@@ -226,13 +229,18 @@ return html`
       /* padding-top: 1rem; */
     }
 
-    .roles-websites .roles {
+    .roles-websites .roles,
+    .roles-websites .websites {
       width: 50%;
+      overflow-wrap: anywhere;
+    }
+
+    .roles-websites .roles {
       padding-right: 1rem;
     }
 
-    .roles-websites .roles h4,
-    .roles-websites .websites h4  {
+    .roles-websites .roles h3,
+    .roles-websites .websites h3  {
       padding-top: 0;
       margin-top: 0;
       margin-bottom: .5rem;
@@ -240,6 +248,7 @@ return html`
 
     .roles-websites ucdlib-icon {
       fill: var(--color-aggie-blue-60);
+      margin-top: .2rem;
     }
 
     .roles-websites .title-dept {
@@ -302,6 +311,7 @@ return html`
       margin: .5rem 0;
     }
 
+    .open-to .dot,
     .grant-details .dot,
     .work-details .dot {
       padding: 0 0.25rem;
@@ -326,11 +336,20 @@ return html`
       cursor: pointer;
     }
 
+    .grants-abbreviated .grant h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .grants-abbreviated .grant h5 a {
+      text-decoration: none;
+    }
+
     .tooltip {
       cursor: pointer;
     }
 
-    .tooltip:before {
+    .tooltip:hover:before {
       content: attr(data-text);
       position: absolute;
       bottom: 35px;
@@ -349,7 +368,7 @@ return html`
       transition: .2s opacity ease-out;
     }
 
-    .tooltip:after {
+    .tooltip:hover:after {
       content: "";
       position: absolute;
       bottom: 25px;
@@ -366,13 +385,13 @@ return html`
       opacity: 1;
     }
 
-    .tooltip.edit-name:before {
+    .tooltip.edit-name:hover:before {
       width: 80px;
       bottom: 53px;
       right: -40px;
     }
 
-    .tooltip.edit-name:after {
+    .tooltip.edit-name:hover:after {
       bottom: 43px;
       right: 5px;
     }
@@ -443,6 +462,18 @@ return html`
       right: 5px;
     }
 
+    .tooltip.edit-availability:before {
+      width: 130px;
+      bottom: 35px;
+      right: -55px;
+      font-style: normal;
+    }
+
+    .tooltip.edit-availability:after {
+      bottom: 25px;
+      right: 15px;
+    }
+
     .tooltip.edit-grants:before,
     .tooltip.edit-works:before {
       width: 80px;
@@ -483,7 +514,7 @@ return html`
       line-height: var(--lh-html);
     }
 
-    .impersonate-btn {
+    .edit-expert-btn {
       margin-left: 1.19rem;
       border-radius: 1.25em;
       display: inline-flex;
@@ -511,7 +542,7 @@ return html`
       background-color: transparent;
     }
 
-    .impersonate-btn:hover {
+    .edit-expert-btn:hover {
       background-color: #ffbf00;
       color: #022851;
       border-color: #ffbf00;
@@ -581,8 +612,52 @@ return html`
         display: block;
       }
 
-      .roles-websites .roles {
+      .roles-websites .roles,
+      .roles-websites .websites {
         width: 100%;
+      }
+    }
+
+    h3.heading--highlight {
+      font-weight: 700;
+    }
+
+    .open-to {
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      color: var(--ucd-black-70, #4C4C4C);
+    }
+
+    .open-to span {
+      padding: 0 .3rem;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="checkbox"] {
+      height: 1rem;
+      width: 1rem;
+    }
+
+    .open-to input[type="checkbox"] {
+      margin-right: .5rem;
+    }
+
+    .mobile-edit-availability {
+      display: none;
+      color: var(--ucd-black-70, #4C4C4C);
+    }
+
+    @media (max-width: 600px) {
+      .mobile-edit-availability {
+        display: flex;
+        align-items: center;
+      }
+
+      .open-to .desktop-edit-availability {
+        display: none;
       }
     }
 
@@ -593,6 +668,7 @@ return html`
       ?hidden="${!this.showModal}"
       .visible="${this.showModal}"
       .title="${this.modalTitle}"
+      .saveText="${this.modalSaveText}"
       .content="${this.modalContent}"
       .hideCancel="${this.hideCancel}"
       .hideSave="${this.hideSave}"
@@ -606,22 +682,23 @@ return html`
       <div class="hero-text">
         <div class="experts">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
-          <span>EXPERT</span>
-          <button ?hidden="${this.hideImpersonate || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._impersonateClick}" class="impersonate-btn">Impersonate</button>
-          <div ?hidden="${(!this.isAdmin || !this.hideImpersonate || this.expertImpersonating !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
-            <span ?hidden="${!this.isVisible}" class="tooltip hide-expert" data-text="Hide expert">
+          <span>EXPERT ${!this.isVisible ? '(HIDDEN)' : ''}</span>
+          <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
+          <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+            <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
               <ucdlib-icon icon="ucdlib-experts:fa-eye" @click=${this._hideExpert}></ucdlib-icon>
             </span>
             <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">
               <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._showExpert}></ucdlib-icon>
             </span>
           </div>
-          <div ?hidden="${(!this.isAdmin || !this.hideImpersonate || this.expertImpersonating !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+          <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span class="tooltip delete-expert" data-text="Delete expert">
               <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._deleteExpert}></ucdlib-icon>
             </span>
           </div>
         </div>
+
         <h1>${this.expertName}
           <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
             <span class="tooltip edit-name" data-text="Edit name">
@@ -629,6 +706,34 @@ return html`
             </span>
           </a>
         </h1>
+
+        <div class="mobile-edit-availability" style="padding: 0 .3rem;">
+          Open to:
+          <span ?hidden="${!this.canEdit}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem">
+            <span class="tooltip edit-availability" data-text="Edit availability">
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                @click=${this._editAvailability}>
+              </ucdlib-icon>
+            </span>
+          </span>
+        </div>
+        <div class="open-to" ?hidden="${this.hideAvailability && !this.expertEditing}">
+          <span class="desktop-edit-availability">Open to:</span>
+          <span ?hidden="${!this.collabProjects}">Collaborative Projects</span>
+          <span class="dot" ?hidden="${!this.collabProjects || !this.commPartner}">.</span>
+          <span ?hidden="${!this.commPartner}">Community Partnerships</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner) || !this.industProjects}">.</span>
+          <span ?hidden="${!this.industProjects}">Industry Projects</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">.</span>
+          <span ?hidden="${!this.mediaInterviews}">Media Interviews</span>
+          <span class="desktop-edit-availability" ?hidden="${!this.canEdit}" style="position: relative; padding-left: 0">
+            <span class="tooltip edit-availability" data-text="Edit availability">
+              <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
+                @click=${this._editAvailability}>
+              </ucdlib-icon>
+            </span>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -647,7 +752,7 @@ return html`
       <hr class="about-me seperator">
 
       <div class="introduction no-introduction" ?hidden="${!this.canEdit || this.introduction || this.researchInterests}">
-        <h4>Introduction
+        <h3 class="heading--highlight">Introduction
           <span ?hidden="${!this.canEdit}" style="position: relative;">
             <span class="tooltip edit-about-me" data-text="Edit Introduction">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -655,11 +760,11 @@ return html`
               </ucdlib-icon>
             </span>
           </span>
-        </h4>
+        </h3>
         <div class="no-display-data">No data to display</div>
       </div>
       <div class="introduction" ?hidden="${!this.introduction && !this.researchInterests}">
-        <h4>Introduction
+        <h3 class="heading--highlight">Introduction
           <span ?hidden="${!this.canEdit}" style="position: relative;">
             <span class="tooltip edit-about-me" data-text="Edit Introduction">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -667,7 +772,7 @@ return html`
               </ucdlib-icon>
             </span>
           </span>
-        </h4>
+        </h3>
         <ucdlib-md ?hidden="${!this.introduction}">
           <ucdlib-md-content>
             ${this.truncateIntroduction ? this.introduction.substr(0, 500) + '...' : this.introduction}
@@ -693,24 +798,24 @@ return html`
       <div class="roles-websites">
 
         <div class="roles no-roles" ?hidden="${!this.canEdit || this.roles.length}">
-          <h4>Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
+          <h3 class="heading--highlight">Roles
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" @click=${this._editRoles}></ucdlib-icon>
               </span>
-            </a>
-          </h4>
+            </span>
+          </h3>
           <div class="no-display-data">No data to display</div>
         </div>
 
         <div class="roles" ?hidden="${!this.roles.length}">
-          <h4>Roles
-            <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
+          <h3 class="heading--highlight">Roles
+            <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
+                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" @click=${this._editRoles}></ucdlib-icon>
               </span>
-            </a>
-          </h4>
+            </span>
+          </h3>
 
           ${this.roles.map(
           (role) => html`
@@ -732,7 +837,7 @@ return html`
         </div>
 
         <div class="websites no-websites" ?hidden="${!this.canEdit || this.websites.length || this.orcId || this.scopusId || this.researcherId}">
-          <h4>Links
+          <h3 class="heading--highlight">Links
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -740,12 +845,12 @@ return html`
                 </ucdlib-icon>
               </span>
             </span>
-          </h4>
+          </h3>
           <div class="no-display-data">No data to display</div>
         </div>
 
         <div class="websites" ?hidden="${!this.websites.length && !this.orcId && !this.scopusId && !this.researcherId}">
-          <h4>Links
+          <h3 class="heading--highlight">Links
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -753,7 +858,7 @@ return html`
                 </ucdlib-icon>
               </span>
             </span>
-          </h4>
+          </h3>
           <div class="link-row" ?hidden="${!this.orcId}">
             <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
             <span><a href="https://orcid.org/${this.orcId}">${this.orcId}</a></span>
@@ -782,11 +887,11 @@ return html`
         </div>
       </div>
 
-      <div class="grants-abbreviated" ?hidden="${this.grants.length === 0 && (!this.canEdit || this.totalGrants === 0)}">
+      <div class="grants-abbreviated" ?hidden="${this.totalGrants === 0 && (!this.canEdit || this.totalGrants === 0)}">
         <div class="grants-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="file-invoice-dollar" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
-            <h2>${this.grants.length} Grants</h2>
+            <h2>${this.totalGrants} Grants</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
             <span ?hidden="${!this.canEdit}" style="position: relative;">
@@ -807,16 +912,16 @@ return html`
             </span>
           </div>
         </div>
-        <span class="hidden-grants-label" ?hidden="${this.totalGrants === this.grants.length || !this.canEdit}">
-          ${this.totalGrants - this.grants.length} additional grant${this.totalGrants - this.grants.length === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+        <span class="hidden-grants-label" ?hidden="${this.hiddenGrants === 0 || !this.canEdit}">
+          ${this.hiddenGrants} additional grant${this.hiddenGrants === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
         </span>
 
         <hr class="seperator">
         ${this.grantsActiveDisplayed.map(
           (grant, index) => html`
-            <h4 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h4>
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
             <div class="grant">
-              <h5>${unsafeHTML(grant.name)}</h5>
+              <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
@@ -830,9 +935,9 @@ return html`
         )}
         ${this.grantsCompletedDisplayed.map(
           (grant, index) => html`
-            <h4 style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h4>
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Completed</span></h3>
             <div class="grant">
-              <h5>${unsafeHTML(grant.name)}</h5>
+              <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
@@ -844,17 +949,17 @@ return html`
             <br>
           `
         )}
-        <div class="see-all-grants" ?hidden= "${this.grants.length < this.grantsPerPage + 1}" @click="${this._seeAllGrants}">
+        <div class="see-all-grants" ?hidden= "${this.totalGrants < this.grantsPerPage + 1}" @click="${this._seeAllGrants}">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
-          <span>SEE ALL ${this.grants.length} GRANTS</span>
+          <span>SEE ALL ${this.totalGrants} GRANTS</span>
         </div>
       </div>
 
-      <div class="works-abbreviated" ?hidden="${this.citations.length === 0 && (!this.canEdit || this.totalCitations === 0)}">
+      <div class="works-abbreviated" ?hidden="${this.totalCitations === 0 && (!this.canEdit || this.totalCitations === 0)}">
         <div class="works-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
-            <h2>${this.citations.length} Works</h2>
+            <h2>${this.totalCitations} Works</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
             <span ?hidden="${!this.canEdit}" style="position: relative;">
@@ -875,14 +980,14 @@ return html`
             </span>
           </div>
         </div>
-        <span class="hidden-works-label" ?hidden="${this.totalCitations === this.citations.length || !this.canEdit}">
-          ${this.totalCitations - this.citations.length} additional work${this.totalCitations - this.citations.length === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+        <span class="hidden-works-label" ?hidden="${this.hiddenCitations === 0 || !this.canEdit}">
+          ${this.hiddenCitations} additional work${this.hiddenCitations === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
         </span>
 
         <hr class="seperator">
         ${this.citationsDisplayed.map(
           (cite) => html`
-            <h4 style="margin: 1.19rem 0;">${cite.issued?.[0]}</h4>
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
             <div class="work">
               <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
               <div class="work-details">
@@ -894,9 +999,9 @@ return html`
             <br>
           `
         )}
-        <div class="see-all-works" ?hidden= "${this.citations.length < this.worksPerPage + 1}" @click="${this._seeAllWorks}">
+        <div class="see-all-works" ?hidden= "${this.totalCitations < this.worksPerPage + 1}" @click="${this._seeAllWorks}">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
-          <span>SEE ALL ${this.citations.length} WORKS</span>
+          <span>SEE ALL ${this.totalCitations} WORKS</span>
         </div>
       </div>
     </div>

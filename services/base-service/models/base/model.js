@@ -16,13 +16,7 @@ const settings = require('./schema/settings.json');
 class BaseModel extends FinEsDataModel {
 
   // Base Model never matches
-  static types = [
-//    "http://schema.library.ucdavis.edu/schema#Person",
-//    "http://schema.library.ucdavis.edu/schema#Work",
-//    "http://schema.library.ucdavis.edu/schema#Authorship",
-//    "http://vivoweb.org/ontology/core#Authorship",
-//    "http://vivoweb.org/ontology/core#Grant",
-  ];
+  static types = [];
 
   constructor(name='base') {
 
@@ -53,14 +47,14 @@ class BaseModel extends FinEsDataModel {
    * it's type.
    */
   is(id,types,workflows) {
-//    console.log('constructor', this.constructor, 'vs', types);
+    //console.log('constructor', this.constructor.types, 'vs', types);
     if (typeof types === 'string') types = [types];
     types = types.filter(x => this.constructor.types.includes(x));
     if (types.length === 0) {
-//      console.log(`!${this.constructor.name}.is`);
+      //console.log(`!${this.constructor.name}.is`);
       return false;
     }
-//    console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
+    //console.log(`+${this.constructor.name}.is(${types.join(",")} is a valid type)`);
     return true
   }
 
@@ -188,6 +182,7 @@ class BaseModel extends FinEsDataModel {
    **/
   promote_node_to_doc(node) {
     const doc = {
+      "@context": config?.server?.url+"/api/schema/1/context.jsonld",
       "@id": node['@id'],
       name: node['name'],
       "@graph": [node]
@@ -385,7 +380,7 @@ class BaseModel extends FinEsDataModel {
    * @param {String} id : _id of document to get
    * @param {Object} options : options for get (like _source:false)
    */
-  async client_get(id,options) {
+  async client_get(id,options={}) {
     // console.log(`FinEsNestedModel.client_get(${id}) on ${this.readIndexAlias}`);
     const result = await this.client.get(
       {

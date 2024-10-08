@@ -89,7 +89,6 @@ export class Impersonator {
         ...options,
         signal: controller.signal
       });
-      clearTimeout(id);
     } catch (e) {
       if (e.name === 'AbortError') {
         const error=new Error('Request timed out');
@@ -97,6 +96,8 @@ export class Impersonator {
         throw error;
       }
       throw e;
+    } finally {
+      clearTimeout(id);
     }
 
     if (resp.status !== 204 && resp.status !== 200) {
@@ -319,7 +320,11 @@ export class Impersonator {
     formData.append('__csrf_token', csrfToken);
 
     for (let key in data) {
+      if (Array.isArray(data[key])) {
+        formData.append(key, JSON.stringify(data[key]));
+      } else {
         formData.append(key, data[key]);
+      }
     }
 
     let headers = formData.getHeaders();
@@ -359,10 +364,28 @@ export class Impersonator {
       public: 0,
       internal: 50
     };
+    // use the userId you are impersonating
      return await this.userprofile({
        com: 'updateUserPrivacyLevel',
-       userId: data.userId,
+       userId: this.userId,
        privacyLevel: level[data.privacy]
+    });
+  }
+
+  /**
+   * @method updateUserAvailabilityLabels - Set the availability labels of a user
+   * @param {object}
+
+   * @returns {Promise<Response>}
+   */
+  async updateUserAvailabilityLabels(data={}) {
+    // use the userId you are impersonating
+    return await this.userprofile({
+      com: 'updateLabels',
+      userId: this.userId,
+      schemeId: 17,
+      labelsToAddOrEdit: data.labelsToAddOrEdit,
+      labelsToRemove: data.labelsToRemove
     });
   }
 

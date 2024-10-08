@@ -2,6 +2,8 @@ import { LitElement, html, svg } from 'lit';
 import {render, styles} from "./ucdlib-site-footer.tpl.js";
 import ThemeUtils from "../themeUtils";
 
+import {Mixin} from "@ucd-lib/cork-app-utils";
+
 /**
  * @class UcdlibSiteFooter
  * @description UI component class for displaying the standard UC Davis site footer
@@ -37,7 +39,7 @@ export default class UcdlibSiteFooter extends Mixin(LitElement)
   /**
    * @method _renderCampusInfo
    * @description Renders the UCD information below the Aggies image.
-   * 
+   *
    * @returns {TemplateResult}
    */
   _renderCampusInfo() {
@@ -57,17 +59,17 @@ export default class UcdlibSiteFooter extends Mixin(LitElement)
           </ul>
         </div>
         <div class="row">
-          <span>Copyright © The Regents of the University of California, Davis campus. All rights reserved.</span>
+          <span>Copyright &copy;2024 The Regents of the University of California, Davis campus. All rights reserved.</span>
         </div>
       </div>
-      
+
     `;
   }
 
   /**
    * @method _renderLibraryLogo
    * @description Renders the library logo
-   * 
+   *
    * @returns {SVGTemplateResult}
    */
   _renderLibraryLogo(){
@@ -101,7 +103,7 @@ export default class UcdlibSiteFooter extends Mixin(LitElement)
   /**
    * @method _renderAggieLogo
    * @description Renders the aggie logo
-   * 
+   *
    * @returns {SVGTemplateResult}
    */
   _renderAggieLogo(){
