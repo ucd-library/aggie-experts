@@ -136,9 +136,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           includeWorksMisformatted : true
         })
       );
-      this._onExpertUpdate(expert);
 
-      if( !this.isAdmin && !this.isVisible ) throw new Error();
+      if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
+
+      this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
