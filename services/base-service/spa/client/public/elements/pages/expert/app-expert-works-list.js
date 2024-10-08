@@ -93,9 +93,10 @@ export default class AppExpertWorksList extends Mixin(LitElement)
           worksSize : this.resultsPerPage
         })
       );
-      this._onExpertUpdate(expert);
 
-      if( !this.isAdmin && !this.isVisible ) throw new Error();
+      if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
+
+      this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 

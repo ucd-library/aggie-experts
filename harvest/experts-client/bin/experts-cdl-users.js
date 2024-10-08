@@ -7,9 +7,6 @@ import fs from 'fs-extra';
 import md5 from 'md5';
 import { Command } from 'commander';
 
-// import { DataFactory } from 'rdf-data-factory';
-// import { BindingsFactory } from '@comunica/bindings-factory';
-
 import ExpertsClient from '../lib/experts-client.js';
 import FusekiClient from '../lib/fuseki-client.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';

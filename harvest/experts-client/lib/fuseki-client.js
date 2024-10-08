@@ -1,4 +1,9 @@
 import fetch from 'node-fetch';
+// Trick for getting __dirname in ES6 modules
+import { fileURLToPath } from 'url';
+import path from 'path';
+const __filename = fileURLToPath(import.meta.url);
+import fs from 'fs-extra';
 
 export class FusekiClient {
   static DEF= {
@@ -6,7 +11,8 @@ export class FusekiClient {
     replace: false,
     delete: true,
     type: 'tdb2',
-    log: null
+    log: null,
+    assembler: null
   };
 
   constructor(opt={}) {
@@ -14,7 +20,6 @@ export class FusekiClient {
     for (let k in FusekiClient.DEF) {
       this[k] = opt[k] || FusekiClient.DEF[k];
     }
-
     if (opt.url) {
       let url = new URL(opt.url);
       this.auth=opt.auth || url.username+':'+url.password;
@@ -67,10 +72,11 @@ export class FusekiClient {
   }
 
 
-  async createDb(db,opt={},files) {
+  async createDb(db,opt={}) {
     if(typeof opt === 'object') {
       opt.type ||= this.type;
       opt.replace ||= this.replace;
+      opt.assembler ||= this.assembler;
     }
 
     let exists = false;
@@ -105,46 +111,27 @@ export class FusekiClient {
     }
 
     if (!exists) {
+      const fetchOpt = {
+        method: 'POST',
+        body: new URLSearchParams({ 'dbName': db, 'dbType': opt.type }),
+        headers: {
+          'Authorization': `Basic ${this.authBasic}`
+        }
+      };
       if (opt.assembler) {
-        // Create a new dataset using an assembler
-        const res = await fetch(
-          `${this.url}/\$/datasets`,
-          {
-            method: 'POST',
-            body: opt.assembler,
-            headers: {
-              'Authorization': `Basic ${this.authBasic}`,
-              'Content-Type': 'application/ld+json'
-            }
-          });
-        if (!res.ok) {
-          throw new Error(`Create db ${opt.db} failed . Code: ${res.status}`);
-        }
+        fetchOpt.body=opt.assembler;
+        fetchOpt.headers['Content-Type']='application/ld+json';
       }
-      else {
-        // Create a new dataset using the dbName and dbType
-        const res = await fetch(
-          `${this.url}/\$/datasets`,
-          {
-            method: 'POST',
-            body: new URLSearchParams({ 'dbName': opt.db, 'dbType': opt.type }),
-            headers: {
-              'Authorization': `Basic ${this.authBasic}`
-            }
-          });
-        if (!res.ok) {
+      const res = await fetch(
+        `${this.url}/\$/datasets`,
+        fetchOpt);
+      if (!res.ok) {
           throw new Error(`Create db ${db} failed . Code: ${res.status}`);
-        }
       }
       this.log.info({lib:'fuseki',db:db,op:'reuse'},`✔ createDb(${db})`);
     }
 
-    const dbclient=new FusekiClientDB(this,db,opt);
-
-    if (files) {
-      this.files = await dbclient.addToDb(files);
-    }
-    return dbclient;
+    return new FusekiClientDB(this,db,opt);
   }
 
   async dropDb(db) {
@@ -179,6 +166,10 @@ export class FusekiClientDB {
 
   source() {
     return `${this.url}/${this.db}/sparql`;
+  }
+
+  async drop() {
+    return this.client.dropDb(this.db);
   }
 
   /**
