@@ -1,5 +1,5 @@
  {
-  "id": "grant_name",
+  "id": "name",
   "script": {
     "lang": "mustache",
     "source": {
@@ -8,7 +8,7 @@
           "must": [
             {
               "prefix": {
-                "@name.kw": "{{p}}"
+                "name.kw": "{{p}}"
               }
             }
           ],
@@ -24,15 +24,14 @@
       },
       "_source": [
         "@id",
+        "@type",
+        "is-visible",
         "name"
       ],
       "sort": {
         "name.kw" : {
           "mode" :  "max",
-          "order" : "asc",
-          "nested" : {
-            "path" : "@graph"
-          }
+          "order" : "asc"
         }
       },
       "from": "{{from}}{{^from}}0{{/from}}",
