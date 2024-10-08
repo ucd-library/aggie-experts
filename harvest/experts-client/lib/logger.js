@@ -1,14 +1,5 @@
 import bunyan from 'bunyan';
-import path from 'path';
-import fs from 'fs';
 import { performance } from 'node:perf_hooks';
-
-const streams = [
-  // Log to the console
-
-  { level: 'info', stream: process.stdout }
-
-];
 
 function markSerializer(mark) {
   if (mark && (typeof mark === 'string' || mark instanceof String)) {
