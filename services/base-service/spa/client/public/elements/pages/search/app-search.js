@@ -83,10 +83,10 @@ export default class AppSearch extends Mixin(LitElement)
       this.mediaInterviews = query.hasAvailability.includes('media');
 
       if( query.hasAvailability.includes('ark:') ) {
-        if( query.hasAvailability.includes('ark:/87287/d7nh2m/keyword/c-ucd-avail/Community partnerships') ) this.commPartner = true;
-        if( query.hasAvailability.includes('ark:/87287/d7nh2m/keyword/c-ucd-avail/Collaborative projects') ) this.collabProjects = true;
-        if( query.hasAvailability.includes('ark:/87287/d7nh2m/keyword/c-ucd-avail/Industry Projects') ) this.industProjects = true;
-        if( query.hasAvailability.includes('ark:/87287/d7nh2m/keyword/c-ucd-avail/Media enquiries') ) this.mediaInterviews = true;
+        if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Community partnerships') ) this.commPartner = true;
+        if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative projects') ) this.collabProjects = true;
+        if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry Projects') ) this.industProjects = true;
+        if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Media enquiries') ) this.mediaInterviews = true;
         this._updateLocation();
       }
 

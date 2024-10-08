@@ -136,9 +136,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           includeGrantsMisformatted : true
         })
       );
-      this._onExpertUpdate(expert);
+      if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
-      if( !this.isAdmin && !this.isVisible ) throw new Error();
+      this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 

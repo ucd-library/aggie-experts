@@ -1,7 +1,7 @@
-PREFIX : <ark:/87287/d7nh2m/schema#>
+PREFIX : <ark:/87287/d7mh2m/schema#>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 prefix experts: <http://experts.ucdavis.edu/>
-PREFIX oap: <ark:/87287/d7nh2m/schema#>
+PREFIX oap: <ark:/87287/d7mh2m/schema#>
 prefix expert: <http://experts.ucdavis.edu/expert/>
 prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX iam: <ark:/87287/d7c08j/schema#>
@@ -27,7 +27,7 @@ where {
       #("software" false ucdlib:Work "software" "")
       #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
     }
-  graph <ark:/87287/d7nh2m/> {
+  graph <ark:/87287/d7mh2m/> {
     ?RELATIONSHIP__ :type "publication-user-authorship";
 #                  :effective-privacy-level "Public";
 #                  :is-visible "true";
