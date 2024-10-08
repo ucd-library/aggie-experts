@@ -16,25 +16,15 @@ class ExpertModel extends BaseModel {
    * @method get
    * @description load a expert by id from elastic search
    *
-   * @param {String} id expert id
-   * @param {Boolean} noSanitize if true, returns is-visible:false records
+   * @param {String} expertId expert id
+   * @param {String} subpage subpage of expert, ie works or grants list/edit pages
+   * @param {Object} options for request
+   * @param {Boolean} clearCache true to clear cache
    *
    * @returns {Promise} resolves to expert
    */
-  async get(id, noSanitize=false) {
-    let state = this.store.getExpert(id, noSanitize);
-
-    if( state && state.request ) {
-      await state.request;
-    } else if( state && state.state === 'loaded' ) {
-      if( state.id !== id ) {
-        this.store.setExpertLoaded(id, state.payload)
-      }
-    } else {
-      await this.service.get(id, noSanitize);
-    }
-
-    return this.store.getExpert(id);
+  async get(expertId, subpage='', options={}, clearCache=false) {
+    return this.service.get(expertId, subpage, options, clearCache);
   }
 
   /**
@@ -101,6 +91,19 @@ class ExpertModel extends BaseModel {
   */
   async deleteExpert(id) {
     return await this.service.deleteExpert(id);
+  }
+
+  /**
+   * @method updateExpertAvailability
+   * @description update an experts availability in aggie experts and cdl
+   *
+   * @param {String} id expert id
+   * @param {Object} labels object with labels to add and remove
+   *
+   * @returns {Promise} resolves to record
+  */
+  async updateExpertAvailability(id, labels={}) {
+    return await this.service.updateExpertAvailability(id, labels);
   }
 
 }

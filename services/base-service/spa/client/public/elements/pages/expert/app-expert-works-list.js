@@ -2,10 +2,13 @@ import { LitElement } from 'lit';
 import {render} from "./app-expert-works-list.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import '../../utils/app-icons.js';
 
 import Citation from '../../../lib/utils/citation.js';
+import utils from '../../../lib/utils';
 
 export default class AppExpertWorksList extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -17,6 +20,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       expertName : { type : String },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      totalCitations : { type : Number },
       paginationTotal : { type : Number },
       currentPage : { type : Number },
     }
@@ -31,6 +35,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     this.expertName = '';
     this.citations = [];
     this.citationsDisplayed = [];
+    this.totalCitations = 0;
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
@@ -62,22 +67,36 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'works' ) {
-      // reset data to first page of results
-      this.currentPage = 1;
-      return;
+    if( e.location.page !== 'works' ) return;
+
+    // parse /page/size from url, or append if trying to access /works
+    let page = e.location.pathname.split('/works/')?.[1];
+    if( page ) {
+      let parts = page.split('/');
+      this.currentPage = Number(parts?.[0] || 1);
+      this.resultsPerPage = Number(parts?.[1] || 25);
     }
+
     window.scrollTo(0, 0);
 
-    let expertId = e.location.pathname.replace('/works', '');
+    let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
-      this._onExpertUpdate(expert);
+      let expert = await this.ExpertModel.get(
+        expertId,
+        `/works?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+        utils.getExpertApiOptions({
+          includeGrants : false,
+          worksPage : this.currentPage,
+          worksSize : this.resultsPerPage
+        })
+      );
 
-      if( !this.isAdmin && !this.isVisible ) throw new Error();
+      if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
+
+      this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -97,12 +116,22 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'works' ) return;
 
-    this.expertId = e.id;
+    this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.isVisible = this.expert['is-visible'];
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
+
+    this.totalCitations = this.expert?.totals?.works || 0;
+
+    // only expert graph record, no works for this pagination of results
+    if( this.expert['@graph'].length === 1 ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
 
     await this._loadCitations();
   }
@@ -114,35 +143,39 @@ export default class AppExpertWorksList extends Mixin(LitElement)
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    */
   async _loadCitations(all=false) {
+    // TODO 'all' param broken now since we're subsetting in the backend. need to make a new request for all
+
     let citations = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
-    citations = citations.map(c => {
+    this.citations = citations.map(c => {
       let citation = { ...c };
       citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
       return citation;
     });
 
-    try {
-      // sort by issued date desc, then by title asc
-      citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    } catch (error) {
-      // validate issue date
-      let validation = Citation.validateIssueDate(citations);
-      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+    // TODO this might change, depending on if we fix data issues in the backend or report in the frontend
+    // try {
+    //   // sort by issued date desc, then by title asc
+    //   citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
+    // } catch (error) {
+    //   // validate issue date
+    //   let validation = Citation.validateIssueDate(citations);
+    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
-      // validate title
-      validation = Citation.validateTitle(citations);
-      if( validation.citations?.length ) console.warn(validation.error, validation.citations);
+    //   // validate title
+    //   validation = Citation.validateTitle(citations);
+    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
 
-    } finally {
+    // } finally {
       // filter out invalid citations
-      citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
+      // citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
 
-      this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-    }
+      // this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
+    // }
 
-    let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
+    // let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
+    // let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
+    let citationResults = await Citation.generateCitations(this.citations);
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
     // also remove issued date from citations if not first displayed on page from that year
@@ -166,7 +199,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       }
     });
 
-    this.paginationTotal = Math.ceil(this.citations.length / this.resultsPerPage);
+    this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
     this.requestUpdate();
   }
@@ -180,10 +213,26 @@ export default class AppExpertWorksList extends Mixin(LitElement)
   async _onPaginationChange(e) {
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
-    if( maxIndex > this.citations.length ) maxIndex = this.citations.length;
+    if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
 
     this.currentPage = e.detail.page;
-    await this._loadCitations();
+
+    let path = '/'+this.expertId+'/works';
+    if( this.currentPage > 1 || this.resultsPerPage !== 25 ) path += '/'+this.currentPage;
+    if( this.resultsPerPage !== 25 ) path += '/'+this.resultsPerPage;
+    this.AppStateModel.setLocation(path);
+
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/works?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksPage : this.currentPage,
+        worksSize : this.resultsPerPage
+      })
+    );
+    this._onExpertUpdate(expert);
+
     window.scrollTo(0, 0);
   }
 

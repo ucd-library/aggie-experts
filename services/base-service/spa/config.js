@@ -16,12 +16,24 @@ config.client = {
   enableGA4Stats : process.env.GA4_ENABLE_STATS === 'true',
   gaId : process.env.GA4_MEASUREMENT_ID || '',
   assets : (env === 'prod') ? 'dist' : 'public',
-  appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse'],
+  appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse', 'grant'],
   versions : {
     bundle : clientPackageVersion,
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')
   },
-
+  logger : {
+    logLevel : process.env.CLIENT_LOG_LEVEL || 'warn',
+    logLevels : process.env.CLIENT_LOG_LEVELS ? JSON.parse(process.env.CLIENT_LOG_LEVELS) : {},
+    reportErrors : {
+      enabled : process.env.CLIENT_ERROR_REPORTING_ENABLED === 'true',
+      url : process.env.CLIENT_ERROR_REPORTING_URL || '',
+      key : process.env.CLIENT_ERROR_REPORTING_KEY || '',
+      customAttributes : {
+        appName : 'aggie-experts',
+        appOwner : 'digital'
+      }
+    }
+  },
   env : {
     CLIENT_ENV : env,
     FIN_APP_VERSION : process.env.FIN_APP_VERSION || '',

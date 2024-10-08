@@ -1,28 +1,42 @@
-version: '3'
-
 services:
   gateway:
-    image: &BASE ${ORG}/base-service:${TAG}
+    image: &BASE ${D[org]}/base-service:${D[tag]}
     volumes:
       - fedora-data:/data
       - &SERVICE_ACCOUNT ${GCLOUD_SERVICE_ACCOUNT_MOUNT:-./service-account.json}:/etc/fin/service-account.json
       - &DEV_MOUNT_MODELS ./services/base-service/models:/fin/services/models
       - &DEV_MOUNT_MODELS_API ./experts-api:/experts-api
     ports:
-      - ${HOST_PORT:-80}:3001
-    env_file:
-      - .env
+      - ${HOST_PORT:-${D[port]}}:3001
+    environment:
+      - FIN_URL=${FIN_URL:-${D[host]}}
+      - HOST_PORT=${HOST_PORT:-${D[port]}}
+      - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     depends_on:
       - fcrepo
       - redis
       - elasticsearch
     restart: unless-stopped
+    logging: &LOGGING
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
     command: npm run gateway
     # command: bash -c 'tail -f /dev/null'
 
   # Fuseki is used to harvest data, and as a check on data as well
   fuseki:
-    image: &IMG ${ORG}/harvest:${TAG}
+    image: ${D[org]}/harvest:${D[tag]}
+    logging: *LOGGING
     volumes:
       - *SERVICE_ACCOUNT
       - fuseki-data:/home/ucd.process
@@ -31,9 +45,8 @@ services:
     ports:
       - ${FUSEKI_PORT}:3030
     environment:
-      - JVM_ARGS=${JVM_ARGS:- -Xmx16g}
+      - JVM_ARGS=${JVM_ARGS:- -Xmx16g -Djena.scripting=true}
       - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
-      - GOOGLE_APPLICATION_CREDENTIALS_JSON=${GOOGLE_APPLICATION_CREDENTIALS_JSON:-}
     restart: unless-stopped
     command:
       HDT=import server
@@ -44,17 +57,18 @@ services:
   # Fedora Repository
   ###
   fcrepo:
-    image: ${FIN_ORG}/fin-fcrepo:${FIN_TAG}
-    env_file:
-      - .env
+    image: ${D[fin_org]}/fin-fcrepo:${D[fin_tag]}
+    logging: *LOGGING
     ports:
       - ${FCREPO_PORT}:8080
-    # Example for change logging.  Note, don't forget to still include the fcrepo.properties file location!
+   # Example for change logging.  Note, don't forget to still include the fcrepo.properties file location!
     # See: https://wiki.lyrasis.org/display/FEDORA6x/Logging
     # environment:
     #  - CATALINA_OPTS=-Dfcrepo.log.auth=DEBUG
     #  -Dfcrepo.config.file=/etc/fin/fcrepo.properties
     environment:
+      - GCS=${GCS_BUCKET:-${D[gcs_bucket]}}
+      - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
       - CATALINA_OPTS=-Dfcrepo.config.file=/etc/fin/fcrepo.properties -Djava.awt.headless=true -Dfile.encoding=UTF-8 -Xms2G -Xmx6G -XX:+UseG1GC -XX:+DisableExplicitGC
     volumes:
       - fedora-data:/usr/local/tomcat/fcrepo-home/data
@@ -65,7 +79,8 @@ services:
   # Fedora Postgres Service
   ###
   postgres:
-    image: ${FIN_ORG}/fin-postgres:${FIN_TAG}
+    image: ${D[fin_org]}/fin-postgres:${D[fin_tag]}
+    logging: *LOGGING
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
@@ -73,13 +88,17 @@ services:
     restart: unless-stopped
 
   init:
-    image: ${ORG}/init:${TAG}
-    env_file:
-      - .env
+    image: ${D[org]}/init:${D[tag]}
     environment:
       - FIN_SERVICE_NAME=init
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
+      - GCS=${GCS:-${D[gcs_bucket]}}
+      - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
     volumes:
-      #- &DEV_MOUNT_INIT_POSTGRES ./services/init/postgres:/etc/ucdlib-service-init/postgres
       - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
       - *SERVICE_ACCOUNT
 
@@ -93,19 +112,27 @@ services:
   # RabbitMQ - for messaging
   ###
   rabbitmq:
-    image: ${FIN_ORG}/fin-rabbitmq:${FIN_TAG}
+    image: ${D[fin_org]}/fin-rabbitmq:${D[fin_tag]}
+    logging: *LOGGING
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
 
   spa:
     image: *BASE
+    logging: *LOGGING
     volumes:
       - *SERVICE_ACCOUNT
       - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
     command: node spa/index.js
     environment:
-      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-false}
-      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-none}
+      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-${D[enable_gaid]}}
+      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-${D[gaid]}}
+      - CLIENT_ERROR_REPORTING_URL=${D[client_error_reporting_url]}
+      - CLIENT_ERROR_REPORTING_KEY=${D[client_error_reporting_key]}
+      - CLIENT_ERROR_REPORTING_ENABLED=${CLIENT_ERROR_REPORTING_ENABLED:-${D[client_error_reporting_enabled]}}
+      - FIN_URL=${FIN_URL:-${D[host]}}
+      - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
+      - APP_VERSION=${APP_VERSION:-${D[tag]}}
     depends_on:
       - elasticsearch
     restart: unless-stopped
@@ -115,8 +142,17 @@ services:
   ###
   dbsync:
     image: *BASE
-    env_file:
-      - .env
+    logging: *LOGGING
+    environment:
+      - FIN_URL=${FIN_URL:-${D[host]}}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     volumes:
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_MODELS
@@ -131,9 +167,16 @@ services:
   gcs:
     image: *BASE
     environment:
-      - GCS=${GCS:-fcrepo-dev}
-    env_file:
-      - .env
+      - GCS=${GCS_BUCKET:-${D[gcs_bucket]}}
+      - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     depends_on:
       - gateway
     volumes:
@@ -145,7 +188,8 @@ services:
   # Search
   ###
   elasticsearch:
-    image: ${FIN_ORG}/fin-elastic-search:${FIN_TAG}
+    image: ${D[fin_org]}/fin-elastic-search:${D[fin_tag]}
+    logging: *LOGGING
     environment:
       - node.name=elasticsearch
       - bootstrap.memory_lock=true
@@ -163,6 +207,7 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.4.3
+    logging: *LOGGING
     ports:
       - ${KIBANA_PORT}:5601
     environment:
@@ -177,8 +222,21 @@ services:
 
   uber:
     image: *BASE
+    logging: *LOGGING
     environment:
       - FIN_SERVICE_NAME=uber
+      - FIN_URL=${FIN_URL:-${D[host]}}
+      - HOST_PORT=${HOST_PORT:-${D[port]}}
+      - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
+      - CDL_PROPAGATE_CHANGES=${CDL_PROPAGATE_CHANGES:-${D[cdl_propagate_changes]}}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
+      - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
+      - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
+      - JWT_SECRET=${JWT_SECRET:-${D[jwt_secret]}}
+      - JWT_ISSUER=${JWT_ISSUER:-${D[jwt_issuer]}}
+      - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
+      - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
+      - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
       # - OTEL_LOG_LEVEL=DEBUG
       - FIN_METRICS_ENABLED=${FIN_METRICS_ENABLED:-true}
       - FIN_METRICS_FS_ENABLED=${FIN_METRICS_FS_ENABLED:-true}
@@ -191,39 +249,14 @@ services:
       - *DEV_MOUNT_SPA
       - *DEV_MOUNT_MODELS
       - *DEV_MOUNT_MODELS_API
-    env_file:
-      - .env
     depends_on:
       - elasticsearch
     command: npm run uber
   # command: bash -c 'tail -f /dev/null'
 
-  # keycloak container only enabled with deploy --dev
-  keycloak:
-    image: ${ORG}/keycloak:${TAG}
-    environment:
-      KC_HEALTH_ENABLED: 1
-      KC_METRICS_ENABLED: 1
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres/postgres
-      KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: postgres
-      KC_HOSTNAME: localhost
-      KC_LOCAL_DEV_REALM: ${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}
-      KC_SSODEV_OIDC_SECRET: ${KC_SSODEV_OIDC_SECRET:-***ssodev_oidc_secret_missing***}
-      KC_SSODEV_OIDC_CLIENT_ID: ${KC_SSODEV_OIDC_CLIENT_ID:-***ssdev_client_id_missing***}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-***app_client_id_missing***}
-      OIDC_SECRET: ${OIDC_SECRET:-***client_secret_missing***}
-      OIDC_BASE_URL: ${OIDC_BASE_URL:-https://keycloak:8443/realms/${KC_LOCAL_DEV_REALM:-ucdlib-local-dev}}
-    ports:
-      - 8081:8080
-      - 8443:8443
-    command: ["start-dev --import-realm"]
-
   pg-rest:
-    image: ${FIN_ORG}/fin-pg-rest:${FIN_TAG}
+    image: ${D[fin_org]}/fin-pg-rest:${D[fin_tag]}
+    logging: *LOGGING
     volumes:
       - *SERVICE_ACCOUNT
     # command: bash -c "tail -f /dev/null"

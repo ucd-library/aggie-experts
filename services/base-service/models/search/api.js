@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
-const template = require('./template/default.json');
+const template = require('./template/default.js');
 const experts = new ExpertModel();
 const {config} = require('@ucd-lib/fin-service-utils');
 
@@ -49,22 +49,28 @@ router.get(
   ),
   search_valid_path_error,
   async (req, res) => {
-  const params = {};
+    const params = {};
+    if (req.query.p) {
+      params.p = req.query.p;
+    }
+    ["inner_hit_size","size","page","q","hasAvailability"].forEach((key) => {
+      if (req.query[key]) { params[key] = req.query[key]; }
+    });
 
-  ["inner_hit_size","size","page","q"].forEach((key) => {
-    if (req.query[key]) { params[key] = req.query[key]; }
+    if (params.hasAvailability) {
+      params.hasAvailability = params.hasAvailability.split(',');
+    }
+    opts = {
+      id: template.id,
+      params
+    };
+    try {
+      await experts.verify_template(template);
+      const find = await experts.search(opts);
+      res.send(find);
+    } catch (err) {
+      res.status(400).send('Invalid request');
+    }
   });
-  opts = {
-    id: template.id,
-    params
-  };
-  try {
-    await experts.verify_template(template);
-    const find = await experts.search(opts);
-    res.send(find);
-  } catch (err) {
-    res.status(400).send('Invalid request');
-  }
-});
 
 module.exports = router;

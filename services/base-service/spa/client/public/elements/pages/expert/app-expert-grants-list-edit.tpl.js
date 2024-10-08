@@ -29,7 +29,7 @@ return html`
       background-size: 100% auto;
       background-color: #F2FAF6;
       width: 100%;
-      height: 12.25rem;
+      min-height: 12.25rem;
     }
 
     .hero-text {
@@ -266,6 +266,20 @@ return html`
       color: var(--ucd-black-50, #999);
     }
 
+    .grants-results .grant h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .grants-results .grant h5 a {
+      text-decoration: none;
+    /* styles for collapsed dropdown */
+    .custom-collapse {
+      --collapse-background-color: #FFFBED;
+      --collapse-border-color: #FFBF00;
+      padding: 1.19rem 0;
+    }
+
   </style>
 
   <div class="content">
@@ -288,7 +302,7 @@ return html`
         <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
         <span>${this.expertName}</span>
         </div>
-        <h1>Manage My Grants (${this.totalGrants - this.hiddenGrants} Public, ${this.hiddenGrants} Hidden)</h1>
+        <h1>${this.manageGrantsLabel}</h1>
       </div>
     </div>
 
@@ -296,6 +310,34 @@ return html`
       <div class="return-to-profile" @click="${this._returnToProfile}">
         <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-left"></ucdlib-icon>
         <span>RETURN TO PROFILE</span>
+      </div>
+
+      <div class="custom-collapse" ?hidden="${this.grantsWithErrors.length === 0}">
+        <ucd-theme-collapse brand-class="category-brand--secondary" title="Grants with Errors (${this.grantsWithErrors.length})">
+
+          ${this.grantsWithErrors.map(
+            (grant, index) => html`
+              <div style="display: flex; justify-content: space-between; margin: ${index === 0 ? '0' : '1.19rem'} 0 ${index+1 === this.grantsWithErrors.length ? '0' : '1.19rem'};">
+                <div class="grant">
+                  <h5 data-id=${grant['@id']}>${grant.dateTimeInterval?.end?.dateTime?.split('-')?.[0]}
+                    <span style="padding: 0 0.25rem;
+                      color: black;
+                      font-size: 1.1875rem;
+                      font-style: normal;
+                      font-weight: 700;
+                      line-height: 1.92125rem;
+                      text-transform: uppercase;
+                      position: relative;
+                      bottom: 0.25rem;"
+                    class="dot">.</span> ${grant.name}</h5>
+                  <p style="margin-bottom: 0;">Error: Cannot format grant. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>
+                </div>
+              </div>
+              <hr style="border-color: #CCE0F3;" ?hidden=${index+1 === this.grantsWithErrors.length}>
+            `)
+          }
+
+        </ucd-theme-collapse>
       </div>
 
       <div style="display: flex; flex-direction: row-reverse;">
@@ -324,7 +366,7 @@ return html`
               </span>
             </div>
             <div class="grant">
-              <h5>${unsafeHTML(grant.name)}</h5>
+              <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>
@@ -356,7 +398,7 @@ return html`
               </span>
             </div>
             <div class="grant">
-              <h5>${unsafeHTML(grant.name)}</h5>
+              <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">.</span>

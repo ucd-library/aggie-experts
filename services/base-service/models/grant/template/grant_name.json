@@ -1,0 +1,45 @@
+ {
+  "id": "grant_name",
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "prefix": {
+                "@name.kw": "{{p}}"
+              }
+            }
+          ],
+          "filter": {
+            "bool":{
+              "must": [
+                { "exists": { "field": "is-visible" }},
+                { "term" : {"is-visible": true } }
+              ]
+            }
+          }
+        }
+      },
+      "_source": [
+        "@id",
+        "name"
+      ],
+      "sort": {
+        "name.kw" : {
+          "mode" :  "max",
+          "order" : "asc",
+          "nested" : {
+            "path" : "@graph"
+          }
+        }
+      },
+      "from": "{{from}}{{^from}}0{{/from}}",
+      "size": "{{size}}{{^size}}25{{/size}}"
+    },
+    "params": {
+      "p": "A"
+    }
+  }
+}
