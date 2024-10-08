@@ -1,9 +1,0 @@
-construct { ?s ?p ?o. }
-WHERE {
-  graph ?g {
-  {
-  ?URI_ a [].
-  ?s a [];
-     ?p ?o.
-  filter(regex(str(?s),concat("^",str(?URI__),"(#|$)")))
-} } }

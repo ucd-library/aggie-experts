@@ -1,4 +1,4 @@
-var {BaseStore} = require('@ucd-lib/cork-app-utils');
+var {BaseStore, LruStore} = require('@ucd-lib/cork-app-utils');
 
 class BrowseByStore extends BaseStore {
 
@@ -6,48 +6,14 @@ class BrowseByStore extends BaseStore {
     super();
 
     this.data = {
-      byLastInitial : {},
-      experts : {
-        state : this.STATE.INIT
-      }
+      byExpertsLastInitial : new LruStore({name: 'browse.experts'}),
+      byExpertsAZ : new LruStore({name: 'browse.experts.az'})
     }
 
     this.events = {
       BROWSE_EXPERTS_UPDATE : 'browse-experts-update',
+      BROWSE_EXPERTS_AZ_UPDATE : 'browse-experts-az-update'
     }
-  }
-
-  /**
-   * Browse By Experts
-   */
-  browseExperts(lastInitial='') {
-    return this.data.byLastInitial[lastInitial];
-  }
-
-  setBrowseExpertsLoading(lastInitial, request) {
-    this._setBrowseExpertsState({
-      state : this.STATE.LOADING,
-      request, lastInitial
-    })
-  }
-
-  setBrowseExpertsLoaded(lastInitial, payload) {
-    this._setBrowseExpertsState({
-      state : this.STATE.LOADED,
-      lastInitial, payload
-    })
-  }
-
-  setBrowseExpertsError(lastInitial, error) {
-    this._setBrowseExpertsState({
-      state : this.STATE.ERROR,
-      lastInitial, error
-    })
-  }
-
-  _setBrowseExpertsState(state) {
-    this.data.experts = state;
-    this.emit(this.events.BROWSE_EXPERTS_UPDATE, this.data.experts);
   }
 
 }

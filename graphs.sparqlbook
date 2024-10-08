@@ -2,7 +2,25 @@
   {
     "kind": 2,
     "language": "sparql",
-    "value": "PREFIX : <ark:/87287/d7gt0q/schema#>\n# PREFIX aggie_enterprise: <ark:/87287/d7c08j/>\nPREFIX expert: <http://experts.ucdavis.edu/expert/>\nPREFIX experts: <http://experts.ucdavis.edu/>\nPREFIX grant: <ark:/87287/d7gt0q/grant/>\nPREFIX iam: <http://iam.ucdavis.edu/>\nPREFIX kfs: <ark:/87287/d7gt0q/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX rems:  <http://rems.ucop.edu/sponsor#>\nPREFIX schema: <http://schema.org/>\nPREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>\nPREFIX vcard: <http://www.w3.org/2006/vcard/ns#>\nPREFIX vivo: <http://vivoweb.org/ontology/core#>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n\n# SELECT DISTINCT ?s\n# WHERE {\n#   GRAPH <http://www.ucdavis.edu/aggie_enterprise/> { ?s ?p ?o } .\n#   FILTER(!isBlank(?s))\n# }\n\n# SELECT DISTINCT ?subject\n# WHERE {\n#   GRAPH <http://www.ucdavis.edu/aggie_enterprise/> {\n#     ?subject ?predicate ?object .\n#     FILTER(!isBlank(?subject))\n#   }\n# }\n\n# select (count(*) as ?cnt) WHERE {\n#        graph <ark:/87287/d7c08j/> {\n#        ?grant a vivo:Grant.\n#        }}\n\n# select ?s ?p ?o WHERE {\n#   GRAPH <http://oapolicy.universityofcalifornia.edu/> { \n#     ?s ?p ?o\n#   }\n# } limit 5\n\nSELECT DISTINCT ?graph\nWHERE {\n  GRAPH ?graph { ?s ?p ?o }\n}\n\n#SELECT DISTINCT ?graph\n# DESCRIBE ?grant \n# WHERE {\n#   GRAPH ?graph { \n#      ?grant a vivo:Grant ;\n#         ?p ?o\n#     }\n# }\n# limit 5\n\n    # PREFIX : <http://www.ucdavis.edu/aggie_enterprise/#>\n    #  select ?status (count(*) as ?cnt) WHERE {\n    #    ?grant :status ?status\n    #    } group by ?status order by ?status\n\n#SELECT * \n# DESCRIBE ?s #?from_grant\n# WHERE {\n#   GRAPH ae: { ?s a vivo:Grant ;\n#               # ucdlib:flowThruFunding ?flowThruFunding ;\n#                    ?p ?o\n#               }\n#    }\n#   # GRAPH kfs: { ?s a vivo:Grant ?p ?o }\n# LIMIT 3\n\n# PREFIX : <http://www.ucdavis.edu/aggie_enterprise#>\n# select  ?g ?type (count(*) as ?cnt)\n# WHERE {\n#   graph ?g {\n#     [] a $type.\n#    }\n#   filter(regex(str(?g),\"^ark:\"))\n# } group by ?g ?type order by ?g ?type",
+    "value": "PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>\nPREFIX expert: <http://experts.ucdavis.edu/expert/>\nPREFIX oap: <http://oapolicy.universityofcalifornia.edu/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nPREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>\nPREFIX vcard: <http://www.w3.org/2006/vcard/ns#>\n\nPREFIX vivo: <http://vivoweb.org/ontology/core#>\n\nSELECT ?expert ?p ?o\nWHERE {\n  GRAPH <ark:/87287/d7c08j/> {\n    ?expert a ucdlib:Expert ;\n           ?p ?o .\n  }\n}\nLIMIT 100",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "sparql",
+    "value": "SELECT ?s ?p ?o\nWHERE {\n  GRAPH <http://experts.ucdavis.edu/ucop/> {\n    ?s ?p ?o\n  }\n}\nLIMIT 100",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "sparql",
+    "value": "SELECT DISTINCT ?graph\nWHERE {\n  GRAPH ?graph { ?s ?p ?o }\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "sparql",
+    "value": "PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>\nPREFIX expert: <http://experts.ucdavis.edu/expert/>\nPREFIX oap: <http://oapolicy.universityofcalifornia.edu/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nPREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>\nPREFIX vcard: <http://www.w3.org/2006/vcard/ns#>\nselect distinct (\"quinn\" as ?USERNAME__) ?EXPERT__ ?filename where {\n  graph oap: {\n    [] :username ?username;\n       :is-public \"true\";\n       .\n  }\n  graph <http://iam.ucdavis.edu/> {\n    ?expert a ucdlib:Expert;\n            ucdlib:userId ?username;\n            ucdlib:is-visible true;\n            .\n    bind(\"JHGJHG\" as ?EXPERTID__)\n    bind(concat(\"expert/\",?EXPERTID__,\".jsonld.json\") as ?filename)\n    bind(uri(concat(\"http://experts.ucdavis.edu/expert/\",?EXPERTID__)) as ?EXPERT__)\n  }\n}\n\nLIMIT 15\n",
     "metadata": {}
   },
   {
@@ -14,25 +32,7 @@
   {
     "kind": 2,
     "language": "sparql",
-    "value": "# Query for grants\nPREFIX : <ark:/87287/d7gt0q/schema#>\nPREFIX ae: <ark:/87287/d7c08j/>\nPREFIX iam: <http://iam.ucdavis.edu/>\nPREFIX experts: <http://experts.ucdavis.edu/>\nPREFIX grant: <ark:/87287/d7gt0q/grant/>\nPREFIX ae:  <ark:/87287/d7c08j/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>\nPREFIX vivo: <http://vivoweb.org/ontology/core#>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nPREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>\nselect distinct\n(?grant AS ?id)\n(\"grant\" AS ?category)\n(\"c-ucd-enterprise\" AS ?type)\n?title\n?c_pi\n?funder_name\n?funder_reference\n?start_date\n?end_date\n?amount_value\n(\"USD\" as ?amount_currency_code)\n?funding_type\n?c_ucop_sponsor\n?c_flow_thru_funding\n(\"TRUE\" AS ?visible)\nwhere {\n  GRAPH ae: {\n    ?grant a vivo:Grant,?grant_class ;\n              rdfs:label ?title;\n              ucdlib:piName ?c_pi;\n              vivo:totalAwardAmount ?amount_value;\n              vivo:dateTimeInterval [\n                                      vivo:start/vivo:dateTime ?start_date;\n                                      vivo:end/vivo:dateTime ?end_date;\n                                    ];\n    .\n\n    VALUES (?funding_type ?grant_class) {\n       (\"Academic Support\" ucdlib:GrantAcademicSupport)\n                  (\"Research\" ucdlib:GrantResearchAES)\n                  (\"Student Services\" ucdlib:GrantStudentServices)\n                  (\"Capital Projects\" ucdlib:GrantCapitalProjects)\n#                  (\"78-Student Financial Aid\" ucdlib:GrantStudentFinancialAid)\n                  (\"Instruction\" ucdlib:GrantInstruction)\n                  (\"Research\" ucdlib:GrantResearch)\n                  (\"Public Service / Other\" ucdlib:GrantPublicService)\n    }\n\n    OPTIONAL {\n      ?grant ucdlib:flowThruFunding ?c_flow_thru_funding.\n    }\n\n    OPTIONAL {\n      ?grant vivo:assignedBy ?c_ucop_sponsor;\n             vivo:sponsorAwardId ?funder_reference;\n             .\n       ?c_ucop_sponsor rdfs:label ?funder_name.\n    }\n    # This filters grants without a value oracle_award_number\n    filter(! regex(str(?grant),\"K-\"))\n  }\n} order by ?id\n\nlimit 100\n",
-    "metadata": {}
-  },
-  {
-    "kind": 2,
-    "language": "sparql",
     "value": "PREFIX : <ark:/87287/d7gt0q/>\nselect  ?g ?type (count(*) as ?cnt)\nWHERE {\n  graph ?g {\n    [] a $type.\n   }\n  filter(regex(str(?g),\"^ark:\"))\n} group by ?g ?type order by ?g ?type",
-    "metadata": {}
-  },
-  {
-    "kind": 2,
-    "language": "sparql",
-    "value": "# Query for Grant CDL User links.\n# Note that the CDL graph must be created using the experts-cdl-users script before this query can be successful.\n\nPREFIX : <ark:/87287/d7gt0q/schema#>\nPREFIX ae: <ark:/87287/d7c08j/>\nPREFIX experts: <http://experts.ucdavis.edu/>\nPREFIX grant: <ark:/87287/d7gt0q/grant/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>\nPREFIX vivo: <http://vivoweb.org/ontology/core#>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nPREFIX iam: <http://iam.ucdavis.edu/>\nPREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>\n\nselect (\"user\" as ?category_1) (?ucpath as ?id_1)\n(\"grant\" as ?category_2) (?grant as ?id_2)\n?link_type_id (\"TRUE\" as ?visible)\nWHERE {\n    values (?role_role ?role_type ?link_type_id ?e_role) {\n          (\"Co-Principal Investigator\" vivo:CoPrincipalInvestigatorRole \"121\" \"Co-PI of\")\n          (\"Project Manager\" vivo:ProjectManagerRole \"118\" \"Project Lead of\")\n          (\"Project Administrator\" vivo:ProjectAdministratorRole \"137\" \"Program Director of\")\n#          (\"Grants Administrator\" vivo:GrantsAdministratorRole \"183\" )\n          (\"Principal Investigator\" vivo:PrincipalInvestigatorRole \"120\" \"Primary investigator for\")\n        }\n\n  graph ae: {\n    ?grant a vivo:Grant;\n           vivo:relates ?related;\n           .\n    ?related a ?role_type ;\n           obo:RO_0000052 ?expert;\n    .\n  }\n  GRAPH cdl: {\n\t  ?expert ucdlib:proprietary_id ?ucpath .\n  }\n} order by ?id_2 ?id_1\n\nlimit 100",
-    "metadata": {}
-  },
-  {
-    "kind": 2,
-    "language": "sparql",
-    "value": "# Query for grant roles\n\nPREFIX : <ark:/87287/d7gt0q/schema#>\nPREFIX experts: <http://experts.ucdavis.edu/>\nPREFIX grant: <ark:/87287/d7gt0q/grant/>\nPREFIX kfs: <ark:/87287/d7gt0q/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>\nPREFIX vivo: <http://vivoweb.org/ontology/core#>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nPREFIX iam: <http://iam.ucdavis.edu/>\nPREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>\n\nselect ?category ?id ?field_name ?surname ?first_name ?full_name ?order_number ?email_address ?phone_number ?full_address ?address_name\n  WHERE {\n    VALUES (?role ?link_type_id ?e_role) {\n       (:GrantCoPrincipalInvestigatorRole \"121\" \"Co-PI of\")\n       (:GrantPrincipalInvestigatorRole \"120\" \"Primary investigator for\")\n     }\n\n    GRAPH <ark:/87287/d7c08j/> {\n        ?grant a vivo:Grant;\n               vivo:relates ?related\n               .\n   \t    ?related a ?role;\n               rdfs:label ?full_name_and_role;\n               obo:RO_0000052 ?expert;\n               .\n    }\n\n  \n# Optional {\n#   graph iam: {\n# \t  ?expert ucdlib:userId ?cas.\n\n#   \t}\n#   }\n  \n  bind(\"grant\" as ?category)\n  bind(?grant as ?id)\n\tbind(\"researchers\" as ?field_name)\n  bind(replace(?full_name_and_role,\"\\\\(.*\\\\)\" ,\"\") as ?temp)\n  bind(replace(STRBEFORE(?temp,\" \"),\",\" ,\"\") as ?surname)\n  bind(replace(STRAFTER(?temp,\" \"),\",\" ,\"\") as ?first_name)\n  bind(?temp as ?full_name)\n  bind(concat(?cas,\"@ucdavis.edu\") as ?email_address)\n  }\n\nlimit 5\n",
     "metadata": {}
   }
 ]

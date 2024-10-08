@@ -1,0 +1,36 @@
+{
+  "@context" : {
+    "acl" : "http://www.w3.org/ns/auth/acl#"
+  },
+  "@graph" : [{
+    "@id": "",
+    "@type": [
+      "http://digital.ucdavis.edu/schema#Service",
+      "http://digital.ucdavis.edu/schema#GlobalService"
+    ],
+    "urlTemplate": "http://kibana:5601{{svcPath}}",
+    "description": "Kibana - ES Admin UI",
+    "identifier": "kibana",
+    "title": "Kibana",
+    "@context": {
+      "title": {
+        "@id": "http://purl.org/dc/elements/1.1/title"
+      },
+      "identifier": {
+        "@id": "http://purl.org/dc/elements/1.1/identifier"
+      },
+      "urlTemplate": {
+        "@id": "http://digital.ucdavis.edu/schema#urlTemplate"
+      },
+      "description": {
+        "@id": "http://purl.org/dc/elements/1.1/description"
+      }
+    }
+  },
+  {
+    "@id" : "#authz",
+    "@type" : ["acl:Authorization"],
+    "acl:accessTo" : [{"@id": "@base:"}],
+    "acl:agent" : [{"@value": "admin"}]
+  }]
+}

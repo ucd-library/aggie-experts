@@ -2,7 +2,7 @@ import { LitElement } from 'lit';
 import {render, styles} from "./ucdlib-browse-az.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 export default class UcdlibBrowseAZ extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -75,15 +75,21 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       this.selectedLetter = e.location.path[2]?.toLowerCase();
     }
 
-    // get active filters/a-z
-    let az = await this.BrowseByModel.browseAZ();
-    az = az?.body || [];
+    // to get active filters/a-z
+    await this.BrowseByModel.browseExpertsAZ();
+
+    this.requestUpdate();
+  }
+
+  _onBrowseExpertsAzUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+
+    let az = e.payload || [];
     az.forEach(item => {
       // disable if no results for letter
       let matchedLetter = this.alpha.find(l => l.value.toUpperCase() === item.params?.p.toUpperCase());
       if( matchedLetter ) matchedLetter.exists = item.total > 0;
     });
-
     this.requestUpdate();
   }
 
