@@ -16,8 +16,7 @@ const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 export class queryLibrary {
-  constructor(opts) {
-    this.opts = opts;
+  constructor() {
     return this;
   }
 

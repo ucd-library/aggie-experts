@@ -53,7 +53,7 @@ async function main(opt) {
   let secretJson = JSON.parse(secretResp);
   for (const entry of secretJson) {
     if (entry['@id'] == opt.iam.authname) {
-      opt.iam.auth = entry.auth.raw_auth.split(':')[1];
+      opt.iam.auth = entry.auth.raw_auth;
     }
   }
 
@@ -63,14 +63,14 @@ async function main(opt) {
 
   if (opt.users.length === 0) {
     if (opt.staff) {
-      await ec.getIAMProfiles(opt, 'staff');
+      await ec.getIAMProfiles('isStaff=true');
     }
     if (opt.faculty) {
-      await ec.getIAMProfiles(opt, 'faculty');
+      await ec.getIAMProfiles('isFaculty=true');
     }
   }
   else {
-    await ec.getIAMProfiles(opt, 'users');
+    await ec.getIAMProfiles('userId=' + opt.users);
   }
 
   console.log('starting createJsonLd');
@@ -152,12 +152,12 @@ Object.keys(opt).forEach((k) => {
 if (opt.environment === 'development') {
   opt.iam.url = 'https://iet-ws-stage.ucdavis.edu/api/iam/';
   opt.iam.authname = 'iet-ws-stage';
-  opt.iam.secretpath = 'projects/326679616213/secrets/ucdid_auth';
+  opt.iam.secretpath = 'projects/325574696734/secrets/ucdid_auth';
 }
 else if (opt.environment === 'production') {
   opt.iam.url = 'https://iet-ws.ucdavis.edu/api/iam/';
   opt.iam.authname = 'iet-ws';
-  opt.iam.secretpath = 'projects/326679616213/secrets/ucdid_auth';
+  opt.iam.secretpath = 'projects/325574696734/secrets/ucdid_auth';
 }
 
 await main(opt);
