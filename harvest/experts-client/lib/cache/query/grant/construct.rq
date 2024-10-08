@@ -32,6 +32,7 @@ construct {
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          vivo:relatedBy ?RELATIONSHIP__,?labeled_only_role;
+         ucdlib:flowThruFunding ?flow_thru_funding;
          .
 
 #  ?EXPERT__ schema:name ?user_name.
@@ -54,6 +55,10 @@ construct {
   ?funder a vivo:FundingOrganization;
           schema:name ?funder_label;
           .
+
+  ?flow_thru_funding a vivo:FundingOrganization;
+                     rdfs:label ?flow_thru_funding_label;
+                     .
 
   ?interval vivo:start ?sd;
             vivo:end ?ed;
@@ -183,6 +188,13 @@ WHERE {
     }
 
     OPTIONAL {
+      ?field :name "c-flow-thru-funding";
+             :type "text";
+             :text ?flow_thru_funding_str;
+             .
+    }
+
+    OPTIONAL {
       ?field :name "funder-name";
              :type "text";
              :text ?funder_label;
@@ -276,6 +288,7 @@ WHERE {
   bind(uri(concat(str(?grant),'#end_date')) as ?ed)
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
+  bind(uri(?flow_thru_funding_str) as ?flow_thru_funding)
 
   bind(concat(?user_name_last,coalesce(concat(', ',?user_name_first),"")) as ?user_name)
 
