@@ -2,7 +2,10 @@ import { LitElement } from 'lit';
 import {render} from "./app-home.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
+
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import '../../utils/app-icons.js';
 
 import "../../components/search-box";
 
@@ -10,11 +13,7 @@ export default class AppHome extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
   static get properties() {
-    return {
-      // page: { type: String },
-      // imageSrc: { type: String },
-      // imageAltText: { type: String },
-    }
+    return {}
   }
 
   constructor() {
@@ -31,7 +30,7 @@ export default class AppHome extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    if( e.detail?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.trim());
+    if( e.detail?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.trim()));
   }
 
 }

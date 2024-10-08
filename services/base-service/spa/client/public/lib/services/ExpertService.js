@@ -1,5 +1,6 @@
 const {BaseService} = require('@ucd-lib/cork-app-utils');
 const ExpertStore = require('../stores/ExpertStore');
+const payloadUtils = require('../payload.js').default;
 
 class ExpertService extends BaseService {
 
@@ -10,14 +11,31 @@ class ExpertService extends BaseService {
     this.baseUrl = '/api';
   }
 
-  get(id, noSanitize=false) {
-    return this.request({
-      url : `${this.baseUrl}/${id}${noSanitize ? '?no-sanitize' : ''}`,
-      checkCached : () => this.store.getExpert(id),
-      onLoading : request => this.store.setExpertLoading(id, request),
-      onLoad : result => this.store.setExpertLoaded(id, result.body),
-      onError : e => this.store.setExpertError(id, e)
+  async get(expertId, subpage, options={}, clearCache=false) {
+    let ido = { expertId, subpage };
+    let id = payloadUtils.getKey(ido);
+
+    await this.request({
+      url : `${this.baseUrl}/${expertId}`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify(options)
+      },
+      checkCached : () => {
+        if( clearCache ) return;
+
+        return this.store.data.byId.get(id);
+      },
+      onUpdate : resp => this.store.set(
+        payloadUtils.generate(ido, resp),
+        this.store.data.byId
+      )
     });
+
+    return this.store.data.byId.get(id);
   }
 
   async updateCitationVisibility(id, citationId, visible) {
@@ -104,6 +122,27 @@ class ExpertService extends BaseService {
         },
         body : JSON.stringify({
           "@id" : id,
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async updateExpertAvailability(id, labels={}) {
+    return this.request({
+      url : `${this.baseUrl}/${id}/availability`,
+      fetchOptions : {
+        method : 'PATCH',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          labelsToAddOrEdit : labels.labelsToAddOrEdit || [],
+          labelsToRemove : labels.labelsToRemove || [],
+          currentLabels : labels.currentLabels || []
         })
       },
       checkCached : () => null,

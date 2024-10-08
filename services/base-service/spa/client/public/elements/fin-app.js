@@ -1,25 +1,11 @@
 import { LitElement } from 'lit';
 import {render} from "./fin-app.tpl.js";
 
-// import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js'
-import '../elements/pages/home/app-home.js';
-import '../elements/pages/browse/app-browse.js';
-// import '../elements/pages/work/app-work.js';
-import '../elements/pages/expert/app-expert.js';
-import '../elements/pages/expert/app-expert-works-list.js';
-import '../elements/pages/expert/app-expert-works-list-edit.js';
-import '../elements/pages/expert/app-expert-grants-list.js';
-import '../elements/pages/expert/app-expert-grants-list-edit.js';
-import '../elements/pages/search/app-search.js';
-import '../elements/pages/404/app-404.js';
-import '../elements/pages/faq/app-faq.js';
-import '../elements/pages/termsofuse/app-tou.js';
-
 import '../elements/components/site/ucdlib-site-footer.js';
 import '../elements/components/site/ucdlib-site-footer-column.js';
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import '@ucd-lib/theme-elements/brand/ucd-theme-header/ucd-theme-header.js';
 import '@ucd-lib/theme-elements/brand/ucd-theme-primary-nav/ucd-theme-primary-nav.js';
@@ -28,6 +14,8 @@ import '@ucd-lib/theme-elements/brand/ucd-theme-search-form/ucd-theme-search-for
 import '@ucd-lib/theme-elements/brand/ucd-theme-quick-links/ucd-theme-quick-links.js';
 import '@ucd-lib/theme-elements/ucdlib/ucdlib-pages/ucdlib-pages.js';
 
+import './pages/404/app-404.js';
+
 import utils from '../lib/utils';
 
 export default class FinApp extends Mixin(LitElement)
@@ -35,14 +23,15 @@ export default class FinApp extends Mixin(LitElement)
 
   static get properties() {
     return {
-      page: { type: String },
-      imageSrc: { type: String },
-      imageAltText: { type: String },
-      pathInfo: { type: String },
-      expertId: { type: String },
-      expertNameEditing: { type: String },
-      hideEdit: { type: Boolean },
-      loading: { type: Boolean },
+      page : { type : String },
+      loadedPages : { type : Object },
+      imageSrc : { type : String },
+      imageAltText : { type : String },
+      pathInfo : { type : String },
+      expertId : { type : String },
+      expertNameEditing : { type : String },
+      hideEdit : { type : Boolean },
+      loading : { type : Boolean },
     }
   }
 
@@ -54,7 +43,8 @@ export default class FinApp extends Mixin(LitElement)
     // hack to customize header quick links, need to update styles if screen goes into mobile mode vs desktop mode and vice-versa
     window.addEventListener("resize", this._validateLoggedInUser.bind(this));
 
-    this.page = 'home';
+    this.page = 'loading';
+    this.loadedPages = {};
     this.imageSrc = '';
     this.imageAltText = '';
     this.pathInfo = '';
@@ -89,7 +79,10 @@ export default class FinApp extends Mixin(LitElement)
     let header = this.shadowRoot.querySelector('ucd-theme-header');
     if( header && header.opened ) header.close();
 
-    let searchPopup = header.querySelector('ucd-theme-search-popup');
+    let quickLinks = header?.querySelector('ucd-theme-quick-links');
+    if( quickLinks?.opened ) quickLinks.close();
+
+    let searchPopup = header?.querySelector('ucd-theme-search-popup');
     if( searchPopup?.opened ) searchPopup.close();
   }
 
@@ -131,12 +124,58 @@ export default class FinApp extends Mixin(LitElement)
     if( !APP_CONFIG.appRoutes.includes(route) ) page = '404';
 
     if( this.page === page ) return;
+
+    if ( !this.loadedPages[page] ) {
+      this.page = 'loading';
+      this.loadedPages[page] = this.loadPage(page);
+    }
+    await this.loadedPages[page];
     this.page = page;
+
+    // this.page = page;
     this.pathInfo = e.location.pathname.split('/media')[0];
 
     this.firstAppStateUpdate = false;
 
     this._closeHeader();
+  }
+
+  /**
+   * @method loadPage
+   * @description code splitting done here. dynamic import a page based on route
+   *
+   * @param {String} page page to load
+   *
+   * @returns {Promise}
+   */
+  loadPage(page) {
+    if( page === 'home' ) {
+      return import(/* webpackChunkName: "page-home" */ "./pages/home/app-home");
+    } else if( page === 'browse' ) {
+      return import(/* webpackChunkName: "page-browse" */ "./pages/browse/app-browse");
+    } else if( page === 'faq' ) {
+      return import(/* webpackChunkName: "page-faq" */ "./pages/faq/app-faq");
+    } else if( page === '404' ) {
+      return import(/* webpackChunkName: "page-404" */ "./pages/404/app-404");
+    } else if( page === 'search' ) {
+      return import(/* webpackChunkName: "page-search" */ "./pages/search/app-search");
+    } else if( page === 'termsofuse' ) {
+      return import(/* webpackChunkName: "page-tou" */ "./pages/termsofuse/app-tou");
+    } else if( page === 'expert' ) {
+      return import(/* webpackChunkName: "page-expert" */ "./pages/expert/app-expert");
+    } else if( page === 'works' ) {
+      return import(/* webpackChunkName: "page-works" */ "./pages/expert/app-expert-works-list");
+    } else if( page === 'works-edit' ) {
+      return import(/* webpackChunkName: "page-works-edit" */ "./pages/expert/app-expert-works-list-edit");
+    } else if( page === 'grant' ) {
+      return import(/* webpackChunkName: "page-grant" */ "./pages/grant/app-grant");
+    } else if( page === 'grants' ) {
+      return import(/* webpackChunkName: "page-grants" */ "./pages/expert/app-expert-grants-list");
+    } else if( page === 'grants-edit' ) {
+      return import(/* webpackChunkName: "page-grants-edit" */ "./pages/expert/app-expert-grants-list-edit");
+    }
+    console.warn('No code chunk loaded for this page');
+    return false;
   }
 
   /**
@@ -173,8 +212,10 @@ export default class FinApp extends Mixin(LitElement)
       }
     }
 
-    let appExpert = this.shadowRoot.querySelector('app-expert');
-    if( appExpert ) appExpert.toggleAdminUi();
+    if( this.page === 'expert' ) {
+      let appExpert = this.shadowRoot.querySelector('app-expert');
+      if( appExpert ) appExpert.toggleAdminUi();
+    }
 
     this._styleEditExpertButton();
   }
@@ -229,7 +270,7 @@ export default class FinApp extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+e.detail.searchTerm.trim());
+    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.searchTerm.trim()));
     this._closeHeader();
   }
 

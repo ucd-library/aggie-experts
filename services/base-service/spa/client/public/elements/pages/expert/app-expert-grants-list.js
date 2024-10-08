@@ -2,8 +2,10 @@ import { LitElement } from 'lit';
 import {render} from "./app-expert-grants-list.tpl.js";
 
 // sets globals Mixin and EventInterface
-import "@ucd-lib/cork-app-utils";
+import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import '../../utils/app-icons.js';
 
 import utils from '../../../lib/utils';
 
@@ -18,6 +20,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
+      totalGrants : { type : Number },
       paginationTotal : { type : Number },
       currentPage : { type : Number },
     }
@@ -33,6 +36,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
+    this.totalGrants = 0;
     this.paginationTotal = 1;
     this.currentPage = 1;
     this.resultsPerPage = 25;
@@ -64,27 +68,35 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'grants' ) {
-      // reset data to first page of results
-      this.currentPage = 1;
-      let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-      this.grants = utils.parseGrants(this.expertId, grants);
-      this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
-      this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
-      return;
+    if( e.location.page !== 'grants' ) return;
+
+    // parse /page/size from url, or append if trying to access /grants
+    let page = e.location.pathname.split('/grants/')?.[1];
+    if( page ) {
+      let parts = page.split('/');
+      this.currentPage = Number(parts?.[0] || 1);
+      this.resultsPerPage = Number(parts?.[1] || 25);
     }
+
     window.scrollTo(0, 0);
 
-    let expertId = e.location.pathname.replace('/grants', '');
+    let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/grants', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     if( !expertId ) this.dispatchEvent(new CustomEvent("show-404", {}));
-    if( expertId === this.expertId ) return;
 
     try {
-      let expert = await this.ExpertModel.get(expertId);
-      this._onExpertUpdate(expert);
+      let expert = await this.ExpertModel.get(
+        expertId,
+        `/grants?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+        utils.getExpertApiOptions({
+          includeWorks : false,
+          grantsPage : this.currentPage,
+          grantsSize : this.resultsPerPage
+        })
+      );
+      if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
-      if( !this.isAdmin && !this.isVisible ) throw new Error();
+      this._onExpertUpdate(expert);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -103,9 +115,9 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
   async _onExpertUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants' ) return;
-    if( e.id === this.expertId ) return;
+    if( e.expertId === this.expertId ) return;
 
-    this.expertId = e.id;
+    this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.isVisible = this.expert['is-visible'];
 
@@ -118,7 +130,17 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
-    this.paginationTotal = Math.ceil(this.grants.length / this.resultsPerPage);
+    this.totalGrants = this.expert?.totals?.grants || 0;
+
+    // only expert graph record, no grants for this pagination of results
+    if( this.expert['@graph'].length === 1 ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
+
+    this.paginationTotal = Math.ceil(this.totalGrants / this.resultsPerPage);
   }
 
   /**
@@ -130,30 +152,25 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
   async _onPaginationChange(e) {
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
-    if( maxIndex > this.grants.length ) maxIndex = this.grants.length;
+    if( maxIndex > this.totalGrants ) maxIndex = this.totalGrants;
 
     this.currentPage = e.detail.page;
 
-    this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []);
-    this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []);
+    let path = '/'+this.expertId+'/grants';
+    if( this.currentPage > 1 || this.resultsPerPage !== 25 ) path += '/'+this.currentPage;
+    if( this.resultsPerPage !== 25 ) path += '/'+this.resultsPerPage;
+    this.AppStateModel.setLocation(path);
 
-    let grantsActiveCount = this.grantsActiveDisplayed.length;
-    let grantsCompletedCount = this.grantsCompletedDisplayed.length;
-
-    // if first page, load grantsActive under this.resultsPerPage and remaining from grantsCompleted
-    // else if second page+, remove grants from active and completed in order
-    if( this.currentPage === 1 ) {
-      this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(0, this.resultsPerPage);
-      this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
-    } else {
-      let currentIndex = this.resultsPerPage * (this.currentPage - 1);
-      this.grantsActiveDisplayed = this.grantsActiveDisplayed.slice(currentIndex, this.resultsPerPage);
-
-      // TODO test..
-      // what if active grants are 50?
-      // what if 0 active grants and 50 completed grants?
-      this.grantsCompletedDisplayed = this.grantsCompletedDisplayed.slice(currentIndex - grantsActiveCount, currentIndex - grantsActiveCount + this.resultsPerPage);
-    }
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/grants?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeWorks : false,
+        grantsPage : this.currentPage,
+        grantsSize : this.resultsPerPage
+      })
+    );
+    this._onExpertUpdate(expert);
 
     window.scrollTo(0, 0);
   }

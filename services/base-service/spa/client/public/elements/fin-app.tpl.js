@@ -208,6 +208,7 @@ return html`
         id="works-edit"
         @show-404="${(e) => this.page = '404'}">
       </app-expert-works-list-edit>
+      <app-grant id="grant" @show-404="${(e) => this.page = '404'}"></app-grant>
       <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
       <app-expert-grants-list-edit
         @loading="${(e) => this.loading = true}"
@@ -267,7 +268,7 @@ return html`
         </ucdlib-site-footer-column>
         <ucdlib-site-footer-column header="Copyright">
           <ul>
-            <li>©2023 The Regents of the University of California, Davis</li>
+            <li>&copy;2024 The Regents of the University of California, Davis</li>
           </ul>
         </ucdlib-site-footer-column>
       </ucdlib-site-footer>

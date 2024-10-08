@@ -14,7 +14,7 @@ class GrantRoleModel extends BaseModel {
   static transformed_types = [ 'GrantRole' ];
 
   static types = [
-    "http://schema.library.ucdavis.edu/schema#GrantRole"
+//    "http://schema.library.ucdavis.edu/schema#GrantRole"
   ];
 
   constructor(name='grant_role') {

@@ -63,7 +63,10 @@ class Utils {
         break;
     }
 
-    return readableType;
+    // return title case
+    return readableType.split(' ')
+                       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                       .join(' ');
   }
 
   /**
@@ -167,6 +170,7 @@ class Utils {
       // determine type(s) from all types excluding 'Grant', and split everything after 'Grant_' by uppercase letters with space
       // should just be one type, but just in case
       try {
+        if( g['@type'] && !Array.isArray(g['@type']) ) g['@type'] = [g['@type']];
         g.types = (g['@type'] || []).filter(t => t !== 'Grant').map(t => t.split('Grant_')[1].replace(/([A-Z])/g, ' $1').trim());
       } catch(e) {
         console.error('Error parsing grant types', g);
@@ -186,7 +190,7 @@ class Utils {
     });
 
     parsedGrants = parsedGrants.filter(g => g); // remove undefined
-    parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime) || a.name.localeCompare(b.name));
+    // parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime) || a.name.localeCompare(b.name));
     return parsedGrants;
   }
 
@@ -209,6 +213,167 @@ class Utils {
 
     // return null if not found
     return null;
+  }
+
+  /**
+   * @method getExpertApiOptions
+   * @description return options for expert api, optionally override options with passed in object
+   *
+   * @param {Object} options object with api request options
+   *
+   * @return {Object} options final object
+   */
+  getExpertApiOptions(options={}) {
+    let defaults = {
+      ...{
+        includeExpert : true,
+        includeWorks : true,
+        includeGrants : true,
+        includeHidden : false,
+        includeWorksMisformatted : false,
+        includeGrantsMisformatted : false,
+        worksPage : 1,
+        worksSize : 10,
+        worksSort : [
+          {
+            field : 'issued',
+            sort : 'desc',
+            type : 'year',
+          },
+          {
+            field : 'title',
+            sort : 'asc',
+            type : 'string',
+          }
+        ],
+        worksExclude : [],
+        grantsPage : 1,
+        grantsSize : 5,
+        grantsSort : [
+          {
+            field : 'dateTimeInterval.end.dateTime',
+            sort : 'desc',
+            type : 'date',
+          },
+          {
+            field : 'name',
+            sort : 'asc',
+            type : 'string',
+          }
+        ],
+        grantsExclude : [ 'totalAwardAmount' ]
+      },
+      ...options
+    };
+
+    return {
+      'is-visible' : !defaults.includeHidden,
+      expert : { include : defaults.includeExpert },
+      grants : {
+        include : defaults.includeGrants,
+        page : defaults.grantsPage,
+        size : defaults.grantsSize,
+        exclude : defaults.grantsExclude,
+        includeMisformatted : defaults.includeGrantsMisformatted,
+        sort : defaults.grantsSort
+      },
+      works : {
+        include : defaults.includeWorks,
+        page : defaults.worksPage,
+        size : defaults.worksSize,
+        exclude : defaults.worksExclude,
+        includeMisformatted : defaults.includeWorksMisformatted,
+        sort : defaults.worksSort
+      }
+    };
+  }
+
+  /**
+   * @method buildAvailabilityPayload
+   * @description return availability label payload for updating cdl
+   *
+   * @param {Object} openTo object with keys for each type of colab
+   * @param {Object} prevOpenTo object with keys for each type of colab currently saved in cdl
+   *
+   * @return {Object} payload
+   */
+  buildAvailabilityPayload(openTo={}, prevOpenTo={}) {
+    let options = {
+      labelsToAddOrEdit: [],
+      labelsToRemove: [],
+      currentLabels: []
+    };
+    let labels = {
+      collab : 'Collaborative projects',
+      community : 'Community partnerships',
+      industry : 'Industry Projects',
+      media : 'Media enquiries'
+    };
+
+    if( openTo.collabProjects ) options.currentLabels.push(labels.collab);
+    if( openTo.commPartner ) options.currentLabels.push(labels.community);
+    if( openTo.industProjects ) options.currentLabels.push(labels.industry);
+    if( openTo.mediaInterviews ) options.currentLabels.push(labels.media);
+
+    if( openTo.collabProjects !== prevOpenTo.collabProjects ) {
+      if( openTo.collabProjects ) {
+        options.labelsToAddOrEdit.push({ value: labels.collab, percentage: null });
+      } else {
+        options.labelsToRemove.push(labels.collab);
+      }
+    }
+
+    if( openTo.commPartner !== prevOpenTo.commPartner ) {
+      if( openTo.commPartner ) {
+        options.labelsToAddOrEdit.push({ value: labels.community, percentage: null });
+      } else {
+        options.labelsToRemove.push(labels.community);
+      }
+    }
+
+    if( openTo.industProjects !== prevOpenTo.industProjects ) {
+      if( openTo.industProjects ) {
+        options.labelsToAddOrEdit.push({ value: labels.industry, percentage: null });
+      } else {
+        options.labelsToRemove.push(labels.industry);
+      }
+    }
+
+    if( openTo.mediaInterviews !== prevOpenTo.mediaInterviews ) {
+      if( openTo.mediaInterviews ) {
+        options.labelsToAddOrEdit.push({ value: labels.media, percentage: null });
+      } else {
+        options.labelsToRemove.push(labels.media);
+      }
+    }
+
+    return options;
+  }
+
+  /**
+   * @method buildSearchAvailability
+   * @description return availability array for search api
+   *
+   * @param {Object} openTo object with keys for each type of availability
+   *
+   * @return {Array} hasAvailability
+   */
+  buildSearchAvailability(openTo) {
+    let availability = [];
+
+    let arks = {
+      collab : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative%20projects',
+      community : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Community%20partnerships',
+      industry : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry%20Projects',
+      media : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Media%20enquiries'
+    };
+
+    if( openTo.collabProjects ) availability.push(arks.collab);
+    if( openTo.commPartner ) availability.push(arks.community);
+    if( openTo.industProjects ) availability.push(arks.industry);
+    if( openTo.mediaInterviews ) availability.push(arks.media);
+
+    return availability;
   }
 
 }
