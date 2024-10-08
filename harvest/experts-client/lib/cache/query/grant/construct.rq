@@ -56,20 +56,13 @@ construct {
           schema:name ?funder_label;
           .
 
-<<<<<<< HEAD:harvest/experts-client/lib/query/grant_role/construct.rq
   ?flow_thru_funding a vivo:FundingOrganization;
                      rdfs:label ?flow_thru_funding_label;
-          .
+                     .
 
-  ?interval
-  vivo:start ?sd;
-  vivo:end ?ed;
-  .
-=======
   ?interval vivo:start ?sd;
             vivo:end ?ed;
             .
->>>>>>> dev:harvest/experts-client/lib/cache/query/grant/construct.rq
 
   ?sd vivo:dateTimePrecision ?start_date_precision;
       vivo:dateTime ?start_date;
@@ -295,14 +288,7 @@ WHERE {
   bind(uri(concat(str(?grant),'#end_date')) as ?ed)
   bind(uri(concat(str(?grant),'#interval')) as ?interval)
   bind(uri(concat(str(?grant),"#funder")) as ?funder)
-<<<<<<< HEAD:harvest/experts-client/lib/query/grant_role/construct.rq
   bind(uri(?flow_thru_funding_str) as ?flow_thru_funding)
-  bind(uri(concat(str(?grant),"#pi")) as ?labeled_only_pi)
-  bind(uri(concat(str(?grant),"#pi_role")) as ?labeled_only_pi_role)
-  bind(concat(?labeled_only_co_pi_name_last,coalesce(concat(', ',?labeled_only_co_pi_name_first),"")) as ?labeled_only_co_pi_name)
-  bind(uri(concat(str(?grant),"#co_pi_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi)
-  bind(uri(concat(str(?grant),"#co_pi_role_",md5(?labeled_only_co_pi_name))) as ?labeled_only_co_pi_role)
-=======
 
   bind(concat(?user_name_last,coalesce(concat(', ',?user_name_first),"")) as ?user_name)
 
@@ -336,5 +322,4 @@ WHERE {
           uri(concat(str(?grant),"#roleof_",?labeled_only_name_match)),
           ?undefined)
        as ?labeled_only_role)
->>>>>>> dev:harvest/experts-client/lib/cache/query/grant/construct.rq
 }
