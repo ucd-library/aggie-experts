@@ -70,12 +70,33 @@ async function uploadFile(localFilePath, remoteFileName) {
 if (!fs.existsSync(opt.output)) {
   fs.mkdirSync(opt.output, { recursive: true });
 }
+// Get the current log level to use as a parameter for the child processes
+// Declare a variable to hold the log level
+let logLevel = 'fatal';
+
+switch (log.level()) {
+  case 20:
+    logLevel = 'debug';
+    break;
+  case 30:
+    logLevel = 'info';
+    break;
+  case 40:
+    logLevel = 'warn';
+    break;
+  case 50:
+    logLevel = 'error';
+    break;
+  case 60:
+    logLevel = 'fatal';
+    break;
+  default:
+    logLevel = 'fatal';
+}
 
 // Command-line parameters to pass to experts-grant-feed.js
 const params = ['--env=' + opt.env, '--xml=' + opt.xml, '--generation=' + opt.new, '--output=' + opt.output];
-if (opt.logLevel) {
-  params.push('--log=' + opt.logLevel);
-}
+params.push('--log=' + logLevel);
 log.info('Parameters1:', params);
 log.info(__dirname + '/experts-grant-feed.js', params);
 const result1 = spawnSync('node', [__dirname + '/experts-grant-feed.js', ...params], { encoding: 'utf8' });
@@ -87,9 +108,7 @@ if (result1.error) {
 log.info('Exit code 1:', result1.status);
 
 const params2 = ['--env=' + opt.env, '--xml=' + opt.xml, '--generation=' + opt.prev, '--output=' + opt.output];
-if (opt.logLevel) {
-  params2.push('--log=' + opt.logLevel);
-}
+params2.push('--log=' + logLevel);
 
 log.info('Parameters2:', params2);
 log.info(__dirname + '/experts-grant-feed.js', params2);
@@ -102,9 +121,7 @@ log.info('Exit code 2:', result2.status);
 
 log.info('Options:', opt);
 const params3 = ['--env=' + opt.env, '--output=' + opt.output, '--new=' + opt.new, '--prev=' + opt.prev];
-if (opt.logLevel) {
-  params3.push('--log=' + opt.logLevel);
-}
+params3.push('--log=' + logLevel);
 log.info('Parameters2:', params3);
 log.info(__dirname + '/experts-grant-feed-delta.js', params3);
 const result3 = spawnSync('node', [__dirname + '/experts-grant-feed-delta.js', ...params3], { encoding: 'utf8' });
