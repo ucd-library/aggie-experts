@@ -1,6 +1,4 @@
 import bunyan from 'bunyan';
-import path from 'path';
-import fs from 'fs';
 import { performance } from 'node:perf_hooks';
 
 function markSerializer(mark) {
