@@ -26,7 +26,7 @@ export function styles() {
     }
     .result-title h4 {
       margin: 0 0.62rem;
-      color: var(--ucd-blue-80, #13639E);
+      /* color: var(--ucd-blue-80, #13639E); */
       font-size: 1.43375rem;
       font-style: normal;
       font-weight: 700;
@@ -77,7 +77,10 @@ export function render() {
       <div class="result-header">
         <div class="result-title">
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
-          <h4><a href="/${this.result.id}">${this.result.name || 'Lastname, Firstname'}</a></h4>
+          <h4>
+            <a ?hidden="${!this.result.hasProfile}" href="/${this.result.id}">${this.result.name || 'Lastname, Firstname'}</a>
+            <span ?hidden="${this.result.hasProfile}" id="${this.result.id}">${this.result.name || 'Lastname, Firstname'}</span>
+          </h4>
         </div>
       </div>
       <div ?hidden="${this.result.subtitle.length === 0}" class="result-sub-text">${this.result.subtitle}</div>

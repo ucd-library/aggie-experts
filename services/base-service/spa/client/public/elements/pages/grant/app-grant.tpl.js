@@ -166,7 +166,6 @@ export function styles() {
       border: 0;
       padding: 0;
       margin: 0.625rem 0;
-      padding-bottom: 0.7rem;
     }
 
     .about.seperator {
@@ -185,8 +184,31 @@ export function styles() {
       padding-bottom: 3rem;
     }
 
+    .contributors-section .contributor-group {
+      margin-bottom: 2.38rem;
+    }
+
     app-contributor-row {
-      margin-bottom: 1.19rem;
+      margin-top: 1.19rem;
+    }
+
+    .hero-text .status {
+      text-transform: uppercase;
+      color: var(--color-aggie-blue);
+      font-weight: bold;
+
+      background-color: var(--color-black-20);
+      padding: 5px 8px;
+    }
+
+    .hero-text .heading--highlight {
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 992px) {
+      .main-content {
+          width: 90%;
+      }
     }
   `;
 
@@ -204,6 +226,7 @@ return html`
         </div>
         <h1>${this.grantName}</h1>
         <h3 class="heading--highlight">${this.startDate} – ${this.endDate}</h3>
+        <span class="status">${this.completed ? 'Complete' : 'Active'}</span>
       </div>
     </div>
 
@@ -224,7 +247,7 @@ return html`
         <p>${this.grantNumber}</p>
       </div>
 
-      <div ?hidden="${!this.grantAdmin}" class="grant-admin">
+      <div ?hidden="${!this.grantAdmin || true}" class="grant-admin">
         <h3 class="heading--highlight">Grant Admin</h3>
         <p>${this.grantAdmin}</p>
       </div>
@@ -240,12 +263,39 @@ return html`
           <h2>Known Contributors</h2>
         </div>
         <hr class="contributors seperator">
+        <div class="contributor-group">
+          <h3 class="heading--highlight" ?hidden="${this.pis.length === 0}">Principal Investigator</h3>
+          ${this.pis.map(
+            (result) => html`
+              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+            `
+          )}
+        </div>
+        <div class="contributor-group">
+          <h3 class="heading--highlight" ?hidden="${this.coPis.length === 0}">Co-Investigator</h3>
+          ${this.coPis.map(
+            (result) => html`
+              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+            `
+          )}
+        </div>
+        <div class="contributor-group">
+          <h3 class="heading--highlight" ?hidden="${this.leaders.length === 0}">Leader</h3>
+          ${this.leaders.map(
+            (result) => html`
+              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+            `
+          )}
+        </div>
+        <div class="contributor-group">
+          <h3 class="heading--highlight" ?hidden="${this.researchers.length === 0}">Researcher</h3>
+          ${this.researchers.map(
+            (result) => html`
+              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+            `
+          )}
+        </div>
 
-        ${this.contributors.map(
-          (result) => html`
-            <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
-          `
-        )}
       </div>
     </div>
   </div>

@@ -91,7 +91,6 @@ export class Command extends OriginalCommand {
          log:opts.log}
       );
     }
-
     return opts;
   }
 }

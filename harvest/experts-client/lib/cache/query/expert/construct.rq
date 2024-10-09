@@ -2,7 +2,7 @@ PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX iam: <ark:/87287/d7c08j/schema#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
-PREFIX oap: <ark:/87287/d7nh2m/schema#>
+PREFIX oap: <ark:/87287/d7mh2m/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX orcid: <http://orcid.org/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -170,7 +170,7 @@ WHERE {
       bind(true as ?has_odr)
     }
   }
-  GRAPH <ark:/87287/d7nh2m/> {
+  GRAPH <ark:/87287/d7mh2m/> {
   ?cdl_id oap:category "user";
         oap:is-public "true";
         oap:is-login-allowed "true";
@@ -264,7 +264,7 @@ WHERE {
     }
   }
 
-  bind(uri(concat("ark:/87287/d7nh2m/keyword/",
+  bind(uri(concat("ark:/87287/d7mh2m/keyword/",
                   encode_for_uri(?scheme_label),"/")) as ?scheme)
 
   bind(uri(concat(str(?scheme),

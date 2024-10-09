@@ -1,22 +1,13 @@
 #!/usr/bin/env node
 
-/* Transform the Aggie Enterprise grant feed into VIVO RDF and upload to the Symplectic server
+/* Transform the Aggie Enterprise grant feed into VIVO RDF and create CSV file for Symplectic import
    rakunkel@ucdavis.edu */
 
 import fs from 'fs';
-import path from 'path';
-import { Command } from 'commander';
-import { spawnSync } from 'child_process';
-import FusekiClient from '../lib/fuseki-client.js';
-import { Storage } from '@google-cloud/storage';
+import { Command } from '../lib/experts-commander.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
+import { Storage } from '@google-cloud/storage';
 import parser from 'xml2json';
-import { logger } from '../lib/logger.js';
-
-
-const gs = new GoogleSecret();
-
-const program = new Command();
 
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
@@ -25,6 +16,7 @@ import { exit, versions } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const program = new Command();
 
 program
   .version('1.0.0')
@@ -32,13 +24,17 @@ program
   .option('--env <env>', '', 'QA')
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
-  .option('--upload', 'Upload the file to the SFTP server')
-  .option('--fuseki <db>', 'Fuseki database name', 'ae-grants')
-  .option('-r, --remote <remote>', 'Remote file path on the Symplectic server')
+  // .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki.delete)
+  // .option('--no-fuseki.delete')
   .option('-g, --generation <generation>', 'GCS (XML) file generation', 0)
+  .option_fuseki()
+  .option_log()
   .parse(process.argv);
 
-let opt = program.opts();
+let opt = await program.opts();
+
+opt.fuseki.log = opt.log;
+const log = opt.log;
 
 if (opt.env === 'PROD') {
   opt.prefix = 'Prod_UCD_';
@@ -48,9 +44,27 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
-opt.output += '/generation-' + opt.generation;
+opt.db = 'ae-grants';
 
-logger.info('Options:', opt);
+let outputSubDirectory = opt.output + '/generation-' + opt.generation + '/';
+
+// Write to
+log.info('Output subdirectory:', outputSubDirectory);
+
+// Ensure the output directory exists
+if (!fs.existsSync(outputSubDirectory)) {
+  fs.mkdirSync(outputSubDirectory, { recursive: true });
+}
+
+// fusekize opt
+Object.keys(opt).forEach((k) => {
+  const n = k.replace(/^fuseki./, '')
+  if (n !== k) {
+    fuseki[n] = opt[k];
+    delete opt[k];
+  }
+});
+
 
 const graphName = 'http://www.ucdavis.edu/aggie_enterprise_' + opt.generation
 
@@ -66,19 +80,10 @@ if (opt.xml.startsWith('gs://')) {
   opt.filePath = filePath;
   // get the file name from the path
   opt.fileName = filePathParts[filePathParts.length - 1];
-  logger.info(`File Name: ${opt.fileName}`);
-  logger.info(`Bucket: ${bucketName}`);
-  logger.info(`File: ${filePath}`);
+  log.info(`File Name: ${opt.fileName}`);
+  log.info(`Bucket: ${bucketName}`);
+  log.info(`File: ${filePath}`);
 }
-
-const fuseki = new FusekiClient({
-  url: process.env.EXPERTS_FUSEKI_URL || 'http://localhost:3030',
-  auth: process.env.EXPERTS_FUSEKI_AUTH || 'admin:testing123',
-  type: 'tdb2',
-  db: opt.fuseki || 'aggie',
-  replace: true,
-  'delete': false,
-});
 
 async function getXmlVersions(bucketName, fileName) {
   const bucket = storage.bucket(bucketName);
@@ -94,7 +99,7 @@ async function getXmlVersions(bucketName, fileName) {
         files.forEach(function (file) {
           if (file.name == fileName) {
             xmlGenerations.push(file.metadata.generation);
-            logger.info(`File: ${file.name}, Generation: ${file.metadata.generation}`);
+            log.info(`File: ${file.name}, Generation: ${file.metadata.generation}`);
           }
         });
 
@@ -104,8 +109,7 @@ async function getXmlVersions(bucketName, fileName) {
       });
     }
     catch (err) {
-      console.error('Error getting file versions:', err);
-      logger.error('Error getting file versions:', err);
+      log.error('Error getting file versions:', err);
       reject(err);
     }
   });
@@ -113,7 +117,7 @@ async function getXmlVersions(bucketName, fileName) {
 
 async function downloadFile(bucketName, fileName, destinationPath, generation) {
 
-  logger.info(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
+  log.info(`Downloading file ${fileName} ${generation} from bucket ${bucketName} to ${destinationPath}`);
 
   const bucket = storage.bucket(bucketName);
   const meta = bucket.file(fileName);
@@ -123,21 +127,19 @@ async function downloadFile(bucketName, fileName, destinationPath, generation) {
       const versionedFile = bucket.file(fileName, { generation: generation });
       versionedFile.download()
         .then((data) => {
-          logger.info(`Downloaded version ${generation} of file ${fileName}`);
+          log.info(`Downloaded version ${generation} of file ${fileName}`);
                 // Write the file to the local file system
           fs.writeFileSync(destinationPath, data.toString());
           resolve();
         })
         .catch((err) => {
-          console.error(`Failed to download version ${generation} of file ${fileName}:`, err);
-          logger.error(`Failed to download version ${generation} of file ${fileName}:`, err);
+          log.error(`Failed to download version ${generation} of file ${fileName}:`, err);
           reject(err);
         }
         );
     }
     catch (err) {
-      console.error('Error downloading file:', err);
-      logger.error('Error downloading file:', err);
+      log.error('Error downloading file:', err);
       reject(err);
     }
   });
@@ -148,7 +150,7 @@ async function createGraphFromJsonLdFile(db, jsonld, graphName) {
   // Don't include a graphname to use what's in the jsonld file
   // const url = `${db.url}/${db.db}/data?graph=${encodeURIComponent(graphName)}`;
   const url = `${db.url}/${db.db}/data`;
-  logger.info('Creating graph from JSON-LD file...');
+  log.info('Creating graph from JSON-LD file...');
 
   // Set request options
   const options = {
@@ -238,25 +240,20 @@ function replaceHeaderHyphens(filename) {
 
 async function main(opt) {
 
-  // Ensure the output directory exists
-  if (!fs.existsSync(opt.output)) {
-    fs.mkdirSync(opt.output, { recursive: true });
-  }
   // Start a fresh database
-  let db = await fuseki.createDb(fuseki.db);
+  let db = await opt.fuseki.createDb(opt.db,opt);
 
   // Ensure the output directory exists
-  if (!fs.existsSync(opt.output + "/xml")) {
-    fs.mkdirSync(opt.output + "/xml", { recursive: true });
+  if (!fs.existsSync(outputSubDirectory + "/xml")) {
+    fs.mkdirSync(outputSubDirectory + "/xml", { recursive: true });
   }
-  let localFilePath = opt.output + "/xml/" + opt.fileName;
-  logger.info('Local XML file path:', localFilePath);
+  let localFilePath = outputSubDirectory + "/xml/" + opt.fileName;
+  log.info('Local XML file path:', localFilePath);
 
-  logger.info('Downloading file from GCS:', opt.filePath);
+  log.info('Downloading file from GCS:', opt.filePath);
 
   // First get an array of file versions from GCS. 0 is the current version, 1 is the previous version, etc.
   const fileVersions = await getXmlVersions(opt.bucket, opt.filePath);
-  console.log('File versions:', fileVersions);
 
   // Download the file version asked for from GCS
   await downloadFile(opt.bucket, opt.filePath, localFilePath, fileVersions[opt.generation]);
@@ -264,7 +261,6 @@ async function main(opt) {
 
   // Convert the XML to JSON
   let json = parser.toJson(xml, { object: true, arrayNotation: false });
-  // console.log('JSON:', JSON.stringify(json).substring(0, 1000) + '...');
 
   // Create the JSON-LD context
   let contextObj = {
@@ -298,29 +294,28 @@ async function main(opt) {
   contextObj["@graph"] = json["Document"]["award"];
 
   let jsonld = JSON.stringify(contextObj);
-  fs.writeFileSync(opt.output + "/grants.jsonld", jsonld);
+  fs.writeFileSync(outputSubDirectory + "/grants.jsonld", jsonld);
 
   // Create a graph from the JSON-LD file
-  console.log('Creating graph from JSON-LD file ' + graphName + '...');
-  logger.info('Creating graph from JSON-LD file ' + graphName + '...');
-  console.log(createGraphFromJsonLdFile(db, jsonld, graphName));
+  log.info('Creating graph from JSON-LD file ' + graphName + '...');
+  await createGraphFromJsonLdFile(db, jsonld, graphName);
 
   // Apply the grants2vivo.ru SPARQL update to the graph
   const vivo = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants2vivo.ru', 'utf8');
-  console.log(await executeUpdate(db, vivo));
+  log.info(await executeUpdate(db, vivo));
 
   // Exexute the SPARQL queries to to export the csv files
-  const grantFile = opt.output + '/' + opt.prefix + 'grants_metadata.csv';
+  const grantFile = outputSubDirectory + '/' + opt.prefix + 'grants_metadata.csv';
   const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
   fs.writeFileSync(grantFile, await executeCsvQuery(db, grantQ, graphName));
   replaceHeaderHyphens(grantFile);
 
-  const linkFile = opt.output + '/' + opt.prefix + 'grants_links.csv';
+  const linkFile = outputSubDirectory + '/' + opt.prefix + 'grants_links.csv';
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
   fs.writeFileSync(linkFile, await executeCsvQuery(db, linkQ, graphName));
   replaceHeaderHyphens(linkFile);
 
-  const roleFile = opt.output + '/' + opt.prefix + 'grants_persons.csv';
+  const roleFile = outputSubDirectory + '/' + opt.prefix + 'grants_persons.csv';
   const roleQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/roles.rq', 'utf8');
   fs.writeFileSync(roleFile, await executeCsvQuery(db, roleQ, graphName));
   replaceHeaderHyphens(roleFile);
