@@ -102,9 +102,9 @@ export default class AppExpert extends Mixin(LitElement)
 
     try {
       let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions());
-      this._onExpertUpdate(expert, modified);
+      if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
-      if( !this.isAdmin && !this.isVisible ) throw new Error();
+      this._onExpertUpdate(expert, modified);
     } catch (error) {
       console.warn('expert ' + expertId + ' not found, throwing 404');
 
