@@ -7,6 +7,7 @@ const {defaultEsApiGenerator} = dataModels;
 const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
 const model= new ExpertModel();
+const template = require('../base/template/name.json');
 
 const { openapi, schema_error, json_only, user_can_edit, is_user, valid_path, valid_path_error } = require('../middleware.js')
 
