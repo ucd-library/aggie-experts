@@ -13,7 +13,8 @@ export default class AppBrowseBy extends Mixin(LitElement)
 
   static get properties() {
     return {
-      id : { type : String },
+      browseType : { type : String, attribute : 'browse-type' },
+      letter : { type : String },
       displayedResults : { type : Array },
       resultsPerPage  : { type : Number },
       currentPage : { type : Number },
@@ -26,7 +27,8 @@ export default class AppBrowseBy extends Mixin(LitElement)
     super();
     this.render = render.bind(this);
 
-    this.id = '';
+    this.browseType = '';
+    this.letter = '';
     this.displayedResults = [];
     this.resultsPerPage = 25;
     this.currentPage = 1;
@@ -60,19 +62,41 @@ export default class AppBrowseBy extends Mixin(LitElement)
    */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'browse' ) return;
-    if( e.location.path.length < 3 ) {
-      this.AppStateModel.setLocation('/browse/expert/a');
-      return;
-    }
 
-    this.id = e.location.path[2];
+    // TODO test pagination direct nav to like page 2, and different sizes
+    this.browseType = e.location.path[1];
+    this.letter = e.location.path[2];
+
     let page = e.location.path[3];
     let resultsPerPage = e.location.path[4];
 
-    if( this.id ) {
+    if( this.letter ) {
       this.currentPage = parseInt(page) ? page : 1;
       this.resultsPerPage = parseInt(resultsPerPage) ? resultsPerPage : 25;
-      this._onBrowseExpertsUpdate(await this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage));
+
+      if( this.browseType === 'expert' ) {
+        this._onBrowseExpertsUpdate(await this.BrowseByModel.browseExperts(this.letter, this.currentPage, this.resultsPerPage));
+      } else if( this.browseType === 'grant' ) {
+        // TODO when api ready
+        this.displayedResults = [
+          {
+            resultType: 'grant',
+            position: 1,
+            id : '123',
+            name : 'Grant 1',
+            subtitle : 'Active . 2021-2026 . Quinn Hart'
+          },
+          {
+            resultType: 'grant',
+            position: 2,
+            id : '456',
+            name : 'Grant 2',
+            subtitle : 'Complete . 2015-2020 . Justin Merz'
+          }
+        ];
+      } else {
+        this.displayedResults = [];
+      }
     }
   }
 
@@ -99,6 +123,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
       if( name === subtitle ) subtitle = '';
 
       return {
+        resultType: 'expert',
         position: index+1,
         id,
         name,
@@ -119,7 +144,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
   _onPaginationChange(e) {
     this.currentPage = e.detail.page;
 
-    let path = '/browse/expert/' + this.id;
+    let path = '/browse/expert/' + this.page;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
     if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
     this.AppStateModel.setLocation(path);

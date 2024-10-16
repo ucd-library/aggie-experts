@@ -107,6 +107,9 @@ class GrantModel extends BaseModel {
     }
     root_node.relatedBy=Object.values(relatedBy);
     const doc = this.promote_node_to_doc(root_node);
+    if (experts.length) {
+      doc["is-visible"]=true; // Some expert wants it visible
+    }
     await this.update_or_create_main_node_doc(doc);
 
     const grant_snippet = this.snippet(root_node);

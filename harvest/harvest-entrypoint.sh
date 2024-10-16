@@ -32,8 +32,8 @@ if [[ ${uid} = 0 ]]; then
   else
     echo \"no /etc/fin/service-account.json and GOOGLE_APPLICATION_CREDENTIALS_JSON is not set\";
   fi;
-  exec setpriv --reuid=ucd.process --init-groups -- make --file=/usr/local/lib/harvest/Makefile "$@"
+  exec setpriv --reuid=ucd.process --init-groups -- make --file=/startup.mk "$@"
 
 else
-  exec make --file=/usr/local/lib/harvest/Makefile "$@"
+  exec make --file=/startup.mk "$@"
 fi
