@@ -229,6 +229,7 @@ export default class AppSearch extends Mixin(LitElement)
       let numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 
       return {
+        resultType: 'expert',
         position: index+1,
         id,
         name,

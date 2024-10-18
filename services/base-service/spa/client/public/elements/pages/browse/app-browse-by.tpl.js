@@ -131,7 +131,7 @@ return html`
   </style>
 
   <div class="browse-header">
-    <div class="browse-label">Experts</div>
+    <div class="browse-label">${this.browseType.charAt(0).toUpperCase() + this.browseType.slice(1)}</div>
     <div class="color-border" style="display: flex; height: 75px;">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
         <path d="M21.6 0L0 89H24V0H21.6Z" fill="#FFBF00"/>
@@ -143,11 +143,8 @@ return html`
   </div>
 
   <div class="browse-content">
-
     <div class="browse-results-heading">
-
       <ucdlib-browse-az></ucdlib-browse-az>
-
     </div>
 
     <div class="browse-results">
@@ -156,7 +153,7 @@ return html`
       </div>
       <hr class="browse-seperator">
 
-      <h3>${this.id.toUpperCase()}</h3>
+      <h3>${this.letter.toUpperCase()}</h3>
 
       ${this.displayedResults.map(
         (result) => html`

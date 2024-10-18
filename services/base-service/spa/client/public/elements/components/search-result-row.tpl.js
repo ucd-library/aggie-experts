@@ -22,9 +22,14 @@ export default function render() {
         align-items: center;
       }
 
-      .search-result-title ucdlib-icon {
+      .search-result-title ucdlib-icon.expert {
         fill: var(--color-aggie-gold);
       }
+
+      .search-result-title ucdlib-icon.grant {
+        fill: var(--color-thiebaud-icing);
+      }
+
       .search-result-title h4 {
         margin: 0 0.62rem;
         color: var(--ucd-blue-80, #13639E);
@@ -82,7 +87,8 @@ export default function render() {
     <div class="search-result">
       <div class="search-result-header">
         <div class="search-result-title">
-          <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
+          <ucdlib-icon class="expert" ?hidden="${this.result.resultType !== 'expert'}" icon="ucdlib-experts:fa-user"></ucdlib-icon>
+          <ucdlib-icon class="grant" ?hidden="${this.result.resultType !== 'grant'}" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
           <h4><a href="/${this.result.id}">${this.result.name || 'Lastname, Firstname'}</a></h4>
         </div>
         <div class="search-result-download" ?hidden="${this.hideCheckbox}">
