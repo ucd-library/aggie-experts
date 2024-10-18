@@ -24,8 +24,7 @@ construct {
                 .
 
   ?grant a vivo:Grant,?grant_type;
-         rdfs:label ?grant_label;
-         schema:name ?grant_title;
+         schema:name ?grant_label;
          schema:identifier ?grant,?g;
          vivo:totalAwardAmount ?total_award_amount;
          vivo:sponsorAwardId ?sponsor_award_id;
@@ -33,8 +32,6 @@ construct {
          vivo:dateTimeInterval ?interval;
          vivo:relatedBy ?RELATIONSHIP__,?labeled_only_role;
          .
-
-#  ?EXPERT__ schema:name ?user_name.
 
   ?labeled_only_role a vivo:CoPrincipalInvestigatorRole;
                            vivo:relates ?labeled_only_person,?grant;
@@ -315,7 +312,7 @@ WHERE {
        as ?labeled_only_role)
 
   bind(concat(?grant_title," § ",
-              coalesce(if(xsd:date(?end_date) < xsd:date(now()), " . Completed", ". Active"),""),
+              coalesce(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active"),""),
               coalesce(concat(" . ",?start_year," - ",?end_year),""),
               coalesce(concat(" . ",?pi_name),""),
               " § ",
