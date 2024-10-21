@@ -79,9 +79,9 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
 
     this.browseType = e.location.path[1];
     if( this.browseType === 'expert' ) {
-      await this.BrowseByModel.browseExpertsAZ();
+      this._onBrowseExpertsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
     } else if( this.browseType === 'grant' ) {
-      // TODO
+      this._onBrowseGrantsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
     }
 
     this.requestUpdate();
@@ -91,6 +91,17 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
 
     let az = e.payload || [];
+    this._updateAz(az);
+  }
+
+  _onBrowseGrantsAzUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+
+    let az = e.payload || [];
+    this._updateAz(az);
+  }
+
+  _updateAz(az) {
     az.forEach(item => {
       // disable if no results for letter
       let matchedLetter = this.alpha.find(l => l.value.toUpperCase() === item.params?.p.toUpperCase());
