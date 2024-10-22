@@ -67,6 +67,8 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this.browseType = e.location.path[1];
     this.letter = e.location.path[2];
 
+    this.displayedResults = [];
+
     let page = e.location.path[3];
     let resultsPerPage = e.location.path[4];
 
@@ -75,27 +77,9 @@ export default class AppBrowseBy extends Mixin(LitElement)
       this.resultsPerPage = parseInt(resultsPerPage) ? resultsPerPage : 25;
 
       if( this.browseType === 'expert' ) {
-        this._onBrowseExpertsUpdate(await this.BrowseByModel.browseExperts(this.letter, this.currentPage, this.resultsPerPage));
+        this._onBrowseExpertsUpdate(await this.BrowseByModel.browseBy('expert', this.letter, this.currentPage, this.resultsPerPage));
       } else if( this.browseType === 'grant' ) {
-        // TODO when api ready
-        this.displayedResults = [
-          {
-            resultType: 'grant',
-            position: 1,
-            id : '123',
-            name : 'Grant 1',
-            subtitle : 'Active . 2021-2026 . Quinn Hart'
-          },
-          {
-            resultType: 'grant',
-            position: 2,
-            id : '456',
-            name : 'Grant 2',
-            subtitle : 'Complete . 2015-2020 . Justin Merz'
-          }
-        ];
-      } else {
-        this.displayedResults = [];
+        this._onBrowseGrantsUpdate(await this.BrowseByModel.browseBy('grant', this.letter, this.currentPage, this.resultsPerPage));
       }
     }
   }
@@ -123,9 +107,44 @@ export default class AppBrowseBy extends Mixin(LitElement)
       if( name === subtitle ) subtitle = '';
 
       return {
-        resultType: 'expert',
         position: index+1,
         id,
+        name,
+        subtitle
+      }
+    });
+
+    this.totalResultsCount = e.payload.total;
+    this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
+  }
+
+  /**
+   * @method _onBrowseGrantsUpdate
+   * @description bound to BrowseByModel browse-grants-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
+  _onBrowseGrantsUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+    if( !e.payload?.hits?.length ) {
+      this.displayedResults = [];
+      return;
+    }
+
+    // TODO fix this once we have subtext with middle dots, might need to parse out subtext, styling will be off
+
+    // parse hits
+    this.displayedResults = (e.payload?.hits || []).map((r, index) => {
+      let id = r['@id'];
+      if( Array.isArray(r.name) ) r.name = r.name[0];
+      let name = r.name?.split('§')?.shift()?.trim();
+      let subtitle = r.name?.split('§')?.pop()?.trim();
+      if( name === subtitle ) subtitle = '';
+
+      return {
+        position: index+1,
+        id: 'grant/'+id,
         name,
         subtitle
       }
@@ -144,9 +163,10 @@ export default class AppBrowseBy extends Mixin(LitElement)
   _onPaginationChange(e) {
     this.currentPage = e.detail.page;
 
-    let path = '/browse/expert/' + this.page;
+    let path = `/browse/${this.browseType}/${this.letter}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
     if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
+
     this.AppStateModel.setLocation(path);
 
     window.scrollTo(0, 0);

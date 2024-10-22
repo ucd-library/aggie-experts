@@ -157,7 +157,13 @@ return html`
 
       ${this.displayedResults.map(
         (result) => html`
-          <app-search-result-row search-result="${result.position}" .result=${result} hide-checkbox hide-search-matches></app-search-result-row>
+          <app-search-result-row
+            search-result="${result.position}"
+            .result=${result}
+            result-type="${this.browseType}"
+            hide-checkbox
+            hide-search-matches>
+          </app-search-result-row>
           <hr class="search-seperator">
         `
       )}
