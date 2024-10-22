@@ -30,7 +30,7 @@ server_startup:
 	fix_startup_files;\
 
 server:: server_startup ## Run the server
-	${FUSEKI_HOME}/fuseki-server-hdt
+	${FUSEKI_HOME}/fuseki-server
 
 server_bg: server_startup
-	nohup ${FUSEKI_HOME}/fuseki-server-hdt &
+	nohup ${FUSEKI_HOME}/fuseki-server &

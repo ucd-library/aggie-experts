@@ -93,7 +93,6 @@ FROM openjdk
 ARG JENA_VERSION
 
 ARG FUSEKI_HOME=/usr/share/fuseki
-#ARG FUSEKI_JAR=jena-fuseki-server-${JENA_VERSION}.jar
 ARG FUSEKI_BASE=/etc/fuseki
 
 
@@ -163,7 +162,7 @@ COPY --from=extra /fuseki/extra/* $FUSEKI_HOME/extra/
 COPY fuseki $FUSEKI_HOME
 
 # Test the install by testing it's ping resource
-RUN  $FUSEKI_HOME/fuseki-server-hdt & \
+RUN  $FUSEKI_HOME/fuseki-server & \
      sleep 5 && \
      curl -sS --fail 'http://localhost:3030/$/ping'
 
@@ -184,5 +183,5 @@ ENV JVM_ARGS="-Xmx2g -Djena.scripting=true"
 WORKDIR $FUSEKI_HOME
 EXPOSE 3030
 ENTRYPOINT ["/fuseki-entrypoint.sh"]
-CMD "${FUSEKI_HOME}/fuseki-server-hdt"
+CMD "${FUSEKI_HOME}/fuseki-server"
 #CMD "/usr/bin/curl" "-sS" "--fail" "http://localhost:3030/$/ping"
