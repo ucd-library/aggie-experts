@@ -49,7 +49,7 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
     restart: unless-stopped
     command:
-      HDT=import server
+      server
     # command: bash -c 'tail -f /dev/null'
 
 

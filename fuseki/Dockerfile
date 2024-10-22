@@ -1,6 +1,6 @@
-ARG OPENJDK=openjdk:17-slim-bullseye
-ARG MAVEN=maven:3-openjdk-17-slim
-ARG JENA_VERSION=5.1.0
+ARG OPENJDK=openjdk:18-slim-bullseye
+ARG MAVEN=maven:3-openjdk-18-slim
+ARG JENA_VERSION=5.2.0
 ARG HDT_VERSION=v3.0.10
 
 # We install hdt binaries completely seperately from our fuseki extras below
@@ -121,8 +121,7 @@ ENV PATH=$PATH:/opt/hdt-java/bin
 WORKDIR /tmp
 ARG JENA_REPO=https://dlcdn.apache.org/jena/binaries
 
-#RG JENA_TAR_SHA512=04f87c42a3b5fe65ad554beb8a1ef90ca7e0305d306fb18a15bb808891c259f420ab4f630e6b4abbb017e32284f97e23f7b848a21dc57f32ad53f604cb82e28b
-ARG JENA_TAR_SHA512=f426275591aaa5274a89cab2f2ee16623086c5f0c7669bda5b2cead90089497e57098885745fd88e3c7db75cbaac48fe58f84ec9cd2dbb937592ff2f0ef0f92e
+ARG JENA_TAR_SHA512=9a66044573ca269c0a9a1191fe7a8e1925f2d77e2e0bdadddd68616a1bafed1d9819c0b2988dd03614ec778a3882ccb091d825976fc0837406916f9f001b701c
 RUN echo "$JENA_TAR_SHA512 jena.tar.gz" > jena.tar.gz.sha512
 # Download/check/unpack/move in one go (to reduce image size)
 RUN     curl --location --silent --show-error --fail --retry-connrefused --retry 3 --output jena.tar.gz ${JENA_REPO}/apache-jena-$JENA_VERSION.tar.gz && \
@@ -144,7 +143,7 @@ ARG JENA_REPO=https://dlcdn.apache.org/jena/binaries
 
 # published sha512 checksum
 #ARG FUSEKI_TAR_MD5=84079078b761e31658c96797e788137205fc93091ab5ae511ba80bdbec3611f4386280e6a0dc378b80830f4e5ec3188643e2ce5e1dd35edfd46fa347da4dbe17
-ARG FUSEKI_TAR_MD5=50d33937092e8120d57f503b6e96ef988894602aa060ff945ec3aecf0349b0b22250e158bb379d0300589653dc9d6f3e6eb2b9790b5125144108dd6f19dc41e6
+ARG FUSEKI_TAR_MD5=650d4576927cb4e330c372c46f76dde3fbd683b59cc692bac501b545097402c58c2254b25502e4225ba6f7d4c79ee12c5e43b78124115dbbe6371c487aa8604f
 RUN echo "$FUSEKI_TAR_MD5 fuseki.tar.gz" > fuseki.tar.gz.sha512
 # Download/check/unpack/move in one go (to reduce image size)
 
