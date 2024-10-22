@@ -3,6 +3,7 @@ PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX js: <http://jena.apache.org/ARQ/jsFunction#>
 PREFIX kfs: <ark:/87287/d7gt0q/schema#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
@@ -164,9 +165,11 @@ WHERE {
       ?record :native/:field [ :name "c-co-pis";
                                :people/:person [ list:index(?pos ?elem) ]
                              ].
-      ?elem :last-name ?labeled_only_name_last .
+      ?elem :last-name ?labeled_only_name_last_cap .
+      bind(js:capitalizeName(?labeled_only_name_last_cap) as ?labeled_only_name_last)
       OPTIONAL {
-        ?elem :first-names ?labeled_only_name_first .
+        ?elem :first-names ?labeled_only_name_first_cap .
+        bind(js:capitalizeName(?labeled_only_name_first_cap) as ?labeled_only_name_first)
       }
       OPTIONAL {
         ?elem :initials ?labeled_only_name_initials .
