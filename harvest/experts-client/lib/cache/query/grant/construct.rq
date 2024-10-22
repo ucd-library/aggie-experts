@@ -140,7 +140,7 @@ WHERE {
     OPTIONAL {
       ?record :native/:field [ :name "funder-name";
                                :type "text";
-                               :text ?funder_label ].
+                               :text ?funder_label_cap ].
 
       ?record :native/:field [ :name "funder-reference";
                                :type "text";
@@ -157,7 +157,7 @@ WHERE {
     OPTIONAL {
       ?record :native/:field [ :name "c-pi";
                                :type "text";
-                               :text ?pi_name ];
+                               :text ?pi_name_cap ];
                                      .
     }
 
@@ -313,6 +313,9 @@ WHERE {
           uri(concat(str(?grant),"#roleof_",?labeled_only_name_match)),
           ?undefined)
        as ?labeled_only_role)
+
+  bind(js:capitalizeName(?funder_label_cap) as ?funder_label)
+  bind(js:capitalizeName(?pi_name_cap,"\\s+"," ") as ?pi_name)
 
   bind(concat(?grant_title," § ",
               coalesce(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active"),""),
