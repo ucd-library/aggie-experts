@@ -313,9 +313,9 @@ WHERE {
 
   bind(concat(?grant_title," § ",
               coalesce(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active"),""),
-              coalesce(concat(" . ",?start_year," - ",?end_year),""),
-              coalesce(concat(" . ",?pi_name),""),
+              coalesce(concat(" • ",?start_year," - ",?end_year),""),
+              coalesce(concat(" • ",?pi_name),""),
               " § ",
               coalesce(?funder_label,""),
-              coalesce(concat(" . ",?sponsor_award_id),"")) as ?grant_label)
+              coalesce(concat(" • ",?sponsor_award_id),"")) as ?grant_label)
 }
