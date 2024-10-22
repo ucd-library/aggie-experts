@@ -15,7 +15,7 @@
     </license>
   </licenses>
   <properties>
-    <ver.graalvm>22.3.0</ver.graalvm>
+    <ver.graalvm>24.1.1</ver.graalvm>
     <ver.rdfhdt>3.0.9</ver.rdfhdt>
   </properties>
   <dependencies>
@@ -27,14 +27,15 @@
 
     <dependency>
       <groupId>org.graalvm.js</groupId>
-      <artifactId>js</artifactId>
+      <artifactId>js-scriptengine</artifactId>
       <version>${ver.graalvm}</version>
     </dependency>
 
     <dependency>
       <groupId>org.graalvm.js</groupId>
-      <artifactId>js-scriptengine</artifactId>
+      <artifactId>js-community</artifactId>
       <version>${ver.graalvm}</version>
+      <type>pom</type>
     </dependency>
   </dependencies>
 
