@@ -1,15 +1,20 @@
 const router = require('express').Router();
+const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
+const GrantModel = require('../grant/model.js');
 const utils = require('../utils.js')
 const template = require('./template/default.js');
+const base = new BaseModel();
 const experts = new ExpertModel();
+const grants = new GrantModel();
+
 const {config} = require('@ucd-lib/fin-service-utils');
 
 const { openapi, is_user } = require('../middleware.js')
 
 function search_valid_path(options={}) {
   const def = {
-    "description": "Search of experts",
+    "description": "Search of experts and grants",
     "parameters": [],
   };
 
@@ -40,7 +45,7 @@ router.get(
   search_valid_path(
     {
       description: "Returns matching search results for experts, including the number of matching works and grants",
-      parameters: ['p', 'page', 'size'],
+      parameters: ['p', 'page', 'size', 'type'],
       responses: {
         "200": openapi.response('Search'),
         "400": openapi.response('Invalid_request')
@@ -49,17 +54,33 @@ router.get(
   ),
   search_valid_path_error,
   async (req, res) => {
-    const params = {};
-    if (req.query.p) {
-      params.p = req.query.p;
-    }
-    ["inner_hit_size","size","page","q","hasAvailability"].forEach((key) => {
+    const params = {
+      type:['expert', 'grant'],
+      index: []
+    };
+    ["p","inner_hit_size","size","page","q"].forEach((key) => {
       if (req.query[key]) { params[key] = req.query[key]; }
     });
 
-    if (params.hasAvailability) {
-      params.hasAvailability = params.hasAvailability.split(',');
+    if (req?.query.hasAvailability) {
+      params.hasAvailability = req.query.hasAvailability.split(',');
     }
+    if (req?.query.type) {
+      params.type = req.query.type.split(',');
+    }
+    parms.type.forEach((type) => {
+      switch (type) {
+      case 'expert':
+        params.index.push = experts.readIndexAlias;
+        break;
+      case 'grant':
+        params.grant = grants.readIndexAlias;
+        break;
+      default:
+        return res.status(400).json({error: 'Invalid type'});
+        break;
+      }
+    });
     opts = {
       id: template.id,
       params

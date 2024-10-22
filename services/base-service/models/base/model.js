@@ -307,13 +307,13 @@ class BaseModel extends FinEsDataModel {
    * @returns {Object} ES results
    */
   async search(opts) {
-
     const params = this.common_parms(opts.params);
+    const index = opts.index || ['grant-read','expert-read'];
 
     console.log(`searching ${this.readIndexAlias} with ${JSON.stringify(params)}`);
     const options = {
       id: (opts.id)?opts.id:"default",
-      index: this.readIndexAlias,
+      index: index
       params
     }
     const res=await this.client.searchTemplate(options);
@@ -322,7 +322,9 @@ class BaseModel extends FinEsDataModel {
 
   async msearch(opts) {
 
-    opts.index = "expert-read";
+    if (! opts.index) {
+      opts.index = "expert-read";
+    }
 
     // Fix-up parms
     for(let i=0;i<opts.search_templates.length;i++) {
