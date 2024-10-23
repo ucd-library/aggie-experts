@@ -24,8 +24,6 @@ program
   .option('--env <env>', '', 'QA')
   .requiredOption('-xml, --xml <xml>', 'Source file path in GCS')
   .requiredOption('-o, --output <output>', 'Local output file path')
-  // .option('--fuseki.delete', 'Delete the fuseki.db after running', fuseki.delete)
-  // .option('--no-fuseki.delete')
   .option('-g, --generation <generation>', 'GCS (XML) file generation', 0)
   .option_fuseki()
   .option_log()
@@ -241,6 +239,7 @@ function replaceHeaderHyphens(filename) {
 async function main(opt) {
 
   // Start a fresh database
+  await opt.fuseki.dropDb(opt.db);
   let db = await opt.fuseki.createDb(opt.db,opt);
 
   // Ensure the output directory exists
