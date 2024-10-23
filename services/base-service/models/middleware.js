@@ -318,11 +318,12 @@ const openapi = OpenAPI(
             type: "array",
             items: {
               type: "string",
-              enum: ["expert", "grant", "work"]
-            },
-            style: "simple",
-            explode: false
-          }
+              enum: ["expert", "grant", "work"],
+              default: "expert,grant"
+            }
+          },
+          style: "simple",
+          explode: false
         }
       },
       schemas: {
