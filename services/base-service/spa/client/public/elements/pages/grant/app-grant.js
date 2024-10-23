@@ -110,7 +110,7 @@ export default class AppGrant extends Mixin(LitElement)
     let aeContributors = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
     let otherContributors = [];
 
-    this.grantName = grantGraph.name || '';
+    this.grantName = grantGraph.name?.split('§')?.shift()?.trim() || '';
     this.awardedBy = grantGraph.assignedBy?.name || '';
     this.grantNumber = grantGraph.sponsorAwardId || '';
     this.grantAdmin = grantGraph.assignedBy?.name || '';

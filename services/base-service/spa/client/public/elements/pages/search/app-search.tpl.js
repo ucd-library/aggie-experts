@@ -430,7 +430,11 @@ return html`
 
         ${this.displayedResults.map(
           (result) => html`
-            <app-search-result-row search-result="${result.position}" .result=${result}></app-search-result-row>
+            <app-search-result-row
+              search-result="${result.position}"
+              .result=${result}
+              result-type="expert"> <!-- TODO update this to be more dynamic, when loading different types of results -->
+            </app-search-result-row>
             <hr class="search-seperator">
           `
         )}
