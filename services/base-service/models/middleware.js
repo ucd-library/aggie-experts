@@ -293,6 +293,36 @@ const openapi = OpenAPI(
           schema: {
             type: "integer"
           }
+        },
+        hasAvailability: {
+          in: "query",
+          name: "hasAvailability",
+          description: "Comma-separated search filter on expert availability types",
+          required: false,
+          schema: {
+            type: "arary",
+            items: {
+              type: "string",
+              enum: ["collab","community","industry","media"]
+            }
+          },
+          style: "simple",
+          explode: false
+        },
+        type: {
+            in: "query",
+          name: "type",
+          description: "Comma-separated list of items to return.",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: ["expert", "grant", "work"]
+            },
+            style: "simple",
+            explode: false
+          }
         }
       },
       schemas: {

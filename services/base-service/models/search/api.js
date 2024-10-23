@@ -45,7 +45,7 @@ router.get(
   search_valid_path(
     {
       description: "Returns matching search results for experts, including the number of matching works and grants",
-      parameters: ['p', 'page', 'size', 'type'],
+      parameters: ['p', 'page', 'size', 'type','hasAvailability'],
       responses: {
         "200": openapi.response('Search'),
         "400": openapi.response('Invalid_request')
@@ -55,7 +55,7 @@ router.get(
   search_valid_path_error,
   async (req, res) => {
     const params = {
-      type:['expert', 'grant'],
+      type:['expert','grant'],
       index: []
     };
     ["p","inner_hit_size","size","page","q"].forEach((key) => {
@@ -63,18 +63,19 @@ router.get(
     });
 
     if (req?.query.hasAvailability) {
+      console.log('hasAvailability', req.query.hasAvailability);
       params.hasAvailability = req.query.hasAvailability.split(',');
     }
     if (req?.query.type) {
       params.type = req.query.type.split(',');
     }
-    parms.type.forEach((type) => {
+    params.type.forEach((type) => {
       switch (type) {
       case 'expert':
-        params.index.push = experts.readIndexAlias;
+        params.index.push(experts.readIndexAlias);
         break;
       case 'grant':
-        params.grant = grants.readIndexAlias;
+        params.index.push(grants.readIndexAlias);
         break;
       default:
         return res.status(400).json({error: 'Invalid type'});
@@ -87,7 +88,7 @@ router.get(
     };
     try {
       await experts.verify_template(template);
-      const find = await experts.search(opts);
+      const find = await base.search(opts);
       res.send(find);
     } catch (err) {
       res.status(400).send('Invalid request');
