@@ -55,6 +55,11 @@
         "type": "pattern_replace",
         "pattern": "^(The|A|An)\\s+",
         "replacement": ""
+      },
+      "non_letter_filter": {
+        "type": "pattern_replace",
+        "pattern": "^(?i)([^a-z])",
+        "replacement": "#$1"
       }
     },
     "filter": {
@@ -77,11 +82,6 @@
         "type": "pattern_replace",
         "pattern": "(/|doi:|https://doi.org/)?(10\\.\\d{4,})",
         "replacement": "doi:$2"
-      },
-      "article_filter": {
-        "type": "pattern_replace",
-        "pattern": "^(The|A|An)\\s+",
-        "replacement": ""
       }
     },
     "normalizer" : {
@@ -104,7 +104,8 @@
       "title_prefix_analyzer": {
         "type": "custom",
         "char_filter": [
-          "article_filter"
+          "article_filter",
+          "non_letter_filter"
         ],
         "filter": [
           "lowercase",
@@ -118,7 +119,8 @@
         "tokenizer": "uax_url_email",
         "char_filter": [
           "text_mapper","doi_to_url","orcid_to_url",
-          "mailto_to_email","ark_to_n2t","urn_to_n2t"
+          "mailto_to_email","ark_to_n2t","urn_to_n2t",
+          "article_filter"
         ],
         "filter": [
           "email_to_mailto","xxx_to_doi","xxx_to_orcid", "n2t_to_id",
@@ -132,14 +134,14 @@
         "tokenizer": "uax_url_email",
         "char_filter": [
           "text_mapper","doi_to_url","orcid_to_url",
-          "mailto_to_email","ark_to_n2t","urn_to_n2t"
+          "mailto_to_email","ark_to_n2t","urn_to_n2t",
+          "article_filter"
         ],
         "filter": [
           "email_to_mailto","xxx_to_doi","xxx_to_orcid", "n2t_to_id",
           "lowercase",
           "stop",
-          "asciifolding",
-          "article_filter"
+          "asciifolding"
         ]
       },
       "autocomplete": {
