@@ -59,10 +59,11 @@ export default class AppSearch extends Mixin(LitElement)
     this.refineResultsTo = '';
 
     this.filters = [
-      { label: 'All Results', count: 1000, icon: 'fa-infinity', active: true },
-      { label: 'Experts', count: 100, icon: 'fa-user', active: false },
+      { label: 'All Results', type: '', count: 1000, icon: 'fa-infinity', active: true },
+      { label: 'Experts', type: 'expert', count: 100, icon: 'fa-user', active: false },
       {
         label : 'Grants',
+        type : 'grant',
         count : 50,
         icon : 'fa-file-invoice-dollar',
         active : false,
@@ -91,7 +92,7 @@ export default class AppSearch extends Mixin(LitElement)
 
       if( query.refineResultsTo ) this.refineResultsTo = query.refineResultsTo;
       this.filters = this.filters.map(f => {
-        f.active = f.label.toLowerCase() === this.refineResultsTo || (!this.refineResultsTo && f.label === 'All Results');
+        f.active = f.type.toLowerCase() === this.refineResultsTo || (!this.refineResultsTo && f.label === 'All Results');
         return f;
       });
 
@@ -215,7 +216,7 @@ export default class AppSearch extends Mixin(LitElement)
       this._updateLocation();
     }
 
-    this._onSearchUpdate(await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability));
+    this._onSearchUpdate(await this.SearchModel.search(utils.buildSearchQuery(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability, this.AppStateModel.location.query.refineResultsTo)));
   }
 
   _updateLocation() {
@@ -246,16 +247,32 @@ export default class AppSearch extends Mixin(LitElement)
     if( e?.state !== 'loaded' ) return;
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
 
+    // TODO parse grants vs experts using @type
+
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
+
+      let resultType = '';
+      if( r['@type'] === 'Grant' || r['@type']?.includes?.('Grant') ) resultType = 'grant';
+      if( r['@type'] === 'Expert' || r['@type']?.includes?.('Expert') ) resultType = 'expert';
+
       let id = r['@id'];
       if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
-      let subtitle = r.name?.split('§')?.pop()?.trim();
-      if( name === subtitle ) subtitle = '';
-      let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
-      let numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+
+      let subtitle, numberOfWorks, numberOfGrants;
+
+      if( resultType === 'expert' ) {
+        subtitle = r.name?.split('§')?.pop()?.trim();
+        if( name === subtitle ) subtitle = '';
+        numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
+        numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+
+      } else if( resultType === 'grant' ) {
+        subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+      }
 
       return {
+        resultType,
         position: index+1,
         id,
         name,
@@ -309,7 +326,8 @@ export default class AppSearch extends Mixin(LitElement)
       industProjects : this.industProjects,
       mediaInterviews : this.mediaInterviews
     });
-    this._onSearchUpdate(await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability));
+
+    this._onSearchUpdate(await this.SearchModel.search(utils.buildSearchQuery(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability, this.AppStateModel.location.query.refineResultsTo)));
     window.scrollTo(0, 0);
   }
 
@@ -423,7 +441,7 @@ export default class AppSearch extends Mixin(LitElement)
 
   _onFilterChange(e) {
     // update url with search filters
-    this.refineResultsTo = e.detail.label;
+    this.refineResultsTo = e.detail.type;
     if( this.refineResultsTo === 'all results' ) this.refineResultsTo = '';
     this.currentPage = 1;
     this._updateLocation();
@@ -431,8 +449,8 @@ export default class AppSearch extends Mixin(LitElement)
 
   _onSubFilterChange(e) {
     // update url with search filters
-    this.refineResultsTo = e.detail.parentLabel;
-    // TODO do we need to use e.detail.label to filter on subfilters? should url change? revisit when backend ready
+    this.refineResultsTo = e.detail.parentType;
+    // TODO do we need to use e.detail.type to filter on subfilters? should url change? revisit when backend ready
 
     this.currentPage = 1;
     this._updateLocation();

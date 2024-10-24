@@ -29,11 +29,11 @@ export class CategoryFilterController extends LitElement {
    *
    */
   _onFilterChange(e) {
-    let label = e.target.getAttribute('label');
-    if( label === this.filters.filter(f => f.active)[0]?.label ) return;
+    let type = e.target.getAttribute('type');
+    if( type === this.filters.filter(f => f.active)[0]?.type ) return;
 
     this.filters = this.filters.map(f => {
-      f.active = f.label === label;
+      f.active = f.type === type;
       f.subFilters = (f.subFilters || []).map(sf => {
         sf.active = false;
         return sf;
@@ -43,7 +43,7 @@ export class CategoryFilterController extends LitElement {
     });
 
     this.dispatchEvent(new CustomEvent('filter-change', {
-      detail : { label : label.toLowerCase() }
+      detail : { type : type.toLowerCase() }
     }));
   }
 
@@ -53,15 +53,15 @@ export class CategoryFilterController extends LitElement {
    *
    */
   _onSubFilterChange(e) {
-    let label = e.target.getAttribute('label');
-    let parentLabel = e.target.getAttribute('parent-label');
+    let type = e.target.getAttribute('type');
+    let parentType = e.target.getAttribute('parent-type');
 
-    if( label === this.filters.filter(f => f.active)[0]?.label ) return;
+    if( type === this.filters.filter(f => f.active)[0]?.type ) return;
 
     this.filters = this.filters.map(f => {
-      f.active = f.label === label;
+      f.active = f.type === type;
       f.subFilters = (f.subFilters || []).map(sf => {
-        sf.active = sf.label === label;
+        sf.active = sf.type === type;
         return sf;
       });
 
@@ -70,8 +70,8 @@ export class CategoryFilterController extends LitElement {
 
     this.dispatchEvent(new CustomEvent('subfilter-change', {
       detail : {
-        label : label.toLowerCase(),
-        parentLabel : parentLabel.toLowerCase()
+        type : type.toLowerCase(),
+        parentType : parentType.toLowerCase()
       }
     }));
   }
