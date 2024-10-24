@@ -376,6 +376,25 @@ class Utils {
     return availability;
   }
 
+  /**
+   * @method buildSearchQuery
+   * @description return search query string for search api
+   *
+   * @param {String} searchTerm search term
+   * @param {Number} page page number, defaults to 1
+   * @param {Number} size number of results per page, defaults to 25
+   * @param {Array} hasAvailability array of availability filters
+   * @param {String} type type of search, ie 'grant', 'expert'. if none set, returns all results
+   */
+  buildSearchQuery(searchTerm, page=1, size=25, hasAvailability=[], type) {
+    // `q=${searchTerm}&page=${page}&size=${size}&hasAvailability=${encodeURIComponent(hasAvailability)}&type=grant`;
+    let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
+    if( hasAvailability.length ) searchQuery += `&hasAvailability=${encodeURIComponent(hasAvailability)}`;
+    if( type ) searchQuery += `&type=${type}`;
+
+    return searchQuery;
+  }
+
 }
 
 module.exports = new Utils();

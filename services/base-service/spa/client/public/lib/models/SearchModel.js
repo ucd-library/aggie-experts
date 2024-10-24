@@ -16,16 +16,11 @@ class SearchModel extends BaseModel {
    * @method search
    * @description search elastic search
    *
-   * @param {String} searchTerm search term
-   * @param {Number} page page number, defaults to 1
-   * @param {Number} size number of results per page, defaults to 25
-   * @param {Array} hasAvailability array of availability filters
+   * @param {String} searchQuery search url
    *
    * @returns {Promise} resolves to expert
    */
-  async search(searchTerm, page=1, size=25, hasAvailability=[]) {
-    let searchQuery = `q=${searchTerm}&page=${page}&size=${size}&hasAvailability=${encodeURIComponent(hasAvailability)}`;
-
+  async search(searchQuery) {
     return this.service.search(searchQuery);
   }
 

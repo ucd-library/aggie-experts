@@ -73,14 +73,6 @@ template = {
                                 { "term": { "@graph.is-visible": true }}
                               ]
                             }
-                          },
-                          {
-                            "bool": {
-                              "must": [
-                                { "exists": { "field": "@graph.relatedBy.is-visible" }},
-                                { "term": { "@graph.relatedBy.is-visible": true }}
-                              ]
-                            }
                           }
                         ]
                       }
@@ -92,21 +84,7 @@ template = {
                 "size": "{{inner_hits_size}}{{^inner_hits_size}}50{{/inner_hits_size}}",
                 "_source": [
                   "@graph.@type",
-                  "@graph.name",
-                  "@graph.author",
-                  "@graph.title",
-                  "@graph.issued",
-                  "@graph.container-title",
-                  "@graph.type",
-                  "@graph.ISSN",
-                  "@graph.abstract",
-                  "@graph.genre",
-                  "@graph.issued",
-                  "@graph.status",
-                  "@graph.rank",
-                  "@graph.ISBN",
-                  "@graph.volume",
-                  "@graph.page"
+                  "@graph.name"
                 ]
               },
               "score_mode": "sum"

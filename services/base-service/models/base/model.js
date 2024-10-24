@@ -307,22 +307,26 @@ class BaseModel extends FinEsDataModel {
    * @returns {Object} ES results
    */
   async search(opts) {
-
     const params = this.common_parms(opts.params);
 
-    console.log(`searching ${this.readIndexAlias} with ${JSON.stringify(params)}`);
+    const index = params.index || ['grant-read','expert-read'];
+    //const index = '*-read';
+    delete params.index;
     const options = {
       id: (opts.id)?opts.id:"default",
-      index: this.readIndexAlias,
+      index,
       params
     }
+    console.log(`searching ${JSON.stringify(options)}`);
     const res=await this.client.searchTemplate(options);
     return this.compact_search_results(res,params);
   }
 
   async msearch(opts) {
 
-    opts.index = "expert-read";
+    if (! opts.index) {
+      opts.index = "expert-read";
+    }
 
     // Fix-up parms
     for(let i=0;i<opts.search_templates.length;i++) {

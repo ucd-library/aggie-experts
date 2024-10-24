@@ -32,7 +32,8 @@ export default class AppSearch extends Mixin(LitElement)
       collabProjects : { type : Boolean },
       commPartner : { type : Boolean },
       industProjects : { type : Boolean },
-      mediaInterviews : { type : Boolean }
+      mediaInterviews : { type : Boolean },
+      refineResultsTo : { type : String },
     }
   }
 
@@ -55,13 +56,25 @@ export default class AppSearch extends Mixin(LitElement)
     this.commPartner = false;
     this.industProjects = false;
     this.mediaInterviews = false;
+    this.refineResultsTo = '';
 
     this.filters = [
-      { label: 'All Results', count: 1000, icon: 'fa-infinity', active: true },
-      { label: 'Experts', count: 100, icon: 'fa-user', active: false },
-      { label: 'Grants', count: 50, icon: 'fa-file-invoice-dollar', active: false },
-      { label: 'Works', count: 500, icon: 'fa-book-open', active: false },
-      { label: 'Subjects', count: 350, icon: 'lightbulb-on', active: false }
+      { label: 'All Results', type: '', count: 1000, icon: 'fa-infinity', active: true },
+      { label: 'Experts', type: 'expert', count: 100, icon: 'fa-user', active: false },
+      {
+        label : 'Grants',
+        type : 'grant',
+        count : 50,
+        icon : 'fa-file-invoice-dollar',
+        active : false,
+        subFilters : [
+          { label : 'Active', count : 15, active : false },
+          { label : 'Complete', count : 35, active : false }
+        ]
+      },
+
+      // { label: 'Works', count: 500, icon: 'fa-book-open', active: false },
+      // { label: 'Subjects', count: 350, icon: 'lightbulb-on', active: false }
     ];
 
     this.render = render.bind(this);
@@ -77,12 +90,18 @@ export default class AppSearch extends Mixin(LitElement)
     if( Object.keys(query).length ) {
       this.searchTerm = decodeURI(query.q);
 
-      this.collabProjects = query.hasAvailability.includes('collab');
-      this.commPartner = query.hasAvailability.includes('community');
-      this.industProjects = query.hasAvailability.includes('industry');
-      this.mediaInterviews = query.hasAvailability.includes('media');
+      if( query.refineResultsTo ) this.refineResultsTo = query.refineResultsTo;
+      this.filters = this.filters.map(f => {
+        f.active = f.type.toLowerCase() === this.refineResultsTo || (!this.refineResultsTo && f.label === 'All Results');
+        return f;
+      });
 
-      if( query.hasAvailability.includes('ark:') ) {
+      this.collabProjects = query.hasAvailability?.includes('collab');
+      this.commPartner = query.hasAvailability?.includes('community');
+      this.industProjects = query.hasAvailability?.includes('industry');
+      this.mediaInterviews = query.hasAvailability?.includes('media');
+
+      if( query.hasAvailability?.includes('ark:') ) {
         if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Community partnerships') ) this.commPartner = true;
         if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative projects') ) this.collabProjects = true;
         if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry Projects') ) this.industProjects = true;
@@ -197,7 +216,7 @@ export default class AppSearch extends Mixin(LitElement)
       this._updateLocation();
     }
 
-    this._onSearchUpdate(await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability));
+    this._onSearchUpdate(await this.SearchModel.search(utils.buildSearchQuery(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability, this.AppStateModel.location.query.refineResultsTo)));
   }
 
   _updateLocation() {
@@ -208,10 +227,19 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) hasAvailability.push('industry');
     if( this.mediaInterviews ) hasAvailability.push('media');
 
-    let path = hasAvailability.length ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
+    // TODO also need to update url with other query params, like for refineResultsTo and date filters
+    // /search?q=climate    &hasAvailability=collab,community,industry,media     &refineResultsTo=grants     &startDate=2000&endDate=2025&includeUnknown=true
+
+    let hasQueryParams = hasAvailability.length || this.refineResultsTo.length; // TODO dates
+
+    let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
     if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
-    if( hasAvailability.length ) path += `?q=${encodeURIComponent(this.searchTerm)}&hasAvailability=${hasAvailability.join(',')}`;
+
+    if( hasQueryParams ) path += `?q=${encodeURIComponent(this.searchTerm)}`;
+    if( hasAvailability.length ) path += `&hasAvailability=${hasAvailability.join(',')}`;
+    if( this.refineResultsTo.length ) path += `&refineResultsTo=${this.refineResultsTo}`;
+
     this.AppStateModel.setLocation(path);
   }
 
@@ -219,16 +247,32 @@ export default class AppSearch extends Mixin(LitElement)
     if( e?.state !== 'loaded' ) return;
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
 
+    // TODO parse grants vs experts using @type
+
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
+
+      let resultType = '';
+      if( r['@type'] === 'Grant' || r['@type']?.includes?.('Grant') ) resultType = 'grant';
+      if( r['@type'] === 'Expert' || r['@type']?.includes?.('Expert') ) resultType = 'expert';
+
       let id = r['@id'];
       if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
-      let subtitle = r.name?.split('§')?.pop()?.trim();
-      if( name === subtitle ) subtitle = '';
-      let numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
-      let numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+
+      let subtitle, numberOfWorks, numberOfGrants;
+
+      if( resultType === 'expert' ) {
+        subtitle = r.name?.split('§')?.pop()?.trim();
+        if( name === subtitle ) subtitle = '';
+        numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
+        numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+
+      } else if( resultType === 'grant' ) {
+        subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+      }
 
       return {
+        resultType,
         position: index+1,
         id,
         name,
@@ -282,7 +326,8 @@ export default class AppSearch extends Mixin(LitElement)
       industProjects : this.industProjects,
       mediaInterviews : this.mediaInterviews
     });
-    this._onSearchUpdate(await this.SearchModel.search(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability));
+
+    this._onSearchUpdate(await this.SearchModel.search(utils.buildSearchQuery(this.searchTerm, this.currentPage, this.resultsPerPage, hasAvailability, this.AppStateModel.location.query.refineResultsTo)));
     window.scrollTo(0, 0);
   }
 
@@ -395,7 +440,20 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _onFilterChange(e) {
-    console.log('TODO handle filter change', e.detail);
+    // update url with search filters
+    this.refineResultsTo = e.detail.type;
+    if( this.refineResultsTo === 'all results' ) this.refineResultsTo = '';
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  _onSubFilterChange(e) {
+    // update url with search filters
+    this.refineResultsTo = e.detail.parentType;
+    // TODO do we need to use e.detail.type to filter on subfilters? should url change? revisit when backend ready
+
+    this.currentPage = 1;
+    this._updateLocation();
   }
 
 }

@@ -29,17 +29,51 @@ export class CategoryFilterController extends LitElement {
    *
    */
   _onFilterChange(e) {
-    let label = e.target.getAttribute('label');
-    if( label === this.filters.filter(f => f.active)[0]?.label ) return;
-
-    this.dispatchEvent(new CustomEvent('filter-change', {
-      detail : { label }
-    }));
+    let type = e.target.getAttribute('type');
+    if( type === this.filters.filter(f => f.active)[0]?.type ) return;
 
     this.filters = this.filters.map(f => {
-      f.active = f.label === label;
+      f.active = f.type === type;
+      f.subFilters = (f.subFilters || []).map(sf => {
+        sf.active = false;
+        return sf;
+      });
+
       return f;
     });
+
+    this.dispatchEvent(new CustomEvent('filter-change', {
+      detail : { type : type.toLowerCase() }
+    }));
+  }
+
+  /**
+   * @method _onSubFilterChange
+   * @description subfilter click
+   *
+   */
+  _onSubFilterChange(e) {
+    let type = e.target.getAttribute('type');
+    let parentType = e.target.getAttribute('parent-type');
+
+    if( type === this.filters.filter(f => f.active)[0]?.type ) return;
+
+    this.filters = this.filters.map(f => {
+      f.active = f.type === type;
+      f.subFilters = (f.subFilters || []).map(sf => {
+        sf.active = sf.type === type;
+        return sf;
+      });
+
+      return f;
+    });
+
+    this.dispatchEvent(new CustomEvent('subfilter-change', {
+      detail : {
+        type : type.toLowerCase(),
+        parentType : parentType.toLowerCase()
+      }
+    }));
   }
 
 }
