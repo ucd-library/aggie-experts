@@ -315,15 +315,6 @@ return html`
     .grant-details .dot,
     .work-details .dot {
       padding: 0 0.25rem;
-      color: var(--black, #000);
-      font-family: Proxima Nova;
-      font-size: 1.1875rem;
-      font-style: normal;
-      font-weight: 700;
-      line-height: 1.92125rem;
-      text-transform: uppercase;
-      position: relative;
-      bottom: 0.25rem;
     }
 
     .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon,
@@ -720,11 +711,11 @@ return html`
         <div class="open-to" ?hidden="${this.hideAvailability && !this.expertEditing}">
           <span class="desktop-edit-availability">Open to:</span>
           <span ?hidden="${!this.collabProjects}">Collaborative Projects</span>
-          <span class="dot" ?hidden="${!this.collabProjects || !this.commPartner}">.</span>
+          <span class="dot" ?hidden="${!this.collabProjects || !this.commPartner}">•</span>
           <span ?hidden="${!this.commPartner}">Community Partnerships</span>
-          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner) || !this.industProjects}">.</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner) || !this.industProjects}">•</span>
           <span ?hidden="${!this.industProjects}">Industry Projects</span>
-          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">.</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">•</span>
           <span ?hidden="${!this.mediaInterviews}">Media Interviews</span>
           <span class="desktop-edit-availability" ?hidden="${!this.canEdit}" style="position: relative; padding-left: 0">
             <span class="tooltip edit-availability" data-text="Edit availability">
@@ -924,9 +915,9 @@ return html`
               <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
@@ -940,9 +931,9 @@ return html`
               <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
@@ -992,7 +983,7 @@ return html`
               <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
               </div>
             </div>

@@ -30,7 +30,7 @@ async function main(opt, cache) {
     await cache_expert.fetch();
     await cache_expert.load();
     await cache_expert.transform();
-    if (opt.fuseki.delete === true && cache_expert._db) {
+    if (opt["fuseki.delete"] === true && cache_expert._db) {
       log.info(`Deleting ${cache_expert._db.db}`);
       await cache_expert._db.drop();
     }

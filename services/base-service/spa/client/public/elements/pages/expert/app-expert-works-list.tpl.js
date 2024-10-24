@@ -86,15 +86,6 @@ return html`
 
     .work-details .dot {
       padding: 0 0.25rem;
-      color: var(--black, #000);
-      font-family: Proxima Nova;
-      font-size: 1.1875rem;
-      font-style: normal;
-      font-weight: 700;
-      line-height: 1.92125rem;
-      text-transform: uppercase;
-      position: relative;
-      bottom: 0.25rem;
     }
 
     .work-item ucdlib-icon {
@@ -147,7 +138,7 @@ return html`
             <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
             <div class="work-details">
               <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
-              <span class="dot">.</span>
+              <span class="dot">•</span>
               ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
             </div>
           </div>

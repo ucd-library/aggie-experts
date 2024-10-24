@@ -13,27 +13,28 @@ class BrowseByModel extends BaseModel {
   }
 
   /**
-   * @method browseExpertsAZ
+   * @method browseAZBy
    * @description search elastic search for available experts
    *
    * @returns {Promise} resolves to experts results per letter (last name)
    */
-  async browseExpertsAZ() {
-    return this.service.browseExpertsAZ();
+  async browseAZBy(type='expert') {
+    return this.service.browseAZBy(type);
   }
 
   /**
-   * @method browseExperts
+   * @method browseBy
    * @description search elastic search for expert
    *
+   * @param {String} type search type, defaults to 'expert'
    * @param {String} lastInitial search letter, last name of expert
    * @param {Number} page page number, defaults to 1
    * @param {Number} size number of results per page, defaults to 25
    *
    * @returns {Promise} resolves to experts results
    */
-  async browseExperts(lastInitial, page=1, size=25) {
-    return this.service.browseExperts(lastInitial, page, size);
+  async browseBy(type='expert', lastInitial, page=1, size=25) {
+    return this.service.browseBy(type, lastInitial, page, size);
   }
 
 }

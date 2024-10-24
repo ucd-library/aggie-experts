@@ -8,40 +8,48 @@ class BrowseByService extends BaseService {
     super();
     this.store = BrowseByStore;
 
-    this.baseUrl = '/api/browse';
+    this.baseUrl = '/api';
   }
 
-  async browseExpertsAZ() {
-    let id = 'browseExperts:az';
-    let ido = { browseExperts : 'az' };
+  async browseAZBy(type) {
+    let url = `${this.baseUrl}/${type}/browse`;
+    type = type.substring(0, 1).toUpperCase() + type.substring(1);
+    let storeKey = 'by'+type+'sAZ';
+
+    let id = 'browse'+type+'s:az';
+    let ido = {};
+    ido['browse'+type+'s'] = 'az';
 
     await this.request({
-      url : this.baseUrl,
-      checkCached : () => this.store.data.byExpertsAZ.get(id),
+      url,
+      checkCached : () => this.store.data[storeKey].get(id),
       onUpdate : resp => this.store.set(
         payloadUtils.generate(ido, resp),
-        this.store.data.byExpertsAZ
+        this.store.data[storeKey]
       )
     });
 
-    return this.store.data.byExpertsAZ.get(id);
+    return this.store.data[storeKey].get(id);
   }
 
-  async browseExperts(lastInitial, page=1, size=25) {
-    let ido = {lastInitial, page, size};
+  async browseBy(type, lastInitial, page=1, size=25) {
+    let ido = {browseType: type, lastInitial, page, size};
     let id = payloadUtils.getKey(ido);
 
+    type = type.substring(0, 1).toUpperCase() + type.substring(1);
+    let storeKey = 'by'+type+'sLastInitial';
+
     await this.request({
-      url : this.baseUrl,
+      url : `${this.baseUrl}/${type}/browse`,
       qs : { page, size, p : lastInitial.toUpperCase() },
-      checkCached : () => this.store.data.byExpertsLastInitial.get(id),
+      checkCached : () => this.store.data[storeKey].get(id),
       onUpdate : resp => this.store.set(
         payloadUtils.generate(ido, resp),
-        this.store.data.byExpertsLastInitial
+        this.store.data[storeKey]
       )
     });
 
-    return this.store.data.byExpertsLastInitial.get(id);
+    return this.store.data[storeKey].get(id);
   }
 
 }

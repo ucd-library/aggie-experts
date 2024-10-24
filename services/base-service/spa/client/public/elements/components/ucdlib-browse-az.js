@@ -11,6 +11,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     return {
         url : { type : String },
         keySort : { type : String },
+        browseType : { type : String },
         selectedLetter : { type : String, attribute : 'selected-letter' },
         noResult : { type : String, attribute : 'no-result' },
         sort : { state : true },
@@ -58,6 +59,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     ];
 
     this.selectedLetter = 'a';
+    this.browseType = '';
     this.sort = this.defaultSort;
 
     this.parseLocation();
@@ -75,8 +77,12 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       this.selectedLetter = e.location.path[2]?.toLowerCase();
     }
 
-    // to get active filters/a-z
-    await this.BrowseByModel.browseExpertsAZ();
+    this.browseType = e.location.path[1];
+    if( this.browseType === 'expert' ) {
+      this._onBrowseExpertsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
+    } else if( this.browseType === 'grant' ) {
+      this._onBrowseGrantsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
+    }
 
     this.requestUpdate();
   }
@@ -85,6 +91,17 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
 
     let az = e.payload || [];
+    this._updateAz(az);
+  }
+
+  _onBrowseGrantsAzUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+
+    let az = e.payload || [];
+    this._updateAz(az);
+  }
+
+  _updateAz(az) {
     az.forEach(item => {
       // disable if no results for letter
       let matchedLetter = this.alpha.find(l => l.value.toUpperCase() === item.params?.p.toUpperCase());
@@ -104,7 +121,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     if( !v || v.value === this.selectedLetter || !v.exists ) return;
 
     this.selectedLetter = v.value;
-    this.AppStateModel.setLocation(`/browse/expert/${this.selectedLetter}`);
+    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}`);
   }
 
 }
