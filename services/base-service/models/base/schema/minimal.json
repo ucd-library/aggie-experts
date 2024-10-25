@@ -14,7 +14,7 @@
     },
     "name" : {
       "type" : "text",
-      "analyzer" : "title_sort",
+      "analyzer" : "title",
       "index_prefixes" : {
         "min_chars" : 1,
         "max_chars" : 7
@@ -22,8 +22,11 @@
       "fields" : {
         "kw" : {
           "type" : "keyword",
-          "normalizer" : "title_prefix_analyzer",
-          "ignore_above" : 256
+          "normalizer" : "title_start"
+        },
+        "first" : {
+          "type" : "keyword",
+          "normalizer" : "starts_with"
         }
       }
     },
@@ -43,6 +46,7 @@
         "is-visible" : { "type" : "boolean" },
         "identifier" : {
           "type" : "keyword",
+
           "normalizer" : "identifier",
           "ignore_above": 128
         },
@@ -185,9 +189,6 @@
         "publisher" : {
           "type" : "text",
           "analyzer" : "default"
-        },
-        "issued" : {
-          "type" : "date"
         },
         "title" : {
           "type" : "text",
