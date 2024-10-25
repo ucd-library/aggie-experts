@@ -154,7 +154,7 @@ return html`
       <a href="/browse/expert">Experts</a>
       <!-- <a href="/subject">Subjects</a> -->
       <!-- <a href="/work">Works</a> -->
-      <!-- <a href="/grant">Grants</a> -->
+      <a href="/browse/grant">Grants</a>
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>
