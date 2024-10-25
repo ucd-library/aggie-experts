@@ -153,7 +153,7 @@ return html`
       </div>
       <hr class="browse-seperator">
 
-      <h3>${this.letter.toUpperCase()}</h3>
+      <h3>${this.letter === '1' ? '#' : this.letter.toUpperCase()}</h3>
 
       ${this.displayedResults.map(
         (result) => html`

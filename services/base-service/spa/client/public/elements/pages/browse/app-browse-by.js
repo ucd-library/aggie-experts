@@ -63,7 +63,6 @@ export default class AppBrowseBy extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'browse' ) return;
 
-    // TODO test pagination direct nav to like page 2, and different sizes
     this.browseType = e.location.path[1];
     this.letter = e.location.path[2];
 
