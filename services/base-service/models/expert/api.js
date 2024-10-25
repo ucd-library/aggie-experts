@@ -62,7 +62,7 @@ router.route(
     });
 
     if (params.p) {
-      if (parms.p === 'other') {
+      if (params.p === 'other') {
         params.p = '1';
       } else if (params.p.match(/^[a-zA-Z]$/)) {
         params.p = params.p.substring(0,1);
