@@ -95,15 +95,6 @@ return html`
 
     .grant-details .dot {
       padding: 0 0.25rem;
-      color: var(--black, #000);
-      font-family: Proxima Nova;
-      font-size: 1.1875rem;
-      font-style: normal;
-      font-weight: 700;
-      line-height: 1.92125rem;
-      text-transform: uppercase;
-      position: relative;
-      bottom: 0.25rem;
     }
 
     ucd-theme-pagination {
@@ -320,16 +311,8 @@ return html`
               <div style="display: flex; justify-content: space-between; margin: ${index === 0 ? '0' : '1.19rem'} 0 ${index+1 === this.grantsWithErrors.length ? '0' : '1.19rem'};">
                 <div class="grant">
                   <h5 data-id=${grant['@id']}>${grant.dateTimeInterval?.end?.dateTime?.split('-')?.[0]}
-                    <span style="padding: 0 0.25rem;
-                      color: black;
-                      font-size: 1.1875rem;
-                      font-style: normal;
-                      font-weight: 700;
-                      line-height: 1.92125rem;
-                      text-transform: uppercase;
-                      position: relative;
-                      bottom: 0.25rem;"
-                    class="dot">.</span> ${grant.name}</h5>
+                    <span style="padding: 0 0.25rem;"
+                    class="dot">•</span> ${grant.name}</h5>
                   <p style="margin-bottom: 0;">Error: Cannot format grant. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>
                 </div>
               </div>
@@ -369,9 +352,9 @@ return html`
               <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
@@ -401,9 +384,9 @@ return html`
               <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
