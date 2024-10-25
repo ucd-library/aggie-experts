@@ -36,6 +36,14 @@ router.route(
     });
 
     if (params.p) {
+      if (parms.p === 'other') {
+        params.p = '1';
+      } else if (params.p.match(/^[a-zA-Z]$/)) {
+        params.p = params.p.substring(0,1);
+      } else {
+        params.p = '1';
+      }
+
       const opts = {
         index: "grant-read",
         id: "name",
@@ -53,7 +61,7 @@ router.route(
       try {
         await model.verify_template(template);
         const search_templates=[];
-        ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O",
+        ["1","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O",
          "P","Q","R","S","T","U","V","W","X","Y","Z"].forEach((letter) => {
            search_templates.push({});
            search_templates.push({id:"name",params:{p:letter,size:0}});

@@ -56,10 +56,25 @@
         "pattern": "^(The|A|An)\\s+",
         "replacement": ""
       },
+      "leading_space_filter": {
+        "type": "pattern_replace",
+        "pattern": "^\\s+",
+        "replacement": ""
+      },
+      "truncate_filter": {
+        "type": "pattern_replace",
+        "pattern": "^(.{1,128}).*",
+        "replacement": "$1"
+      },
+      "first_letter_filter": {
+        "type": "pattern_replace",
+        "pattern": "^(.).*",
+        "replacement": "$1"
+      },
       "non_letter_filter": {
         "type": "pattern_replace",
-        "pattern": "^(?i)([^a-z])",
-        "replacement": "#$1"
+        "pattern": "^(?s)(?i)([^a-z])",
+        "replacement": "other"
       }
     },
     "filter": {
@@ -101,11 +116,25 @@
           "asciifolding"
         ]
       },
-      "title_prefix_analyzer": {
+      "starts_with": {
         "type": "custom",
         "char_filter": [
+          "leading_space_filter",
           "article_filter",
+          "first_letter_filter",
           "non_letter_filter"
+        ],
+        "filter": [
+          "lowercase",
+          "asciifolding"
+        ]
+      },
+      "title_start": {
+        "type": "custom",
+        "char_filter": [
+          "leading_space_filter",
+          "article_filter",
+          "truncate_filter"
         ],
         "filter": [
           "lowercase",
@@ -118,7 +147,7 @@
         "type": "custom",
         "tokenizer": "uax_url_email",
         "char_filter": [
-          "text_mapper","doi_to_url","orcid_to_url",
+          "leading_space_filter","text_mapper","doi_to_url","orcid_to_url",
           "mailto_to_email","ark_to_n2t","urn_to_n2t",
           "article_filter"
         ],
@@ -129,13 +158,12 @@
           "asciifolding"
         ]
       },
-      "title_sort": {
+      "title": {
         "type": "custom",
         "tokenizer": "uax_url_email",
         "char_filter": [
-          "text_mapper","doi_to_url","orcid_to_url",
-          "mailto_to_email","ark_to_n2t","urn_to_n2t",
-          "article_filter"
+          "leading_space_filter","text_mapper","doi_to_url","orcid_to_url",
+          "mailto_to_email","ark_to_n2t","urn_to_n2t"
         ],
         "filter": [
           "email_to_mailto","xxx_to_doi","xxx_to_orcid", "n2t_to_id",

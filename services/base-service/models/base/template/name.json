@@ -7,8 +7,8 @@
         "bool": {
           "must": [
             {
-              "prefix": {
-                "name.kw": "{{p}}"
+              "term": {
+                "name.first": "{{p}}"
               }
             }
           ],
