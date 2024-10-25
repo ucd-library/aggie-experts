@@ -30,6 +30,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     this.render = render.bind(this);
 
     this.alpha = [
+        {display: '#', value: '1', exists: true},
         {display: 'A', value: 'a', exists: true},
         {display: 'B', value: 'b', exists: true},
         {display: 'C', value: 'c', exists: true},
@@ -58,11 +59,11 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
         {display: 'Z', value: 'z', exists: true}
     ];
 
-    this.selectedLetter = 'a';
+    this.selectedLetter = '';
     this.browseType = '';
     this.sort = this.defaultSort;
 
-    this.parseLocation();
+    // this.parseLocation();
   }
 
   async firstUpdated() {
@@ -71,8 +72,8 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
 
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'browse' ) return;
-    if( e.location.path.length < 2 ) {
-      this.selectedLetter = 'a';
+    if( e.location.path.length < 3 ) {
+      this.selectedLetter = '';
     } else {
       this.selectedLetter = e.location.path[2]?.toLowerCase();
     }
@@ -107,15 +108,24 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       let matchedLetter = this.alpha.find(l => l.value.toUpperCase() === item.params?.p.toUpperCase());
       if( matchedLetter ) matchedLetter.exists = item.total > 0;
     });
+
+    // set letter to first letter with results
+    if( this.alpha.find(l => l.exists) && !this.selectedLetter ) {
+      this.selectedLetter = this.alpha.find(l => l.exists).value;
+    } else if( !this.selectedLetter ) {
+      this.selectedLetter = this.alpha[0]?.value;
+    }
+
+    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}`);
     this.requestUpdate();
   }
 
-  parseLocation() {
-    let selectedLetter = this.AppStateModel.location.pathname.split('/browse/expert/')?.[1];
-    if( !selectedLetter ) return;
+  // parseLocation() {
+  //   let selectedLetter = this.AppStateModel.location.pathname.split('/browse/expert/')?.[1];
+  //   if( !selectedLetter ) return;
 
-    this.onAlphaInput({ value : selectedLetter });
-  }
+  //   this.onAlphaInput({ value : selectedLetter });
+  // }
 
   onAlphaInput(v) {
     if( !v || v.value === this.selectedLetter || !v.exists ) return;

@@ -151,10 +151,10 @@ return html`
     prevent-fixed>
 
     <ucd-theme-primary-nav>
-      <a href="/browse/expert/a">Experts</a>
+      <a href="/browse/expert">Experts</a>
       <!-- <a href="/subject">Subjects</a> -->
       <!-- <a href="/work">Works</a> -->
-      <a href="/browse/grant/a">Grants</a>
+      <a href="/browse/grant">Grants</a>
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>

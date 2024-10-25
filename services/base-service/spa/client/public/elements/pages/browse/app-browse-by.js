@@ -132,8 +132,6 @@ export default class AppBrowseBy extends Mixin(LitElement)
       return;
     }
 
-    // TODO fix this once we have subtext with middle dots, might need to parse out subtext, styling will be off
-
     // parse hits
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let id = r['@id'];
