@@ -106,6 +106,26 @@ template = {
           {{/q}}
         }
       },
+      "aggs": {
+        "type": {
+          "terms": {
+            "field": "@type",
+            "size": 20
+          }
+        },
+        "availability": {
+          "terms": {
+            "field": "hasAvailability",
+            "size": 10
+          }
+        },
+        "status": {
+          "terms": {
+            "field": "status",
+            "size": 10
+          }
+        }
+      },
       "_source": [
         "@id",
         "@type",

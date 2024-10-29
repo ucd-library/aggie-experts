@@ -283,6 +283,15 @@ class BaseModel extends FinEsDataModel {
       hits.push(source);
     }
     compact.hits = hits;
+    const aggregations = {};
+    for (const key in results.aggregations) {
+      aggregations[key] = {}
+      const buckets = results.aggregations[key].buckets;
+      for (const bucket of buckets) {
+        aggregations[key][bucket.key] = bucket.doc_count;
+      }
+    }
+    compact.aggregations = aggregations;
     return compact;
   }
   /**
