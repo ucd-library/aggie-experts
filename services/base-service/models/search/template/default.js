@@ -138,7 +138,9 @@ template = {
         "DOI"
       ],
       "sort": [
-        "_score"
+        "_score",
+        "@type",
+        "name.kw"
       ],
       "from": "{{from}}{{^from}}0{{/from}}",
       "size": "{{size}}{{^size}}10{{/size}}"
