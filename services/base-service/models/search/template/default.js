@@ -28,10 +28,23 @@ template = {
                   }
                 }
                 {{/hasAvailability}}
+                {{#status}}
+                ,{
+                  "bool": {
+                    "must": [
+                      { "exists": { "field": "status" }},
+                      { "terms": {
+                        "status": [{{#status}}"{{.}}",{{/status}}"none"]
+                       }}
+                    ]
+                  }
+                }
+                {{/status}}
               ]
             }
-          },
-          "must":{
+          }
+          {{#q}}
+          ,"must":{
             "nested": {
               "path": "@graph",
               "query": {
@@ -90,6 +103,7 @@ template = {
               "score_mode": "sum"
             }
           }
+          {{/q}}
         }
       },
       "_source": [

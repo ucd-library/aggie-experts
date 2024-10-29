@@ -294,6 +294,21 @@ const openapi = OpenAPI(
             type: "integer"
           }
         },
+        status: {
+          in: "query",
+          name: "status",
+          description: "Comma-separated search filter on grant status",
+          required: false,
+          schema: {
+            type: "arary",
+            items: {
+              type: "string",
+              enum: ["completed", "active"]
+            }
+          },
+          style: "simple",
+          explode: false
+        },
         hasAvailability: {
           in: "query",
           name: "hasAvailability",

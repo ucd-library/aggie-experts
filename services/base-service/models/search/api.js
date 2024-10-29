@@ -45,7 +45,7 @@ router.get(
   search_valid_path(
     {
       description: "Returns matching search results for experts, including the number of matching works and grants",
-      parameters: ['p', 'page', 'size', 'type','hasAvailability'],
+      parameters: ['p', 'page', 'size', 'type','status','hasAvailability'],
       responses: {
         "200": openapi.response('Search'),
         "400": openapi.response('Invalid_request')
@@ -65,6 +65,10 @@ router.get(
     if (req?.query.hasAvailability) {
       console.log('hasAvailability', req.query.hasAvailability);
       params.hasAvailability = req.query.hasAvailability.split(',');
+    }
+    if (req?.query.status) {
+      console.log('status', req.query.status);
+      params.status = req.query.status.split(',');
     }
     if (req?.query.type) {
       params.type = req.query.type.split(',');

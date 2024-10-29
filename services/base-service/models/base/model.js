@@ -187,7 +187,7 @@ class BaseModel extends FinEsDataModel {
       name: node['name'],
       "@graph": [node]
     };
-    ["@type","is-visible","updated","identifier"].forEach(key => {
+    ["@type","status","is-visible","updated","identifier"].forEach(key => {
       if (node[key]) doc[key] = node[key];
     });
     return doc;
