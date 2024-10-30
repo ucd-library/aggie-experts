@@ -337,7 +337,7 @@ class BaseModel extends FinEsDataModel {
   async msearch(opts) {
 
     if (! opts.index) {
-      opts.index = "expert-read";
+      opts.index = this.readIndexAlias;
     }
 
     // Fix-up parms

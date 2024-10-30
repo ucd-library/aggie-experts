@@ -2,6 +2,7 @@ const OpenAPI = require('@wesleytodd/openapi')
 const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
+const template = require('./base/template/name.json');
 
 let AdminClient=null;
 
@@ -38,6 +39,8 @@ async function fetchExpertId (req, res, next) {
     return res.status(404).send({error: `No expert found`});
   }
 }
+
+
 
 async function convertIds(req, res, next) {
   const id_array = req.params.ids.replace('ids=', '').split(',');
@@ -848,6 +851,7 @@ openapi.response(
 
 // export this middleware functions
 module.exports = {
+//  browse_endpoint,
   convertIds,
   fetchExpertId,
   has_access,
