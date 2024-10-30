@@ -27,6 +27,7 @@ program
   .option('-h, --host <host>', 'SFTP server hostname', 'ftp.use.symplectic.org')
   .option('-u, --username <username>', 'SFTP username', 'ucdavis')
   .option('-sp, --secretpath <secretpath>', 'Secret Manager secret path', 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password')
+  .option('-ssp, --slacksecretpath <slacksecretpath>', 'Secret Manager Slack secret path', 'projects/325574696734/secrets/ae-grant-slack-webhook-url')
   .option('-do, --offset <offset>', 'Offset(days) to the most recent directory', 0)
   .option('-ln, --logName <logName>', 'Log name to retreive', 'UCDavis_Grants_Feed_logs')
   .option_log()
@@ -56,8 +57,6 @@ const ftpConfig = {
 };
 
 const sftp = new Client();
-
-const slackWebhookUrl = '';
 
 async function postToSlack(message) {
   try {
@@ -117,8 +116,8 @@ async function downloadFilesFromMostRecentDirectory(remoteFolderPath, localFolde
           // Read the file and send it via email
           const fileContent = fs.readFileSync(localFilePath, 'utf8');
           // Post to the Slack webhook URL
-          // log.info('Posting to Slack');
-          // postToSlack(fileContent);
+          log.info('Posting to Slack');
+          postToSlack(fileContent);
         }
       }
     }
@@ -154,5 +153,6 @@ const remoteFolderPath = '/PROD/Logs/' + opt.logName; // UCDavis_Grants_Feed_log
 const localFolderPath = opt.output + '/' + opt.prefix + opt.logName;
 
 ftpConfig.password = await gs.getSecret(opt.secretpath);
+const slackWebhookUrl = await gs.getSecret(opt.slacksecretpath);
 
 downloadFilesFromMostRecentDirectory(remoteFolderPath, localFolderPath, opt.offset);
