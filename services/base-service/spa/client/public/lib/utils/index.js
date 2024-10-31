@@ -386,11 +386,15 @@ class Utils {
    * @param {Array} hasAvailability array of availability filters
    * @param {String} type type of search, ie 'grant', 'expert'. if none set, returns all results
    */
-  buildSearchQuery(searchTerm, page=1, size=25, hasAvailability=[], type) {
+  buildSearchQuery(searchTerm, page=1, size=25, hasAvailability=[], type, status) {
     // `q=${searchTerm}&page=${page}&size=${size}&hasAvailability=${encodeURIComponent(hasAvailability)}&type=grant`;
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
-    if( hasAvailability.length ) searchQuery += `&hasAvailability=${encodeURIComponent(hasAvailability)}`;
+
+    // TODO might change, 'All Results' should include hasAvailability but also return grant data
+    // for now we'll only set hasAvailability for expert search
+    if( type === 'expert' && hasAvailability.length ) searchQuery += `&hasAvailability=${encodeURIComponent(hasAvailability)}`;
     if( type ) searchQuery += `&type=${type}`;
+    if( status ) searchQuery += `&status=${status}`;
 
     return searchQuery;
   }
