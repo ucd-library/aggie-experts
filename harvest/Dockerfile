@@ -112,11 +112,8 @@ COPY experts-client ${AE_CLIENT}
 #RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && yarn global add simple-copy typescript  && yarn link @ucd-lib/experts-api && yarn install
 RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && npm link @ucd-lib/experts-api && npm install -g
 
-# Setup a place to hold the Makefile data
-RUN mkdir /usr/local/lib/harvest
-COPY harvest /usr/local/lib/harvest
-
 # Add startup file
+COPY /startup.mk /
 COPY /harvest-entrypoint.sh /
 
 # Add sqlcl and tarql to bin

@@ -11,7 +11,8 @@ class AppBrowse extends Mixin(LitElement)
 
   static get properties() {
     return {
-      page : {type: String},
+      browseType : {type: String},
+      letter : {type: String},
     };
   }
 
@@ -20,7 +21,8 @@ class AppBrowse extends Mixin(LitElement)
     this.render = render.bind(this);
     this.active = true;
 
-    this.page = '';
+    this.browseType = '';
+    this.letter = '';
 
     this._injectModel('AppStateModel');
   }
@@ -30,7 +32,10 @@ class AppBrowse extends Mixin(LitElement)
   }
 
   _onAppStateUpdate(e) {
-    this.page = '/' + e.location.path[0] + '/' + e.location.path[1];
+    if( e.location.page !== 'browse' ) return;
+
+    this.browseType = e.location.path[1];
+    this.letter = e.location.path[2];
   }
 
 }

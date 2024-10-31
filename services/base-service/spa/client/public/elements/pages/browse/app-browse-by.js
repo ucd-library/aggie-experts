@@ -13,7 +13,8 @@ export default class AppBrowseBy extends Mixin(LitElement)
 
   static get properties() {
     return {
-      id : { type : String },
+      browseType : { type : String, attribute : 'browse-type' },
+      letter : { type : String },
       displayedResults : { type : Array },
       resultsPerPage  : { type : Number },
       currentPage : { type : Number },
@@ -26,7 +27,8 @@ export default class AppBrowseBy extends Mixin(LitElement)
     super();
     this.render = render.bind(this);
 
-    this.id = '';
+    this.browseType = '';
+    this.letter = '';
     this.displayedResults = [];
     this.resultsPerPage = 25;
     this.currentPage = 1;
@@ -60,19 +62,24 @@ export default class AppBrowseBy extends Mixin(LitElement)
    */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'browse' ) return;
-    if( e.location.path.length < 3 ) {
-      this.AppStateModel.setLocation('/browse/expert/a');
-      return;
-    }
 
-    this.id = e.location.path[2];
+    this.browseType = e.location.path[1];
+    this.letter = e.location.path[2];
+
+    this.displayedResults = [];
+
     let page = e.location.path[3];
     let resultsPerPage = e.location.path[4];
 
-    if( this.id ) {
+    if( this.letter ) {
       this.currentPage = parseInt(page) ? page : 1;
       this.resultsPerPage = parseInt(resultsPerPage) ? resultsPerPage : 25;
-      this._onBrowseExpertsUpdate(await this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage));
+
+      if( this.browseType === 'expert' ) {
+        this._onBrowseExpertsUpdate(await this.BrowseByModel.browseBy('expert', this.letter, this.currentPage, this.resultsPerPage));
+      } else if( this.browseType === 'grant' ) {
+        this._onBrowseGrantsUpdate(await this.BrowseByModel.browseBy('grant', this.letter, this.currentPage, this.resultsPerPage));
+      }
     }
   }
 
@@ -111,6 +118,39 @@ export default class AppBrowseBy extends Mixin(LitElement)
   }
 
   /**
+   * @method _onBrowseGrantsUpdate
+   * @description bound to BrowseByModel browse-grants-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
+  _onBrowseGrantsUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+    if( !e.payload?.hits?.length ) {
+      this.displayedResults = [];
+      return;
+    }
+
+    // parse hits
+    this.displayedResults = (e.payload?.hits || []).map((r, index) => {
+      let id = r['@id'];
+      if( Array.isArray(r.name) ) r.name = r.name[0];
+      let name = r.name?.split('§')?.shift()?.trim();
+      let subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+
+      return {
+        position: index+1,
+        id: 'grant/'+id,
+        name,
+        subtitle
+      }
+    });
+
+    this.totalResultsCount = e.payload.total;
+    this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
+  }
+
+  /**
    * @method _onPaginationChange
    * @description bound to click events of the pagination element
    *
@@ -119,9 +159,10 @@ export default class AppBrowseBy extends Mixin(LitElement)
   _onPaginationChange(e) {
     this.currentPage = e.detail.page;
 
-    let path = '/browse/expert/' + this.id;
+    let path = `/browse/${this.browseType}/${this.letter}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
     if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
+
     this.AppStateModel.setLocation(path);
 
     window.scrollTo(0, 0);

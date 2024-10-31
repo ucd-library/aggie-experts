@@ -92,15 +92,6 @@ return html`
 
     .grant-details .dot {
       padding: 0 0.25rem;
-      color: var(--black, #000);
-      font-family: Proxima Nova;
-      font-size: 1.1875rem;
-      font-style: normal;
-      font-weight: 700;
-      line-height: 1.92125rem;
-      text-transform: uppercase;
-      position: relative;
-      bottom: 0.25rem;
     }
 
     .grant-item ucdlib-icon {
@@ -157,9 +148,9 @@ return html`
             <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
             <div class="grant-details">
               <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
-              <span class="dot">.</span>
+              <span class="dot">•</span>
               <span style="min-width: fit-content;">${grant.role}</span>
-              <span class="dot">.</span>
+              <span class="dot">•</span>
               <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
             </div>
           </div>
@@ -177,9 +168,9 @@ return html`
             <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
             <div class="grant-details">
               <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
-              <span class="dot">.</span>
+              <span class="dot">•</span>
               <span style="min-width: fit-content;">${grant.role}</span>
-              <span class="dot">.</span>
+              <span class="dot">•</span>
               <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
             </div>
           </div>

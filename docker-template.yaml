@@ -45,12 +45,11 @@ services:
     ports:
       - ${FUSEKI_PORT}:3030
     environment:
-      - JVM_ARGS=${JVM_ARGS:- -Xmx16g -Djena.scripting=true}
+      - JVM_ARGS=${JVM_ARGS:- -Xmx16g -Djena:scripting=true}
       - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
     restart: unless-stopped
-    command:
-      HDT=import server
-    # command: bash -c 'tail -f /dev/null'
+    command: server
+    # command: noop
 
 
   ###
