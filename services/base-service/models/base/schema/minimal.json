@@ -30,6 +30,9 @@
         }
       }
     },
+    "lastmodified": {
+      "type": "date"
+    },
     "@graph": {
       "type": "nested",
       "properties" : {

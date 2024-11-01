@@ -1,0 +1,11 @@
+{
+  "description": "Adds a lastmodified to documents",
+  "processors": [
+    {
+      "set": {
+        "field": "lastmodified",
+        "value": "{{_ingest.timestamp}}"
+      }
+    }
+  ]
+}
