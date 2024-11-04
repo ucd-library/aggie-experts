@@ -327,15 +327,15 @@ return html`
       <category-filter-controller
         @filter-change="${this._onFilterChange}"
         @subfilter-change="${this._onSubFilterChange}"
-        .filters="${this.filters}">
+        .searchTerm="${this.searchTerm}">
       </category-filter-controller>
 
-      <hr class="search-seperator">
+      <hr class="search-seperator" ?hidden="${!this.showOpenTo}">
 
-      <div class="open-to-heading">
+      <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
         <h4>Experts Open To</h4>
       </div>
-      <div class="open-to">
+      <div class="open-to" ?hidden="${!this.showOpenTo}">
         <label>
           <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
           Collaborative Projects
