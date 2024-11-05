@@ -1,5 +1,5 @@
 template = {
-  id: "default",
+  id: "q",
   script: {
     "lang": "mustache",
     "source": `{
@@ -16,30 +16,6 @@ template = {
                     ]
                   }
                 }
-                {{#hasAvailability}}
-                ,{
-                  "bool": {
-                    "must": [
-                      { "exists": { "field": "hasAvailability" }},
-                      { "terms": {
-                        "hasAvailability": [{{#hasAvailability}}"{{.}}",{{/hasAvailability}}"none"]
-                       }}
-                    ]
-                  }
-                }
-                {{/hasAvailability}}
-                {{#status}}
-                ,{
-                  "bool": {
-                    "must": [
-                      { "exists": { "field": "status" }},
-                      { "terms": {
-                        "status": [{{#status}}"{{.}}",{{/status}}"none"]
-                       }}
-                    ]
-                  }
-                }
-                {{/status}}
               ]
             }
           }
@@ -93,13 +69,6 @@ template = {
                   ]
                 }
               },
-              "inner_hits": {
-                "size": "{{inner_hits_size}}{{^inner_hits_size}}50{{/inner_hits_size}}",
-                "_source": [
-                  "@graph.@type",
-                  "@graph.name"
-                ]
-              },
               "score_mode": "sum"
             }
           }
@@ -112,38 +81,9 @@ template = {
             "field": "@type",
             "size": 20
           }
-        },
-        "availability": {
-          "terms": {
-            "field": "hasAvailability",
-            "size": 10
-          }
-        },
-        "status": {
-          "terms": {
-            "field": "status",
-            "size": 10
-          }
         }
       },
-      "_source": [
-        "@id",
-        "@type",
-        "name",
-        "contactInfo",
-        "title",
-        "issued",
-        "container-title",
-        "type",
-        "DOI"
-      ],
-      "sort": [
-        "_score",
-        "@type",
-        "name.kw"
-      ],
-      "from": "{{from}}{{^from}}0{{/from}}",
-      "size": "{{size}}{{^size}}10{{/size}}"
+      "size": 0
     },
     "params": {
       "q": "My query string"

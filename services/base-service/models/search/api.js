@@ -3,7 +3,8 @@ const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const utils = require('../utils.js')
-const template = require('./template/default.js');
+const template = require('./template/complete.js');
+const q_template = require('./template/q.js');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
@@ -38,6 +39,46 @@ function search_valid_path_error(err, req, res, next) {
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
 router.use(openapi);
+
+router.get(
+  '/types',
+  is_user,
+  search_valid_path(
+    {
+      description: "Returns aggregated search results on query alone",
+      parameters: ['q'],
+      responses: {
+        "200": openapi.response('Search'),
+        "400": openapi.response('Invalid_request')
+      }
+    }
+  ),
+  search_valid_path_error,
+  async (req, res) => {
+    const params = {
+      index: [
+        experts.readIndexAlias,
+        grants.readIndexAlias
+      ]
+    };
+    ["q"].forEach((key) => {
+      if (req.query[key]) { params[key] = req.query[key]; }
+    });
+
+    opts = {
+      id: q_template.id,
+      params
+    };
+    try {
+      await experts.verify_template(q_template);
+      const find = await base.search(opts);
+      delete(find.params);
+      delete(find.hits);
+      res.send(find);
+    } catch (err) {
+      res.status(400).send('Invalid request');
+    }
+  });
 
 router.get(
   '/',

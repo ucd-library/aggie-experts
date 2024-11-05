@@ -288,6 +288,15 @@ const openapi = OpenAPI(
             type: "integer"
           }
         },
+        q: {
+          in: "query",
+          name: "q",
+          description: "Text query to search for",
+          required: false,
+          schema: {
+            type: "string"
+          }
+        },
         size: {
           in: "query",
           name: "size",
