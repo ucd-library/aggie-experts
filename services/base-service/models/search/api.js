@@ -3,8 +3,8 @@ const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const utils = require('../utils.js')
-const template = require('./template/complete.js');
-const q_template = require('./template/q.js');
+const complete = require('./template/complete.js');
+const query_only = require('./template/query_only.js');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
@@ -36,6 +36,27 @@ function search_valid_path_error(err, req, res, next) {
   })
 }
 
+async function query_only_search(req) {
+  const params = {
+    index: [
+      experts.readIndexAlias,
+      grants.readIndexAlias
+    ]
+  };
+  ["q"].forEach((key) => {
+      if (req.query[key]) { params[key] = req.query[key]; }
+    });
+  const opts = {
+    id: query_only.id,
+    params
+  };
+  await experts.verify_template(query_only);
+  const find = await base.search(opts);
+  delete(find.params);
+  delete(find.hits);
+  return find;
+}
+
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
 router.use(openapi);
@@ -55,30 +76,14 @@ router.get(
   ),
   search_valid_path_error,
   async (req, res) => {
-    const params = {
-      index: [
-        experts.readIndexAlias,
-        grants.readIndexAlias
-      ]
-    };
-    ["q"].forEach((key) => {
-      if (req.query[key]) { params[key] = req.query[key]; }
-    });
-
-    opts = {
-      id: q_template.id,
-      params
-    };
     try {
-      await experts.verify_template(q_template);
-      const find = await base.search(opts);
-      delete(find.params);
-      delete(find.hits);
-      res.send(find);
+      const q_aggs=await query_only_search(req)
+      res.send(q_aggs);
     } catch (err) {
       res.status(400).send('Invalid request');
     }
-  });
+  }
+);
 
 router.get(
   '/',
@@ -128,12 +133,15 @@ router.get(
       }
     });
     opts = {
-      id: template.id,
+      id: complete.id,
       params
     };
     try {
-      await experts.verify_template(template);
+      await experts.verify_template(complete);
+      const q_aggs=await query_only_search(req)
       const find = await base.search(opts);
+      // add query_only_types as aggregations
+      find.aggregations.query_only_types=q_aggs.aggregations.type;
       res.send(find);
     } catch (err) {
       res.status(400).send('Invalid request');
