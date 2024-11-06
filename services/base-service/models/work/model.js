@@ -1,5 +1,5 @@
 // Can use this to get the fin configuration
-const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-utils');
+const {logger } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 
 /**
@@ -31,6 +31,7 @@ class WorkModel extends BaseModel {
    **/
   promote_node_to_doc(node) {
     const doc = super.promote_node_to_doc(node);
+
     // quick hack to get the title
     doc.name = node.title;
 
@@ -48,52 +49,73 @@ class WorkModel extends BaseModel {
   /**
    * @method update
    * @description Update Elasticsearch with the given data.
+
+     The current method matches the grants, version expecting authorships to be
+     in the work itself and not as a seperate node
    */
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
-    const doc = this.promote_node_to_doc(root_node);
-    logger.info(`${this.constructor.name}.update(${doc['@id']})`);
 
-    const authorshipModel=await this.get_model('authorship');
-    const expertModel=await this.get_model('expert');
-    // Update all Authors with this work as well
-    let authorship = authorshipModel.get_expected_model_node(transformed);
+    const relatedBy = {};
 
-    let relates=authorship.relates.filter(x => x !== doc['@id']);
-
-    if (relates.length != 1) {
-      // console.log("ERROR: doc['@id']="+doc['@id']+" relates="+JSON.stringify(relates));
-      throw new Error(`Expected 1 relates, got ${relates.length}`);
+    // combine relatedBy (ordered)
+    function addRelatedBy(node) {
+      if (node.relatedBy) {
+        Array.isArray(node.relatedBy) || (node.relatedBy = [node.relatedBy]);
+        node.relatedBy.forEach((rel) => {
+          relatedBy[rel['@id']] = rel;
+          });
+      }
     }
-    const expert_id=relates[0];
-    let expert=await expertModel.client_get(expert_id);
-    expert=expertModel.get_expected_model_node(expert);
-    const author = {
-      ...expertModel.snippet(expert),
-      ...authorshipModel.snippet(authorship),
-      '@type': 'Author'
-    };
-    delete author.relates;
-    delete author['@id'];
-    // Author(expert) is added/delete to Work
-    await this.update_or_create_main_node_doc(doc);
-    await this.update_graph_node(doc['@id'],author);
 
-    // Now determine visibility of the work itself
     try {
-      let work=await this.client_get(doc['@id']);
-      const work_node=this.get_expected_model_node(work);
-      work_node["is-visible"]=false;
-      const authors=this.get_nodes_by_type(work,'Author');
-      for (let i=0; i<authors.length; i++) {
-        if (authors[i]['is-visible']) {
-          work_node["is-visible"]=true;
-          break;
+      let existing = await this.client_get(root_node['@id']);
+      existing = this.get_expected_model_node(existing);
+      addRelatedBy(existing);
+    } catch(e) {
+      //logger.info(`WorkModel.update: ${root_node['@id']} not found`);
+    }
+    addRelatedBy(root_node);
+
+    // foreach relatedBy, fetch the expert
+    const expertModel=await this.get_model('expert');
+    const experts=[];
+    for (var rel in relatedBy) {
+      let authorship = relatedBy[rel];
+      if (authorship["is-visible"]==true) {
+        for(let i=0; i<authorship.relates.length; i++) {
+          let related=authorship.relates[i];
+          if (related.match(/^expert/)) {
+            let expert=await expertModel.client_get(related);
+            expert=expertModel.get_expected_model_node(expert);
+            experts.push(expert);
+          }
         }
       }
-    } catch (e) {
-      logger.info(`${doc["@id"]} visibility error`);
-     }
+    }
+    const doc = this.promote_node_to_doc(root_node);
+    // If there are any experts, then the work is visible
+    if (experts.length) {
+      root_node["is-visible"]=true;
+      doc["is-visible"]=true;
+    }
+    await this.update_or_create_main_node_doc(doc);
+    const work_snippet = this.snippet(root_node);
+    for (var i in experts) {
+      let expert = experts[i];
+      try {
+        await this.update_graph_node(doc['@id'], expertModel.snippet(expert));
+        logger.info(`Work.update() ${doc['@id']} <== ${expert['@id']}`);
+      } catch(e) {
+        logger.info(`Work.update() ${doc['@id']} <XX ${expert['@id']}`);
+      }
+      try {
+        expertModel.update_graph_node(expert['@id'], work_snippet);
+        logger.info(`Work.update() ${doc['@id']} ==> ${expert['@id']}`);
+      } catch(e) {
+        logger.info(`Work.update() ${doc['@id']} XX> ${expert['@id']}`);
+      }
+    }
   }
 }
 module.exports = WorkModel;

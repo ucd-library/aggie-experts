@@ -12,8 +12,9 @@ const config = require('../config');
 class AuthorshipModel extends BaseModel {
 
   static transformed_types = [ 'Authorship' ];
+  // no updates!
   static types = [
-    "http://vivoweb.org/ontology/core#Authorship"
+  //    "http://vivoweb.org/ontology/core#Authorship"
   ];
 
   constructor(name='authorship') {
@@ -122,7 +123,8 @@ class AuthorshipModel extends BaseModel {
    * @description Update Elasticsearch with the given data.
    */
 
-  async update(transformed) {
+
+  async updateX(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
     await this.update_or_create_main_node_doc(doc);
