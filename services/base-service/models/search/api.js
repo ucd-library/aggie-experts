@@ -4,7 +4,6 @@ const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const utils = require('../utils.js')
 const complete = require('./template/complete.js');
-const query_only = require('./template/query_only.js');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
@@ -36,54 +35,9 @@ function search_valid_path_error(err, req, res, next) {
   })
 }
 
-async function query_only_search(req) {
-  const params = {
-    index: [
-      experts.readIndexAlias,
-      grants.readIndexAlias
-    ]
-  };
-  ["q"].forEach((key) => {
-      if (req.query[key]) { params[key] = req.query[key]; }
-    });
-  const opts = {
-    id: query_only.id,
-    params
-  };
-  await experts.verify_template(query_only);
-  const find = await base.search(opts);
-  delete(find.params);
-  delete(find.hits);
-  return find;
-}
-
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
 router.use(openapi);
-
-router.get(
-  '/types',
-  is_user,
-  search_valid_path(
-    {
-      description: "Returns aggregated search results on query alone",
-      parameters: ['q'],
-      responses: {
-        "200": openapi.response('Search'),
-        "400": openapi.response('Invalid_request')
-      }
-    }
-  ),
-  search_valid_path_error,
-  async (req, res) => {
-    try {
-      const q_aggs=await query_only_search(req)
-      res.send(q_aggs);
-    } catch (err) {
-      res.status(400).send('Invalid request');
-    }
-  }
-);
 
 router.get(
   '/',
@@ -138,10 +92,15 @@ router.get(
     };
     try {
       await experts.verify_template(complete);
-      const q_aggs=await query_only_search(req)
+      const global = await base.search(
+        { id: complete.id,
+          params: {
+            q: req.query.q,
+            size: 0,
+            index: [experts.readIndexAlias, grants.readIndexAlias] }
+        });
       const find = await base.search(opts);
-      // add query_only_types as aggregations
-      find.aggregations.query_only_types=q_aggs.aggregations.type;
+      find.global_aggregations = global.aggregations;
       res.send(find);
     } catch (err) {
       res.status(400).send('Invalid request');

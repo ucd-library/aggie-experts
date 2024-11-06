@@ -15,19 +15,40 @@ template = {
                       { "term" : {"is-visible": true } }
                     ]
                   }
-                }
-                {{#hasAvailability}}
-                ,{
+                },
+                {
                   "bool": {
-                    "must": [
-                      { "exists": { "field": "hasAvailability" }},
-                      { "terms": {
-                        "hasAvailability": [{{#hasAvailability}}"{{.}}",{{/hasAvailability}}"none"]
-                       }}
-                    ]
+                    "should": [
+                      {
+                        "bool": {
+                          "must": [
+                            { "term": { "@type": "Expert" }}
+                            {{#hasAvailability}}
+                            ,{
+                              "bool": {
+                                "must": [
+                                  { "exists": { "field": "hasAvailability" }},
+                                  { "terms": {
+                                    "hasAvailability": [{{#hasAvailability}}"{{.}}"{{/hasAvailability}}]
+                                  }}
+                                ]
+                              }
+                            }
+                            {{/hasAvailability}}
+                          ]
+                        }
+                      },
+                      {
+                        "bool": {
+                          "must_not": [
+                            { "term": { "@type": "Expert" }}
+                          ]
+                        }
+                      }
+                    ],
+                    "minimum_should_match": 1
                   }
                 }
-                {{/hasAvailability}}
                 {{#status}}
                 ,{
                   "bool": {

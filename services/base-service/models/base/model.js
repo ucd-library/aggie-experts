@@ -4,7 +4,6 @@ const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
 
-
 /**
  * @class BaseModel
  * @description Base class for Aggie Experts data models.  This class provides
