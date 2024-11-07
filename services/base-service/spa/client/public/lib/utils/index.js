@@ -390,9 +390,15 @@ class Utils {
     // `q=${searchTerm}&page=${page}&size=${size}&hasAvailability=${encodeURIComponent(hasAvailability)}&type=grant`;
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
-    // TODO might change, 'All Results' should include hasAvailability but also return grant data
-    // for now we'll only set hasAvailability for expert search
-    if( type === 'expert' && hasAvailability.length ) searchQuery += `&hasAvailability=${encodeURIComponent(hasAvailability)}`;
+    // debugger;
+    // TODO fix mutliple hasAvailability is sending bad request
+
+    // works
+    // https://experts.ucdavis.edu /api/search?q=evapo   &page=1&size=25&hasAvailability=ark%3A%2F87287%2Fd7nh2m%2Fkeyword%2Fc-ucd-avail%2FIndustry%2520Projects%2Cark%3A%2F87287%2Fd7nh2m%2Fkeyword%2Fc-ucd-avail%2FMedia%2520enquiries
+    // broken
+    // http://localhost            /api/search?q=climate &page=1&size=25&hasAvailability=ark%3A%2F87287%2Fd7mh2m%2Fkeyword%2Fc-ucd-avail%2FIndustry%2520Projects%2Cark%3A%2F87287%2Fd7mh2m%2Fkeyword%2Fc-ucd-avail%2FMedia%2520enquiries &type=expert
+
+    if( (!type || type === 'expert') && hasAvailability.length ) searchQuery += `&hasAvailability=${encodeURIComponent(hasAvailability.join(','))}`;
     if( type ) searchQuery += `&type=${type}`;
     if( status ) searchQuery += `&status=${status}`;
 

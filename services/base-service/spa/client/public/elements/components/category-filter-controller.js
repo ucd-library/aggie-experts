@@ -77,34 +77,11 @@ export class CategoryFilterController extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
-    let type = e.location.query.type || '';
-    let status = e.location.query.status || '';
-    this._updateActiveFilter(type, status);
+    this.type = e.location.query.type || '';
+    this.status = e.location.query.status || '';
+    this._updateActiveFilter(this.type, this.status);
 
-    // TODO set selected filter based on filter in query.. but search results not showing correct subset
-    // updates needed in the app-search component?
-    // seems to be from the api not returning the correct subset of results, but can't replicate command line
-
-
-    // let searchTerm = e.location.path[1] || e.location.query.q || '';
-    let searchQuery = utils.buildSearchQuery(this.searchTerm);
-
-    // TODO filter counts not working when more filters added for availability
-    // we want to filter experts only, grants unaffected
-    debugger;
-    /*
-
-    e.location.query : {
-      hasAvailability: "media"
-      q: "climate"
-      type: "expert"
-    }
-    */
-
-    if( searchQuery !== this.searchQuery ) {
-      this.searchQuery = searchQuery;
-      this._onSearchUpdate(await this.SearchModel.search(this.searchQuery));
-    }
+    // TODO need to handle filter/query changes outside of filter controller, to call this._onSearchUpdate(await ...)
   }
 
   /**
@@ -115,35 +92,60 @@ export class CategoryFilterController extends Mixin(LitElement)
    */
   _onSearchUpdate(e) {
     if( e?.state !== 'loaded' ) return;
-    if( e?.search !== this.searchQuery ) return;
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
-    if( !this.rawSearchData.aggregations ) {
+    if( !this.rawSearchData.aggregations || !this.rawSearchData['global_aggregations'] ) {
+      // aggregations has current count of experts when open-to is applied,
+      // globalAggregations has count of grants and experts to use when no type is applied
+      // this might change as the elastic search template is updated
       this.filters = [];
       return;
     }
 
-    this._updateFilterCounts(this.rawSearchData.total, this.rawSearchData.aggregations);
+    this._updateFilterCounts(this.rawSearchData.total, this.rawSearchData.aggregations, this.rawSearchData['global_aggregations']);
   }
 
-  _updateFilterCounts(total='', aggregations={}) {
+  _updateFilterCounts(total='', aggregations={}, globalAggregations={}) {
+    let expertsCount = 0, grantsCount = 0;
+
+    console.log({ total, aggregations, globalAggregations });
+
+    if( !this.type ) {
+      expertsCount = aggregations.type?.expert || 0;
+      grantsCount = aggregations.type?.grant || 0;
+    } else if( this.type === 'expert' ) {
+      expertsCount = aggregations.type?.expert || 0;
+      grantsCount = globalAggregations.type?.grant || 0;
+      total += grantsCount;
+
+
+    // TODO need to handle subfilters here, for grants if subfilter is clicked,
+    // then the grantsTotal updates show the total for that subfilter
+
+    } else if( this.type === 'grant' ) {
+      grantsCount = aggregations.type?.grant || 0;
+      expertsCount = globalAggregations.type?.expert || 0;
+      total += expertsCount;
+    }
+    // TODO does the above counts work when we have no type, like All Results?
+
     let allResultsFilter = this.filters.filter(f => f.type === '')?.[0];
-    if( allResultsFilter ) allResultsFilter.count = total || 0;
+    if( allResultsFilter ) allResultsFilter.count = total;
 
     let expertsFilter = this.filters.filter(f => f.type === 'expert')?.[0];
-    if( expertsFilter ) expertsFilter.count = aggregations.type?.expert || 0;
+    if( expertsFilter ) expertsFilter.count = expertsCount;
 
     let grantsFilter = this.filters.filter(f => f.type === 'grant')?.[0];
     if( grantsFilter ) {
-      grantsFilter.count = aggregations.type?.grant || 0;
+      grantsFilter.count = grantsCount;
 
       let grantSubFilters = grantsFilter.subFilters || [];
       if( grantSubFilters.length ) {
         let activeGrantsFilter = grantSubFilters.filter(sf => sf.status === 'active')?.[0];
-        if( activeGrantsFilter ) activeGrantsFilter.count = aggregations.status?.active || 0;
+        if( activeGrantsFilter ) activeGrantsFilter.count = globalAggregations.status?.active || 0;
 
         let completedGrantsFilter = grantSubFilters.filter(sf => sf.status === 'completed')?.[0];
-        if( completedGrantsFilter ) completedGrantsFilter.count = aggregations.status?.completed || 0;
+        if( completedGrantsFilter ) completedGrantsFilter.count = globalAggregations.status?.completed || 0;
       }
     }
 
