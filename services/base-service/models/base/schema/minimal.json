@@ -1,6 +1,9 @@
 {
   "dynamic" : false,
   "properties" : {
+    "modified-date": {
+        "type": "date"
+    },
     "@id" : {
       "type" : "keyword"
     },
