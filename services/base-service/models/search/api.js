@@ -63,11 +63,9 @@ router.get(
     });
 
     if (req?.query.hasAvailability) {
-      console.log('hasAvailability', req.query.hasAvailability);
       params.hasAvailability = req.query.hasAvailability.split(',');
     }
     if (req?.query.status) {
-      console.log('status', req.query.status);
       params.status = req.query.status.split(',');
     }
     if (req?.query.type) {
@@ -96,10 +94,13 @@ router.get(
         { id: complete.id,
           params: {
             q: req.query.q,
+            hasAvailability: params.hasAvailability,
             size: 0,
             index: [experts.readIndexAlias, grants.readIndexAlias] }
         });
-      const find = await base.search(opts);
+    console.log(opts);
+    const find = await base.search(opts);
+
       find.global_aggregations = global.aggregations;
       res.send(find);
     } catch (err) {

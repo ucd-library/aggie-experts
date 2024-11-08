@@ -29,7 +29,7 @@ template = {
                                 "must": [
                                   { "exists": { "field": "hasAvailability" }},
                                   { "terms": {
-                                    "hasAvailability": [{{#hasAvailability}}"{{.}}"{{/hasAvailability}}]
+                                    "hasAvailability": {{#toJson}}hasAvailability{{/toJson}}
                                   }}
                                 ]
                               }
