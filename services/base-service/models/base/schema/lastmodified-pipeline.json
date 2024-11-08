@@ -3,7 +3,7 @@
   "processors": [
     {
       "set": {
-        "field": "lastmodified",
+        "field": "modified-date",
         "value": "{{_ingest.timestamp}}"
       }
     }
