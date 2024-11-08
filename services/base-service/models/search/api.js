@@ -10,7 +10,7 @@ const grants = new GrantModel();
 
 const {config} = require('@ucd-lib/fin-service-utils');
 
-const { openapi, is_user } = require('../middleware.js')
+const { openapi, is_user } = require('../middleware/index.js')
 
 function search_valid_path(options={}) {
   const def = {

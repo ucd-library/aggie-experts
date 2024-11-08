@@ -147,10 +147,20 @@ class ExpertModel extends BaseModel {
     // to store totals of works/grants before filtering out any
     let totalWorks = works.length;
     let totalGrants = grants.length;
-    let hiddenWorks = totalWorks - works.filter(w => w.relatedBy?.['is-visible']).length;
-    let hiddenGrants = totalGrants - grants.filter(g =>
-      g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
-    ).length;
+
+    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    if( options['is-visible'] !== false || !options.admin ) {
+      console.log('filtering out hidden works/grants',doc['@id']);
+      works = works.filter(w => w.relatedBy && w.relatedBy.some(related => related['is-visible'] && related?.relates.some(r => r === doc['@id'])));
+
+      grants = grants.filter(g =>
+        g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
+      );
+    }
+
+    let hiddenWorks = totalWorks - works.length;
+    let hiddenGrants = totalGrants - grants.length;
+
     let invalidWorks = [];
     let invalidGrants = [];
 
@@ -162,15 +172,6 @@ class ExpertModel extends BaseModel {
 
     // filter out grants graph if not requested
     if( !options.grants || !options.grants?.include ) grants = [];
-
-    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
-    if( options['is-visible'] !== false || !options.admin ) {
-      works = works.filter(w => w.relatedBy?.['is-visible']);
-
-      grants = grants.filter(g =>
-        g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
-      );
-    }
 
     // remove excluded fields in works if requested
     if( options.works?.exclude && options.works.exclude.length ) {

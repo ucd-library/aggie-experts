@@ -1,7 +1,6 @@
 // Can use this to get the fin configuration
 const {logger } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
-
 /**
  * @class WorkModel
  * @description Base class for Aggie Experts data models.
@@ -16,6 +15,8 @@ class WorkModel extends BaseModel {
 
   constructor(name='work') {
     super(name);
+    const search_template = require(`./template/${name}.js`);
+    this.search_template = search_template;
   }
 
   snippet(node) {
@@ -82,8 +83,11 @@ class WorkModel extends BaseModel {
     const experts=[];
     for (var rel in relatedBy) {
       let authorship = relatedBy[rel];
+      // Some authorships wants is visible to be set
       if (authorship["is-visible"]==true) {
-        for(let i=0; i<authorship.relates.length; i++) {
+        root_node["is-visible"]=true;
+      }
+      for(let i=0; i<authorship.relates.length; i++) {
           let related=authorship.relates[i];
           if (related.match(/^expert/)) {
             let expert=await expertModel.client_get(related);
@@ -91,14 +95,8 @@ class WorkModel extends BaseModel {
             experts.push(expert);
           }
         }
-      }
     }
     const doc = this.promote_node_to_doc(root_node);
-    // If there are any experts, then the work is visible
-    if (experts.length) {
-      root_node["is-visible"]=true;
-      doc["is-visible"]=true;
-    }
     await this.update_or_create_main_node_doc(doc);
     const work_snippet = this.snippet(root_node);
     for (var i in experts) {
@@ -110,7 +108,17 @@ class WorkModel extends BaseModel {
         logger.info(`Work.update() ${doc['@id']} <XX ${expert['@id']}`);
       }
       try {
-        expertModel.update_graph_node(expert['@id'], work_snippet);
+        // only add in that experts relations
+        let relatedBy = work_snippet.relatedBy;
+        relatedBy = relatedBy.filter
+        (w => w['is-visible'] && w.relates.some(r => r === expert['@id']));
+        if (relatedBy.length > 0) {
+          expertModel.update_graph_node
+          (expert['@id'],
+           {...work_snippet, relatedBy: relatedBy});
+        } else {
+          expertModel.update_graph_node(expert['@id'], work_snippet);
+        }
         logger.info(`Work.update() ${doc['@id']} ==> ${expert['@id']}`);
       } catch(e) {
         logger.info(`Work.update() ${doc['@id']} XX> ${expert['@id']}`);
