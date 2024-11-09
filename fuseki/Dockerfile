@@ -119,7 +119,7 @@ ENV PATH=$PATH:/opt/hdt-java/bin
 
 # Add in Jena files
 WORKDIR /tmp
-ARG JENA_REPO=https://dlcdn.apache.org/jena/binaries
+ARG JENA_REPO=https://archive.apache.org/dist/jena/binaries
 
 #RG JENA_TAR_SHA512=04f87c42a3b5fe65ad554beb8a1ef90ca7e0305d306fb18a15bb808891c259f420ab4f630e6b4abbb017e32284f97e23f7b848a21dc57f32ad53f604cb82e28b
 ARG JENA_TAR_SHA512=f426275591aaa5274a89cab2f2ee16623086c5f0c7669bda5b2cead90089497e57098885745fd88e3c7db75cbaac48fe58f84ec9cd2dbb937592ff2f0ef0f92e
@@ -140,7 +140,7 @@ RUN riot  --version
 
 # Install Fuseki Server (Repeat some ARGS)
 WORKDIR /tmp
-ARG JENA_REPO=https://dlcdn.apache.org/jena/binaries
+ARG JENA_REPO=https://archive.apache.org/dist/jena/binaries
 
 # published sha512 checksum
 #ARG FUSEKI_TAR_MD5=84079078b761e31658c96797e788137205fc93091ab5ae511ba80bdbec3611f4386280e6a0dc378b80830f4e5ec3188643e2ce5e1dd35edfd46fa347da4dbe17
