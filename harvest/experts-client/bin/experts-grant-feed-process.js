@@ -4,6 +4,7 @@
    rakunkel@ucdavis.edu */
 
 import { Command } from '../lib/experts-commander.js';
+import { GoogleSecret } from '@ucd-lib/experts-api';
 import Client from 'ssh2-sftp-client';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
@@ -13,6 +14,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const gs = new GoogleSecret();
 
 const program = new Command();
 program
@@ -134,7 +136,7 @@ log.info('Exit code 3:', result3.status);
 // Perform the SFTP upload
 if (opt.upload) {
   // Retrieve the SFTP password from GCS Secret Manager
-  ftpConfig.password = await opt.gs.getSecret(opt.secretpath);
+  ftpConfig.password = await gs.getSecret(opt.secretpath);
   const grantFile = opt.output + '/delta/' + opt.prefix + 'grants_metadata.csv';
   const linkFile = opt.output + '/delta/' + opt.prefix + 'grants_links.csv';
   const personFile = opt.output + '/delta/' + opt.prefix + 'grants_persons.csv';
