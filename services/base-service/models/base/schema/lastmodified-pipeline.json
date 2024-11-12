@@ -1,5 +1,5 @@
 {
-  "description": "Adds a lastmodified to documents",
+  "description": "Adds a modified-date field to documents",
   "processors": [
     {
       "set": {

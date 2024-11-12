@@ -3,6 +3,7 @@ const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-util
 const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
+const ingest_pipeline = require('./schema/lastmodified-pipeline.json');
 
 
 /**
@@ -261,6 +262,32 @@ class BaseModel extends FinEsDataModel {
     return true;
   }
 
+  /**
+   * @method verify_ingest_pipeline
+   * @description Adds ingest pipeline to elastic search if it doesn't exist
+   */
+  async verify_ingest_pipeline(pipelineId, pipelineBody) {
+    try {
+      // Check if the pipeline exists
+      await client.ingest.getPipeline({ id: pipelineId });
+      console.log(`Pipeline ${pipelineId} already exists.`);
+    } catch (error) {
+      if (error.meta.statusCode === 404) {
+        // Pipeline does not exist, create it
+        try {
+          await client.ingest.putPipeline({
+            id: pipelineId,
+            body: pipelineBody
+          });
+          console.log(`Pipeline ${pipelineId} created.`);
+        } catch (putError) {
+          console.error('Error creating pipeline:', putError);
+        }
+      } else {
+        console.error('Error checking pipeline:', error);
+      }
+    }
+  }
 
   compact_search_results(results,params) {
     const compact = {
@@ -299,6 +326,9 @@ class BaseModel extends FinEsDataModel {
     }
     // Check if template exists, install if not
     await this.verify_template(options);
+
+    // Check if our ingest pipeline exists, install if not
+    await this.verify_ingest_pipeline('aggie-experts-pipeline', ingest_pipeline);
 
     const template = await this.client.renderSearchTemplate(options);
     return template;
