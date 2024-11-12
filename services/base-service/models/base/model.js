@@ -3,7 +3,7 @@ const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-util
 const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
-const ingest_pipeline = require('./schema/lastmodified-pipeline.json');
+const ingest_pipeline = require('./schema/aggie-experts-pipeline.json');
 
 
 /**
@@ -327,6 +327,7 @@ class BaseModel extends FinEsDataModel {
     // Check if template exists, install if not
     await this.verify_template(options);
 
+    logger.info(`*************rendering pipeline*************`);
     // Check if our ingest pipeline exists, install if not
     await this.verify_ingest_pipeline('aggie-experts-pipeline', ingest_pipeline);
 
