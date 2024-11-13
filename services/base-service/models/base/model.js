@@ -269,13 +269,13 @@ class BaseModel extends FinEsDataModel {
   async verify_ingest_pipeline(pipelineId, pipelineBody) {
     try {
       // Check if the pipeline exists
-      await client.ingest.getPipeline({ id: pipelineId });
+      await this.client.ingest.getPipeline({ id: pipelineId });
       console.log(`Pipeline ${pipelineId} already exists.`);
     } catch (error) {
       if (error.meta.statusCode === 404) {
         // Pipeline does not exist, create it
         try {
-          await client.ingest.putPipeline({
+          await this.client.ingest.putPipeline({
             id: pipelineId,
             body: pipelineBody
           });
@@ -327,9 +327,9 @@ class BaseModel extends FinEsDataModel {
     // Check if template exists, install if not
     await this.verify_template(options);
 
-    logger.info(`*************rendering pipeline*************`);
+    // logger.error(`*************rendering pipeline*************`);
     // Check if our ingest pipeline exists, install if not
-    await this.verify_ingest_pipeline('aggie-experts-pipeline', ingest_pipeline);
+    // await this.verify_ingest_pipeline('aggie-experts-pipeline', ingest_pipeline);
 
     const template = await this.client.renderSearchTemplate(options);
     return template;
