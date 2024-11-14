@@ -26,6 +26,11 @@ export default function render() {
         color: white !important;
       }
 
+      .filter-result.active.mobile .label,
+      .filter-result.active.mobile .count {
+        background: transparent;
+      }
+
       .filter-result .count {
         margin-left: auto;
       }
@@ -82,7 +87,7 @@ export default function render() {
       }
     </style>
 
-    <div class="filter-result ${this.active ? 'active' : ''} ${this.subfilter ? 'subfilter' : ''}">
+    <div class="filter-result ${this.active ? 'active' : ''} ${this.subfilter ? 'subfilter' : ''} ${this.mobile ? 'mobile' : ''}">
       <ucdlib-icon icon="ucdlib-experts:${this.icon}"></ucdlib-icon>
       <p class="label">${this.label}</p>
       <p class="count">${this.count}</p>
