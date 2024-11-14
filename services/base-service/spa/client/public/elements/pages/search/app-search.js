@@ -268,6 +268,7 @@ export default class AppSearch extends Mixin(LitElement)
 
       } else if( resultType === 'grant' ) {
         subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+        id = 'grant/' + id;
       }
 
       return {
