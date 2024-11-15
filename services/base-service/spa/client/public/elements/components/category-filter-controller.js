@@ -19,6 +19,9 @@ export class CategoryFilterController extends Mixin(LitElement)
     return {
       searchTerm : { type : String },
       filters : { type : Array }, // { label, count, icon, active }
+      currentPage : { type : Number },
+      resultsPerPage : { type : Number },
+      mobile : { type : Boolean }
     };
   }
 
@@ -32,6 +35,9 @@ export class CategoryFilterController extends Mixin(LitElement)
 
     this.searchTerm = '';
     this.searchQuery = '';
+    this.currentPage = 1;
+    this.resultsPerPage = 25;
+    this.mobile = false;
     this.filters = [
       {
         label : 'All Results',
@@ -81,7 +87,28 @@ export class CategoryFilterController extends Mixin(LitElement)
     this.status = e.location.query.status || '';
     this._updateActiveFilter(this.type, this.status);
 
-    // TODO need to handle filter/query changes outside of filter controller, to call this._onSearchUpdate(await ...)
+    // handle filter/query changes outside of filter controller
+    let hasAvailabilityParam = e.location.query.hasAvailability || '';
+    let hasAvailability = utils.buildSearchAvailability({
+      collabProjects : hasAvailabilityParam.includes('collab'),
+      commPartner : hasAvailabilityParam.includes('community'),
+      industProjects : hasAvailabilityParam.includes('industry'),
+      mediaInterviews : hasAvailabilityParam.includes('media'),
+    });
+
+    this._onSearchUpdate(
+      await this.SearchModel.search(
+        utils.buildSearchQuery(
+          this.searchTerm,
+          this.currentPage,
+          this.resultsPerPage,
+          hasAvailability,
+          this.AppStateModel.location.query.type,
+          this.AppStateModel.location.query.status
+        )
+      ),
+      true
+    );
   }
 
   /**

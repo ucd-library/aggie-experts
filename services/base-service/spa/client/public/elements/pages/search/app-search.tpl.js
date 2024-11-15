@@ -327,7 +327,9 @@ return html`
       <category-filter-controller
         @filter-change="${this._onFilterChange}"
         @subfilter-change="${this._onSubFilterChange}"
-        .searchTerm="${this.searchTerm}">
+        .searchTerm="${this.searchTerm}"
+        .currentPage="${this.currentPage}"
+        .resultsPerPage="${this.resultsPerPage}">
       </category-filter-controller>
 
       <hr class="search-seperator" ?hidden="${!this.showOpenTo}">
@@ -380,12 +382,19 @@ return html`
         </div>
         <div class="refine-search-contents ${this.refineSearchCollapsed ? '' : 'open'}" ?hidden="${this.refineSearchCollapsed}">
 
-          <!-- <category-filter-controller @filter-change="${this._onFilterChange}" .filters="${this.filters}"></category-filter-controller> -->
+          <category-filter-controller
+            @filter-change="${this._onFilterChange}"
+            @subfilter-change="${this._onSubFilterChange}"
+            .mobile="${true}"
+            .searchTerm="${this.searchTerm}"
+            .currentPage="${this.currentPage}"
+            .resultsPerPage="${this.resultsPerPage}">
+          </category-filter-controller>
 
-          <div class="open-to-heading">
+          <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
             <h4>Experts Open To</h4>
           </div>
-          <div class="open-to" style="padding: 0">
+          <div class="open-to" style="padding: 0" ?hidden="${!this.showOpenTo}">
             <label>
               <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
               Collaborative Projects
