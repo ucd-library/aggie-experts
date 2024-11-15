@@ -12,8 +12,6 @@ export default function render() {
       }
     </style>
 
-
-      <!-- TODO how to figure out how to show subFilters and also allow them to be active -->
     <div class="filter-controller">
       ${this.filters.map(
         (f) => html`
