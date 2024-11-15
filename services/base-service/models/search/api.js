@@ -92,14 +92,17 @@ router.get(
     };
     try {
       await experts.verify_template(complete);
+      const find = await base.search(opts);
+      // Now remove type filters, research
+      delete params.type;
+      delete params.status;
       const global = await base.search(
         { id: complete.id,
           params: {
-            q: req.query.q,
+            ...opts.params,
             size: 0,
             index: [experts.readIndexAlias, grants.readIndexAlias] }
         });
-      const find = await base.search(opts);
       find.global_aggregations = global.aggregations;
       res.send(find);
     } catch (err) {

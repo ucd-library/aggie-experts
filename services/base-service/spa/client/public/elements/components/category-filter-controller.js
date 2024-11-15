@@ -19,6 +19,9 @@ export class CategoryFilterController extends Mixin(LitElement)
     return {
       searchTerm : { type : String },
       filters : { type : Array }, // { label, count, icon, active }
+      currentPage : { type : Number },
+      resultsPerPage : { type : Number },
+      mobile : { type : Boolean }
     };
   }
 
@@ -32,6 +35,9 @@ export class CategoryFilterController extends Mixin(LitElement)
 
     this.searchTerm = '';
     this.searchQuery = '';
+    this.currentPage = 1;
+    this.resultsPerPage = 25;
+    this.mobile = false;
     this.filters = [
       {
         label : 'All Results',
@@ -81,7 +87,28 @@ export class CategoryFilterController extends Mixin(LitElement)
     this.status = e.location.query.status || '';
     this._updateActiveFilter(this.type, this.status);
 
-    // TODO need to handle filter/query changes outside of filter controller, to call this._onSearchUpdate(await ...)
+    // handle filter/query changes outside of filter controller
+    let hasAvailabilityParam = e.location.query.hasAvailability || '';
+    let hasAvailability = utils.buildSearchAvailability({
+      collabProjects : hasAvailabilityParam.includes('collab'),
+      commPartner : hasAvailabilityParam.includes('community'),
+      industProjects : hasAvailabilityParam.includes('industry'),
+      mediaInterviews : hasAvailabilityParam.includes('media'),
+    });
+
+    this._onSearchUpdate(
+      await this.SearchModel.search(
+        utils.buildSearchQuery(
+          this.searchTerm,
+          this.currentPage,
+          this.resultsPerPage,
+          hasAvailability,
+          this.AppStateModel.location.query.type,
+          this.AppStateModel.location.query.status
+        )
+      ),
+      true
+    );
   }
 
   /**
@@ -94,40 +121,18 @@ export class CategoryFilterController extends Mixin(LitElement)
     if( e?.state !== 'loaded' ) return;
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
-    if( !this.rawSearchData.aggregations || !this.rawSearchData['global_aggregations'] ) {
-      // aggregations has current count of experts when open-to is applied,
-      // globalAggregations has count of grants and experts to use when no type is applied
-      // this might change as the elastic search template is updated
+    if( !this.rawSearchData['global_aggregations'] ) {
       this.filters = [];
       return;
     }
 
-    this._updateFilterCounts(this.rawSearchData.total, this.rawSearchData.aggregations, this.rawSearchData['global_aggregations']);
+    this._updateFilterCounts(this.rawSearchData['global_aggregations']);
   }
 
-  _updateFilterCounts(total='', aggregations={}, globalAggregations={}) {
-    let expertsCount = 0, grantsCount = 0;
-
-    console.log({ total, aggregations, globalAggregations });
-
-    if( !this.type ) {
-      expertsCount = aggregations.type?.expert || 0;
-      grantsCount = aggregations.type?.grant || 0;
-    } else if( this.type === 'expert' ) {
-      expertsCount = aggregations.type?.expert || 0;
-      grantsCount = globalAggregations.type?.grant || 0;
-      total += grantsCount;
-
-
-    // TODO need to handle subfilters here, for grants if subfilter is clicked,
-    // then the grantsTotal updates show the total for that subfilter
-
-    } else if( this.type === 'grant' ) {
-      grantsCount = aggregations.type?.grant || 0;
-      expertsCount = globalAggregations.type?.expert || 0;
-      total += expertsCount;
-    }
-    // TODO does the above counts work when we have no type, like All Results?
+  _updateFilterCounts(globalAggregations={}) {
+    let expertsCount = globalAggregations.type?.expert || 0;
+    let grantsCount = globalAggregations.type?.grant || 0;
+    let total = expertsCount + grantsCount;
 
     let allResultsFilter = this.filters.filter(f => f.type === '')?.[0];
     if( allResultsFilter ) allResultsFilter.count = total;
@@ -148,7 +153,6 @@ export class CategoryFilterController extends Mixin(LitElement)
         if( completedGrantsFilter ) completedGrantsFilter.count = globalAggregations.status?.completed || 0;
       }
     }
-
 
     this.requestUpdate();
   }

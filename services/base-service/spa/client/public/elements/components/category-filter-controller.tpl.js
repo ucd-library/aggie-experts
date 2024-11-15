@@ -23,6 +23,7 @@ export default function render() {
             type="${f.type}"
             count="${f.count}"
             icon="${f.icon}"
+            mobile="${this.mobile}"
             ?active="${f.active}">
           </category-filter-row>
           ${(f.subFilters || []).map(
@@ -35,6 +36,7 @@ export default function render() {
                 type="${sf.type}"
                 status="${sf.status}"
                 count="${sf.count}"
+                mobile="${this.mobile}"
                 ?active="${sf.active}">
               </category-filter-row>
             `

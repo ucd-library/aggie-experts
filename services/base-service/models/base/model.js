@@ -247,7 +247,6 @@ class BaseModel extends FinEsDataModel {
       try {
         logger.info(`checking template ${t.id}`);
         let result = await this.client.getScript({id:t.id});
-        logger.info(`template ${t.id} ${result}`);
       } catch (err) {
         try {
           logger.info(`adding template ${t.id}`);

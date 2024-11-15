@@ -17,7 +17,8 @@ export class CategoryFilterRow extends LitElement {
       count : { type : Number },
       icon : { type : String },
       active : { type : Boolean },
-      subfilter : { type : Boolean }
+      subfilter : { type : Boolean },
+      mobile : { type : Boolean }
     };
   }
 
@@ -30,6 +31,7 @@ export class CategoryFilterRow extends LitElement {
     this.icon = '';
     this.active = false;
     this.subfilter = false;
+    this.mobile = false;
   }
 
 }

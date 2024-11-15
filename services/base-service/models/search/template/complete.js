@@ -29,7 +29,7 @@ template = {
                                 "must": [
                                   { "exists": { "field": "hasAvailability" }},
                                   { "terms": {
-                                    "hasAvailability": [{{#hasAvailability}}"{{.}}"{{/hasAvailability}}]
+                                    "hasAvailability": {{#toJson}}hasAvailability{{/toJson}}
                                   }}
                                 ]
                               }
@@ -96,7 +96,7 @@ template = {
                           "@graph.title^10"
                         ]
                       } } ],
-                  "filter": [
+                    "filter": [
                     {
                       "bool": {
                         "should": [
@@ -108,7 +108,8 @@ template = {
                               ]
                             }
                           }
-                        ]
+                        ],
+                        "minimum_should_match": 1
                       }
                     }
                   ]
