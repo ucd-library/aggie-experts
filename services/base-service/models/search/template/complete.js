@@ -96,7 +96,7 @@ template = {
                           "@graph.title^10"
                         ]
                       } } ],
-                  "filter": [
+                    "filter": [
                     {
                       "bool": {
                         "should": [
@@ -107,8 +107,17 @@ template = {
                                 { "term": { "@graph.is-visible": true }}
                               ]
                             }
+                          },
+                          {
+                            "bool": {
+                              "must": [
+                                { "exists": { "field": "@graph.relatedBy.is-visible" }},
+                                { "term": { "@graph.relatedBy.is-visible": true }}
+                              ]
+                            }
                           }
-                        ]
+                        ],
+                        "minimum_should_match": 1
                       }
                     }
                   ]
