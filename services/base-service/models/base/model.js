@@ -4,7 +4,6 @@ const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
 
-
 /**
  * @class BaseModel
  * @description Base class for Aggie Experts data models.  This class provides
@@ -187,7 +186,7 @@ class BaseModel extends FinEsDataModel {
       name: node['name'],
       "@graph": [node]
     };
-    ["@type","is-visible","updated","identifier"].forEach(key => {
+    ["@type","status","is-visible","updated","identifier"].forEach(key => {
       if (node[key]) doc[key] = node[key];
     });
     return doc;
@@ -248,7 +247,6 @@ class BaseModel extends FinEsDataModel {
       try {
         logger.info(`checking template ${t.id}`);
         let result = await this.client.getScript({id:t.id});
-        logger.info(`template ${t.id} ${result}`);
       } catch (err) {
         try {
           logger.info(`adding template ${t.id}`);
@@ -283,6 +281,15 @@ class BaseModel extends FinEsDataModel {
       hits.push(source);
     }
     compact.hits = hits;
+    const aggregations = {};
+    for (const key in results.aggregations) {
+      aggregations[key] = {}
+      const buckets = results.aggregations[key].buckets;
+      for (const bucket of buckets) {
+        aggregations[key][bucket.key] = bucket.doc_count;
+      }
+    }
+    compact.aggregations = aggregations;
     return compact;
   }
   /**
@@ -310,20 +317,27 @@ class BaseModel extends FinEsDataModel {
    * @returns {Object} ES results
    */
   async search(opts) {
-    opts.index || (opts.index = this.readIndexAlias);
     const params = this.common_parms(opts.params);
 
+    const index = params.index || ['grant-read','expert-read'];
+    //const index = '*-read';
+    delete params.index;
     const options = {
       id: (opts.id)?opts.id:"default",
-      index: opts.index,
+      index,
       params
     }
+    console.log(`searching ${JSON.stringify(options)}`);
     const res=await this.client.searchTemplate(options);
     return this.compact_search_results(res,params);
   }
 
   async msearch(opts) {
-    opts.index || (opts.index = this.readIndexAlias);
+
+    if (! opts.index) {
+      opts.index = this.readIndexAlias;
+    }
+
     // Fix-up parms
     for(let i=0;i<opts.search_templates.length;i++) {
       let template=opts.search_templates[i];

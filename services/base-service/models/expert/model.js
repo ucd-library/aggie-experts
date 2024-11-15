@@ -31,7 +31,9 @@ class ExpertModel extends BaseModel {
    * by elasticsearch.
    */
   snippet(node) {
-    const snippet= ["@id","@type","identifier","orcidId","name","contactInfo"];
+    const snippet= ["@id","@type",
+                    "identifier","orcidId","name","contactInfo",
+                    "is-visible"];
 
     // Get only best contact info
     if (node.contactInfo) {

@@ -55,7 +55,8 @@ router.route(
   valid_path_error,
   async (req, res) => {
     const params = {
-      size: 25
+      size: 25,
+      index: model.readIndexAlias,
     };
     ["size","page","p"].forEach((key) => {
       if (req.query[key]) { params[key] = req.query[key]; }

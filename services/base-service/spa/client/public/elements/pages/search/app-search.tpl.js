@@ -235,7 +235,7 @@ return html`
         width: 90%;
         padding-right: 0;
         padding-left: 0;
-        gap: 0;
+        gap: 0rem 2rem;
       }
     }
 
@@ -323,15 +323,21 @@ return html`
   <div class="search-container">
     <div class="refine-search">
 
-      <!-- <h3>Refine Results</h3>
-      <category-filter-controller @filter-change="${this._onFilterChange}" .filters="${this.filters}"></category-filter-controller>
+      <h3>Refine Results</h3>
+      <category-filter-controller
+        @filter-change="${this._onFilterChange}"
+        @subfilter-change="${this._onSubFilterChange}"
+        .searchTerm="${this.searchTerm}"
+        .currentPage="${this.currentPage}"
+        .resultsPerPage="${this.resultsPerPage}">
+      </category-filter-controller>
 
-      <hr class="search-seperator"> -->
+      <hr class="search-seperator" ?hidden="${!this.showOpenTo}">
 
-      <div class="open-to-heading">
+      <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
         <h4>Experts Open To</h4>
       </div>
-      <div class="open-to">
+      <div class="open-to" ?hidden="${!this.showOpenTo}">
         <label>
           <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
           Collaborative Projects
@@ -376,12 +382,19 @@ return html`
         </div>
         <div class="refine-search-contents ${this.refineSearchCollapsed ? '' : 'open'}" ?hidden="${this.refineSearchCollapsed}">
 
-          <!-- <category-filter-controller @filter-change="${this._onFilterChange}" .filters="${this.filters}"></category-filter-controller> -->
+          <category-filter-controller
+            @filter-change="${this._onFilterChange}"
+            @subfilter-change="${this._onSubFilterChange}"
+            .mobile="${true}"
+            .searchTerm="${this.searchTerm}"
+            .currentPage="${this.currentPage}"
+            .resultsPerPage="${this.resultsPerPage}">
+          </category-filter-controller>
 
-          <div class="open-to-heading">
+          <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
             <h4>Experts Open To</h4>
           </div>
-          <div class="open-to" style="padding: 0">
+          <div class="open-to" style="padding: 0" ?hidden="${!this.showOpenTo}">
             <label>
               <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
               Collaborative Projects
@@ -433,7 +446,7 @@ return html`
             <app-search-result-row
               search-result="${result.position}"
               .result=${result}
-              result-type="expert"> <!-- TODO update this to be more dynamic, when loading different types of results -->
+              result-type="${result.resultType}">
             </app-search-result-row>
             <hr class="search-seperator">
           `
