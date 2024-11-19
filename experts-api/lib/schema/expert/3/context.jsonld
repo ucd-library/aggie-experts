@@ -159,6 +159,7 @@
     "page":{"@id":"cite:page"},
     "Person":{"@id":"ucdlib:Person","@type":"@id"},
     "PrincipalInvestigatorRole":{"@id":"vivo:PrincipalInvestigatorRole"},
+    "prefLabel":{"@id":"skos:prefLabel"},
     "pronouns":{"@id":"vcard:pronouns"},
     "publisher":{"@id":"cite:publisher"},
     "publisher-place":{"@id":"cite:publisher-place"},
