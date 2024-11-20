@@ -15,20 +15,22 @@ export default function render() {
       .search-result-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
       }
 
       .search-result-title {
         display: flex;
-        align-items: center;
+        align-items: flex-start
       }
 
       .search-result-title ucdlib-icon.expert {
         fill: var(--color-aggie-gold);
+        padding-top: .2rem;
       }
 
       .search-result-title ucdlib-icon.grant {
         fill: var(--color-thiebaud-icing);
+        padding-top: .2rem;
       }
 
       .search-result-title h4 {

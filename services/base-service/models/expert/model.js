@@ -31,7 +31,9 @@ class ExpertModel extends BaseModel {
    * by elasticsearch.
    */
   snippet(node) {
-    const snippet= ["@id","@type","identifier","orcidId","name","contactInfo"];
+    const snippet= ["@id","@type",
+                    "identifier","orcidId","name","contactInfo",
+                    "is-visible"];
 
     // Get only best contact info
     if (node.contactInfo) {
@@ -309,7 +311,7 @@ class ExpertModel extends BaseModel {
   promote_node_to_doc(node) {
     const doc = {
       "@id": node['@id'],
-      "@context": config?.server?.url+"/api/schema/1/context.jsonld",
+      "@context": config?.server?.url+"/api/schema/context.jsonld",
       "@graph": [node]
     };
     return this.move_fields_to_doc(node, doc);

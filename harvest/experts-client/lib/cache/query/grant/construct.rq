@@ -27,6 +27,7 @@ construct {
   ?grant a vivo:Grant,?grant_type;
          schema:name ?grant_label;
          schema:identifier ?grant,?g;
+         cite:status ?status;
          vivo:totalAwardAmount ?total_award_amount;
          vivo:sponsorAwardId ?sponsor_award_id;
          vivo:assignedBy ?funder;
@@ -317,8 +318,9 @@ WHERE {
   bind(js:capitalizeName(?funder_label_cap) as ?funder_label)
   bind(js:capitalizeName(?pi_name_cap,"\\s+"," ") as ?pi_name)
 
+  bind(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active") as ?status)
   bind(concat(?grant_title," § ",
-              coalesce(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active"),""),
+              coalesce(?status,""),
               coalesce(concat(" • ",?start_year," - ",?end_year),""),
               coalesce(concat(" • ",?pi_name),""),
               " § ",

@@ -9,6 +9,7 @@
     "obo": "http://purl.obolibrary.org/obo/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "schema": "http://schema.org/",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
     "ucdlib": "http://schema.library.ucdavis.edu/schema#",
     "vcard":"http://www.w3.org/2006/vcard/ns#",
     "vivo": "http://vivoweb.org/ontology/core#",
@@ -31,9 +32,12 @@
       }
     },
     "Authorship":"vivo:Authorship",
+    "availabilityOf":{"@id":"ucdlib:availabilityOf","@type":"@id"},
     "available-date":{"@id":"cite:available-date"},
     "bearer-of":{"@id":"obo:RO_0000053","@type":"@id"},
+    "CollaborativeProjects":"ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative%20projects",
     "collection-number":{"@id":"cite:collection-number"},
+    "Concept":"skos:Concept",
     "contactInfo": {
       "@id":"obo:ARG_2000028",
       "@type":"@id",
@@ -45,6 +49,7 @@
     },
     "container-title":{"@id":"cite:container-title"},
     "CoPrincipalInvestigatorRole":"vivo:CoPrincipalInvestigatorRole",
+    "CommunityPartnerships":"ark:/87287/d7mh2m/keyword/c-ucd-avail/Community%20partnerships",
     "dateTimeInterval": { "@type":"@id",
                           "@context":{
                             "start":{"@type":"@id"},
@@ -92,6 +97,7 @@
       "@type":"@id"
     },
     "GrantRole":{"@id":"ucdlib:GrantRole","@type":"@id"},
+    "hasAvailability":{"@id":"ucdlib:hasAvailability","@type":"@id" },
     "hasEmail":{"@id":"vcard:hasEmail","@type":"@id"},
     "hasName": {
       "@id": "vcard:hasName",
@@ -129,6 +135,7 @@
         "name":{"@id":"vcard:title"}
       }
     },
+    "IndustryProjects":"ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry%20Projects",
     "identifier":{"@id":"schema:identifier","@type":"@id"},
     "indirectCosts": { "@id": "ucdlib:grantIndirectCosts" },
     "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
@@ -146,6 +153,7 @@
     "license":{"@id":"cite:license"},
     "Name":{"@id":"vcard:Name"},
     "name":{"@id":"schema:name"},
+    "MediaEnquiries":"ark:/87287/d7mh2m/keyword/c-ucd-avail/Media%20enquiries",
     "medium":{"@id":"cite:medium"},
     "note":{"@id":"cite:note"},
     "page":{"@id":"cite:page"},
