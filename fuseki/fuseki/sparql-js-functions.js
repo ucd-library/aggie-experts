@@ -13,6 +13,10 @@ function capitalizeName(name) {
 
   // Canonical list of acronyms, alphabetically ordered
   const acronymsList = [
+    "CA", "CDPH", "ACS", "AbbVie", "PHS", "GSK", "NIMH", "FAA", "US", "MRPI",
+    "UCRI", "EPA", "UT", "UC","NIH","NCI", "NIAID", "NIDCR", "NIDDK", "NHLBI",
+    "NIMH", "NINDS", "NLM", "NICHD", "NIGMS", "NEI", "NIEHS", "NIAAA", "NIA",
+    "NIAMS", "NINR", "NIDCD", "NHGRI", "NIBIB", "NIMHD",
     'CDC', 'CIA', 'DARPA', 'DOD', 'DOE', 'EPA', 'ESA', 'EU', 'FBI',
     'IMF', 'JPL', 'NASA', 'NIH', 'NOAA', 'NSERC', 'NSF', 'OECD',
     'OPEC', 'UN', 'UNESCO', 'UNICEF', 'USA', 'USDA', 'WHO', 'WTO'
