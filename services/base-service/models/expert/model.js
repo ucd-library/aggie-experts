@@ -325,12 +325,13 @@ class ExpertModel extends BaseModel {
       doc["is-visible"] = node["is-visible"];
     }
     if (node["hasAvailability"]) {
-      doc["hasAvailability"] = [];
+      doc["hasAvailability"]=[];
       if (! Array.isArray(node["hasAvailability"])) {
         node["hasAvailability"] = [node["hasAvailability"]];
       }
+      // this is for later if we want to pair down the availability
       node["hasAvailability"].forEach(availability => {
-        doc["hasAvailability"].push(availability["@id"]);
+        doc["hasAvailability"].push(availability);
       });
     }
 

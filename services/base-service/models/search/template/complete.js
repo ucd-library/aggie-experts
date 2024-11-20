@@ -23,18 +23,18 @@ template = {
                         "bool": {
                           "must": [
                             { "term": { "@type": "Expert" }}
-                            {{#hasAvailability}}
+                            {{#availability}}
                             ,{
                               "bool": {
                                 "must": [
-                                  { "exists": { "field": "hasAvailability" }},
+                                  { "exists": { "field": "hasAvailability.prefLabel" }},
                                   { "terms": {
-                                    "hasAvailability": {{#toJson}}hasAvailability{{/toJson}}
+                                    "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}}
                                   }}
                                 ]
                               }
                             }
-                            {{/hasAvailability}}
+                            {{/availability}}
                           ]
                         }
                       },
@@ -107,6 +107,14 @@ template = {
                                 { "term": { "@graph.is-visible": true }}
                               ]
                             }
+                          },
+                          {
+                            "bool": {
+                              "must": [
+                                { "exists": { "field": "@graph.relatedBy.is-visible" }},
+                                { "term": { "@graph.relatedBy.is-visible": true }}
+                              ]
+                            }
                           }
                         ],
                         "minimum_should_match": 1
@@ -137,7 +145,7 @@ template = {
         },
         "availability": {
           "terms": {
-            "field": "hasAvailability",
+            "field": "hasAvailability.prefLabel",
             "size": 10
           }
         },
