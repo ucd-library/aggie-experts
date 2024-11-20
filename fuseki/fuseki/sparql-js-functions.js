@@ -11,6 +11,23 @@ function log10(v) {
 function capitalizeName(name) {
   if (!name) return '';
 
+  // Canonical list of acronyms, alphabetically ordered
+  const acronymsList = [
+    "CA", "CDPH", "ACS", "AbbVie", "PHS", "GSK", "NIMH", "FAA", "US", "MRPI",
+    "UCRI", "EPA", "UT", "UC","NIH","NCI", "NIAID", "NIDCR", "NIDDK", "NHLBI",
+    "NIMH", "NINDS", "NLM", "NICHD", "NIGMS", "NEI", "NIEHS", "NIAAA", "NIA",
+    "NIAMS", "NINR", "NIDCD", "NHGRI", "NIBIB", "NIMHD",
+    'CDC', 'CIA', 'DARPA', 'DOD', 'DOE', 'EPA', 'ESA', 'EU', 'FBI',
+    'IMF', 'JPL', 'NASA', 'NIH', 'NOAA', 'NSERC', 'NSF', 'OECD',
+    'OPEC', 'UN', 'UNESCO', 'UNICEF', 'USA', 'USDA', 'WHO', 'WTO'
+  ];
+
+  // Create the acronyms object dynamically for fast lookups
+  const acronyms = {};
+  acronymsList.forEach(acronym => {
+    acronyms[acronym] = true;
+  });
+
   // Check if the entire string is either all uppercase or all lowercase
   const isAllUpperCase = name === name.toUpperCase();
   const isAllLowerCase = name === name.toLowerCase();
@@ -23,6 +40,8 @@ function capitalizeName(name) {
 
     // Capitalize each word and handle hyphenated and apostrophized parts
     const capitalizedWords = words.map(word => {
+      const upperCaseWord = word.toUpperCase();
+      if (acronyms[upperCaseWord]) return upperCaseWord;
       // Split by hyphen or apostrophe, capitalize each part, and join them back
       const capitalizeParts = (word, delimiter) => {
         return word.split(delimiter).map(part => {
