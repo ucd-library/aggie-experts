@@ -5,7 +5,7 @@ const utils = require('../utils.js')
 const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
 
-const { openapi, validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware.js')
+const { openapi, validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware/index.js')
 
 router.get(
   '/user',

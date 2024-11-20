@@ -23,18 +23,18 @@ template = {
                         "bool": {
                           "must": [
                             { "term": { "@type": "Expert" }}
-                            {{#hasAvailability}}
+                            {{#availability}}
                             ,{
                               "bool": {
                                 "must": [
-                                  { "exists": { "field": "hasAvailability" }},
+                                  { "exists": { "field": "hasAvailability.prefLabel" }},
                                   { "terms": {
-                                    "hasAvailability": {{#toJson}}hasAvailability{{/toJson}}
+                                    "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}}
                                   }}
                                 ]
                               }
                             }
-                            {{/hasAvailability}}
+                            {{/availability}}
                           ]
                         }
                       },
@@ -145,7 +145,7 @@ template = {
         },
         "availability": {
           "terms": {
-            "field": "hasAvailability",
+            "field": "hasAvailability.prefLabel",
             "size": 10
           }
         },

@@ -8,9 +8,13 @@
       "type" : "boolean"
     },
     "hasAvailability": {
-      "type": "keyword",
-      "normalizer": "identifier",
-      "ignore_above": 128
+      "properties" : {
+        "prefLabel" : {
+          "type": "keyword",
+          "normalizer": "identifier",
+          "ignore_above": 128
+        }
+      }
     },
     "@type" : {
       "type" : "keyword",
