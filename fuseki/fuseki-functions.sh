@@ -27,5 +27,5 @@ function fix_startup_files() {
 }
 
 function start_fuseki() {
-  $FUSEKI_HOME/fuseki-server-hdt &
+  $FUSEKI_HOME/fuseki-server &
 }
