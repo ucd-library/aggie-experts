@@ -204,6 +204,7 @@ class Utils {
 
       // if grant idenfication number is in the name/title, remove it
       let grantIdentifier = g['@id'].split('grant/').pop();
+      g.name = g.name?.split('§')?.shift()?.trim();
       if( g.name.includes(grantIdentifier) ) g.name = g.name.replace(grantIdentifier, '');
 
       return g;
