@@ -5,6 +5,8 @@ const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
 const ingest_pipeline = require('./schema/aggie-experts-pipeline.json');
 
+// await this.verify_ingest_pipeline('aggie-experts-pipeline', ingest_pipeline);
+
 /**
  * @class BaseModel
  * @description Base class for Aggie Experts data models.  This class provides
@@ -22,7 +24,9 @@ class BaseModel extends FinEsDataModel {
 
     super(name);
     this.schema = schema;  // Common schema for all experts data models
+    // this.pipelineBody = ingest_pipeline;
     this.transformService = "node";
+
   }
 
   /** @inheritdoc */
@@ -240,7 +244,7 @@ class BaseModel extends FinEsDataModel {
    * @method verify_template
    * @description Adds template to elastic search if it doesn't exist
    */
-  async verify_template(template) {
+    async verify_template(template) {
     if (!Array.isArray(template)) {
       template = [template];
     }
@@ -321,6 +325,10 @@ class BaseModel extends FinEsDataModel {
    * @returns string
    */
   async render(opts) {
+    // Throw error to see stack trace
+    // try { throw new Error('Stack Trace'); }
+    // catch(err) { console.log(err.stack); }
+
     const params = this.common_parms(opts.params);
 
     const options = {
@@ -329,9 +337,6 @@ class BaseModel extends FinEsDataModel {
     }
     // Check if template exists, install if not
     await this.verify_template(options);
-
-    // Check if our ingest pipeline exists, install if not
-    await this.verify_ingest_pipeline('aggie-experts-pipeline', ingest_pipeline);
 
     const template = await this.client.renderSearchTemplate(options);
     return template;
