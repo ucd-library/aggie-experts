@@ -88,12 +88,12 @@ export class CategoryFilterController extends Mixin(LitElement)
     this._updateActiveFilter(this.type, this.status);
 
     // handle filter/query changes outside of filter controller
-    let hasAvailabilityParam = e.location.query.hasAvailability || '';
-    let hasAvailability = utils.buildSearchAvailability({
-      collabProjects : hasAvailabilityParam.includes('collab'),
-      commPartner : hasAvailabilityParam.includes('community'),
-      industProjects : hasAvailabilityParam.includes('industry'),
-      mediaInterviews : hasAvailabilityParam.includes('media'),
+    let availabilityParam = e.location.query.availability || '';
+    let availability = utils.buildSearchAvailability({
+      collabProjects : availabilityParam.includes('collab'),
+      commPartner : availabilityParam.includes('community'),
+      industProjects : availabilityParam.includes('industry'),
+      mediaInterviews : availabilityParam.includes('media'),
     });
 
     this._onSearchUpdate(
@@ -102,7 +102,7 @@ export class CategoryFilterController extends Mixin(LitElement)
           this.searchTerm,
           this.currentPage,
           this.resultsPerPage,
-          hasAvailability,
+          availability,
           this.AppStateModel.location.query.type,
           this.AppStateModel.location.query.status
         )
