@@ -406,13 +406,16 @@ class Utils {
    * @param {Number} size number of results per page, defaults to 25
    * @param {Array} hasAvailability array of availability filters
    * @param {String} type type of search, ie 'grant', 'expert'. if none set, returns all results
+   * @param {String} status status of search, ie 'active', 'completed'. if none set, returns all results
+   * @param {String} expertId expertId to filter grants/works to
    */
-  buildSearchQuery(searchTerm, page=1, size=25, hasAvailability=[], type, status) {
+  buildSearchQuery(searchTerm, page=1, size=25, hasAvailability=[], type, status, expertId) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
     if( hasAvailability.length ) searchQuery += `&hasAvailability=${encodeURIComponent(hasAvailability.join(','))}`;
     if( type ) searchQuery += `&type=${type}`;
     if( status ) searchQuery += `&status=${status}`;
+    if( expertId ) searchQuery += `&expert=${expertId}`;
 
     return searchQuery;
   }

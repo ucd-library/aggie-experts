@@ -116,8 +116,12 @@ return html`
     .search-results-heading {
       display: flex;
       align-items: center;
-      height: 60px;
-      padding-top: .8rem;
+      /* height: 60px;
+      padding-top: .8rem; */
+    }
+
+    .search-content app-search-box {
+      padding-bottom: 0.8rem;
     }
 
     .search-container .open-to-heading h4 {
@@ -306,6 +310,52 @@ return html`
       padding-bottom: 2rem;
     }
 
+    .results-filtered-to {
+      display: flex;
+      align-items: center;
+      color: var(--color-aggie-blue);
+      font-size: 1.3rem;
+      font-style: italic;
+      font-weight: 700;
+      word-wrap: break-word;
+    }
+
+    .results-filtered-to span {
+      padding-right: 0.5rem;
+    }
+
+    .results-filtered-to p {
+      margin: 0;
+    }
+
+    .results-filtered-to button {
+      background-color: var(--color-aggie-blue-80);
+      color: white;
+      border-color: transparent;
+      padding: 0.25rem 1rem;
+      font-size: 1.1rem;
+    }
+
+    .results-filtered-to button:hover {
+      color: white;
+    }
+
+    .results-filtered-to button .close {
+      padding: 0 0 0 0.7rem;
+    }
+
+    .results-filtered-to button .close ucdlib-icon {
+      padding: 3px;
+    }
+
+    .results-filtered-to button:hover .close ucdlib-icon {
+      fill: var(--color-aggie-blue-80);
+      border-radius: 50%;
+      background-color: var(--color-aggie-blue-50);
+      /* transition: background-color 0.3s ease-in-out; */
+      /* transition: fill 0.3s ease-in-out; */
+    }
+
   </style>
 
   <div class="search-header">
@@ -415,6 +465,18 @@ return html`
         </div>
       </div>
 
+      <div class="results-filtered-to" ?hidden="${!this.filterByExpert}">
+        <span>Experts:</span>
+        <p>
+          <button class="btn btn--round" @click="${this._removeExpertFilter}">
+            ${this.filterByExpertName}
+            <div class="close">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+            </div>
+          </button>
+        </p>
+
+      </div>
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
         <div class="download">
@@ -446,7 +508,8 @@ return html`
             <app-search-result-row
               search-result="${result.position}"
               .result=${result}
-              result-type="${result.resultType}">
+              result-type="${result.resultType}"
+              @filter-by-grants="${this._filterByGrants}">
             </app-search-result-row>
             <hr class="search-seperator">
           `

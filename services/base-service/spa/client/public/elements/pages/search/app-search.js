@@ -36,6 +36,9 @@ export default class AppSearch extends Mixin(LitElement)
       type : { type : String },
       status : { type : String },
       showOpenTo : { type : Boolean },
+      filterByExpert : { type : Boolean },
+      filterByExpertId : { type : String },
+      filterByExpertName : { type : String }
     }
   }
 
@@ -61,6 +64,9 @@ export default class AppSearch extends Mixin(LitElement)
     this.type = '';
     this.status = '';
     this.showOpenTo = false;
+    this.filterByExpert = false;
+    this.filterByExpertId = '';
+    this.filterByExpertName = '';
 
     this.render = render.bind(this);
   }
@@ -181,6 +187,33 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   /**
+   * @method _filterByGrants
+   * @description filter by grants
+   * @param {Object} e
+   */
+  _filterByGrants(e) {
+    // TODO eventually multiple experts could be supported, for now just one needed
+    // filter by grants for this expert
+    this.filterByExpertId = e.detail.id;
+    this.filterByExpertName = e.detail.name;
+    if( this.filterByExpertId && this.filterByExpertName ) {
+      this.filterByExpert = true;
+      this._updateLocation();
+    }
+  }
+
+  /**
+   * @method _removeExpertFilter
+   * @description remove the expert filter
+   */
+  _removeExpertFilter(e) {
+    this.filterByExpert = false;
+    this.filterByExpertId = '';
+    this.filterByExpertName = '';
+    this._updateLocation();
+  }
+
+  /**
    * @method _onSearch
    * @description called from the search box button is clicked or
    * the enter key is hit. search
@@ -214,7 +247,8 @@ export default class AppSearch extends Mixin(LitElement)
           this.resultsPerPage,
           hasAvailability,
           this.AppStateModel.location.query.type,
-          this.AppStateModel.location.query.status
+          this.AppStateModel.location.query.status,
+          this.filterByExpertId
         )
       ),
       true
@@ -222,6 +256,8 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _updateLocation() {
+    if( this.filterByExpert ) this.type = 'grant';
+
     // url should be /search/<searchTerm> if no search filters, otherwise /search?=<searchTerm>&hasAvailability=collab,community,industry,media etc
     let hasAvailability = [];
     if( this.collabProjects ) hasAvailability.push('collab');
@@ -239,6 +275,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( hasAvailability.length ) path += `&hasAvailability=${hasAvailability.join(',')}`;
     if( this.type.length ) path += `&type=${this.type}`;
     if( this.status.length ) path += `&status=${this.status}`;
+    if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
 
     this.AppStateModel.setLocation(path);
   }
@@ -337,7 +374,8 @@ export default class AppSearch extends Mixin(LitElement)
           this.resultsPerPage,
           hasAvailability,
           this.AppStateModel.location.query.type,
-          this.AppStateModel.location.query.status
+          this.AppStateModel.location.query.status,
+          this.filterByExpertId
         )
       ),
       true
