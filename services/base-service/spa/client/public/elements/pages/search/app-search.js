@@ -80,16 +80,16 @@ export default class AppSearch extends Mixin(LitElement)
       if( query.type ) this.type = query.type;
 
 
-      this.collabProjects = query.hasAvailability?.includes('collab');
-      this.commPartner = query.hasAvailability?.includes('community');
-      this.industProjects = query.hasAvailability?.includes('industry');
-      this.mediaInterviews = query.hasAvailability?.includes('media');
+      this.collabProjects = query.availability?.includes('collab');
+      this.commPartner = query.availability?.includes('community');
+      this.industProjects = query.availability?.includes('industry');
+      this.mediaInterviews = query.availability?.includes('media');
 
-      if( query.hasAvailability?.includes('ark:') ) {
-        if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Community partnerships') ) this.commPartner = true;
-        if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative projects') ) this.collabProjects = true;
-        if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry Projects') ) this.industProjects = true;
-        if( query.hasAvailability.includes('ark:/87287/d7mh2m/keyword/c-ucd-avail/Media enquiries') ) this.mediaInterviews = true;
+      if( query.availability ) {
+        if( query.availability.includes('Community partnerships') ) this.commPartner = true;
+        if( query.availability.includes('Collaborative projects') ) this.collabProjects = true;
+        if( query.availability.includes('Industry Projects') ) this.industProjects = true;
+        if( query.availability.includes('Media enquiries') ) this.mediaInterviews = true;
         this._updateLocation();
       }
 
@@ -143,10 +143,10 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.lastQueryParams = e.location.query;
 
-    this.collabProjects = (this.lastQueryParams.hasAvailability || '').includes('collab');
-    this.commPartner = (this.lastQueryParams.hasAvailability || '').includes('community');
-    this.industProjects = (this.lastQueryParams.hasAvailability || '').includes('industry');
-    this.mediaInterviews = (this.lastQueryParams.hasAvailability || '').includes('media');
+    this.collabProjects = (this.lastQueryParams.availability || '').includes('collab');
+    this.commPartner = (this.lastQueryParams.availability || '').includes('community');
+    this.industProjects = (this.lastQueryParams.availability || '').includes('industry');
+    this.mediaInterviews = (this.lastQueryParams.availability || '').includes('media');
 
     // hack for checkboxes not updating consistently even with requestUpdate (mostly an issue with back/forward buttons)
     this.shadowRoot.querySelector('#collab-projects').checked = this.collabProjects;
@@ -194,7 +194,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.searchTerm = e.detail.trim();
     this.totalResultsCount = null;
 
-    let hasAvailability = utils.buildSearchAvailability({
+    let availability = utils.buildSearchAvailability({
       collabProjects : this.collabProjects,
       commPartner : this.commPartner,
       industProjects : this.industProjects,
@@ -212,7 +212,7 @@ export default class AppSearch extends Mixin(LitElement)
           this.searchTerm,
           this.currentPage,
           this.resultsPerPage,
-          hasAvailability,
+          availability,
           this.AppStateModel.location.query.type,
           this.AppStateModel.location.query.status
         )
@@ -222,21 +222,21 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _updateLocation() {
-    // url should be /search/<searchTerm> if no search filters, otherwise /search?=<searchTerm>&hasAvailability=collab,community,industry,media etc
-    let hasAvailability = [];
-    if( this.collabProjects ) hasAvailability.push('collab');
-    if( this.commPartner ) hasAvailability.push('community');
-    if( this.industProjects ) hasAvailability.push('industry');
-    if( this.mediaInterviews ) hasAvailability.push('media');
+    // url should be /search/<searchTerm> if no search filters, otherwise /search?=<searchTerm>&availability=collab,community,industry,media etc
+    let availability = [];
+    if( this.collabProjects ) availability.push('collab');
+    if( this.commPartner ) availability.push('community');
+    if( this.industProjects ) availability.push('industry');
+    if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = hasAvailability.length || this.type.length; // TODO dates
+    let hasQueryParams = availability.length || this.type.length; // TODO dates
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
     if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
 
     if( hasQueryParams ) path += `?q=${encodeURIComponent(this.searchTerm)}`;
-    if( hasAvailability.length ) path += `&hasAvailability=${hasAvailability.join(',')}`;
+    if( availability.length ) path += `&availability=${availability.join(',')}`;
     if( this.type.length ) path += `&type=${this.type}`;
     if( this.status.length ) path += `&status=${this.status}`;
 
@@ -322,7 +322,7 @@ export default class AppSearch extends Mixin(LitElement)
 
     this._updateLocation();
 
-    let hasAvailability = utils.buildSearchAvailability({
+    let availability = utils.buildSearchAvailability({
       collabProjects : this.collabProjects,
       commPartner : this.commPartner,
       industProjects : this.industProjects,
@@ -335,7 +335,7 @@ export default class AppSearch extends Mixin(LitElement)
           this.searchTerm,
           this.currentPage,
           this.resultsPerPage,
-          hasAvailability,
+          availability,
           this.AppStateModel.location.query.type,
           this.AppStateModel.location.query.status
         )

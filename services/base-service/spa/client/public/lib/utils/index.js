@@ -377,16 +377,16 @@ class Utils {
    *
    * @param {Object} openTo object with keys for each type of availability
    *
-   * @return {Array} hasAvailability
+   * @return {Array} availability
    */
   buildSearchAvailability(openTo) {
     let availability = [];
 
     let arks = {
-      collab : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative%20projects',
-      community : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Community%20partnerships',
-      industry : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry%20Projects',
-      media : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Media%20enquiries'
+      collab : 'Collaborative projects',
+      community : 'Community partnerships',
+      industry : 'Industry Projects',
+      media : 'Media enquiries'
     };
 
     if( openTo.collabProjects ) availability.push(arks.collab);
@@ -404,13 +404,13 @@ class Utils {
    * @param {String} searchTerm search term
    * @param {Number} page page number, defaults to 1
    * @param {Number} size number of results per page, defaults to 25
-   * @param {Array} hasAvailability array of availability filters
+   * @param {Array} availability array of availability filters
    * @param {String} type type of search, ie 'grant', 'expert'. if none set, returns all results
    */
-  buildSearchQuery(searchTerm, page=1, size=25, hasAvailability=[], type, status) {
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], type, status) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
-    if( hasAvailability.length ) searchQuery += `&hasAvailability=${encodeURIComponent(hasAvailability.join(','))}`;
+    if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
     if( type ) searchQuery += `&type=${type}`;
     if( status ) searchQuery += `&status=${status}`;
 
