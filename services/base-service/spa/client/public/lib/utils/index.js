@@ -415,7 +415,7 @@ class Utils {
     if( hasAvailability.length ) searchQuery += `&hasAvailability=${encodeURIComponent(hasAvailability.join(','))}`;
     if( type ) searchQuery += `&type=${type}`;
     if( status ) searchQuery += `&status=${status}`;
-    if( expertId ) searchQuery += `&expert=${expertId}`;
+    if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
 
     return searchQuery;
   }
