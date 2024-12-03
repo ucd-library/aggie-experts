@@ -198,6 +198,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpertName = e.detail.name;
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
+      this.addingFilter = true;
       this._updateLocation();
     }
   }
@@ -256,7 +257,10 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _updateLocation() {
-    if( this.filterByExpert ) this.type = 'grant';
+    if( this.addingFilter && this.filterByExpert ) {
+      this.type = 'grant';
+      this.addingFilter = false;
+    }
 
     // url should be /search/<searchTerm> if no search filters, otherwise /search?=<searchTerm>&hasAvailability=collab,community,industry,media etc
     let hasAvailability = [];
@@ -265,7 +269,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) hasAvailability.push('industry');
     if( this.mediaInterviews ) hasAvailability.push('media');
 
-    let hasQueryParams = hasAvailability.length || this.type.length; // TODO dates
+    let hasQueryParams = hasAvailability.length || this.type.length || this.filterByExpert || this.status.length;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
