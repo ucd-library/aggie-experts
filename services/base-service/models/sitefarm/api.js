@@ -115,17 +115,19 @@ router.get(
 
     for (const id of req.query.expertIds) {
       const expertId = `${expert_model.id}/${id}`;
+      // Date parameters
+      const gte_date = req.query.gte_date || '2024-11-25';
       try {
         let opts = {
           admin: req.query.admin ? true : false,
         }
-        doc = await expert_model.get(expertId, opts);
+          doc = await expert_model.get(expertId, opts);
 
         let subselectOpts = {
           "is-visible": true,
           "expert": { "include": true },
           "grants": {
-            "include": false
+            "include": false,
           },
           "works": {
             "include": true,
@@ -137,6 +139,11 @@ router.get(
               { "field": "issued", "sort": "desc", "type": "year" },
               { "field": "title", "sort": "asc", "type": "string" }
             ]
+          },
+          "range": {
+            "modified-date": {
+              "gt": "{{gte_date}}"
+            }
           }
         };
         doc=expert_model.subselect(doc, subselectOpts);
