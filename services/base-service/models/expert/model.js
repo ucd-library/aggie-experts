@@ -154,6 +154,15 @@ class ExpertModel extends BaseModel {
     let invalidWorks = [];
     let invalidGrants = [];
 
+    // filter by modified date if requested
+      // if( options.expert['modified-date'] ) {
+      // console.log(expert);
+      // expert = expert.filter(e => new Date(e['modified-date']) >= new Date(options.expert['modified-date']));
+      // console.log(expert);
+      // works = works.filter(graph => graph['modified-date'] >= new Date(options['modified-date']));
+      // grants = grants.filter(graph => graph['modified-date'] >= new Date(options['modified-date']));
+    // }
+
     // filter out expert graph if not requested
     if( !options.expert?.include ) expert = [];
 

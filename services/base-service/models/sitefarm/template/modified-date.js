@@ -22,8 +22,7 @@ template = {
                       {
                         "range": {
                           "modified-date": {
-                            "gte": "{{gte_date}}",
-                            "lte": "{{lte_date}}"
+                            "gte": "{{gte_date}}"
                           }
                         }
                       }
@@ -32,7 +31,7 @@ template = {
                 },
                 {
                   "terms": {
-                    "expertId": [{{#expertIds}}"{{.}}",{{/expertIds}}]
+                      "expertId": [{{#expertIds}}"{{.}}",{{/expertIds}}""]
                   }
                 }
               ]

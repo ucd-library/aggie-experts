@@ -1,8 +1,13 @@
 const express = require('express');
 const router = require('express').Router();
 const { config, keycloak, dataModels, logger } = require('@ucd-lib/fin-service-utils');
+const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
+const template = require('./template/modified-date.js');
 const expert = new ExpertModel();
+const base = new BaseModel();
+// const experts = new ExpertModel();
+
 const { defaultEsApiGenerator } = dataModels;
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
@@ -112,20 +117,36 @@ router.get(
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
     var doc;
+    const gte_date = req.query.gte_date || 'now-3d/d';
+    opts = {
+      "id": "modified-date",
+      "params": {
+        "gte_date": "now-3d/d",
+        "is-visible": true,
+        "expertIds": ["DffIr7cE", "qX78TtWs", "BYDI7X1P"]
+      }
+    };
+    await expert.verify_template(template);
+    let result = await model.client.getScript({id:template.id});
+    console.log(result);
+    const find = await base.search(opts);
 
-    for (const id of req.query.expertIds) {
-      const expertId = `${expert_model.id}/${id}`;
-      // Date parameters
-      const gte_date = req.query.gte_date || '2024-11-25';
-      try {
-        let opts = {
-          admin: req.query.admin ? true : false,
-        }
-          doc = await expert_model.get(expertId, opts);
+    // for (const id of req.query.expertIds) {
+    //   const expertId = `${expert_model.id}/${id}`;
+    //   // Date parameters
+    //   const gte_date = req.query.gte_date || 'now-3d/d';
+    //   try {
+    //     let opts = {
+    //       admin: req.query.admin ? true : false,
+    //     }
+    //       doc = await expert_model.get(expertId, opts);
 
         let subselectOpts = {
           "is-visible": true,
-          "expert": { "include": true },
+          "expert": {
+            "include": true,
+            "modified-date": gte_date
+          },
           "grants": {
             "include": false,
           },
@@ -139,23 +160,18 @@ router.get(
               { "field": "issued", "sort": "desc", "type": "year" },
               { "field": "title", "sort": "asc", "type": "string" }
             ]
-          },
-          "range": {
-            "modified-date": {
-              "gt": "{{gte_date}}"
-            }
           }
         };
-        doc=expert_model.subselect(doc, subselectOpts);
-        res.doc_array.push(doc);
-      } catch (e) {
-        // log the error - couldn't find the resource. But continue to the next one
-        logger.error(`Could not get ${expertId}`, e);
-      }
-    }
+    //     doc=expert_model.subselect(doc, subselectOpts);
+    //     res.doc_array.push(doc);
+    //   } catch (e) {
+    //     // log the error - couldn't find the resource. But continue to the next one
+    //     logger.error(`Could not get ${expertId}`, e);
+    //   }
+    // }
     next();
   },
-  siteFarmFormat,
+  // siteFarmFormat,
   (req, res) => {
     res.status(200).json(res.doc_array);
   }
