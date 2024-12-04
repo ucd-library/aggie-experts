@@ -321,16 +321,21 @@ const openapi = OpenAPI(
           style: "simple",
           explode: false
         },
-        hasAvailability: {
+        availability: {
           in: "query",
-          name: "hasAvailability",
+          name: "availability",
           description: "Comma-separated search filter on expert availability types",
           required: false,
           schema: {
             type: "arary",
             items: {
               type: "string",
-              enum: ["collab","community","industry","media"]
+              enum: [
+                "community partnerships",
+                "collaborative projects",
+                "industry Projects",
+                "media enquiries"
+              ]
             }
           },
           style: "simple",
