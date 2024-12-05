@@ -113,7 +113,7 @@ router.get(
   json_only,
   validate_admin_client,
   validate_miv_client,
-  has_access('sitefarm'),
+  // has_access('sitefarm'),
   convertIds, // convert submitted iamIds to expertIds
   async (req, res, next) => {
     const expert_model = await model.get_model('expert');

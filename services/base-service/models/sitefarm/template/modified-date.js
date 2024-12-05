@@ -27,7 +27,7 @@ template = {
                 {{/gte_date}}
                 ,{
                   "terms": {
-                      "@id": "{{#toJson}}expert{{/toJson}}"
+                      "@id": {{#toJson}}expert{{/toJson}}
                   }
                 }
               ]

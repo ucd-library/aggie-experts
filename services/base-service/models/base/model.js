@@ -348,7 +348,6 @@ class BaseModel extends FinEsDataModel {
    * @returns {Object} ES results
    */
   async search(opts) {
-    console.log(`search( ${JSON.stringify(opts)} )`);
     const params = this.common_parms(opts.params);
 
     const index = params.index || ['grant-read','expert-read'];
@@ -359,7 +358,6 @@ class BaseModel extends FinEsDataModel {
       index,
       params
     }
-    console.log(`searching ${JSON.stringify(options)}`);
     const res=await this.client.searchTemplate(options);
     return this.compact_search_results(res,params);
   }
