@@ -128,14 +128,15 @@ router.get(
     if (req?.query.expert) {
       params.expert = req.query.expert.split(',');
     }
-    opts = {
+    let opts = {
       "id": "modified-date",
       "params": params
     };
     await expert.verify_template(template);
     // what is this?
 //    let result = await model.client.getScript({id:template.id});
-//    console.log(result);
+    //    console.log(result);
+    console.log(`base.search(${JSON.stringify(opts)})`);
     const find = await base.search(opts);
 
     for (const id of req.query.expertIds) {
@@ -191,6 +192,7 @@ router.get(
 
 // router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
 
+const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, { router });
 
 module.exports = router;

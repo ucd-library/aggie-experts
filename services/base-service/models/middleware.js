@@ -68,6 +68,7 @@ async function convertIds(req, res, next) {
     }
     req.query.expert=experts.join(',');
   }
+  console.log(`convertIds: ${req.query.expert}`);
   return next();
 }
 
@@ -170,7 +171,7 @@ function has_access(client) {
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
-  const contentType = req.get('Content-Type');
+  const contentType = req.get('Accept') || req.get('Content-Type') ;
   if (contentType.startsWith('application/json') || contentType.startsWith('application/ld+json')) {
     // Content-Type is acceptable
     return next();
