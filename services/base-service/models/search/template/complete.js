@@ -35,6 +35,11 @@ template = {
                               }
                             }
                             {{/availability}}
+                            {{#expert}}
+                            ,{ "terms": {
+                              "@id": {{#toJson}}expert{{/toJson}}
+                             }}
+                             {{/expert}}
                           ]
                         }
                       },
@@ -43,6 +48,22 @@ template = {
                           "must_not": [
                             { "term": { "@type": "Expert" }}
                           ]
+                          {{#expert}}
+                          ,"must": {
+                            "nested": {
+                                "path": "@graph",
+                                "query": {
+                                  "bool": {
+                                    "must": [
+                                        { "exists": { "field": "@graph.@id" }},
+                                        { "terms": {
+                                        "@graph.@id": {{#toJson}}expert{{/toJson}}
+                                     }}
+                                    ]
+                                  }
+                                }
+                            }}
+                          {{/expert}}
                         }
                       }
                     ],

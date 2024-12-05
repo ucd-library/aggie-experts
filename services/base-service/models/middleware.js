@@ -252,6 +252,17 @@ const openapi = OpenAPI(
     },
     components: {
       parameters: {
+        expert: {
+          in: "query",
+          name: "expert",
+          description: "Comma-separated search filter on experts",
+          required: false,
+          schema: {
+            type: "array"
+          },
+          style: "simple",
+          explode: false
+        },
         expertId: {
           name: 'expertId',
           in: 'path',

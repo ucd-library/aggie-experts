@@ -69,6 +69,10 @@ export default function render() {
         padding-top: 0.4rem;
       }
 
+      .search-result-matches a {
+        color: var(--color-aggie-blue-80);
+      }
+
       .search-matches {
         padding-right: .25rem;
       }
@@ -99,11 +103,11 @@ export default function render() {
         </div>
       </div>
       <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${unsafeHTML(this.result.subtitle)}</div>
-      <div class="search-result-matches" ?hidden="${this.hideSearchMatches}">
-        <span class="search-matches">Search matches:</span>
-          <span>${this.result.numberOfGrants} grants</span>
-          <span class="dot-separator">.</span>
-          <span>${this.result.numberOfWorks} works</span>
+      <div class="search-result-matches" ?hidden="${this.hideSearchMatches || this.resultType !== 'expert'}">
+        <span ?hidden="${this.result.numberOfGrants === 0}" class="search-matches">Search matches:</span>
+          <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grants</a></span>
+          <span class="dot-separator" ?hidden="${this.hideWorksMatches}">.</span>
+          <span ?hidden="${this.hideWorksMatches}">${this.result.numberOfWorks} works</span>
       </div>
     </div>
   `;
