@@ -464,7 +464,11 @@ class BaseModel extends FinEsDataModel {
     );
 
     if( result ) {
-      result = result._source;
+      if ( !opts.full ) {
+        // default is to return the _source part of the result only
+        result = result._source;
+      }
+      return result;
       //if( opts.compact ) this.utils.compactAllTypes(result);
       //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
     } else {

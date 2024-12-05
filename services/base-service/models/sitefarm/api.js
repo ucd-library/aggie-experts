@@ -43,6 +43,8 @@ function siteFarmFormat(req, res, next) {
         newDoc["publications"].push(doc["@graph"][i]);
       }
     }
+    // preserve the modified-date
+    newDoc["modified-date"] = doc["modified-date"];
     newArray.push(newDoc);
   }
   res.doc_array = newArray;
@@ -118,34 +120,39 @@ router.get(
     res.doc_array = [];
     var doc;
     const gte_date = req.query.gte_date || 'now-3d/d';
-    opts = {
-      "id": "modified-date",
-      "params": {
-        "gte_date": "now-3d/d",
-        "is-visible": true,
-        "expertIds": ["DffIr7cE", "qX78TtWs", "BYDI7X1P"]
-      }
-    };
-    await expert.verify_template(template);
-    let result = await model.client.getScript({id:template.id});
-    console.log(result);
-    const find = await base.search(opts);
+    // opts = {
+    //   "id": "modified-date",
+    //   "params": {
+    //     "gte_date": "now-3d/d",
+    //     "is-visible": true,
+    //     "expertIds": ["DffIr7cE", "qX78TtWs", "BYDI7X1P"]
+    //   }
+    // };
+    // await expert.verify_template(template);
+    // let result = await model.client.getScript({id:template.id});
+    // console.log(result);
+    // const find = await base.search(opts);
 
-    // for (const id of req.query.expertIds) {
-    //   const expertId = `${expert_model.id}/${id}`;
-    //   // Date parameters
-    //   const gte_date = req.query.gte_date || 'now-3d/d';
-    //   try {
-    //     let opts = {
-    //       admin: req.query.admin ? true : false,
-    //     }
-    //       doc = await expert_model.get(expertId, opts);
+    for (const id of req.query.expertIds) {
+      const expertId = `${expert_model.id}/${id}`;
+      // Date parameters
+      const gte_date = req.query.modified_since || '2024-01-01';
+      try {
+        let opts = {
+          admin: req.query.admin ? true : false,
+          full: true // get the full document that incluse the modified-date
+        }
+        doc = await expert_model.get(expertId, opts);
+        // continue if the modified-date is greater than the gte_date
+        if (new Date(doc._source["modified-date"]) < new Date(gte_date)) {
+          continue; // skip to the next expert
+        }
+        doc = doc._source;
 
         let subselectOpts = {
           "is-visible": true,
           "expert": {
-            "include": true,
-            "modified-date": gte_date
+            "include": true
           },
           "grants": {
             "include": false,
@@ -162,16 +169,16 @@ router.get(
             ]
           }
         };
-    //     doc=expert_model.subselect(doc, subselectOpts);
-    //     res.doc_array.push(doc);
-    //   } catch (e) {
-    //     // log the error - couldn't find the resource. But continue to the next one
-    //     logger.error(`Could not get ${expertId}`, e);
-    //   }
-    // }
+        doc=expert_model.subselect(doc, subselectOpts);
+        res.doc_array.push(doc);
+      } catch (e) {
+        // log the error - couldn't find the resource. But continue to the next one
+        logger.error(`Could not get ${expertId}`, e);
+      }
+    }
     next();
   },
-  // siteFarmFormat,
+  siteFarmFormat,
   (req, res) => {
     res.status(200).json(res.doc_array);
   }
