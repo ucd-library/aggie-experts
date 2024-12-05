@@ -15,23 +15,19 @@ template = {
                       { "term" : {"is-visible": true } }
                     ]
                   }
-                },
-                {
-                  "bool": {
-                    "should": [
-                      {
-                        "range": {
-                          "modified-date": {
-                            "gte": "{{gte_date}}"
-                          }
-                        }
-                      }
-                    ]
+                }
+                {{#gte_date}}
+                ,{
+                  "range": {
+                    "modified-date": {
+                      "gte": "{{gte_date}}"
+                    }
                   }
-                },
-                {
+                }
+                {{/gte_date}}
+                ,{
                   "terms": {
-                      "expertId": [{{#expertIds}}"{{.}}",{{/expertIds}}""]
+                      "@id": "{{#toJson}}expert{{/toJson}}"
                   }
                 }
               ]

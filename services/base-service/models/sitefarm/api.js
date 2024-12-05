@@ -118,17 +118,22 @@ router.get(
     res.doc_array = [];
     var doc;
     const gte_date = req.query.gte_date || 'now-3d/d';
+    const params={
+      "gte_date": "now-3d/d",
+      "expert": []
+    };
+
+    if (req?.query.expert) {
+      params.expert = req.query.expert.split(',');
+    }
     opts = {
       "id": "modified-date",
-      "params": {
-        "gte_date": "now-3d/d",
-        "is-visible": true,
-        "expertIds": ["DffIr7cE", "qX78TtWs", "BYDI7X1P"]
-      }
+      "params": params
     };
     await expert.verify_template(template);
-    let result = await model.client.getScript({id:template.id});
-    console.log(result);
+    // what is this?
+//    let result = await model.client.getScript({id:template.id});
+//    console.log(result);
     const find = await base.search(opts);
 
     // for (const id of req.query.expertIds) {
