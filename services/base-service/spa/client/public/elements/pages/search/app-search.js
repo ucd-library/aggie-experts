@@ -517,7 +517,7 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _updateAvailableFilters() {
-    this.showOpenTo = !this.type || this.type === 'expert';
+    this.showOpenTo = this.type === 'expert';
     // TODO others, dates hidden when viewing Experts
   }
 
