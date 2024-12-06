@@ -113,15 +113,15 @@ router.get(
   json_only,
   validate_admin_client,
   validate_miv_client,
-  // has_access('sitefarm'),
+  has_access('sitefarm'),
   convertIds, // convert submitted iamIds to expertIds
   async (req, res, next) => {
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
     var doc;
-    const gte_date = req.query.gte_date || 'now-3d/d';
+    const gte_date = req.query.modified_since || 'now-3d/d';
     const params={
-      "gte_date": "now-3d/d",
+      "gte_date": gte_date,
       "expert": []
     };
 
@@ -133,55 +133,8 @@ router.get(
       "params": params
     };
     await expert.verify_template(template);
-    // what is this?
-//    let result = await model.client.getScript({id:template.id});
-    //    console.log(result);
-    console.log(`base.search(${JSON.stringify(opts)})`);
     const find = await base.search(opts);
-
-    for (const id of req.query.expertIds) {
-      const expertId = `${expert_model.id}/${id}`;
-      // Date parameters
-      const gte_date = req.query.modified_since || '2024-01-01';
-      try {
-        let opts = {
-          admin: req.query.admin ? true : false,
-          full: true // get the full document that incluse the modified-date
-        }
-        doc = await expert_model.get(expertId, opts);
-        // continue if the modified-date is greater than the gte_date
-        if (new Date(doc._source["modified-date"]) < new Date(gte_date)) {
-          continue; // skip to the next expert
-        }
-        doc = doc._source;
-
-        let subselectOpts = {
-          "is-visible": true,
-          "expert": {
-            "include": true
-          },
-          "grants": {
-            "include": false,
-          },
-          "works": {
-            "include": true,
-            "page": 1,
-            "size": 5,
-            "exclude": [],
-            "includeMisformatted": false,
-            "sort": [
-              { "field": "issued", "sort": "desc", "type": "year" },
-              { "field": "title", "sort": "asc", "type": "string" }
-            ]
-          }
-        };
-        doc=expert_model.subselect(doc, subselectOpts);
-        res.doc_array.push(doc);
-      } catch (e) {
-        // log the error - couldn't find the resource. But continue to the next one
-        logger.error(`Could not get ${expertId}`, e);
-      }
-    }
+    res.doc_array = find.hits;
     next();
   },
   siteFarmFormat,
