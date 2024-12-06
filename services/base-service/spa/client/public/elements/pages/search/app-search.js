@@ -44,7 +44,7 @@ export default class AppSearch extends Mixin(LitElement)
 
   constructor() {
     super();
-    this._injectModel('AppStateModel', 'SearchModel');
+    this._injectModel('AppStateModel', 'SearchModel', 'ExpertModel');
 
     this.searchTerm = '';
     this.lastQueryParams = {};
@@ -85,6 +85,10 @@ export default class AppSearch extends Mixin(LitElement)
 
       if( query.type ) this.type = query.type;
 
+      if( query.expert ) {
+        this.filterByExpert = true;
+        this.filterByExpertId = query.expert;
+      }
 
       this.collabProjects = query.availability?.includes('collab');
       this.commPartner = query.availability?.includes('community');
@@ -284,8 +288,12 @@ export default class AppSearch extends Mixin(LitElement)
     this.AppStateModel.setLocation(path);
   }
 
-  _onSearchUpdate(e, fromSearchPage=false) {
+  async _onSearchUpdate(e, fromSearchPage=false) {
     if( e?.state !== 'loaded' || !fromSearchPage ) return;
+
+    if( this.filterByExpert && this.filterByExpertId && !this.filterByExpertName ) {
+      this.filterByExpertName = await this._getExpertNameById(this.filterByExpertId);
+    }
 
     // console.log('parsing new search results', e, fromSearchPage);
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
@@ -327,6 +335,20 @@ export default class AppSearch extends Mixin(LitElement)
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
 
     this.requestUpdate();
+  }
+
+  /**
+   * @method _getExpertNameById
+   * @description get expert name given an expertId
+   *
+   * @param {String} expertId
+   */
+  async _getExpertNameById(expertId='') {
+    let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({
+      includeWorks : false,
+      includeGrants : false
+    }));
+    return expert.payload?.name?.split?.('§')?.[0]?.trim() || '';
   }
 
   /**
