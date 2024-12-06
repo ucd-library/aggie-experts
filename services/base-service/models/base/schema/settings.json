@@ -1,5 +1,6 @@
 {
   "index.max_inner_result_window": 1000,
+  "index.default_pipeline": "aggie-experts-pipeline",
   "analysis" : {
     "char_filter": {
       "doi_to_url": {
