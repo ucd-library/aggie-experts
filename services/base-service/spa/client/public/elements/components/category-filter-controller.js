@@ -85,6 +85,7 @@ export class CategoryFilterController extends Mixin(LitElement)
 
     this.type = e.location.query.type || '';
     this.status = e.location.query.status || '';
+    this.expert = e.location.query.expert || '';
     this._updateActiveFilter(this.type, this.status);
 
     // handle filter/query changes outside of filter controller
@@ -104,7 +105,8 @@ export class CategoryFilterController extends Mixin(LitElement)
           this.resultsPerPage,
           availability,
           this.AppStateModel.location.query.type,
-          this.AppStateModel.location.query.status
+          this.AppStateModel.location.query.status,
+          this.expert
         )
       ),
       true
