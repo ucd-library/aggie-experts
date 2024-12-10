@@ -158,8 +158,10 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
    * @returns {Promise} - A promise that resolves with the user expertId
    */
   async getOrCreateExpert(email,username,profile) {
-    let user= await this.findByEmail(email);
-    if (! user) {
+    let user;
+    try {
+      user= await this.findByEmail(email);
+    } catch (error) {
       if (username && profile) {
         const new_user = {
           email:email,
@@ -180,16 +182,7 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
         });
         user=await this.createExpert(email,new_user);
       } else {
-        console.log(username)
-        console.log(profile)
         throw new Error(`No user found with email: ${email} and no creation parameters`);
-      }
-    } else {
-      if (! user?.attributes?.expertId) {
-        const attributes = user.attributes || {};
-        attributes.expertId = this.mintExpertId();
-        await this.users.update({id:user.id},{attributes});
-        await this.verifyExpertId(user,attributes.expertId);
       }
     }
     return user

@@ -38,8 +38,6 @@ export default class Schema {
             }
           }
         });
-        console.log('versions',versions);
-        console.log('version',version);
         let file = path.join(__dirname,`${id}/${version}/context.jsonld`);
         const fileContents = fs.readFileSync(file, 'utf8');
         Context[id] = JSON.parse(fileContents);
