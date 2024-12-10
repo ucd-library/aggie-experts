@@ -10,7 +10,7 @@ const grants = new GrantModel();
 
 const {config} = require('@ucd-lib/fin-service-utils');
 
-const { openapi, is_user } = require('../middleware.js')
+const { openapi, is_user } = require('../middleware/index.js')
 
 function search_valid_path(options={}) {
   const def = {
@@ -69,6 +69,7 @@ router.get(
       params.expert = req.query.expert.split(',');
     }
     if (req?.query.status) {
+      console.log('status', req.query.status);
       params.status = req.query.status.split(',');
     }
     if (req?.query.type) {
@@ -83,7 +84,7 @@ router.get(
         params.index.push(grants.readIndexAlias);
         break;
       default:
-         return res.status(400).json({error: 'Invalid type'});
+        return res.status(400).json({error: 'Invalid type'});
         break;
       }
     });
