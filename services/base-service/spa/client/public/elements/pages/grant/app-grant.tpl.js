@@ -231,11 +231,11 @@ return html`
     </div>
 
     <div class="main-content">
-      <div class="grants">
+      <div class="grants" ?hidden="${!this.showAboutSection}">
         <ucdlib-icon class="file-invoice" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
         <h2>About the Grant</h2>
       </div>
-      <hr class="about seperator">
+      <hr class="about seperator" ?hidden="${!this.showAboutSection}">
 
       <div ?hidden="${!this.awardedBy}" class="awarded-by">
         <h3 class="heading--highlight">Awarded by</h3>
@@ -257,7 +257,7 @@ return html`
         <p>${this.purpose}</p>
       </div>
 
-      <div class="contributors-section">
+      <div class="contributors-section" ?hidden="${!this.showContributorsSection}">
         <div class="grants">
           <ucdlib-icon class="contributors" icon="ucdlib-experts:fa-people-group"></ucdlib-icon>
           <h2>Known Contributors</h2>

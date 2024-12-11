@@ -525,7 +525,7 @@ function build() {
 
   cd "$(${G[git]} rev-parse --show-toplevel)"
 
-  for i in experts-api fuseki harvest services/base-service services/init; do
+  for i in experts-api harvest services/base-service services/init; do
     local n=$(basename $i)
     local image=$org/${n}:$tag
 

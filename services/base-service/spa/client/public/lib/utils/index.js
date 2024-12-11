@@ -204,6 +204,7 @@ class Utils {
 
       // if grant idenfication number is in the name/title, remove it
       let grantIdentifier = g['@id'].split('grant/').pop();
+      g.name = g.name?.split('§')?.shift()?.trim();
       if( g.name.includes(grantIdentifier) ) g.name = g.name.replace(grantIdentifier, '');
 
       return g;
@@ -376,16 +377,16 @@ class Utils {
    *
    * @param {Object} openTo object with keys for each type of availability
    *
-   * @return {Array} hasAvailability
+   * @return {Array} availability
    */
   buildSearchAvailability(openTo) {
     let availability = [];
 
     let arks = {
-      collab : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative%20projects',
-      community : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Community%20partnerships',
-      industry : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry%20Projects',
-      media : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Media%20enquiries'
+      collab : 'Collaborative projects',
+      community : 'Community partnerships',
+      industry : 'Industry Projects',
+      media : 'Media enquiries'
     };
 
     if( openTo.collabProjects ) availability.push(arks.collab);
@@ -394,6 +395,29 @@ class Utils {
     if( openTo.mediaInterviews ) availability.push(arks.media);
 
     return availability;
+  }
+
+  /**
+   * @method buildSearchQuery
+   * @description return search query string for search api
+   *
+   * @param {String} searchTerm search term
+   * @param {Number} page page number, defaults to 1
+   * @param {Number} size number of results per page, defaults to 25
+   * @param {Array} availability array of availability filters
+   * @param {String} type type of search, ie 'grant', 'expert'. if none set, returns all results
+   * @param {String} status status of search, ie 'active', 'completed'. if none set, returns all results
+   * @param {String} expertId expertId to filter grants/works to
+   */
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], type, status, expertId) {
+    let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
+
+    if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
+    if( type ) searchQuery += `&type=${type}`;
+    if( status ) searchQuery += `&status=${status}`;
+    if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
+
+    return searchQuery;
   }
 
 }

@@ -28,7 +28,9 @@ export default class AppGrant extends Mixin(LitElement)
       researchers : { type : Array },
       startDate : { type : String },
       endDate : { type : String },
-      completed : { type : Boolean }
+      completed : { type : Boolean },
+      showAboutSection : { type : Boolean },
+      showContributorsSection : { type : Boolean }
     }
   }
 
@@ -54,6 +56,8 @@ export default class AppGrant extends Mixin(LitElement)
     this.startDate = '';
     this.endDate = '';
     this.completed = false;
+    this.showAboutSection = false;
+    this.showContributorsSection = false;
 
     this.render = render.bind(this);
   }
@@ -99,7 +103,7 @@ export default class AppGrant extends Mixin(LitElement)
 
     // Invisible grants still have resolvable landing pages. When the grant visibility has been changed, the expected behavior is:
     // 1. If there are no public relationships, the grant landing page should return a 404 for all users, including the owner of the grant
-    let hasPublicRelationships = (grantGraph?.relatedBy || []).some(r => r['inheres_in'] && r['is-visible']);
+    let hasPublicRelationships = (grantGraph?.relatedBy || []).some(r => (r['inheres_in'] && r['is-visible']) || r['@id'].includes('#roleof_'));
     if( !hasPublicRelationships ) {
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -115,6 +119,7 @@ export default class AppGrant extends Mixin(LitElement)
     this.grantNumber = grantGraph.sponsorAwardId || '';
     this.grantAdmin = grantGraph.assignedBy?.name || '';
     // this.purpose tbd
+    this.showAboutSection = (this.awardedBy || this.grantNumber || this.grantAdmin || this.purpose);
 
     let start = grantGraph.dateTimeInterval?.start?.dateTime;
     let end = grantGraph.dateTimeInterval?.end?.dateTime;
@@ -224,6 +229,7 @@ export default class AppGrant extends Mixin(LitElement)
 
     });
 
+    this.showContributorsSection = (this.pis.length > 0 || this.coPis.length > 0 || this.leaders.length > 0 || this.researchers.length > 0);
   }
 
 }
