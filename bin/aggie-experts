@@ -470,23 +470,11 @@ function prune() {
 #    local image=$org/${service}:$tag
 }
 function build() {
-  local org fin_org tag fin_tag
+  local org tag
   local N=${G[dry-run]};
 
-  read org tag fin_org fin_tag \
-       <<<$(G "[.${G[env]}.org // .def.org,
-           .${G[env]}.tag // .def.tag,
-           .def.fin.org,
-           .def.fin.tag] | @tsv") #\
-
-  local git_tag="$(${G[git]} describe --always --dirty)"
+  local tag="$(${G[git]} describe --always --dirty)"
   # Tag is the git tag, unless specified
-  if [[ $tag == "__git__" ]]; then
-    tag="${git_tag}"
-  fi
-
-
-  local setup=
 
   function post_build() {
     if [[ $tag != "dirty" ]]; then
@@ -494,24 +482,20 @@ function build() {
     fi
   }
 
-  local cache_tag
   case ${G[env]} in
     dev)
-      cache_tag=dirty
     ;; # Always build
     clean | sandbox )
       if [[ "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
         exit 1
       fi
-      cache_tag=dirty
       ;;
     build )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
         exit 1
       fi
-      cache_tag=$tag
       ;;
     test | prev | stage | prod )
       >&2 echo "No builds env=${G[env]}"
@@ -523,21 +507,7 @@ function build() {
       ;;
   esac
 
-  cd "$(${G[git]} rev-parse --show-toplevel)"
-
-  for i in experts-api fuseki harvest services/base-service services/init; do
-    local n=$(basename $i)
-    local image=$org/${n}:$tag
-
-    export DOCKER_BUILDKIT=1
-    $N docker build \
-	     --build-arg BUILDKIT_INLINE_CACHE=1 \
-       --build-arg FIN_ORG=${fin_org} --build-arg FIN_TAG=${fin_tag} \
-       --build-arg ORG=${org} --build-arg TAG=${tag} \
-       -t $image \
-       --cache-from localhost/aggie-experts/${n}:${cache_tag} ${i} || exit 1
-
-  done
+  cork-kube build exec --project aggie-experts --version=dev --dry-run
 
   post_build
 }
