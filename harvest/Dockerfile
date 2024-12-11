@@ -3,6 +3,7 @@ ARG ORG
 ARG FIN_TAG
 ARG FIN_ORG
 ARG FUSEKI_IMAGE
+ARG EXPERTS_API_IMAGE
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
 FROM $FUSEKI_IMAGE AS more
 

@@ -33,6 +33,7 @@
       "dockerfile" : "./services/base-service/Dockerfile",
       "options" : {
         "build-arg" : [
+          "EXPERTS_API_IMAGE=${aggie-experts.experts-api}",
           "FIN_ORG=gcr.io/ucdlib-pubreg",
           "FIN_TAG=2.6.3"
         ]
