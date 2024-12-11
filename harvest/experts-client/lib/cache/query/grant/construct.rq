@@ -315,7 +315,7 @@ WHERE {
           ?undefined)
        as ?labeled_only_role)
 
-  bind(js:capitalizeName(?funder_label_cap) as ?funder_label)
+  bind(js:capitalizeTitle(?funder_label_cap) as ?funder_label)
   bind(js:capitalizeName(?pi_name_cap,"\\s+"," ") as ?pi_name)
 
   bind(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active") as ?status)
