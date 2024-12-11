@@ -11,7 +11,7 @@ aggie-experts - Manage Aggie Experts code development, docker images, and deploy
 
 aggie-experts [-n|--dry-run] [--env=<env>] [--mount]  <command> <command> ...
 
-where <env> is one of dev, clean, sandbox, build, test, prod; default is guessed
+where <env> is one of dev, clean, sandbox, gcb, test, prod; default is guessed
 using guess-env, fails if multiple matches are possible.
 
 where <command> is one of: build, prune, setup, config, list-mounts, test_env,
@@ -31,14 +31,14 @@ aggie-experts manages development, build and deployment processes for Aggie
 
 =item B<--env=I<env>>
 
-Set the environment, one of dev, clean, sandbox, build, test, prod, where dev is the
+Set the environment, one of dev, clean, sandbox, gcb, test, prod, where dev is the
 default.
 
 Developers develop their code in the test environment, verify the setup in the
 clean environment, and then submit their pull requests.  The sandbox environment
 can deploy any commit in a space for multiple reviewers.
 
-The build environment is used to build test images and push to the aggie-experts
+The gcb environment uses cloud build and to build these images to the aggie-experts
 docker repository.
 
 The test and prod environments are for the production code.  They require
@@ -105,7 +105,6 @@ declare -g -A G=(
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=
   [test_env]=1
-  [include_fuseki]=1
   [cloudsdk_active_config_name]='aggie-experts'
 );
 
@@ -126,11 +125,11 @@ Aggie Experts. The typical workflow is; develop your code in the C<dev>
 environment, verify the setup in the C<clean> environment, and then submit your
 pull requests.  The C<sandbox> environment can deploy any commit in a space for
 multiple reviewers.  Once the code is ready for production, it is built in the
-C<build> environment, and then deployed to the C<test> and C<prod> environments.
+C<gcb> environment, and then deployed to the C<test> and C<prod> environments.
 
-C<aggie-experts [--env=dev|clean|sandbox|build] build> Builds the docker
+C<aggie-experts [--env=dev|clean|sandbox|gcb] build> Builds the docker
 images.  Builds to C<org=localhost> images in dev,clean, and sandbox
-environments.  C<org=gcr.io./aggie-experts> images in the build environment.
+environments.  Cloud build in C<org=gcr.io./aggie-experts> images in the gcb environment.
 
 C<aggie-experts [--env=dev|clean|sandbox|test|prod] setup> Sets up the C<.env>
 and C<docker-compose.yaml> files for the specified environment.
@@ -196,12 +195,12 @@ function guess-env() {
       dev)
         d_envs+=($e)
         ;;
-      clean|sandbox|build)
+      clean|sandbox)
         if ! [[ "$tag" =~ "dirty" ]]; then
           d_envs+=($e)
         fi
         ;;
-      test| prev | stage | prod)
+      gcb | prev | stage | prod)
         if ! [[ "$tag" =~ "-" ]]; then
           d_envs+=($e)
         fi
@@ -306,7 +305,7 @@ function test_env() {
       server dev
       # Use git status to check for unstaged changes
       ;;
-    build)
+    gcb)
       annotated_tag
       not_dirty
       good_status
@@ -471,7 +470,10 @@ function prune() {
 }
 function build() {
   local org tag
-  local N=${G[dry-run]};
+  local dry_run
+  if [[ -n ${G[dry-run]} ]]; then
+    dry_run="--dry-run"
+  fi
 
   local tag="$(${G[git]} describe --always --dirty)"
   # Tag is the git tag, unless specified
@@ -484,18 +486,22 @@ function build() {
 
   case ${G[env]} in
     dev)
+      tag="dirty"
+      cork-kube build exec --project aggie-experts --version=dev -o aggie-experts=dirty $dry_run
     ;; # Always build
     clean | sandbox )
       if [[ "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
         exit 1
       fi
+      cork-kube build exec --project aggie-experts --version=dev -o aggie-experts=$tag $dry_run
       ;;
     build )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
         exit 1
       fi
+      cork-kube build gcb --project aggie-experts --version=$tag $dry_run
       ;;
     test | prev | stage | prod )
       >&2 echo "No builds env=${G[env]}"
@@ -507,45 +513,7 @@ function build() {
       ;;
   esac
 
-  cork-kube build exec --project aggie-experts --version=dev --dry-run
-
   post_build
-}
-
-
-function push() {
-  local org tag
-  local N=${G[dry-run]};
-
-  read org tag \
-       <<<$(G "[.${G[env]}.org // .def.org, .${G[env]}.tag // .def.tag ] | @tsv")
-
-  local git_tag="$(${G[git]} describe --always --dirty)"
-
-  # Tag is the git tag, unless specified
-  if [[ ${tag} == "__git__" ]]; then
-    tag="${git_tag}"
-  fi
-
-  case ${G[env]} in
-    dev | clean | sandbox | test | prev | stage | prod ) # Never push
-      >&2 echo "env=$env: Don't push env=${G[env]}"
-      exit 1
-      ;; # Never push
-    build )
-      ;;
-    *)
-      >&2 echo "Unknown env=${G[env]}"
-      exit 1
-      ;;
-  esac
-
-  for i in experts-api fuseki harvest services/base-service services/init; do
-    local n=$(basename $i)
-    local image=$org/${n}:$tag
-
-    $N docker push ${image}
-  done
 }
 
 function setup() {
@@ -580,9 +548,6 @@ function setup() {
     done
 
     if [[ "$env" = "dev" ]]; then
-      if [[ -z ${G[include_fuseki]} ]]; then
-          yq+='| del(.services.fuseki) | del(.volumes.fuseki-data)'
-      fi
       if [[ -z "$gcs" ]]; then
         yq+='| del(.services.gcs)'
       fi
@@ -716,7 +681,7 @@ function main.cmd() {
     for cmd in "$@"; do
       shift
       case $cmd in
-	      build | setup | push | prune ) # API requests
+	      build | setup | prune ) # API requests
 
           # Guess env if not supplied
           if [[ -z ${G[env]} ]]; then
