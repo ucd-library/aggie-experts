@@ -46,6 +46,32 @@ class WorkModel extends BaseModel {
     return doc;
   }
 
+    /**
+   * @method subselect
+   * @description return all or part of a document.  While this only really santiizes the authorships, we maintain the name to match the expert model.
+   * @param {Object} doc
+   * @param {Object} options, ie {admin:true|false, is-visible:true|false}
+   * @returns {Object} : document
+   * @example
+        *  subselect(doc, {admin:false, is-visible:true})
+   **/
+  subselect(doc, options={}) {
+    if (doc["is-visible"] === false) {
+      throw {status: 404, message: "Not found"};
+    }
+    // make doc.relatedBy an array if it is only one object
+    if( doc.relatedBy && !Array.isArray(doc.relatedBy) ) {
+      doc.relatedBy = [doc.relatedBy];
+    }
+    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    if( options['is-visible'] !== false || !options.admin ) {
+      doc.relatedBy = doc.relatedBy.filter(r => r['is-visible']);
+    }
+    // if doc.relatedBy is empty, doc isn't visible
+    if( doc.relatedBy.length === 0 ) {
+      throw {status: 404, message: "Not found"};
+    }
+  }
 
   /**
    * @method update
