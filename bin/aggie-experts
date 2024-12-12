@@ -454,6 +454,7 @@ function prune() {
 function build() {
   local org tag
   local dry_run
+  local N=${G[dry-run]};
   if [[ -n ${G[dry-run]} ]]; then
     dry_run="--dry-run"
   fi
@@ -470,14 +471,14 @@ function build() {
   case ${G[env]} in
     dev)
       tag="dirty"
-      cork-kube build exec --project aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
+      $N cork-kube build exec --project=aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
     ;; # Always build
     clean | sandbox )
       if [[ "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
         exit 1
       fi
-      cork-kube build exec --project aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
+      $N cork-kube build exec --project=aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
       ;;
     gcb )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then

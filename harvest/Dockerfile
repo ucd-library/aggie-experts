@@ -43,7 +43,7 @@ RUN set -x ; mkdir -p /tmp/builder && \
 FROM $EXPERTS_API_IMAGE AS api
 
 # fin-service is also shared
-FROM FROM ${FIN_SERVER_IMAGE} AS fin-base-service
+FROM ${FIN_SERVER_IMAGE} AS fin-base-service
 
 # Now build from fuseki
 FROM $FUSEKI_IMAGE
