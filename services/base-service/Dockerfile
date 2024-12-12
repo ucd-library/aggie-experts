@@ -1,10 +1,9 @@
-ARG ORG
-ARG TAG
 ARG FIN_ORG
 ARG FIN_TAG
+ARG EXPERTS_API_IMAGE
 
 # Experts API is shared
-FROM $ORG/experts-api:$TAG AS api
+FROM $EXPERTS_API_IMAGE AS api
 
 FROM ${FIN_ORG}/fin-base-service:${FIN_TAG}
 

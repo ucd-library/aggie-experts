@@ -442,32 +442,15 @@ function expand_template(){
 
 function prune() {
   local N=${G[dry-run]};
-  declare -a services=(init fcrepo base-service)
 
   local org=$(G .${G[env]}.org)
   local tag=$(G .${G[env]}.tag)
 
-  local fin_rm=$(docker image list --format=json | jq -r "select(.Repository | test(\"fin-\")) | (select(.Repository | test(\"$(G .def.fin.org)\") | not),select(.Tag != \"$(G .def.fin.tag)\")) | .Repository+\":\"+.Tag")
+  local experts_rm=$(docker image list --format=json | jq -r 'select(.Repository | test("aggie-experts")) | (select(.Repository | test("init$")),select(.Repository | test("fcrepo$")),select(.Repository | test("base-service")),select(.Repository | test("harvest"))) | select(.Tag != "dirty") | .Repository+":"+.Tag')
 
-  local experts_rm=$(docker image list --format=json | jq -r 'select(.Repository | test("aggie-experts")) | (select(.Repository | test("init$")),select(.Repository | test("fcrepo$")),select(.Repository | test("base-service"))) | select(.Tag != "dirty") | .Repository+":"+.Tag')
-
-  if [[ -n $N ]]; then
-    echo "#===== rm fin =====#"
-    echo "$fin_rm"
-  echo "#===== rm experts =====#"
-    echo "$experts_rm"
-  else
-    docker image rm $fin_rm $experts_rm
-  fi
-
-# Remove all fin- images not in our current desird.
-
-#  for service in "fin-base-service fin-init fin-fcrepo"; do
-#    docker rmi -f ${org}/${service}:${tag}
-#  done
-#  for service in "${services[@]}"; do
-#    local image=$org/${service}:$tag
+  $N docker image rm $experts_rm
 }
+
 function build() {
   local org tag
   local dry_run
@@ -487,16 +470,14 @@ function build() {
   case ${G[env]} in
     dev)
       tag="dirty"
-
-      echo "cork-kube build exec --project aggie-experts --version=dev -o aggie-experts=dirty $dry_run ${G[use_registry]}"
-      cork-kube build exec --project aggie-experts --version=dev -o aggie-experts=dirty $dry_run ${G[use_registry]}
+      cork-kube build exec --project aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
     ;; # Always build
     clean | sandbox )
       if [[ "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
         exit 1
       fi
-      cork-kube build exec --project aggie-experts --version=dev -o aggie-experts=$tag $dry_run ${G[use_registry]}
+      cork-kube build exec --project aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
       ;;
     build )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then

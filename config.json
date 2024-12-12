@@ -1,10 +1,15 @@
 {
   "def":{
     "server":"^(blue|gold).experts.library.ucdavis.edu",
+    "org":"us-west1-docker.pkg.dev/aggie-experts/docker",
     "auth": {
       "server":"prod",
       "client_id":"aggie-experts",
       "service_account":"aggie-experts-service-account"
+    },
+    "fin":{
+      "org":"gcr.io/ucdlib-pubreg",
+      "tag":"2.6.3"
     },
     "client_error_reporting":{
       "enabled":false,
@@ -37,6 +42,8 @@
       "client_id":"local-dev",
       "service_account":"local-dev-service-account"
     },
+    "org":"localhost/aggie-experts",
+    "tag":"dirty",
     "branch":"!^(dev|main)",
     "server":"!(experts.library.ucdavis.edu)",
     "port":"80",
