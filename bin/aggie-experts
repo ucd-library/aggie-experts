@@ -402,11 +402,11 @@ function expand_template(){
           ] |@tsv")
 
   #decode client_error_reporting_key_secret
-  D[client_error_reporting_key]=$(gcloud secrets versions access latest --secret=${D[client_error_reporting_key_secret]})
+  D[client_error_reporting_key]=$(gcloud --project=aggie-experts secrets versions access latest --secret=${D[client_error_reporting_key_secret]})
 
   #Get OIDC INFO
-  local oidc_secret=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
-  eval $(gcloud secrets versions access latest --secret="$oidc_secret")
+  local oidc_secret=$(basename $(gcloud --project=aggie-experts --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
+  eval $(gcloud --project=aggie-experts secrets versions access latest --secret="$oidc_secret")
   D[jwt_secret]=$JWT_SECRET
   D[jwt_issuer]=$JWT_ISSUER
   D[jwt_jwks_uri]=$JWT_JWKS_URI
@@ -415,8 +415,8 @@ function expand_template(){
   D[oidc_base_url]=$OIDC_BASE_URL
 
   #Get service account info
-  local srv_secret=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
-  eval $(gcloud secrets versions access latest --secret="$srv_secret")
+  local srv_secret=$(basename $(gcloud  --project=aggie-experts --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
+  eval $(gcloud  --project=aggie-experts secrets versions access latest --secret="$srv_secret")
   D[fin_service_account_name]=$FIN_SERVICE_ACCOUNT_NAME
   D[fin_service_account_secret]=$FIN_SERVICE_ACCOUNT_SECRET
 
@@ -504,9 +504,9 @@ function setup() {
   local env=${G[env]}
 
   function service_account() {
-    local service_account=$(basename $(gcloud --format=json secrets list --filter="labels.type:service-account-key" | jq -r '.[0].name'))
+    local service_account=$(basename $(gcloud  --project=aggie-experts --format=json secrets list --filter="labels.type:service-account-key" | jq -r '.[0].name'))
 
-    gcloud secrets versions access latest --secret="$service_account"
+    gcloud --project=aggie-experts secrets versions access latest --secret="$service_account"
   }
 
   function compose() {
