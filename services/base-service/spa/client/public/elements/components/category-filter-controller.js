@@ -97,19 +97,18 @@ export class CategoryFilterController extends Mixin(LitElement)
       mediaInterviews : availabilityParam.includes('media'),
     });
 
+    this.searchQuery = utils.buildSearchQuery(
+      this.searchTerm,
+      this.currentPage,
+      this.resultsPerPage,
+      availability,
+      this.AppStateModel.location.query.type,
+      this.AppStateModel.location.query.status,
+      this.expert
+    );
+
     this._onSearchUpdate(
-      await this.SearchModel.search(
-        utils.buildSearchQuery(
-          this.searchTerm,
-          this.currentPage,
-          this.resultsPerPage,
-          availability,
-          this.AppStateModel.location.query.type,
-          this.AppStateModel.location.query.status,
-          this.expert
-        )
-      ),
-      true
+      await this.SearchModel.search(this.searchQuery)
     );
   }
 
@@ -121,6 +120,7 @@ export class CategoryFilterController extends Mixin(LitElement)
    */
   _onSearchUpdate(e) {
     if( e?.state !== 'loaded' ) return;
+    if( e?.id?.split('search:')?.[1] !== this.searchQuery ) return;
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
     if( !this.rawSearchData['global_aggregations'] ) {
@@ -129,6 +129,7 @@ export class CategoryFilterController extends Mixin(LitElement)
     }
 
     this._updateFilterCounts(this.rawSearchData['global_aggregations']);
+    this.requestUpdate();
   }
 
   _updateFilterCounts(globalAggregations={}) {

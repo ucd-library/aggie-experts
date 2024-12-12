@@ -153,6 +153,19 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.lastQueryParams = e.location.query;
 
+    if( !e.location.query.expert || e.resetSearch ) {
+      this.filterByExpert = false;
+      this.filterByExpertId = '';
+      this.filterByExpertName = '';
+
+      // TODO reset selected download boxes
+    }
+
+    if( e.resetSearch ) {
+      this.type = '';
+      this.AppStateModel.set({ resetSearch: false });
+    }
+
     this.collabProjects = (this.lastQueryParams.availability || '').includes('collab');
     this.commPartner = (this.lastQueryParams.availability || '').includes('community');
     this.industProjects = (this.lastQueryParams.availability || '').includes('industry');
@@ -241,6 +254,16 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( resetPage ) {
       this.currentPage = 1;
+      this.filterByExpert = false;
+      this.filterByExpertId = '';
+      this.filterByExpertName = '';
+
+      // update the selected filter to All Results
+      this.type = '';
+
+      // TODO reset selected download boxes
+      // TODO elsewhere, also need to persist checked download boxes for experts vs grants independently
+
       this._updateLocation();
     }
 
@@ -462,6 +485,9 @@ export default class AppSearch extends Mixin(LitElement)
    */
   async _downloadClicked(e) {
     e.preventDefault();
+
+    debugger;
+    // TODO need to build grants vs works file
 
     let selectedPersons = [];
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
