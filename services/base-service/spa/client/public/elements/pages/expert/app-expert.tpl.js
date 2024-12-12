@@ -327,12 +327,14 @@ return html`
       cursor: pointer;
     }
 
-    .grants-abbreviated .grant h5 {
+    .grants-abbreviated .grant h5,
+    .works-abbreviated .work h5 {
       color: var(--ucd-blue-80, #13639E);
       cursor: pointer;
     }
 
-    .grants-abbreviated .grant h5 a {
+    .grants-abbreviated .grant h5 a,
+    .works-abbreviated .work h5 a {
       text-decoration: none;
     }
 
@@ -980,7 +982,7 @@ return html`
           (cite) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
             <div class="work">
-              <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
+              <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">•</span>

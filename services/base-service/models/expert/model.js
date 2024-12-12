@@ -150,13 +150,17 @@ class ExpertModel extends BaseModel {
 
     // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
     if( options['is-visible'] !== false || !options.admin ) {
-      console.log('filtering out hidden works/grants',doc['@id']);
       works = works.filter(w => w.relatedBy && w.relatedBy.some(related => related['is-visible'] && related?.relates.some(r => r === doc['@id'])));
 
       grants = grants.filter(g =>
         g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
       );
     }
+
+    // TODO test hidden works/grants behaves as we expect for experts that are admins and not admins,
+    // and on the expert profile and the list/edit pages.
+    // the counts of hidden/visible works/grants might be wrong
+
 
     let hiddenWorks = totalWorks - works.length;
     let hiddenGrants = totalGrants - grants.length;
