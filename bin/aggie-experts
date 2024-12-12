@@ -479,7 +479,7 @@ function build() {
       fi
       cork-kube build exec --project aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
       ;;
-    build )
+    gcb )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
         exit 1

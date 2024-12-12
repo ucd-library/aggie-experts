@@ -2,7 +2,8 @@
   "registry" : "us-west1-docker.pkg.dev/aggie-experts/docker",
 
   "repositories" : {
-    "fuseki" : "https://github.com/ucd-library/fuseki-image"
+    "fuseki" : "https://github.com/ucd-library/fuseki-image",
+    "fin" : "https://github.com/ucd-library/fin"
   },
 
   "images" : {
@@ -11,8 +12,7 @@
       "dockerfile" : "./experts-api/Dockerfile",
       "options" : {
         "build-arg" : [
-          "FIN_ORG=gcr.io/ucdlib-pubreg",
-          "FIN_TAG=2.6.3"
+          "FIN_SERVER_IMAGE=${fin.fin-base-service}"
         ]
       }
     },
@@ -23,8 +23,7 @@
         "build-arg" : [
           "FUSEKI_IMAGE=${fuseki.fuseki}",
           "EXPERTS_API_IMAGE=${aggie-experts.experts-api}",
-          "FIN_ORG=gcr.io/ucdlib-pubreg",
-          "FIN_TAG=2.6.3"
+          "FIN_SERVER_IMAGE=${fin.fin-base-service}"
         ]
       }
     },
@@ -34,8 +33,7 @@
       "options" : {
         "build-arg" : [
           "EXPERTS_API_IMAGE=${aggie-experts.experts-api}",
-          "FIN_ORG=gcr.io/ucdlib-pubreg",
-          "FIN_TAG=2.6.3"
+          "FIN_SERVER_IMAGE=${fin.fin-base-service}"
         ]
       }
     },
@@ -44,8 +42,7 @@
       "dockerfile" : "./services/init/Dockerfile",
       "options" : {
         "build-arg" : [
-          "FIN_ORG=gcr.io/ucdlib-pubreg",
-          "FIN_TAG=2.6.3"
+          "FIN_INIT=${fin.fin-init}"
         ]
       }
     }

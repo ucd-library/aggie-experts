@@ -1,9 +1,9 @@
 ARG TAG
 ARG ORG
-ARG FIN_TAG
-ARG FIN_ORG
 ARG FUSEKI_IMAGE
 ARG EXPERTS_API_IMAGE
+ARG FIN_SERVER_IMAGE
+
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
 FROM $FUSEKI_IMAGE AS more
 
@@ -43,7 +43,7 @@ RUN set -x ; mkdir -p /tmp/builder && \
 FROM $EXPERTS_API_IMAGE AS api
 
 # fin-service is also shared
-FROM $FIN_ORG/fin-base-service:$FIN_TAG AS fin-base-service
+FROM FROM ${FIN_SERVER_IMAGE} AS fin-base-service
 
 # Now build from fuseki
 FROM $FUSEKI_IMAGE
