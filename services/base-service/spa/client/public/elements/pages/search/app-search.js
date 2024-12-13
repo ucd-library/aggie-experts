@@ -153,17 +153,12 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.lastQueryParams = e.location.query;
 
-    if( !e.location.query.expert || e.resetSearch ) {
-      this.filterByExpert = false;
-      this.filterByExpertId = '';
-      this.filterByExpertName = '';
+    let filterToExpert = e.location.query.expert;
+
+    if( e.resetSearch || !filterToExpert ) {
+      this._clearSearchFilters(false, !filterToExpert, true); // TODO not sure clearing type is correct, and others work
 
       // TODO reset selected download boxes
-    }
-
-    if( e.resetSearch ) {
-      this.type = '';
-      this.AppStateModel.set({ resetSearch: false });
     }
 
     this.collabProjects = (this.lastQueryParams.availability || '').includes('collab');
@@ -254,12 +249,8 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( resetPage ) {
       this.currentPage = 1;
-      this.filterByExpert = false;
-      this.filterByExpertId = '';
-      this.filterByExpertName = '';
 
-      // update the selected filter to All Results
-      this.type = '';
+      this._clearSearchFilters();
 
       // TODO reset selected download boxes
       // TODO elsewhere, also need to persist checked download boxes for experts vs grants independently
@@ -283,6 +274,32 @@ export default class AppSearch extends Mixin(LitElement)
     );
   }
 
+  /**
+   * @method _clearSearchFilters
+   * @description clear all search filters and optionally the search term
+   *
+   * @param {Boolean} clearSearchTerm remove searched query, defaults to false
+   * @param {Boolean} clearExpertFilter remove expert filter, defaults to true
+   * @param {Boolean} clearTypeFilter remove type filter, ie All Results, Experts, Grants, etc., defaults to true
+   */
+  _clearSearchFilters(clearSearchTerm=false, clearExpertFilter=true, clearTypeFilter=true) {
+    if( clearSearchTerm ) this.searchTerm = '';
+
+    if( clearExpertFilter ) {
+      this.filterByExpert = false;
+      this.filterByExpertId = '';
+      this.filterByExpertName = '';
+    }
+
+    if( clearTypeFilter ) this.type = '';
+
+    debugger; // TODO is this right?
+  }
+
+  /**
+   * @method _updateLocation
+   * @description update the url with the current search filters/search term
+   */
   _updateLocation() {
     if( this.addingFilter && this.filterByExpert ) {
       this.type = 'grant';
