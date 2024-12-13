@@ -209,6 +209,7 @@ return html`
         @show-404="${(e) => this.page = '404'}">
       </app-expert-works-list-edit>
       <app-grant id="grant" @show-404="${(e) => this.page = '404'}"></app-grant>
+      <app-work id="work" @show-404="${(e) => this.page = '404'}"></app-work>
       <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
       <app-expert-grants-list-edit
         @loading="${(e) => this.loading = true}"

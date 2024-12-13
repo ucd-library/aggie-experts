@@ -1,12 +1,14 @@
 import { LitElement } from 'lit';
-import {render} from "./app-work.tpl.js";
+import {render, styles} from "./app-work.tpl.js";
 
 // sets globals Mixin and EventInterface
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
-import '@ucd-lib/theme-elements/ucdlib/ucdlib-md/ucdlib-md.js';
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
-import '../utils/app-icons.js';
+import '../../components/contributor-row.js';
+import '../../utils/app-icons.js';
+
+import utils from '../../../lib/utils/index.js';
 
 export default class AppWork extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -14,53 +16,137 @@ export default class AppWork extends Mixin(LitElement)
   static get properties() {
     return {
       workId : { type : String },
-      work : { type : Object },
-      publicationName : { type : String },
-      authors : { type : Array },
-      ucTextLink : { type : String },
-      pubPageTextLink : { type : String },
+      workName : { type : String },
+      workType : { type : String },
+      showFullText : { type : Boolean },
+      ucLink : { type : String },
+      publisherLink : { type : String },
       abstract : { type : String },
-
+      publisher : { type : String },
+      publishedPage : { type : String },
+      publishedDate : { type : String },
+      showPublished : { type : Boolean },
+      showSubjects : { type : Boolean },
+      showAuthors : { type : Boolean },
+      authorsList : { type : Array },
     }
+  }
+
+  static get styles() {
+    return styles();
   }
 
   constructor() {
     super();
+
     this._injectModel('AppStateModel', 'WorkModel');
 
     this.workId = '';
-    this.work = {};
+    this.workName = '';
+    this.workType = 'article';
+
+    this.ucLink = '';
+    this.publisherLink = '';
+    this.showFullText = false;
+
+    this.abstract = '';
+
+    this.publisher = '';
+    this.publishedPage = '';
+    this.publishedDate = '';
+    this.showPublished = false;
+
+    this.showSubjects = false; // TODO this might not be in v2.1
+
+    this.showAuthors = false;
+    this.authorsList = [];
+    //   {
+    //     hasProfile : true,
+    //     id : 'expert/42',
+    //     name : 'Lastname, Firstname 1',
+    //     subtitle : 'Role, Title, Department 1'
+    //   },
+    //   {
+    //     hasProfile : true,
+    //     id : 'expert/42',
+    //     name : 'Lastname, Firstname 2',
+    //     subtitle : 'Role, Title, Department 2'
+    //   }
+    // ];
 
     this.render = render.bind(this);
   }
 
-  async firstUpdated() {
-    if( this.workId && this.workId === 'ark:/87287/d7mh2m/publication/1765066' ) return;
 
+  async firstUpdated() {
     this._onAppStateUpdate(await this.AppStateModel.get());
   }
 
+  /**
+   * @method _onAppStateUpdate
+   * @description bound to AppStateModel app-state-update event
+   *
+   * @return {Object} e
+   */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'work' ) return;
+    window.scrollTo(0, 0);
 
-    // TEMP hack
-    this.workId = 'ark:/87287/d7mh2m/publication/1765066';
-    await this.WorkModel.get(this.workId);
+    this.workId = e.location.pathname.replace(/^\/work\//, '');
+    this._onWorkUpdate(await this.WorkModel.get(this.workId));
   }
 
-  _onWorkUpdate(e) {
+  /**
+   * @method _onWorkUpdate
+   * @description bound to WorkModel work-update event
+   *
+   * @return {Object} e
+   */
+  async _onWorkUpdate(e) {
+    if( e.state === 'error' ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
     if( e.state !== 'loaded' ) return;
+    if( this.AppStateModel.location.page !== 'work' ) return;
+    if( e.workId !== this.workId ) return;
 
-    this.workId = e.id;
-    this.work = e.payload;
+    let workGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.workId)?.[0] || {};
+    if( !workGraph ) return;
 
-    // update page data
-    let graphRoot = this.work['@graph'].filter(item => item['@id'] === this.workId)[0];
-    let publishers = this.work['@graph'].filter(item => item['@id'] !== this.workId);
+    console.log('workGraph', workGraph); // TODO remove
 
-    this.publicationName = graphRoot.title;
-    this.abstract = graphRoot.abstract;
+    this.workName = workGraph.title || '';
+    this.workType = utils.getCitationType(workGraph.type) || '';
+
+    // this.ucLink = '';
+    // this.publisherLink = '';
+    this.showFullText = true; // this.ucLink || this.publisherLink;
+
+    // TODO ask QH, should this support markdown?
+    this.abstract = workGraph.abstract || '';
+
+    this.publisher = workGraph.publisher || '';
+    this.publishedPage = workGraph.page || '';
+    this.publishedDate = workGraph.issued || ''; // TODO this could be array type? also need to format
+    this.showPublished = this.publisher && this.publishedPage && this.publishedDate;
+
+    // this.showSubjects = true; // TODO this might not be in v2.1
+
+    // this.showAuthors = true; // TODO hide if no authors
+    // this.authorsList = [
+    //   {
+    //     hasProfile : true,
+    //     id : 'expert/42',
+    //     name : 'Lastname, Firstname 1',
+    //     subtitle : 'Role, Title, Department 1'
+    //   }
+    // ];
+
   }
+
 }
 
 customElements.define('app-work', AppWork);
