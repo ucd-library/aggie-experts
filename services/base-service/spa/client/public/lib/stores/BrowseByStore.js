@@ -8,8 +8,10 @@ class BrowseByStore extends BaseStore {
     this.data = {
       byExpertsAZ : new LruStore({name: 'browse.experts.az'}),
       byGrantsAZ : new LruStore({name: 'browse.grants.az'}),
+      byWorksAZ : new LruStore({name: 'browse.works.az'}),
       byExpertsLastInitial : new LruStore({name: 'browse.experts'}),
       byGrantsLastInitial : new LruStore({name: 'browse.grants'}),
+      byWorksLastInitial : new LruStore({name: 'browse.works'})
     }
 
     this.events = {};

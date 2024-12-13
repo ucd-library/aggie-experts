@@ -125,10 +125,9 @@ export default class AppWork extends Mixin(LitElement)
     // this.publisherLink = '';
     this.showFullText = true; // this.ucLink || this.publisherLink;
 
-    // TODO ask QH, should this support markdown?
     this.abstract = workGraph.abstract || '';
 
-    this.publisher = workGraph.publisher || '';
+    this.publisher = workGraph.hasPublicationVenue?.name || '';
     this.publishedPage = workGraph.page || '';
     this.publishedDate = workGraph.issued || ''; // TODO this could be array type? also need to format
     this.showPublished = this.publisher && this.publishedPage && this.publishedDate;
@@ -144,6 +143,25 @@ export default class AppWork extends Mixin(LitElement)
     //     subtitle : 'Role, Title, Department 1'
     //   }
     // ];
+  //   relatedBy = [
+  //     {
+  //         "@id": "ark:/87287/d7mh2m/relationship/6891410",
+  //         "@type": [
+  //             "Authorship",
+  //             "ucdlib:Authorship"
+  //         ],
+  //         "is-visible": true,
+  //         "rank": 1,
+  //         "relates": [
+  //             "expert/B6IzGJXZ",
+  //             "ark:/87287/d7mh2m/publication/3164416"
+  //         ]
+  //     }
+  // ]
+    if( workGraph.relatedBy && !Array.isArray(workGraph.relatedBy) ) workGraph.relatedBy = [workGraph.relatedBy];
+    // this.authorsList = x
+
+    // ask QH, relatedBy doesn't have name of expert, just expertId
 
   }
 

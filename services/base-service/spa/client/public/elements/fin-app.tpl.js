@@ -153,8 +153,8 @@ return html`
     <ucd-theme-primary-nav>
       <a href="/browse/expert">Experts</a>
       <!-- <a href="/subject">Subjects</a> -->
-      <!-- <a href="/work">Works</a> -->
       <a href="/browse/grant">Grants</a>
+      <a href="/browse/work">Works</a>
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>
