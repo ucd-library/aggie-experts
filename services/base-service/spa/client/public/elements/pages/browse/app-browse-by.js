@@ -72,7 +72,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
     let resultsPerPage = e.location.path[4];
 
     if( this.letter ) {
-      this.currentPage = parseInt(page) ? page : 1;
+      this.currentPage = !isNaN(page) ? parseInt(page) : 1;
       this.resultsPerPage = parseInt(resultsPerPage) ? resultsPerPage : 25;
 
       if( this.browseType === 'expert' ) {
