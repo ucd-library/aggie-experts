@@ -159,6 +159,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( e.resetSearch ) {
       this.type = '';
       this._removeExpertFilter();
+      this._uncheckDownloads()
       this.AppStateModel.set({ resetSearch : false });
     }
 
@@ -481,6 +482,12 @@ export default class AppSearch extends Mixin(LitElement)
     debugger;
     // TODO need to build grants vs works file
 
+    // Title | Funding Agency | Grant Id | Start Date | End Date | Type of Grant | Known Contributors (List of PIs and CoPIs)
+    // I realized Role is not helpful here as the grants are not attached to people in that filtered view. Can you make that a concatenated "Known Contributors" column?
+
+
+
+
     let selectedPersons = [];
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
     resultRows.forEach(row => {
@@ -543,6 +550,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.type === 'all results' ) this.type = '';
     this._updateAvailableFilters();
     this.currentPage = 1;
+    this._uncheckDownloads();
 
     if( this.type !== 'grant' && this.filterByExpert ) {
       this._removeExpertFilter();
@@ -558,12 +566,24 @@ export default class AppSearch extends Mixin(LitElement)
     this._updateAvailableFilters();
 
     this.currentPage = 1;
+    this._uncheckDownloads();
     this._updateLocation();
   }
 
   _updateAvailableFilters() {
     this.showOpenTo = this.type === 'expert';
     // TODO others, dates hidden when viewing Experts
+  }
+
+  _uncheckDownloads() {
+    let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
+    resultRows.forEach(row => {
+      let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
+      if( checkbox ) checkbox.checked = false;
+    });
+
+    let selectAll = this.shadowRoot.querySelector('#select-all');
+    if( selectAll ) selectAll.checked = false;
   }
 
 }
