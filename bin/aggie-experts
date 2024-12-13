@@ -455,9 +455,6 @@ function build() {
   local org tag
   local dry_run
   local N=${G[dry-run]};
-  if [[ -n ${G[dry-run]} ]]; then
-    dry_run="--dry-run"
-  fi
 
   local tag="$(${G[git]} describe --always --dirty)"
   # Tag is the git tag, unless specified
@@ -471,21 +468,21 @@ function build() {
   case ${G[env]} in
     dev)
       tag="dirty"
-      $N cork-kube build exec --project=aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
+      $N cork-kube build exec --project=aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag ${G[build_args]} $@
     ;; # Always build
     clean | sandbox )
       if [[ "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
         exit 1
       fi
-      $N cork-kube build exec --project=aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag $dry_run ${G[use_registry]}
+      $N cork-kube build exec --project=aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag ${G[build_args]} $@
       ;;
     gcb )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
         exit 1
       fi
-      cork-kube build gcb --project aggie-experts --version=$tag $dry_run
+      cork-kube build gcb --project aggie-experts --version=$tag ${G[build_args]} $@
       ;;
     test | prev | stage | prod )
       >&2 echo "No builds env=${G[env]}"
@@ -619,7 +616,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -629,7 +626,7 @@ function main.cmd() {
       [setup_compose]=1
       [setup_service_account]=1
       [unstaged_ok]=
-      [use_registry]=
+      [build_args]=
     )
 
     while true; do
@@ -645,7 +642,7 @@ function main.cmd() {
         --service-account) CMD[setup_service_account]=1; shift;;
         --no-service-account) CMD[setup_service_account]=; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
-        --use-registry) CMD[use_registry]="--use-registry=$2"; shift 2;;
+        --build-args) CMD[build_args]="$2"; shift 2;;
         -h | --help) pod2text $0; exit 0;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
 	      -- ) shift; break;;
