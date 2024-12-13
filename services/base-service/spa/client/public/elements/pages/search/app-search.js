@@ -153,12 +153,13 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.lastQueryParams = e.location.query;
 
-    let filterToExpert = e.location.query.expert;
+    // TODO reset selected download boxes?
 
-    if( e.resetSearch || !filterToExpert ) {
-      this._clearSearchFilters(false, !filterToExpert, true); // TODO not sure clearing type is correct, and others work
-
-      // TODO reset selected download boxes
+    // clear expert filter if not set
+    if( e.resetSearch ) {
+      this.type = '';
+      this._removeExpertFilter();
+      this.AppStateModel.set({ resetSearch : false });
     }
 
     this.collabProjects = (this.lastQueryParams.availability || '').includes('collab');
@@ -250,11 +251,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( resetPage ) {
       this.currentPage = 1;
 
-      this._clearSearchFilters();
-
       // TODO reset selected download boxes
-      // TODO elsewhere, also need to persist checked download boxes for experts vs grants independently
-
       this._updateLocation();
     }
 
@@ -272,28 +269,6 @@ export default class AppSearch extends Mixin(LitElement)
       ),
       true
     );
-  }
-
-  /**
-   * @method _clearSearchFilters
-   * @description clear all search filters and optionally the search term
-   *
-   * @param {Boolean} clearSearchTerm remove searched query, defaults to false
-   * @param {Boolean} clearExpertFilter remove expert filter, defaults to true
-   * @param {Boolean} clearTypeFilter remove type filter, ie All Results, Experts, Grants, etc., defaults to true
-   */
-  _clearSearchFilters(clearSearchTerm=false, clearExpertFilter=true, clearTypeFilter=true) {
-    if( clearSearchTerm ) this.searchTerm = '';
-
-    if( clearExpertFilter ) {
-      this.filterByExpert = false;
-      this.filterByExpertId = '';
-      this.filterByExpertName = '';
-    }
-
-    if( clearTypeFilter ) this.type = '';
-
-    debugger; // TODO is this right?
   }
 
   /**
@@ -568,6 +543,11 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.type === 'all results' ) this.type = '';
     this._updateAvailableFilters();
     this.currentPage = 1;
+
+    if( this.type !== 'grant' && this.filterByExpert ) {
+      this._removeExpertFilter();
+    }
+
     this._updateLocation();
   }
 
