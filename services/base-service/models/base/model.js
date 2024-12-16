@@ -3,7 +3,7 @@ const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-util
 const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
-const ingest_pipeline = require('./schema/aggie-experts-pipeline.json');
+// const ingest_pipeline = require('./schema/aggie-experts-pipeline.json');
 
 // await this.verify_ingest_pipeline('aggie-experts-pipeline', ingest_pipeline);
 
@@ -268,24 +268,24 @@ class BaseModel extends FinEsDataModel {
    * @method verify_ingest_pipeline
    * @description Adds ingest pipeline to elastic search if it doesn't exist
    */
-  async verify_ingest_pipeline(pipelineId, pipelineBody) {
-    try {
-      // Check if the pipeline exists
-      logger.info(`checking pipeline ${pipelineId}`);
-      await this.client.ingest.getPipeline({ id: pipelineId });
-      logger.info(`Pipeline ${pipelineId} already exists.`);
-    } catch (err) {
-        try {
-          await this.client.ingest.putPipeline({
-            id: pipelineId,
-            body: pipelineBody
-          });
-          logger.info(`Pipeline ${pipelineId} created.`);
-        } catch (err) {
-          throw new Error(`verify_ingest_pipeline: ${err}`);
-        }
-    }
-  }
+  // async verify_ingest_pipeline(pipelineId, pipelineBody) {
+  //   try {
+  //     // Check if the pipeline exists
+  //     logger.info(`checking pipeline ${pipelineId}`);
+  //     await this.client.ingest.getPipeline({ id: pipelineId });
+  //     logger.info(`Pipeline ${pipelineId} already exists.`);
+  //   } catch (err) {
+  //       try {
+  //         await this.client.ingest.putPipeline({
+  //           id: pipelineId,
+  //           body: pipelineBody
+  //         });
+  //         logger.info(`Pipeline ${pipelineId} created.`);
+  //       } catch (err) {
+  //         throw new Error(`verify_ingest_pipeline: ${err}`);
+  //       }
+  //   }
+  // }
 
   compact_search_results(results,params) {
     const compact = {
