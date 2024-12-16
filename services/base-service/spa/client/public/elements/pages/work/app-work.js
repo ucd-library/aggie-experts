@@ -8,6 +8,7 @@ import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../components/contributor-row.js';
 import '../../utils/app-icons.js';
 
+import Citation from '../../../lib/utils/citation.js';
 import utils from '../../../lib/utils/index.js';
 
 export default class AppWork extends Mixin(LitElement)
@@ -121,18 +122,31 @@ export default class AppWork extends Mixin(LitElement)
     this.workName = workGraph.title || '';
     this.workType = utils.getCitationType(workGraph.type) || '';
 
-    // this.ucLink = '';
-    // this.publisherLink = '';
-    this.showFullText = true; // this.ucLink || this.publisherLink;
 
+    // 'get at UC' link is described https://library.ucdavis.edu/get-it-at-uc-links/
+    // TODO but not sure how to construct the link
+    this.ucLink = '';
+
+    this.publisherLink = workGraph.DOI ? this.publisherLink = `https://doi.org/${workGraph.DOI}` : '';
+
+    this.showFullText = this.ucLink || this.publisherLink; // TODO test this that it hides when no links
+
+    // math ML in abstract and title
+    // TODO need to test, chemistry papers ie
     this.abstract = workGraph.abstract || '';
 
-    this.publisher = workGraph.hasPublicationVenue?.name || '';
+
+    // TODO for publisher/page/date, what are we doing on the expert page with citation-js? do same thing here
+    let citation = await Citation.generateCitations([workGraph]);
+    debugger;
+    this.publisher = workGraph['container-title'] || '';
     this.publishedPage = workGraph.page || '';
     this.publishedDate = workGraph.issued || ''; // TODO this could be array type? also need to format
+
+
     this.showPublished = this.publisher && this.publishedPage && this.publishedDate;
 
-    // this.showSubjects = true; // TODO this might not be in v2.1
+    this.showSubjects = false;
 
     // this.showAuthors = true; // TODO hide if no authors
     // this.authorsList = [
