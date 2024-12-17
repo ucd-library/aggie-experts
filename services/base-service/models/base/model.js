@@ -393,6 +393,7 @@ class BaseModel extends FinEsDataModel {
    * @description Get document via _id.
    * @param {String} id : _id of document to get
    * @param {Object} options : options for get (like _source:false)
+   * @param {Boolean} sourceExcludes : exclude source fields
    */
   async client_get(id,options={}) {
     // console.log(`FinEsNestedModel.client_get(${id}) on ${this.readIndexAlias}`);
@@ -401,13 +402,14 @@ class BaseModel extends FinEsDataModel {
         ...{
           index: this.readIndexAlias,
           id: id,
-          _source: true
+          _source: true,
+          _source_excludes: false
         },
         ...options
       }
     )
     return result._source;
-    }
+  }
 
     /**
    * @method get
@@ -419,26 +421,21 @@ class BaseModel extends FinEsDataModel {
    */
   async get(id, opts={}, index) {
     if( id[0] === '/' ) id = id.substring(1);
-    let _source_excludes = true;
+    let _source_excludes = 'roles';
     if( opts.admin ) _source_excludes = false;
-    else if( opts.compact ) _source_excludes = 'compact';
 
-    let result= await this.client.get(
+    let result= await this.client.exists(
       {
         index: this.readIndexAlias,
-        id: id,
-        _source: true,
-	      _source_excludes: _source_excludes
+        id: id
       }
     );
 
-    if( result ) {
-      result = result._source;
-      //if( opts.compact ) this.utils.compactAllTypes(result);
-      //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
-    } else {
-      return null;
-    }
+    if( !result ) return null;
+
+    result = await this.client_get(identifier, null, _source_excludes);
+    //if( opts.compact ) this.utils.compactAllTypes(result);
+    //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
 
     // Add fcrepo and dbsync data if admin, for the dashboard
     if( opts.admin === true ) {
