@@ -61,14 +61,13 @@ class AuthorshipModel extends BaseModel {
 
     try {
       expert = await expertModel.client_get(expertId);
-      node = this.get_node_by_related_id(expert,id);
+      node = this.get_node_by_related_id(expert,rid);
       let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
       if (patch.objectId==null) {
         patch.objectId = node_id;
       }
     } catch(e) {
       console.error(e.message);
-      logger.info(`relatedBy[{@id${id} not found in expert ${expertId}`);
       return 404
     };
     if (patch.visible != null) {
@@ -199,7 +198,6 @@ class AuthorshipModel extends BaseModel {
       objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
     } catch(e) {
       console.error(e.message);
-      logger.info(`relatedBy[{@id ${id} not found in expert ${expertId}`);
       return 404
     };
 
