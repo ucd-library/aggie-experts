@@ -192,14 +192,11 @@ class AuthorshipModel extends BaseModel {
     let objectId;
     let resp;
 
-    try {
-      expert = await expertModel.client_get(expertId);
-      node = this.get_node_by_related_id(expert, id);
-      objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
-    } catch(e) {
-      console.error(e.message);
-      return 404
-    };
+    let rid=id.replace("ark:/87287/d7mh2m/","ark:/87287/d7mh2m/relationship/");
+
+    expert = await expertModel.client_get(expertId);
+    node = this.get_node_by_related_id(expert, rid);
+    objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
 
     await expertModel.delete_graph_node(expertId, node);
 
@@ -212,7 +209,7 @@ class AuthorshipModel extends BaseModel {
     await finApi.delete(options);
 
     if (config.experts.cdl.authorship.propagate) {
-      let linkId=id.replace("ark:/87287/d7mh2m/relationship/","");
+      let linkId=rid.replace("ark:/87287/d7mh2m/relationship/","");
       const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
       logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
       resp = await cdl_user.reject({
