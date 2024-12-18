@@ -2,9 +2,10 @@ ARG TAG
 ARG ORG
 ARG FIN_TAG
 ARG FIN_ORG
-
+ARG FUSEKI_TAG=1.0.1
+ARG REGISTRY=us-west1-docker.pkg.dev/aggie-experts/docker
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
-FROM $ORG/fuseki:$TAG AS more
+FROM $REGISTRY/fuseki:1.0.1 AS more
 
 #The Oracle SQL developer CLI.  This is a java tool that provides
 #a command-line interface to Oracle Services.
@@ -45,7 +46,7 @@ FROM $ORG/experts-api:$TAG AS api
 FROM $FIN_ORG/fin-base-service:$FIN_TAG AS fin-base-service
 
 # Now build from fuseki
-FROM $ORG/fuseki:$TAG
+FROM $REGISTRY/fuseki:$FUSEKI_TAG
 
 USER root
 
