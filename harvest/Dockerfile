@@ -2,7 +2,7 @@ ARG TAG
 ARG ORG
 ARG FIN_TAG
 ARG FIN_ORG
-ARG FUSKEKI_TAG=1.0.1
+ARG FUSEKI_TAG=1.0.1
 ARG REGISTRY=us-west1-docker.pkg.dev/aggie-experts/docker
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
 FROM $REGISTRY/fuseki:1.0.1 AS more
