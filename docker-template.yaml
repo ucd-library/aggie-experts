@@ -199,6 +199,11 @@ services:
         hard: -1
     volumes:
       - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -X PUT -H 'Content-Type: application/json' -d '{\"description\":\"Adds a modified-date field\",\"processors\":[{\"set\":{\"field\":\"modified-date\",\"value\":\"{{_ingest.timestamp}}\"}}]}' http://localhost:9200/_ingest/pipeline/aggie-experts-pipeline || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     restart: unless-stopped
     depends_on:
       - fcrepo
