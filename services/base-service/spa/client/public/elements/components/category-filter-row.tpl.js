@@ -19,9 +19,16 @@ export default function render() {
         position: relative;
       }
 
-      .filter-result.active {
+      .filter-result.active,
+      .filter-result.active .label,
+      .filter-result.active .count {
         background: var(--color-aggie-blue-80, #13639E);
-        color: white;
+        color: white !important;
+      }
+
+      .filter-result.active.mobile .label,
+      .filter-result.active.mobile .count {
+        background: transparent;
       }
 
       .filter-result .count {
@@ -35,13 +42,6 @@ export default function render() {
 
       .filter-result ucdlib-icon {
         fill: var(--color-aggie-blue-60, #73ABDD);
-      }
-
-      .filter-result.active {
-        color: var(--white, #FFF);
-        /* font-size: 1.1875rem; */
-        /* font-weight: bold; */
-        /* line-height: 1.92125rem; */
       }
 
       .filter-result.active ucdlib-icon {
@@ -69,6 +69,12 @@ export default function render() {
         fill: var(--color-aggie-blue-40);
       }
 
+      .filter-result.subfilter .label,
+      .filter-result.subfilter .count {
+        font-weight: normal;
+        color: var(--color-aggie-blue-80);
+      }
+
       @media (max-width: 767px) {
         .filter-result.active svg,
         .filter-result:hover svg {
@@ -81,7 +87,7 @@ export default function render() {
       }
     </style>
 
-    <div class="filter-result ${this.active ? 'active' : ''}">
+    <div class="filter-result ${this.active ? 'active' : ''} ${this.subfilter ? 'subfilter' : ''} ${this.mobile ? 'mobile' : ''}">
       <ucdlib-icon icon="ucdlib-experts:${this.icon}"></ucdlib-icon>
       <p class="label">${this.label}</p>
       <p class="count">${this.count}</p>

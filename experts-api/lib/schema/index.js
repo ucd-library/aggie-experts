@@ -13,15 +13,36 @@ export default class Schema {
   static Context = {};
 
   static async frame(id,version) {
-    const {major, minor} = version;
     return frames[version];
   }
 
-  static async context(id,version=process.env.TAG) {
+  static async context(id,version) {
     let Context = Schema.Context;
 
-    if (! Context[id]) {
-      Context[id] = {};
+    if (! version) {
+      if (! Context[id]) {
+        // get the file with the highest version number
+        const versions = fs.readdirSync(path.join(__dirname,id));
+        const version = versions.reduce((a,b) => {
+          const [majorA, minorA] = a.split('.');
+          const [majorB, minorB] = b.split('.');
+          if (majorA > majorB) {
+            return a;
+          } else if (majorA < majorB) {
+            return b;
+          } else {
+            if (minorA > minorB) {
+              return a;
+            } else {
+              return b;
+            }
+          }
+        });
+        let file = path.join(__dirname,`${id}/${version}/context.jsonld`);
+        const fileContents = fs.readFileSync(file, 'utf8');
+        Context[id] = JSON.parse(fileContents);
+      }
+      return Context[id];
     }
     if (! Context[id][version]) {
       // get major and minor version, by splitting on '.'

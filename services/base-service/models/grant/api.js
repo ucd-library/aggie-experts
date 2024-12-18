@@ -2,7 +2,6 @@ const router = require('express').Router();
 const {dataModels,logger} = require('@ucd-lib/fin-service-utils');
 const GrantModel = require('./model.js');
 const utils = require('../utils.js')
-const {defaultEsApiGenerator} = dataModels;
 const template = require('../base/template/name.json');
 
 const { openapi, schema_error, json_only, user_can_edit, is_user, valid_path, valid_path_error } = require('../middleware.js')
@@ -18,7 +17,7 @@ router.route(
   is_user,
  valid_path(
    {
-     description: "Returns counts for experts A - Z, or if sending query param p={letter}, will return results for experts with last names of that letter",
+     description: "Returns counts for grants A - Z, or if sending query param p={letter}, will return results for grants with last names of that letter",
      parameters: ['p', 'page', 'size'],
      responses: {
        "200": openapi.response('Browse'),
@@ -29,7 +28,8 @@ router.route(
   valid_path_error,
   async (req, res) => {
     const params = {
-      size: 25
+      size: 25,
+      index: "grant-read"
     };
     ["size","page","p"].forEach((key) => {
       if (req.query[key]) { params[key] = req.query[key]; }
@@ -45,7 +45,6 @@ router.route(
       }
 
       const opts = {
-        index: "grant-read",
         id: "name",
         params
       };

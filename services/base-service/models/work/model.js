@@ -30,17 +30,16 @@ class WorkModel extends BaseModel {
    * @returns {Object} : document
    **/
   promote_node_to_doc(node) {
-    const doc = {
-      "@id": node['@id'],
-      "@graph": [node]
-    };
+    const doc = super.promote_node_to_doc(node);
+    // quick hack to get the title
+    doc.name = node.title;
 
-    doc["@type"] = "Work";
-    ["name","title","issued","container-title","author","DOI","type"].forEach((key)=>{
-      if (node?.[key]) {
-        doc[key] = node[key];
-      }
-    });
+    // Is this really needed?
+//    ["title","issued","container-title","author","DOI","type"].forEach((key)=>{
+//      if (node?.[key]) {
+//        doc[key] = node[key];
+//      }
+//    });
 
     return doc;
   }

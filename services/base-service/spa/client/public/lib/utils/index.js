@@ -71,21 +71,41 @@ class Utils {
 
   /**
    * @method getGrantRole
-   * @description given a GrantType vivo role @type, returns the role to display in AE. defaults to Researcher if no match
+   * @description given a relationship with a GrantType vivo role @type, returns the role to display in AE and the relationship ID (if exists).
+   * defaults to Researcher with null relationship ID if no match
    *
-   * @param {String | Array} type
+   * @param {Object | Array} roles relationship object with @type or array of @type
    *
-   * @return {String} readable roles
+   * @return {Object} readable roles and relationship id (if exists)
    */
   getGrantRole(roles) {
     let readableRole = 'Researcher';
+    let relationshipId = null;
+
     if( !Array.isArray(roles) ) roles = [roles];
 
-    if( roles.includes('PrincipalInvestigatorRole') ) readableRole = 'Principal Investigator';
-    else if( roles.includes('CoPrincipalInvestigatorRole') ) readableRole = 'Co-Principal Investigator';
-    else if( roles.includes('LeaderRole') ) readableRole = 'Leader';
+    const normalizeType = (type) => Array.isArray(type) ? type : [type];
 
-    return readableRole;
+    try {
+      let piRole = roles.find(r => normalizeType(r['@type']).includes('PrincipalInvestigatorRole'));
+      let leaderRole = roles.find(r => normalizeType(r['@type']).includes('LeaderRole'));
+      let copiRole = roles.find(r => normalizeType(r['@type']).includes('CoPrincipalInvestigatorRole'));
+
+      if( piRole ) {
+        readableRole = 'Principal Investigator';
+        relationshipId = piRole['@id'];
+      } else if( leaderRole ) {
+        readableRole = 'Leader';
+        relationshipId = leaderRole['@id'];
+      } else if( copiRole ) {
+        readableRole = 'Co-Principal Investigator';
+        relationshipId = copiRole['@id'];
+      }
+    } catch(e) {
+      console.error('Error parsing grant roles', roles);
+    }
+
+    return { relationshipId, role: readableRole };
   }
 
   /**
@@ -120,7 +140,7 @@ class Utils {
       let relatedBy = g.relatedBy || [];
       if( !Array.isArray(relatedBy) ) relatedBy = [relatedBy];
 
-      let expertsRelationship = {};
+      let expertsRelationships = [];
       let otherRelationships = [];
 
       relatedBy.forEach(r => {
@@ -130,27 +150,27 @@ class Utils {
 
         relates.forEach(relate => {
           if( typeof relate === 'string' && relate.trim().toLowerCase() === expertId.trim().toLowerCase() ) {
-            expertsRelationship = r;
+            expertsRelationships.push(r);
             isExpert = true;
           } else if( relate['@id'] && relate['@id'].includes(expertId) ) {
-            expertsRelationship = r;
+            expertsRelationships.push(r);
             isExpert = true;
           }
         });
         if( !isExpert ) otherRelationships.push(r);
       });
 
-      if( filterHidden && !expertsRelationship['is-visible'] ) {
+      if( filterHidden && !expertsRelationships.some(r => r['is-visible']) ) {
         console.warn('Invalid grant is-visible, should be true', g);
         return;
       }
 
-      g.isVisible = expertsRelationship['is-visible'];
-      g.relationshipId = expertsRelationship['@id'];
+      g.isVisible = expertsRelationships.some(r => r['is-visible']);
+      // g.relationshipId = expertsRelationship['@id'];
 
       // determine pi/copi in otherRelationships
       let contributors = otherRelationships.map(r => {
-        let contributorRole = this.getGrantRole(r['@type'] || '');
+        let { role: contributorRole } = this.getGrantRole(r);
         if( contributorRole !== 'Co-Principal Investigator' ) return;
 
         let contributorName = r.relates.filter(relate => relate.name)[0]?.name || '';
@@ -165,7 +185,7 @@ class Utils {
       g.contributors = contributors.filter(c => c); // remove undefined
 
       // determine role/type using expertsRelationship
-      g.role = this.getGrantRole(expertsRelationship['@type'] || '');
+      ({ role: g.role, relationshipId: g.relationshipId } = this.getGrantRole(expertsRelationships));
 
       // determine type(s) from all types excluding 'Grant', and split everything after 'Grant_' by uppercase letters with space
       // should just be one type, but just in case
@@ -184,6 +204,7 @@ class Utils {
 
       // if grant idenfication number is in the name/title, remove it
       let grantIdentifier = g['@id'].split('grant/').pop();
+      g.name = g.name?.split('§')?.shift()?.trim();
       if( g.name.includes(grantIdentifier) ) g.name = g.name.replace(grantIdentifier, '');
 
       return g;
@@ -356,16 +377,16 @@ class Utils {
    *
    * @param {Object} openTo object with keys for each type of availability
    *
-   * @return {Array} hasAvailability
+   * @return {Array} availability
    */
   buildSearchAvailability(openTo) {
     let availability = [];
 
     let arks = {
-      collab : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Collaborative%20projects',
-      community : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Community%20partnerships',
-      industry : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Industry%20Projects',
-      media : 'ark:/87287/d7mh2m/keyword/c-ucd-avail/Media%20enquiries'
+      collab : 'Collaborative projects',
+      community : 'Community partnerships',
+      industry : 'Industry Projects',
+      media : 'Media enquiries'
     };
 
     if( openTo.collabProjects ) availability.push(arks.collab);
@@ -374,6 +395,29 @@ class Utils {
     if( openTo.mediaInterviews ) availability.push(arks.media);
 
     return availability;
+  }
+
+  /**
+   * @method buildSearchQuery
+   * @description return search query string for search api
+   *
+   * @param {String} searchTerm search term
+   * @param {Number} page page number, defaults to 1
+   * @param {Number} size number of results per page, defaults to 25
+   * @param {Array} availability array of availability filters
+   * @param {String} type type of search, ie 'grant', 'expert'. if none set, returns all results
+   * @param {String} status status of search, ie 'active', 'completed'. if none set, returns all results
+   * @param {String} expertId expertId to filter grants/works to
+   */
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], type, status, expertId) {
+    let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
+
+    if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
+    if( type ) searchQuery += `&type=${type}`;
+    if( status ) searchQuery += `&status=${status}`;
+    if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
+
+    return searchQuery;
   }
 
 }
