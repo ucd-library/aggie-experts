@@ -79,6 +79,8 @@ export default class AppBrowseBy extends Mixin(LitElement)
         this._onBrowseExpertsUpdate(await this.BrowseByModel.browseBy('expert', this.letter, this.currentPage, this.resultsPerPage));
       } else if( this.browseType === 'grant' ) {
         this._onBrowseGrantsUpdate(await this.BrowseByModel.browseBy('grant', this.letter, this.currentPage, this.resultsPerPage));
+      } else if( this.browseType === 'work' ) {
+        this._onBrowseWorksUpdate(await this.BrowseByModel.browseBy('work', this.letter, this.currentPage, this.resultsPerPage));
       }
     }
   }
@@ -97,24 +99,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
       return;
     }
 
-    // parse hits
-    this.displayedResults = (e.payload?.hits || []).map((r, index) => {
-      let id = r['@id'];
-      if( Array.isArray(r.name) ) r.name = r.name[0];
-      let name = r.name?.split('§')?.shift()?.trim();
-      let subtitle = r.name?.split('§')?.pop()?.trim();
-      if( name === subtitle ) subtitle = '';
-
-      return {
-        position: index+1,
-        id,
-        name,
-        subtitle
-      }
-    });
-
-    this.totalResultsCount = e.payload.total;
-    this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
+    this._buildResults(e.payload?.hits, e.payload?.total, '', 'expert');
   }
 
   /**
@@ -131,22 +116,60 @@ export default class AppBrowseBy extends Mixin(LitElement)
       return;
     }
 
+    this._buildResults(e.payload?.hits, e.payload?.total, 'grant/', 'grant');
+  }
+
+  /**
+   * @method _onBrowseWorksUpdate
+   * @description bound to BrowseByModel browse-works-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
+  _onBrowseWorksUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+    if( !e.payload?.hits?.length ) {
+      this.displayedResults = [];
+      return;
+    }
+
+    this._buildResults(e.payload?.hits, e.payload?.total, 'work/', 'work');
+  }
+
+  /**
+   * @method _buildResults
+   * @description build displayedResults from api response data
+   *
+   * @param {Array} hits api response data
+   * @param {Number} total total number of results
+   * @param {String} pagePrefix to prepend to the id for links
+   * @param {String} resultType type of result to build, defaults to 'expert'
+   */
+  _buildResults(hits=[], total=0, pagePrefix='', resultType='expert') {
     // parse hits
-    this.displayedResults = (e.payload?.hits || []).map((r, index) => {
+    this.displayedResults = hits.map((r, index) => {
       let id = r['@id'];
       if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
-      let subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+      let subtitle;
+      if( resultType === 'expert' ) {
+        subtitle = r.name?.split('§')?.pop()?.trim();
+        if( name === subtitle ) subtitle = '';
+      } else if( resultType === 'grant' ) {
+        subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+      } else if( resultType === 'work' ) {
+        subtitle = 'TODO work type • year • authors';
+      }
 
       return {
         position: index+1,
-        id: 'grant/'+id,
+        id: pagePrefix+id,
         name,
         subtitle
       }
     });
 
-    this.totalResultsCount = e.payload.total;
+    this.totalResultsCount = total;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
   }
 

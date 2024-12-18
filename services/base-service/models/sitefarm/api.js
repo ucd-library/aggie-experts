@@ -7,7 +7,7 @@ const { defaultEsApiGenerator } = dataModels;
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
 
-const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware.js')
+const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
 
 
 function siteFarmFormat(req, res, next) {

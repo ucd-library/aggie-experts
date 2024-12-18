@@ -108,6 +108,18 @@ return html`
       margin: 0.5rem 0 1rem;
     }
 
+    .color-border.expert svg path {
+      fill: var(--color-aggie-gold);
+    }
+
+    .color-border.grant svg path {
+      fill: var(--color-thiebaud-icing);
+    }
+
+    .color-border.work svg path {
+      fill: var(--color-sage);
+    }
+
     @media (max-width: 992px) {
       .browse-content {
         width: 90%;
@@ -125,14 +137,25 @@ return html`
 
       .color-border {
         width: 1.125rem;
-        background-color: #FFBF00;
+      }
+
+      .color-border.expert {
+        background-color: var(--color-aggie-gold);
+      }
+
+      .color-border.grant {
+        background-color: var(--color-thiebaud-icing);
+      }
+
+      .color-border.work {
+        background-color: var(--color-sage);
       }
     }
   </style>
 
   <div class="browse-header">
-    <div class="browse-label">${this.browseType.charAt(0).toUpperCase() + this.browseType.slice(1)}</div>
-    <div class="color-border" style="display: flex; height: 75px;">
+    <div class="browse-label">${this.browseType.charAt(0).toUpperCase() + this.browseType.slice(1)}s</div>
+    <div class="color-border ${this.browseType}" style="display: flex; height: 75px;">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
         <path d="M21.6 0L0 89H24V0H21.6Z" fill="#FFBF00"/>
       </svg>

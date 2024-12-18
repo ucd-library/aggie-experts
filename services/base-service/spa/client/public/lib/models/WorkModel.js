@@ -21,31 +21,7 @@ class WorkModel extends BaseModel {
    * @returns {Promise} resolves to record
    */
   async get(id) {
-    let state = this.store.getWork(id);
-
-    if( state && state.request ) {
-      await state.request;
-    } else if( state && state.state === 'loaded' ) {
-      if( state.id !== id ) {
-        this.store.setWorkLoaded(id, state.payload)
-      }
-    } else {
-      await this.service.get(id);
-    }
-
-    return this.store.getWork(id);
-  }
-
-  /**
-   * @method search
-   * @description search for work
-   *
-   * @param {Object} searchDocument es search document
-   *
-   * @returns {Promise} resolves to a work search result
-  */
-  search(searchDocument) {
-    return this.service.search(searchDocument);
+    return this.service.get(id);
   }
 
 }

@@ -163,6 +163,8 @@ export default class FinApp extends Mixin(LitElement)
       return import(/* webpackChunkName: "page-tou" */ "./pages/termsofuse/app-tou");
     } else if( page === 'expert' ) {
       return import(/* webpackChunkName: "page-expert" */ "./pages/expert/app-expert");
+    } else if( page === 'work' ) {
+      return import(/* webpackChunkName: "page-work" */ "./pages/work/app-work");
     } else if( page === 'works' ) {
       return import(/* webpackChunkName: "page-works" */ "./pages/expert/app-expert-works-list");
     } else if( page === 'works-edit' ) {
