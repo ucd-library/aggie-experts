@@ -327,7 +327,7 @@ class BaseModel extends FinEsDataModel {
       index,
       params
     }
-    console.log(`searching ${JSON.stringify(options)}`);
+    //console.log(`searching ${JSON.stringify(options)}`);
     const res=await this.client.searchTemplate(options);
     return this.compact_search_results(res,params);
   }

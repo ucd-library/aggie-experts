@@ -153,6 +153,16 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.lastQueryParams = e.location.query;
 
+    // TODO reset selected download boxes?
+
+    // clear expert filter if not set
+    if( e.resetSearch ) {
+      this.type = '';
+      this._removeExpertFilter();
+      this._uncheckDownloads()
+      this.AppStateModel.set({ resetSearch : false });
+    }
+
     this.collabProjects = (this.lastQueryParams.availability || '').includes('collab');
     this.commPartner = (this.lastQueryParams.availability || '').includes('community');
     this.industProjects = (this.lastQueryParams.availability || '').includes('industry');
@@ -241,6 +251,8 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( resetPage ) {
       this.currentPage = 1;
+
+      // TODO reset selected download boxes
       this._updateLocation();
     }
 
@@ -260,6 +272,10 @@ export default class AppSearch extends Mixin(LitElement)
     );
   }
 
+  /**
+   * @method _updateLocation
+   * @description update the url with the current search filters/search term
+   */
   _updateLocation() {
     if( this.addingFilter && this.filterByExpert ) {
       this.type = 'grant';
@@ -463,6 +479,15 @@ export default class AppSearch extends Mixin(LitElement)
   async _downloadClicked(e) {
     e.preventDefault();
 
+    debugger;
+    // TODO need to build grants vs works file
+
+    // Title | Funding Agency | Grant Id | Start Date | End Date | Type of Grant | Known Contributors (List of PIs and CoPIs)
+    // I realized Role is not helpful here as the grants are not attached to people in that filtered view. Can you make that a concatenated "Known Contributors" column?
+
+
+
+
     let selectedPersons = [];
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
     resultRows.forEach(row => {
@@ -525,6 +550,12 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.type === 'all results' ) this.type = '';
     this._updateAvailableFilters();
     this.currentPage = 1;
+    this._uncheckDownloads();
+
+    if( this.type !== 'grant' && this.filterByExpert ) {
+      this._removeExpertFilter();
+    }
+
     this._updateLocation();
   }
 
@@ -535,12 +566,24 @@ export default class AppSearch extends Mixin(LitElement)
     this._updateAvailableFilters();
 
     this.currentPage = 1;
+    this._uncheckDownloads();
     this._updateLocation();
   }
 
   _updateAvailableFilters() {
     this.showOpenTo = this.type === 'expert';
     // TODO others, dates hidden when viewing Experts
+  }
+
+  _uncheckDownloads() {
+    let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
+    resultRows.forEach(row => {
+      let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
+      if( checkbox ) checkbox.checked = false;
+    });
+
+    let selectAll = this.shadowRoot.querySelector('#select-all');
+    if( selectAll ) selectAll.checked = false;
   }
 
 }

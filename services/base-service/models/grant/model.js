@@ -73,9 +73,14 @@ class GrantModel extends BaseModel {
     // get all name matches
     const name_match = {}
     const experts=[];
+    const vis=[]
     for (var rel in relatedBy) {
       let role=relatedBy[rel];
       if (role.inheres_in) {
+        if (role["is-visible"]) {
+          vis.push(role);
+        }
+
         let id = role.inheres_in['@id'] || role.inheres_in;
         let expert = await expertModel.client_get(role.inheres_in);
           expert=expertModel.get_expected_model_node(expert);
@@ -104,9 +109,12 @@ class GrantModel extends BaseModel {
     }
     root_node.relatedBy=Object.values(relatedBy);
     const doc = this.promote_node_to_doc(root_node);
-    if (experts.length) {
+    if (vis.length) {
       root_node["is-visible"]=true;
       doc["is-visible"]=true; // Some expert wants it visible
+    } else {
+      root_node["is-visible"]=false;
+      doc["is-visible"]=false; // No experts want it visible
     }
     await this.update_or_create_main_node_doc(doc);
 

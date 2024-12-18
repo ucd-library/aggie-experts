@@ -38,6 +38,8 @@ class ExpertModel extends BaseModel {
    * @returns {Promise} resolves to record
    */
   async updateCitationVisibility(id, citationId, visible=false) {
+    // remove /relationship from the citationId
+    citationId = citationId.replace('/relationship', '');
     return await this.service.updateCitationVisibility(id, citationId, visible);
   }
 
@@ -51,6 +53,7 @@ class ExpertModel extends BaseModel {
    * @returns {Promise} resolves to record
    */
   async rejectCitation(id, citationId) {
+    citationId = citationId.replace('/relationship', '');
     return await this.service.rejectCitation(id, citationId);
   }
 
