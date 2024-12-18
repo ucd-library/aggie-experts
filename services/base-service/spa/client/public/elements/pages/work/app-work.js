@@ -126,6 +126,41 @@ export default class AppWork extends Mixin(LitElement)
     // 'get at UC' link is described https://library.ucdavis.edu/get-it-at-uc-links/
     // TODO but not sure how to construct the link
     this.ucLink = '';
+    // ALMA setup in get it:
+    // https://knowledge.exlibrisgroup.com/Alma/Product_Documentation/010Alma_Online_Help_(English)/030Fulfillment/080Configuring_Fulfillment/090Discovery_Interface_Display_Logic/010General_Electronic_Services#URL_Template
+
+    // https://cdlib.org/services/collections/licensed/policy/uc-libraries-interface-branding/
+
+
+    // wos https://www.webofscience.com/wos/woscc/summary/949d9c8a-2c02-42d9-83ab-5f9f0cb26902-0137e027a1/relevance/1 has links to 'get at uc'
+      // https://search.library.ucdavis.edu/discovery/openurl?institution=01UCD_INST
+      // &vid=01UCD_INST:UCD
+      // &rft_val_fmt=info:ofi%2Ffmt:kev:mtx:journal
+      // &rft.stitle=INT%20J%20MOL%20SCI
+      // &rft.volume=19
+      // &rft_id=info:doi%2F10.3390%2Fijms19010070
+      // &rfr_id=info:sid%2Fwebofscience.com:WOS:WOSCC
+      // &rft.jtitle=INTERNATIONAL%20JOURNAL%20OF%20MOLECULAR%20SCIENCES
+      // &rft.aufirst=Tzu-Kai
+      // &rft.genre=article
+      // &rft.issue=1
+      // &url_ctx_fmt=info:ofi%2Ffmt:kev:mtx:ctx
+      // &rft.aulast=Lin
+      // &url_ver=Z39.88-2004
+      // &rft.artnum=ARTN%2070
+      // &rft.auinit=TK
+      // &rft.date=2018
+      // &rft.au=Lin,%20TK
+      // &rft.au=Zhong,%20LL
+      // &rft.au=Santiago,%20JL
+      // &rft.atitle=Anti-Inflammatory%20and%20Skin%20Barrier%20Repair%20Effects%20of%20Topical%20Application%20of%20Some%20Plant%20Oils
+      // &rft.issn=1661-6596
+      // &rft.eissn=1422-0067
+
+
+
+
+
 
     this.publisherLink = workGraph.DOI ? this.publisherLink = `https://doi.org/${workGraph.DOI}` : '';
 
