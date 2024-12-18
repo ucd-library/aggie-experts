@@ -8,7 +8,6 @@ const { openapi, schema_error, json_only, user_can_edit, is_user, valid_path, va
 
 const model = new WorkModel();
 // module.exports = defaultEsApiGenerator(model, {router});
-console.log('model', model.readIndexAlias)
 
 function browse_endpoint(router,model) {
   router.route(
