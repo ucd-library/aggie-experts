@@ -119,7 +119,7 @@ router.get(
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
     var doc;
-    const gte_date = req.query.modified_since || 'now-3d/d';
+    const gte_date = req.query.modified_since || '2021-01-01';
     const params={
       "gte_date": gte_date,
       "expert": []
