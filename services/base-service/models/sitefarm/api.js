@@ -1,8 +1,13 @@
 const express = require('express');
 const router = require('express').Router();
 const { config, keycloak, dataModels, logger } = require('@ucd-lib/fin-service-utils');
+const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
+const template = require('./template/modified-date.js');
 const expert = new ExpertModel();
+const base = new BaseModel();
+// const experts = new ExpertModel();
+
 const { defaultEsApiGenerator } = dataModels;
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
@@ -38,6 +43,8 @@ function siteFarmFormat(req, res, next) {
         newDoc["publications"].push(doc["@graph"][i]);
       }
     }
+    // preserve the modified-date
+    newDoc["modified-date"] = doc["modified-date"];
     newArray.push(newDoc);
   }
   res.doc_array = newArray;
@@ -112,40 +119,22 @@ router.get(
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
     var doc;
+    const gte_date = req.query.modified_since || '2021-01-01';
+    const params={
+      "gte_date": gte_date,
+      "expert": []
+    };
 
-    for (const id of req.query.expertIds) {
-      const expertId = `${expert_model.id}/${id}`;
-      try {
-        let opts = {
-          admin: req.query.admin ? true : false,
-        }
-        doc = await expert_model.get(expertId, opts);
-
-        let subselectOpts = {
-          "is-visible": true,
-          "expert": { "include": true },
-          "grants": {
-            "include": false
-          },
-          "works": {
-            "include": true,
-            "page": 1,
-            "size": 5,
-            "exclude": [],
-            "includeMisformatted": false,
-            "sort": [
-              { "field": "issued", "sort": "desc", "type": "year" },
-              { "field": "title", "sort": "asc", "type": "string" }
-            ]
-          }
-        };
-        doc=expert_model.subselect(doc, subselectOpts);
-        res.doc_array.push(doc);
-      } catch (e) {
-        // log the error - couldn't find the resource. But continue to the next one
-        logger.error(`Could not get ${expertId}`, e);
-      }
+    if (req?.query.expert) {
+      params.expert = req.query.expert.split(',');
     }
+    let opts = {
+      "id": "modified-date",
+      "params": params
+    };
+    await expert.verify_template(template);
+    const find = await base.search(opts);
+    res.doc_array = find.hits;
     next();
   },
   siteFarmFormat,
