@@ -95,13 +95,18 @@ export default class AppExpert extends Mixin(LitElement)
     let modified = e.modifiedWorks || e.modifiedGrants;
     if( expertId === this.expertId && !modified ) return;
 
+    let clearCache = false;
+    if( e.modifiedGrants || e.modifiedWorks ) {
+      clearCache = true;
+      this.AppStateModel.set({ modifiedGrants : false, modifiedWorks : false });
+    }
     this._reset();
 
     if( (this.expertEditing === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions());
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions(), clearCache);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
       this._onExpertUpdate(expert, modified);

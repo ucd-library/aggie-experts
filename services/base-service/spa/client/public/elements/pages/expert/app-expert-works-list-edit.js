@@ -597,19 +597,35 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       // remove citation from graph/display data
       // also if total citations > 25, need to reorganize
-      this.citations = this.citations.filter(c => c.relatedBy?.['@id'] !== this.citationId);
-      this.citationsDisplayed = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] !== this.citationId);
-      this.expert['@graph'] = this.expert['@graph'].filter(c => c.relatedBy?.['@id'] !== this.citationId);
-      this._onPaginationChange({ detail: { page: this.currentPage } });
+      // this.citations = this.citations.filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      // this.citationsDisplayed = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      // this.expert['@graph'] = this.expert['@graph'].filter(c => c.relatedBy?.['@id'] !== this.citationId);
+      // this._onPaginationChange({ detail: { page: this.currentPage } });
 
       // TODO the counts will be broken, however calling the api again to get the current data will be cached, so would that work even if we try to update the totals here?
 
       // this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
       // this.totalCitations = this.citations.length;
-      this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
+      // this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
-      this.requestUpdate();
+      // this.requestUpdate();
     }
+
+    this.modifiedWorks = true;
+
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksPage : this.currentPage,
+        worksSize : this.resultsPerPage,
+        includeHidden : true,
+        includeWorksMisformatted : true
+      }),
+      true // clear cache
+    );
+    this._onExpertUpdate(expert);
 
     // let expert = await this.ExpertModel.get(this.expertId, true);
     // this._onExpertUpdate(expert);
@@ -661,8 +677,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
 
-    this.AppStateModel.store.data.modifiedWorks = true;
     this.AppStateModel.setLocation('/'+this.expertId);
+    this.AppStateModel.set({ modifiedWorks : this.modifiedWorks });
   }
 
 }
