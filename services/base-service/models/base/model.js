@@ -3,9 +3,6 @@ const {config, models, logger, dataModels } = require('@ucd-lib/fin-service-util
 const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
-// const ingest_pipeline = require('./schema/aggie-experts-pipeline.json');
-
-// await this.verify_ingest_pipeline('aggie-experts-pipeline', ingest_pipeline);
 
 /**
  * @class BaseModel
@@ -24,7 +21,6 @@ class BaseModel extends FinEsDataModel {
 
     super(name);
     this.schema = schema;  // Common schema for all experts data models
-    // this.pipelineBody = ingest_pipeline;
     this.transformService = "node";
 
   }
@@ -264,29 +260,6 @@ class BaseModel extends FinEsDataModel {
     return true;
   }
 
-  /**
-   * @method verify_ingest_pipeline
-   * @description Adds ingest pipeline to elastic search if it doesn't exist
-   */
-  // async verify_ingest_pipeline(pipelineId, pipelineBody) {
-  //   try {
-  //     // Check if the pipeline exists
-  //     logger.info(`checking pipeline ${pipelineId}`);
-  //     await this.client.ingest.getPipeline({ id: pipelineId });
-  //     logger.info(`Pipeline ${pipelineId} already exists.`);
-  //   } catch (err) {
-  //       try {
-  //         await this.client.ingest.putPipeline({
-  //           id: pipelineId,
-  //           body: pipelineBody
-  //         });
-  //         logger.info(`Pipeline ${pipelineId} created.`);
-  //       } catch (err) {
-  //         throw new Error(`verify_ingest_pipeline: ${err}`);
-  //       }
-  //   }
-  // }
-
   compact_search_results(results,params) {
     const compact = {
       params,
@@ -325,9 +298,6 @@ class BaseModel extends FinEsDataModel {
    * @returns string
    */
   async render(opts) {
-    // Throw error to see stack trace
-    // try { throw new Error('Stack Trace'); }
-    // catch(err) { console.log(err.stack); }
 
     const params = this.common_parms(opts.params);
 
