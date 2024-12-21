@@ -134,7 +134,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           grantsSize : this.resultsPerPage,
           includeHidden : true,
           includeGrantsMisformatted : true
-        })
+        }),
+        this.currentPage === 1 // clear cache on first page
       );
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
@@ -179,11 +180,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.hiddenGrants = this.expert?.totals?.hiddenGrants || 0;
     this.totalGrants = (this.expert?.totals?.grants || 0);
 
-    if( this.hiddenGrants === 0 ) {
-      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants})`;
-    } else {
-      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants} Public, ${this.hiddenGrants} Hidden)`;
-    }
+    this._updateManageGrantsLabel();
 
     this.grantsWithErrors = this.expert.invalidGrants || [];
     if( this.grantsWithErrors.length ) this.logger.error('grants with errors', { expertId : this.expertId, grantsWithErrors : this.grantsWithErrors });
@@ -448,6 +445,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( grant ) grant.isVisible = true;
 
     if( updated && this.hiddenGrants >= 0 ) this.hiddenGrants -= 1;
+    if( updated ) this.modifiedGrants = true;
+    this._updateManageGrantsLabel();
 
     this.requestUpdate();
   }
@@ -463,7 +462,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.showModal = false;
     let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
-    this.modifiedGrants = true;
     let updated = true;
 
     if( action === 'hide' ) {
@@ -522,8 +520,18 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       if( grant ) grant.isVisible = false;
 
       if( updated ) this.hiddenGrants += 1;
+      if( updated ) this.modifiedGrants = true;
+      this._updateManageGrantsLabel();
 
       this.requestUpdate();
+    }
+  }
+
+  _updateManageGrantsLabel() {
+    if( this.hiddenGrants === 0 ) {
+      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants})`;
+    } else {
+      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants} Public, ${this.hiddenGrants} Hidden)`;
     }
   }
 
@@ -543,8 +551,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.grantsActiveDisplayed = (this.grants.filter(g => !g.completed) || []).slice(0, this.resultsPerPage);
     this.grantsCompletedDisplayed = (this.grants.filter(g => g.completed) || []).slice(0, this.resultsPerPage - this.grantsActiveDisplayed.length);
 
-    this.AppStateModel.store.data.modifiedGrants = this.modifiedGrants;
+    // this.AppStateModel.store.data.modifiedGrants = this.modifiedGrants;
     this.AppStateModel.setLocation('/'+this.expertId);
+    this.AppStateModel.set({ modifiedGrants : this.modifiedGrants });
   }
 
 }

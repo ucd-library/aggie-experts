@@ -91,7 +91,8 @@ export default class AppExpertWorksList extends Mixin(LitElement)
           includeGrants : false,
           worksPage : this.currentPage,
           worksSize : this.resultsPerPage
-        })
+        }),
+        this.currentPage === 1 // clear cache on first page load
       );
 
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
