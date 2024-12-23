@@ -1,4 +1,4 @@
-import defaultFrame from './lib/frames/default.json' assert { type: 'json' };
+import defaultFrame from './lib/frames/default.json' with { type: 'json' };
 import GoogleSecret from './lib/googleSecret.js';
 import ElementsClient from './lib/elements-client.js';
 import Schema from './lib/schema/index.js';

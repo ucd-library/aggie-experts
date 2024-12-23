@@ -160,7 +160,7 @@ async function convertIds(req, res, next) {
 
   let user;
 
-  req.query.expertIds = [];
+  let experts = [];
   // for each id, get the expertId
   for (const theId of id_array) {
     try {
@@ -174,9 +174,11 @@ async function convertIds(req, res, next) {
 
     if (user && user?.attributes?.expertId) {
       const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
-      req.query.expertIds.push(expertId);
+      experts.push(`expert/${expertId}`);
     }
+    req.query.expert=experts.join(',');
   }
+  console.log(`convertIds: ${req.query.expert}`);
   return next();
 }
 
@@ -279,7 +281,7 @@ function has_access(client) {
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
-  const contentType = req.get('Content-Type');
+  const contentType = req.get('Content-Type') ;
   if (contentType.startsWith('application/json') || contentType.startsWith('application/ld+json')) {
     // Content-Type is acceptable
     return next();

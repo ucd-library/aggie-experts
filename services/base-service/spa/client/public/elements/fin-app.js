@@ -272,8 +272,10 @@ export default class FinApp extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    this.AppStateModel.set({ resetSearch: true })
-    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.searchTerm.trim()));
+    if( e.detail?.searchTerm?.trim().length ) {
+      this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.searchTerm.trim()));
+      this.AppStateModel.set({ resetSearch: true });
+    }
     this._closeHeader();
   }
 

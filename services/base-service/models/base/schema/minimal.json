@@ -1,6 +1,9 @@
 {
   "dynamic" : false,
   "properties" : {
+    "modified-date": {
+        "type": "date"
+    },
     "@id" : {
       "type" : "keyword"
     },
@@ -43,6 +46,9 @@
           "normalizer" : "starts_with"
         }
       }
+    },
+    "lastmodified": {
+      "type": "date"
     },
     "@graph": {
       "type": "nested",
