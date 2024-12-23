@@ -187,7 +187,8 @@ template = {
         "issued",
         "container-title",
         "type",
-        "DOI"
+        "DOI",
+        "modified-date",
       ],
       "sort": [
         "_score",
