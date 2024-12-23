@@ -103,7 +103,7 @@ declare -g -A G=(
   [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/.."
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-  [dry-run]=
+  [dry-run]=""
   [test_env]=1
   [cloudsdk_active_config_name]='aggie-experts'
 );
@@ -167,23 +167,25 @@ Guess the environment based on the hostname and git tag
 
 =cut
 function guess-env() {
-  local this_server=$(hostname --fqdn)
-  local envs=()
-  local tag=$(${G[git]} describe --always --dirty)
+  local this_server, envs, tag
+  this_server=$(hostname --fqdn)
+  envs=()
+  tag=$(${G[git]} describe --always --dirty)
 
   for e in $(G '.keys[]' ); do
-    local env_server=$(G ".${e}.server")
+    local env_server
+    env_server=$(G ".${e}.server")
     if [[ "$env_server" = "null" ]]; then
       continue
     fi
      if [[ "$env_server" =~ ^! ]]; then
       env_server=${env_server#!}
       if ! [[ "$this_server" =~ $env_server ]]; then
-        envs+=($e)
+        envs+=("$e")
       fi
     else
       if [[ "$this_server" =~ $env_server ]]; then
-        envs+=($e)
+        envs+=("$e")
       fi
     fi
   done
@@ -193,24 +195,24 @@ function guess-env() {
   for e in "${envs[@]}"; do
     case $e in
       dev)
-        d_envs+=($e)
+        d_envs+=("$e")
         ;;
       clean|sandbox)
         if ! [[ "$tag" =~ "dirty" ]]; then
-          d_envs+=($e)
+          d_envs+=("$e")
         fi
         ;;
       gcb | prev | stage | prod)
         if ! [[ "$tag" =~ "-" ]]; then
-          d_envs+=($e)
+          d_envs+=("$e")
         fi
         ;;
     esac
   done
   if [[ ${#d_envs[@]} == 1 ]]; then
-    echo ${d_envs[0]}
+    echo "${d_envs[0]}"
   else
-    echo ${d_envs[@]}
+    echo "${d_envs[@]}"
     exit 1;
   fi
 }
@@ -224,9 +226,10 @@ Tests the environment, with respect to the hostname and git tag.
 
 =cut
 function test_env() {
-  local env=${G[env]}
-  local tag=$(G .${G[env]}.tag // .def.tag)
-  local git_tag="$(${G[git]} describe --always --dirty)"
+  local env, tag, git_tag
+  env=${G[env]}
+  tag=$(G .${G[env]}.tag // .def.tag)
+  git_tag="$(${G[git]} describe --always --dirty)"
 
   # Tag is the git tag, unless specified
   if [[ ${tag} == "__git__" ]]; then
@@ -248,16 +251,17 @@ function test_env() {
   }
 
   function branch() {
-    local expected_branch=$(G .${G[env]}.branch)
-    local this_branch=$(${G[git]} branch --show-current)
+    local expected_branch, this_branch
+    expected_branch=$(G .${G[env]}.branch)
+    this_branch=$(${G[git]} branch --show-current)
     if [[ "$expected_branch" =~ ^! ]]; then
       expected_branch=${expected_branch#!}
-      if [[ "$this_branch" =~ "$expected_branch" ]]; then
+      if [[ "$this_branch" =~ $expected_branch ]]; then
         >&2 echo "ERR: --env=$env branch $this_branch =~ $expected_branch"
         exit 1
       fi
     else
-      if ! [[ "$this_branch" =~ "$expected_branch" ]]; then
+      if ! [[ "$this_branch" =~ $expected_branch ]]; then
         >&2 echo "ERR: --env=$env branch ! [[ $this_branch =~ $expected_branch ]]"
         exit 1
       fi
@@ -277,8 +281,9 @@ function test_env() {
   }
 
   function server() {
-    local expected_server=$(G .${G[env]}.server)
-    local this_server=$(hostname --fqdn)
+    local expected_server, this_server
+    expected_server=$(G .${G[env]}.server)
+    this_server=$(hostname --fqdn)
     if [[ "$expected_server" =~ ^! ]]; then
       expected_server=${expected_server#!}
       if [[ "$this_server" =~ $expected_server ]]; then
@@ -369,19 +374,20 @@ Use shell expansion to expand docker-template.yaml with defaults
 =cut
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand_template(){
-  local env=${G[env]}
-  local root="$(${G[git]} rev-parse --show-toplevel)"
-  local git_tag="$(${G[git]} describe --always --dirty)"
+  local env root git_tag
+  env=${G[env]}
+  root="$(${G[git]} rev-parse --show-toplevel)"
+  git_tag="$(${G[git]} describe --always --dirty)"
   local sa client_id auth
 #  echo "Expanding ${root}/docker-template.yaml"
   declare -g -A D
 
-  read D[org] D[tag] D[fin_org] D[fin_tag] \
-       D[host] D[port] \
-       D[gcs_bucket] D[gcs_init_data_hydration]\
-       D[client_env] D[cdl_propagate_changes] \
-       D[client_error_reporting_enabled] \
-       D[client_error_reporting_url] D[client_error_reporting_key_secret] \
+  read D["org"] D["tag"] D["fin_org"] D["fin_tag"] \
+       D["host"] D["port"] \
+       D["gcs_bucket"] D["gcs_init_data_hydration"]\
+       D["client_env"] D["cdl_propagate_changes"] \
+       D["client_error_reporting_enabled"] \
+       D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
        sa client_id auth \
        <<<$(G "[.${G[env]}.org // .def.org,
            .${G[env]}.tag // .def.tag,
@@ -402,21 +408,22 @@ function expand_template(){
           ] |@tsv")
 
   #decode client_error_reporting_key_secret
-  D[client_error_reporting_key]=$(gcloud secrets versions access latest --secret=${D[client_error_reporting_key_secret]})
+  D["client_error_reporting_key"]=$(gcloud secrets versions access latest --secret=${D["client_error_reporting_key_secret"]})
 
   #Get OIDC INFO
   local oidc_secret=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
   eval $(gcloud secrets versions access latest --secret="$oidc_secret")
-  D[jwt_secret]=$JWT_SECRET
-  D[jwt_issuer]=$JWT_ISSUER
-  D[jwt_jwks_uri]=$JWT_JWKS_URI
-  D[oidc_client_id]=$OIDC_CLIENT_ID
-  D[oidc_secret]=$OIDC_SECRET
-  D[oidc_base_url]=$OIDC_BASE_URL
+  D["jwt_secret"]=$JWT_SECRET
+  D["jwt_issuer"]=$JWT_ISSUER
+  D["jwt_jwks_uri"]=$JWT_JWKS_URI
+  D["oidc_client_id"]=$OIDC_CLIENT_ID
+  D["oidc_secret"]=$OIDC_SECRET
+  D["oidc_base_url"]=$OIDC_BASE_URL
 
   #Get service account info
-  local srv_secret=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
-  eval $(gcloud secrets versions access latest --secret="$srv_secret")
+  local srv_secret
+  srv_secret=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
+  eval "$(gcloud secrets versions access latest --secret="$srv_secret")"
   D[fin_service_account_name]=$FIN_SERVICE_ACCOUNT_NAME
   D[fin_service_account_secret]=$FIN_SERVICE_ACCOUNT_SECRET
 
@@ -589,7 +596,8 @@ function setup() {
         exit 0
       fi
       setup_files
-      local mount=$(G .mount // .${G[env]}.mount)
+      local mount
+      mount=$(G .mount // .${G[env]}.mount)
       if [[ -n $mount && "$mount" != "null" ]]; then
         >&2 echo "#======MOUNTS=======#"
         >&2 echo "mount=$mount"
@@ -656,7 +664,7 @@ function main.cmd() {
     done
 
     # set the google cloud sdk config
-    if [[ -n $G[cloudsdk_active_config_name] ]]; then
+    if [[ -n ${G[cloudsdk_active_config_name]} ]]; then
       export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
     fi
 
@@ -740,3 +748,5 @@ C<aggie-expert --env=dev setup>
 =head1 AUTHOR
 
 qjhart@ucdavis.edu
+
+=cut
