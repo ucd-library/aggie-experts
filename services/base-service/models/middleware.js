@@ -2,6 +2,7 @@ const OpenAPI = require('@wesleytodd/openapi')
 const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
+const template = require('./base/template/name.json');
 
 let AdminClient=null;
 
@@ -39,6 +40,8 @@ async function fetchExpertId (req, res, next) {
   }
 }
 
+
+
 async function convertIds(req, res, next) {
   const id_array = req.params.ids.replace('ids=', '').split(',');
 
@@ -47,7 +50,7 @@ async function convertIds(req, res, next) {
 
   let user;
 
-  req.query.expertIds = [];
+  let experts = [];
   // for each id, get the expertId
   for (const theId of id_array) {
     try {
@@ -61,9 +64,11 @@ async function convertIds(req, res, next) {
 
     if (user && user?.attributes?.expertId) {
       const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
-      req.query.expertIds.push(expertId);
+      experts.push(`expert/${expertId}`);
     }
+    req.query.expert=experts.join(',');
   }
+  console.log(`convertIds: ${req.query.expert}`);
   return next();
 }
 
@@ -166,7 +171,7 @@ function has_access(client) {
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
-  const contentType = req.get('Content-Type');
+  const contentType = req.get('Content-Type') ;
   if (contentType.startsWith('application/json') || contentType.startsWith('application/ld+json')) {
     // Content-Type is acceptable
     return next();
@@ -247,6 +252,17 @@ const openapi = OpenAPI(
     },
     components: {
       parameters: {
+        expert: {
+          in: "query",
+          name: "expert",
+          description: "Comma-separated search filter on experts",
+          required: false,
+          schema: {
+            type: "array"
+          },
+          style: "simple",
+          explode: false
+        },
         expertId: {
           name: 'expertId',
           in: 'path',
@@ -285,6 +301,15 @@ const openapi = OpenAPI(
             type: "integer"
           }
         },
+        q: {
+          in: "query",
+          name: "q",
+          description: "Text query to search for",
+          required: false,
+          schema: {
+            type: "string"
+          }
+        },
         size: {
           in: "query",
           name: "size",
@@ -293,6 +318,57 @@ const openapi = OpenAPI(
           schema: {
             type: "integer"
           }
+        },
+        status: {
+          in: "query",
+          name: "status",
+          description: "Comma-separated search filter on grant status",
+          required: false,
+          schema: {
+            type: "arary",
+            items: {
+              type: "string",
+              enum: ["completed", "active"]
+            }
+          },
+          style: "simple",
+          explode: false
+        },
+        availability: {
+          in: "query",
+          name: "availability",
+          description: "Comma-separated search filter on expert availability types",
+          required: false,
+          schema: {
+            type: "arary",
+            items: {
+              type: "string",
+              enum: [
+                "community partnerships",
+                "collaborative projects",
+                "industry Projects",
+                "media enquiries"
+              ]
+            }
+          },
+          style: "simple",
+          explode: false
+        },
+        type: {
+            in: "query",
+          name: "type",
+          description: "Comma-separated list of items to return.",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: ["expert", "grant", "work"],
+              default: "expert,grant"
+            }
+          },
+          style: "simple",
+          explode: false
         }
       },
       schemas: {
@@ -802,6 +878,7 @@ openapi.response(
 
 // export this middleware functions
 module.exports = {
+//  browse_endpoint,
   convertIds,
   fetchExpertId,
   has_access,

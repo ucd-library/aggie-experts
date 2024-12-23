@@ -11,27 +11,7 @@ const program = new Command();
 const gs = new GoogleSecret();
 
 async function main(opt) {
-
-  //  get keycloak token
-  let keycloak_admin
-  try {
-    const keycloakResp=await gs.getSecret('projects/325574696734/secrets/service-account-harvester')
-    const keycloak = JSON.parse(keycloakResp);
-
-    keycloak_admin = new ExpertsKcAdminClient(
-      {
-      baseUrl: keycloak.baseUrl,
-      realmName: keycloak.realmName
-      },
-    );
-
-    await keycloak_admin.auth(keycloak.auth);
-    opt.log.info('Keycloak admin client authenticated');
-  } catch (e) {
-    opt.log.error('Error getting keycloak authorized', e);
-    process.exit(1);
-  }
-
+  const keycloak_admin = opt.kcadmin;
 
   function getValue(obj, path) {
     const keys = path.split('.');
@@ -61,9 +41,6 @@ async function main(opt) {
   if (opt.users) {
     const users = await keycloak_admin.list();
     console.log(JSON.stringify(users));
-//    users.forEach(user => {
-//      console.log(user.username);
-//    });
     return;
   }
 
@@ -128,8 +105,8 @@ program.name('experts-keycloak')
   .option('--add <ucdid_path:attribute...>', 'Add a user attribute into keycloak.  ucdid_path is the json path to the ucdid in the user object.  attribute is the keycloak attribute to add.')
   .option_iam()
   .option_log()
-
-program.parse(process.argv);
+  .option_kcadmin()
+  .parse(process.argv);
 
 let opt = program.opts();
 

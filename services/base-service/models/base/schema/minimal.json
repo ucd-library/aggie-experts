@@ -1,6 +1,9 @@
 {
   "dynamic" : false,
   "properties" : {
+    "modified-date": {
+        "type": "date"
+    },
     "@id" : {
       "type" : "keyword"
     },
@@ -8,8 +11,22 @@
       "type" : "boolean"
     },
     "hasAvailability": {
+      "properties" : {
+        "prefLabel" : {
+          "type": "keyword",
+          "normalizer": "identifier",
+          "ignore_above": 128
+        }
+      }
+    },
+    "@type" : {
+      "type" : "keyword",
+      "normalizer": "lowercase_ascii",
+      "ignore_above": 128
+    },
+    "status": {
       "type": "keyword",
-      "normalizer": "identifier",
+      "normalizer": "lowercase_ascii",
       "ignore_above": 128
     },
     "name" : {
@@ -29,6 +46,9 @@
           "normalizer" : "starts_with"
         }
       }
+    },
+    "lastmodified": {
+      "type": "date"
     },
     "@graph": {
       "type": "nested",

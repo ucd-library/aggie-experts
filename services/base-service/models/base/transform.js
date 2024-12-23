@@ -39,6 +39,6 @@ module.exports = async function(path, graph, headers, utils) {
   });
 
   framed["@id"] = path;
-  framed["@context"] = config?.server?.url+"/api/schema/2/context.jsonld";
+  framed["@context"] = config?.server?.url+"/api/schema/context.jsonld";
   return framed;
 }

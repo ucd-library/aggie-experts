@@ -4,7 +4,6 @@ const {FinEsDataModel} = dataModels;
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
 
-
 /**
  * @class BaseModel
  * @description Base class for Aggie Experts data models.  This class provides
@@ -23,6 +22,7 @@ class BaseModel extends FinEsDataModel {
     super(name);
     this.schema = schema;  // Common schema for all experts data models
     this.transformService = "node";
+
   }
 
   /** @inheritdoc */
@@ -187,7 +187,7 @@ class BaseModel extends FinEsDataModel {
       name: node['name'],
       "@graph": [node]
     };
-    ["@type","is-visible","updated","identifier"].forEach(key => {
+    ["@type","status","is-visible","updated","identifier"].forEach(key => {
       if (node[key]) doc[key] = node[key];
     });
     return doc;
@@ -240,7 +240,7 @@ class BaseModel extends FinEsDataModel {
    * @method verify_template
    * @description Adds template to elastic search if it doesn't exist
    */
-  async verify_template(template) {
+    async verify_template(template) {
     if (!Array.isArray(template)) {
       template = [template];
     }
@@ -248,7 +248,6 @@ class BaseModel extends FinEsDataModel {
       try {
         logger.info(`checking template ${t.id}`);
         let result = await this.client.getScript({id:t.id});
-        logger.info(`template ${t.id} ${result}`);
       } catch (err) {
         try {
           logger.info(`adding template ${t.id}`);
@@ -260,7 +259,6 @@ class BaseModel extends FinEsDataModel {
     }
     return true;
   }
-
 
   compact_search_results(results,params) {
     const compact = {
@@ -283,6 +281,15 @@ class BaseModel extends FinEsDataModel {
       hits.push(source);
     }
     compact.hits = hits;
+    const aggregations = {};
+    for (const key in results.aggregations) {
+      aggregations[key] = {}
+      const buckets = results.aggregations[key].buckets;
+      for (const bucket of buckets) {
+        aggregations[key][bucket.key] = bucket.doc_count;
+      }
+    }
+    compact.aggregations = aggregations;
     return compact;
   }
   /**
@@ -291,6 +298,7 @@ class BaseModel extends FinEsDataModel {
    * @returns string
    */
   async render(opts) {
+
     const params = this.common_parms(opts.params);
 
     const options = {
@@ -310,12 +318,14 @@ class BaseModel extends FinEsDataModel {
    * @returns {Object} ES results
    */
   async search(opts) {
-    opts.index || (opts.index = this.readIndexAlias);
     const params = this.common_parms(opts.params);
 
+    const index = params.index || ['grant-read','expert-read'];
+    //const index = '*-read';
+    delete params.index;
     const options = {
       id: (opts.id)?opts.id:"default",
-      index: opts.index,
+      index,
       params
     }
     const res=await this.client.searchTemplate(options);
@@ -323,7 +333,11 @@ class BaseModel extends FinEsDataModel {
   }
 
   async msearch(opts) {
-    opts.index || (opts.index = this.readIndexAlias);
+
+    if (! opts.index) {
+      opts.index = this.readIndexAlias;
+    }
+
     // Fix-up parms
     for(let i=0;i<opts.search_templates.length;i++) {
       let template=opts.search_templates[i];
@@ -419,7 +433,11 @@ class BaseModel extends FinEsDataModel {
     );
 
     if( result ) {
-      result = result._source;
+      if ( !opts.full ) {
+        // default is to return the _source part of the result only
+        result = result._source;
+      }
+      return result;
       //if( opts.compact ) this.utils.compactAllTypes(result);
       //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
     } else {

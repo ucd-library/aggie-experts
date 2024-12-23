@@ -13,6 +13,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
         keySort : { type : String },
         browseType : { type : String },
         selectedLetter : { type : String, attribute : 'selected-letter' },
+        selectedPage : { type : String, attribute : 'selected-page' },
         noResult : { type : String, attribute : 'no-result' },
         sort : { state : true },
         urlParams : { state : true },
@@ -60,6 +61,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     ];
 
     this.selectedLetter = '';
+    this.selectedPage = '';
     this.browseType = '';
     this.sort = this.defaultSort;
 
@@ -76,6 +78,12 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       this.selectedLetter = '';
     } else {
       this.selectedLetter = e.location.path[2]?.toLowerCase();
+    }
+
+    if( e.location.path.length >= 4 ) {
+      this.selectedPage = e.location.path[3];
+    } else {
+      this.selectedPage = '';
     }
 
     this.browseType = e.location.path[1];
@@ -116,7 +124,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       this.selectedLetter = this.alpha[0]?.value;
     }
 
-    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}`);
+    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}${this.selectedPage ? '/' + this.selectedPage : ''}`);
     this.requestUpdate();
   }
 

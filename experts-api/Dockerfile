@@ -1,7 +1,6 @@
-ARG FIN_ORG
-ARG FIN_TAG
+ARG FIN_SERVER_IMAGE
 
-FROM ${FIN_ORG}/fin-base-service:${FIN_TAG}
+FROM ${FIN_SERVER_IMAGE}
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api/
 COPY package.json ${AE_API}/package.json
 RUN cd ${AE_API} && npm install --omit=dev
