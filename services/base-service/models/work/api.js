@@ -29,8 +29,8 @@ openapi.response(
 function subselect(req, res, next) {
   try {
     let params= {};
-    if (req.query.["is-visible"]) {
-      params.[is-visible] = req.query.["is-visible"];
+    if (req.query["is-visible"]) {
+      params[is-visible] = req.query["is-visible"];
     }
 
     // only allow no-sanitize if they are an admin or the expert
