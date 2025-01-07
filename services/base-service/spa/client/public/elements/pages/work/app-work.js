@@ -117,50 +117,48 @@ export default class AppWork extends Mixin(LitElement)
     let workGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.workId)?.[0] || {};
     if( !workGraph ) return;
 
-    console.log('workGraph', workGraph); // TODO remove
+    let contactsGraph = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.workId);
 
     this.workName = workGraph.title || '';
     this.workType = utils.getCitationType(workGraph.type) || '';
 
-
-    // 'get at UC' link is described https://library.ucdavis.edu/get-it-at-uc-links/
-    // TODO but not sure how to construct the link
     this.ucLink = '';
-    // ALMA setup in get it:
-    // https://knowledge.exlibrisgroup.com/Alma/Product_Documentation/010Alma_Online_Help_(English)/030Fulfillment/080Configuring_Fulfillment/090Discovery_Interface_Display_Logic/010General_Electronic_Services#URL_Template
+    // 'get at UC' link is described https://library.ucdavis.edu/get-it-at-uc-links/
+    // ALMA setup https://knowledge.exlibrisgroup.com/Alma/Product_Documentation/010Alma_Online_Help_(English)/030Fulfillment/080Configuring_Fulfillment/090Discovery_Interface_Display_Logic/010General_Electronic_Services#URL_Template
+    // could be helpful https://cdlib.org/services/collections/licensed/policy/uc-libraries-interface-branding/
 
-    // https://cdlib.org/services/collections/licensed/policy/uc-libraries-interface-branding/
+    // example 'get at UC' link in the wild:
+    // https://www.webofscience.com/wos/woscc/summary/949d9c8a-2c02-42d9-83ab-5f9f0cb26902-0137e027a1/relevance/1
 
+    // example 'get at UC' link with the params split:
+    // https://search.library.ucdavis.edu/discovery/openurl?institution=01UCD_INST
+    // &vid=01UCD_INST:UCD
+    // &rft_val_fmt=info:ofi%2Ffmt:kev:mtx:journal
+    // &rft.stitle=INT%20J%20MOL%20SCI
+    // &rft.volume=19
+    // &rft_id=info:doi%2F10.3390%2Fijms19010070
+    // &rfr_id=info:sid%2Fwebofscience.com:WOS:WOSCC
+    // &rft.jtitle=INTERNATIONAL%20JOURNAL%20OF%20MOLECULAR%20SCIENCES
+    // &rft.aufirst=Tzu-Kai
+    // &rft.genre=article
+    // &rft.issue=1
+    // &url_ctx_fmt=info:ofi%2Ffmt:kev:mtx:ctx
+    // &rft.aulast=Lin
+    // &url_ver=Z39.88-2004
+    // &rft.artnum=ARTN%2070
+    // &rft.auinit=TK
+    // &rft.date=2018
+    // &rft.au=Lin,%20TK
+    // &rft.au=Zhong,%20LL
+    // &rft.au=Santiago,%20JL
+    // &rft.atitle=Anti-Inflammatory%20and%20Skin%20Barrier%20Repair%20Effects%20of%20Topical%20Application%20of%20Some%20Plant%20Oils
+    // &rft.issn=1661-6596
+    // &rft.eissn=1422-0067
 
-    // wos https://www.webofscience.com/wos/woscc/summary/949d9c8a-2c02-42d9-83ab-5f9f0cb26902-0137e027a1/relevance/1 has links to 'get at uc'
-      // https://search.library.ucdavis.edu/discovery/openurl?institution=01UCD_INST
-      // &vid=01UCD_INST:UCD
-      // &rft_val_fmt=info:ofi%2Ffmt:kev:mtx:journal
-      // &rft.stitle=INT%20J%20MOL%20SCI
-      // &rft.volume=19
-      // &rft_id=info:doi%2F10.3390%2Fijms19010070
-      // &rfr_id=info:sid%2Fwebofscience.com:WOS:WOSCC
-      // &rft.jtitle=INTERNATIONAL%20JOURNAL%20OF%20MOLECULAR%20SCIENCES
-      // &rft.aufirst=Tzu-Kai
-      // &rft.genre=article
-      // &rft.issue=1
-      // &url_ctx_fmt=info:ofi%2Ffmt:kev:mtx:ctx
-      // &rft.aulast=Lin
-      // &url_ver=Z39.88-2004
-      // &rft.artnum=ARTN%2070
-      // &rft.auinit=TK
-      // &rft.date=2018
-      // &rft.au=Lin,%20TK
-      // &rft.au=Zhong,%20LL
-      // &rft.au=Santiago,%20JL
-      // &rft.atitle=Anti-Inflammatory%20and%20Skin%20Barrier%20Repair%20Effects%20of%20Topical%20Application%20of%20Some%20Plant%20Oils
-      // &rft.issn=1661-6596
-      // &rft.eissn=1422-0067
-
-
-
-
-
+    // tried only with doi
+    // https://search.library.ucdavis.edu/discovery/openurl?institution=01UCD_INST&rft_id=info:doi%2F10.3390%2Fijms19010070
+    // full link
+    // https://search.library.ucdavis.edu/discovery/openurl?institution=01UCD_INST&vid=01UCD_INST:UCD&rft_val_fmt=info:ofi%2Ffmt:kev:mtx:journal&rft.stitle=INT%20J%20MOL%20SCI&rft.volume=19&rft_id=info:doi%2F10.3390%2Fijms19010070&rfr_id=info:sid%2Fwebofscience.com:WOS:WOSCC&rft.jtitle=INTERNATIONAL%20JOURNAL%20OF%20MOLECULAR%20SCIENCES&rft.aufirst=Tzu-Kai&rft.genre=article&rft.issue=1&url_ctx_fmt=info:ofi%2Ffmt:kev:mtx:ctx&rft.aulast=Lin&url_ver=Z39.88-2004&rft.artnum=ARTN%2070&rft.auinit=TK&rft.date=2018&rft.au=Lin,%20TK&rft.au=Zhong,%20LL&rft.au=Santiago,%20JL&rft.atitle=Anti-Inflammatory%20and%20Skin%20Barrier%20Repair%20Effects%20of%20Topical%20Application%20of%20Some%20Plant%20Oils&rft.issn=1661-6596&rft.eissn=1422-0067
 
     this.publisherLink = workGraph.DOI ? this.publisherLink = `https://doi.org/${workGraph.DOI}` : '';
 
@@ -170,47 +168,48 @@ export default class AppWork extends Mixin(LitElement)
     // TODO need to test, chemistry papers ie
     this.abstract = workGraph.abstract || '';
 
-
     // TODO for publisher/page/date, what are we doing on the expert page with citation-js? do same thing here
-    let citation = await Citation.generateCitations([workGraph]);
-    debugger;
+    // let citation = await Citation.generateCitations([workGraph]);
+    // debugger;
     this.publisher = workGraph['container-title'] || '';
     this.publishedPage = workGraph.page || '';
     this.publishedDate = workGraph.issued || ''; // TODO this could be array type? also need to format
 
-
     this.showPublished = this.publisher && this.publishedPage && this.publishedDate;
-
     this.showSubjects = false;
 
-    // this.showAuthors = true; // TODO hide if no authors
-    // this.authorsList = [
-    //   {
-    //     hasProfile : true,
-    //     id : 'expert/42',
-    //     name : 'Lastname, Firstname 1',
-    //     subtitle : 'Role, Title, Department 1'
-    //   }
-    // ];
-  //   relatedBy = [
-  //     {
-  //         "@id": "ark:/87287/d7mh2m/relationship/6891410",
-  //         "@type": [
-  //             "Authorship",
-  //             "ucdlib:Authorship"
-  //         ],
-  //         "is-visible": true,
-  //         "rank": 1,
-  //         "relates": [
-  //             "expert/B6IzGJXZ",
-  //             "ark:/87287/d7mh2m/publication/3164416"
-  //         ]
-  //     }
-  // ]
     if( workGraph.relatedBy && !Array.isArray(workGraph.relatedBy) ) workGraph.relatedBy = [workGraph.relatedBy];
-    // this.authorsList = x
+    this.authorsList = [];
 
-    // ask QH, relatedBy doesn't have name of expert, just expertId
+    workGraph.relatedBy.forEach(r => {
+      if( r['is-visible'] !== false ) {
+        let expertId = r.relates.filter(rel => rel.startsWith('expert/'))[0];
+        let expert = contactsGraph.filter(c => c['@id'] === expertId)[0];
+
+        if( expert ) {
+          let contactName = expert.contactInfo?.[0]?.name || '';
+          if( Array.isArray(contactName) ) contactName = contactName[0];
+
+          let name = contactName.split('§').shift().trim();
+          let subtitle = contactName.split('§').pop().trim();
+          if( name === subtitle ) subtitle = '';
+
+          this.authorsList.push({
+            hasProfile : true,
+            id : expert['@id'],
+            name,
+            subtitle
+          });
+        }
+      }
+    });
+
+    if( this.authorsList.length ) {
+      this.showAuthors = true;
+    }
+
+    // TODO use rank? can't recall what was decided in chat with Quinn before winter break
+    // does this affect list of authors at bottom of page, or just the order of names on search/browse?
 
   }
 
