@@ -44,7 +44,6 @@
     },
     "org":"localhost/aggie-experts",
     "tag":"dirty",
-    "branch":"!^(dev|main)",
     "server":"!(experts.library.ucdavis.edu)",
     "port":"80",
     "host":"http://localhost",
@@ -56,7 +55,6 @@
   },
   "clean":{
     "org":"localhost/aggie-experts",
-    "branch":"!^(dev|main)",
     "auth": {
       "server":"prod",
       "client_id":"local-dev",
@@ -72,7 +70,6 @@
   },
   "sandbox":{
     "org":"localhost/aggie-experts",
-    "branch":".*",
     "auth": {
       "server":"prod",
       "client_id":"local-dev",
@@ -88,8 +85,7 @@
   },
   "prev":{
     "port":"10480",
-    "host":"https://prev.experts.library.ucdavis.edu",
-    "branch":"(dev|main)"
+    "host":"https://prev.experts.library.ucdavis.edu"
   },
   "stage":{
     "gcs":{
@@ -97,7 +93,6 @@
     },
     "port":"10380",
     "host":"https://stage.experts.library.ucdavis.edu",
-    "branch":"(dev|main)",
     "cdl":{
       "propagate_changes":"true"
     },

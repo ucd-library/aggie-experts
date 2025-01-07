@@ -226,7 +226,7 @@ Tests the environment, with respect to the hostname and git tag.
 
 =cut
 function test_env() {
-  local env, tag, git_tag
+  local env tag git_tag
   env=${G[env]}
   tag=$(G .${G[env]}.tag // .def.tag)
   git_tag="$(${G[git]} describe --always --dirty)"
@@ -250,24 +250,6 @@ function test_env() {
     fi
   }
 
-  function branch() {
-    local expected_branch, this_branch
-    expected_branch=$(G .${G[env]}.branch)
-    this_branch=$(${G[git]} branch --show-current)
-    if [[ "$expected_branch" =~ ^! ]]; then
-      expected_branch=${expected_branch#!}
-      if [[ "$this_branch" =~ $expected_branch ]]; then
-        >&2 echo "ERR: --env=$env branch $this_branch =~ $expected_branch"
-        exit 1
-      fi
-    else
-      if ! [[ "$this_branch" =~ $expected_branch ]]; then
-        >&2 echo "ERR: --env=$env branch ! [[ $this_branch =~ $expected_branch ]]"
-        exit 1
-      fi
-    fi
-  }
-
   function good_status() {
     local status="${G[git]} status --porcelain=1"
     if [[ ${G[unstaged_ok]} ]]; then
@@ -281,7 +263,7 @@ function test_env() {
   }
 
   function server() {
-    local expected_server, this_server
+    local expected_server this_server
     expected_server=$(G .${G[env]}.server)
     this_server=$(hostname --fqdn)
     if [[ "$expected_server" =~ ^! ]]; then
@@ -301,7 +283,6 @@ function test_env() {
   echo -n "Testing environment: ${G[env]} ... "
   case ${G[env]} in
     dev)
-      branch
       server
     ;;
     clean )
