@@ -45,6 +45,7 @@ $ bin/aggie-experts —no-test —env=stage setup
 Note: There is no requirement for a .env file but one can be used to set the bucket to use and to enable/disable data hydration. For example:
 
 GCS_BUCKET=fcrepo-2
+
 GCS_INIT_DATA_HYDRATION=true   
 
 ...would use the GCS bucket fcrepo-2 and import the data. Setting GCS_INIT_DATA_HYDRATION=false is useful when you don't want the data imported on startup. 
