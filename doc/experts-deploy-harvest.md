@@ -7,17 +7,20 @@ Move to the aggie-experts dir
 $ cd /etc/aggie-experts
 
 There will likely be multiple versions of the codebase already on the server
+
 $ ls -l  # to list versions
 
 Move to the current version which may be running currently
+
 $ cd 2-1 # for example
 
 Look for running services
+
 $ docker compose ps 
 
 Check the FIN config settings
-$ grep FIN docker-compose.yaml 
-note where we are running (e.g. stage)
+
+$ grep FIN docker-compose.yaml # to see where the current version is running (e.g. stage)
 
 ## Create another version
 
