@@ -1,4 +1,4 @@
-##Data Deployment Steps
+# Data Deployment Steps
 
 ssh to stage server. Could be blue.experts.library.ucdavis.edu or gold.experts.library.ucdavis.edu
 
@@ -14,7 +14,7 @@ $ grep FIN docker-compose.yaml to see FIN config settings
 
 note where we are running (e.g. stage)
 
-###Create another version
+## Create another version
 
 $ cd  ..  // (back to aggie-experts)
 
@@ -26,7 +26,7 @@ $ git describe    // check the version
 
 if the current dev version is not desired checkout the last good tag. (e.g. 2.4)
 
-**Run Setup Process**
+## Run Setup Process
 
 $ bin/aggie-experts —no-test —env=stage setup. // this creates docker-compose.yml and copies over the service account file
 
@@ -35,7 +35,7 @@ Note: no requirement for a .env file but one can be used to set the bucket to us
 GCS_BUCKET=fcrepo-2
 GCS_INIT_DATA_HYDRATION=true   // needed for a new data deployment
 
-**Data Initialization**
+## Data Initialization
 
 Start-up Fuseki only (we only want to harvest data at this point)
 
@@ -53,7 +53,7 @@ $ docker compose exec fuseki /harvest-entrypoint.sh bash    // this brings you t
 
 ucd.process@4cdbbe11f9ef:~$       // you should see a similar prompt
 
-**Run the harvest process**
+## Run the harvest process
 
 $ experts cdl --log=info —groups=1576   // check oapolicy for group IDs. 1576 = all UCD
 
