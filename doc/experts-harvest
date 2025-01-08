@@ -1,4 +1,4 @@
-**Data Deployment Steps**
+##Data Deployment Steps
 
 ssh to stage server. Could be blue.experts.library.ucdavis.edu or gold.experts.library.ucdavis.edu
 
@@ -14,7 +14,7 @@ $ grep FIN docker-compose.yaml to see FIN config settings
 
 note where we are running (e.g. stage)
 
-**Create another version**
+###Create another version
 
 $ cd  ..  // (back to aggie-experts)
 
