@@ -171,6 +171,7 @@ export default class AppWork extends Mixin(LitElement)
     // TODO for publisher/page/date, what are we doing on the expert page with citation-js? do same thing here
     // let citation = await Citation.generateCitations([workGraph]);
     // debugger;
+
     this.publisher = workGraph['container-title'] || '';
     this.publishedPage = workGraph.page || '';
     this.publishedDate = workGraph.issued || ''; // TODO this could be array type? also need to format

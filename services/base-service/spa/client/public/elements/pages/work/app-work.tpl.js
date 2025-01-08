@@ -191,6 +191,22 @@ export function styles() {
       margin-bottom: 1.5rem;
     }
 
+    .full-text .link-row {
+      display: flex;
+      align-items: start;
+      line-height: 2rem;
+    }
+
+    .full-text .link-row span {
+      padding: .25rem 0 .25rem 0.625rem;
+      line-height: 1.5rem;
+    }
+
+    .full-text ucdlib-icon {
+      fill: var(--color-aggie-blue-60);
+      margin-top: .2rem;
+    }
+
     @media (max-width: 992px) {
       .main-content {
           width: 90%;
@@ -224,7 +240,16 @@ return html`
 
       <div ?hidden="${!this.showFullText}" class="full-text">
         <h3 class="heading--highlight">Full Text</h3>
-        TODO - LINKS TO GET AT UC & PUBLISHER PAGE
+
+        <div class="link-row" ?hidden="${!this.ucLink}">
+          <ucdlib-icon icon="ucdlib-experts:get-at-uc"></ucdlib-icon>
+          <span><a href="${this.ucLink}">Get it at UC</a></span>
+        </div>
+        <div class="link-row" ?hidden="${!this.publisherLink}">
+          <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
+          <span><a href="${this.publisherLink}">Publisher Page</a></span>
+        </div>
+
       </div>
 
       <div ?hidden="${!this.abstract}" class="abstract">
@@ -238,12 +263,9 @@ return html`
       </div>
 
       <!-- TODO SUBJECTS -->
-      <div ?hidden="${!this.showSubjects}" class="subjects">
+      <!-- <div ?hidden="${!this.showSubjects}" class="subjects">
         <h3 class="heading--highlight">Subjects</h3>
-        TODO - SUBJECTS
-      </div>
-
-
+      </div> -->
 
       <div class="authors-section" ?hidden="${!this.showAuthors}">
         <div class="works">
