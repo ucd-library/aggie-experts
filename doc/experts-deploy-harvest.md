@@ -75,7 +75,7 @@ $ experts cdl --log=info —groups=1576   # check oapolicy for group IDs. 1576 =
 
 This starts the harvest in the foreground and logs to the console as it works.
 
-Open another byobu terminal to monitor the cache being built by the harvest.
+You can open another byobu terminal to monitor the cache being built by the harvest.
 
 $ docker compose exec fuseki /harvest-entrypoint.sh bash   # for another term
 
@@ -84,5 +84,7 @@ $ ls cache/     # will list expert directories
 $ ls cache/ | wc -l  # will show a count of experts harvested so far which you can monitor for progress.
 
 Now, you can log out, and the harvest will still be running. Later you can ssh back into the server and restart byobu to continue.
+
+## Import the resulting cache directory into FIN using fin io import
 
 
