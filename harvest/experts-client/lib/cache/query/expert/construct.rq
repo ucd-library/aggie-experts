@@ -315,7 +315,7 @@ WHERE {
   bind(uri(concat(str(?user),"#",?pps_vid)) as ?pps_vcard)
 
 
-  bind(if(?odr_title_v,coalesce(?explicit_odr_title,?pps_title),?not_defined) as ?odr_title)
+  bind(if(?odr_title_v,coalesce(?explicit_odr_title,?pps_title_prefLabel,?pps_title),?not_defined) as ?odr_title)
   bind(if(?odr_dept_v,coalesce(?explicit_odr_dept,?pps_dept),?not_defined) as ?odr_dept)
   bind(if(?odr_dept_v,coalesce(?explicit_odr_dept_code,?pps_dept_code),?not_defined) as ?odr_dept_code)
   bind(if(?odr_email_v,coalesce(?explicit_odr_email,?default_email),?not_defined) as ?odr_email)
