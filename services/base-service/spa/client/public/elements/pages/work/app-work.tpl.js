@@ -1,4 +1,5 @@
 import { html, css, unsafeCSS } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 import { sharedStyles } from '../../styles/shared-styles';
 
@@ -259,7 +260,8 @@ return html`
 
       <div ?hidden="${!this.showPublished}" class="published">
         <h3 class="heading--highlight">Published</h3>
-        ${this.publisher} - ${this.publishedPage} - ${this.publishedDate}
+        <!-- ${this.publisher} - ${this.publishedPage} - ${this.publishedDate} -->
+         ${unsafeHTML(this.published.replace('(n.d.). ', '')?.replace('(n.d.).', ''))}
       </div>
 
       <!-- TODO SUBJECTS -->

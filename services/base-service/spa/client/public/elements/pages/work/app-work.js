@@ -27,6 +27,7 @@ export default class AppWork extends Mixin(LitElement)
       publishedPage : { type : String },
       publishedDate : { type : String },
       showPublished : { type : Boolean },
+      published : { type : String },
       showSubjects : { type : Boolean },
       showAuthors : { type : Boolean },
       authorsList : { type : Array },
@@ -56,6 +57,7 @@ export default class AppWork extends Mixin(LitElement)
     this.publishedPage = '';
     this.publishedDate = '';
     this.showPublished = false;
+    this.published = '';
 
     this.showSubjects = false; // TODO this might not be in v2.1
 
@@ -168,15 +170,37 @@ export default class AppWork extends Mixin(LitElement)
     // TODO need to test, chemistry papers ie
     this.abstract = workGraph.abstract || '';
 
+
+
+
+
+
+
+
+
+
+
     // TODO for publisher/page/date, what are we doing on the expert page with citation-js? do same thing here
-    // let citation = await Citation.generateCitations([workGraph]);
-    // debugger;
+    let cite = await Citation.generateCitations([workGraph]);
+    cite = cite[0]?.value;
+    console.log({ cite });
 
-    this.publisher = workGraph['container-title'] || '';
-    this.publishedPage = workGraph.page || '';
-    this.publishedDate = workGraph.issued || ''; // TODO this could be array type? also need to format
+    if( cite && cite.DOI && cite.apa ) {
+      // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
+      this.published = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
+              + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
+              + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
+    }
 
-    this.showPublished = this.publisher && this.publishedPage && this.publishedDate;
+    // this.publisher = workGraph['container-title'] || '';
+    // this.publishedPage = workGraph.page || '';
+    // this.publishedDate = workGraph.issued || ''; // TODO this could be array type? also need to format
+
+
+
+
+
+    this.showPublished = this.published || this.publisher && this.publishedPage && this.publishedDate;
     this.showSubjects = false;
 
     if( workGraph.relatedBy && !Array.isArray(workGraph.relatedBy) ) workGraph.relatedBy = [workGraph.relatedBy];
