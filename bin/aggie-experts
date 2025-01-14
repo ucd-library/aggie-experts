@@ -226,15 +226,9 @@ Tests the environment, with respect to the hostname and git tag.
 
 =cut
 function test_env() {
-  local env tag git_tag
+  local env tag
   env=${G[env]}
-  tag=$(G .${G[env]}.tag // .def.tag)
-  git_tag="$(${G[git]} describe --always --dirty)"
-
-  # Tag is the git tag, unless specified
-  if [[ ${tag} == "__git__" ]]; then
-    tag="${git_tag}"
-  fi
+  tag="$(${G[git]} describe --always --dirty)"
 
   function not_dirty() {
     if [[ "$tag" =~ "dirty" ]]; then
@@ -289,7 +283,6 @@ function test_env() {
       not_dirty
       good_status
       server dev
-      # Use git status to check for unstaged changes
       ;;
     gcb)
       annotated_tag
@@ -300,7 +293,6 @@ function test_env() {
       server sandbox
       not_dirty
       good_status
-      # Use git status to check for unstaged changes
       ;;
     test | prev | stage | prod )
       server prod
@@ -355,15 +347,15 @@ Use shell expansion to expand docker-template.yaml with defaults
 =cut
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand_template(){
-  local env root git_tag
+  local env root
   env=${G[env]}
   root="$(${G[git]} rev-parse --show-toplevel)"
-  git_tag="$(${G[git]} describe --always --dirty)"
   local sa client_id auth
-#  echo "Expanding ${root}/docker-template.yaml"
   declare -g -A D
 
-  read D["org"] D["tag"] D["fin_org"] D["fin_tag"] \
+  D["tag"]="$(${G[git]} describe --always --dirty)"
+
+  read D["org"] D["fin_org"] D["fin_tag"] \
        D["host"] D["port"] \
        D["gcs_bucket"] D["gcs_init_data_hydration"]\
        D["client_env"] D["cdl_propagate_changes"] \
@@ -371,7 +363,6 @@ function expand_template(){
        D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
        sa client_id auth \
        <<<$(G "[.${G[env]}.org // .def.org,
-           .${G[env]}.tag // .def.tag,
            .def.fin.org,
            .def.fin.tag,
            .${G[env]}.host,
@@ -408,10 +399,6 @@ function expand_template(){
   D[fin_service_account_name]=$FIN_SERVICE_ACCOUNT_NAME
   D[fin_service_account_secret]=$FIN_SERVICE_ACCOUNT_SECRET
 
-  # Tag is the git tag, unless specified
-  if [[ ${D[tag]} == "__git__" ]]; then
-    D[tag]="${git_tag}"
-  fi
 #  declare -p D
   local line lineEscaped
   # the `||` clause ensures that the last line is read even if it doesn't end with \n
@@ -440,12 +427,10 @@ function prune() {
 }
 
 function build() {
-  local org tag
+  local tag
   local dry_run
   local N=${G[dry-run]};
-
   local tag="$(${G[git]} describe --always --dirty)"
-  # Tag is the git tag, unless specified
 
   function post_build() {
     if [[ $tag != "dirty" ]]; then
@@ -497,8 +482,8 @@ function setup() {
 
   function compose() {
     local N=${G[dry-run]};
-    local org tag gcs
-    read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs.bucket] | @tsv")
+    local gcs
+    read gcs <<<$(G "[.${G[env]}.gcs.bucket] | @tsv")
 
     local yq='.'
     local env=${G[env]}
