@@ -461,7 +461,7 @@ function build() {
         >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
         exit 1
       fi
-      cork-kube build gcb --project aggie-experts --version=$tag ${G[build_args]} $@
+      $N cork-kube build gcb --project aggie-experts --version=$tag $@
       ;;
     test | prev | stage | prod )
       >&2 echo "No builds env=${G[env]}"
