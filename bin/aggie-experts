@@ -428,9 +428,15 @@ function prune() {
 
 function build() {
   local tag
-  local dry_run
   local N=${G[dry-run]};
-  local tag="$(${G[git]} describe --always --dirty)"
+  tag="$(${G[git]} describe --always --dirty)"
+  local build_args
+  read build_args \
+       <<<$(G "[.${G[env]}[\"cork-kube\"].build_args // .def[\"cork-kube\"].build_args] |@tsv")
+
+  if [[ -z ${G[build_args]} ]]; then
+        G[build_args]=$build_args
+  fi
 
   function post_build() {
     if [[ $tag != "dirty" ]]; then
