@@ -213,6 +213,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
       this.addingFilter = true;
+      this.AppStateModel.set({ resetSearch : false });
       this._updateLocation();
     }
   }
