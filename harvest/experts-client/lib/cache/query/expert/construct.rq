@@ -43,11 +43,11 @@ CONSTRUCT {
              vcard:hasEmail ?default_email_uri;
              vcard:hasOrganizationalUnit ?pps_vcard_unit;
              vcard:hasName ?vcard_name;
-             vcard:hasTitle ?pps_title_uri;
+             vcard:hasTitle ?pps_title_uri_use;
              ucdlib:isPreferred ?pps_is_preferred;
              .
 
-  ?pps_title_uri a vcard:Title;
+  ?pps_title_uri_use a vcard:Title;
                  vcard:title ?pps_title;
                  skos:prefLabel ?pps_title_preflabel;
                .
@@ -124,9 +124,9 @@ WHERE {
       graph ucop: {
         ?pps_title_uri a ?ucop_type;
                        skos:prefLabel ?pps_title_preflabel;
-                        .
-                     }
+                       .
       }
+    }
     OPTIONAL { ?user iam:dMiddleName ?iam_mname . }
     OPTIONAL {
       ?user iam:directory/iam:displayName/iam:nameWwwFlag "N" .
@@ -149,13 +149,33 @@ WHERE {
 
     OPTIONAL {
       ?user iam:directory/iam:listings ?list.
-      ?list iam:listingOrder ?odr_list_order;
-            iam:deptWwwFlag "Y";
-            iam:deptName ?odr_dept;
-            iam:deptCode ?odr_dept_code;
-            iam:titleWwwFlag "Y";
-            iam:title ?odr_title;
-            .
+
+      OPTIONAL {
+        ?list iam:listingOrder ?odr_list_order;
+              iam:deptName ?odr_dept;
+              iam:deptCode ?odr_dept_code;
+              iam:title ?odr_title;
+              .
+        bind(true as ?has_odr)
+      }
+
+      OPTIONAL {
+        ?list iam:deptWwwFlag "N".
+        filter not exists {
+          ?list iam:deptName [];
+                iam:deptCode [];
+                .
+        }
+        bind(false as ?pps_dept_v)
+      }
+      OPTIONAL {
+        ?list iam:titleWwwFlag "N".
+        filter not exists {
+          ?list iam:title [];
+                .
+        }
+        bind(false as ?pps_title_v)
+      }
 
       OPTIONAL {
         ?list iam:websiteWwwFlag "Y";
@@ -163,13 +183,20 @@ WHERE {
               .
       }
       OPTIONAL {
-        ?list iam:emailWwwFlag "Y";
-              iam:email ?odr_email;
-              .
+        ?list iam:emailWwwFlag "Y".
+        ?list iam:email ?odr_email.
       }
-      bind(true as ?has_odr)
+      OPTIONAL {
+        ?list iam:emailWwwFlag "N".
+        filter not exists {
+          ?list iam:email [];
+                .
+        }
+        bind(false as ?pps_email_v)
+      }
     }
   }
+
   GRAPH <ark:/87287/d7mh2m/> {
   ?cdl_id oap:category "user";
         oap:is-public "true";
@@ -286,14 +313,15 @@ WHERE {
   bind(coalesce(?odr_is_visible,true) as ?is_visible)
   bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
   bind(uri(concat(str(?user),"#name")) as ?vcard_name)
-  bind(uri(concat('mailto:',?default_email)) as ?default_email_uri)
-  bind(replace(?pps_otitle," -.*","") as ?pps_title)
+  bind(if(coalesce(?pps_email_v,true),uri(concat('mailto:',?default_email)),?not_defined) as ?default_email_uri)
+  bind(if(coalesce(?pps_title_v,true),?pps_title_uri,?not_defined) as ?pps_title_uri_use)
+  bind(if(coalesce(?pps_title_v,true),replace(?pps_otitle," -.*",""),?not_defined) as ?pps_title)
   bind(xsd:integer(?pps_a_order)+10 as ?pps_order)
   bind(concat("pps-",str(?pps_order)) as ?pps_vid)
   bind(coalesce((! ?has_odr),true) as ?pps_is_preferred)
-  bind(uri(concat("ark:/87287/d7c08j/dept/",?pps_dept_code)) as ?pps_vcard_unit)
+  bind(if(coalesce(?pps_dept_v,true),uri(concat("ark:/87287/d7c08j/dept/",?pps_dept_code)),?not_defined) as ?pps_vcard_unit)
   bind(coalesce(concat(" § ",
-                       coalesce(?pps_title_preflabel,?pps_title),
+                       coalesce(?pps_title_preflabel,?pps_title,""),
                        coalesce(concat(", ",?pps_dept),"")),"") as ?pps_title_dept)
   bind(concat(?name_label,coalesce(?pps_title_dept,"")) as ?pps_vcard_label)
   bind(uri(concat(str(?user),"#",?pps_vid)) as ?pps_vcard)
