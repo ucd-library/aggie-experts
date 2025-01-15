@@ -158,9 +158,11 @@ export default class AppExpert extends Mixin(LitElement)
         title : c.hasTitle?.prefLabel || c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.prefLabel || c.hasOrganizationalUnit?.name,
         email : c?.hasEmail?.replace('mailto:', ''),
-        websiteUrl : c.hasURL?.['url']
+        websiteUrl : c.hasURL?.['url'],
+        rank : c.rank
       }
     });
+    this.roles.sort((a, b) => a.rank - b.rank);
 
     this.orcId = graphRoot.orcidId;
     this.scopusIds = Array.isArray(graphRoot.scopusId) ? graphRoot.scopusId : [graphRoot.scopusId];
