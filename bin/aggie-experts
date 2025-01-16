@@ -355,6 +355,12 @@ function expand_template(){
 
   D["tag"]="$(${G[git]} describe --always --dirty)"
 
+  case ${G[env]} in
+    dev)
+      D["tag"]="dirty"
+      ;;
+  esac
+
   read D["org"] D["fin_org"] D["fin_tag"] \
        D["host"] D["port"] \
        D["gcs_bucket"] D["gcs_init_data_hydration"]\
