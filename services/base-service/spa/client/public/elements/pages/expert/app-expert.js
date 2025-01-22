@@ -164,6 +164,14 @@ export default class AppExpert extends Mixin(LitElement)
     });
     this.roles.sort((a, b) => a.rank - b.rank);
 
+    // if all emails match, only show email under the last role
+    let uniqueEmails = [...new Set(this.roles.map(role => role.email))];
+    if( uniqueEmails.length === 1 ) {
+      for( let i = 0; i < this.roles.length - 1; i++ ) {
+        this.roles[i].email = null;
+      }
+    }
+
     this.orcId = graphRoot.orcidId;
     this.scopusIds = Array.isArray(graphRoot.scopusId) ? graphRoot.scopusId : [graphRoot.scopusId];
     this.researcherId = graphRoot.researcherId;
