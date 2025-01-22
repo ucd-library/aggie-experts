@@ -274,6 +274,10 @@ export default class FinApp extends Mixin(LitElement)
       this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.searchTerm.trim()));
       this.AppStateModel.set({ resetSearch: true });
     }
+
+    let searchPopup = this.shadowRoot.querySelector('ucd-theme-search-form');
+    if( searchPopup ) searchPopup.clearSearch();
+
     this._closeHeader();
   }
 
