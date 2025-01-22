@@ -24,10 +24,9 @@ export default class AppWork extends Mixin(LitElement)
       publisherLink : { type : String },
       abstract : { type : String },
       publisher : { type : String },
-      publishedPage : { type : String },
+      publishedVolume : { type : String },
       publishedDate : { type : String },
       showPublished : { type : Boolean },
-      published : { type : String },
       showSubjects : { type : Boolean },
       showAuthors : { type : Boolean },
       authorsList : { type : Array },
@@ -54,29 +53,14 @@ export default class AppWork extends Mixin(LitElement)
     this.abstract = '';
 
     this.publisher = '';
-    this.publishedPage = '';
+    this.publishedVolume = '';
     this.publishedDate = '';
     this.showPublished = false;
-    this.published = '';
 
-    this.showSubjects = false; // TODO this might not be in v2.1
+    this.showSubjects = false;
 
     this.showAuthors = false;
     this.authorsList = [];
-    //   {
-    //     hasProfile : true,
-    //     id : 'expert/42',
-    //     name : 'Lastname, Firstname 1',
-    //     subtitle : 'Role, Title, Department 1'
-    //   },
-    //   {
-    //     hasProfile : true,
-    //     id : 'expert/42',
-    //     name : 'Lastname, Firstname 2',
-    //     subtitle : 'Role, Title, Department 2'
-    //   }
-    // ];
-
     this.render = render.bind(this);
   }
 
@@ -180,27 +164,22 @@ export default class AppWork extends Mixin(LitElement)
 
 
 
-    // TODO for publisher/page/date, what are we doing on the expert page with citation-js? do same thing here
     let cite = await Citation.generateCitations([workGraph]);
     cite = cite[0]?.value;
-    console.log({ cite });
+    this.publisher = workGraph.publisher || '';
 
-    if( cite && cite.DOI && cite.apa ) {
-      // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
-      this.published = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
-              + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
-              + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
-    }
+    // like if 185(6), 600–616 is a standard format we would show as 'Volume 185, Issue 6, 600-616'
+    let publishedVolume = '';
+    if( cite.volume ) publishedVolume += 'Volume ' + cite.volume;
+    if( cite.issue ) publishedVolume += ', Issue ' + cite.issue;
+    if( cite.page ) publishedVolume += ', ' + cite.page;
+    this.publishedVolume = publishedVolume;
 
-    // this.publisher = workGraph['container-title'] || '';
-    // this.publishedPage = workGraph.page || '';
-    // this.publishedDate = workGraph.issued || ''; // TODO this could be array type? also need to format
-
+    let [ year, month, day ] = workGraph.issued?.split?.('-');
+    this.publishedDate = this.formatDate({ year, month, day });
 
 
-
-
-    this.showPublished = this.published || this.publisher && this.publishedPage && this.publishedDate;
+    this.showPublished = this.publisher || this.publishedVolume || this.publishedDate;
     this.showSubjects = false;
 
     if( workGraph.relatedBy && !Array.isArray(workGraph.relatedBy) ) workGraph.relatedBy = [workGraph.relatedBy];
@@ -236,6 +215,17 @@ export default class AppWork extends Mixin(LitElement)
     // TODO use rank? can't recall what was decided in chat with Quinn before winter break
     // does this affect list of authors at bottom of page, or just the order of names on search/browse?
 
+  }
+
+  formatDate(dateObj) {
+    if (!dateObj) return '';
+
+    const options = {};
+    if (dateObj.year) options.year = 'numeric';
+    if (dateObj.month) options.month = 'long';
+    if (dateObj.day) options.day = 'numeric';
+
+    return new Date(dateObj.year, dateObj.month ? dateObj.month - 1 : 0, dateObj.day || 1).toLocaleDateString('en-US', options);
   }
 
 }

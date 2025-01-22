@@ -1,5 +1,4 @@
 import { html, css, unsafeCSS } from 'lit';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 import { sharedStyles } from '../../styles/shared-styles';
 
@@ -213,6 +212,13 @@ export function styles() {
           width: 90%;
       }
     }
+
+    .published .dot-separator {
+      color: var(--color-sage);
+      font-weight: bold;
+      font-size: 1.2rem;
+      padding: 0 .25rem;
+    }
   `;
 
   return [elementStyles];
@@ -260,8 +266,7 @@ return html`
 
       <div ?hidden="${!this.showPublished}" class="published">
         <h3 class="heading--highlight">Published</h3>
-        <!-- ${this.publisher} - ${this.publishedPage} - ${this.publishedDate} -->
-         ${unsafeHTML(this.published.replace('(n.d.). ', '')?.replace('(n.d.).', ''))}
+         ${this.publisher} <span class="dot-separator">•</span> ${this.publishedVolume} <span class="dot-separator">•</span> ${this.publishedDate}
       </div>
 
       <!-- TODO SUBJECTS -->
