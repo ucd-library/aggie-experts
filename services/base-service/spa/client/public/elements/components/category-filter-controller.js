@@ -83,9 +83,13 @@ export class CategoryFilterController extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
+    let searchTerm = decodeURIComponent(e.location.query?.q || e.location.path?.[1] || '');
+    if( !searchTerm ) return;
+
     this.type = e.location.query.type || '';
     this.status = e.location.query.status || '';
     this.expert = e.location.query.expert || '';
+    this.searchTerm = searchTerm;
     this._updateActiveFilter(this.type, this.status);
 
     // handle filter/query changes outside of filter controller

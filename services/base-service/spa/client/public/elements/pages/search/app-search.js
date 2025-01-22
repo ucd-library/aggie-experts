@@ -74,6 +74,12 @@ export default class AppSearch extends Mixin(LitElement)
   firstUpdated() {
     if( this.AppStateModel.location.page !== 'search' ) return;
 
+    let searchTerm = decodeURIComponent(this.AppStateModel.location.query?.q || this.AppStateModel.location.path?.[1] || '');
+    if( !searchTerm ) {
+      this.AppStateModel.setLocation('/');
+      return;
+    }
+
     let query = this.AppStateModel.location.query;
     this.lastQueryParams = query;
 
