@@ -339,7 +339,7 @@ export default class AppSearch extends Mixin(LitElement)
         numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 
       } else if( resultType === 'grant' ) {
-        subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+        subtitle = 'Grant <span class="dot-separator">•</span> ' + ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
         id = 'grant/' + id;
       }
 
