@@ -234,7 +234,11 @@ return html`
           <span class="work-type">${this.workType}</span>
         </div>
         <h1>${this.workName}</h1>
-        <h3 class="heading--highlight">TODO - AUTHOR LIST</h3>
+        <h3 class="heading--highlight">
+          ${this.authors?.map((author, index) => html`
+            ${author}${index < this.authors.length - 1 ? ', ' : ''}
+          `)}
+        </h3>
       </div>
     </div>
 
@@ -281,9 +285,9 @@ return html`
         </div>
         <hr class="authors seperator">
         <div class="authors-group">
-          ${this.authorsList?.map(
-            (result) => html`
-              <app-contributor-row result="${result.position}" .result=${result}></app-contributor-row>
+          ${this.ucAuthors?.map(
+            (author) => html`
+              <app-contributor-row result="${author.position}" .result=${author}></app-contributor-row>
             `
           )}
         </div>

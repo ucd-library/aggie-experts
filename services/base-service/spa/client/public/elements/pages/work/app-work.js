@@ -29,7 +29,8 @@ export default class AppWork extends Mixin(LitElement)
       showPublished : { type : Boolean },
       showSubjects : { type : Boolean },
       showAuthors : { type : Boolean },
-      authorsList : { type : Array },
+      ucAuthors : { type : Array },
+      authors : { type : Array }
     }
   }
 
@@ -60,7 +61,8 @@ export default class AppWork extends Mixin(LitElement)
     this.showSubjects = false;
 
     this.showAuthors = false;
-    this.authorsList = [];
+    this.ucAuthors = [];
+    this.authors = [];
     this.render = render.bind(this);
   }
 
@@ -108,61 +110,25 @@ export default class AppWork extends Mixin(LitElement)
     this.workName = workGraph.title || '';
     this.workType = utils.getCitationType(workGraph.type) || '';
 
+    let authors = workGraph.author || [];
+    if( !Array.isArray(authors) ) authors = [authors];
+    this.authors.sort((a, b) => a.rank - b.rank);
+
+    this.authors = authors.map(a => {
+      return a.given + ' ' + a.family;
+    });
+
+    // build from doi first, then title
     this.ucLink = '';
-    // 'get at UC' link is described https://library.ucdavis.edu/get-it-at-uc-links/
-    // ALMA setup https://knowledge.exlibrisgroup.com/Alma/Product_Documentation/010Alma_Online_Help_(English)/030Fulfillment/080Configuring_Fulfillment/090Discovery_Interface_Display_Logic/010General_Electronic_Services#URL_Template
-    // could be helpful https://cdlib.org/services/collections/licensed/policy/uc-libraries-interface-branding/
-
-    // example 'get at UC' link in the wild:
-    // https://www.webofscience.com/wos/woscc/summary/949d9c8a-2c02-42d9-83ab-5f9f0cb26902-0137e027a1/relevance/1
-
-    // example 'get at UC' link with the params split:
-    // https://search.library.ucdavis.edu/discovery/openurl?institution=01UCD_INST
-    // &vid=01UCD_INST:UCD
-    // &rft_val_fmt=info:ofi%2Ffmt:kev:mtx:journal
-    // &rft.stitle=INT%20J%20MOL%20SCI
-    // &rft.volume=19
-    // &rft_id=info:doi%2F10.3390%2Fijms19010070
-    // &rfr_id=info:sid%2Fwebofscience.com:WOS:WOSCC
-    // &rft.jtitle=INTERNATIONAL%20JOURNAL%20OF%20MOLECULAR%20SCIENCES
-    // &rft.aufirst=Tzu-Kai
-    // &rft.genre=article
-    // &rft.issue=1
-    // &url_ctx_fmt=info:ofi%2Ffmt:kev:mtx:ctx
-    // &rft.aulast=Lin
-    // &url_ver=Z39.88-2004
-    // &rft.artnum=ARTN%2070
-    // &rft.auinit=TK
-    // &rft.date=2018
-    // &rft.au=Lin,%20TK
-    // &rft.au=Zhong,%20LL
-    // &rft.au=Santiago,%20JL
-    // &rft.atitle=Anti-Inflammatory%20and%20Skin%20Barrier%20Repair%20Effects%20of%20Topical%20Application%20of%20Some%20Plant%20Oils
-    // &rft.issn=1661-6596
-    // &rft.eissn=1422-0067
-
-    // tried only with doi
-    // https://search.library.ucdavis.edu/discovery/openurl?institution=01UCD_INST&rft_id=info:doi%2F10.3390%2Fijms19010070
-    // full link
-    // https://search.library.ucdavis.edu/discovery/openurl?institution=01UCD_INST&vid=01UCD_INST:UCD&rft_val_fmt=info:ofi%2Ffmt:kev:mtx:journal&rft.stitle=INT%20J%20MOL%20SCI&rft.volume=19&rft_id=info:doi%2F10.3390%2Fijms19010070&rfr_id=info:sid%2Fwebofscience.com:WOS:WOSCC&rft.jtitle=INTERNATIONAL%20JOURNAL%20OF%20MOLECULAR%20SCIENCES&rft.aufirst=Tzu-Kai&rft.genre=article&rft.issue=1&url_ctx_fmt=info:ofi%2Ffmt:kev:mtx:ctx&rft.aulast=Lin&url_ver=Z39.88-2004&rft.artnum=ARTN%2070&rft.auinit=TK&rft.date=2018&rft.au=Lin,%20TK&rft.au=Zhong,%20LL&rft.au=Santiago,%20JL&rft.atitle=Anti-Inflammatory%20and%20Skin%20Barrier%20Repair%20Effects%20of%20Topical%20Application%20of%20Some%20Plant%20Oils&rft.issn=1661-6596&rft.eissn=1422-0067
+    if( workGraph.DOI ) {
+      this.ucLink = `https://search.library.ucdavis.edu/discovery/search?query=any,contains,${encodeURIComponent(workGraph.DOI)}&tab=UCSILSDefaultSearch&search_scope=DN_and_CI&vid=01UCD_INST:UCD&offset=0`;
+    } else if( workGraph.title ) {
+      this.ucLink = `https://search.library.ucdavis.edu/discovery/search?vid=01UCD_INST:UCD&query=any,contains,${encodeURIComponent(workGraph.title)}&tab=UCSILSDefaultSearch&search_scope=DN_and_CI`;
+    }
 
     this.publisherLink = workGraph.DOI ? this.publisherLink = `https://doi.org/${workGraph.DOI}` : '';
-
-    this.showFullText = this.ucLink || this.publisherLink; // TODO test this that it hides when no links
-
-    // math ML in abstract and title
-    // TODO need to test, chemistry papers ie
+    this.showFullText = this.ucLink || this.publisherLink;
     this.abstract = workGraph.abstract || '';
-
-
-
-
-
-
-
-
-
-
 
     let cite = await Citation.generateCitations([workGraph]);
     cite = cite[0]?.value;
@@ -178,12 +144,11 @@ export default class AppWork extends Mixin(LitElement)
     let [ year, month, day ] = workGraph.issued?.split?.('-');
     this.publishedDate = this.formatDate({ year, month, day });
 
-
     this.showPublished = this.publisher || this.publishedVolume || this.publishedDate;
     this.showSubjects = false;
 
     if( workGraph.relatedBy && !Array.isArray(workGraph.relatedBy) ) workGraph.relatedBy = [workGraph.relatedBy];
-    this.authorsList = [];
+    this.ucAuthors = [];
 
     workGraph.relatedBy.forEach(r => {
       if( r['is-visible'] !== false ) {
@@ -198,7 +163,7 @@ export default class AppWork extends Mixin(LitElement)
           let subtitle = contactName.split('§').pop().trim();
           if( name === subtitle ) subtitle = '';
 
-          this.authorsList.push({
+          this.ucAuthors.push({
             hasProfile : true,
             id : expert['@id'],
             name,
@@ -208,13 +173,9 @@ export default class AppWork extends Mixin(LitElement)
       }
     });
 
-    if( this.authorsList.length ) {
+    if( this.ucAuthors.length ) {
       this.showAuthors = true;
     }
-
-    // TODO use rank? can't recall what was decided in chat with Quinn before winter break
-    // does this affect list of authors at bottom of page, or just the order of names on search/browse?
-
   }
 
   formatDate(dateObj) {
