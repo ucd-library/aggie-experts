@@ -20,8 +20,8 @@ export function styles() {
 
     .hero-main {
       background: url('/images/watercolor-thiebaud-icing-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
-      background-color: #F2FAF6;
+      background-size: cover;
+      background-color: #FBE3F3;
       width: 100%;
       min-height: 12.25rem;
     }
@@ -206,6 +206,12 @@ export function styles() {
     }
 
     @media (max-width: 992px) {
+      .hero-text {
+        padding-left: 0;
+        padding-right: 0;
+        width: 90%;
+        margin: auto;
+      }
       .main-content {
           width: 90%;
       }
