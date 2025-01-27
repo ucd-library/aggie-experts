@@ -136,7 +136,16 @@ export default class AppBrowseBy extends Mixin(LitElement)
       let id = r['@id'];
       if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
-      let subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+
+      let subtitle = ((r.name?.split('§') || [])[1] || '').trim();
+
+      let pi = subtitle.split('•').pop().trim();
+      if( pi ) {
+        pi = 'PI: ' + pi;
+        subtitle = subtitle.split('•').slice(0, -1).join('•').trim() + '• ' + pi;
+      }
+
+      subtitle = 'Grant <span class="dot-separator">•</span> ' + subtitle.trim().replaceAll('•', '<span class="dot-separator">•</span>');
 
       return {
         position: index+1,

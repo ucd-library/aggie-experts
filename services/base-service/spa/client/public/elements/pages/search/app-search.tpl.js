@@ -379,7 +379,8 @@ return html`
         @subfilter-change="${this._onSubFilterChange}"
         .searchTerm="${this.searchTerm}"
         .currentPage="${this.currentPage}"
-        .resultsPerPage="${this.resultsPerPage}">
+        .resultsPerPage="${this.resultsPerPage}"
+        .globalAggregations="${this.globalAggregations}">
       </category-filter-controller>
 
       <hr class="search-seperator" ?hidden="${!this.showOpenTo}">
@@ -438,7 +439,8 @@ return html`
             .mobile="${true}"
             .searchTerm="${this.searchTerm}"
             .currentPage="${this.currentPage}"
-            .resultsPerPage="${this.resultsPerPage}">
+            .resultsPerPage="${this.resultsPerPage}"
+            .globalAggregations="${this.globalAggregations}">
           </category-filter-controller>
 
           <div class="open-to-heading" ?hidden="${!this.showOpenTo}">

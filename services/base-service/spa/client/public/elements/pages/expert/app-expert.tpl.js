@@ -25,7 +25,7 @@ return html`
 
     .hero-main {
       background: url('/images/watercolor-gold-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
+      background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
       min-height: 12.25rem;
@@ -593,6 +593,12 @@ return html`
     }
 
     @media (max-width: 992px) {
+      .hero-text {
+        padding-left: 0;
+        padding-right: 0;
+        width: 90%;
+        margin: auto;
+      }
       .main-content {
         width: 90%;
       }
@@ -698,7 +704,7 @@ return html`
           </a>
         </h1>
 
-        <div class="mobile-edit-availability" style="padding: 0 .3rem;">
+        <div class="mobile-edit-availability" style="padding: 0 .3rem;" ?hidden="${this.hideAvailability && !this.expertEditing}">
           Open to:
           <span ?hidden="${!this.canEdit}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem">
             <span class="tooltip edit-availability" data-text="Edit availability">

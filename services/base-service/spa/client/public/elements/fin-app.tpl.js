@@ -159,7 +159,9 @@ return html`
 
     <ucd-theme-search-popup>
       <ucd-theme-search-form
-        @search="${this._onSearch}">
+        @search="${this._onSearch}"
+        .value=${this.searchTerm}
+        clear-on-search>
       </ucd-theme-search-form>
     </ucd-theme-search-popup>
 
