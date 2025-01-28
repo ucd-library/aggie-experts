@@ -92,7 +92,8 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
           includeWorks : false,
           grantsPage : this.currentPage,
           grantsSize : this.resultsPerPage
-        })
+        }),
+        this.currentPage === 1 // clear cache on first page
       );
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
@@ -115,6 +116,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
   async _onExpertUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants' ) return;
+    if( e.expertId === this.expertId ) return;
 
     this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));

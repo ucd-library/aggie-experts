@@ -116,8 +116,12 @@ return html`
     .search-results-heading {
       display: flex;
       align-items: center;
-      height: 60px;
-      padding-top: .8rem;
+      /* height: 60px;
+      padding-top: .8rem; */
+    }
+
+    .search-content app-search-box {
+      padding-bottom: 0.8rem;
     }
 
     .search-container .open-to-heading h4 {
@@ -235,7 +239,7 @@ return html`
         width: 90%;
         padding-right: 0;
         padding-left: 0;
-        gap: 0;
+        gap: 0rem 2rem;
       }
     }
 
@@ -306,6 +310,52 @@ return html`
       padding-bottom: 2rem;
     }
 
+    .results-filtered-to {
+      display: flex;
+      align-items: center;
+      color: var(--color-aggie-blue);
+      font-size: 1.3rem;
+      font-style: italic;
+      font-weight: 700;
+      word-wrap: break-word;
+    }
+
+    .results-filtered-to span {
+      padding-right: 0.5rem;
+    }
+
+    .results-filtered-to p {
+      margin: 0;
+    }
+
+    .results-filtered-to button {
+      background-color: var(--color-aggie-blue-80);
+      color: white;
+      border-color: transparent;
+      padding: 0.25rem 1rem;
+      font-size: 1.1rem;
+    }
+
+    .results-filtered-to button:hover {
+      color: white;
+    }
+
+    .results-filtered-to button .close {
+      padding: 0 0 0 0.7rem;
+    }
+
+    .results-filtered-to button .close ucdlib-icon {
+      padding: 3px;
+    }
+
+    .results-filtered-to button:hover .close ucdlib-icon {
+      fill: var(--color-aggie-blue-80);
+      border-radius: 50%;
+      background-color: var(--color-aggie-blue-50);
+      /* transition: background-color 0.3s ease-in-out; */
+      /* transition: fill 0.3s ease-in-out; */
+    }
+
   </style>
 
   <div class="search-header">
@@ -323,15 +373,21 @@ return html`
   <div class="search-container">
     <div class="refine-search">
 
-      <!-- <h3>Refine Results</h3>
-      <category-filter-controller @filter-change="${this._onFilterChange}" .filters="${this.filters}"></category-filter-controller>
+      <h3>Refine Results</h3>
+      <category-filter-controller
+        @filter-change="${this._onFilterChange}"
+        @subfilter-change="${this._onSubFilterChange}"
+        .searchTerm="${this.searchTerm}"
+        .currentPage="${this.currentPage}"
+        .resultsPerPage="${this.resultsPerPage}">
+      </category-filter-controller>
 
-      <hr class="search-seperator"> -->
+      <hr class="search-seperator" ?hidden="${!this.showOpenTo}">
 
-      <div class="open-to-heading">
+      <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
         <h4>Experts Open To</h4>
       </div>
-      <div class="open-to">
+      <div class="open-to" ?hidden="${!this.showOpenTo}">
         <label>
           <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
           Collaborative Projects
@@ -376,12 +432,19 @@ return html`
         </div>
         <div class="refine-search-contents ${this.refineSearchCollapsed ? '' : 'open'}" ?hidden="${this.refineSearchCollapsed}">
 
-          <!-- <category-filter-controller @filter-change="${this._onFilterChange}" .filters="${this.filters}"></category-filter-controller> -->
+          <category-filter-controller
+            @filter-change="${this._onFilterChange}"
+            @subfilter-change="${this._onSubFilterChange}"
+            .mobile="${true}"
+            .searchTerm="${this.searchTerm}"
+            .currentPage="${this.currentPage}"
+            .resultsPerPage="${this.resultsPerPage}">
+          </category-filter-controller>
 
-          <div class="open-to-heading">
+          <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
             <h4>Experts Open To</h4>
           </div>
-          <div class="open-to" style="padding: 0">
+          <div class="open-to" style="padding: 0" ?hidden="${!this.showOpenTo}">
             <label>
               <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
               Collaborative Projects
@@ -402,9 +465,21 @@ return html`
         </div>
       </div>
 
+      <div class="results-filtered-to" ?hidden="${!this.filterByExpert}">
+        <span>Experts:</span>
+        <p>
+          <button class="btn btn--round" @click="${this._removeExpertFilter}">
+            ${this.filterByExpertName}
+            <div class="close">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+            </div>
+          </button>
+        </p>
+
+      </div>
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
-        <div class="download">
+        <div class="download" ?hidden="${this.type !== 'expert'}">
           <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
         </div>
       </div>
@@ -420,7 +495,7 @@ return html`
 
             <span>items per page</span>
           </div>
-          <div class="select-all">
+          <div class="select-all" ?hidden="${this.type !== 'expert'}">
             <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
             <label for="select-all">Select All</label>
           </div>
@@ -433,7 +508,9 @@ return html`
             <app-search-result-row
               search-result="${result.position}"
               .result=${result}
-              result-type="expert"> <!-- TODO update this to be more dynamic, when loading different types of results -->
+              result-type="${result.resultType}"
+              ?hide-checkbox="${this.type !== 'expert'}"
+              @filter-by-grants="${this._filterByGrants}">
             </app-search-result-row>
             <hr class="search-seperator">
           `

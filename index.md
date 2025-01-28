@@ -1,16 +1,13 @@
 # Project Overview
 
-[Aggie Experts](https://rc.experts.ucdavis.edu) is a joint pilot project
+[Aggie Experts](https://experts.ucdavis.edu) is a joint pilot project
 between the Office of the Provost and the UC Davis Library
-[team](team.md). Its
-purpose is to create a central registry of UC Davis scholarship produced by
+[team](team.md). It serves as a central registry of UC Davis scholarship produced by academic senate and federation
 faculty, researchers, experts and creators. Aggie Experts can be used as an
 expertise discovery platform for finding collaborators, mentors and expert
 opinions, as a showcase of the UC Davis excellence in research, teaching and
 community service, and as a tool that reduces the administrative load on UC
-Davis researchers and administrators. In the course of two years (2020-2022) we
-will be expanding the registry by adding faculty from the College of Engineering
-and adjusting its functionality based on user feedback.
+Davis researchers and administrators.
 
 ## Infrastructure
 
@@ -33,15 +30,6 @@ repository](https://github.com/ucd-library/aggie-experts).
   the California Digital Library instance of [Symplectic Elements publication
   management system](https://oapolicy.universityofcalifornia.edu/).
 
-* Research subject areas are generated in one of the following manners:
-
-  * The researcher has already selected relevant keywords in the [Symplectic
-  Elements publication management
-  system](https://oapolicy.universityofcalifornia.edu/).
-
-  * The keywords are extracted from the researchers’ claimed publications, and the
-  ones that occur three or more times are added to their profiles.
- 
 * The grants data are obtained from the university’s financial data warehouse.
 
 ## Data Fields
@@ -53,7 +41,7 @@ open to additions: Name, Home department, Current position, Additional
 affiliations, Photo, Research bio, Openness to collaborations, Websites,
 Courses, Awards, Patents, Grants, Publications, Datasets, Software, Exhibits,
 Performances, Conference papers, Gray literature, Collaborations, Mentorship,
-Service. This list exceeds the scope of the pilot and is intended long-term
+Service. This list is intended long-term
 visioning.
 
 ## Functionalities
@@ -80,7 +68,7 @@ see all reported issues.
 
 Thanks for taking an active role in the development of Aggie Experts!
 
-## Schedule
+## Milestones
 
 **August 2019** Convene Faculty Advisory Board and establish the parameters for
 a minimal viable product
@@ -106,8 +94,15 @@ Engineering
 
 *Data fields:* grants
 
-*Functionalities:* website plug-in
+**Fall 2021--Winter 2022** Completetion of the pilot with the College of Engineering
 
-**TBD**
+**Remainder of 2022--2023** Robust architecture to manage a campus-wide database
 
-*Functionalities:* subject-expertise visualization
+*Data fields:* sunset of research areas
+
+**May 2024** Campus-wide pre-release of Aggie Experts to Senate Faculty
+
+**September 2024** Campus-wide pre-release of Aggie Experts to Federation Faculty
+
+
+

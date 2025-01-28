@@ -1,13 +1,10 @@
-ARG ORG
-ARG TAG
-ARG FIN_ORG
-ARG FIN_TAG
+ARG EXPERTS_API_IMAGE
+ARG FIN_SERVER_IMAGE
 
 # Experts API is shared
-FROM $ORG/experts-api:$TAG AS api
+FROM $EXPERTS_API_IMAGE AS api
 
-FROM ${FIN_ORG}/fin-base-service:${FIN_TAG}
-
+FROM ${FIN_SERVER_IMAGE}
 # FIN_SERVICE_ROOT defined in fin-base-service, and is the root of the service
 
 ARG OUR_SERVICE_ROOT=./

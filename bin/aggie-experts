@@ -11,7 +11,7 @@ aggie-experts - Manage Aggie Experts code development, docker images, and deploy
 
 aggie-experts [-n|--dry-run] [--env=<env>] [--mount]  <command> <command> ...
 
-where <env> is one of dev, clean, sandbox, build, test, prod; default is guessed
+where <env> is one of dev, clean, sandbox, gcb, test, prod; default is guessed
 using guess-env, fails if multiple matches are possible.
 
 where <command> is one of: build, prune, setup, config, list-mounts, test_env,
@@ -31,14 +31,14 @@ aggie-experts manages development, build and deployment processes for Aggie
 
 =item B<--env=I<env>>
 
-Set the environment, one of dev, clean, sandbox, build, test, prod, where dev is the
+Set the environment, one of dev, clean, sandbox, gcb, test, prod, where dev is the
 default.
 
 Developers develop their code in the test environment, verify the setup in the
 clean environment, and then submit their pull requests.  The sandbox environment
 can deploy any commit in a space for multiple reviewers.
 
-The build environment is used to build test images and push to the aggie-experts
+The gcb environment uses cloud build and to build these images to the aggie-experts
 docker repository.
 
 The test and prod environments are for the production code.  They require
@@ -103,9 +103,8 @@ declare -g -A G=(
   [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/.."
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-  [dry-run]=
+  [dry-run]=""
   [test_env]=1
-  [include_fuseki]=1
   [cloudsdk_active_config_name]='aggie-experts'
 );
 
@@ -126,11 +125,11 @@ Aggie Experts. The typical workflow is; develop your code in the C<dev>
 environment, verify the setup in the C<clean> environment, and then submit your
 pull requests.  The C<sandbox> environment can deploy any commit in a space for
 multiple reviewers.  Once the code is ready for production, it is built in the
-C<build> environment, and then deployed to the C<test> and C<prod> environments.
+C<gcb> environment, and then deployed to the C<test> and C<prod> environments.
 
-C<aggie-experts [--env=dev|clean|sandbox|build] build> Builds the docker
+C<aggie-experts [--env=dev|clean|sandbox|gcb] build> Builds the docker
 images.  Builds to C<org=localhost> images in dev,clean, and sandbox
-environments.  C<org=gcr.io./aggie-experts> images in the build environment.
+environments.  Cloud build in C<org=gcr.io./aggie-experts> images in the gcb environment.
 
 C<aggie-experts [--env=dev|clean|sandbox|test|prod] setup> Sets up the C<.env>
 and C<docker-compose.yaml> files for the specified environment.
@@ -168,23 +167,25 @@ Guess the environment based on the hostname and git tag
 
 =cut
 function guess-env() {
-  local this_server=$(hostname --fqdn)
-  local envs=()
-  local tag=$(${G[git]} describe --always --dirty)
+  local this_server, envs, tag
+  this_server=$(hostname --fqdn)
+  envs=()
+  tag=$(${G[git]} describe --always --dirty)
 
   for e in $(G '.keys[]' ); do
-    local env_server=$(G ".${e}.server")
+    local env_server
+    env_server=$(G ".${e}.server")
     if [[ "$env_server" = "null" ]]; then
       continue
     fi
      if [[ "$env_server" =~ ^! ]]; then
       env_server=${env_server#!}
       if ! [[ "$this_server" =~ $env_server ]]; then
-        envs+=($e)
+        envs+=("$e")
       fi
     else
       if [[ "$this_server" =~ $env_server ]]; then
-        envs+=($e)
+        envs+=("$e")
       fi
     fi
   done
@@ -194,24 +195,24 @@ function guess-env() {
   for e in "${envs[@]}"; do
     case $e in
       dev)
-        d_envs+=($e)
+        d_envs+=("$e")
         ;;
-      clean|sandbox|build)
+      clean|sandbox)
         if ! [[ "$tag" =~ "dirty" ]]; then
-          d_envs+=($e)
+          d_envs+=("$e")
         fi
         ;;
-      test| prev | stage | prod)
+      gcb | prev | stage | prod)
         if ! [[ "$tag" =~ "-" ]]; then
-          d_envs+=($e)
+          d_envs+=("$e")
         fi
         ;;
     esac
   done
   if [[ ${#d_envs[@]} == 1 ]]; then
-    echo ${d_envs[0]}
+    echo "${d_envs[0]}"
   else
-    echo ${d_envs[@]}
+    echo "${d_envs[@]}"
     exit 1;
   fi
 }
@@ -225,14 +226,9 @@ Tests the environment, with respect to the hostname and git tag.
 
 =cut
 function test_env() {
-  local env=${G[env]}
-  local tag=$(G .${G[env]}.tag // .def.tag)
-  local git_tag="$(${G[git]} describe --always --dirty)"
-
-  # Tag is the git tag, unless specified
-  if [[ ${tag} == "__git__" ]]; then
-    tag="${git_tag}"
-  fi
+  local env tag
+  env=${G[env]}
+  tag="$(${G[git]} describe --always --dirty)"
 
   function not_dirty() {
     if [[ "$tag" =~ "dirty" ]]; then
@@ -245,23 +241,6 @@ function test_env() {
     if [[ "$tag" =~ "-" ]]; then
       >&2 echo "ERR: --env=$env tag: Annotated tags only"
       exit 1
-    fi
-  }
-
-  function branch() {
-    local expected_branch=$(G .${G[env]}.branch)
-    local this_branch=$(${G[git]} branch --show-current)
-    if [[ "$expected_branch" =~ ^! ]]; then
-      expected_branch=${expected_branch#!}
-      if [[ "$this_branch" =~ "$expected_branch" ]]; then
-        >&2 echo "ERR: --env=$env branch $this_branch =~ $expected_branch"
-        exit 1
-      fi
-    else
-      if ! [[ "$this_branch" =~ "$expected_branch" ]]; then
-        >&2 echo "ERR: --env=$env branch ! [[ $this_branch =~ $expected_branch ]]"
-        exit 1
-      fi
     fi
   }
 
@@ -278,8 +257,9 @@ function test_env() {
   }
 
   function server() {
-    local expected_server=$(G .${G[env]}.server)
-    local this_server=$(hostname --fqdn)
+    local expected_server this_server
+    expected_server=$(G .${G[env]}.server)
+    this_server=$(hostname --fqdn)
     if [[ "$expected_server" =~ ^! ]]; then
       expected_server=${expected_server#!}
       if [[ "$this_server" =~ $expected_server ]]; then
@@ -297,16 +277,14 @@ function test_env() {
   echo -n "Testing environment: ${G[env]} ... "
   case ${G[env]} in
     dev)
-      branch
       server
     ;;
     clean )
       not_dirty
       good_status
       server dev
-      # Use git status to check for unstaged changes
       ;;
-    build)
+    gcb)
       annotated_tag
       not_dirty
       good_status
@@ -315,7 +293,6 @@ function test_env() {
       server sandbox
       not_dirty
       good_status
-      # Use git status to check for unstaged changes
       ;;
     test | prev | stage | prod )
       server prod
@@ -370,22 +347,28 @@ Use shell expansion to expand docker-template.yaml with defaults
 =cut
 #https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
 function expand_template(){
-  local env=${G[env]}
-  local root="$(${G[git]} rev-parse --show-toplevel)"
-  local git_tag="$(${G[git]} describe --always --dirty)"
+  local env root
+  env=${G[env]}
+  root="$(${G[git]} rev-parse --show-toplevel)"
   local sa client_id auth
-#  echo "Expanding ${root}/docker-template.yaml"
   declare -g -A D
 
-  read D[org] D[tag] D[fin_org] D[fin_tag] \
-       D[host] D[port] \
-       D[gcs_bucket] D[gcs_init_data_hydration]\
-       D[client_env] D[cdl_propagate_changes] \
-       D[client_error_reporting_enabled] \
-       D[client_error_reporting_url] D[client_error_reporting_key_secret] \
+  D["tag"]="$(${G[git]} describe --always --dirty)"
+
+  case ${G[env]} in
+    dev)
+      D["tag"]="dirty"
+      ;;
+  esac
+
+  read D["org"] D["fin_org"] D["fin_tag"] \
+       D["host"] D["port"] \
+       D["gcs_bucket"] D["gcs_init_data_hydration"]\
+       D["client_env"] D["cdl_propagate_changes"] \
+       D["client_error_reporting_enabled"] \
+       D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
        sa client_id auth \
        <<<$(G "[.${G[env]}.org // .def.org,
-           .${G[env]}.tag // .def.tag,
            .def.fin.org,
            .def.fin.tag,
            .${G[env]}.host,
@@ -403,28 +386,25 @@ function expand_template(){
           ] |@tsv")
 
   #decode client_error_reporting_key_secret
-  D[client_error_reporting_key]=$(gcloud secrets versions access latest --secret=${D[client_error_reporting_key_secret]})
+  D["client_error_reporting_key"]=$(gcloud secrets versions access latest --secret=${D["client_error_reporting_key_secret"]})
 
   #Get OIDC INFO
   local oidc_secret=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
   eval $(gcloud secrets versions access latest --secret="$oidc_secret")
-  D[jwt_secret]=$JWT_SECRET
-  D[jwt_issuer]=$JWT_ISSUER
-  D[jwt_jwks_uri]=$JWT_JWKS_URI
-  D[oidc_client_id]=$OIDC_CLIENT_ID
-  D[oidc_secret]=$OIDC_SECRET
-  D[oidc_base_url]=$OIDC_BASE_URL
+  D["jwt_secret"]=$JWT_SECRET
+  D["jwt_issuer"]=$JWT_ISSUER
+  D["jwt_jwks_uri"]=$JWT_JWKS_URI
+  D["oidc_client_id"]=$OIDC_CLIENT_ID
+  D["oidc_secret"]=$OIDC_SECRET
+  D["oidc_base_url"]=$OIDC_BASE_URL
 
   #Get service account info
-  local srv_secret=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
-  eval $(gcloud secrets versions access latest --secret="$srv_secret")
+  local srv_secret
+  srv_secret=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
+  eval "$(gcloud secrets versions access latest --secret="$srv_secret")"
   D[fin_service_account_name]=$FIN_SERVICE_ACCOUNT_NAME
   D[fin_service_account_secret]=$FIN_SERVICE_ACCOUNT_SECRET
 
-  # Tag is the git tag, unless specified
-  if [[ ${D[tag]} == "__git__" ]]; then
-    D[tag]="${git_tag}"
-  fi
 #  declare -p D
   local line lineEscaped
   # the `||` clause ensures that the last line is read even if it doesn't end with \n
@@ -443,50 +423,26 @@ function expand_template(){
 
 function prune() {
   local N=${G[dry-run]};
-  declare -a services=(init fcrepo base-service)
 
   local org=$(G .${G[env]}.org)
   local tag=$(G .${G[env]}.tag)
 
-  local fin_rm=$(docker image list --format=json | jq -r "select(.Repository | test(\"fin-\")) | (select(.Repository | test(\"$(G .def.fin.org)\") | not),select(.Tag != \"$(G .def.fin.tag)\")) | .Repository+\":\"+.Tag")
+  local experts_rm=$(docker image list --format=json | jq -r 'select(.Repository | test("aggie-experts")) | (select(.Repository | test("init$")),select(.Repository | test("fcrepo$")),select(.Repository | test("base-service")),select(.Repository | test("harvest"))) | select(.Tag != "dirty") | .Repository+":"+.Tag')
 
-  local experts_rm=$(docker image list --format=json | jq -r 'select(.Repository | test("aggie-experts")) | (select(.Repository | test("init$")),select(.Repository | test("fcrepo$")),select(.Repository | test("base-service"))) | select(.Tag != "dirty") | .Repository+":"+.Tag')
-
-  if [[ -n $N ]]; then
-    echo "#===== rm fin =====#"
-    echo "$fin_rm"
-  echo "#===== rm experts =====#"
-    echo "$experts_rm"
-  else
-    docker image rm $fin_rm $experts_rm
-  fi
-
-# Remove all fin- images not in our current desird.
-
-#  for service in "fin-base-service fin-init fin-fcrepo"; do
-#    docker rmi -f ${org}/${service}:${tag}
-#  done
-#  for service in "${services[@]}"; do
-#    local image=$org/${service}:$tag
+  $N docker image rm $experts_rm
 }
+
 function build() {
-  local org fin_org tag fin_tag
+  local tag
   local N=${G[dry-run]};
+  tag="$(${G[git]} describe --always --dirty)"
+  local build_args
+  read build_args \
+       <<<$(G "[.${G[env]}[\"cork-kube\"].build_args // .def[\"cork-kube\"].build_args] |@tsv")
 
-  read org tag fin_org fin_tag \
-       <<<$(G "[.${G[env]}.org // .def.org,
-           .${G[env]}.tag // .def.tag,
-           .def.fin.org,
-           .def.fin.tag] | @tsv") #\
-
-  local git_tag="$(${G[git]} describe --always --dirty)"
-  # Tag is the git tag, unless specified
-  if [[ $tag == "__git__" ]]; then
-    tag="${git_tag}"
+  if [[ -z ${G[build_args]} ]]; then
+        G[build_args]=$build_args
   fi
-
-
-  local setup=
 
   function post_build() {
     if [[ $tag != "dirty" ]]; then
@@ -494,24 +450,24 @@ function build() {
     fi
   }
 
-  local cache_tag
   case ${G[env]} in
     dev)
-      cache_tag=dirty
+      tag="dirty"
+      $N cork-kube build exec --project=aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag ${G[build_args]} $@
     ;; # Always build
     clean | sandbox )
       if [[ "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: clean tags only where env=${G[env]}"
         exit 1
       fi
-      cache_tag=dirty
+      $N cork-kube build exec --project=aggie-experts --version=dev --local-dev-registry=localhost/aggie-experts -o aggie-experts=$tag ${G[build_args]} $@
       ;;
-    build )
+    gcb )
       if [[ "$tag" =~ "-" || "$tag" =~ "dirty" ]]; then
         >&2 echo "tag=$tag: Annotated tags where env=${G[env]} "
         exit 1
       fi
-      cache_tag=$tag
+      $N cork-kube build gcb --project aggie-experts --version=$tag $@
       ;;
     test | prev | stage | prod )
       >&2 echo "No builds env=${G[env]}"
@@ -523,59 +479,7 @@ function build() {
       ;;
   esac
 
-  cd "$(${G[git]} rev-parse --show-toplevel)"
-
-  for i in experts-api fuseki harvest services/base-service services/init; do
-    local n=$(basename $i)
-    local image=$org/${n}:$tag
-
-    export DOCKER_BUILDKIT=1
-    $N docker build \
-	     --build-arg BUILDKIT_INLINE_CACHE=1 \
-       --build-arg FIN_ORG=${fin_org} --build-arg FIN_TAG=${fin_tag} \
-       --build-arg ORG=${org} --build-arg TAG=${tag} \
-       -t $image \
-       --cache-from localhost/aggie-experts/${n}:${cache_tag} ${i} || exit 1
-
-  done
-
   post_build
-}
-
-
-function push() {
-  local org tag
-  local N=${G[dry-run]};
-
-  read org tag \
-       <<<$(G "[.${G[env]}.org // .def.org, .${G[env]}.tag // .def.tag ] | @tsv")
-
-  local git_tag="$(${G[git]} describe --always --dirty)"
-
-  # Tag is the git tag, unless specified
-  if [[ ${tag} == "__git__" ]]; then
-    tag="${git_tag}"
-  fi
-
-  case ${G[env]} in
-    dev | clean | sandbox | test | prev | stage | prod ) # Never push
-      >&2 echo "env=$env: Don't push env=${G[env]}"
-      exit 1
-      ;; # Never push
-    build )
-      ;;
-    *)
-      >&2 echo "Unknown env=${G[env]}"
-      exit 1
-      ;;
-  esac
-
-  for i in experts-api fuseki harvest services/base-service services/init; do
-    local n=$(basename $i)
-    local image=$org/${n}:$tag
-
-    $N docker push ${image}
-  done
 }
 
 function setup() {
@@ -590,8 +494,8 @@ function setup() {
 
   function compose() {
     local N=${G[dry-run]};
-    local org tag gcs
-    read org tag gcs <<<$(G "[.${G[env]}.org,.${G[env]}.tag,.${G[env]}.gcs.bucket] | @tsv")
+    local gcs
+    read gcs <<<$(G "[.${G[env]}.gcs.bucket] | @tsv")
 
     local yq='.'
     local env=${G[env]}
@@ -610,9 +514,6 @@ function setup() {
     done
 
     if [[ "$env" = "dev" ]]; then
-      if [[ -z ${G[include_fuseki]} ]]; then
-          yq+='| del(.services.fuseki) | del(.volumes.fuseki-data)'
-      fi
       if [[ -z "$gcs" ]]; then
         yq+='| del(.services.gcs)'
       fi
@@ -673,7 +574,8 @@ function setup() {
         exit 0
       fi
       setup_files
-      local mount=$(G .mount // .${G[env]}.mount)
+      local mount
+      mount=$(G .mount // .${G[env]}.mount)
       if [[ -n $mount && "$mount" != "null" ]]; then
         >&2 echo "#======MOUNTS=======#"
         >&2 echo "mount=$mount"
@@ -700,7 +602,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -710,6 +612,7 @@ function main.cmd() {
       [setup_compose]=1
       [setup_service_account]=1
       [unstaged_ok]=
+      [build_args]=
     )
 
     while true; do
@@ -725,6 +628,7 @@ function main.cmd() {
         --service-account) CMD[setup_service_account]=1; shift;;
         --no-service-account) CMD[setup_service_account]=; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
+        --build-args) CMD[build_args]="$2"; shift 2;;
         -h | --help) pod2text $0; exit 0;;
         -n | --dry-run) CMD[dry-run]="echo"; shift;;
 	      -- ) shift; break;;
@@ -738,7 +642,7 @@ function main.cmd() {
     done
 
     # set the google cloud sdk config
-    if [[ -n $G[cloudsdk_active_config_name] ]]; then
+    if [[ -n ${G[cloudsdk_active_config_name]} ]]; then
       export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
     fi
 
@@ -746,7 +650,7 @@ function main.cmd() {
     for cmd in "$@"; do
       shift
       case $cmd in
-	      build | setup | push | prune ) # API requests
+	      build | setup | prune ) # API requests
 
           # Guess env if not supplied
           if [[ -z ${G[env]} ]]; then
@@ -822,3 +726,5 @@ C<aggie-expert --env=dev setup>
 =head1 AUTHOR
 
 qjhart@ucdavis.edu
+
+=cut

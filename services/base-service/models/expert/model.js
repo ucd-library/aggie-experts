@@ -31,7 +31,9 @@ class ExpertModel extends BaseModel {
    * by elasticsearch.
    */
   snippet(node) {
-    const snippet= ["@id","@type","identifier","orcidId","name","contactInfo"];
+    const snippet= ["@id","@type",
+                    "identifier","orcidId","name","contactInfo",
+                    "is-visible"];
 
     // Get only best contact info
     if (node.contactInfo) {
@@ -309,7 +311,7 @@ class ExpertModel extends BaseModel {
   promote_node_to_doc(node) {
     const doc = {
       "@id": node['@id'],
-      "@context": config?.server?.url+"/api/schema/1/context.jsonld",
+      "@context": config?.server?.url+"/api/schema/context.jsonld",
       "@graph": [node]
     };
     return this.move_fields_to_doc(node, doc);
@@ -322,12 +324,13 @@ class ExpertModel extends BaseModel {
       doc["is-visible"] = node["is-visible"];
     }
     if (node["hasAvailability"]) {
-      doc["hasAvailability"] = [];
+      doc["hasAvailability"]=[];
       if (! Array.isArray(node["hasAvailability"])) {
         node["hasAvailability"] = [node["hasAvailability"]];
       }
+      // this is for later if we want to pair down the availability
       node["hasAvailability"].forEach(availability => {
-        doc["hasAvailability"].push(availability["@id"]);
+        doc["hasAvailability"].push(availability);
       });
     }
 
@@ -662,7 +665,6 @@ class GrantRole {
           node.identifier = [node.identifier];
         }
         for (let i=0; i<node?.identifier?.length; i++) {
-          console.log(`${i}:${node.identifier[i]}`);
           if (node.identifier[i].startsWith('ark:/87287/d7mh2m/')) {
             patch.objectId = node.identifier[i].replace('ark:/87287/d7mh2m/','');
             break;
