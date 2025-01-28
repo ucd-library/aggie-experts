@@ -2,11 +2,13 @@ const router = require('express').Router();
 const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
+const WorkModel = require('../work/model.js');
 const utils = require('../utils.js')
 const complete = require('./template/complete.js');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
+const works = new WorkModel();
 
 const {config} = require('@ucd-lib/fin-service-utils');
 
@@ -55,7 +57,7 @@ router.get(
   search_valid_path_error,
   async (req, res) => {
     const params = {
-      type:['expert','grant'],
+      type:['expert','grant','work'],
       index: []
     };
     ["p","inner_hit_size","size","page","q"].forEach((key) => {
@@ -82,6 +84,9 @@ router.get(
         break;
       case 'grant':
         params.index.push(grants.readIndexAlias);
+        break;
+      case 'work':
+        params.index.push(works.readIndexAlias);
         break;
       default:
         return res.status(400).json({error: 'Invalid type'});

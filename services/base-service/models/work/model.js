@@ -33,15 +33,45 @@ class WorkModel extends BaseModel {
   promote_node_to_doc(node) {
     const doc = super.promote_node_to_doc(node);
 
+    let authors = '';
+    if (node.author) {
+      if (node.author.length >= 1) {
+        if (node.author[0].given) {
+          authors = node.author[0].family + ', ' + node.author[0].given[0]+'.';
+        } else {
+          authors = node.author[0].family;
+        }
+      }
+      if (node.author.length === 2) {
+        if (node.author[1].given) {
+          authors += "& "+node.author[1].family + ', ' + node.author[1].given[0]+'.';
+        } else {
+          authors += "& "+node.author[1].family;
+        }
+      }
+      if (node.author.length > 2) {
+        if(node.author.at(-1).given) {
+          authors += "& "+node.author.at(-1).family + ', ' + node.author.at(-1).given[0]+'.';
+        } else {
+          authors += "& "+node.author.at(-1).family;
+        }
+        authors += " et al.";
+      }
+    }
+    let container_title = '';
+    if (Array.isArray(node["container-title"])) {
+        container_title = node["container-title"][0];
+            } else {
+        container_title = node["container-title"];
+    }
     // quick hack to get the title
-    doc.name = node.title;
-
-    // Is this really needed?
-//    ["title","issued","container-title","author","DOI","type"].forEach((key)=>{
-//      if (node?.[key]) {
-//        doc[key] = node[key];
-//      }
-//    });
+    doc.name =  node.title+" § "+
+      (node.status ?? "")+" • "+
+      (node.type ?? "")+" • "+
+      (node.issued ?? "")+" • "+
+      authors+" § "+
+      container_title+" • "+((node.eissn ?? node.ISSN) ?? "")+" § "+
+      (node.DOI ?? "")
 
     return doc;
   }

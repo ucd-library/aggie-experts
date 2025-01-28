@@ -333,17 +333,4 @@ WHERE {
   BIND(uri(concat(replace(str(?pub),str(<ark:/87287/d7mh2m/>),"ark:/87287/d7mh2m/publication/"),"#",str(?pos+1))) as ?author)
   BIND(?pos+1 as ?rank)
 
-#   bind(concat(?title," § ",
-#               coalesce(?status,""),
-#               " • ",
-#               coalesce(?cite_type,""),
-#               " • ",
-#               coalesce(?pub_datestr,""),
-# #              " • ",
-# #              coalesce(group_concat(concat(?authorGivenName," ",group_concat(?authorFamilyName);separator=" "));separator=", "),""),
-#               " § ",
-#               coalesce(?journal_title,""),
-#                   " • ",
-#               coalesce(?issn,"")) as ?work_label)
-
 }
