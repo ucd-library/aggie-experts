@@ -145,7 +145,7 @@ template = {
                 }
               },
               "inner_hits": {
-                "size": "{{inner_hits_size}}{{^inner_hits_size}}50{{/inner_hits_size}}",
+                "size": "{{inner_hits_size}}{{^inner_hits_size}}500{{/inner_hits_size}}",
                 "_source": [
                   "@graph.@id",
                   "@graph.@type",

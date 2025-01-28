@@ -58,7 +58,7 @@ router.get(
       type:['expert','grant'],
       index: []
     };
-    ["p","inner_hit_size","size","page","q"].forEach((key) => {
+    ["p","inner_hits_size","size","page","q"].forEach((key) => {
       if (req.query[key]) { params[key] = req.query[key]; }
     });
 
