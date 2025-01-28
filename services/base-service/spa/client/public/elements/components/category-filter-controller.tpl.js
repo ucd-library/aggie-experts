@@ -17,11 +17,11 @@ export default function render() {
         (f) => html`
           <category-filter-row
             @click="${this._onFilterChange}"
-            label="${f.label}"
-            type="${f.type}"
-            count="${f.count}"
-            icon="${f.icon}"
-            mobile="${this.mobile}"
+            .label="${f.label}"
+            .type="${f.type}"
+            .count="${f.count}"
+            .icon="${f.icon}"
+            .mobile="${this.mobile}"
             ?active="${f.active}">
           </category-filter-row>
           ${(f.subFilters || []).map(
@@ -30,11 +30,11 @@ export default function render() {
                 subfilter
                 ?hidden="${!f.active && !(f.subFilters || []).some(f => f.active)}"
                 @click="${this._onSubFilterChange}"
-                label="${sf.label}"
-                type="${sf.type}"
-                status="${sf.status}"
-                count="${sf.count}"
-                mobile="${this.mobile}"
+                .label="${sf.label}"
+                .type="${sf.type}"
+                .status="${sf.status}"
+                .count="${sf.count}"
+                .mobile="${this.mobile}"
                 ?active="${sf.active}">
               </category-filter-row>
             `

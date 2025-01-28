@@ -32,6 +32,7 @@ export default class FinApp extends Mixin(LitElement)
       expertNameEditing : { type : String },
       hideEdit : { type : Boolean },
       loading : { type : Boolean },
+      searchTerm : { type : String },
     }
   }
 
@@ -52,6 +53,7 @@ export default class FinApp extends Mixin(LitElement)
     this.expertNameEditing = utils.getCookie('editingExpertName');
     this.hideEdit = !utils.getCookie('editingExpertId');
     this.loading = false;
+    this.searchTerm = '';
 
     this.render = render.bind(this);
     this._init404();
@@ -272,10 +274,13 @@ export default class FinApp extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    if( e.detail?.searchTerm?.trim().length ) {
-      this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.searchTerm.trim()));
+    this.searchTerm = e.detail.searchTerm?.trim();
+    if( this.searchTerm ) {
+      this.AppStateModel.setLocation('/search/'+encodeURIComponent(this.searchTerm));
       this.AppStateModel.set({ resetSearch: true });
+      this.searchTerm = '';
     }
+
     this._closeHeader();
   }
 

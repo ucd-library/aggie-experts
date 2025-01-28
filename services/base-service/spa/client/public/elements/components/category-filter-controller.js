@@ -21,23 +21,23 @@ export class CategoryFilterController extends Mixin(LitElement)
       filters : { type : Array }, // { label, count, icon, active }
       currentPage : { type : Number },
       resultsPerPage : { type : Number },
-      mobile : { type : Boolean }
+      mobile : { type : Boolean },
+      globalAggregations : { type : Object },
     };
   }
-
-
 
   constructor() {
     super();
     this.render = render.bind(this);
 
-    this._injectModel('AppStateModel', 'SearchModel');
+    this._injectModel('AppStateModel');
 
     this.searchTerm = '';
     this.searchQuery = '';
     this.currentPage = 1;
     this.resultsPerPage = 25;
     this.mobile = false;
+    this.globalAggregations = {};
     this.filters = [
       {
         label : 'All Results',
@@ -74,6 +74,12 @@ export class CategoryFilterController extends Mixin(LitElement)
     this._onAppStateUpdate(await this.AppStateModel.get());
   }
 
+  updated(changedProperties) {
+    if (changedProperties.has('globalAggregations')) {
+      this._updateFilterCounts(this.globalAggregations);
+    }
+  }
+
   /**
    * @method _onAppStateUpdate
    * @description bound to AppStateModel app-state-update event
@@ -83,53 +89,13 @@ export class CategoryFilterController extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
+    let searchTerm = decodeURIComponent(e.location.query?.q || e.location.path?.[1] || '');
+    if( !searchTerm ) return;
+
     this.type = e.location.query.type || '';
     this.status = e.location.query.status || '';
-    this.expert = e.location.query.expert || '';
+
     this._updateActiveFilter(this.type, this.status);
-
-    // handle filter/query changes outside of filter controller
-    let availabilityParam = e.location.query.availability || '';
-    let availability = utils.buildSearchAvailability({
-      collabProjects : availabilityParam.includes('collab'),
-      commPartner : availabilityParam.includes('community'),
-      industProjects : availabilityParam.includes('industry'),
-      mediaInterviews : availabilityParam.includes('media'),
-    });
-
-    this.searchQuery = utils.buildSearchQuery(
-      this.searchTerm,
-      this.currentPage,
-      this.resultsPerPage,
-      availability,
-      this.AppStateModel.location.query.type,
-      this.AppStateModel.location.query.status,
-      this.expert
-    );
-
-    this._onSearchUpdate(
-      await this.SearchModel.search(this.searchQuery)
-    );
-  }
-
-  /**
-   * @method _onSearchUpdate
-   * @description bound to SearchModel search-update event
-   *
-   * @param {Object} searchResults
-   */
-  _onSearchUpdate(e) {
-    if( e?.state !== 'loaded' ) return;
-    if( e?.id?.split('search:')?.[1] !== this.searchQuery ) return;
-
-    this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
-    if( !this.rawSearchData['global_aggregations'] ) {
-      this.filters = [];
-      return;
-    }
-
-    this._updateFilterCounts(this.rawSearchData['global_aggregations']);
-    this.requestUpdate();
   }
 
   _updateFilterCounts(globalAggregations={}) {
@@ -157,6 +123,7 @@ export class CategoryFilterController extends Mixin(LitElement)
       }
     }
 
+    this.filters = [...this.filters];
     this.requestUpdate();
   }
 
@@ -167,7 +134,7 @@ export class CategoryFilterController extends Mixin(LitElement)
    *
    */
   _onFilterChange(e) {
-    let type = e.target.getAttribute('type');
+    let type = e.target.type;
 
     if( type === this.filters.filter(f => f.active)[0]?.type ) return;
 
@@ -184,8 +151,8 @@ export class CategoryFilterController extends Mixin(LitElement)
    *
    */
   _onSubFilterChange(e) {
-    let type = e.target.getAttribute('type');
-    let status = e.target.getAttribute('status');
+    let type = e.target.type;
+    let status = e.target.status;
 
     if( this.filters.filter(f => f.active && f.status === status).length ) return;
 

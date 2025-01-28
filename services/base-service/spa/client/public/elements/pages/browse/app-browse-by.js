@@ -156,7 +156,13 @@ export default class AppBrowseBy extends Mixin(LitElement)
         subtitle = r.name?.split('§')?.pop()?.trim();
         if( name === subtitle ) subtitle = '';
       } else if( resultType === 'grant' ) {
-        subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+        subtitle = ((r.name?.split('§') || [])[1] || '').trim();
+        let pi = subtitle.split('•').pop().trim();
+        if( pi ) {
+          pi = 'PI: ' + pi;
+          subtitle = subtitle.split('•').slice(0, -1).join('•').trim() + '• ' + pi;
+        }
+        subtitle = 'Grant <span class="dot-separator">•</span> ' + subtitle.trim().replaceAll('•', '<span class="dot-separator">•</span>');
       } else if( resultType === 'work' ) {
         subtitle = 'TODO work type • year • authors';
       }

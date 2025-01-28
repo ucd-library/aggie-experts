@@ -38,7 +38,8 @@ export default class AppSearch extends Mixin(LitElement)
       showOpenTo : { type : Boolean },
       filterByExpert : { type : Boolean },
       filterByExpertId : { type : String },
-      filterByExpertName : { type : String }
+      filterByExpertName : { type : String },
+      globalAggregations : { type : Object },
     }
   }
 
@@ -67,6 +68,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
+    this.globalAggregations = {};
 
     this.render = render.bind(this);
   }
@@ -74,56 +76,7 @@ export default class AppSearch extends Mixin(LitElement)
   firstUpdated() {
     if( this.AppStateModel.location.page !== 'search' ) return;
 
-    let query = this.AppStateModel.location.query;
-    this.lastQueryParams = query;
-
-    this._updateAvailableFilters();
-
-    // if url contains query params, then parse filters before searching
-    if( Object.keys(query).length ) {
-      this.searchTerm = decodeURI(query.q);
-
-      if( query.type ) this.type = query.type;
-
-      if( query.expert ) {
-        this.filterByExpert = true;
-        this.filterByExpertId = query.expert;
-      }
-
-      this.collabProjects = query.availability?.includes('collab');
-      this.commPartner = query.availability?.includes('community');
-      this.industProjects = query.availability?.includes('industry');
-      this.mediaInterviews = query.availability?.includes('media');
-
-      if( query.availability ) {
-        if( query.availability.includes('Community partnerships') ) this.commPartner = true;
-        if( query.availability.includes('Collaborative projects') ) this.collabProjects = true;
-        if( query.availability.includes('Industry Projects') ) this.industProjects = true;
-        if( query.availability.includes('Media enquiries') ) this.mediaInterviews = true;
-        this._updateLocation();
-      }
-
-      let page = this.AppStateModel.location?.path?.[1];
-      if( page ) this.currentPage = page;
-
-      let resultsPerPage = this.AppStateModel.location?.path?.[2];
-      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
-
-      this._updateAvailableFilters();
-
-      this._onSearch({ detail: this.searchTerm });
-      return;
-    }
-
-    // update search term
-    this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
-
-    let page = this.AppStateModel.location?.path?.[2];
-    if( page ) this.currentPage = page;
-
-    let resultsPerPage = this.AppStateModel.location?.path?.[3];
-    if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
-
+    this._updateFilters();
     this._onSearch({ detail: this.searchTerm });
   }
 
@@ -147,26 +100,67 @@ export default class AppSearch extends Mixin(LitElement)
   _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
-    let searchTerm = decodeURIComponent(e.location.query?.q || e.location.path?.[1] || '');
+    this._updateFilters();
+    this._onSearch({ detail: this.searchTerm });
+  }
 
-    if( JSON.stringify(e.location.query) === JSON.stringify(this.lastQueryParams) && searchTerm === this.searchTerm ) return;
-
-    this.lastQueryParams = e.location.query;
-
-    // TODO reset selected download boxes?
-
-    // clear expert filter if not set
-    if( e.resetSearch ) {
-      this.type = '';
-      this._removeExpertFilter();
-      this._uncheckDownloads()
-      this.AppStateModel.set({ resetSearch : false });
+  _updateFilters() {
+    let searchTerm = decodeURIComponent(this.AppStateModel.location.query?.q || this.AppStateModel.location.path?.[1] || '');
+    if( !searchTerm ) {
+      this.AppStateModel.setLocation('/');
+      return;
     }
 
-    this.collabProjects = (this.lastQueryParams.availability || '').includes('collab');
-    this.commPartner = (this.lastQueryParams.availability || '').includes('community');
-    this.industProjects = (this.lastQueryParams.availability || '').includes('industry');
-    this.mediaInterviews = (this.lastQueryParams.availability || '').includes('media');
+    let query = this.AppStateModel.location.query;
+    this.lastQueryParams = query;
+
+    // if url contains query params, then parse filters before searching
+    if( Object.keys(query).length ) {
+      this.searchTerm = decodeURI(query.q);
+
+      if( query.type ) this.type = query.type;
+
+      if( query.expert ) {
+        this.filterByExpert = true;
+        this.filterByExpertId = query.expert;
+      } else {
+        this.filterByExpert = false;
+        this.filterByExpertId = '';
+        this.filterByExpertName = '';
+      }
+
+      this.collabProjects = query.availability?.includes('collab') ? true : false;
+      this.commPartner = query.availability?.includes('community') ? true : false;
+      this.industProjects = query.availability?.includes('industry') ? true : false;
+      this.mediaInterviews = query.availability?.includes('media') ? true : false;
+
+      let page = this.AppStateModel.location?.path?.[1];
+      if( page ) this.currentPage = page;
+
+      let resultsPerPage = this.AppStateModel.location?.path?.[2];
+      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
+
+    } else {
+      // no query params, so clear filters
+      this.type = '';
+      this.status = '';
+      this.filterByExpert = false;
+      this.filterByExpertId = '';
+      this.filterByExpertName = '';
+      this.commPartner = false;
+      this.collabProjects = false;
+      this.industProjects = false;
+      this.mediaInterviews = false;
+
+      // update search term
+      this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
+
+      let page = this.AppStateModel.location?.path?.[2];
+      if( page ) this.currentPage = page;
+
+      let resultsPerPage = this.AppStateModel.location?.path?.[3];
+      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
+    }
 
     // hack for checkboxes not updating consistently even with requestUpdate (mostly an issue with back/forward buttons)
     this.shadowRoot.querySelector('#collab-projects').checked = this.collabProjects;
@@ -174,14 +168,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.shadowRoot.querySelector('#indust-projects').checked = this.industProjects;
     this.shadowRoot.querySelector('#media-interviews').checked = this.mediaInterviews;
 
-    this.totalResultsCount = null;
-    this.searchTerm = searchTerm;
-    this.type = e.location?.query?.type || '';
-    this.status = e.location?.query?.status || '';
-
-    this._updateAvailableFilters();
-
-    this._onSearch({ detail: this.searchTerm });
+    // hide/show filters depending on filter type, later will add date filters etc
+    this.showOpenTo = this.type === 'expert';
   }
 
   /**
@@ -312,8 +300,9 @@ export default class AppSearch extends Mixin(LitElement)
       this.filterByExpertName = await this._getExpertNameById(this.filterByExpertId);
     }
 
-    // console.log('parsing new search results', e, fromSearchPage);
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
+
+    this.globalAggregations = this.rawSearchData['global_aggregations'] || {};
 
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let resultType = '';
@@ -333,7 +322,15 @@ export default class AppSearch extends Mixin(LitElement)
         numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 
       } else if( resultType === 'grant' ) {
-        subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+        subtitle = ((r.name?.split('§') || [])[1] || '').trim();
+
+        let pi = subtitle.split('•').pop().trim();
+        if( pi ) {
+          pi = 'PI: ' + pi;
+          subtitle = subtitle.split('•').slice(0, -1).join('•').trim() + '• ' + pi;
+        }
+
+        subtitle = 'Grant <span class="dot-separator">•</span> ' + subtitle.trim().replaceAll('•', '<span class="dot-separator">•</span>');
         id = 'grant/' + id;
       }
 
@@ -549,7 +546,6 @@ export default class AppSearch extends Mixin(LitElement)
     this.type = e.detail.type;
     this.status = '';
     if( this.type === 'all results' ) this.type = '';
-    this._updateAvailableFilters();
     this.currentPage = 1;
     this._uncheckDownloads();
 
@@ -564,16 +560,10 @@ export default class AppSearch extends Mixin(LitElement)
     // update url with search filters
     this.type = e.detail.type;
     this.status = e.detail.status;
-    this._updateAvailableFilters();
 
     this.currentPage = 1;
     this._uncheckDownloads();
     this._updateLocation();
-  }
-
-  _updateAvailableFilters() {
-    this.showOpenTo = this.type === 'expert';
-    // TODO others, dates hidden when viewing Experts
   }
 
   _uncheckDownloads() {

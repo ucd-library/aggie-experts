@@ -31,8 +31,8 @@ export function styles() {
     }
 
     .hero-main {
-      background: url('/images/watercolor-sage-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
+      background: url('../images/watercolor-sage-solid.jpg') no-repeat center center;
+      background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
       min-height: 12.25rem;
