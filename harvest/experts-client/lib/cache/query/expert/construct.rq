@@ -184,7 +184,10 @@ WHERE {
       }
       OPTIONAL {
         ?list iam:emailWwwFlag "Y".
-        ?list iam:email ?odr_email.
+        OPTIONAL {
+          ?list iam:email ?explicit_odr_email.
+        }
+        bind(true as ?odr_email_v)
       }
       OPTIONAL {
         ?list iam:emailWwwFlag "N".
@@ -328,7 +331,7 @@ WHERE {
 
   bind(xsd:integer(?odr_list_order) as ?odr_order)
   bind(concat("odr-",str(?odr_order)) as ?odr_vid)
-  bind(uri(concat("mailto:",?odr_email)) as ?odr_email_uri)
+  bind(if(?odr_email_v,uri(concat("mailto:",coalesce(?explict_odr_email,?default_email))),?not_defined) as ?odr_email_uri)
   bind(coalesce(?has_odr,false) as ?odr_is_preferred)
   bind(uri(?odr_website) as ?odr_website_uri)
   bind(uri(concat("ark:/87287/d7c08j/position/odr/",md5(?odr_title))) as ?odr_vcard_title)
