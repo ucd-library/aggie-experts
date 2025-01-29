@@ -178,7 +178,7 @@ export default class FinApp extends Mixin(LitElement)
     } else if( page === 'grants-edit' ) {
       return import(/* webpackChunkName: "page-grants-edit" */ "./pages/expert/app-expert-grants-list-edit");
     }
-    console.warn('No code chunk loaded for this page');
+    this.logger.warn('No code chunk loaded for this page');
     return false;
   }
 
@@ -199,8 +199,6 @@ export default class FinApp extends Mixin(LitElement)
         quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
       }
     } else {
-      console.warn('expert ' + this.expertId + ' not found for logged in user');
-
       if( quickLinks ) {
         quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
         quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
