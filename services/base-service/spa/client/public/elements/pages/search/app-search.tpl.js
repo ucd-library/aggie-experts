@@ -512,7 +512,8 @@ return html`
               .result=${result}
               result-type="${result.resultType}"
               ?hide-checkbox="${this.type !== 'expert'}"
-              @filter-by-grants="${this._filterByGrants}">
+              @filter-by-grants="${this._filterByGrants}"
+              @filter-by-works="${this._filterByWorks}">
             </app-search-result-row>
             <hr class="search-seperator">
           `

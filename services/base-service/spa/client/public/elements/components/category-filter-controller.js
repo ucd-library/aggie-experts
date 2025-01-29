@@ -64,7 +64,16 @@ export class CategoryFilterController extends Mixin(LitElement)
           { label : 'Completed', type : 'grant', status : 'completed', count : 0, active : false }
         ]
       },
-      // { label: 'Works', count: 0, icon: 'fa-book-open', active: false },
+      {
+        label: 'Works',
+        type: 'work',
+        count: 0,
+        icon: 'fa-book-open',
+        active: false,
+        subFilters: [
+          // TODO Articles, Books, Chapters, Conference Papers, Preprints, etc.
+        ]
+      },
       // { label: 'Subjects', count: 0, icon: 'lightbulb-on', active: false }
     ];
 

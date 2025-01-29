@@ -111,10 +111,10 @@ export default function render() {
       </div>
       <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${unsafeHTML(this.result.subtitle)}</div>
       <div class="search-result-matches" ?hidden="${this.hideSearchMatches || this.resultType !== 'expert'}">
-        <span ?hidden="${this.result.numberOfGrants === 0}" class="search-matches">Search matches:</span>
-          <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grants</a></span>
-          <span class="dot-separator" ?hidden="${this.hideWorksMatches}">.</span>
-          <span ?hidden="${this.hideWorksMatches}">${this.result.numberOfWorks} works</span>
+        <span ?hidden="${this.result.numberOfGrants === 0 && this.result.numberOfWorks === 0}" class="search-matches">Search matches:</span>
+          <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grant${this.result.numberOfGrants > 1 ? 's' : ''}</a></span>
+          <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
+          <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
       </div>
     </div>
   `;

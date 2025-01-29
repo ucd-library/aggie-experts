@@ -69,6 +69,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpertId = '';
     this.filterByExpertName = '';
     this.globalAggregations = {};
+    this.filteringByGrants = false;
+    this.filteringByWorks = false;
 
     this.render = render.bind(this);
   }
@@ -198,6 +200,29 @@ export default class AppSearch extends Mixin(LitElement)
     // filter by grants for this expert
     this.filterByExpertId = e.detail.id;
     this.filterByExpertName = e.detail.name;
+    this.filteringByGrants = true;
+    this.filteringByWorks = false;
+
+    if( this.filterByExpertId && this.filterByExpertName ) {
+      this.filterByExpert = true;
+      this.addingFilter = true;
+      this.AppStateModel.set({ resetSearch : false });
+      this._updateLocation();
+    }
+  }
+
+  /**
+   * @method _filterByWorks
+   * @description filter by works
+   * @param {Object} e
+   */
+  _filterByWorks(e) {
+    // filter by works for this expert
+    this.filterByExpertId = e.detail.id;
+    this.filterByExpertName = e.detail.name;
+    this.filteringByGrants = false;
+    this.filteringByWorks = true;
+
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
       this.addingFilter = true;
@@ -214,6 +239,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
+    this.filteringByGrants = false;
+    this.filteringByWorks = false;
     this._updateLocation();
   }
 
@@ -267,7 +294,8 @@ export default class AppSearch extends Mixin(LitElement)
    */
   _updateLocation() {
     if( this.addingFilter && this.filterByExpert ) {
-      this.type = 'grant';
+      if( this.filteringByGrants ) this.type = 'grant';
+      if( this.filteringByWorks ) this.type = 'work';
       this.addingFilter = false;
     }
 
@@ -308,6 +336,7 @@ export default class AppSearch extends Mixin(LitElement)
       let resultType = '';
       if( r['@type'] === 'Grant' || r['@type']?.includes?.('Grant') ) resultType = 'grant';
       if( r['@type'] === 'Expert' || r['@type']?.includes?.('Expert') ) resultType = 'expert';
+      if( r['@type'] === 'Work' || r['@type']?.includes?.('Work') ) resultType = 'work';
 
       let id = r['@id'];
       if( Array.isArray(r.name) ) r.name = r.name[0];
@@ -332,6 +361,9 @@ export default class AppSearch extends Mixin(LitElement)
 
         subtitle = 'Grant <span class="dot-separator">•</span> ' + subtitle.trim().replaceAll('•', '<span class="dot-separator">•</span>');
         id = 'grant/' + id;
+      } else if( resultType === 'work' ) {
+        subtitle = 'TODO subtitle once name structure has been finalized';
+        id = 'work/' + id;
       }
 
       return {
