@@ -33,6 +33,11 @@ class WorkModel extends BaseModel {
   promote_node_to_doc(node) {
     const doc = super.promote_node_to_doc(node);
 
+    // mini citation info, if we need to expand
+    ["type","container-title","status","issued","DOI"].forEach(key => {
+      if (node[key]) doc[key] = node[key];
+    });
+
     let authors = '';
     if (node.author) {
       if (node.author.length >= 1) {

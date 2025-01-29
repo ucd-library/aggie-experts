@@ -108,7 +108,10 @@ router.get(
           params: {
             ...opts.params,
             size: 0,
-            index: [experts.readIndexAlias, grants.readIndexAlias] }
+            index: [experts.readIndexAlias,
+                    grants.readIndexAlias,
+                    works.readIndexAlias]
+          }
         });
       find.global_aggregations = global.aggregations;
       res.send(find);

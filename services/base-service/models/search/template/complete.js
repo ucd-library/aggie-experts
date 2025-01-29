@@ -159,7 +159,7 @@ template = {
         }
       },
       "aggs": {
-        "type": {
+        "@type": {
           "terms": {
             "field": "@type",
             "size": 20
@@ -176,11 +176,18 @@ template = {
             "field": "status",
             "size": 10
           }
+        },
+        "type": {
+          "terms": {
+            "field": "type",
+            "size": 10
+          }
         }
       },
       "_source": [
         "@id",
         "@type",
+        "type",
         "name",
         "contactInfo",
         "title",
