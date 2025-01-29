@@ -139,9 +139,7 @@ export default class AppSearch extends Mixin(LitElement)
       let page = this.AppStateModel.location?.path?.[1];
       if( page ) this.currentPage = page;
 
-      let resultsPerPage = this.AppStateModel.location?.path?.[2];
-      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
-
+      this.resultsPerPage = parseInt(this.AppStateModel.location?.path?.[2] || 25);
     } else {
       // no query params, so clear filters
       this.type = '';
@@ -160,8 +158,7 @@ export default class AppSearch extends Mixin(LitElement)
       let page = this.AppStateModel.location?.path?.[2];
       if( page ) this.currentPage = page;
 
-      let resultsPerPage = this.AppStateModel.location?.path?.[3];
-      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
+      this.resultsPerPage = parseInt(this.AppStateModel.location?.path?.[3] || 25);
     }
 
     // hack for checkboxes not updating consistently even with requestUpdate (mostly an issue with back/forward buttons)
@@ -182,7 +179,7 @@ export default class AppSearch extends Mixin(LitElement)
    *
    */
   _onPageSizeChange(e) {
-    this.resultsPerPage = e.currentTarget.value;
+    this.resultsPerPage = parseInt(e.currentTarget.value);
     this.currentPage = 1;
 
     this._updateLocation();
@@ -581,7 +578,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.currentPage = 1;
     this._uncheckDownloads();
 
-    if( this.type !== 'grant' && this.filterByExpert ) {
+    if( !['grant', 'work'].includes(this.type) && this.filterByExpert ) {
       this._removeExpertFilter();
     }
 

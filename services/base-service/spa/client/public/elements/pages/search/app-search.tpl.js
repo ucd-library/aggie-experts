@@ -490,9 +490,9 @@ return html`
         <div class="search-heading">
           <div class="select-page-size">
             <select name="page-size" id="page-size" @change="${this._onPageSizeChange}">
-              <option value="25" ?selected="${this.resultsPerPage === 25}">25</option>
-              <option value="50" ?selected="${this.resultsPerPage === 50}">50</option>
-              <option value="100" ?selected="${this.resultsPerPage === 100}">100</option>
+              <option value="25" .selected="${this.resultsPerPage === 25}">25</option>
+              <option value="50" .selected="${this.resultsPerPage === 50}">50</option>
+              <option value="100" .selected="${this.resultsPerPage === 100}">100</option>
             </select>
 
             <span>items per page</span>
