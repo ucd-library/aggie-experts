@@ -69,6 +69,11 @@ the C<GCS_BUCKET> parameter in the environment.
 Will build a C<clean>) environment even if there are unstaged changes in the
 repository.  This usually means files that are not tracked by git.
 
+=item B<--build-args=I<'arg,arg,...'>>
+
+To specify additional build arguments for the cork-kube build command.  This
+can be used, for instance, to build all dependencies with --build-args='--depth=ALL'
+
 =item B<--list-mounts>
 
 List the bind mounts that are used in the dev environment.  Used with the
