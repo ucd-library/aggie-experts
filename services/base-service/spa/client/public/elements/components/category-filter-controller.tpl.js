@@ -10,6 +10,10 @@ export default function render() {
       [hidden] {
         display: none !important;
       }
+
+      category-filter-row:hover {
+        cursor: pointer;
+      }
     </style>
 
     <div class="filter-controller">

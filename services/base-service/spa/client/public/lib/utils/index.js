@@ -16,6 +16,23 @@ class Utils {
     return Array.isArray(value) ? value : [value];
   }
 
+  /*
+  * @method formatDate
+  * @description given a date object, return a formatted date string
+  * @param {Object} dateObj object with year, month, day
+  * @return {String} formatted date string
+  */
+  formatDate(dateObj) {
+    if (!dateObj) return '';
+
+    const options = {};
+    if (dateObj.year) options.year = 'numeric';
+    if (dateObj.month) options.month = 'long';
+    if (dateObj.day) options.day = 'numeric';
+
+    return new Date(dateObj.year, dateObj.month ? dateObj.month - 1 : 0, dateObj.day || 1).toLocaleDateString('en-US', options);
+  }
+
   /**
    * @method getCitationType
    * @description given a csl type, return a human readable string

@@ -108,9 +108,10 @@ export class CategoryFilterController extends Mixin(LitElement)
   }
 
   _updateFilterCounts(globalAggregations={}) {
-    let expertsCount = globalAggregations.type?.expert || 0;
-    let grantsCount = globalAggregations.type?.grant || 0;
-    let total = expertsCount + grantsCount;
+    let expertsCount = globalAggregations['@type']?.expert || 0;
+    let grantsCount = globalAggregations['@type']?.grant || 0;
+    let worksCount = globalAggregations['@type']?.work || 0;
+    let total = expertsCount + grantsCount + worksCount;
 
     let allResultsFilter = this.filters.filter(f => f.type === '')?.[0];
     if( allResultsFilter ) allResultsFilter.count = total;
@@ -118,6 +119,7 @@ export class CategoryFilterController extends Mixin(LitElement)
     let expertsFilter = this.filters.filter(f => f.type === 'expert')?.[0];
     if( expertsFilter ) expertsFilter.count = expertsCount;
 
+    // grants+subfilters
     let grantsFilter = this.filters.filter(f => f.type === 'grant')?.[0];
     if( grantsFilter ) {
       grantsFilter.count = grantsCount;
@@ -129,6 +131,32 @@ export class CategoryFilterController extends Mixin(LitElement)
 
         let completedGrantsFilter = grantSubFilters.filter(sf => sf.status === 'completed')?.[0];
         if( completedGrantsFilter ) completedGrantsFilter.count = globalAggregations.status?.completed || 0;
+      }
+    }
+
+    // works+subfilters
+    let worksFilter = this.filters.filter(f => f.type === 'work')?.[0];
+    if( worksFilter ) {
+      worksFilter.count = worksCount;
+
+      let workSubFilters = [];
+      let types = Object.keys(globalAggregations.type || {});
+
+      // sort by subfilter name asc
+      types.sort((a,b) => utils.getCitationType(a).localeCompare(utils.getCitationType(b)));
+
+      types.forEach(t => {
+        workSubFilters.push({
+          label : utils.getCitationType(t),
+          type : t,
+          // TODO status needed? might break ui
+          count : globalAggregations.type[t],
+          active : false
+        });
+      });
+
+      if( workSubFilters.length ) {
+        worksFilter.subFilters = workSubFilters;
       }
     }
 

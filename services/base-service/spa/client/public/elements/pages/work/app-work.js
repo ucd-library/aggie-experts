@@ -132,17 +132,21 @@ export default class AppWork extends Mixin(LitElement)
 
     let cite = await Citation.generateCitations([workGraph]);
     cite = cite[0]?.value;
-    this.publisher = workGraph.publisher || '';
+
+    this.publisher = workGraph['container-title'] || '';
 
     // like if 185(6), 600–616 is a standard format we would show as 'Volume 185, Issue 6, 600-616'
     let publishedVolume = '';
     if( cite.volume ) publishedVolume += 'Volume ' + cite.volume;
-    if( cite.issue ) publishedVolume += ', Issue ' + cite.issue;
-    if( cite.page ) publishedVolume += ', ' + cite.page;
+    if( cite.issue && cite.volume ) publishedVolume += ', ';
+    if( cite.issue ) publishedVolume += 'Issue ' + cite.issue;
+
+    if( (cite.volume || cite.issue) && cite.page ) publishedVolume += ', ';
+    if( cite.page ) publishedVolume += cite.page;
     this.publishedVolume = publishedVolume;
 
     let [ year, month, day ] = workGraph.issued?.split?.('-');
-    this.publishedDate = this.formatDate({ year, month, day });
+    this.publishedDate = utils.formatDate({ year, month, day });
 
     this.showPublished = this.publisher || this.publishedVolume || this.publishedDate;
     this.showSubjects = false;
@@ -177,18 +181,6 @@ export default class AppWork extends Mixin(LitElement)
       this.showAuthors = true;
     }
   }
-
-  formatDate(dateObj) {
-    if (!dateObj) return '';
-
-    const options = {};
-    if (dateObj.year) options.year = 'numeric';
-    if (dateObj.month) options.month = 'long';
-    if (dateObj.day) options.day = 'numeric';
-
-    return new Date(dateObj.year, dateObj.month ? dateObj.month - 1 : 0, dateObj.day || 1).toLocaleDateString('en-US', options);
-  }
-
 }
 
 customElements.define('app-work', AppWork);
