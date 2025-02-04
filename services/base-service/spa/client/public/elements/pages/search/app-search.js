@@ -199,6 +199,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpertName = e.detail.name;
     this.filteringByGrants = true;
     this.filteringByWorks = false;
+    this.currentPage = 1;
 
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
@@ -219,6 +220,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpertName = e.detail.name;
     this.filteringByGrants = false;
     this.filteringByWorks = true;
+    this.currentPage = 1;
 
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
