@@ -25,7 +25,7 @@ graph TD;
 4. The CSV file are generated using Sparql queries. See: ([Grant Feed Sparql Query](../harvest/experts-client/lib/query/grant_feed/grants.rq)). The set of CSV output files (metadata, links, and persons) is produced and compared to the previous generation (result of the last product of this process) to derive delta set that only contains grant additions and updates. The delta set of CVS file are uploaded to Symplectic to be imported via the nightly process.
 5. ftp.use.symplectic.org 
 username: ucdavis
-password: [retreived from GCS Secret Manager] (https://console.cloud.google.com/security/secret-manager?project=aggie-experts)
+password: [retreived from GCS Secret Manager](https://console.cloud.google.com/security/secret-manager?project=aggie-experts)
 Note that directories have been created on the Symplectic FTP server under the ucdavis account for QA and PROD. These directories also contain LOGS of import results for debugging purposes.
 6. A scheduled job (nightly) on the Symplectic server imports the grants, links to users, and related persons into the CDL Elements database. 
 7. The imported grants will now be included when harvest queries are executed against the CDL Elements instance. 
@@ -36,7 +36,7 @@ Note that directories have been created on the Symplectic FTP server under the u
 A workflow to load legacy grants from KFS into CDL Elements.
 
 A subset of the grants present in the KFS system have been designated as legacy.
-They will not be carried over to the new Aggie Enterpise system. The legacy grants are loaded into CDL Elements using the Symplectic Elements feed mechanism. This set of grants is managed in a separate GitHub project [here] (https://github.com/ucd-library/aggie_enterprise_kfs_grant_archive). Sometimes a KFS grant needs to be deleted from Aggie Experts or modified in some way. The KFS Grant Archive project contains directories of incremental updates for this purpose. See that project's doc directory for more details. 
+They will not be carried over to the new Aggie Enterpise system. The legacy grants are loaded into CDL Elements using the Symplectic Elements feed mechanism. This set of grants is managed in a [separate GitHub project](https://github.com/ucd-library/aggie_enterprise_kfs_grant_archive). Sometimes a KFS grant needs to be deleted from Aggie Experts or modified in some way. The KFS Grant Archive project contains directories of incremental updates for this purpose. See that project's doc directory for more details. 
 
 ### Three csv files are uploaded to the Symplectic server:
 #### Prod_UCD_grants_metadata.csv for grant metadata
