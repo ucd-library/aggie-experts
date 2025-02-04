@@ -359,7 +359,23 @@ export default class AppSearch extends Mixin(LitElement)
         subtitle = 'Grant <span class="dot-separator">•</span> ' + subtitle.trim().replaceAll('•', '<span class="dot-separator">•</span>');
         id = 'grant/' + id;
       } else if( resultType === 'work' ) {
-        subtitle = 'TODO subtitle once name structure has been finalized';
+        subtitle = '';
+        // parse work type + date + authors from subtitle
+        // ie '“A Chinaman’s Chance” in Court: Asian Pacific Americans and Racial Rules of Evidence §  • article-journal • 2013-12-01 • Chin, G. § UC Irvine Law Review • 2327-4514 § '
+        let subtitleParts = ((r.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
+        if( subtitleParts.length ) {
+          let type = subtitleParts[0]?.trim() || '';
+          if( type ) subtitle += utils.getCitationType(type) + ' <span class="dot-separator">•</span> ';
+
+          let date = subtitleParts[1]?.trim() || '';
+          if( date ) {
+            let [ year, month, day ] = date.split?.('-');
+            subtitle += utils.formatDate({ year, month, day }) + ' <span class="dot-separator">•</span> ';
+          }
+
+          let authors = subtitleParts[2]?.trim() || '';
+          if( authors ) subtitle += authors;
+        }
         id = 'work/' + id;
       }
 
