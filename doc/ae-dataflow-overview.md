@@ -1,6 +1,6 @@
 ![Overview of the Aggie Experts Dataflow](Aggie-Experts-Overview.png)
 
-- CDL - The California Digital Library hosts an instance of [Symplectic Elements](https://www.symplectic.co.uk/theelementsplatform/)
+- CDL - The California Digital Library hosts an instance of [Symplectic Elements](https://oapolicy.universityofcalifornia.edu) to facilitate [UC open access (OA) policies](https://osc.universityofcalifornia.edu/for-authors/open-access-policy/policy-faq/) 
 - Harvest - Aggie Experts uses the [Harvest process](experts-deploy-harvest.md) to pull researchers, publications, and grants from the CDL using the Symplectic API
 - LDP - Aggie Experts stores data in a [Fedora](https://wiki.lyrasis.org/display/FF/Fedora+Repository+Home) Linked Data Platform
 - Elastic Search - Aggie Experts uses [Elastic Search](digital_objects.org) to support query and presentation of experts, works, and grants.  
