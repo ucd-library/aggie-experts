@@ -173,7 +173,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( this.hiddenCitations === 0 ) {
       this.manageWorksLabel = `Manage My Works (${this.totalCitations})`;
     } else {
-      this.manageWorksLabel = `Manage My Works (${this.totalCitations} Public, ${this.hiddenCitations} Hidden)`;
+      this.manageWorksLabel = `Manage My Works (${this.totalCitations - this.hiddenCitations} Public, ${this.hiddenCitations} Hidden)`;
     }
 
     this.worksWithErrors = this.expert.invalidWorks || [];

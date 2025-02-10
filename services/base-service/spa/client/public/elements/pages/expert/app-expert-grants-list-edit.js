@@ -531,7 +531,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( this.hiddenGrants === 0 ) {
       this.manageGrantsLabel = `Manage My Grants (${this.totalGrants})`;
     } else {
-      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants} Public, ${this.hiddenGrants} Hidden)`;
+      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants - this.hiddenGrants} Public, ${this.hiddenGrants} Hidden)`;
     }
   }
 

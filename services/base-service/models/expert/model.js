@@ -148,22 +148,28 @@ class ExpertModel extends BaseModel {
     let totalWorks = works.length;
     let totalGrants = grants.length;
 
+    let visibleWorks = works.filter(w => {
+      if (!Array.isArray(w.relatedBy)) {
+        w.relatedBy = [w.relatedBy];
+      }
+      return w.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === doc['@id']));
+    });
+
+    let visibleGrants = grants.filter(g => {
+      if (!Array.isArray(g.relatedBy)) {
+        g.relatedBy = [g.relatedBy];
+      }
+      return g.relatedBy.some(related => related['is-visible'] && related['inheres_in']);
+    });
+
     // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
     if( options['is-visible'] !== false || !options.admin ) {
-      works = works.filter(w => w.relatedBy && w.relatedBy.some(related => related['is-visible'] && related?.relates.some(r => r === doc['@id'])));
-
-      grants = grants.filter(g =>
-        g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
-      );
+      works = visibleWorks;
+      grants = visibleGrants;
     }
 
-    // TODO test hidden works/grants behaves as we expect for experts that are admins and not admins,
-    // and on the expert profile and the list/edit pages.
-    // the counts of hidden/visible works/grants might be wrong
-
-
-    let hiddenWorks = totalWorks - works.length;
-    let hiddenGrants = totalGrants - grants.length;
+    let hiddenWorks = totalWorks - visibleWorks.length;
+    let hiddenGrants = totalGrants - visibleGrants.length;
 
     let invalidWorks = [];
     let invalidGrants = [];
