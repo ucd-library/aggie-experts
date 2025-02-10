@@ -46,8 +46,9 @@ router.get(
   is_user,
   search_valid_path(
     {
-      description: "Returns matching search results for experts, including the number of matching works and grants",
-      parameters: ['p', 'page', 'size', 'type','status','availability','expert'],
+      description: "Returns matching search results, including the number of matching works and grants",
+      parameters: ['p', 'page', 'size',
+                   '@type', 'type', 'status','availability','expert'],
       responses: {
         "200": openapi.response('Search'),
         "400": openapi.response('Invalid_request')
@@ -57,7 +58,7 @@ router.get(
   search_valid_path_error,
   async (req, res) => {
     const params = {
-      type:['expert','grant','work'],
+      "@type":['expert','grant','work'],
       index: []
     };
     ["p","inner_hits_size","size","page","q"].forEach((key) => {
@@ -74,11 +75,11 @@ router.get(
       console.log('status', req.query.status);
       params.status = req.query.status.split(',');
     }
-    if (req?.query.type) {
-      params.type = req.query.type.split(',');
+    if (req?.query["@type"]) {
+      params["@type"] = req.query["@type"].split(',');
     }
-    params.type.forEach((type) => {
-      switch (type) {
+    params["@type"].forEach((t) => {
+      switch (t) {
       case 'expert':
         params.index.push(experts.readIndexAlias);
         break;
@@ -101,7 +102,7 @@ router.get(
       await experts.verify_template(complete);
       const find = await base.search(opts);
       // Now remove type filters, research
-      delete params.type;
+      delete params["@type"];
       delete params.status;
       const global = await base.search(
         { id: complete.id,

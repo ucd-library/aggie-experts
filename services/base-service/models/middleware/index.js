@@ -464,10 +464,10 @@ const openapi = OpenAPI(
           style: "simple",
           explode: false
         },
-        type: {
+        "@type": {
             in: "query",
-          name: "type",
-          description: "Comma-separated list of items to return.",
+          name: "@type",
+          description: "Comma-separated list of item @types to return.",
           required: false,
           schema: {
             type: "array",
@@ -475,6 +475,21 @@ const openapi = OpenAPI(
               type: "string",
               enum: ["expert", "grant", "work"],
               default: "expert,grant"
+            }
+          },
+          style: "simple",
+          explode: false
+        },
+        "type": {
+            in: "query",
+          name: "type",
+          description: "Comma-separated list of citation-types to return. From https://github.com/Juris-M/schema/blob/master/csl-types.rnc",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: [ "article","article-journal","article-magazine","article-newspaper","bill","book","broadcast","chapter","dataset","entry","entry-dictionary","entry-encyclopedia","figure","graphic","interview","legal_case","legislation","manuscript","map","motion_picture","musical_score","pamphlet","paper-conference","patent","personal_communication","post","post-weblog","report","review","review-book","song","speech","thesis","treaty","webpage"]
             }
           },
           style: "simple",

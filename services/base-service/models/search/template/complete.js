@@ -187,7 +187,6 @@ template = {
       "_source": [
         "@id",
         "@type",
-        "type",
         "name",
         "contactInfo",
         "title",
