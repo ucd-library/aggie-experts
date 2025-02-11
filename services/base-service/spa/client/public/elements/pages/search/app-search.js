@@ -33,8 +33,9 @@ export default class AppSearch extends Mixin(LitElement)
       commPartner : { type : Boolean },
       industProjects : { type : Boolean },
       mediaInterviews : { type : Boolean },
-      type : { type : String },
+      atType : { type : String },
       status : { type : String },
+      type : { type : String },
       showOpenTo : { type : Boolean },
       filterByExpert : { type : Boolean },
       filterByExpertId : { type : String },
@@ -62,8 +63,9 @@ export default class AppSearch extends Mixin(LitElement)
     this.commPartner = false;
     this.industProjects = false;
     this.mediaInterviews = false;
-    this.type = '';
+    this.atType = '';
     this.status = '';
+    this.type = '';
     this.showOpenTo = false;
     this.filterByExpert = false;
     this.filterByExpertId = '';
@@ -120,7 +122,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( Object.keys(query).length ) {
       this.searchTerm = decodeURI(query.q);
 
-      if( query.type ) this.type = query.type;
+      if( query['@type'] ) this.atType = query['@type'];
 
       if( query.expert ) {
         this.filterByExpert = true;
@@ -130,6 +132,9 @@ export default class AppSearch extends Mixin(LitElement)
         this.filterByExpertId = '';
         this.filterByExpertName = '';
       }
+
+      this.status = query.status || '';
+      this.type = query.type || '';
 
       this.collabProjects = query.availability?.includes('collab') ? true : false;
       this.commPartner = query.availability?.includes('community') ? true : false;
@@ -142,8 +147,9 @@ export default class AppSearch extends Mixin(LitElement)
       this.resultsPerPage = parseInt(this.AppStateModel.location?.path?.[2] || 25);
     } else {
       // no query params, so clear filters
-      this.type = '';
+      this.atType = '';
       this.status = '';
+      this.type = '';
       this.filterByExpert = false;
       this.filterByExpertId = '';
       this.filterByExpertName = '';
@@ -168,7 +174,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.shadowRoot.querySelector('#media-interviews').checked = this.mediaInterviews;
 
     // hide/show filters depending on filter type, later will add date filters etc
-    this.showOpenTo = this.type === 'expert';
+    this.showOpenTo = this.atType === 'expert';
   }
 
   /**
@@ -278,8 +284,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.currentPage,
           this.resultsPerPage,
           availability,
-          this.AppStateModel.location.query.type,
+          this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
+          this.AppStateModel.location.query.type,
           this.filterByExpertId
         )
       ),
@@ -293,8 +300,8 @@ export default class AppSearch extends Mixin(LitElement)
    */
   _updateLocation() {
     if( this.addingFilter && this.filterByExpert ) {
-      if( this.filteringByGrants ) this.type = 'grant';
-      if( this.filteringByWorks ) this.type = 'work';
+      if( this.filteringByGrants ) this.atType = 'grant';
+      if( this.filteringByWorks ) this.atType = 'work';
       this.addingFilter = false;
     }
 
@@ -305,7 +312,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) availability.push('industry');
     if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = availability.length || this.type.length || this.filterByExpert || this.status.length;
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
@@ -313,8 +320,9 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( hasQueryParams ) path += `?q=${encodeURIComponent(this.searchTerm)}`;
     if( availability.length ) path += `&availability=${availability.join(',')}`;
-    if( this.type.length ) path += `&type=${this.type}`;
+    if( this.atType.length ) path += `&@type=${this.atType}`;
     if( this.status.length ) path += `&status=${this.status}`;
+    if( this.type.length ) path += `&type=${this.type}`;
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
 
     this.AppStateModel.setLocation(path);
@@ -460,8 +468,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.currentPage,
           this.resultsPerPage,
           availability,
-          this.AppStateModel.location.query.type,
+          this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
+          this.AppStateModel.location.query.type,
           this.filterByExpertId
         )
       ),
@@ -590,13 +599,14 @@ export default class AppSearch extends Mixin(LitElement)
 
   _onFilterChange(e) {
     // update url with search filters
-    this.type = e.detail.type;
+    this.atType = e.detail['@type'];
+    this.type = '';
     this.status = '';
-    if( this.type === 'all results' ) this.type = '';
+    if( this.atType === 'all results' ) this.atType = '';
     this.currentPage = 1;
     this._uncheckDownloads();
 
-    if( !['grant', 'work'].includes(this.type) && this.filterByExpert ) {
+    if( !['grant', 'work'].includes(this.atType) && this.filterByExpert ) {
       this._removeExpertFilter();
     }
 
@@ -605,6 +615,7 @@ export default class AppSearch extends Mixin(LitElement)
 
   _onSubFilterChange(e) {
     // update url with search filters
+    this.atType = e.detail['@type'];
     this.type = e.detail.type;
     this.status = e.detail.status;
 
