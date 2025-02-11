@@ -292,6 +292,15 @@ return html`
       word-wrap: break-word;
     }
 
+    .works-results .work h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .works-results .work h5 a {
+      text-decoration: none;
+    }
+
     /* styles for collapsed dropdown */
     .custom-collapse {
       --collapse-background-color: #FFFBED;
@@ -383,7 +392,7 @@ return html`
               </span>
             </div>
             <div class="work">
-            <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
+              <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">•</span>

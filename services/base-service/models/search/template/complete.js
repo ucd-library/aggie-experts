@@ -159,7 +159,7 @@ template = {
         }
       },
       "aggs": {
-        "type": {
+        "@type": {
           "terms": {
             "field": "@type",
             "size": 20
@@ -174,6 +174,12 @@ template = {
         "status": {
           "terms": {
             "field": "status",
+            "size": 10
+          }
+        },
+        "type": {
+          "terms": {
+            "field": "type",
             "size": 10
           }
         }

@@ -60,16 +60,17 @@ class Validate {
       });
     }
 
+    // not visible citation are fine
     // validate is-visible
-    validation = Citation.validateIsVisible(citations);
-    if( validation.citations?.length ) {
-      validation.citations.forEach(c => {
-        result.errors.push({
-          label : validation.error,
-          id : c['@id'],
-        });
-      });
-    }
+    // validation = Citation.validateIsVisible(citations);
+    // if( validation.citations?.length ) {
+    //   validation.citations.forEach(c => {
+    //     result.errors.push({
+    //       label : validation.error,
+    //       id : c['@id'],
+    //     });
+    //   });
+    // }
 
     try {
       await Citation.generateCitations(citations);

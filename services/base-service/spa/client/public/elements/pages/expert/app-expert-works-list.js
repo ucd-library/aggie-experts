@@ -99,7 +99,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
 
       this._onExpertUpdate(expert);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -152,29 +152,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
       return citation;
     });
-
-    // TODO this might change, depending on if we fix data issues in the backend or report in the frontend
-    // try {
-    //   // sort by issued date desc, then by title asc
-    //   citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    // } catch (error) {
-    //   // validate issue date
-    //   let validation = Citation.validateIssueDate(citations);
-    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
-
-    //   // validate title
-    //   validation = Citation.validateTitle(citations);
-    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
-
-    // } finally {
-      // filter out invalid citations
-      // citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-
-      // this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-    // }
-
-    // let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    // let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
 
     let citationResults = await Citation.generateCitations(this.citations);
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);

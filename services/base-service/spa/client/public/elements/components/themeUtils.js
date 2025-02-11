@@ -68,7 +68,7 @@ const ThemeUtils = subclass =>
       let anchorName = ele.getAttribute('insert-into') ? ele.getAttribute('insert-into') : this.defaultShadowAnchor;
       let anchor = this.shadowRoot.querySelector(`[shadow-anchor=${anchorName}]`);
       if (!anchor) {
-        console.warn(`Shadow anchor '${anchorName}' doesn't exist.`);
+        this.logger.warn(`Shadow anchor '${anchorName}' doesn't exist.`);
         return;
       }
       anchor.appendChild(ele);

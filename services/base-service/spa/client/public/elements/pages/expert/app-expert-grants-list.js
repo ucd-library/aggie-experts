@@ -99,7 +99,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
 
       this._onExpertUpdate(expert);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})

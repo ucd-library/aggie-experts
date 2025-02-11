@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { openapi } = require('../middleware.js')
+const { openapi } = require('../middleware/index.js')
 
 //let SCHEMA=null;
 let Schema=null;

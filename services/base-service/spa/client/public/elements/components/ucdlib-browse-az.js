@@ -91,6 +91,8 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       this._onBrowseExpertsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
     } else if( this.browseType === 'grant' ) {
       this._onBrowseGrantsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
+    } else if( this.browseType === 'work' ) {
+      this._onBrowseWorksAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
     }
 
     this.requestUpdate();
@@ -104,6 +106,13 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
   }
 
   _onBrowseGrantsAzUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+
+    let az = e.payload || [];
+    this._updateAz(az);
+  }
+
+  _onBrowseWorksAzUpdate(e) {
     if( e.state !== 'loaded' ) return;
 
     let az = e.payload || [];

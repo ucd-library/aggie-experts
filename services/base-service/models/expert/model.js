@@ -147,10 +147,30 @@ class ExpertModel extends BaseModel {
     // to store totals of works/grants before filtering out any
     let totalWorks = works.length;
     let totalGrants = grants.length;
-    let hiddenWorks = totalWorks - works.filter(w => w.relatedBy?.['is-visible']).length;
-    let hiddenGrants = totalGrants - grants.filter(g =>
-      g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
-    ).length;
+
+    let visibleWorks = works.filter(w => {
+      if (!Array.isArray(w.relatedBy)) {
+        w.relatedBy = [w.relatedBy];
+      }
+      return w.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === doc['@id']));
+    });
+
+    let visibleGrants = grants.filter(g => {
+      if (!Array.isArray(g.relatedBy)) {
+        g.relatedBy = [g.relatedBy];
+      }
+      return g.relatedBy.some(related => related['is-visible'] && related['inheres_in']);
+    });
+
+    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    if( options['is-visible'] !== false || !options.admin ) {
+      works = visibleWorks;
+      grants = visibleGrants;
+    }
+
+    let hiddenWorks = totalWorks - visibleWorks.length;
+    let hiddenGrants = totalGrants - visibleGrants.length;
+
     let invalidWorks = [];
     let invalidGrants = [];
 
@@ -162,15 +182,6 @@ class ExpertModel extends BaseModel {
 
     // filter out grants graph if not requested
     if( !options.grants || !options.grants?.include ) grants = [];
-
-    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
-    if( options['is-visible'] !== false || !options.admin ) {
-      works = works.filter(w => w.relatedBy?.['is-visible']);
-
-      grants = grants.filter(g =>
-        g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
-      );
-    }
 
     // remove excluded fields in works if requested
     if( options.works?.exclude && options.works.exclude.length ) {
