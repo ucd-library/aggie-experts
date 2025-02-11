@@ -41,38 +41,36 @@ export class CategoryFilterController extends Mixin(LitElement)
     this.filters = [
       {
         label : 'All Results',
-        type : '',
+        '@type' : '',
         count : 0,
         icon : 'fa-infinity',
         active : true
       },
       {
         label : 'Experts',
-        type : 'expert',
+        '@type' : 'expert',
         count : 0,
         icon : 'fa-user',
         active : false
       },
       {
         label : 'Grants',
-        type : 'grant',
+        '@type' : 'grant',
         count : 0,
         icon : 'fa-file-invoice-dollar',
         active : false,
         subFilters : [
-          { label : 'Active', type : 'grant', status : 'active', count : 0, active : false },
-          { label : 'Completed', type : 'grant', status : 'completed', count : 0, active : false }
+          { label : 'Active', '@type' : 'grant', status : 'active', count : 0, active : false },
+          { label : 'Completed', '@type' : 'grant', status : 'completed', count : 0, active : false }
         ]
       },
       {
         label: 'Works',
-        type: 'work',
+        '@type': 'work',
         count: 0,
         icon: 'fa-book-open',
         active: false,
-        subFilters: [
-          // TODO Articles, Books, Chapters, Conference Papers, Preprints, etc.
-        ]
+        subFilters: [] // built from aggregations function below
       },
       // { label: 'Subjects', count: 0, icon: 'lightbulb-on', active: false }
     ];
@@ -85,7 +83,7 @@ export class CategoryFilterController extends Mixin(LitElement)
 
   updated(changedProperties) {
     if (changedProperties.has('globalAggregations')) {
-      this._updateFilterCounts(this.globalAggregations);
+      this._updateFilterCounts();
     }
   }
 
@@ -101,46 +99,60 @@ export class CategoryFilterController extends Mixin(LitElement)
     let searchTerm = decodeURIComponent(e.location.query?.q || e.location.path?.[1] || '');
     if( !searchTerm ) return;
 
-    this.type = e.location.query.type || '';
+    this.atType = e.location.query['@type'] || '';
     this.status = e.location.query.status || '';
+    this.type = e.location.query.type || '';
 
-    this._updateActiveFilter(this.type, this.status);
+    this.buildWorkSubFilters();
+
+    this._updateActiveFilter();
   }
 
-  _updateFilterCounts(globalAggregations={}) {
-    let expertsCount = globalAggregations['@type']?.expert || 0;
-    let grantsCount = globalAggregations['@type']?.grant || 0;
-    let worksCount = globalAggregations['@type']?.work || 0;
+  _updateFilterCounts() {
+    let expertsCount = this.globalAggregations['@type']?.expert || 0;
+    let grantsCount = this.globalAggregations['@type']?.grant || 0;
+    let worksCount = this.globalAggregations['@type']?.work || 0;
     let total = expertsCount + grantsCount + worksCount;
 
-    let allResultsFilter = this.filters.filter(f => f.type === '')?.[0];
+    let allResultsFilter = this.filters.filter(f => f['@type'] === '')?.[0];
     if( allResultsFilter ) allResultsFilter.count = total;
 
-    let expertsFilter = this.filters.filter(f => f.type === 'expert')?.[0];
+    let expertsFilter = this.filters.filter(f => f['@type'] === 'expert')?.[0];
     if( expertsFilter ) expertsFilter.count = expertsCount;
 
     // grants+subfilters
-    let grantsFilter = this.filters.filter(f => f.type === 'grant')?.[0];
+    let grantsFilter = this.filters.filter(f => f['@type'] === 'grant')?.[0];
     if( grantsFilter ) {
       grantsFilter.count = grantsCount;
 
       let grantSubFilters = grantsFilter.subFilters || [];
       if( grantSubFilters.length ) {
         let activeGrantsFilter = grantSubFilters.filter(sf => sf.status === 'active')?.[0];
-        if( activeGrantsFilter ) activeGrantsFilter.count = globalAggregations.status?.active || 0;
+        if( activeGrantsFilter ) activeGrantsFilter.count = this.globalAggregations.status?.active || 0;
 
         let completedGrantsFilter = grantSubFilters.filter(sf => sf.status === 'completed')?.[0];
-        if( completedGrantsFilter ) completedGrantsFilter.count = globalAggregations.status?.completed || 0;
+        if( completedGrantsFilter ) completedGrantsFilter.count = this.globalAggregations.status?.completed || 0;
       }
     }
 
+    // TODO counts
     // works+subfilters
-    let worksFilter = this.filters.filter(f => f.type === 'work')?.[0];
+
+    this.filters = [...this.filters];
+    this.requestUpdate();
+  }
+
+  buildWorkSubFilters() {
+    // TODO need to fix render jitter where the active filter looks like it's changing
+    // also subfilters for works aren't loading the results as expected, not sure if client or api
+    // also counts need to be updated
+    let worksFilter = this.filters.filter(f => f['@type'] === 'work')?.[0];
     if( worksFilter ) {
-      worksFilter.count = worksCount;
+      // console.log('about to rebuild work subfilters');
+      // worksFilter.count = worksCount;
 
       let workSubFilters = [];
-      let types = Object.keys(globalAggregations.type || {});
+      let types = Object.keys(this.globalAggregations.type || {});
 
       // sort by subfilter name asc
       types.sort((a,b) => utils.getCitationType(a).localeCompare(utils.getCitationType(b)));
@@ -148,10 +160,10 @@ export class CategoryFilterController extends Mixin(LitElement)
       types.forEach(t => {
         workSubFilters.push({
           label : utils.getCitationType(t),
+          '@type' : 'work',
           type : t,
-          // TODO status needed? might break ui
-          count : globalAggregations.type[t],
-          active : false
+          count : this.globalAggregations.type[t],
+          active : this.type === t
         });
       });
 
@@ -159,11 +171,7 @@ export class CategoryFilterController extends Mixin(LitElement)
         worksFilter.subFilters = workSubFilters;
       }
     }
-
-    this.filters = [...this.filters];
-    this.requestUpdate();
   }
-
 
   /**
    * @method _onFilterChange
@@ -171,14 +179,14 @@ export class CategoryFilterController extends Mixin(LitElement)
    *
    */
   _onFilterChange(e) {
-    let type = e.target.type;
+    let atType = e.target['@type'];
 
-    if( type === this.filters.filter(f => f.active)[0]?.type ) return;
+    if( atType === this.filters.filter(f => f.active)[0]?.['@type'] ) return;
 
-    this._updateActiveFilter(type);
+    this._updateActiveFilter(atType);
 
     this.dispatchEvent(new CustomEvent('filter-change', {
-      detail : { type : type.toLowerCase() }
+      detail : { ['@type'] : atType.toLowerCase() }
     }));
   }
 
@@ -188,26 +196,39 @@ export class CategoryFilterController extends Mixin(LitElement)
    *
    */
   _onSubFilterChange(e) {
-    let type = e.target.type;
-    let status = e.target.status;
+    this.atType = e.target['@type'];
+    this.type = e.target.type;
+    this.status = e.target.status;
 
-    if( this.filters.filter(f => f.active && f.status === status).length ) return;
+    // if subfilter is already active, do nothing
+    if( this.atType === 'grant' ) {
+      if( this.filters.filter(f => f.active && f.status === this.status).length ) return;
+    } else if( this.atType === 'work' ) {
+      if( this.filters.filter(f => f.active && f.type === this.type).length ) return;
+    }
 
-    this._updateActiveFilter(type, status);
+    this._updateActiveFilter();
 
     this.dispatchEvent(new CustomEvent('subfilter-change', {
       detail : {
-        type : type.toLowerCase(),
-        status : status.toLowerCase()
+        '@type' : this.atType.toLowerCase(),
+        type : (this.type || '').toLowerCase(),
+        status : (this.status || '').toLowerCase()
       }
     }));
   }
 
-  _updateActiveFilter(type='', status='') {
+  _updateActiveFilter() {
     this.filters = this.filters.map(f => {
-      f.active = f.type === type && (!status || f.status === status);
+      if( this.status ) {
+        f.active = f['@type'] === this.atType && f.status === this.status;
+      } else if( this.type ) {
+        f.active = f['@type'] === this.atType && f.type === this.type;
+      } else {
+        f.active = f['@type'] === this.atType;
+      }
       f.subFilters = (f.subFilters || []).map(sf => {
-        sf.active = sf.type === type && sf.status === status;
+        sf.active = sf['@type'] === this.atType && (sf.status === this.status || sf.type === this.type);
         return sf;
       });
 
