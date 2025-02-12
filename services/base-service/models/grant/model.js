@@ -30,7 +30,7 @@ class GrantModel extends BaseModel {
 
     const relatedBy = {};
 
-    // combine relatedBy (ordered)
+     // combine relatedBy (ordered)
     function addRelatedBy(node) {
       if (node.relatedBy) {
         Array.isArray(node.relatedBy) || (node.relatedBy = [node.relatedBy]);
@@ -54,59 +54,68 @@ class GrantModel extends BaseModel {
       let last=name.family.toLowerCase().replace(/[^a-z]/g,'');
       if (name.given && name.given.length) {
         let first=name.given.toLowerCase().replace(/[^a-z]/g,'');
-        name_match[`${last}_${first}`]=expert;
-        name_match[`${last}_$first[0]`]=expert;
+        name_match[`${last}_${first}`]=true;
+        name_match[`${last}_${first[0]}`]=true;
         if (name.middle && name.middle.length) {
           let middle=name.middle.toLowerCase().replace(/[^a-z]/g,'');
-          name_match[`${last}_${first[0]}${middle[0]}`]=expert;
+          name_match[`${last}_${first[0]}${middle[0]}`]=true;
         }
       } else if (name.middle && name.middle.length) {
         let middle=name.middle.toLowerCase().replace(/[^a-z]/g,'');
-        name_match[`${last}_$middle[0]`]=expert;
+        name_match[`${last}_${middle[0]}`]=true;
       } else {
-        name_match[last]=expert;
+        name_match[last]=true;
       }
-      return Object.values(name_match);
+      return Object.keys(name_match);
     }
 
     const expertModel = await this.get_model('expert');
     // get all name matches
     const name_match = {}
     const experts=[];
+    const vis=[]
     for (var rel in relatedBy) {
       let role=relatedBy[rel];
       if (role.inheres_in) {
+        if (role["is-visible"]) {
+          vis.push(role);
+        }
+
         let id = role.inheres_in['@id'] || role.inheres_in;
-//        try {
         let expert = await expertModel.client_get(role.inheres_in);
           expert=expertModel.get_expected_model_node(expert);
-          experts.push(expert);
-          if (expert?.contactInfo?.hasName) {
-            console.log('name:', expert.contactInfo.hasName);
-            nameMatches(expert?.contactInfo?.hasName).forEach((n) => {
-              name_match[n]=expert;
+        experts.push(expert);
+          if (expert?.hasName) {
+            nameMatches(expert?.hasName).forEach((n) => {
+              name_match[n]=role.inheres_in;
             });
           }
-//        } catch(e) {
-//          logger.error(`GrantModel.update expert '${id}' not found`);
-//        }
       }
     }
     // finally remove relatedBy with names that match experts
-    for (var rel in relatedBy) {
+    for (const rel in relatedBy) {
       let role=relatedBy[rel];
-      if (! role.inheres_in && role?.relates?.hasName) {
-        console.log('other name:', role.hasName);
-        nameMatches(rel.hasName).forEach((nm) => {
-          if (name_match[nm]) {
-            delete relatedBy[rel];
-            next;
+      if (! role.inheres_in && role?.relates) {
+        role.relates.forEach(r => {
+          if (r.hasName) {
+            nameMatches(r.hasName).forEach((nm) => {
+              if (name_match[nm]) {
+                delete relatedBy[rel];
+              }
+            })
           }
         });
       }
     }
     root_node.relatedBy=Object.values(relatedBy);
     const doc = this.promote_node_to_doc(root_node);
+    if (vis.length) {
+      root_node["is-visible"]=true;
+      doc["is-visible"]=true; // Some expert wants it visible
+    } else {
+      root_node["is-visible"]=false;
+      doc["is-visible"]=false; // No experts want it visible
+    }
     await this.update_or_create_main_node_doc(doc);
 
     const grant_snippet = this.snippet(root_node);

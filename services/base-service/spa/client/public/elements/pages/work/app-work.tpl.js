@@ -12,7 +12,7 @@ return html`
 
     .hero-main {
       background: url('../images/watercolor-sage-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
+      background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
 

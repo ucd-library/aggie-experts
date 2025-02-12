@@ -154,12 +154,14 @@ return html`
       <a href="/browse/expert">Experts</a>
       <!-- <a href="/subject">Subjects</a> -->
       <!-- <a href="/work">Works</a> -->
-      <!-- <a href="/grant">Grants</a> -->
+      <a href="/browse/grant">Grants</a>
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>
       <ucd-theme-search-form
-        @search="${this._onSearch}">
+        @search="${this._onSearch}"
+        .value=${this.searchTerm}
+        clear-on-search>
       </ucd-theme-search-form>
     </ucd-theme-search-popup>
 

@@ -1,5 +1,5 @@
 template = {
-  id: "default",
+  id: "complete",
   script: {
     "lang": "mustache",
     "source": `{
@@ -15,23 +15,78 @@ template = {
                       { "term" : {"is-visible": true } }
                     ]
                   }
+                },
+                {
+                  "bool": {
+                    "should": [
+                      {
+                        "bool": {
+                          "must": [
+                            { "term": { "@type": "Expert" }}
+                            {{#availability}}
+                            ,{
+                              "bool": {
+                                "must": [
+                                  { "exists": { "field": "hasAvailability.prefLabel" }},
+                                  { "terms": {
+                                    "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}}
+                                  }}
+                                ]
+                              }
+                            }
+                            {{/availability}}
+                            {{#expert}}
+                            ,{ "terms": {
+                              "@id": {{#toJson}}expert{{/toJson}}
+                             }}
+                             {{/expert}}
+                          ]
+                        }
+                      },
+                      {
+                        "bool": {
+                          "must_not": [
+                            { "term": { "@type": "Expert" }}
+                          ]
+                          {{#expert}}
+                          ,"must": {
+                            "nested": {
+                                "path": "@graph",
+                                "query": {
+                                  "bool": {
+                                    "must": [
+                                        { "exists": { "field": "@graph.@id" }},
+                                        { "terms": {
+                                        "@graph.@id": {{#toJson}}expert{{/toJson}}
+                                     }}
+                                    ]
+                                  }
+                                }
+                            }}
+                          {{/expert}}
+                        }
+                      }
+                    ],
+                    "minimum_should_match": 1
+                  }
                 }
-                {{#hasAvailability}}
+                {{#status}}
                 ,{
                   "bool": {
                     "must": [
-                      { "exists": { "field": "hasAvailability" }},
+                      { "exists": { "field": "status" }},
                       { "terms": {
-                        "hasAvailability": [{{#hasAvailability}}"{{.}}",{{/hasAvailability}}"none"]
+                        "status": [{{#status}}"{{.}}",{{/status}}"none"]
                        }}
                     ]
                   }
                 }
-                {{/hasAvailability}}
+                {{/status}}
               ]
             }
-          },
-          "must":{
+          }
+          {{#q}}
+          ,"must":{
             "nested": {
               "path": "@graph",
               "query": {
@@ -62,7 +117,7 @@ template = {
                           "@graph.title^10"
                         ]
                       } } ],
-                  "filter": [
+                    "filter": [
                     {
                       "bool": {
                         "should": [
@@ -82,35 +137,44 @@ template = {
                               ]
                             }
                           }
-                        ]
+                        ],
+                        "minimum_should_match": 1
                       }
                     }
                   ]
                 }
               },
               "inner_hits": {
-                "size": "{{inner_hits_size}}{{^inner_hits_size}}50{{/inner_hits_size}}",
+                "size": "{{inner_hits_size}}{{^inner_hits_size}}500{{/inner_hits_size}}",
                 "_source": [
+                  "@graph.@id",
                   "@graph.@type",
-                  "@graph.name",
-                  "@graph.author",
-                  "@graph.title",
-                  "@graph.issued",
-                  "@graph.container-title",
-                  "@graph.type",
-                  "@graph.ISSN",
-                  "@graph.abstract",
-                  "@graph.genre",
-                  "@graph.issued",
-                  "@graph.status",
-                  "@graph.rank",
-                  "@graph.ISBN",
-                  "@graph.volume",
-                  "@graph.page"
+                  "@graph.name"
                 ]
               },
               "score_mode": "sum"
             }
+          }
+          {{/q}}
+        }
+      },
+      "aggs": {
+        "type": {
+          "terms": {
+            "field": "@type",
+            "size": 20
+          }
+        },
+        "availability": {
+          "terms": {
+            "field": "hasAvailability.prefLabel",
+            "size": 10
+          }
+        },
+        "status": {
+          "terms": {
+            "field": "status",
+            "size": 10
           }
         }
       },
@@ -123,10 +187,13 @@ template = {
         "issued",
         "container-title",
         "type",
-        "DOI"
+        "DOI",
+        "modified-date"
       ],
       "sort": [
-        "_score"
+        "_score",
+        "@type",
+        "name.kw"
       ],
       "from": "{{from}}{{^from}}0{{/from}}",
       "size": "{{size}}{{^size}}10{{/size}}"
@@ -137,4 +204,5 @@ template = {
   }`
   }
 };
+
 module.exports = template;

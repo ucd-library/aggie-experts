@@ -26,7 +26,7 @@ return html`
 
     .hero-main {
       background: url('/images/watercolor-sage-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
+      background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
       min-height: 12.25rem;
@@ -99,15 +99,6 @@ return html`
 
     .work-details .dot {
       padding: 0 0.25rem;
-      color: var(--black, #000);
-      font-family: Proxima Nova;
-      font-size: 1.1875rem;
-      font-style: normal;
-      font-weight: 700;
-      line-height: 1.92125rem;
-      text-transform: uppercase;
-      position: relative;
-      bottom: 0.25rem;
     }
 
     ucd-theme-pagination {
@@ -349,16 +340,8 @@ return html`
               <div style="display: flex; justify-content: space-between; margin: ${index === 0 ? '0' : '1.19rem'} 0 ${index+1 === this.worksWithErrors.length ? '0' : '1.19rem'};">
                 <div class="work">
                   <h5 data-id=${work['@id']}>${work.issued.split('-')?.[0]}
-                    <span style="padding: 0 0.25rem;
-                      color: black;
-                      font-size: 1.1875rem;
-                      font-style: normal;
-                      font-weight: 700;
-                      line-height: 1.92125rem;
-                      text-transform: uppercase;
-                      position: relative;
-                      bottom: 0.25rem;"
-                    class="dot">.</span> ${work.title}</h5>
+                    <span style="padding: 0 0.25rem;"
+                    class="dot">•</span> ${work.title}</h5>
                   <p style="margin-bottom: 0;">Error: Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>
                 </div>
               </div>
@@ -403,7 +386,7 @@ return html`
             <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
               </div>
             </div>

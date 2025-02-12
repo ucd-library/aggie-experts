@@ -28,7 +28,9 @@ export default class AppGrant extends Mixin(LitElement)
       researchers : { type : Array },
       startDate : { type : String },
       endDate : { type : String },
-      completed : { type : Boolean }
+      completed : { type : Boolean },
+      showAboutSection : { type : Boolean },
+      showContributorsSection : { type : Boolean }
     }
   }
 
@@ -54,6 +56,8 @@ export default class AppGrant extends Mixin(LitElement)
     this.startDate = '';
     this.endDate = '';
     this.completed = false;
+    this.showAboutSection = false;
+    this.showContributorsSection = false;
 
     this.render = render.bind(this);
   }
@@ -110,11 +114,12 @@ export default class AppGrant extends Mixin(LitElement)
     let aeContributors = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
     let otherContributors = [];
 
-    this.grantName = grantGraph.name || '';
+    this.grantName = grantGraph.name?.split('§')?.shift()?.trim() || '';
     this.awardedBy = grantGraph.assignedBy?.name || '';
     this.grantNumber = grantGraph.sponsorAwardId || '';
     this.grantAdmin = grantGraph.assignedBy?.name || '';
     // this.purpose tbd
+    this.showAboutSection = (this.awardedBy || this.grantNumber || this.grantAdmin || this.purpose);
 
     let start = grantGraph.dateTimeInterval?.start?.dateTime;
     let end = grantGraph.dateTimeInterval?.end?.dateTime;
@@ -224,6 +229,7 @@ export default class AppGrant extends Mixin(LitElement)
 
     });
 
+    this.showContributorsSection = (this.pis.length > 0 || this.coPis.length > 0 || this.leaders.length > 0 || this.researchers.length > 0);
   }
 
 }

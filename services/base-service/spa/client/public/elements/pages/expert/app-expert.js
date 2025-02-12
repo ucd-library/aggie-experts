@@ -95,13 +95,18 @@ export default class AppExpert extends Mixin(LitElement)
     let modified = e.modifiedWorks || e.modifiedGrants;
     if( expertId === this.expertId && !modified ) return;
 
+    let clearCache = false;
+    if( e.modifiedGrants || e.modifiedWorks ) {
+      clearCache = true;
+      this.AppStateModel.set({ modifiedGrants : false, modifiedWorks : false });
+    }
     this._reset();
 
     if( (this.expertEditing === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions());
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions(), clearCache);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
       this._onExpertUpdate(expert, modified);
@@ -153,9 +158,19 @@ export default class AppExpert extends Mixin(LitElement)
         title : c.hasTitle?.prefLabel || c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.prefLabel || c.hasOrganizationalUnit?.name,
         email : c?.hasEmail?.replace('mailto:', ''),
-        websiteUrl : c.hasURL?.['url']
+        websiteUrl : c.hasURL?.['url'],
+        rank : c.rank
       }
     });
+    this.roles.sort((a, b) => a.rank - b.rank);
+
+    // if all emails match, only show email under the last role
+    let uniqueEmails = [...new Set(this.roles.map(role => role.email))];
+    if( uniqueEmails.length === 1 ) {
+      for( let i = 0; i < this.roles.length - 1; i++ ) {
+        this.roles[i].email = null;
+      }
+    }
 
     this.orcId = graphRoot.orcidId;
     this.scopusIds = Array.isArray(graphRoot.scopusId) ? graphRoot.scopusId : [graphRoot.scopusId];
