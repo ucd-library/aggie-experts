@@ -101,6 +101,8 @@ export default class AppGrant extends Mixin(LitElement)
     let grantGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.grantId)?.[0] || {};
     if( !grantGraph ) return;
 
+    this.completed = false;
+
     // Invisible grants still have resolvable landing pages. When the grant visibility has been changed, the expected behavior is:
     // 1. If there are no public relationships, the grant landing page should return a 404 for all users, including the owner of the grant
     let hasPublicRelationships = (grantGraph?.relatedBy || []).some(r => (r['inheres_in'] && r['is-visible']) || r['@id'].includes('#roleof_'));
