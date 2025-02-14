@@ -26,3 +26,6 @@ The steps for each user are:
 
 The node class files [cdl-client](../harvest/experts-client/lib/cdl-client.js), [fuseki-client](../harvest/experts-client/lib/fuseki-client.js), [iam-client](../harvest/experts-client/lib/iam-client.js), and [cache](../harvest/experts-client/lib/cache) are used to accomplish these tasks.
 
+### Expert Caching Scheme
+
+TBD
