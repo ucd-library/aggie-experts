@@ -3,7 +3,7 @@
 The NodeJS command-line(CLI) script, [experts-cdl](../harvest/experts-client/bin/experts-cdl.js) obtains a list of users and uses the [Symplectic API](https://support.symplectic.co.uk/support/solutions/folders/6000177986) to retreive the expert's profile, related publications, and grants from the [CDL](https://cdlib.org/) Elements instance. The list of users can be provided as a simple list of IDs or as a list of CDL group IDs. Note: CDL maintains a researcher group hierarcy managed on their Symplectic [Elements instance](https://oapolicy.universityofcalifornia.edu/).
 
 ### Aggie Experts CLI Scripts
-The experts-cdl script is executed from the command-line and uses the [Commander Node Module]((https://www.npmjs.com/package/commander)) for this purpose. This module allows Node JS files be used in the same way as system utilities like git, ls, grep, and so on. It makes it easy to define and validate parameters and to call a process from other scripts in a non-graphical environment.
+The experts-cdl script is executed from the command-line and uses the [Commander Node Module](https://www.npmjs.com/package/commander) for this purpose. This module allows Node JS files be used in the same way as system utilities like git, ls, grep, and so on. It makes it easy to define and validate parameters and to call processes from other scripts in a non-graphical environment.
 
 For example,
 
@@ -15,7 +15,7 @@ Where as,
 
 `harvest/experts-client/bin/experts cdl quinn,jrmerz`
 
-... would harvest just the two specified researchers. The script supports other parameters and options which documented in the source code.
+... would harvest just the two specified researchers. The script supports other parameters and options which are documented in the source code.
 
 
 The steps for each user are:
