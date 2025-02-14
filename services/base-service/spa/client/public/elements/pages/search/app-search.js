@@ -324,13 +324,12 @@ export default class AppSearch extends Mixin(LitElement)
       } else if( resultType === 'grant' ) {
         subtitle = ((r.name?.split('§') || [])[1] || '').trim();
 
-        let pi = subtitle.split('•').pop().trim();
-        if( pi ) {
-          pi = 'PI: ' + pi;
-          subtitle = subtitle.split('•').slice(0, -1).join('•').trim() + '• ' + pi;
-        }
+        let [status, dateRange, pi] = subtitle.split('•');
+        subtitle = 'Grant';
+        if( status ) subtitle += ' <span class="dot-separator">•</span>  ' + status.trim();
+        if( dateRange ) subtitle += ' <span class="dot-separator">•</span>  ' + dateRange.trim();
+        if( pi ) subtitle += ' <span class="dot-separator">•</span> PI:  ' + pi.trim();
 
-        subtitle = 'Grant <span class="dot-separator">•</span> ' + subtitle.trim().replaceAll('•', '<span class="dot-separator">•</span>');
         id = 'grant/' + id;
       }
 
