@@ -6,7 +6,7 @@ Aggie Experts is a joint project between the Office of the Provost and the UC Da
 ![Overview of the Aggie Experts Dataflow](doc/Aggie-Experts-Overview.png)
 
 - CDL - The California Digital Library hosts an instance of [Symplectic Elements](https://oapolicy.universityofcalifornia.edu) to facilitate [UC open access (OA) policies](https://osc.universityofcalifornia.edu/for-authors/open-access-policy/policy-faq/) 
-- Harvest - Aggie Experts uses the [Harvest process](doc/experts-deploy-harvest.md) to pull researchers, publications, and grants from the CDL using the [Symplectic API](https://support.symplectic.co.uk/support/solutions/folders/6000177986)
+- Harvest - Aggie Experts uses the [Harvest process](doc/harvest-process.md) to pull researchers, publications, and grants from the CDL using the [Symplectic API](https://support.symplectic.co.uk/support/solutions/folders/6000177986)
 - [FIN](https://github.com/ucd-library/fin/blob/main/docs/README.md) - Fin is a microservice based Fedora repository (fcrepo) developed by the UCD Library. It provides services to support the LDP, HTTP APIs, authentication, and more.   
 - LDP - Aggie Experts leverages FIN to store data in a [Fedora](https://wiki.lyrasis.org/display/FF/Fedora+Repository+Home) Linked Data Platform
 - [Elastic Search](https://github.com/elastic/elasticsearch) - Aggie Experts creates [experts, works, and grant JSON-LD document](doc/digital_objects.org) indexes to support query and presentation of data.  
