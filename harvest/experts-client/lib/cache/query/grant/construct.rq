@@ -273,7 +273,8 @@ WHERE {
     }
   }
 
-  bind(uri(?grant_id) as ?grant)
+  bind(uri(if(strstarts(?grant_id,"ark:"),?grant_id,concat("ark:/87287/d7mh2m/grant/",?grant_id))) as ?grant)
+
   bind(xsd:boolean(?visible_str) as ?visible)
   bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
 
@@ -321,9 +322,9 @@ WHERE {
   bind(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active") as ?status)
   bind(concat(?grant_title," § ",
               coalesce(?status,""),
-              coalesce(concat(" • ",?start_year," - ",?end_year),""),
-              coalesce(concat(" • ",?pi_name),""),
+              " • ",coalesce(concat(?start_year," - ",?end_year),""),
+              " • ",coalesce(?pi_name,""),
               " § ",
-              coalesce(?funder_label,""),
-              coalesce(concat(" • ",?sponsor_award_id),"")) as ?grant_label)
+              coalesce(?funder_label,"")," • ",
+              coalesce(?sponsor_award_id,"")) as ?grant_label)
 }
