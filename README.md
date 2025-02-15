@@ -21,7 +21,7 @@ Aggie Experts is a joint project between the Office of the Provost and the UC Da
 
 - Aggie Experts Code Development 
 - [Docker Images and Deployment](doc/docker-deployment.md)
-- Operation
+- [Code and Data Deployment](doc/experts-deploy-harvest.md)
 - Process Descriptions
 - APIs
 - Data Standards and Ontologies
