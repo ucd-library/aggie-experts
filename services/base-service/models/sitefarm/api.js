@@ -119,6 +119,13 @@ router.get(
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
     var doc;
+    // validate the modified_since date
+    if (req.query.modified_since) {
+      const modifiedSinceDate = new Date(req.query.modified_since);
+      if (isNaN(modifiedSinceDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid modified_since date format' });
+      }
+    }
     const gte_date = req.query.modified_since || '2021-01-01';
     const params={
       "gte_date": gte_date,
