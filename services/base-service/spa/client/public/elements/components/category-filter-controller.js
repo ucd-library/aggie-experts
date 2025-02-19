@@ -82,7 +82,7 @@ export class CategoryFilterController extends Mixin(LitElement)
   }
 
   updated(changedProperties) {
-    if (changedProperties.has('globalAggregations')) {
+    if (changedProperties.has('globalAggregations') && Object.keys(this.globalAggregations || {}).length) {
       this._updateFilterCounts();
     }
   }
@@ -102,8 +102,6 @@ export class CategoryFilterController extends Mixin(LitElement)
     this.atType = e.location.query['@type'] || '';
     this.status = e.location.query.status || '';
     this.type = e.location.query.type || '';
-
-    this.buildWorkSubFilters();
 
     this._updateActiveFilter();
   }
@@ -135,21 +133,10 @@ export class CategoryFilterController extends Mixin(LitElement)
       }
     }
 
-    // TODO counts
     // works+subfilters
-
-    this.filters = [...this.filters];
-    this.requestUpdate();
-  }
-
-  buildWorkSubFilters() {
-    // TODO need to fix render jitter where the active filter looks like it's changing
-    // also subfilters for works aren't loading the results as expected, not sure if client or api
-    // also counts need to be updated
     let worksFilter = this.filters.filter(f => f['@type'] === 'work')?.[0];
     if( worksFilter ) {
-      // console.log('about to rebuild work subfilters');
-      // worksFilter.count = worksCount;
+      worksFilter.count = worksCount;
 
       let workSubFilters = [];
       let types = Object.keys(this.globalAggregations.type || {});
@@ -171,6 +158,9 @@ export class CategoryFilterController extends Mixin(LitElement)
         worksFilter.subFilters = workSubFilters;
       }
     }
+
+    this.filters = [...this.filters];
+    this.requestUpdate();
   }
 
   /**
