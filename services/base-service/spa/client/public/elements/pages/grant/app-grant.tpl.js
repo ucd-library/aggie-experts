@@ -201,6 +201,10 @@ export function styles() {
       padding: 5px 8px;
     }
 
+    .hero-text .status.active {
+      background-color: var(--color-farmers-market);
+    }
+
     .hero-text .heading--highlight {
       margin-bottom: 1.5rem;
     }
@@ -232,7 +236,7 @@ return html`
         </div>
         <h1>${this.grantName}</h1>
         <h3 class="heading--highlight">${this.startDate} – ${this.endDate}</h3>
-        <span class="status">${this.completed ? 'Complete' : 'Active'}</span>
+        <span class="status${!this.completed ? ' active' : ''}">${this.completed ? 'Complete' : 'Active'}</span>
       </div>
     </div>
 

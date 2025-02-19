@@ -159,12 +159,12 @@ export default class AppBrowseBy extends Mixin(LitElement)
         if( name === subtitle ) subtitle = '';
       } else if( resultType === 'grant' ) {
         subtitle = ((r.name?.split('§') || [])[1] || '').trim();
-        let pi = subtitle.split('•').pop().trim();
-        if( pi ) {
-          pi = 'PI: ' + pi;
-          subtitle = subtitle.split('•').slice(0, -1).join('•').trim() + '• ' + pi;
-        }
-        subtitle = 'Grant <span class="dot-separator">•</span> ' + subtitle.trim().replaceAll('•', '<span class="dot-separator">•</span>');
+        let [status, dateRange, pi] = subtitle.split('•');
+
+        subtitle = 'Grant';
+        if( status ) subtitle += ' <span class="dot-separator">•</span>  ' + status.trim();
+        if( dateRange ) subtitle += ' <span class="dot-separator">•</span>  ' + dateRange.trim();
+        if( pi ) subtitle += ' <span class="dot-separator">•</span> PI:  ' + pi.trim();
       } else if( resultType === 'work' ) {
         subtitle = '';
         // parse work type + date + authors from subtitle
