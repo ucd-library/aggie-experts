@@ -228,11 +228,9 @@ function has_access(client) {
     if (!req.user) {
       // Try Service Account
       const token = req.headers.authorization?.split(' ')[1];
-
       if (!token) {
         return res.status(401).json({ error: 'Token not provided' });
       }
-
       try {
         // Get the public key from the JWKS endpoint
         const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
@@ -254,19 +252,10 @@ function has_access(client) {
           return res.status(401).json({ error: 'Token has expired' });
         }
 
-        // Validate request source (optional)
-        //if (req.hostname !== verifiedToken.clientHost) {
-        //  return res.status(401).json({ error: 'Invalid request source' });
-        //}
-
         // Custom authorization logic
         // Implement your own logic here based on token claims
         if (! verifiedToken?.resource_access?.[client]?.roles?.includes('access')) {
           return res.status(403).json({ error: 'No Access Role' });
-        }
-        // return res.status(401).send('Unauthorized');
-        if (req.user?.roles?.includes('admin') || req.user?.roles?.includes(client)) {
-          return next();
         }
         return next();
       }
@@ -274,7 +263,12 @@ function has_access(client) {
         // console.error(error);
         return res.status(403).json({ error: 'Internal server error' });
       }
+    } else {
+      if (req.user?.resource_access?.['aggie-experts'].roles?.includes('admin') || req.user?.resource_access?.['aggie-experts'].roles?.includes(client)) {
+        return next();
+      }
     }
+    return res.status(403).json({ error: 'Not Authorized' });
   }
 }
 
