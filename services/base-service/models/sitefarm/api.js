@@ -110,7 +110,7 @@ router.get(
     }
   ),
   sitefarm_valid_path_error,
-  json_only,
+  // json_only,
   validate_admin_client,
   validate_miv_client,
   has_access('sitefarm'),
@@ -122,7 +122,11 @@ router.get(
     // validate the modified_since date
     if (req.query.modified_since) {
       const modifiedSinceDate = new Date(req.query.modified_since);
-      if (isNaN(modifiedSinceDate.getTime())) {
+      const [year, month, day] = req.query.modified_since.split('-').map(Number);
+      const isValidDate = modifiedSinceDate.getFullYear() === year &&
+                          modifiedSinceDate.getMonth() + 1 === month &&
+                          modifiedSinceDate.getDate() === day;
+      if (isNaN(modifiedSinceDate.getTime()) || !isValidDate) {
         return res.status(400).json({ error: 'Invalid modified_since date format' });
       }
     }
@@ -140,7 +144,14 @@ router.get(
       "params": params
     };
     await expert.verify_template(template);
-    const find = await base.search(opts);
+    res.doc_array = [];
+    var find = null
+    try {
+      find = await base.search(opts);
+      res.doc_array = find.hits;
+    } catch (error) {
+      return res.status(500).json({ error: 'Error fetching expert data', details: error.message });
+    }
     res.doc_array = find.hits;
     next();
   },
@@ -149,8 +160,6 @@ router.get(
     res.status(200).json(res.doc_array);
   }
 );
-
-// router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
 
 const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, { router });
