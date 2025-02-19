@@ -72,11 +72,13 @@ router.get(
       params.expert = req.query.expert.split(',');
     }
     if (req?.query.status) {
-      console.log('status', req.query.status);
       params.status = req.query.status.split(',');
     }
     if (req?.query["@type"]) {
       params["@type"] = req.query["@type"].split(',');
+    }
+    if (req?.query.type) {
+      params.type = req.query.type.split(',');
     }
     params["@type"].forEach((t) => {
       switch (t) {
@@ -104,6 +106,7 @@ router.get(
       // Now remove type filters, research
       delete params["@type"];
       delete params.status;
+      delete params.type;
       const global = await base.search(
         { id: complete.id,
           params: {

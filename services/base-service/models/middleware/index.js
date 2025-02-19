@@ -444,6 +444,20 @@ const openapi = OpenAPI(
           style: "simple",
           explode: false
         },
+        type: {
+          in: "query",
+          name: "type",
+          description: "Comma-separated search filter on citation type",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string"
+            }
+          },
+          style: "simple",
+          explode: false
+        },
         availability: {
           in: "query",
           name: "availability",

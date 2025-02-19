@@ -82,6 +82,18 @@ template = {
                   }
                 }
                 {{/status}}
+                {{#type}}
+                ,{
+                  "bool": {
+                    "must": [
+                      { "exists": { "field": "type" }},
+                      { "terms": {
+                        "type": [{{#type}}"{{.}}",{{/type}}"none"]
+                       }}
+                    ]
+                  }
+                }
+                {{/type}}
               ]
             }
           }
