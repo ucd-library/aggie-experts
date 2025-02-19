@@ -149,10 +149,10 @@ router.get(
     try {
       find = await base.search(opts);
       res.doc_array = find.hits;
+      res.doc_array = find.hits;
     } catch (error) {
       return res.status(500).json({ error: 'Error fetching expert data', details: error.message });
     }
-    res.doc_array = find.hits;
     next();
   },
   siteFarmFormat,
