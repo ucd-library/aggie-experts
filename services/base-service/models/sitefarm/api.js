@@ -110,7 +110,6 @@ router.get(
     }
   ),
   sitefarm_valid_path_error,
-  // json_only,
   validate_admin_client,
   validate_miv_client,
   has_access('sitefarm'),
