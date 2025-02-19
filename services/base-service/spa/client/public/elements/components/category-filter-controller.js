@@ -160,7 +160,6 @@ export class CategoryFilterController extends Mixin(LitElement)
     }
 
     this.filters = [...this.filters];
-    this.requestUpdate();
   }
 
   /**
@@ -169,14 +168,14 @@ export class CategoryFilterController extends Mixin(LitElement)
    *
    */
   _onFilterChange(e) {
-    let atType = e.target['@type'];
+    this.atType = e.target['@type'];
+    this.type = '';
+    this.status = '';
 
-    if( atType === this.filters.filter(f => f.active)[0]?.['@type'] ) return;
-
-    this._updateActiveFilter(atType);
+    if( this.atType === this.filters.filter(f => f.active)[0]?.['@type'] ) return;
 
     this.dispatchEvent(new CustomEvent('filter-change', {
-      detail : { ['@type'] : atType.toLowerCase() }
+      detail : { ['@type'] : this.atType.toLowerCase() }
     }));
   }
 
@@ -196,8 +195,6 @@ export class CategoryFilterController extends Mixin(LitElement)
     } else if( this.atType === 'work' ) {
       if( this.filters.filter(f => f.active && f.type === this.type).length ) return;
     }
-
-    this._updateActiveFilter();
 
     this.dispatchEvent(new CustomEvent('subfilter-change', {
       detail : {
