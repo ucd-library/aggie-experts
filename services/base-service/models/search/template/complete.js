@@ -206,7 +206,13 @@ template = {
         "container-title",
         "type",
         "DOI",
-        "modified-date"
+        "modified-date",
+        "status",
+        "author",
+        "volume",
+        "issue",
+        "page",
+        "abstract"
       ],
       "sort": [
         "_score",
