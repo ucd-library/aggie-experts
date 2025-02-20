@@ -210,7 +210,6 @@ WHERE {
           ?field :pagination [ :end-page ?end ].
         }
       }
-      # Authors
       #Authors are combined lists of people
       OPTIONAL {
         ?field :people/:person [ list:index(?pos ?elem) ] .

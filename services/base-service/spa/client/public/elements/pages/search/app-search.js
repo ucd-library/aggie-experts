@@ -33,8 +33,9 @@ export default class AppSearch extends Mixin(LitElement)
       commPartner : { type : Boolean },
       industProjects : { type : Boolean },
       mediaInterviews : { type : Boolean },
-      type : { type : String },
+      atType : { type : String },
       status : { type : String },
+      type : { type : String },
       showOpenTo : { type : Boolean },
       filterByExpert : { type : Boolean },
       filterByExpertId : { type : String },
@@ -62,13 +63,16 @@ export default class AppSearch extends Mixin(LitElement)
     this.commPartner = false;
     this.industProjects = false;
     this.mediaInterviews = false;
-    this.type = '';
+    this.atType = '';
     this.status = '';
+    this.type = '';
     this.showOpenTo = false;
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
     this.globalAggregations = {};
+    this.filteringByGrants = false;
+    this.filteringByWorks = false;
 
     this.render = render.bind(this);
   }
@@ -118,7 +122,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( Object.keys(query).length ) {
       this.searchTerm = decodeURI(query.q);
 
-      if( query.type ) this.type = query.type;
+      if( query['@type'] ) this.atType = query['@type'];
 
       if( query.expert ) {
         this.filterByExpert = true;
@@ -129,6 +133,9 @@ export default class AppSearch extends Mixin(LitElement)
         this.filterByExpertName = '';
       }
 
+      this.status = query.status || '';
+      this.type = query.type || '';
+
       this.collabProjects = query.availability?.includes('collab') ? true : false;
       this.commPartner = query.availability?.includes('community') ? true : false;
       this.industProjects = query.availability?.includes('industry') ? true : false;
@@ -137,13 +144,12 @@ export default class AppSearch extends Mixin(LitElement)
       let page = this.AppStateModel.location?.path?.[1];
       if( page ) this.currentPage = page;
 
-      let resultsPerPage = this.AppStateModel.location?.path?.[2];
-      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
-
+      this.resultsPerPage = parseInt(this.AppStateModel.location?.path?.[2] || 25);
     } else {
       // no query params, so clear filters
-      this.type = '';
+      this.atType = '';
       this.status = '';
+      this.type = '';
       this.filterByExpert = false;
       this.filterByExpertId = '';
       this.filterByExpertName = '';
@@ -158,8 +164,7 @@ export default class AppSearch extends Mixin(LitElement)
       let page = this.AppStateModel.location?.path?.[2];
       if( page ) this.currentPage = page;
 
-      let resultsPerPage = this.AppStateModel.location?.path?.[3];
-      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
+      this.resultsPerPage = parseInt(this.AppStateModel.location?.path?.[3] || 25);
     }
 
     // hack for checkboxes not updating consistently even with requestUpdate (mostly an issue with back/forward buttons)
@@ -169,7 +174,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.shadowRoot.querySelector('#media-interviews').checked = this.mediaInterviews;
 
     // hide/show filters depending on filter type, later will add date filters etc
-    this.showOpenTo = this.type === 'expert';
+    this.showOpenTo = this.atType === 'expert';
   }
 
   /**
@@ -180,7 +185,7 @@ export default class AppSearch extends Mixin(LitElement)
    *
    */
   _onPageSizeChange(e) {
-    this.resultsPerPage = e.currentTarget.value;
+    this.resultsPerPage = parseInt(e.currentTarget.value);
     this.currentPage = 1;
 
     this._updateLocation();
@@ -198,6 +203,31 @@ export default class AppSearch extends Mixin(LitElement)
     // filter by grants for this expert
     this.filterByExpertId = e.detail.id;
     this.filterByExpertName = e.detail.name;
+    this.filteringByGrants = true;
+    this.filteringByWorks = false;
+    this.currentPage = 1;
+
+    if( this.filterByExpertId && this.filterByExpertName ) {
+      this.filterByExpert = true;
+      this.addingFilter = true;
+      this.AppStateModel.set({ resetSearch : false });
+      this._updateLocation();
+    }
+  }
+
+  /**
+   * @method _filterByWorks
+   * @description filter by works
+   * @param {Object} e
+   */
+  _filterByWorks(e) {
+    // filter by works for this expert
+    this.filterByExpertId = e.detail.id;
+    this.filterByExpertName = e.detail.name;
+    this.filteringByGrants = false;
+    this.filteringByWorks = true;
+    this.currentPage = 1;
+
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
       this.addingFilter = true;
@@ -214,6 +244,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
+    this.filteringByGrants = false;
+    this.filteringByWorks = false;
     this._updateLocation();
   }
 
@@ -252,8 +284,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.currentPage,
           this.resultsPerPage,
           availability,
-          this.AppStateModel.location.query.type,
+          this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
+          this.AppStateModel.location.query.type,
           this.filterByExpertId
         )
       ),
@@ -267,7 +300,8 @@ export default class AppSearch extends Mixin(LitElement)
    */
   _updateLocation() {
     if( this.addingFilter && this.filterByExpert ) {
-      this.type = 'grant';
+      if( this.filteringByGrants ) this.atType = 'grant';
+      if( this.filteringByWorks ) this.atType = 'work';
       this.addingFilter = false;
     }
 
@@ -278,7 +312,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) availability.push('industry');
     if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = availability.length || this.type.length || this.filterByExpert || this.status.length;
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
@@ -286,8 +320,9 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( hasQueryParams ) path += `?q=${encodeURIComponent(this.searchTerm)}`;
     if( availability.length ) path += `&availability=${availability.join(',')}`;
-    if( this.type.length ) path += `&type=${this.type}`;
+    if( this.atType.length ) path += `&@type=${this.atType}`;
     if( this.status.length ) path += `&status=${this.status}`;
+    if( this.type.length ) path += `&type=${this.type}`;
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
 
     this.AppStateModel.setLocation(path);
@@ -308,6 +343,7 @@ export default class AppSearch extends Mixin(LitElement)
       let resultType = '';
       if( r['@type'] === 'Grant' || r['@type']?.includes?.('Grant') ) resultType = 'grant';
       if( r['@type'] === 'Expert' || r['@type']?.includes?.('Expert') ) resultType = 'expert';
+      if( r['@type'] === 'Work' || r['@type']?.includes?.('Work') ) resultType = 'work';
 
       let id = r['@id'];
       if( Array.isArray(r.name) ) r.name = r.name[0];
@@ -331,6 +367,25 @@ export default class AppSearch extends Mixin(LitElement)
         if( pi ) subtitle += ' <span class="dot-separator">•</span> PI:  ' + pi.trim();
 
         id = 'grant/' + id;
+      } else if( resultType === 'work' ) {
+        subtitle = '';
+        // parse work type + date + authors from subtitle
+        // ie '“A Chinaman’s Chance” in Court: Asian Pacific Americans and Racial Rules of Evidence §  • article-journal • 2013-12-01 • Chin, G. § UC Irvine Law Review • 2327-4514 § '
+        let subtitleParts = ((r.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
+        if( subtitleParts.length ) {
+          let type = subtitleParts[0]?.trim() || '';
+          if( type ) subtitle += utils.getCitationType(type) + ' <span class="dot-separator">•</span> ';
+
+          let date = subtitleParts[1]?.trim() || '';
+          if( date ) {
+            let [ year, month, day ] = date.split?.('-');
+            subtitle += utils.formatDate({ year, month, day }) + ' <span class="dot-separator">•</span> ';
+          }
+
+          let authors = subtitleParts[2]?.trim() || '';
+          if( authors ) subtitle += authors;
+        }
+        id = 'work/' + id;
       }
 
       return {
@@ -412,8 +467,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.currentPage,
           this.resultsPerPage,
           availability,
-          this.AppStateModel.location.query.type,
+          this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
+          this.AppStateModel.location.query.type,
           this.filterByExpertId
         )
       ),
@@ -542,13 +598,14 @@ export default class AppSearch extends Mixin(LitElement)
 
   _onFilterChange(e) {
     // update url with search filters
-    this.type = e.detail.type;
+    this.atType = e.detail['@type'];
+    this.type = '';
     this.status = '';
-    if( this.type === 'all results' ) this.type = '';
+    if( this.atType === 'all results' ) this.atType = '';
     this.currentPage = 1;
     this._uncheckDownloads();
 
-    if( this.type !== 'grant' && this.filterByExpert ) {
+    if( !['grant', 'work'].includes(this.atType) && this.filterByExpert ) {
       this._removeExpertFilter();
     }
 
@@ -557,6 +614,7 @@ export default class AppSearch extends Mixin(LitElement)
 
   _onSubFilterChange(e) {
     // update url with search filters
+    this.atType = e.detail['@type'];
     this.type = e.detail.type;
     this.status = e.detail.status;
 
