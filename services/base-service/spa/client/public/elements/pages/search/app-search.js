@@ -4,6 +4,9 @@ import {render} from "./app-search.tpl.js";
 // sets globals Mixin and EventInterface
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
+import JSZip from 'jszip';
+import FileSaver from 'file-saver';
+
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
 import "../../components/search-box";
@@ -555,13 +558,13 @@ export default class AppSearch extends Mixin(LitElement)
         let numberOfGrants = (match['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
         let urls = (match.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
 
-        experts.push([
-          '"' + name + '"',
-          '"' + landingPage + '"',
-          '"' + numberOfWorks + '"',
-          '"' + numberOfGrants + '"',
-          '"' + urls + '"'
-        ]);
+        experts.push(
+          '"' + name + '",' +
+          '"' + landingPage + '",' +
+          '"' + numberOfWorks + '",' +
+          '"' + numberOfGrants + '",' +
+          '"' + urls + '",'
+        );
         
       } else if( resultType === 'grant' ) {
         // grants.csv:
@@ -588,36 +591,45 @@ export default class AppSearch extends Mixin(LitElement)
         let publisherLink = match.DOI ? `https://doi.org/${match.DOI}` : '';
         let abstract = match.abstract || '';
 
-        works.push([
-          '"' + workType + '"',
-          '"' + title + '"',
-          '"' + authors + '"',
-          '"' + year + '"',
-          '"' + journalBook + '"',
-          '"' + volume + '"',
-          '"' + issue + '"',
-          '"' + page + '"',
-          '"' + publisherLink + '"',
-          '"' + abstract + '"'
-        ]);
+        works.push(
+          '"' + workType + '",' +
+          '"' + title + '",' +
+          '"' + authors + '",' +
+          '"' + year + '",' +
+          '"' + journalBook + '",' +
+          '"' + volume + '",' +
+          '"' + issue + '",' +
+          '"' + page + '",' +
+          '"' + publisherLink + '",' +
+          '"' + abstract + '",'
+        );
       }
     });
 
     if( !works.length && !grants.length && !experts.length ) return;
 
-    // create a form dynamically, to submit the JSON payload/POST request
-    // let form = document.createElement('form');
-    // form.method = 'POST';
-    // form.action = '/api/search/download';
-    // let input = document.createElement('input');
-    // input.type = 'hidden';
-    // input.name = 'data';
-    // input.value = JSON.stringify({ works, grants, experts, filename : this.searchTerm });
-    // form.appendChild(input);
+    let zip = new JSZip();
 
-    // document.body.appendChild(form);
-    // form.submit();
-    // document.body.removeChild(form);
+    if( works.length ) {
+      works.unshift('Type of Work,Title,Authors,Year,Journal/Book,Volume,Issue,Pages,DOI/URL,Abstract');
+      zip.file("works.csv", works.join('\n'));
+    }
+
+    if( grants.length ) {
+      grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');      
+      zip.file("grants.csv", grants.join('\n'));
+    }
+
+    if( experts.length ) {
+      experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');      
+      zip.file("experts.csv", experts.join('\n'));
+    }
+
+    zip
+      .generateAsync({type:"blob"})
+      .then((content, filename=`search_${this.searchTerm.split(' ').join('_').substring(0, 50)}.zip`) => {
+        FileSaver.saveAs(content, filename);
+    });
   }
 
   _onFilterChange(e) {
