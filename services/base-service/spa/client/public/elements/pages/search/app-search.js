@@ -532,68 +532,92 @@ export default class AppSearch extends Mixin(LitElement)
   async _downloadClicked(e) {
     e.preventDefault();
 
-    debugger;
-    // TODO need to build grants vs works file
-
-    // Title | Funding Agency | Grant Id | Start Date | End Date | Type of Grant | Known Contributors (List of PIs and CoPIs)
-    // I realized Role is not helpful here as the grants are not attached to people in that filtered view. Can you make that a concatenated "Known Contributors" column?
-
-
-
-
-    let selectedPersons = [];
+    let works = [], grants = [], experts = [];
+    let hits = (this.rawSearchData?.hits || []);
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
+
     resultRows.forEach(row => {
       let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
-      if( checkbox?.checked ) {
-        selectedPersons.push(row.result.id);
-      }
-    });
+      let resultType = row.resultType;
 
-    if( !selectedPersons.length ) return;
+      if( !checkbox?.checked ) return;
 
-    // columns for the spreadsheet:
-    //  Name | Aggie Experts Webpage | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
+      if( resultType === 'expert' ) {
+        // experts.csv:
+        // Name | Aggie Experts Webpage | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
 
-    let body = [];
-    let hits = (this.rawSearchData?.hits || []);
-    for( let h = 0; h < hits.length; h++ ) {
-      let result = hits[h];
-      if( selectedPersons.includes(result['@id']) ) {
-        let name = result.name?.split('§')?.[0]?.trim();
-        let landingPage = 'https://experts.ucdavis.edu/' + result['@id'];
-        let numberOfWorks = (result['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
-        let numberOfGrants = (result['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
-        let urls = (result.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
+        let match = hits.find(h => h['@id'] === row.result.id);
+        if( !match ) return;
 
-        body.push([
+        let name = match.name?.split('§')?.[0]?.trim();
+        let landingPage = 'https://experts.ucdavis.edu/' + match['@id'];
+        let numberOfWorks = (match['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
+        let numberOfGrants = (match['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+        let urls = (match.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
+
+        experts.push([
           '"' + name + '"',
           '"' + landingPage + '"',
           '"' + numberOfWorks + '"',
           '"' + numberOfGrants + '"',
           '"' + urls + '"'
         ]);
+        
+      } else if( resultType === 'grant' ) {
+        // grants.csv:
+        // Title | Funding Agency | Grant id {the one given by the agency, not ours} | Start date | End date | Type of Grant | List of PIs and coPIs {separate contributors by ";"} | Other Known Contributors {separate contributors by ";"}    
+        // TODO
+
+      } else if( resultType === 'work' ) {
+        // works.csv:
+        // Type of Work | Title | Authors {separate contributors by ";"; if more than 10 contributors, use et.a;.)| Year | Journal OR Book | Volume | Issue | Pages | DOI or URL | Abstract
+
+        let match = hits.find(h => h['@id'] === row.result.id.replace('work/',''));
+        if( !match ) return;
+
+        let workType = utils.getCitationType(match.type) || '';
+        let title = match.title || '';
+
+        // TODO {separate contributors by ";"; if more than 10 contributors, use et.a;.)
+        let authors = (match.author || []).map(a => a.family + ', ' + a.given).join('; ');
+        let year = match.issued || ''; 
+        let journalBook = match['container-title'] || '';
+        let volume = match.volume || '';
+        let issue = match.issue || '';
+        let page = match.page || '';
+        let publisherLink = match.DOI ? `https://doi.org/${match.DOI}` : '';
+        let abstract = match.abstract || '';
+
+        works.push([
+          '"' + workType + '"',
+          '"' + title + '"',
+          '"' + authors + '"',
+          '"' + year + '"',
+          '"' + journalBook + '"',
+          '"' + volume + '"',
+          '"' + issue + '"',
+          '"' + page + '"',
+          '"' + publisherLink + '"',
+          '"' + abstract + '"'
+        ]);
       }
-    }
-
-    if( !body.length ) return;
-
-    let headers = ['Name', 'Aggie Experts Webpage', 'Number of works that match the keyword', 'Number of grants that match the keyword', 'URLs from the profile'];
-    let text = headers.join(',') + '\n';
-    body.forEach(row => {
-      text += row.join(',') + '\n';
     });
 
-    let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
-    let url = URL.createObjectURL(blob);
+    if( !works.length && !grants.length && !experts.length ) return;
 
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'data.csv');
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // create a form dynamically, to submit the JSON payload/POST request
+    // let form = document.createElement('form');
+    // form.method = 'POST';
+    // form.action = '/api/search/download';
+    // let input = document.createElement('input');
+    // input.type = 'hidden';
+    // input.name = 'data';
+    // input.value = JSON.stringify({ works, grants, experts, filename : this.searchTerm });
+    // form.appendChild(input);
+
+    // document.body.appendChild(form);
+    // form.submit();
+    // document.body.removeChild(form);
   }
 
   _onFilterChange(e) {
