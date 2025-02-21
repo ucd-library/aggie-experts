@@ -569,8 +569,40 @@ export default class AppSearch extends Mixin(LitElement)
       } else if( resultType === 'grant' ) {
         // grants.csv:
         // Title | Funding Agency | Grant id {the one given by the agency, not ours} | Start date | End date | Type of Grant | List of PIs and coPIs {separate contributors by ";"} | Other Known Contributors {separate contributors by ";"}    
-        // TODO
 
+        let match = hits.find(h => h['@id'] === row.result.id.replace('grant/',''));
+        if( !match ) return;
+
+        let title = match.name.split('§')[0]?.trim() || '';
+        let fundingAgency = match.assignedBy?.name || '';
+        let grantId = match.sponsorAwardId || '';
+        let startDate = match.dateTimeInterval?.start?.dateTime || '';
+        let endDate = match.dateTimeInterval?.end?.dateTime || '';
+
+        // determine type(s) from all types excluding 'Grant', and split everything after 'Grant_' by uppercase letters with space
+        // should just be one type, but just in case
+        try {
+          if( match['@type'] && !Array.isArray(match['@type']) ) match['@type'] = [match['@type']];
+          match.types = (match['@type'] || []).filter(t => t !== 'Grant').map(t => t.split('Grant_')[1].replace(/([A-Z])/g, ' $1').trim());
+        } catch(e) {
+          match.types = ['Grant'];
+        }
+        let typeOfGrant = match.types.join(', ') || '';
+
+        // TODO pull in names relatedBy.inheres_in, but how to promote names from other indexes?
+        let pisCoPis = ''; // List of PIs and coPIs {separate contributors by ";"}
+        let otherContributors = ''; // Other Known Contributors {separate contributors by ";"}    
+
+        grants.push(
+          '"' + title + '",' +
+          '"' + fundingAgency + '",' +
+          '"' + grantId + '",' +
+          '"' + startDate + '",' +
+          '"' + endDate + '",' +
+          '"' + typeOfGrant + '",' +
+          '"' + pisCoPis + '",' +
+          '"' + otherContributors + '",'
+        );
       } else if( resultType === 'work' ) {
         // works.csv:
         // Type of Work | Title | Authors {separate contributors by ";"; if more than 10 contributors, use et.a;.)| Year | Journal OR Book | Volume | Issue | Pages | DOI or URL | Abstract

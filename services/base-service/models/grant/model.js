@@ -21,6 +21,23 @@ class GrantModel extends BaseModel {
     return snip;
   }
 
+    /**
+   * @method promote_node_to_doc
+   * @description Promotes some node fields to document fields
+   * @param {Object} node
+   * @returns {Object} : document
+   **/
+    promote_node_to_doc(node) {
+      const doc = super.promote_node_to_doc(node);
+  
+      // mini grant info, if we need to expand
+      ["sponsorAwardId","assignedBy","dateTimeInterval","relatedBy"].forEach(key => {
+        if (node[key]) doc[key] = node[key];
+      });
+  
+      return doc;
+    }
+
   /**
    * @method update
    * @description Update Elasticsearch with the given data.

@@ -212,7 +212,11 @@ template = {
         "volume",
         "issue",
         "page",
-        "abstract"
+        "abstract",
+        "sponsorAwardId",
+        "assignedBy",
+        "dateTimeInterval",
+        "relatedBy"
       ],
       "sort": [
         "_score",
