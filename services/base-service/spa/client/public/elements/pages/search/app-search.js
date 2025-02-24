@@ -589,9 +589,28 @@ export default class AppSearch extends Mixin(LitElement)
         }
         let typeOfGrant = match.types.join(', ') || '';
 
-        // TODO pull in names relatedBy.inheres_in, but how to promote names from other indexes?
+        let contributors = match.relatedBy || [];
+        if( !Array.isArray(contributors) ) contributors = [contributors];
+        
         let pisCoPis = ''; // List of PIs and coPIs {separate contributors by ";"}
         let otherContributors = ''; // Other Known Contributors {separate contributors by ";"}    
+
+        contributors.forEach(c => {
+          let role = utils.getGrantRole(c)?.role || '';
+          let name = '';
+          if( c.inheres_in ) {
+            name = c['@id'].name || '';
+          } else {
+            if( !Array.isArray(c.relates) ) c.relates = [c.relates];
+            name = (c.relates || []).find(r => r.name)?.name || '';
+          }
+
+          if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
+            pisCoPis += name + '; ';
+          } else {
+            otherContributors += name + '; ';
+          }
+        });
 
         grants.push(
           '"' + title + '",' +
@@ -613,8 +632,15 @@ export default class AppSearch extends Mixin(LitElement)
         let workType = utils.getCitationType(match.type) || '';
         let title = match.title || '';
 
-        // TODO {separate contributors by ";"; if more than 10 contributors, use et.a;.)
-        let authors = (match.author || []).map(a => a.family + ', ' + a.given).join('; ');
+        // {separate contributors by ";"; if more than 10 contributors, use et.a;.)
+        let authors;
+        if( match.author && match.author.length > 10 ) {
+          let subtitleParts = ((match.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
+          authors = subtitleParts?.[2]?.trim() || '';
+        } else {
+          authors = (match.author || []).map(a => a.family + ', ' + a.given).join('; ');
+        }
+
         let year = match.issued || ''; 
         let journalBook = match['container-title'] || '';
         let volume = match.volume || '';

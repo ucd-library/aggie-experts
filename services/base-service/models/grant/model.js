@@ -126,6 +126,18 @@ class GrantModel extends BaseModel {
     }
     root_node.relatedBy=Object.values(relatedBy);
     const doc = this.promote_node_to_doc(root_node);
+
+    // replace expert @id with { @id:expert/ldxxxx, name="Quinn Hart" }
+    for( var i in doc.relatedBy ) {
+      if( doc.relatedBy[i].inheres_in ) {
+        let id = doc.relatedBy[i].inheres_in;
+        let expert = experts.find(e => e['@id'] === id);
+        if( expert ) {
+          doc.relatedBy[i]['@id'] = { '@id': expert['@id'], name: expert.label };
+        }
+      }
+    }
+
     if (vis.length) {
       root_node["is-visible"]=true;
       doc["is-visible"]=true; // Some expert wants it visible
