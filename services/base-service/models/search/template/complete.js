@@ -206,7 +206,17 @@ template = {
         "container-title",
         "type",
         "DOI",
-        "modified-date"
+        "modified-date",
+        "status",
+        "author",
+        "volume",
+        "issue",
+        "page",
+        "abstract",
+        "sponsorAwardId",
+        "assignedBy",
+        "dateTimeInterval",
+        "relatedBy"
       ],
       "sort": [
         "_score",

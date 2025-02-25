@@ -481,7 +481,7 @@ return html`
       </div>
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
-        <div class="download" ?hidden="${this.type !== 'expert'}">
+        <div class="download">
           <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
         </div>
       </div>
@@ -497,7 +497,7 @@ return html`
 
             <span>items per page</span>
           </div>
-          <div class="select-all" ?hidden="${this.type !== 'expert'}">
+          <div class="select-all">
             <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
             <label for="select-all">Select All</label>
           </div>
@@ -511,7 +511,6 @@ return html`
               search-result="${result.position}"
               .result=${result}
               result-type="${result.resultType}"
-              ?hide-checkbox="${this.type !== 'expert'}"
               @filter-by-grants="${this._filterByGrants}"
               @filter-by-works="${this._filterByWorks}">
             </app-search-result-row>
