@@ -460,22 +460,16 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return;
     }
 
+    // update graph/display data
+    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) citation.relatedBy[0]['is-visible'] = true;
+    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) citation.relatedBy[0]['is-visible'] = true;
+    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) citation.relatedBy[0]['is-visible'] = true;
+    this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.[0]?.['is-visible']).length;
 
-    this.modifiedWorks = true;
-
-    let expert = await this.ExpertModel.get(
-      this.expertId,
-      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
-      utils.getExpertApiOptions({
-        includeGrants : false,
-        worksPage : this.currentPage,
-        worksSize : this.resultsPerPage,
-        includeHidden : true,
-        includeWorksMisformatted : true
-      }),
-      true // clear cache
-    );
-    this._onExpertUpdate(expert);
+    this.requestUpdate();
   }
 
   /**
@@ -489,7 +483,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.showModal = false;
     let action = e.currentTarget.title.trim() === 'Hide Work' ? 'hide' : 'reject';
-    this.modifiedWorks = true;
 
     if( action === 'hide' ) {
       try {
