@@ -429,7 +429,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+      let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
       let modelContent = `
         <p>
           <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
@@ -508,7 +508,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
         let modelContent = `
           <p>
             <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
@@ -538,17 +538,15 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
 
       // update graph/display data
-      let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy[0]['is-visible'] = false;
-      citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy[0]['is-visible'] = false;
-      citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy[0]['is-visible'] = false;
-      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.[0]?.['is-visible']).length;
+      let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      citation = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy['is-visible'] = false;
+      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
 
       this.requestUpdate();
-
-      return;
     } else if ( action === 'reject' ) {
       try {
         let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
@@ -567,7 +565,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
         let modelContent = `
           <p>
             <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
