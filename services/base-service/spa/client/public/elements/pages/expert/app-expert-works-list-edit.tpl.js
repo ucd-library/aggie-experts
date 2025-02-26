@@ -375,19 +375,19 @@ return html`
         (cite, index) => html`
           <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h2>
           <hr class="work-seperator">
-          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
+          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite.relatedBy?.[0]?.['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon ?hidden="${!cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!cite.relatedBy?.[0]?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-work" data-text="Show work">
-                  <ucdlib-icon ?hidden="${cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${cite.relatedBy?.[0]?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
               <span style="position: relative;">
                 <span class="tooltip reject-work" data-text="Reject work">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
             </div>

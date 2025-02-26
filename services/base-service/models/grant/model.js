@@ -128,6 +128,7 @@ class GrantModel extends BaseModel {
     const doc = this.promote_node_to_doc(root_node);
 
     // replace expert @id with { @id:expert/ldxxxx, name="Quinn Hart" }
+    doc.relatedBy = JSON.parse(JSON.stringify(doc.relatedBy));
     for( var i in doc.relatedBy ) {
       if( doc.relatedBy[i].inheres_in ) {
         let id = doc.relatedBy[i].inheres_in;
