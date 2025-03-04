@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 const program = new Command();
-import pkg from '../package.json' assert { type: "json" };
+import pkg from '../package.json' with { type: "json" };
 
 program
   .name('experts')
