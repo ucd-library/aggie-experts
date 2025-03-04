@@ -1,8 +1,6 @@
 ## Aggie Experts
 Aggie Experts is a joint project between the Office of the Provost and the UC Davis Library. Its purpose is to create a central registry of UC Davis faculty, researchers, experts and creators and showcase the scholarship created at the university. Aggie Experts can be used as an expertise discovery platform for finding collaborators, mentors and expert opinions. If you have any recommendations, you can contact us by email or submit a request here.
 
-## Conceptual Overview
-
 ![Overview of the Aggie Experts Dataflow](doc/Aggie-Experts-Overview.png)
 
 - CDL - [The California Digital Library](https://cdlib.org/) hosts an instance of [Symplectic Elements](https://oapolicy.universityofcalifornia.edu) to facilitate [UC open access (OA) policies](https://osc.universityofcalifornia.edu/for-authors/open-access-policy/policy-faq/) 
