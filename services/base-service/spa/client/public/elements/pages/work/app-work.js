@@ -112,9 +112,14 @@ export default class AppWork extends Mixin(LitElement)
 
     let authors = workGraph.author || [];
     if( !Array.isArray(authors) ) authors = [authors];
-    this.authors.sort((a, b) => a.rank - b.rank);
+    authors.sort((a, b) => a.rank - b.rank);
 
     this.authors = authors.map(a => {
+      let rankMatch = workGraph.relatedBy.filter(r => r.rank === a.rank)[0];
+      if( rankMatch ) {
+        let expertId = rankMatch.relates.filter(rel => rel.startsWith('expert/'))[0];
+        return `<a href="/${expertId}">${a.given} ${a.family}</a>`;
+      }
       return a.given + ' ' + a.family;
     });
 

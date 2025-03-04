@@ -1,4 +1,5 @@
 import { html, css, unsafeCSS } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 import { sharedStyles } from '../../styles/shared-styles';
 
@@ -233,10 +234,10 @@ return html`
           <ucdlib-icon icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
           <span class="work-type">${this.workType}</span>
         </div>
-        <h1>${this.workName}</h1>
+        <h1>${unsafeHTML(this.workName)}</h1>
         <h3 class="heading--highlight">
           ${this.authors?.map((author, index) => html`
-            ${author}${index < this.authors.length - 1 ? ', ' : ''}
+            ${unsafeHTML(author)}${index < this.authors.length - 1 ? ', ' : ''}
           `)}
         </h3>
       </div>
