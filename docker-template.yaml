@@ -203,10 +203,11 @@ services:
     volumes:
       - es-data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ['CMD-SHELL', 'curl -X PUT -H "Content-Type: application/json" -d ''{"description":"Adds a modified-date field","processors":[{"set":{"field":"modified-date","value":"{{_ingest.timestamp}}"}}]}'' http://localhost:9200/_ingest/pipeline/aggie-experts-pipeline || exit 1']
+      test: ['CMD-SHELL', 'if curl -s -o /dev/null -w "%{http_code}" http://localhost:9200/_ingest/pipeline/aggie-experts-pipeline | grep -q "200"; then exit 0; else curl -X PUT -H "Content-Type: application/json" -d ''{"description":"Adds a modified-date field","processors":[{"set":{"field":"modified-date","value":"{{_ingest.timestamp}}"}}]}'' http://localhost:9200/_ingest/pipeline/aggie-experts-pipeline || exit 1; fi']
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 30s
     restart: unless-stopped
     depends_on:
       - fcrepo
