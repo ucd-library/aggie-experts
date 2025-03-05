@@ -198,9 +198,18 @@ export function styles() {
       line-height: 2rem;
     }
 
-    .full-text .link-row span {
-      padding: .25rem 0 .25rem 0.625rem;
-      line-height: 1.5rem;
+    .full-text .link-row a {
+      display: flex;
+      align-items: start;
+    }
+
+    .full-text .link-row ucdlib-icon {
+      margin-top: .52rem;
+      margin-right: 0.625rem;
+      min-width: 1rem;
+      min-height: 1rem;
+      width: 1rem;
+      height: 1rem;
     }
 
     .full-text ucdlib-icon {
@@ -254,12 +263,14 @@ return html`
         <h3 class="heading--highlight">Full Text</h3>
 
         <div class="link-row" ?hidden="${!this.ucLink}">
-          <ucdlib-icon icon="ucdlib-experts:get-at-uc"></ucdlib-icon>
-          <span><a href="${this.ucLink}">Get it at UC</a></span>
+          <a href="${this.ucLink}">
+            <ucdlib-icon icon="ucdlib-experts:get-at-uc"></ucdlib-icon> Get it at UC        
+          </a>
         </div>
         <div class="link-row" ?hidden="${!this.publisherLink}">
-          <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-          <span><a href="${this.publisherLink}">Publisher Page</a></span>
+          <a href="${this.publisherLink}">
+            <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon> Publisher Page
+          </a>
         </div>
 
       </div>
