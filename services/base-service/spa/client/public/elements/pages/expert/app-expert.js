@@ -111,7 +111,7 @@ export default class AppExpert extends Mixin(LitElement)
 
       this._onExpertUpdate(expert, modified);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -205,7 +205,7 @@ export default class AppExpert extends Mixin(LitElement)
             url.icon = 'ai-figshare';
           }
         } catch(e) {
-          console.warn('error setting website icon', e);
+          this.logger.warn('error setting website icon', e);
         }
       });
 

@@ -292,6 +292,15 @@ return html`
       word-wrap: break-word;
     }
 
+    .works-results .work h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .works-results .work h5 a {
+      text-decoration: none;
+    }
+
     /* styles for collapsed dropdown */
     .custom-collapse {
       --collapse-background-color: #FFFBED;
@@ -366,24 +375,24 @@ return html`
         (cite, index) => html`
           <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h2>
           <hr class="work-seperator">
-          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
+          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite.relatedBy?.[0]?.['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon ?hidden="${!cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!cite.relatedBy?.[0]?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-work" data-text="Show work">
-                  <ucdlib-icon ?hidden="${cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${cite.relatedBy?.[0]?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
               <span style="position: relative;">
                 <span class="tooltip reject-work" data-text="Reject work">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
             </div>
             <div class="work">
-            <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
+              <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">•</span>

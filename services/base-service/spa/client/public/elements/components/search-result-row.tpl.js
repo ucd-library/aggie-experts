@@ -23,14 +23,20 @@ export default function render() {
         align-items: flex-start
       }
 
+      .search-result-title ucdlib-icon {
+        padding-top: .2rem;
+      }
+
       .search-result-title ucdlib-icon.expert {
         fill: var(--color-aggie-gold);
-        padding-top: .2rem;
       }
 
       .search-result-title ucdlib-icon.grant {
         fill: var(--color-thiebaud-icing);
-        padding-top: .2rem;
+      }
+
+      .search-result-title ucdlib-icon.work {
+        fill: var(--color-sage);
       }
 
       .search-result-title h4 {
@@ -96,6 +102,7 @@ export default function render() {
         <div class="search-result-title">
           <ucdlib-icon class="expert" ?hidden="${this.resultType !== 'expert'}" icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <ucdlib-icon class="grant" ?hidden="${this.resultType !== 'grant'}" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
+          <ucdlib-icon class="work" ?hidden="${this.resultType !== 'work'}" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
           <h4><a href="/${this.result.id}">${this.result.name || 'Lastname, Firstname'}</a></h4>
         </div>
         <div class="search-result-download" ?hidden="${this.hideCheckbox}">
@@ -104,10 +111,10 @@ export default function render() {
       </div>
       <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${unsafeHTML(this.result.subtitle)}</div>
       <div class="search-result-matches" ?hidden="${this.hideSearchMatches || this.resultType !== 'expert'}">
-        <span ?hidden="${this.result.numberOfGrants === 0}" class="search-matches">Search matches:</span>
-          <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grants</a></span>
-          <span class="dot-separator" ?hidden="${this.hideWorksMatches}">.</span>
-          <span ?hidden="${this.hideWorksMatches}">${this.result.numberOfWorks} works</span>
+        <span ?hidden="${this.result.numberOfGrants === 0 && this.result.numberOfWorks === 0}" class="search-matches">Search matches:</span>
+          <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grant${this.result.numberOfGrants > 1 ? 's' : ''}</a></span>
+          <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
+          <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
       </div>
     </div>
   `;

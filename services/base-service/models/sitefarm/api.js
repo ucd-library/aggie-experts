@@ -12,7 +12,7 @@ const { defaultEsApiGenerator } = dataModels;
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
 
-const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware.js')
+const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
 
 
 function siteFarmFormat(req, res, next) {
@@ -110,7 +110,6 @@ router.get(
     }
   ),
   sitefarm_valid_path_error,
-  json_only,
   validate_admin_client,
   validate_miv_client,
   has_access('sitefarm'),
@@ -119,6 +118,17 @@ router.get(
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
     var doc;
+    // validate the modified_since date
+    if (req.query.modified_since) {
+      const modifiedSinceDate = new Date(req.query.modified_since);
+      const [year, month, day] = req.query.modified_since.split('-').map(Number);
+      const isValidDate = modifiedSinceDate.getFullYear() === year &&
+                          modifiedSinceDate.getMonth() + 1 === month &&
+                          modifiedSinceDate.getDate() === day;
+      if (isNaN(modifiedSinceDate.getTime()) || !isValidDate) {
+        return res.status(400).json({ error: 'Invalid modified_since date format' });
+      }
+    }
     const gte_date = req.query.modified_since || '2021-01-01';
     const params={
       "gte_date": gte_date,
@@ -133,8 +143,15 @@ router.get(
       "params": params
     };
     await expert.verify_template(template);
-    const find = await base.search(opts);
-    res.doc_array = find.hits;
+    res.doc_array = [];
+    var find = null
+    try {
+      find = await base.search(opts);
+      res.doc_array = find.hits;
+      res.doc_array = find.hits;
+    } catch (error) {
+      return res.status(500).json({ error: 'Error fetching expert data', details: error.message });
+    }
     next();
   },
   siteFarmFormat,
@@ -142,8 +159,6 @@ router.get(
     res.status(200).json(res.doc_array);
   }
 );
-
-// router.use('/api-docs', express.static(path.join(__dirname, './sitefarm.yaml')));
 
 const model = new ExpertModel();
 module.exports = defaultEsApiGenerator(model, { router });

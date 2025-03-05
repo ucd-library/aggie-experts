@@ -24,6 +24,11 @@
       "normalizer": "lowercase_ascii",
       "ignore_above": 128
     },
+    "type" : {
+      "type" : "keyword",
+      "normalizer": "lowercase_ascii",
+      "ignore_above": 128
+    },
     "status": {
       "type": "keyword",
       "normalizer": "lowercase_ascii",
