@@ -536,6 +536,7 @@ export default class AppSearch extends Mixin(LitElement)
     e.preventDefault();
 
     let works = [], grants = [], experts = [];
+    let numFiles = 0;
     let hits = (this.rawSearchData?.hits || []);
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
 
@@ -641,7 +642,8 @@ export default class AppSearch extends Mixin(LitElement)
           authors = (match.author || []).map(a => a.family + ', ' + a.given).join('; ');
         }
 
-        let year = match.issued || ''; 
+        let [ year, month, day ] = match.issued.split?.('-');
+        let yearFormatted = utils.formatDate({ year });
         let journalBook = match['container-title'] || '';
         let volume = match.volume || '';
         let issue = match.issue || '';
@@ -653,7 +655,7 @@ export default class AppSearch extends Mixin(LitElement)
           '"' + workType + '",' +
           '"' + title + '",' +
           '"' + authors + '",' +
-          '"' + year + '",' +
+          '"' + yearFormatted + '",' +
           '"' + journalBook + '",' +
           '"' + volume + '",' +
           '"' + issue + '",' +
@@ -666,28 +668,62 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( !works.length && !grants.length && !experts.length ) return;
 
-    let zip = new JSZip();
+    // if 2+ types of files are needed, generate zip. otherwise single csv
+    if( works.length ) numFiles++;
+    if( grants.length ) numFiles++;
+    if( experts.length ) numFiles++;
+    if( numFiles > 1 ) {
+      let zip = new JSZip();
 
-    if( works.length ) {
-      works.unshift('Type of Work,Title,Authors,Year,Journal/Book,Volume,Issue,Pages,DOI/URL,Abstract');
-      zip.file("works.csv", works.join('\n'));
-    }
+      if( works.length ) {
+        works.unshift('Type of Work,Title,Authors,Year,Journal/Book,Volume,Issue,Pages,DOI/URL,Abstract');
+        zip.file("works.csv", works.join('\n'));
+      }
+  
+      if( grants.length ) {
+        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');      
+        zip.file("grants.csv", grants.join('\n'));
+      }
+  
+      if( experts.length ) {
+        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');      
+        zip.file("experts.csv", experts.join('\n'));
+      }
+  
+      zip
+        .generateAsync({type:"blob"})
+        .then((content, filename=`search_${this.searchTerm.split(' ').join('_').substring(0, 50)}.zip`) => {
+          FileSaver.saveAs(content, filename);
+      });
+    } else {
+      let blob, filename;
+      if( works.length ) {
+        works.unshift('Type of Work,Title,Authors,Year,Journal/Book,Volume,Issue,Pages,DOI/URL,Abstract');
+        blob = new Blob(works.map(w => w + '\n'), { type: 'text/csv;charset=utf-8;' });
+        filename = 'works.csv';
+      }
+  
+      if( grants.length ) {
+        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');    
+        blob = new Blob(grants.map(g => g + '\n'), { type: 'text/csv;charset=utf-8;' });
+        filename = 'grants.csv';
+      }
+  
+      if( experts.length ) {
+        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');  
+        blob = new Blob(experts.map(e => e + '\n'), { type: 'text/csv;charset=utf-8;' });
+        filename = 'experts.csv';
+      }
 
-    if( grants.length ) {
-      grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');      
-      zip.file("grants.csv", grants.join('\n'));
-    }
-
-    if( experts.length ) {
-      experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');      
-      zip.file("experts.csv", experts.join('\n'));
-    }
-
-    zip
-      .generateAsync({type:"blob"})
-      .then((content, filename=`search_${this.searchTerm.split(' ').join('_').substring(0, 50)}.zip`) => {
-        FileSaver.saveAs(content, filename);
-    });
+      let url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }    
   }
 
   _onFilterChange(e) {
