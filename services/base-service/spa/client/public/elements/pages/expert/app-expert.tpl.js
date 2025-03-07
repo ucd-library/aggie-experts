@@ -174,9 +174,18 @@ return html`
       line-height: 2rem;
     }
 
-    .roles-websites .link-row span {
-      padding: .25rem 0 .25rem 0.625rem;
-      line-height: 1.5rem;
+    .roles-websites .link-row a {
+      display: flex;
+      align-items: start;
+    }
+
+    .roles-websites .link-row ucdlib-icon {
+      margin-top: .52rem;
+      margin-right: 0.625rem;
+      min-width: 1rem;
+      min-height: 1rem;
+      width: 1rem;
+      height: 1rem;
     }
 
     .introduction {
@@ -822,13 +831,10 @@ return html`
             <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <!-- <div class="link-row" ?hidden="${!role.websiteUrl}">
-              <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-              <span><a href="${role.websiteUrl}">${role.websiteUrl}</a></span>
-            </div> -->
             <div class="link-row" ?hidden="${!role.email}">
-              <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
-              <span><a href="mailto:${role.email}">${role.email}</a></span>
+              <a href="mailto:${role.email}">
+                <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon> ${role.email}
+              </a>                
             </div>
           </div>
           `
@@ -859,27 +865,31 @@ return html`
             </span>
           </h3>
           <div class="link-row" ?hidden="${!this.orcId}">
-            <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
-            <span><a href="https://orcid.org/${this.orcId}">${this.orcId}</a></span>
+            <a href="https://orcid.org/${this.orcId}">
+              <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon> ${this.orcId}
+            </a>
           </div>
           ${this.scopusIds.map(
           (scopusId) => html`
             <div class="link-row" ?hidden="${!scopusId}">
-              <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon>
-              <span><a href="https://www.scopus.com/authid/detail.uri?authorId=${scopusId}">Scopus</a></span>
+              <a href="https://www.scopus.com/authid/detail.uri?authorId=${scopusId}">
+                <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon> Scopus
+              </a>
             </div>
             `
           )}
           <div class="link-row" ?hidden="${!this.researcherId}">
-            <ucdlib-icon icon="ucdlib-experts:ai-clarivate"></ucdlib-icon>
-            <span><a href="https://www.webofscience.com/wos/author/record/${this.researcherId}">Clarivate</a></span>
+            <a href="https://www.webofscience.com/wos/author/record/${this.researcherId}">
+              <ucdlib-icon icon="ucdlib-experts:ai-clarivate"></ucdlib-icon> Clarivate
+            </a>
           </div>
 
           ${this.websites.map(
           (site) => html`
           <div class="link-row">
-            <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon>
-            <span><a href="${site.url}">${site.name || site.url}</a></span>
+            <a href="${site.url}">
+              <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon> ${site.name || site.url}          
+            </a>
           </div>
           `
         )}

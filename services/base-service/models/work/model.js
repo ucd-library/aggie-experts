@@ -122,11 +122,9 @@ class WorkModel extends BaseModel {
 
     // combine relatedBy (ordered)
     function addRelatedBy(node) {
-      console.log('Adding relatedBy', node['@id']);
       if (node.relatedBy) {
         Array.isArray(node.relatedBy) || (node.relatedBy = [node.relatedBy]);
         node.relatedBy.forEach((rel) => {
-          console.log('Adding relatedBy', rel['@id']);
           relatedBy[rel['@id']] = rel;
           });
       }
@@ -135,7 +133,6 @@ class WorkModel extends BaseModel {
     try {
       let existing = await this.client_get(root_node['@id']);
       existing = this.get_expected_model_node(existing);
-      console.log('WorkModel.update: existing', existing);
       addRelatedBy(existing);
     } catch(e) {
       //logger.info(`WorkModel.update: ${root_node['@id']} not found`);

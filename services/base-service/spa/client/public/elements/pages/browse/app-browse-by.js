@@ -177,7 +177,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
           let date = subtitleParts[1]?.trim() || '';
           if( date ) {
             let [ year, month, day ] = date.split?.('-');
-            subtitle += utils.formatDate({ year, month, day }) + ' <span class="dot-separator">•</span> ';
+            subtitle += utils.formatDate({ year }) + ' <span class="dot-separator">•</span> ';
           }
 
           let authors = subtitleParts[2]?.trim() || '';
