@@ -479,7 +479,12 @@ export default class AppSearch extends Mixin(LitElement)
       true
     );
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**

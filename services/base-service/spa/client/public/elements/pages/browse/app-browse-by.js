@@ -212,7 +212,12 @@ export default class AppBrowseBy extends Mixin(LitElement)
 
     this.AppStateModel.setLocation(path);
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
 }

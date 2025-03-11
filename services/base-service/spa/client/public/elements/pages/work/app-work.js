@@ -79,7 +79,6 @@ export default class AppWork extends Mixin(LitElement)
    */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'work' ) return;
-    window.scrollTo(0, 0);
 
     this.workId = e.location.pathname.replace(/^\/work\//, '');
     this._onWorkUpdate(await this.WorkModel.get(this.workId));
