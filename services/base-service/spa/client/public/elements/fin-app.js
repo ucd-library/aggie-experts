@@ -177,8 +177,8 @@ export default class FinApp extends Mixin(LitElement)
       }
     }
 
-    // scroll to previous position when nav back to search/browse pages
-    if( !this.backButtonPressed || ['work', 'grant', 'expert'].includes(page)) {          
+    // scroll to previous position when nav back
+    if( !this.backButtonPressed ) { // || ['work', 'grant', 'expert'].includes(page)) {          
       window.scrollTo(0, 0);
     } else {
       window.scrollTo(0, this.lastPageTops[page]);
