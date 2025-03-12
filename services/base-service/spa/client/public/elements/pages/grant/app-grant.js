@@ -75,7 +75,6 @@ export default class AppGrant extends Mixin(LitElement)
    */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'grant' ) return;
-    window.scrollTo(0, 0);
 
     this.grantId = e.location.pathname.replace(/^\/grant\//, '');
     this._onGrantUpdate(await this.GrantModel.get(this.grantId));

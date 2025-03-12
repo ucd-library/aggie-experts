@@ -89,7 +89,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertEditing = utils.getCookie('editingExpertId');
 
     if( e.location.page !== 'expert' ) return;
-    window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.substr(1);
     let modified = e.modifiedWorks || e.modifiedGrants;

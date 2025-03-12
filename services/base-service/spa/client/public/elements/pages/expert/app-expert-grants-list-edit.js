@@ -114,7 +114,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
-    window.scrollTo(0, 0);
 
     this.modifiedGrants = false;
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/grants-edit', '');
@@ -260,7 +259,12 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       }
     });
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**

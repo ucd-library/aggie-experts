@@ -114,7 +114,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
-    window.scrollTo(0, 0);
 
     this.modifiedWorks = false;
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
@@ -303,7 +302,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
     });
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**

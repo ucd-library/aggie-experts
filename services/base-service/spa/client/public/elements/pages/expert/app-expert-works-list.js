@@ -77,7 +77,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
-    window.scrollTo(0, 0);
 
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
@@ -211,7 +210,12 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     );
     this._onExpertUpdate(expert);
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
 
