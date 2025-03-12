@@ -38,6 +38,38 @@ class GrantModel extends BaseModel {
       return doc;
     }
 
+   /**
+   * @method subselect
+   * @description return all or part of a document. If the document is not visible, throw 404
+   * @param {Object} doc
+   * @param {Object} options, ie {admin:true|false, is-visible:true|false}
+   * @returns {Object} : document
+   * @example
+        *  subselect(doc, {admin:false, is-visible:true})
+   **/
+  subselect(doc, options={}) {
+    let relatedBy = doc['@graph'][0].relatedBy;
+
+    delete doc['@graph'][0].totalAwardAmount;
+
+    // make doc.relatedBy an array if it is only one object
+    if(relatedBy && !Array.isArray(relatedBy) ) {
+      relatedBy = [relatedBy];
+    }
+
+    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    if( options['is-visible'] !== false || !options.admin ) {
+      relatedBy = relatedBy.filter(r => r['is-visible']);
+    }
+
+    // if doc.relatedBy is empty, doc isn't visible
+    if( relatedBy.length === 0 ) {
+      throw {status: 404, message: "Not found"};
+    }
+
+    return doc;
+  }
+
   /**
    * @method update
    * @description Update Elasticsearch with the given data.
