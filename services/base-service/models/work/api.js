@@ -83,6 +83,6 @@ router.get(
 
 
 browse_endpoint(router,model);
-item_endpoint(router,model);
+item_endpoint(router,model,subselect);
 
 module.exports = router;
