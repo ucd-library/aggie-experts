@@ -187,10 +187,10 @@ WHERE {
         (ucdlib:Grant_Scholarship "Scholarships / Fellowships" )
         (ucdlib:Grant_StudentService "Student Services" )
       }
-      ?field :name "funding-type";
-             :type "text";
-             :text ?funding_type_label;
-             .
+      ?record :native/:field [ :name "funding-type";
+			       :type "text";
+          :text ?funding_type_label ];
+		.
     }
 
 
