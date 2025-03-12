@@ -100,6 +100,10 @@ class WorkModel extends BaseModel {
 
     // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
     if( options['is-visible'] !== false || !options.admin ) {
+      // Still honor the is-visible flag at doc level.
+      if (doc["is-visible"] === false) {
+        throw {status: 404, message: "Not found"};
+      }
       relatedBy = relatedBy.filter(r => r['is-visible']);
     }
 
