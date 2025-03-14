@@ -26,6 +26,22 @@ class ExpertModel extends BaseModel {
     return new GrantRole(this);
   }
   /**
+   * @method get
+   * @description get a object by id. Add `expert` to id if it is not there.
+   *
+   * @param {String} id @graph.identifier or @graph.@id
+   *
+   * @returns {Promise} resolves to elasticsearch result
+   */
+  async get(id, opts={}) {
+    if( id[0] === '/' ) id = id.substring(1);
+    if( !id.startsWith('expert/') ) {
+      id = 'expert/' + id;
+    }
+    return super.get(id, opts);
+  }
+
+  /**
    * @method snippet
    * @description returns searchable snippet of a node
    * by elasticsearch.

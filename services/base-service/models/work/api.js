@@ -28,7 +28,9 @@ openapi.response(
 
 function subselect(req, res, next) {
   try {
-    let params= {};
+    let params= {
+      'is-visible': true
+    };
     if (req.query["is-visible"]) {
       params[is-visible] = req.query["is-visible"];
     }
@@ -83,6 +85,6 @@ router.get(
 
 
 browse_endpoint(router,model);
-item_endpoint(router,model);
+item_endpoint(router,model,subselect);
 
 module.exports = router;

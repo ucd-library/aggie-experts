@@ -9,7 +9,7 @@ let AdminClient=null;
 let MIVJWKSClient=null;
 
 
-async function item_endpoint(router,model) {
+async function item_endpoint(router, model, subselect = (req, res, next) => next()) {
   router.route(
     '/:id?'
   ).get(
@@ -44,6 +44,7 @@ async function item_endpoint(router,model) {
         return res.status(404).json(`${id} resource not found`);
       }
     },
+    subselect,
     (req, res) => {
       res.status(200).json(res.thisDoc);
     }

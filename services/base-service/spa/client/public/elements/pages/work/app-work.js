@@ -104,6 +104,13 @@ export default class AppWork extends Mixin(LitElement)
     let workGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.workId)?.[0] || {};
     if( !workGraph ) return;
 
+    if( !workGraph.relatedBy.find(r => r['is-visible']) ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
+
     let contactsGraph = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.workId);
 
     this.workName = workGraph.title || '';
