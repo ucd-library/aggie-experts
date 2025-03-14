@@ -114,7 +114,7 @@ class ExpertModel extends BaseModel {
       }
     */
 
-    if (doc["is-visible"] === false) {
+    if (doc["is-visible"] === false && !options.admin) {
       throw {status: 404, message: "Not found"};
     }
 
