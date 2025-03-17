@@ -79,7 +79,6 @@ export default class AppWork extends Mixin(LitElement)
    */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'work' ) return;
-    window.scrollTo(0, 0);
 
     this.workId = e.location.pathname.replace(/^\/work\//, '');
     this._onWorkUpdate(await this.WorkModel.get(this.workId));
@@ -105,6 +104,13 @@ export default class AppWork extends Mixin(LitElement)
     let workGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.workId)?.[0] || {};
     if( !workGraph ) return;
 
+    if( !workGraph.relatedBy.find(r => r['is-visible']) ) {
+      this.dispatchEvent(
+        new CustomEvent("show-404", {})
+      );
+      return;
+    }
+
     let contactsGraph = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.workId);
 
     this.workName = workGraph.title || '';
@@ -112,9 +118,14 @@ export default class AppWork extends Mixin(LitElement)
 
     let authors = workGraph.author || [];
     if( !Array.isArray(authors) ) authors = [authors];
-    this.authors.sort((a, b) => a.rank - b.rank);
+    authors.sort((a, b) => a.rank - b.rank);
 
     this.authors = authors.map(a => {
+      let rankMatch = workGraph.relatedBy.filter(r => r.rank === a.rank)[0];
+      if( rankMatch ) {
+        let expertId = rankMatch.relates.filter(rel => rel.startsWith('expert/'))[0];
+        return `<a href="/${expertId}">${a.given} ${a.family}</a>`;
+      }
       return a.given + ' ' + a.family;
     });
 

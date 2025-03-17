@@ -91,21 +91,28 @@ class WorkModel extends BaseModel {
         *  subselect(doc, {admin:false, is-visible:true})
    **/
   subselect(doc, options={}) {
-    if (doc["is-visible"] === false) {
-      throw {status: 404, message: "Not found"};
-    }
+    let relatedBy = doc['@graph'][0].relatedBy;
+
     // make doc.relatedBy an array if it is only one object
-    if( doc.relatedBy && !Array.isArray(doc.relatedBy) ) {
-      doc.relatedBy = [doc.relatedBy];
+    if(relatedBy && !Array.isArray(relatedBy) ) {
+      relatedBy = [relatedBy];
     }
+
     // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
     if( options['is-visible'] !== false || !options.admin ) {
-      doc.relatedBy = doc.relatedBy.filter(r => r['is-visible']);
+      // Still honor the is-visible flag at doc level.
+      if (doc["is-visible"] === false) {
+        throw {status: 404, message: "Not found"};
+      }
+      relatedBy = relatedBy.filter(r => r['is-visible']);
     }
+
     // if doc.relatedBy is empty, doc isn't visible
-    if( doc.relatedBy.length === 0 ) {
+    if( relatedBy.length === 0 ) {
       throw {status: 404, message: "Not found"};
     }
+
+    return doc;
   }
 
   /**
@@ -122,11 +129,9 @@ class WorkModel extends BaseModel {
 
     // combine relatedBy (ordered)
     function addRelatedBy(node) {
-      console.log('Adding relatedBy', node['@id']);
       if (node.relatedBy) {
         Array.isArray(node.relatedBy) || (node.relatedBy = [node.relatedBy]);
         node.relatedBy.forEach((rel) => {
-          console.log('Adding relatedBy', rel['@id']);
           relatedBy[rel['@id']] = rel;
           });
       }
@@ -135,7 +140,6 @@ class WorkModel extends BaseModel {
     try {
       let existing = await this.client_get(root_node['@id']);
       existing = this.get_expected_model_node(existing);
-      console.log('WorkModel.update: existing', existing);
       addRelatedBy(existing);
     } catch(e) {
       //logger.info(`WorkModel.update: ${root_node['@id']} not found`);
