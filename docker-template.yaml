@@ -91,8 +91,6 @@ services:
   init:
     image: ${D[org]}/init:${D[tag]}
     environment:
-      - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
-      - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
       - FIN_SERVICE_NAME=init
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
