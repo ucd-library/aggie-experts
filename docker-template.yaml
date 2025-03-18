@@ -7,7 +7,7 @@ services:
       - &DEV_MOUNT_MODELS ./services/base-service/models:/fin/services/models
       - &DEV_MOUNT_MODELS_API ./experts-api:/experts-api
     ports:
-      - ${HOST_PORT:-${D[port]}}:3001
+      - ${HOST_PORT:-${D[port]}}:3000
     environment:
       - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
