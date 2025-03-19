@@ -30,7 +30,7 @@
       "build_args": "--use-registry=fuseki-image,fin"
     },
     "gcs":{
-      "bucket":"fcrepo-3",
+      "init_bucket":"fcrepo-3",
       "init_data_hydration":false
     }
   },
