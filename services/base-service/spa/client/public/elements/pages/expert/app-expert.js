@@ -140,7 +140,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('/user'))?.[0]?.split('/')?.pop() || '';
+    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('ark:/87287/d7mh2m/user'))?.[0]?.split('/')?.pop() || '';
 
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
