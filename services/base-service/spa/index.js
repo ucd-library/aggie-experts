@@ -32,6 +32,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// setup robots.txt
+require('./models/robots').middleware(app);
+
 // setup static routes
 require('./controllers/static')(app);
 
