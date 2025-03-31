@@ -114,7 +114,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
-    window.scrollTo(0, 0);
 
     this.modifiedWorks = false;
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
@@ -141,7 +140,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this._onExpertUpdate(expert);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -170,11 +169,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hiddenCitations = this.expert?.totals?.hiddenWorks || 0;
     this.totalCitations = (this.expert?.totals?.works || 0);
 
-    if( this.hiddenCitations === 0 ) {
-      this.manageWorksLabel = `Manage My Works (${this.totalCitations})`;
-    } else {
-      this.manageWorksLabel = `Manage My Works (${this.totalCitations} Public, ${this.hiddenCitations} Hidden)`;
-    }
+    this._updateHeaderLabels();
 
     this.worksWithErrors = this.expert.invalidWorks || [];
     if( this.worksWithErrors.length ) this.logger.error('works with errors', { expertId : this.expertId, worksWithErrors : this.worksWithErrors });
@@ -307,7 +302,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
     });
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**
@@ -429,7 +429,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
       let modelContent = `
         <p>
           <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
@@ -460,22 +460,18 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return;
     }
 
+    // update graph/display data
+    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) citation.relatedBy[0]['is-visible'] = true;
+    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) citation.relatedBy[0]['is-visible'] = true;
+    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) citation.relatedBy[0]['is-visible'] = true;
 
-    this.modifiedWorks = true;
+    this.hiddenCitations--;
+    this._updateHeaderLabels();
 
-    let expert = await this.ExpertModel.get(
-      this.expertId,
-      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
-      utils.getExpertApiOptions({
-        includeGrants : false,
-        worksPage : this.currentPage,
-        worksSize : this.resultsPerPage,
-        includeHidden : true,
-        includeWorksMisformatted : true
-      }),
-      true // clear cache
-    );
-    this._onExpertUpdate(expert);
+    this.requestUpdate();
   }
 
   /**
@@ -489,7 +485,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.showModal = false;
     let action = e.currentTarget.title.trim() === 'Hide Work' ? 'hide' : 'reject';
-    this.modifiedWorks = true;
 
     if( action === 'hide' ) {
       try {
@@ -508,7 +503,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+        let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
         let modelContent = `
           <p>
             <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
@@ -538,15 +533,19 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
 
       // update graph/display data
-      let citation = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy['is-visible'] = false;
-      citation = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy['is-visible'] = false;
-      citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy['is-visible'] = false;
-      this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
+      let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy[0]['is-visible'] = false;
+      citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy[0]['is-visible'] = false;
+      citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+      if( citation ) citation.relatedBy[0]['is-visible'] = false;
+      this.hiddenCitations++;
+
+      this._updateHeaderLabels();
 
       this.requestUpdate();
+
+      return;
     } else if ( action === 'reject' ) {
       try {
         let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
@@ -565,7 +564,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let citationTitle = this.citations.filter(c => c.relatedBy?.['@id'] === this.citationId)?.[0]?.title || '';
+        let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
         let modelContent = `
           <p>
             <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
@@ -594,25 +593,23 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.logger.error('failed to set citation to be rejected', { citationId : this.citationId, expertId : this.expertId });
 
       }
-
-      // remove citation from graph/display data
-      // also if total citations > 25, need to reorganize
-      this.citations = this.citations.filter(c => c.relatedBy?.['@id'] !== this.citationId);
-      this.citationsDisplayed = this.citationsDisplayed.filter(c => c.relatedBy?.['@id'] !== this.citationId);
-      this.expert['@graph'] = this.expert['@graph'].filter(c => c.relatedBy?.['@id'] !== this.citationId);
-      this._onPaginationChange({ detail: { page: this.currentPage } });
-
-      // TODO the counts will be broken, however calling the api again to get the current data will be cached, so would that work even if we try to update the totals here?
-
-      // this.hiddenCitations = this.citations.filter(c => !c.relatedBy?.['is-visible']).length;
-      // this.totalCitations = this.citations.length;
-      this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
-
-      this.requestUpdate();
     }
 
-    // let expert = await this.ExpertModel.get(this.expertId, true);
-    // this._onExpertUpdate(expert);
+    this.modifiedWorks = true;
+
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
+      utils.getExpertApiOptions({
+        includeGrants : false,
+        worksPage : this.currentPage,
+        worksSize : this.resultsPerPage,
+        includeHidden : true,
+        includeWorksMisformatted : true
+      }),
+      true // clear cache
+    );
+    this._onExpertUpdate(expert);
   }
 
   /**
@@ -630,6 +627,14 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideOK = true;
     this.hideOaPolicyLink = true;
     this.errorMode = false;
+  }
+
+  _updateHeaderLabels() {
+    if( this.hiddenCitations === 0 ) {
+      this.manageWorksLabel = `Manage My Works (${this.totalCitations})`;
+    } else {
+      this.manageWorksLabel = `Manage My Works (${this.totalCitations - this.hiddenCitations} Public, ${this.hiddenCitations} Hidden)`;
+    }
   }
 
   /**
@@ -661,8 +666,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
 
-    this.AppStateModel.store.data.modifiedWorks = true;
     this.AppStateModel.setLocation('/'+this.expertId);
+    this.AppStateModel.set({ modifiedWorks : this.modifiedWorks });
   }
 
 }

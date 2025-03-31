@@ -4,6 +4,9 @@ import {render} from "./app-search.tpl.js";
 // sets globals Mixin and EventInterface
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
+import JSZip from 'jszip';
+import FileSaver from 'file-saver';
+
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 
 import "../../components/search-box";
@@ -33,12 +36,14 @@ export default class AppSearch extends Mixin(LitElement)
       commPartner : { type : Boolean },
       industProjects : { type : Boolean },
       mediaInterviews : { type : Boolean },
-      type : { type : String },
+      atType : { type : String },
       status : { type : String },
+      type : { type : String },
       showOpenTo : { type : Boolean },
       filterByExpert : { type : Boolean },
       filterByExpertId : { type : String },
-      filterByExpertName : { type : String }
+      filterByExpertName : { type : String },
+      globalAggregations : { type : Object },
     }
   }
 
@@ -61,12 +66,16 @@ export default class AppSearch extends Mixin(LitElement)
     this.commPartner = false;
     this.industProjects = false;
     this.mediaInterviews = false;
-    this.type = '';
+    this.atType = '';
     this.status = '';
+    this.type = '';
     this.showOpenTo = false;
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
+    this.globalAggregations = {};
+    this.filteringByGrants = false;
+    this.filteringByWorks = false;
 
     this.render = render.bind(this);
   }
@@ -74,56 +83,7 @@ export default class AppSearch extends Mixin(LitElement)
   firstUpdated() {
     if( this.AppStateModel.location.page !== 'search' ) return;
 
-    let query = this.AppStateModel.location.query;
-    this.lastQueryParams = query;
-
-    this._updateAvailableFilters();
-
-    // if url contains query params, then parse filters before searching
-    if( Object.keys(query).length ) {
-      this.searchTerm = decodeURI(query.q);
-
-      if( query.type ) this.type = query.type;
-
-      if( query.expert ) {
-        this.filterByExpert = true;
-        this.filterByExpertId = query.expert;
-      }
-
-      this.collabProjects = query.availability?.includes('collab');
-      this.commPartner = query.availability?.includes('community');
-      this.industProjects = query.availability?.includes('industry');
-      this.mediaInterviews = query.availability?.includes('media');
-
-      if( query.availability ) {
-        if( query.availability.includes('Community partnerships') ) this.commPartner = true;
-        if( query.availability.includes('Collaborative projects') ) this.collabProjects = true;
-        if( query.availability.includes('Industry Projects') ) this.industProjects = true;
-        if( query.availability.includes('Media enquiries') ) this.mediaInterviews = true;
-        this._updateLocation();
-      }
-
-      let page = this.AppStateModel.location?.path?.[1];
-      if( page ) this.currentPage = page;
-
-      let resultsPerPage = this.AppStateModel.location?.path?.[2];
-      if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
-
-      this._updateAvailableFilters();
-
-      this._onSearch({ detail: this.searchTerm });
-      return;
-    }
-
-    // update search term
-    this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
-
-    let page = this.AppStateModel.location?.path?.[2];
-    if( page ) this.currentPage = page;
-
-    let resultsPerPage = this.AppStateModel.location?.path?.[3];
-    if( resultsPerPage ) this.resultsPerPage = resultsPerPage;
-
+    this._updateFilters();
     this._onSearch({ detail: this.searchTerm });
   }
 
@@ -147,26 +107,68 @@ export default class AppSearch extends Mixin(LitElement)
   _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
-    let searchTerm = decodeURIComponent(e.location.query?.q || e.location.path?.[1] || '');
+    this._updateFilters();
+    this._onSearch({ detail: this.searchTerm });
+  }
 
-    if( JSON.stringify(e.location.query) === JSON.stringify(this.lastQueryParams) && searchTerm === this.searchTerm ) return;
-
-    this.lastQueryParams = e.location.query;
-
-    // TODO reset selected download boxes?
-
-    // clear expert filter if not set
-    if( e.resetSearch ) {
-      this.type = '';
-      this._removeExpertFilter();
-      this._uncheckDownloads()
-      this.AppStateModel.set({ resetSearch : false });
+  _updateFilters() {
+    let searchTerm = decodeURIComponent(this.AppStateModel.location.query?.q || this.AppStateModel.location.path?.[1] || '');
+    if( !searchTerm ) {
+      this.AppStateModel.setLocation('/');
+      return;
     }
 
-    this.collabProjects = (this.lastQueryParams.availability || '').includes('collab');
-    this.commPartner = (this.lastQueryParams.availability || '').includes('community');
-    this.industProjects = (this.lastQueryParams.availability || '').includes('industry');
-    this.mediaInterviews = (this.lastQueryParams.availability || '').includes('media');
+    let query = this.AppStateModel.location.query;
+    this.lastQueryParams = query;
+
+    // if url contains query params, then parse filters before searching
+    if( Object.keys(query).length ) {
+      this.searchTerm = decodeURI(query.q);
+
+      if( query['@type'] ) this.atType = query['@type'];
+
+      if( query.expert ) {
+        this.filterByExpert = true;
+        this.filterByExpertId = query.expert;
+      } else {
+        this.filterByExpert = false;
+        this.filterByExpertId = '';
+        this.filterByExpertName = '';
+      }
+
+      this.status = query.status || '';
+      this.type = query.type || '';
+
+      this.collabProjects = query.availability?.includes('collab') ? true : false;
+      this.commPartner = query.availability?.includes('community') ? true : false;
+      this.industProjects = query.availability?.includes('industry') ? true : false;
+      this.mediaInterviews = query.availability?.includes('media') ? true : false;
+
+      let page = this.AppStateModel.location?.path?.[1];
+      if( page ) this.currentPage = page;
+
+      this.resultsPerPage = parseInt(this.AppStateModel.location?.path?.[2] || 25);
+    } else {
+      // no query params, so clear filters
+      this.atType = '';
+      this.status = '';
+      this.type = '';
+      this.filterByExpert = false;
+      this.filterByExpertId = '';
+      this.filterByExpertName = '';
+      this.commPartner = false;
+      this.collabProjects = false;
+      this.industProjects = false;
+      this.mediaInterviews = false;
+
+      // update search term
+      this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
+
+      let page = this.AppStateModel.location?.path?.[2];
+      if( page ) this.currentPage = page;
+
+      this.resultsPerPage = parseInt(this.AppStateModel.location?.path?.[3] || 25);
+    }
 
     // hack for checkboxes not updating consistently even with requestUpdate (mostly an issue with back/forward buttons)
     this.shadowRoot.querySelector('#collab-projects').checked = this.collabProjects;
@@ -174,14 +176,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.shadowRoot.querySelector('#indust-projects').checked = this.industProjects;
     this.shadowRoot.querySelector('#media-interviews').checked = this.mediaInterviews;
 
-    this.totalResultsCount = null;
-    this.searchTerm = searchTerm;
-    this.type = e.location?.query?.type || '';
-    this.status = e.location?.query?.status || '';
-
-    this._updateAvailableFilters();
-
-    this._onSearch({ detail: this.searchTerm });
+    // hide/show filters depending on filter type, later will add date filters etc
+    this.showOpenTo = this.atType === 'expert';
   }
 
   /**
@@ -192,7 +188,7 @@ export default class AppSearch extends Mixin(LitElement)
    *
    */
   _onPageSizeChange(e) {
-    this.resultsPerPage = e.currentTarget.value;
+    this.resultsPerPage = parseInt(e.currentTarget.value);
     this.currentPage = 1;
 
     this._updateLocation();
@@ -210,9 +206,35 @@ export default class AppSearch extends Mixin(LitElement)
     // filter by grants for this expert
     this.filterByExpertId = e.detail.id;
     this.filterByExpertName = e.detail.name;
+    this.filteringByGrants = true;
+    this.filteringByWorks = false;
+    this.currentPage = 1;
+
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
       this.addingFilter = true;
+      this.AppStateModel.set({ resetSearch : false });
+      this._updateLocation();
+    }
+  }
+
+  /**
+   * @method _filterByWorks
+   * @description filter by works
+   * @param {Object} e
+   */
+  _filterByWorks(e) {
+    // filter by works for this expert
+    this.filterByExpertId = e.detail.id;
+    this.filterByExpertName = e.detail.name;
+    this.filteringByGrants = false;
+    this.filteringByWorks = true;
+    this.currentPage = 1;
+
+    if( this.filterByExpertId && this.filterByExpertName ) {
+      this.filterByExpert = true;
+      this.addingFilter = true;
+      this.AppStateModel.set({ resetSearch : false });
       this._updateLocation();
     }
   }
@@ -225,6 +247,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
+    this.filteringByGrants = false;
+    this.filteringByWorks = false;
     this._updateLocation();
   }
 
@@ -263,8 +287,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.currentPage,
           this.resultsPerPage,
           availability,
-          this.AppStateModel.location.query.type,
+          this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
+          this.AppStateModel.location.query.type,
           this.filterByExpertId
         )
       ),
@@ -278,7 +303,8 @@ export default class AppSearch extends Mixin(LitElement)
    */
   _updateLocation() {
     if( this.addingFilter && this.filterByExpert ) {
-      this.type = 'grant';
+      if( this.filteringByGrants ) this.atType = 'grant';
+      if( this.filteringByWorks ) this.atType = 'work';
       this.addingFilter = false;
     }
 
@@ -289,7 +315,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) availability.push('industry');
     if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = availability.length || this.type.length || this.filterByExpert || this.status.length;
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
@@ -297,8 +323,9 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( hasQueryParams ) path += `?q=${encodeURIComponent(this.searchTerm)}`;
     if( availability.length ) path += `&availability=${availability.join(',')}`;
-    if( this.type.length ) path += `&type=${this.type}`;
+    if( this.atType.length ) path += `&@type=${this.atType}`;
     if( this.status.length ) path += `&status=${this.status}`;
+    if( this.type.length ) path += `&type=${this.type}`;
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
 
     this.AppStateModel.setLocation(path);
@@ -311,13 +338,15 @@ export default class AppSearch extends Mixin(LitElement)
       this.filterByExpertName = await this._getExpertNameById(this.filterByExpertId);
     }
 
-    // console.log('parsing new search results', e, fromSearchPage);
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
+
+    this.globalAggregations = this.rawSearchData['global_aggregations'] || {};
 
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let resultType = '';
       if( r['@type'] === 'Grant' || r['@type']?.includes?.('Grant') ) resultType = 'grant';
       if( r['@type'] === 'Expert' || r['@type']?.includes?.('Expert') ) resultType = 'expert';
+      if( r['@type'] === 'Work' || r['@type']?.includes?.('Work') ) resultType = 'work';
 
       let id = r['@id'];
       if( Array.isArray(r.name) ) r.name = r.name[0];
@@ -332,8 +361,34 @@ export default class AppSearch extends Mixin(LitElement)
         numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 
       } else if( resultType === 'grant' ) {
-        subtitle = ((r.name?.split('§') || [])[1] || '').trim().replaceAll('•', '<span class="dot-separator">•</span>');
+        subtitle = ((r.name?.split('§') || [])[1] || '').trim();
+
+        let [status, dateRange, pi] = subtitle.split('•');
+        subtitle = 'Grant';
+        if( status ) subtitle += ' <span class="dot-separator">•</span>  ' + status.trim();
+        if( dateRange ) subtitle += ' <span class="dot-separator">•</span>  ' + dateRange.trim();
+        if( pi ) subtitle += ' <span class="dot-separator">•</span> PI:  ' + pi.trim();
+
         id = 'grant/' + id;
+      } else if( resultType === 'work' ) {
+        subtitle = '';
+        // parse work type + date + authors from subtitle
+        // ie '“A Chinaman’s Chance” in Court: Asian Pacific Americans and Racial Rules of Evidence §  • article-journal • 2013-12-01 • Chin, G. § UC Irvine Law Review • 2327-4514 § '
+        let subtitleParts = ((r.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
+        if( subtitleParts.length ) {
+          let type = subtitleParts[0]?.trim() || '';
+          if( type ) subtitle += utils.getCitationType(type) + ' <span class="dot-separator">•</span> ';
+
+          let date = subtitleParts[1]?.trim() || '';
+          if( date ) {
+            let [ year, month, day ] = date.split?.('-');
+            subtitle += utils.formatDate({ year }) + ' <span class="dot-separator">•</span> ';
+          }
+
+          let authors = subtitleParts[2]?.trim() || '';
+          if( authors ) subtitle += authors;
+        }
+        id = 'work/' + id;
       }
 
       return {
@@ -415,15 +470,21 @@ export default class AppSearch extends Mixin(LitElement)
           this.currentPage,
           this.resultsPerPage,
           availability,
-          this.AppStateModel.location.query.type,
+          this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
+          this.AppStateModel.location.query.type,
           this.filterByExpertId
         )
       ),
       true
     );
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**
@@ -479,80 +540,207 @@ export default class AppSearch extends Mixin(LitElement)
   async _downloadClicked(e) {
     e.preventDefault();
 
-    debugger;
-    // TODO need to build grants vs works file
-
-    // Title | Funding Agency | Grant Id | Start Date | End Date | Type of Grant | Known Contributors (List of PIs and CoPIs)
-    // I realized Role is not helpful here as the grants are not attached to people in that filtered view. Can you make that a concatenated "Known Contributors" column?
-
-
-
-
-    let selectedPersons = [];
+    let works = [], grants = [], experts = [];
+    let numFiles = 0;
+    let hits = (this.rawSearchData?.hits || []);
     let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
+
     resultRows.forEach(row => {
       let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
-      if( checkbox?.checked ) {
-        selectedPersons.push(row.result.id);
+      let resultType = row.resultType;
+
+      if( !checkbox?.checked ) return;
+
+      if( resultType === 'expert' ) {
+        // experts.csv:
+        // Name | Aggie Experts Webpage | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
+
+        let match = hits.find(h => h['@id'] === row.result.id);
+        if( !match ) return;
+
+        let name = match.name?.split('§')?.[0]?.trim();
+        let landingPage = 'https://experts.ucdavis.edu/' + match['@id'];
+        let numberOfWorks = (match['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
+        let numberOfGrants = (match['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+        let urls = (match.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
+
+        experts.push(
+          '"' + name + '",' +
+          '"' + landingPage + '",' +
+          '"' + numberOfWorks + '",' +
+          '"' + numberOfGrants + '",' +
+          '"' + urls + '",'
+        );
+        
+      } else if( resultType === 'grant' ) {
+        // grants.csv:
+        // Title | Funding Agency | Grant id {the one given by the agency, not ours} | Start date | End date | Type of Grant | List of PIs and coPIs {separate contributors by ";"} | Other Known Contributors {separate contributors by ";"}    
+
+        let match = hits.find(h => h['@id'] === row.result.id.replace('grant/',''));
+        if( !match ) return;
+
+        let title = match.name.split('§')[0]?.trim() || '';
+        let fundingAgency = match.assignedBy?.name || '';
+        let grantId = match.sponsorAwardId || '';
+        let startDate = match.dateTimeInterval?.start?.dateTime || '';
+        let endDate = match.dateTimeInterval?.end?.dateTime || '';
+
+        // determine type(s) from all types excluding 'Grant', and split everything after 'Grant_' by uppercase letters with space
+        // should just be one type, but just in case
+        try {
+          if( match['@type'] && !Array.isArray(match['@type']) ) match['@type'] = [match['@type']];
+          match.types = (match['@type'] || []).filter(t => t !== 'Grant').map(t => t.split('Grant_')[1].replace(/([A-Z])/g, ' $1').trim());
+        } catch(e) {
+          match.types = ['Grant'];
+        }
+        let typeOfGrant = match.types.join(', ') || '';
+
+        let contributors = match.relatedBy || [];
+        if( !Array.isArray(contributors) ) contributors = [contributors];
+        
+        let pisCoPis = ''; // List of PIs and coPIs {separate contributors by ";"}
+        let otherContributors = ''; // Other Known Contributors {separate contributors by ";"}    
+
+        contributors.forEach(c => {
+          let role = utils.getGrantRole(c)?.role || '';
+          let name = '';
+          if( c.inheres_in ) {
+            name = c['@id'].name || '';
+          } else {
+            if( !Array.isArray(c.relates) ) c.relates = [c.relates];
+            name = (c.relates || []).find(r => r.name)?.name || '';
+          }
+
+          if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
+            pisCoPis += name + '; ';
+          } else {
+            otherContributors += name + '; ';
+          }
+        });
+
+        grants.push(
+          '"' + title + '",' +
+          '"' + fundingAgency + '",' +
+          '"' + grantId + '",' +
+          '"' + startDate + '",' +
+          '"' + endDate + '",' +
+          '"' + typeOfGrant + '",' +
+          '"' + pisCoPis + '",' +
+          '"' + otherContributors + '",'
+        );
+      } else if( resultType === 'work' ) {
+        // works.csv:
+        // Type of Work | Title | Authors {separate contributors by ";"; if more than 10 contributors, use et.a;.)| Year | Journal OR Book | Volume | Issue | Pages | DOI or URL | Abstract
+
+        let match = hits.find(h => h['@id'] === row.result.id.replace('work/',''));
+        if( !match ) return;
+
+        let workType = utils.getCitationType(match.type) || '';
+        let title = match.title || '';
+
+        // {separate contributors by ";"; if more than 10 contributors, use et.a;.)
+        let authors;
+        if( match.author && match.author.length > 10 ) {
+          let subtitleParts = ((match.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
+          authors = subtitleParts?.[2]?.trim() || '';
+        } else {
+          authors = (match.author || []).map(a => a.family + ', ' + a.given).join('; ');
+        }
+
+        let [ year, month, day ] = match.issued.split?.('-');
+        let yearFormatted = utils.formatDate({ year });
+        let journalBook = match['container-title'] || '';
+        let volume = match.volume || '';
+        let issue = match.issue || '';
+        let page = match.page || '';
+        let publisherLink = match.DOI ? `https://doi.org/${match.DOI}` : '';
+        let abstract = match.abstract || '';
+
+        works.push(
+          '"' + workType + '",' +
+          '"' + title + '",' +
+          '"' + authors + '",' +
+          '"' + yearFormatted + '",' +
+          '"' + journalBook + '",' +
+          '"' + volume + '",' +
+          '"' + issue + '",' +
+          '"' + page + '",' +
+          '"' + publisherLink + '",' +
+          '"' + abstract + '",'
+        );
       }
     });
 
-    if( !selectedPersons.length ) return;
+    if( !works.length && !grants.length && !experts.length ) return;
 
-    // columns for the spreadsheet:
-    //  Name | Aggie Experts Webpage | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
+    // if 2+ types of files are needed, generate zip. otherwise single csv
+    if( works.length ) numFiles++;
+    if( grants.length ) numFiles++;
+    if( experts.length ) numFiles++;
+    if( numFiles > 1 ) {
+      let zip = new JSZip();
 
-    let body = [];
-    let hits = (this.rawSearchData?.hits || []);
-    for( let h = 0; h < hits.length; h++ ) {
-      let result = hits[h];
-      if( selectedPersons.includes(result['@id']) ) {
-        let name = result.name?.split('§')?.[0]?.trim();
-        let landingPage = 'https://experts.ucdavis.edu/' + result['@id'];
-        let numberOfWorks = (result['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
-        let numberOfGrants = (result['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
-        let urls = (result.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
-
-        body.push([
-          '"' + name + '"',
-          '"' + landingPage + '"',
-          '"' + numberOfWorks + '"',
-          '"' + numberOfGrants + '"',
-          '"' + urls + '"'
-        ]);
+      if( works.length ) {
+        works.unshift('Type of Work,Title,Authors,Year,Journal/Book,Volume,Issue,Pages,DOI/URL,Abstract');
+        zip.file("works.csv", works.join('\n'));
       }
-    }
+  
+      if( grants.length ) {
+        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');      
+        zip.file("grants.csv", grants.join('\n'));
+      }
+  
+      if( experts.length ) {
+        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');      
+        zip.file("experts.csv", experts.join('\n'));
+      }
+  
+      zip
+        .generateAsync({type:"blob"})
+        .then((content, filename=`search_${this.searchTerm.split(' ').join('_').substring(0, 50)}.zip`) => {
+          FileSaver.saveAs(content, filename);
+      });
+    } else {
+      let blob, filename;
+      if( works.length ) {
+        works.unshift('Type of Work,Title,Authors,Year,Journal/Book,Volume,Issue,Pages,DOI/URL,Abstract');
+        blob = new Blob(works.map(w => w + '\n'), { type: 'text/csv;charset=utf-8;' });
+        filename = 'works.csv';
+      }
+  
+      if( grants.length ) {
+        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');    
+        blob = new Blob(grants.map(g => g + '\n'), { type: 'text/csv;charset=utf-8;' });
+        filename = 'grants.csv';
+      }
+  
+      if( experts.length ) {
+        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');  
+        blob = new Blob(experts.map(e => e + '\n'), { type: 'text/csv;charset=utf-8;' });
+        filename = 'experts.csv';
+      }
 
-    if( !body.length ) return;
-
-    let headers = ['Name', 'Aggie Experts Webpage', 'Number of works that match the keyword', 'Number of grants that match the keyword', 'URLs from the profile'];
-    let text = headers.join(',') + '\n';
-    body.forEach(row => {
-      text += row.join(',') + '\n';
-    });
-
-    let blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
-    let url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'data.csv');
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      let url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }    
   }
 
   _onFilterChange(e) {
     // update url with search filters
-    this.type = e.detail.type;
+    this.atType = e.detail['@type'];
+    this.type = '';
     this.status = '';
-    if( this.type === 'all results' ) this.type = '';
-    this._updateAvailableFilters();
+    if( this.atType === 'all results' ) this.atType = '';
     this.currentPage = 1;
     this._uncheckDownloads();
 
-    if( this.type !== 'grant' && this.filterByExpert ) {
+    if( !['grant', 'work'].includes(this.atType) && this.filterByExpert ) {
       this._removeExpertFilter();
     }
 
@@ -561,18 +749,13 @@ export default class AppSearch extends Mixin(LitElement)
 
   _onSubFilterChange(e) {
     // update url with search filters
+    this.atType = e.detail['@type'];
     this.type = e.detail.type;
     this.status = e.detail.status;
-    this._updateAvailableFilters();
 
     this.currentPage = 1;
     this._uncheckDownloads();
     this._updateLocation();
-  }
-
-  _updateAvailableFilters() {
-    this.showOpenTo = this.type === 'expert';
-    // TODO others, dates hidden when viewing Experts
   }
 
   _uncheckDownloads() {

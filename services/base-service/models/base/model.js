@@ -22,6 +22,7 @@ class BaseModel extends FinEsDataModel {
     super(name);
     this.schema = schema;  // Common schema for all experts data models
     this.transformService = "node";
+
   }
 
   /** @inheritdoc */
@@ -186,7 +187,7 @@ class BaseModel extends FinEsDataModel {
       name: node['name'],
       "@graph": [node]
     };
-    ["@type","status","is-visible","updated","identifier"].forEach(key => {
+    ["@type","status","type","is-visible","updated","identifier"].forEach(key => {
       if (node[key]) doc[key] = node[key];
     });
     return doc;
@@ -239,7 +240,7 @@ class BaseModel extends FinEsDataModel {
    * @method verify_template
    * @description Adds template to elastic search if it doesn't exist
    */
-  async verify_template(template) {
+    async verify_template(template) {
     if (!Array.isArray(template)) {
       template = [template];
     }
@@ -258,7 +259,6 @@ class BaseModel extends FinEsDataModel {
     }
     return true;
   }
-
 
   compact_search_results(results,params) {
     const compact = {
@@ -298,6 +298,7 @@ class BaseModel extends FinEsDataModel {
    * @returns string
    */
   async render(opts) {
+
     const params = this.common_parms(opts.params);
 
     const options = {
@@ -327,7 +328,6 @@ class BaseModel extends FinEsDataModel {
       index,
       params
     }
-    //console.log(`searching ${JSON.stringify(options)}`);
     const res=await this.client.searchTemplate(options);
     return this.compact_search_results(res,params);
   }
@@ -417,11 +417,12 @@ class BaseModel extends FinEsDataModel {
    *
    * @returns {Promise} resolves to elasticsearch result
    */
-  async get(id, opts={}, index) {
+  async get(id, opts={}) {
     if( id[0] === '/' ) id = id.substring(1);
     let _source_excludes = true;
     if( opts.admin ) _source_excludes = false;
     else if( opts.compact ) _source_excludes = 'compact';
+    //console.log(`BaseModel.get(${id}) on ${this.readIndexAlias}`);
 
     let result= await this.client.get(
       {
@@ -433,7 +434,11 @@ class BaseModel extends FinEsDataModel {
     );
 
     if( result ) {
-      result = result._source;
+      if ( !opts.full ) {
+        // default is to return the _source part of the result only
+        result = result._source;
+      }
+      return result;
       //if( opts.compact ) this.utils.compactAllTypes(result);
       //if( opts.singleNode ) result['@graph'] = this.utils.singleNode(id, result['@graph']);
     } else {

@@ -153,13 +153,15 @@ return html`
     <ucd-theme-primary-nav>
       <a href="/browse/expert">Experts</a>
       <!-- <a href="/subject">Subjects</a> -->
-      <!-- <a href="/work">Works</a> -->
       <a href="/browse/grant">Grants</a>
+      <a href="/browse/work">Works</a>
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>
       <ucd-theme-search-form
-        @search="${this._onSearch}">
+        @search="${this._onSearch}"
+        .value=${this.searchTerm}
+        clear-on-search>
       </ucd-theme-search-form>
     </ucd-theme-search-popup>
 
@@ -192,31 +194,39 @@ return html`
       selectedAttribute="visible"
       class="${this.loading ? 'loading' : ''}">
       <app-home id="home"></app-home>
-      <app-browse id="browse"></app-browse>
+      <app-browse id="browse" @reset-scroll="${this._resetScroll}"></app-browse>
       <!-- <app-work id="work"></app-work> -->
       <app-expert
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
         @cancel-edit-expert="${this._editExpertClick}"
         id="expert"
-        @show-404="${(e) => this.page = '404'}">
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}">
       </app-expert>
-      <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
+      <app-expert-works-list id="works" 
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}"></app-expert-works-list>
       <app-expert-works-list-edit
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
         id="works-edit"
-        @show-404="${(e) => this.page = '404'}">
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}">
       </app-expert-works-list-edit>
       <app-grant id="grant" @show-404="${(e) => this.page = '404'}"></app-grant>
-      <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
+      <app-work id="work" @show-404="${(e) => this.page = '404'}"></app-work>
+      <app-expert-grants-list id="grants" 
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}"></app-expert-grants-list>
       <app-expert-grants-list-edit
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
         id="grants-edit"
-        @show-404="${(e) => this.page = '404'}">
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}">
       </app-expert-grants-list-edit>
-      <app-search id="search"></app-search>
+      <app-search id="search" @reset-scroll="${this._resetScroll}"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
     </ucdlib-pages>

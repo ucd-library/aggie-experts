@@ -82,6 +82,18 @@ template = {
                   }
                 }
                 {{/status}}
+                {{#type}}
+                ,{
+                  "bool": {
+                    "must": [
+                      { "exists": { "field": "type" }},
+                      { "terms": {
+                        "type": [{{#type}}"{{.}}",{{/type}}"none"]
+                       }}
+                    ]
+                  }
+                }
+                {{/type}}
               ]
             }
           }
@@ -145,7 +157,7 @@ template = {
                 }
               },
               "inner_hits": {
-                "size": "{{inner_hits_size}}{{^inner_hits_size}}50{{/inner_hits_size}}",
+                "size": "{{inner_hits_size}}{{^inner_hits_size}}500{{/inner_hits_size}}",
                 "_source": [
                   "@graph.@id",
                   "@graph.@type",
@@ -159,7 +171,7 @@ template = {
         }
       },
       "aggs": {
-        "type": {
+        "@type": {
           "terms": {
             "field": "@type",
             "size": 20
@@ -176,6 +188,12 @@ template = {
             "field": "status",
             "size": 10
           }
+        },
+        "type": {
+          "terms": {
+            "field": "type",
+            "size": 10
+          }
         }
       },
       "_source": [
@@ -187,7 +205,18 @@ template = {
         "issued",
         "container-title",
         "type",
-        "DOI"
+        "DOI",
+        "modified-date",
+        "status",
+        "author",
+        "volume",
+        "issue",
+        "page",
+        "abstract",
+        "sponsorAwardId",
+        "assignedBy",
+        "dateTimeInterval",
+        "relatedBy"
       ],
       "sort": [
         "_score",

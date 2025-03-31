@@ -1,6 +1,9 @@
 {
   "dynamic" : false,
   "properties" : {
+    "modified-date": {
+        "type": "date"
+    },
     "@id" : {
       "type" : "keyword"
     },
@@ -17,6 +20,11 @@
       }
     },
     "@type" : {
+      "type" : "keyword",
+      "normalizer": "lowercase_ascii",
+      "ignore_above": 128
+    },
+    "type" : {
       "type" : "keyword",
       "normalizer": "lowercase_ascii",
       "ignore_above": 128
@@ -43,6 +51,9 @@
           "normalizer" : "starts_with"
         }
       }
+    },
+    "lastmodified": {
+      "type": "date"
     },
     "@graph": {
       "type": "nested",

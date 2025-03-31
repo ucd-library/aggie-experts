@@ -22,6 +22,55 @@ class GrantModel extends BaseModel {
   }
 
   /**
+   * @method promote_node_to_doc
+   * @description Promotes some node fields to document fields
+   * @param {Object} node
+   * @returns {Object} : document
+   **/
+  promote_node_to_doc(node) {
+    const doc = super.promote_node_to_doc(node);
+
+    // mini grant info, if we need to expand
+    ["sponsorAwardId","assignedBy","dateTimeInterval","relatedBy"].forEach(key => {
+      if (node[key]) doc[key] = node[key];
+    });
+
+    return doc;
+  }
+
+  /**
+   * @method subselect
+   * @description return all or part of a document. If the document is not visible, throw 404
+   * @param {Object} doc
+   * @param {Object} options, ie {admin:true|false, is-visible:true|false}
+   * @returns {Object} : document
+   * @example
+   *  subselect(doc, {admin:false, is-visible:true})
+   **/
+  subselect(doc, options={}) {
+    let relatedBy = doc['@graph'][0].relatedBy;
+
+    // make doc.relatedBy an array if it is only one object
+    if(relatedBy && !Array.isArray(relatedBy) ) {
+      relatedBy = [relatedBy];
+    }
+
+    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    if( options['is-visible'] !== false || !options.admin ) {
+      // I'm not quite sure about this, if you are an expert on a grant, you can see all other (even non visible) experts as well. I guess that's correct.
+      relatedBy = relatedBy.filter(r => r['is-visible']);
+      delete doc['@graph'][0].totalAwardAmount;
+    }
+
+    // if doc.relatedBy is empty, doc isn't visible
+    if( relatedBy.length === 0 ) {
+      throw {status: 404, message: "Not found"};
+    }
+
+    return doc;
+  }
+
+  /**
    * @method update
    * @description Update Elasticsearch with the given data.
    */
@@ -30,13 +79,13 @@ class GrantModel extends BaseModel {
 
     const relatedBy = {};
 
-     // combine relatedBy (ordered)
+    // combine relatedBy (ordered)
     function addRelatedBy(node) {
       if (node.relatedBy) {
         Array.isArray(node.relatedBy) || (node.relatedBy = [node.relatedBy]);
         node.relatedBy.forEach((rel) => {
           relatedBy[rel['@id']] = rel;
-          });
+        });
       }
     }
 
@@ -109,6 +158,19 @@ class GrantModel extends BaseModel {
     }
     root_node.relatedBy=Object.values(relatedBy);
     const doc = this.promote_node_to_doc(root_node);
+
+    // replace expert @id with { @id:expert/ldxxxx, name="Quinn Hart" }
+    doc.relatedBy = JSON.parse(JSON.stringify(doc.relatedBy));
+    for( var i in doc.relatedBy ) {
+      if( doc.relatedBy[i].inheres_in ) {
+        let id = doc.relatedBy[i].inheres_in;
+        let expert = experts.find(e => e['@id'] === id);
+        if( expert ) {
+          doc.relatedBy[i]['@id'] = { '@id': expert['@id'], name: expert.label };
+        }
+      }
+    }
+
     if (vis.length) {
       root_node["is-visible"]=true;
       doc["is-visible"]=true; // Some expert wants it visible

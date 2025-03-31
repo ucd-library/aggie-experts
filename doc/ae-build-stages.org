@@ -39,6 +39,12 @@ if a developer has made 10 local commits, it's not a terrible idea to rebase
 these into a single commit before pushing.  But don't worry too much about that,
 and avoid any rebasing that affects the pushed commits, it can be troublesome.
 
+To do a full build with all dependencies, you can use the following command:
+
+#+begin_src bash
+  aggie-experts --env=dev --gcs=fcrepo-sandbox --mount=spa,models --build-args='--depth=ALL' build
+#+end_src
+
 *** clean
 In the clean stage, developers build their image on a clean git repository, and
 build/deploy a specific tagged image to application.  Bind mounts are *never*

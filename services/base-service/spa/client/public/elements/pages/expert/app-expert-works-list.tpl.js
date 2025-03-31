@@ -23,7 +23,7 @@ return html`
 
     .hero-main {
       background: url('/images/watercolor-sage-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
+      background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
       min-height: 12.25rem;
@@ -94,6 +94,15 @@ return html`
       padding-right: 1rem;
     }
 
+    .work-item .work h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .work-item .work h5 a {
+      text-decoration: none;
+    }
+
     ucd-theme-pagination {
       padding-bottom: 1rem;
     }
@@ -135,7 +144,7 @@ return html`
         <div class="work-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
           <div class="work">
-            <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
+            <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
             <div class="work-details">
               <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
               <span class="dot">•</span>

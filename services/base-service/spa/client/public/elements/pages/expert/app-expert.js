@@ -89,24 +89,28 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertEditing = utils.getCookie('editingExpertId');
 
     if( e.location.page !== 'expert' ) return;
-    window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.substr(1);
     let modified = e.modifiedWorks || e.modifiedGrants;
     if( expertId === this.expertId && !modified ) return;
 
+    let clearCache = false;
+    if( e.modifiedGrants || e.modifiedWorks ) {
+      clearCache = true;
+      this.AppStateModel.set({ modifiedGrants : false, modifiedWorks : false });
+    }
     this._reset();
 
     if( (this.expertEditing === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions());
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions(), clearCache);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
       this._onExpertUpdate(expert, modified);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -136,7 +140,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('/user'))?.[0]?.split('/')?.pop() || '';
+    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('ark:/87287/d7mh2m/user'))?.[0]?.split('/')?.pop() || '';
 
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
@@ -153,9 +157,19 @@ export default class AppExpert extends Mixin(LitElement)
         title : c.hasTitle?.prefLabel || c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.prefLabel || c.hasOrganizationalUnit?.name,
         email : c?.hasEmail?.replace('mailto:', ''),
-        websiteUrl : c.hasURL?.['url']
+        websiteUrl : c.hasURL?.['url'],
+        rank : c.rank
       }
     });
+    this.roles.sort((a, b) => a.rank - b.rank);
+
+    // if all emails match, only show email under the last role
+    let uniqueEmails = [...new Set(this.roles.map(role => role.email))];
+    if( uniqueEmails.length === 1 ) {
+      for( let i = 0; i < this.roles.length - 1; i++ ) {
+        this.roles[i].email = null;
+      }
+    }
 
     this.orcId = graphRoot.orcidId;
     this.scopusIds = Array.isArray(graphRoot.scopusId) ? graphRoot.scopusId : [graphRoot.scopusId];
@@ -190,7 +204,7 @@ export default class AppExpert extends Mixin(LitElement)
             url.icon = 'ai-figshare';
           }
         } catch(e) {
-          console.warn('error setting website icon', e);
+          this.logger.warn('error setting website icon', e);
         }
       });
 

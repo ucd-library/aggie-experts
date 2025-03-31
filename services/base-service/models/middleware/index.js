@@ -2,11 +2,122 @@ const OpenAPI = require('@wesleytodd/openapi')
 const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-const template = require('./base/template/name.json');
+const template = require('../base/template/name.json');
 
 let AdminClient=null;
 
 let MIVJWKSClient=null;
+
+
+async function item_endpoint(router, model, subselect = (req, res, next) => next()) {
+  router.route(
+    '/:id?'
+  ).get(
+    valid_path(
+      {
+        description: "Get a ${model.name} by id",
+        responses: {
+          "200": openapi.response(model.name),
+          "400": openapi.response('missing_id'),
+          "403": openapi.response('forbidden'),
+          "404": openapi.response('not_found')
+        }
+      //   parameters: {
+      //     "id": {
+      //       "name": "id",
+      //       "in": "path",
+      //       "description": "identifier",
+      //       "required": true,
+      //       "schema": { "type": "string" }
+      //     }
+      //   }
+      }
+      ),
+    is_user,
+    valid_path_error,
+    async (req, res, next) => {
+      const id=req.params.id || req.query.id;
+      try {
+        res.thisDoc = await model.get(id);
+        next();
+      } catch (e) {
+        return res.status(404).json(`${id} resource not found`);
+      }
+    },
+    subselect,
+    (req, res) => {
+      res.status(200).json(res.thisDoc);
+    }
+  )
+}
+
+function browse_endpoint(router,model) {
+  router.route(
+    '/browse',
+  ).get(
+    is_user,
+    valid_path(
+      {
+        description: `Returns for ${model.name} for  A - Z, or if sending query param p={letter}, will return results for ${model.name} with last names of that letter`,
+        parameters: ['p', 'page', 'size'],
+        responses: {
+          "200": openapi.response('Browse'),
+          "400": openapi.response('Invalid_request')
+        }
+      }
+    ),
+    valid_path_error,
+    async (req, res) => {
+      const params = {
+        size: 25,
+        index: model.readIndexAlias,
+      };
+      ["size","page","p"].forEach((key) => {
+        if (req.query[key]) { params[key] = req.query[key]; }
+      });
+
+      if (params.p) {
+        if (params.p === 'other') {
+          params.p = '1';
+        } else if (params.p.match(/^[a-zA-Z]/)) {
+          params.p = params.p.substring(0,1);
+        } else {
+          params.p = '1';
+        }
+
+        const opts = {
+          id: "name",
+          params
+        };
+
+        try {
+          await model.verify_template(template);
+          const find = await model.search(opts);
+          res.send(find);
+        } catch (err) {
+          res.status(400).send('Invalid request');
+        }
+      } else {
+        try {
+          await model.verify_template(template);
+          const search_templates=[];
+          ["1","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O",
+           "P","Q","R","S","T","U","V","W","X","Y","Z"].forEach((letter) => {
+             search_templates.push({});
+             search_templates.push({id:"name",params:{p:letter,size:0}});
+           });
+          const finds = await model.msearch({search_templates});
+          res.send(finds);
+        } catch (err) {
+          res.status(400).send('Invalid request');
+        }
+      }
+    }
+  );
+}
+
+module.exports = browse_endpoint;
+
 
 async function fetchExpertId (req, res, next) {
   if (req.query.email || req.query.ucdPersonUUID || req.query.iamId) {
@@ -50,7 +161,7 @@ async function convertIds(req, res, next) {
 
   let user;
 
-  req.query.expertIds = [];
+  let experts = [];
   // for each id, get the expertId
   for (const theId of id_array) {
     try {
@@ -64,9 +175,11 @@ async function convertIds(req, res, next) {
 
     if (user && user?.attributes?.expertId) {
       const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
-      req.query.expertIds.push(expertId);
+      experts.push(`expert/${expertId}`);
     }
+    req.query.expert=experts.join(',');
   }
+  console.log(`convertIds: ${req.query.expert}`);
   return next();
 }
 
@@ -116,11 +229,9 @@ function has_access(client) {
     if (!req.user) {
       // Try Service Account
       const token = req.headers.authorization?.split(' ')[1];
-
       if (!token) {
         return res.status(401).json({ error: 'Token not provided' });
       }
-
       try {
         // Get the public key from the JWKS endpoint
         const key = await MIVJWKSClient.getSigningKey(jwt.decode(token, { complete: true }).header.kid);
@@ -142,19 +253,10 @@ function has_access(client) {
           return res.status(401).json({ error: 'Token has expired' });
         }
 
-        // Validate request source (optional)
-        //if (req.hostname !== verifiedToken.clientHost) {
-        //  return res.status(401).json({ error: 'Invalid request source' });
-        //}
-
         // Custom authorization logic
         // Implement your own logic here based on token claims
         if (! verifiedToken?.resource_access?.[client]?.roles?.includes('access')) {
           return res.status(403).json({ error: 'No Access Role' });
-        }
-        // return res.status(401).send('Unauthorized');
-        if (req.user?.roles?.includes('admin') || req.user?.roles?.includes(client)) {
-          return next();
         }
         return next();
       }
@@ -162,14 +264,19 @@ function has_access(client) {
         // console.error(error);
         return res.status(403).json({ error: 'Internal server error' });
       }
+    } else {
+      if (req.user?.resource_access?.['aggie-experts'].roles?.includes('admin') || req.user?.resource_access?.['aggie-experts'].roles?.includes(client)) {
+        return next();
+      }
     }
+    return res.status(403).json({ error: 'Not Authorized' });
   }
 }
 
 
 // Custom middleware to check Content-Type
 function json_only(req, res, next) {
-  const contentType = req.get('Content-Type');
+  const contentType = req.get('Content-Type') ;
   if (contentType.startsWith('application/json') || contentType.startsWith('application/ld+json')) {
     // Content-Type is acceptable
     return next();
@@ -332,6 +439,20 @@ const openapi = OpenAPI(
           style: "simple",
           explode: false
         },
+        type: {
+          in: "query",
+          name: "type",
+          description: "Comma-separated search filter on citation type",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string"
+            }
+          },
+          style: "simple",
+          explode: false
+        },
         availability: {
           in: "query",
           name: "availability",
@@ -352,10 +473,10 @@ const openapi = OpenAPI(
           style: "simple",
           explode: false
         },
-        type: {
+        "@type": {
             in: "query",
-          name: "type",
-          description: "Comma-separated list of items to return.",
+          name: "@type",
+          description: "Comma-separated list of item @types to return.",
           required: false,
           schema: {
             type: "array",
@@ -367,13 +488,25 @@ const openapi = OpenAPI(
           },
           style: "simple",
           explode: false
+        },
+        "type": {
+            in: "query",
+          name: "type",
+          description: "Comma-separated list of citation-types to return. From https://github.com/Juris-M/schema/blob/master/csl-types.rnc",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: [ "article","article-journal","article-magazine","article-newspaper","bill","book","broadcast","chapter","dataset","entry","entry-dictionary","entry-encyclopedia","figure","graphic","interview","legal_case","legislation","manuscript","map","motion_picture","musical_score","pamphlet","paper-conference","patent","personal_communication","post","post-weblog","report","review","review-book","song","speech","thesis","treaty","webpage"]
+            }
+          },
+          style: "simple",
+          explode: false
         }
       },
       schemas: {
-        Grant: {
-          type: 'object'
-        },
-        Expert: {
+        expert: {
           type: 'object',
           properties: {
             '@id': {
@@ -759,21 +892,23 @@ const openapi = OpenAPI(
 );
 
 openapi.response(
-  'Grant',
+  'not_found',
   {
-    "description": "Grant",
-    "content": {
-      "application/json": {
-        "schema": openapi.schema('Grant')
-      }
-    }
+    "description": "Resource not found"
   }
 );
 
 openapi.response(
-  'not_found',
+  'missing_id',
   {
-    "description": "Resource not found"
+    "description": "Request needs id"
+  }
+);
+
+openapi.response(
+  'forbidden',
+  {
+    "description": "Request is forbidden"
   }
 );
 
@@ -783,7 +918,7 @@ openapi.response(
     "description": "The expert",
     "content": {
       "application/json": {
-        "schema": openapi.schema('Expert')
+        "schema": openapi.schema('expert')
       }
     }
   }
@@ -876,11 +1011,12 @@ openapi.response(
 
 // export this middleware functions
 module.exports = {
-//  browse_endpoint,
+  browse_endpoint,
   convertIds,
   fetchExpertId,
   has_access,
   is_user,
+  item_endpoint,
   json_only,
   openapi,
   schema_error,

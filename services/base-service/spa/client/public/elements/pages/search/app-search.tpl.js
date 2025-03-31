@@ -379,7 +379,8 @@ return html`
         @subfilter-change="${this._onSubFilterChange}"
         .searchTerm="${this.searchTerm}"
         .currentPage="${this.currentPage}"
-        .resultsPerPage="${this.resultsPerPage}">
+        .resultsPerPage="${this.resultsPerPage}"
+        .globalAggregations="${this.globalAggregations}">
       </category-filter-controller>
 
       <hr class="search-seperator" ?hidden="${!this.showOpenTo}">
@@ -438,7 +439,8 @@ return html`
             .mobile="${true}"
             .searchTerm="${this.searchTerm}"
             .currentPage="${this.currentPage}"
-            .resultsPerPage="${this.resultsPerPage}">
+            .resultsPerPage="${this.resultsPerPage}"
+            .globalAggregations="${this.globalAggregations}">
           </category-filter-controller>
 
           <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
@@ -479,7 +481,7 @@ return html`
       </div>
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
-        <div class="download" ?hidden="${this.type !== 'expert'}">
+        <div class="download">
           <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
         </div>
       </div>
@@ -488,14 +490,14 @@ return html`
         <div class="search-heading">
           <div class="select-page-size">
             <select name="page-size" id="page-size" @change="${this._onPageSizeChange}">
-              <option value="25" ?selected="${this.resultsPerPage === 25}">25</option>
-              <option value="50" ?selected="${this.resultsPerPage === 50}">50</option>
-              <option value="100" ?selected="${this.resultsPerPage === 100}">100</option>
+              <option value="25" .selected="${this.resultsPerPage === 25}">25</option>
+              <option value="50" .selected="${this.resultsPerPage === 50}">50</option>
+              <option value="100" .selected="${this.resultsPerPage === 100}">100</option>
             </select>
 
             <span>items per page</span>
           </div>
-          <div class="select-all" ?hidden="${this.type !== 'expert'}">
+          <div class="select-all">
             <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
             <label for="select-all">Select All</label>
           </div>
@@ -509,8 +511,8 @@ return html`
               search-result="${result.position}"
               .result=${result}
               result-type="${result.resultType}"
-              ?hide-checkbox="${this.type !== 'expert'}"
-              @filter-by-grants="${this._filterByGrants}">
+              @filter-by-grants="${this._filterByGrants}"
+              @filter-by-works="${this._filterByWorks}">
             </app-search-result-row>
             <hr class="search-seperator">
           `

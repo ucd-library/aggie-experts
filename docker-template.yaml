@@ -7,8 +7,10 @@ services:
       - &DEV_MOUNT_MODELS ./services/base-service/models:/fin/services/models
       - &DEV_MOUNT_MODELS_API ./experts-api:/experts-api
     ports:
-      - ${HOST_PORT:-${D[port]}}:3001
+      - ${HOST_PORT:-${D[port]}}:3000
     environment:
+      - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
+      - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
       - FIN_URL=${FIN_URL:-${D[host]}}
       - HOST_PORT=${HOST_PORT:-${D[port]}}
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
@@ -66,7 +68,7 @@ services:
     #  - CATALINA_OPTS=-Dfcrepo.log.auth=DEBUG
     #  -Dfcrepo.config.file=/etc/fin/fcrepo.properties
     environment:
-      - GCS=${GCS_BUCKET:-${D[gcs_bucket]}}
+      - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
       - CATALINA_OPTS=-Dfcrepo.config.file=/etc/fin/fcrepo.properties -Djava.awt.headless=true -Dfile.encoding=UTF-8 -Xms2G -Xmx6G -XX:+UseG1GC -XX:+DisableExplicitGC
     volumes:
@@ -95,8 +97,6 @@ services:
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
       - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
       - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
-      - GCS=${GCS:-${D[gcs_bucket]}}
-      - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
     volumes:
       - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
       - *SERVICE_ACCOUNT
@@ -152,6 +152,9 @@ services:
       - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
       - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
       - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
     volumes:
       - *SERVICE_ACCOUNT
       - *DEV_MOUNT_MODELS
@@ -166,7 +169,7 @@ services:
   gcs:
     image: *BASE
     environment:
-      - GCS=${GCS_BUCKET:-${D[gcs_bucket]}}
+      - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
@@ -199,6 +202,12 @@ services:
         hard: -1
     volumes:
       - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ['CMD-SHELL', 'if curl -s -o /dev/null -w "%{http_code}" http://localhost:9200/_ingest/pipeline/aggie-experts-pipeline | grep -q "200"; then exit 0; else curl -X PUT -H "Content-Type: application/json" -d ''{"description":"Adds a modified-date field","processors":[{"set":{"field":"modified-date","value":"{{_ingest.timestamp}}"}}]}'' http://localhost:9200/_ingest/pipeline/aggie-experts-pipeline || exit 1; fi']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     depends_on:
       - fcrepo
