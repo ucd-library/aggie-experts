@@ -30,6 +30,10 @@ export default class AppHome extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
+    this.AppStateModel.set({ resetSearch: true });
+    let searchBox = this.shadowRoot.querySelector('#searchBox');
+    if( searchBox ) searchBox.searchTerm = '';
+
     if( e.detail?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.trim()));
   }
 

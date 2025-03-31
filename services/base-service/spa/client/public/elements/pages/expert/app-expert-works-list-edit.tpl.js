@@ -26,7 +26,7 @@ return html`
 
     .hero-main {
       background: url('/images/watercolor-sage-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
+      background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
       min-height: 12.25rem;
@@ -99,15 +99,6 @@ return html`
 
     .work-details .dot {
       padding: 0 0.25rem;
-      color: var(--black, #000);
-      font-family: Proxima Nova;
-      font-size: 1.1875rem;
-      font-style: normal;
-      font-weight: 700;
-      line-height: 1.92125rem;
-      text-transform: uppercase;
-      position: relative;
-      bottom: 0.25rem;
     }
 
     ucd-theme-pagination {
@@ -301,6 +292,15 @@ return html`
       word-wrap: break-word;
     }
 
+    .works-results .work h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .works-results .work h5 a {
+      text-decoration: none;
+    }
+
     /* styles for collapsed dropdown */
     .custom-collapse {
       --collapse-background-color: #FFFBED;
@@ -349,16 +349,8 @@ return html`
               <div style="display: flex; justify-content: space-between; margin: ${index === 0 ? '0' : '1.19rem'} 0 ${index+1 === this.worksWithErrors.length ? '0' : '1.19rem'};">
                 <div class="work">
                   <h5 data-id=${work['@id']}>${work.issued.split('-')?.[0]}
-                    <span style="padding: 0 0.25rem;
-                      color: black;
-                      font-size: 1.1875rem;
-                      font-style: normal;
-                      font-weight: 700;
-                      line-height: 1.92125rem;
-                      text-transform: uppercase;
-                      position: relative;
-                      bottom: 0.25rem;"
-                    class="dot">.</span> ${work.title}</h5>
+                    <span style="padding: 0 0.25rem;"
+                    class="dot">•</span> ${work.title}</h5>
                   <p style="margin-bottom: 0;">Error: Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>
                 </div>
               </div>
@@ -383,27 +375,27 @@ return html`
         (cite, index) => html`
           <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h2>
           <hr class="work-seperator">
-          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite.relatedBy?.['is-visible'] ? 'not-visible' : ''}">
+          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite.relatedBy?.[0]?.['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon ?hidden="${!cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${!cite.relatedBy?.[0]?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-work" data-text="Show work">
-                  <ucdlib-icon ?hidden="${cite.relatedBy?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon ?hidden="${cite.relatedBy?.[0]?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
               <span style="position: relative;">
                 <span class="tooltip reject-work" data-text="Reject work">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
             </div>
             <div class="work">
-            <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
+              <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
               </div>
             </div>

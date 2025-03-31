@@ -159,14 +159,6 @@
       "@id":"vivo:relatedBy"
     },
     "relates": { "@id":"vivo:relates", "@type":"@id" },
-    "relatesX": { "@id":"vivo:relatesX",
-                  "@type":"@id",
-                 "@context":{
-                   "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
-                   "relatedBy":{"@id":"vivo:relatedBy","@type":"@id"},
-                   "name":{"@id":"rdfs:label"}
-                 }
-               },
     "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
     "ResearcherRole":{"@id":"vivo:ResearcherRole"},
     "researchInterests":{"@id":"ucdlib:researchInterests"},

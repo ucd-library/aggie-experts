@@ -23,7 +23,7 @@ return html`
 
     .hero-main {
       background: url('/images/watercolor-sage-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
+      background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
       min-height: 12.25rem;
@@ -86,21 +86,21 @@ return html`
 
     .work-details .dot {
       padding: 0 0.25rem;
-      color: var(--black, #000);
-      font-family: Proxima Nova;
-      font-size: 1.1875rem;
-      font-style: normal;
-      font-weight: 700;
-      line-height: 1.92125rem;
-      text-transform: uppercase;
-      position: relative;
-      bottom: 0.25rem;
     }
 
     .work-item ucdlib-icon {
       fill: var(--color-sage);
       margin-top: 0.5rem;
       padding-right: 1rem;
+    }
+
+    .work-item .work h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+    }
+
+    .work-item .work h5 a {
+      text-decoration: none;
     }
 
     ucd-theme-pagination {
@@ -144,10 +144,10 @@ return html`
         <div class="work-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
           <div class="work">
-            <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
+            <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
             <div class="work-details">
               <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
-              <span class="dot">.</span>
+              <span class="dot">•</span>
               ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
             </div>
           </div>

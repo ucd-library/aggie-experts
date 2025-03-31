@@ -1,0 +1,44 @@
+  {
+  "id": "name",
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "term": {
+                "name.first": "{{p}}"
+              }
+            }
+          ],
+          "filter": {
+            "bool":{
+              "must": [
+                { "exists": { "field": "is-visible" }},
+                { "term" : {"is-visible": true } }
+              ]
+            }
+          }
+        }
+      },
+      "_source": [
+        "@id",
+        "@type",
+        "is-visible",
+        "name"
+      ],
+      "sort": {
+        "name.kw" : {
+          "mode" :  "max",
+          "order" : "asc"
+        }
+      },
+      "from": "{{from}}{{^from}}0{{/from}}",
+      "size": "{{size}}{{^size}}25{{/size}}"
+    },
+    "params": {
+      "p": "A"
+    }
+  }
+}

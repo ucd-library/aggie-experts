@@ -1,10 +1,11 @@
 ARG TAG
 ARG ORG
-ARG FIN_TAG
-ARG FIN_ORG
+ARG FUSEKI_IMAGE
+ARG EXPERTS_API_IMAGE
+ARG FIN_SERVER_IMAGE
 
 # Build sqlcl, tarql seperately, but use FUSEKI as base image
-FROM $ORG/fuseki:$TAG AS more
+FROM $FUSEKI_IMAGE AS more
 
 #The Oracle SQL developer CLI.  This is a java tool that provides
 #a command-line interface to Oracle Services.
@@ -39,13 +40,13 @@ RUN set -x ; mkdir -p /tmp/builder && \
 
 
 # Experts API is shared
-FROM $ORG/experts-api:$TAG AS api
+FROM $EXPERTS_API_IMAGE AS api
 
 # fin-service is also shared
-FROM $FIN_ORG/fin-base-service:$FIN_TAG AS fin-base-service
+FROM ${FIN_SERVER_IMAGE} AS fin-base-service
 
 # Now build from fuseki
-FROM $ORG/fuseki:$TAG
+FROM $FUSEKI_IMAGE
 
 USER root
 
@@ -112,11 +113,8 @@ COPY experts-client ${AE_CLIENT}
 #RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && yarn global add simple-copy typescript  && yarn link @ucd-lib/experts-api && yarn install
 RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && npm link @ucd-lib/experts-api && npm install -g
 
-# Setup a place to hold the Makefile data
-RUN mkdir /usr/local/lib/harvest
-COPY harvest /usr/local/lib/harvest
-
 # Add startup file
+COPY /startup.mk /
 COPY /harvest-entrypoint.sh /
 
 # Add sqlcl and tarql to bin

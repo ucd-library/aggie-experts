@@ -1,5 +1,6 @@
 {
   "index.max_inner_result_window": 1000,
+  "index.default_pipeline": "aggie-experts-pipeline",
   "analysis" : {
     "char_filter": {
       "doi_to_url": {
@@ -55,6 +56,26 @@
         "type": "pattern_replace",
         "pattern": "^(The|A|An)\\s+",
         "replacement": ""
+      },
+      "leading_space_filter": {
+        "type": "pattern_replace",
+        "pattern": "^\\s+",
+        "replacement": ""
+      },
+      "truncate_filter": {
+        "type": "pattern_replace",
+        "pattern": "^(.{1,128}).*",
+        "replacement": "$1"
+      },
+      "first_letter_filter": {
+        "type": "pattern_replace",
+        "pattern": "^(.).*",
+        "replacement": "$1"
+      },
+      "non_letter_filter": {
+        "type": "pattern_replace",
+        "pattern": "^(?s)(?i)([^a-z])",
+        "replacement": "other"
       }
     },
     "filter": {
@@ -77,11 +98,6 @@
         "type": "pattern_replace",
         "pattern": "(/|doi:|https://doi.org/)?(10\\.\\d{4,})",
         "replacement": "doi:$2"
-      },
-      "article_filter": {
-        "type": "pattern_replace",
-        "pattern": "^(The|A|An)\\s+",
-        "replacement": ""
       }
     },
     "normalizer" : {
@@ -101,10 +117,25 @@
           "asciifolding"
         ]
       },
-      "title_prefix_analyzer": {
+      "starts_with": {
         "type": "custom",
         "char_filter": [
-          "article_filter"
+          "leading_space_filter",
+          "article_filter",
+          "first_letter_filter",
+          "non_letter_filter"
+        ],
+        "filter": [
+          "lowercase",
+          "asciifolding"
+        ]
+      },
+      "title_start": {
+        "type": "custom",
+        "char_filter": [
+          "leading_space_filter",
+          "article_filter",
+          "truncate_filter"
         ],
         "filter": [
           "lowercase",
@@ -117,8 +148,9 @@
         "type": "custom",
         "tokenizer": "uax_url_email",
         "char_filter": [
-          "text_mapper","doi_to_url","orcid_to_url",
-          "mailto_to_email","ark_to_n2t","urn_to_n2t"
+          "leading_space_filter","text_mapper","doi_to_url","orcid_to_url",
+          "mailto_to_email","ark_to_n2t","urn_to_n2t",
+          "article_filter"
         ],
         "filter": [
           "email_to_mailto","xxx_to_doi","xxx_to_orcid", "n2t_to_id",
@@ -127,19 +159,18 @@
           "asciifolding"
         ]
       },
-      "title_sort": {
+      "title": {
         "type": "custom",
         "tokenizer": "uax_url_email",
         "char_filter": [
-          "text_mapper","doi_to_url","orcid_to_url",
+          "leading_space_filter","text_mapper","doi_to_url","orcid_to_url",
           "mailto_to_email","ark_to_n2t","urn_to_n2t"
         ],
         "filter": [
           "email_to_mailto","xxx_to_doi","xxx_to_orcid", "n2t_to_id",
           "lowercase",
           "stop",
-          "asciifolding",
-          "article_filter"
+          "asciifolding"
         ]
       },
       "autocomplete": {

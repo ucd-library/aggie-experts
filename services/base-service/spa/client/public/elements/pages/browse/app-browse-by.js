@@ -8,12 +8,15 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.
 import '../../components/ucdlib-browse-az.js';
 import '../../components/search-result-row.js';
 
+import utils from '../../../lib/utils/index.js';
+
 export default class AppBrowseBy extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
   static get properties() {
     return {
-      id : { type : String },
+      browseType : { type : String, attribute : 'browse-type' },
+      letter : { type : String },
       displayedResults : { type : Array },
       resultsPerPage  : { type : Number },
       currentPage : { type : Number },
@@ -26,7 +29,8 @@ export default class AppBrowseBy extends Mixin(LitElement)
     super();
     this.render = render.bind(this);
 
-    this.id = '';
+    this.browseType = '';
+    this.letter = '';
     this.displayedResults = [];
     this.resultsPerPage = 25;
     this.currentPage = 1;
@@ -60,19 +64,26 @@ export default class AppBrowseBy extends Mixin(LitElement)
    */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'browse' ) return;
-    if( e.location.path.length < 3 ) {
-      this.AppStateModel.setLocation('/browse/expert/a');
-      return;
-    }
 
-    this.id = e.location.path[2];
+    this.browseType = e.location.path[1];
+    this.letter = e.location.path[2];
+
+    this.displayedResults = [];
+
     let page = e.location.path[3];
     let resultsPerPage = e.location.path[4];
 
-    if( this.id ) {
-      this.currentPage = parseInt(page) ? page : 1;
+    if( this.letter ) {
+      this.currentPage = !isNaN(page) ? parseInt(page) : 1;
       this.resultsPerPage = parseInt(resultsPerPage) ? resultsPerPage : 25;
-      this._onBrowseExpertsUpdate(await this.BrowseByModel.browseExperts(this.id, this.currentPage, this.resultsPerPage));
+
+      if( this.browseType === 'expert' ) {
+        this._onBrowseExpertsUpdate(await this.BrowseByModel.browseBy('expert', this.letter, this.currentPage, this.resultsPerPage));
+      } else if( this.browseType === 'grant' ) {
+        this._onBrowseGrantsUpdate(await this.BrowseByModel.browseBy('grant', this.letter, this.currentPage, this.resultsPerPage));
+      } else if( this.browseType === 'work' ) {
+        this._onBrowseWorksUpdate(await this.BrowseByModel.browseBy('work', this.letter, this.currentPage, this.resultsPerPage));
+      }
     }
   }
 
@@ -90,23 +101,99 @@ export default class AppBrowseBy extends Mixin(LitElement)
       return;
     }
 
+    this._buildResults(e.payload?.hits, e.payload?.total, '', 'expert');
+  }
+
+  /**
+   * @method _onBrowseGrantsUpdate
+   * @description bound to BrowseByModel browse-grants-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
+  _onBrowseGrantsUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+    if( !e.payload?.hits?.length ) {
+      this.displayedResults = [];
+      return;
+    }
+
+    this._buildResults(e.payload?.hits, e.payload?.total, 'grant/', 'grant');
+  }
+
+  /**
+   * @method _onBrowseWorksUpdate
+   * @description bound to BrowseByModel browse-works-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
+  _onBrowseWorksUpdate(e) {
+    if( e.state !== 'loaded' ) return;
+    if( !e.payload?.hits?.length ) {
+      this.displayedResults = [];
+      return;
+    }
+
+    this._buildResults(e.payload?.hits, e.payload?.total, 'work/', 'work');
+  }
+
+  /**
+   * @method _buildResults
+   * @description build displayedResults from api response data
+   *
+   * @param {Array} hits api response data
+   * @param {Number} total total number of results
+   * @param {String} pagePrefix to prepend to the id for links
+   * @param {String} resultType type of result to build, defaults to 'expert'
+   */
+  _buildResults(hits=[], total=0, pagePrefix='', resultType='expert') {
     // parse hits
-    this.displayedResults = (e.payload?.hits || []).map((r, index) => {
+    this.displayedResults = hits.map((r, index) => {
       let id = r['@id'];
       if( Array.isArray(r.name) ) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
-      let subtitle = r.name?.split('§')?.pop()?.trim();
-      if( name === subtitle ) subtitle = '';
+      let subtitle;
+      if( resultType === 'expert' ) {
+        subtitle = r.name?.split('§')?.pop()?.trim();
+        if( name === subtitle ) subtitle = '';
+      } else if( resultType === 'grant' ) {
+        subtitle = ((r.name?.split('§') || [])[1] || '').trim();
+        let [status, dateRange, pi] = subtitle.split('•');
+
+        subtitle = 'Grant';
+        if( status ) subtitle += ' <span class="dot-separator">•</span>  ' + status.trim();
+        if( dateRange ) subtitle += ' <span class="dot-separator">•</span>  ' + dateRange.trim();
+        if( pi ) subtitle += ' <span class="dot-separator">•</span> PI:  ' + pi.trim();
+      } else if( resultType === 'work' ) {
+        subtitle = '';
+        // parse work type + date + authors from subtitle
+        // ie '“A Chinaman’s Chance” in Court: Asian Pacific Americans and Racial Rules of Evidence §  • article-journal • 2013-12-01 • Chin, G. § UC Irvine Law Review • 2327-4514 § '
+        let subtitleParts = ((r.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
+        if( subtitleParts.length ) {
+          let type = subtitleParts[0]?.trim() || '';
+          if( type ) subtitle += utils.getCitationType(type) + ' <span class="dot-separator">•</span> ';
+
+          let date = subtitleParts[1]?.trim() || '';
+          if( date ) {
+            let [ year, month, day ] = date.split?.('-');
+            subtitle += utils.formatDate({ year }) + ' <span class="dot-separator">•</span> ';
+          }
+
+          let authors = subtitleParts[2]?.trim() || '';
+          if( authors ) subtitle += authors;
+        }
+      }
 
       return {
         position: index+1,
-        id,
+        id: pagePrefix+id,
         name,
         subtitle
       }
     });
 
-    this.totalResultsCount = e.payload.total;
+    this.totalResultsCount = total;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
   }
 
@@ -119,12 +206,18 @@ export default class AppBrowseBy extends Mixin(LitElement)
   _onPaginationChange(e) {
     this.currentPage = e.detail.page;
 
-    let path = '/browse/expert/' + this.id;
+    let path = `/browse/${this.browseType}/${this.letter}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
     if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
+
     this.AppStateModel.setLocation(path);
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
 }
