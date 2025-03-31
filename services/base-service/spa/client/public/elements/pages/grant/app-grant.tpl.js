@@ -20,8 +20,8 @@ export function styles() {
 
     .hero-main {
       background: url('/images/watercolor-thiebaud-icing-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
-      background-color: #F2FAF6;
+      background-size: cover;
+      background-color: #FBE3F3;
       width: 100%;
       min-height: 12.25rem;
     }
@@ -201,11 +201,21 @@ export function styles() {
       padding: 5px 8px;
     }
 
+    .hero-text .status.active {
+      background-color: var(--color-farmers-market);
+    }
+
     .hero-text .heading--highlight {
       margin-bottom: 1.5rem;
     }
 
     @media (max-width: 992px) {
+      .hero-text {
+        padding-left: 0;
+        padding-right: 0;
+        width: 90%;
+        margin: auto;
+      }
       .main-content {
           width: 90%;
       }
@@ -226,16 +236,16 @@ return html`
         </div>
         <h1>${this.grantName}</h1>
         <h3 class="heading--highlight">${this.startDate} – ${this.endDate}</h3>
-        <span class="status">${this.completed ? 'Complete' : 'Active'}</span>
+        <span class="status${!this.completed ? ' active' : ''}">${this.completed ? 'Complete' : 'Active'}</span>
       </div>
     </div>
 
     <div class="main-content">
-      <div class="grants">
+      <div class="grants" ?hidden="${!this.showAboutSection}">
         <ucdlib-icon class="file-invoice" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
         <h2>About the Grant</h2>
       </div>
-      <hr class="about seperator">
+      <hr class="about seperator" ?hidden="${!this.showAboutSection}">
 
       <div ?hidden="${!this.awardedBy}" class="awarded-by">
         <h3 class="heading--highlight">Awarded by</h3>
@@ -257,7 +267,7 @@ return html`
         <p>${this.purpose}</p>
       </div>
 
-      <div class="contributors-section">
+      <div class="contributors-section" ?hidden="${!this.showContributorsSection}">
         <div class="grants">
           <ucdlib-icon class="contributors" icon="ucdlib-experts:fa-people-group"></ucdlib-icon>
           <h2>Known Contributors</h2>

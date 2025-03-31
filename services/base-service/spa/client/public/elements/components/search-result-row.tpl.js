@@ -1,4 +1,5 @@
 import { html } from "lit";
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 export default function render() {
   return html`
@@ -14,19 +15,32 @@ export default function render() {
       .search-result-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
       }
 
       .search-result-title {
         display: flex;
-        align-items: center;
+        align-items: flex-start
       }
 
       .search-result-title ucdlib-icon {
+        padding-top: .2rem;
+      }
+
+      .search-result-title ucdlib-icon.expert {
         fill: var(--color-aggie-gold);
       }
+
+      .search-result-title ucdlib-icon.grant {
+        fill: var(--color-thiebaud-icing);
+      }
+
+      .search-result-title ucdlib-icon.work {
+        fill: var(--color-sage);
+      }
+
       .search-result-title h4 {
-        margin: 0 0.62rem;
+        margin: 0 0.62rem 0.5rem;
         color: var(--ucd-blue-80, #13639E);
         font-size: 1.43375rem;
         font-style: normal;
@@ -61,6 +75,10 @@ export default function render() {
         padding-top: 0.4rem;
       }
 
+      .search-result-matches a {
+        color: var(--color-aggie-blue-80);
+      }
+
       .search-matches {
         padding-right: .25rem;
       }
@@ -82,19 +100,21 @@ export default function render() {
     <div class="search-result">
       <div class="search-result-header">
         <div class="search-result-title">
-          <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
-          <h4><a href="/${this.result.id}">${this.result.name || 'Lastname, Firstname'}</a></h4>
+          <ucdlib-icon class="expert" ?hidden="${this.resultType !== 'expert'}" icon="ucdlib-experts:fa-user"></ucdlib-icon>
+          <ucdlib-icon class="grant" ?hidden="${this.resultType !== 'grant'}" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
+          <ucdlib-icon class="work" ?hidden="${this.resultType !== 'work'}" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
+          <h4><a href="/${this.result.id}">${unsafeHTML(this.result.name) || 'Lastname, Firstname'}</a></h4>
         </div>
         <div class="search-result-download" ?hidden="${this.hideCheckbox}">
           <input type="checkbox" id="select-${this.result.id}" name="select-${this.result.id}" value="select-${this.result.id}">
         </div>
       </div>
-      <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${this.result.subtitle}</div>
-      <div class="search-result-matches" ?hidden="${this.hideSearchMatches}">
-        <span class="search-matches">Search matches:</span>
-          <span>${this.result.numberOfGrants} grants</span>
-          <span class="dot-separator">.</span>
-          <span>${this.result.numberOfWorks} works</span>
+      <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${unsafeHTML(this.result.subtitle)}</div>
+      <div class="search-result-matches" ?hidden="${this.hideSearchMatches || this.resultType !== 'expert'}">
+        <span ?hidden="${this.result.numberOfGrants === 0 && this.result.numberOfWorks === 0}" class="search-matches">Search matches:</span>
+          <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grant${this.result.numberOfGrants > 1 ? 's' : ''}</a></span>
+          <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
+          <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
       </div>
     </div>
   `;

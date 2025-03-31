@@ -18,13 +18,23 @@ assignees: ''
 - [ ] Confirm works can be downloaded from the profile
 - [ ] Confirm grants can be downloaded from the profile
 - [ ] Navigate to their Edit Works; review citations
-- [ ] Download a signel work
+- [ ] Download a single work
 - [ ] Change visibility of a work and confirm change in Elements
 - [ ] Reverse visibility through AE UI
 - [ ] Navigate to their Edit grants; review citations
 - [ ] Download a single grant
 - [ ] Change visibility of a grant and confirm change in Elements
 - [ ] Reverse visibility through AE UI
+- [ ] Search for avian flu. Confirm that searches have "search matches: # grants.
+- [ ] Test download on:
+      - [ ] All Results
+      - [ ] Experts
+      - [ ] Grants
+      - [ ] Works (Currently N/A)
+- [ ] Under Experts check and uncheck Availability labels. Note that the number of experts changes appropriately.
+- [ ] Test download
+- [ ] Click on the # grant for one of the experts. A filter with the name should appear, and only those grants should be listed
+- [ ] Check download
 
 
 ### More extensive testing

@@ -1,6 +1,9 @@
 {
   "dynamic" : false,
   "properties" : {
+    "modified-date": {
+        "type": "date"
+    },
     "@id" : {
       "type" : "keyword"
     },
@@ -8,13 +11,32 @@
       "type" : "boolean"
     },
     "hasAvailability": {
+      "properties" : {
+        "prefLabel" : {
+          "type": "keyword",
+          "normalizer": "identifier",
+          "ignore_above": 128
+        }
+      }
+    },
+    "@type" : {
+      "type" : "keyword",
+      "normalizer": "lowercase_ascii",
+      "ignore_above": 128
+    },
+    "type" : {
+      "type" : "keyword",
+      "normalizer": "lowercase_ascii",
+      "ignore_above": 128
+    },
+    "status": {
       "type": "keyword",
-      "normalizer": "identifier",
+      "normalizer": "lowercase_ascii",
       "ignore_above": 128
     },
     "name" : {
       "type" : "text",
-      "analyzer" : "title_sort",
+      "analyzer" : "title",
       "index_prefixes" : {
         "min_chars" : 1,
         "max_chars" : 7
@@ -22,10 +44,16 @@
       "fields" : {
         "kw" : {
           "type" : "keyword",
-          "normalizer" : "title_prefix_analyzer",
-          "ignore_above" : 256
+          "normalizer" : "title_start"
+        },
+        "first" : {
+          "type" : "keyword",
+          "normalizer" : "starts_with"
         }
       }
+    },
+    "lastmodified": {
+      "type": "date"
     },
     "@graph": {
       "type": "nested",
@@ -43,6 +71,7 @@
         "is-visible" : { "type" : "boolean" },
         "identifier" : {
           "type" : "keyword",
+
           "normalizer" : "identifier",
           "ignore_above": 128
         },
@@ -185,9 +214,6 @@
         "publisher" : {
           "type" : "text",
           "analyzer" : "default"
-        },
-        "issued" : {
-          "type" : "date"
         },
         "title" : {
           "type" : "text",

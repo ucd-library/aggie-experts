@@ -6,7 +6,7 @@ set -e
 
 TOKEN=$(LOG_LEVEL=error node /service/getToken.js)
 
-FCREPO_HOST=http://gateway:3001 \
+FCREPO_HOST=http://gateway:3000 \
 FCREPO_JWT=$TOKEN \
   fin io import \
   --import-from-root \

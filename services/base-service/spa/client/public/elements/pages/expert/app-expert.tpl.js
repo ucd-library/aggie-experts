@@ -25,7 +25,7 @@ return html`
 
     .hero-main {
       background: url('/images/watercolor-gold-solid.jpg') no-repeat center center;
-      background-size: 100% auto;
+      background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
       min-height: 12.25rem;
@@ -174,9 +174,18 @@ return html`
       line-height: 2rem;
     }
 
-    .roles-websites .link-row span {
-      padding: .25rem 0 .25rem 0.625rem;
-      line-height: 1.5rem;
+    .roles-websites .link-row a {
+      display: flex;
+      align-items: start;
+    }
+
+    .roles-websites .link-row ucdlib-icon {
+      margin-top: .52rem;
+      margin-right: 0.625rem;
+      min-width: 1rem;
+      min-height: 1rem;
+      width: 1rem;
+      height: 1rem;
     }
 
     .introduction {
@@ -315,15 +324,6 @@ return html`
     .grant-details .dot,
     .work-details .dot {
       padding: 0 0.25rem;
-      color: var(--black, #000);
-      font-family: Proxima Nova;
-      font-size: 1.1875rem;
-      font-style: normal;
-      font-weight: 700;
-      line-height: 1.92125rem;
-      text-transform: uppercase;
-      position: relative;
-      bottom: 0.25rem;
     }
 
     .grants-abbreviated .grants-heading .grants-edit-download ucdlib-icon,
@@ -336,12 +336,14 @@ return html`
       cursor: pointer;
     }
 
-    .grants-abbreviated .grant h5 {
+    .grants-abbreviated .grant h5,
+    .works-abbreviated .work h5 {
       color: var(--ucd-blue-80, #13639E);
       cursor: pointer;
     }
 
-    .grants-abbreviated .grant h5 a {
+    .grants-abbreviated .grant h5 a,
+    .works-abbreviated .work h5 a {
       text-decoration: none;
     }
 
@@ -602,6 +604,12 @@ return html`
     }
 
     @media (max-width: 992px) {
+      .hero-text {
+        padding-left: 0;
+        padding-right: 0;
+        width: 90%;
+        margin: auto;
+      }
       .main-content {
         width: 90%;
       }
@@ -707,7 +715,7 @@ return html`
           </a>
         </h1>
 
-        <div class="mobile-edit-availability" style="padding: 0 .3rem;">
+        <div class="mobile-edit-availability" style="padding: 0 .3rem;" ?hidden="${this.hideAvailability && !this.expertEditing}">
           Open to:
           <span ?hidden="${!this.canEdit}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem">
             <span class="tooltip edit-availability" data-text="Edit availability">
@@ -720,11 +728,11 @@ return html`
         <div class="open-to" ?hidden="${this.hideAvailability && !this.expertEditing}">
           <span class="desktop-edit-availability">Open to:</span>
           <span ?hidden="${!this.collabProjects}">Collaborative Projects</span>
-          <span class="dot" ?hidden="${!this.collabProjects || !this.commPartner}">.</span>
+          <span class="dot" ?hidden="${!this.collabProjects || !this.commPartner}">•</span>
           <span ?hidden="${!this.commPartner}">Community Partnerships</span>
-          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner) || !this.industProjects}">.</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner) || !this.industProjects}">•</span>
           <span ?hidden="${!this.industProjects}">Industry Projects</span>
-          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">.</span>
+          <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">•</span>
           <span ?hidden="${!this.mediaInterviews}">Media Interviews</span>
           <span class="desktop-edit-availability" ?hidden="${!this.canEdit}" style="position: relative; padding-left: 0">
             <span class="tooltip edit-availability" data-text="Edit availability">
@@ -823,13 +831,10 @@ return html`
             <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <!-- <div class="link-row" ?hidden="${!role.websiteUrl}">
-              <ucdlib-icon icon="ucdlib-experts:fa-network-wired"></ucdlib-icon>
-              <span><a href="${role.websiteUrl}">${role.websiteUrl}</a></span>
-            </div> -->
             <div class="link-row" ?hidden="${!role.email}">
-              <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon>
-              <span><a href="mailto:${role.email}">${role.email}</a></span>
+              <a href="mailto:${role.email}">
+                <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon> ${role.email}
+              </a>                
             </div>
           </div>
           `
@@ -860,27 +865,31 @@ return html`
             </span>
           </h3>
           <div class="link-row" ?hidden="${!this.orcId}">
-            <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon>
-            <span><a href="https://orcid.org/${this.orcId}">${this.orcId}</a></span>
+            <a href="https://orcid.org/${this.orcId}">
+              <ucdlib-icon icon="ucdlib-experts:fa-orcid"></ucdlib-icon> ${this.orcId}
+            </a>
           </div>
           ${this.scopusIds.map(
           (scopusId) => html`
             <div class="link-row" ?hidden="${!scopusId}">
-              <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon>
-              <span><a href="https://www.scopus.com/authid/detail.uri?authorId=${scopusId}">Scopus</a></span>
+              <a href="https://www.scopus.com/authid/detail.uri?authorId=${scopusId}">
+                <ucdlib-icon icon="ucdlib-experts:scopus"></ucdlib-icon> Scopus
+              </a>
             </div>
             `
           )}
           <div class="link-row" ?hidden="${!this.researcherId}">
-            <ucdlib-icon icon="ucdlib-experts:ai-clarivate"></ucdlib-icon>
-            <span><a href="https://www.webofscience.com/wos/author/record/${this.researcherId}">Clarivate</a></span>
+            <a href="https://www.webofscience.com/wos/author/record/${this.researcherId}">
+              <ucdlib-icon icon="ucdlib-experts:ai-clarivate"></ucdlib-icon> Clarivate
+            </a>
           </div>
 
           ${this.websites.map(
           (site) => html`
           <div class="link-row">
-            <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon>
-            <span><a href="${site.url}">${site.name || site.url}</a></span>
+            <a href="${site.url}">
+              <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon> ${site.name || site.url}          
+            </a>
           </div>
           `
         )}
@@ -924,9 +933,9 @@ return html`
               <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
@@ -940,9 +949,9 @@ return html`
               <h5><a href="/grant/${grant['@id']}">${unsafeHTML(grant.name)}</a></h5>
               <div class="grant-details">
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
               </div>
             </div>
@@ -989,10 +998,10 @@ return html`
           (cite) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
             <div class="work">
-              <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
+              <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
-                <span class="dot">.</span>
+                <span class="dot">•</span>
                 ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
               </div>
             </div>

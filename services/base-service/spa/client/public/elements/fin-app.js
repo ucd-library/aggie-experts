@@ -32,6 +32,7 @@ export default class FinApp extends Mixin(LitElement)
       expertNameEditing : { type : String },
       hideEdit : { type : Boolean },
       loading : { type : Boolean },
+      searchTerm : { type : String },
     }
   }
 
@@ -52,11 +53,15 @@ export default class FinApp extends Mixin(LitElement)
     this.expertNameEditing = utils.getCookie('editingExpertName');
     this.hideEdit = !utils.getCookie('editingExpertId');
     this.loading = false;
+    this.searchTerm = '';
+    this.lastPageTops = {};
 
     this.render = render.bind(this);
     this._init404();
 
     this.addEventListener('click', this.pageClick.bind(this));
+
+    window.addEventListener('popstate', this._onPopState.bind(this));
   }
 
   pageClick(e) {
@@ -115,7 +120,6 @@ export default class FinApp extends Mixin(LitElement)
       this.textQuery = "";
       this.isSearch = false;
     }
-    window.scrollTo(0, 0);
 
     this._validateLoggedInUser();
 
@@ -125,19 +129,77 @@ export default class FinApp extends Mixin(LitElement)
 
     if( this.page === page ) return;
 
+    this.lastPageTops[this.page] = window.scrollY;
+
     if ( !this.loadedPages[page] ) {
       this.page = 'loading';
       this.loadedPages[page] = this.loadPage(page);
     }
     await this.loadedPages[page];
+
     this.page = page;
 
     // this.page = page;
     this.pathInfo = e.location.pathname.split('/media')[0];
 
+    await this._updateScrollPosition(page);
+
     this.firstAppStateUpdate = false;
+    this.backButtonPressed = false;
 
     this._closeHeader();
+  }
+
+  async _updateScrollPosition(page=this.page) {
+    let selectedPage = this.shadowRoot.querySelector('ucdlib-pages')?.querySelector('#'+page);
+    if( page === 'browse' ) selectedPage = selectedPage.querySelector('app-browse-by');
+
+    // wait for content and child components to render
+    await selectedPage.updateComplete;
+    let childComponents = selectedPage.shadowRoot?.querySelectorAll('*');
+    if( childComponents ) {
+      await Promise.all(Array.from(childComponents).map(async (child) => {
+        if( child.updateComplete ) {
+          await child.updateComplete;
+        }
+      }));  
+    }
+
+    if( page === 'browse' ) {
+      let resultsComponent = selectedPage.shadowRoot?.querySelectorAll('div.browse-results');
+      if( resultsComponent ) {
+        await resultsComponent.updateComplete;
+        await Promise.all(Array.from(resultsComponent).map(async (child) => {
+          if( child.updateComplete ) {
+            await child.updateComplete;
+          }
+        }));  
+      }
+    }
+
+    // scroll to previous position when nav back
+    if( !this.backButtonPressed ) { // || ['work', 'grant', 'expert'].includes(page)) {          
+      window.scrollTo(0, 0);
+    } else {
+      window.scrollTo(0, this.lastPageTops[page]);
+    }
+  }
+
+  /**
+   * @method _onPopState
+   * @description handle browser back button pressed
+   */
+  _onPopState(e) {
+    this.backButtonPressed = true;  
+  }
+
+  /**
+   * @method _resetScroll
+   * @description reset scroll to top of page and reset the saved page top for selected page
+   */
+  _resetScroll(e) {
+    this.lastPageTops[this.page] = 0;
+    window.scrollTo(0, 0);
   }
 
   /**
@@ -163,6 +225,8 @@ export default class FinApp extends Mixin(LitElement)
       return import(/* webpackChunkName: "page-tou" */ "./pages/termsofuse/app-tou");
     } else if( page === 'expert' ) {
       return import(/* webpackChunkName: "page-expert" */ "./pages/expert/app-expert");
+    } else if( page === 'work' ) {
+      return import(/* webpackChunkName: "page-work" */ "./pages/work/app-work");
     } else if( page === 'works' ) {
       return import(/* webpackChunkName: "page-works" */ "./pages/expert/app-expert-works-list");
     } else if( page === 'works-edit' ) {
@@ -174,7 +238,7 @@ export default class FinApp extends Mixin(LitElement)
     } else if( page === 'grants-edit' ) {
       return import(/* webpackChunkName: "page-grants-edit" */ "./pages/expert/app-expert-grants-list-edit");
     }
-    console.warn('No code chunk loaded for this page');
+    this.logger.warn('No code chunk loaded for this page');
     return false;
   }
 
@@ -195,8 +259,6 @@ export default class FinApp extends Mixin(LitElement)
         quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
       }
     } else {
-      console.warn('expert ' + this.expertId + ' not found for logged in user');
-
       if( quickLinks ) {
         quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
         quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
@@ -270,7 +332,13 @@ export default class FinApp extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    if( e.detail?.searchTerm?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.searchTerm.trim()));
+    this.searchTerm = e.detail.searchTerm?.trim();
+    if( this.searchTerm ) {
+      this.AppStateModel.setLocation('/search/'+encodeURIComponent(this.searchTerm));
+      this.AppStateModel.set({ resetSearch: true });
+      this.searchTerm = '';
+    }
+
     this._closeHeader();
   }
 

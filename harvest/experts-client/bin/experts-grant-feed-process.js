@@ -4,6 +4,7 @@
    rakunkel@ucdavis.edu */
 
 import { Command } from '../lib/experts-commander.js';
+import { GoogleSecret } from '@ucd-lib/experts-api';
 import Client from 'ssh2-sftp-client';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
@@ -11,8 +12,10 @@ import fs from 'fs';
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { exit } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const gs = new GoogleSecret();
 
 const program = new Command();
 program
@@ -100,12 +103,12 @@ params.push('--log=' + logLevel);
 log.info('Parameters1:', params);
 log.info(__dirname + '/experts-grant-feed.js', params);
 const result1 = spawnSync('node', [__dirname + '/experts-grant-feed.js', ...params], { encoding: 'utf8' });
-
 log.info('Output 1:', result1.stdout);
-if (result1.error) {
-  log.error('Execution error 1:', result1.error);
+if (result1.status !== 0) {
+  console.error('Error executing experts-grant-feed.js:', result1.stderr);
+  process.exit(result1.status);
 }
-log.info('Exit code 1:', result1.status);
+log.info('Output 1:', result1.stdout);
 
 const params2 = ['--env=' + opt.env, '--xml=' + opt.xml, '--generation=' + opt.prev, '--output=' + opt.output];
 params2.push('--log=' + logLevel);
@@ -114,8 +117,9 @@ log.info('Parameters2:', params2);
 log.info(__dirname + '/experts-grant-feed.js', params2);
 const result2 = spawnSync('node', [__dirname + '/experts-grant-feed.js', ...params2], { encoding: 'utf8' });
 log.info('Output 2:', result2.stdout);
-if (result2.error) {
-  log.error('Execution error 2:', result2.error);
+if (result2.status !== 0) {
+  console.error('Error executing experts-grant-feed.js:', result2.stderr);
+  process.exit(result2.status);
 }
 log.info('Exit code 2:', result2.status);
 
@@ -126,15 +130,16 @@ log.info('Parameters2:', params3);
 log.info(__dirname + '/experts-grant-feed-delta.js', params3);
 const result3 = spawnSync('node', [__dirname + '/experts-grant-feed-delta.js', ...params3], { encoding: 'utf8' });
 log.info('Output 3:', result3.stdout);
-if (result3.error) {
-  log.error('Execution error 3:', result3.error);
+if (result3.status !== 0) {
+  console.error('Error executing experts-grant-feed-delta.js:', result2.stderr);
+  process.exit(result2.status);
 }
 log.info('Exit code 3:', result3.status);
 
 // Perform the SFTP upload
 if (opt.upload) {
   // Retrieve the SFTP password from GCS Secret Manager
-  ftpConfig.password = await opt.gs.getSecret(opt.secretpath);
+  ftpConfig.password = await gs.getSecret(opt.secretpath);
   const grantFile = opt.output + '/delta/' + opt.prefix + 'grants_metadata.csv';
   const linkFile = opt.output + '/delta/' + opt.prefix + 'grants_links.csv';
   const personFile = opt.output + '/delta/' + opt.prefix + 'grants_persons.csv';
