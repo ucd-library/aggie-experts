@@ -8,7 +8,8 @@ const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
 const model= new ExpertModel();
 
-const { openapi, schema_error, json_only, user_can_edit, is_user } = require('../middleware.js')
+const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
+const { openapi, json_only, user_can_edit, is_user } = require('../middleware/index.js')
 
 function subselect(req, res, next) {
   try {
@@ -55,6 +56,8 @@ router.route(
     }
   }
 );
+browse_endpoint(router,model);
+
 router.patch('/:expertId/availability',
   // expert_valid_path(
   //   {
@@ -79,6 +82,7 @@ router.patch('/:expertId/availability',
     }
   }
 )
+
 
 router.route(
   '/:expertId/:relationshipId'
@@ -242,33 +246,10 @@ function expert_valid_path_error(err, req, res, next) {
   })
 }
 
+item_endpoint(router,model,subselect)
+
 router.route(
   '/:expertId'
-).get(
-  is_user,
-  expert_valid_path(
-    {
-      description: "Get an expert by id",
-      responses: {
-        "200": openapi.response('Expert'),
-        "404": openapi.response('Expert_not_found')
-      }
-    }
-  ),
-  expert_valid_path_error,
-  async (req, res, next) => {
-    let expertId = `expert/${req.params.expertId}`;
-    try {
-      res.thisDoc = await model.get(expertId);
-      next();
-    } catch (e) {
-      return res.status(404).json(`${req.path} resource not found`);
-    }
-  },
-  subselect, // filter results
-  (req, res) => {
-    res.status(200).json(res.thisDoc);
-  }
 ).post(
   is_user,
   expert_valid_path(

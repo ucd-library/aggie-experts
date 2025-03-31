@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { openapi } = require('../middleware.js')
+const { openapi } = require('../middleware/index.js')
 
 //let SCHEMA=null;
 let Schema=null;
@@ -13,7 +13,7 @@ router.route(
       Schema=api.Schema;
     }
     try {
-      const version = req.params.version || '2';
+      const version = req.params.version || '';
       const context=await Schema.context('expert',version)
       res.status(200).json(context);
     } catch (e) {

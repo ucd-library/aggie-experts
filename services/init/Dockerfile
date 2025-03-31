@@ -1,6 +1,6 @@
-ARG FIN_ORG
-ARG FIN_TAG
-FROM ${FIN_ORG}/fin-init:${FIN_TAG}
+ARG FIN_INIT
+
+FROM ${FIN_INIT}
 
 RUN cd /fin/services && npm rebuild
 

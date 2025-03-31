@@ -12,8 +12,9 @@ const config = require('../config');
 class AuthorshipModel extends BaseModel {
 
   static transformed_types = [ 'Authorship' ];
+  // no updates!
   static types = [
-    "http://vivoweb.org/ontology/core#Authorship"
+  //    "http://vivoweb.org/ontology/core#Authorship"
   ];
 
   constructor(name='authorship') {
@@ -49,6 +50,8 @@ class AuthorshipModel extends BaseModel {
     let resp;
 
     logger.info({patch},`authorship.patch ${expertId}:`);
+    // This patch adds a relationship field back in, while we decide the best method
+    let rid=id.replace("ark:/87287/d7mh2m/","ark:/87287/d7mh2m/relationship/");
     if (patch.visible == null && patch.favourite == null) {
       return 400;
     }
@@ -59,14 +62,13 @@ class AuthorshipModel extends BaseModel {
 
     try {
       expert = await expertModel.client_get(expertId);
-      node = this.get_node_by_related_id(expert,id);
+      node = this.get_node_by_related_id(expert,rid);
       let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
       if (patch.objectId==null) {
         patch.objectId = node_id;
       }
     } catch(e) {
       console.error(e.message);
-      logger.info(`relatedBy[{@id${id} not found in expert ${expertId}`);
       return 404
     };
     if (patch.visible != null) {
@@ -84,22 +86,22 @@ class AuthorshipModel extends BaseModel {
       content: `
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
-          ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`<${id}> ucdlib:is-favourite ?f .`:''}
+          ${patch.visible != null ? `<${rid}> ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`<${rid}> ucdlib:is-favourite ?f .`:''}
         }
         INSERT {
-          ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`<${id}> ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.visible != null ?`<${rid}> ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`<${rid}> ucdlib:is-favourite ${patch.favourite} .`:''}
         } WHERE {
-          <${id}> ucdlib:is-visible ?v .
-          OPTIONAL { <${id}> ucdlib:is-favourite ?fav } .
+          <${rid}> ucdlib:is-visible ?v .
+          OPTIONAL { <${rid}> ucdlib:is-favourite ?fav } .
         }
       `
     };
     const api_resp = await finApi.patch(options);
     if (api_resp.last.statusCode != 204) {
-      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`grant_role.patch for ${expertId}`);
-      const error=new Error(`Failed to update grant_role ${id} for expert ${expertId}:${api_resp.last.body}`);
+      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`authorship.patch for ${expertId}`);
+      const error=new Error(`Failed to update authorship ${id} for expert ${expertId}:${api_resp.last.body}`);
       error.status=500;
       throw error;
     }
@@ -122,7 +124,8 @@ class AuthorshipModel extends BaseModel {
    * @description Update Elasticsearch with the given data.
    */
 
-  async update(transformed) {
+
+  async updateX(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     const doc = this.promote_node_to_doc(root_node);
     await this.update_or_create_main_node_doc(doc);
@@ -191,15 +194,11 @@ class AuthorshipModel extends BaseModel {
     let objectId;
     let resp;
 
-    try {
-      expert = await expertModel.client_get(expertId);
-      node = this.get_node_by_related_id(expert, id);
-      objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
-    } catch(e) {
-      console.error(e.message);
-      logger.info(`relatedBy[{@id ${id} not found in expert ${expertId}`);
-      return 404
-    };
+    let rid=id.replace("ark:/87287/d7mh2m/","ark:/87287/d7mh2m/relationship/");
+
+    expert = await expertModel.client_get(expertId);
+    node = this.get_node_by_related_id(expert, rid);
+    objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
 
     await expertModel.delete_graph_node(expertId, node);
 
@@ -212,7 +211,7 @@ class AuthorshipModel extends BaseModel {
     await finApi.delete(options);
 
     if (config.experts.cdl.authorship.propagate) {
-      let linkId=id.replace("ark:/87287/d7mh2m/relationship/","");
+      let linkId=rid.replace("ark:/87287/d7mh2m/relationship/","");
       const cdl_user = await expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
       logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
       resp = await cdl_user.reject({

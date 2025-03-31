@@ -3,6 +3,7 @@ PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX js: <http://jena.apache.org/ARQ/jsFunction#>
 PREFIX kfs: <ark:/87287/d7gt0q/schema#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
@@ -24,17 +25,15 @@ construct {
                 .
 
   ?grant a vivo:Grant,?grant_type;
-         rdfs:label ?grant_label;
-         schema:name ?grant_title;
+         schema:name ?grant_label;
          schema:identifier ?grant,?g;
+         cite:status ?status;
          vivo:totalAwardAmount ?total_award_amount;
          vivo:sponsorAwardId ?sponsor_award_id;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
          vivo:relatedBy ?RELATIONSHIP__,?labeled_only_role;
          .
-
-#  ?EXPERT__ schema:name ?user_name.
 
   ?labeled_only_role a vivo:CoPrincipalInvestigatorRole;
                            vivo:relates ?labeled_only_person,?grant;
@@ -130,36 +129,48 @@ WHERE {
                 .
       }
     }
-    ?record :native/:field ?field.
 
     OPTIONAL {
-      ?field :name "title";
-             :type "text";
-             :text ?grant_label;
-             .
-      bind(replace(?grant_label,"(?:SEE\\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\\s*-)?\\s*)*\\s*(?:SP0A\\d{6})?(..*?)(\\s+K.[0-9]{2}.[0-9]{1,2})?$","$1") as ?grant_title)
+      ?record :native/:field [ :name "title";
+                               :type "text";
+                               :text ?grant_raw_title ];
+                                     .
+      bind(replace(?grant_raw_title,"(?:SEE\\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\\s*-)?\\s*)*\\s*(?:SP0A\\d{6})?(..*?)(\\s+K.[0-9]{2}.[0-9]{1,2})?$","$1") as ?grant_title)
     }
 
     OPTIONAL {
-      ?field :name "funder-reference";
-             :type "text";
-             :text ?sponsor_award_id;
-             .
+      ?record :native/:field [ :name "funder-name";
+                               :type "text";
+                               :text ?funder_label_cap ].
+
+      ?record :native/:field [ :name "funder-reference";
+                               :type "text";
+                               :text ?sponsor_award_id ].
     }
 
     OPTIONAL {
-      ?field :name "amount";
-             :type "money";
-             :money/:field-value ?total_award_amount;
-             .
+      ?record :native/:field [ :name "amount";
+                               :type "money";
+                               :money/:field-value ?total_award_amount ];
+                                                   .
     }
 
     OPTIONAL {
-      ?field :name "c-co-pis";
-             :people/:person [ list:index(?pos ?elem) ] .
-      ?elem :last-name ?labeled_only_name_last .
+      ?record :native/:field [ :name "c-pi";
+                               :type "text";
+                               :text ?pi_name_cap ];
+                                     .
+    }
+
+    OPTIONAL {
+      ?record :native/:field [ :name "c-co-pis";
+                               :people/:person [ list:index(?pos ?elem) ]
+                             ].
+      ?elem :last-name ?labeled_only_name_last_cap .
+      bind(js:capitalizeName(?labeled_only_name_last_cap) as ?labeled_only_name_last)
       OPTIONAL {
-        ?elem :first-names ?labeled_only_name_first .
+        ?elem :first-names ?labeled_only_name_first_cap .
+        bind(js:capitalizeName(?labeled_only_name_first_cap) as ?labeled_only_name_first)
       }
       OPTIONAL {
         ?elem :initials ?labeled_only_name_initials .
@@ -176,21 +187,15 @@ WHERE {
         (ucdlib:Grant_Scholarship "Scholarships / Fellowships" )
         (ucdlib:Grant_StudentService "Student Services" )
       }
-      ?field :name "funding-type";
-             :type "text";
-             :text ?funding_type_label;
-             .
+      ?record :native/:field [ :name "funding-type";
+			       :type "text";
+          :text ?funding_type_label ];
+		.
     }
 
-    OPTIONAL {
-      ?field :name "funder-name";
-             :type "text";
-             :text ?funder_label;
-             .
-    }
 
     {
-      select ?g ?start_date ?start_date_precision ?end_date ?end_date_precision
+      select ?g ?start_date ?start_year ?start_date_precision ?end_year ?end_date ?end_date_precision
       WHERE {
         {
           select ?relationship ?grant_id ?record ?source
@@ -224,7 +229,7 @@ WHERE {
            :type "date";
            :date ?s_date;
            .
-        ?s_date :year ?syear.
+        ?s_date :year ?start_year.
 
         BIND(vivo:yearPrecision AS ?syear_p)
         OPTIONAL {
@@ -239,14 +244,14 @@ WHERE {
             BIND(vivo:yearMonthDayPrecision AS ?sday_p)
           }
         }
-        BIND(CONCAT(?syear, COALESCE(?smonth, ""), COALESCE(?sday, "")) AS ?start_date)
+        BIND(CONCAT(?start_year, COALESCE(?smonth, ""), COALESCE(?sday, "")) AS ?start_date)
         BIND(coalesce(?sday_p,?smonth_p,?syear_p) as ?start_date_precision)
 
         ?e :name "end-date";
            :type "date";
            :date ?e_date;
            .
-        ?e_date :year ?eyear.
+        ?e_date :year ?end_year.
 
         BIND(vivo:yearPrecision AS ?eyear_p)
         OPTIONAL {
@@ -261,14 +266,15 @@ WHERE {
             BIND(vivo:yearMonthDayPrecision AS ?eday_p)
           }
         }
-        BIND(CONCAT(?eyear, COALESCE(?emonth, ""), COALESCE(?eday, "")) AS ?end_date)
+        BIND(CONCAT(?end_year, COALESCE(?emonth, ""), COALESCE(?eday, "")) AS ?end_date)
         BIND(coalesce(?eday_p,?emonth_p,?eyear_p) as ?end_date_precision)
 
       }
     }
   }
 
-  bind(uri(?grant_id) as ?grant)
+  bind(uri(if(strstarts(?grant_id,"ark:"),?grant_id,concat("ark:/87287/d7mh2m/grant/",?grant_id))) as ?grant)
+
   bind(xsd:boolean(?visible_str) as ?visible)
   bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
 
@@ -309,4 +315,16 @@ WHERE {
           uri(concat(str(?grant),"#roleof_",?labeled_only_name_match)),
           ?undefined)
        as ?labeled_only_role)
+
+  bind(js:capitalizeTitle(?funder_label_cap) as ?funder_label)
+  bind(js:capitalizeName(?pi_name_cap,"\\s+"," ") as ?pi_name)
+
+  bind(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active") as ?status)
+  bind(concat(?grant_title," § ",
+              coalesce(?status,""),
+              " • ",coalesce(concat(?start_year," - ",?end_year),""),
+              " • ",coalesce(?pi_name,""),
+              " § ",
+              coalesce(?funder_label,"")," • ",
+              coalesce(?sponsor_award_id,"")) as ?grant_label)
 }

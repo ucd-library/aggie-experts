@@ -6,14 +6,15 @@ class BrowseByStore extends BaseStore {
     super();
 
     this.data = {
+      byExpertsAZ : new LruStore({name: 'browse.experts.az'}),
+      byGrantsAZ : new LruStore({name: 'browse.grants.az'}),
+      byWorksAZ : new LruStore({name: 'browse.works.az'}),
       byExpertsLastInitial : new LruStore({name: 'browse.experts'}),
-      byExpertsAZ : new LruStore({name: 'browse.experts.az'})
+      byGrantsLastInitial : new LruStore({name: 'browse.grants'}),
+      byWorksLastInitial : new LruStore({name: 'browse.works'})
     }
 
-    this.events = {
-      BROWSE_EXPERTS_UPDATE : 'browse-experts-update',
-      BROWSE_EXPERTS_AZ_UPDATE : 'browse-experts-az-update'
-    }
+    this.events = {};
   }
 
 }

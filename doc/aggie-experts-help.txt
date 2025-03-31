@@ -1,0 +1,148 @@
+NAME
+    aggie-experts - Manage Aggie Experts code development, docker images,
+    and deployment.
+
+SYNOPSIS
+    aggie-experts [-n|--dry-run] [--env=<env>] [--mount] <command> <command>
+    ...
+
+    where <env> is one of dev, clean, sandbox, gcb, test, prod; default is
+    guessed using guess-env, fails if multiple matches are possible.
+
+    where <command> is one of: build, prune, setup, config, list-mounts,
+    test_env, guess-env
+
+    lesser used <command> include: compose, env, config
+
+DESCRIPTION
+    aggie-experts manages development, build and deployment processes for
+    Aggie Experts. It tries to simplify the developers tasks based on the
+    environment choosen.
+
+GLOBAL OPTIONS
+    --env=*env*
+        Set the environment, one of dev, clean, sandbox, gcb, test, prod,
+        where dev is the default.
+
+        Developers develop their code in the test environment, verify the
+        setup in the clean environment, and then submit their pull requests.
+        The sandbox environment can deploy any commit in a space for
+        multiple reviewers.
+
+        The gcb environment uses cloud build and to build these images to
+        the aggie-experts docker repository.
+
+        The test and prod environments are for the production code. They
+        require specific tags, and deploy only from images pushed to the
+        aggie-experts repository.
+
+    --mount=*api,spa,models,init*
+        In the dev environment, you can specify which bind mounts you want
+        to use. This allows developers to work on the code without having to
+        rebuild the docker images. The default is to mount all three.
+
+        Bind mounts can lead to problems if the developer fails to run npm
+        install in the bounded mounts.
+
+    -n|--dry-run
+        Show what you would do do not really do it. Because some commands
+        require multiple access to the server, this command does not always
+        work properly.
+
+    --gcs=*bucket*
+        Specify the Google Cloud Storage bucket to use for initialization.
+        This sets the "GCS_BUCKET" parameter in the environment.
+
+    --unstaged-ok
+        Will build a "clean") environment even if there are unstaged changes
+        in the repository. This usually means files that are not tracked by
+        git.
+
+    --build-args=*'arg,arg,...'*
+        To specify additional build arguments for the cork-kube build
+        command. This can be used, for instance, to build all dependencies
+        with --build-args='--depth=ALL'
+
+    --list-mounts
+        List the bind mounts that are used in the dev environment. Used with
+        the "setup" command.
+
+    --no-env --no-service-account --no-compose
+        When running "setup" do not create the environment, service account,
+        or docker-compose.yml file, dpepending on the flag.
+
+    --cloudsdk-active-config-name=*name*
+        Specify the name of the gcloud configuration to use. This is used to
+        set the configuration for the duration of the command. Set to the
+        empty string to use the default configuration. Default is
+        "aggie-experts".
+
+    -h|--help
+        Shows the manpage for the program. The help pages are embedded in
+        the script and require the functions, "pod2usage" and "pod2text" to
+        work properly.
+
+COMMANDS
+    There are number of commands to manage the development, build and
+    deployment of Aggie Experts. The typical workflow is; develop your code
+    in the "dev" environment, verify the setup in the "clean" environment,
+    and then submit your pull requests. The "sandbox" environment can deploy
+    any commit in a space for multiple reviewers. Once the code is ready for
+    production, it is built in the "gcb" environment, and then deployed to
+    the "test" and "prod" environments.
+
+    "aggie-experts [--env=dev|clean|sandbox|gcb] build" Builds the docker
+    images. Builds to "org=localhost" images in dev,clean, and sandbox
+    environments. Cloud build in "org=gcr.io./aggie-experts" images in the
+    gcb environment.
+
+    "aggie-experts [--env=dev|clean|sandbox|test|prod] setup" Sets up the
+    ".env" and "docker-compose.yaml" files for the specified environment.
+
+    "aggie-experts [--list-mounts] [--mount=mnt,mnt,..] [--env=dev] setup"
+    When in the "dev" environment, you have the option of setting up bind
+    mounts for the "spa", "models", and "init" directories. This allows you
+    to work on the code without having to rebuild the docker images.
+
+    The --list-mounts option will list the available bind mounts.
+
+    There are some commands that are used to manage the environment, and are
+    not used in the main workflow.
+
+    "aggie-experts [--env=any] test-env" Lets the developer test their
+    environment, primarily with respect to the git branch and status.
+
+    "aggie-experts [--env=any] guess-env" Shows what environments are
+    available in the current host and git configuation. If multiple
+    environments are available, the developer must explicitly specify the
+    environment "--env=*env*".
+
+    "aggie-experts [--env=any] prune" Prunes aggie-experts images from the
+    local docker setup, based on the environment, and the git repository
+    status. This can be used to clean up the local docker environment.
+
+ADDITIONAL COMMANDS
+  guess-env
+    Guess the environment based on the hostname and git tag
+
+  test_env
+    Tests the environment, with respect to the hostname and git tag.
+
+  expand
+    Use shell expansion to expand the config.json file into the current
+    actual variables.
+
+    "aggie-experts expand"
+
+  expand_template
+    Use shell expansion to expand docker-template.yaml with defaults
+
+EXAMPLES
+  SETUP
+    To setup the full stack:
+
+    "aggie-expert --env=dev setup"
+
+AUTHOR
+    qjhart@ucdavis.edu
+
