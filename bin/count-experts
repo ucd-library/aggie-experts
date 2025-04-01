@@ -34,6 +34,6 @@ if ! opts=$(${G[shell_getopt]} -o h:j:c: --long host:,jwt:,csv: -n "count-expert
     http='http --session-read-only=dev'
     for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
       for e in $($http $host/api/expert/browse p==$i page==1 size==1000  | jq -r '.hits[]["@id"]'); do
-        $http POST $host/api/$e <<<'{"grants" : {"include" : true,"size":2000},"works" : {"include" : true,"size":10000}}' | jq -r --arg i "$i" --arg e "$e" '.name as $n | (.["@graph"] | map(select(.["@graph"]["@type"] == "Grant" or (.["@type"][]? == "Grant"))) | length ) as $grants | .["@graph"] | map(select(.["@type"] == "Work" or (.["@type"][]? == "Work"))) | { expert:$e,name:$n,grants:$grants,rank:map(select(.relatedBy | has("rank"))) | length , no_rank:map(select(.relatedBy | has("rank") | not)) | length } | [$i,.expert,.name,.rank,.no_rank,.grants] | @csv';
+        $http POST $host/api/$e <<<'{"grants" : {"include" : true,"size":2000},"works" : {"include" : true,"size":10000}}' | jq -r --arg i "$i" --arg e "$e" '.name as $n | (.["@graph"] | map(select(.["@graph"]["@type"] == "Grant" or (.["@type"][]? == "Grant"))) | length ) as $grants | .["@graph"] | map(select(.["@type"] == "Work" or (.["@type"][]? == "Work"))) | { expert:$e,name:$n,grants:$grants,rank:map(select(.relatedBy[] | has("rank"))) | length , no_rank:map(select(.relatedBy[] | has("rank") | not)) | length } | [$i,.expert,.name,.rank,.no_rank,.grants] | @csv';
   done;
 done | tee ${G[csv]}
