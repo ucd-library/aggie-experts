@@ -8,8 +8,8 @@
       "service_account":"aggie-experts-service-account"
     },
     "fin":{
-      "org":"gcr.io/ucdlib-pubreg",
-      "tag":"2.6.3"
+      "org":"us-west1-docker.pkg.dev/digital-ucdavis-edu/pub",
+      "tag":"2.11.5"
     },
     "client_error_reporting":{
       "enabled":false,
@@ -31,7 +31,8 @@
     },
     "gcs":{
       "init_bucket":"fcrepo-3",
-      "init_data_hydration":false
+      "init_data_hydration":false,
+      "subscription":"prod"
     }
   },
   "build":{
@@ -53,8 +54,8 @@
     "port":"80",
     "host":"http://localhost",
     "gcs":{
-      "bucket":"fcrepo-dev",
-      "subscription":"local-dev",
+      "init_bucket":"fcrepo-dev",
+      "subscription":"dev",
       "init_data_hydration":true
     }
   },
@@ -69,8 +70,9 @@
     "port":"80",
     "host":"http://localhost",
     "gcs":{
-      "bucket":"fcrepo-dev",
-      "init_data_hydration":true
+      "init_bucket":"fcrepo-dev",
+      "init_data_hydration":true,
+      "subscription":"dev"
     }
   },
   "sandbox":{
@@ -84,8 +86,9 @@
     "port":"10180",
     "host":"https://sandbox.experts.library.ucdavis.edu",
     "gcs":{
-      "bucket":"fcrepo-sandbox",
-      "init_data_hydration":true
+      "init_bucket":"fcrepo-sandbox",
+      "init_data_hydration":true,
+      "subscription":"sandbox"
     }
   },
   "prev":{

@@ -68,8 +68,6 @@ services:
     #  - CATALINA_OPTS=-Dfcrepo.log.auth=DEBUG
     #  -Dfcrepo.config.file=/etc/fin/fcrepo.properties
     environment:
-      - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
-      - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
       - CATALINA_OPTS=-Dfcrepo.config.file=/etc/fin/fcrepo.properties -Djava.awt.headless=true -Dfile.encoding=UTF-8 -Xms2G -Xmx6G -XX:+UseG1GC -XX:+DisableExplicitGC
     volumes:
       - fedora-data:/usr/local/tomcat/fcrepo-home/data
@@ -171,6 +169,7 @@ services:
     environment:
       - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
+      - GOOGLE_PUBSUB_SUBSCRIPTION_NAME=${GOOGLE_PUBSUB_SUBSCRIPTION_NAME:-${D[gcs_subscription]}}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}

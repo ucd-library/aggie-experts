@@ -4,6 +4,7 @@
       "bucket" : "{{GCS_INIT_BUCKET}}",
       "basePath" : "/expert",
       "direction" : "gcs-to-fcrepo",
+      "enabledDeletes" : true,
       "initDataHydration" : {{GCS_INIT_DATA_HYDRATION}}
     }]
   }
