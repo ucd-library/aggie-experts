@@ -59,11 +59,6 @@ the bounded mounts.
 Show what you would do do not really do it. Because some commands require
 multiple access to the server, this command does not always work properly.
 
-=item B<--gcs=I<bucket>>
-
-Specify the Google Cloud Storage bucket to use for initialization.  This sets
-the C<GCS_BUCKET> parameter in the environment.
-
 =item B<--unstaged-ok>
 
 Will build a C<clean>) environment even if there are unstaged changes in the
@@ -499,8 +494,8 @@ function setup() {
 
   function compose() {
     local N=${G[dry-run]};
-    local gcs
-    read gcs <<<$(G ".${G[env]}.gcs.bucket // .def.gcs.bucket | @tsv")
+#    local gcs
+#    read gcs <<<$(G "[.${G[env]}.gcs.bucket // .def.gcs.bucket] | @tsv")
 
     local yq='.'
     local env=${G[env]}
@@ -519,9 +514,9 @@ function setup() {
     done
 
     if [[ "$env" = "dev" ]]; then
-      if [[ -z "$gcs" ]]; then
-        yq+='| del(.services.gcs)'
-      fi
+#      if [[ -z "$gcs" ]]; then
+#        yq+='| del(.services.gcs)'
+#      fi
       if [[ ! "$mount" =~ "models" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS*" or alias=="DEV_MOUNT_MODELS*"))'
       fi
@@ -607,7 +602,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -625,7 +620,6 @@ function main.cmd() {
         --base) CMD[base]=$2; shift 2;;
         --cloudsdk-active-config-name) CMD[cloudsdk_active_config_name]=$2; shift 2;;
         --env) CMD[env]=$2; shift 2;;
-        --gcs) CMD[gcs]=$2; shift 2;;
         --list-mounts | -l) CMD[list-mounts]=1; shift;;
         --mount) CMD[mount]=$2; shift 2;;
         --no-test) CMD[test_env]=; shift;;

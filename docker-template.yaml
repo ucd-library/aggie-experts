@@ -169,7 +169,7 @@ services:
     environment:
       - GCS_BUCKET=${GCS_BUCKET:-${D[gcs_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
-      - GOOGLE_PUBSUB_SUBSCRIPTION_NAME=${GOOGLE_PUBSUB_SUBSCRIPTION_NAME:-${D[gcs_bucket]}}
+      - GOOGLE_PUBSUB_SUBSCRIPTION_NAME=${GCS_BUCKET:-${D[gcs_bucket]}}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}
