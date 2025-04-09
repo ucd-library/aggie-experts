@@ -30,9 +30,8 @@
       "build_args": "--use-registry=fuseki-image,fin"
     },
     "gcs":{
-      "init_bucket":"fcrepo-3",
-      "init_data_hydration":false,
-      "subscription":"prod"
+      "bucket":"fcrepo-3",
+      "init_data_hydration":false
     }
   },
   "build":{
@@ -54,8 +53,7 @@
     "port":"80",
     "host":"http://localhost",
     "gcs":{
-      "init_bucket":"fcrepo-dev",
-      "subscription":"dev",
+      "bucket":"fcrepo-dev",
       "init_data_hydration":true
     }
   },
@@ -70,9 +68,8 @@
     "port":"80",
     "host":"http://localhost",
     "gcs":{
-      "init_bucket":"fcrepo-dev",
-      "init_data_hydration":true,
-      "subscription":"dev"
+      "bucket":"fcrepo-dev",
+      "init_data_hydration":true
     }
   },
   "sandbox":{
@@ -86,9 +83,8 @@
     "port":"10180",
     "host":"https://sandbox.experts.library.ucdavis.edu",
     "gcs":{
-      "init_bucket":"fcrepo-sandbox",
-      "init_data_hydration":true,
-      "subscription":"sandbox"
+      "bucket":"fcrepo-sandbox",
+      "init_data_hydration":true
     }
   },
   "prev":{

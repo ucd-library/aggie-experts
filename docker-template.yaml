@@ -9,7 +9,7 @@ services:
     ports:
       - ${HOST_PORT:-${D[port]}}:3000
     environment:
-      - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
+      - GCS_BUCKET=${GCS_BUCKET:-${D[gcs_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
       - FIN_URL=${FIN_URL:-${D[host]}}
       - HOST_PORT=${HOST_PORT:-${D[port]}}
@@ -167,9 +167,9 @@ services:
   gcs:
     image: *BASE
     environment:
-      - GCS_INIT_BUCKET=${GCS_INIT_BUCKET:-${D[gcs_init_bucket]}}
+      - GCS_BUCKET=${GCS_BUCKET:-${D[gcs_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
-      - GOOGLE_PUBSUB_SUBSCRIPTION_NAME=${GOOGLE_PUBSUB_SUBSCRIPTION_NAME:-${D[gcs_subscription]}}
+      - GOOGLE_PUBSUB_SUBSCRIPTION_NAME=${GOOGLE_PUBSUB_SUBSCRIPTION_NAME:-${D[gcs_bucket]}}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-${D[oidc_client_id]}}
       - OIDC_BASE_URL=${OIDC_BASE_URL:-${D[oidc_base_url]}}
       - OIDC_SECRET=${OIDC_SECRET:-${D[oidc_secret]}}

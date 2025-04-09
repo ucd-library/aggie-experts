@@ -62,7 +62,7 @@ multiple access to the server, this command does not always work properly.
 =item B<--gcs=I<bucket>>
 
 Specify the Google Cloud Storage bucket to use for initialization.  This sets
-the C<GCS_INIT_BUCKET> parameter in the environment.
+the C<GCS_BUCKET> parameter in the environment.
 
 =item B<--unstaged-ok>
 
@@ -368,7 +368,7 @@ function expand_template(){
 
   read D["org"] D["fin_org"] D["fin_tag"] \
        D["host"] D["port"] \
-       D["gcs_init_bucket"] D["gcs_init_data_hydration"] D["gcs_subscription"] \
+       D["gcs_bucket"] D["gcs_init_data_hydration"] \
        D["client_env"] D["cdl_propagate_changes"] \
        D["client_error_reporting_enabled"] \
        D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
@@ -378,9 +378,8 @@ function expand_template(){
            .def.fin.tag,
            .${G[env]}.host,
            .${G[env]}.port,
-           .${G[env]}.gcs.init_bucket // .def.gcs.init_bucket,
+           .${G[env]}.gcs.bucket // .def.gcs.bucket,
            .${G[env]}.gcs.init_data_hydration // .def.gcs.init_data_hydration,
-           .${G[env]}.gcs.subscription // .def.gcs.subscription,
            .${G[env]}.client.env // .def.client.env,
            .${G[env]}.cdl.propagate_changes // .def.cdl.propagate_changes,
            .${G[env]}.client_error_reporting.enabled // .def.client_error_reporting.enabled,
@@ -501,7 +500,7 @@ function setup() {
   function compose() {
     local N=${G[dry-run]};
     local gcs
-    read gcs <<<$(G "[.${G[env]}.gcs.init_bucket] | @tsv")
+    read gcs <<<$(G ".${G[env]}.gcs.bucket // .def.gcs.bucket | @tsv")
 
     local yq='.'
     local env=${G[env]}
