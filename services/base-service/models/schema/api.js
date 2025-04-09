@@ -5,7 +5,7 @@ const { openapi } = require('../middleware/index.js')
 let Schema=null;
 
 router.route(
-  '/:version?/context.jsonld'
+  '/{.:version}/context.jsonld'
 ).get(
   async (req, res) => {
     if (Schema === null) {
