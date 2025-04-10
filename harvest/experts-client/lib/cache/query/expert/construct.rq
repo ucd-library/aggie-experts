@@ -22,7 +22,7 @@ CONSTRUCT {
           rdfs:label ?name_label;
           schema:identifier ?EXPERT__,?user,?oapolicy_ark,?default_email_uri,?orcid_uri,?scopus_uri,?researcher_uri;
           ucdlib:is-visible ?is_visible;
-          ucdlib:isHSemployee ?isHSemployee;
+          ucdlib:isHSEmployee ?isHSEmployee;
           vcard:hasName ?vcard_name;
           obo:ARG_2000028 ?pps_vcard,?odr_vcard,?oa_vcard;
           vivo:researcherId ?researcherId;
@@ -141,10 +141,10 @@ WHERE {
 #        division:1A58461A5F57EE68E0507880B221CDA4
 #      }
       #      ?user iam:ppsAssociations/iam:bouOrgOId ?health_division_code .
-      ?user iam:isHSemployee true.
+      ?user iam:isHSEmployee true.
       bind(false as ?odr_email_v)
       bind(false as ?pps_email_v)
-      bind(true as ?isHSemployee)
+      bind(true as ?isHSEmployee)
     }
     OPTIONAL {
       ?user iam:directory/iam:displayName ?dname.
