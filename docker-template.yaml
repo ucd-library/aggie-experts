@@ -23,9 +23,12 @@ services:
       - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
       - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     depends_on:
-      - fcrepo
-      - redis
-      - elasticsearch
+      fcrepo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
     restart: unless-stopped
     logging: &LOGGING
       driver: "json-file"
@@ -58,7 +61,7 @@ services:
   # Fedora Repository
   ###
   fcrepo:
-    image: ${D[fin_org]}/fin-fcrepo:${D[fin_tag]}
+    image: ${D[build_org]}/fin-fcrepo:${D[fin_tag]}
     logging: *LOGGING
     ports:
       - ${FCREPO_PORT}:8080
@@ -69,6 +72,11 @@ services:
     #  -Dfcrepo.config.file=/etc/fin/fcrepo.properties
     environment:
       - CATALINA_OPTS=-Dfcrepo.config.file=/etc/fin/fcrepo.properties -Djava.awt.headless=true -Dfile.encoding=UTF-8 -Xms2G -Xmx6G -XX:+UseG1GC -XX:+DisableExplicitGC
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/fcrepo"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
     volumes:
       - fedora-data:/usr/local/tomcat/fcrepo-home/data
       - activemq-data:/usr/local/tomcat/ActiveMQ
@@ -78,7 +86,7 @@ services:
   # Fedora Postgres Service
   ###
   postgres:
-    image: ${D[fin_org]}/fin-postgres:${D[fin_tag]}
+    image: ${D[build_org]}/fin-postgres:${D[fin_tag]}
     logging: *LOGGING
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
@@ -98,6 +106,9 @@ services:
     volumes:
       - &DEV_MOUNT_INIT_FCREPO ./services/init/fcrepo-aggie-experts:/etc/ucdlib-service-init/fcrepo-aggie-experts
       - *SERVICE_ACCOUNT
+    depends_on:
+      fcrepo:
+        condition: service_healthy
 
   redis:
     image: redis:3.2
@@ -109,7 +120,7 @@ services:
   # RabbitMQ - for messaging
   ###
   rabbitmq:
-    image: ${D[fin_org]}/fin-rabbitmq:${D[fin_tag]}
+    image: ${D[build_org]}/fin-rabbitmq:${D[fin_tag]}
     logging: *LOGGING
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
@@ -131,7 +142,8 @@ services:
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
       - APP_VERSION=${APP_VERSION:-${D[tag]}}
     depends_on:
-      - elasticsearch
+      elasticsearch:
+          condition: service_healthy
     restart: unless-stopped
 
   ###
@@ -179,7 +191,12 @@ services:
       - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
       - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
     depends_on:
-      - gateway
+      elasticsearch:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+      gateway:
+        condition: service_started
     volumes:
       - *SERVICE_ACCOUNT
     command: npm run gcs
@@ -189,7 +206,7 @@ services:
   # Search
   ###
   elasticsearch:
-    image: ${D[fin_org]}/fin-elastic-search:${D[fin_tag]}
+    image: ${D[build_org]}/fin-elastic-search:${D[fin_tag]}
     logging: *LOGGING
     environment:
       - node.name=elasticsearch
@@ -208,8 +225,6 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
-    depends_on:
-      - fcrepo
     # command: bash -c 'tail -f /dev/null'
 
   kibana:
@@ -225,7 +240,8 @@ services:
       - xpack.security.enabled=false
       - telemetry.enabled=false
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
 
   uber:
     image: *BASE
@@ -257,12 +273,13 @@ services:
       - *DEV_MOUNT_MODELS
       - *DEV_MOUNT_MODELS_API
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     command: npm run uber
   # command: bash -c 'tail -f /dev/null'
 
   pg-rest:
-    image: ${D[fin_org]}/fin-pg-rest:${D[fin_tag]}
+    image: ${D[build_org]}/fin-pg-rest:${D[fin_tag]}
     logging: *LOGGING
     volumes:
       - *SERVICE_ACCOUNT

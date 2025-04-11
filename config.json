@@ -7,9 +7,9 @@
       "client_id":"aggie-experts",
       "service_account":"aggie-experts-service-account"
     },
-    "fin":{
+    "build":{
       "org":"us-west1-docker.pkg.dev/digital-ucdavis-edu/pub",
-      "tag":"2.11.5"
+      "registry_url":"https://raw.githubusercontent.com/ucd-library/cork-build-registry/refs/heads/main/repositories/aggie-experts.json"
     },
     "client_error_reporting":{
       "enabled":false,

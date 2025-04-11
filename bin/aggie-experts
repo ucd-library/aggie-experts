@@ -97,6 +97,7 @@ require the functions, C<pod2usage> and C<pod2text> to work properly.
 # These Global Variables are the defaults values for the current setup.
 declare -g -A G=(
   [project]="aggie-experts"
+  [cloudsdk_active_config_name]='aggie-experts'
   [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../config.json"
   [jq]="."
   # Below you probably don't need to change
@@ -105,7 +106,6 @@ declare -g -A G=(
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=""
   [test_env]=1
-  [cloudsdk_active_config_name]='aggie-experts'
 );
 
 function G() {
@@ -353,15 +353,7 @@ function expand_template(){
   local sa client_id auth
   declare -g -A D
 
-  D["tag"]="$(${G[git]} describe --always --dirty)"
-
-  case ${G[env]} in
-    dev)
-      D["tag"]="dirty"
-      ;;
-  esac
-
-  read D["org"] D["fin_org"] D["fin_tag"] \
+  read D["org"] D["build_org"] D["build_registry_url"] \
        D["host"] D["port"] \
        D["gcs_bucket"] D["gcs_init_data_hydration"] \
        D["client_env"] D["cdl_propagate_changes"] \
@@ -369,8 +361,7 @@ function expand_template(){
        D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
        sa client_id auth \
        <<<$(G "[.${G[env]}.org // .def.org,
-           .def.fin.org,
-           .def.fin.tag,
+           .def.build.org, .def.build.registry_url,
            .${G[env]}.host,
            .${G[env]}.port,
            .${G[env]}.gcs.bucket // .def.gcs.bucket,
@@ -384,6 +375,19 @@ function expand_template(){
            .${G[env]}.auth.client_id // .def.auth.client_id,
            .${G[env]}.auth.server // .def.auth.server
           ] |@tsv")
+
+    # Get fin tag from build repository
+  D["tag"]="$(${G[git]} describe --always --dirty)"
+
+  case ${G[env]} in
+    dev | clean | sandbox )
+      D["tag"]="dirty"
+      D["fin_tag"]=$(curl -s "${D[build_registry_url]}" | jq -r ".builds.dev.fin")
+      ;;
+    stage | prod)
+      D["fin_tag"]=$(curl -s "${D[build_registry_url]}" | jq -r ".builds[\"${D[tag]}\"].fin")
+      ;;
+  esac
 
   #decode client_error_reporting_key_secret
   D["client_error_reporting_key"]=$(gcloud secrets versions access latest --secret=${D["client_error_reporting_key_secret"]})
@@ -602,7 +606,7 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,env:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
