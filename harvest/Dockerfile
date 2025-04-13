@@ -106,12 +106,12 @@ RUN cd ${FIN_API} && npm link #&& yarn link
 # COPY over experts-api source code
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api
 COPY --from=api ${AE_API} ${AE_API}
-RUN cd ${AE_API} && npm link #&& yarn link
+RUN cd ${AE_API} && npm link
 
 ARG AE_CLIENT=/usr/local/lib/aggie-experts/experts-client
 COPY experts-client ${AE_CLIENT}
 #RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && npm link @ucd-lib/experts-api && npm install -g
-RUN cd ${AE_CLIENT} && npm link @ucd-lib/experts-api && npm install -g
+RUN cd ${AE_CLIENT} && npm install -g && npm link @ucd-lib/experts-api
 
 # Add startup file
 COPY /startup.mk /
