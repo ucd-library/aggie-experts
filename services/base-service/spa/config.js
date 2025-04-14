@@ -32,10 +32,14 @@ config.client = {
         appName : 'aggie-experts',
         appOwner : 'digital'
       }
-    }
+    },
+    experts: {
+      is_public : (process.env.EXPERTS_IS_PUBLIC === "false") || true
+    },
   },
   env : {
     CLIENT_ENV : env,
+    EXPERTS_IS_PUBLIC: (process.env.EXPERTS_IS_PUBLIC === "false") || true,
     FIN_APP_VERSION : process.env.FIN_APP_VERSION || '',
     FIN_REPO_TAG : process.env.FIN_REPO_TAG || '',
     FIN_BRANCH_NAME : process.env.FIN_BRANCH_NAME || '',
