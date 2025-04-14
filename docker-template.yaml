@@ -109,6 +109,8 @@ services:
     depends_on:
       fcrepo:
         condition: service_healthy
+      gateway:
+        condition: service_started
 
   redis:
     image: redis:3.2
