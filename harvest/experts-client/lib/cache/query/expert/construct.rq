@@ -1,4 +1,5 @@
 PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
+PREFIX division: <ark:/87287/d7c08j/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX iam: <ark:/87287/d7c08j/schema#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
@@ -21,6 +22,7 @@ CONSTRUCT {
           rdfs:label ?name_label;
           schema:identifier ?EXPERT__,?user,?oapolicy_ark,?default_email_uri,?orcid_uri,?scopus_uri,?researcher_uri;
           ucdlib:is-visible ?is_visible;
+          ucdlib:isHSEmployee ?isHSEmployee;
           vcard:hasName ?vcard_name;
           obo:ARG_2000028 ?pps_vcard,?odr_vcard,?oa_vcard;
           vivo:researcherId ?researcherId;
@@ -131,6 +133,18 @@ WHERE {
     OPTIONAL {
       ?user iam:directory/iam:displayName/iam:nameWwwFlag "N" .
       bind(false as ?odr_is_visible)
+    }
+    OPTIONAL {
+#      VALUES ?health_division_code {
+#        division:F80B657C9EF423A0E0340003BA8A560D
+#        division:F80B657C9EEE23A0E0340003BA8A560D
+#        division:1A58461A5F57EE68E0507880B221CDA4
+#      }
+      #      ?user iam:ppsAssociations/iam:bouOrgOId ?health_division_code .
+      ?user iam:isHSEmployee true.
+      bind(false as ?odr_email_v)
+      bind(false as ?pps_email_v)
+      bind(true as ?isHSEmployee)
     }
     OPTIONAL {
       ?user iam:directory/iam:displayName ?dname.
