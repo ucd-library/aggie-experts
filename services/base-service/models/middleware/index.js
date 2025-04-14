@@ -11,7 +11,7 @@ let MIVJWKSClient=null;
 
 async function item_endpoint(router, model, subselect = (req, res, next) => next()) {
   router.route(
-    '/{.:id}'
+    '/:id?'
   ).get(
     valid_path(
       {
