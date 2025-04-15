@@ -38,6 +38,12 @@ class GrantModel extends BaseModel {
     return doc;
   }
 
+  async seo(id) {
+    let result = await this.get(id);
+    result = this.subselect(result);
+    return JSON.stringify(result);
+  }
+
   /**
    * @method subselect
    * @description return all or part of a document. If the document is not visible, throw 404

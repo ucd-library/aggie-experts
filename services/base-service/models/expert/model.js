@@ -72,6 +72,12 @@ class ExpertModel extends BaseModel {
     return s;
   }
 
+  async seo(id) {
+    let result = await this.get(id);
+    result = this.subselect(result, {expert:{include:true}, grants:{include:true}, works:{include:true}});
+    return JSON.stringify({ '@context': result['@context'], '@graph': result['@graph'] });
+  }
+
   /**
    * @method subselect
    * @description return all or part of a document, with optional subsets of works/grants when requested

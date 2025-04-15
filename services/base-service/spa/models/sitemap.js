@@ -15,7 +15,6 @@ class SitemapModel {
    */
   middleware(app) {
     let sitemap = '';
-    console.log('config in sitemap', { config })
 
     if( config.server.url.match('https://experts.ucdavis.edu') ) {
       sitemap = `Sitemap: ${config.server.url}/sitemap.xml`;

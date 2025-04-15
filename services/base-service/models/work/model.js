@@ -81,6 +81,12 @@ class WorkModel extends BaseModel {
     return doc;
   }
 
+  async seo(id) {
+    let result = await this.get(id);
+    result = this.subselect(result);
+    return JSON.stringify(result);
+  }
+
     /**
    * @method subselect
    * @description return all or part of a document.  While this only really santiizes the authorships, we maintain the name to match the expert model.
