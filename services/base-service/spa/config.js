@@ -9,8 +9,6 @@ if( process.env.APP_VERSION ) {
   clientPackageVersion = process.env.APP_VERSION;
 }
 
-console.log('EXPERTS_IS_PUBLIC', process.env.EXPERTS_IS_PUBLIC);
-
 config.client = {
   title : 'Aggie Experts',
   description : 'Aggie Experts is a research networking and expertise discovery tool for UC Davis.',
