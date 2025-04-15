@@ -32,7 +32,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// setup robots.txt
 require('./models/robots').middleware(app);
 require('./models/sitemap').middleware(app);
 

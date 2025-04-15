@@ -114,9 +114,13 @@ class SitemapModel {
     result.hits.hits.forEach(result => {
         // loop expert @graph and link to each work/grant
         let graph = result._source['@graph'] || [];
-        graph.forEach(g => {
-            this._writeResult(resp, g);
-        });
+
+        // for now we're just doing sitemaps for experts, might expand later
+        this._writeResult(resp, graph[0]);
+
+        // graph.forEach(g => {
+        //     this._writeResult(resp, g);
+        // });
         
     });
     
@@ -141,11 +145,14 @@ class SitemapModel {
         resultType = 'grant';
     }
 
-    resp.write(`<url>
-        <loc>${config.server.url}/${resultType}/${id.replace('expert/', '')}</loc>
-        <changefreq>weekly</changefreq>
-        <priority>.5</priority>
-    </url>\n`);
+    // for now we're just doing sitemaps for experts, might expand later
+    if( resultType === 'expert' ) { 
+      resp.write(`<url>
+          <loc>${config.server.url}/${resultType}/${id.replace('expert/', '')}</loc>
+          <changefreq>weekly</changefreq>
+          <priority>.5</priority>
+      </url>\n`);
+    }
   }
 
 }
