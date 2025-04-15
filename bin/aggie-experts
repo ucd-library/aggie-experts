@@ -74,11 +74,6 @@ can be used, for instance, to build all dependencies with --build-args='--depth=
 List the bind mounts that are used in the dev environment.  Used with the
 C<setup> command.
 
-=item B<--no-env> B<--no-service-account> B<--no-compose>
-
-When running C<setup> do not create the environment, service account, or
-docker-compose.yml file, dpepending on the flag.
-
 =item B<--cloudsdk-active-config-name=I<name>>
 
 Specify the name of the gcloud configuration to use.  This is used to set the
@@ -498,8 +493,6 @@ function setup() {
 
   function compose() {
     local N=${G[dry-run]};
-#    local gcs
-#    read gcs <<<$(G "[.${G[env]}.gcs.bucket // .def.gcs.bucket] | @tsv")
 
     local yq='.'
     local env=${G[env]}
@@ -508,7 +501,6 @@ function setup() {
     local template=$(expand_template)
     local root="$(${G[git]} rev-parse --show-toplevel)"
 
-    eval "$(cat .env)"
     # Delete unused PORTS
     for i in fuseki kibana fcrepo rabbitmq; do
       local p=${i^^}_PORT
@@ -517,10 +509,11 @@ function setup() {
       fi
     done
 
+    if [[ -z ${G[gcs]} ]]; then
+      yq+='| del(.services.gcs)'
+    fi
+
     if [[ "$env" = "dev" ]]; then
-#      if [[ -z "$gcs" ]]; then
-#        yq+='| del(.services.gcs)'
-#      fi
       if [[ ! "$mount" =~ "models" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS*" or alias=="DEV_MOUNT_MODELS*"))'
       fi
@@ -545,26 +538,17 @@ function setup() {
   }
   function setup_files() {
     if [[ -n $N ]]; then
-      if [[ -n ${G[setup_compose]} ]] ; then
-        echo "#===== docker-compose.yaml =====#"
-        compose
-      fi
-      if [[ -n ${G[setup_service_account]} ]] ; then
-        echo "#===== service-account =====#"
-        service_account
-      fi
+      echo "#===== docker-compose.yaml =====#"
+      compose
+      echo "#===== service-account =====#"
+      service_account
     else
-      if [[ -n ${G[setup_compose]} ]] ; then
-        >&2 echo "docker-compose.yaml"
-        compose > ${G[base]}/docker-compose.yaml
-      fi
-      if [[ -n ${G[setup_service_account]} ]] ; then
-        if [[ -f ${G[base]}/service-account.json ]]; then
-          >&2 echo "service-account.json already exists"
-        else
-          >&2 echo "service-account.json"
-          service_account > ${G[base]}/service-account.json
-        fi
+      compose > ${G[base]}/docker-compose.yaml
+      if [[ -f ${G[base]}/service-account.json ]]; then
+        >&2 echo "service-account.json already exists"
+      else
+        >&2 echo "service-account.json"
+        service_account > ${G[base]}/service-account.json
       fi
     fi
   }
@@ -606,17 +590,15 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,env:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,env:,no-gcs,list-mounts,mount:,unstaged-ok,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
 
     declare -A CMD=(
-      [setup_env]=1
-      [setup_compose]=1
-      [setup_service_account]=1
       [unstaged_ok]=
       [build_args]=
+      [gcs]=1
     )
 
     while true; do
@@ -626,10 +608,8 @@ function main.cmd() {
         --env) CMD[env]=$2; shift 2;;
         --list-mounts | -l) CMD[list-mounts]=1; shift;;
         --mount) CMD[mount]=$2; shift 2;;
+        --no-gcs) CMD[gcs]=; shift;;
         --no-test) CMD[test_env]=; shift;;
-        --no-compose) CMD[setup_compose]=; shift;;
-        --service-account) CMD[setup_service_account]=1; shift;;
-        --no-service-account) CMD[setup_service_account]=; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
         --build-args) CMD[build_args]="$2"; shift 2;;
         -h | --help) pod2text $0; exit 0;;
@@ -696,11 +676,6 @@ function main.cmd() {
 
         expand )
           expand <${G[config]}
-          exit 0
-          ;;
-
-        bar )
-          expand <docker-template.yaml
           exit 0
           ;;
 
