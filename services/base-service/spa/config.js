@@ -9,6 +9,8 @@ if( process.env.APP_VERSION ) {
   clientPackageVersion = process.env.APP_VERSION;
 }
 
+console.log('EXPERTS_IS_PUBLIC', process.env.EXPERTS_IS_PUBLIC);
+
 config.client = {
   title : 'Aggie Experts',
   description : 'Aggie Experts is a research networking and expertise discovery tool for UC Davis.',
@@ -34,12 +36,12 @@ config.client = {
       }
     },
     experts: {
-      is_public : (process.env.EXPERTS_IS_PUBLIC === "false") || true
+      is_public : ! (process.env.EXPERTS_IS_PUBLIC === "false")
     },
   },
   env : {
     CLIENT_ENV : env,
-    EXPERTS_IS_PUBLIC: (process.env.EXPERTS_IS_PUBLIC === "false") || true,
+    EXPERTS_IS_PUBLIC: ! (process.env.EXPERTS_IS_PUBLIC === "false"),
     FIN_APP_VERSION : process.env.FIN_APP_VERSION || '',
     FIN_REPO_TAG : process.env.FIN_REPO_TAG || '',
     FIN_BRANCH_NAME : process.env.FIN_BRANCH_NAME || '',
