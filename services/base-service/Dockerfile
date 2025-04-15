@@ -31,7 +31,7 @@ RUN (cd ${AE_API} && npm link)
 WORKDIR ${FIN_SERVICE_ROOT}
 COPY models models
 WORKDIR ${FIN_SERVICE_ROOT}/models
-RUN mv package-lock.json package-lock.json- && npm link @ucd-lib/experts-api && npm install
+RUN npm install && npm link @ucd-lib/experts-api
 
 WORKDIR ${FIN_SERVICE_ROOT}
 # PROJECT_NAME is application label
