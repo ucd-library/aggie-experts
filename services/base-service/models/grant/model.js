@@ -41,7 +41,7 @@ class GrantModel extends BaseModel {
   async seo(id) {
     let result = await this.get(id);
     result = this.subselect(result);
-    return JSON.stringify(result);
+    return JSON.stringify({ '@context': result['@context'], '@graph': result['@graph'] });
   }
 
   /**
