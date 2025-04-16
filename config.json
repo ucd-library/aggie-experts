@@ -23,8 +23,8 @@
       "env":"prod"
     },
     "ga4":{
-      "gaid":"G-GM57B0V0WC",
-      "enable":"false"
+      "measurement_id":"G-GM57B0V0WC",
+      "enable_stats":"false"
     },
     "cork-kube": {
       "build_args": "--use-registry=fuseki-image,fin"
@@ -99,9 +99,6 @@
     "host":"https://stage.experts.library.ucdavis.edu",
     "cdl":{
       "propagate_changes":"true"
-    },
-    "analytics":{
-      "enable":"true"
     }
   },
   "prod":{
@@ -113,8 +110,8 @@
     "cdl":{
       "propagate_changes":"true"
     },
-    "analytics":{
-      "enable":"true"
+    "ga4":{
+      "enable_stats":"true"
     }
   }
 }

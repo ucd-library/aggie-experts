@@ -137,8 +137,8 @@ services:
       - *DEV_MOUNT_MODELS_API
     command: node spa/index.js
     environment:
-      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-${D[enable_gaid]}}
-      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-${D[gaid]}}
+      - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-${D[ga4_enable_stats]}}
+      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-${D[ga4_measurement_id]}}
       - CLIENT_ERROR_REPORTING_URL=${D[client_error_reporting_url]}
       - CLIENT_ERROR_REPORTING_KEY=${D[client_error_reporting_key]}
       - CLIENT_ERROR_REPORTING_ENABLED=${CLIENT_ERROR_REPORTING_ENABLED:-${D[client_error_reporting_enabled]}}
