@@ -227,6 +227,10 @@ export function styles() {
       font-size: 1.2rem;
       padding: 0 .25rem;
     }
+
+    span.published-text {
+      line-height: 1.2;
+    }
   `;
 
   return [elementStyles];
@@ -280,8 +284,10 @@ return html`
 
       <div ?hidden="${!this.showPublished}" class="published">
         <h3 class="heading--highlight">Published</h3>
+        <span class="published-text">
          ${this.publisher} <span ?hidden="${!this.publisher}" class="dot-separator">•</span> ${this.publishedVolume} <span ?hidden="${!this.publishedVolume}" class="dot-separator">•</span> ${this.publishedDate}
-      </div>
+        </span>
+        </div>
 
       <!-- TODO SUBJECTS -->
       <!-- <div ?hidden="${!this.showSubjects}" class="subjects">
