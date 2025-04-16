@@ -147,6 +147,20 @@ export class FusekiClient {
             'Authorization': `Basic ${this.authBasic}`
           }
         })
+      // Check if the request was successful
+      if (res.ok) {
+        this.log.info({lib:'fuseki',db:db,op:'delete'},`✔ dropDb(${db})`);
+        // delete database/db directory if exists
+        const dbPath = path.join(process.env.FUSEKI_BASE, 'databases', db);
+        try {
+          await fs.rm(dbPath, { recursive: true, force: true });
+          this.log.info({lib:'fuseki',db:db,op:'delete'},`✔ fs.rm(${dbPath})`);
+        } catch (error) {
+          this.log.error({lib:'fuseki',db:db,op:'delete',err:error},`✖ fs.rm(${dbPath})`);
+        }
+      } else {
+        this.log.error({lib:'fuseki',db:db,op:'delete'},`✖ dropDb(${db})`);
+      }
       return res.status;
     }
   }
