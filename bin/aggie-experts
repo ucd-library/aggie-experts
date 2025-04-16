@@ -354,6 +354,7 @@ function expand_template(){
        D["client_env"] D["cdl_propagate_changes"] \
        D["client_error_reporting_enabled"] \
        D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
+       D["ga4_enable_stats"] D["ga4_measurement_id"] \
        sa client_id auth \
        <<<$(G "[.${G[env]}.org // .def.org,
            .def.build.org, .def.build.registry_url,
@@ -366,6 +367,8 @@ function expand_template(){
            .${G[env]}.client_error_reporting.enabled // .def.client_error_reporting.enabled,
            .${G[env]}.client_error_reporting.url // .def.client_error_reporting.url,
            .${G[env]}.client_error_reporting.key_secret // .def.client_error_reporting.key_secret,
+           .${G[env]}.ga4.enable_stats // .def.ga4.enable_stats,
+           .${G[env]}.ga4.measurement_id // .def.ga4.measurement_id,
            .${G[env]}.auth.service_account // .def.auth.service_account,
            .${G[env]}.auth.client_id // .def.auth.client_id,
            .${G[env]}.auth.server // .def.auth.server
