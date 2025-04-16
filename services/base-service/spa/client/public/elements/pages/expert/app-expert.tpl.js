@@ -317,6 +317,8 @@ return html`
     .works-abbreviated .work h5 {
       color: black;
       margin: .5rem 0;
+      font-size: 1.2rem;
+      line-height: 1.3;
     }
 
     .open-to .dot,
