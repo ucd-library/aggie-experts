@@ -124,8 +124,8 @@ export default class AppGrant extends Mixin(LitElement)
 
     let start = grantGraph.dateTimeInterval?.start?.dateTime;
     let end = grantGraph.dateTimeInterval?.end?.dateTime;
-    this.startDate = start ? new Date(start).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
-    this.endDate = end ? new Date(end).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+    this.startDate = start ? new Date(start).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' }) : '';
+    this.endDate = end ? new Date(end).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
     if( this.endDate && new Date(this.endDate) < new Date() ) {
       this.completed = true;
