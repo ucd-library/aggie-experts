@@ -133,6 +133,8 @@ services:
     volumes:
       - *SERVICE_ACCOUNT
       - &DEV_MOUNT_SPA ./services/base-service/spa:/fin/services/spa
+      - *DEV_MOUNT_MODELS
+      - *DEV_MOUNT_MODELS_API
     command: node spa/index.js
     environment:
       - GA4_ENABLE_STATS=${GA4_ENABLE_STATS:-${D[enable_gaid]}}
