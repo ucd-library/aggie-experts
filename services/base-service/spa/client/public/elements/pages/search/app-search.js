@@ -221,6 +221,13 @@ export default class AppSearch extends Mixin(LitElement)
       this.AppStateModel.set({ resetSearch : false });
       this._updateLocation();
     }
+
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**
@@ -242,6 +249,13 @@ export default class AppSearch extends Mixin(LitElement)
       this.AppStateModel.set({ resetSearch : false });
       this._updateLocation();
     }
+
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**
