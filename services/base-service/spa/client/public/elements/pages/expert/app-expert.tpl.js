@@ -28,7 +28,6 @@ return html`
       background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .color-light {
@@ -38,7 +37,6 @@ return html`
     .content {
       width: 100%;
       margin: 0 auto;
-      min-height: 700px;
     }
 
     .main-content {
@@ -48,7 +46,7 @@ return html`
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem;
+      padding: 2.625rem;
     }
 
     .experts span {

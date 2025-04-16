@@ -29,11 +29,10 @@ return html`
       background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem
+      padding: 2.625rem;
     }
 
     .hero-text .works {

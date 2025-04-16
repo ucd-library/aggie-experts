@@ -36,7 +36,6 @@ export function styles() {
       background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .color-light {
@@ -46,7 +45,6 @@ export function styles() {
     .content {
       width: 100%;
       margin: 0 auto;
-      min-height: 700px;
     }
 
     .main-content {
@@ -56,7 +54,7 @@ export function styles() {
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem;
+      padding: 2.625rem;
     }
 
     .hero-text .works {
