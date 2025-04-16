@@ -171,7 +171,8 @@ return html`
     .roles-websites .link-row {
       display: flex;
       align-items: start;
-      line-height: 2rem;
+      line-height: 1.618rem;
+      margin: 0.5rem 0;
     }
 
     .roles-websites .link-row a {
