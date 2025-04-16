@@ -442,7 +442,6 @@ export default class AppSearch extends Mixin(LitElement)
       this.downloads = this.downloads.filter(d => d !== id);
     }
 
-    console.log({ downloads: this.downloads });
     this._checkResultsSelected();
   }
 

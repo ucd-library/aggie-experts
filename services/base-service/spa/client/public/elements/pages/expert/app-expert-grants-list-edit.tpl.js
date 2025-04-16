@@ -298,7 +298,13 @@ return html`
     </div>
 
     <div class="main-content">
-      <div class="return-to-profile" @click="${this._returnToProfile}">
+      <div 
+        class="return-to-profile" 
+        @click="${this._returnToProfile}"
+        @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._returnToProfile(e); }}
+        tabindex="0"
+        role="button"
+        aria-label="Return to profile">
         <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-left"></ucdlib-icon>
         <span>RETURN TO PROFILE</span>
       </div>
