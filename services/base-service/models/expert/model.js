@@ -75,7 +75,49 @@ class ExpertModel extends BaseModel {
   async seo(id) {
     let result = await this.get(id);
     result = this.subselect(result, {expert:{include:true}, grants:{include:true}, works:{include:true}});
-    return JSON.stringify({ '@context': result['@context'], '@graph': result['@graph'] });
+    let seo = {
+      '@context': result['@context']
+    };
+    seo['@graph'] = result['@graph'].map((node) => {
+      let s = {};
+      if (node['@type']) {
+        if (!Array.isArray(node['@type'])) {
+          node['@type'] = [node['@type']];
+        }
+        node['@type'] = node['@type'].map((t) => {
+          let schema_type_map= {
+            'Grant': 'Grant',
+            'Expert': 'Person',
+            'Book': 'Book',
+            'Chapter': 'Chapter',
+            "Work": 'ScholarlyArticle',
+          }
+          return schema_type_map[t]
+        }).filter(t => t !== undefined)[0];
+      }
+      node.name = node.name || node.title;
+      if (node.contactInfo) {
+        if (!Array.isArray(node.contactInfo)) {
+          node.contactInfo = [node.contactInfo];
+        }
+        let best=node.contactInfo.sort((a,b) => {
+          (a['rank'] || 100) - (b['rank'] || 100)});
+        s['affiliation'] = best.map((c) => {
+          if (c.hasOrganizationalUnit) {
+            c["@type"] = "Organization";
+            return c.hasOrganizationalUnit;
+          }
+          return c.hasTitle;
+        }).filter(t => t !== undefined)[0];
+      }
+      ['@id','@type','name','affiltiation'].forEach((key) => {
+        if (node[key]) {
+          s[key] = node[key];
+        }
+      });
+      return s;
+    });
+    return JSON.stringify(seo);
   }
 
   /**
