@@ -33,6 +33,7 @@ export default class FinApp extends Mixin(LitElement)
       hideEdit : { type : Boolean },
       loading : { type : Boolean },
       searchTerm : { type : String },
+      quickLinks : { type : Array },
     }
   }
 
@@ -55,6 +56,15 @@ export default class FinApp extends Mixin(LitElement)
     this.loading = false;
     this.searchTerm = '';
     this.lastPageTops = {};
+    this.allLinks = [
+      { type: 'profile', text: 'Profile', href: '/'+this.expertId },
+      { type: 'faq', text: 'Help', href: '/faq' },
+      { type: 'login', text: 'Log In', href: '/auth/login' },
+      { type: 'logout', text: 'Log Out', href: '/auth/logout' },
+      { type: 'odr', text: 'UC Davis Online Directory Listing', href: 'https://org.ucdavis.edu/odr/' },
+      { type: 'oa', text: 'UC Publication Management', href: 'https://oapolicy.universityofcalifornia.edu/' },
+    ];
+    this.quickLinks = JSON.parse(JSON.stringify(this.allLinks));
 
     this.render = render.bind(this);
     this._init404();
@@ -250,28 +260,18 @@ export default class FinApp extends Mixin(LitElement)
   async _validateLoggedInUser() {
     this.expertId = APP_CONFIG.user?.expertId || '';
 
-    // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
-    let header = this.shadowRoot.querySelector('ucd-theme-header');
-    let quickLinks = header?.querySelector('ucd-theme-quick-links');
-
+    // remove profile link for users without a profile
     if( APP_CONFIG.user?.hasProfile ) {
-      if( quickLinks ) {
-        quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
-      }
+      this.allLinks.find(link => link.type === 'profile').href = '/'+this.expertId;
     } else {
-      if( quickLinks ) {
-        quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
-        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
-        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(3)').style.top = '3.2175rem';
-        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '0';
+      this.allLinks = this.allLinks.filter(link => link.type !== 'profile');
+    }
 
-        if( window.innerWidth > 991 ) {
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '6.5325rem';
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '1rem';
-        } else  {
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '0';
-        }
-      }
+    // update logged in status
+    if( APP_CONFIG.user.loggedIn ) {
+      this.quickLinks = this.allLinks.filter(link => link.type !== 'login');
+    } else {
+      this.quickLinks = this.allLinks.filter(link => link.type !== 'logout');
     }
 
     if( this.page === 'expert' ) {
