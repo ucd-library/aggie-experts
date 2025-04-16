@@ -350,16 +350,6 @@ export default class AppExpert extends Mixin(LitElement)
       }
     });
 
-    // update doi links to be anchor tags
-    citationResults.forEach(cite => {
-      if( cite.DOI && cite.apa ) {
-        // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
-        cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
-                  + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
-                  + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
-      }
-    });
-
     // make sure container-title is a single string
     citationResults.forEach(cite => {
       if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
