@@ -176,6 +176,11 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       }
     });
 
+    // make sure container-title is a single string
+    citationResults.forEach(cite => {
+      if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
+    });
+
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
     this.requestUpdate();

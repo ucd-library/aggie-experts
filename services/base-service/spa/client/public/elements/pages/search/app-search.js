@@ -649,6 +649,7 @@ export default class AppSearch extends Mixin(LitElement)
 
         let [ year, month, day ] = match.issued.split?.('-');
         let yearFormatted = utils.formatDate({ year });
+        if( Array.isArray(match['container-title']) ) match['container-title'] = match['container-title'][0];
         let journalBook = match['container-title'] || '';
         let volume = match.volume || '';
         let issue = match.issue || '';
