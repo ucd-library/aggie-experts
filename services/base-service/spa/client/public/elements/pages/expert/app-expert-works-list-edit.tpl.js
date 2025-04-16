@@ -385,15 +385,38 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon ?hidden="${!cite.relatedBy?.[0]?.['is-visible']}" icon="ucdlib-experts:fa-eye" @click=${this._hideWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon 
+                    ?hidden="${!cite.relatedBy?.[0]?.['is-visible']}" 
+                    icon="ucdlib-experts:fa-eye" 
+                    @click=${this._hideWork} 
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideWork(e); }}
+                    tabindex="0"
+                    role="button"
+                    aria-label="Hide work"
+                    data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-work" data-text="Show work">
-                  <ucdlib-icon ?hidden="${cite.relatedBy?.[0]?.['is-visible']}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon 
+                    ?hidden="${cite.relatedBy?.[0]?.['is-visible']}" 
+                    icon="ucdlib-experts:fa-eye-slash" 
+                    @click=${this._showWork} 
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showWork(e); }}
+                    tabindex="0"
+                    role="button"
+                    aria-label="Show work"
+                    data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
               <span style="position: relative;">
                 <span class="tooltip reject-work" data-text="Reject work">
-                  <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._rejectWork} data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
+                  <ucdlib-icon 
+                    icon="ucdlib-experts:fa-trash" 
+                    @click=${this._rejectWork} 
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._rejectWork(e); }}
+                    tabindex="0"
+                    role="button"
+                    aria-label="Reject work"
+                    data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>
             </div>
