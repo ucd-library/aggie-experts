@@ -106,7 +106,7 @@ export default function render() {
           <h4><a href="/${this.result.id}">${unsafeHTML(this.result.name) || 'Lastname, Firstname'}</a></h4>
         </div>
         <div class="search-result-download" ?hidden="${this.hideCheckbox}">
-          <input type="checkbox" id="select-${this.result.id}" name="select-${this.result.id}" value="select-${this.result.id}">
+          <input type="checkbox" id="select-${this.result.id}" data-id="${this.result.id}" name="select-${this.result.id}" value="select-${this.result.id}" @change="${this._selectResult}">
         </div>
       </div>
       <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${unsafeHTML(this.result.subtitle)}</div>
