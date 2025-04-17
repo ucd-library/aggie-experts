@@ -44,6 +44,8 @@ export default class AppSearch extends Mixin(LitElement)
       filterByExpertId : { type : String },
       filterByExpertName : { type : String },
       globalAggregations : { type : Object },
+      resultsSelected : { type : Boolean },
+      allResultsSelected : { type : Boolean },
     }
   }
 
@@ -76,6 +78,9 @@ export default class AppSearch extends Mixin(LitElement)
     this.globalAggregations = {};
     this.filteringByGrants = false;
     this.filteringByWorks = false;
+    this.resultsSelected = false;
+    this.allResultsSelected = false;
+    this.downloads = [];
 
     this.render = render.bind(this);
   }
@@ -216,6 +221,13 @@ export default class AppSearch extends Mixin(LitElement)
       this.AppStateModel.set({ resetSearch : false });
       this._updateLocation();
     }
+
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**
@@ -237,6 +249,13 @@ export default class AppSearch extends Mixin(LitElement)
       this.AppStateModel.set({ resetSearch : false });
       this._updateLocation();
     }
+
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**
@@ -329,6 +348,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
 
     this.AppStateModel.setLocation(path);
+    this._clearSelectedSearchResults();
   }
 
   async _onSearchUpdate(e, fromSearchPage=false) {
@@ -423,6 +443,23 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   /**
+   * @method _selectResult
+   * @description bound to click events of search result checkboxes
+   *
+   * @param {Object} e click|keyup event
+   */
+  _selectResult(e) {
+    let id = e.detail.id;
+    if( e.detail.selected ) {
+      if( !this.downloads.includes(id) ) this.downloads.push(id);
+    } else {
+      this.downloads = this.downloads.filter(d => d !== id);
+    }
+
+    this._checkResultsSelected();
+  }
+
+  /**
    * @method _selectAll
    * @description bound to click events of Select All checkbox
    *
@@ -437,7 +474,49 @@ export default class AppSearch extends Mixin(LitElement)
 
     checkboxes.forEach(checkbox => {
       checkbox.checked = e.currentTarget.checked;
+      let id = checkbox.dataset.id;
+      if( checkbox.checked ) {
+        if( !this.downloads.includes(id) ) this.downloads.push(id);
+      } else {
+        this.downloads = this.downloads.filter(d => d !== id);
+      }
     });
+
+    this._checkResultsSelected();
+  }
+
+  /**
+   * @method _checkResultsSelected
+   * @description check if any results are selected, disable download button if not
+   */
+  _checkResultsSelected() {
+    let checkboxes = [];
+    let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
+    resultRows.forEach(row => {
+      checkboxes.push(...row.shadowRoot.querySelectorAll('input[type="checkbox"]') || []);
+    });
+
+    this.resultsSelected = checkboxes.some(checkbox => checkbox.checked);
+    this.allResultsSelected = checkboxes.every(checkbox => checkbox.checked);
+  }
+
+  /**
+   * @method _clearSelectedSearchResults
+   * @description clear selected search results
+   */
+  _clearSelectedSearchResults() {
+    let checkboxes = [];
+    let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
+    resultRows.forEach(row => {
+      checkboxes.push(...row.shadowRoot.querySelectorAll('input[type="checkbox"]') || []);
+    });
+
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = false;
+    });
+
+    this.resultsSelected = false; // this.downloads.length !== 0;
+    this.allResultsSelected = false; // allSelectedOnPage; 
   }
 
   /**
@@ -649,6 +728,7 @@ export default class AppSearch extends Mixin(LitElement)
 
         let [ year, month, day ] = match.issued.split?.('-');
         let yearFormatted = utils.formatDate({ year });
+        if( Array.isArray(match['container-title']) ) match['container-title'] = match['container-title'][0];
         let journalBook = match['container-title'] || '';
         let volume = match.volume || '';
         let issue = match.issue || '';

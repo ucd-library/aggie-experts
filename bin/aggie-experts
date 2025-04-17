@@ -378,8 +378,11 @@ function expand_template(){
   D["tag"]="$(${G[git]} describe --always --dirty)"
 
   case ${G[env]} in
-    dev | clean | sandbox )
+    dev )
       D["tag"]="dirty"
+      D["fin_tag"]=$(curl -s "${D[build_registry_url]}" | jq -r ".builds.dev.fin")
+      ;;
+    clean | sandbox )
       D["fin_tag"]=$(curl -s "${D[build_registry_url]}" | jq -r ".builds.dev.fin")
       ;;
     stage | prod)

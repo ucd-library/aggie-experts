@@ -60,7 +60,18 @@ export function render() {
 return html`
     <div class="alphaContainer">
       ${this.alpha.map((alp, i) => html`
-        <span @click=${() => this.onAlphaInput(alp)} class="box ${alp.value == this.selectedLetter ? 'selected' : ''} ${alp.exists ? '' : 'disabled'}"><b>${alp.display}</b></span>
+        <span 
+          @click=${() => this.onAlphaInput(alp)} 
+          @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this.onAlphaInput(alp); }}
+          tabindex="${alp.exists ? '0' : '-1'}"
+          role="button"
+          aria-label="${alp.display}"
+          aria-pressed="${this.selectedLetter == alp.value}"
+          aria-disabled="${!alp.exists}"
+          aria-selected="${this.selectedLetter == alp.value}"
+          class="box ${alp.value == this.selectedLetter ? 'selected' : ''} ${alp.exists ? '' : 'disabled'}">
+          <b>${alp.display}</b>
+        </span>
       `)}
     </div>
 `;}

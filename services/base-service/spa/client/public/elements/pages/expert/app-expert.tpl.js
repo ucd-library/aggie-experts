@@ -28,7 +28,6 @@ return html`
       background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .color-light {
@@ -38,7 +37,6 @@ return html`
     .content {
       width: 100%;
       margin: 0 auto;
-      min-height: 700px;
     }
 
     .main-content {
@@ -48,7 +46,7 @@ return html`
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem;
+      padding: 2.625rem;
     }
 
     .experts span {
@@ -171,7 +169,8 @@ return html`
     .roles-websites .link-row {
       display: flex;
       align-items: start;
-      line-height: 2rem;
+      line-height: 1.618rem;
+      margin: 0.5rem 0;
     }
 
     .roles-websites .link-row a {
@@ -318,6 +317,8 @@ return html`
     .works-abbreviated .work h5 {
       color: black;
       margin: .5rem 0;
+      font-size: 1.2rem;
+      line-height: 1.3;
     }
 
     .open-to .dot,
@@ -694,15 +695,33 @@ return html`
           <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
           <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
-              <ucdlib-icon icon="ucdlib-experts:fa-eye" @click=${this._hideExpert}></ucdlib-icon>
+              <ucdlib-icon 
+                icon="ucdlib-experts:fa-eye" 
+                @click=${this._hideExpert}
+                @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideExpert(e); }}
+                tabindex="0"
+                role="button"
+                aria-label="Hide expert"></ucdlib-icon>
             </span>
             <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">
-              <ucdlib-icon icon="ucdlib-experts:fa-eye-slash" @click=${this._showExpert}></ucdlib-icon>
+              <ucdlib-icon 
+                icon="ucdlib-experts:fa-eye-slash" 
+                @click=${this._showExpert}
+                @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showExpert(e); }}
+                tabindex="0"
+                role="button"
+                aria-label="Show expert"></ucdlib-icon>
             </span>
           </div>
           <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span class="tooltip delete-expert" data-text="Delete expert">
-              <ucdlib-icon icon="ucdlib-experts:fa-trash" @click=${this._deleteExpert}></ucdlib-icon>
+              <ucdlib-icon 
+                icon="ucdlib-experts:fa-trash" 
+                @click=${this._deleteExpert}
+                @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._deleteExpert(e); }}
+                tabindex="0"
+                role="button"
+                aria-label="Delete expert"></ucdlib-icon>
             </span>
           </div>
         </div>
@@ -720,7 +739,11 @@ return html`
           <span ?hidden="${!this.canEdit}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem">
             <span class="tooltip edit-availability" data-text="Edit availability">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                @click=${this._editAvailability}>
+                @click=${this._editAvailability}
+                @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editAvailability(e); }}
+                tabindex="0"
+                role="button"
+                aria-label="Edit availability">
               </ucdlib-icon>
             </span>
           </span>
@@ -737,7 +760,11 @@ return html`
           <span class="desktop-edit-availability" ?hidden="${!this.canEdit}" style="position: relative; padding-left: 0">
             <span class="tooltip edit-availability" data-text="Edit availability">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                @click=${this._editAvailability}>
+                @click=${this._editAvailability}
+                @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editAvailability(e); }}
+                tabindex="0"
+                role="button"
+                aria-label="Edit availability">
               </ucdlib-icon>
             </span>
           </span>
@@ -746,13 +773,6 @@ return html`
     </div>
 
     <div class="main-content">
-      <!-- <div ?hidden="${!this.canEdit}" class="refresh-profile">
-        <button class="btn btn--invert" @click="${this._refreshProfileClicked}">Refresh Profile Data</button>
-        <div class="last-updated-label">Last Updated: Mon XX, 20XX, X:XXpm</div>
-      </div> -->
-      <!-- <div class="test-cdl-error" style="padding-bottom: 2rem;">
-        <button class="btn" @click="${this._cdlErrorModal}">CDL Error</button>
-      </div> -->
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
@@ -764,7 +784,11 @@ return html`
           <span ?hidden="${!this.canEdit}" style="position: relative;">
             <span class="tooltip edit-about-me" data-text="Edit Introduction">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                @click=${this._editAboutMe}>
+                @click=${this._editAboutMe}
+                @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editAboutMe(e); }}
+                tabindex="0"
+                role="button"
+                aria-label="Edit about me">
               </ucdlib-icon>
             </span>
           </span>
@@ -776,7 +800,11 @@ return html`
           <span ?hidden="${!this.canEdit}" style="position: relative;">
             <span class="tooltip edit-about-me" data-text="Edit Introduction">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                @click=${this._editAboutMe}>
+                @click=${this._editAboutMe}
+                @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editAboutMe(e); }}
+                tabindex="0"
+                role="button"
+                aria-label="Edit about me">
               </ucdlib-icon>
             </span>
           </span>
@@ -809,7 +837,13 @@ return html`
           <h3 class="heading--highlight">Roles
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" @click=${this._editRoles}></ucdlib-icon>
+                <ucdlib-icon 
+                  icon="ucdlib-experts:fa-pen-to-square" 
+                  @click=${this._editRoles}
+                  @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editRoles(e); }}
+                  tabindex="0"
+                  role="button"
+                  aria-label="Edit roles"></ucdlib-icon>
               </span>
             </span>
           </h3>
@@ -820,7 +854,13 @@ return html`
           <h3 class="heading--highlight">Roles
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square" @click=${this._editRoles}></ucdlib-icon>
+                <ucdlib-icon 
+                  icon="ucdlib-experts:fa-pen-to-square" 
+                  @click=${this._editRoles}
+                  @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editRoles(e); }}
+                  tabindex="0"
+                  role="button"
+                  aria-label="Edit roles"></ucdlib-icon>
               </span>
             </span>
           </h3>
@@ -846,7 +886,11 @@ return html`
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                  @click=${this._editWebsites}>
+                  @click=${this._editWebsites}
+                  @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editWebsites(e); }}
+                  tabindex="0"
+                  role="button"
+                  aria-label="Edit websites">
                 </ucdlib-icon>
               </span>
             </span>
@@ -859,7 +903,11 @@ return html`
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-websites" data-text="Edit links">
                 <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
-                  @click=${this._editWebsites}>
+                  @click=${this._editWebsites}
+                  @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editWebsites(e); }}
+                  tabindex="0"
+                  role="button"
+                  aria-label="Edit websites">
                 </ucdlib-icon>
               </span>
             </span>
@@ -907,7 +955,11 @@ return html`
               <span class="tooltip edit-grants" data-text="Edit grants">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
-                  @click=${this._editGrants}>
+                  @click=${this._editGrants}
+                  @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editGrants(e); }}
+                  tabindex="0"
+                  role="button"
+                  aria-label="Edit grants">
                 </ucdlib-icon>
               </span>
             </span>
@@ -915,7 +967,11 @@ return html`
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip download-all-grants" data-text="Download all grants">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
-                  @click=${this._downloadGrants}>
+                  @click=${this._downloadGrants}
+                  @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._downloadGrants(e); }}
+                  tabindex="0"
+                  role="button"
+                  aria-label="Download grants">
                 </ucdlib-icon>
               </span>
             </span>
@@ -958,7 +1014,14 @@ return html`
             <br>
           `
         )}
-        <div class="see-all-grants" ?hidden= "${this.totalGrants < this.grantsPerPage + 1}" @click="${this._seeAllGrants}">
+        <div 
+          class="see-all-grants" 
+          ?hidden= "${this.totalGrants < this.grantsPerPage + 1}" 
+          @click="${this._seeAllGrants}"
+          @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._seeAllGrants(e); }}
+          tabindex="0"
+          role="button"
+          aria-label="See all ${this.totalGrants} grants">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
           <span>SEE ALL ${this.totalGrants} GRANTS</span>
         </div>
@@ -975,7 +1038,11 @@ return html`
               <span class="tooltip edit-works" data-text="Edit works">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
-                  @click=${this._editWorks}>
+                  @click=${this._editWorks}
+                  @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editWorks(e); }}
+                  tabindex="0"
+                  role="button"
+                  aria-label="Edit works">
                 </ucdlib-icon>
               </span>
             </span>
@@ -983,7 +1050,11 @@ return html`
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip download-all-works" data-text="Download all works">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
-                  @click=${this._downloadWorks}>
+                  @click=${this._downloadWorks}
+                  @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._downloadWorks(e); }}
+                  tabindex="0"
+                  role="button"
+                  aria-label="Download works">
                 </ucdlib-icon>
               </span>
             </span>
@@ -1008,7 +1079,14 @@ return html`
             <br>
           `
         )}
-        <div class="see-all-works" ?hidden= "${this.totalCitations < this.worksPerPage + 1}" @click="${this._seeAllWorks}">
+        <div 
+          class="see-all-works" 
+          ?hidden= "${this.totalCitations < this.worksPerPage + 1}" 
+          @click="${this._seeAllWorks}"
+          @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._seeAllWorks(e); }}
+          tabindex="0"
+          role="button"
+          aria-label="See all ${this.totalCitations} works">
           <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-right"></ucdlib-icon>
           <span>SEE ALL ${this.totalCitations} WORKS</span>
         </div>

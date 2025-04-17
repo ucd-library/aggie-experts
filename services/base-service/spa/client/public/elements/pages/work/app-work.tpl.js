@@ -32,11 +32,10 @@ export function styles() {
     }
 
     .hero-main {
-      background: url('../images/watercolor-sage-solid.jpg') no-repeat center center;
+      background: url('/images/watercolor-sage-solid.jpg') no-repeat center center;
       background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .color-light {
@@ -46,7 +45,6 @@ export function styles() {
     .content {
       width: 100%;
       margin: 0 auto;
-      min-height: 700px;
     }
 
     .main-content {
@@ -56,7 +54,7 @@ export function styles() {
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem;
+      padding: 2.625rem;
     }
 
     .hero-text .works {
@@ -229,6 +227,10 @@ export function styles() {
       font-size: 1.2rem;
       padding: 0 .25rem;
     }
+
+    span.published-text {
+      line-height: 1.2;
+    }
   `;
 
   return [elementStyles];
@@ -282,8 +284,10 @@ return html`
 
       <div ?hidden="${!this.showPublished}" class="published">
         <h3 class="heading--highlight">Published</h3>
-         ${this.publisher} <span class="dot-separator">•</span> ${this.publishedVolume} <span class="dot-separator">•</span> ${this.publishedDate}
-      </div>
+        <span class="published-text">
+         ${this.publisher} <span ?hidden="${!this.publisher}" class="dot-separator">•</span> ${this.publishedVolume} <span ?hidden="${!this.publishedVolume}" class="dot-separator">•</span> ${this.publishedDate}
+        </span>
+        </div>
 
       <!-- TODO SUBJECTS -->
       <!-- <div ?hidden="${!this.showSubjects}" class="subjects">

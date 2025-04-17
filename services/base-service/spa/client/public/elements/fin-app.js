@@ -202,6 +202,11 @@ export default class FinApp extends Mixin(LitElement)
     window.scrollTo(0, 0);
   }
 
+  _onNavClick(e) {
+    // remove focus from the clicked anchor tag, to avoid active styles
+    e.target.blur();
+  }
+
   /**
    * @method loadPage
    * @description code splitting done here. dynamic import a page based on route
