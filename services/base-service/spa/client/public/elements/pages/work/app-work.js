@@ -144,6 +144,7 @@ export default class AppWork extends Mixin(LitElement)
     let cite = await Citation.generateCitations([workGraph]);
     cite = cite[0]?.value;
 
+    if( Array.isArray(workGraph['container-title']) ) workGraph['container-title'] = workGraph['container-title'][0];
     this.publisher = workGraph['container-title'] || '';
 
     // like if 185(6), 600–616 is a standard format we would show as 'Volume 185, Issue 6, 600-616'

@@ -268,6 +268,16 @@ return html`
       .refine-search-mobile {
         display: block;
       }
+
+      .search-results-heading {
+        display: block;
+      }
+
+      .search-results-heading .download {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 1rem;
+      }
     }
 
     .refine-search-dropdown {
@@ -482,7 +492,7 @@ return html`
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
         <div class="download">
-          <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
+          <button class="btn btn--invert" ?disabled="${!this.resultsSelected}" @click="${this._downloadClicked}">Download</button>
         </div>
       </div>
 
@@ -498,7 +508,7 @@ return html`
             <span>items per page</span>
           </div>
           <div class="select-all">
-            <input type="checkbox" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
+            <input type="checkbox" .checked="${this.allResultsSelected}" id="select-all" name="select-all" value="select-all" @click="${this._selectAll}">
             <label for="select-all">Select All</label>
           </div>
 
@@ -512,7 +522,8 @@ return html`
               .result=${result}
               result-type="${result.resultType}"
               @filter-by-grants="${this._filterByGrants}"
-              @filter-by-works="${this._filterByWorks}">
+              @filter-by-works="${this._filterByWorks}"
+              @select-result="${this._selectResult}">
             </app-search-result-row>
             <hr class="search-seperator">
           `
