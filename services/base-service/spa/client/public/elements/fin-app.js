@@ -33,6 +33,7 @@ export default class FinApp extends Mixin(LitElement)
       hideEdit : { type : Boolean },
       loading : { type : Boolean },
       searchTerm : { type : String },
+      quickLinksTitle: { type : String },
       quickLinks : { type : Array },
     }
   }
@@ -64,7 +65,8 @@ export default class FinApp extends Mixin(LitElement)
       { type: 'odr', text: 'UC Davis Online Directory Listing', href: 'https://org.ucdavis.edu/odr/' },
       { type: 'oa', text: 'UC Publication Management', href: 'https://oapolicy.universityofcalifornia.edu/' },
     ];
-    this.quickLinks = JSON.parse(JSON.stringify(this.allLinks));
+    this.quickLinksTitle = 'Sign In';
+    this.quickLinks = [];
 
     this.render = render.bind(this);
     this._init404();
@@ -275,8 +277,10 @@ export default class FinApp extends Mixin(LitElement)
     // update logged in status
     if( APP_CONFIG.user.loggedIn ) {
       this.quickLinks = this.allLinks.filter(link => link.type !== 'login');
+      this.quickLinksTitle = 'My Account';
     } else {
-      this.quickLinks = this.allLinks.filter(link => link.type !== 'logout');
+      this.quickLinks = [];
+      this.quickLinksTitle = 'Sign In';
     }
 
     if( this.page === 'expert' ) {
@@ -285,6 +289,13 @@ export default class FinApp extends Mixin(LitElement)
     }
 
     this._styleEditExpertButton();
+  }
+
+  _onQuickLinksClick(e) {
+    if( !APP_CONFIG.user.loggedIn ) {
+      e.preventDefault();
+      window.location.href = '/auth/login';
+    }
   }
 
   /**
