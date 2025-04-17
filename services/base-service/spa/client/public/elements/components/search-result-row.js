@@ -62,5 +62,22 @@ export class SearchResultRow extends LitElement {
     }));
   }
 
+  /**
+   * @method _selectResult
+   * @description select result
+   * @param {Object} e
+   */
+  _selectResult(e) {
+    e.preventDefault();
+
+    this.dispatchEvent(new CustomEvent('select-result', {
+      detail: {
+        id: this.result.id,
+        name: this.result.name,
+        selected: e.target.checked
+      }
+    }));
+  }
+
 }
 customElements.define('app-search-result-row', SearchResultRow);

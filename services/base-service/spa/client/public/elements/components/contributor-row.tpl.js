@@ -25,12 +25,12 @@ export function styles() {
       fill: var(--color-aggie-gold);
     }
     .result-title h4 {
-      margin: 0 0.62rem;
+      margin: 0 0.62rem .5rem;
       /* color: var(--ucd-blue-80, #13639E); */
-      font-size: 1.43375rem;
+      font-size: 1.2rem;
       font-style: normal;
       font-weight: 700;
-      line-height: 1.71875rem;
+      line-height: 1.3;
       text-transform: capitalize;
     }
 

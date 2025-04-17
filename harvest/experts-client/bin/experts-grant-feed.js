@@ -258,8 +258,8 @@ async function main(opt) {
   await downloadFile(opt.bucket, opt.filePath, localFilePath, fileVersions[opt.generation]);
   const xml = fs.readFileSync(localFilePath, 'utf8');
 
-  // Convert the XML to JSON
-  let json = parser.toJson(xml, { object: true, arrayNotation: false });
+  // Convert the XML to JSON make sure all number values to be quoted strings (e.g. ucop_sponsor_code) are not coerced to numbers
+  let json = parser.toJson(xml, { object: true, arrayNotation: false, coerce: false });
 
   // Create the JSON-LD context
   let contextObj = {

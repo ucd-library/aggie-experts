@@ -150,9 +150,8 @@ return html`
     figure-src="/images/aggie-experts-logo-primary.png"
     prevent-fixed>
 
-    <ucd-theme-primary-nav>
+    <ucd-theme-primary-nav @click="${this._onNavClick}">
       <a href="/browse/expert">Experts</a>
-      <!-- <a href="/subject">Subjects</a> -->
       <a href="/browse/grant">Grants</a>
       <a href="/browse/work">Works</a>
     </ucd-theme-primary-nav>
