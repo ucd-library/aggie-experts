@@ -74,7 +74,12 @@ class ExpertModel extends BaseModel {
 
   async seo(id) {
     let result = await this.get(id);
-    result = this.subselect(result, {expert:{include:true}, grants:{include:true}, works:{include:true}});
+    result = this.subselect(result, {
+      expert : { include : true }, 
+      grants : { include : true, page : 1, size : 5 }, 
+      works : { include : true, page : 1, size : 10 }
+    });
+
     let seo = {
       '@context': result['@context']
     };
