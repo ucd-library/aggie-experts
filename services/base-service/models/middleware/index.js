@@ -33,7 +33,7 @@ async function item_endpoint(router, model, subselect = (req, res, next) => next
       //   }
       }
       ),
-    is_user,
+    public_or_is_user,
     valid_path_error,
     async (req, res, next) => {
       const id=req.params.id || req.query.id;
@@ -55,7 +55,7 @@ function browse_endpoint(router,model) {
   router.route(
     '/browse',
   ).get(
-    is_user,
+    public_or_is_user,
     valid_path(
       {
         description: `Returns for ${model.name} for  A - Z, or if sending query param p={letter}, will return results for ${model.name} with last names of that letter`,
@@ -286,6 +286,14 @@ function json_only(req, res, next) {
   }
 }
 
+function public_or_is_user(req, res, next) {
+  if (config.experts.is_public) {
+    return next();
+  }
+  return is_user(req, res, next);
+}
+
+// Not exported
 function is_user(req, res, next) {
   if (!req.user) {
     return res.status(401).send('Unauthorized');
@@ -1015,7 +1023,7 @@ module.exports = {
   convertIds,
   fetchExpertId,
   has_access,
-  is_user,
+  public_or_is_user,
   item_endpoint,
   json_only,
   openapi,

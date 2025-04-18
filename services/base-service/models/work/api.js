@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { browse_endpoint, item_endpoint, openapi } = require('../middleware/index.js')
-const { is_user, valid_path, valid_path_error } = require('../middleware/index.js')
+const { public_or_is_user, valid_path, valid_path_error } = require('../middleware/index.js')
 
 const WorkModel = require('./model.js');
 const model = new WorkModel();
@@ -48,7 +48,7 @@ function subselect(req, res, next) {
 
 router.get(
   '/search',
-  is_user,
+  public_or_is_user,
   valid_path(
     {
       description: `Returns matching search results for ${model.name}s.`,

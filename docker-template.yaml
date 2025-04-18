@@ -22,6 +22,7 @@ services:
       - JWT_JWKS_URI=${JWT_JWKS_URI:-${D[jwt_jwks_uri]}}
       - FIN_SERVICE_ACCOUNT_NAME=${FIN_SERVICE_ACCOUNT_NAME:-${D[fin_service_account_name]}}
       - FIN_SERVICE_ACCOUNT_SECRET=${FIN_SERVICE_ACCOUNT_SECRET:-${D[fin_service_account_secret]}}
+      - EXPERTS_IS_PUBLIC=${EXPERTS_IS_PUBLIC:-true}
     depends_on:
       fcrepo:
         condition: service_healthy
@@ -143,6 +144,7 @@ services:
       - FIN_URL=${FIN_URL:-${D[host]}}
       - CLIENT_ENV=${CLIENT_ENV:-${D[client_env]}}
       - APP_VERSION=${APP_VERSION:-${D[tag]}}
+      - EXPERTS_IS_PUBLIC=${EXPERTS_IS_PUBLIC:-true}
     depends_on:
       elasticsearch:
           condition: service_healthy
@@ -268,6 +270,7 @@ services:
       - FIN_METRICS_FIN_ENABLED=${FIN_METRICS_FIN_ENABLED:-true}
       - FIN_METRICS_FCREPO_ENABLED=${FIN_METRICS_FCREPO_ENABLED:-true}
       - FIN_METRICS_EXPORT_GC=${FIN_METRICS_EXPORT_GC:-false}
+      - EXPERTS_IS_PUBLIC=${EXPERTS_IS_PUBLIC:-true}
     volumes:
       - fs-tests:/fs-tests
       - *SERVICE_ACCOUNT
