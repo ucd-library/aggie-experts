@@ -94,6 +94,8 @@ return html`
     .main-content .work h5 {
       color: black;
       margin: 0 0 0.5rem 0;
+      font-size: 1.2rem;
+      line-height: 1.3;
     }
 
     .work-details .dot {

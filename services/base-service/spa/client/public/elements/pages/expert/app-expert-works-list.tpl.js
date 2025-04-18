@@ -96,6 +96,9 @@ return html`
     .work-item .work h5 {
       color: var(--ucd-blue-80, #13639E);
       cursor: pointer;
+      margin: .5rem 0;
+      font-size: 1.2rem;
+      line-height: 1.3;
     }
 
     .work-item .work h5 a {
