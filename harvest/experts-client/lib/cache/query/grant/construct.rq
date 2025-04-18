@@ -1,5 +1,4 @@
 PREFIX : <ark:/87287/d7mh2m/schema#>
-PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX expert: <http://experts.ucdavis.edu/expert/>
 PREFIX experts: <http://experts.ucdavis.edu/>

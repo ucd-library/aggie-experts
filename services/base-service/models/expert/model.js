@@ -89,16 +89,9 @@ class ExpertModel extends BaseModel {
         if (!Array.isArray(node['@type'])) {
           node['@type'] = [node['@type']];
         }
-        node['@type'] = node['@type'].map((t) => {
-          let schema_type_map= {
-            'Grant': 'Grant',
-            'Expert': 'Person',
-            'Book': 'Book',
-            'Chapter': 'Chapter',
-            "Work": 'ScholarlyArticle',
-          }
-          return schema_type_map[t]
-        }).filter(t => t !== undefined)[0];
+        node['@type'] = node['@type'].filter((t) => {
+          return ["Grant", "Person", "Book", "Chapter", "ScholarlyArticle"].includes(t);
+        });
       }
       node.name = node.name || node.title;
       if (node.contactInfo) {

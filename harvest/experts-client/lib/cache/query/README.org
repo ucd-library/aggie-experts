@@ -7,7 +7,6 @@ Some of the sparql queries are written in this area
 #+begin_src sparql :tangle no
   # THIS FILE GENERATED FROM ../README.org
   PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
-  PREFIX bibo: <http://purl.org/ontology/bibo/>
   PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
   PREFIX cite: <http://citationstyles.org/schema/>
   PREFIX expert: <http://experts.ucdavis.edu/expert/>
@@ -272,9 +271,9 @@ relationship here for testing.
                    .
 
      # Now the actual work as well
-     ?work a ?bibo_type;
-           bibo:status ?vivoStatus;
-           .
+     ?work a ?schema_type;
+        schema:creativeWorkStatus ?status;
+        .
 
      ?work a ucdlib:Work;
            cite:type ?cite_type;
@@ -322,15 +321,6 @@ relationship here for testing.
            .
          }
          # This is a tricky way to add in some optional extensntion from the field_names above.
-         OPTIONAL {
-           VALUES (?status ?vivoStatus) {
-             ( "Published" bibo:published )
-             ( "Published online" bibo:published )
-             ( "Accepted" bibo:accepted )
-           }
-           ?field :text ?status.
-           filter(?field_name="publication-status")
-         }
          OPTIONAL {
            ?field :date ?pub_date.
            ?pub_date :year ?pub_year.
@@ -391,11 +381,11 @@ relationship here for testing.
             :last-modified-when ?lastModifiedWhen;
             .
 
-       VALUES(?oap_type ?cite_include ?bibo_type ?cite_type ?cite_genre) {
-         ("book" true bibo:Book "book" undef)
-         ("chapter" true bibo:Chapter "chapter" undef)
-         ("conference" true vivo:ConferencePaper "paper-conference" undef)
-         ("journal-article" true bibo:AcademicArticle "article-journal" undef)
+       VALUES(?oap_type ?cite_include ?schema_type ?cite_type ?cite_genre) {
+         ("book" true schema:Book "book" undef)
+         ("chapter" true schema:Chapter "chapter" undef)
+         ("conference" true schema:ScholarlyArticle "paper-conference" undef)
+         ("journal-article" true schema:ScholarlyArticle "article-journal" undef)
          # false
          #("dataset" false ucdlib:Work "dataset" "")
          #("internet-publication" false ucdlib:Work "webpage" "")

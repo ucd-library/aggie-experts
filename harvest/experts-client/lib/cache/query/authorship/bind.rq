@@ -1,19 +1,19 @@
 PREFIX : <ark:/87287/d7mh2m/schema#>
-PREFIX bibo: <http://purl.org/ontology/bibo/>
 prefix experts: <http://experts.ucdavis.edu/>
 PREFIX oap: <ark:/87287/d7mh2m/schema#>
 prefix expert: <http://experts.ucdavis.edu/expert/>
+PREFIX schema: <http://schema.org/>
 prefix ucdlib: <http://schema.library.ucdavis.edu/schema#>
 PREFIX iam: <ark:/87287/d7c08j/schema#>
 prefix vivo: <http://vivoweb.org/ontology/core#>
 
 select distinct ?filename ?EXPERT__ ?RELATIONSHIP__
 where {
-    VALUES(?oap_type ?cite_include ?bibo_type ?cite_type ?cite_genre) {
-      ("book" true bibo:Book "book" "")
-      ("chapter" true bibo:Chapter "chapter" "")
-      ("conference" true vivo:ConferencePaper "paper-conference" "")
-      ("journal-article" true bibo:AcademicArticle "article-journal" "")
+  VALUES(?oap_type ?cite_include ?schema_type ?cite_type ?cite_genre) {
+    ("book" true schema:Book "book" undef)
+    ("chapter" true schema:Chapter "chapter" undef)
+    ("conference" true schema:ScholarlyArticle "paper-conference" undef)
+    ("journal-article" true schema:ScholarlyArticle "article-journal" undef)
       # false
       #("dataset" false ucdlib:Work "dataset" "")
       #("internet-publication" false ucdlib:Work "webpage" "")

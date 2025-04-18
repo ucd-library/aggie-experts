@@ -24,8 +24,7 @@ module.exports = async function(path, graph, headers, utils) {
 
   const cite=framed["@graph"][0];
   cite.id=cite["@id"];
-  ["@id","@type","hasPublicationVenue","lastModifiedTime",
-    "bibo:doi","bibo:status","name"]
+  ["@id","@type","hasPublicationVenue","lastModifiedTime","name"]
     .forEach((id)=>{delete cite[id];});
   return cite;
 }
