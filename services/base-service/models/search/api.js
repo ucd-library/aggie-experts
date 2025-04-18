@@ -12,7 +12,7 @@ const works = new WorkModel();
 
 const {config} = require('@ucd-lib/fin-service-utils');
 
-const { openapi, is_user } = require('../middleware/index.js')
+const { openapi, public_or_is_user } = require('../middleware/index.js')
 
 function search_valid_path(options={}) {
   const def = {
@@ -43,7 +43,7 @@ router.use(openapi);
 
 router.get(
   '/',
-  is_user,
+  public_or_is_user,
   search_valid_path(
     {
       description: "Returns matching search results, including the number of matching works and grants",

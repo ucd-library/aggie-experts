@@ -9,7 +9,7 @@ const md5 = require('md5');
 const model= new ExpertModel();
 
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
-const { openapi, json_only, user_can_edit, is_user } = require('../middleware/index.js')
+const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
 
 function subselect(req, res, next) {
   try {
@@ -69,7 +69,7 @@ router.patch('/:expertId/availability',
 router.route(
   '/:expertId/:relationshipId'
 ).get(
-  is_user,
+  public_or_is_user,
   expert_valid_path(
     {
       description: "Get an expert relationship by id",
@@ -233,7 +233,7 @@ item_endpoint(router,model,subselect)
 router.route(
   '/:expertId'
 ).post(
-  is_user,
+  public_or_is_user,
   expert_valid_path(
     {
       description: "Get an expert by id",

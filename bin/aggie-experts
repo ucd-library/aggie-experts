@@ -96,7 +96,7 @@ declare -g -A G=(
   [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../config.json"
   [jq]="."
   # Below you probably don't need to change
-  [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/.."
+  [base]="$(realpath $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/..)"
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=""
@@ -269,14 +269,24 @@ function test_env() {
     fi
   }
 
+  function build_here() {
+    local build_dir=$(cork-kube build show-local-repos | yq .aggie-experts.dir | sed 's!/$!!')
+    if [[ "${G[base]}" != "$build_dir" ]]; then
+      >&2 echo "ERR: --env=$env build_here: ${G[base]} != $build_dir"
+      exit 1
+    fi
+  }
+
   echo -n "Testing environment: ${G[env]} ... "
   case ${G[env]} in
     dev)
       server
+      build_here
     ;;
     clean )
       not_dirty
       good_status
+      build_here
       server dev
       ;;
     gcb)
@@ -288,6 +298,7 @@ function test_env() {
       server sandbox
       not_dirty
       good_status
+      build_here
       ;;
     test | prev | stage | prod )
       server prod
