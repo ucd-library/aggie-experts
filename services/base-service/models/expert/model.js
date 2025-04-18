@@ -80,27 +80,36 @@ class ExpertModel extends BaseModel {
       works : { include : true, page : 1, size : 10 }
     });
 
+    let workModel = await this.get_model('work');
+
     let seo = {
       '@context': result['@context']
     };
-    seo['@graph'] = result['@graph'].map((node) => {
-      let s = {};
+
+    result['@graph'].forEach(async (node) => {
       if (node['@type']) {
         if (!Array.isArray(node['@type'])) {
           node['@type'] = [node['@type']];
         }
+
+        // if type work, use model seo function to parse
+        if (node['@type'].includes('Work')) {
+          node = await workModel.seo(node['@id'], node, true);
+        }
+
         node['@type'] = node['@type'].filter((t) => {
           return ["Grant", "Person", "Book", "Chapter", "ScholarlyArticle"].includes(t);
         });
       }
+
+      // expert parsing
       node.name = node.name || node.title;
       if (node.contactInfo) {
         if (!Array.isArray(node.contactInfo)) {
           node.contactInfo = [node.contactInfo];
         }
-        let best=node.contactInfo.sort((a,b) => {
-          (a['rank'] || 100) - (b['rank'] || 100)});
-        s['affiliation'] = best.map((c) => {
+        let best = node.contactInfo.sort((a,b) => { (a['rank'] || 100) - (b['rank'] || 100) });
+        node['affiliation'] = best.map((c) => {
           if (c.hasOrganizationalUnit) {
             c["@type"] = "Organization";
             return c.hasOrganizationalUnit;
@@ -108,13 +117,19 @@ class ExpertModel extends BaseModel {
           return c.hasTitle;
         }).filter(t => t !== undefined)[0];
       }
-      ['@id','@type','name','affiltiation'].forEach((key) => {
+    });
+
+    seo['@graph'] = result['@graph'].map((node) => {
+      let s = {};
+      // columns to return
+      ['@id','@type','name','affiltiation','datePublished','sameAs','abstract'].forEach((key) => {
         if (node[key]) {
           s[key] = node[key];
         }
       });
       return s;
     });
+
     return JSON.stringify(seo);
   }
 

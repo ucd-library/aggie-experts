@@ -81,10 +81,49 @@ class WorkModel extends BaseModel {
     return doc;
   }
 
-  async seo(id) {
-    let result = await this.get(id);
-    result = this.subselect(result);
-    return JSON.stringify({ '@context': result['@context'], '@graph': result['@graph'] });
+  async seo(id, node, ignoreContext=false) {
+    // TODO restructure so both work page and calling from expert page return same content
+    let result;
+    if( node && ignoreContext ) { // called when adding to expert seo @graph
+      result = node;
+
+      result.name = result.title;
+      result.datePublished = result.issued;
+      result.sameAs = result.DOI ? 'https://doi.org/'+result.DOI : '';
+      result.abstract = result.abstract;
+
+      // TODO parse other data
+      // https://schema.org/ScholarlyArticle
+      // datePublished
+      // sameAs: DOI
+      // pub journal?
+      // abstract
+
+      // source
+      // result.DOI
+      // result.issued
+      // result.hasPublicationVenue
+      // result.abstract
+
+      // seo['@graph'] = result['@graph'].map((node) => {
+      //   let s = {};
+      //   // columns to return
+      //   ['@id','@type','name','affiltiation','datePublished','sameAs','abstract'].forEach((key) => {
+      //     if (node[key]) {
+      //       s[key] = node[key];
+      //     }
+      //   });
+      //   return s;
+      // });
+
+      
+    } else {
+      result = await this.get(id);
+      result = this.subselect(result);
+      result = JSON.stringify({ '@context': result['@context'], '@graph': result['@graph'] })      
+    }
+    
+    return result;
   }
 
     /**
