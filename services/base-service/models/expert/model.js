@@ -72,6 +72,75 @@ class ExpertModel extends BaseModel {
     return s;
   }
 
+  async seo(id) {
+    let result = await this.get(id);
+    result = this.subselect(result, {
+      expert : { include : true },
+      grants : { include : true, page : 1, size : 5 },
+      works : { include : true, page : 1, size : 10 }
+    });
+
+    let workModel = await this.get_model('work');
+    let grantModel = await this.get_model('grant');
+
+    let seo = {
+      '@graph': []
+    };
+
+    result['@graph'].forEach(async (node) => {
+      if (node['@type']) {
+        if (!Array.isArray(node['@type'])) {
+          node['@type'] = [node['@type']];
+        }
+        if (node['@type'].includes('Person')) {
+          seo["@graph"].push(this.to_seo(node));
+        }
+        if (node['@type'].includes('Work')) {
+          seo["@graph"].push(workModel.to_seo(node));
+        }
+        if (node['@type'].includes('Grant')) {
+          seo["@graph"].push(grantModel.to_seo(node));
+        }
+      }
+    });
+    return JSON.stringify(seo);
+  }
+
+  to_seo(node) {
+    if (!Array.isArray(node['@type'])) {
+      node['@type'] = [node['@type']];
+    }
+    if(! node['@type'].includes("Person")) {
+      log.error(node,"not a Person")
+    }
+    let seo={}
+
+    console.log(node)
+    seo.name = node?.label;
+    seo.identifier = node?.identifier
+
+    if (node.contactInfo) {
+      if (!Array.isArray(node.contactInfo)) {
+        node.contactInfo = [node.contactInfo];
+      }
+      let best = node.contactInfo.sort((a,b) => { (a['rank'] || 100) - (b['rank'] || 100) });
+      best.forEach((c)=> {
+        if(c?.isPreferred) {
+          if (c.hasOrganizationalUnit) {
+            if (! seo.affiliation ) { seo.affiliation=[] }
+            c.hasOrganizationalUnit["@type"] = "Organization";
+            seo.affiliation.push(c.hasOrganizationalUnit);
+          }
+          if (c.hasTitle) {
+          if (! seo.jobTitle ) { seo.jobTitle=[] }
+            seo.jobTitle.push(c.hasTitle);
+          }
+        }
+      });
+    }
+    return seo
+  }
+
   /**
    * @method subselect
    * @description return all or part of a document, with optional subsets of works/grants when requested

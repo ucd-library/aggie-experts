@@ -18,7 +18,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
   # This add IAM information
-  ?EXPERT__ a ?emp_type,vivo:Person,ucdlib:Expert;
+  ?EXPERT__ a ?emp_type,schema:Person,ucdlib:Expert;
           rdfs:label ?name_label;
           schema:identifier ?EXPERT__,?user,?oapolicy_ark,?default_email_uri,?orcid_uri,?scopus_uri,?researcher_uri;
           ucdlib:is-visible ?is_visible;

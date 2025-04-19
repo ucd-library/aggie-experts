@@ -38,6 +38,44 @@ class GrantModel extends BaseModel {
     return doc;
   }
 
+  async seo(id) {
+    node = await this.get(id);
+    node = this.subselect(node);
+    let seo = {"@context": node['@context'],
+                "@graph": []
+               };
+    node['@graph'].forEach(async (node) => {
+      if (node['@type']) {
+        if (!Array.isArray(node['@type'])) {
+          node['@type'] = [node['@type']];
+        }
+        // if type work, use model seo function to parse
+        if (node['@type'].includes('Work')) {
+          seo["@graph"].push(this.to_seo(node));
+        }
+      }
+    });
+    return JSON.stringify(seo);
+  }
+
+  to_seo(node) {
+    if (!Array.isArray(node['@type'])) {
+      node['@type'] = [node['@type']];
+    }
+    if(! node['@type'].includes("Grant")) {
+      log.error(node, "not a grant");
+    }
+    let seo={}
+
+    seo.name = node?.name;
+    seo.datePublished = node?.issued;
+
+    seo['@type'] = node['@type'].filter((t) => {
+      return ["Grant"].includes(t);
+    });
+    return seo;
+  }
+
   /**
    * @method subselect
    * @description return all or part of a document. If the document is not visible, throw 404

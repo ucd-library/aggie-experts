@@ -81,6 +81,49 @@ class WorkModel extends BaseModel {
     return doc;
   }
 
+  async seo(id) {
+    node = await this.get(id);
+    node = this.subselect(node);
+    let seo = {"@context": node['@context'],
+                "@graph": []
+               };
+    node['@graph'].forEach(async (node) => {
+      if (node['@type']) {
+        if (!Array.isArray(node['@type'])) {
+          node['@type'] = [node['@type']];
+        }
+        // if type work, use model seo function to parse
+        if (node['@type'].includes('Work')) {
+          seo["@graph"].push(this.to_seo(node));
+        }
+      }
+    });
+    return JSON.stringify(seo);
+  }
+
+  to_seo(node) {
+    if (!Array.isArray(node['@type'])) {
+      node['@type'] = [node['@type']];
+    }
+    if(! node['@type'].includes("Work")) {
+      log.error(node,"WorkModel.to_seo: node is not a work");
+    }
+    let seo={}
+
+    seo.name = node?.title;
+    seo.datePublished = node?.issued;
+    if (node.DOI) {
+      seo.DOI = 'https://doi.org/'+node?.DOI
+      seo.sameAs = node?.DOI
+    }
+    seo.abstract = node?.abstract;
+
+    seo['@type'] = node['@type'].filter((t) => {
+      return ["Book", "Chapter", "ScholarlyArticle"].includes(t);
+    });
+    return seo;
+  }
+
     /**
    * @method subselect
    * @description return all or part of a document.  While this only really santiizes the authorships, we maintain the name to match the expert model.
