@@ -39,9 +39,41 @@ class GrantModel extends BaseModel {
   }
 
   async seo(id) {
-    let result = await this.get(id);
-    result = this.subselect(result);
-    return JSON.stringify({ '@context': result['@context'], '@graph': result['@graph'] });
+    node = await this.get(id);
+    node = this.subselect(node);
+    let seo = {"@context": node['@context'],
+                "@graph": []
+               };
+    node['@graph'].forEach(async (node) => {
+      if (node['@type']) {
+        if (!Array.isArray(node['@type'])) {
+          node['@type'] = [node['@type']];
+        }
+        // if type work, use model seo function to parse
+        if (node['@type'].includes('Work')) {
+          seo["@graph"].push(this.to_seo(node));
+        }
+      }
+    });
+    return JSON.stringify(seo);
+  }
+
+  to_seo(node) {
+    if (!Array.isArray(node['@type'])) {
+      node['@type'] = [node['@type']];
+    }
+    if(! node['@type'].includes("Grant")) {
+      log.error(node, "not a grant");
+    }
+    let seo={}
+
+    seo.name = node?.name;
+    seo.datePublished = node?.issued;
+
+    seo['@type'] = node['@type'].filter((t) => {
+      return ["Grant"].includes(t);
+    });
+    return seo;
   }
 
   /**

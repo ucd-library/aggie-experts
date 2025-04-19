@@ -81,49 +81,47 @@ class WorkModel extends BaseModel {
     return doc;
   }
 
-  async seo(id, node, ignoreContext=false) {
-    // TODO restructure so both work page and calling from expert page return same content
-    let result;
-    if( node && ignoreContext ) { // called when adding to expert seo @graph
-      result = node;
+  async seo(id) {
+    node = await this.get(id);
+    node = this.subselect(node);
+    let seo = {"@context": node['@context'],
+                "@graph": []
+               };
+    node['@graph'].forEach(async (node) => {
+      if (node['@type']) {
+        if (!Array.isArray(node['@type'])) {
+          node['@type'] = [node['@type']];
+        }
+        // if type work, use model seo function to parse
+        if (node['@type'].includes('Work')) {
+          seo["@graph"].push(this.to_seo(node));
+        }
+      }
+    });
+    return JSON.stringify(seo);
+  }
 
-      result.name = result.title;
-      result.datePublished = result.issued;
-      result.sameAs = result.DOI ? 'https://doi.org/'+result.DOI : '';
-      result.abstract = result.abstract;
-
-      // TODO parse other data
-      // https://schema.org/ScholarlyArticle
-      // datePublished
-      // sameAs: DOI
-      // pub journal?
-      // abstract
-
-      // source
-      // result.DOI
-      // result.issued
-      // result.hasPublicationVenue
-      // result.abstract
-
-      // seo['@graph'] = result['@graph'].map((node) => {
-      //   let s = {};
-      //   // columns to return
-      //   ['@id','@type','name','affiltiation','datePublished','sameAs','abstract'].forEach((key) => {
-      //     if (node[key]) {
-      //       s[key] = node[key];
-      //     }
-      //   });
-      //   return s;
-      // });
-
-      
-    } else {
-      result = await this.get(id);
-      result = this.subselect(result);
-      result = JSON.stringify({ '@context': result['@context'], '@graph': result['@graph'] })      
+  to_seo(node) {
+    if (!Array.isArray(node['@type'])) {
+      node['@type'] = [node['@type']];
     }
-    
-    return result;
+    if(! node['@type'].includes("Work")) {
+      log.error(node,"WorkModel.to_seo: node is not a work");
+    }
+    let seo={}
+
+    seo.name = node?.title;
+    seo.datePublished = node?.issued;
+    if (node.DOI) {
+      seo.DOI = 'https://doi.org/'+node?.DOI
+      seo.sameAs = node?.DOI
+    }
+    seo.abstract = node?.abstract;
+
+    seo['@type'] = node['@type'].filter((t) => {
+      return ["Book", "Chapter", "ScholarlyArticle"].includes(t);
+    });
+    return seo;
   }
 
     /**
