@@ -148,7 +148,11 @@ return html`
       --ucd-theme-quick-links-icon-bg-color-hover: var(--color-aggie-blue-80, #13639E);
     }
 
-  </style>
+    ucd-theme-search-popup {
+      height: 100%;
+    }
+
+    </style>
   <!--
     Required for AppStateModel
     @ucd-lib/app-state-model imports this element

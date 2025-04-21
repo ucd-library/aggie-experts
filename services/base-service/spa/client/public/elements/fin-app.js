@@ -43,8 +43,7 @@ export default class FinApp extends Mixin(LitElement)
     this.appRoutes = APP_CONFIG.appRoutes;
     this._injectModel('AppStateModel', 'ExpertModel');
 
-    // hack to customize header quick links, need to update styles if screen goes into mobile mode vs desktop mode and vice-versa
-    window.addEventListener("resize", this._validateLoggedInUser.bind(this));
+    window.addEventListener("resize", this._onResize.bind(this));
 
     this.page = 'loading';
     this.loadedPages = {};
@@ -113,8 +112,29 @@ export default class FinApp extends Mixin(LitElement)
     });
   }
 
+  _onResize(e) {
+    let searchPopup = this.shadowRoot.querySelector('ucd-theme-header ucd-theme-search-popup');
+    if( searchPopup && searchPopup ) {
+      searchPopup.style.setProperty('--safari-repaint-fix', `${Math.random()}px`);
+    }
+  }
+
   async firstUpdated() {
     this._onAppStateUpdate(await this.AppStateModel.get());
+
+    // hack for styles in header to patch safari bug, for some reason seems to only affect ae
+    let searchPopup = this.shadowRoot.querySelector('ucd-theme-header ucd-theme-search-popup');
+    if( searchPopup && searchPopup.shadowRoot ) {
+      let searchPopupStyles = document.createElement('style');
+      searchPopupStyles.textContent = `
+        .search-popup__open::before,
+        .search-popup__open::after {
+          transform: scale(1);
+          --safari-repaint-fix: 0px;
+        }
+      `;
+      searchPopup.shadowRoot.appendChild(searchPopupStyles);
+    }
   }
 
   /**
