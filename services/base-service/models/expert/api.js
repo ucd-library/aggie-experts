@@ -13,6 +13,7 @@ const { openapi, json_only, user_can_edit, public_or_is_user } = require('../mid
 
 function subselect(req, res, next) {
   try {
+    // This top part is gibberish to me, is this really what we want?
     // parse params
     let params = Object.assign({}, req.params || {}, req.query || {}, req.body || {});
     if( params.options ) {
@@ -22,6 +23,14 @@ function subselect(req, res, next) {
     // only allow no-sanitize if they are an admin or the expert
     let expertId = `${req.params.expertId}`;
     params.admin = req.user?.roles?.includes('admin') || expertId === req?.user?.attributes?.expertId;
+
+    // Here, in the API, we might require different authentication
+
+    if (params?.grant?.size > 10 || params?.works?.size > 10) {
+      // We verify they are logged into CAS
+      is_user
+    }
+
 
     res.thisDoc = model.subselect(res.thisDoc, params);
     next();
@@ -228,6 +237,8 @@ function expert_valid_path_error(err, req, res, next) {
   })
 }
 
+// Maybe we can use the standard item endpoint for this?
+// It would be great for the owner to state 'expert/fubar?is-visible=include&all' or some pleasant shorthand.
 item_endpoint(router,model,subselect)
 
 router.route(
