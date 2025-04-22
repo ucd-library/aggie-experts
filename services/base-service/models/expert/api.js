@@ -9,11 +9,10 @@ const md5 = require('md5');
 const model= new ExpertModel();
 
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
-const { openapi, json_only, user_can_edit, public_or_is_user, is_user } = require('../middleware/index.js')
+const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
 
 function subselect(req, res, next) {
   try {
-    // This top part is gibberish to me, is this really what we want?
     // parse params
     let params = Object.assign({}, req.params || {}, req.query || {}, req.body || {});
     if( params.options ) {
@@ -24,22 +23,8 @@ function subselect(req, res, next) {
     let expertId = `${req.params.expertId}`;
     params.admin = req.user?.roles?.includes('admin') || expertId === req?.user?.attributes?.expertId;
 
-    // Here, in the API, we might require different authentication
-
-    if (params?.grants?.size > 10 || params?.works?.size > 10) {
-      // We verify they are logged into CAS
-      is_user(req, res, (err) => {
-        if (err) {
-          return next(err);
-        }
-
-        res.thisDoc = model.subselect(res.thisDoc, params);
-        next();
-      });
-    } else {
-      res.thisDoc = model.subselect(res.thisDoc, params);
-      next();
-    }
+    res.thisDoc = model.subselect(res.thisDoc, params);
+    next();
   } catch (e) {
     res.status(e.status || 500).json({error:e.message});
   }
@@ -243,9 +228,62 @@ function expert_valid_path_error(err, req, res, next) {
   })
 }
 
-// Maybe we can use the standard item endpoint for this?
-// It would be great for the owner to state 'expert/fubar?is-visible=include&all' or some pleasant shorthand.
-item_endpoint(router,model,subselect)
+// this is taken from the middleware/index.js item_endpoint function 
+// just creating a simple route for now to return all expert graph data,
+// including !is-visible for admins/profile owner
+// ?is-visible=include&all
+router.route(
+  '/:expertId'
+).get(
+  expert_valid_path(
+    {
+      description: "Get all expert data by id",
+      responses: {
+        "200": openapi.response(model.name),
+        "400": openapi.response('missing_id'),
+        "403": openapi.response('forbidden'),
+        "404": openapi.response('not_found')
+      }
+    //   parameters: {
+    //     "id": {
+    //       "name": "id",
+    //       "in": "path",
+    //       "description": "identifier",
+    //       "required": true,
+    //       "schema": { "type": "string" }
+    //     }
+    //   }
+    }
+    ),
+  public_or_is_user,
+  expert_valid_path_error,
+  async (req, res, next) => {
+    let expertId = `expert/${req.params.expertId}`;
+    let isVisible = req.query['is-visible'] === 'include';
+    let all = false;
+    if( 'all' in req.query ) {
+      all = true;
+    }
+
+    try {
+
+      // TODO
+      // only logged in user/admin can specify to include non-visible entries (using url param 'is-visible=include')
+      // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
+
+      res.thisDoc = await model.get(expertId);
+      res.thisDoc = model.subselect(res.thisDoc,  {
+        expert : { include : true },
+        grants : { include : true },
+        works : { include : true }
+      });
+      res.status(200).json(res.thisDoc);
+    } catch (e) {
+      return res.status(404).json(`${expertId} resource not found`);
+    }
+  }
+)
+
 
 router.route(
   '/:expertId'
