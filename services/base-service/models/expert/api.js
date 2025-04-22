@@ -265,6 +265,14 @@ router.route(
       all = true;
     }
 
+    // only logged in user/admin can specify to include non-visible entries (using url param 'is-visible=include')
+    // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
+    let userCanEdit = req.user?.roles?.includes('admin') || expertId === req.user?.attributes?.expertId;
+    let userLoggedIn = req.user?.loggedIn;
+
+    if( !userLoggedIn && !userCanEdit ) isVisible = false;
+    if( !userCanEdit && all ) all = false;
+
     let options = {
       'is-visible': isVisible,
       expert : { include : true },
@@ -273,18 +281,13 @@ router.route(
     };
 
     if( !all ) {
-      options.works.page = 1;
+      options.grants.page = 1;
       options.grants.size = 5;
       options.works.page = 1;
       options.works.size = 10;
     }
 
     try {
-
-      // TODO
-      // only logged in user/admin can specify to include non-visible entries (using url param 'is-visible=include')
-      // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
-
       res.thisDoc = await model.get(expertId);
       res.thisDoc = model.subselect(res.thisDoc, options);
       res.status(200).json(res.thisDoc);
