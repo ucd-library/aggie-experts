@@ -293,7 +293,6 @@ function public_or_is_user(req, res, next) {
   return is_user(req, res, next);
 }
 
-// Not exported
 function is_user(req, res, next) {
   if (!req.user) {
     return res.status(401).send('Unauthorized');
@@ -1024,6 +1023,7 @@ module.exports = {
   fetchExpertId,
   has_access,
   public_or_is_user,
+  is_user,
   item_endpoint,
   json_only,
   openapi,

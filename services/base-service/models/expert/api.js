@@ -9,7 +9,7 @@ const md5 = require('md5');
 const model= new ExpertModel();
 
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
-const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
+const { openapi, json_only, user_can_edit, public_or_is_user, is_user } = require('../middleware/index.js')
 
 function subselect(req, res, next) {
   try {
@@ -26,14 +26,20 @@ function subselect(req, res, next) {
 
     // Here, in the API, we might require different authentication
 
-    if (params?.grant?.size > 10 || params?.works?.size > 10) {
+    if (params?.grants?.size > 10 || params?.works?.size > 10) {
       // We verify they are logged into CAS
-      is_user
+      is_user(req, res, (err) => {
+        if (err) {
+          return next(err);
+        }
+
+        res.thisDoc = model.subselect(res.thisDoc, params);
+        next();
+      });
+    } else {
+      res.thisDoc = model.subselect(res.thisDoc, params);
+      next();
     }
-
-
-    res.thisDoc = model.subselect(res.thisDoc, params);
-    next();
   } catch (e) {
     res.status(e.status || 500).json({error:e.message});
   }
