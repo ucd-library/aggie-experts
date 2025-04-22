@@ -265,6 +265,20 @@ router.route(
       all = true;
     }
 
+    let options = {
+      'is-visible': isVisible,
+      expert : { include : true },
+      grants : { include : true },
+      works : { include : true }
+    };
+
+    if( !all ) {
+      options.works.page = 1;
+      options.grants.size = 5;
+      options.works.page = 1;
+      options.works.size = 10;
+    }
+
     try {
 
       // TODO
@@ -272,11 +286,7 @@ router.route(
       // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
 
       res.thisDoc = await model.get(expertId);
-      res.thisDoc = model.subselect(res.thisDoc,  {
-        expert : { include : true },
-        grants : { include : true },
-        works : { include : true }
-      });
+      res.thisDoc = model.subselect(res.thisDoc, options);
       res.status(200).json(res.thisDoc);
     } catch (e) {
       return res.status(404).json(`${expertId} resource not found`);
