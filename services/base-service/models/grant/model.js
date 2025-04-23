@@ -49,8 +49,8 @@ class GrantModel extends BaseModel {
         if (!Array.isArray(node['@type'])) {
           node['@type'] = [node['@type']];
         }
-        // if type work, use model seo function to parse
-        if (node['@type'].includes('Work')) {
+        // if type grant, use model seo function to parse
+        if (node['@type'].includes('Grant')) {
           seo["@graph"].push(this.to_seo(node));
         }
       }
@@ -68,7 +68,18 @@ class GrantModel extends BaseModel {
     let seo={}
 
     seo.name = node?.name;
-    seo.datePublished = node?.issued;
+    
+    let startDate = node?.dateTimeInterval?.start?.dateTime;
+    let endDate = node?.dateTimeInterval?.end?.dateTime;
+    if( startDate ) {
+      seo.startDate = startDate; 
+    }
+    if( endDate ) {
+      seo.endDate = endDate;
+    }
+
+    let funder = node?.name?.split('§')?.pop()?.trim() || '';
+    if( funder ) seo.funder = funder;
 
     seo['@type'] = node['@type'].filter((t) => {
       return ["Grant"].includes(t);
