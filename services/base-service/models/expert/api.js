@@ -228,7 +228,79 @@ function expert_valid_path_error(err, req, res, next) {
   })
 }
 
-item_endpoint(router,model,subselect)
+// this is taken from the middleware/index.js item_endpoint function 
+// just creating a simple route for now to return all expert graph data,
+// optionally including "is-visible":false for admins/profile owner
+// ?include=hidden&all
+router.route(
+  '/:expertId'
+).get(
+  expert_valid_path(
+    {
+      description: "Get all expert data by id",
+      responses: {
+        "200": openapi.response(model.name),
+        "400": openapi.response('missing_id'),
+        "403": openapi.response('forbidden'),
+        "404": openapi.response('not_found')
+      }
+    //   parameters: {
+    //     "id": {
+    //       "name": "id",
+    //       "in": "path",
+    //       "description": "identifier",
+    //       "required": true,
+    //       "schema": { "type": "string" }
+    //     }
+    //   }
+    }
+    ),
+  public_or_is_user,
+  expert_valid_path_error,
+  async (req, res, next) => {
+    let expertId = `expert/${req.params.expertId}`;
+    let includeHidden = req.query['include'] === 'hidden';
+    let all = false;
+    if( 'all' in req.query ) {
+      all = true;
+    }
+
+    // only logged in user/admin can specify to include non-visible entries (using url param 'is-visible=include')
+    // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
+    let userCanEdit = req.user?.roles?.includes('admin') || expertId === req.user?.attributes?.expertId;
+    let userLoggedIn = req.user;
+    
+    if( !userLoggedIn && !userCanEdit ) includeHidden = false;
+    if( !userCanEdit && all ) all = false;
+
+    let options = {
+      'is-visible': !includeHidden,
+      expert : { include : true },
+      grants : { include : true },
+      works : { include : true }
+    };
+
+    if( userCanEdit ) {
+      options.admin = true;
+    }
+
+    if( !all ) {
+      options.grants.page = 1;
+      options.grants.size = 5;
+      options.works.page = 1;
+      options.works.size = 10;
+    }
+
+    try {
+      res.thisDoc = await model.get(expertId);
+      res.thisDoc = model.subselect(res.thisDoc, options);
+      res.status(200).json(res.thisDoc);
+    } catch (e) {
+      return res.status(404).json(`${expertId} resource not found`);
+    }
+  }
+)
+
 
 router.route(
   '/:expertId'

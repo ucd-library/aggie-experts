@@ -13,6 +13,28 @@
     "vcard":"http://www.w3.org/2006/vcard/ns#",
     "vivo": "http://vivoweb.org/ontology/core#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "_": {
+      "@id": "ucdlib:FinInfo",
+      "@type": "@id",
+      "@context": {
+        "event": {
+          "@id": "ucdlib:lastFinEventEvent",
+          "@type": "@id"
+        },
+        "id": {
+          "@id": "ucdlib:lastFinEventId"
+        },
+        "timestamp": {
+          "@id": "ucdlib:lastFinEventTimestamp"
+        },
+        "updated": {
+          "@id": "ucdlib:lastFinEventUpdated"
+        },
+        "updateType": {
+          "@id": "ucdlib:lastFinEventUpdateType"
+        }
+      }
+    },
     "abstract":{"@id":"cite:abstract"},
     "ArchivalGroup":"fedora:ArchivalGroup",
     "assignedBy": { "@id":"vivo:assignedBy", "@type":"@id"},
@@ -178,6 +200,24 @@
     "title":{"@id":"cite:title"},
     "Title":{"@id":"vcard:Title"},
     "totalAwardAmount": {"@id": "vivo:totalAwardAmount"},
+    "totals": {
+      "@id": "ucdlib:totals",
+      "@type": "@id",
+      "@context": {
+        "works": {
+          "@id": "ucdlib:totalWorkCount"
+        },
+        "grants": {
+          "@id": "ucdlib:totalGrantCount"
+        },
+        "hiddenWorks": {
+          "@id": "ucdlib:totalHiddenWorkCount"
+        },
+        "hiddenGrants": {
+          "@id": "ucdlib:totalHiddenGrantCount"
+        }
+      }
+    },
     "type":{"@id":"cite:type"},
     "url":{"@id":"cite:url"},
     "URL":{"@id":"vcard:URL"},
