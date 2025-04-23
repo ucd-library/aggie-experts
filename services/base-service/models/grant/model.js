@@ -78,8 +78,13 @@ class GrantModel extends BaseModel {
       seo.endDate = endDate;
     }
 
-    let funder = node?.name?.split('§')?.pop()?.trim() || '';
-    if( funder ) seo.funder = funder;
+    if( node.assignedBy ) {
+      seo.funder = {
+        "@type": "Organization",
+        name: node.assignedBy?.name || '',
+        identifier: node.assignedBy['@id'] || ''
+      };
+    }
 
     seo['@type'] = node['@type'].filter((t) => {
       return ["Grant"].includes(t);
