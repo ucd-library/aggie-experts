@@ -82,7 +82,7 @@ class WorkModel extends BaseModel {
   }
 
   async seo(id) {
-    node = await this.get(id);
+    let node = await this.get(id);
     node = this.subselect(node);
     let seo = {"@context": node['@context'],
                 "@graph": []
