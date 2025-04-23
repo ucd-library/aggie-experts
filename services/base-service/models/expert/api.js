@@ -268,7 +268,7 @@ router.route(
     // only logged in user/admin can specify to include non-visible entries (using url param 'is-visible=include')
     // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
     let userCanEdit = req.user?.roles?.includes('admin') || expertId === req.user?.attributes?.expertId;
-    let userLoggedIn = req.user?.loggedIn;
+    let userLoggedIn = req.user;
 
     if( !userLoggedIn && !userCanEdit ) isVisible = false;
     if( !userCanEdit && all ) all = false;

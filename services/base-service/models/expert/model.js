@@ -182,6 +182,22 @@ class ExpertModel extends BaseModel {
         works : { include : false }
       }
     */
+    let defaults = {
+      'is-visible' : true,
+      expert : { 
+        include : false,
+        size : -1
+      },
+      grants : { 
+        include : false,
+        size : -1
+      },
+      works : { 
+        include : false,
+        size : -1
+      }
+    }
+    options = {...defaults, ...options};
 
     if (doc["is-visible"] === false && !options.admin) {
       throw {status: 404, message: "Not found"};
