@@ -269,7 +269,6 @@ class ExpertModel extends BaseModel {
       grants = visibleGrants;
     }
 
-    // Should we really show the # of hidden works if they are user or admin?
     let hiddenWorks = totalWorks - visibleWorks.length;
     let hiddenGrants = totalGrants - visibleGrants.length;
 
