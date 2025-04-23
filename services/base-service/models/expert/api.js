@@ -230,8 +230,8 @@ function expert_valid_path_error(err, req, res, next) {
 
 // this is taken from the middleware/index.js item_endpoint function 
 // just creating a simple route for now to return all expert graph data,
-// including !is-visible for admins/profile owner
-// ?is-visible=include&all
+// optionally including "is-visible":false for admins/profile owner
+// ?include=hidden&all
 router.route(
   '/:expertId'
 ).get(
@@ -259,7 +259,7 @@ router.route(
   expert_valid_path_error,
   async (req, res, next) => {
     let expertId = `expert/${req.params.expertId}`;
-    let isVisible = req.query['is-visible'] === 'include';
+    let includeHidden = req.query['include'] === 'hidden';
     let all = false;
     if( 'all' in req.query ) {
       all = true;
@@ -269,16 +269,20 @@ router.route(
     // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
     let userCanEdit = req.user?.roles?.includes('admin') || expertId === req.user?.attributes?.expertId;
     let userLoggedIn = req.user;
-
-    if( !userLoggedIn && !userCanEdit ) isVisible = false;
+    
+    if( !userLoggedIn && !userCanEdit ) includeHidden = false;
     if( !userCanEdit && all ) all = false;
 
     let options = {
-      'is-visible': isVisible,
+      'is-visible': !includeHidden,
       expert : { include : true },
       grants : { include : true },
       works : { include : true }
     };
+
+    if( userCanEdit ) {
+      options.admin = true;
+    }
 
     if( !all ) {
       options.grants.page = 1;

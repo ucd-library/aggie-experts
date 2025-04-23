@@ -185,7 +185,7 @@ class ExpertModel extends BaseModel {
     let defaults = {
       'is-visible' : true,
       expert : { 
-        include : false,
+        include : true,
         size : -1
       },
       grants : { 
@@ -395,21 +395,16 @@ class ExpertModel extends BaseModel {
       grants = grants.slice((options.grants.page-1) * options.grants.size, options.grants.page * options.grants.size);
     }
 
-    /*
-      TODO tbd in the future, for search we'll want to filter by dates and potentially other values,
-          will implement once search is built out more
-      // filter works by field(s) if requested
-      // filter grants by field(s) if requested
-    */
-
     // return total visible/hidden works/grants
-    // TODO ask QH, does this need to be hidden if not admin/expert?
     doc.totals = {
       works: totalWorks,
       grants: totalGrants,
-      hiddenWorks,
-      hiddenGrants
     };
+
+    if( options.admin ) {
+      doc.totals.hiddenWorks = hiddenWorks;
+      doc.totals.hiddenGrants = hiddenGrants;
+    }
 
     doc['@graph'] = [...expert, ...works, ...grants]
     return doc;
