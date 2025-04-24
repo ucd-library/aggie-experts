@@ -81,6 +81,7 @@ module.exports = async (app) => {
     template : async (req, res, next) => {
       let jsonld = '';
       let urlParts = req.originalUrl.split('/').filter(p => p ? true : false);
+
       let workId, grantId, expertId;
       let workRegex = /^\/work\/.+\/publication\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
       let grantRegex = /^\/grant\/.+\/grant\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
@@ -91,17 +92,17 @@ module.exports = async (app) => {
       let isExpert = req.originalUrl.match(expertRegex);
 
       if( isWork ) {
-        workId = urlParts.slice(1).join('/');
+        workId = urlParts.slice(1).join('/').split('?')[0];
 
         // might remove everything but work/grant, like no relationships
         jsonld = await works.model.seo(workId);
       } else if( isGrant ) {
-        grantId = urlParts.slice(1).join('/');
+        grantId = urlParts.slice(1).join('/').split('?')[0];
 
         // might remove everything but work/grant, like no relationships
         jsonld = await grants.model.seo(grantId);
       } else if( isExpert ) {
-        expertId = 'expert/' + urlParts[1];
+        expertId = 'expert/' + urlParts[1].split('?')[0];
 
         // might have to see if too much info (might remove vcard stuff, maybe modify types)
         jsonld = await experts.model.seo(expertId);
