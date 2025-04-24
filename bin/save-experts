@@ -1,4 +1,66 @@
 #!/usr/bin/env bash
+: <<=cut
+=pod
+
+=head1  NAME
+
+save-experts - Download Aggie Experts data as JSON files
+
+=head1 SYNOPSIS
+
+save-experts [--host=<host>] [--jwt=<jwt>] [--csv=<csv>] [--dir=<dir>] [-h|--help]
+
+=head1 DESCRIPTION
+
+This script is used to download Aggie Experts data as JSON files.  It uses
+httpie to make the requests and jq to parse the JSON.  It also uses bc to
+calculate the elapsed time for each request.  The script will create a CSV file
+with the following columns: alpha, expert, time, status.  The alpha column is
+the first letter of the expert's name, the expert column is the expert's ID,
+the time column is the elapsed time for the request, and the status column is
+the HTTP status code for the request.  The script will also create a directory
+named "expert" in the current directory and save the JSON files there.  The
+script will also create a CSV file with the name specified by the --csv option
+or the default name "times.csv" if the --csv option is not specified.  The
+script will also create a directory named "expert" in the current directory and
+save the JSON files there.
+
+=head1 GLOBAL OPTIONS
+
+=over 4
+
+=item B<--host=I<host>>
+
+Which Aggie Experts host to use.  This is the base URL for the API.  The default
+is https://experts.ucdavis.edu.  This is used to set the host for the
+httpie command.
+
+=item B<--jwt=I<jwt>>
+
+The JWT token to use for authentication.  This is required for all commands
+except for the help command.  This is used to set the Authorization header
+for the httpie command.
+
+=item B<--csv=I<csv>>
+
+The CSV file to use for output.  This is used to set the output file for
+the download times.  The default is times.csv.  This is used to set the
+output file for the httpie command.
+
+=item B<--dir=I<dir>>
+
+The directory to use for output.  This is used to set the output directory
+for the download times.  The default is the current directory.
+
+=item B<-h|--help>
+
+Shows the manpage for the program. The help pages are embedded in the script and
+require the functions, C<pod2usage> and C<pod2text> to work properly.
+
+=back
+
+=cut
+
 # These Global Variables are the defaults values for the current setup.
 declare -g -A G=(
   [csv]="times.csv"
@@ -10,7 +72,7 @@ declare -g -A G=(
   [jwt]=''
 );
 
-if ! opts=$(${G[shell_getopt]} -o h:j:c:d:n --long host:,jwt:,csv:,dir:,dry-run -n "count-experts" -- "$@"); then
+if ! opts=$(${G[shell_getopt]} -o h:j:c:d:n --long help,host:,jwt:,csv:,dir:,dry-run -n "count-experts" -- "$@"); then
   echo "Bad Command Options." >&2 ; exit 1 ; fi
 
 eval set -- "$opts"
@@ -22,6 +84,7 @@ while true; do
     -c | --csv ) G[csv]="$2"; shift 2 ;;
     -n | --dry-run ) G[dry-run]=1; shift ;;
     -d | --dir ) G[dir]="$2"; shift 2 ;;
+    --help) pod2text $0; exit 0;;
     -- ) shift; break ;;
     * ) break ;;
   esac
