@@ -38,8 +38,6 @@ host=${G[host]}
 http --session=dev ${host}/api/expert/browse/ Authorization:"Bearer ${G[jwt]}" >/dev/null 2>&1
 http='http --session-read-only=dev'
 
-get_all='{"grants" : {"include" : true,"size":2000},"works" : {"include" : true,"size":10000}}'
-
 echo "alpha,expert,time,status" > "${G[csv]}"
 
 for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
@@ -50,7 +48,7 @@ for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
     {
       start=$(date +%s.%N)
       #status=$($http --download --check-status "$url" -o $e.json 2>&1 | grep HTTP | awk '{print $2}')
-      status=$($http --download --check-status -o $e.json POST "$url" <<<"$get_all" 2>&1 | grep HTTP | awk '{print $2}')
+      status=$($http --download --check-status -o $e.json GET "$url" all==1 include==hidden 2>&1 | grep HTTP | awk '{print $2}')
       end=$(date +%s.%N)
     } 2> /dev/null
 
