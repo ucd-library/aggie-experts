@@ -113,6 +113,7 @@ WHERE {
        iam:dLastName ?iam_lname;
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty;
+       iam:isHSEmployee ?isHSEmployee;
        iam:userID ?USERID__;
        .
 
@@ -133,18 +134,6 @@ WHERE {
     OPTIONAL {
       ?user iam:directory/iam:displayName/iam:nameWwwFlag "N" .
       bind(false as ?odr_is_visible)
-    }
-    OPTIONAL {
-#      VALUES ?health_division_code {
-#        division:F80B657C9EF423A0E0340003BA8A560D
-#        division:F80B657C9EEE23A0E0340003BA8A560D
-#        division:1A58461A5F57EE68E0507880B221CDA4
-#      }
-      #      ?user iam:ppsAssociations/iam:bouOrgOId ?health_division_code .
-      ?user iam:isHSEmployee true.
-      bind(false as ?odr_email_v)
-      bind(false as ?pps_email_v)
-      bind(true as ?isHSEmployee)
     }
     OPTIONAL {
       ?user iam:directory/iam:displayName ?dname.
@@ -330,7 +319,7 @@ WHERE {
   bind(coalesce(?odr_is_visible,true) as ?is_visible)
   bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
   bind(uri(concat(str(?user),"#name")) as ?vcard_name)
-  bind(if(coalesce(?pps_email_v,true),uri(concat('mailto:',?default_email)),?not_defined) as ?default_email_uri)
+  bind(if(coalesce(?pps_email_v,true) && ! ?isHSEmployee,uri(concat('mailto:',?default_email)),?not_defined) as ?default_email_uri)
   bind(if(coalesce(?pps_title_v,true),?pps_title_uri,?not_defined) as ?pps_title_uri_use)
   bind(if(coalesce(?pps_title_v,true),replace(?pps_otitle," -.*",""),?not_defined) as ?pps_title)
   bind(xsd:integer(?pps_a_order)+10 as ?pps_order)
@@ -345,7 +334,7 @@ WHERE {
 
   bind(xsd:integer(?odr_list_order) as ?odr_order)
   bind(concat("odr-",str(?odr_order)) as ?odr_vid)
-  bind(if(?odr_email_v,uri(concat("mailto:",coalesce(?explict_odr_email,?default_email))),?not_defined) as ?odr_email_uri)
+  bind(if(coalesce(?odr_email_v,false) && ! ?isHSEmployee,uri(concat("mailto:",coalesce(?explict_odr_email,?default_email))),?not_defined) as ?odr_email_uri)
   bind(coalesce(?has_odr,false) as ?odr_is_preferred)
   bind(uri(?odr_website) as ?odr_website_uri)
   bind(uri(concat("ark:/87287/d7c08j/position/odr/",md5(?odr_title))) as ?odr_vcard_title)
