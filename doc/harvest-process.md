@@ -24,16 +24,15 @@ The experts cdl script performs the following steps for each user:
 1. Fetch the XML representation of the user and their related objects
 2. Tranform the XML to [JSON-LD](https://json-ld.org/) and load into a local Fuseki instance
 3. Transform the resultant dataset to the [VIVO Ontology](https://github.com/vivo-ontologies/vivo-ontology?tab=readme-ov-file) format by using a [SPARQL](https://www.w3.org/TR/sparql11-query/) construct query designed for this purpose.
-4. Write the transformed JSON-LD to a local file cache 
+4. Write the transformed JSON-LD to local directory `cache` 
   
-The node class files [cdl-client](../harvest/experts-client/lib/cdl-client.js), [fuseki-client](../harvest/experts-client/lib/fuseki-client.js), [iam-client](../harvest/experts-client/lib/iam-client.js), and [cache](../harvest/experts-client/lib/cache) are used to accomplish these tasks.
-
-5. Import the resulting cache directory into FIN using FIN IO import
-
-With the JSON imported into FIN, it is synchronized with Elastic Search indexes and becomes available to other applications via the Aggie Experts API.
-
 ### Importing Objects to Fin
 
+The resulting `cache` directory contains a subdirectory for each expert harvested. Within each further subdirectories contain JSON-LD formatted files representing the expert profile, works, and grants. 
+
+An import script can then use the `fin io` utility to import these data objects into FIN (`fcrepo`) 
+
+With the JSON imported into FIN, it is synchronized with Elastic Search indexes and becomes available to other applications via the Aggie Experts API. 
 
 
 
