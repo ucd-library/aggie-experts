@@ -82,6 +82,7 @@ services:
       - fedora-data:/usr/local/tomcat/fcrepo-home/data
       - activemq-data:/usr/local/tomcat/ActiveMQ
       - *SERVICE_ACCOUNT
+    restart: unless-stopped
 
   ###
   # Fedora Postgres Service
@@ -127,6 +128,7 @@ services:
     logging: *LOGGING
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+    restart: unless-stopped
 
   spa:
     image: *BASE
@@ -184,6 +186,7 @@ services:
   # ###
   gcs:
     image: *BASE
+    logging: *LOGGING
     environment:
       - GCS_BUCKET=${GCS_BUCKET:-${D[gcs_bucket]}}
       - GCS_INIT_DATA_HYDRATION=${GCS_INIT_DATA_HYDRATION:-${D[gcs_init_data_hydration]}}
@@ -282,6 +285,7 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+    restart: unless-stopped
     command: npm run uber
   # command: bash -c 'tail -f /dev/null'
 
@@ -290,6 +294,7 @@ services:
     logging: *LOGGING
     volumes:
       - *SERVICE_ACCOUNT
+    restart: unless-stopped
     # command: bash -c "tail -f /dev/null"
 
 ###
