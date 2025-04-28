@@ -80,22 +80,19 @@ router.get(
     if (req?.query.type) {
       params.type = req.query.type.split(',');
     }
-    params["@type"].forEach((t) => {
-      switch (t) {
-      case 'expert':
-        params.index.push(experts.readIndexAlias);
-        break;
-      case 'grant':
-        params.index.push(grants.readIndexAlias);
-        break;
-      case 'work':
-        params.index.push(works.readIndexAlias);
-        break;
-      default:
-        return res.status(400).json({error: 'Invalid type'});
-        break;
+
+    const typeToIndex = {
+      expert: experts.readIndexAlias,
+      grant: grants.readIndexAlias,
+      work: works.readIndexAlias,
+    };
+    for (const t of params["@type"]) {
+      const indexAlias = typeToIndex[t];
+      if (!indexAlias) {
+        return res.status(400).json({ error: 'Invalid type' });
       }
-    });
+      params.index.push(indexAlias);
+    }
     opts = {
       id: complete.id,
       params
