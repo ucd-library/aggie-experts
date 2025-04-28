@@ -34,5 +34,6 @@ An import script can then use the `fin io` utility to import these data objects 
 
 With the JSON imported into FIN, it is synchronized with Elastic Search indexes and becomes available to other applications via the Aggie Experts API. 
 
+For a detailed step-by-step on performing a code deployment and data harvest see: [The CDL Harvest Process](./experts-deploy-harvest.md)
 
 
