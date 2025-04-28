@@ -59,11 +59,18 @@ router.get(
   async (req, res) => {
     const params = {
       "@type":['expert','grant','work'],
+      "q": "",
+      "size": 10,
+      "page": 1,
       index: []
     };
     ["p","inner_hits_size","size","page","q"].forEach((key) => {
       if (req.query[key]) { params[key] = req.query[key]; }
     });
+    // if the user is not logged in, we need to set the default
+    if (params.size > 100) {
+      res.status(400).json({ error: 'Size exceeds limit' });
+    }
 
     if (req?.query.availability) {
       params.availability = req.query.availability.split(',');
@@ -79,6 +86,9 @@ router.get(
     }
     if (req?.query.type) {
       params.type = req.query.type.split(',');
+    }
+    if ( ! params.q ) {
+      res.status(400).json({ error: 'Missing required query parameter "q"' });
     }
 
     const typeToIndex = {
