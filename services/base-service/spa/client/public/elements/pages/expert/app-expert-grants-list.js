@@ -78,7 +78,6 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
       this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
-    window.scrollTo(0, 0);
 
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/grants', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
@@ -99,7 +98,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
 
       this._onExpertUpdate(expert);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -116,7 +115,7 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
   async _onExpertUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants' ) return;
-    if( e.expertId === this.expertId ) return;
+    // if( e.expertId === this.expertId ) return;
 
     this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
@@ -173,7 +172,12 @@ export default class AppExpertGrantsList extends Mixin(LitElement)
     );
     this._onExpertUpdate(expert);
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**

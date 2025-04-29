@@ -138,7 +138,21 @@ return html`
       opacity: .6;
     }
 
-  </style>
+    ucd-theme-quick-links {
+      --ucd-theme-quick-links-icon-bg-color: var(--color-aggie-blue-60, #73ABDD);
+      --ucd-theme-quick-links-icon-bg-color-hover: var(--color-aggie-blue-80, #13639E);
+    }
+    
+    ucd-theme-quick-links[logged-in] {
+      --ucd-theme-quick-links-icon-bg-color: var(--color-aggie-gold, #FFBF00);
+      --ucd-theme-quick-links-icon-bg-color-hover: var(--color-aggie-blue-80, #13639E);
+    }
+
+    ucd-theme-search-popup {
+      height: 100%;
+    }
+
+    </style>
   <!--
     Required for AppStateModel
     @ucd-lib/app-state-model imports this element
@@ -150,11 +164,10 @@ return html`
     figure-src="/images/aggie-experts-logo-primary.png"
     prevent-fixed>
 
-    <ucd-theme-primary-nav>
+    <ucd-theme-primary-nav @click="${this._onNavClick}">
       <a href="/browse/expert">Experts</a>
-      <!-- <a href="/subject">Subjects</a> -->
-      <!-- <a href="/work">Works</a> -->
       <a href="/browse/grant">Grants</a>
+      <a href="/browse/work">Works</a>
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>
@@ -166,15 +179,16 @@ return html`
     </ucd-theme-search-popup>
 
     <ucd-theme-quick-links
-        title="My Account"
+        title="${this.quickLinksTitle}"
         style-modifiers="highlight"
+        ?logged-in="${APP_CONFIG.user.loggedIn}"
+        ?disable-dropdown=${!APP_CONFIG.user.loggedIn}
+        @btn-click="${this._onQuickLinksClick}"
         use-icon>
       <svg slot="custom-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512H418.3c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>
-      <a href="/${this.expertId}">Profile</a>
-      <a href="/faq">Help</a>
-      <a href="/auth/logout">Log Out</a>
-      <a href="https://org.ucdavis.edu/odr/">UC Davis Online Directory Listing</a>
-      <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management</a>
+      ${this.quickLinks.map(
+        (link) => html`<a href="${link.href}">${link.text}</a>`
+      )}
     </ucd-theme-quick-links>
 
   </ucd-theme-header>
@@ -194,31 +208,39 @@ return html`
       selectedAttribute="visible"
       class="${this.loading ? 'loading' : ''}">
       <app-home id="home"></app-home>
-      <app-browse id="browse"></app-browse>
+      <app-browse id="browse" @reset-scroll="${this._resetScroll}"></app-browse>
       <!-- <app-work id="work"></app-work> -->
       <app-expert
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
         @cancel-edit-expert="${this._editExpertClick}"
         id="expert"
-        @show-404="${(e) => this.page = '404'}">
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}">
       </app-expert>
-      <app-expert-works-list id="works" @show-404="${(e) => this.page = '404'}"></app-expert-works-list>
+      <app-expert-works-list id="works"
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}"></app-expert-works-list>
       <app-expert-works-list-edit
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
         id="works-edit"
-        @show-404="${(e) => this.page = '404'}">
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}">
       </app-expert-works-list-edit>
       <app-grant id="grant" @show-404="${(e) => this.page = '404'}"></app-grant>
-      <app-expert-grants-list id="grants" @show-404="${(e) => this.page = '404'}"></app-expert-grants-list>
+      <app-work id="work" @show-404="${(e) => this.page = '404'}"></app-work>
+      <app-expert-grants-list id="grants"
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}"></app-expert-grants-list>
       <app-expert-grants-list-edit
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
         id="grants-edit"
-        @show-404="${(e) => this.page = '404'}">
+        @show-404="${(e) => this.page = '404'}"
+        @reset-scroll="${this._resetScroll}">
       </app-expert-grants-list-edit>
-      <app-search id="search"></app-search>
+      <app-search id="search" @reset-scroll="${this._resetScroll}"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
     </ucdlib-pages>

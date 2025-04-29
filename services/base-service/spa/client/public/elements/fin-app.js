@@ -33,6 +33,8 @@ export default class FinApp extends Mixin(LitElement)
       hideEdit : { type : Boolean },
       loading : { type : Boolean },
       searchTerm : { type : String },
+      quickLinksTitle: { type : String },
+      quickLinks : { type : Array },
     }
   }
 
@@ -41,8 +43,7 @@ export default class FinApp extends Mixin(LitElement)
     this.appRoutes = APP_CONFIG.appRoutes;
     this._injectModel('AppStateModel', 'ExpertModel');
 
-    // hack to customize header quick links, need to update styles if screen goes into mobile mode vs desktop mode and vice-versa
-    window.addEventListener("resize", this._validateLoggedInUser.bind(this));
+    window.addEventListener("resize", this._onResize.bind(this));
 
     this.page = 'loading';
     this.loadedPages = {};
@@ -54,11 +55,24 @@ export default class FinApp extends Mixin(LitElement)
     this.hideEdit = !utils.getCookie('editingExpertId');
     this.loading = false;
     this.searchTerm = '';
+    this.lastPageTops = {};
+    this.allLinks = [
+      { type: 'profile', text: 'Profile', href: '/'+this.expertId },
+      { type: 'faq', text: 'Help', href: '/faq' },
+      { type: 'login', text: 'Log In', href: '/auth/login' },
+      { type: 'logout', text: 'Log Out', href: '/auth/logout' },
+      { type: 'odr', text: 'UC Davis Online Directory Listing', href: 'https://org.ucdavis.edu/odr/' },
+      { type: 'oa', text: 'UC Publication Management', href: 'https://oapolicy.universityofcalifornia.edu/' },
+    ];
+    this.quickLinksTitle = 'Sign In';
+    this.quickLinks = [];
 
     this.render = render.bind(this);
     this._init404();
 
     this.addEventListener('click', this.pageClick.bind(this));
+
+    window.addEventListener('popstate', this._onPopState.bind(this));
   }
 
   pageClick(e) {
@@ -98,8 +112,29 @@ export default class FinApp extends Mixin(LitElement)
     });
   }
 
+  _onResize(e) {
+    let searchPopup = this.shadowRoot.querySelector('ucd-theme-header ucd-theme-search-popup');
+    if( searchPopup && searchPopup ) {
+      searchPopup.style.setProperty('--safari-repaint-fix', `${Math.random()}px`);
+    }
+  }
+
   async firstUpdated() {
     this._onAppStateUpdate(await this.AppStateModel.get());
+
+    // hack for styles in header to patch safari bug, for some reason seems to only affect ae
+    let searchPopup = this.shadowRoot.querySelector('ucd-theme-header ucd-theme-search-popup');
+    if( searchPopup && searchPopup.shadowRoot ) {
+      let searchPopupStyles = document.createElement('style');
+      searchPopupStyles.textContent = `
+        .search-popup__open::before,
+        .search-popup__open::after {
+          transform: scale(1);
+          --safari-repaint-fix: 0px;
+        }
+      `;
+      searchPopup.shadowRoot.appendChild(searchPopupStyles);
+    }
   }
 
   /**
@@ -117,7 +152,6 @@ export default class FinApp extends Mixin(LitElement)
       this.textQuery = "";
       this.isSearch = false;
     }
-    window.scrollTo(0, 0);
 
     this._validateLoggedInUser();
 
@@ -127,19 +161,82 @@ export default class FinApp extends Mixin(LitElement)
 
     if( this.page === page ) return;
 
+    this.lastPageTops[this.page] = window.scrollY;
+
     if ( !this.loadedPages[page] ) {
       this.page = 'loading';
       this.loadedPages[page] = this.loadPage(page);
     }
     await this.loadedPages[page];
+
     this.page = page;
 
     // this.page = page;
     this.pathInfo = e.location.pathname.split('/media')[0];
 
+    await this._updateScrollPosition(page);
+
     this.firstAppStateUpdate = false;
+    this.backButtonPressed = false;
 
     this._closeHeader();
+  }
+
+  async _updateScrollPosition(page=this.page) {
+    let selectedPage = this.shadowRoot.querySelector('ucdlib-pages')?.querySelector('#'+page);
+    if( page === 'browse' ) selectedPage = selectedPage.querySelector('app-browse-by');
+
+    // wait for content and child components to render
+    await selectedPage.updateComplete;
+    let childComponents = selectedPage.shadowRoot?.querySelectorAll('*');
+    if( childComponents ) {
+      await Promise.all(Array.from(childComponents).map(async (child) => {
+        if( child.updateComplete ) {
+          await child.updateComplete;
+        }
+      }));  
+    }
+
+    if( page === 'browse' ) {
+      let resultsComponent = selectedPage.shadowRoot?.querySelectorAll('div.browse-results');
+      if( resultsComponent ) {
+        await resultsComponent.updateComplete;
+        await Promise.all(Array.from(resultsComponent).map(async (child) => {
+          if( child.updateComplete ) {
+            await child.updateComplete;
+          }
+        }));  
+      }
+    }
+
+    // scroll to previous position when nav back
+    if( !this.backButtonPressed ) { // || ['work', 'grant', 'expert'].includes(page)) {          
+      window.scrollTo(0, 0);
+    } else {
+      window.scrollTo(0, this.lastPageTops[page]);
+    }
+  }
+
+  /**
+   * @method _onPopState
+   * @description handle browser back button pressed
+   */
+  _onPopState(e) {
+    this.backButtonPressed = true;  
+  }
+
+  /**
+   * @method _resetScroll
+   * @description reset scroll to top of page and reset the saved page top for selected page
+   */
+  _resetScroll(e) {
+    this.lastPageTops[this.page] = 0;
+    window.scrollTo(0, 0);
+  }
+
+  _onNavClick(e) {
+    // remove focus from the clicked anchor tag, to avoid active styles
+    e.target.blur();
   }
 
   /**
@@ -165,6 +262,8 @@ export default class FinApp extends Mixin(LitElement)
       return import(/* webpackChunkName: "page-tou" */ "./pages/termsofuse/app-tou");
     } else if( page === 'expert' ) {
       return import(/* webpackChunkName: "page-expert" */ "./pages/expert/app-expert");
+    } else if( page === 'work' ) {
+      return import(/* webpackChunkName: "page-work" */ "./pages/work/app-work");
     } else if( page === 'works' ) {
       return import(/* webpackChunkName: "page-works" */ "./pages/expert/app-expert-works-list");
     } else if( page === 'works-edit' ) {
@@ -176,7 +275,7 @@ export default class FinApp extends Mixin(LitElement)
     } else if( page === 'grants-edit' ) {
       return import(/* webpackChunkName: "page-grants-edit" */ "./pages/expert/app-expert-grants-list-edit");
     }
-    console.warn('No code chunk loaded for this page');
+    this.logger.warn('No code chunk loaded for this page');
     return false;
   }
 
@@ -188,30 +287,20 @@ export default class FinApp extends Mixin(LitElement)
   async _validateLoggedInUser() {
     this.expertId = APP_CONFIG.user?.expertId || '';
 
-    // check if expert exists for currently logged in user, otherwise hide profile link in header quick links
-    let header = this.shadowRoot.querySelector('ucd-theme-header');
-    let quickLinks = header?.querySelector('ucd-theme-quick-links');
-
+    // remove profile link for users without a profile
     if( APP_CONFIG.user?.hasProfile ) {
-      if( quickLinks ) {
-        quickLinks.shadowRoot.querySelector('ul.menu > li > a').href = '/' + this.expertId;
-      }
+      this.allLinks.find(link => link.type === 'profile').href = '/'+this.expertId;
     } else {
-      console.warn('expert ' + this.expertId + ' not found for logged in user');
+      this.allLinks = this.allLinks.filter(link => link.type !== 'profile');
+    }
 
-      if( quickLinks ) {
-        quickLinks.shadowRoot.querySelector('ul.menu > li > a').style.display = 'none';
-        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(2)').style.top = '0';
-        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(3)').style.top = '3.2175rem';
-        quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '0';
-
-        if( window.innerWidth > 991 ) {
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '6.5325rem';
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu > li:nth-child(4)').style.paddingTop = '1rem';
-        } else  {
-          quickLinks.shadowRoot.querySelector('.quick-links--highlight ul.menu').style.paddingTop = '0';
-        }
-      }
+    // update logged in status
+    if( APP_CONFIG.user.loggedIn ) {
+      this.quickLinks = this.allLinks.filter(link => link.type !== 'login');
+      this.quickLinksTitle = 'My Account';
+    } else {
+      this.quickLinks = [];
+      this.quickLinksTitle = 'Sign In';
     }
 
     if( this.page === 'expert' ) {
@@ -220,6 +309,13 @@ export default class FinApp extends Mixin(LitElement)
     }
 
     this._styleEditExpertButton();
+  }
+
+  _onQuickLinksClick(e) {
+    if( !APP_CONFIG.user.loggedIn ) {
+      e.preventDefault();
+      window.location.href = '/auth/login';
+    }
   }
 
   /**

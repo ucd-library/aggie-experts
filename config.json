@@ -7,9 +7,9 @@
       "client_id":"aggie-experts",
       "service_account":"aggie-experts-service-account"
     },
-    "fin":{
-      "org":"gcr.io/ucdlib-pubreg",
-      "tag":"2.6.3"
+    "build":{
+      "org":"us-west1-docker.pkg.dev/digital-ucdavis-edu/pub",
+      "registry_url":"https://raw.githubusercontent.com/ucd-library/cork-build-registry/refs/heads/main/repositories/aggie-experts.json"
     },
     "client_error_reporting":{
       "enabled":false,
@@ -23,8 +23,8 @@
       "env":"prod"
     },
     "ga4":{
-      "gaid":"G-GM57B0V0WC",
-      "enable":"false"
+      "measurement_id":"G-GM57B0V0WC",
+      "enable_stats":"false"
     },
     "cork-kube": {
       "build_args": "--use-registry=fuseki-image,fin"
@@ -54,7 +54,6 @@
     "host":"http://localhost",
     "gcs":{
       "bucket":"fcrepo-dev",
-      "subscription":"local-dev",
       "init_data_hydration":true
     }
   },
@@ -100,9 +99,6 @@
     "host":"https://stage.experts.library.ucdavis.edu",
     "cdl":{
       "propagate_changes":"true"
-    },
-    "analytics":{
-      "enable":"true"
     }
   },
   "prod":{
@@ -114,8 +110,8 @@
     "cdl":{
       "propagate_changes":"true"
     },
-    "analytics":{
-      "enable":"true"
+    "ga4":{
+      "enable_stats":"true"
     }
   }
 }

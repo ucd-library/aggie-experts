@@ -1,7 +1,5 @@
 # Aggie Experts Grant Feed workflow
 
-Updated: 02/2025 
-
 UCD grants are imported into the CDL Elements system using the Symplectic Elements file upload feed mechanism.
 Grant metadata originates from the UCD Aggie Enterprise system as a XML file received via a weekly email. A set of import files are created and uploaded to Sympletic for import into the CDL Elements instance. 
 

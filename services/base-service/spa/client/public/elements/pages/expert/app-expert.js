@@ -89,7 +89,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertEditing = utils.getCookie('editingExpertId');
 
     if( e.location.page !== 'expert' ) return;
-    window.scrollTo(0, 0);
 
     let expertId = e.location.pathname.substr(1);
     let modified = e.modifiedWorks || e.modifiedGrants;
@@ -111,7 +110,7 @@ export default class AppExpert extends Mixin(LitElement)
 
       this._onExpertUpdate(expert, modified);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -141,7 +140,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     // update page data
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
-    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('/user'))?.[0]?.split('/')?.pop() || '';
+    this.elementsUserId = graphRoot.identifier?.filter(i => i.includes('ark:/87287/d7mh2m/user'))?.[0]?.split('/')?.pop() || '';
 
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
@@ -205,7 +204,7 @@ export default class AppExpert extends Mixin(LitElement)
             url.icon = 'ai-figshare';
           }
         } catch(e) {
-          console.warn('error setting website icon', e);
+          this.logger.warn('error setting website icon', e);
         }
       });
 
@@ -351,14 +350,9 @@ export default class AppExpert extends Mixin(LitElement)
       }
     });
 
-    // update doi links to be anchor tags
+    // make sure container-title is a single string
     citationResults.forEach(cite => {
-      if( cite.DOI && cite.apa ) {
-        // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
-        cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
-                  + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
-                  + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
-      }
+      if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
     });
 
     if( all ) return citationResults;

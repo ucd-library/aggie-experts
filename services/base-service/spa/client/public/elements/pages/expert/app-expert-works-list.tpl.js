@@ -26,11 +26,10 @@ return html`
       background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem
+      padding: 2.625rem;
     }
 
     .hero-text .works {
@@ -94,6 +93,18 @@ return html`
       padding-right: 1rem;
     }
 
+    .work-item .work h5 {
+      color: var(--ucd-blue-80, #13639E);
+      cursor: pointer;
+      margin: .5rem 0;
+      font-size: 1.2rem;
+      line-height: 1.3;
+    }
+
+    .work-item .work h5 a {
+      text-decoration: none;
+    }
+
     ucd-theme-pagination {
       padding-bottom: 1rem;
     }
@@ -124,7 +135,13 @@ return html`
     </div>
 
     <div class="main-content">
-      <div class="return-to-profile" @click="${this._returnToProfile}">
+      <div 
+        class="return-to-profile" 
+        @click="${this._returnToProfile}"
+        @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._returnToProfile(e); }}
+        tabindex="0"
+        role="button"
+        aria-label="Return to profile">
         <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-left"></ucdlib-icon>
         <span>RETURN TO PROFILE</span>
       </div>
@@ -135,7 +152,7 @@ return html`
         <div class="work-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
           <div class="work">
-            <h5>${unsafeHTML(cite.title || cite['container-title'])}</h5>
+            <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
             <div class="work-details">
               <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
               <span class="dot">•</span>

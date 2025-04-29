@@ -26,11 +26,10 @@ return html`
       background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem
+      padding: 2.625rem;
     }
 
     .hero-text .grants {
@@ -87,7 +86,10 @@ return html`
 
     .main-content .grant h5 {
       color: black;
+      cursor: pointer;
       margin: 0.5rem 0;
+      font-size: 1.2rem;
+      line-height: 1.3;
     }
 
     .grant-details .dot {
@@ -133,7 +135,13 @@ return html`
     </div>
 
     <div class="main-content">
-      <div class="return-to-profile" @click="${this._returnToProfile}">
+      <div 
+        class="return-to-profile" 
+        @click="${this._returnToProfile}"
+        @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._returnToProfile(e); }}
+        tabindex="0"
+        role="button"
+        aria-label="Return to profile">
         <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-left"></ucdlib-icon>
         <span>RETURN TO PROFILE</span>
       </div>

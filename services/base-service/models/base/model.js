@@ -187,7 +187,7 @@ class BaseModel extends FinEsDataModel {
       name: node['name'],
       "@graph": [node]
     };
-    ["@type","status","is-visible","updated","identifier"].forEach(key => {
+    ["@type","status","type","is-visible","updated","identifier"].forEach(key => {
       if (node[key]) doc[key] = node[key];
     });
     return doc;
@@ -417,11 +417,12 @@ class BaseModel extends FinEsDataModel {
    *
    * @returns {Promise} resolves to elasticsearch result
    */
-  async get(id, opts={}, index) {
+  async get(id, opts={}) {
     if( id[0] === '/' ) id = id.substring(1);
     let _source_excludes = true;
     if( opts.admin ) _source_excludes = false;
     else if( opts.compact ) _source_excludes = 'compact';
+    //console.log(`BaseModel.get(${id}) on ${this.readIndexAlias}`);
 
     let result= await this.client.get(
       {

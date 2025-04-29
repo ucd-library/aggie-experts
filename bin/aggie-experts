@@ -59,25 +59,20 @@ the bounded mounts.
 Show what you would do do not really do it. Because some commands require
 multiple access to the server, this command does not always work properly.
 
-=item B<--gcs=I<bucket>>
-
-Specify the Google Cloud Storage bucket to use for initialization.  This sets
-the C<GCS_BUCKET> parameter in the environment.
-
 =item B<--unstaged-ok>
 
 Will build a C<clean>) environment even if there are unstaged changes in the
 repository.  This usually means files that are not tracked by git.
 
+=item B<--build-args=I<'arg,arg,...'>>
+
+To specify additional build arguments for the cork-kube build command.  This
+can be used, for instance, to build all dependencies with --build-args='--depth=ALL'
+
 =item B<--list-mounts>
 
 List the bind mounts that are used in the dev environment.  Used with the
 C<setup> command.
-
-=item B<--no-env> B<--no-service-account> B<--no-compose>
-
-When running C<setup> do not create the environment, service account, or
-docker-compose.yml file, dpepending on the flag.
 
 =item B<--cloudsdk-active-config-name=I<name>>
 
@@ -97,15 +92,15 @@ require the functions, C<pod2usage> and C<pod2text> to work properly.
 # These Global Variables are the defaults values for the current setup.
 declare -g -A G=(
   [project]="aggie-experts"
+  [cloudsdk_active_config_name]='aggie-experts'
   [config]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../config.json"
   [jq]="."
   # Below you probably don't need to change
-  [base]="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/.."
+  [base]="$(realpath $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/..)"
   [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=""
   [test_env]=1
-  [cloudsdk_active_config_name]='aggie-experts'
 );
 
 function G() {
@@ -274,14 +269,24 @@ function test_env() {
     fi
   }
 
+  function build_here() {
+    local build_dir=$(cork-kube build show-local-repos | yq .aggie-experts.dir | sed 's!/$!!')
+    if [[ "${G[base]}" != "$build_dir" ]]; then
+      >&2 echo "ERR: --env=$env build_here: ${G[base]} != $build_dir"
+      exit 1
+    fi
+  }
+
   echo -n "Testing environment: ${G[env]} ... "
   case ${G[env]} in
     dev)
       server
+      build_here
     ;;
     clean )
       not_dirty
       good_status
+      build_here
       server dev
       ;;
     gcb)
@@ -293,6 +298,7 @@ function test_env() {
       server sandbox
       not_dirty
       good_status
+      build_here
       ;;
     test | prev | stage | prod )
       server prod
@@ -353,24 +359,16 @@ function expand_template(){
   local sa client_id auth
   declare -g -A D
 
-  D["tag"]="$(${G[git]} describe --always --dirty)"
-
-  case ${G[env]} in
-    dev)
-      D["tag"]="dirty"
-      ;;
-  esac
-
-  read D["org"] D["fin_org"] D["fin_tag"] \
+  read D["org"] D["build_org"] D["build_registry_url"] \
        D["host"] D["port"] \
-       D["gcs_bucket"] D["gcs_init_data_hydration"]\
+       D["gcs_bucket"] D["gcs_init_data_hydration"] \
        D["client_env"] D["cdl_propagate_changes"] \
        D["client_error_reporting_enabled"] \
        D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
+       D["ga4_enable_stats"] D["ga4_measurement_id"] \
        sa client_id auth \
        <<<$(G "[.${G[env]}.org // .def.org,
-           .def.fin.org,
-           .def.fin.tag,
+           .def.build.org, .def.build.registry_url,
            .${G[env]}.host,
            .${G[env]}.port,
            .${G[env]}.gcs.bucket // .def.gcs.bucket,
@@ -380,10 +378,28 @@ function expand_template(){
            .${G[env]}.client_error_reporting.enabled // .def.client_error_reporting.enabled,
            .${G[env]}.client_error_reporting.url // .def.client_error_reporting.url,
            .${G[env]}.client_error_reporting.key_secret // .def.client_error_reporting.key_secret,
+           .${G[env]}.ga4.enable_stats // .def.ga4.enable_stats,
+           .${G[env]}.ga4.measurement_id // .def.ga4.measurement_id,
            .${G[env]}.auth.service_account // .def.auth.service_account,
            .${G[env]}.auth.client_id // .def.auth.client_id,
            .${G[env]}.auth.server // .def.auth.server
           ] |@tsv")
+
+    # Get fin tag from build repository
+  D["tag"]="$(${G[git]} describe --always --dirty)"
+
+  case ${G[env]} in
+    dev )
+      D["tag"]="dirty"
+      D["fin_tag"]=$(curl -s "${D[build_registry_url]}" | jq -r ".builds.dev.fin")
+      ;;
+    clean | sandbox )
+      D["fin_tag"]=$(curl -s "${D[build_registry_url]}" | jq -r ".builds.dev.fin")
+      ;;
+    stage | prod)
+      D["fin_tag"]=$(curl -s "${D[build_registry_url]}" | jq -r ".builds[\"${D[tag]}\"].fin")
+      ;;
+  esac
 
   #decode client_error_reporting_key_secret
   D["client_error_reporting_key"]=$(gcloud secrets versions access latest --secret=${D["client_error_reporting_key_secret"]})
@@ -494,8 +510,6 @@ function setup() {
 
   function compose() {
     local N=${G[dry-run]};
-    local gcs
-    read gcs <<<$(G "[.${G[env]}.gcs.bucket] | @tsv")
 
     local yq='.'
     local env=${G[env]}
@@ -504,7 +518,6 @@ function setup() {
     local template=$(expand_template)
     local root="$(${G[git]} rev-parse --show-toplevel)"
 
-    eval "$(cat .env)"
     # Delete unused PORTS
     for i in fuseki kibana fcrepo rabbitmq; do
       local p=${i^^}_PORT
@@ -513,10 +526,11 @@ function setup() {
       fi
     done
 
+    if [[ -z ${G[gcs]} ]]; then
+      yq+='| del(.services.gcs)'
+    fi
+
     if [[ "$env" = "dev" ]]; then
-      if [[ -z "$gcs" ]]; then
-        yq+='| del(.services.gcs)'
-      fi
       if [[ ! "$mount" =~ "models" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_MODELS*" or alias=="DEV_MOUNT_MODELS*"))'
       fi
@@ -541,26 +555,17 @@ function setup() {
   }
   function setup_files() {
     if [[ -n $N ]]; then
-      if [[ -n ${G[setup_compose]} ]] ; then
-        echo "#===== docker-compose.yaml =====#"
-        compose
-      fi
-      if [[ -n ${G[setup_service_account]} ]] ; then
-        echo "#===== service-account =====#"
-        service_account
-      fi
+      echo "#===== docker-compose.yaml =====#"
+      compose
+      echo "#===== service-account =====#"
+      service_account
     else
-      if [[ -n ${G[setup_compose]} ]] ; then
-        >&2 echo "docker-compose.yaml"
-        compose > ${G[base]}/docker-compose.yaml
-      fi
-      if [[ -n ${G[setup_service_account]} ]] ; then
-        if [[ -f ${G[base]}/service-account.json ]]; then
-          >&2 echo "service-account.json already exists"
-        else
-          >&2 echo "service-account.json"
-          service_account > ${G[base]}/service-account.json
-        fi
+      compose > ${G[base]}/docker-compose.yaml
+      if [[ -f ${G[base]}/service-account.json ]]; then
+        >&2 echo "service-account.json already exists"
+      else
+        >&2 echo "service-account.json"
+        service_account > ${G[base]}/service-account.json
       fi
     fi
   }
@@ -602,17 +607,15 @@ function setup() {
 function main.cmd() {
   local opts;
 
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,gcs:,env:,jq:,list-mounts,mount:,unstaged-ok,no-env,no-compose,no-service-account,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,env:,no-gcs,list-mounts,mount:,unstaged-ok,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
 
     declare -A CMD=(
-      [setup_env]=1
-      [setup_compose]=1
-      [setup_service_account]=1
       [unstaged_ok]=
       [build_args]=
+      [gcs]=1
     )
 
     while true; do
@@ -620,13 +623,10 @@ function main.cmd() {
         --base) CMD[base]=$2; shift 2;;
         --cloudsdk-active-config-name) CMD[cloudsdk_active_config_name]=$2; shift 2;;
         --env) CMD[env]=$2; shift 2;;
-        --gcs) CMD[gcs]=$2; shift 2;;
         --list-mounts | -l) CMD[list-mounts]=1; shift;;
         --mount) CMD[mount]=$2; shift 2;;
+        --no-gcs) CMD[gcs]=; shift;;
         --no-test) CMD[test_env]=; shift;;
-        --no-compose) CMD[setup_compose]=; shift;;
-        --service-account) CMD[setup_service_account]=1; shift;;
-        --no-service-account) CMD[setup_service_account]=; shift;;
         --unstaged-ok) CMD[unstaged_ok]=1; shift;;
         --build-args) CMD[build_args]="$2"; shift 2;;
         -h | --help) pod2text $0; exit 0;;
@@ -693,11 +693,6 @@ function main.cmd() {
 
         expand )
           expand <${G[config]}
-          exit 0
-          ;;
-
-        bar )
-          expand <docker-template.yaml
           exit 0
           ;;
 

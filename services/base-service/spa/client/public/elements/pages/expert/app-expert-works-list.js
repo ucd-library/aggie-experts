@@ -77,7 +77,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
-    window.scrollTo(0, 0);
 
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
@@ -99,7 +98,7 @@ export default class AppExpertWorksList extends Mixin(LitElement)
 
       this._onExpertUpdate(expert);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -153,29 +152,6 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       return citation;
     });
 
-    // TODO this might change, depending on if we fix data issues in the backend or report in the frontend
-    // try {
-    //   // sort by issued date desc, then by title asc
-    //   citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title))
-    // } catch (error) {
-    //   // validate issue date
-    //   let validation = Citation.validateIssueDate(citations);
-    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
-
-    //   // validate title
-    //   validation = Citation.validateTitle(citations);
-    //   if( validation.citations?.length ) console.warn(validation.error, validation.citations);
-
-    // } finally {
-      // filter out invalid citations
-      // citations = citations.filter(c => typeof c.issued === 'string' && typeof c.title === 'string');
-
-      // this.citations = citations.sort((a,b) => Number(b.issued.split('-')[0]) - Number(a.issued.split('-')[0]) || a.title.localeCompare(b.title));
-    // }
-
-    // let startIndex = (this.currentPage - 1) * this.resultsPerPage || 0;
-    // let citationResults = all ? await Citation.generateCitations(this.citations) : await Citation.generateCitations(this.citations.slice(startIndex, startIndex + this.resultsPerPage));
-
     let citationResults = await Citation.generateCitations(this.citations);
     this.citationsDisplayed = citationResults.map(c => c.value || c.reason?.data);
 
@@ -190,14 +166,9 @@ export default class AppExpertWorksList extends Mixin(LitElement)
       }
     });
 
-    // update doi links to be anchor tags
-    this.citationsDisplayed.forEach(cite => {
-      if( cite.DOI && cite.apa ) {
-        // https://doi.org/10.3389/fvets.2023.1132810</div>\n</div>
-        cite.apa = cite.apa.split(`https://doi.org/${cite.DOI}`)[0]
-                  + `<a href="https://doi.org/${cite.DOI}">https://doi.org/${cite.DOI}</a>`
-                  + cite.apa.split(`https://doi.org/${cite.DOI}`)[1];
-      }
+    // make sure container-title is a single string
+    citationResults.forEach(cite => {
+      if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
     });
 
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
@@ -234,7 +205,12 @@ export default class AppExpertWorksList extends Mixin(LitElement)
     );
     this._onExpertUpdate(expert);
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
 

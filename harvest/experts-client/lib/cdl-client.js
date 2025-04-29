@@ -34,6 +34,11 @@ export class CdlClient {
       url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
       authname : 'oapolicy',
       secretpath : 'projects/325574696734/secrets/cdl-elements-json',
+      group_by_name : {
+        'dev': 1591,
+        'sandbox': 1587,
+        'experts': 1576
+      },
       timeout : 30000
     }
   };
@@ -210,6 +215,17 @@ export class CdlClient {
     if (!groups) {
       throw new Error('groups is required');
     }
+    groups = groups.split(',').map((group) => {
+      if (group.match(/^\d+$/)) {
+        return group;
+      }
+      if (CdlClient.ENV[this.env].group_by_name[group]) {
+        return CdlClient.ENV[this.env].group_by_name[group];
+      } else {
+        throw new Error(`Group ${group} not found.  Please use a group ID or a group name from the list: ${Object.keys(CdlClient.ENV[this.env].group_by_name).join(',')}`);
+      }
+    }).join(',');
+
     let lastPage = false;
     let nextPage = `${this.url}/users?detail=ref&per-page=1000&groups=${groups}`;
     // let sinceFilter = '';

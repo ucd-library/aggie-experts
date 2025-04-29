@@ -23,7 +23,6 @@ export function styles() {
       background-size: cover;
       background-color: #FBE3F3;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .color-light {
@@ -33,7 +32,6 @@ export function styles() {
     .content {
       width: 100%;
       margin: 0 auto;
-      min-height: 700px;
     }
 
     .main-content {
@@ -43,7 +41,7 @@ export function styles() {
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem;
+      padding: 2.625rem;
     }
 
     .grants span {
@@ -201,6 +199,10 @@ export function styles() {
       padding: 5px 8px;
     }
 
+    .hero-text .status.active {
+      background-color: var(--color-farmers-market);
+    }
+
     .hero-text .heading--highlight {
       margin-bottom: 1.5rem;
     }
@@ -232,7 +234,7 @@ return html`
         </div>
         <h1>${this.grantName}</h1>
         <h3 class="heading--highlight">${this.startDate} – ${this.endDate}</h3>
-        <span class="status">${this.completed ? 'Complete' : 'Active'}</span>
+        <span class="status${!this.completed ? ' active' : ''}">${this.completed ? 'Complete' : 'Active'}</span>
       </div>
     </div>
 

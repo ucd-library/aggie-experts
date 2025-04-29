@@ -40,7 +40,7 @@ class BrowseByService extends BaseService {
     let storeKey = 'by'+type+'sLastInitial';
 
     await this.request({
-      url : `${this.baseUrl}/${type}/browse`,
+      url : `${this.baseUrl}/${type.toLowerCase()}/browse`,
       qs : { page, size, p : lastInitial.toUpperCase() },
       checkCached : () => this.store.data[storeKey].get(id),
       onUpdate : resp => this.store.set(

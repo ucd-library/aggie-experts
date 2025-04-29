@@ -321,39 +321,67 @@ function fetch() {
   local titles_context
 
   read -d '' def_context <<'CONTEXT';
-{"@context": {
+{
+  "@context": {
   "@version":1.1,
   "@base":"ark:/87287/d7c08j/",
   "@vocab":"ark:/87287/d7c08j/schema#",
-  "iamId":"@id",
-  "orgOId":"@id",
-  "bouOrgOId":{
-    "@type":"@id"
-  },
-  "titleCode":{
-    "@type":"@id",
-    "@context": { "@base":"ark:/87287/d7c08j/position/" }
-  }
-}}
+  "iamId":{
+     "@type":"@id",
+     "@id":"@id",
+     "@context": {
+       "@base":"ark:/87287/d7c08j/user/"
+     }
+   },
+   "bouOrgoid":{
+     "@type":"@id",
+     "@context": {
+       "@base":"ark:/87287/d7c08j/organization/"
+     }
+   },
+   "titleCode":{
+     "@type":"@id",
+     "@context": {
+       "@base":"ark:/87287/d7c08j/position/"
+     }
+   }
+ }
+}
 CONTEXT
 
   read -d '' titles_context <<'CONTEXT';
-{"@context": {
+{
+  "@context": {
   "@version":1.1,
-  "@base":"ark:/87287/d7c08j/position/",
+  "@base":"ark:/87287/d7c08j/user/",
   "@vocab":"ark:/87287/d7c08j/schema#",
-  "iamId":"@id",
-  "orgOId":"@id",
-  "bouOrgOId":{
-    "@type":"@id"
-  },
-  "titleCode":{"@type":"@id","@id":"@id"}
-}}
+  "iamId":{
+        "@type":"@id",
+        "@context": {
+          "@base":"ark:/87287/d7c08j/user/"
+        }
+      },
+      "bouOrgoid":{
+        "@type":"@id",
+        "@context": {
+          "@base":"ark:/87287/d7c08j/organization/"
+        }
+      },
+      "titleCode":{
+        "@type":"@id",
+        "@id":"@id",
+        "@context": {
+          "@base":"ark:/87287/d7c08j/position/"
+        }
+      }
+    }
+}
 CONTEXT
 
    declare -A contexts=(
      [profiles]="$def_context"
      [odr.departments]="$def_context"
+     [pps.departments]="$def_context"
      [pps.divisions]="$def_context"
      [pps.titles]="$titles_context"
      [sis.colleges]="$def_context"
@@ -479,7 +507,7 @@ CONTEXT
         if [[ -z ${CMD[graph]} ]]; then
           ${G[util_jq]} "${context}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)'
           else
-            ${G[util_jq]} "${context}"' + {"@id":"http://iam.ucdavis.edu/","@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)'
+            ${G[util_jq]} "${context}"' + {"@id":"ark:/87287/d7c08j/","@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)'
         fi
         shift;;
       *)

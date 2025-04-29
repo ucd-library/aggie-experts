@@ -114,7 +114,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       this.resultsPerPage = Number(parts?.[1] || 25);
     }
 
-    window.scrollTo(0, 0);
 
     this.modifiedGrants = false;
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/grants-edit', '');
@@ -141,7 +140,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
       this._onExpertUpdate(expert);
     } catch (error) {
-      console.warn('expert ' + expertId + ' not found, throwing 404');
+      this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -260,7 +259,12 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       }
     });
 
-    window.scrollTo(0, 0);
+    this.dispatchEvent(
+      new CustomEvent("reset-scroll", {
+        bubbles : true,
+        cancelable : true,
+      })
+    );
   }
 
   /**
@@ -531,7 +535,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( this.hiddenGrants === 0 ) {
       this.manageGrantsLabel = `Manage My Grants (${this.totalGrants})`;
     } else {
-      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants} Public, ${this.hiddenGrants} Hidden)`;
+      this.manageGrantsLabel = `Manage My Grants (${this.totalGrants - this.hiddenGrants} Public, ${this.hiddenGrants} Hidden)`;
     }
   }
 

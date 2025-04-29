@@ -16,8 +16,7 @@ export class SearchResultRow extends LitElement {
       result : { type : Object },
       resultType : { type : String, attribute : 'result-type' },
       hideCheckbox : { type : Boolean, attribute : 'hide-checkbox' },
-      hideSearchMatches : { type : Boolean, attribute : 'hide-search-matches' },
-      hideWorksMatches : { type : Boolean, attribute : 'hide-works-matches' },
+      hideSearchMatches : { type : Boolean, attribute : 'hide-search-matches' }
     };
   }
 
@@ -29,7 +28,6 @@ export class SearchResultRow extends LitElement {
     this.resultType = '';
     this.hideCheckbox = false;
     this.hideSearchMatches = false;
-    this.hideWorksMatches = true; // bringing back search matches in next release
   }
 
   /**
@@ -44,6 +42,39 @@ export class SearchResultRow extends LitElement {
       detail: {
         id: this.result.id,
         name: this.result.name
+      }
+    }));
+  }
+
+  /**
+   * @method _filterByWorks
+   * @description filter by works
+   * @param {Object} e
+   */
+  _filterByWorks(e) {
+    e.preventDefault();
+
+    this.dispatchEvent(new CustomEvent('filter-by-works', {
+      detail: {
+        id: this.result.id,
+        name: this.result.name
+      }
+    }));
+  }
+
+  /**
+   * @method _selectResult
+   * @description select result
+   * @param {Object} e
+   */
+  _selectResult(e) {
+    e.preventDefault();
+
+    this.dispatchEvent(new CustomEvent('select-result', {
+      detail: {
+        id: this.result.id,
+        name: this.result.name,
+        selected: e.target.checked
       }
     }));
   }

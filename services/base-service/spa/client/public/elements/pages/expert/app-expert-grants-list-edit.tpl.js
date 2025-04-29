@@ -29,11 +29,10 @@ return html`
       background-size: cover;
       background-color: #F2FAF6;
       width: 100%;
-      min-height: 12.25rem;
     }
 
     .hero-text {
-      padding: 2.625rem 2.625rem 4.1875rem 2.625rem
+      padding: 2.625rem;
     }
 
     .hero-text .grants {
@@ -91,6 +90,8 @@ return html`
     .main-content .grant h5 {
       color: black;
       margin: 0 0 0.5rem 0;
+      font-size: 1.2rem;
+      line-height: 1.3;
     }
 
     .grant-details .dot {
@@ -298,7 +299,13 @@ return html`
     </div>
 
     <div class="main-content">
-      <div class="return-to-profile" @click="${this._returnToProfile}">
+      <div 
+        class="return-to-profile" 
+        @click="${this._returnToProfile}"
+        @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._returnToProfile(e); }}
+        tabindex="0"
+        role="button"
+        aria-label="Return to profile">
         <ucdlib-icon icon="ucdlib-experts:fa-circle-chevron-left"></ucdlib-icon>
         <span>RETURN TO PROFILE</span>
       </div>
@@ -341,10 +348,26 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+                  <ucdlib-icon 
+                    ?hidden="${!grant.isVisible}" 
+                    icon="ucdlib-experts:fa-eye" 
+                    @click=${this._hideGrant} 
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideGrant(e); }}
+                    tabindex="0"
+                    role="button"
+                    aria-label="Hide grant"
+                    data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
-                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+                  <ucdlib-icon 
+                    ?hidden="${grant.isVisible}" 
+                    icon="ucdlib-experts:fa-eye-slash" 
+                    @click=${this._showGrant} 
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showGrant(e); }}
+                    tabindex="0"
+                    role="button"
+                    aria-label="Show grant"
+                    data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
               </span>
             </div>
@@ -373,10 +396,26 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon ?hidden="${!grant.isVisible}" icon="ucdlib-experts:fa-eye" @click=${this._hideGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+                  <ucdlib-icon 
+                    ?hidden="${!grant.isVisible}" 
+                    icon="ucdlib-experts:fa-eye" 
+                    @click=${this._hideGrant} 
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideGrant(e); }}
+                    tabindex="0"
+                    role="button"
+                    aria-label="Hide grant"
+                    data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
-                  <ucdlib-icon ?hidden="${grant.isVisible}" icon="ucdlib-experts:fa-eye-slash" @click=${this._showGrant} data-id="${grant.relationshipId}"></ucdlib-icon>
+                  <ucdlib-icon 
+                    ?hidden="${grant.isVisible}" 
+                    icon="ucdlib-experts:fa-eye-slash" 
+                    @click=${this._showGrant} 
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showGrant(e); }}
+                    tabindex="0"
+                    role="button"
+                    aria-label="Show grant"
+                    data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
               </span>
             </div>

@@ -24,6 +24,11 @@ class Citation {
           }
 
           let apa;
+
+          // remove doi from apa
+          let originalDoi = citation.data[0].DOI;
+          citation.data[0].DOI = '';
+
           if( hideApaTitle ) {
             let originalTitle = citation.data[0].title;
             citation.data[0].title = ''; // apa citation shouldn't include title in ui
@@ -42,6 +47,9 @@ class Citation {
               lang: 'en-US'
             });
           }
+
+          // restore doi
+          citation.data[0].DOI = originalDoi;
 
           // ris format expects date-parts structure, regardless if apa is showing date or not
           if( !showDateInApa ) {

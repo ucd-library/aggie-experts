@@ -26,6 +26,22 @@ class ExpertModel extends BaseModel {
     return new GrantRole(this);
   }
   /**
+   * @method get
+   * @description get a object by id. Add `expert` to id if it is not there.
+   *
+   * @param {String} id @graph.identifier or @graph.@id
+   *
+   * @returns {Promise} resolves to elasticsearch result
+   */
+  async get(id, opts={}) {
+    if( id[0] === '/' ) id = id.substring(1);
+    if( !id.startsWith('expert/') ) {
+      id = 'expert/' + id;
+    }
+    return super.get(id, opts);
+  }
+
+  /**
    * @method snippet
    * @description returns searchable snippet of a node
    * by elasticsearch.
@@ -54,6 +70,75 @@ class ExpertModel extends BaseModel {
       }
     });
     return s;
+  }
+
+  async seo(id) {
+    let result = await this.get(id);
+    result = this.subselect(result, {
+      expert : { include : true },
+      grants : { include : true, page : 1, size : 5 },
+      works : { include : true, page : 1, size : 10 }
+    });
+
+    let workModel = await this.get_model('work');
+    let grantModel = await this.get_model('grant');
+
+    let seo = {
+      '@graph': []
+    };
+
+    result['@graph'].forEach(async (node) => {
+      if (node['@type']) {
+        if (!Array.isArray(node['@type'])) {
+          node['@type'] = [node['@type']];
+        }
+        if (node['@type'].includes('Person')) {
+          seo["@graph"].push(this.to_seo(node));
+        }
+        if (node['@type'].includes('Work')) {
+          seo["@graph"].push(workModel.to_seo(node));
+        }
+        if (node['@type'].includes('Grant')) {
+          seo["@graph"].push(grantModel.to_seo(node));
+        }
+      }
+    });
+    return JSON.stringify(seo);
+  }
+
+  to_seo(node) {
+    if (!Array.isArray(node['@type'])) {
+      node['@type'] = [node['@type']];
+    }
+    if(! node['@type'].includes("Person")) {
+      log.error(node,"not a Person")
+    }
+    let seo={}
+
+    console.log(node)
+    seo.name = node?.label;
+    seo.identifier = node?.identifier
+
+    if (node.contactInfo) {
+      if (!Array.isArray(node.contactInfo)) {
+        node.contactInfo = [node.contactInfo];
+      }
+      let best = node.contactInfo.sort((a,b) => { (a['rank'] || 100) - (b['rank'] || 100) });
+      best.forEach((c)=> {
+        if(c?.isPreferred) {
+          if (c.hasOrganizationalUnit) {
+            if (! seo.affiliation ) { seo.affiliation=[] }
+            c.hasOrganizationalUnit["@type"] = "Organization";
+            seo.affiliation.push(c.hasOrganizationalUnit);
+          }
+          if (c.hasTitle) {
+          if (! seo.jobTitle ) { seo.jobTitle=[] }
+            seo.jobTitle.push(c.hasTitle);
+          }
+        }
+      });
+    }
+    return seo
   }
 
   /**
@@ -98,7 +183,7 @@ class ExpertModel extends BaseModel {
       }
     */
 
-    if (doc["is-visible"] === false) {
+    if (doc["is-visible"] === false && !options.admin) {
       throw {status: 404, message: "Not found"};
     }
 
@@ -147,10 +232,30 @@ class ExpertModel extends BaseModel {
     // to store totals of works/grants before filtering out any
     let totalWorks = works.length;
     let totalGrants = grants.length;
-    let hiddenWorks = totalWorks - works.filter(w => w.relatedBy?.['is-visible']).length;
-    let hiddenGrants = totalGrants - grants.filter(g =>
-      g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
-    ).length;
+
+    let visibleWorks = works.filter(w => {
+      if (!Array.isArray(w.relatedBy)) {
+        w.relatedBy = [w.relatedBy];
+      }
+      return w.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === doc['@id']));
+    });
+
+    let visibleGrants = grants.filter(g => {
+      if (!Array.isArray(g.relatedBy)) {
+        g.relatedBy = [g.relatedBy];
+      }
+      return g.relatedBy.some(related => related['is-visible'] && related['inheres_in']);
+    });
+
+    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    if( options['is-visible'] !== false || !options.admin ) {
+      works = visibleWorks;
+      grants = visibleGrants;
+    }
+
+    let hiddenWorks = totalWorks - visibleWorks.length;
+    let hiddenGrants = totalGrants - visibleGrants.length;
+
     let invalidWorks = [];
     let invalidGrants = [];
 
@@ -162,15 +267,6 @@ class ExpertModel extends BaseModel {
 
     // filter out grants graph if not requested
     if( !options.grants || !options.grants?.include ) grants = [];
-
-    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
-    if( options['is-visible'] !== false || !options.admin ) {
-      works = works.filter(w => w.relatedBy?.['is-visible']);
-
-      grants = grants.filter(g =>
-        g.relatedBy && g.relatedBy.some(related => related['is-visible'] && related['inheres_in'])
-      );
-    }
 
     // remove excluded fields in works if requested
     if( options.works?.exclude && options.works.exclude.length ) {

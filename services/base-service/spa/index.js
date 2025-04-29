@@ -1,5 +1,6 @@
 const express = require('express');
 const {keycloak} = require('@ucd-lib/fin-service-utils');
+const config = require('./config');
 const path = require('path');
 
 const app = express();
@@ -19,6 +20,11 @@ app.use((req, res, next) => {
     return;
   }
 
+  // if config.experts.isPublic is true, skip auth
+  if( config.client.env.EXPERTS_IS_PUBLIC ) {
+    next();
+    return;
+  }
   if( !user || !user['preferred_username'] ) {
     if( req.url !== '/' ) {
       res.redirect('/');
@@ -31,6 +37,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+require('./models/robots').middleware(app);
+require('./models/sitemap').middleware(app);
 
 // setup static routes
 require('./controllers/static')(app);

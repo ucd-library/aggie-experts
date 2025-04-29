@@ -11,7 +11,6 @@ All of the queries throughout this document use these standard prefixes.  The
 
 #+name: local-prefixes
 #+BEGIN_SRC sparql :no-tangle
-PREFIX bibo:  <http://purl.org/ontology/bibo/>
 PREFIX cito:  <http://purl.org/spar/cito/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX experts: <http://experts.ucdavis.edu/>

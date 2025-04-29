@@ -3,6 +3,11 @@ const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('@ucd-lib/fin-service-utils').esClient;
 
+// for seo
+let experts = require('../../models/expert/index.js');
+let works = require('../../models/work/index.js');
+let grants = require('../../models/grant/index.js');
+
 module.exports = async (app) => {
 
   // path to your spa assets dir
@@ -74,7 +79,35 @@ module.exports = async (app) => {
     },
 
     template : async (req, res, next) => {
-      return next({title: 'Aggie Experts', gaId: config.client.gaId});
+      let jsonld = '';
+      let urlParts = req.originalUrl.split('/').filter(p => p ? true : false);
+      let workId, grantId, expertId;
+      let workRegex = /^\/work\/.+\/publication\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
+      let grantRegex = /^\/grant\/.+\/grant\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
+      let expertRegex = /^\/expert\/[^.]+$/;
+
+      let isWork = req.originalUrl.match(workRegex);
+      let isGrant = req.originalUrl.match(grantRegex)
+      let isExpert = req.originalUrl.match(expertRegex);
+
+      if( isWork ) {
+        workId = urlParts.slice(1).join('/');
+
+        // might remove everything but work/grant, like no relationships
+        jsonld = await works.model.seo(workId);
+      } else if( isGrant ) {
+        grantId = urlParts.slice(1).join('/');
+
+        // might remove everything but work/grant, like no relationships
+        jsonld = await grants.model.seo(grantId);
+      } else if( isExpert ) {
+        expertId = 'expert/' + urlParts[1];
+
+        // might have to see if too much info (might remove vcard stuff, maybe modify types)
+        jsonld = await experts.model.seo(expertId);
+      }
+
+      return next({title: 'Aggie Experts', gaId: config.client.gaId, jsonld});
     }
   });
 

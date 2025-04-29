@@ -82,6 +82,18 @@ template = {
                   }
                 }
                 {{/status}}
+                {{#type}}
+                ,{
+                  "bool": {
+                    "must": [
+                      { "exists": { "field": "type" }},
+                      { "terms": {
+                        "type": [{{#type}}"{{.}}",{{/type}}"none"]
+                       }}
+                    ]
+                  }
+                }
+                {{/type}}
               ]
             }
           }
@@ -159,7 +171,7 @@ template = {
         }
       },
       "aggs": {
-        "type": {
+        "@type": {
           "terms": {
             "field": "@type",
             "size": 20
@@ -176,6 +188,12 @@ template = {
             "field": "status",
             "size": 10
           }
+        },
+        "type": {
+          "terms": {
+            "field": "type",
+            "size": 10
+          }
         }
       },
       "_source": [
@@ -188,7 +206,17 @@ template = {
         "container-title",
         "type",
         "DOI",
-        "modified-date"
+        "modified-date",
+        "status",
+        "author",
+        "volume",
+        "issue",
+        "page",
+        "abstract",
+        "sponsorAwardId",
+        "assignedBy",
+        "dateTimeInterval",
+        "relatedBy"
       ],
       "sort": [
         "_score",
