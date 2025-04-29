@@ -105,7 +105,7 @@ WHERE {
     }
 
     {
-      select ?g ?relationship ?grant_id ?record ?source
+      select ?g ?relationship ?grant_id ?native
       WHERE {
         {
           select ?relationship ?g (min(?id) as ?wanted_source_id)
@@ -125,12 +125,13 @@ WHERE {
         ?record :source-name  ?source;
                 :source-id ?wanted_source_id;
                 :id-at-source ?grant_id;
+                :native ?native;
                 .
       }
     }
 
     OPTIONAL {
-      ?record :native/:field [ :name "title";
+      ?native :field [ :name "title";
                                :type "text";
                                :text ?grant_raw_title ];
                                      .
@@ -138,31 +139,31 @@ WHERE {
     }
 
     OPTIONAL {
-      ?record :native/:field [ :name "funder-name";
+      ?native :field [ :name "funder-name";
                                :type "text";
                                :text ?funder_label_cap ].
 
-      ?record :native/:field [ :name "funder-reference";
+      ?native :field [ :name "funder-reference";
                                :type "text";
                                :text ?sponsor_award_id ].
     }
 
     OPTIONAL {
-      ?record :native/:field [ :name "amount";
+      ?native :field [ :name "amount";
                                :type "money";
                                :money/:field-value ?total_award_amount ];
                                                    .
     }
 
     OPTIONAL {
-      ?record :native/:field [ :name "c-pi";
+      ?native :field [ :name "c-pi";
                                :type "text";
                                :text ?pi_name_cap ];
                                      .
     }
 
     OPTIONAL {
-      ?record :native/:field [ :name "c-co-pis";
+      ?native :field [ :name "c-co-pis";
                                :people/:person [ list:index(?pos ?elem) ]
                              ].
       ?elem :last-name ?labeled_only_name_last_cap .
@@ -186,7 +187,7 @@ WHERE {
         (ucdlib:Grant_Scholarship "Scholarships / Fellowships" )
         (ucdlib:Grant_StudentService "Student Services" )
       }
-      ?record :native/:field [ :name "funding-type";
+      ?native :field [ :name "funding-type";
 			       :type "text";
           :text ?funding_type_label ];
 		.
@@ -197,7 +198,7 @@ WHERE {
       select ?g ?start_date ?start_year ?start_date_precision ?end_year ?end_date ?end_date_precision
       WHERE {
         {
-          select ?relationship ?grant_id ?record ?source
+          select ?relationship ?grant_id ?native
           WHERE {
             {
               select ?relationship ?g (min(?id) as ?wanted_source_id)
@@ -217,11 +218,12 @@ WHERE {
             ?record :source-name  ?source;
                     :source-id ?wanted_source_id;
                     :id-at-source ?grant_id;
+                    :native ?native;
                     .
           }
         }
-        ?record :native/:field ?s;
-                :native/:field ?e;
+        ?native :field ?s;
+                :field ?e;
                 .
 
         ?s :name "start-date";
