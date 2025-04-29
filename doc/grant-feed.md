@@ -28,7 +28,7 @@ Note that directories have been created on the Symplectic FTP server under the u
 6. A scheduled job (nightly) on the Symplectic server imports the grants, links to users, and related persons into the CDL Elements database. 
 7. The imported grants will now be included when harvest queries are executed against the CDL Elements instance. 
 
-[Step-by-step Instructions](grant-process-steps)
+[Step-by-step Instructions](./grant-process-steps.md)
 
 ## Legacy KFS Grant Feed Workflow
 
