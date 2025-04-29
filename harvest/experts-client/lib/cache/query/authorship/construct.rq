@@ -72,9 +72,10 @@ WHERE {
                       VALUES (?source ?order) {
                        ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
                         ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
-                        ("arxiv" 10)("orcid" 11)("dblp" 12)
-                        ("cinqii-english" 13)("figshare" 14)
-                        ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+                        ("google-books" 10)
+                        ("arxiv" 11)("orcid" 12)("dblp" 13)
+                        ("cinqii-english" 14)("figshare" 15)
+                        ("cinii-japanese" 16)("manual" 17)("dspace" 18) }
 
                   ?RELATIONSHIP__ :type "publication-user-authorship";
                                   :related ?pub;
@@ -139,12 +140,13 @@ WHERE {
       WHERE {
 
         graph <ark:/87287/d7mh2m/>  {
-              VALUES (?source ?order) {
-               ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
-                ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
-                ("arxiv" 10)("orcid" 11)("dblp" 12)
-                ("cinqii-english" 13)("figshare" 14)
-                ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+          VALUES (?source ?order) {
+            ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
+            ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
+            ("google-books" 10)
+            ("arxiv" 11)("orcid" 12)("dblp" 13)
+            ("cinqii-english" 14)("figshare" 15)
+            ("cinii-japanese" 16)("manual" 17)("dspace" 18) }
 
           ?RELATIONSHIP__ :type "publication-user-authorship";
                           :related ?pub;
@@ -224,12 +226,13 @@ WHERE {
         WHERE {
 
           graph <ark:/87287/d7mh2m/> {
-                VALUES (?source ?order) {
-                 ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
-                  ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
-                  ("arxiv" 10)("orcid" 11)("dblp" 12)
-                  ("cinqii-english" 13)("figshare" 14)
-                  ("cinii-japanese" 15)("manual" 16)("dspace" 17) }
+            VALUES (?source ?order) {
+              ("verified-manual" 1)("repec" 2)("dimensions" 3)("pubmed" 4)
+              ("scopus" 5)("wos" 6) ("wos-lite" 7)("crossref" 8)("epmc" 9)
+              ("google-books" 10)
+              ("arxiv" 11)("orcid" 12)("dblp" 13)
+              ("cinqii-english" 14)("figshare" 15)
+              ("cinii-japanese" 16)("manual" 17)("dspace" 18) }
 
             ?RELATIONSHIP__ :type "publication-user-authorship";
                             :related ?pub;
