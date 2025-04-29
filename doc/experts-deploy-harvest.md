@@ -69,12 +69,16 @@ doing something out of the ordinary.
 
 Now we are ready to harvest new data. For this we need to run a harvest process
 on the ~fuseki~ container.  Right now, the ~fuseki~ container is *only* used for
-harvesting new data.  Above, we mentioned there is an exception to the rule that
-no other containers are running on our server.  Occasionally, you may want to
-harvest new data on a `blue|gold` server, while you are still running a
-different instance of Aggie Experts.  There is no problem doing this, and if you
-*only* start the `fuseki` instance, then you don't have to worry about sharing
-any ports either.  In this example, we'll start fuseki only
+harvesting new data.  In addition to the documentation below, a
+[Screencast](https://drive.google.com/file/d/1Cyh7jxfiFdXu_wSHGAZ440YZJ9Um6IQ-/view)
+of the process is also available.
+
+Above, we mentioned there is an exception to the rule that no other containers
+are running on our server.  Occasionally, you may want to harvest new data on a
+`blue|gold` server, while you are still running a different instance of Aggie
+Experts.  There is no problem doing this, and if you *only* start the `fuseki`
+instance, then you don't have to worry about sharing any ports either.  In this
+example, we'll start fuseki only
 
 ``` bash
 dc up -d fuseki
