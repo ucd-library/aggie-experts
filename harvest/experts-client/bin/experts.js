@@ -31,5 +31,6 @@ program
   .command('grant-feed', 'Create a CDL Sympletic grant feed')
   .command('grant-feed-delta', 'Create a CDL Sympletic grant feed delta')
   .command('grant-feed-process', 'Run all the grant feed process steps')
+  .command('grant-feed-get-logs', 'Run all the grant feed process steps for delta')
 
 program.parse(process.argv);
