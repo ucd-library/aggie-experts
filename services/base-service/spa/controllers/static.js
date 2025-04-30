@@ -91,21 +91,24 @@ module.exports = async (app) => {
       let isGrant = req.originalUrl.match(grantRegex)
       let isExpert = req.originalUrl.match(expertRegex);
 
-      if( isWork ) {
-        workId = urlParts.slice(1).join('/').split('?')[0];
+      try {
+        if( isWork ) {
+          workId = urlParts.slice(1).join('/').split('?')[0];
+          // might remove everything but work/grant, like no relationships
+          jsonld = await works.model.seo(workId);
+        } else if( isGrant ) {
+          grantId = urlParts.slice(1).join('/').split('?')[0];
 
-        // might remove everything but work/grant, like no relationships
-        jsonld = await works.model.seo(workId);
-      } else if( isGrant ) {
-        grantId = urlParts.slice(1).join('/').split('?')[0];
+          // might remove everything but work/grant, like no relationships
+          jsonld = await grants.model.seo(grantId);
+        } else if( isExpert ) {
+          expertId = 'expert/' + urlParts[1].split('?')[0];
 
-        // might remove everything but work/grant, like no relationships
-        jsonld = await grants.model.seo(grantId);
-      } else if( isExpert ) {
-        expertId = 'expert/' + urlParts[1].split('?')[0];
-
-        // might have to see if too much info (might remove vcard stuff, maybe modify types)
-        jsonld = await experts.model.seo(expertId);
+          // might have to see if too much info (might remove vcard stuff, maybe modify types)
+          jsonld = await experts.model.seo(expertId);
+        }
+      } catch(e) {
+        res.status(404).send(`${req.originalUrl} not found`); // eslint-disable-line
       }
 
       return next({title: 'Aggie Experts', gaId: config.client.gaId, jsonld});
