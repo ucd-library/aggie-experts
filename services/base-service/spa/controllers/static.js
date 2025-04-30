@@ -108,7 +108,7 @@ module.exports = async (app) => {
           jsonld = await experts.model.seo(expertId);
         }
       } catch(e) {
-        res.status(404).send(`${req.originalUrl} not found`); // eslint-disable-line
+        // ignore and let client handle 404 if needed
       }
 
       return next({title: 'Aggie Experts', gaId: config.client.gaId, jsonld});
