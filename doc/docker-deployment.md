@@ -6,5 +6,9 @@ See the manpage for more details on using this tool with [`bin/aggie-experts --h
 
 The `aggie-experts` build script makes use of the cloud build utility `cork-kube` which is installed on the local host and uses Google Cloud Build. This utility manages the image dependencies based on a provided configuration file, [`.cork-build`](../.cork-build). See the [cork-kube](https://github.com/ucd-library/cork-kube) repository for detailed documention.
 
+See also:
+
 [Development Stages and Best Practices](./ae-build-stages.org)
+
+[Data Deployment Steps](./experts-deploy-harvest.md)
 

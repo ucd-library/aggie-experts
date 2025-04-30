@@ -22,6 +22,7 @@ Aggie Experts is a joint project between the Office of the Provost and the UC Da
 - Process Descriptions
   - [Code and Data Deployment](doc/experts-deploy-harvest.md)
   - [Process Weekly Grants](./doc/grant-feed.md)
+  - Update Archived Grants
 - APIs
   - [FIN Data Models](https://github.com/ucd-library/fin/tree/main/docs/data-models)
 - Data Standards and Ontologies
