@@ -1,29 +1,60 @@
-* Aggie Experts
+* Development / Deployment Environments
 
-* Development stages and associated best practices
-** Stages
+Two main tasks in development and deployment are building your images, and
+setting up your depployment.  These are are both handled with the
+~bin/aggie-experts~ script, in the ~aggie-experts~ repository.
+
+The two main commands for ~bin/aggie-experts~ are then, not surprisingly,
+~build~ and ~setup~.  How these commmands are explicitly carried out depends a
+great deal on the ~--env=[dev|clean|sandbox|stage|prod]~ parameter used when
+invoking this call.
+
+Before we discussing the the build and setup, let's first talk about tagging, a
+very important part of the development process.
+
+** Aggie Expert Tags
+Aggie Experts tags always based on the following git command ~tag=$(git describe
+--always --dirty)~.  See the git docs for more information, but with the
+exception of ~dev~ env, tags *always* refer to a specific commit, and the commit
+itself is *always* labeled in terms of it's distance from it's closest annotated
+git tag.  Stage and production environments can only be run when the repository
+is at a specific annotated tag.
+
+The important caveat to this is that when you use ~--env=dev~, the tag is always
+simply renamed as ~dirty~.  This simplifies the development steps, as the tag is
+never changing, saving from creating too many different images, and also
+limiting the number of times you need to ~setup~ your deployment. ~--env=dev~ is
+the only setting that ever allows ~dirty~ to be part of a tag.
+
+*** Branches
+As a quick aside, aggie experts uses branches to manage our development and
+updates, primarily into the default ~dev~.  Branches are *never* used in aggie-experts to designate a
+particular build or deployment.  Branches will be discussed more in
+
+
 The following table shows the various stages for development for Aggie Experts,
 and some associated pointers.
 
-|---------+------------+--------+----------+------------------+------------------------------------|
-| stage   | role       | branch | tag      | dns              | docker org/tag                     |
-|---------+------------+--------+----------+------------------+------------------------------------|
-| dev     | dev        | *any*  | *dirty*  | localhost        | localhost/aggie-experts:dirty      |
-| clean   | dev        | *any*  | *clean*  | localhost        | localhost/aggie-experts:*tag*      |
-| sandbox | dev/deploy | *any*  | *clean*  | sandbox          | localhost/aggie-experts:*tag*      |
-| stage    | deploy     | dev    | 1.??-dev | stage (blue/gold) | gcr.io/aggie-experts:*dev-tag*     |
-| prod    | deploy     | main   | 2.?.?    | rc2  (blue/gold) | gcr.io/aggie-experts:*version-tag* |
-|---------+------------+--------+----------+------------------+------------------------------------|
+|---------+------------+--------+----------+------------------------------------|
+| env     | theme      | branch | tag      | docker org/tag                     |
+|---------+------------+--------+----------+------------------------------------|
+| dev     | dev        | *any*  | *dirty*  | localhost/aggie-experts:dirty      |
+| clean   | dev        | *any*  | *clean*  | localhost/aggie-experts:*tag*      |
+| sandbox | dev/deploy | *any*  | *clean*  | localhost/aggie-experts:*tag*      |
+| stage   | deploy     | dev    | 1.??-dev | gcr.io/aggie-experts:*dev-tag*     |
+| prod    | deploy     | main   | 2.?.?    | gcr.io/aggie-experts:*version-tag* |
+|---------+------------+--------+----------+------------------------------------|
 
-Tags are very important in the development process.  Aggie Experts tags are almost
-always based on the following git command ~tag="$(git describe --always
---dirty)"~.  See the docs for more information, but with the exception of ~dev~
-stage, tags *always* refer to a specific commit.  stage and production stages
-need to be set to a specific annotated tag.
 
-The important caveat to this, is that when you are in ~dev~ stage, the tag is
-always simply ~dirty~.  This primarily simplifies the development steps, as the
-tag is never changing.  ~dev~ is the only stage that ever allows a ~dirty~ tag.
+|---------+------------+--------+----------+-------------------+------------------------------------|
+| env     | theme      | branch | tag      | dns               | docker org/tag                     |
+|---------+------------+--------+----------+-------------------+------------------------------------|
+| dev     | dev        | *any*  | *dirty*  | localhost         | localhost/aggie-experts:dirty      |
+| clean   | dev        | *any*  | *clean*  | localhost         | localhost/aggie-experts:*tag*      |
+| sandbox | dev/deploy | *any*  | *clean*  | sandbox           | localhost/aggie-experts:*tag*      |
+| stage   | deploy     | dev    | 1.??-dev | stage (blue/gold) | gcr.io/aggie-experts:*dev-tag*     |
+| prod    | deploy     | main   | 2.?.?    | rc2  (blue/gold)  | gcr.io/aggie-experts:*version-tag* |
+|---------+------------+--------+----------+-------------------+------------------------------------|
 
 *** dev
 Developers typically develop in the ~dev~ stage.  Every aggie expert image is
