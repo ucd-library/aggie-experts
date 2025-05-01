@@ -515,6 +515,13 @@ function setup() {
     local env=${G[env]}
     local mount=${G[mount]}
 
+    # Special case for CLIENT_ENV
+    if [[ ! "$mount" =~ "spa" ]]; then
+      D[client_env]="dev";
+    else
+      D[client_env]="prod";
+    fi
+
     local template=$(expand_template)
     local root="$(${G[git]} rev-parse --show-toplevel)"
 

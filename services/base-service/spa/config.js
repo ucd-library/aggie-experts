@@ -1,6 +1,6 @@
 let {config} = require('@ucd-lib/fin-service-utils');
 
-let env = process.env.CLIENT_ENV || 'dev';
+let env = process.env.CLIENT_ENV || 'prod';
 
 let clientPackage = require('./client/public/package.json');
 
