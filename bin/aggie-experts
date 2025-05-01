@@ -524,14 +524,6 @@ function setup() {
     local template=$(expand_template)
     local root="$(${G[git]} rev-parse --show-toplevel)"
 
-    # Delete unused PORTS
-    for i in fuseki kibana fcrepo rabbitmq; do
-      local p=${i^^}_PORT
-      if [[ -z "${!p}" ]]; then
-        yq="$yq | del(.services.$i.ports)"
-      fi
-    done
-
     if [[ -z ${G[gcs]} ]]; then
       yq+='| del(.services.gcs)'
     fi
@@ -551,7 +543,7 @@ function setup() {
       fi
     # These are potential others
     else
-      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
+      yq+='| del(.services.fuseki.ports) | del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
     fi
     if [[ -n $N ]]; then
       echo "yq '${yq}' <<<'${template}'"
