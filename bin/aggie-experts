@@ -362,7 +362,7 @@ function expand_template(){
   read D["org"] D["build_org"] D["build_registry_url"] \
        D["host"] D["port"] \
        D["gcs_bucket"] D["gcs_init_data_hydration"] \
-       D["client_env"] D["cdl_propagate_changes"] \
+       D["cdl_propagate_changes"] \
        D["client_error_reporting_enabled"] \
        D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
        D["ga4_enable_stats"] D["ga4_measurement_id"] \
@@ -373,7 +373,6 @@ function expand_template(){
            .${G[env]}.port,
            .${G[env]}.gcs.bucket // .def.gcs.bucket,
            .${G[env]}.gcs.init_data_hydration // .def.gcs.init_data_hydration,
-           .${G[env]}.client.env // .def.client.env,
            .${G[env]}.cdl.propagate_changes // .def.cdl.propagate_changes,
            .${G[env]}.client_error_reporting.enabled // .def.client_error_reporting.enabled,
            .${G[env]}.client_error_reporting.url // .def.client_error_reporting.url,
@@ -387,6 +386,13 @@ function expand_template(){
 
     # Get fin tag from build repository
   D["tag"]="$(${G[git]} describe --always --dirty)"
+
+  # Special case for CLIENT_ENV
+  if [[ "${G[mount]}" =~ "spa" ]]; then
+      D[client_env]="dev";
+    else
+      D[client_env]="prod";
+    fi
 
   case ${G[env]} in
     dev )
