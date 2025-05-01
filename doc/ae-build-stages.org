@@ -1,15 +1,15 @@
-* Development / Deployment Environments
+* Development and Deployment Environments
 
-Two main tasks in development and deployment are building your images, and
-setting up your depployment.  These are are both handled with the
+Two main tasks in development and deployment are building your images and
+setting up your deployment.  These are both handled with the
 ~bin/aggie-experts~ script, in the ~aggie-experts~ repository.
 
 The two main commands for ~bin/aggie-experts~ are then, not surprisingly,
-~build~ and ~setup~.  How these commmands are explicitly carried out depends a
+~build~ and ~setup~.  How these commands are explicitly carried out depends a
 great deal on the ~--env=[dev|clean|sandbox|stage|prod]~ parameter used when
 invoking this call.
 
-Before we discussing the the build and setup, let's first talk about tagging, a
+Before we discussing the build and setup, let's first talk about tagging, a
 very important part of the development process.
 
 ** Aggie Expert Tags
@@ -28,8 +28,9 @@ the only setting that ever allows ~dirty~ to be part of a tag.
 
 *** Branches
 As a quick aside, aggie experts uses branches to manage our development and
-updates, primarily into the default ~dev~.  Branches are *never* used in aggie-experts to designate a
-particular build or deployment.  Branches will be discussed more in
+updates, primarily into the default ~dev~.  Branches are *never* used in
+aggie-experts to designate a particular build or deployment.  Branches will be
+discussed more in the development
 
 
 The following table shows the various stages for development for Aggie Experts,
