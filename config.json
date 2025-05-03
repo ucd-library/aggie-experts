@@ -19,9 +19,6 @@
     "cdl":{
       "propagate_changes":"false"
     },
-    "client":{
-      "env":"prod"
-    },
     "ga4":{
       "measurement_id":"G-GM57B0V0WC",
       "enable_stats":"false"
@@ -37,9 +34,6 @@
   "build":{
   },
   "dev":{
-    "client":{
-      "env":"dev"
-    },
     "auth": {
       "server":"prod",
       "client_id":"local-dev",

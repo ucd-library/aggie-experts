@@ -104,10 +104,7 @@ declare -g -A G=(
 );
 
 function G() {
-  if [[ -z ${G[expanded]} ]] ; then
-    G[expanded]=$(expand < ${G[config]} | jq ${G[jq]})
-  fi
-  jq -r "$*" <<<"${G[expanded]}"
+  jq -r "$*" "${G[config]}"
 }
 
 : <<'=cut'
@@ -277,7 +274,7 @@ function test_env() {
     fi
   }
 
-  echo -n "Testing environment: ${G[env]} ... "
+  >&2 echo -n "Testing environment: ${G[env]} ... "
   case ${G[env]} in
     dev)
       server
@@ -311,39 +308,11 @@ function test_env() {
       exit 1
       ;;
   esac
-  echo "OK"
+  >&2 echo "OK"
 
 }
 
-
-: <<'=cut'
-=pod
-
-=head2 expand
-
-Use shell expansion to expand the config.json file into the current actual variables.
-
-C<aggie-experts expand>
-
-=cut
-#https://stackoverflow.com/questions/415677/how-to-replace-placeholders-in-a-text-file
-function expand(){
-   local line lineEscaped
-  # the `||` clause ensures that the last line is read even if it doesn't end with \n
-  while IFS= read -r line || [[ -n $line ]]; do
-    # Escape ALL chars. that could trigger an expansion..
-    #IFS= read -r -d '' lineEscaped < <(printf %s "$line" | tr '`([$' '\1\2\3\4')
-    IFS= read -r -d '' lineEscaped < <(printf %s "$line" | tr '($' '\2\4')
-    # ... then selectively reenable ${ references
-    lineEscaped=${lineEscaped//$'\4'\{/\$\{} # Variables
-    lineEscaped=${lineEscaped//$'\4\2'/\$\(} # Also commands
-    # Finally, escape embedded double quotes to preserve them.
-    lineEscaped=${lineEscaped//\"/\\\"}
-    eval "printf '%s\n' \"$lineEscaped\"" | tr '\1\2\3\4' '`([$'
-  done
-}
-
-: <<'=cut'
+: <<=cut
 =pod
 
 =head2 expand_template
@@ -359,10 +328,11 @@ function expand_template(){
   local sa client_id auth
   declare -g -A D
 
+  >&2 echo "expand_template: env=$env"
   read D["org"] D["build_org"] D["build_registry_url"] \
        D["host"] D["port"] \
        D["gcs_bucket"] D["gcs_init_data_hydration"] \
-       D["client_env"] D["cdl_propagate_changes"] \
+       D["cdl_propagate_changes"] \
        D["client_error_reporting_enabled"] \
        D["client_error_reporting_url"] D["client_error_reporting_key_secret"] \
        D["ga4_enable_stats"] D["ga4_measurement_id"] \
@@ -373,7 +343,6 @@ function expand_template(){
            .${G[env]}.port,
            .${G[env]}.gcs.bucket // .def.gcs.bucket,
            .${G[env]}.gcs.init_data_hydration // .def.gcs.init_data_hydration,
-           .${G[env]}.client.env // .def.client.env,
            .${G[env]}.cdl.propagate_changes // .def.cdl.propagate_changes,
            .${G[env]}.client_error_reporting.enabled // .def.client_error_reporting.enabled,
            .${G[env]}.client_error_reporting.url // .def.client_error_reporting.url,
@@ -387,6 +356,14 @@ function expand_template(){
 
     # Get fin tag from build repository
   D["tag"]="$(${G[git]} describe --always --dirty)"
+  >&2 echo "expanded: env=$env"
+
+  # Special case for CLIENT_ENV
+  if [[ "${G[mount]}" =~ "spa" ]]; then
+      D[client_env]="dev";
+    else
+      D[client_env]="prod";
+    fi
 
   case ${G[env]} in
     dev )
@@ -402,10 +379,12 @@ function expand_template(){
   esac
 
   #decode client_error_reporting_key_secret
+  >&2 echo "fetch secret: ${D[client_error_reporting_key_secret]}"
   D["client_error_reporting_key"]=$(gcloud secrets versions access latest --secret=${D["client_error_reporting_key_secret"]})
 
   #Get OIDC INFO
   local oidc_secret=$(basename $(gcloud --format=json secrets list --filter="labels.oidc_client:${client_id} AND labels.auth:${auth}" | jq -r '.[0].name'))
+  >&2 echo "fetch secret: $oidc_secret"
   eval $(gcloud secrets versions access latest --secret="$oidc_secret")
   D["jwt_secret"]=$JWT_SECRET
   D["jwt_issuer"]=$JWT_ISSUER
@@ -417,11 +396,13 @@ function expand_template(){
   #Get service account info
   local srv_secret
   srv_secret=$(basename $(gcloud --format=json secrets list --filter="labels.fin_service_account_name:${sa}" | jq -r '.[0].name'))
+  >&2 echo "fetch secret: $srv_secret"
   eval "$(gcloud secrets versions access latest --secret="$srv_secret")"
   D[fin_service_account_name]=$FIN_SERVICE_ACCOUNT_NAME
   D[fin_service_account_secret]=$FIN_SERVICE_ACCOUNT_SECRET
 
 #  declare -p D
+  >&2 echo -n "Writing .."
   local line lineEscaped
   # the `||` clause ensures that the last line is read even if it doesn't end with \n
   while IFS= read -r line || [[ -n $line ]]; do
@@ -434,6 +415,7 @@ function expand_template(){
     lineEscaped=${lineEscaped//\"/\\\"}
     eval "printf '%s\n' \"$lineEscaped\"" | tr '\1\2\3\4' '`([$'
   done < ${root}/docker-template.yaml
+  >&2 echo "docker-compose.yaml"
 }
 
 
@@ -518,14 +500,6 @@ function setup() {
     local template=$(expand_template)
     local root="$(${G[git]} rev-parse --show-toplevel)"
 
-    # Delete unused PORTS
-    for i in fuseki kibana fcrepo rabbitmq; do
-      local p=${i^^}_PORT
-      if [[ -z "${!p}" ]]; then
-        yq="$yq | del(.services.$i.ports)"
-      fi
-    done
-
     if [[ -z ${G[gcs]} ]]; then
       yq+='| del(.services.gcs)'
     fi
@@ -545,7 +519,7 @@ function setup() {
       fi
     # These are potential others
     else
-      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
+      yq+='| del(.services.fuseki.ports) | del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
     fi
     if [[ -n $N ]]; then
       echo "yq '${yq}' <<<'${template}'"
@@ -688,11 +662,6 @@ function main.cmd() {
 
         expand_template )
           expand_template
-          exit 0
-          ;;
-
-        expand )
-          expand <${G[config]}
           exit 0
           ;;
 

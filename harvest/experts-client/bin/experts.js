@@ -31,5 +31,6 @@ program
   .command('grant-feed', 'Create a CDL Sympletic grant feed')
   .command('grant-feed-delta', 'Create a CDL Sympletic grant feed delta')
   .command('grant-feed-process', 'Run all the grant feed process steps')
+  .command('grant-feed-get-logs', 'Get the logs for the most recent Symplectic CDL FTP upload/import and report to Slack')
 
 program.parse(process.argv);
