@@ -116,7 +116,6 @@ use the ~proxy~ mechanism available via the web interface, and then also alter
 the record via the web interface.  The `aggie-experts` user, can only be used
 for UC Davis records.
 
-
 ** Basic document format
 
    All elasticsearch documents contain what we call ~root~ information, and then
@@ -286,16 +285,24 @@ the data has already been included.
 
 ** Specific Types
 *** Expert
+
+The root for an expert includes; ~name~, ~modified-date~, ~@id~,  the best ~contactInfo~
+, and ~availability~.  The subselect process also adds a summary of the total
+works and grants.  in the ~@graph~ there is a node for the user, which includes
+all contactInfo, themes, and identifiers.  In addition, there is a single node
+for each work and grant associated with the user.  These are almost complete
+replicates of those objects.
+
+Recall that the subselect feature will strip much of the data by default.  You
+can get a complete records; with the ~all~ and optional ~hidden~ parameters as
+in ~http GET https://experts.ucdavis.edu/expert/LDdgBTXN all==1 include==hidden~
+
+For the initial public availability of Aggie Experts, there were 4132
+experts. The Q2=0, Q3=5, and max 197.  For works, Q2=6, 3Q=52, and max 1674.
+The size of the works themselves can affect the size of an expert, the maximum
+size record is about 5M.
+
 **** Identifiers
-
-  Expected identifiers for expert include:
-
-  *eduroam* - In Aggie Experts, we use one-direction hash function of a users'
-  eduroam identifier as our default identifier.  This allows agents that know a
-  users' eduroam identifier to discover the user, but does not show a users
-  eduroam identifier.  At UCDavis, users' eduroam identifiers are their userID
-  (or casID) suffixed with ~@ucdavis.edu~.  Notionally, a user is identified as
-  ~"http://experts.ucdavis.edu/expert/" + md5(userId + "@ucdavis.edu")~
 
   *ORCID* - We use the standard URI for this, eg:
   `https://orcid.org/0000-0001-9829-8914` Note that ORCID uses https: as their
@@ -316,36 +323,12 @@ the data has already been included.
   Other identifiers, https://www.webofscience.com/wos/author/record/M-4572-2018,
   http://www.scopus.com/authid/detail.url?authorId=6506365550 are *TBD*
 
-***** Referential Identifiers
-
-   *Aggie Enterprise* - The grants information from the Aggie Enterprise system
-   references UC Davis users via their UC Path employeeId.  In private experts
-   databases, these values are hashed with ~md5()~.  They are discouraged in public
-   databases.
-
-**** Example
-
-  #+begin_src json
-    {
-  "@context" : "http://schema.library.ucdavis.edu/context/aggie_experts.json",
-  "_id" : "expert/66356b7eec24c51f01e757af2b27ebb8",
-  "@id" : "expert/66356b7eec24c51f01e757af2b27ebb8",
-  "@graph":[
-  {
-    "@id" : "expert/66356b7eec24c51f01e757af2b27ebb8",
-    "identifier": [
-       "https://orcid.org/0000-0001-9829-8914",
-       "ark:/87287/d7mh2m/user/42956",
-       "mailto:qjhart@ucdavis.edu",
-       "http://experts.ucdavis.edu/expert/66356b7eec24c51f01e757af2b27ebb8"
-    ]
-  }]
-  }
-  #+end_src
-
 *** Work
-    Works specify scholarly research.  The focus of this is currently on
-    citations.
+    Works specify scholarly research, mostly peer reviewed data. The root
+    contains most of the citation information for the work, using citationStyle
+    format.  the ~@graph~ also contains the citation, including all the links to
+    experts, and a node for each expert as well.  The Expert nodes include their
+    name, and identifiers.
 
 **** Identifiers
   Works can have `DOIs` and the CDL element `ark:` DOIs are case insenstive, but
@@ -353,26 +336,13 @@ the data has already been included.
   will use that as the `@id` in Aggie Experts, if it doesn't then we'll use the
   CDL `ark` identifier.
 
-**** Example
-
-  An example of a work is shown below:
-
-  #+begin_src json
-  {
-  "@context" : "http://schema.library.ucdavis.edu/context/aggie_experts.json",
-  "@id" : "/work/DOI:10.1080/10286600802003500",
-  "@graph":[
-  {
-    "@id" : "http://experts.ucdavis.edu//work/DOI:10.1080/10286600802003500",
-    "identifier": [
-       "ark:/87287/d7mh2m/publication/1442289",
-       "DOI:10.1080/10286600802003500"
-    ]
-  }]
-  }
-  #+end_src
-
 *** Grant
+
+The root of a grant record contains basic information about the grant.  The
+~@graph~ contains one node for the grant, and nodes for each expert involved in
+the grant.
+
+**** Identifiers
 
   Grants come from 3 distinct locations.  We have grant information that was
   generated from the DAFIS decision support queries; Grants from the Aggie
@@ -381,7 +351,6 @@ the data has already been included.
   also be referenced in the CDL elements, so they will have two identifiers.  In
   that case, the
 
-**** Identifiers
 
   *DAFIS* - Use ~ark:/87287/d7gt0q~ as the base for grants that were recovered
   from the DAFIS system via the purpose built SQL query.  We add ~grant/~ plus
@@ -402,12 +371,11 @@ the data has already been included.
    node have an ~is-visible~ property.  The documents in the system can also
    have nodes where the ~is-visible: false~.  These are nodes not available to
    the public, but are available to admins, some elevated applications and the
-   expert that the document describes.  These nodes are removed during a
-   sanitization step when users access the system via the API.
-   Every record is santizied before it's delivered to the
-   user. The advantage for this is that elevated users will be able to see the
-   hidden data with a low overhead on the system, and a more consistent
-   experience with our experts.
+   expert that the document describes.  These nodes are removed during the
+   ~subselect~ step when users access the system via the API.  Every record is
+   ~subselected~ before it's delivered to the user. The advantage for this is that
+   elevated users will be able to see the hidden data with a low overhead on the
+   system, and a more consistent experience with our experts.
 
 *** Node Removal for Experts
 
@@ -480,34 +448,3 @@ the data has already been included.
 
     In addition to grant visibility, we are currently sanitizing Award amounts
     from the grant system.  The items that are removed are ~totalAwardAmount~.
-
-** Helpful endpoints
-
-   Aggie Experts includes methods to access particular document information.
-
-*** Services
-
-**** Transform
-
-      The transform service provides access to the root node for any valid type
-      with in the Aggie Experts system.  For example
-      [[http://localhost/fcrepo/rest/expert/66356b7eec24c51f01e757af2b27ebb8/svc:node][/expert/66356b7eec24c51f01e757af2b27ebb8/svc:node]] responds with the root
-      node for Quinn Hart.  These nodes are the direct transform of the LDP node
-      corresponding to the
-      http://localhost/fcrepo/rest/expert/66356b7eec24c51f01e757af2b27ebb8
-      location.
-
-
-**** Experts API
-
-      The API endpoint provides access to the complete elastic search records.
-      Elastic search documents include the root node, as well as nodes that are
-      added when supporting documents are added to the LDP. For example,
-      [[http://localhost/api/experts/expert/66356b7eec24c51f01e757af2b27ebb8][/api/experts/expert/66356b7eec24c51f01e757af2b27ebb8]] provides access to a
-      complete record for qjhart@ucdavis.edu
-
-
-      #+begin_src bash
-        doc=http://localhost/api/experts/expert/66356b7eec24c51f01e757af2b27ebb8
-        http $doc | jq '._source["@graph"][]["@id"]'
-      #+end_src
