@@ -140,40 +140,101 @@ restart.
   docker compose up -d
 #+end_src
 
+** Development
 
-*** The build environments
+The different build environments are used to simplify the common development
+path for modifications.   The normal development path is:
 
-The following table shows how the ~--env=~ tag affects the build.
+- Create a new branch for your update, set as draft.  It's a good idea to
+  immediately create your pull request with this branch so progress can be
+  followed.
+- Develop on this branch `--env=dev`, sharing updates with your collaborators.
+- Once you branch is ready, test your local deployment `--env=clean`, set your
+  PR as ready for review.
+- When you're PR is accepted.  Delete your local branch, reset your branch to
+  `dev` and if other PRs have also been accepted you might verify your change
+  still works with another `--env=clean` build and local deployment.
 
-|---------+------------+-------------+------------------------------------+-----|
-| env     | branch     | tag         | docker org/tag                     |     |
-|---------+------------+-------------+------------------------------------+-----|
-| dev     | *any*      | *dirty*     | localhost/aggie-experts:dirty      |     |
-| clean   | *any*      | *clean*     | localhost/aggie-experts:*tag*      |     |
-| sandbox | *any*      | *clean*     | localhost/aggie-experts:*tag*      |     |
-| gcb     | *dev/main* | *version*   | gcr.io/aggie-experts:*version*     |     |
-| stage   | prod       | N/A         | N/A                                | N/A |
-|---------+------------+-------------+------------------------------------+-----|
+Note while you are testing, either your branch or the newest dev, you may want
+to share with the whole team.  You can do that with the ~sandbox~ environment
+described below.
+
+Developers should *never* be developing on the ~dev~ branch.  They should always
+be working on a branch specific to the issue(s) they are working on.  Because of
+this, developers are encouraged to push as often as they'd like to github.  Not
+all commits need to have great commit messages either.  However, if a developer
+has made 10 local commits, it's not a terrible idea to rebase these into a
+single commit before pushing.  But don't worry too much about that, and *avoid*
+any rebasing that affects the pushed commits, it can be troublesome.  When we
+accept a pull request, that is always done as a squash merge, so the `dev`
+branch will always see one tidy log entry for your change.
+
+** The `--env=[dev|clean|sandbox]` development environments
+
+You can be developing in a number of different environments, specified with the
+~-env=~ tag. The following table shows how that tag affects the build.
+
+|------------+------------+-----------+--------------------------------+-----|
+| env        | branch     | tag       | docker org/tag                 |     |
+|------------+------------+-----------+--------------------------------+-----|
+| dev        | *any*      | *dirty*   | localhost/aggie-experts:dirty  |     |
+| clean      | *any*      | *clean*   | localhost/aggie-experts:*tag*  |     |
+| sandbox    | *any*      | *clean*   | localhost/aggie-experts:*tag*  |     |
+|------------+------------+-----------+--------------------------------+-----|
 
 *** dev
-Developers typically develop in the ~dev~ stage.  Every aggie expert image is
-built locally on their machines, and they have the freedom to bind mount various
-directories over containers for quicker testing.  Every build will continously
-overwrite the localhost/aggie-experts/??:dirty images.
+Developers typically develop with `--env=dev`.  In this case, all aggie-expert
+images are built locally on their machines, and they have the freedom to bind
+mount various directories over containers for quicker testing.  Every build will
+continuously overwrite the ~localhost/aggie-experts/??:dirty~ images, so they are
+not filling their image cache with extraneous image names.  Also, you don't need
+to rerun the ~setup~ command.
 
-In terms of git, users should *never* be developing on the ~dev~ branch.  They
-should always be working on a branch specific to the issue(s) they are working
-on.  Because of this, developers are encouraged to push as often as they'd like
-to github.  Not all commits need to have great commit messages either.  However,
-if a developer has made 10 local commits, it's not a terrible idea to rebase
-these into a single commit before pushing.  But don't worry too much about that,
-and avoid any rebasing that affects the pushed commits, it can be troublesome.
+When you are developing in the ~dev~ environment, there are a number of additional
+arguments you might be interested in:
 
-To do a full build with all dependencies, you can use the following command:
+**** `--mount=[[api,init,models,spa]]`
+
+The four areas you are most likely to be developing is the common ~api~, the
+fcrepo ~init~ files, the server-side ~models~, and the client single-page-app
+~spa~.  Depending on which you are using, you can configure bind mounts to be
+set for each area --or more; if you specify multiple mounts,
+comma-separated. This affects that `setup` script, and you can see these bind
+mounts in your ~docker-compose.yaml~ file.
+
+**** `--build-args=*`
+
+The ~build-args~ are additional arguments sent directly to the ~cork-kube build~
+command.  The discussion above shows the most common arguments. However, in some
+cases this might be different.  For example, if you are simultaneously working
+on fuseki or fin. You might want to use local builds of those as you are
+working.
+
+**** `--dry-run`
+
+If you add this, you can see the exact ~build~ command sent to ~cork-kube~.
+This can be helpful for debugging why your build isn't working.
+
+
+So a typical use case, might be a front end developer sets up their environment
+with:
 
 #+begin_src bash
-  aggie-experts --env=dev --gcs=fcrepo-sandbox --mount=spa,models --build-args='--depth=ALL' build
+  bin/aggie-experts --env=dev --build-args='--use-registry=fuseki-image,fin' --mount=spa build  setup
+  docker compose up -d
 #+end_src
+
+Once the setup is in place, they can develop and test their system. Since their
+changes are being mounted on the containers, rather than creating new
+containers, they can test their changes by restarting the affected containers,
+eg.
+
+#+begin_src bash
+  docker compose restart gateway spa
+#+end_src
+
+Once they are satisfied, they finalize their changes, and request a PR review
+with the clean environment.
 
 *** clean
 In the clean stage, developers build their image on a clean git repository, and
@@ -181,13 +242,27 @@ build/deploy a specific tagged image to application.  Bind mounts are *never*
 allowed on ~clean~ deploy.  This means that developers typically need to setup
 their environment, for ~clean~ testing.
 
-Every pull request should be tested in the ~clean~ environment before being move
+Every pull request should be tested in the ~clean~ environment before being moved
 from draft for review.
 
+If you are using an ~x86_64~ machine, then absolutely use the artifact registry
+versions of your required images. This is much closer to the deployment build
+later.
+
 #+begin_src bash
-  aggie-experts --env=clean setup build
+  aggie-experts --env=clean --build-args='--use-registry=fuseki-image,fin' build setup
+  dc down; dc up -d
 #+end_src
 
+Otherwise, try and make sure that you local build doesn't include changes in
+intermediate images that you haven't committed.
+
+#+begin_src bash
+  aggie-experts --env=clean --build-args='--depth=1' build setup
+  dc down; dc up -d
+#+end_src
+
+**** `--unstaged-okay`
 Note, that it is possible to create an image that can't be replicated, for
 example you might include a file in your builds that you never bother to commit.
 Because of this the ~aggie-experts~ script will complain if you have unstaged
@@ -195,74 +270,105 @@ files. This should encourage you to keep your repository tidy, but you can skip
 that error with the ~--unstaged-ok~ flag to ~aggie-experts~.
 
 #+begin_src bash
-  aggie-experts --unstaged-ok --env=clean setup build
+  aggie-experts --unstaged-ok --env=clean build setup
 #+end_src
 
 *** sandbox
-The sandbox stage allows any clean commit to be built and deployed on
+
+The sandbox env allows any clean commit to be built and deployed on
 sandbox.experts.library.ucdavis.edu.  The images are built locally on sandbox,
 both to test the build and to prevent images that are not expected to be
 deployed to be added to the aggie-experts container repository.
 
-If you are replacing an existing data instance that's running on sandbox, you
-can use:
+Multiple developers are encouraged to have their own development/test versions
+on sandbox, and you should feel relatively safe in turning off someone else's
+sandbox version while you bring up your own for testing.  The different versions
+are all stored in `file://sandbox.experts.library.ucdavis.edu/etc/aggie-experts`
+
+The normal way this is done, is to prefix your test with your id, and keep
+increasing the number for different tests, for example.
 
 #+begin_src bash
-  num=[existing_number]
-  cd /etc/aggie-experts/s${num}
-  git checkout [branch or commit ]
-  bin/aggie-experts --env=sandbox build setup
-  dc down
-  dc up -d
-#+end_src
-
-If you are creating a new data instance, then the path is more like:
-
-#+begin_src bash
-  num=[next_number]
+  t='q022'
+  my_branch='test_this'
   cd /etc/aggie-experts/
-  git clone --branch=[branch] s{$num}
-  git reset --hard ${commit} # Only if you are testing a commit not on a branch head
-  cd s${num}
-  bin/aggie-experts --env=clean build setup
-  dc up -d
-  # Now populate your instance
-  # Then
+  git clone --branch=${my_branch} https://github.com/ucd-library/aggie-experts.git $t
+  bin/aggie-experts --env=sandbox --build-args='--use-registry=fuseki-image,fin' build setup
   dc down
-  aggie-experts --env=sandbox setup
   dc up -d
 #+end_src
 
-*** build
-You use the ~build~ environment to build and push new docker instances to the
-registry in preparation of using them on a new ~stage~ or ~prod~ environment.
-Builds can currently take place anywhere.  A typical example is:
+By default, the sandbox environment uses the `fcrepo-sandbox` repository, which
+takes awhile to setup on your first test.  You can monitor at
+`https://sandbox.experts.library.ucdavis.edu/fin/admin`
+
+*** Important .env entries
+
+The `setup` command is designed to create the best default without the need for
+any special environment variables. However, there reasons that you might want to
+override some of these in your testing.  You can look at your
+~docker-compose.yaml~ file for a complete list of ~/.env~ variables that can
+affect your development.  Here are some most commonly used variables
+
+- HOST_PORT: As discussed, may be necessary for some local deployments.
+- GCS_BUCKET: Most development is hydrated with data from the ~fcrepo-dev~
+  bucket, but you may instead want to test with the larger ~fcrepo-sandbox~
+  bucket, or you might even want to create some new bucket to use.
+- FUSEKI_PORT: Sometimes testing only the harvesting, you find you want local
+  access to the fuseki container.  This will create a standard port, rather than
+  selecting an ephemeral one.
+- CDL_PROPAGATE_CHANGES: Under most circumstances you don't want to propogate
+  your expert edits to the production system (via updates to the CDL Elements
+  setup), however if you are testing that, then you would set this to true.
+
+** The `--env=[gcb|stage|prod]` deployment environments
+
+Developers in charge of deploying a new version use the following environments.
+
+|-------+--------+-----------+-----------------------------------------------|
+| env   | branch | tag       | dns                                           |
+|-------+--------+-----------+-----------------------------------------------|
+| gcb   | *dev*  | *version* | N/A                                           |
+| stage | *tag*  | *version* | stage.experts.library.ucdavis.edu (blue/gold) |
+| prod  | *tag*  | *version* | experts.ucdavis.edu (blue/gold)               |
+|-------+--------+-----------+-----------------------------------------------|
+
+*** gcb
+
+You use the ~gcb~ environment to build and push new docker image to
+aggie-experts artifact registry in preparation of using them on a new ~stage~ or
+~prod~ environment.  The builds take place in the cloud, and this command can be
+run on any computer.  However, the build only works if your are using a clean
+revision tag, *and* the cork-build-repository is configured to build this
+in the cloud.  Right now `fin` and `fuseki` pre-built images are required.  If
+we are building version ~4.0.7~, eg.  Then that needs specification in the
+`build` section of the [[https://github.com/ucd-library/cork-build-registry/blob/main/repositories/aggie-experts.json][aggie-experts.json]] config file.
+
+A typical test and build would be:
 
 #+begin_src bash
-  git checkout dev
-  git pull
-  aggie-experts --env=build build push
+  cd ~/aggie-experts
+  git fetch --prune --tags
+  revision=4.0.7
+  git checkout ${revision}
+  # check it's buildable
+  b=$(curl https://raw.githubusercontent.com/ucd-library/cork-build-registry/refs/heads/main/repositories/aggie-experts.json | jq --arg rev $revision '.builds[$rev]')
+  if [[ "$b" != "null" ]]; then
+      bin/aggie-experts --env=gcb build
+  else
+      echo "Not buildable"
+  fi
 #+end_src
 
 ~aggie-experts~ will complain if the checked out commit does not correspond to
-an annotated tag.
+an annotated tag.  All images will be stored in the artifact registry at
+us-west1-docker.pkg.dev/aggie-experts/docker/*image_name*:*revision*
 
-** Setup
-
-|---------+--------+-----------+---------------------------------+--------------------------------|
-| env     | branch | tag       | dns                             | image                          |
-|---------+--------+-----------+---------------------------------+--------------------------------|
-| dev     | *any*  | *dirty*   | localhost                       | localhost/aggie-experts:dirty  |
-| clean   | *any*  | *clean*   | localhost                       | localhost/aggie-experts:*tag*  |
-| sandbox | *any*  | *clean*   | sandbox                         | localhost/aggie-experts:*tag*  |
-| gcb     | N/A    | N/A       | N/A                             | N/A                            |
-| stage   | *tag*  | *version* | stage (blue/gold)               | gcr.io/aggie-experts:*version* |
-| prod    | *tag*  | *version* | experts.ucdavis.edu (blue/gold) | gcr.io/aggie-experts:*version* |
-|---------+--------+-----------+---------------------------------+--------------------------------|
 
 *** stage
 The ~stage~ environment is only run on ~(blue|gold).experts.library.ucdavis.edu~
-and only uses images that are pulled from the registry.
+and only uses images that are pulled from the registry.  The best practice on
+these machines is to name your next deployment like `${MAJOR}-${num}`
 
 If you are updating an existing dataset instance:
 #+begin_src bash
@@ -290,38 +396,6 @@ If you are creating a new dataset environment, then
 
 *** production
 
-** .env File
-
-   When you setup a particular environment, the default configuration (taken
-from the [[config.json][config.json]] file), along with secrets from the Google secret manager
-are added directly to the ~docker-compose.yaml~ file.  This allows deployments
-without any ~.env~ file.  This file can be used to override some defaults
-however.  A complete list of parameters that can be overridden can be seen in
-the ~docker-compose.yaml~ file itself, or the [[docker-template.yaml][docker-template.yaml]] template.
-Below are some common variables that might be overridden.
-
-   - ~FIN_URL~ can be used to override the dns version.  For example, you could
-     setup the sandbox environment ~bin/aggie-experts --env=sandbox setup~ but
-     override the ~FIN_URL~ to run on some special host for testing
-
-   - ~HOST_PORT~ might be useful for development. You could, for example, run
-     two different development versions and change the ~HOST_PORT~ so they can
-     run at the same time.
-
-   - ~CDL_PROPAGATE_CHANGES~ usually is false while testing, so you don't affect
-     the CDL database, but you might set to ~true~ to test edits on a
-     development machine.
-
-   - ~GA4_ENABLE_STATS~ is usually false in development as well, but you might
-     set to ~true~ to monitor statistics.
-
-   - ~FUSEKI_PORT~ is usually not defined, but if it is, then fuseki is exposed
-     on that that port.  You often run with ~FUSEKI_PORT=8080~ to test linked
-     data processing.
-
-   - ~CLIENT_ENV~ sets whether to serve the smaller ~prod~ bundles or the ~dev~
-     bundles that are easier to debug.
-
 ** Initialization Buckets
 
 When any system starts up, it will initialize using a given GCS bucket.  Much of
@@ -330,15 +404,14 @@ development phase, developers are encouraged to create their own buckets, and
 alter those components.  Buckets should have the ~fcrepo-~ prefix, and be tagged
 as ~fcrepo~ as well.
 
-|---------+-------+----------------|
-| stage   | alter | gcs bucket     |
-|---------+-------+----------------|
-| dev     | Y     | fcrepo-dev     |
-| clean   | Y     | fcrepo-dev     |
-| sandbox | Y     | fcrepo-sandbox |
-| stage   | N     | fcrepo-1       |
-| prod    | N     | fcrepo-1       |
-|---------+-------+----------------|
+|------------+-------+-----------------|
+| stage      | alter | gcs bucket      |
+|------------+-------+-----------------|
+| dev        | Y     | fcrepo-dev      |
+| clean      | Y     | fcrepo-dev      |
+| sandbox    | Y     | fcrepo-sandbox  |
+| stage/prod | N     | fcrepo-${MAJOR} |
+|------------+-------+-----------------|
 
 ** Authorization
 
@@ -357,8 +430,6 @@ why they require different secrets in their setup.
 | test    | experts     | auth.library.ucdavis.edu         |
 | prod    | experts     | auth.library.ucdavis.edu         |
 |---------+-------------+----------------------------------|
-
-* TODO aggie-experts command-line utility
 
 * Production Deployment
 
@@ -423,7 +494,6 @@ Here are the steps to deploy to blue and gold. Each new deployment should target
 the non-running instance, alternating between blue and gold.
 
 ** Deployment Steps
-
 
 *** Identify server
   Since we switch between blue and gold servers, you are never really sure which
