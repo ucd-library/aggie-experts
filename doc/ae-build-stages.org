@@ -32,30 +32,128 @@ updates, primarily into the default ~dev~.  Branches are *never* used in
 aggie-experts to designate a particular build or deployment.  Branches will be
 discussed more in the development
 
+** Setting up your Development Environment
 
-The following table shows the various stages for development for Aggie Experts,
-and some associated pointers.
-
-|---------+------------+--------+----------+------------------------------------|
-| env     | theme      | branch | tag      | docker org/tag                     |
-|---------+------------+--------+----------+------------------------------------|
-| dev     | dev        | *any*  | *dirty*  | localhost/aggie-experts:dirty      |
-| clean   | dev        | *any*  | *clean*  | localhost/aggie-experts:*tag*      |
-| sandbox | dev/deploy | *any*  | *clean*  | localhost/aggie-experts:*tag*      |
-| stage   | deploy     | dev    | 1.??-dev | gcr.io/aggie-experts:*dev-tag*     |
-| prod    | deploy     | main   | 2.?.?    | gcr.io/aggie-experts:*version-tag* |
-|---------+------------+--------+----------+------------------------------------|
+If you are planning to submit pull requests to Aggie Experts, then you must
+setup your environment properly.
 
 
-|---------+------------+--------+----------+-------------------+------------------------------------|
-| env     | theme      | branch | tag      | dns               | docker org/tag                     |
-|---------+------------+--------+----------+-------------------+------------------------------------|
-| dev     | dev        | *any*  | *dirty*  | localhost         | localhost/aggie-experts:dirty      |
-| clean   | dev        | *any*  | *clean*  | localhost         | localhost/aggie-experts:*tag*      |
-| sandbox | dev/deploy | *any*  | *clean*  | sandbox           | localhost/aggie-experts:*tag*      |
-| stage   | deploy     | dev    | 1.??-dev | stage (blue/gold) | gcr.io/aggie-experts:*dev-tag*     |
-| prod    | deploy     | main   | 2.?.?    | rc2  (blue/gold)  | gcr.io/aggie-experts:*version-tag* |
-|---------+------------+--------+----------+-------------------+------------------------------------|
+*** Prerequisites
+Developers use the ~bin/aggie-experts~ script to build and setup their
+processing environment.  This is a bash script, so your environment needs a
+recent version of ~bash~.  In addition, the script uses ~jq~ and ~yq~.  Finally,
+we use the standard POSIX ~getops~ command.  If that is not your systems
+default, you can specify a pointer to the POSIX version with the
+~FLAGS_GETOPT_CMD~ environmental variable.
+
+In addition, ~bin/aggie-experts~ uses our standard ~cork-kube~ build method,
+which means part of the setup involves setting up ~cork-kube~.  Aggie-Experts,
+also like ~cork-kube~ uses gcloud configurations, our default being
+~aggie-experts~.
+
+*** Setup gcloud
+
+We use the ~aggie-experts~ google cloud configuration. By default we switch to
+that configuration while running ~bin/aggie-experts~.  To setup that
+configuration run:
+
+#+begin_src bash
+  gcloud config configurations create aggie-experts --no-activate
+  gcloud config set --configuration=aggie-experts project aggie-experts
+  gcloud config set --configuration=aggie-experts compute/region us-west1
+  gcloud config set --configuration=aggie-experts compute/zone us-west1-c
+  gcloud config set --configuration=aggie-experts account ${me}@ucdavis.edu
+  gcloud config configurations list
+#+end_src
+
+You should see something like:
+
+#+begin_example
+NAME                   IS_ACTIVE  ACCOUNT             PROJECT        COMPUTE_DEFAULT_ZONE  COMPUTE_DEFAULT_REGION
+aggie-experts          False       qjhart@ucdavis.edu  aggie-experts  us-west1-c            us-west1
+#+end_example
+
+In addition, you may need to pull ~aggie-expert~ images from our repository.
+You certainly will need to do that for cloud builds and deployments.  Setup
+docker to fetch these from google.
+
+#+begin_src bash
+  gcloud auth configure-docker us-west1-docker.pkg.dev
+#+end_src
+
+*** Git
+
+First clone the repo and let cork-kube know you are locally developing this
+application. The default branch for aggie-experts it the ~dev~ branch.
+
+#+begin_src bash
+  git clone https://github.com/ucd-library/aggie-experts.git
+  cd aggie-experts
+  cork-kube build register-local-repo .
+#+end_src
+
+*** Your first build
+
+Next let's ~build~ your environment.  This first part, just checks
+your machine.  If it matches our cloud builds, we use those images, otherwise we
+need to build everything locally.
+
+#+begin_src bash
+  if [[ "$(uname -m)" == 'x86_64' ]]; then
+      ba='--use-registry=fuseki-image,fin'
+  else
+      ba='--depth=ALL'
+  fi;
+  bin/aggie-experts --env=dev --build-args="$ba" build
+#+end_src
+
+Your build summary should show for newly built, ~dirty~ images. They are marked
+~dirty~ to indicate, these are the developers alone and are not necessarily
+replicatable.
+
+#+begin_example
+ *** Build Summary: ***
+localhost/aggie-experts/experts-api:dirty (2s)
+localhost/aggie-experts/harvest:dirty (17s)
+localhost/aggie-experts/base-service:dirty (6s)
+localhost/aggie-experts/init:dirty (3s)
+#+end_example
+
+*** Your first local deployment
+
+Now, let's deploy locally.  Run the setup command, to create your
+~docker-compose.yaml~ file, and then start it up
+
+#+begin_src bash
+  bin/aggie-experts --env=dev setup
+  docker compose up -d
+#+end_src
+
+You should be able to navigate to ~http://localhost/fin/admin~ to watch some
+experts being built.  Then ~http://localhost/~ to see the site in action.  By
+default we use port 80. If you are running other things on that port, you will
+get an error starting your gateway.  Set the port to something you'd prefer, and
+restart.
+
+#+begin_src bash
+  echo 'HOST_PORT=8080' > .env
+  docker compose up -d
+#+end_src
+
+
+*** The build environments
+
+The following table shows how the ~--env=~ tag affects the build.
+
+|---------+------------+-------------+------------------------------------+-----|
+| env     | branch     | tag         | docker org/tag                     |     |
+|---------+------------+-------------+------------------------------------+-----|
+| dev     | *any*      | *dirty*     | localhost/aggie-experts:dirty      |     |
+| clean   | *any*      | *clean*     | localhost/aggie-experts:*tag*      |     |
+| sandbox | *any*      | *clean*     | localhost/aggie-experts:*tag*      |     |
+| gcb     | *dev/main* | *version*   | gcr.io/aggie-experts:*version*     |     |
+| stage   | prod       | N/A         | N/A                                | N/A |
+|---------+------------+-------------+------------------------------------+-----|
 
 *** dev
 Developers typically develop in the ~dev~ stage.  Every aggie expert image is
@@ -148,6 +246,19 @@ Builds can currently take place anywhere.  A typical example is:
 
 ~aggie-experts~ will complain if the checked out commit does not correspond to
 an annotated tag.
+
+** Setup
+
+|---------+--------+-----------+---------------------------------+--------------------------------|
+| env     | branch | tag       | dns                             | image                          |
+|---------+--------+-----------+---------------------------------+--------------------------------|
+| dev     | *any*  | *dirty*   | localhost                       | localhost/aggie-experts:dirty  |
+| clean   | *any*  | *clean*   | localhost                       | localhost/aggie-experts:*tag*  |
+| sandbox | *any*  | *clean*   | sandbox                         | localhost/aggie-experts:*tag*  |
+| gcb     | N/A    | N/A       | N/A                             | N/A                            |
+| stage   | *tag*  | *version* | stage (blue/gold)               | gcr.io/aggie-experts:*version* |
+| prod    | *tag*  | *version* | experts.ucdavis.edu (blue/gold) | gcr.io/aggie-experts:*version* |
+|---------+--------+-----------+---------------------------------+--------------------------------|
 
 *** stage
 The ~stage~ environment is only run on ~(blue|gold).experts.library.ucdavis.edu~
