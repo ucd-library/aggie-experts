@@ -53,10 +53,6 @@ USER root
 COPY --from=more /usr/local/lib/sqlcl /usr/local/lib/sqlcl
 COPY --from=more /usr/local/lib/tarql /usr/local/lib/tarql
 
-# Updating experts-client for downloads will eliminate the need for
-# build-essential httpie, xmlstarlet
-# and later below  cdl-element
-
 # Set up Google Cloud, google-cloud-cli
 RUN apt-get update -y && \
     apt-get install -y git jq zip unzip \
@@ -91,12 +87,6 @@ COPY fuseki ${FUSEKI_HOME}
 # Get our UCDID tool
 COPY ucdid /usr/local/bin
 RUN chmod +x /usr/local/bin/ucdid
-
-# Copy over cdl-elements
-COPY cdl-elements /usr/local/bin
-RUN chmod +x /usr/local/bin/cdl-elements
-# XML2JSON
-RUN cd /tmp && npm install -g xml2json --unsafe-perm
 
 # Copy fin-service
 ARG FIN_API=/usr/local/lib/fin/api
