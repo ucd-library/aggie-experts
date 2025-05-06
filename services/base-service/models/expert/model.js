@@ -304,6 +304,14 @@ class ExpertModel extends BaseModel {
       });
     }
 
+    // remove grant amount if not admin
+    if( !options.admin ) {
+      grants = grants.map(grant => {
+        delete grant.totalAwardAmount;
+        return grant;
+      });
+    }
+
     // sort works if requested
     if( options.works?.include && options.works?.sort && options.works.sort.length ) {
       try {
