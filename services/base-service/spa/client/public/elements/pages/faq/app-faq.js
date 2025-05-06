@@ -54,12 +54,17 @@ export default class AppFaq extends Mixin(LitElement)
   _jumpTo(e) {
     if( e.preventDefault ) e.preventDefault();
 
-    // scroll to item
-    let jumpToSection = this.shadowRoot.querySelector('ucd-theme-list-accordion li#'+e.currentTarget.dataset.jumpTo);
+    let ignoreAccordions = false;
+    let jumpToSection = this.shadowRoot.querySelector('h3#'+e.currentTarget.dataset.jumpTo);
+    if( jumpToSection ) ignoreAccordions = true;
+    else jumpToSection = this.shadowRoot.querySelector('ucd-theme-list-accordion li#'+e.currentTarget.dataset.jumpTo);
+
     if( !jumpToSection ) return;
 
     let posY = Math.floor(jumpToSection.getBoundingClientRect().top + window.pageYOffset - 10);
     window.scrollTo(0, posY);
+
+    if( ignoreAccordions ) return;
 
     // open item
     let accordions = this.shadowRoot.querySelectorAll('ucd-theme-list-accordion');
