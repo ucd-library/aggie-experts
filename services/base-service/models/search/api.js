@@ -48,7 +48,9 @@ router.get(
     {
       description: "Returns matching search results, including the number of matching works and grants",
       parameters: ['p', 'page', 'size',
-                   '@type', 'type', 'status','availability','expert'],
+                   '@type', 'type', 'status','availability','expert',
+                   'q', 'min_score', 'min_nested_score'
+                  ],
       responses: {
         "200": openapi.response('Search'),
         "400": openapi.response('Invalid_request')
@@ -61,10 +63,14 @@ router.get(
       "@type":['expert','grant','work'],
       "q": "",
       "size": 10,
+      "min_nested_score": 1,
+      "min_score": 1,
       "page": 1,
       index: []
     };
-    ["p","inner_hits_size","size","page","q"].forEach((key) => {
+    console.log('query',req.query);
+    ["p","inner_hits_size","size","page","q",
+     "min_score","min_nested_score"].forEach((key) => {
       if (req.query[key]) { params[key] = req.query[key]; }
     });
     // if the user is not logged in, we need to set the default
@@ -114,6 +120,7 @@ router.get(
       delete params["@type"];
       delete params.status;
       delete params.type;
+      console.log(params);
       const global = await base.search(
         { id: complete.id,
           params: {
