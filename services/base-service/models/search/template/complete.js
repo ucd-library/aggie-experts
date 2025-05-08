@@ -107,7 +107,7 @@ template = {
                         "bool" : {
                           "must": [
                             {
-                              "multi_match": {
+                              "simple_query_string": {
                                 "query": "{{q}}",
                                 "fields": [
                                   "@graph.@id^10",
@@ -129,7 +129,8 @@ template = {
                                   "@graph.container-title^5",
                                   "@graph.publisher^5",
                                   "@graph.title^10"
-                                ]
+                                ],
+                                "default_operator": "and"
                               } } ],
                             "filter": [
                             {
