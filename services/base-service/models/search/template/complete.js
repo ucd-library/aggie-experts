@@ -223,7 +223,8 @@ template = {
         "sponsorAwardId",
         "assignedBy",
         "dateTimeInterval",
-        "relatedBy"
+        "relatedBy",
+        "_score"
       ],
       "sort": [
         "_score",
