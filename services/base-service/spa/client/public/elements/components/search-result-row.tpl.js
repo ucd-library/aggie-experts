@@ -1,6 +1,9 @@
 import { html } from "lit";
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
+import '@ucd-lib/theme-elements/brand/ucd-theme-list-accordion/ucd-theme-list-accordion.js'
+
+
 export default function render() {
   return html`
     <style include="shared-styles">
@@ -84,6 +87,10 @@ export default function render() {
         padding-right: .25rem;
       }
 
+      ucd-theme-list-accordion {
+        font-style: normal;
+      }
+
       .dot-separator {
         font-weight: bold;
         position: relative;
@@ -118,8 +125,13 @@ export default function render() {
         <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
       </div>
       <div class="search-result-scoring" ?hidden=${!APP_CONFIG.user.admin || this.hideSearchMatches}>
-        <div class="search-matches">Search score: ${this.result.searchScore}</div>
-        <div class="search-matches">Inner hits: ${this.result.innerHits}</div>        
+        <ucd-theme-list-accordion>
+          <li>
+            Search score: ${this.result.searchScore} <br>
+            <span style="font-weight: 100">Inner hits: ${this.result.innerHits}</span>
+          </li>
+          <li>${this._renderExplanation(this.result.scoreExplanation)}</li>          
+        </ucd-theme-list-accordion>    
       </div>
     </div>
   `;

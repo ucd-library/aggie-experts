@@ -79,5 +79,25 @@ export class SearchResultRow extends LitElement {
     }));
   }
 
+  _renderExplanation(expl, depth = 0) {
+    let indent = depth * 10;
+    let container = document.createElement('div');
+    container.style.paddingLeft = `${indent}px`;
+  
+    // Create description line
+    let line = document.createElement('div');
+    line.textContent = `${expl.value} - ${expl.description}`;
+    container.appendChild(line);
+  
+    // Recurse through details if they exist
+    if (expl.details && expl.details.length > 0) {
+      for (let detail of expl.details) {
+        container.appendChild(this._renderExplanation(detail, depth + 1));
+      }
+    }
+  
+    return container;
+  }
+
 }
 customElements.define('app-search-result-row', SearchResultRow);

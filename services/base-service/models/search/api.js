@@ -111,6 +111,7 @@ router.get(
     }
     opts = {
       id: complete.id,
+      explain: true, // TODO get setting from .env to enable/disable the extra explain response?
       params
     };
     try {
