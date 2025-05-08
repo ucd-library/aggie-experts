@@ -461,6 +461,12 @@ export default class AppSearch extends Mixin(LitElement)
 
       let subtitle, numberOfWorks, numberOfGrants;
 
+      let searchScore = r._score || '';
+      let innerHits = (r['_inner_hits'] || []).length;
+      if( innerHits ) {
+        innerHits += ' (' + r['_inner_hits'].map(h => h._score).join(', ') + ')';
+      }      
+
       if( resultType === 'expert' ) {
         subtitle = r.name?.split('§')?.pop()?.trim();
         if( name === subtitle ) subtitle = '';
@@ -505,7 +511,9 @@ export default class AppSearch extends Mixin(LitElement)
         name,
         subtitle,
         numberOfWorks,
-        numberOfGrants
+        numberOfGrants,
+        searchScore,
+        innerHits,
       }
     });
 

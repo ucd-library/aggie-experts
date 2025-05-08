@@ -67,7 +67,8 @@ export default function render() {
         text-transform: uppercase;
       } */
 
-      .search-result-matches {
+      .search-result-matches,
+      .search-result-scoring {
         padding-left: 36.406px;
         font-size: .9rem;
         font-style: italic;
@@ -112,9 +113,13 @@ export default function render() {
       <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${unsafeHTML(this.result.subtitle)}</div>
       <div class="search-result-matches" ?hidden="${this.hideSearchMatches || this.resultType !== 'expert'}">
         <span ?hidden="${this.result.numberOfGrants === 0 && this.result.numberOfWorks === 0}" class="search-matches">Search matches:</span>
-          <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grant${this.result.numberOfGrants > 1 ? 's' : ''}</a></span>
-          <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
-          <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
+        <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grant${this.result.numberOfGrants > 1 ? 's' : ''}</a></span>
+        <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
+        <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
+      </div>
+      <div class="search-result-scoring" ?hidden=${!APP_CONFIG.user.admin || this.hideSearchMatches}>
+        <div class="search-matches">Search score: ${this.result.searchScore}</div>
+        <div class="search-matches">Inner hits: ${this.result.innerHits}</div>        
       </div>
     </div>
   `;
