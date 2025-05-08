@@ -426,7 +426,7 @@ export default class AppSearch extends Mixin(LitElement)
     let modNestedScore = false;
     if( isAdmin && this.minNestedScoreMod ) modNestedScore = true;
 
-    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || modScore;
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || modScore || modNestedScore;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
