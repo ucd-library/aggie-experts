@@ -366,6 +366,90 @@ return html`
       /* transition: fill 0.3s ease-in-out; */
     }
 
+    .search-scoring,
+    .search-scoring input {
+      width: 100%;
+    }
+
+    .search-scoring h4 {
+      margin-bottom: 0;
+    }
+
+    .search-scoring input[type="range"] {
+      -webkit-appearance: none; /* Remove default styling */
+      height: 3px;
+      background: #CCE0F3;
+    }
+
+    /* === Track Background (WebKit) === */
+    .search-scoring input[type="range"]::-webkit-slider-runnable-track {
+      height: 3px;
+      background: linear-gradient(
+        to right,
+        #13639E 0%,
+        #13639E var(--progress),
+        #CCE0F3 var(--progress),
+        #CCE0F3 100%
+      );
+    }
+
+    /* === Thumb/Handle (WebKit) === */
+    .search-scoring input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 15px;
+      width: 15px;
+      background: #13639E;
+      margin-top: -5px;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    /* === Track and Thumb for Firefox === */
+    .search-scoring input[type="range"]::-moz-range-track {
+      height: 3px;
+      background: #CCE0F3;
+    }
+
+    .search-scoring input[type="range"]::-moz-range-progress {
+      background: #13639E;
+      height: 3px;
+    }
+
+    .search-scoring input[type="range"]::-moz-range-thumb {
+      height: 15px;
+      width: 15px;
+      background: #13639E;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .slider-container {
+      position: relative;
+      width: 100%;
+      padding-top: 1rem;
+    }
+
+    #min-score-slider-label,
+    #min-nested-score-slider-label {
+      position: absolute;
+      top: .25rem;
+      transform: translateX(-50%);
+      color: #022851;
+      font-size: .8rem;
+      white-space: nowrap;
+      pointer-events: none;
+
+      transform: scale(0);
+      transition: transform 200ms linear;
+    }
+
+    #min-score-slider-label[moving],
+    #min-nested-score-slider-label[moving] {
+      transform: scale(1);
+    }
+
   </style>
 
   <div class="search-header">
@@ -421,9 +505,22 @@ return html`
         <h4>Date (Works, Grants)</h4>
       </div>
       <date-range-filter></date-range-filter> -->
-
       <!-- <range-slider-with-histogram></range-slider-with-histogram> -->
 
+      <div class="search-scoring" ?hidden=${!APP_CONFIG.user.admin}>
+        <h4>Search Scoring</h4>
+        <div class="slider-container">
+          <input type="range" id="min-score-slider" min="1" max="100" value="1" />
+          <div id="min-score-slider-label" ?moving="${this.minScoreMoving}">1</div>
+          <label for="min-score-slider">min_score: ${this.minScore}</label>
+        </div>
+
+        <div class="slider-container">
+          <input type="range" id="min-nested-score-slider" min="1" max="100" value="1" />
+          <div id="min-nested-score-slider-label" ?moving="${this.minNestedScoreMoving}">1</div>
+          <label for="min-nested-score-slider">min_nested_score: ${this.minNestedScore}</label>
+        </div>
+      </div>
     </div>
     <div class="search-content">
       <app-search-box
