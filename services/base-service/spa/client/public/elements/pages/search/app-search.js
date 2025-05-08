@@ -131,6 +131,13 @@ export default class AppSearch extends Mixin(LitElement)
     this._onSearch({ detail: this.searchTerm });
   }
 
+  _getLogValue(sliderValue) {
+    const minv = Math.log(1);
+    const maxv = Math.log(1000);
+    const scale = (maxv - minv) / 100;
+    return Math.exp(minv + scale * sliderValue);
+  }
+
   _updateMinScoreSliderBackground() {
     let slider = this.shadowRoot.querySelector('#min-score-slider');
     let label = this.shadowRoot.querySelector('#min-score-slider-label');
@@ -162,7 +169,7 @@ export default class AppSearch extends Mixin(LitElement)
     let thumbWidth = 15;
     let thumbOffset = percent * (sliderWidth - thumbWidth) + (thumbWidth / 2) - 5;
   
-    label.textContent = slider.value;
+    label.textContent = Math.ceil(this._getLogValue(slider.value));
     label.style.left = `${thumbOffset}px`;
   }
 
@@ -172,7 +179,7 @@ export default class AppSearch extends Mixin(LitElement)
     let slider = this.shadowRoot.querySelector('#min-score-slider');
     if( !slider ) return;
 
-    this.minScore = slider.value;
+    this.minScore = Math.ceil(this._getLogValue(slider.value));
     this.minScoreMoving = false;
     this.minScoreMod = true;
 
@@ -185,7 +192,7 @@ export default class AppSearch extends Mixin(LitElement)
     let slider = this.shadowRoot.querySelector('#min-nested-score-slider');
     if( !slider ) return;
 
-    this.minNestedScore = slider.value;
+    this.minNestedScore = Math.ceil(this._getLogValue(slider.value));
     this.minNestedScoreMoving = false;
     this.minNestedScoreMod = true;
 

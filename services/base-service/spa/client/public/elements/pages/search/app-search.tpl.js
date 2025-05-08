@@ -427,7 +427,7 @@ return html`
 
     .slider-container {
       position: relative;
-      width: 100%;
+      max-width: 15rem;
       padding-top: 1rem;
     }
 
@@ -510,13 +510,13 @@ return html`
       <div class="search-scoring" ?hidden=${!APP_CONFIG.user.admin}>
         <h4>Search Scoring</h4>
         <div class="slider-container">
-          <input type="range" id="min-score-slider" min="1" max="100" value="1" />
+          <input type="range" id="min-score-slider" min="0" max="100" value="0" />
           <div id="min-score-slider-label" ?moving="${this.minScoreMoving}">1</div>
           <label for="min-score-slider">min_score: ${this.minScore}</label>
         </div>
 
         <div class="slider-container">
-          <input type="range" id="min-nested-score-slider" min="1" max="100" value="1" />
+          <input type="range" id="min-nested-score-slider" min="0" max="100" value="0" />
           <div id="min-nested-score-slider-label" ?moving="${this.minNestedScoreMoving}">1</div>
           <label for="min-nested-score-slider">min_nested_score: ${this.minNestedScore}</label>
         </div>
