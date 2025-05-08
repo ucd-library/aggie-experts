@@ -79,6 +79,10 @@ export default function render() {
         padding-top: 0.4rem;
       }
 
+      .search-result-scoring {
+        padding-top: 1rem;
+      }
+
       .search-result-matches a {
         color: var(--color-aggie-blue-80);
       }
