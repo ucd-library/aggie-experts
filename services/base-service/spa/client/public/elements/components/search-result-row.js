@@ -80,6 +80,8 @@ export class SearchResultRow extends LitElement {
   }
 
   _renderExplanation(expl, depth = 0) {
+    if( !expl ) return;
+
     let indent = depth * 10;
     let container = document.createElement('div');
     container.style.paddingLeft = `${indent}px`;
