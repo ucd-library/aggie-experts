@@ -49,7 +49,8 @@ export default class AppSearch extends Mixin(LitElement)
       minScore : { type : Number },
       minScoreMoving : { type : Boolean },
       minNestedScore : { type : Number },
-      minNestedScoreMoving : { type : Boolean }
+      minNestedScoreMoving : { type : Boolean },
+      showExplain : { type : Boolean }
     }
   }
 
@@ -89,6 +90,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.minScoreMoving = false;
     this.minNestedScore = 1;
     this.minNestedScoreMoving = false;
+    this.showExplain = false;
 
     this.render = render.bind(this);
 
@@ -136,6 +138,12 @@ export default class AppSearch extends Mixin(LitElement)
     const maxv = Math.log(1000);
     const scale = (maxv - minv) / 100;
     return Math.exp(minv + scale * sliderValue);
+  }
+
+  _showExplain() {
+    this.showExplain = !this.showExplain;
+    this.displayedResults = this.displayedResults.map(r => ({ ...r, showExplain: this.showExplain }));
+    this.requestUpdate();
   }
 
   _updateMinScoreSliderBackground() {
@@ -523,6 +531,7 @@ export default class AppSearch extends Mixin(LitElement)
         searchScore,
         innerHits,
         scoreExplanation,
+        showExplain: this.showExplain
       }
     });
 

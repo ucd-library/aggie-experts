@@ -509,6 +509,10 @@ return html`
 
       <div class="search-scoring" ?hidden=${!APP_CONFIG.user.admin}>
         <h4>Search Scoring</h4>
+        <div style="display: flex; align-items: center; padding-top: 1rem;">
+          <input style="width: inherit; margin-right: .5rem;" type="checkbox" id="show-explain" @click="${this._showExplain}" />
+          <label for="show-explain">Show score explanation</label>
+        </div>
         <div class="slider-container">
           <input type="range" id="min-score-slider" min="0" max="100" value="0" />
           <div id="min-score-slider-label" ?moving="${this.minScoreMoving}">1</div>

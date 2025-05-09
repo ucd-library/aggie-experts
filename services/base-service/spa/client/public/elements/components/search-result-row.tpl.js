@@ -128,7 +128,7 @@ export default function render() {
         <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
         <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
       </div>
-      <div class="search-result-scoring" ?hidden=${!APP_CONFIG.user.admin || this.hideSearchMatches}>
+      <div class="search-result-scoring" ?hidden=${!APP_CONFIG.user.admin || this.hideSearchMatches || !this.result.showExplain}>
         <ucd-theme-list-accordion>
           <li>
             Search score: ${this.result.searchScore} <br>

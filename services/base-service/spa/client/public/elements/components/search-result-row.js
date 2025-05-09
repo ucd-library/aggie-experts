@@ -16,7 +16,7 @@ export class SearchResultRow extends LitElement {
       result : { type : Object },
       resultType : { type : String, attribute : 'result-type' },
       hideCheckbox : { type : Boolean, attribute : 'hide-checkbox' },
-      hideSearchMatches : { type : Boolean, attribute : 'hide-search-matches' }
+      hideSearchMatches : { type : Boolean, attribute : 'hide-search-matches' },
     };
   }
 
