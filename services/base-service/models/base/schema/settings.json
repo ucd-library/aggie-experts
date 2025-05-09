@@ -155,7 +155,6 @@
         "filter": [
           "email_to_mailto","xxx_to_doi","xxx_to_orcid", "n2t_to_id",
           "lowercase",
-          "stop",
           "asciifolding"
         ]
       },
@@ -169,7 +168,6 @@
         "filter": [
           "email_to_mailto","xxx_to_doi","xxx_to_orcid", "n2t_to_id",
           "lowercase",
-          "stop",
           "asciifolding"
         ]
       },
