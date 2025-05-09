@@ -386,6 +386,24 @@ const openapi = OpenAPI(
             description: 'The unique identifier for the expert'
           }
         },
+        min_score: {
+          in: "query",
+          name: "min_score",
+          description: "Minimum score for the search results",
+          required: false,
+          schema: {
+            type: "number"
+          }
+        },
+        min_nested_score: {
+          in: "query",
+          name: "min_nested_score",
+          description: "Minimum nested score for the search results",
+          required: false,
+          schema: {
+            type: "number"
+          }
+        },
         relationshipId: {
           name: 'relationshipId',
           in: 'path',

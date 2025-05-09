@@ -272,12 +272,15 @@ class BaseModel extends FinEsDataModel {
       const inner_hits = [];
       if (in_hits) {
         for (const in_hit of in_hits) {
+          in_hit._source._score = in_hit._score;
           inner_hits.push(in_hit._source);
         }
       }
       if (inner_hits.length > 0) {
         source._inner_hits = inner_hits;
       }
+      source._score = hit._score;
+      source._explanation = hit._explanation;
       hits.push(source);
     }
     compact.hits = hits;
@@ -325,6 +328,7 @@ class BaseModel extends FinEsDataModel {
     delete params.index;
     const options = {
       id: (opts.id)?opts.id:"default",
+      explain: opts.explain,
       index,
       params
     }

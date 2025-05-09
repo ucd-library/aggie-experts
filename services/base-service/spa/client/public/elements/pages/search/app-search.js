@@ -46,6 +46,10 @@ export default class AppSearch extends Mixin(LitElement)
       globalAggregations : { type : Object },
       resultsSelected : { type : Boolean },
       allResultsSelected : { type : Boolean },
+      minScore : { type : Number },
+      minScoreMoving : { type : Boolean },
+      minNestedScore : { type : Number },
+      minNestedScoreMoving : { type : Boolean }
     }
   }
 
@@ -81,14 +85,25 @@ export default class AppSearch extends Mixin(LitElement)
     this.resultsSelected = false;
     this.allResultsSelected = false;
     this.downloads = [];
+    this.minScore = 1;
+    this.minScoreMoving = false;
+    this.minNestedScore = 1;
+    this.minNestedScoreMoving = false;
 
     this.render = render.bind(this);
+
   }
 
   firstUpdated() {
     if( this.AppStateModel.location.page !== 'search' ) return;
 
     this._updateFilters();
+
+    this.shadowRoot.querySelector('#min-score-slider')?.addEventListener('input', this._updateMinScoreSliderBackground.bind(this));
+    this.shadowRoot.querySelector('#min-score-slider')?.addEventListener('change', this._minScoreSliderChange.bind(this));
+    this.shadowRoot.querySelector('#min-nested-score-slider')?.addEventListener('input', this._updateMinNestedScoreSliderBackground.bind(this));
+    this.shadowRoot.querySelector('#min-nested-score-slider')?.addEventListener('change', this._minNestedScoreSliderChange.bind(this));
+
     this._onSearch({ detail: this.searchTerm });
   }
 
@@ -114,6 +129,74 @@ export default class AppSearch extends Mixin(LitElement)
 
     this._updateFilters();
     this._onSearch({ detail: this.searchTerm });
+  }
+
+  _getLogValue(sliderValue) {
+    const minv = Math.log(1);
+    const maxv = Math.log(1000);
+    const scale = (maxv - minv) / 100;
+    return Math.exp(minv + scale * sliderValue);
+  }
+
+  _updateMinScoreSliderBackground() {
+    let slider = this.shadowRoot.querySelector('#min-score-slider');
+    let label = this.shadowRoot.querySelector('#min-score-slider-label');
+    this._updateSliderStyles(slider, label);
+
+    this.minScoreMoving = true;
+  }
+
+  _updateMinNestedScoreSliderBackground() {
+    let slider = this.shadowRoot.querySelector('#min-nested-score-slider');
+    let label = this.shadowRoot.querySelector('#min-nested-score-slider-label');
+    this._updateSliderStyles(slider, label);
+
+    this.minNestedScoreMoving = true;
+  }
+
+  _updateSliderStyles(slider, label) {
+    if( !slider ) return;
+
+    let min = slider.min;
+    let max = slider.max;
+    let percent = ((slider.value - min) / (max - min)) * 100;
+    slider.style.setProperty('--progress', `${percent}%`);
+
+    if( !label ) return;
+
+    percent = (slider.value - slider.min) / (slider.max - slider.min)
+    let sliderWidth = slider.offsetWidth;
+    let thumbWidth = 15;
+    let thumbOffset = percent * (sliderWidth - thumbWidth) + (thumbWidth / 2) - 5;
+  
+    label.textContent = Math.ceil(this._getLogValue(slider.value));
+    label.style.left = `${thumbOffset}px`;
+  }
+
+  _minScoreSliderChange() {
+    // change event fires on mouseup after drag
+    // update url/location and make new query
+    let slider = this.shadowRoot.querySelector('#min-score-slider');
+    if( !slider ) return;
+
+    this.minScore = Math.ceil(this._getLogValue(slider.value));
+    this.minScoreMoving = false;
+    this.minScoreMod = true;
+
+    this._updateLocation();
+  }
+
+  _minNestedScoreSliderChange() {
+    // change event fires on mouseup after drag
+    // update url/location and make new query
+    let slider = this.shadowRoot.querySelector('#min-nested-score-slider');
+    if( !slider ) return;
+
+    this.minNestedScore = Math.ceil(this._getLogValue(slider.value));
+    this.minNestedScoreMoving = false;
+    this.minNestedScoreMod = true;
+
+    this._updateLocation();
   }
 
   _updateFilters() {
@@ -309,7 +392,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
           this.AppStateModel.location.query.type,
-          this.filterByExpertId
+          this.filterByExpertId,
+          this.AppStateModel.location.query.min_score,
+          this.AppStateModel.location.query.min_nested_score
         )
       ),
       true
@@ -334,7 +419,14 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) availability.push('industry');
     if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length;
+    let isAdmin = APP_CONFIG.user.admin;
+    let modScore = false;
+    if( isAdmin && this.minScoreMod ) modScore = true;
+
+    let modNestedScore = false;
+    if( isAdmin && this.minNestedScoreMod ) modNestedScore = true;
+
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || modScore || modNestedScore;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
@@ -346,6 +438,8 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.status.length ) path += `&status=${this.status}`;
     if( this.type.length ) path += `&type=${this.type}`;
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
+    if( modScore ) path += `&min_score=${this.minScore}`;
+    if( modNestedScore ) path += `&min_nested_score=${this.minNestedScore}`;
 
     this.AppStateModel.setLocation(path);
     this._clearSelectedSearchResults();
@@ -373,6 +467,13 @@ export default class AppSearch extends Mixin(LitElement)
       let name = r.name?.split('§')?.shift()?.trim();
 
       let subtitle, numberOfWorks, numberOfGrants;
+
+      let searchScore = r._score || '';
+      let innerHits = (r['_inner_hits'] || []).length;
+      if( innerHits ) {
+        innerHits += ' (' + r['_inner_hits'].map(h => h._score).join(', ') + ')';
+      }      
+      let scoreExplanation = r._explanation;
 
       if( resultType === 'expert' ) {
         subtitle = r.name?.split('§')?.pop()?.trim();
@@ -418,7 +519,10 @@ export default class AppSearch extends Mixin(LitElement)
         name,
         subtitle,
         numberOfWorks,
-        numberOfGrants
+        numberOfGrants,
+        searchScore,
+        innerHits,
+        scoreExplanation,
       }
     });
 

@@ -426,8 +426,10 @@ class Utils {
    * @param {String} status status of search, ie 'active', 'completed'. if none set, returns all results
    * @param {String} type citation type, ie 'book', 'journal'
    * @param {String} expertId expertId to filter grants/works to
+   * @param {String} minScore admin feature for modifying min_score in api call
+   * @param {String} minNestedScore admin feature for modifying min_nested_score in api call
    */
-  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId) {
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, minScore, minNestedScore) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
     if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
@@ -435,6 +437,8 @@ class Utils {
     if( status ) searchQuery += `&status=${status}`;
     if( type ) searchQuery += `&type=${type}`;
     if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
+    if( minScore ) searchQuery += `&min_score=${minScore}`;
+    if( minNestedScore ) searchQuery += `&min_nested_score=${minNestedScore}`;
 
     return searchQuery;
   }

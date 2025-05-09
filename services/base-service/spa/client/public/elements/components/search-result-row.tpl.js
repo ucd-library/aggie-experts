@@ -1,6 +1,9 @@
 import { html } from "lit";
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
+import '@ucd-lib/theme-elements/brand/ucd-theme-list-accordion/ucd-theme-list-accordion.js'
+
+
 export default function render() {
   return html`
     <style include="shared-styles">
@@ -67,12 +70,17 @@ export default function render() {
         text-transform: uppercase;
       } */
 
-      .search-result-matches {
+      .search-result-matches,
+      .search-result-scoring {
         padding-left: 36.406px;
         font-size: .9rem;
         font-style: italic;
         color: #666;
         padding-top: 0.4rem;
+      }
+
+      .search-result-scoring {
+        padding-top: 1rem;
       }
 
       .search-result-matches a {
@@ -81,6 +89,10 @@ export default function render() {
 
       .search-matches {
         padding-right: .25rem;
+      }
+
+      ucd-theme-list-accordion {
+        font-style: normal;
       }
 
       .dot-separator {
@@ -112,9 +124,18 @@ export default function render() {
       <div ?hidden="${this.result.subtitle.length === 0}" class="search-result-sub-text">${unsafeHTML(this.result.subtitle)}</div>
       <div class="search-result-matches" ?hidden="${this.hideSearchMatches || this.resultType !== 'expert'}">
         <span ?hidden="${this.result.numberOfGrants === 0 && this.result.numberOfWorks === 0}" class="search-matches">Search matches:</span>
-          <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grant${this.result.numberOfGrants > 1 ? 's' : ''}</a></span>
-          <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
-          <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
+        <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grant${this.result.numberOfGrants > 1 ? 's' : ''}</a></span>
+        <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
+        <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
+      </div>
+      <div class="search-result-scoring" ?hidden=${!APP_CONFIG.user.admin || this.hideSearchMatches}>
+        <ucd-theme-list-accordion>
+          <li>
+            Search score: ${this.result.searchScore} <br>
+            <span style="font-weight: 100">Inner hits: ${this.result.innerHits}</span>
+          </li>
+          <li>${this._renderExplanation(this.result.scoreExplanation)}</li>          
+        </ucd-theme-list-accordion>    
       </div>
     </div>
   `;

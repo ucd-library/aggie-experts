@@ -102,66 +102,74 @@ template = {
             "nested": {
               "path": "@graph",
               "query": {
-                "bool" : {
-                  "must": [
-                    {
-                      "multi_match": {
-                        "query": "{{q}}",
-                        "fields": [
-                          "@graph.@id^10",
-                          "@graph.relates^2",
-                          "@graph.DOI^10",
-                          "@graph.abstract^5",
-                          "@graph.contactInfo.hasEmail^10",
-                          "@graph.contactInfo.hasName.family^20",
-                          "@graph.contactInfo.hasName.given^5",
-                          "@graph.contactInfo.hasName.middle^5",
-                          "@graph.contactInfo.hasTitle.name^5",
-                          "@graph.contactInfo.hasURL.name^5",
-                          "@graph.contactInfo.hasOrganizationalUnit.name^5",
-                          "@graph.name^10",
-                          "@graph.orcidId^10",
-                          "@graph.overview^5",
-                          "@graph.abstract^5",
-                          "@graph.identifier^10",
-                          "@graph.container-title^5",
-                          "@graph.publisher^5",
-                          "@graph.title^10"
-                        ]
-                      } } ],
-                    "filter": [
-                    {
-                      "bool": {
-                        "should": [
-                          {
-                            "bool": {
-                              "must": [
-                                { "exists": { "field": "@graph.is-visible" }},
-                                { "term": { "@graph.is-visible": true }}
-                              ]
+                "function_score": {
+                   "query": {
+                        "bool" : {
+                          "must": [
+                            {
+                              "simple_query_string": {
+                                "query": "{{q}}",
+                                "fields": [
+                                  "@graph.@id^10",
+                                  "@graph.relates^2",
+                                  "@graph.DOI^10",
+                                  "@graph.abstract^5",
+                                  "@graph.contactInfo.hasEmail^10",
+                                  "@graph.contactInfo.hasName.family^20",
+                                  "@graph.contactInfo.hasName.given^5",
+                                  "@graph.contactInfo.hasName.middle^5",
+                                  "@graph.contactInfo.hasTitle.name^5",
+                                  "@graph.contactInfo.hasURL.name^5",
+                                  "@graph.contactInfo.hasOrganizationalUnit.name^5",
+                                  "@graph.name^10",
+                                  "@graph.orcidId^10",
+                                  "@graph.overview^5",
+                                  "@graph.abstract^5",
+                                  "@graph.identifier^10",
+                                  "@graph.container-title^5",
+                                  "@graph.publisher^5",
+                                  "@graph.title^10"
+                                ],
+                                "default_operator": "and"
+                              } } ],
+                            "filter": [
+                            {
+                              "bool": {
+                                "should": [
+                                  {
+                                    "bool": {
+                                      "must": [
+                                        { "exists": { "field": "@graph.is-visible" }},
+                                        { "term": { "@graph.is-visible": true }}
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "bool": {
+                                      "must": [
+                                        { "exists": { "field": "@graph.relatedBy.is-visible" }},
+                                        { "term": { "@graph.relatedBy.is-visible": true }}
+                                      ]
+                                    }
+                                  }
+                                ],
+                                "minimum_should_match": 1
+                              }
                             }
-                          },
-                          {
-                            "bool": {
-                              "must": [
-                                { "exists": { "field": "@graph.relatedBy.is-visible" }},
-                                { "term": { "@graph.relatedBy.is-visible": true }}
-                              ]
-                            }
-                          }
-                        ],
-                        "minimum_should_match": 1
-                      }
-                    }
-                  ]
-                }
+                          ]
+                        }
+                      },
+                      "min_score": {{min_nested_score}}{{^min_nested_score}}1.0{{/min_nested_score}},
+                      "boost_mode": "replace"
+                   }
               },
               "inner_hits": {
                 "size": "{{inner_hits_size}}{{^inner_hits_size}}500{{/inner_hits_size}}",
                 "_source": [
                   "@graph.@id",
                   "@graph.@type",
-                  "@graph.name"
+                  "@graph.name",
+                  "_score"
                 ]
               },
               "score_mode": "sum"
@@ -216,7 +224,8 @@ template = {
         "sponsorAwardId",
         "assignedBy",
         "dateTimeInterval",
-        "relatedBy"
+        "relatedBy",
+        "_score"
       ],
       "sort": [
         "_score",
@@ -224,10 +233,13 @@ template = {
         "name.kw"
       ],
       "from": "{{from}}{{^from}}0{{/from}}",
-      "size": "{{size}}{{^size}}10{{/size}}"
+      "size": "{{size}}{{^size}}10{{/size}}",
+      "min_score": "{{min_score}}{{^min_score}}5.0{{/min_score}}"
     },
     "params": {
-      "q": "My query string"
+      "q": "My query string",
+      "min_nested_score": 1.0,
+      "min_score": 5.0,
     }
   }`
   }
