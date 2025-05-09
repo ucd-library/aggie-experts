@@ -421,7 +421,7 @@ return html`
         <h4>Date (Works, Grants)</h4>
       </div>
       <date-range-filter></date-range-filter> -->
-
+      
       <!-- <range-slider-with-histogram></range-slider-with-histogram> -->
 
     </div>
@@ -432,7 +432,7 @@ return html`
         search-rounded
         @search="${(e) => this._onSearch(e, true)}"
         placeholder="search"
-        search-term="${this.searchTerm}">
+        search-term="${decodeURIComponent(this.searchTerm)}">
       </app-search-box>
 
       <div class="refine-search-mobile ${this.refineSearchCollapsed ? '' : 'open'}">
@@ -490,7 +490,7 @@ return html`
 
       </div>
       <div class="search-results-heading">
-        <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
+        <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>
         <div class="download">
           <button class="btn btn--invert" ?disabled="${!this.resultsSelected}" @click="${this._downloadClicked}">Download</button>
         </div>

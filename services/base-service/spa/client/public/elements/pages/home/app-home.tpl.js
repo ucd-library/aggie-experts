@@ -136,14 +136,6 @@ return html`
       padding-left: 1rem;
     }
 
-    .search-bar .search-help-icon {
-      width: 19px;
-      min-width: 19px;
-      height: 19px;
-      min-height: 19px;
-      fill: white;
-    }
-
     @media (max-width: 768px) {
       .content.flex {
         flex-direction: column-reverse;
@@ -189,13 +181,6 @@ return html`
           @search="${this._onSearch}"
           placeholder="search">
         </app-search-box>
-        <span>
-          <span class="tooltip search-help"
-            data-text="Tip: Keywords are automatically combined with OR. Singular and plural forms may yield different results. Improvements coming soon!"
-            @click="${(e) => e.currentTarget.classList.toggle('clicked')}">
-            <ucdlib-icon class="search-help-icon" icon="ucdlib-experts:fa-question-circle"></ucdlib-icon>
-          </span>
-        </span>
       </div>
     </div>
   </div>
