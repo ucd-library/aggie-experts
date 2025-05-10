@@ -1,90 +1,218 @@
-# Data Deployment Steps
+# Deploy a new AggieExperts Instance
 
-The harvest script cab be run on any server, but it is good practice run it from the stage server.
-Login to the server(ssh to stage server for e.g.). this could be blue.experts.library.ucdavis.edu or gold.experts.library.ucdavis.edu
+The typical method used to update Aggie Experts is to; create a new docker
+constellation setup as stage, harvest new data, import the data, test the new
+service, deploy that a the new server, and stop the previous version.
 
-Move to the aggie-experts dir
-`$ cd /etc/aggie-experts`
+## Create a new AggieExperts constellation
 
-There will likely be multiple versions of the codebase already on the server
+We toggle our production instance between blue|gold.experts.library.ucdavis.edu.
+If production is runnning on gold, then we'll create the stage version on blue.
+The instances are all maintained in
+`file://blue|gold.experts.library.ucdavis.edu/etc/aggie-experts`.
 
-`$ ls -l  # to list versions`
+There will likely be multiple versions of the codebase already on the server:
 
-Move to the current version which may be running currently
+```bash
+cd /etc/aggie-experts;
+ls -l
+```
 
-`$ cd 2-1 # for example`
+There is no specific requirement on how the instances are named, but we use the
+format `${MAJOR}-${deploynumber}`.  Where `${MAJOR}` is the major release of
+AggieExperts, and `${deploynumber}` is the number of times this `${MAJOR}`
+instance has been deployed.  `{$MAJOR}` is used, because you should be able to
+update to any new revision of Aggie Experts without needed to update the data.
+`${deploynumber}` helps keep track of the more recent versions being used.
 
-Look for running services
+Under normal circumstances, there shouldn't be any docker containers running.
+If you see any via `docker ps`, then you need to investigate what is currently
+active on the system.  However, see the *Harvest new data* section below for an
+important exception.
 
-`$ docker compose ps`
+We create our new instance by cloning the aggie-experts project into a new
+directory.  Let's imagine we are launching a new instance based on version 4.0.2
+of AggieExperts:
 
-Check the FIN config settings
+``` bash
+cd /etc/aggie-experts
+MAJOR=4  # imagine there was already a 4-0, so we are creating 4-1
+git clone --branch=4.0.2  https://github.com/ucd-library/aggie-experts.git 4-1
+```
 
-`$ grep FIN docker-compose.yaml`  to see where the current version is running (e.g. stage)
+Note, in practice, I usually just clone the default `dev` branch, and then go in
+and `git checkout 4.0.2`, since it's more natural.
 
-### Create another version
+Next, we simply need to have create a setup for running on stage.
 
-If you want to deploy a new or different version of the codebase, you need to clone it to a new directory
+``` bash
+cd /etc/aggie-experts/4-1
+bin/aggie-experts --no-gcs --no-test --env=stage setup
+```
 
-`$ cd ..`   back to aggie-experts
+*Note: it's unclear now whether going forward aggie-experts will initialize from
+ Google Cloud Storage (gcs) or not.  The newest version of fin causes some
+ issues using this reliably, and honestly, I'm not sure I see the utility.  For
+ this example we are using `--no-gcs`, which prevents the GCS container from
+ even being added to the constellation.*
 
-`$ git clone https://github.com/ucd-library/aggie-experts.git 2-4`  (for example)
+*Note: one thing `--no-test` does is verify we are running on either blue or
+ gold. However this requires a proper ~resolv.conf~ file that is sometimes
+ changed on us, so If the test fails there, then I setup anyway*
 
-`$ cd 2-4`  go to new version
+This sets the proper images, downloads the required secrets, and creates a
+`docker-compose.yaml` file that is ready to deploy.  The `docker-compose.yaml` has
+all the default parameters, so you shouldn't need a `.env` file, unless you are
+doing something out of the ordinary.
 
-`$ git describe`    check the version
+## Harvest New Data
 
-If the current dev version is not desired checkout the last good tag. (e.g. 2.2)
+Now we are ready to harvest new data. For this we need to run a harvest process
+on the ~fuseki~ container.  Right now, the ~fuseki~ container is *only* used for
+harvesting new data.  In addition to the documentation below, a
+[Screencast](https://drive.google.com/file/d/1Cyh7jxfiFdXu_wSHGAZ440YZJ9Um6IQ-/view)
+of the process is also available.
 
-### Run the Setup Process
+Above, we mentioned there is an exception to the rule that no other containers
+are running on our server.  Occasionally, you may want to harvest new data on a
+`blue|gold` server, while you are still running a different instance of Aggie
+Experts.  There is no problem doing this, and if you *only* start the `fuseki`
+instance, then you don't have to worry about sharing any ports either.  In this
+example, we'll start fuseki only
 
-The setup process creates a docker-compose.yml file and copies over the service account file.
+``` bash
+dc up -d fuseki
+```
 
-`$ bin/aggie-experts —no-test —env=stage setup`
+*Note: this following step is run by hand, and still requires a certain amount
+ of monitoring.  This is mostly due to the fact that running docker containers
+ on the Library's VM cluster can sometimes be problematic, and not allocate the
+ memory the container expects.  This will cause fuseki's Java to crash, and
+ kills the container as well.*
 
-Note: There is no requirement for a .env file but one can be used to set the bucket to use and to enable/disable data hydration. For example:
+I typically use `byobu` so that I can open multiple terminals on the system, but
+I can also disconnect.  This is important because importing the data can take
+quite awhile.
 
-GCS_BUCKET=fcrepo-2
+``` bash
+byobu
+```
 
-GCS_INIT_DATA_HYDRATION=true   
+Next, we want to run a bash instance on fuseki. Rather than using a simple
+`bash` execution, we start via the normal Dockerfile ENTRYPOINT.  Unlike most
+images, fuseki runs as it's own process user, and this method uses the same
+user.
 
-...would use the GCS bucket fcrepo-2 and import the data. Setting GCS_INIT_DATA_HYDRATION=false is useful when you don't want the data imported on startup. 
+``` bash
+docker compose exec fuseki /harvest-entrypoint.sh bash
+```
 
-### Data Initialization
+This brings you to a bash shell on the fuseki container, where you should see a
+prompt similiar to: `ucd.process@4cdbbe11f9ef:~$`
 
-Start-up the Fuseki service only (we only want to harvest data at this point)
+Now, let's fetch all the experts.
 
-`$ docker compose up fuseki -d`   starts the fuseki service specifically
-
-`$ docker compose ps`  to confirm we are running fuseki
-
-Use byobu to run harvest in an independent shell that can be left running and come back to
-
-`$ byobu`   starts a byobu shell 
-
-Bash into the fuseki service 
-
-`$ docker compose exec fuseki /harvest-entrypoint.sh bash`    this brings you to a bash shell on the fuseki container
-
-You should see a prompt similar to:
-`ucd.process@4cdbbe11f9ef:~$`
-
-### Run the harvest process
-
-`$ experts cdl --log=info —groups=1576`   check oapolicy for group IDs. 1576 = all UCD
+```bash
+experts cdl --log=info --groups=experts
+```
 
 This starts the harvest in the foreground and logs to the console as it works.
+The information includes downloading XML data from CDL, creating a new database,
+running SPARQL commands on the database, and finalizing the expert.  As it runs,
+it fills up the `cache` directory with: The files downloaded; the SPARQL
+commands run, and the fcrepo representation of the expert.
 
-You can open another byobu terminal to monitor the cache being built by the harvest.
+You can open another byobu terminal to monitor the cache being built by the
+harvest.
 
-`$ docker compose exec fuseki /harvest-entrypoint.sh bash`   for another term
+``` bash
+docker compose exec fuseki /harvest-entrypoint.sh bash
+ls cache/     # will list expert directories
+ls cache/ | wc -l # count of experts harvested to monitor progress.
+```
 
-`$ ls cache/`     will list expert directories
+Now, you can log out, and the harvest will still be running. Later you can ssh
+back into the server and restart byobu to continue.
 
-`$ ls cache/ | wc -l`  will show a count of experts harvested so far which you can monitor for progress.
+As discussed above, while running a long import, you're fuseki container my
+crash.  You can look at the docker logs to see why the container crashed.  In
+addition, after restarting and bashing back into the system.  You can see the
+application log in the ~/home/ucd.process~ directory for when the application
+failed.
 
-Now, you can log out, and the harvest will still be running. Later you can ssh back into the server and restart byobu to continue.
+You can restart the process where you left off with the `--skip-existing`
+flag. This will *not* reprocess any experts currently in the cache.
 
-### Import the resulting cache directory into FIN using fin io import
+``` bash
+docker compose exec fuseki /harvest-entrypoint.sh bash
+rm databases/* config/*  # If fuseki fails in a bad spot, the last user might have corrupted data.
+experts cdl --log=info --skip-existing --groups=experts
+```
 
+## Import the data
 
+Once you have a cache of data ready, we can import that into the new instance.
+At this point is *is* important that no other conflicting containers are running
+on the computer.  *PRO NOTE: Although using ???_PORT variables in the .env file you can do this as well*
+
+Startup the complete instance:
+
+```bash
+docker compose up -d
+```
+
+This should *not* start the gateway until all initialization steps are complete.
+
+Then you can go back into the `fuseki` instance and import the data.  **This
+step is different using the GCS container**
+
+``` bash
+# This also is best run in byobu
+docker compose exec fuseki /harvest-entrypoint.sh bash
+export FCREPO_SUPERUSER=true
+export FCREPO_DIRECT_ACCESS=true
+export FCREPO_HOST=http://fcrepo:8080
+for e in $(find ~/cache/mailto\:* ); do
+( cd $e;\
+  if [[ -d fcrepo ]]; then
+   fin io import --fcrepo-path-type=subpath --import-from-root --log-to-disk fcrepo
+  fi ) ;
+  done
+```
+
+`fin io import` is simply adding the files to the LDP server. This will complete
+*much* sooner that fin has process all those events. However, once this starts,
+you can monitor progress through the `/fin/admin` section of your new
+`stage.experts.library.ucdavis.edu`
+
+## Test the server
+
+Once you see that all the data has been processed by fin, invite your
+collaborators to test the system now running at
+`stage.experts.library.ucdavis.edu`.  If bugs are encountered, for example UI
+bugs, then once those bugs are fixed, you can use `git pull` on your directory,
+`git checkout 4.0.3` or whatever the newly built images are, and then `dc pull`
+followed by `dc up -d` to create new containers based on the new images, where
+they have changed.  The data stays the same.
+
+## Deploy to production
+
+Once acceptance testing is complete, you promote this instance to the new version.
+
+``` bash
+cd /etc/aggie-experts/4-1
+bin/aggie-experts --no-gcs --no-test --env=prod setup
+dc pull; dc down; dc up -d
+```
+
+And you can now test it's working.  At this point both blue and gold are both
+running a production system, and being balanced by the router.  You can test
+by removing your cookies from your browser at `https://experts.ucdavis.edu` and reloading until you see your new version come up.  If everything looks good,  then you can stop the previous version.  Let's assume that's on gold. then:
+
+```bash
+ssh gold.experts.library.ucdavis.edu
+cd /etc/aggie-experts/4-0  # or whatever the running version is
+dc stop
+```
+
+I usually just stop these so they can be started quickly if we need to revert.
