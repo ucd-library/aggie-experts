@@ -75,6 +75,18 @@
           "normalizer" : "identifier",
           "ignore_above": 128
         },
+        "author" : {
+          "properties" : {
+            "family" : {
+              "type" : "text",
+              "analyzer" : "default"
+            },
+            "given" : {
+              "type" : "text",
+              "analyzer" : "default"
+            }
+          }
+        },
         "contactInfo" : {
           "properties" : {
             "hasEmail": {
@@ -226,7 +238,7 @@
             }
           }
         }
-       }
+      }
     },
     "roles": {
       "type": "keyword"
