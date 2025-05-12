@@ -17,6 +17,7 @@ PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 construct {
   ?RELATIONSHIP__ a ucdlib:GrantRole, ?role;
+		    schema:name ?role_name;
                 ucdlib:favorite ?favorite;
                 ucdlib:is-visible ?visible;
                 vivo:relates ?grant,?EXPERT__;
@@ -31,11 +32,28 @@ construct {
          vivo:sponsorAwardId ?sponsor_award_id;
          vivo:assignedBy ?funder;
          vivo:dateTimeInterval ?interval;
-         vivo:relatedBy ?RELATIONSHIP__,?labeled_only_role;
+         vivo:relatedBy ?RELATIONSHIP__,?labeled_only_role,?pi_labeled_only_role;
          .
 
+  ?pi_labeled_only_role a vivo:PrincipalInvestigatorRole;
+			schema:name ?pi_labeled_only_role_name;
+                        vivo:relates ?pi_labeled_only_person,?grant;
+                           .
+
+  ?pi_labeled_only_person
+                       schema:name ?pi_labeled_only_name;
+                       vcard:hasName ?pi_labeled_only_person_vcard;
+                       .
+
+  ?pi_labeled_only_person_vcard
+                       vcard:familyName ?pi_labeled_only_name_last;
+                       vcard:givenName ?pi_labeled_only_name_first;
+                       .
+
+
   ?labeled_only_role a vivo:CoPrincipalInvestigatorRole;
-                           vivo:relates ?labeled_only_person,?grant;
+		     schema:name ?labeled_only_role_name;
+                     vivo:relates ?labeled_only_person,?grant;
                            .
 
   ?labeled_only_person
@@ -74,15 +92,15 @@ WHERE {
     .
 
     OPTIONAL {
-      VALUES (?cdl_type ?vivo_role ) {
-        ("user-grant-principal-investigation" vivo:PrincipalInvestigatorRole)
-        ("user-grant-co-principal-investigation" vivo:CoPrincipalInvestigatorRole)
-        ("user-grant-senior-key-personnel" vivo:ResearcherRole )
-        ("user-grant-co-primary-investigation" vivo:CoPrincipalInvestigatorRole)
-        ("user-grant-primary-investigation" vivo:PrincipalInvestigatorRole)
-        ("user-grant-program-direction" vivo:LeaderRole)
-        ("user-grant-project-leadership" vivo:LeaderRole)
-        ("user-grant-research" vivo:ResearcherRole)
+      VALUES (?cdl_type ?vivo_role ?vivo_role_abbrev) {
+        ("user-grant-principal-investigation" vivo:PrincipalInvestigatorRole "PI")
+        ("user-grant-co-principal-investigation" vivo:CoPrincipalInvestigatorRole "CoPI")
+        ("user-grant-senior-key-personnel" vivo:ResearcherRole "Res")
+        ("user-grant-co-primary-investigation" vivo:CoPrincipalInvestigatorRole "CoPI")
+        ("user-grant-primary-investigation" vivo:PrincipalInvestigatorRole "PI")
+        ("user-grant-program-direction" vivo:LeaderRole "Lead")
+        ("user-grant-project-leadership" vivo:LeaderRole "Lead")
+        ("user-grant-research" vivo:ResearcherRole "Res")
       }
     }
 
@@ -278,6 +296,7 @@ WHERE {
 
   bind(xsd:boolean(?visible_str) as ?visible)
   bind(coalesce(?vivo_role,vivo:ResearcherRole) as ?role)
+  bind(coalesce(?vivo_role_abbrev,"Res") as ?role_abbrev)
 
   bind(uri(concat(str(?grant),'#start_date')) as ?sd)
   bind(uri(concat(str(?grant),'#end_date')) as ?ed)
@@ -286,6 +305,9 @@ WHERE {
 
   bind(concat(?user_name_last,coalesce(concat(', ',?user_name_first),"")) as ?user_name)
 
+  bind(concat(?role_abbrev,": ",?user_name) as ?role_name)
+
+  
   bind(replace(lcase(concat(?user_name_last,coalesce(concat('_',?user_name_first),""))),"[^a-z_]","") as ?user_name_match)
   bind(replace(lcase(concat(?user_name_last,
                             coalesce(concat('_',
@@ -309,6 +331,8 @@ WHERE {
 
   bind(uri(concat(str(?grant),"#",?labeled_only_name_match)) as ?labeled_only_person)
   bind(uri(concat(str(?grant),"#vcard_",?labeled_only_name_match)) as ?labeled_only_person_vcard)
+
+  bind(concat("COPI: ",?pi_labeled_only_name) as ?labeled_only_role_name)
   bind(if(!(?user_name_match = ?labeled_only_name_match ||
      ?user_name_match_first = ?labeled_only_name_match_first ||
      ?user_name_match_i = ?labeled_only_name_match_i ||
@@ -317,14 +341,38 @@ WHERE {
           ?undefined)
        as ?labeled_only_role)
 
+  bind(js:capitalizeName(replace(?pi_name_cap,",\\s*",", ")) as ?pi_name_cp)
+  bind(replace(?pi_name_cp,",.*$","") as ?pi_labeled_only_name_last)
+  bind(replace(?pi_name_cp,"^.*, ","") as ?pi_labeled_only_name_first)
+  bind(concat(?pi_labeled_only_name_last,coalesce(concat(', ',?pi_labeled_only_name_first),"")) as ?pi_labeled_only_name)
+
+  bind(replace(lcase(concat(?pi_labeled_only_name_last,coalesce(concat('_',?pi_labeled_only_name_first),""))),"[^a-z_]","") as ?pi_labeled_only_name_match)
+  bind(replace(lcase(concat(?pi_labeled_only_name_last,
+                            coalesce(concat('_',
+                                            if(contains(?pi_labeled_only_name_first," "),
+                                               strbefore(?pi_labeled_only_name_first," "),
+                                               ?pi_labeled_only_name_first)),""))),"[^a-z_]","") as ?pi_labeled_only_name_match_first)
+  bind(replace(lcase(concat(?pi_labeled_only_name_last,coalesce(concat('_',substr(?pi_labeled_only_name_first,1,1)),""))),"[^a-z_]","") as ?pi_labeled_only_name_match_f)
+
+  bind(uri(concat(str(?grant),"#",?pi_labeled_only_name_match)) as ?pi_labeled_only_person)
+  bind(uri(concat(str(?grant),"#vcard_",?pi_labeled_only_name_match)) as ?pi_labeled_only_person_vcard)
+
+  bind(concat("PI: ",?pi_labeled_only_name) as ?pi_labeled_only_role_name)
+  bind(if(!(?user_name_match = ?pi_labeled_only_name_match ||
+     ?user_name_match_first = ?pi_labeled_only_name_match_first ||
+       ?user_name_match_f = ?pi_labeled_only_name_match_f),
+          uri(concat(str(?grant),"#roleof_",?pi_labeled_only_name_match)),
+          ?undefined)
+       as ?pi_labeled_only_role)
+
+
   bind(js:capitalizeTitle(?funder_label_cap) as ?funder_label)
-  bind(js:capitalizeName(?pi_name_cap,"\\s+"," ") as ?pi_name)
 
   bind(if(xsd:date(?end_date) < xsd:date(now()), "Completed", "Active") as ?status)
   bind(concat(?grant_title," § ",
               coalesce(?status,""),
               " • ",coalesce(concat(?start_year," - ",?end_year),""),
-              " • ",coalesce(?pi_name,""),
+              " • ",coalesce(?pi_labeled_only_name,""),
               " § ",
               coalesce(?funder_label,"")," • ",
               coalesce(?sponsor_award_id,"")) as ?grant_label)
