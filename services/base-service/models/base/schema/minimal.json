@@ -235,6 +235,10 @@
           "properties" : {
             "is-visible" : {
               "type" : "boolean"
+            },
+            "name" : {
+              "type" : "text",
+              "analyzer" : "default"
             }
           }
         }
