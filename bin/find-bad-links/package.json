@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "broken-link-checker": "^0.7.8",
-    "json2csv": "^6.0.0-alpha.2",
-    "puppeteer": "^22.6.0"
-  }
-}
