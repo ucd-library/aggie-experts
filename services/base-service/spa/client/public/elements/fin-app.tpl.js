@@ -142,7 +142,7 @@ return html`
       --ucd-theme-quick-links-icon-bg-color: var(--color-aggie-blue-60, #73ABDD);
       --ucd-theme-quick-links-icon-bg-color-hover: var(--color-aggie-blue-80, #13639E);
     }
-    
+
     ucd-theme-quick-links[logged-in] {
       --ucd-theme-quick-links-icon-bg-color: var(--color-aggie-gold, #FFBF00);
       --ucd-theme-quick-links-icon-bg-color-hover: var(--color-aggie-blue-80, #13639E);
@@ -261,15 +261,15 @@ return html`
           <ul>
             <li>
               <a
-                href="/faq"
+                href="/search-operators"
                 rel="noopener"
-                >Frequently Asked Questions</a>
+                >Search Tips</a>
             </li>
             <li>
               <a
-                href="/search-operators"
+                href="/faq"
                 rel="noopener"
-                >Search Operators</a>
+                >Frequently Asked Questions</a>
             </li>
             <li>
               <a

@@ -1,11 +1,17 @@
 import { html } from 'lit';
 
 import { sharedStyles } from '../../styles/shared-styles';
+import tableStyles1 from '@ucd-lib/theme-sass/1_base_html/_tables.css';
+import tableStyles2 from '@ucd-lib/theme-sass/2_base_class/_tables.css';
+import responsiveTableStyles from '@ucd-lib/theme-sass/4_component/_responsive-table.css';
 
 export function render() {
 return html`
   <style>
     ${sharedStyles}
+    ${tableStyles1}
+    ${tableStyles2}
+    ${responsiveTableStyles}
     :host {
       display: block;
     }
@@ -44,10 +50,20 @@ return html`
         width: 90%;
       }
     }
+
+    .search-operators .section h3 {
+      margin-top: 3rem;
+    }
+
+    .search-operators .section h3:first-of-type {
+      padding-top: 0;
+      margin-top: 0;
+    }
+
   </style>
 
   <div class="search-operators-header">
-    <div class="search-operators-label">Help</div>
+    <div class="search-operators-label">Search Tips</div>
     <div style="display: flex; height: 75px;">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
         <path d="M21.6 0L0 89H24V0H21.6Z" fill="#DBEAF7"/>
@@ -59,15 +75,76 @@ return html`
   </div>
   <div class="container search-operators">
     <div class="section">
-      <h1>Search Operators</h1>
-      <p>Search operators are special characters and commands that extend the capabilities of regular keyword searches. They can help you refine your search results and find more relevant information. Here are some common search operators:</p>
-      <ul>
-        <li><strong>AND</strong>: Use this operator to include multiple keywords in your search. For example, "apple AND orange" will return results that contain both terms.</li>
-        <li><strong>OR</strong>: This operator allows you to search for either one term or another. For instance, "apple OR orange" will return results that contain either term.</li>
-        <li><strong>NOT</strong>: Use this operator to exclude specific terms from your search. For example, "apple NOT orange" will return results that contain "apple" but not "orange".</li>
-        <li><strong>" "</strong>: Enclose phrases in double quotes to search for an exact match. For example, "apple pie" will return results that contain the exact phrase.</li>
-        <li><strong>*</strong>: The asterisk is a wildcard operator that can represent any word or phrase. For example, "apple*" will return results that contain "apple", "apples", "apple pie", etc.</li>
-      </ul>
+      <h3>Default search</h3>
+      <p>
+        Aggie Experts' default search will look for matches of <strong>all keywords</strong> in titles of works and grants,
+        in abstracts of grants, experts' bios, affiliations, and journal and publisher names.
+      </p>
+      <p>
+        For example, <em>heart surgery</em> will return results that have both <em>heart</em> <strong>AND</strong> <em>surgery</em> present in the listed fields.
+      </p>
+
+      <h3>Search operators to refine results</h3>
+      <p>
+        If your query returns either too few or too many results, try using one or more of the following operators to modify your results:
+      </p>
+      <div class="responsive-table" role="region" aria-label="Scrollable Table" tabindex="0">
+        <table class="table--bordered">
+          <thead>
+            <tr>
+              <th>Operator</th>
+              <th>What it does</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>|</td>
+              <td>Search for results related to either X <strong>OR</strong> Y.</td>
+              <td><strong>heart | cardiac surgery</strong> may include <em>heart surgery</em> OR <em>cardiac surgery</em></td>
+            </tr>
+            <tr>
+              <td>*</td>
+              <td>Search variations of the word</td>
+              <td><strong>Cardi* surgery</strong> may include <em>cardiac surgery, cardiothoracic surgery</em>, etc.</td>
+            </tr>
+            <tr>
+              <td>""</td>
+              <td>Match an exact phrase</td>
+              <td><strong>"heart surgery"</strong></td>
+            </tr>
+            <tr>
+              <td>-</td>
+              <td>Exclude keywords from your results</td>
+              <td><strong>heart surgery -thoracic</strong></td>
+            </tr>
+            <tr>
+              <td>()</td>
+              <td>Indicate precedence in complex searches with multiple operators</td>
+              <td>
+                <strong>(cardiac | heart) + (injury | trauma)</strong> includes results for <em>cardiac</em> AND <em>injury</em>,
+                or <em>cardiac</em> AND <em>trauma</em>, or <em>heart</em> AND <em>injury</em>, or <em>heart</em> AND <em>trauma</em>. Without parentheses,
+                results might contain just <em>cardiac</em>, or both <em>heart</em> AND <em>injury</em>, or just <em>trauma</em>.
+              </td>
+            </tr>
+            <tr>
+              <td>~#</td>
+              <td>Allows fuzzy searching for near matches (higher number = higher result variation)</td>
+              <td>
+                <strong>pediatric~1</strong> may include the British spelling paediatric; a phrase search for <strong>"pediatric surgery"~1</strong> may
+                include additional words such as <em>pediatric scoliosis surgery, pediatric cardiac surgery</em>, etc.
+              </td>
+            </tr>
+            <tr>
+              <td>+</td>
+              <td>Search for results related to X <strong>AND</strong> Y</td>
+              <td><strong>heart + surgery</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+
     </div>
   </div>
 `;}

@@ -8,9 +8,7 @@ export default class AppSearchOperators extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
   static get properties() {
-    return {
-      // isLoggedIn : { type : Boolean },
-    }
+    return {}
   }
 
   constructor() {
