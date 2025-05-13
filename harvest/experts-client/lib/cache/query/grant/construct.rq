@@ -343,7 +343,7 @@ WHERE {
 
   bind(if(regex(?pi_name_cap,","),
           js:capitalizeName(replace(?pi_name_cap,",\\s*",", ")),
-          js:capitalizeName(replace(?pi_name_cap,"(.*) ([^ ]*)$","?2, ?1"))
+          js:capitalizeName(replace(?pi_name_cap,"(.*) ([^ ]*)$","$2, $1"))
           ) as ?pi_name_cp)
   bind(replace(?pi_name_cp,",.*$","") as ?pi_labeled_only_name_last)
   bind(replace(?pi_name_cp,"^.*, ","") as ?pi_labeled_only_name_first)
