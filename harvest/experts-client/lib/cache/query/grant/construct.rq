@@ -332,7 +332,7 @@ WHERE {
   bind(uri(concat(str(?grant),"#",?labeled_only_name_match)) as ?labeled_only_person)
   bind(uri(concat(str(?grant),"#vcard_",?labeled_only_name_match)) as ?labeled_only_person_vcard)
 
-  bind(concat("COPI: ",?pi_labeled_only_name) as ?labeled_only_role_name)
+  bind(concat("COPI: ",?labeled_only_name) as ?labeled_only_role_name)
   bind(if(!(?user_name_match = ?labeled_only_name_match ||
      ?user_name_match_first = ?labeled_only_name_match_first ||
      ?user_name_match_i = ?labeled_only_name_match_i ||
@@ -341,7 +341,10 @@ WHERE {
           ?undefined)
        as ?labeled_only_role)
 
-  bind(js:capitalizeName(replace(?pi_name_cap,",\\s*",", ")) as ?pi_name_cp)
+  bind(if(regex(?pi_name_cap,","),
+          js:capitalizeName(replace(?pi_name_cap,",\\s*",", ")),
+          js:capitalizeName(replace(?pi_name_cap,"(.*) ([^ ]*)$","?2, ?1"))
+          ) as ?pi_name_cp)
   bind(replace(?pi_name_cp,",.*$","") as ?pi_labeled_only_name_last)
   bind(replace(?pi_name_cp,"^.*, ","") as ?pi_labeled_only_name_first)
   bind(concat(?pi_labeled_only_name_last,coalesce(concat(', ',?pi_labeled_only_name_first),"")) as ?pi_labeled_only_name)
