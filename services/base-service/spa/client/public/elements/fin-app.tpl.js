@@ -243,6 +243,7 @@ return html`
       <app-search id="search" @reset-scroll="${this._resetScroll}"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
+      <app-search-operators id="search-operators"></app-search-operators>
     </ucdlib-pages>
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
@@ -263,6 +264,12 @@ return html`
                 href="/faq"
                 rel="noopener"
                 >Frequently Asked Questions</a>
+            </li>
+            <li>
+              <a
+                href="/search-operators"
+                rel="noopener"
+                >Search Operators</a>
             </li>
             <li>
               <a
