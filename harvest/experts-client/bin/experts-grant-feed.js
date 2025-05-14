@@ -263,7 +263,12 @@ async function main(opt) {
   const xml = fs.readFileSync(localFilePath, 'utf8');
 
   // Convert the XML to JSON make sure all number values to be quoted strings (e.g. ucop_sponsor_code) are not coerced to numbers
-  let json = parser.toJson(xml, { object: true, arrayNotation: false, coerce: false });
+  let json = parser.toJson(xml, {
+    object: true,
+    arrayNotation: false,
+    coerce: false,
+    sanitize: false // Prevents escaping of special characters
+  });
 
   // Create the JSON-LD context
   let contextObj = {
