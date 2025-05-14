@@ -15,12 +15,16 @@ Aggie Experts is a joint project between the Office of the Provost and the UC Da
 - Department Websites - Campus websites using [SiteFarm](https://sitefarm.ucdavis.edu/) can enhance faculty pages by including profile and publications from Aggie Experts 
 - [MyInfoVault](https://academicaffairs.ucdavis.edu/myinfovault) - UCD academics can import their publications from Aggie Experts reducing duplicate entry.
 
-## Technical Overview
+## Development and Operation How To's
 
-- Aggie Experts Code Development 
+- Aggie Experts Code Development
 - [Docker Images and Deployment](doc/docker-deployment.md)
-- [Code and Data Deployment](doc/experts-deploy-harvest.md)
 - Process Descriptions
+  - [Code and Data Deployment](doc/experts-deploy-harvest.md)
+  - [Process Weekly Grants](./doc/grant-feed.md)
+  - Update Archived Grants
 - APIs
+  - [FIN Data Models](https://github.com/ucd-library/fin/tree/main/docs/data-models)
 - Data Standards and Ontologies
+  - [Digital Objects](./doc/digital_objects.org)
 
