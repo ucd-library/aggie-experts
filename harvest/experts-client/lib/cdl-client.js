@@ -254,6 +254,7 @@ export class CdlClient {
           users.push(entry['username']);
         }
       }
+      count++;
       nextPage = this.nextPage(page?.feed?.['api:pagination']);
     }
     return users;

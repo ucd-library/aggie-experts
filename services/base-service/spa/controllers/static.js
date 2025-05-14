@@ -81,6 +81,7 @@ module.exports = async (app) => {
     template : async (req, res, next) => {
       let jsonld = '';
       let urlParts = req.originalUrl.split('/').filter(p => p ? true : false);
+
       let workId, grantId, expertId;
       let workRegex = /^\/work\/.+\/publication\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
       let grantRegex = /^\/grant\/.+\/grant\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
@@ -90,21 +91,24 @@ module.exports = async (app) => {
       let isGrant = req.originalUrl.match(grantRegex)
       let isExpert = req.originalUrl.match(expertRegex);
 
-      if( isWork ) {
-        workId = urlParts.slice(1).join('/');
+      try {
+        if( isWork ) {
+          workId = urlParts.slice(1).join('/').split('?')[0];
+          // might remove everything but work/grant, like no relationships
+          jsonld = await works.model.seo(workId);
+        } else if( isGrant ) {
+          grantId = urlParts.slice(1).join('/').split('?')[0];
 
-        // might remove everything but work/grant, like no relationships
-        jsonld = await works.model.seo(workId);
-      } else if( isGrant ) {
-        grantId = urlParts.slice(1).join('/');
+          // might remove everything but work/grant, like no relationships
+          jsonld = await grants.model.seo(grantId);
+        } else if( isExpert ) {
+          expertId = 'expert/' + urlParts[1].split('?')[0];
 
-        // might remove everything but work/grant, like no relationships
-        jsonld = await grants.model.seo(grantId);
-      } else if( isExpert ) {
-        expertId = 'expert/' + urlParts[1];
-
-        // might have to see if too much info (might remove vcard stuff, maybe modify types)
-        jsonld = await experts.model.seo(expertId);
+          // might have to see if too much info (might remove vcard stuff, maybe modify types)
+          jsonld = await experts.model.seo(expertId);
+        }
+      } catch(e) {
+        // ignore and let client handle 404 if needed
       }
 
       return next({title: 'Aggie Experts', gaId: config.client.gaId, jsonld});

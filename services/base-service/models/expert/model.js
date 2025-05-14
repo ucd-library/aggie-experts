@@ -182,6 +182,22 @@ class ExpertModel extends BaseModel {
         works : { include : false }
       }
     */
+    let defaults = {
+      'is-visible' : true,
+      expert : { 
+        include : true,
+        size : -1
+      },
+      grants : { 
+        include : false,
+        size : -1
+      },
+      works : { 
+        include : false,
+        size : -1
+      }
+    }
+    options = {...defaults, ...options};
 
     if (doc["is-visible"] === false && !options.admin) {
       throw {status: 404, message: "Not found"};
@@ -288,6 +304,14 @@ class ExpertModel extends BaseModel {
       });
     }
 
+    // remove grant amount if not admin
+    if( !options.admin ) {
+      grants = grants.map(grant => {
+        delete grant.totalAwardAmount;
+        return grant;
+      });
+    }
+
     // sort works if requested
     if( options.works?.include && options.works?.sort && options.works.sort.length ) {
       try {
@@ -378,21 +402,16 @@ class ExpertModel extends BaseModel {
       grants = grants.slice((options.grants.page-1) * options.grants.size, options.grants.page * options.grants.size);
     }
 
-    /*
-      TODO tbd in the future, for search we'll want to filter by dates and potentially other values,
-          will implement once search is built out more
-      // filter works by field(s) if requested
-      // filter grants by field(s) if requested
-    */
-
     // return total visible/hidden works/grants
-    // TODO ask QH, does this need to be hidden if not admin/expert?
     doc.totals = {
       works: totalWorks,
       grants: totalGrants,
-      hiddenWorks,
-      hiddenGrants
     };
+
+    if( options.admin ) {
+      doc.totals.hiddenWorks = hiddenWorks;
+      doc.totals.hiddenGrants = hiddenGrants;
+    }
 
     doc['@graph'] = [...expert, ...works, ...grants]
     return doc;

@@ -82,7 +82,7 @@ class WorkModel extends BaseModel {
   }
 
   async seo(id) {
-    node = await this.get(id);
+    let node = await this.get(id);
     node = this.subselect(node);
     let seo = {"@context": node['@context'],
                 "@graph": []
@@ -113,8 +113,8 @@ class WorkModel extends BaseModel {
     seo.name = node?.title;
     seo.datePublished = node?.issued;
     if (node.DOI) {
-      seo.DOI = 'https://doi.org/'+node?.DOI
-      seo.sameAs = node?.DOI
+      seo.identifier = 'doi:'+node?.DOI
+      seo.sameAs = 'https://doi.org/'+node?.DOI
     }
     seo.abstract = node?.abstract;
 
