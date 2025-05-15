@@ -43,6 +43,10 @@ return html`
       max-width: 100%;
     }
 
+    .faq .section h2 {
+      color: var(--color-black-60);
+    }
+
     @media (max-width: 992px) {
       .faq .section {
         width: 90%;
@@ -65,7 +69,7 @@ return html`
 <div class="faq container top">
   <div class="section">
 
-    <h3 id="about-aggie-experts">About Aggie Experts</h3>
+    <h2 id="about-aggie-experts">About Aggie Experts</h2>
     <ucd-theme-list-accordion>
       <li>What is Aggie Experts?</li>
       <li>
@@ -124,7 +128,7 @@ return html`
     </ucd-theme-list-accordion>
 
 
-    <h3 id="managing-your-profile">Managing Your Profile</h3>
+    <h2 id="managing-your-profile">Managing Your Profile</h2>
     <ucd-theme-list-accordion>
       <li>How do I export data?</li>
       <li>
@@ -325,7 +329,7 @@ return html`
       </li>
     </ucd-theme-list-accordion>
 
-    <h3 id="data-reuse" style="margin-bottom: 1rem;">Data reuse for administrative purposes</h3>
+    <h2 id="data-reuse" style="margin-bottom: 1rem;">Data reuse for administrative purposes</h2>
     <p style="margin-top: 0; padding-top: 0;">
       Aggie Experts streamlines administrative processes requiring data entry about faculty scholarship.
       The reduction of administrative burden on faculty and their support staff was one of the key goals driving
