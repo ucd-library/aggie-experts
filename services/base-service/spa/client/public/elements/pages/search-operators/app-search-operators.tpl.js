@@ -51,11 +51,13 @@ return html`
       }
     }
 
-    .search-operators .section h3 {
+    .search-operators .section h2 {
       margin-top: 3rem;
+      margin-bottom: 0;
+      color: var(--color-black-60);
     }
 
-    .search-operators .section h3:first-of-type {
+    .search-operators .section h2:first-of-type {
       padding-top: 0;
       margin-top: 0;
     }
@@ -75,7 +77,7 @@ return html`
   </div>
   <div class="container search-operators">
     <div class="section">
-      <h3>Default search</h3>
+      <h2>Default search</h2>
       <p>
         Aggie Experts' default search will look for matches of <strong>all keywords</strong> in titles of works and grants,
         in abstracts of grants, experts' bios, affiliations, and journal and publisher names.
@@ -84,7 +86,7 @@ return html`
         For example, <em>heart surgery</em> will return results that have both <em>heart</em> <strong>AND</strong> <em>surgery</em> present in the listed fields.
       </p>
 
-      <h3>Search operators to refine results</h3>
+      <h2>Search operators to refine results</h2>
       <p>
         If your query returns either too few or too many results, try using one or more of the following operators to modify your results:
       </p>
@@ -128,11 +130,16 @@ return html`
               </td>
             </tr>
             <tr>
-              <td>~#</td>
-              <td>Allows fuzzy searching for near matches (higher number = higher result variation)</td>
+              <td rowspan="2">~#</td>
+              <td>Appending to a <strong>word</strong> allows matches to similar spellings</td>
               <td>
-                <strong>pediatric~1</strong> may include the British spelling paediatric; a phrase search for <strong>"pediatric surgery"~1</strong> may
-                include additional words such as <em>pediatric scoliosis surgery, pediatric cardiac surgery</em>, etc.
+                <strong>pediatric~1</strong> may include the British spelling <em>paediatric</em>
+              </td>
+            </tr>
+            <tr>
+              <td style="border-top: none;">Appending to a <strong>phrase</strong> allows additional words</td>
+              <td style="border-top: none;">
+                <strong>"pediatric surgery"~1</strong> may include <em>pediatric scoliosis surgery, pediatric cardiac surgery</em>, etc.
               </td>
             </tr>
             <tr>
