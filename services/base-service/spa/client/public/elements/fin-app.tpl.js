@@ -142,7 +142,7 @@ return html`
       --ucd-theme-quick-links-icon-bg-color: var(--color-aggie-blue-60, #73ABDD);
       --ucd-theme-quick-links-icon-bg-color-hover: var(--color-aggie-blue-80, #13639E);
     }
-    
+
     ucd-theme-quick-links[logged-in] {
       --ucd-theme-quick-links-icon-bg-color: var(--color-aggie-gold, #FFBF00);
       --ucd-theme-quick-links-icon-bg-color-hover: var(--color-aggie-blue-80, #13639E);
@@ -243,6 +243,7 @@ return html`
       <app-search id="search" @reset-scroll="${this._resetScroll}"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
+      <app-search-operators id="search-operators"></app-search-operators>
     </ucdlib-pages>
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
@@ -258,6 +259,12 @@ return html`
       <ucdlib-site-footer>
         <ucdlib-site-footer-column header="Need Help?">
           <ul>
+            <li>
+              <a
+                href="/search-operators"
+                rel="noopener"
+                >Search Tips</a>
+            </li>
             <li>
               <a
                 href="/faq"

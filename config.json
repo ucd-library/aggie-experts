@@ -81,10 +81,6 @@
       "init_data_hydration":true
     }
   },
-  "prev":{
-    "port":"10480",
-    "host":"https://prev.experts.library.ucdavis.edu"
-  },
   "stage":{
     "gcs":{
       "init_data_hydration":true

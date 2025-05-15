@@ -1,0 +1,150 @@
+#!/bin/bash
+
+# Get repo root
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
+  echo "❌ Not inside a Git repository." >&2
+  exit 1
+}
+
+# === Global defaults ===
+declare -A G=(
+  [host]="https://auth.library.ucdavis.edu"
+  [realm]="aggie-experts"
+  [page_size]=1000
+)
+
+# === Usage function ===
+usage() {
+  cat <<EOF
+Usage: $0 [OPTIONS]
+
+Options:
+  -h, --host         Keycloak base URL (default: ${G[host]})
+  -r, --realm        Realm name (default: ${G[realm]})
+  -t, --token        Bearer token (required)
+  -o, --output       Output file name (default: ${G[output]})
+  -p, --page-size    Page size for pagination (default: ${G[page_size]})
+  --help             Show this help message
+
+🔑 Token Example (using admin-cli):
+  jwt=$(curl -s -X POST "${G[host]}/realms/master/protocol/openid-connect/token" \\
+    -H "Content-Type: application/x-www-form-urlencoded" \\
+    -d "username=YOUR_ADMIN_USER" \\
+    -d "password=YOUR_ADMIN_PASS" \\
+    -d "grant_type=password" \\
+    -d "client_id=admin-cli" | jq -r .access_token)
+
+Then pass the token with: --token "$jwt"
+EOF
+
+  exit 1
+}
+
+# === Parse arguments ===
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --log=*) G[log]="${1#*=}"; shift ;;
+    --log) G[log]="$2"; shift 2 ;;
+    --host=*) G[host]="${1#*=}"; shift ;;
+    --host) G[host]="$2"; shift 2 ;;
+    --realm=*) G[realm]="${1#*=}"; shift ;;
+    --realm) G[realm]="$2"; shift 2 ;;
+    --token=*) G[token]="${1#*=}"; shift ;;
+    --token) G[token]="$2"; shift 2 ;;
+     --output=*) G[output]="${1#*=}"; shift ;;
+    --output) G[output]="$2"; shift 2 ;;
+    --page-size=*) G[page_size]="${1#*=}"; shift ;;
+    --page-size) G[page_size]="$2"; shift 2 ;;
+    -h) G[host]="$2"; shift 2 ;;
+    -r) G[realm]="$2"; shift 2 ;;
+    -t) G[token]="$2"; shift 2 ;;
+    -o) G[output]="$2"; shift 2 ;;
+    -p) G[page_size]="$2"; shift 2 ;;
+    --help) usage ;;
+    *) echo "❌ Unknown option: $1"; usage ;;
+  esac
+done
+
+# Default LOG to today's date if not set
+G[log]="${G[log]:-$(date +%Y%m%d)}"
+
+# Set output path based on repo root and log
+G[output]="${G[output]:-${ROOT}/log/${G[log]}/kc_users.jsonld}"
+
+# Ensure output directory exists
+mkdir -p "$(dirname "${G[output]}")"
+
+
+# === Validate required args ===
+if [[ -z "${G[token]}" ]]; then
+  echo "❌ Missing required --token argument."
+  usage
+fi
+
+echo "🔐 Verifying token..."
+
+CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer ${G[token]}" \
+  "${G[host]}/admin/realms/${G[realm]}/users?max=1")
+
+if [[ "$CHECK" -ne 200 ]]; then
+  echo "❌ Token validation failed with HTTP $CHECK"
+  echo "   Make sure your token is valid and has sufficient permissions."
+  exit 1
+fi
+
+echo "✅ Token OK — starting user export..."
+
+# === Start dump ===
+echo "🔐 Using token to fetch users from realm '${G[realm]}' at ${G[host]}..."
+
+# === Start JSON-LD structure ===
+echo '{' > "${G[output]}"
+cat <<EOF >> "${G[output]}"
+  "@context": {
+    "@base": "mailto:",
+    "@vocab": "https://experts.ucdavis.edu/kc/schema#",
+    "username": {
+      "@type": "@id",
+      "@id": "@id"
+    }
+  },
+  "@graph": [
+EOF
+
+i=0
+FIRST_USER=true
+
+while true; do
+  USERS=$(curl -s -X GET "${G[host]}/admin/realms/${G[realm]}/users?first=$i&max=${G[page_size]}" \
+    -H "Authorization: Bearer ${G[token]}" \
+    -H "Content-Type: application/json")
+
+  USER_COUNT=$(echo "$USERS" | jq length)
+
+  echo "📦 Fetching users $i to $((i + G[page_size] - 1))... ($USER_COUNT returned)"
+
+  if [[ "$USER_COUNT" -eq 0 ]]; then
+    break
+  fi
+
+  # Remove outer array brackets from the batch
+  USER_BLOCK=$(echo "$USERS" | sed -E 's/^\[//; s/\]$//')
+
+  # Append a comma if needed
+  if [ "$FIRST_USER" = true ]; then
+    FIRST_USER=false
+  else
+    echo "," >> "${G[output]}"
+  fi
+
+  # Write block directly
+  echo "$USER_BLOCK" >> "${G[output]}"
+
+  ((i+=G[page_size]))
+done
+
+# === Close JSON-LD ===
+echo "]" >> "${G[output]}"
+echo "}" >> "${G[output]}"
+echo "✅ Dump complete: ${G[output]}"

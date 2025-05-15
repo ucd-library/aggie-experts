@@ -17,6 +17,7 @@ class Citation {
     return new Promise((resolve, reject) => {
       Cite.async(citation).then(citation => {
         try {
+          if( Array.isArray(citation.data[0].issued) ) citation.data[0].issued = citation.data[0].issued[0];
 
           let originalIssued = citation.data[0].issued;
           if( showDateInApa ) {
