@@ -1,10 +1,10 @@
 import { LitElement } from 'lit';
-import {render} from "./app-search-operators.tpl.js";
+import {render} from "./app-search-tips.tpl.js";
 
 // sets globals Mixin and EventInterface
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
-export default class AppSearchOperators extends Mixin(LitElement)
+export default class AppSearchTips extends Mixin(LitElement)
   .with(LitCorkUtils) {
 
   static get properties() {
@@ -29,9 +29,9 @@ export default class AppSearchOperators extends Mixin(LitElement)
    * @return {Object} e
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'search-operators' ) return;
+    if( e.location.page !== 'search-tips' ) return;
   }
 
 }
 
-customElements.define('app-search-operators', AppSearchOperators);
+customElements.define('app-search-tips', AppSearchTips);

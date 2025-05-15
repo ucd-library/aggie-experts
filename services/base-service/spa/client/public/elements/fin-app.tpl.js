@@ -243,7 +243,7 @@ return html`
       <app-search id="search" @reset-scroll="${this._resetScroll}"></app-search>
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
-      <app-search-operators id="search-operators"></app-search-operators>
+      <app-search-tips id="search-tips"></app-search-tips>
     </ucdlib-pages>
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
@@ -261,7 +261,7 @@ return html`
           <ul>
             <li>
               <a
-                href="/search-operators"
+                href="/search-tips"
                 rel="noopener"
                 >Search Tips</a>
             </li>
@@ -299,7 +299,7 @@ return html`
         </ucdlib-site-footer-column>
         <ucdlib-site-footer-column header="Copyright">
           <ul>
-            <li>&copy;2024 The Regents of the University of California, Davis</li>
+            <li>&copy;2025 The Regents of the University of California, Davis</li>
           </ul>
         </ucdlib-site-footer-column>
       </ucdlib-site-footer>
