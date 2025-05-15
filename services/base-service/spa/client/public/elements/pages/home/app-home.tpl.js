@@ -168,7 +168,7 @@ return html`
       }
     }
 
-    p.search-operators-tooltip {
+    p.search-tips-tooltip {
       color: white;
       font-style: italic;
       line-height: 26px;
@@ -177,11 +177,11 @@ return html`
       font-weight: 400;
     }
 
-    p.search-operators-tooltip strong {
+    p.search-tips-tooltip strong {
       font-weight: 700;
     }
 
-    p.search-operators-tooltip a {
+    p.search-tips-tooltip a {
       color: white;
       text-decoration: underline;
     }
@@ -201,7 +201,7 @@ return html`
         </app-search-box>
       </div>
       <div>
-        <p class="search-operators-tooltip"><strong>Tip: </strong> <a href="/search-operators">Search operators</a> can improve results</p>
+        <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
       </div>
     </div>
   </div>

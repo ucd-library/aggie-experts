@@ -16,7 +16,7 @@ return html`
       display: block;
     }
 
-    .search-operators-header {
+    .search-tips-header {
       width: 100%;
       display: flex;
       align-items: center;
@@ -24,7 +24,7 @@ return html`
       border-bottom: solid 1px #E5E5E5;
     }
 
-    .search-operators-header .search-operators-label {
+    .search-tips-header .search-tips-label {
       color: var(--ucd-blue-100, #022851);
       font-size: 2.5rem;
       font-style: normal;
@@ -38,7 +38,7 @@ return html`
       height: 75px;
     }
 
-    .search-operators .section {
+    .search-tips .section {
       display: block;
       width: 53.5rem;
       padding: 3rem 0rem 4.1875rem 0rem;
@@ -46,26 +46,26 @@ return html`
     }
 
     @media (max-width: 992px) {
-      .search-operators .section {
+      .search-tips .section {
         width: 90%;
       }
     }
 
-    .search-operators .section h2 {
+    .search-tips .section h2 {
       margin-top: 3rem;
       margin-bottom: 0;
       color: var(--color-black-60);
     }
 
-    .search-operators .section h2:first-of-type {
+    .search-tips .section h2:first-of-type {
       padding-top: 0;
       margin-top: 0;
     }
 
   </style>
 
-  <div class="search-operators-header">
-    <div class="search-operators-label">Search Tips</div>
+  <div class="search-tips-header">
+    <div class="search-tips-label">Search Tips</div>
     <div style="display: flex; height: 75px;">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
         <path d="M21.6 0L0 89H24V0H21.6Z" fill="#DBEAF7"/>
@@ -75,7 +75,7 @@ return html`
       </svg>
     </div>
   </div>
-  <div class="container search-operators">
+  <div class="container search-tips">
     <div class="section">
       <h2>Default search</h2>
       <p>

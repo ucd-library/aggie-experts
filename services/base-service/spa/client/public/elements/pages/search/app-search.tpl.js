@@ -261,7 +261,7 @@ return html`
       display: none;
     }
 
-    .refine-search-mobile.open .search-operators-tooltip,
+    .refine-search-mobile.open .search-tips-tooltip,
     .refine-search-mobile.open .open-to-heading {
       margin-top: 1.19rem;
     }
@@ -385,7 +385,7 @@ return html`
       /* transition: fill 0.3s ease-in-out; */
     }
 
-    .search-operators-tooltip {
+    .search-tips-tooltip {
       margin-top: 0;
       font-style: italic;
       line-height: 26px;
@@ -446,7 +446,7 @@ return html`
       </div>
 
       <hr class="search-seperator">
-      <p class="search-operators-tooltip"><strong>Tip: </strong> <a href="/search-operators">Search operators</a> can improve results</p>
+      <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
 
       <!-- <div class="date-filter-heading">
         <h4>Date (Works, Grants)</h4>
@@ -457,7 +457,7 @@ return html`
 
     </div>
     <div class="search-content">
-      <div class="search-tips-link"><a href="/search-operators">Search Tips</a></div>
+      <div class="search-tips-link"><a href="/search-tips">Search Tips</a></div>
       <app-search-box
         id="searchBox"
         is-gold
@@ -507,7 +507,7 @@ return html`
             </label>
           </div>
 
-          <p class="search-operators-tooltip"><strong>Tip: </strong> <a href="/search-operators">Search operators</a> can improve results</p>
+          <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
         </div>
       </div>
 
