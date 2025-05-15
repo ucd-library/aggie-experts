@@ -87,7 +87,7 @@ return html`
           in abstracts of grants, experts' bios, affiliations, and journal and publisher names.
         </p>
         <p>
-          You can use <a href="/search-operators">search operators</a> to change the way Aggie Experts delivers search results.
+          You can use <a href="/search-tips">search operators</a> to change the way Aggie Experts delivers search results.
         </p>
       </li>
       <li>I am faculty at UC Davis. Why am I not in Aggie Experts?</li>
