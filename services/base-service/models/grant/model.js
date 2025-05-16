@@ -68,11 +68,11 @@ class GrantModel extends BaseModel {
     let seo={}
 
     seo.name = node?.name;
-    
+
     let startDate = node?.dateTimeInterval?.start?.dateTime;
     let endDate = node?.dateTimeInterval?.end?.dateTime;
     if( startDate ) {
-      seo.startDate = startDate; 
+      seo.startDate = startDate;
     }
     if( endDate ) {
       seo.endDate = endDate;
@@ -220,7 +220,12 @@ class GrantModel extends BaseModel {
         let id = doc.relatedBy[i].inheres_in;
         let expert = experts.find(e => e['@id'] === id);
         if( expert ) {
-          doc.relatedBy[i]['@id'] = { '@id': expert['@id'], name: expert.label };
+          for ( var j in doc.relatedBy[i].relates ) {
+            let rel = doc.relatedBy[i].relates[j];
+            if ( rel === id ) {
+              doc.relatedBy[i].relates[j] = { '@id': expert['@id'], name: expert.label };
+            }
+          }
         }
       }
     }
