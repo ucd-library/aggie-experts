@@ -126,6 +126,8 @@ export default class AppWork extends Mixin(LitElement)
         let expertId = rankMatch.relates.filter(rel => rel.startsWith('expert/'))[0];
         return `<a href="/${expertId}">${a.given} ${a.family}</a>`;
       }
+      if( !a.given ) a.given = '';
+      if( !a.family ) a.family = '';
       return a.given + ' ' + a.family;
     });
 
