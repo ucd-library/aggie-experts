@@ -695,8 +695,8 @@ return html`
           <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
           <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
-              <ucdlib-icon 
-                icon="ucdlib-experts:fa-eye" 
+              <ucdlib-icon
+                icon="ucdlib-experts:fa-eye"
                 @click=${this._hideExpert}
                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideExpert(e); }}
                 tabindex="0"
@@ -704,8 +704,8 @@ return html`
                 aria-label="Hide expert"></ucdlib-icon>
             </span>
             <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">
-              <ucdlib-icon 
-                icon="ucdlib-experts:fa-eye-slash" 
+              <ucdlib-icon
+                icon="ucdlib-experts:fa-eye-slash"
                 @click=${this._showExpert}
                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showExpert(e); }}
                 tabindex="0"
@@ -715,8 +715,8 @@ return html`
           </div>
           <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
             <span class="tooltip delete-expert" data-text="Delete expert">
-              <ucdlib-icon 
-                icon="ucdlib-experts:fa-trash" 
+              <ucdlib-icon
+                icon="ucdlib-experts:fa-trash"
                 @click=${this._deleteExpert}
                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._deleteExpert(e); }}
                 tabindex="0"
@@ -727,7 +727,7 @@ return html`
         </div>
 
         <h1>${this.expertName}
-          <a ?hidden="${!this.canEdit}" href="https://org.ucdavis.edu/odr/" style="position: relative;" target="_blank">
+          <a ?hidden="${!this.canEdit}" href="https://ucpath.universityofcalifornia.edu/personal-information/personal-information-summary" style="position: relative;" target="_blank">
             <span class="tooltip edit-name" data-text="Edit name">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"></ucdlib-icon>
             </span>
@@ -837,8 +837,8 @@ return html`
           <h3 class="heading--highlight">Roles
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon 
-                  icon="ucdlib-experts:fa-pen-to-square" 
+                <ucdlib-icon
+                  icon="ucdlib-experts:fa-pen-to-square"
                   @click=${this._editRoles}
                   @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editRoles(e); }}
                   tabindex="0"
@@ -854,8 +854,8 @@ return html`
           <h3 class="heading--highlight">Roles
             <span ?hidden="${!this.canEdit}" style="position: relative;">
               <span class="tooltip edit-roles" data-text="Edit roles">
-                <ucdlib-icon 
-                  icon="ucdlib-experts:fa-pen-to-square" 
+                <ucdlib-icon
+                  icon="ucdlib-experts:fa-pen-to-square"
                   @click=${this._editRoles}
                   @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editRoles(e); }}
                   tabindex="0"
@@ -874,7 +874,7 @@ return html`
             <div class="link-row" ?hidden="${!role.email}">
               <a href="mailto:${role.email}">
                 <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon> ${role.email}
-              </a>                
+              </a>
             </div>
           </div>
           `
@@ -936,7 +936,7 @@ return html`
           (site) => html`
           <div class="link-row">
             <a href="${site.url}">
-              <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon> ${site.name || site.url}          
+              <ucdlib-icon icon="ucdlib-experts:${site.icon ? site.icon : 'fa-network-wired'}"></ucdlib-icon> ${site.name || site.url}
             </a>
           </div>
           `
@@ -1014,9 +1014,9 @@ return html`
             <br>
           `
         )}
-        <div 
-          class="see-all-grants" 
-          ?hidden= "${this.totalGrants < this.grantsPerPage + 1}" 
+        <div
+          class="see-all-grants"
+          ?hidden= "${this.totalGrants < this.grantsPerPage + 1}"
           @click="${this._seeAllGrants}"
           @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._seeAllGrants(e); }}
           tabindex="0"
@@ -1079,9 +1079,9 @@ return html`
             <br>
           `
         )}
-        <div 
-          class="see-all-works" 
-          ?hidden= "${this.totalCitations < this.worksPerPage + 1}" 
+        <div
+          class="see-all-works"
+          ?hidden= "${this.totalCitations < this.worksPerPage + 1}"
           @click="${this._seeAllWorks}"
           @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._seeAllWorks(e); }}
           tabindex="0"

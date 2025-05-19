@@ -103,6 +103,7 @@ http='http --session-read-only=dev'
 
 echo "alpha,expert,time,status" > "${G[csv]}"
 
+dir=${G[dir]}
 for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
   for e in $($http $host/api/expert/browse p==$i page==1 size==1000  | jq -r '.hits[]["@id"]'); do
     # Construct the URL
@@ -110,8 +111,8 @@ for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
     # Use time and httpie to get timing and status code
     {
       start=$(date +%s.%N)
-      #status=$($http --download --check-status "$url" -o $e.json 2>&1 | grep HTTP | awk '{print $2}')
-      status=$($http --download --check-status -o $e.json GET "$url" all==1 include==hidden 2>&1 | grep HTTP | awk '{print $2}')
+      #status=$($http --download --check-status "$url" -o $e.jsonld 2>&1 | grep HTTP | awk '{print $2}')
+      status=$($http --download --check-status -o $dir/$e.jsonld GET "$url" all==1 include==hidden 2>&1 | grep HTTP | awk '{print $2}')
       end=$(date +%s.%N)
     } 2> /dev/null
 
@@ -119,7 +120,7 @@ for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
     elapsed=$(echo "$end - $start" | bc)
 
     # Write to CSV
-    echo "$i,$e,$elapsed,$status" | tee --append "${G[csv]}"
+    echo "$i,$e,$elapsed,$status,$dir/$e.jsonld" | tee --append "${G[csv]}"
   done;
 done
 

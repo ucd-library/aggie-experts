@@ -42,6 +42,11 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
+// If FUSEKI_BASE environment variable is not set, set it to base directory
+if (!process.env.FUSEKI_BASE) {
+  process.env.FUSEKI_BASE = '';
+}
+opt.fuseki.replace = true;
 opt.db = 'ae-grants';
 
 let outputSubDirectory = opt.output + '/generation-' + opt.generation + '/';
@@ -238,8 +243,7 @@ function replaceHeaderHyphens(filename) {
 
 async function main(opt) {
 
-  // Start a fresh database
-  await opt.fuseki.dropDb(opt.db);
+  log.info('Creating database...');
   let db = await opt.fuseki.createDb(opt.db,opt);
 
   // Ensure the output directory exists
@@ -259,7 +263,12 @@ async function main(opt) {
   const xml = fs.readFileSync(localFilePath, 'utf8');
 
   // Convert the XML to JSON make sure all number values to be quoted strings (e.g. ucop_sponsor_code) are not coerced to numbers
-  let json = parser.toJson(xml, { object: true, arrayNotation: false, coerce: false });
+  let json = parser.toJson(xml, {
+    object: true,
+    arrayNotation: false,
+    coerce: false,
+    sanitize: false // Prevents escaping of special characters
+  });
 
   // Create the JSON-LD context
   let contextObj = {

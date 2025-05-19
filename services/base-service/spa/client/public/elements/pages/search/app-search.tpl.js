@@ -69,7 +69,8 @@ return html`
       padding: 1.1875rem 1.1875rem 1.1875rem 0;
       flex-direction: column;
       align-items: flex-start;
-      min-width: 15rem;
+      min-width: 18.5rem;
+      max-width: 18.5rem;
     }
 
     .search-container .refine-search h3 {
@@ -93,6 +94,19 @@ return html`
     .search-container .search-content > * {
       width: 100%;
       box-sizing: border-box;
+    }
+
+    .search-container .search-content .search-tips-link {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+
+      color: var(--color-aggie-blue-80, #13639E);
+      font-size: 1rem;
+      font-weight: 400;
+      text-decoration: underline;
+      line-height: 26px;
+      word-wrap: break-word;
     }
 
     .search-container .open-to {
@@ -247,6 +261,11 @@ return html`
       display: none;
     }
 
+    .refine-search-mobile.open .search-tips-tooltip,
+    .refine-search-mobile.open .open-to-heading {
+      margin-top: 1.19rem;
+    }
+
     @media (max-width: 767px) {
       .search-header {
         justify-content: space-between;
@@ -316,9 +335,9 @@ return html`
       padding: 1rem;
     }
 
-    .refine-search-contents category-filter-controller {
+    /* .refine-search-contents category-filter-controller {
       padding-bottom: 2rem;
-    }
+    } */
 
     .results-filtered-to {
       display: flex;
@@ -364,6 +383,15 @@ return html`
       background-color: var(--color-aggie-blue-50);
       /* transition: background-color 0.3s ease-in-out; */
       /* transition: fill 0.3s ease-in-out; */
+    }
+
+    .search-tips-tooltip {
+      margin-top: 0;
+      font-style: italic;
+      line-height: 26px;
+      word-wrap: break-word;
+      font-size: 1rem;
+      font-weight: 400;
     }
 
   </style>
@@ -417,6 +445,9 @@ return html`
         </label>
       </div>
 
+      <hr class="search-seperator">
+      <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
+
       <!-- <div class="date-filter-heading">
         <h4>Date (Works, Grants)</h4>
       </div>
@@ -426,13 +457,14 @@ return html`
 
     </div>
     <div class="search-content">
+      <div class="search-tips-link"><a href="/search-tips">Search Tips</a></div>
       <app-search-box
         id="searchBox"
         is-gold
         search-rounded
         @search="${(e) => this._onSearch(e, true)}"
         placeholder="search"
-        search-term="${this.searchTerm}">
+        search-term="${decodeURIComponent(this.searchTerm)}">
       </app-search-box>
 
       <div class="refine-search-mobile ${this.refineSearchCollapsed ? '' : 'open'}">
@@ -474,6 +506,8 @@ return html`
               Media Interviews
             </label>
           </div>
+
+          <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
         </div>
       </div>
 
@@ -490,7 +524,7 @@ return html`
 
       </div>
       <div class="search-results-heading">
-        <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${this.searchTerm}"</div>
+        <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>
         <div class="download">
           <button class="btn btn--invert" ?disabled="${!this.resultsSelected}" @click="${this._downloadClicked}">Download</button>
         </div>
