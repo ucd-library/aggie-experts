@@ -45,17 +45,32 @@ export default class AppFaq extends Mixin(LitElement)
     }
   }
 
+  async updated(changedProperties) {
+    if (this.AppStateModel?.location?.page === 'faq' && this.AppStateModel?.location?.hash) {
+      this._jumpTo({currentTarget: {dataset: {jumpTo: this.AppStateModel.location.hash}}});
+    }
+  }
+
   /**
    * @method _jumpTo
    * @description jump to faq item and open it if closed
    *
    * @param {Object} event
    */
-  _jumpTo(e) {
+  async _jumpTo(e) {
     if( e.preventDefault ) e.preventDefault();
 
+    // wait for content and child components to render
+    await this.updateComplete;
+    let childComponents = this.shadowRoot.querySelectorAll('*');
+    await Promise.all(Array.from(childComponents).map(async (child) => {
+      if( child.updateComplete ) {
+        await child.updateComplete;
+      }
+    }));
+
     let ignoreAccordions = false;
-    let jumpToSection = this.shadowRoot.querySelector('h3#'+e.currentTarget.dataset.jumpTo);
+    let jumpToSection = this.shadowRoot.querySelector('h2#'+e.currentTarget.dataset.jumpTo);
     if( jumpToSection ) ignoreAccordions = true;
     else jumpToSection = this.shadowRoot.querySelector('ucd-theme-list-accordion li#'+e.currentTarget.dataset.jumpTo);
 
