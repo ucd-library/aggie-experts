@@ -45,7 +45,7 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
-// If FUSEKI_BASE environment variable is not set, set it to base directory
+// If FUSEKI_BASE environment variable is not set, set it to base directory to allow for local testing
 if (!process.env.FUSEKI_BASE) {
   process.env.FUSEKI_BASE = '';
 }
@@ -301,11 +301,7 @@ async function main(opt) {
     object: true,
     arrayNotation: false,
     coerce: false,
-    // sanitize: false // Prevents escaping of special characters
   });
-
-  // Perform additional processing on the JSON object to remove unwanted characters, etc
-  // removeExtraEscapeChars(json);
 
 
   // Create the JSON-LD context
