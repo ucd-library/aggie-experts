@@ -8,6 +8,9 @@ import { Command } from '../lib/experts-commander.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
 import { Storage } from '@google-cloud/storage';
 import parser from 'xml2json';
+import { parse } from 'csv-parse/sync';
+import { stringify } from 'csv-stringify/sync';
+
 
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
@@ -42,7 +45,7 @@ if (opt.env === 'PROD') {
   opt.prefix = '';
 }
 
-// If FUSEKI_BASE environment variable is not set, set it to base directory
+// If FUSEKI_BASE environment variable is not set, set it to base directory to allow for local testing
 if (!process.env.FUSEKI_BASE) {
   process.env.FUSEKI_BASE = '';
 }
@@ -241,6 +244,37 @@ function replaceHeaderHyphens(filename) {
   fs.writeFileSync(filename, output);
 }
 
+function cleanTitles(filename) {
+  const csvData = fs.readFileSync(filename, 'utf8');
+
+  // Parse the CSV into an array of objects
+  const records = parse(csvData, {
+    columns: true, // Use the first row as column headers
+    skip_empty_lines: true, // Ignore empty lines
+  });
+
+  const updatedRecords = records.map((row) => {
+    // Remove quotes from the "title" field
+    if (row.title) {
+      row.title = row.title.replace(/"/g, ''); // Remove quotes
+      // Matches standalone PO, SPO, BPO, and cases like "PO# 12345" or "PO#-"
+      row.title = row.title.replace(/\bPO#?\s*?\:? ?[A-Za-z0-9\-]*\d+\b/g, '');
+      // Matches dollar amounts like $1,234.56 or $1234.56
+      row.title = row.title.replace(/\$\d+(?:,\d{3})*(?:\.\d{2})?/g, '');
+    }
+    return row;
+  });
+
+// Convert the updated records back to CSV
+const updatedCsv = stringify(updatedRecords, {
+  header: true, // Include the header row
+  columns: Object.keys(updatedRecords[0]), // Use the keys of the first object as column headers
+});
+
+// Write the updated CSV to a file
+fs.writeFileSync(filename, updatedCsv);
+}
+
 async function main(opt) {
 
   log.info('Creating database...');
@@ -267,8 +301,8 @@ async function main(opt) {
     object: true,
     arrayNotation: false,
     coerce: false,
-    sanitize: false // Prevents escaping of special characters
   });
+
 
   // Create the JSON-LD context
   let contextObj = {
@@ -317,6 +351,7 @@ async function main(opt) {
   const grantQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/grants.rq', 'utf8');
   fs.writeFileSync(grantFile, await executeCsvQuery(db, grantQ, graphName));
   replaceHeaderHyphens(grantFile);
+  cleanTitles(grantFile);
 
   const linkFile = outputSubDirectory + '/' + opt.prefix + 'grants_links.csv';
   const linkQ = fs.readFileSync(__dirname.replace('bin', 'lib') + '/query/grant_feed/links.rq', 'utf8');
