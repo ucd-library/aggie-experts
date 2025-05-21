@@ -130,9 +130,13 @@ return html`
               </td>
             </tr>
             <tr>
-              <td rowspan="2">~#</td>
-              <td>Appending to a <strong>word</strong> allows matches to similar spellings</td>
-              <td>
+              <td rowspan="3">~1</td>
+              <td>Includes near matches; larger number provides higher result variation</td>
+              <td><strong>pediatric~3</strong></td>
+            </tr>
+            <tr>
+              <td style="border-top: none;">Appending to a <strong>word</strong> allows similar spellings</td>
+              <td style="border-top: none;">
                 <strong>pediatric~1</strong> may include the British spelling <em>paediatric</em>
               </td>
             </tr>
