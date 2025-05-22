@@ -89,7 +89,7 @@ class Utils {
   /**
    * @method getGrantRole
    * @description given a relationship with a GrantType vivo role @type, returns the role to display in AE and the relationship ID (if exists).
-   * defaults to Researcher with null relationship ID if no match
+   * defaults to Researcher if no other role is found
    *
    * @param {Object | Array} roles relationship object with @type or array of @type
    *
@@ -107,6 +107,7 @@ class Utils {
       let piRole = roles.find(r => normalizeType(r['@type']).includes('PrincipalInvestigatorRole'));
       let leaderRole = roles.find(r => normalizeType(r['@type']).includes('LeaderRole'));
       let copiRole = roles.find(r => normalizeType(r['@type']).includes('CoPrincipalInvestigatorRole'));
+      let researchRole = roles.find(r => normalizeType(r['@type']).includes('ResearcherRole'));
 
       if( piRole ) {
         readableRole = 'Principal Investigator';
@@ -117,6 +118,8 @@ class Utils {
       } else if( copiRole ) {
         readableRole = 'Co-Principal Investigator';
         relationshipId = copiRole['@id'];
+      } else if( researchRole ) {
+        relationshipId = researchRole['@id'];
       }
     } catch(e) {
       console.error('Error parsing grant roles', roles);
@@ -201,6 +204,7 @@ class Utils {
 
       g.contributors = contributors.filter(c => c); // remove undefined
 
+      // TODO here is breaking for some grants, the data-id is not set because relationshipId is null, so the show/hide of grants is not working
       // determine role/type using expertsRelationship
       ({ role: g.role, relationshipId: g.relationshipId } = this.getGrantRole(expertsRelationships));
 
