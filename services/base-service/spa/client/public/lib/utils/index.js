@@ -204,7 +204,6 @@ class Utils {
 
       g.contributors = contributors.filter(c => c); // remove undefined
 
-      // TODO here is breaking for some grants, the data-id is not set because relationshipId is null, so the show/hide of grants is not working
       // determine role/type using expertsRelationship
       ({ role: g.role, relationshipId: g.relationshipId } = this.getGrantRole(expertsRelationships));
 
