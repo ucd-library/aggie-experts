@@ -189,6 +189,28 @@ return html`
           the "About" section, including your research overview and any websites you would like to link to from Aggie Experts.
         </p>
       </li>
+      <li>Why isn't my email address showing up in Aggie Experts?</li>
+      <li>
+        <p>
+          There are two potential reasons why an email address might not appear in an individual's Aggie Experts profile:
+        </p>
+        <div>
+          <ol>
+            <li>
+              <strong>UC Davis Health affiliation.</strong>
+              At the request of UC Davis Health leadership, email addresses have been concealed for all
+              faculty and researchers at UC Davis Health. There is no current override mechanism to display email addresses for these individuals.
+            </li>
+            <li>
+              <strong>Individual choice.</strong>
+              Individuals can opt to conceal their own email address from publication on UC Davis directories and public websites by unchecking
+              the "WWW" box in the campus Online Directory. If an individual has made this selection, Aggie Experts will not display their email address.
+              If the individual decides to have their email address displayed in the future, they can check the WWW box in the
+              <a href="https://org.ucdavis.edu/odr/">campus Online Directory</a> and their email address will appear in Aggie Experts with the next weekly data sync.
+            </li>
+          </ol>
+        </div>
+      </li>
       <li>Why are there so few / no publications in my Aggie Experts profile?</li>
       <li>
         <p>
