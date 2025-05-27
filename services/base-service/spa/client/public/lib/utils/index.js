@@ -442,6 +442,22 @@ class Utils {
     return searchQuery;
   }
 
+  /**
+   * @method filterOutStopWords
+   * @description return non-stop words from a search term
+   * @param {String} phrase term to parse
+   */
+  filterOutStopWords(phrase='') {
+    let stopWords = [ 'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by',
+      'for', 'if', 'in', 'into', 'is', 'it',
+      'no', 'not', 'of', 'on', 'or', 'such',
+      'that', 'the', 'their', 'then', 'there', 'these',
+      'they', 'this', 'to', 'was', 'will', 'with'];
+
+    let words = phrase.trim().split(/\s+/);
+    return words.filter(word => word && !stopWords.includes(word.toLowerCase()));
+  }
+
 }
 
 module.exports = new Utils();
