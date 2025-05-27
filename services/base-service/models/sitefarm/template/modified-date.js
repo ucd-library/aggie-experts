@@ -10,26 +10,11 @@ template = {
               "must": [
                 {
                   "bool": {
-                    "should": [
-                      {
-                        "bool": {
-                          "must": [
-                            { "exists": { "field": "@graph.is-visible" }},
-                            { "term": { "@graph.is-visible": true }}
-                          ]
-                        }
-                       },
-                      {
-                        "bool": {
-                           "must": [
-                             { "exists": { "field": "@graph.relatedBy.is-visible" }},
-                             { "term": { "@graph.relatedBy.is-visible": true }}
-                          ]
-                        }
-                      }
-                    ],
-                     "minimum_should_match": 1
-                   }
+                    "must": [
+                      { "exists": { "field": "is-visible" }},
+                      { "term" : {"is-visible": true } }
+                    ]
+                  }
                 }
                 {{#gte_date}}
                 ,{
