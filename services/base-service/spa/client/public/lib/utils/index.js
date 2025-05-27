@@ -193,7 +193,6 @@ class Utils {
         let { role: contributorRole } = this.getGrantRole(r);
         if( !['Principal Investigator', 'Co-Principal Investigator'].includes(contributorRole) ) return;
 
-        // PI: Sundaresan, Venkatesan,COPI: Sundaresan, Venkatesan
         let contributorName = r.name || '';
         if( contributorName && contributorRole ) {
           if( Array.isArray(contributorName) ) contributorName = contributorName[0];
