@@ -191,10 +191,13 @@ class Utils {
       // determine pi/copi in otherRelationships
       let contributors = otherRelationships.map(r => {
         let { role: contributorRole } = this.getGrantRole(r);
-        if( contributorRole !== 'Co-Principal Investigator' ) return;
+        if( !['Principal Investigator', 'Co-Principal Investigator'].includes(contributorRole) ) return;
 
-        let contributorName = r.relates.filter(relate => relate.name)[0]?.name || '';
+        let contributorName = r.name || '';
         if( contributorName && contributorRole ) {
+          if( Array.isArray(contributorName) ) contributorName = contributorName[0];
+          if( contributorName.includes('COPI:') ) contributorName = contributorName.replace(/\s*COPI:\s*/g, '');
+          if( contributorName.includes('PI:') ) contributorName = contributorName.replace(/\s*PI:\s*/g, '');
           return {
             name: contributorName,
             role: contributorRole,
@@ -440,6 +443,22 @@ class Utils {
     if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
 
     return searchQuery;
+  }
+
+  /**
+   * @method filterOutStopWords
+   * @description return non-stop words from a search term
+   * @param {String} phrase term to parse
+   */
+  filterOutStopWords(phrase='') {
+    let stopWords = [ 'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by',
+      'for', 'if', 'in', 'into', 'is', 'it',
+      'no', 'not', 'of', 'on', 'or', 'such',
+      'that', 'the', 'their', 'then', 'there', 'these',
+      'they', 'this', 'to', 'was', 'will', 'with'];
+
+    let words = phrase.trim().split(/\s+/);
+    return words.filter(word => word && !stopWords.includes(word.toLowerCase()));
   }
 
 }
