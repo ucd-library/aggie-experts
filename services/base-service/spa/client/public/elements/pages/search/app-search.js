@@ -693,13 +693,10 @@ export default class AppSearch extends Mixin(LitElement)
 
         contributors.forEach(c => {
           let role = utils.getGrantRole(c)?.role || '';
-          let name = '';
-          if( c.inheres_in ) {
-            name = c['@id'].name || '';
-          } else {
-            if( !Array.isArray(c.relates) ) c.relates = [c.relates];
-            name = (c.relates || []).find(r => r.name)?.name || '';
-          }
+          let name = c.name || '';
+          if( Array.isArray(name) ) name = name[0];
+          if( name.includes('COPI:') ) name = name.replace(/\s*COPI:\s*/g, '');
+          if( name.includes('PI:') ) name = name.replace(/\s*PI:\s*/g, '');
 
           if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
             pisCoPis += name + '; ';
