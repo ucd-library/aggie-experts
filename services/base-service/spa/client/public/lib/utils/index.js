@@ -196,7 +196,8 @@ class Utils {
         let contributorName = r.name || '';
         if( contributorName && contributorRole ) {
           if( Array.isArray(contributorName) ) contributorName = contributorName[0];
-          if( contributorName.includes('PI:') && !contributorName.includes('COPI:') ) contributorName = contributorName.replace('PI:', 'COPI:');
+          if( contributorName.includes('COPI:') ) contributorName = contributorName.replace('COPI:', '');
+          if( contributorName.includes('PI:') ) contributorName = contributorName.replace('PI:', '');
           return {
             name: contributorName,
             role: contributorRole,

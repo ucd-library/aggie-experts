@@ -516,7 +516,7 @@ export default class AppSearch extends Mixin(LitElement)
     });
 
     this.resultsSelected = false; // this.downloads.length !== 0;
-    this.allResultsSelected = false; // allSelectedOnPage; 
+    this.allResultsSelected = false; // allSelectedOnPage;
   }
 
   /**
@@ -650,10 +650,10 @@ export default class AppSearch extends Mixin(LitElement)
           '"' + numberOfGrants + '",' +
           '"' + urls + '",'
         );
-        
+
       } else if( resultType === 'grant' ) {
         // grants.csv:
-        // Title | Funding Agency | Grant id {the one given by the agency, not ours} | Start date | End date | Type of Grant | List of PIs and coPIs {separate contributors by ";"} | Other Known Contributors {separate contributors by ";"}    
+        // Title | Funding Agency | Grant id {the one given by the agency, not ours} | Start date | End date | Type of Grant | List of PIs and coPIs {separate contributors by ";"} | Other Known Contributors {separate contributors by ";"}
 
         let match = hits.find(h => h['@id'] === row.result.id.replace('grant/',''));
         if( !match ) return;
@@ -676,19 +676,16 @@ export default class AppSearch extends Mixin(LitElement)
 
         let contributors = match.relatedBy || [];
         if( !Array.isArray(contributors) ) contributors = [contributors];
-        
+
         let pisCoPis = ''; // List of PIs and coPIs {separate contributors by ";"}
-        let otherContributors = ''; // Other Known Contributors {separate contributors by ";"}    
+        let otherContributors = ''; // Other Known Contributors {separate contributors by ";"}
 
         contributors.forEach(c => {
           let role = utils.getGrantRole(c)?.role || '';
-          let name = '';
-          if( c.inheres_in ) {
-            name = c['@id'].name || '';
-          } else {
-            if( !Array.isArray(c.relates) ) c.relates = [c.relates];
-            name = (c.relates || []).find(r => r.name)?.name || '';
-          }
+          let name = c.name || '';
+          if( Array.isArray(name) ) name = name[0];
+          if( name.includes('COPI:') ) name = name.replace('COPI:', '');
+          if( name.includes('PI:') ) name = name.replace('PI:', '');
 
           if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
             pisCoPis += name + '; ';
@@ -764,17 +761,17 @@ export default class AppSearch extends Mixin(LitElement)
         works.unshift('Type of Work,Title,Authors,Year,Journal/Book,Volume,Issue,Pages,DOI/URL,Abstract');
         zip.file("works.csv", works.join('\n'));
       }
-  
+
       if( grants.length ) {
-        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');      
+        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');
         zip.file("grants.csv", grants.join('\n'));
       }
-  
+
       if( experts.length ) {
-        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');      
+        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');
         zip.file("experts.csv", experts.join('\n'));
       }
-  
+
       zip
         .generateAsync({type:"blob"})
         .then((content, filename=`search_${this.searchTerm.split(' ').join('_').substring(0, 50)}.zip`) => {
@@ -787,15 +784,15 @@ export default class AppSearch extends Mixin(LitElement)
         blob = new Blob(works.map(w => w + '\n'), { type: 'text/csv;charset=utf-8;' });
         filename = 'works.csv';
       }
-  
+
       if( grants.length ) {
-        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');    
+        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');
         blob = new Blob(grants.map(g => g + '\n'), { type: 'text/csv;charset=utf-8;' });
         filename = 'grants.csv';
       }
-  
+
       if( experts.length ) {
-        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');  
+        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');
         blob = new Blob(experts.map(e => e + '\n'), { type: 'text/csv;charset=utf-8;' });
         filename = 'experts.csv';
       }
@@ -808,7 +805,7 @@ export default class AppSearch extends Mixin(LitElement)
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    }    
+    }
   }
 
   _onFilterChange(e) {
