@@ -191,10 +191,13 @@ class Utils {
       // determine pi/copi in otherRelationships
       let contributors = otherRelationships.map(r => {
         let { role: contributorRole } = this.getGrantRole(r);
-        if( contributorRole !== 'Co-Principal Investigator' ) return;
+        if( !['Principal Investigator', 'Co-Principal Investigator'].includes(contributorRole) ) return;
 
-        let contributorName = r.relates.filter(relate => relate.name)[0]?.name || '';
+        // PI: Sundaresan, Venkatesan,COPI: Sundaresan, Venkatesan
+        let contributorName = r.name || '';
         if( contributorName && contributorRole ) {
+          if( Array.isArray(contributorName) ) contributorName = contributorName[0];
+          if( contributorName.includes('PI:') && !contributorName.includes('COPI:') ) contributorName = contributorName.replace('PI:', 'COPI:');
           return {
             name: contributorName,
             role: contributorRole,
