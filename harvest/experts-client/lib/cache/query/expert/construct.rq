@@ -334,7 +334,7 @@ WHERE {
 
   bind(xsd:integer(?odr_list_order) as ?odr_order)
   bind(concat("odr-",str(?odr_order)) as ?odr_vid)
-  bind(if(coalesce(?odr_email_v,false) && ! ?isHSEmployee,uri(concat("mailto:",coalesce(?explict_odr_email,?default_email))),?not_defined) as ?odr_email_uri)
+  bind(if(coalesce(?odr_email_v,false) && ! ?isHSEmployee,uri(concat("mailto:",coalesce(?explicit_odr_email,?default_email))),?not_defined) as ?odr_email_uri)
   bind(coalesce(?has_odr,false) as ?odr_is_preferred)
   bind(uri(?odr_website) as ?odr_website_uri)
   bind(uri(concat("ark:/87287/d7c08j/position/odr/",md5(?odr_title))) as ?odr_vcard_title)
