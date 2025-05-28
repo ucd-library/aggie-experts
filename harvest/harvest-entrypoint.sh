@@ -6,7 +6,8 @@ function init_local_user() {
     uid=${LOCAL_USER_ID:-9001}
     useradd --create-home --shell /bin/bash --uid ${uid} ucd.process
     export HOME=/home/ucd.process
-    chown -R ucd.process:ucd.process /home/ucd.process
+    chown ucd.process:ucd.process /home/ucd.process /home/ucd.process/*
+    chown -R ucd.process:ucd.process /home/ucd.process/configuration  /home/ucd.process/databases /home/ucd.process/logs /home/ucd.process/system  /home/ucd.process/system_files  /home/ucd.process/templates
   fi
 }
 
