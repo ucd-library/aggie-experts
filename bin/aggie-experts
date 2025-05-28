@@ -446,7 +446,8 @@ function setup() {
       if [[ ! "$mount" =~ "spa" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
       fi
-    # These are potential others
+    elif [[ "$env" = "clean" || "$env" = "sandbox" ]]; then
+      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
     else
       yq+='| del(.services.fuseki.ports) | del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
     fi
