@@ -710,9 +710,8 @@ export default class AppSearch extends Mixin(LitElement)
           let role = utils.getGrantRole(c)?.role || '';
           let name = c.name || '';
           if( Array.isArray(name) ) name = name[0];
-          if( name.includes('COPI:') ) name = name.replace(/\s*COPI:\s*/g, '');
-          if( name.includes('PI:') ) name = name.replace(/\s*PI:\s*/g, '');
-
+          name = name.replace(/\s*CoPI:\s*/gi, '');
+          name = name.replace(/\s*PI:\s*/gi, '');
           if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
             pisCoPis += name + '; ';
           } else {
