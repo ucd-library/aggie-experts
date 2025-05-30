@@ -40,14 +40,10 @@ function siteFarmFormat(req, res, next) {
 
     newDoc["@id"] = doc["@id"];
     newDoc["publications"] = [];
+    newDoc["contactInfo"] = doc.contactInfo;
 
     for (let i = 0; i < doc["@graph"].length; i++) {
       if (doc["@graph"][i]["@type"].includes("Expert")) {
-        for (let j = 0; j < doc["@graph"][i]["contactInfo"].length; j++) {
-          if (doc["@graph"][i]["contactInfo"][j].isPreferred === true) {
-            newDoc["contactInfo"] = doc["@graph"][i].contactInfo[j];
-          }
-        }
         newDoc["orcidId"] = doc["@graph"][i].orcidId;
         newDoc["overview"] = doc["@graph"][i].overview;
         newDoc["researcherId"] = doc["@graph"][i].researcherId;
