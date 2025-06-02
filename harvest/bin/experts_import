@@ -33,7 +33,7 @@ experts cdl so restartable
 # These Global Variables are the defaults values for the current setup.
 declare -g -A G=(
   [project]="aggie-experts"
-  [cache]=~/cache
+  [cache]=/var/lib/fuseki/cache
   [cdl_options]="--log=info --skip-existing"
   [groups]="experts"
   [fetch]=

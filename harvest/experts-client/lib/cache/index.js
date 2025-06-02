@@ -51,7 +51,7 @@ export class Cache {
     log: null,
     max: 'empty',
     timeout: 30000,
-    base: './cache',
+    base: '/var/lib/fuseki/cache',
     priority: 10,
     deprioritize: false,
     domain: 'ucdavis.edu',

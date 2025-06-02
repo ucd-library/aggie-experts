@@ -12,19 +12,8 @@
    auth activate-service-account --key-file=- <<<
    "${GOOGLE_APPLICATION_CREDENTIALS_JSON}"~.  There is no default value
 
-   ~GCS_GRAPH_STORAGE=gs://aggie-experts-sandbox/databases~ The location for
-   reading or writing IAM and GIS graphs.
-
 
 ** Methods of running
-
-   This image can be used to build and/or serve the data.  The HDT context
-   variable controls the source of the IAM  data, either ~build~, ~import~
-   or ~stubs~
-
-   The default entrypoint of this image is a Makefile. where you can choose a
-   number of different options.  There is one VOLUME associated with the image,
-   at ~/home/ucd.process~.  This volume can be emphemeral, or persistant.
 
 *** Building the data
 
@@ -235,56 +224,3 @@ volumes:
     #+begin_src bash
       dc exec fuseki curl http://fuseki:3030/vocabularies/get -H "Accept:application/ld+json" | gzip > vocabularies.json.gz
     #+end_src
-
-** Expert Build
-
-   This is a temporary
-
-   #+begin_src bash
-     cdl-elements login --auth=$(gcloud --project=digital-ucdavis-edu secrets versions access latest --secret=cdl_elements_json | jq -r '.[] | select(.["@id"]=="oapolicy") |  .auth.raw_auth')
-     users=quinn
-     for i in $users; do
-         c=cache/$i;
-         mkdir -p $c;
-         cdl-elements -v --cache=$c  users --pubs $i;
-         http http://localhost:3030/experts/sparql Content-Type:application/sparql-query Accept:application/ld+json <<<"
-PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-CONSTRUCT { ?s ?p ?o.} WHERE {
-      bind(uri(concat(str(experts:),'expert/',MD5('${i}@ucdavis.edu'))) as ?user)
-      graph <http://iam.ucdavis.edu/> {
-        ?user a ucdlib:Expert . ?s ?p ?o.
-        filter(regex(str(?s),concat('^',str(?user),'#?')))
-      }}" > $c/iam.jsonld
-      mkdir -p fcrepo/$i;
-      node /usr/local/lib/experts-client/bin/experts-cdl.js --output=fcrepo-$i  --fuseki.isTmp --fuseki.db=$i --save-tmp $c/*.jsonld
-     done
-   #+end_src
-
-      #+begin_src bash
-        for i in $for_sure $rand; do
-            echo $i; c=cache/$i;
-            mkdir fcrepo-$i;
-            node ~/aggie-experts/experts-client/bin/experts-cdl.js --output=fcrepo-$i  --fuseki.isTmp --fuseki.db=$i --save-tmp $c/*.jsonld
-        done
-   #+end_src
-
-
-   docker run -p 3030:3030 --env GOOGLE_APPLICATION_CREDENTIALS_JSON="$(gcloud
-   secrets versions access latest --secret='aggie-expert-data-harvester-key' |
-   jq -c .)" --interactive --tty --rm
-   localhost/aggie-experts/harvest:docker-build HDT=import server
-
-
-   node
-   ~/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/bin/experts-splay.js
-   --source http://localhost:3030/pcronald/sparql
-   --bind@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/expert/bind.rq
-   --construct@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/expert/construct.rq
-   --frame@=/home/quinn/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/lib/query/expert/frame.json
-   --output=fcrepo-pcronald
-
-   node
-   ~/aggie-experts-deployment/aggie-experts/images/harvest/experts-client/bin/experts-cdl
-   --output=fcrepo-pcronald --fuseki.isTmp --fuseki.db=pcronald --save-tmp
-   pcronald/*.jsonld
