@@ -1,39 +1,33 @@
 #!/usr/bin/env bash
 # These Global Variables are the defaults values for the current setup.
+root="$(git rev-parse --show-toplevel)"
+
 declare -g -A G=(
-  [csv]="experts.csv"
-  # Below you probably don't need to change
   [host]="https://experts.ucdavis.edu"
-  [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
+  [csv]="${root}/log/$(date +%Y%m%d)/count.csv"
   [dry-run]=
-  [jwt]=''
 );
 
-if ! opts=$(${G[shell_getopt]} -o h:j:c: --long host:,jwt:,csv: -n "count-experts" -- "$@"); then
-    echo "Bad Command Options." >&2 ; exit 1 ; fi
+# === Parse arguments ===
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --host=*) G[host]="${1#*=}"; shift ;;
+    --host) G[host]="$2"; shift 2 ;;
+    --csv=*) G[csv]="${1#*=}"; shift ;;
+    --csv) G[csv]="$2"; shift 2 ;;
+    --) shift; break ;;
+  esac
+done
 
-    eval set -- "$opts"
+host=${G[host]}
 
-    while true; do
-        case "$1" in
-            -h | --host ) G[host]="$2"; shift 2 ;;
-            -j | --jwt ) G[jwt]="$2"; shift 2 ;;
-            -c | --csv ) G[csv]="$2"; shift 2 ;;
-            -- ) shift; break ;;
-            * ) break ;;
-        esac
-    done
+mkdir -p "$(dirname "${G[csv]}")" 2>/dev/null || true
 
-    if [ -z "${G[jwt]}" ]; then
-      echo "JWT is required. Use -j or --jwt to provide it." >&2 ; exit 1 ;
-    fi
+echo "teeing counts to ${G[csv]}" >&2
 
-    host=${G[host]}
-    # set session
-    http --session=dev ${host}/api/expert/browse/ Authorization:"Bearer ${G[jwt]}"
-    http='http --session-read-only=dev'
-    for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
-      for e in $($http $host/api/expert/browse p==$i page==1 size==1000  | jq -r '.hits[]["@id"]'); do
-        $http POST $host/api/$e <<<'{"grants" : {"include" : true,"size":2000},"works" : {"include" : true,"size":10000}}' | jq -r --arg i "$i" --arg e "$e" '.name as $n | (.["@graph"] | map(select(.["@graph"]["@type"] == "Grant" or (.["@type"][]? == "Grant"))) | length ) as $grants | .["@graph"] | map(select(.["@type"] == "Work" or (.["@type"][]? == "Work"))) | { expert:$e,name:$n,grants:$grants,rank:map(select(.relatedBy[] | has("rank"))) | length , no_rank:map(select(.relatedBy[] | has("rank") | not)) | length } | [$i,.expert,.name,.rank,.no_rank,.grants] | @csv';
+# set session
+for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
+  for e in $(http $host/api/expert/browse p==$i page==1 size==1000  | jq -r '.hits[]["@id"]'); do
+    http POST $host/api/$e <<<'{"grants" : {"include" : true,"size":2000},"works" : {"include" : true,"size":10000}}' | jq -r --arg i "$i" --arg e "$e" '.name as $n | (.["@graph"] | map(select(.["@graph"]["@type"] == "Grant" or (.["@type"][]? == "Grant"))) | length ) as $grants | .["@graph"] | map(select(.["@type"] == "Work" or (.["@type"][]? == "Work"))) | { expert:$e,name:$n,grants:$grants,rank:map(select(.relatedBy[] | has("rank"))) | length , no_rank:map(select(.relatedBy[] | has("rank") | not)) | length } | [$i,.expert,.name,.rank,.no_rank,.grants] | @csv';
   done;
 done | tee ${G[csv]}
