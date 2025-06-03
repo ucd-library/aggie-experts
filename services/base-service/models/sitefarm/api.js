@@ -40,19 +40,27 @@ function siteFarmFormat(req, res, next) {
 
     newDoc["@id"] = doc["@id"];
     newDoc["publications"] = [];
-    newDoc["contactInfo"] = doc.contactInfo;
+    newDoc["contactInfo"] = doc.contactInfo || {};
+    newDoc["contactInfo"].hasURL = []; // initialize to empty array
+    let websites = doc["@graph"][i].contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
 
-    for (let i = 0; i < doc["@graph"].length; i++) {
-      if (doc["@graph"][i]["@type"].includes("Expert")) {
-        newDoc["orcidId"] = doc["@graph"][i].orcidId;
-        newDoc["overview"] = doc["@graph"][i].overview;
-        newDoc["researcherId"] = doc["@graph"][i].researcherId;
-        newDoc["scopusId"] = doc["@graph"][i].scopusId;
-      }
-      if (doc["@graph"][i]["@type"].includes("Work")) {
-        newDoc["publications"].push(doc["@graph"][i]);
+    if (doc["@graph"][i]["@type"].includes("Expert")) {
+      for (let j = 0; j < doc["@graph"][i]["contactInfo"].length; j++) {
+        if (doc["@graph"][i]["contactInfo"][j].isPreferred === true) {
+          newDoc["contactInfo"] = doc["@graph"][i].contactInfo[j];
+        }
       }
     }
+    newDoc["orcidId"] = doc["@graph"][i].orcidId;
+    newDoc["overview"] = doc["@graph"][i].overview;
+    newDoc["researcherId"] = doc["@graph"][i].researcherId;
+    newDoc["scopusId"] = doc["@graph"][i].scopusId;
+    //   }
+    if (doc["@graph"][i]["@type"] && doc["@graph"][i]["@type"].includes("Work")) {
+      newDoc["publications"].push(doc["@graph"][i]);
+    }
+
+    newDoc["contactInfo"].hasURL = websites[0].hasURL && websites.length > 0 ? websites[0].hasURL : null;
     // preserve the modified-date
     newDoc["modified-date"] = doc["modified-date"];
     newArray.push(newDoc);
@@ -60,6 +68,7 @@ function siteFarmFormat(req, res, next) {
   res.doc_array = newArray;
   next();
 }
+
 
 function sitefarm_valid_path(options={}) {
   const def = {
