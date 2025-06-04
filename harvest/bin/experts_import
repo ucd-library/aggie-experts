@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+
+: <<=cut
+=pod
+
+=head1  NAME
+
+experts-import - Import (and optionally fetch first) a local cache into the
+cluster fcrepo.
+
+=head1 SYNOPSIS
+
+experts-import [--fetch]
+
+=head1 DESCRIPTION
+
+experts-import will run C<fin io import> over every expert fcrepo directory in
+the cache.
+
+=head1 GLOBAL OPTIONS
+
+=over 4
+
+=item B<--fetch>
+
+fetch the experts before running the import.  Uses the C<--skip-existing> flag for
+experts cdl so restartable
+
+=back
+
+=cut
+
+# These Global Variables are the defaults values for the current setup.
+declare -g -A G=(
+  [project]="aggie-experts"
+  [cache]=~/cache
+  [cdl_options]="--log=info --skip-existing"
+  [groups]="experts"
+  [fetch]=
+  [import]=1
+);
+
+function main.cmd() {
+  declare -A CMD
+  local N=
+
+  # === Parse arguments ===
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --groups=*) CMD[groups]="${1#*=}"; shift ;;
+      --groups) CMD[groups]="$2"; shift 2 ;;
+      --cdl_options=*) CMD[cdl_options]="${1#*=}"; shift ;;
+      --cdl_options) CMD[cdl_options]="$2"; shift 2 ;;
+      --fetch) CMD[fetch]=1; shift ;;
+      --no-fetch) CMD[fetch]=; shift ;;
+      --import) CMD[import]=1; shift ;;
+      --no-import) CMD[import]=; shift ;;
+      -n|--dry-run) N="echo"; shift ;;
+      -h|--help)
+        pod2text $0
+        exit 0
+        ;;
+      --) shift; break ;;
+      -*)
+        echo "❌ Unknown option: $1"
+        pod2text $0
+        exit 1
+        ;;
+      *)
+        echo "❌ Unknown argument: $1"
+        pod2text $0
+        exit 1
+          ;;
+      esac
+    done
+
+    # command line over global
+    for i in "${!CMD[@]}"; do
+      G[$i]=${CMD[$i]};
+    done
+
+    if [[ ${G[fetch]} ]]; then
+      $N experts cdl ${G[cdl_options]} --groups=${G[groups]}
+    fi
+
+    # Now we need to run the import command
+    if [[ ${G[import]} ]]; then
+	$N export FCREPO_SUPERUSER=true;
+	$N export FCREPO_DIRECT_ACCESS=true;
+	$N export FCREPO_HOST=http://fcrepo:8080
+	for cache in ${G[cache]}; do
+	    if [[ -d $cache ]]; then
+		for e in $(echo ${cache}/mailto:\*); do
+		    if [[ -d $e/fcrepo ]]; then
+    			$N fin io import --fcrepo-path-type=subpath --import-from-root --log-to-disk $e/fcrepo
+		    fi;
+		done
+	    else
+		echo "❌ Cache directory not found: $cache"
+		exit 1
+	    fi
+	done
+    fi
+}
+main.cmd "$@"
+exit $?
+
+: <<=cut
+=pod
+
+=head1 EXAMPLE
+
+    # Fetch and import small set for development
+    experts-import --fetch --groups=dev
+
+    # Fetch and import all experts on sandbox
+    experts-import --fetch --groups=sandbox
+
+    # Fetch and import all experts on stage
+    experts-import --fetch --groups=experts
+
+    # Import the experts without fetching anything new; dry run,
+    experts-import --no-fetch -n
+
+=head1 AUTHOR
+
+qjhart@ucdavis.edu
+
+=cut

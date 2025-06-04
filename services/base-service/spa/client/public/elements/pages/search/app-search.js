@@ -214,6 +214,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.filteringByGrants = true;
     this.filteringByWorks = false;
     this.currentPage = 1;
+    this.downloads = [];
+    this.paginationChange = false;
 
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
@@ -242,6 +244,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.filteringByGrants = false;
     this.filteringByWorks = true;
     this.currentPage = 1;
+    this.downloads = [];
+    this.paginationChange = false;
 
     if( this.filterByExpertId && this.filterByExpertName ) {
       this.filterByExpert = true;
@@ -285,6 +289,18 @@ export default class AppSearch extends Mixin(LitElement)
     this.searchTerm = e.detail.trim();
     this.totalResultsCount = null;
 
+    let searchWords = utils.filterOutStopWords(this.searchTerm);
+    if( !searchWords.length ) {
+      this.currentPage = 1;
+      this.downloads = [];
+      this._updateLocation();
+      this.totalResultsCount = 0;
+      this.displayedResults = [];
+      this.globalAggregations = { reset : true };
+      this.paginationTotal = 1;
+      return;
+    }
+
     let availability = utils.buildSearchAvailability({
       collabProjects : this.collabProjects,
       commPartner : this.commPartner,
@@ -294,6 +310,8 @@ export default class AppSearch extends Mixin(LitElement)
 
     if( resetPage ) {
       this.currentPage = 1;
+      this.downloads = [];
+      this.paginationChange = false;
 
       // TODO reset selected download boxes
       this._updateLocation();
@@ -348,7 +366,6 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
 
     this.AppStateModel.setLocation(path);
-    this._clearSelectedSearchResults();
   }
 
   async _onSearchUpdate(e, fromSearchPage=false) {
@@ -418,7 +435,8 @@ export default class AppSearch extends Mixin(LitElement)
         name,
         subtitle,
         numberOfWorks,
-        numberOfGrants
+        numberOfGrants,
+        graph: r
       }
     });
 
@@ -426,6 +444,10 @@ export default class AppSearch extends Mixin(LitElement)
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
 
     this.requestUpdate();
+
+    requestAnimationFrame(() => {
+      this._clearSelectedSearchResults();
+    })
   }
 
   /**
@@ -450,10 +472,13 @@ export default class AppSearch extends Mixin(LitElement)
    */
   _selectResult(e) {
     let id = e.detail.id;
+    let match = this.displayedResults.find(r => r.id === e.detail.id);
+    if( !match ) return;
+
     if( e.detail.selected ) {
-      if( !this.downloads.includes(id) ) this.downloads.push(id);
+      if( !this.downloads.find(r => r.id === id) ) this.downloads.push(match);
     } else {
-      this.downloads = this.downloads.filter(d => d !== id);
+      this.downloads = this.downloads.filter(d => d.id !== id);
     }
 
     this._checkResultsSelected();
@@ -475,10 +500,12 @@ export default class AppSearch extends Mixin(LitElement)
     checkboxes.forEach(checkbox => {
       checkbox.checked = e.currentTarget.checked;
       let id = checkbox.dataset.id;
-      if( checkbox.checked ) {
-        if( !this.downloads.includes(id) ) this.downloads.push(id);
+      let match = this.displayedResults.find(r => r.id === id);
+
+      if( match && checkbox.checked ) {
+        if( !this.downloads.find(r => r.id === id) ) this.downloads.push(match);
       } else {
-        this.downloads = this.downloads.filter(d => d !== id);
+        this.downloads = this.downloads.filter(d => d.id !== id);
       }
     });
 
@@ -496,7 +523,7 @@ export default class AppSearch extends Mixin(LitElement)
       checkboxes.push(...row.shadowRoot.querySelectorAll('input[type="checkbox"]') || []);
     });
 
-    this.resultsSelected = checkboxes.some(checkbox => checkbox.checked);
+    this.resultsSelected = this.downloads.length > 0;
     this.allResultsSelected = checkboxes.every(checkbox => checkbox.checked);
   }
 
@@ -512,11 +539,12 @@ export default class AppSearch extends Mixin(LitElement)
     });
 
     checkboxes.forEach(checkbox => {
-      checkbox.checked = false;
+      if( this.paginationChange && this.downloads.find(d => d.id === checkbox.dataset.id) ) checkbox.checked = true;
+      else checkbox.checked = false;
     });
 
-    this.resultsSelected = false; // this.downloads.length !== 0;
-    this.allResultsSelected = false; // allSelectedOnPage; 
+    this.resultsSelected = this.downloads.length !== 0;
+    this.allResultsSelected = false; // allSelectedOnPage;
   }
 
   /**
@@ -526,6 +554,7 @@ export default class AppSearch extends Mixin(LitElement)
    * @param {Object} e click|keyup event
    */
   async _onPaginationChange(e) {
+    this.paginationChange = true;
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
     if( maxIndex > this.searchResults.length ) maxIndex = this.searchResults.length;
@@ -574,6 +603,8 @@ export default class AppSearch extends Mixin(LitElement)
   _selectCollabProjects(e) {
     this.collabProjects = e.currentTarget.checked;
     this.currentPage = 1;
+    this.downloads = [];
+    this.paginationChange = false;
     this._updateLocation();
   }
 
@@ -585,6 +616,8 @@ export default class AppSearch extends Mixin(LitElement)
   _selectCommPartner(e) {
     this.commPartner = e.currentTarget.checked;
     this.currentPage = 1;
+    this.downloads = [];
+    this.paginationChange = false;
     this._updateLocation();
   }
 
@@ -596,6 +629,8 @@ export default class AppSearch extends Mixin(LitElement)
   _selectIndustProjects(e) {
     this.industProjects = e.currentTarget.checked;
     this.currentPage = 1;
+    this.downloads = [];
+    this.paginationChange = false;
     this._updateLocation();
   }
 
@@ -607,6 +642,8 @@ export default class AppSearch extends Mixin(LitElement)
   _selectMediaInterviews(e) {
     this.mediaInterviews = e.currentTarget.checked;
     this.currentPage = 1;
+    this.downloads = [];
+    this.paginationChange = false;
     this._updateLocation();
   }
 
@@ -621,22 +658,15 @@ export default class AppSearch extends Mixin(LitElement)
 
     let works = [], grants = [], experts = [];
     let numFiles = 0;
-    let hits = (this.rawSearchData?.hits || []);
-    let resultRows = (this.shadowRoot.querySelectorAll('app-search-result-row') || []);
 
-    resultRows.forEach(row => {
-      let checkbox = row.shadowRoot.querySelector('input[type="checkbox"]');
-      let resultType = row.resultType;
-
-      if( !checkbox?.checked ) return;
+    (this.downloads || []).forEach(download => {
+      let resultType = download.resultType;
+      let match = download.graph;
+      if( !match ) return;
 
       if( resultType === 'expert' ) {
         // experts.csv:
         // Name | Aggie Experts Webpage | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
-
-        let match = hits.find(h => h['@id'] === row.result.id);
-        if( !match ) return;
-
         let name = match.name?.split('§')?.[0]?.trim();
         let landingPage = 'https://experts.ucdavis.edu/' + match['@id'];
         let numberOfWorks = (match['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
@@ -650,14 +680,10 @@ export default class AppSearch extends Mixin(LitElement)
           '"' + numberOfGrants + '",' +
           '"' + urls + '",'
         );
-        
+
       } else if( resultType === 'grant' ) {
         // grants.csv:
-        // Title | Funding Agency | Grant id {the one given by the agency, not ours} | Start date | End date | Type of Grant | List of PIs and coPIs {separate contributors by ";"} | Other Known Contributors {separate contributors by ";"}    
-
-        let match = hits.find(h => h['@id'] === row.result.id.replace('grant/',''));
-        if( !match ) return;
-
+        // Title | Funding Agency | Grant id {the one given by the agency, not ours} | Start date | End date | Type of Grant | List of PIs and coPIs {separate contributors by ";"} | Other Known Contributors {separate contributors by ";"}
         let title = match.name.split('§')[0]?.trim() || '';
         let fundingAgency = match.assignedBy?.name || '';
         let grantId = match.sponsorAwardId || '';
@@ -676,20 +702,16 @@ export default class AppSearch extends Mixin(LitElement)
 
         let contributors = match.relatedBy || [];
         if( !Array.isArray(contributors) ) contributors = [contributors];
-        
+
         let pisCoPis = ''; // List of PIs and coPIs {separate contributors by ";"}
-        let otherContributors = ''; // Other Known Contributors {separate contributors by ";"}    
+        let otherContributors = ''; // Other Known Contributors {separate contributors by ";"}
 
         contributors.forEach(c => {
           let role = utils.getGrantRole(c)?.role || '';
-          let name = '';
-          if( c.inheres_in ) {
-            name = c['@id'].name || '';
-          } else {
-            if( !Array.isArray(c.relates) ) c.relates = [c.relates];
-            name = (c.relates || []).find(r => r.name)?.name || '';
-          }
-
+          let name = c.name || '';
+          if( Array.isArray(name) ) name = name[0];
+          name = name.replace(/\s*CoPI:\s*/gi, '');
+          name = name.replace(/\s*PI:\s*/gi, '');
           if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
             pisCoPis += name + '; ';
           } else {
@@ -710,10 +732,6 @@ export default class AppSearch extends Mixin(LitElement)
       } else if( resultType === 'work' ) {
         // works.csv:
         // Type of Work | Title | Authors {separate contributors by ";"; if more than 10 contributors, use et.a;.)| Year | Journal OR Book | Volume | Issue | Pages | DOI or URL | Abstract
-
-        let match = hits.find(h => h['@id'] === row.result.id.replace('work/',''));
-        if( !match ) return;
-
         let workType = utils.getCitationType(match.type) || '';
         let title = match.title || '';
 
@@ -726,7 +744,8 @@ export default class AppSearch extends Mixin(LitElement)
           authors = (match.author || []).map(a => a.family + ', ' + a.given).join('; ');
         }
 
-        let [ year, month, day ] = match.issued.split?.('-');
+        if( Array.isArray(match.issued) ) match.issued = match.issued[0];
+        let [ year, month, day ] = match.issued?.split?.('-');
         let yearFormatted = utils.formatDate({ year });
         if( Array.isArray(match['container-title']) ) match['container-title'] = match['container-title'][0];
         let journalBook = match['container-title'] || '';
@@ -764,17 +783,17 @@ export default class AppSearch extends Mixin(LitElement)
         works.unshift('Type of Work,Title,Authors,Year,Journal/Book,Volume,Issue,Pages,DOI/URL,Abstract');
         zip.file("works.csv", works.join('\n'));
       }
-  
+
       if( grants.length ) {
-        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');      
+        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');
         zip.file("grants.csv", grants.join('\n'));
       }
-  
+
       if( experts.length ) {
-        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');      
+        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');
         zip.file("experts.csv", experts.join('\n'));
       }
-  
+
       zip
         .generateAsync({type:"blob"})
         .then((content, filename=`search_${this.searchTerm.split(' ').join('_').substring(0, 50)}.zip`) => {
@@ -787,15 +806,15 @@ export default class AppSearch extends Mixin(LitElement)
         blob = new Blob(works.map(w => w + '\n'), { type: 'text/csv;charset=utf-8;' });
         filename = 'works.csv';
       }
-  
+
       if( grants.length ) {
-        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');    
+        grants.unshift('Title,Funding Agency,Grant ID,Start Date,End Date,Type of Grant,PIs and coPIs,Other Known Contributors');
         blob = new Blob(grants.map(g => g + '\n'), { type: 'text/csv;charset=utf-8;' });
         filename = 'grants.csv';
       }
-  
+
       if( experts.length ) {
-        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');  
+        experts.unshift('Name,Aggie Experts Webpage,Number of works that match the keyword,Number of grants that match the keyword,URLs from the profile');
         blob = new Blob(experts.map(e => e + '\n'), { type: 'text/csv;charset=utf-8;' });
         filename = 'experts.csv';
       }
@@ -808,7 +827,7 @@ export default class AppSearch extends Mixin(LitElement)
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    }    
+    }
   }
 
   _onFilterChange(e) {
@@ -818,6 +837,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.status = '';
     if( this.atType === 'all results' ) this.atType = '';
     this.currentPage = 1;
+    this.downloads = [];
+    this.paginationChange = false;
     this._uncheckDownloads();
 
     if( !['grant', 'work'].includes(this.atType) && this.filterByExpert ) {
@@ -834,6 +855,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.status = e.detail.status;
 
     this.currentPage = 1;
+    this.downloads = [];
+    this.paginationChange = false;
     this._uncheckDownloads();
     this._updateLocation();
   }

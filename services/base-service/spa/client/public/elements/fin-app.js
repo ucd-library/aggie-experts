@@ -194,7 +194,7 @@ export default class FinApp extends Mixin(LitElement)
         if( child.updateComplete ) {
           await child.updateComplete;
         }
-      }));  
+      }));
     }
 
     if( page === 'browse' ) {
@@ -205,12 +205,12 @@ export default class FinApp extends Mixin(LitElement)
           if( child.updateComplete ) {
             await child.updateComplete;
           }
-        }));  
+        }));
       }
     }
 
     // scroll to previous position when nav back
-    if( !this.backButtonPressed ) { // || ['work', 'grant', 'expert'].includes(page)) {          
+    if( !this.backButtonPressed ) { // || ['work', 'grant', 'expert'].includes(page)) {
       window.scrollTo(0, 0);
     } else {
       window.scrollTo(0, this.lastPageTops[page]);
@@ -222,7 +222,7 @@ export default class FinApp extends Mixin(LitElement)
    * @description handle browser back button pressed
    */
   _onPopState(e) {
-    this.backButtonPressed = true;  
+    this.backButtonPressed = true;
   }
 
   /**
@@ -258,6 +258,8 @@ export default class FinApp extends Mixin(LitElement)
       return import(/* webpackChunkName: "page-404" */ "./pages/404/app-404");
     } else if( page === 'search' ) {
       return import(/* webpackChunkName: "page-search" */ "./pages/search/app-search");
+    } else if( page === 'search-tips' ) {
+      return import(/* webpackChunkName: "page-search-tips" */ "./pages/search-tips/app-search-tips");
     } else if( page === 'termsofuse' ) {
       return import(/* webpackChunkName: "page-tou" */ "./pages/termsofuse/app-tou");
     } else if( page === 'expert' ) {

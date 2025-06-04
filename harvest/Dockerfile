@@ -85,8 +85,12 @@ COPY vocabularies/experts.ucdavis.edu%2Fucop/positions.hdt* /var/lib/fuseki/hdt/
 COPY fuseki ${FUSEKI_HOME}
 
 # Get our UCDID tool
-COPY ucdid /usr/local/bin
+COPY bin/ucdid /usr/local/bin
 RUN chmod +x /usr/local/bin/ucdid
+
+# Get our experts_import tool
+COPY bin/experts_import /usr/local/bin
+RUN chmod +x /usr/local/bin/experts_import
 
 # Copy fin-service
 ARG FIN_API=/usr/local/lib/fin/api

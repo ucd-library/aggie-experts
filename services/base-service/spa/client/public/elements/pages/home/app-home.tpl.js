@@ -167,6 +167,24 @@ return html`
         bottom: 3px;
       }
     }
+
+    p.search-tips-tooltip {
+      color: white;
+      font-style: italic;
+      line-height: 26px;
+      word-wrap: break-word;
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    p.search-tips-tooltip strong {
+      font-weight: 700;
+    }
+
+    p.search-tips-tooltip a {
+      color: white;
+      text-decoration: underline;
+    }
   </style>
 
   <div class="hero-main site-frame">
@@ -181,6 +199,9 @@ return html`
           @search="${this._onSearch}"
           placeholder="search">
         </app-search-box>
+      </div>
+      <div>
+        <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
       </div>
     </div>
   </div>

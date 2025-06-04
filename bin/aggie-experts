@@ -9,15 +9,9 @@ aggie-experts - Manage Aggie Experts code development, docker images, and deploy
 
 =head1 SYNOPSIS
 
-aggie-experts [-n|--dry-run] [--env=<env>] [--mount]  <command> <command> ...
+aggie-experts [-n|--dry-run] [--env=<dev|clean|sandbox|gcb|stage|prod>] [--mount]  [build|setup]*
 
-where <env> is one of dev, clean, sandbox, gcb, test, prod; default is guessed
-using guess-env, fails if multiple matches are possible.
-
-where <command> is one of: build, prune, setup, config, list-mounts, test_env,
-guess-env
-
-lesser used <command> include: compose, env, config
+Other commands: prune, setup, config, list-mounts, test_env
 
 =head1 DESCRIPTION
 
@@ -54,11 +48,6 @@ images.  The default is to mount all three.
 Bind mounts can lead to problems if the developer fails to run npm install in
 the bounded mounts.
 
-=item B<-n|--dry-run>
-
-Show what you would do do not really do it. Because some commands require
-multiple access to the server, this command does not always work properly.
-
 =item B<--unstaged-ok>
 
 Will build a C<clean>) environment even if there are unstaged changes in the
@@ -80,6 +69,11 @@ Specify the name of the gcloud configuration to use.  This is used to set the
 configuration for the duration of the command. Set to the empty string to use
 the default configuration.  Default is C<aggie-experts>.
 
+=item B<-n|--dry-run>
+
+Show what you would do do not really do it. Because some commands require
+multiple access to the server, this command does not always work properly.
+
 =item B<-h|--help>
 
 Shows the manpage for the program. The help pages are embedded in the script and
@@ -97,7 +91,6 @@ declare -g -A G=(
   [jq]="."
   # Below you probably don't need to change
   [base]="$(realpath $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/..)"
-  [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
   [git]="git -C $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   [dry-run]=""
   [test_env]=1
@@ -139,9 +132,6 @@ used in the main workflow.
 C<aggie-experts [--env=any] test-env> Lets the developer test their
 environment, primarily with respect to the git branch and status.
 
-C<aggie-experts [--env=any] guess-env> Shows what environments are available
-in the current host and git configuation.  If multiple environments are available, the developer must explicitly specify the environment C<--env=I<env>>.
-
 C<aggie-experts [--env=any] prune> Prunes aggie-experts images from the local
 docker setup, based on the environment, and the git repository status.  This can
 be used to clean up the local docker environment.
@@ -149,65 +139,6 @@ be used to clean up the local docker environment.
 =head1 ADDITIONAL COMMANDS
 
 =cut
-
-: <<'=cut'
-=pod
-
-=head2 guess-env
-
-Guess the environment based on the hostname and git tag
-
-=cut
-function guess-env() {
-  local this_server, envs, tag
-  this_server=$(hostname --fqdn)
-  envs=()
-  tag=$(${G[git]} describe --always --dirty)
-
-  for e in $(G '.keys[]' ); do
-    local env_server
-    env_server=$(G ".${e}.server")
-    if [[ "$env_server" = "null" ]]; then
-      continue
-    fi
-     if [[ "$env_server" =~ ^! ]]; then
-      env_server=${env_server#!}
-      if ! [[ "$this_server" =~ $env_server ]]; then
-        envs+=("$e")
-      fi
-    else
-      if [[ "$this_server" =~ $env_server ]]; then
-        envs+=("$e")
-      fi
-    fi
-  done
-
-  # If only one match, return that, otherwise try describe
-  local d_envs=()
-  for e in "${envs[@]}"; do
-    case $e in
-      dev)
-        d_envs+=("$e")
-        ;;
-      clean|sandbox)
-        if ! [[ "$tag" =~ "dirty" ]]; then
-          d_envs+=("$e")
-        fi
-        ;;
-      gcb | prev | stage | prod)
-        if ! [[ "$tag" =~ "-" ]]; then
-          d_envs+=("$e")
-        fi
-        ;;
-    esac
-  done
-  if [[ ${#d_envs[@]} == 1 ]]; then
-    echo "${d_envs[0]}"
-  else
-    echo "${d_envs[@]}"
-    exit 1;
-  fi
-}
 
 : <<'=cut'
 =pod
@@ -297,7 +228,7 @@ function test_env() {
       good_status
       build_here
       ;;
-    test | prev | stage | prod )
+    stage | prod )
       server prod
       annotated_tag
       not_dirty
@@ -356,7 +287,6 @@ function expand_template(){
 
     # Get fin tag from build repository
   D["tag"]="$(${G[git]} describe --always --dirty)"
-  >&2 echo "expanded: env=$env"
 
   # Special case for CLIENT_ENV
   if [[ "${G[mount]}" =~ "spa" ]]; then
@@ -401,7 +331,6 @@ function expand_template(){
   D[fin_service_account_name]=$FIN_SERVICE_ACCOUNT_NAME
   D[fin_service_account_secret]=$FIN_SERVICE_ACCOUNT_SECRET
 
-#  declare -p D
   >&2 echo -n "Writing .."
   local line lineEscaped
   # the `||` clause ensures that the last line is read even if it doesn't end with \n
@@ -467,7 +396,7 @@ function build() {
       fi
       $N cork-kube build gcb --project aggie-experts --version=$tag $@
       ;;
-    test | prev | stage | prod )
+    stage | prod )
       >&2 echo "No builds env=${G[env]}"
       exit 1
       ;;
@@ -517,7 +446,8 @@ function setup() {
       if [[ ! "$mount" =~ "spa" ]]; then
         yq+='| del(.. | select(anchor=="DEV_MOUNT_SPA" or alias=="DEV_MOUNT_SPA"))'
       fi
-    # These are potential others
+    elif [[ "$env" = "clean" || "$env" = "sandbox" ]]; then
+      yq+='| del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
     else
       yq+='| del(.services.fuseki.ports) | del(.. | select(anchor=="DEV_MOUNT*" or alias=="DEV_MOUNT*"))'
     fi
@@ -562,7 +492,13 @@ function setup() {
       fi
       ;;
 
-    clean | sandbox | test | prev | stage | prod ) # Always setup
+    clean | sandbox ) # Always setup
+      setup_files
+      ;;
+
+    stage | prod ) # Always setup
+      >&2 echo "!! env=$env -- docker-compose.yml won't include gcs image"
+      G[gcs]=
       setup_files
       ;;
 
@@ -579,34 +515,47 @@ function setup() {
 }
 
 function main.cmd() {
-  local opts;
-
-  if ! opts=$(${G[shell_getopt]} -o nv:d:lh --long build-args:,base:,env:,no-gcs,list-mounts,mount:,unstaged-ok,cloudsdk-active-config-name:,no-test,dry-run,help,use-registry: -n "aggie-experts" -- "$@"); then
-    echo "Bad Command Options." >&2 ; exit 1 ; fi
-
-    eval set -- "$opts"
-
     declare -A CMD=(
       [unstaged_ok]=
       [build_args]=
       [gcs]=1
     )
 
-    while true; do
-	    case $1 in
-        --base) CMD[base]=$2; shift 2;;
-        --cloudsdk-active-config-name) CMD[cloudsdk_active_config_name]=$2; shift 2;;
-        --env) CMD[env]=$2; shift 2;;
-        --list-mounts | -l) CMD[list-mounts]=1; shift;;
-        --mount) CMD[mount]=$2; shift 2;;
-        --no-gcs) CMD[gcs]=; shift;;
-        --no-test) CMD[test_env]=; shift;;
-        --unstaged-ok) CMD[unstaged_ok]=1; shift;;
-        --build-args) CMD[build_args]="$2"; shift 2;;
-        -h | --help) pod2text $0; exit 0;;
-        -n | --dry-run) CMD[dry-run]="echo"; shift;;
-	      -- ) shift; break;;
-	      *) shift; break;
+    # === Parse arguments ===
+    while [[ $# -gt 0 ]]; do
+      case $1 in
+        --base=*) CMD[base]="${1#*=}"; shift ;;
+        --base) CMD[base]="$2"; shift 2 ;;
+        --cloudsdk-active-config-name=*) CMD[cloudsdk_active_config_name]="${1#*=}"; shift ;;
+        --cloudsdk-active-config-name) CMD[cloudsdk_active_config_name]="$2"; shift 2 ;;
+        --env=*) CMD[env]="${1#*=}"; shift ;;
+        --env) CMD[env]="$2"; shift 2 ;;
+        --list-mounts|-l) CMD[list-mounts]=1; shift ;;
+        --mount=*) CMD[mount]="${1#*=}"; shift ;;
+        --mount) CMD[mount]="$2"; shift 2 ;;
+        --no-gcs) CMD[gcs]=; shift ;;
+        --no-test) CMD[test_env]=; shift ;;
+        --unstaged-ok) CMD[unstaged_ok]=1; shift ;;
+        --build-args=*) CMD[build_args]="${1#*=}"; shift ;;
+        --build-args) CMD[build_args]="$2"; shift 2 ;;
+        -h|--help)
+          pod2text $0
+          exit 0
+          ;;
+        -n|--dry-run) CMD[dry-run]="echo"; shift ;;
+        --) shift; break ;;
+        build | setup | prune) break ;;
+        test_env | G | config | expand_template ) break ;;
+        -*)
+          echo "❌ Unknown option: $1"
+          pod2text $0
+          exit 1
+          ;;
+        *)
+          echo "❌ Unknown argument: $1"
+          pod2text $0
+          exit 1
+          ;;
       esac
     done
 
@@ -615,45 +564,34 @@ function main.cmd() {
       G[$i]=${CMD[$i]};
     done
 
-    # set the google cloud sdk config
+     # set the google cloud sdk config
     if [[ -n ${G[cloudsdk_active_config_name]} ]]; then
       export CLOUDSDK_ACTIVE_CONFIG_NAME=${G[cloudsdk_active_config_name]}
+    fi
+
+    if [[ -z ${G[env]} ]]; then
+      >&2 echo "ERROR: --env is required"
+      exit 1
     fi
 
     # Now command(s)
     for cmd in "$@"; do
       shift
       case $cmd in
-	      build | setup | prune ) # API requests
-
-          # Guess env if not supplied
-          if [[ -z ${G[env]} ]]; then
-            G[env]=$(guess-env)
-            if [[ $? -ne 0 ]]; then
-              >&2 echo "ERROR: Unable to guess one env: ${G[env]}"
-              exit 1
-            fi
-          fi
-
+	build | setup | prune ) # API requests
           [[ ${G[test_env]} ]] && test_env
           # Fix mount if exists
           G[jq]="${G[jq]}|.mount=\"${G[mount]}\""
-
-	        $cmd
-	        ;;
-
-        guess-env ) # API requests
-	        $cmd
-	        ;;
+	  $cmd
+	  ;;
 
         test_env ) # API requests
           # Guess env if not supplied
           if [[ -z ${G[env]} ]]; then
             G[env]=$(guess-env)
           fi
-
-	        $cmd
-	        ;;
+	  $cmd
+	  ;;
 
         config | G )
           G "$@" ;
@@ -665,10 +603,6 @@ function main.cmd() {
           exit 0
           ;;
 
-        declare ) # informational requests
-          declare -p G;
-          exit 0
-          ;;
         *) echo "Unknown command: $cmd"; exit 1;;
       esac
     done

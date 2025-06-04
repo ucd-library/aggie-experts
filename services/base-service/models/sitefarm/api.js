@@ -21,8 +21,22 @@ function siteFarmFormat(req, res, next) {
   for (let i in res.doc_array) {
 
     let doc = res.doc_array[i];
+    doc = expert.subselect(
+      doc,
+      {
+        'is-visible' : true,
+        expert : { include : true },
+        grants : {
+          include : false
+        },
+        works : {
+          include :true,
+          page : 1,
+          size : 5
+        }
+      } );
+
     let newDoc = {};
-    logger.info({ function: 'siteFarmFormat' });
 
     newDoc["@id"] = doc["@id"];
     newDoc["publications"] = [];
