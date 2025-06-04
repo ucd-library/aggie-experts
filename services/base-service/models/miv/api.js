@@ -103,11 +103,17 @@ router.get(
           if (hit.relatedBy) {
             hit.relatedBy.forEach((x) => {
               if (!x.inheres_in) {
-                if (ensureArray(x['@type']).includes('CoPrincipalInvestigatorRole')) {
+                if (ensureArray(x['@type']).includes('PrincipalInvestigatorRole')) {
                   people.push({
                     '@id': x['@id'],
                     name: x.relates[0].name,
-                    role: x['@type']
+                    role: 'PrincipalInvestigatorRole'
+                  });
+                } else if (ensureArray(x['@type']).includes('CoPrincipalInvestigatorRole')) {
+                  people.push({
+                    '@id': x['@id'],
+                    name: x.relates[0].name,
+                    role: 'CoPrincipalInvestigatorRole'
                   });
                 }
               }
