@@ -54,9 +54,6 @@ services:
       - JVM_ARGS=${JVM_ARGS:- -Xmx16g -Djena:scripting=true}
       - GOOGLE_APPLICATION_CREDENTIALS=/etc/fin/service-account.json
     restart: unless-stopped
-    command: server
-    # command: noop
-
 
   ###
   # Fedora Repository
