@@ -184,17 +184,29 @@ class ExpertModel extends BaseModel {
     */
     let defaults = {
       'is-visible' : true,
-      expert : { 
+      expert : {
         include : true,
         size : -1
       },
-      grants : { 
+      grants : {
         include : false,
         size : -1
       },
-      works : { 
+      works : {
         include : false,
-        size : -1
+        size : -1,
+        includeMisformatted : false,
+        sort : [
+          {
+              "field": "issued",
+              "sort": "desc",
+              "type": "year"
+            },
+            {
+              "field": "title",
+              "sort": "asc",
+              "type": "string"
+            } ]
       }
     }
     options = {...defaults, ...options};

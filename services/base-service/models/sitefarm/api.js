@@ -27,12 +27,40 @@ function siteFarmFormat(req, res, next) {
         'is-visible' : true,
         expert : { include : true },
         grants : {
-          include : false
+          include : false,
+          exclude: [
+            "totalAwardAmount"
+          ],
+          includeMisformattedd: false,
+          sort: [
+            {
+              "field": "dateTimeInterval.end.dateTime",
+              "sort": "desc",
+              "type": "date"
+            },
+            {
+              "field": "name",
+              "sort": "asc",
+              "type": "string"
+            }
+          ]
         },
         works : {
           include :true,
           page : 1,
-          size : 5
+          size : 5,
+          includeMisformatted : false,
+          sort : [
+            {
+              "field": "issued",
+              "sort": "desc",
+              "type": "year"
+            },
+            {
+              "field": "title",
+              "sort": "asc",
+              "type": "string"
+            } ]
         }
       } );
 
