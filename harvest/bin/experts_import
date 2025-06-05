@@ -21,10 +21,22 @@ the cache.
 
 =over 4
 
-=item B<--fetch>
+=item B<--fetch> B<--no-fetch>
 
 fetch the experts before running the import.  Uses the C<--skip-existing> flag for
-experts cdl so restartable
+experts cdl so restartable.  If C<--fetch> is set, the C<--groups> option is automatically set to C<experts>. Default is C<--no-fetch>.
+
+=item B<--groups=[dev|sandbox|experts>
+
+Specify the group of experts to import.  Defaults to C<experts>.  If not one of these, can be any valid CDL element group identifier number.  If C<--groups> is set, the C<--fetch> option is automatically set to true.
+
+=item B<--push-to-gcs> B<--no-push-to-gcs>
+
+If set, will push the experts cache to a GCS bucket named C<fcrepo-<group>>.  The bucket name is derived from the group name specified with C<--groups>. Only <dev>, <sandbox>, and <experts> are valid groups for this option.
+
+=item B<--import> B<--no-import>
+
+If set, will run the import command on the experts cache.  Default is C<--import>.
 
 =back
 
@@ -33,11 +45,12 @@ experts cdl so restartable
 # These Global Variables are the defaults values for the current setup.
 declare -g -A G=(
   [project]="aggie-experts"
-  [cache]=~/cache
+  [cache]=/var/lib/fuseki/cache
   [cdl_options]="--log=info --skip-existing"
   [groups]="experts"
   [fetch]=
   [import]=1
+  [push_to_gcs]=
 );
 
 function main.cmd() {
@@ -47,14 +60,16 @@ function main.cmd() {
   # === Parse arguments ===
   while [[ $# -gt 0 ]]; do
     case $1 in
-      --groups=*) CMD[groups]="${1#*=}"; shift ;;
-      --groups) CMD[groups]="$2"; shift 2 ;;
+      --groups=*) CMD[groups]="${1#*=}"; CMD[fetch]=1; shift ;;
+      --groups) CMD[groups]="$2"; CMD[fetch]=1; shift 2 ;;
       --cdl_options=*) CMD[cdl_options]="${1#*=}"; shift ;;
       --cdl_options) CMD[cdl_options]="$2"; shift 2 ;;
       --fetch) CMD[fetch]=1; shift ;;
       --no-fetch) CMD[fetch]=; shift ;;
       --import) CMD[import]=1; shift ;;
       --no-import) CMD[import]=; shift ;;
+      --push-to-gcs) CMD[push_to_gcs]=1; shift ;;
+      --no-push-to-gcs) CMD[push_to_gcs]=; shift ;;
       -n|--dry-run) N="echo"; shift ;;
       -h|--help)
         pod2text $0
@@ -100,6 +115,21 @@ function main.cmd() {
 		exit 1
 	    fi
 	done
+    fi
+
+    if [[ ${G[push_to_gcs]} ]]; then
+      local bucket="fcrepo-${G[groups]}"
+      rsync -a -d /var/lib/fuseki/cache/mailto\:*/fcrepo/ /var/lib/fuseki/${bucket}
+      echo "✅ Cache synced to /var/lib/fuseki/${bucket}"
+
+      echo "Pushing experts to GCS bucket: ${bucket}"
+      local n='' # dry run flag for gsutil
+      if [[ "$N" ]]; then
+        n='-n' # dry run flag for gsutil
+      fi
+      # Sync the local cache to the GCS bucket
+      echo "Syncing to GCS bucket: ${bucket}"
+      gsutil -m rsync -d -r $n  /var/lib/fuseki/${bucket} gs://${bucket}
     fi
 }
 main.cmd "$@"
