@@ -21,10 +21,10 @@ the cache.
 
 =over 4
 
-=item B<--fetch>
+=item B<--fetch> B<--no-fetch>
 
 fetch the experts before running the import.  Uses the C<--skip-existing> flag for
-experts cdl so restartable
+experts cdl so restartable.  If C<--fetch> is set, the C<--groups> option is automatically set to C<experts>. Default is C<--no-fetch>.
 
 =item B<--groups=[dev|sandbox|experts>
 
@@ -33,6 +33,12 @@ Specify the group of experts to import.  Defaults to C<experts>.  If not one of 
 =item B<--push-to-gcs> B<--no-push-to-gcs>
 
 If set, will push the experts cache to a GCS bucket named C<fcrepo-<group>>.  The bucket name is derived from the group name specified with C<--groups>. Only <dev>, <sandbox>, and <experts> are valid groups for this option.
+
+=back
+
+=item B<--import> B<--no-import>
+
+If set, will run the import command on the experts cache.  Default is C<--import>.
 
 =back
 
