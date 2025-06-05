@@ -34,8 +34,6 @@ Specify the group of experts to import.  Defaults to C<experts>.  If not one of 
 
 If set, will push the experts cache to a GCS bucket named C<fcrepo-<group>>.  The bucket name is derived from the group name specified with C<--groups>. Only <dev>, <sandbox>, and <experts> are valid groups for this option.
 
-=back
-
 =item B<--import> B<--no-import>
 
 If set, will run the import command on the experts cache.  Default is C<--import>.
