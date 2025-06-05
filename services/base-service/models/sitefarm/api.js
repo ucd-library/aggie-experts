@@ -16,11 +16,14 @@ const { openapi, json_only, validate_admin_client, validate_miv_client, has_acce
 
 
 function siteFarmFormat(req, res, next) {
+  // This function will take the query return of expert data and format it for sitefarm
 
   var newArray = [];
   for (let i in res.doc_array) {
-
+    // Expecting a single expert document
     let doc = res.doc_array[i];
+
+    // Subselect to experts and their works - max return 5 works
     doc = expert.subselect(
       doc,
       {
@@ -40,23 +43,33 @@ function siteFarmFormat(req, res, next) {
 
     newDoc["@id"] = doc["@id"];
     newDoc["publications"] = [];
+    newDoc["contactInfo"] = doc.contactInfo || {};
+    newDoc["contactInfo"].hasURL = []; // initialize to empty array
+    // We need to dig down for the preferred contactInfo website list
+    // We will grab the first website that is not preferred and has a rank of 20 indicating it is a website list
+    let websites = doc["@graph"][i].contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
 
-    for (let i = 0; i < doc["@graph"].length; i++) {
-      if (doc["@graph"][i]["@type"].includes("Expert")) {
-        for (let j = 0; j < doc["@graph"][i]["contactInfo"].length; j++) {
-          if (doc["@graph"][i]["contactInfo"][j].isPreferred === true) {
-            newDoc["contactInfo"] = doc["@graph"][i].contactInfo[j];
-          }
+    // ... but also grab all preferred contactInfo details
+    for (let j = 0; j < doc["@graph"].length; j++) {
+      if (doc["@graph"][j]["@type"].includes("Expert")) {
+        if (doc["@graph"][j]["contactInfo"].isPreferred === true) {
+          newDoc["contactInfo"] = doc["@graph"][j].contactInfo;
         }
-        newDoc["orcidId"] = doc["@graph"][i].orcidId;
-        newDoc["overview"] = doc["@graph"][i].overview;
-        newDoc["researcherId"] = doc["@graph"][i].researcherId;
-        newDoc["scopusId"] = doc["@graph"][i].scopusId;
       }
-      if (doc["@graph"][i]["@type"].includes("Work")) {
-        newDoc["publications"].push(doc["@graph"][i]);
+      // If the node is a Work, copy it to the publications array
+      else if (doc["@graph"][j]["@type"].includes("Work")) {
+        newDoc["publications"].push(doc["@graph"][j]);
       }
     }
+
+    // Copy other Expert properties to the new document
+    newDoc["orcidId"] = doc["@graph"][i].orcidId;
+    newDoc["overview"] = doc["@graph"][i].overview;
+    newDoc["researcherId"] = doc["@graph"][i].researcherId;
+    newDoc["scopusId"] = doc["@graph"][i].scopusId;
+
+    // Include the website list we filtered for above
+    newDoc["contactInfo"].hasURL = websites[0].hasURL && websites.length > 0 ? websites[0].hasURL : null;
     // preserve the modified-date
     newDoc["modified-date"] = doc["modified-date"];
     newArray.push(newDoc);
@@ -64,6 +77,7 @@ function siteFarmFormat(req, res, next) {
   res.doc_array = newArray;
   next();
 }
+
 
 function sitefarm_valid_path(options={}) {
   const def = {
