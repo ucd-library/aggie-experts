@@ -25,6 +25,10 @@ class ExpertModel extends BaseModel {
   grantRole() {
     return new GrantRole(this);
   }
+
+  Authorship() {
+    return new Authorship(this);
+  }
   /**
    * @method get
    * @description get a object by id. Add `expert` to id if it is not there.
@@ -561,15 +565,6 @@ class ExpertModel extends BaseModel {
       // If the doc does not exist, create a new one.
       const doc = this.promote_node_to_doc(root_node);
       await this.update_or_create_main_node_doc(doc);
-      // We are not yet maintaining authorship and work models.
-      // const authorshipModel=await this.get_model('authorship');
-      // Update all Works with this Expert as well
-      // let authorships= await authorshipModel.esMatchNode({ 'relates': doc['@id'] });
-      //
-      //for (let i=0; i<authorships?.hits?.hits?.length || 0; i++) {
-      //  authorshipModel.update(authorships.hits.hits[i]._source);
-      //  workModel.update(authorships.hits.hits[i]._source);
-      //}
     }
   }
 
@@ -862,8 +857,140 @@ class GrantRole {
       logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.grant_role.propagate}`);
     }
   }
-
-
 }
+
+class Authorship {
+
+  constructor(expertModel) {
+    this.expertModel = expertModel;
+  }
+
+  /**
+   * @method patch
+   * @description Patch an authorship file.
+   * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
+   * @param {String} expertId : Expert Id
+   * @returns {Object} : document object
+    **/
+  async patch(patch, expertId) {
+    let id = patch['@id'];
+    let expert;
+    let resp;
+
+    logger.info({patch},`authorship.patch ${expertId}:`);
+    // This patch adds a relationship field back in, while we decide the best method
+    let rid=id.replace("ark:/87287/d7mh2m/","ark:/87287/d7mh2m/relationship/");
+    if (patch.visible == null && patch.favourite == null) {
+      return 400;
+    }
+
+    let node;
+
+    try {
+      expert = await this.expertModel.client_get(expertId);
+      node = this.expertModel.get_node_by_related_id(expert,rid);
+      let node_id = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+      if (patch.objectId==null) {
+        patch.objectId = node_id;
+      }
+    } catch(e) {
+      console.error(e.message);
+      return 404
+    };
+    if (patch.visible != null) {
+      node['relatedBy']['is-visible'] = patch.visible;
+    }
+    if (patch.favourite != null) {
+      node['relatedBy']['is-favourite'] = patch.favourite;
+    }
+    //already a snippet node = workModel.snippet(have_part.Work.node);
+    await this.expertModel.update_graph_node(expertId,node);
+
+    // Update FCREPO
+    let options = {
+      path: expertId + '/' + id,
+      content: `
+        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
+        DELETE {
+          ${patch.visible != null ? `<${rid}> ucdlib:is-visible ?v .`:''}
+          ${patch.favourite !=null ?`<${rid}> ucdlib:is-favourite ?f .`:''}
+        }
+        INSERT {
+          ${patch.visible != null ?`<${rid}> ucdlib:is-visible ${patch.visible} .`:''}
+          ${patch.favourite != null ?`<${rid}> ucdlib:is-favourite ${patch.favourite} .`:''}
+        } WHERE {
+          <${rid}> ucdlib:is-visible ?v .
+          OPTIONAL { <${rid}> ucdlib:is-favourite ?fav } .
+        }
+      `
+    };
+    const api_resp = await finApi.patch(options);
+    if (api_resp.last.statusCode != 204) {
+      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`authorship.patch for ${expertId}`);
+      const error=new Error(`Failed to update authorship ${id} for expert ${expertId}:${api_resp.last.body}`);
+      error.status=500;
+      throw error;
+    }
+
+    if (config.experts.cdl.authorship.propagate) {
+      const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
+      resp = await cdl_user.setLinkPrivacy({
+        objectId: patch.objectId,
+        categoryId: 1,
+        privacy: patch.visible ? 'public' : 'internal'
+      })
+      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
+    } else {
+      logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl.authorship.propagate}`);
+    }
+  }
+
+  /**
+   * @method delete
+   * @description Delete an authorship file
+   * @param {String} id of work
+   * @param {String} expertId : Expert Id
+  **/
+  async delete(id, expertId) {
+    logger.info(`Deleting ${id}`);
+
+    let node;
+    let expert;
+    let objectId;
+    let resp;
+
+    let rid=id.replace("ark:/87287/d7mh2m/","ark:/87287/d7mh2m/relationship/");
+
+    expert = await this.expertModel.client_get(expertId);
+    node = this.expertModel.get_node_by_related_id(expert, rid);
+    objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+
+    await this.expertModel.delete_graph_node(expertId, node);
+
+    // Delete from FCREPO
+    let options = {
+      path: expertId + '/' + id,
+      permanent: true
+    };
+
+    await finApi.delete(options);
+
+    if (config.experts.cdl.authorship.propagate) {
+      let linkId=rid.replace("ark:/87287/d7mh2m/relationship/","");
+      const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
+      logger.info({cdl_request:{linkId:id,objectId:objectId}},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
+      resp = await cdl_user.reject({
+        linkId: linkId,
+        categoryId: 1,
+        objectId: objectId
+      })
+      logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
+    } else {
+      logger.info({cdl:null},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
+    }
+
+  }
+}
+
 
 module.exports = ExpertModel;
