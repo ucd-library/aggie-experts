@@ -1,11 +1,17 @@
 :header-args:sparql: :url http://localhost:8081/experts/sparql :format text/csv
 
 * Sparql Queries
-Some of the sparql queries are written in this area
+Originally, we used this document for some literate programming for the sparql
+queries, so that we could more fully document the individual parts of the Sparql
+quereies.  However, operationally, it was often quicker to directly modify the
+templates, and not this file, and so the explicit connection between these
+document and the query templates is no longer used.
+
+However, information in this document is still relevant, and has been updated to
+the Version 4 queries, and is useful for understanding the queries.
 
 #+name: prefixes
 #+begin_src sparql :tangle no
-  # THIS FILE GENERATED FROM ../README.org
   PREFIX : <http://oapolicy.universityofcalifornia.edu/vocab#>
   PREFIX cdl: <http://oapolicy.universityofcalifornia.edu/>
   PREFIX cite: <http://citationstyles.org/schema/>
@@ -26,18 +32,14 @@ Some of the sparql queries are written in this area
 #+end_src
 
 ** Expert
-*** username
-    This is the component that gets bound in the splay command at a later date.
+*** ?EDUROAM__
 
- #+name: username
- #+begin_src sparql :tangle no
-   "quinn@ucdavis.edu"
- #+end_src
+During the harvest, the ~?EDUROAM__~ is filled in with an constant value for
+    each expert in the database, typically only one, eg. ~quinn@ucdavis.edu~.
+    Though these look like emails, they  are actually the expert's eduroam
+    identifier, their CasID plus ~@ucdavis.edu~.
 
- #+name: username+
- #+begin_src sparql :tangle no
-   ?USERNAME_
- #+end_src
+
 
 *** IAM data
 
