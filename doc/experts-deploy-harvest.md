@@ -104,7 +104,7 @@ images, fuseki runs as it's own process user, and this method uses the same
 user.
 
 ``` bash
-docker compose exec fuseki /harvest-entrypoint.sh bash
+docker compose exec fuseki bash
 ```
 
 This brings you to a bash shell on the fuseki container, where you should see a
@@ -126,7 +126,7 @@ You can open another byobu terminal to monitor the cache being built by the
 harvest.
 
 ``` bash
-docker compose exec fuseki /harvest-entrypoint.sh bash
+docker compose exec fuseki bash
 ls cache/     # will list expert directories
 ls cache/ | wc -l # count of experts harvested to monitor progress.
 ```
@@ -144,7 +144,7 @@ You can restart the process where you left off with the `--skip-existing`
 flag. This will *not* reprocess any experts currently in the cache.
 
 ``` bash
-docker compose exec fuseki /harvest-entrypoint.sh bash
+docker compose exec fuseki bash
 rm databases/* config/*  # If fuseki fails in a bad spot, the last user might have corrupted data.
 experts cdl --log=info --skip-existing --groups=experts
 ```
@@ -152,8 +152,8 @@ experts cdl --log=info --skip-existing --groups=experts
 ## Import the data
 
 Once you have a cache of data ready, we can import that into the new instance.
-At this point is *is* important that no other conflicting containers are running
-on the computer.  *PRO NOTE: Although using ???_PORT variables in the .env file you can do this as well*
+At this point it *is* important that no other conflicting containers are running
+on the computer.  *PRO NOTE: you can also do this using ???_PORT variables in the .env file*
 
 Startup the complete instance:
 
@@ -161,29 +161,18 @@ Startup the complete instance:
 docker compose up -d
 ```
 
-This should *not* start the gateway until all initialization steps are complete.
+This should *not* start the gateway until all initialization steps are complete. Check
+the docker logs to ensure that the entire instance started properly. 
 
-Then you can go back into the `fuseki` instance and import the data.  **This
-step is different using the GCS container**
+Now you can import the data:
 
-``` bash
-# This also is best run in byobu
-docker compose exec fuseki /harvest-entrypoint.sh bash
-export FCREPO_SUPERUSER=true
-export FCREPO_DIRECT_ACCESS=true
-export FCREPO_HOST=http://fcrepo:8080
-for e in $(find ~/cache/mailto\:* ); do
-( cd $e;\
-  if [[ -d fcrepo ]]; then
-   fin io import --fcrepo-path-type=subpath --import-from-root --log-to-disk fcrepo
-  fi ) ;
-  done
+```bash
+dc exec fuseki experts_import
 ```
 
-`fin io import` is simply adding the files to the LDP server. This will complete
-*much* sooner that fin has process all those events. However, once this starts,
-you can monitor progress through the `/fin/admin` section of your new
+You can monitor progress through the `/fin/admin` section of your new
 `stage.experts.library.ucdavis.edu`
+
 
 ## Test the server
 
@@ -216,3 +205,30 @@ dc stop
 ```
 
 I usually just stop these so they can be started quickly if we need to revert.
+
+## Clean-up: Deleting old instances
+
+Currently, weekly snapshots of Aggie Experts are created, resulting in a number of defunct ones lying about in `file://[blue|gold].experts.library.ucdavis.edu/etc/aggie-experts`. Prevous versions are useful to go back in time, and map harvesting in particular, which can be done without bringing up the whole system.
+
+Typically, 3 or 4 previous versions are kept. Removing an older version takes hours, consequently:
+  - remove instances while that machine [blue|gold] is still serving stage; deleting the old versions can slow down disk access (elasticsearch) on the server
+  - don't remove an instance while you are harvesting for another; both tasks disk intensive
+  - use `byobu` or similar to avoid interruption
+
+The process is
+  ```bash
+  ver=3-2
+  cd /etc/aggie-experts/$ver
+  dc down -v
+  cd ..
+  rm -rf $ver
+  ``` 
+  
+If the deletion process does get interrupted, docker can appear slow, with no good indication of what's going on. Rather than restarting the docker daemon, which won't solve the problem, monitor that the deletion is still happening in the background, and wait for it to end. The problem is always fcrepo, and it's millions of files. Track the deletion of a volume like this:
+
+```bash
+ver=3-2
+sudo ls /var/lib/docker/volumes/${ver}_fedora-data/_data/ocfl-root/ | wc -l
+```
+
+This lists the file roots in fcrepo's filestore, which is stored in a tree. If the deletion is still going on, you will see this number slowly decrease. If you do see that, then just monitor and wait for that to complete. Sometimes, depending on how you got into trouble, you may have to rerun `dc down -v` but it'll go fast after fcrepo is gone.
