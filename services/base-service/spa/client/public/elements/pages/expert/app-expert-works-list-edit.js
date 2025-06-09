@@ -232,9 +232,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
     });
 
-    // make sure container-title is a single string
+    // make sure container-title is a single string, and update visibility
     citationResults.forEach(cite => {
       if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
+      cite['is-visible'] = (cite.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === this.expertId)));
     });
 
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
