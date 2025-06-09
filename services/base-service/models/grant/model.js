@@ -16,8 +16,26 @@ class GrantModel extends BaseModel {
     super(name);
   }
 
-  snippet(node) {
+  snippet(node,expertId=null) {
     let snip=super.snippet(node);
+    if (expertId) {
+      for (let i = snip.relatedBy.length - 1; i >= 0; i--) {
+        if (snip.relatedBy[i].inheres_in) {
+          if (snip.relatedBy[i].inheres_in !== expertId) {
+            if (snip.relatedBy[i]['is-visible'] === false) {
+              // Vessela sez this might cause issues w/ MIV and the Co-PI list
+              //splice(snip.relatedBy, i, 1);
+              // So for now just remove their is-visible and inheres_in.
+              delete snip.relatedBy[i].inheres_in;
+              delete snip.relatedBy[i]['is-visible'];
+            } else {
+              delete snip.relatedBy.inheres_in;
+              delete snip.relatedBy[i]['is-visible'];
+            }
+          }
+        }
+      }
+    }
     return snip;
   }
 
@@ -31,7 +49,7 @@ class GrantModel extends BaseModel {
     const doc = super.promote_node_to_doc(node);
 
     // mini grant info, if we need to expand
-    ["sponsorAwardId","assignedBy","dateTimeInterval","relatedBy"].forEach(key => {
+    ["sponsorAwardId","assignedBy","dateTimeInterval"].forEach(key => {
       if (node[key]) doc[key] = node[key];
     });
 
@@ -112,14 +130,29 @@ class GrantModel extends BaseModel {
     // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
     if( options['is-visible'] !== false || !options.admin ) {
       // I'm not quite sure about this, if you are an expert on a grant, you can see all other (even non visible) experts as well. I guess that's correct.
-      relatedBy = relatedBy.filter(r => r['is-visible']);
-      delete doc['@graph'][0].totalAwardAmount;
+      // relatedBy = relatedBy.filter(r => r['is-visible']);
+      for (let i = relatedBy.length - 1; i >= 0; i--) {
+        if (relatedBy[i]['is-visible'] === false) {
+          let expertId = relatedBy[i]['inheres_in'] ? relatedBy[i]['inheres_in']['@id'] : null;
+          // remove the @graph entry where the @id matches the expertId
+          for (let j = doc['@graph'].length - 1; j >= 0; j--) {
+            if (doc['@graph'][j]['@id'] === expertId) {
+              doc['@graph'].splice(j, 1);
+            }
+          }
+          // remove the relatedBy entry
+          relatedBy.splice(i, 1);
+        }
+      }
     }
 
     // if doc.relatedBy is empty, doc isn't visible
     if( relatedBy.length === 0 ) {
       throw {status: 404, message: "Not found"};
     }
+    doc['@graph'][0].relatedBy = relatedBy;
+    delete doc.relatedBy; // If there for search
+    delete doc['@graph'][0].totalAwardAmount;
 
     return doc;
   }
@@ -210,25 +243,28 @@ class GrantModel extends BaseModel {
         });
       }
     }
-    root_node.relatedBy=Object.values(relatedBy);
-    const doc = this.promote_node_to_doc(root_node);
-
     // replace expert @id with { @id:expert/ldxxxx, name="Quinn Hart" }
-    doc.relatedBy = JSON.parse(JSON.stringify(doc.relatedBy));
-    for( var i in doc.relatedBy ) {
-      if( doc.relatedBy[i].inheres_in ) {
-        let id = doc.relatedBy[i].inheres_in;
+    let public_relatedBy=[];
+    for( var i in relatedBy ) {
+      if( relatedBy[i].inheres_in ) {
+        let id = relatedBy[i].inheres_in;
         let expert = experts.find(e => e['@id'] === id);
         if( expert ) {
-          for ( var j in doc.relatedBy[i].relates ) {
-            let rel = doc.relatedBy[i].relates[j];
+          for ( var j in relatedBy[i].relates ) {
+            let rel = relatedBy[i].relates[j];
             if ( rel === id ) {
-              doc.relatedBy[i].relates[j] = { '@id': expert['@id'], name: expert.label };
+              relatedBy[i].relates[j] = { '@id': expert['@id'], name: expert.label };
             }
           }
         }
       }
+      if (relatedBy[i].is_visible === true) {
+        public_relatedBy.push(JSON.parse(JSON.stringify(doc.relatedBy[i])));
+      }
     }
+    root_node.relatedBy=Object.values(relatedBy);
+    const doc = this.promote_node_to_doc(root_node);
+    doc.relatedBy=public_relatedBy;
 
     if (vis.length) {
       root_node["is-visible"]=true;
@@ -239,7 +275,6 @@ class GrantModel extends BaseModel {
     }
     await this.update_or_create_main_node_doc(doc);
 
-    const grant_snippet = this.snippet(root_node);
     for (var i in experts) {
       let expert = experts[i];
       try {
@@ -249,7 +284,7 @@ class GrantModel extends BaseModel {
         logger.info(`GrantModel.update() ${doc['@id']} <XX ${expert['@id']}`);
       }
       try {
-        expertModel.update_graph_node(expert['@id'], grant_snippet);
+        expertModel.update_graph_node(expert['@id'], this.snippet(root_node, expert['@id']));
         logger.info(`GrantModel.update() ${doc['@id']} ==> ${expert['@id']}`);
       } catch(e) {
         logger.info(`GrantModel.update() ${doc['@id']} XX> ${expert['@id']}`);
