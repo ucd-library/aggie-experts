@@ -135,7 +135,7 @@ template = {
                             "filter": [
                             {
                               "bool": {
-                                "must": [
+                                "should": [
                                   {
                                     "bool": {
                                       "must": [
@@ -152,7 +152,8 @@ template = {
                                       ]
                                     }
                                   }
-                                ]
+                                ],
+                                "minimum_should_match": 1
                               }
                             }
                           ]
