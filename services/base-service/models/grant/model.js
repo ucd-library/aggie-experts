@@ -216,13 +216,12 @@ class GrantModel extends BaseModel {
     }
 
     root_node.relatedBy = new_related;
-    const doc = this.promote_node_to_doc(root_node);
-
     if (Object.keys(visible_inheres_in).length) {
-      doc["is-visible"]=true; // Some expert wants it visible
+      root_node["is-visible"]=true; // Some expert wants it visible
     } else {
-      doc["is-visible"]=false; // No experts want it visible
+      root_node["is-visible"]=false; // No experts want it visible
     }
+    const doc = this.promote_node_to_doc(root_node);
     await this.update_or_create_main_node_doc(doc);
 
     for (var i in visible_inheres_in) {
