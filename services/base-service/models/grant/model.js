@@ -207,7 +207,7 @@ class GrantModel extends BaseModel {
         }
       } else {
         try {
-          expertModel.update_graph_node(role.inheres_in, this.snippet(root_node));
+          await expertModel.update_graph_node(role.inheres_in, this.snippet(root_node));
           logger.info(`GrantModel.update() ${root_node['@id']} ==> ${role.inheres_in}`);
         } catch(e) {
           logger.info(`GrantModel.update() ${root_node['@id']} XX> ${role.inheres_in}`);
