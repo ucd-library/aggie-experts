@@ -13,8 +13,6 @@ import JsonLdProcessor from 'jsonld';
 import path from 'path';
 import parser from 'xml2json';
 import { count } from 'console';
-// We currently match the fin logger, but don't use the config yet
-//const { logger } = require('@ucd-lib/fin-service-utils');
 import { logger } from './logger.js';
 
 

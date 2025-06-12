@@ -84,10 +84,6 @@ COPY vocabularies/experts.ucdavis.edu%2Fucop/positions.hdt* /var/lib/fuseki/hdt/
 # Update FUSEKI_HOME w/ experts data
 COPY fuseki ${FUSEKI_HOME}
 
-# Get our UCDID tool
-COPY bin/ucdid /usr/local/bin
-RUN chmod +x /usr/local/bin/ucdid
-
 # Get our experts_import tool
 COPY bin/experts_import /usr/local/bin
 RUN chmod +x /usr/local/bin/experts_import
@@ -95,7 +91,7 @@ RUN chmod +x /usr/local/bin/experts_import
 # Copy fin-service
 ARG FIN_API=/usr/local/lib/fin/api
 COPY --from=fin-base-service /fin/api ${FIN_API}
-RUN cd ${FIN_API} && npm link #&& yarn link
+RUN cd ${FIN_API} && npm link
 
 # COPY over experts-api source code
 ARG AE_API=/usr/local/lib/aggie-experts/experts-api
@@ -104,21 +100,16 @@ RUN cd ${AE_API} && npm link
 
 ARG AE_CLIENT=/usr/local/lib/aggie-experts/experts-client
 COPY experts-client ${AE_CLIENT}
-#RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && npm link @ucd-lib/experts-api && npm install -g
 RUN cd ${AE_CLIENT} && npm install -g && npm link @ucd-lib/experts-api
 
-# Add startup file
-COPY /startup.mk /
-COPY /harvest-entrypoint.sh /
+COPY /fuseki-entrypoint.sh /
 
 # Add sqlcl and tarql to bin
 ENV PATH=$PATH:/usr/local/lib/sqlcl/bin:/usr/local/lib/tarql/bin
 ENV JAVA_OPTS="-Xmx8g"
 
-VOLUME /home/ucd.process
-WORKDIR /home/ucd.process
-
 # You can override this entrypoint if you use this image as your base image but
-# if you leave it as is you can use this image to fetch data and act as a server
-#
-ENTRYPOINT ["/harvest-entrypoint.sh" ]
+# if you leave it as is you can use this image to act as a server
+WORKDIR $FUSEKI_BASE
+CMD "${FUSEKI_HOME}/fuseki-server-hdt"
+ENTRYPOINT ["/fuseki-entrypoint.sh" ]

@@ -122,14 +122,16 @@ export default class AppWork extends Mixin(LitElement)
 
     this.authors = authors.map(a => {
       let rankMatch = workGraph.relatedBy.filter(r => r.rank === a.rank)[0];
-      if( rankMatch ) {
+      if( rankMatch && rankMatch['is-visible'] === false ) {
+        return null;
+      } else if( rankMatch ) {
         let expertId = rankMatch.relates.filter(rel => rel.startsWith('expert/'))[0];
         return `<a href="/${expertId}">${a.given} ${a.family}</a>`;
       }
       if( !a.given ) a.given = '';
       if( !a.family ) a.family = '';
       return a.given + ' ' + a.family;
-    });
+    }).filter(a => a !== null);
 
     // build from doi first, then title
     this.ucLink = '';
