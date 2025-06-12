@@ -232,9 +232,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
     });
 
-    // make sure container-title is a single string
+    // make sure container-title is a single string, and update visibility
     citationResults.forEach(cite => {
       if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
+      cite['is-visible'] = (cite.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === this.expertId)));
     });
 
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
@@ -457,11 +458,20 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     // update graph/display data
     let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) citation.relatedBy[0]['is-visible'] = true;
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = true;
+      citation['is-visible'] = true;
+    }
     citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) citation.relatedBy[0]['is-visible'] = true;
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = true;
+      citation['is-visible'] = true;
+    }
     citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) citation.relatedBy[0]['is-visible'] = true;
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = true;
+      citation['is-visible'] = true;
+    }
 
     this.hiddenCitations--;
     this._updateHeaderLabels();
@@ -529,11 +539,20 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       // update graph/display data
       let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy[0]['is-visible'] = false;
+      if( citation ) {
+        citation.relatedBy[0]['is-visible'] = false;
+        citation['is-visible'] = false;
+      }
       citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy[0]['is-visible'] = false;
+      if( citation ) {
+        citation.relatedBy[0]['is-visible'] = false;
+        citation['is-visible'] = false;
+      }
       citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) citation.relatedBy[0]['is-visible'] = false;
+      if( citation ) {
+        citation.relatedBy[0]['is-visible'] = false;
+        citation['is-visible'] = false;
+      }
       this.hiddenCitations++;
 
       this._updateHeaderLabels();

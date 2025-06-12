@@ -173,6 +173,32 @@ dc exec fuseki experts_import
 You can monitor progress through the `/fin/admin` section of your new
 `stage.experts.library.ucdavis.edu`
 
+## Update the Summary Spreadsheet
+
+To monitor changes in the experts, grants and works on the app, an internal Aggie Experts 
+Summary spreadsheet is updated with the imported data. To do so, first download the data 
+onto a csv using:
+
+```bash
+bin/count-experts --host=https://stage.experts.library.ucdavis.edu
+```
+
+This command will save the csv at `~/aggie-experts/log/YYYYMMDD` by default. Next, import 
+the csv to the Aggie Experts Summary spreadsheet. One way to do this is to go to File > Import, 
+then use the Upload tab on the right; select `Insert new sheet(s)` from the `Import location` 
+dropdown on the `Import file` dialogue box.
+
+Rename the sheet with the download date, formatted as YYYYMMDD. Now, update the formula in 
+cell A2 on the `combined` sheet to include this newest data, replacing the oldest data in
+the formula. Next, copy all of column A on the `combined` sheet and `Paste special > Values only` 
+into column A on the `delta` sheet, replacing the experts column on that sheet. Finally, update
+the sheet names in cells D2, E2, and F2 of the `delta` sheet to include the newest data, ordering
+them to have newer data on the left.
+
+You should now be able to sort the data as desired. (Note: sorting will only work properly
+if the experts column was pasted in the delta using `Paste special > Values only`; a 
+normal paste will not allow for proper sorting.)
+
 
 ## Test the server
 
@@ -212,7 +238,7 @@ Currently, weekly snapshots of Aggie Experts are created, resulting in a number 
 
 Typically, 3 or 4 previous versions are kept. Removing an older version takes hours, consequently:
   - remove instances while that machine [blue|gold] is still serving stage; deleting the old versions can slow down disk access (elasticsearch) on the server
-  - don't remove an instance while you are harvesting for another; both tasks disk intensive
+  - don't remove an instance while you are harvesting for another; both tasks are disk intensive
   - use `byobu` or similar to avoid interruption
 
 The process is

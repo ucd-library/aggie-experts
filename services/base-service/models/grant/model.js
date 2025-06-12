@@ -102,25 +102,8 @@ class GrantModel extends BaseModel {
    *  subselect(doc, {admin:false, is-visible:true})
    **/
   subselect(doc, options={}) {
-    let relatedBy = doc['@graph'][0].relatedBy;
-
-    // make doc.relatedBy an array if it is only one object
-    if(relatedBy && !Array.isArray(relatedBy) ) {
-      relatedBy = [relatedBy];
-    }
-
-    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
-    if( options['is-visible'] !== false || !options.admin ) {
-      // I'm not quite sure about this, if you are an expert on a grant, you can see all other (even non visible) experts as well. I guess that's correct.
-      relatedBy = relatedBy.filter(r => r['is-visible']);
-      delete doc['@graph'][0].totalAwardAmount;
-    }
-
-    // if doc.relatedBy is empty, doc isn't visible
-    if( relatedBy.length === 0 ) {
-      throw {status: 404, message: "Not found"};
-    }
-
+    // console.log("GrantModel.subselect()"); This is in uber
+    // Grants should be only public data always
     return doc;
   }
 
@@ -131,27 +114,35 @@ class GrantModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
 
-    const relatedBy = {};
-
     // combine relatedBy (ordered)
-    function addRelatedBy(node) {
+    function get_inheres_in(node) {
+      const inheres_in = {};
       if (node.relatedBy) {
         Array.isArray(node.relatedBy) || (node.relatedBy = [node.relatedBy]);
         node.relatedBy.forEach((rel) => {
-          relatedBy[rel['@id']] = rel;
+          if (rel.inheres_in ) {
+            inheres_in[rel.inheres_in] = rel;
+          }
         });
       }
+      return inheres_in
     }
 
+    let inheres_in={}
     try {
       let existing = await this.client_get(root_node['@id']);
       existing=this.get_expected_model_node(existing);
-      addRelatedBy(existing);
+      inheres_in={...get_inheres_in(existing)};
     } catch(e) {
     }
-    addRelatedBy(root_node);
+    inheres_in={...inheres_in,...get_inheres_in(root_node)}
+    const visible_inheres_in = {}
+    for (const i in inheres_in) {
+      if (inheres_in[i]['is-visible'] === true) {
+        visible_inheres_in[i] = inheres_in[i];
+      }
+    }
 
-    // for each value in relatedBy, if it has .inheres_in, fetch expert
     function nameMatches(name) {
       const name_match={}
       let last=name.family.toLowerCase().replace(/[^a-z]/g,'');
@@ -175,72 +166,65 @@ class GrantModel extends BaseModel {
     const expertModel = await this.get_model('expert');
     // get all name matches
     const name_match = {}
-    const experts=[];
-    const vis=[]
-    for (var rel in relatedBy) {
-      let role=relatedBy[rel];
-      if (role.inheres_in) {
-        if (role["is-visible"]) {
-          vis.push(role);
-        }
-
-        let id = role.inheres_in['@id'] || role.inheres_in;
-        let expert = await expertModel.client_get(role.inheres_in);
-          expert=expertModel.get_expected_model_node(expert);
-        experts.push(expert);
-          if (expert?.hasName) {
-            nameMatches(expert?.hasName).forEach((n) => {
-              name_match[n]=role.inheres_in;
-            });
+    const experts={};
+    // Make sure some expert wants it visible
+    for (var expert_id in visible_inheres_in) {
+      let expert = await expertModel.client_get(expert_id);
+      expert=expertModel.get_expected_model_node(expert);
+      experts[expert_id]=expert;
+      if (expert?.hasName) {
+        nameMatches(expert?.hasName).forEach((n) => {
+          name_match[n]=expert_id;
+        });
+        // Add a label to the role
+        let role=visible_inheres_in[expert_id];
+        for ( var j in role.relates ) {
+          let rel = role.relates[j];
+          if ( rel === expert_id ) {
+              role.relates[j] = { '@id': expert['@id'], name: expert.label };
           }
+        }
       }
     }
-    // finally remove relatedBy with names that match experts
-    for (const rel in relatedBy) {
-      let role=relatedBy[rel];
+    const new_related = [...Object.values(visible_inheres_in)];
+
+    for (const role of
+         Array.isArray(root_node.relatedBy)?root_node.relatedBy:[root_node.relatedBy])
+    {
+      let matched=false
       if (! role.inheres_in && role?.relates) {
         role.relates.forEach(r => {
           if (r.hasName) {
             nameMatches(r.hasName).forEach((nm) => {
               if (name_match[nm]) {
-                delete relatedBy[rel];
+                matched=true;
               }
             })
           }
         });
-      }
-    }
-    root_node.relatedBy=Object.values(relatedBy);
-    const doc = this.promote_node_to_doc(root_node);
-
-    // replace expert @id with { @id:expert/ldxxxx, name="Quinn Hart" }
-    doc.relatedBy = JSON.parse(JSON.stringify(doc.relatedBy));
-    for( var i in doc.relatedBy ) {
-      if( doc.relatedBy[i].inheres_in ) {
-        let id = doc.relatedBy[i].inheres_in;
-        let expert = experts.find(e => e['@id'] === id);
-        if( expert ) {
-          for ( var j in doc.relatedBy[i].relates ) {
-            let rel = doc.relatedBy[i].relates[j];
-            if ( rel === id ) {
-              doc.relatedBy[i].relates[j] = { '@id': expert['@id'], name: expert.label };
-            }
-          }
+        if ( ! matched ) {
+          new_related.push(role)
+        }
+      } else {
+        try {
+          await expertModel.update_graph_node(role.inheres_in, this.snippet(root_node));
+          logger.info(`GrantModel.update() ${root_node['@id']} ==> ${role.inheres_in}`);
+        } catch(e) {
+          logger.info(`GrantModel.update() ${root_node['@id']} XX> ${role.inheres_in}`);
         }
       }
     }
 
-    if (vis.length) {
-      root_node["is-visible"]=true;
-      doc["is-visible"]=true; // Some expert wants it visible
+    root_node.relatedBy = new_related;
+    if (Object.keys(visible_inheres_in).length) {
+      root_node["is-visible"]=true; // Some expert wants it visible
     } else {
-      root_node["is-visible"]=false;
-      doc["is-visible"]=false; // No experts want it visible
+      root_node["is-visible"]=false; // No experts want it visible
     }
+    const doc = this.promote_node_to_doc(root_node);
     await this.update_or_create_main_node_doc(doc);
 
-    const grant_snippet = this.snippet(root_node);
-    for (var i in experts) {
+    for (var i in visible_inheres_in) {
       let expert = experts[i];
       try {
         await this.update_graph_node(doc['@id'], expertModel.snippet(expert));
@@ -248,13 +232,19 @@ class GrantModel extends BaseModel {
       } catch(e) {
         logger.info(`GrantModel.update() ${doc['@id']} <XX ${expert['@id']}`);
       }
-      try {
-        expertModel.update_graph_node(expert['@id'], grant_snippet);
-        logger.info(`GrantModel.update() ${doc['@id']} ==> ${expert['@id']}`);
-      } catch(e) {
-        logger.info(`GrantModel.update() ${doc['@id']} XX> ${expert['@id']}`);
+    }
+
+    for (var expert_id in inheres_in) {
+      if ( inheres_in[expert_id]['is-visible'] === false ) {
+        try {
+          await this.delete_graph_node(doc,expert_id);
+          logger.info(`GrantModel.update() ${expert_id} from ${doc['@id']}`);
+        } catch(e) {
+          logger.info(`GrantModel.update() ${expert_id} from ${doc['@id']} failed`);
+        }
       }
     }
+
   }
 }
 module.exports = GrantModel;

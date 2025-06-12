@@ -337,8 +337,8 @@ return html`
     </div>
 
     <div class="main-content">
-      <div 
-        class="return-to-profile" 
+      <div
+        class="return-to-profile"
         @click="${this._returnToProfile}"
         @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._returnToProfile(e); }}
         tabindex="0"
@@ -382,14 +382,14 @@ return html`
         (cite, index) => html`
           <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h2>
           <hr class="work-seperator">
-          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite.relatedBy?.[0]?.['is-visible'] ? 'not-visible' : ''}">
+          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon 
-                    ?hidden="${!cite.relatedBy?.[0]?.['is-visible']}" 
-                    icon="ucdlib-experts:fa-eye" 
-                    @click=${this._hideWork} 
+                  <ucdlib-icon
+                    ?hidden="${!cite['is-visible']}"
+                    icon="ucdlib-experts:fa-eye"
+                    @click=${this._hideWork}
                     @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideWork(e); }}
                     tabindex="0"
                     role="button"
@@ -397,10 +397,10 @@ return html`
                     data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-work" data-text="Show work">
-                  <ucdlib-icon 
-                    ?hidden="${cite.relatedBy?.[0]?.['is-visible']}" 
-                    icon="ucdlib-experts:fa-eye-slash" 
-                    @click=${this._showWork} 
+                  <ucdlib-icon
+                    ?hidden="${cite['is-visible']}"
+                    icon="ucdlib-experts:fa-eye-slash"
+                    @click=${this._showWork}
                     @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showWork(e); }}
                     tabindex="0"
                     role="button"
@@ -410,9 +410,9 @@ return html`
               </span>
               <span style="position: relative;">
                 <span class="tooltip reject-work" data-text="Reject work">
-                  <ucdlib-icon 
-                    icon="ucdlib-experts:fa-trash" 
-                    @click=${this._rejectWork} 
+                  <ucdlib-icon
+                    icon="ucdlib-experts:fa-trash"
+                    @click=${this._rejectWork}
                     @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._rejectWork(e); }}
                     tabindex="0"
                     role="button"

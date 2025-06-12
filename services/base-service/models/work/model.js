@@ -134,27 +134,17 @@ class WorkModel extends BaseModel {
         *  subselect(doc, {admin:false, is-visible:true})
    **/
   subselect(doc, options={}) {
-    let relatedBy = doc['@graph'][0].relatedBy;
-
-    // make doc.relatedBy an array if it is only one object
-    if(relatedBy && !Array.isArray(relatedBy) ) {
-      relatedBy = [relatedBy];
-    }
-
-    // by default, filter out hidden works/grants if not requested to include them, or if not admin/expert
+    let defaults= {
+      admin: false,
+      'is-visible': true
+    };
+    options = {...defaults, ...options};
     if( options['is-visible'] !== false || !options.admin ) {
       // Still honor the is-visible flag at doc level.
       if (doc["is-visible"] === false) {
         throw {status: 404, message: "Not found"};
       }
-      relatedBy = relatedBy.filter(r => r['is-visible']);
     }
-
-    // if doc.relatedBy is empty, doc isn't visible
-    if( relatedBy.length === 0 ) {
-      throw {status: 404, message: "Not found"};
-    }
-
     return doc;
   }
 
@@ -168,72 +158,87 @@ class WorkModel extends BaseModel {
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
 
-    const relatedBy = {};
-
     // combine relatedBy (ordered)
-    function addRelatedBy(node) {
+    function getRelatedBy(node) {
+      const relatedBy = {};
       if (node.relatedBy) {
         Array.isArray(node.relatedBy) || (node.relatedBy = [node.relatedBy]);
         node.relatedBy.forEach((rel) => {
           relatedBy[rel['@id']] = rel;
           });
       }
+      return relatedBy;
     }
 
+    let relatedBy={}
     try {
       let existing = await this.client_get(root_node['@id']);
       existing = this.get_expected_model_node(existing);
-      addRelatedBy(existing);
+      relatedBy={...getRelatedBy(existing)};
     } catch(e) {
       //logger.info(`WorkModel.update: ${root_node['@id']} not found`);
     }
-    addRelatedBy(root_node);
-
+    relatedBy={...relatedBy,...getRelatedBy(root_node)};
+    const visibleRelatedBy={};
+    for (const i in relatedBy) {
+      if (relatedBy[i]['is-visible'] === true) {
+        visibleRelatedBy[i] = relatedBy[i];
+      }
+    }
     // foreach relatedBy, fetch the expert
     const expertModel=await this.get_model('expert');
-    const experts=[];
-    for (var rel in relatedBy) {
-      let authorship = relatedBy[rel];
-      // Some authorships wants is visible to be set
-      if (authorship["is-visible"]==true) {
-        root_node["is-visible"]=true;
-      }
+    for ( const authorship of
+          Array.isArray(root_node.relatedBy)?root_node.relatedBy:
+          [root_node.relatedBy] ) {
       for(let i=0; i<authorship.relates.length; i++) {
-          let related=authorship.relates[i];
-          if (related.match(/^expert/)) {
-            let expert=await expertModel.client_get(related);
-            expert=expertModel.get_expected_model_node(expert);
-            experts.push(expert);
+        let expert_id=authorship.relates[i];
+        if (expert_id.match(/^expert/)) {
+          try {
+            await expertModel.update_graph_node(expert_id, this.snippet(root_node));
+            logger.info(`Work.update() ${root_node['@id']} ==> ${expert_id}`);
+          } catch(e) {
+            logger.info(`Work.update() ${work_node['@id']} XX> ${expert_id}`);
           }
         }
+      }
     }
-    root_node.relatedBy = Object.values(relatedBy);
+    root_node.relatedBy = Object.values(visibleRelatedBy);
+    if (root_node.relatedBy.length) {
+      root_node["is-visible"]=true;
+    } else{
+      root_node["is-visible"]=false;
+    }
     const doc = this.promote_node_to_doc(root_node);
     await this.update_or_create_main_node_doc(doc);
-    const work_snippet = this.snippet(root_node);
-    for (var i in experts) {
-      let expert = experts[i];
-      try {
-        await this.update_graph_node(doc['@id'], expertModel.snippet(expert));
-        logger.info(`Work.update() ${doc['@id']} <== ${expert['@id']}`);
-      } catch(e) {
-        logger.info(`Work.update() ${doc['@id']} <XX ${expert['@id']}`);
-      }
-      try {
-        // only add in that experts relations
-        let relatedBy = work_snippet.relatedBy;
-        relatedBy = relatedBy.filter
-        (w => w['is-visible'] && w.relates.some(r => r === expert['@id']));
-        if (relatedBy.length > 0) {
-          expertModel.update_graph_node
-          (expert['@id'],
-           {...work_snippet, relatedBy: relatedBy});
-        } else {
-          expertModel.update_graph_node(expert['@id'], work_snippet);
+    // Add all visible author nodes
+    for (const authorship of root_node.relatedBy) {
+      for(let i=0; i<authorship.relates.length; i++) {
+        let expert_id=authorship.relates[i];
+        if (expert_id.match(/^expert/)) {
+          try {
+            let expert=await expertModel.client_get(expert_id);
+            await this.update_graph_node(doc['@id'], expertModel.snippet(expert));
+            logger.info(`Work.update() ${doc['@id']} <== ${expert_id}`);
+          } catch(e) {
+            logger.info(`Work.update() ${doc['@id']} <XX ${expert_id}`);
+          }
         }
-        logger.info(`Work.update() ${doc['@id']} ==> ${expert['@id']}`);
-      } catch(e) {
-        logger.info(`Work.update() ${doc['@id']} XX> ${expert['@id']}`);
+      }
+    }
+    // delete all non-visible author nodes
+    for (const authorship of Object.values(relatedBy)) {
+      if (authorship["is-visible"] === false) {
+        for(let i=0; i<authorship.relates.length; i++) {
+          let expert_id=authorship.relates[i];
+          if (expert_id.match(/^expert/)) {
+            try {
+              await this.delete_graph_node(doc,expert_id);
+              logger.info(`Work.update() ${doc['@id']} rm ${expert_id}`);
+            } catch(e) {
+              logger.info(`Work.update() ${doc['@id']} failed rm ${expert_id}`);
+            }
+          }
+        }
       }
     }
   }
