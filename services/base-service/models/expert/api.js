@@ -8,9 +8,6 @@ const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
 const model= new ExpertModel();
 
-const AuthorshipModel = require('../authorship/model.js');
-const authorshipModel = new AuthorshipModel();
-
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
 const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
 
