@@ -68,33 +68,6 @@ router.patch('/:expertId/availability',
 
 router.route(
   '/:expertId/:relationshipId'
-).get(
-  public_or_is_user,
-  expert_valid_path(
-    {
-      description: "Get an expert relationship by id",
-      responses: {
-        "200": openapi.response('Relationship'),
-        "404": openapi.response('Relationship_not_found')
-      }
-    }
-  ),
-  expert_valid_path_error,
-  user_can_edit,
-  async (req, res, next) => {
-    let id = req.params.relationshipId;
-    try {
-      const authorship_model = await model.get_model('authorship');
-      res.thisDoc = await authorship_model.get(id);
-      logger.info({function:'get'},JSON.stringify(res.thisDoc));
-      return next();
-    } catch(e) {
-     res.status(404).json(`${id} from ${req.path} - ${e.message}`);
-    }
-  },
-  async (req, res, next) => {
-   res.status(200).json(res.thisDoc);
-  }
 ).patch(
   expert_valid_path(
     {
@@ -140,7 +113,7 @@ router.route(
       if( data.grant ) {
         role_model = model.grantRole();
       } else {
-        role_model = await model.get_model('authorship');
+        role_model = model.Authorship();
       }
       patched=await role_model.patch(data,expertId);
       res.status(204).json();
@@ -168,8 +141,7 @@ router.route(
       let expertId = `expert/${req.params.expertId}`;
       let id = req.params.relationshipId;
 
-      const authorshipModel = await model.get_model('authorship');
-      await authorshipModel.delete(id, expertId);
+      await model.Authorship().delete(id, expertId);
       res.status(200).json({status: "ok"});
     } catch(e) {
       next(e);
@@ -228,7 +200,7 @@ function expert_valid_path_error(err, req, res, next) {
   })
 }
 
-// this is taken from the middleware/index.js item_endpoint function 
+// this is taken from the middleware/index.js item_endpoint function
 // just creating a simple route for now to return all expert graph data,
 // optionally including "is-visible":false for admins/profile owner
 // ?include=hidden&all
@@ -269,7 +241,7 @@ router.route(
     // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
     let userCanEdit = req.user?.roles?.includes('admin') || expertId === req.user?.attributes?.expertId;
     let userLoggedIn = req.user;
-    
+
     if( !userLoggedIn && !userCanEdit ) includeHidden = false;
     if( !userCanEdit && all ) all = false;
 
