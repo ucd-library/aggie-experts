@@ -128,7 +128,10 @@ template = {
                                   "@graph.identifier^10",
                                   "@graph.container-title^5",
                                   "@graph.publisher^5",
-                                  "@graph.title^10"
+                                  "@graph.title^10",
+                                  "@graph.author.family^10",
+                                  "@graph.author.given^5",
+                                  "@graph.relatedBy.relates.name^5"
                                 ],
                                 "default_operator": "and"
                               } } ],
