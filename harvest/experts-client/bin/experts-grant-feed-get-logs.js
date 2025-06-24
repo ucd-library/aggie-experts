@@ -144,9 +144,36 @@ async function uploadFileGCS(localFilePath, destinationFileName) {
   }
 }
 
+// Function to upload empty csv files to Sympletic server
+async function uploadEmptyCSVToSymplectic() {
+  try {
+    // SFTP the each empty CSV file to the Symplectic server
+    await sftp.connect(ftpConfig);
+    log.info(`Connected to SFTP server to upload empty CSV files`);
+
+    let emptyCSVPath = path.join(__dirname, 'lib/grants/csv-templates');
+    // remove bin/ from the path
+    emptyCSVPath = emptyCSVPath.replace('bin/', '');
+
+    const files = fs.readdirSync(emptyCSVPath);
+    for (const file of files) {
+      const localFilePath = path.join(emptyCSVPath, file);
+      const remoteFilePath = `/PROD/${file}`;
+      log.info(`Uploading empty CSV file to Symplectic: ${localFilePath} -> ${remoteFilePath}`);
+      await sftp.put(localFilePath, remoteFilePath);
+      log.info(`Empty CSV file uploaded successfully: ${remoteFilePath}`);
+    }
+  } catch (error) {
+    log.error('Error uploading empty CSV files to Symplectic:', error.message);
+  } finally {
+    await sftp.end();
+  }
+
 // Ensure the output directory exists
 if (!fs.existsSync(opt.output + '/' + opt.prefix + opt.logName)) {
   fs.mkdirSync(opt.output + '/' + opt.prefix + opt.logName, { recursive: true });
+}
+
 }
 
 const remoteFolderPath = '/PROD/Logs/' + opt.logName; // UCDavis_Grants_Feed_logs;
@@ -155,4 +182,6 @@ const localFolderPath = opt.output + '/' + opt.prefix + opt.logName;
 ftpConfig.password = await gs.getSecret(opt.secretpath);
 const slackWebhookUrl = await gs.getSecret(opt.slacksecretpath);
 
-downloadFilesFromMostRecentDirectory(remoteFolderPath, localFolderPath, opt.offset);
+await downloadFilesFromMostRecentDirectory(remoteFolderPath, localFolderPath, opt.offset);
+await uploadEmptyCSVToSymplectic();
+log.info('All operations completed successfully.');
