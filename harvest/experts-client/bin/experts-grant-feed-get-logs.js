@@ -123,6 +123,8 @@ async function downloadFilesFromMostRecentDirectory(remoteFolderPath, localFolde
     }
   } catch (error) {
     log.error('Error downloading files from the most recent directory:', error.message);
+  } finally {
+    await sftp.end();
   }
 }
 
@@ -146,7 +148,13 @@ async function uploadFileGCS(localFilePath, destinationFileName) {
 async function uploadEmptyCSVToSymplectic() {
   try {
     // SFTP the each empty CSV file to the Symplectic server
-    const emptyCSVPath = path.join('../lib/grants/csv-templates');
+    await sftp.connect(ftpConfig);
+    log.info(`Connected to SFTP server to upload empty CSV files`);
+
+    let emptyCSVPath = path.join(__dirname, 'lib/grants/csv-templates');
+    // remove bin/ from the path
+    emptyCSVPath = emptyCSVPath.replace('bin/', '');
+
     const files = fs.readdirSync(emptyCSVPath);
     for (const file of files) {
       const localFilePath = path.join(emptyCSVPath, file);
@@ -157,6 +165,8 @@ async function uploadEmptyCSVToSymplectic() {
     }
   } catch (error) {
     log.error('Error uploading empty CSV files to Symplectic:', error.message);
+  } finally {
+    await sftp.end();
   }
 
 // Ensure the output directory exists
@@ -172,6 +182,6 @@ const localFolderPath = opt.output + '/' + opt.prefix + opt.logName;
 ftpConfig.password = await gs.getSecret(opt.secretpath);
 const slackWebhookUrl = await gs.getSecret(opt.slacksecretpath);
 
-downloadFilesFromMostRecentDirectory(remoteFolderPath, localFolderPath, opt.offset);
-uploadEmptyCSVToSymplectic();
-await sftp.end();
+await downloadFilesFromMostRecentDirectory(remoteFolderPath, localFolderPath, opt.offset);
+await uploadEmptyCSVToSymplectic();
+log.info('All operations completed successfully.');
