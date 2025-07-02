@@ -100,7 +100,13 @@ RUN cd ${AE_API} && npm link
 
 ARG AE_CLIENT=/usr/local/lib/aggie-experts/experts-client
 COPY experts-client ${AE_CLIENT}
-RUN cd ${AE_CLIENT} && npm install -g && npm link @ucd-lib/experts-api
+#RUN cd ${AE_CLIENT} && rm -rf package-lock.json node_modules && npm link @ucd-lib/experts-api && npm install -g
+
+# npm rebuild is hack fix for arm64... why is this needed?
+RUN cd ${AE_CLIENT} && \
+    npm install -g && \
+    npm rebuild && \
+    npm link @ucd-lib/experts-api
 
 COPY /fuseki-entrypoint.sh /
 
