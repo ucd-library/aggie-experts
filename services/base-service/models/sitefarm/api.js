@@ -97,7 +97,7 @@ function siteFarmFormat(req, res, next) {
     newDoc["scopusId"] = doc["@graph"][i].scopusId;
 
     // Include the website list we filtered for above
-    newDoc["contactInfo"].hasURL = websites[0].hasURL && websites.length > 0 ? websites[0].hasURL : null;
+    newDoc["contactInfo"].hasURL = websites.length > 0 && websites[0].hasURL ? websites[0].hasURL : null;
     // preserve the modified-date
     newDoc["modified-date"] = doc["modified-date"];
     newArray.push(newDoc);
