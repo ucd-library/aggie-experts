@@ -94,6 +94,7 @@ function arrayChanged(a1, a2) {
   let v2 = a2.map(item => item['@id'] || item['@value'] || item);
   for( let i = 0; i < v1.length; i++ ) {
     if( !v2.includes(v1[i]) ) {
+      console.log({a1, a2});
       return { type: 'array-item-missing', new: v1[i], old: null };
     }
   }

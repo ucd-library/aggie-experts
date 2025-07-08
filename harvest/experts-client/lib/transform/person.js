@@ -1,6 +1,8 @@
 import jsonpath from 'jsonpath';
 import fs from 'fs';
 import path from 'path';
+import verify from './verify.js';
+import md5 from 'md5';
 
 function run(profile, cdl) {
   const result = [];
@@ -26,12 +28,16 @@ function run(profile, cdl) {
   const isOdrVisible = jsonpath.value(profile, '$["@graph"][0].directory.displayName.nameWwwFlag') === 'N' ? false : true;
 
   // Extract research areas from CDL data
-  const researchAreas = jsonpath.query(cdl, '$["@graph"][0]["api:fields"]["api:field"]["api:keywords"]["api:keyword"][*]');
+  const researchAreas = (jsonpath.query(cdl, '$["@graph"][0]["api:object"]["api:all-labels"]["api:keywords"]["api:keyword"][*]') || [])
+    .filter(area => area.scheme === 'for');
   
   // Extract CDL profile info
+  const cdlUserFirstName = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:first-name"]');
+  const cdlUserLastName = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:last-name"]');
+  const cdlDepartment = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:department"]');
+  const cdlPosition = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:position"]');
   const cdlUserId = jsonpath.value(cdl, '$["@graph"][0]["api:object"].id');
   const cdlOverview = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:records"]["api:record"]["api:native"]["api:field"][?(@.name=="overview")]["api:text"]["$t"]');
-  const cdlPosition = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:records"]["api:record"]["api:native"]["api:field"][?(@.name=="non-academic-employments")]["api:non-academic-employments"]["api:non-academic-employment"]["api:position"]');
   const cdlWebsites = jsonpath.query(cdl, '$["@graph"][0]["api:object"]["api:records"]["api:record"]["api:native"]["api:field"][?(@.name=="personal-websites")]["api:web-addresses"]["api:web-address"][*]');
   const orcidId = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"][?(@.scheme=="orcid")]["$t"]');
   
@@ -83,9 +89,6 @@ function run(profile, cdl) {
     "http://www.w3.org/2006/vcard/ns#hasName": [
       { "@id": `ark:/87287/d7c08j/user/${iamId}#name` }
     ],
-    "http://vivoweb.org/ontology/core#hasResearchArea": researchAreas.map(area => ({
-      "@id": `ark:/87287/d7mh2m/keyword/for/${area.scheme === 'for' ? area['$t'].split(' ')[0] : area['$t']}`
-    })),
     "http://vivoweb.org/ontology/core#orcidId": [
       { "@value": orcidId }
     ],
@@ -93,6 +96,12 @@ function run(profile, cdl) {
       { "@value": cdlOverview }
     ]
   };
+
+  if( researchAreas.length > 0 ) {
+    expert["http://vivoweb.org/ontology/core#hasResearchArea"] = researchAreas.map(area => ({
+      "@id": `ark:/87287/d7mh2m/keyword/for/${area['$t'].split(' ')[0]}`
+    }));
+  }
   
   result.push(expert);
   
@@ -135,11 +144,15 @@ function run(profile, cdl) {
   
   result.push(nameRecord);
   
+  let odrTitles = [];
+
   // Create directory contact info (preferred)
   if (directoryListings) {
     directoryListings.forEach(directoryListing => {
+      let baseUrl = `ark:/87287/d7c08j/user/${iamId}#odr-${directoryListing.listingOrder}`;
+
       const odrContact = {
-        "@id": `ark:/87287/d7c08j/user/${iamId}#odr-1`,
+        "@id": baseUrl,
         "@type": ["http://www.w3.org/2006/vcard/ns#Individual"],
         "http://schema.org/name": [
           { "@value": `${lastName}, ${firstName} § ${directoryListing.title}, ${directoryListing.deptName}` }
@@ -157,23 +170,30 @@ function run(profile, cdl) {
         "http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit": [
           { "@id": `ark:/87287/d7c08j/dept/odr/${directoryListing.deptCode}` }
         ],
-        "http://www.w3.org/2006/vcard/ns#hasTitle": [
-          { "@id": `ark:/87287/d7c08j/position/odr/${directoryListing.title.replace(/\s+/g, '').toLowerCase()}` }
-        ],
         "http://vivoweb.org/ontology/core#rank": [
-          { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": directoryListing.listingOrder+"" }
+          { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value":  directoryListing.listingOrder + "" }
         ]
       };
+
+      if( directoryListing.title ) {
+        odrTitles.push({
+          "@id": `ark:/87287/d7c08j/position/odr/${md5(directoryListing.title)}`,
+          "@type": ["http://www.w3.org/2006/vcard/ns#Title"],
+          "http://www.w3.org/2006/vcard/ns#title": [
+            { "@value": directoryListing.title }
+          ]
+        });
+      }
       
       // Add website if available
       if (directoryListing.website) {
         odrContact["http://www.w3.org/2006/vcard/ns#hasURL"] = [
-          { "@id": `ark:/87287/d7c08j/user/${iamId}#odr-1-url` }
+          { "@id": `${baseUrl}-url` }
         ];
         
         // Create URL record
         result.push({
-          "@id": `ark:/87287/d7c08j/user/${iamId}#odr-1-url`,
+          "@id": `${baseUrl}-url`,
           "@type": ["http://www.w3.org/2006/vcard/ns#URL"],
           "http://www.w3.org/2006/vcard/ns#url": [
             { "@value": directoryListing.website }
@@ -182,6 +202,14 @@ function run(profile, cdl) {
       }
       
       result.push(odrContact);
+
+      // Create position record
+      if( odrTitles.length > 0 ) {
+        odrContact["http://www.w3.org/2006/vcard/ns#hasTitle"] = odrTitles.map(title => ({ "@id": title["@id"] }));
+        odrTitles.forEach(title => {
+          result.push(title);
+        });
+      }
       
       // Create department record
       result.push({
@@ -192,14 +220,6 @@ function run(profile, cdl) {
         ]
       });
       
-      // Create position record
-      result.push({
-        "@id": `ark:/87287/d7c08j/position/odr/${directoryListing.title.replace(/\s+/g, '').toLowerCase()}`,
-        "@type": ["http://www.w3.org/2006/vcard/ns#Title"],
-        "http://www.w3.org/2006/vcard/ns#title": [
-          { "@value": directoryListing.title }
-        ]
-      });
     });
   }
   
@@ -229,7 +249,10 @@ function run(profile, cdl) {
           { "@id": `ark:/87287/d7c08j/position/${ppsAssociation.titleCode}` }
         ],
         "http://vivoweb.org/ontology/core#rank": [
-          { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": ppsAssociation.assocRank+""}
+          { 
+            "@type": "http://www.w3.org/2001/XMLSchema#integer", 
+            "@value": (ppsAssociation.assocRank+10)+""
+          }
         ]
       };
       
@@ -260,7 +283,7 @@ function run(profile, cdl) {
     "@id": `${expertUri}#vcard-oap-1`,
     "@type": ["http://www.w3.org/2006/vcard/ns#Individual"],
     "http://schema.org/name": [
-      { "@value": `${lastName}, ${firstName} § ${ppsAssociations ? ppsAssociations.titleDisplayName : 'UNKNOWN'}, ${ppsAssociations ? ppsAssociations.deptDisplayName : 'UNKNOWN'}` }
+      { "@value": `${cdlUserLastName}, ${cdlUserFirstName} § ${cdlPosition || ""}, ${cdlDepartment || ""}` }
     ],
     // this seems to be hard coded...
     "http://schema.library.ucdavis.edu/schema#isPreferred": [
@@ -330,13 +353,18 @@ function runFromFile(filePath, cdlFilePath) {
   let root = '/Users/jrmerz/dev/library/aggie-experts/aggie-experts';
   let profile = path.join(root, 'test-data', 'mailto:jrmerz@ucdavis.edu', 'ark:', '87287', 'd7c08j', 'profile.jsonld');
   let cdl = path.join(root, 'test-data', 'mailto:jrmerz@ucdavis.edu', 'ark:', '87287', 'd7mh2m', 'user_000.jsonld');
-
+  let original = path.join(root, 'test-data', 'mailto:jrmerz@ucdavis.edu', 'fcrepo', 'expert', 'DffIr7cE.jsonld.json');
   // profile = JSON.parse(fs.readFileSync(profile, 'utf8'));
   // const ppsAssociations = jsonpath.value(profile, '$["@graph"][0].ppsAssociations[1]');
   // console.log('PPS Associations:', ppsAssociations);
-
+3
   let result = runFromFile(profile, cdl);
-  console.log(JSON.stringify(result, null, 2));
+  original = JSON.parse(fs.readFileSync(original, 'utf8'));
+
+  // console.log('Result:', JSON.stringify(result, null, 2));
+  // console.log('--------------------------------------')
+  let changes = verify(original, result);
+  console.log('Changes:', JSON.stringify(changes, null, 2));
 })();
 
 export { run, runFromFile };
