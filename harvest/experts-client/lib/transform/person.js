@@ -16,13 +16,15 @@ function run(profile, cdl) {
   const middleName = jsonpath.value(profile, '$["@graph"][0].dMiddleName');
   const lastName = jsonpath.value(profile, '$["@graph"][0].dLastName');
   const isFaculty = jsonpath.value(profile, '$["@graph"][0].isFaculty') || false;
+  const isHSEmployee = jsonpath.value(profile, '$["@graph"][0].isHSEmployee') || false;
   const fullName = jsonpath.value(profile, '$["@graph"][0].dFullName');
   const pronouns = jsonpath.value(profile, '$["@graph"][0].directory.displayName.preferredPronouns');
   
   // Extract employment info from profile
   const ppsAssociations = jsonpath.value(profile, '$["@graph"][0].ppsAssociations');
   const directoryListings = jsonpath.value(profile, '$["@graph"][0].directory.listings');
-  
+  const isOdrVisible = jsonpath.value(profile, '$["@graph"][0].directory.displayName.nameWwwFlag') === 'N' ? false : true;
+
   // Extract research areas from CDL data
   const researchAreas = jsonpath.query(cdl, '$["@graph"][0]["api:fields"]["api:field"]["api:keywords"]["api:keyword"][*]');
   
@@ -72,10 +74,10 @@ function run(profile, cdl) {
       { "@id": `http://orcid.org/${orcidId}` }
     ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": "true" }
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": isOdrVisible+"" }
     ],
     "http://schema.library.ucdavis.edu/schema#isHSEmployee": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": "false" }
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": isHSEmployee+"" }
     ],
     "http://schema.library.ucdavis.edu/schema#name_match": nameMatches.map(match => ({ "@value": match })),
     "http://www.w3.org/2006/vcard/ns#hasName": [
@@ -142,6 +144,7 @@ function run(profile, cdl) {
         "http://schema.org/name": [
           { "@value": `${lastName}, ${firstName} § ${directoryListing.title}, ${directoryListing.deptName}` }
         ],
+        // if there is an odr, it's preferred?
         "http://schema.library.ucdavis.edu/schema#isPreferred": [
           { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": "true" }
         ],
@@ -158,7 +161,7 @@ function run(profile, cdl) {
           { "@id": `ark:/87287/d7c08j/position/odr/${directoryListing.title.replace(/\s+/g, '').toLowerCase()}` }
         ],
         "http://vivoweb.org/ontology/core#rank": [
-          { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": "1" }
+          { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": directoryListing.listingOrder+"" }
         ]
       };
       
@@ -211,7 +214,7 @@ function run(profile, cdl) {
           { "@value": `${lastName}, ${firstName} § ${ppsAssociation.titleDisplayName}, ${ppsAssociation.deptDisplayName}` }
         ],
         "http://schema.library.ucdavis.edu/schema#isPreferred": [
-          { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": "false" }
+          { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": directoryListings.length === 0 ? "true" : "false" }
         ],
         "http://www.w3.org/2006/vcard/ns#hasEmail": [
           { "@id": `mailto:${email}` }
@@ -259,6 +262,7 @@ function run(profile, cdl) {
     "http://schema.org/name": [
       { "@value": `${lastName}, ${firstName} § ${ppsAssociations ? ppsAssociations.titleDisplayName : 'UNKNOWN'}, ${ppsAssociations ? ppsAssociations.deptDisplayName : 'UNKNOWN'}` }
     ],
+    // this seems to be hard coded...
     "http://schema.library.ucdavis.edu/schema#isPreferred": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": "false" }
     ],
@@ -266,6 +270,7 @@ function run(profile, cdl) {
       { "@id": `${expertUri}#vcard-oap-1-name` }
     ],
     "http://www.w3.org/2006/vcard/ns#hasURL": [],
+    // this seems to be hard coded...
     "http://vivoweb.org/ontology/core#rank": [
       { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": "20" }
     ]
