@@ -343,28 +343,19 @@ function run(profile, cdl) {
   return result;
 }
 
-function runFromFile(filePath, cdlFilePath) {
-  const profile = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  const cdl = JSON.parse(fs.readFileSync(cdlFilePath, 'utf8'));
-  return run(profile, cdl);
+function runFromFiles(odrFile, cdlFiles) {
+  const profile = JSON.parse(fs.readFileSync(odrFile, 'utf8'));
+
+  let cdlData = {
+    '@graph': []
+  }
+
+  cdlFiles.forEach(cdlFilePath => {
+    const cdl = JSON.parse(fs.readFileSync(cdlFilePath, 'utf8'));
+    cdlData['@graph'].push(...cdl['@graph']);
+  });
+
+  return run(profile, cdlData);
 }
 
-(function() {
-  let root = '/Users/jrmerz/dev/library/aggie-experts/aggie-experts';
-  let profile = path.join(root, 'test-data', 'mailto:jrmerz@ucdavis.edu', 'ark:', '87287', 'd7c08j', 'profile.jsonld');
-  let cdl = path.join(root, 'test-data', 'mailto:jrmerz@ucdavis.edu', 'ark:', '87287', 'd7mh2m', 'user_000.jsonld');
-  let original = path.join(root, 'test-data', 'mailto:jrmerz@ucdavis.edu', 'fcrepo', 'expert', 'DffIr7cE.jsonld.json');
-  // profile = JSON.parse(fs.readFileSync(profile, 'utf8'));
-  // const ppsAssociations = jsonpath.value(profile, '$["@graph"][0].ppsAssociations[1]');
-  // console.log('PPS Associations:', ppsAssociations);
-3
-  let result = runFromFile(profile, cdl);
-  original = JSON.parse(fs.readFileSync(original, 'utf8'));
-
-  // console.log('Result:', JSON.stringify(result, null, 2));
-  // console.log('--------------------------------------')
-  let changes = verify(original, result);
-  console.log('Changes:', JSON.stringify(changes, null, 2));
-})();
-
-export { run, runFromFile };
+export { run, runFromFiles };
