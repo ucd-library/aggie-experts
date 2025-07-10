@@ -28,7 +28,7 @@ function measureSerializer(measure) {
 
 export const logger = bunyan.createLogger({
   name: 'experts',
-  level: 'fatal',
+  level: 'info',
   stream: process.stderr,
   serializers: {
     mark: markSerializer,
