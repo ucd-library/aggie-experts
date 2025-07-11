@@ -124,7 +124,7 @@ export class CdlClient {
     const count = options.count || 0;
     const force = options.force || false;
 
-    const dir = path.join(config.cache.rootDir, config.cache.cdlDir);
+    const dir = path.join(config.cache.rootDir, options.cacheName, config.cache.cdlDir);
     const xmlfn = path.join(dir, `${name}_${count.toString().padStart(3, '0')}.xml`);
     const jsonldfn = path.join(dir, `${name}_${count.toString().padStart(3, '0')}.jsonld`);
 
@@ -134,11 +134,13 @@ export class CdlClient {
             
         const xml = fs.readFileSync(xmlfn, 'utf8');
         const json = await parser.toJson(xml, { object: true, arrayNotation: false });
+        const contextObj = JSON.parse(fs.readFileSync(jsonldfn, 'utf8'));
 
         return {
           xmlfn,
           jsonldfn,
-          json
+          json,
+          contextObj
         };
       }
     }
@@ -191,10 +193,11 @@ export class CdlClient {
     // convert the xml atom feed to json
     this.log.info(`Converting ${xmlfn} to json`);
     const json = await parser.toJson(xml, { object: true, arrayNotation: false });
+    let contextObj;
 
     if( json?.feed?.entry && options.noCache !== true ) {
-      let contextObj = this.context();
-      contextObj["@graph"] = options.transform ? options.transform(json.feed.entry) : json.feed.entry;
+      contextObj = this.context();
+      contextObj["@graph"] = options.transform ? options.transform(json) : json.feed.entry;
 
       fs.ensureFileSync(jsonldfn);
       fs.writeFileSync(jsonldfn, JSON.stringify(contextObj, null, 2));
@@ -203,7 +206,8 @@ export class CdlClient {
     return {
       xmlfn,
       jsonldfn,
-      json: json
+      json: json,
+      contextObj
     };
   }
 
@@ -214,6 +218,10 @@ export class CdlClient {
    * @returns {string|null} - Returns the URL of the next page or null if there is no next page.
    */
   nextPage(pagination) {
+    if (!pagination || !pagination["api:page"]) {
+      return null;
+    }
+
     let pages = pagination["api:page"];
     Array.isArray(pages) || (pages = [pages]);
     for (let link of pages) {
@@ -295,7 +303,8 @@ export class CdlClient {
     while (nextPage) {
 
       const { json } = await this.fetch(nextPage, {
-        name:'user', 
+        name: 'user',
+        cacheName : user,
         count, 
         force: options.force
       });
@@ -395,15 +404,16 @@ export class CdlClient {
 
     while (nextPage) {
 
-      const page = await this.fetch(nextPage, {
+      const {json} = await this.fetch(nextPage, {
         name: 'rel',
+        cacheName : user,
         force: options.force,
         count,
         transform: transform.bind(this)
       });
 
       count++
-      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+      nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
     return count;
   }

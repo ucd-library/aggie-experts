@@ -1,8 +1,7 @@
 import { Command } from 'commander';
-import fs from 'fs-extra';
-import path from 'path';
 
 import CdlClient from '../lib/extract/cdl.js';
+import IamClient from '../lib/extract/iam.js';
 
 const program = new Command();
 
@@ -21,8 +20,17 @@ program.name('extract')
     console.log('Extracting data for user:', options.user);
     console.log('Root directory for extracted data:', options.rootDir);
 
+    const iamClient = new IamClient();
+    await iamClient.profile(options.user, {
+      force: options.force    
+    });
+
     const cdlClient = new CdlClient();
     await cdlClient.getUser(options.user, {
+      force: options.force
+    });
+
+    await cdlClient.getUserRelationships(options.user, {
       force: options.force
     });
 

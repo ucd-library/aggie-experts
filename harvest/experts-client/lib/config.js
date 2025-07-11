@@ -4,7 +4,9 @@ const config = {
   cache : {
     rootDir : env.EXPERTS_CACHE_ROOT_DIR || process.cwd(),
     cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'ark:/87287/d7mh2',
+    iamDir : env.EXPERTS_IAM_CACHE_DIR || 'ark:/87287/d7c08j',
     cdlUserFilename : 'user_000.jsonld',
+    iamUserFilename : 'profile.jsonld',
   },
 
   cdl : {
@@ -45,6 +47,51 @@ const config = {
         'experts': 1576
       },
       timeout : 30000
+    }
+  },
+
+  iam : {
+    env : env.EXPERTS_IAM_ENV || 'prod',
+    timeout : env.EXPERTS_IAM_TIMEOUT || 30000,
+
+    context : {
+      "@context": {
+        "@version":1.1,
+        "@base":"ark:/87287/d7c08j/user/",
+        "@vocab":"ark:/87287/d7c08j/schema#",
+        "iamId":{
+          "@type":"@id",
+          "@id":"@id",
+          "@context": {
+            "@base":"ark:/87287/d7c08j/user/"
+          }
+        },
+        "bouOrgoid": {
+          "@type":"@id",
+          "@context": {
+            "@base":"ark:/87287/d7c08j/organization/"
+          }
+        },
+        "titleCode": {
+          "@type":"@id",
+          "@context": {
+            "@base":"ark:/87287/d7c08j/position/"
+          }
+        }
+      }
+    },
+
+    dev: {
+      url: 'https://iet-ws-stage.ucdavis.edu/api/iam/',
+      authname: 'iet-ws-stage',
+      secretpath: 'projects/325574696734/secrets/ucdid_auth',
+      timeout: 30000
+    },
+    prod: {
+      url: 'https://iet-ws.ucdavis.edu/api/iam/',
+      authname: 'iet-ws',
+      secretpath: 'projects/325574696734/secrets/ucdid_auth',
+      timeout: 30000
     }
   }
 }
