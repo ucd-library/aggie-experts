@@ -20,7 +20,7 @@ program.name('transform')
     console.log('Transforming data for user:', options.user);
     console.log('Root directory for transformed data:', options.rootDir);
 
-    let userDir = path.join(options.rootDir, 'mailto:' + options.user);
+    let userDir = path.join(options.rootDir, options.user);
     if (!fs.existsSync(userDir)) {
       console.error(`User directory does not exist: ${userDir}`);
       return;
@@ -58,6 +58,8 @@ program.name('transform')
       let verified = verify(oldData, result);
       console.log('Changes detected:', JSON.stringify(verified, null, 2));
     }
+
+    console.log(result);
   });
 
 program.parse(process.argv);

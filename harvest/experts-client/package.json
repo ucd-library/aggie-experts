@@ -23,6 +23,7 @@
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.0",
     "@google-cloud/storage": "^7.7.0",
+    "@keycloak/keycloak-admin-client": "^26.3.1",
     "bunyan": "^1.8.15",
     "commander": "^10.0.0",
     "componentsjs": "^5.5.1",
@@ -36,6 +37,7 @@
     "jsonld": "^8.1.1",
     "jsonpath": "^1.1.1",
     "md5": "^2.3.0",
+    "nanoid": "^5.1.5",
     "node-fetch": "^3.3.2",
     "ssh2-sftp-client": "^9.1.0",
     "xml2json": "^0.12.0"

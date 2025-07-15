@@ -10,3 +10,6 @@ services/base-service/spa/client/public/js/
 services/base-service/spa/client/dist/
 /log/
 test-data
+
+# test user havests
+*@*

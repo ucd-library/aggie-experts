@@ -352,7 +352,13 @@ function runFromFiles(odrFile, cdlFiles) {
 
   cdlFiles.forEach(cdlFilePath => {
     const cdl = JSON.parse(fs.readFileSync(cdlFilePath, 'utf8'));
-    cdlData['@graph'].push(...cdl['@graph']);
+
+    let graph = cdl['@graph'] || [];
+    if (!Array.isArray(graph)) {
+      graph = [graph];
+    }
+
+    cdlData['@graph'].push(...graph);
   });
 
   return run(profile, cdlData);

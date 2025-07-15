@@ -2,6 +2,7 @@ import { Command } from 'commander';
 
 import CdlClient from '../lib/extract/cdl.js';
 import IamClient from '../lib/extract/iam.js';
+import ExpertsKcAdminClient from '../lib/extract/keycloak.js';
 
 const program = new Command();
 
@@ -20,19 +21,23 @@ program.name('extract')
     console.log('Extracting data for user:', options.user);
     console.log('Root directory for extracted data:', options.rootDir);
 
-    const iamClient = new IamClient();
-    await iamClient.profile(options.user, {
-      force: options.force    
-    });
+    let kcClient = new ExpertsKcAdminClient();
+    let user = await kcClient.findByEmail(options.user);
 
-    const cdlClient = new CdlClient();
-    await cdlClient.getUser(options.user, {
-      force: options.force
-    });
 
-    await cdlClient.getUserRelationships(options.user, {
-      force: options.force
-    });
+    // const iamClient = new IamClient();
+    // await iamClient.profile(options.user, {
+    //   force: options.force    
+    // });
+
+    // const cdlClient = new CdlClient();
+    // await cdlClient.getUser(options.user, {
+    //   force: options.force
+    // });
+
+    // await cdlClient.getUserRelationships(options.user, {
+    //   force: options.force
+    // });
 
   });
 

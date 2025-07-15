@@ -3,10 +3,15 @@ const env = process.env;
 const config = {
   cache : {
     rootDir : env.EXPERTS_CACHE_ROOT_DIR || process.cwd(),
-    cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'ark:/87287/d7mh2',
+    cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'ark:/87287/d7mh2m',
     iamDir : env.EXPERTS_IAM_CACHE_DIR || 'ark:/87287/d7c08j',
+    keycloakDir : env.EXPERTS_KEYCLOAK_CACHE_DIR || 'keycloak',
     cdlUserFilename : 'user_000.jsonld',
     iamUserFilename : 'profile.jsonld',
+  },
+
+  keycloak : {
+    secretPath : 'projects/325574696734/secrets/service-account-harvester',
   },
 
   cdl : {
