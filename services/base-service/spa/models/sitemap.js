@@ -46,7 +46,7 @@ class SitemapModel {
       expert = expert.replace(/^-/,'');
 
       // send express response, we are going to stream out the xml result
-      this.getExpert(expert.replace(/^-/,''), res);
+      this.getExpert(expert, res);
     } catch(e) {
       res.set('Content-Type', 'application/json');
       res.status(500).json({
