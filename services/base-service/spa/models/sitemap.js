@@ -73,6 +73,7 @@ class SitemapModel {
     hits.forEach(result => resp.write(`<sitemap>
         <loc>${config.server.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
     </sitemap>`));
+    if (typeof resp.flush === 'function') resp.flush();
 
     while( chunkSize === sent ) {
       result = await experts.esScroll({
@@ -85,6 +86,7 @@ class SitemapModel {
       hits.forEach(result => resp.write(`<sitemap>
           <loc>${config.server.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
       </sitemap>`));
+      if (typeof resp.flush === 'function') resp.flush();
     }
 
     // finish our sitemap xml and end response
