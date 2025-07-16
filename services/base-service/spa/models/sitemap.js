@@ -39,8 +39,8 @@ class SitemapModel {
     try {
       // no expert provided, set the root sitemapindex for all experts
       if( !expert ) {
-        // return res.send(await this.getRoot());
-        return res.send(await this.getExperts());
+        // return res.send(await this.getExperts());
+        return await this.getExperts(res);
       }
 
       expert = expert.replace(/^-/,'');
@@ -48,12 +48,8 @@ class SitemapModel {
       // send express response, we are going to stream out the xml result
       this.getExpert(expert, res);
     } catch(e) {
-      res.set('Content-Type', 'application/json');
-      res.status(500).json({
-        error : true,
-        message : e.message,
-        stack : e.stack
-      });
+      res.write('\nERROR: ' + (e.message || JSON.stringify(e)));
+      res.end();
     }
   }
 
@@ -61,22 +57,39 @@ class SitemapModel {
    * @method getExperts
    *
    */
-  async getExperts() {
-    let sitemaps = await experts.esSearch({
+  async getExperts(resp) {
+    let chunkSize = 1000;
+    let time = '30s';
+    let result = await experts.esSearch({
       from : 0,
-      size : 10000,
-      _source : false
-    });
+	    size: chunkSize
+    }, {scroll: time, _source_includes: ['@id']});
 
-    let hits = sitemaps.hits.hits || [];
-    sitemaps = hits.map(result => `<sitemap>
+    resp.write(`<?xml version="1.0" encoding="UTF-8"?>
+    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`);
+
+    let hits = result.hits.hits || [];
+    let sent = hits.length;
+    hits.forEach(result => resp.write(`<sitemap>
         <loc>${config.server.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
-    </sitemap>`);
+    </sitemap>`));
 
-        return `<?xml version="1.0" encoding="UTF-8"?>
-    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-      ${sitemaps.join('\n')}
-    </sitemapindex>`;
+    while( chunkSize === sent ) {
+      result = await experts.esScroll({
+        scroll_id: result._scroll_id,
+        scroll: time
+      });
+
+      hits = result.hits.hits || [];
+      sent = hits.length;
+      hits.forEach(result => resp.write(`<sitemap>
+          <loc>${config.server.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
+      </sitemap>`));
+    }
+
+    // finish our sitemap xml and end response
+    resp.write('</sitemapindex>');
+    resp.end();
   }
 
   /**
