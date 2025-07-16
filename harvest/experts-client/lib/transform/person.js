@@ -32,8 +32,6 @@ function run(profile, cdl, ucopVocab) {
     .filter(area => area.scheme === 'for');
 
   // Extract availability areas from CDL data
-  // const availabilities = (jsonpath.query(cdl, '$["@graph"][0]["api:object"]["api:all-labels"]["api:keywords"]["api:keyword"][*]') || [])
-  //   .filter(area => area.scheme === 'c-ucd-avail');
   const availabilities = (jsonpath.query(cdl, '$["@graph"][0]["api:object"]["api:all-labels"]["api:keywords"]["api:keyword"][*]') || [])
     .filter(area => area.scheme === 'c-ucd-avail');
 
@@ -46,18 +44,36 @@ function run(profile, cdl, ucopVocab) {
   const cdlOverview = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:records"]["api:record"]["api:native"]["api:field"][?(@.name=="overview")]["api:text"]["$t"]');
   const cdlResearchInterests = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:records"]["api:record"]["api:native"]["api:field"][?(@.name=="research-interests")]["api:text"]["$t"]');
   const cdlTeachingSummary = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:records"]["api:record"]["api:native"]["api:field"][?(@.name=="teaching-summary")]["api:text"]["$t"]');
-  const cdlWebsites = jsonpath.query(cdl, '$["@graph"][0]["api:object"]["api:records"]["api:record"]["api:native"]["api:field"][?(@.name=="personal-websites")]["api:web-addresses"]["api:web-address"][*]');
+
+
+  // TODO move into function perhaps
+  // need to support objects and arrays
+  // perhaps have a function to take a list of known fields that are expected to be arrays,
+  // and convert to array if not already
+  // other changes being made so pausing for now
+  const fieldsRaw = jsonpath.query(cdl, '$..["@graph"][0]["api:object"]["api:records"]["api:record"]["api:native"]["api:field"]');
+  const fields = Array.isArray(fieldsRaw)
+    ? fieldsRaw.flatMap(f => Array.isArray(f) ? f : [f])
+    : [];
+  const cdlWebsites = fields
+    .filter(field => field && field.name === "personal-websites")
+    .flatMap(field =>
+      (field["api:web-addresses"] && field["api:web-addresses"]["api:web-address"])
+        ? field["api:web-addresses"]["api:web-address"]
+        : []
+    );
+
   const orcidId = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"][?(@.scheme=="orcid")]["$t"]');
   const scopusId = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"][?(@.scheme=="scopus-author-id")]["$t"]');
   const researcherId = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"][?(@.scheme=="researcherid")]["$t"]');
 
   // Build name variations for matching
-  const nameMatches = [
+  const nameMatches = Array.from(new Set([
     `${lastName.toLowerCase()}_${firstName.charAt(0).toLowerCase()}`,
     `${lastName.toLowerCase()}_${firstName.charAt(0).toLowerCase()}${middleName ? middleName.charAt(0).toLowerCase() : ''}`,
     `${lastName.toLowerCase()}_${firstName.toLowerCase()}`,
     `${lastName.toLowerCase()}_${firstName.toLowerCase()}${middleName ? middleName.charAt(0).toLowerCase() : ''}`
-  ];
+  ]));
 
   // Create expert type based on faculty status
   const expertType = (isFaculty ? "http://vivoweb.org/ontology/core#FacultyMember" : "http://vivoweb.org/ontology/core#NonAcademic");
@@ -87,7 +103,7 @@ function run(profile, cdl, ucopVocab) {
       { "@id": `ark:/87287/d7c08j/user/${iamId}` },
       { "@id": `ark:/87287/d7mh2m/user/${cdlUserId}` },
       { "@id": `mailto:${email}` },
-      { "@id": `http://orcid.org/${orcidId}` },
+      ...(orcidId ? [{ "@id": `http://orcid.org/${orcidId}` }] : []),
       ...(scopusId ? [{"@id": `https://www.scopus.com/authid/detail.uri?authorId=${scopusId}`}] : []),
     ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
@@ -100,12 +116,12 @@ function run(profile, cdl, ucopVocab) {
     "http://www.w3.org/2006/vcard/ns#hasName": [
       { "@id": `ark:/87287/d7c08j/user/${iamId}#name` }
     ],
-    "http://vivoweb.org/ontology/core#orcidId": [
+    ...(orcidId ? {"http://vivoweb.org/ontology/core#orcidId": [
       { "@value": orcidId }
-    ],
-    "http://vivoweb.org/ontology/core#overview": [
+    ]} : {}),
+    ...(cdlOverview ? {"http://vivoweb.org/ontology/core#overview": [
       { "@value": cdlOverview }
-    ]
+    ]} : {})
   };
 
   if( scopusId ) {
@@ -221,9 +237,11 @@ function run(profile, cdl, ucopVocab) {
         "http://schema.library.ucdavis.edu/schema#isPreferred": [
           { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": "true" }
         ],
-        "http://www.w3.org/2006/vcard/ns#hasEmail": [
-          { "@id": `mailto:${email}` }
-        ],
+        ...(email && {
+          "http://www.w3.org/2006/vcard/ns#hasEmail": [
+            { "@id": `mailto:${email}` }
+          ]
+        }),
         "http://www.w3.org/2006/vcard/ns#hasName": [
           { "@id": `ark:/87287/d7c08j/user/${iamId}#name` }
         ],
