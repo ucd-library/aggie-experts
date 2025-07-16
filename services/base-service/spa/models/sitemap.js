@@ -3,14 +3,12 @@ let experts = require('../../models/expert/index.js');
 
 experts = experts.model;
 
-// const COLLECTIONS_SITEMAP = '_collections';
-
 class SitemapModel {
 
   /**
    * @method middleware
    * @description wireup middleware for sitemap
-   * 
+   *
    * @param {Object} app express app instance
    */
   middleware(app) {
@@ -27,7 +25,7 @@ class SitemapModel {
    * @method _onRequest
    * @description handle any request that starts with /sitemap.  Bound
    * to express app route above
-   * 
+   *
    * @param {Object} req express request
    * @param {Object} res express response
    */
@@ -37,51 +35,63 @@ class SitemapModel {
       .replace(/\.xml$/, '');
 
     res.set('Content-Type', 'application/xml');
-    
+
     try {
-      // no collection name provided, set the root sitemapindex for all collections
+      // no expert provided, set the root sitemapindex for all experts
       if( !expert ) {
-        // return res.send(await this.getRoot());
-        return  res.send(await this.getExperts());
+        // return res.send(await this.getExperts());
+        return await this.getExperts(res);
       }
 
       expert = expert.replace(/^-/,'');
-      // if( collection === COLLECTIONS_SITEMAP ) {
-      //   return await this.getCollections(res);
-      // }
 
       // send express response, we are going to stream out the xml result
-      this.getExpert(expert.replace(/^-/,''), res);
+      this.getExpert(expert, res);
     } catch(e) {
-      res.set('Content-Type', 'application/json');
-      res.status(500).json({
-        error : true,
-        message : e.message,
-        stack : e.stack
-      });
+      res.write('\nERROR: ' + (e.message || JSON.stringify(e)));
+      res.end();
     }
   }
 
   /**
    * @method getExperts
-   * 
+   *
    */
-  async getExperts() {
-    let sitemaps = await experts.esSearch({
+  async getExperts(resp) {
+    let chunkSize = 1000;
+    let time = '30s';
+    let result = await experts.esSearch({
       from : 0,
-      size : 10000,
-      _source : ['name']
-    });
+	    size: chunkSize
+    }, {scroll: time, _source_includes: ['@id']});
 
-    let hits = sitemaps.hits.hits || [];
-    sitemaps = hits.map(result => `<sitemap>
+    resp.write(`<?xml version="1.0" encoding="UTF-8"?>
+    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`);
+
+    let hits = result.hits.hits || [];
+    let sent = hits.length;
+    hits.forEach(result => resp.write(`<sitemap>
         <loc>${config.server.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
-    </sitemap>`);
+    </sitemap>`));
+    if (typeof resp.flush === 'function') resp.flush();
 
-        return `<?xml version="1.0" encoding="UTF-8"?>
-    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-      ${sitemaps.join('\n')}
-    </sitemapindex>`;
+    while( chunkSize === sent ) {
+      result = await experts.esScroll({
+        scroll_id: result._scroll_id,
+        scroll: time
+      });
+
+      hits = result.hits.hits || [];
+      sent = hits.length;
+      hits.forEach(result => resp.write(`<sitemap>
+          <loc>${config.server.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
+      </sitemap>`));
+      if (typeof resp.flush === 'function') resp.flush();
+    }
+
+    // finish our sitemap xml and end response
+    resp.write('</sitemapindex>');
+    resp.end();
   }
 
   /**
@@ -89,7 +99,7 @@ class SitemapModel {
    * @description create sitemap file for an expert
    * @param {String} id expert slug
    * @param {Object} resp express response object
-   * 
+   *
    * @returns {Promise} resolves to xml string
    */
   async getExpert(id, resp) {
@@ -120,9 +130,9 @@ class SitemapModel {
         // graph.forEach(g => {
         //     this._writeResult(resp, g);
         // });
-        
+
     });
-    
+
     // finish our sitemap xml and end response
     resp.write('</urlset>');
     resp.end();
@@ -131,7 +141,7 @@ class SitemapModel {
   /**
    * @method _writeResult
    * @description write a single result for sitemap
-   * 
+   *
    * @param {Object} resp express response
    * @param {Object} result elasticsearch record result
    */
@@ -145,7 +155,7 @@ class SitemapModel {
     }
 
     // for now we're just doing sitemaps for experts, might expand later
-    if( resultType === 'expert' ) { 
+    if( resultType === 'expert' ) {
       resp.write(`<url>
           <loc>${config.server.url}/${resultType}/${id.replace('expert/', '')}</loc>
           <changefreq>weekly</changefreq>
