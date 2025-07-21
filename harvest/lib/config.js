@@ -1,12 +1,13 @@
+import path from 'path';
 const env = process.env;
 
 const config = {
   cache : {
-    rootDir : env.EXPERTS_CACHE_ROOT_DIR || process.cwd(),
-    cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'ark:/87287/d7mh2m',
-    iamDir : env.EXPERTS_IAM_CACHE_DIR || 'ark:/87287/d7c08j',
+    rootDir : env.EXPERTS_CACHE_ROOT_DIR || path.join(process.cwd(), 'ae-harvest-cache'),
+    cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'cdl',
+    iamDir : env.EXPERTS_IAM_CACHE_DIR || 'iam',
     keycloakDir : env.EXPERTS_KEYCLOAK_CACHE_DIR || 'keycloak',
-    cdlUserFilename : 'user_000.jsonld',
+    cdlUserFilename : 'user_000.json',
     iamUserFilename : 'profile.jsonld',
   },
 
@@ -98,6 +99,10 @@ const config = {
       secretpath: 'projects/325574696734/secrets/ucdid_auth',
       timeout: 30000
     }
+  },
+
+  logger : {
+    name : 'harvest',
   }
 }
 

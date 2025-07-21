@@ -9,7 +9,7 @@
 
 import fetch from 'node-fetch';
 import JsonLdProcessor from 'jsonld';
-import { logger } from '../logger.js';
+import { logger } from '../../experts-client/lib/logger.js';
 import GoogleSecret from '../google-secret.js';
 import config from '../config.js';
 import fs from 'fs-extra';

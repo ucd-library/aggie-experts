@@ -8,7 +8,7 @@ const nanoid = customAlphabet(alphabet, 8);
 
 const gs = new GoogleSecret();
 
-export default class ExpertsKcAdminClient extends KcAdminClient {
+export default class ExpertsKcAdminClient {
 
   async authenticate() {
     if (this.authenticated) {
@@ -28,7 +28,7 @@ export default class ExpertsKcAdminClient extends KcAdminClient {
     const resp = await gs.getSecret(config.keycloak.secretPath);
     const secret = JSON.parse(resp);
 
-    this.kcadmin = new ExpertsKcAdminClient(
+    this.kcadmin = new KcAdminClient(
       {
         baseUrl: secret.baseUrl,
         realmName: secret.realmName

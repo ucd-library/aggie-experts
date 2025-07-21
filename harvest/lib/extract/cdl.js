@@ -5,19 +5,20 @@
 * @description Aggie Experts Client API provide methods to cdl data.
 *
 */
-'use strict';
 
-import fs from 'fs-extra';
+
 import fetch from 'node-fetch';
 import JsonLdProcessor from 'jsonld';
 import path from 'path';
-import parser from 'xml2json';
-import { logger } from '../../experts-client/lib/logger.js';
-import GoogleSecret from '../../experts-client/lib/google-secret.js';
-import config from '../../experts-client/lib/config.js'
-const jp = new JsonLdProcessor();
-const gs = new GoogleSecret();
 
+
+import logger from '../logger.js';
+import GoogleSecret from '../google-secret.js';
+import config from '../config.js'
+import cache from '../cache.js';
+import xmlToJson from '../transform/xml-to-json.js';
+
+const gs = new GoogleSecret();
 
 /** Exports a class
 * @class
@@ -32,7 +33,6 @@ export class CdlClient {
   constructor(opt={}) {
 
     this.timeout = opt.timeout || config.cdl.timeout;
-    this.log = opt.log || logger;
     this.env = opt.env || config.cdl.env;
 
     if( !config.cdl[this.env] ) {
@@ -80,10 +80,6 @@ export class CdlClient {
     }
   }
 
-  context() {
-    return JSON.parse(JSON.stringify(config.cdl.context));
-  }
-
   getUserId(user) {
     if (this.userId[user]) {
       return this.userId[user];
@@ -95,17 +91,17 @@ export class CdlClient {
    * @description Modify a frame to include a graph match.  If for whatever reason the document has multiple graphs this will select one. I don't think this is needed
    * @param doc - jsonld document
    **/
-  async graphify(doc, frame, graph) {
-    frame['@context'] = (frame['@context'] instanceof Array ? frame['@context'] : [frame['@context']])
-    frame['@context'].push({ "@base": graph.value });
-    frame['@id'] = graph.value;
+  // async graphify(doc, frame, graph) {
+  //   frame['@context'] = (frame['@context'] instanceof Array ? frame['@context'] : [frame['@context']])
+  //   frame['@context'].push({ "@base": graph.value });
+  //   frame['@id'] = graph.value;
 
-    doc = await jp.frame(doc, opt.frame, { omitGraph: true, safe: false })
-    doc['@context'] = [
-      "info:fedora/context/experts.json",
-      { "@base": graph.value }];
+  //   doc = await jp.frame(doc, opt.frame, { omitGraph: true, safe: false })
+  //   doc['@context'] = [
+  //     "info:fedora/context/experts.json",
+  //     { "@base": graph.value }];
 
-  }
+  // }
 
 
   /**
@@ -124,23 +120,18 @@ export class CdlClient {
     const count = options.count || 0;
     const force = options.force || false;
 
-    const dir = path.join(config.cache.rootDir, options.cacheName, config.cache.cdlDir);
-    const xmlfn = path.join(dir, `${name}_${count.toString().padStart(3, '0')}.xml`);
-    const jsonldfn = path.join(dir, `${name}_${count.toString().padStart(3, '0')}.jsonld`);
+    let xmlFile = path.join(config.cache.cdlDir, `${name}_${count.toString().padStart(3, '0')}.xml`);
 
     if( options.noCache !== true ) {
-      if( !force && fs.existsSync(xmlfn) && fs.existsSync(jsonldfn) ) {
-        this.log.info(`Skipping ${name}:${count} as it is already cached at ${xmlfn}`);
-            
-        const xml = fs.readFileSync(xmlfn, 'utf8');
-        const json = await parser.toJson(xml, { object: true, arrayNotation: false });
-        const contextObj = JSON.parse(fs.readFileSync(jsonldfn, 'utf8'));
+      if( !force && cache.exists(options.cacheName, xmlFile) ) {
+        logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${xmlFile}`);
+
+        // const xml = await cache.readUserAsset(options.cacheName, xmlFile);
+        const json = await xmlToJson(xmlFile);
 
         return {
-          xmlfn,
-          jsonldfn,
-          json,
-          contextObj
+          xmlFile,
+          json        
         };
       }
     }
@@ -152,11 +143,7 @@ export class CdlClient {
 
     let resp;
 
-    if( options.noCache !== true ) {
-      this.log.info(`Fetching CDL ${name}:${count} to ${xmlfn}`);
-    } else {
-      this.log.info(`Fetching CDL ${name}:${count}`);
-    }
+    logger.info(`Fetching CDL ${name}:${count}`);
 
     try {
       resp = await fetch(url, {
@@ -185,29 +172,12 @@ export class CdlClient {
     }
     let xml = await resp.text();
 
-    if( options.noCache !== true ) {
-      fs.ensureFileSync(xmlfn);
-      fs.writeFileSync(xmlfn, xml);
-    }
-
-    // convert the xml atom feed to json
-    this.log.info(`Converting ${xmlfn} to json`);
-    const json = await parser.toJson(xml, { object: true, arrayNotation: false });
-    let contextObj;
-
-    if( json?.feed?.entry && options.noCache !== true ) {
-      contextObj = this.context();
-      contextObj["@graph"] = options.transform ? options.transform(json) : json.feed.entry;
-
-      fs.ensureFileSync(jsonldfn);
-      fs.writeFileSync(jsonldfn, JSON.stringify(contextObj, null, 2));
-    }
+    xmlFile = await cache.writeUserAsset(options.cacheName, xmlFile, xml);
+    const json = await xmlToJson(xmlFile);
 
     return {
-      xmlfn,
-      jsonldfn,
-      json: json,
-      contextObj
+      xmlFile,
+      json
     };
   }
 
@@ -320,7 +290,7 @@ export class CdlClient {
           this.userId[user] = json.feed.entry[0]['api:object'].id;
         }
       } else {
-        this.log.warn(`No entries found for ${user}`);
+        logger.warn(`No entries found for ${user}`);
       }
 
       count++
@@ -348,68 +318,15 @@ export class CdlClient {
     }
 
     let nextPage = `${this.url}/users/${cdlId}/relationships?detail=full`
-
-
-    // Trim extraneous info from authors
-    function author_trim_info(author) {
-      delete (author['api:addresses']);
-    }
-
-    // modify author information
-    function update_author(me, work) {
-      const max_authors = me.author_truncate_to;
-      let records = work?.['api:object']?.['api:records']?.['api:record'] || [];
-      Array.isArray(records) || (records = [records]);
-      records.forEach((record) => {
-        // log.info(`record: ${record.id}`);
-        let fields = record?.['api:native']?.['api:field'] || [];
-        Array.isArray(fields) || (fields = [fields]);
-        fields.forEach((field) => {
-          if (field.name === 'authors') {
-            let authors = field?.['api:people']?.['api:person'] || [];
-            Array.isArray(authors) || (authors = [authors]);
-            for (let i = 0; i < (authors.length < max_authors ? authors.length : max_authors); i++) {
-              if (me.author_trim_info) { author_trim_info(authors[i]); }
-            }
-            if (authors.length>1) {
-              if (me.author_trim_info) { author_trim_info(authors[authors.length-1]); }
-            }
-            authors.splice(max_authors, authors.length - max_authors - 1);
-          }
-        });
-      });
-      return work;
-    }
-
-    function transform(json) {
-      let results = [];
-      for (let work of json.feed.entry) {
-        let related = [];
-        if (work['api:relationship']?.['api:related']) {
-          if (this.author_truncate_to || this.author_trim_info) {
-            related.push(update_author(this,work['api:relationship']['api:related']))
-          } else {
-            related.push(work['api:relationship']['api:related'])
-          }
-        }
-        related.push({ direction: 'to', id: cdlId, category: 'user' })
-        work['api:relationship'] ||= {};
-        work['api:relationship']['api:related'] = related;
-        results.push(work['api:relationship']);
-      }
-      return results;
-    }
-
     let count = 0;
 
     while (nextPage) {
 
-      const {json} = await this.fetch(nextPage, {
+      const { json } = await this.fetch(nextPage, {
         name: 'rel',
         cacheName : user,
         force: options.force,
-        count,
-        transform: transform.bind(this)
+        count
       });
 
       count++

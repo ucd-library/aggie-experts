@@ -3,7 +3,7 @@ import path from 'path';
 import jsonld from 'jsonld';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
-const contextPath = path.join(__dirname, '..', '..', '..', 'experts-api', 'lib', 'frames', '4', 'context.jsonld');
+const contextPath = path.join(__dirname, 'schema', '4', 'context.jsonld');
 const context = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
 
 export async function frame(path, graph) {

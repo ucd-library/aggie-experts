@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 
 function run(relationshipsData) {
+  initTransform(relationshipsData);
+
   const result = [];
   
   // Extract all relationships from the graph
@@ -447,6 +449,56 @@ function saveRelationshipFiles(inputFile, outputDir = './output') {
       console.log(`Saved ${records.length} records to ${outputFile}`);
     }
   });
+}
+
+// Trim extraneous info from authors
+function author_trim_info(author) {
+  delete (author['api:addresses']);
+}
+
+// modify author information
+function update_author(me, work) {
+  const max_authors = me.author_truncate_to;
+  let records = work?.['api:object']?.['api:records']?.['api:record'] || [];
+  Array.isArray(records) || (records = [records]);
+  records.forEach((record) => {
+    // log.info(`record: ${record.id}`);
+    let fields = record?.['api:native']?.['api:field'] || [];
+    Array.isArray(fields) || (fields = [fields]);
+    fields.forEach((field) => {
+      if (field.name === 'authors') {
+        let authors = field?.['api:people']?.['api:person'] || [];
+        Array.isArray(authors) || (authors = [authors]);
+        for (let i = 0; i < (authors.length < max_authors ? authors.length : max_authors); i++) {
+          if (me.author_trim_info) { author_trim_info(authors[i]); }
+        }
+        if (authors.length>1) {
+          if (me.author_trim_info) { author_trim_info(authors[authors.length-1]); }
+        }
+        authors.splice(max_authors, authors.length - max_authors - 1);
+      }
+    });
+  });
+  return work;
+}
+
+function initTransform(graph) {
+  let results = [];
+  for (let work of graph['@graph']) {
+    let related = [];
+    if (work['api:relationship']?.['api:related']) {
+      if (this.author_truncate_to || this.author_trim_info) {
+        related.push(update_author(this, work['api:relationship']['api:related']))
+      } else {
+        related.push(work['api:relationship']['api:related'])
+      }
+    }
+    related.push({ direction: 'to', id: cdlId, category: 'user' })
+    work['api:relationship'] ||= {};
+    work['api:relationship']['api:related'] = related;
+    results.push(work['api:relationship']);
+  }
+  return results;
 }
 
 export { run, runFromFiles, saveRelationshipFiles };
