@@ -8,7 +8,7 @@ const config = {
     iamDir : env.EXPERTS_IAM_CACHE_DIR || 'iam',
     keycloakDir : env.EXPERTS_KEYCLOAK_CACHE_DIR || 'keycloak',
     cdlUserFilename : 'user_000.json',
-    iamUserFilename : 'profile.jsonld',
+    iamUserFilename : 'profile.json',
   },
 
   keycloak : {

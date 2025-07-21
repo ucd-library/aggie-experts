@@ -8,14 +8,12 @@
 'use strict';
 
 import fetch from 'node-fetch';
-import JsonLdProcessor from 'jsonld';
 import { logger } from '../../experts-client/lib/logger.js';
 import GoogleSecret from '../google-secret.js';
 import config from '../config.js';
-import fs from 'fs-extra';
+import cache from '../cache.js';
 import path from 'path';
 
-const jp = new JsonLdProcessor();
 const gs = new GoogleSecret();
 
 /** Exports a class
@@ -89,12 +87,21 @@ export class IAM {
       url = encodeURI(`${url}&userId=${expert}`);
     }
 
-    const dir = path.join(config.cache.rootDir, id, config.cache.iamDir);
-    const jsonldfn = path.join(dir, config.cache.iamUserFilename);
+    let expertEmail = expert+'@ucdavis.edu';
 
-    if (fs.existsSync(jsonldfn) && !opts?.force) {
-      this.log.info(`Skipping iam profile ${id} as it is already cached at ${jsonldfn}`);
-      return JSON.parse(fs.readFileSync(jsonldfn, 'utf8'));
+    const jsonldfn = path.join(config.cache.iamDir, config.cache.iamUserFilename);
+
+    if( opts.noCache !== true ) {
+      if( !opts.force && cache.exists(expertEmail, jsonldfn) ) {
+        logger.info(`Skipping fetch IAM API as it is already cached at ${jsonldfn}`);
+
+        const json = await cache.readUserAsset(expertEmail, jsonldfn);
+  
+        return {
+          jsonldfn,
+          json
+        };
+      }
     }
 
     this.log.info(`Fetching iam profile ${id} from: ${url}`);
@@ -112,17 +119,9 @@ export class IAM {
       throw new Error(`✘ profile(${id}) - not found`);
     }
 
-    let result = {
-      ...this.context(),
-      "@id":'ark:/87287/d7c08j/',
-      "@graph":res.responseData.results || []
-    };
+    cache.writeUserAsset(expertEmail, jsonldfn, res);
 
-    fs.ensureDirSync(dir);
-    fs.writeFileSync(jsonldfn, JSON.stringify(result, null, 2), 'utf8');
-    this.log.info(``);
-
-    return result;
+    return {jsonldfn, json: res};
   }
 
   async getProfiles(search) {

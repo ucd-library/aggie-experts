@@ -3,7 +3,8 @@ import logger from '../logger.js';
 import config from '../config.js';
 
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
-// import person from './person.js';
+import iamApiToJsonLd from './iam-to-jsonld.js';
+import {run as jsonLdToPerson} from './person.js';
 
 function sortJsonArrayByIdAndKeys(jsonArray) {
   // sort the array by '@id', then by keys for each
@@ -34,7 +35,13 @@ async function run(options={}) {
 
   let cdlUserPath = cache.getPath(options.user, config.cache.cdlDir, config.cache.cdlUserFilename);
   logger.info(`CDL user path: ${cdlUserPath}`);
-  jsonAtomToJsonLd(cdlUserPath);
+  let resp = await jsonAtomToJsonLd(cdlUserPath);
+  cdlUserPath = resp.jsonldFile;
+
+  let iamUserPath = cache.getPath(options.user, config.cache.iamDir, config.cache.iamUserFilename);
+  logger.info(`IAM user path: ${iamUserPath}`);
+  resp = await iamApiToJsonLd(iamUserPath);
+
 }
 
 export default run;

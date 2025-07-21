@@ -127,7 +127,7 @@ export class CdlClient {
         logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${xmlFile}`);
 
         // const xml = await cache.readUserAsset(options.cacheName, xmlFile);
-        const json = await xmlToJson(xmlFile);
+        const json = await xmlToJson(cache.getPath(options.cacheName, xmlFile));
 
         return {
           xmlFile,

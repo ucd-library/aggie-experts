@@ -19,7 +19,7 @@ async function jsonAtomToJsonLd(jsonAtomFile) {
 
   cache.write(jsonldFile, graph);
 
-  return graph;
+  return {jsonldFile, graph};
 }
 
 export default jsonAtomToJsonLd;
