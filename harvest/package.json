@@ -39,6 +39,7 @@
     "jsonpath": "^1.1.1",
     "md5": "^2.3.0",
     "nanoid": "^5.1.5",
+    "node-expat": "^2.3.18",
     "node-fetch": "^3.3.2",
     "ssh2-sftp-client": "^9.1.0",
     "xml2json": "^0.12.0"

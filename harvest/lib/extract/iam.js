@@ -8,7 +8,7 @@
 'use strict';
 
 import fetch from 'node-fetch';
-import { logger } from '../../experts-client/lib/logger.js';
+import logger from '../logger.js';
 import GoogleSecret from '../google-secret.js';
 import config from '../config.js';
 import cache from '../cache.js';

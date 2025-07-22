@@ -8,9 +8,7 @@
 
 
 import fetch from 'node-fetch';
-import JsonLdProcessor from 'jsonld';
 import path from 'path';
-
 
 import logger from '../logger.js';
 import GoogleSecret from '../google-secret.js';
@@ -209,36 +207,34 @@ export class CdlClient {
    * 
    * @returns {Promise<void>}
    */
-  async getGroupList(groups) {
+  async getGroupList(group, options={}) {
     const users = [];
-    if (!groups) {
-      throw new Error('groups is required');
+    if (!group) {
+      throw new Error('group is required');
     }
 
-    groups = groups.split(',').map((group) => {
-      if (group.match(/^\d+$/)) {
-        return group;
-      }
-      if (config.cdl[this.env].group_by_name[group]) {
-        return config.cdl[this.env].group_by_name[group];
+    if( !group.match(/^\d+$/) ) {
+      if( config.cdl[this.env].group_by_name[group] ) {
+        group = config.cdl[this.env].group_by_name[group];
       } else {
         throw new Error(`Group ${group} not found.  Please use a group ID or a group name from the list: ${Object.keys(config.cdl[this.env].group_by_name).join(',')}`);
       }
-    }).join(',');
+    }
 
-    let nextPage = `${this.url}/users?detail=ref&per-page=1000&groups=${groups}`;
+    let nextPage = `${this.url}/users?detail=ref&per-page=1000&groups=${group}`;
 
     let count = 0;
     while (nextPage) {
       let entries = [];
-      const page = await this.fetch(nextPage,{
+      const { json } = await this.fetch(nextPage, {
+        cacheName: 'group-' + group,
         name:'groups',
         count,
-        noCache: true
+        force: options.force || false
       });
 
-      if (page?.feed?.entry) {
-        entries = entries.concat(page.feed.entry);
+      if (json?.feed?.entry) {
+        entries = entries.concat(json.feed.entry);
         for (let entry of entries) {
           entry = entry['api:object'];
           users.push(entry['username']);
@@ -246,9 +242,24 @@ export class CdlClient {
       }
 
       count++;
-      nextPage = this.nextPage(page?.feed?.['api:pagination']);
+      nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
-    return users;
+
+    let groupName = '';
+    for( const [name, id] of Object.entries(config.cdl[this.env].group_by_name) ) {
+      if( id == group ) {
+        groupName = name;
+        break;
+      }
+    }
+
+    let cachePath = await cache.writeUserAsset('group-' + group, 'users.json', {groupId: group, groupName, users});
+    return {
+      groupId: group,
+      groupName,
+      users,
+      cachePath
+    };
   }
 
 

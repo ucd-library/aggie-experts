@@ -1,0 +1,24 @@
+
+services:
+
+  harvest:
+    image: ${HARVEST_IMAGE:-harvest:latest}
+    env_file:
+      - .env
+    environment:
+      - EXPERTS_CACHE_ROOT_DIR=/opt/cache
+      - GOOGLE_APPLICATION_CREDENTIALS=/service-account.json
+    volumes:
+      - ./harvest/lib:/opt/harvest/lib
+      - ./harvest/bin:/opt/harvest/bin
+      - ./harvest/vocabularies:/opt/harvest/vocabularies
+      - ./dagster/defs.py:/opt/dagster/dagster_home/defs.py
+      - data_cache:/opt/cache
+      - ./service-account.json:/service-account.json
+    ports:
+      - "3000:3000"
+    command: bash -c "tail -f /dev/null"
+
+volumes:
+  data_cache:
+    driver: local
