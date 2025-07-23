@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import config from './config.js';
 import logger from './logger.js';
+import crypto, { hash } from 'crypto';
 
 class FsCache {
 
@@ -47,8 +48,52 @@ class FsCache {
       data = JSON.stringify(data, null, 2);
     }
 
-    await fs.writeFile(assetPath, data);
-    return assetPath;
+    let noOp = false, newHash;
+    if (fs.existsSync(assetPath)) {
+      const existingHash = await this.hashFile(assetPath);
+      newHash = crypto.createHash('sha256').update(data).digest('hex');
+      if (existingHash === newHash) {
+        noOp = true;
+      }
+    }
+
+    if (noOp === false) {
+      await fs.writeFile(assetPath, data);
+    }
+
+    const stats = await fs.stat(assetPath);
+    const lastModified = stats.mtime.toISOString();
+
+    return {
+      assetPath,
+      noOp,
+      hash: newHash,
+      lastModified
+    };
+  }
+
+  async getFileStats(assetPath) {
+    return {
+      assetPath,
+      hash: await this.hashFile(assetPath),
+      lastModified: (await fs.stat(assetPath)).mtime.toISOString()
+    }
+  }
+
+  async hashFile(filePath) {
+    const hash = crypto.createHash('sha256');
+    const fileStream = fs.createReadStream(filePath);
+    return new Promise((resolve, reject) => {
+      fileStream.on('data', (data) => {
+        hash.update(data);
+      });
+      fileStream.on('end', () => {
+        resolve(hash.digest('hex'));
+      });
+      fileStream.on('error', (err) => {
+        reject(err);
+      });
+    });
   }
 
   async delete(userId, assetKey) {

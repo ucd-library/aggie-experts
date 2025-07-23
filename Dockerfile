@@ -14,6 +14,6 @@ RUN cd /opt/harvest && \
 COPY harvest/bin /opt/harvest/bin
 COPY harvest/lib /opt/harvest/lib
 
-COPY dagster/defs.py /opt/dagster/dagster_home/defs.py
+COPY dagster/defs.py /opt/harvest/defs.py
 
 RUN cd /opt/harvest && npm install -g

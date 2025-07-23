@@ -126,8 +126,11 @@ export class CdlClient {
 
         // const xml = await cache.readUserAsset(options.cacheName, xmlFile);
         const json = await xmlToJson(cache.getPath(options.cacheName, xmlFile));
+        let stats = await cache.getFileStats(cache.getPath(options.cacheName, xmlFile));
+        stats.noOp = true; // no operation, already exists
 
         return {
+          writeResp: stats,
           xmlFile,
           json        
         };
@@ -170,10 +173,11 @@ export class CdlClient {
     }
     let xml = await resp.text();
 
-    xmlFile = await cache.writeUserAsset(options.cacheName, xmlFile, xml);
-    const json = await xmlToJson(xmlFile);
+    const writeResp = await cache.writeUserAsset(options.cacheName, xmlFile, xml);
+    const json = await xmlToJson(writeResp.assetPath);
 
     return {
+      writeResp,
       xmlFile,
       json
     };
@@ -280,15 +284,17 @@ export class CdlClient {
     let nextPage = `${this.url}/users?username=${user_id}&detail=full`
 
     let count = 0;
+    let writeResps = [];
 
     while (nextPage) {
 
-      const { json } = await this.fetch(nextPage, {
+      const { json, writeResp } = await this.fetch(nextPage, {
         name: 'user',
         cacheName : user,
         count, 
         force: options.force
       });
+      writeResps.push(writeResp);
 
       // add the entries to the results array
       if (json?.feed?.entry && json.feed.entry ) {
@@ -307,7 +313,8 @@ export class CdlClient {
       count++
       nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
-    return count;
+
+    return writeResps;
   }
 
   /**
@@ -320,7 +327,7 @@ export class CdlClient {
    *
    * @returns {Promise<void>} - Returns a promise that resolves when the relationships are fetched and saved
    *
-  */
+   */
   async getUserRelationships(user, options={}) {
     const cdlId = this.getUserId(user);
 
@@ -330,20 +337,22 @@ export class CdlClient {
 
     let nextPage = `${this.url}/users/${cdlId}/relationships?detail=full`
     let count = 0;
+    let writeResps = [];
 
     while (nextPage) {
 
-      const { json } = await this.fetch(nextPage, {
+      const { json, writeResp } = await this.fetch(nextPage, {
         name: 'rel',
         cacheName : user,
         force: options.force,
         count
       });
+      writeResps.push(writeResp);
 
       count++
       nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
-    return count;
+    return writeResps;
   }
 }
 

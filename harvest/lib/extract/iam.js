@@ -96,8 +96,11 @@ export class IAM {
         logger.info(`Skipping fetch IAM API as it is already cached at ${jsonldfn}`);
 
         const json = await cache.readUserAsset(expertEmail, jsonldfn);
-  
+        let stats = await cache.getFileStats(cache.getPath(expertEmail, jsonldfn));
+        stats.noOp = true; // no operation, already exists
+
         return {
+          writeResp: stats,
           jsonldfn,
           json
         };
@@ -119,9 +122,9 @@ export class IAM {
       throw new Error(`✘ profile(${id}) - not found`);
     }
 
-    cache.writeUserAsset(expertEmail, jsonldfn, res);
+    let writeResp = await cache.writeUserAsset(expertEmail, jsonldfn, res);
 
-    return {jsonldfn, json: res};
+    return {writeResp};
   }
 
   async getProfiles(search) {

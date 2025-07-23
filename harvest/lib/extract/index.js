@@ -20,21 +20,24 @@ async function run(options={}) {
   // let kcClient = new ExpertsKcAdminClient();
   let user = await kcClient.findByEmail(options.user);
 
-
   // const iamClient = new IamClient();
-  await iamClient.profile(options.user, {
+  let iamResp = await iamClient.profile(options.user, {
     force: options.force
   });
 
   // const cdlClient = new CdlClient();
-  await cdlClient.getUser(options.user, {
+  let cdlUserResps = await cdlClient.getUser(options.user, {
     force: options.force
   });
 
-  await cdlClient.getUserRelationships(options.user, {
+  let cdlRelResps = await cdlClient.getUserRelationships(options.user, {
     force: options.force
   });
 
+  return {
+    iam : iamResp.writeResp,
+    cdl : [...cdlUserResps, ...cdlRelResps]
+  }
 }
 
 export default {
