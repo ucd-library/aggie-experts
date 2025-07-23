@@ -14,8 +14,11 @@ class ExtractUserConfig(Config):
 
 def exec(cmd, check=True, capture_output=True, text=True):
     """Helper function to run a command and return the result."""
-    result = subprocess.run(cmd, check=check, capture_output=capture_output, text=text)
+    result = subprocess.run(cmd, capture_output=capture_output, text=text)
     print(result.stdout)  # Log output to console
+    if check and result.returncode != 0:
+      print(result.stderr)
+      raise subprocess.CalledProcessError(result.returncode, cmd, output=result.stdout, stderr=result.stderr)
     output_lines = result.stdout.strip().split('\n')
     last_line = output_lines[-1] if output_lines else ""
     return json.loads(last_line)
@@ -42,7 +45,7 @@ def extract_user(context, config: ExtractUserConfig) -> None:
 
   result = exec(cmd)
   for file_info in result.get('files', []):
-    metadata[file_info.get('assetPath')] = f'lastModified: {file_info.get("lastModified", "")}, updated: {file_info.get("noOp", False)}'
+    metadata[file_info.get('assetPath')] = f'lastModified: {file_info.get("lastModified", "")}, updated: {not file_info.get("noOp", False)}'
 
   context.add_output_metadata(
     metadata=metadata

@@ -1,6 +1,7 @@
 import cache from '../cache.js';
 import logger from '../logger.js';
 import config from '../config.js';
+import path from 'path';
 
 /**
  * @function jsonAtomToJsonLd
@@ -10,7 +11,9 @@ import config from '../config.js';
  * @return {Promise<void>} - Resolves when the conversion is complete
  */
 async function jsonAtomToJsonLd(jsonAtomFile) {
-  let jsonldFile = jsonAtomFile.replace(/\.json$/, '.jsonld');
+  let parts = path.parse(jsonAtomFile); // Ensure the file path is valid
+  let jsonldFile = path.join(path.resolve(parts.dir, '..'), parts.name + '.jsonld');
+
   logger.info(`Converting JSON-Atom to JSON-LD: ${jsonAtomFile} -> ${jsonldFile}`);
 
   let atom = JSON.parse(await cache.read(jsonAtomFile));

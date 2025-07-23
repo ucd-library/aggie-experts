@@ -1,6 +1,8 @@
 import cache from '../cache.js';
 import logger from '../logger.js';
 import config from '../config.js';
+import path from 'path';
+import fs from 'fs';
 
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
@@ -33,14 +35,27 @@ async function run(options={}) {
   logger.info('Transforming data for user:', options.user);
   logger.info('Root directory for transformed data:', cache.rootDir);
 
-  let cdlUserPath = cache.getPath(options.user, config.cache.cdlDir, config.cache.cdlUserFilename);
-  logger.info(`CDL user path: ${cdlUserPath}`);
-  let resp = await jsonAtomToJsonLd(cdlUserPath);
-  cdlUserPath = resp.jsonldFile;
+  let cdlUserPath = cache.getPath(options.user, config.cache.cdlDir, 'user');
+  let files = fs.readdirSync(cdlUserPath);
+  for( let file of files ) {
+    if( path.extname(file) === '.json' ) {
+      logger.info(`Transform CDL user path: ${cdlUserPath}`);
+      let resp = await jsonAtomToJsonLd(path.join(cdlUserPath, file));
+    }
+  }
+
+  let cdlRelPath = cache.getPath(options.user, config.cache.cdlDir, 'rel');
+  files = fs.readdirSync(cdlRelPath);
+  for( let file of files ) {
+    if( path.extname(file) === '.json' ) {
+      logger.info(`Transform CDL rel path: ${cdlRelPath}`);
+      let resp = await jsonAtomToJsonLd(path.join(cdlRelPath, file));
+    }
+  }
 
   let iamUserPath = cache.getPath(options.user, config.cache.iamDir, config.cache.iamUserFilename);
   logger.info(`IAM user path: ${iamUserPath}`);
-  resp = await iamApiToJsonLd(iamUserPath);
+  let resp = await iamApiToJsonLd(iamUserPath);
 
 }
 

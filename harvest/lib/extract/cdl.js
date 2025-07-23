@@ -15,6 +15,8 @@ import GoogleSecret from '../google-secret.js';
 import config from '../config.js'
 import cache from '../cache.js';
 import xmlToJson from '../transform/xml-to-json.js';
+import fs from 'fs';
+
 
 const gs = new GoogleSecret();
 
@@ -118,20 +120,19 @@ export class CdlClient {
     const count = options.count || 0;
     const force = options.force || false;
 
-    let xmlFile = path.join(config.cache.cdlDir, `${name}_${count.toString().padStart(3, '0')}.xml`);
+    let jsonFile = path.join(config.cache.cdlDir, `${name}/${name}_${count.toString().padStart(3, '0')}.json`);
 
     if( options.noCache !== true ) {
-      if( !force && cache.exists(options.cacheName, xmlFile) ) {
-        logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${xmlFile}`);
+      if( !force && cache.exists(options.cacheName, jsonFile) ) {
+        logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${jsonFile}`);
 
-        // const xml = await cache.readUserAsset(options.cacheName, xmlFile);
-        const json = await xmlToJson(cache.getPath(options.cacheName, xmlFile));
-        let stats = await cache.getFileStats(cache.getPath(options.cacheName, xmlFile));
+        const json = JSON.parse(await cache.readUserAsset(options.cacheName, jsonFile));
+        let stats = await cache.getFileStats(cache.getPath(options.cacheName, jsonFile));
         stats.noOp = true; // no operation, already exists
 
         return {
           writeResp: stats,
-          xmlFile,
+          jsonFile,
           json        
         };
       }
@@ -173,12 +174,14 @@ export class CdlClient {
     }
     let xml = await resp.text();
 
-    const writeResp = await cache.writeUserAsset(options.cacheName, xmlFile, xml);
-    const json = await xmlToJson(writeResp.assetPath);
+    const json = await xmlToJson(xml);
+    delete json?.feed?.updated; // remove updated field from feed, always breaks the cache
+
+    const writeResp = await cache.writeUserAsset(options.cacheName, jsonFile, json);
 
     return {
       writeResp,
-      xmlFile,
+      jsonFile,
       json
     };
   }
@@ -314,8 +317,35 @@ export class CdlClient {
       nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
 
+    // check to delete any cached files that are not in the feed
+    this.cleanupCache('user', user, writeResps);
+
     return writeResps;
   }
+
+  cleanupCache(type, user, writeResps) {
+    let dir = cache.getPath(user, 'cdl', type);
+    let files = fs.readdirSync(dir);
+    let toRemove = [];
+    for (let file of files) {
+      file = path.join(dir, file);
+      if (!writeResps.find(resp => resp.assetPath === file)) {
+        toRemove.push(file);
+      }
+    }
+
+    logger.info(`Removing ${toRemove.length} files from ${dir} that are not in the feed`, {files: toRemove});
+    
+    for (let file of toRemove) {
+      try {
+        fs.unlinkSync(file);
+        logger.info(`Removed file ${file}`);
+      } catch (e) {
+        logger.error(`Error removing file ${file}: ${e.message}`);
+      }
+    }
+  }
+
 
   /**
    * @method getUserRelationships
@@ -352,6 +382,10 @@ export class CdlClient {
       count++
       nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
+
+    // check to delete any cached files that are not in the feed
+    this.cleanupCache('rel', user, writeResps);
+
     return writeResps;
   }
 }
