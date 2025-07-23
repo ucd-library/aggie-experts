@@ -87,30 +87,45 @@ etl_users_job = dg.define_asset_job(
     job=etl_users_job, 
     minimum_interval_seconds=3600
 )
-def all_users_sensor(context: dg.SensorEvaluationContext):
-    result = subprocess.run(["experts", "harvest", "list-users", "dev"], capture_output=True, text=True)
-    output_lines = result.stdout.strip().split('\n')
-    last_line = output_lines[-1] if output_lines else ""
-    logInfo = json.loads(last_line)
-
-    # Read JSON file if exists
-    if os.path.exists(logInfo['cachePath']):
-      with open(logInfo['cachePath'], "r") as f:
-        user_ids = json.load(f)
-        user_ids = user_ids.get("users", [])
-    else:
-      user_ids = []
+def dev_users_sensor(context: dg.SensorEvaluationContext):
+    user_ids = loadUserGroup("dev")
 
     return dg.SensorResult(
         run_requests=[dg.RunRequest(partition_key=user) for user in user_ids],
         dynamic_partitions_requests=[users_partitions.build_add_request(user_ids)],
     )
 
+@dg.sensor(
+    job=etl_users_job, 
+    minimum_interval_seconds=3600
+)
+def sandbox_users_sensor(context: dg.SensorEvaluationContext):
+    user_ids = loadUserGroup("sandbox")
+
+    return dg.SensorResult(
+        run_requests=[dg.RunRequest(partition_key=user) for user in user_ids],
+        dynamic_partitions_requests=[users_partitions.build_add_request(user_ids)],
+    )
+
+def loadUserGroup(groupId):
+    """Load user group from CDL."""
+    result = exec(["experts", "harvest", "list", "users", groupId])
+
+    # Read JSON file if exists
+    rpath = result.get('cachePath', {}).get('assetPath', '')
+    if os.path.exists(rpath):
+      with open(rpath, "r") as f:
+        user_ids = json.load(f)
+        user_ids = user_ids.get("users", [])
+    else:
+      user_ids = []
+
+    return user_ids
 
 defs = dg.Definitions(
     jobs=[etl_users_job],
     assets=[extract_user, transform_user],
-    sensors=[all_users_sensor],
+    sensors=[dev_users_sensor, sandbox_users_sensor],
     resources={
         "io_manager": FilesystemIOManager(base_dir="/opt/dagster/dagster_home/storage")
     }

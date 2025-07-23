@@ -87,7 +87,7 @@ export class IAM {
       url = encodeURI(`${url}&userId=${expert}`);
     }
 
-    let expertEmail = expert+'@ucdavis.edu';
+    let expertEmail = opts.cacheKey;
 
     const jsonldfn = path.join(config.cache.iamDir, config.cache.iamUserFilename);
 
@@ -95,7 +95,7 @@ export class IAM {
       if( !opts.force && cache.exists(expertEmail, jsonldfn) ) {
         logger.info(`Skipping fetch IAM API as it is already cached at ${jsonldfn}`);
 
-        const json = await cache.readUserAsset(expertEmail, jsonldfn);
+        const json = JSON.parse(await cache.readUserAsset(expertEmail, jsonldfn));
         let stats = await cache.getFileStats(cache.getPath(expertEmail, jsonldfn));
         stats.noOp = true; // no operation, already exists
 
@@ -121,10 +121,17 @@ export class IAM {
     if (res == null) {
       throw new Error(`✘ profile(${id}) - not found`);
     }
+    if( !res.responseData || !res.responseData.results || res.responseData.results.length === 0 ) {
+      throw new Error(`✘ profile(${id}) - no results found`);
+    }
 
     let writeResp = await cache.writeUserAsset(expertEmail, jsonldfn, res);
 
-    return {writeResp};
+    return {
+      writeResp,
+      jsonldfn,
+      json: res
+    };
   }
 
   async getProfiles(search) {

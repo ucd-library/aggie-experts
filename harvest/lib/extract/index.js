@@ -17,13 +17,36 @@ async function run(options={}) {
   logger.info('Extracting data for user:', options.user);
   logger.info('Root directory for extracted data:', cache.rootDir);
 
-  // let kcClient = new ExpertsKcAdminClient();
-  let user = await kcClient.findByEmail(options.user);
+  let IAMLookupOptions = [
+    { email : options.user },
+    { userId : options.user.replace(/@.*/, '') } // remove domain if present
+  ]
 
   // const iamClient = new IamClient();
-  let iamResp = await iamClient.profile(options.user, {
-    force: options.force
-  });
+  let iamResp;
+  for( let opt of IAMLookupOptions ) {
+    try {
+      iamResp = await iamClient.profile(opt, {
+        force: options.force,
+        cacheKey : options.user
+      });
+      if( iamResp.json ) {
+        break; // exit loop if we got a valid response
+      }
+    } catch (err) {}
+  }
+
+  if( !iamResp || !iamResp.json ) {
+    throw new Error(`No valid IAM profile found for user: ${options.user}`);
+  }
+
+  let email = iamResp.json?.responseData?.results?.[0]?.email;
+  if( !email ) {
+    throw new Error(`No email found in IAM profile for user: ${options.user}`);
+  }
+
+  // let kcClient = new ExpertsKcAdminClient();
+  let user = await kcClient.findByEmail(email);
 
   // const cdlClient = new CdlClient();
   let cdlUserResps = await cdlClient.getUser(options.user, {
