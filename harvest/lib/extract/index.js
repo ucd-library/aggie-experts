@@ -17,9 +17,13 @@ async function run(options={}) {
   logger.info('Extracting data for user:', options.user);
   logger.info('Root directory for extracted data:', cache.rootDir);
 
+  if( options.user.indexOf('@') === -1 ) {
+    options.user += '@ucdavis.edu'; // ensure user has a domain
+  }
+
   let IAMLookupOptions = [
-    { email : options.user },
-    { userId : options.user.replace(/@.*/, '') } // remove domain if present
+    { userId : options.user.replace(/@.*/, '') }, // remove domain if present
+    { email : options.user } // extract domain from user
   ]
 
   // const iamClient = new IamClient();
@@ -37,12 +41,13 @@ async function run(options={}) {
   }
 
   if( !iamResp || !iamResp.json ) {
-    throw new Error(`No valid IAM profile found for user: ${options.user}`);
+    let userText = `userId=${IAMLookupOptions[0].userId} or email=${IAMLookupOptions[1].email}`;
+    throw new Error(`No valid IAM profile found for user: ${userText}`);
   }
 
   let email = iamResp.json?.responseData?.results?.[0]?.email;
   if( !email ) {
-    throw new Error(`No email found in IAM profile for user: ${options.user}`);
+    throw new Error(`No email found in IAM profile for user: ${userText}`);
   }
 
   // let kcClient = new ExpertsKcAdminClient();

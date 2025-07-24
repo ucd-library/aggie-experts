@@ -181,23 +181,22 @@ export default class ExpertsKcAdminClient {
    */
   async findByEmail(email) {
     await this.authenticate();
-    //try to find the user in keycloak using the IDP email as the username
-    try {
-      //get the users from keycloak
-      const users = await this.kcadmin.users.find({
-        email: email,
-        exact: true
-      });
-      if (users.length === 0) {
-        throw new Error(`No user found with email: ${email}`);
-      }
-      if (users[0].attributes['expertId'] === undefined) {
-        throw new Error(`User with email: ${email} does not have an expertId`);
-      }
-      return users[0];
-    } catch (error) {
-      throw new Error(`Error finding user by email: ${error.message}`);
+
+    //get the users from keycloak
+    const users = await this.kcadmin.users.find({
+      email: email,
+      exact: true
+    });
+
+    if (users.length === 0) {
+      throw new Error(`No keycloak user found with email: ${email}`);
     }
+
+    if (users[0].attributes['expertId'] === undefined) {
+      throw new Error(`Keycloak user with email ${email} does not have an expertId`);
+    }
+
+    return users[0];
   }
 
   /**

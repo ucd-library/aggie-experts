@@ -1,8 +1,10 @@
 import jsonpath from 'jsonpath';
 import fs from 'fs';
-import path from 'path';
-import verify from './verify.js';
 import md5 from 'md5';
+import cache from '../cache.js';
+import config from '../config.js';
+import logger from '../logger.js';
+import path from 'path';
 
 function run(profile, cdl, ucopVocab) {
   const result = [];
@@ -431,7 +433,9 @@ function run(profile, cdl, ucopVocab) {
   return result;
 }
 
-function runFromFiles(odrFile, cdlFiles, ucopVocabFile) {
+function runFromFiles(userCacheName, odrFile, cdlFiles, ucopVocabFile) {
+  logger.info(`Running AE std person transformation for user: ${userCacheName}`);
+
   const profile = JSON.parse(fs.readFileSync(odrFile, 'utf8'));
 
   let cdlData = {
@@ -454,7 +458,12 @@ function runFromFiles(odrFile, cdlFiles, ucopVocabFile) {
     ucopVocab = ucopVocab['@graph'][0];
   }
 
-  return run(profile, cdlData, ucopVocab);
+  let result = run(profile, cdlData, ucopVocab);
+  return cache.writeUserAsset(
+    userCacheName, 
+    path.join(config.cache.aeStdFormatDir, 'person.jsonld'), 
+    result
+  );
 }
 
 export { run, runFromFiles };

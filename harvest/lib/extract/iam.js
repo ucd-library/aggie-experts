@@ -107,7 +107,9 @@ export class IAM {
       }
     }
 
-    this.log.info(`Fetching iam profile ${id} from: ${url}`);
+    // Mask the key in the URL for logging
+    const maskedUrl = url.replace(/([?&]key=)[^&]+/, '$1********');
+    this.log.info(`Fetching iam profile ${id} from: ${maskedUrl}`);
     await this.getKey();
 
 
@@ -121,6 +123,7 @@ export class IAM {
     if (res == null) {
       throw new Error(`✘ profile(${id}) - not found`);
     }
+
     if( !res.responseData || !res.responseData.results || res.responseData.results.length === 0 ) {
       throw new Error(`✘ profile(${id}) - no results found`);
     }

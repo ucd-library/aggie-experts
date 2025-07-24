@@ -1,4 +1,4 @@
-from dagster import asset, DynamicOutput, AssetExecutionContext, AutoMaterializePolicy, Config, FilesystemIOManager
+from dagster import asset, DynamicOutput, AssetExecutionContext, AutoMaterializePolicy, Config, FilesystemIOManager, run_status_sensor, DagsterRunStatus, RunStatusSensorContext
 import os
 import hashlib
 import json
@@ -75,6 +75,10 @@ def transform_user(context: AssetExecutionContext) -> None:
       }
     )
 
+    return None
+
+
+
 
 # Create a job that materializes both assets in the correct order
 etl_users_job = dg.define_asset_job(
@@ -82,6 +86,13 @@ etl_users_job = dg.define_asset_job(
     selection=dg.AssetSelection.assets(extract_user, transform_user)
 )
 
+@run_status_sensor(run_status=DagsterRunStatus.SUCCESS, monitored_jobs=[etl_users_job])
+def success_sensor(context: RunStatusSensorContext):
+    run = context.dagster_run
+    message = f"✅ Dagster job `{run.job_name}` succeeded! Run ID: {run.run_id}"
+    
+    # Example: Print, or replace with logic to send email/Slack/etc.
+    context.log.info(message)
 
 @dg.sensor(
     job=etl_users_job, 
@@ -125,7 +136,7 @@ def loadUserGroup(groupId):
 defs = dg.Definitions(
     jobs=[etl_users_job],
     assets=[extract_user, transform_user],
-    sensors=[dev_users_sensor, sandbox_users_sensor],
+    sensors=[dev_users_sensor, sandbox_users_sensor, success_sensor],
     resources={
         "io_manager": FilesystemIOManager(base_dir="/opt/dagster/dagster_home/storage")
     }

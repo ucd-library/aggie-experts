@@ -1,4 +1,7 @@
 import path from 'path';
+
+const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+
 const env = process.env;
 
 const config = {
@@ -6,6 +9,8 @@ const config = {
     rootDir : env.EXPERTS_CACHE_ROOT_DIR || path.join(process.cwd(), 'ae-harvest-cache'),
     cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'cdl',
     iamDir : env.EXPERTS_IAM_CACHE_DIR || 'iam',
+    aeStdFormatDir : env.EXPERTS_AE_STD_FORMAT_CACHE_DIR || 'ae-std',
+    aeWebappDir : env.EXPERTS_AE_WEBAPP_CACHE_DIR || 'ae-webapp',
     keycloakDir : env.EXPERTS_KEYCLOAK_CACHE_DIR || 'keycloak',
     cdlUserFilename : 'user_000.json',
     iamUserFilename : 'profile.json',
@@ -88,17 +93,21 @@ const config = {
     },
 
     dev: {
-      url: 'https://iet-ws-stage.ucdavis.edu/api/iam/',
+      url: 'https://iet-ws-stage.ucdavis.edu/api/iam',
       authname: 'iet-ws-stage',
       secretpath: 'projects/325574696734/secrets/ucdid_auth',
       timeout: 30000
     },
     prod: {
-      url: 'https://iet-ws.ucdavis.edu/api/iam/',
+      url: 'https://iet-ws.ucdavis.edu/api/iam',
       authname: 'iet-ws',
       secretpath: 'projects/325574696734/secrets/ucdid_auth',
       timeout: 30000
     }
+  },
+
+  vocab : {
+    ucopFile : path.resolve(scriptDir, '../vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld')
   },
 
   logger : {
