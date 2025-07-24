@@ -299,7 +299,7 @@ WHERE {
 
     OPTIONAL {
       ?relationship :is-favourite "true".
-      bind(true as ?favorite)
+      bind(EXISTS{?relationship :is-favourite "true"} as ?favorite)
     }
     # Now we take CDLs preferred term
     OPTIONAL {
