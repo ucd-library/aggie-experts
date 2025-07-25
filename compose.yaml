@@ -2,7 +2,7 @@
 services:
 
   harvest:
-    image: ${HARVEST_IMAGE:-harvest:latest}
+    image: ${HARVEST_IMAGE:-localhost/local-dev/harvest:sandbox}
     env_file:
       - .env
     environment:
@@ -20,8 +20,24 @@ services:
       - "3000:3000"
     command: bash -c "dagster dev -f /opt/harvest/defs.py -h 0.0.0.0"
 
+  elasticsearch:
+    image: ${ES_IMAGE:-localhost/local-dev/fin-elastic-search:sandbox}
+    environment:
+      - node.name=elasticsearch
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+
 volumes:
   data_cache:
     driver: local
   dagster_home:
+    driver: local
+  es-data:
     driver: local

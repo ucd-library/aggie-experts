@@ -20,7 +20,7 @@ async function jsonAtomToJsonLd(jsonAtomFile) {
   let graph = Object.assign({}, config.cdl.context);
   graph['@graph'] = atom.feed.entry || [];
 
-  cache.write(jsonldFile, graph);
+  cache.write('jsonatom-to-jsonld-transform', jsonldFile, graph);
 
   return {jsonldFile, graph};
 }

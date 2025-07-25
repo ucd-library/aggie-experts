@@ -30,11 +30,12 @@ def exec(cmd, check=True, capture_output=True, text=True):
 # def extract_user(context, config: ExtractUserConfig) -> dg.MaterializeResult:
 def extract_user(context, config: ExtractUserConfig) -> None:
   user_id = context.partition_key
+  run = context.dagster_run
 
   # Read force flag from config if provided, else default to True
   force_flag = config.force
 
-  cmd = ["experts", "harvest", "extract", user_id]
+  cmd = ["experts", "harvest", "extract", user_id, "--reporting-job-id", run.run_id]
   if force_flag:
     cmd.append("--force")
 
@@ -67,7 +68,29 @@ def extract_user(context, config: ExtractUserConfig) -> None:
 )
 def transform_user(context: AssetExecutionContext) -> None:
     user_id = context.partition_key
-    subprocess.run(["experts", "harvest", "transform", user_id], check=True)
+    run = context.dagster_run
+
+    exec(["experts", "harvest", "transform", user_id, "--reporting-job-id", run.run_id])
+
+    context.add_output_metadata(
+      metadata={
+        "id": user_id
+      }
+    )
+
+    return None
+
+@dg.asset(
+    partitions_def=users_partitions,
+    code_version="1.1",
+    auto_materialize_policy=AutoMaterializePolicy.eager(),
+    deps=[transform_user]
+)
+def load_user(context: AssetExecutionContext) -> None:
+    user_id = context.partition_key
+    run = context.dagster_run
+
+    exec(["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id])
 
     context.add_output_metadata(
       metadata={
@@ -78,12 +101,10 @@ def transform_user(context: AssetExecutionContext) -> None:
     return None
 
 
-
-
 # Create a job that materializes both assets in the correct order
 etl_users_job = dg.define_asset_job(
     name="etl_users_job",
-    selection=dg.AssetSelection.assets(extract_user, transform_user)
+    selection=dg.AssetSelection.assets(extract_user, transform_user, load_user)
 )
 
 @run_status_sensor(run_status=DagsterRunStatus.SUCCESS, monitored_jobs=[etl_users_job])
@@ -135,7 +156,7 @@ def loadUserGroup(groupId):
 
 defs = dg.Definitions(
     jobs=[etl_users_job],
-    assets=[extract_user, transform_user],
+    assets=[extract_user, transform_user, load_user],
     sensors=[dev_users_sensor, sandbox_users_sensor, success_sensor],
     resources={
         "io_manager": FilesystemIOManager(base_dir="/opt/dagster/dagster_home/storage")

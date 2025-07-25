@@ -9,6 +9,7 @@ import path from 'path';
 function run(profile, cdl, ucopVocab) {
   const result = [];
 
+
   // Extract expert ID from profile
   const expertId = jsonpath.value(profile, '$["@graph"][0].expertId');
   const expertUri = `http://experts.ucdavis.edu/expert/${expertId}`;
@@ -458,8 +459,13 @@ function runFromFiles(userCacheName, odrFile, cdlFiles, ucopVocabFile) {
     ucopVocab = ucopVocab['@graph'][0];
   }
 
+  if( !profile['@graph'][0].expertId ) {
+    profile['@graph'][0].expertId = userCacheName.replace(/@.*/g, '');
+  }
+
   let result = run(profile, cdlData, ucopVocab);
   return cache.writeUserAsset(
+    'ae-std-person-transform',
     userCacheName, 
     path.join(config.cache.aeStdFormatDir, 'person.jsonld'), 
     result

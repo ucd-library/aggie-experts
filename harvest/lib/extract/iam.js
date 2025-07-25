@@ -128,7 +128,7 @@ export class IAM {
       throw new Error(`✘ profile(${id}) - no results found`);
     }
 
-    let writeResp = await cache.writeUserAsset(expertEmail, jsonldfn, res);
+    let writeResp = await cache.writeUserAsset('iam-extract', expertEmail, jsonldfn, res);
 
     return {
       writeResp,

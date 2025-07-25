@@ -20,6 +20,8 @@ program
 //   })
 
 program
+  .command('init', 'initialize aggie experts database components')
   .command('harvest', 'run various harvest ETL tasks')
+
 
 program.parse(process.argv);

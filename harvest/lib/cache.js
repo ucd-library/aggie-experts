@@ -2,7 +2,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import config from './config.js';
 import logger from './logger.js';
-import crypto, { hash } from 'crypto';
+import crypto from 'crypto';
+import { reportFileWrite } from './reporting/index.js';
 
 class FsCache {
 
@@ -36,21 +37,24 @@ class FsCache {
     return fs.readFile(assetPath, 'utf8');
   }
 
-  async writeUserAsset(userId, assetKey, data) {
+  async writeUserAsset(step, userId, assetKey, data) {
     const assetPath = this.getPath(userId, assetKey);
-    return this.write(assetPath, data);
+    return this.write(step, assetPath, data);
   }
 
-  async write(assetPath, data) {
+  async write(step, assetPath, data) {
     await fs.ensureDir(path.dirname(assetPath));
+
+    let parts = assetPath.split(path.sep);
+    let userId = parts.find(p => p.match(/@/)) || '';
 
     if (typeof data === 'object') {
       data = JSON.stringify(data, null, 2);
     }
 
-    let noOp = false, newHash;
+    let noOp = false, newHash, existingHash;
     if (fs.existsSync(assetPath)) {
-      const existingHash = await this.hashFile(assetPath);
+      existingHash = await this.hashFile(assetPath);
       newHash = crypto.createHash('sha256').update(data).digest('hex');
       if (existingHash === newHash) {
         noOp = true;
@@ -63,6 +67,16 @@ class FsCache {
 
     const stats = await fs.stat(assetPath);
     const lastModified = stats.mtime.toISOString();
+
+    reportFileWrite({
+      file_path: assetPath,
+      step: step,
+      user_id: userId,
+      last_modified: lastModified,
+      file_hash: newHash,
+      last_file_hash: existingHash,
+      no_op: noOp
+    });
 
     return {
       assetPath,

@@ -18,7 +18,10 @@ async function frame(path, graph) {
   
   let frame={
     ...context,
-    "@embed":"@once"
+    "@embed":"@once",
+    // "hasName": {
+    //   "@embed": "@always"
+    // }
   };
 
   // Make this a named graph, currently this doesn't work,
@@ -51,6 +54,7 @@ async function runFromFiles(cacheUsername, ldpath, file) {
   let framed = await frame(ldpath, graph);
 
   return cache.writeUserAsset(
+    'ae-webapp-transform',
     cacheUsername,
     path.join(config.cache.aeWebappDir, 'webapp.jsonld'),
     framed

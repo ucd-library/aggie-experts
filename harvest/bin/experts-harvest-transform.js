@@ -1,11 +1,8 @@
 import { Command } from 'commander';
-import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import transform from '../lib/transform/index.js';
-
-import { runFromFiles } from '../lib/transform/person.js';
-import verify from '../lib/transform/verify.js';
+import config from '../lib/config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +20,12 @@ program.name('transform')
   .argument('<user-id>', 'User id to extract')
   .option('--force', 'Force extraction even if data already exists on disk')
   .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
+  .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .action(async (userId, options) => {
+    if (options.reportingJobId) {
+      config.reporting.enabled = true;
+      config.reporting.jobId = options.reportingJobId;
+    }
 
     transform({
       user: userId,

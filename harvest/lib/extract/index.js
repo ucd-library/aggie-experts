@@ -14,8 +14,8 @@ async function run(options={}) {
     cache.updateRootDir(options.rootDir);
   }
 
-  logger.info('Extracting data for user:', options.user);
-  logger.info('Root directory for extracted data:', cache.rootDir);
+  logger.info('Extracting data for user', options.user);
+  logger.info('Root directory for extracted data', cache.rootDir);
 
   if( options.user.indexOf('@') === -1 ) {
     options.user += '@ucdavis.edu'; // ensure user has a domain
@@ -37,7 +37,9 @@ async function run(options={}) {
       if( iamResp.json ) {
         break; // exit loop if we got a valid response
       }
-    } catch (err) {}
+    } catch (err) {
+      // logger.error(`Error fetching IAM profile with options ${JSON.stringify(opt)}:`, err);
+    }
   }
 
   if( !iamResp || !iamResp.json ) {

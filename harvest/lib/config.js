@@ -4,7 +4,15 @@ const scriptDir = path.dirname(new URL(import.meta.url).pathname);
 
 const env = process.env;
 
+const esHostname = process.env.ES_HOST || 'elasticsearch';
+const esPort = process.env.ES_PORT || 9200;
+
 const config = {
+  reporting : {
+    enabled : env.ETL_REPORTING_ENABLED || false,
+    jobId : env.ANDUIN_JOB_ID,
+  },
+
   cache : {
     rootDir : env.EXPERTS_CACHE_ROOT_DIR || path.join(process.cwd(), 'ae-harvest-cache'),
     cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'cdl',
@@ -14,6 +22,20 @@ const config = {
     keycloakDir : env.EXPERTS_KEYCLOAK_CACHE_DIR || 'keycloak',
     cdlUserFilename : 'user_000.json',
     iamUserFilename : 'profile.json',
+  },
+
+  elasticsearch : {
+    host : esHostname,
+    port : esPort,
+    username : process.env.ES_USERNAME || 'elastic',
+    password : process.env.ES_PASSWORD || 'elastic',
+    get connStr () {
+      return `http://${this.host}:${this.port}`
+    },
+    indexes : {
+      experts : env.ES_INDEX_EXPERTS || 'experts',
+      hash : env.ES_INDEX_CACHE || 'cache',
+    }
   },
 
   keycloak : {

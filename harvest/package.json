@@ -21,6 +21,7 @@
   "author": "rakunkel",
   "license": "MIT",
   "dependencies": {
+    "@elastic/elasticsearch": "^8.18.2",
     "@google-cloud/secret-manager": "^6.1.0",
     "@google-cloud/storage": "^7.7.0",
     "@keycloak/keycloak-admin-client": "^26.3.1",

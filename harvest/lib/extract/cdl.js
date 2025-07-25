@@ -177,7 +177,7 @@ export class CdlClient {
     const json = await xmlToJson(xml);
     delete json?.feed?.updated; // remove updated field from feed, always breaks the cache
 
-    const writeResp = await cache.writeUserAsset(options.cacheName, jsonFile, json);
+    const writeResp = await cache.writeUserAsset('cdl-'+name+'-extract', options.cacheName, jsonFile, json);
 
     return {
       writeResp,
@@ -260,7 +260,7 @@ export class CdlClient {
       }
     }
 
-    let cachePath = await cache.writeUserAsset('group-' + group, 'users.json', {groupId: group, groupName, users});
+    let cachePath = await cache.writeUserAsset('cdl-group-extract', 'group-' + group, 'users.json', {groupId: group, groupName, users});
     return {
       groupId: group,
       groupName,
