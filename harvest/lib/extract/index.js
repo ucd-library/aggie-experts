@@ -52,8 +52,8 @@ async function run(options={}) {
     throw new Error(`No email found in IAM profile for user: ${userText}`);
   }
 
-  // let kcClient = new ExpertsKcAdminClient();
-  let user = await kcClient.findByEmail(email);
+  let user = await kcClient.getOrCreateExpert(options.user);
+  await cache.writeUserAsset('keycloak-json-extract', options.user, 'keycloak.json', user)
 
   // const cdlClient = new CdlClient();
   let cdlUserResps = await cdlClient.getUser(options.user, {
