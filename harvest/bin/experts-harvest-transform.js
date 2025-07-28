@@ -3,6 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import transform from '../lib/transform/index.js';
 import config from '../lib/config.js';
+import PgClient from '../lib/pg-client.js';
+import { enableFromCli } from '../lib/reporting/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,18 +22,23 @@ program.name('transform')
   .argument('<user-id>', 'User id to extract')
   .option('--force', 'Force extraction even if data already exists on disk')
   .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
+  .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .action(async (userId, options) => {
-    if (options.reportingJobId) {
-      config.reporting.enabled = true;
-      config.reporting.jobId = options.reportingJobId;
+
+    if (options.reportingJobId || options.reporting) {
+      await enableFromCli('experts-harvest-transform', userId, options);
     }
 
-    transform({
+    await transform({
       user: userId,
       force: options.force,
       rootDir: options.rootDir
     });
+
+    if( config.reporting.enabled ) {
+      config.postgres.client.end();
+    }
 
     // console.log('Transforming data for user:', userId);
     // console.log('Root directory for transformed data:', options.rootDir);

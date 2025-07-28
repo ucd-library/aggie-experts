@@ -1,6 +1,8 @@
 import { Command } from 'commander';
 import { initSchema, deleteSchema } from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
+import config from '../lib/config.js';
+import PgClient from '../lib/pg-client.js';
 
 const program = new Command();
 const env = process.env;
@@ -17,6 +19,14 @@ program
     logger.info('Initializing ElasticSearch schema for aggie experts...');
     await initSchema();
     logger.info('ElasticSearch schema initialized successfully.');
+
+
+    logger.info('Initializing PostgreSQL schema for aggie experts...');
+    const pgClient = new PgClient();
+    await pgClient.connect();
+    await pgClient.queryFromFile(config.postgres.schemaFile);
+    logger.info('PostgreSQL schema initialized successfully.');
+    pgClient.end();
   });
 
 

@@ -9,6 +9,7 @@ class FsCache {
 
   constructor() {
     this.rootDir = config.cache.rootDir;
+    this.pgClient = null;
   }
 
   updateRootDir(newRootDir) {
@@ -68,10 +69,9 @@ class FsCache {
     const stats = await fs.stat(assetPath);
     const lastModified = stats.mtime.toISOString();
 
-    reportFileWrite({
+    await reportFileWrite({
       file_path: assetPath,
       step: step,
-      user_id: userId,
       last_modified: lastModified,
       file_hash: newHash,
       last_file_hash: existingHash,

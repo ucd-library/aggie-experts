@@ -1,4 +1,5 @@
 import path from 'path';
+import os from 'os';
 
 const scriptDir = path.dirname(new URL(import.meta.url).pathname);
 
@@ -10,7 +11,11 @@ const esPort = process.env.ES_PORT || 9200;
 const config = {
   reporting : {
     enabled : env.ETL_REPORTING_ENABLED || false,
-    jobId : env.ANDUIN_JOB_ID,
+    jobId : env.ANDUIN_JOB_ID || 'user:' + os.userInfo().username,
+    userId : null,
+    command : null,
+    commandId : null,
+    opts : null
   },
 
   cache : {
@@ -36,6 +41,15 @@ const config = {
       experts : env.ES_INDEX_EXPERTS || 'experts',
       hash : env.ES_INDEX_CACHE || 'cache',
     }
+  },
+
+  postgres : {
+    host : env.POSTGRES_HOST || 'postgres',
+    port : env.POSTGRES_PORT || 5432,
+    user : env.POSTGRES_USER || 'postgres',
+    password : env.POSTGRES_PASSWORD || 'postgres',
+    database : env.POSTGRES_DB || 'postgres',
+    schemaFile : path.resolve(scriptDir, './reporting/schema.sql'),
   },
 
   keycloak : {

@@ -34,10 +34,38 @@ services:
       - es-data:/usr/share/elasticsearch/data
     restart: unless-stopped
 
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16}
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  superset:
+    image: apache/superset:latest
+    environment:
+      - SUPERSET_SECRET_KEY=your_secret_key
+      - SUPERSET_DATABASE_URI=postgresql://postgres:postgres@postgres:5432/postgres
+    ports:
+      - "8088:8088"
+    depends_on:
+      - postgres
+    volumes:
+      - superset_home:/app/superset_home
+    restart: unless-stopped
+
 volumes:
   data_cache:
     driver: local
   dagster_home:
     driver: local
   es-data:
+    driver: local
+  pg_data:
+    driver: local
+  superset_home:
     driver: local
