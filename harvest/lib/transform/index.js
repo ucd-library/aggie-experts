@@ -4,29 +4,14 @@ import config from '../config.js';
 import path from 'path';
 import fs from 'fs';
 
+import ExpertsKcAdminClient from '../extract/keycloak.js';
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
 import {runFromFiles as jsonLdToPerson} from './person.js';
 import {runFromFiles as personToWebapp} from './elastic-search/index.js';
+import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
-function sortJsonArrayByIdAndKeys(jsonArray) {
-  // sort the array by '@id', then by keys for each
-  jsonArray.sort((a, b) => {
-    if (a['@id'] < b['@id']) return -1;
-    if (a['@id'] > b['@id']) return 1;
-    return 0;
-  });
-
-  return jsonArray.map(obj => {
-    const sortedKeys = Object.keys(obj).filter(k => k !== '@id').sort();
-    const newObj = { '@id': obj['@id'] };
-    for (const key of sortedKeys) {
-      newObj[key] = obj[key];
-    }
-    return newObj;
-  });
-}
-
+const kcClient = new ExpertsKcAdminClient();
 
 async function run(options={}) {
   if( options.rootDir ) {
@@ -66,12 +51,14 @@ async function run(options={}) {
     return;
   }
 
+  let cdlRelJsonLdFiles = [];
   files = fs.readdirSync(cdlRelPath);
   for( let file of files ) {
     if( path.extname(file) === '.json' ) {
       logger.info(`Transform CDL rel path: ${cdlRelPath}`);
       let resp = await jsonAtomToJsonLd(path.join(cdlRelPath, file));
       cdlJsonLdFiles.push(resp.jsonldFile);
+      cdlRelJsonLdFiles.push(resp.jsonldFile);
     }
   }
 
@@ -79,14 +66,24 @@ async function run(options={}) {
   let iamUserPath = cache.getPath(options.user, config.cache.iamDir, config.cache.iamUserFilename);
   logger.info(`IAM user path: ${iamUserPath}`);
   let iamDir = await iamApiToJsonLd(iamUserPath);
-  
 
   // Transform in std AE Person data
   let result = await jsonLdToPerson(options.user, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
-
   // Transform in webapp format
   await personToWebapp(options.user, 'TODO', result.assetPath);
+
+  // Get expert ID from keycloak
+  let user = await kcClient.getOrCreateExpert(options.user);
+  logger.info(`User from Keycloak: ${JSON.stringify(user)}`);
+  let expertId = `expert/${user.attributes.expertId[0]}`;
+
+  // Transform in std AE relationships data
+  result = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, options);
+
+  // TODO fix extract errors for j. eisen
+  // test transform of relationships with multiple rel_### files
+
 }
 
 export default run;
