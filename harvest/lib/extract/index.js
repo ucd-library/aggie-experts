@@ -52,7 +52,7 @@ async function run(options={}) {
     throw new Error(`No email found in IAM profile for user: ${userText}`);
   }
 
-  let user = await kcClient.getOrCreateExpert(options.user);
+  let user = await kcClient.getOrCreateExpert(email || options.user);
   await cache.writeUserAsset('keycloak-json-extract', options.user, 'keycloak.json', user);
 
   // const cdlClient = new CdlClient();
