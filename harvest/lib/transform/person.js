@@ -11,7 +11,6 @@ import {sortJsonArrayByIdAndKeys} from './utils.js';
 function run(expertId, profile, cdl, ucopVocab) {
   const result = [];
 
-  // Extract expert ID from profile
   const expertUri = `http://experts.ucdavis.edu/expert/${expertId}`;
 
   // Extract basic info from profile
