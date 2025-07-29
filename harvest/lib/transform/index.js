@@ -75,7 +75,10 @@ async function run(options={}) {
   // Get expert ID from keycloak
   let user = await kcClient.findByEmail(email || options.user);
   logger.info(`User from Keycloak: ${JSON.stringify(user)}`);
-  let expertId = user.attributes.expertId[0] || '';
+  let expertId = '';
+  if (Array.isArray(user.attributes.expertId) && user.attributes.expertId.length > 0) {
+    expertId = user.attributes.expertId[0];
+  }
 
   // Transform in std AE Person data
   let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
