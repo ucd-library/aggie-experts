@@ -4,14 +4,11 @@ import config from '../config.js';
 import path from 'path';
 import fs from 'fs';
 
-import ExpertsKcAdminClient from '../extract/keycloak.js';
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
 import {runFromFiles as jsonLdToPerson} from './person.js';
 import {runFromFiles as personToWebapp} from './elastic-search/index.js';
 import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.js';
-
-const kcClient = new ExpertsKcAdminClient();
 
 async function run(options={}) {
   if( options.rootDir ) {
@@ -74,7 +71,8 @@ async function run(options={}) {
   await personToWebapp(options.user, 'TODO', result.assetPath);
 
   // Get expert ID from keycloak
-  let user = await kcClient.getOrCreateExpert(options.user);
+  let user = await cache.readUserAsset(options.user, config.cache.keycloakUserFilename);
+  user = JSON.parse(user);
   logger.info(`User from Keycloak: ${JSON.stringify(user)}`);
   let expertId = `expert/${user.attributes.expertId[0]}`;
 

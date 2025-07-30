@@ -70,8 +70,8 @@ class FsCache {
     const lastModified = stats.mtime.toISOString();
 
     // new file or file changed, report the write
-    if( !existingHash ) {
-      existingHash = await this.hashFile(assetPath);
+    if( !newHash ) {
+      newHash = await this.hashFile(assetPath);
     }
 
     await reportFileWrite({
