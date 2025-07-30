@@ -12,6 +12,12 @@ cork-kube build exec \
   -f fin-elastic-search
 
 cork-kube build exec \
+  -p project-anduin \
+  -v main \
+  -o sandbox \
+  -f superset
+
+cork-kube build exec \
   -p aggie-experts \
   -v $VERSION \
   -o sandbox

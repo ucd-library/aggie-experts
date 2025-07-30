@@ -95,6 +95,10 @@ program.name('transform')
     // }
 
     // console.log(result);
+
+
+    // TODO: why is this hanging?
+    process.exit();
   });
 
 program.parse(process.argv);

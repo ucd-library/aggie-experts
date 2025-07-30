@@ -46,6 +46,7 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   superset:
+    # image: ${SUPERSET_IMAGE}
     image: apache/superset:latest
     environment:
       - SUPERSET_SECRET_KEY=your_secret_key
@@ -56,7 +57,8 @@ services:
       - postgres
     volumes:
       - superset_home:/app/superset_home
-    restart: unless-stopped
+      - superset_init:/etc/superset/init
+    # command: ["bash", "-c", "/app/docker/superset-start.sh"]
 
 volumes:
   data_cache:
@@ -68,4 +70,6 @@ volumes:
   pg_data:
     driver: local
   superset_home:
+    driver: local
+  superset_init:
     driver: local

@@ -3,6 +3,7 @@ import IamClient from './iam.js';
 import ExpertsKcAdminClient from './keycloak.js';
 import cache from '../cache.js';
 import logger from '../logger.js';
+import config from '../config.js';
 
 const cdlClient = new CdlClient();
 const iamClient = new IamClient();
@@ -52,8 +53,8 @@ async function run(options={}) {
     throw new Error(`No email found in IAM profile for user: ${userText}`);
   }
 
-  let user = await kcClient.getOrCreateExpert(email || options.user);
-  await cache.writeUserAsset('keycloak-json-extract', options.user, 'keycloak.json', user);
+  let user = await kcClient.getOrCreateExpert(email);
+  await cache.writeUserAsset('keycloak-json-extract', options.user, config.cache.keycloakUserFilename, user);
 
   // const cdlClient = new CdlClient();
   let cdlUserResps = await cdlClient.getUser(options.user, {

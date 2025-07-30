@@ -24,6 +24,10 @@ class PgClient {
 
     this.connecting = this.client.connect();
 
+    this.client.on('error', (err) => {
+      throw new Error(`Postgres client error: ${err.message}`);
+    });
+
     await this.connecting;
     this.connecting = null;
     this.connected = true;
