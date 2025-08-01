@@ -344,8 +344,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
             ? c.relatedBy.some(rel => rel['ucdlib:favorite'] === true)
             : c.relatedBy && c.relatedBy['ucdlib:favorite'] === true
-    ).slice(0, 5);
-    citationResults = citationResults.filter(c => !this.featuredCitations.includes(c));
+    )
 
     if( this.featuredCitations.length ) {
       // ensure sorted by year descending
@@ -355,12 +354,16 @@ export default class AppExpert extends Mixin(LitElement)
         return bYear - aYear;
       });
 
+      this.featuredCitations = this.featuredCitations.slice(0, 5);
+
+      citationResults = citationResults.filter(c => !this.featuredCitations.includes(c));
       citationResults.sort((a, b) => {
         let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
         let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
         return bYear - aYear;
       });
     }
+
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     citationResults.forEach((cite, i) => {
