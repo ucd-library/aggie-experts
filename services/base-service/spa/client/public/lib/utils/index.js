@@ -86,6 +86,10 @@ class Utils {
                        .join(' ');
   }
 
+  formatCitation(cite) {
+    return cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>';
+  }
+
   /**
    * @method getGrantRole
    * @description given a relationship with a GrantType vivo role @type, returns the role to display in AE and the relationship ID (if exists).
