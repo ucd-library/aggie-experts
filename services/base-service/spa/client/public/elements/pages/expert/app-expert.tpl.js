@@ -594,6 +594,15 @@ return html`
       line-height: 2rem;
     }
 
+    .featured-works {
+      background-color: rgba(108, 202, 152, 0.2);
+      padding: 1.19rem 2.38rem;
+      margin-bottom: 3.57rem;
+    }
+    .featured-works .work {
+      padding-bottom: .6rem;
+    }
+
     @media (max-width: 1080px) {
       .tooltip.download-all-grants:before {
         right: -25px;
@@ -1065,7 +1074,25 @@ return html`
         </span>
 
         <hr class="seperator">
-        ${this.citationsDisplayed.map(
+
+          <div class="featured-works" ?hidden="${!this.featuredCitations.length}">
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;">Highlights</h3>
+              ${this.featuredCitations.map(
+              (cite) => html`
+                <div class="work">
+                  <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
+                  <div class="work-details">
+                    <span style="min-width: fit-content;">${cite.issued?.[0]}</span>
+                    <span class="dot">•</span>
+                    <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
+                    <span class="dot">•</span>
+                    ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
+                  </div>
+                </div>
+              `)}
+          </div>
+
+          ${this.citationsDisplayed.map(
           (cite) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
             <div class="work">
