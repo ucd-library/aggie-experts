@@ -106,7 +106,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions(), clearCache);
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favoriteWorksFirst : true }), clearCache);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
       this._onExpertUpdate(expert, modified);
