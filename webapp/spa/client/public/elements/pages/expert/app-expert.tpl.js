@@ -153,7 +153,7 @@ return html`
       height: 2.2rem;
     }
 
-    .seperator {
+    .separator {
       display: block;
       height: 4px;
       border: 0;
@@ -162,7 +162,7 @@ return html`
       margin: 0.625rem 0;
     }
 
-    .about-me.seperator {
+    .about-me.separator {
       padding-bottom: 0.7rem;
     }
 
@@ -303,12 +303,12 @@ return html`
       height: 2.2rem;
     }
 
-    .grants-abbreviated .seperator {
+    .grants-abbreviated .separator {
       border-top: 4px dotted var(--color-thiebaud-icing);
       padding-bottom: .33rem;
     }
 
-    .works-abbreviated .seperator {
+    .works-abbreviated .separator {
       border-top: 4px dotted var(--color-sage);
       padding-bottom: .33rem;
     }
@@ -594,6 +594,15 @@ return html`
       line-height: 2rem;
     }
 
+    .featured-works {
+      background-color: rgba(108, 202, 152, 0.2);
+      padding: 1.19rem 2.38rem;
+      margin-bottom: 3.57rem;
+    }
+    .featured-works .work {
+      padding-bottom: .6rem;
+    }
+
     @media (max-width: 1080px) {
       .tooltip.download-all-grants:before {
         right: -25px;
@@ -782,7 +791,7 @@ return html`
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
       </div>
-      <hr class="about-me seperator">
+      <hr class="about-me separator">
 
       <div class="introduction no-introduction" ?hidden="${!this.canEdit || this.introduction || this.researchInterests}">
         <h3 class="heading--highlight">Introduction
@@ -986,7 +995,7 @@ return html`
           ${this.hiddenGrants} additional grant${this.hiddenGrants === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
         </span>
 
-        <hr class="seperator">
+        <hr class="separator">
         ${this.grantsActiveDisplayed.map(
           (grant, index) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
@@ -1069,8 +1078,26 @@ return html`
           ${this.hiddenCitations} additional work${this.hiddenCitations === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
         </span>
 
-        <hr class="seperator">
-        ${this.citationsDisplayed.map(
+        <hr class="separator">
+
+          <div class="featured-works" ?hidden="${!this.featuredCitations.length}">
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;">Highlights</h3>
+              ${this.featuredCitations.map(
+              (cite) => html`
+                <div class="work">
+                  <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
+                  <div class="work-details">
+                    <span style="min-width: fit-content;">${cite.issued?.[0]}</span>
+                    <span class="dot">•</span>
+                    <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
+                    <span class="dot">•</span>
+                    ${unsafeHTML(utils.formatCitation(cite))}
+                  </div>
+                </div>
+              `)}
+          </div>
+
+          ${this.citationsDisplayed.map(
           (cite) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
             <div class="work">
@@ -1078,7 +1105,7 @@ return html`
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">•</span>
-                ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
+                ${unsafeHTML(utils.formatCitation(cite))}
               </div>
             </div>
             <br>

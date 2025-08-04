@@ -198,6 +198,7 @@ class ExpertModel extends BaseModel {
         include : false,
         size : -1,
         includeMisformatted : false,
+        favoriteWorksFirst : true,
         sort : [
           {
               "field": "issued",
@@ -354,7 +355,30 @@ class ExpertModel extends BaseModel {
           });
         }
 
+        // default sort
         works = works.sort((a,b) => sortGraph(a, b, options.works.sort));
+
+        if( options.works?.favoriteWorksFirst ) {
+          // Sort works with favorites first, then apply regular sorting
+          works = works.sort((a, b) => {
+            // Check if works are favorites
+            const aIsFavorite = a.relatedBy && Array.isArray(a.relatedBy)
+              ? a.relatedBy.some(rel => rel['ucdlib:favorite'] === true)
+              : a.relatedBy && a.relatedBy['ucdlib:favorite'] === true;
+
+            const bIsFavorite = b.relatedBy && Array.isArray(b.relatedBy)
+              ? b.relatedBy.some(rel => rel['ucdlib:favorite'] === true)
+              : b.relatedBy && b.relatedBy['ucdlib:favorite'] === true;
+
+            // Favorites come first
+            if (aIsFavorite && !bIsFavorite) return -1;
+            if (!aIsFavorite && bIsFavorite) return 1;
+
+            // If both are favorites or both are not favorites, apply regular sorting
+            return sortGraph(a, b, options.works.sort);
+          });
+        }
+
         if( options.works?.includeMisformatted ) {
           invalidWorks = [...(invalidTitle.citations || []), ...(invalidIssueDate.citations || [])];
           doc.invalidWorks = invalidWorks;
