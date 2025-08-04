@@ -32,6 +32,7 @@ export default class AppExpert extends Mixin(LitElement)
       websites : { type : Array },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      featuredCitations : { type : Array },
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
@@ -105,7 +106,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions(), clearCache);
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favoriteWorksFirst : true }), clearCache);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
       this._onExpertUpdate(expert, modified);
@@ -264,6 +265,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.websites = [];
     this.citations = [];
     this.citationsDisplayed = [];
+    this.featuredCitations = [];
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
@@ -338,6 +340,29 @@ export default class AppExpert extends Mixin(LitElement)
 
     let citationResults = all ? await Citation.generateCitations(citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
     citationResults = citationResults.map(c => c.value || c.reason?.data);
+
+    this.featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
+            ? c.relatedBy.some(rel => rel['ucdlib:favorite'] === true)
+            : c.relatedBy && c.relatedBy['ucdlib:favorite'] === true
+    )
+
+    if( this.featuredCitations.length ) {
+      // ensure sorted by year descending
+      this.featuredCitations.sort((a, b) => {
+        let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
+        let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
+        return bYear - aYear;
+      });
+
+      this.featuredCitations = this.featuredCitations.slice(0, 5);
+
+      citationResults = citationResults.filter(c => !this.featuredCitations.includes(c));
+      citationResults.sort((a, b) => {
+        let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
+        let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
+        return bYear - aYear;
+      });
+    }
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
