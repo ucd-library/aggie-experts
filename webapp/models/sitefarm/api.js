@@ -97,7 +97,19 @@ function siteFarmFormat(req, res, next) {
     newDoc["scopusId"] = doc["@graph"][i].scopusId;
 
     // Include the website list we filtered for above
-    newDoc["contactInfo"].hasURL = websites[0].hasURL && websites.length > 0 ? websites[0].hasURL : null;
+    newDoc["contactInfo"].hasURL = websites.length > 0 && websites[0].hasURL ? websites[0].hasURL : null;
+
+    // ensure website @type's are arrays
+    if( newDoc["contactInfo"].hasURL ) {
+      if( !Array.isArray(newDoc["contactInfo"].hasURL) ) {
+        newDoc["contactInfo"].hasURL = [newDoc["contactInfo"].hasURL];
+      }
+      newDoc["contactInfo"].hasURL.forEach((url) => {
+        let atType = Array.isArray(url['@type']) ? url['@type'] : [url['@type']];
+        url["@type"] = atType;
+      });
+    }
+
     // preserve the modified-date
     newDoc["modified-date"] = doc["modified-date"];
     newArray.push(newDoc);
