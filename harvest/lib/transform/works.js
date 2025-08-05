@@ -1,5 +1,5 @@
 import jsonpath from 'jsonpath';
-import { formatDate, getFieldValue, getFieldObject } from './utils.js';
+import { formatDate, getFieldValue, getFieldObject, extractAsArray } from './utils.js';
 
 function transformWorks(works, expertId) {
   let results = [];
@@ -21,7 +21,7 @@ function transformWork(workRelationship, relationshipId, expertId) {
   const expertUri = `http://experts.ucdavis.edu/${expertId}`;
 
   // Get the best record data (prefer manual > dimensions > crossref > others)
-  const records = jsonpath.query(workRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"][*]');
+  const records = extractAsArray(workRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"]');
   let primaryRecord = records.find(r => r['source-name'] === 'manual') ||
                      records.find(r => r['source-name'] === 'dimensions') ||
                      records.find(r => r['source-name'] === 'crossref') ||
@@ -55,8 +55,8 @@ function transformWork(workRelationship, relationshipId, expertId) {
   const dateValue = formatDate(publicationDate);
 
   // Extract authors
-  const authorsField = fields.find(f => f.name === 'authors');
-  const authors = authorsField ? jsonpath.query(authorsField, '$["api:people"]["api:person"][*]') : [];
+  const authorsField = fields.find(f => f && f.name === 'authors');
+  const authors = authorsField ? extractAsArray(authorsField, '$["api:people"]["api:person"]') : [];
 
   // Create main publication record
   const publication = {
