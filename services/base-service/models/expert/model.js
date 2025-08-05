@@ -796,7 +796,7 @@ class GrantRole {
     let resp;
 
     logger.info({expert:expertId,patch},`expert.grantRole.patch(${expertId})`);
-    if (patch.visible == null && patch.favourite == null) {
+    if (patch.visible == null && patch.favorite == null) {
       return 400;
     }
 
@@ -850,8 +850,8 @@ class GrantRole {
           ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
           ${patch.favorite != null ?`<${id}> ucdlib:favorite ${patch.favorite} .`:''}
         } WHERE {
-          <${id}> ucdlib:is-visible ?v .
-          OPTIONAL { <${id}> ucdlib:favorite ?fav } .
+          ${patch.visible != null ? `OPTIONAL { <${id}> ucdlib:is-visible ?v } .`:''}
+          ${patch.favorite != null ? `OPTIONAL { <${id}> ucdlib:favorite ?fav } .`:''}
         }
       `
     };
@@ -892,7 +892,7 @@ class Authorship {
   /**
    * @method patch
    * @description Patch an authorship file.
-   * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
+   * @param {Object} patch :  { "@id", "is-visible", "favorite" }
    * @param {String} expertId : Expert Id
    * @returns {Object} : document object
     **/
@@ -904,7 +904,7 @@ class Authorship {
     logger.info({patch},`authorship.patch ${expertId}:`);
     // This patch adds a relationship field back in, while we decide the best method
     let rid=id.replace("ark:/87287/d7mh2m/","ark:/87287/d7mh2m/relationship/");
-    if (patch.visible == null && patch.favourite == null) {
+    if (patch.visible == null && patch.favorite == null) {
       return 400;
     }
 
@@ -924,8 +924,8 @@ class Authorship {
     if (patch.visible != null) {
       node['relatedBy']['is-visible'] = patch.visible;
     }
-    if (patch.favourite != null) {
-      node['relatedBy']['is-favourite'] = patch.favourite;
+    if (patch.favorite != null) {
+      node['relatedBy'].favorite = patch.favorite;
     }
     //already a snippet node = workModel.snippet(have_part.Work.node);
     await this.expertModel.update_graph_node(expertId,node);
@@ -937,14 +937,14 @@ class Authorship {
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
           ${patch.visible != null ? `<${rid}> ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`<${rid}> ucdlib:is-favourite ?f .`:''}
+          ${patch.favorite != null ?`<${rid}> ucdlib:favorite ?f .`:''}
         }
         INSERT {
           ${patch.visible != null ?`<${rid}> ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`<${rid}> ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.favorite != null ?`<${rid}> ucdlib:favorite ${patch.favorite} .`:''}
         } WHERE {
-          <${rid}> ucdlib:is-visible ?v .
-          OPTIONAL { <${rid}> ucdlib:is-favourite ?fav } .
+          ${patch.visible != null ? `OPTIONAL { <${rid}> ucdlib:is-visible ?v } .`:''}
+          ${patch.favorite != null ? `OPTIONAL { <${rid}> ucdlib:favorite ?f } .`:''}
         }
       `
     };
@@ -958,11 +958,20 @@ class Authorship {
 
     if (config.experts.cdl.authorship.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
-      resp = await cdl_user.setLinkPrivacy({
-        objectId: patch.objectId,
-        categoryId: 1,
-        privacy: patch.visible ? 'public' : 'internal'
-      })
+
+      if( patch.visible != null ) {
+        logger.info('CDL propagate visibility', patch.visible);
+        resp = await cdl_user.setLinkPrivacy({
+          objectId: patch.objectId,
+          categoryId: 1,
+          privacy: patch.visible ? 'public' : 'internal'
+        })
+      } else if( patch.favorite != null ) {
+        logger.info('CDL propagate favorite', patch.favorite);
+        patch.categoryId = 1;
+        resp = await cdl_user.setFavourite(patch)
+      }
+
       logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
     } else {
       logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl.authorship.propagate}`);
