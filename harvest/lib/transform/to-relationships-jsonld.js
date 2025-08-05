@@ -46,7 +46,6 @@ async function saveRelationshipFiles(relationships, expertId, options) {
     let { relationshipId, graph } = relationship;
     graph = sortJsonArrayByIdAndKeys(graph);
 
-    logger.info(`Saving relationship file for expert ID: ${expertId}, relationship ID: ${relationshipId}, path: ${path.join(config.cache.aeStdFormatDir + `/${expertId}/ark:/87287/d7mh2m/`, `${relationshipId}.jsonld`)}`);
     await cache.writeUserAsset(
       'ae-std-relationship-transform',
       options.user,
