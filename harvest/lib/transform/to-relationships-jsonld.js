@@ -20,7 +20,9 @@ async function run(rel, expertId, options = {}) {
   works = transformWorks(works, expertId);
   grants = transformGrants(grants, expertId);
 
-  saveRelationshipFiles([...works, ...grants], expertId, options);
+  await saveRelationshipFiles([...works, ...grants], expertId, options);
+
+  return { success: true, works: works.length, grants: grants.length };
 }
 
 async function runFromFiles(relationshipFiles, expertId, options) {
@@ -30,24 +32,28 @@ async function runFromFiles(relationshipFiles, expertId, options) {
   }
 
   logger.info(`Running AE std relationship transformation for user: ${options.user}`);
-  relationshipFiles.forEach(file => {
+  for( let file of relationshipFiles ) {
     logger.info(`Processing relationship file: ${file}`);
     let rel = JSON.parse(fs.readFileSync(file, 'utf8'));
-    run(rel, expertId, options);
-  });
+    await run(rel, expertId, options);
+  }
+
+  return { success: true, message: "Transformation completed" };
 }
 
-function saveRelationshipFiles(relationships, expertId, options) {
-  relationships.forEach(relationship => {
+async function saveRelationshipFiles(relationships, expertId, options) {
+  for( let relationship of relationships ) {
     let { relationshipId, graph } = relationship;
     graph = sortJsonArrayByIdAndKeys(graph);
-    return cache.writeUserAsset(
+
+    logger.info(`Saving relationship file for expert ID: ${expertId}, relationship ID: ${relationshipId}, path: ${path.join(config.cache.aeStdFormatDir + `/${expertId}/ark:/87287/d7mh2m/`, `${relationshipId}.jsonld`)}`);
+    await cache.writeUserAsset(
       'ae-std-relationship-transform',
       options.user,
-      path.join(config.cache.aeStdFormatDir + `/${expertId}/ark:/87287/d7mh2m/`, `${relationshipId}.jsonld`),
+      path.join(config.cache.aeStdFormatDir + `/${expertId}/rel/`, `${relationshipId}.jsonld`),
       graph
     );
-  });
+  }
 }
 
 // Trim extraneous info from authors

@@ -98,7 +98,7 @@ program.name('transform')
 
 
     // TODO: why is this hanging?
-    process.exit();
+    // process.exit();
   });
 
 program.parse(process.argv);
