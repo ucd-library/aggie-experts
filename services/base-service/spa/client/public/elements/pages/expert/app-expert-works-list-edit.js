@@ -115,7 +115,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     }
 
 
-    this.modifiedWorks = false;
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
@@ -133,8 +132,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           worksSize : this.resultsPerPage,
           includeHidden : true,
           includeWorksMisformatted : true
-        })
+        }),
+        this.modifiedWorks // clear cache if modified works
       );
+      this.modifiedWorks = false;
 
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
@@ -476,6 +477,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hiddenCitations--;
     this._updateHeaderLabels();
 
+    this.modifiedWorks = true;
+
     this.requestUpdate();
   }
 
@@ -535,6 +538,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           });
         }
         this.logger.error('failed to set citation to be hidden', { citationId : this.citationId, expertId : this.expertId });
+        return;
       }
 
       // update graph/display data
@@ -556,6 +560,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.hiddenCitations++;
 
       this._updateHeaderLabels();
+
+      this.modifiedWorks = true;
 
       this.requestUpdate();
 
