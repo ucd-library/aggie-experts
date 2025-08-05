@@ -33,6 +33,7 @@ export default class AppExpert extends Mixin(LitElement)
       citations : { type : Array },
       citationsDisplayed : { type : Array },
       featuredCitations : { type : Array },
+      showFeaturedCitations : { type : Boolean },
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
@@ -266,6 +267,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.citations = [];
     this.citationsDisplayed = [];
     this.featuredCitations = [];
+    this.showFeaturedCitations = true;
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
@@ -341,10 +343,18 @@ export default class AppExpert extends Mixin(LitElement)
     let citationResults = all ? await Citation.generateCitations(citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
     citationResults = citationResults.map(c => c.value || c.reason?.data);
 
+    // TODO this needs to handle not showing favorites, so a new network request would need to be made..
+    // console.log('TODO handle moving featured citations to top of works list or into main list');
+    // if( this.showFeaturedCitations ) {
+    //   // filter featured citations from all citationResults
+    // } else {
+    //   // show all citations in works list
+    // }
+
     this.featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
             ? c.relatedBy.some(rel => rel['ucdlib:favorite'] === true)
             : c.relatedBy && c.relatedBy['ucdlib:favorite'] === true
-    )
+    );
 
     if( this.featuredCitations.length ) {
       // ensure sorted by year descending
@@ -911,6 +921,24 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideOK = false;
     this.hideOaPolicyLink = true;
     this.errorMode = false;
+  }
+
+  /**
+   * @method _onFeaturedCitationsToggle
+   * @description toggle featured citations
+   * @param {Object} e click|keyup event
+   */
+  _onFeaturedCitationsToggle(e) {
+    this.showFeaturedCitations = !this.showFeaturedCitations;
+
+    // TODO the toggle for featured collections should be default to on
+    // and untoggling it will be batch update to remove all favorites from all works for expert
+
+    this._loadCitations();
+  }
+
+  _hideEditExpertControls() {
+    return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;
   }
 
   _cdlErrorModal(e) {

@@ -58,6 +58,22 @@ class ExpertModel extends BaseModel {
   }
 
   /**
+   * @method updateCitationFavorite
+   * @description update favorite status of experts work
+   *
+   * @param {String} id expert id
+   * @param {String} citationId id of work
+   * @param {Boolean} favorite true if favorite
+   *
+   * @returns {Promise} resolves to record
+   */
+  updateCitationFavorite(id, citationId, favorite=false) {
+    // remove /relationship from the citationId
+    citationId = citationId.replace('/relationship', '');
+    return this.service.updateCitationFavorite(id, citationId, favorite);
+  }
+
+  /**
    * @method updateGrantVisibility
    * @description update visibility of experts grant
    *

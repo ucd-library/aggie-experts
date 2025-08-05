@@ -596,11 +596,79 @@ return html`
 
     .featured-works {
       background-color: rgba(108, 202, 152, 0.2);
-      padding: 1.19rem 2.38rem;
+      padding: 2.38rem;
       margin-bottom: 3.57rem;
     }
+
+    .featured-works h3 {
+      margin: 1.19rem 0;
+    }
+
     .featured-works .work {
       padding-bottom: .6rem;
+    }
+
+    .featured-works-toggle {
+      text-align: left;
+      position: relative;
+      z-index: 500;
+    }
+
+    .featured-works-toggle .featured-works-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .featured-works-toggle .featured-works-header span {
+      font-weight: bold;
+    }
+
+    .featured-works-toggle .instructions-label {
+      font-style: italic;
+      line-height: 1.7rem;
+    }
+
+    .featured-works-toggle .instructions-label p {
+      margin: .5rem 0 0 0;
+    }
+
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toggle-button {
+      width: 35px;
+      height: 13px;
+      border-radius: 30px;
+      cursor: pointer;
+      position: relative;
+      background-color: var(--color-black-20);
+    }
+
+    .toggle-button::before {
+      position: absolute;
+      content: '';
+      background-color: white;
+      width: 22px;
+      height: 22px;
+      border-radius: 22px;
+      margin-top: -5px;
+      transition: 0.3s ease-in-out;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-switch input:checked + .toggle-button {
+      background-color: var(--color-aggie-blue-60);
+    }
+    .toggle-switch input:checked + .toggle-button::before {
+      transform: translateX(.8rem);
+      background-color: var(--color-aggie-blue-80);
+    }
+    .toggle-switch input {
+      display: none;
     }
 
     @media (max-width: 1080px) {
@@ -702,7 +770,7 @@ return html`
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT ${!this.isVisible ? '(HIDDEN)' : ''}</span>
           <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
-          <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+          <div ?hidden="${this._hideEditExpertControls()}" style="position: relative; display: flex;">
             <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-eye"
@@ -722,7 +790,7 @@ return html`
                 aria-label="Show expert"></ucdlib-icon>
             </span>
           </div>
-          <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+          <div ?hidden="${this._hideEditExpertControls()}" style="position: relative; display: flex;">
             <span class="tooltip delete-expert" data-text="Delete expert">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-trash"
@@ -1076,7 +1144,26 @@ return html`
         <hr class="separator">
 
           <div class="featured-works" ?hidden="${!this.featuredCitations.length}">
-            <h3 class="heading--highlight" style="margin: 1.19rem 0;">Highlights</h3>
+            <div class="featured-works-toggle">
+              <div class="featured-works-header">
+                <h3 class="heading--highlight">Highlights</h3>
+                <div class="toggle-switch" ?hidden="${this._hideEditExpertControls()}">
+                  <input
+                    type="checkbox"
+                    id="toggle"
+                    ?checked="${this.showFeaturedCitations}"
+                    @change="${this._onFeaturedCitationsToggle}">
+                  <label for="toggle" class="toggle-button"></label>
+                </div>
+              </div>
+              <div class="instructions-label" ?hidden="${this.showFeaturedCitations || this._hideEditExpertControls()}">
+                <p>
+                  Enable this feature to show "Favorite" works at the top of your profile's Works list. Works may
+                  be added or removed by selecting the heart icon in the Works editing view.
+                </p>
+              </div>
+            </div>
+            <div ?hidden="${!this.showFeaturedCitations}" class="featured-works-list">
               ${this.featuredCitations.map(
               (cite) => html`
                 <div class="work">
@@ -1090,6 +1177,7 @@ return html`
                   </div>
                 </div>
               `)}
+            </div>
           </div>
 
           ${this.citationsDisplayed.map(

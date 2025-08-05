@@ -785,7 +785,7 @@ class GrantRole {
   /**
    * @method patch
    * @description Patch an grant_role file.
-   * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
+   * @param {Object} patch :  { "@id", "is-visible", "favorite" }
    * @param {String} expertId : Expert Id
    * @returns {Object} : document object
    **/
@@ -831,8 +831,8 @@ class GrantRole {
     if (patch.visible != null) {
       node['relatedBy']['is-visible'] = patch.visible;
     }
-    if (patch.favourite != null) {
-      node['relatedBy']['is-favourite'] = patch.favourite;
+    if (patch.favorite != null) {
+      node['relatedBy'].favorite = patch.favorite;
     }
     await this.expertModel.update_graph_node(expertId,node);
 
@@ -844,14 +844,14 @@ class GrantRole {
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
           ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`<${id}> ucdlib:is-favourite ?fav .`:''}
+          ${patch.favorite !=null ?`<${id}> ucdlib:favorite ?fav .`:''}
         }
         INSERT {
           ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`<${id}> ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.favorite != null ?`<${id}> ucdlib:favorite ${patch.favorite} .`:''}
         } WHERE {
           <${id}> ucdlib:is-visible ?v .
-          OPTIONAL { <${id}> ucdlib:is-favourite ?fav } .
+          OPTIONAL { <${id}> ucdlib:favorite ?fav } .
         }
       `
     };
@@ -873,7 +873,7 @@ class GrantRole {
         })
         logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.grant_role.propagate}`);
       }
-      if (patch.favourite != null) {
+      if (patch.favorite != null) {
         resp = await cdl_user.setFavourite(patch)
         logger.info({cdl_response:resp},`CDL propagate favourite ${config.experts.cdl.grant_role.propagate}`);
       }
