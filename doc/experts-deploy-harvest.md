@@ -98,17 +98,14 @@ quite awhile.
 byobu
 ```
 
-Next, we want to run a bash instance on fuseki. Rather than using a simple
-`bash` execution, we start via the normal Dockerfile ENTRYPOINT.  Unlike most
-images, fuseki runs as it's own process user, and this method uses the same
-user.
+Next, we want to run a bash instance on fuseki.
 
 ``` bash
 docker compose exec fuseki bash
 ```
 
 This brings you to a bash shell on the fuseki container, where you should see a
-prompt similiar to: `ucd.process@4cdbbe11f9ef:~$`
+prompt similiar to: `root@04871390ecd4:/var/lib/fuseki#`
 
 Now, let's fetch all the experts.
 
@@ -119,7 +116,7 @@ experts cdl --log=info --groups=experts
 This starts the harvest in the foreground and logs to the console as it works.
 The information includes downloading XML data from CDL, creating a new database,
 running SPARQL commands on the database, and finalizing the expert.  As it runs,
-it fills up the `cache` directory with: The files downloaded; the SPARQL
+it fills up the `cache` directory with: the files downloaded, the SPARQL
 commands run, and the fcrepo representation of the expert.
 
 You can open another byobu terminal to monitor the cache being built by the
@@ -134,18 +131,18 @@ ls cache/ | wc -l # count of experts harvested to monitor progress.
 Now, you can log out, and the harvest will still be running. Later you can ssh
 back into the server and restart byobu to continue.
 
-As discussed above, while running a long import, you're fuseki container my
+As discussed above, while running a long import, your fuseki container my
 crash.  You can look at the docker logs to see why the container crashed.  In
 addition, after restarting and bashing back into the system.  You can see the
-application log in the ~/home/ucd.process~ directory for when the application
-failed.
+application log to see when the application failed.
 
 You can restart the process where you left off with the `--skip-existing`
 flag. This will *not* reprocess any experts currently in the cache.
 
 ``` bash
 docker compose exec fuseki bash
-rm databases/* config/*  # If fuseki fails in a bad spot, the last user might have corrupted data.
+rm -rf databases/*  # If fuseki fails in a bad spot, the last user might have corrupted data.
+rm configuration/*  # If fuseki fails in a bad spot, the last user might have corrupted data.
 experts cdl --log=info --skip-existing --groups=experts
 ```
 
@@ -162,7 +159,8 @@ docker compose up -d
 ```
 
 This should *not* start the gateway until all initialization steps are complete. Check
-the docker logs to ensure that the entire instance started properly. 
+the docker logs to ensure that the entire instance started properly; pay particular
+attention to the `init` container.
 
 Now you can import the data:
 
@@ -204,11 +202,19 @@ normal paste will not allow for proper sorting.)
 
 Once you see that all the data has been processed by fin, invite your
 collaborators to test the system now running at
-`stage.experts.library.ucdavis.edu`.  If bugs are encountered, for example UI
-bugs, then once those bugs are fixed, you can use `git pull` on your directory,
-`git checkout 4.0.3` or whatever the newly built images are, and then `dc pull`
-followed by `dc up -d` to create new containers based on the new images, where
-they have changed.  The data stays the same.
+`stage.experts.library.ucdavis.edu`. 
+
+If bugs are encountered, for example UI bugs, then once those bugs are fixed, tag the new
+version, register the new version in the `cork-build-registry`, and build new images using
+the `cork-kube build` command. You can use `git pull` on your directory, `git checkout 4.0.3` 
+or whatever the newly built images are. Run 
+
+```bash
+bin/aggie-experts --no-gcs --no-test --env=stage setup
+```
+
+Then `dc pull`, followed by `dc up -d` to create new containers based on the 
+new images (that have changed). The data stays the same.
 
 ## Deploy to production
 
@@ -234,7 +240,7 @@ I usually just stop these so they can be started quickly if we need to revert.
 
 ## Clean-up: Deleting old instances
 
-Currently, weekly snapshots of Aggie Experts are created, resulting in a number of defunct ones lying about in `file://[blue|gold].experts.library.ucdavis.edu/etc/aggie-experts`. Prevous versions are useful to go back in time, and map harvesting in particular, which can be done without bringing up the whole system.
+Currently, weekly snapshots of Aggie Experts are created, resulting in a number of defunct ones lying about in `file://[blue|gold].experts.library.ucdavis.edu/etc/aggie-experts`. Previous versions are useful to go back in time, and map harvesting in particular, which can be done without bringing up the whole system.
 
 Typically, 3 or 4 previous versions are kept. Removing an older version takes hours, consequently:
   - remove instances while that machine [blue|gold] is still serving stage; deleting the old versions can slow down disk access (elasticsearch) on the server
@@ -249,7 +255,7 @@ The process is
   cd ..
   rm -rf $ver
   ``` 
-  
+
 If the deletion process does get interrupted, docker can appear slow, with no good indication of what's going on. Rather than restarting the docker daemon, which won't solve the problem, monitor that the deletion is still happening in the background, and wait for it to end. The problem is always fcrepo, and it's millions of files. Track the deletion of a volume like this:
 
 ```bash
