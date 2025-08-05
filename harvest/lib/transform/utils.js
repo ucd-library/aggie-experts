@@ -1,3 +1,4 @@
+import jsonpath from 'jsonpath';
 
 function sortJsonArrayByIdAndKeys(jsonArray) {
   // sort the array by '@id', then by keys for each
@@ -15,6 +16,34 @@ function sortJsonArrayByIdAndKeys(jsonArray) {
     }
     return newObj;
   });
+}
+
+function sortJsonRecursively(obj) {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    // For arrays, sort each element recursively, then sort the array itself
+    return obj
+      .map(item => sortJsonRecursively(item))
+      .sort((a, b) => {
+        // Sort arrays by their string representation
+        const aStr = typeof a === 'string' ? a : JSON.stringify(a);
+        const bStr = typeof b === 'string' ? b : JSON.stringify(b);
+        return aStr.localeCompare(bStr);
+      });
+  }
+
+  // For objects, sort keys and recursively sort values
+  const sortedObj = {};
+  const sortedKeys = Object.keys(obj).sort();
+
+  for (const key of sortedKeys) {
+    sortedObj[key] = sortJsonRecursively(obj[key]);
+  }
+
+  return sortedObj;
 }
 
 function getFieldValue(fields, fieldName) {
@@ -45,9 +74,35 @@ function formatDate(dateObj) {
   return null;
 }
 
+/**
+ * Ensures a value is always returned as an array
+ * Handles the common pattern where API responses can be either an object or array
+ * @param {*} value - The value to normalize to an array
+ * @returns {Array} - Always returns an array
+ */
+function ensureArray(value) {
+  if (value === null || value === undefined) {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
+/**
+ * Safely extracts a nested property and ensures it's an array
+ * @param {Object} obj - The object to extract from
+ * @param {string} path - JSONPath expression
+ * @returns {Array} - Always returns an array
+ */
+function extractAsArray(obj, path) {
+  const result = jsonpath.value(obj, path);
+  return ensureArray(result);
+}
+
 export {
   sortJsonArrayByIdAndKeys,
   getFieldValue,
   getFieldObject,
-  formatDate
+  formatDate,
+  ensureArray,
+  extractAsArray
 };

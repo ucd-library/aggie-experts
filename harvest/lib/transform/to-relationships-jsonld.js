@@ -9,6 +9,8 @@ import config from '../config.js';
 import {transformWorks} from './works.js';
 import {transformGrants} from './grants.js';
 
+import {sortJsonArrayByIdAndKeys} from './utils.js';
+
 async function run(rel, expertId, options = {}) {
   let {
     works,
@@ -37,7 +39,8 @@ async function runFromFiles(relationshipFiles, expertId, options) {
 
 function saveRelationshipFiles(relationships, expertId, options) {
   relationships.forEach(relationship => {
-    const { relationshipId, graph } = relationship;
+    let { relationshipId, graph } = relationship;
+    graph = sortJsonArrayByIdAndKeys(graph);
     return cache.writeUserAsset(
       'ae-std-relationship-transform',
       options.user,

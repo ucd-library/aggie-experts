@@ -6,12 +6,11 @@ import config from '../config.js';
 import logger from '../logger.js';
 import path from 'path';
 
-function run(profile, cdl, ucopVocab) {
+import {sortJsonArrayByIdAndKeys} from './utils.js';
+
+function run(expertId, profile, cdl, ucopVocab) {
   const result = [];
 
-
-  // Extract expert ID from profile
-  const expertId = jsonpath.value(profile, '$["@graph"][0].expertId');
   const expertUri = `http://experts.ucdavis.edu/expert/${expertId}`;
 
   // Extract basic info from profile
@@ -434,7 +433,7 @@ function run(profile, cdl, ucopVocab) {
   return result;
 }
 
-function runFromFiles(userCacheName, odrFile, cdlFiles, ucopVocabFile) {
+function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVocabFile) {
   logger.info(`Running AE std person transformation for user: ${userCacheName}`);
 
   const profile = JSON.parse(fs.readFileSync(odrFile, 'utf8'));
@@ -463,11 +462,11 @@ function runFromFiles(userCacheName, odrFile, cdlFiles, ucopVocabFile) {
     profile['@graph'][0].expertId = userCacheName.replace(/@.*/g, '');
   }
 
-  let result = run(profile, cdlData, ucopVocab);
+  let result = sortJsonArrayByIdAndKeys(run(expertId, profile, cdlData, ucopVocab));
   return cache.writeUserAsset(
     'ae-std-person-transform',
-    userCacheName, 
-    path.join(config.cache.aeStdFormatDir, 'person.jsonld'), 
+    userCacheName,
+    path.join(config.cache.aeStdFormatDir, 'person.jsonld'),
     result
   );
 }

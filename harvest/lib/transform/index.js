@@ -64,11 +64,10 @@ async function run(options={}) {
   logger.info(`IAM user path: ${iamUserPath}`);
   let iamDir = await iamApiToJsonLd(iamUserPath);
 
-  // Transform in std AE Person data
-  let result = await jsonLdToPerson(options.user, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
-
-  // Transform in webapp format
-  await personToWebapp(options.user, 'TODO', result.assetPath);
+  let email = iamDir.graph?.['@graph']?.[0]?.email;
+  if( !email ) {
+    throw new Error(`No email found in IAM profile for user: ${options.user}`);
+  }
 
   // Get expert ID from keycloak
   let user = await cache.readUserAsset(options.user, config.cache.keycloakUserFilename);
@@ -76,12 +75,14 @@ async function run(options={}) {
   logger.info(`User from Keycloak: ${JSON.stringify(user)}`);
   let expertId = `expert/${user.attributes.expertId[0]}`;
 
+  // Transform in std AE Person data
+  let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
+
+  // Transform in webapp format
+  await personToWebapp(options.user, 'TODO', result.assetPath);
+
   // Transform in std AE relationships data
-  result = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, options);
-
-  // TODO fix extract errors for j. eisen
-  // test transform of relationships with multiple rel_### files
-
+  await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, options);
 }
 
 export default run;
