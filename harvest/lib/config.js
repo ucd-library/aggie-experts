@@ -1,5 +1,6 @@
 import path from 'path';
 import os from 'os';
+import fs from 'fs-extra';
 
 const scriptDir = path.dirname(new URL(import.meta.url).pathname);
 
@@ -7,8 +8,41 @@ const env = process.env;
 
 const esHostname = process.env.ES_HOST || 'elasticsearch';
 const esPort = process.env.ES_PORT || 9200;
+const userConfigDir = env.EXPERTS_USER_CONFIG_DIR || path.join(os.homedir(), '.ae');
+const userConfigFile = path.join(userConfigDir, 'harvest.json');
+
+if (!fs.existsSync(userConfigDir)) {
+  fs.mkdirSync(userConfigDir, { recursive: true });
+}
+
+let userConfigData = {};
+if( fs.existsSync(userConfigFile) ) {
+  userConfigData = JSON.parse(fs.readFileSync(userConfigFile));
+}
 
 const config = {
+
+  userConfig : {
+    rootDir : userConfigDir,
+    configFile : userConfigFile,
+    data : userConfigData || {},  
+
+    get : (key, defaultValue=null) => {
+      return config.userConfig.data[key] || defaultValue;
+    },
+    set : (key, value) => {
+      config.userConfig.data[key] = value;
+      fs.writeFileSync(config.userConfig.configFile, JSON.stringify(config.userConfig.data, null, 2));
+    },
+
+    get serviceAccountFile() {
+      return this.get('serviceAccountFile', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+    },
+    set serviceAccountFile(file) {
+      this.set('serviceAccountFile', file);
+    }
+  },
+
   reporting : {
     enabled : env.ETL_REPORTING_ENABLED || false,
     jobId : env.ANDUIN_JOB_ID || 'user:' + os.userInfo().username,
@@ -28,6 +62,11 @@ const config = {
     keycloakUserFilename : 'keycloak.json',
     cdlUserFilename : 'user_000.json',
     iamUserFilename : 'profile.json',
+
+    gcs : {
+      enabled : env.EXPERTS_CACHE_GCS_ENABLED || false,
+      bucketName : env.EXPERTS_CACHE_BUCKET_NAME || 'experts-harvest-test-cache',
+    }
   },
 
   elasticsearch : {

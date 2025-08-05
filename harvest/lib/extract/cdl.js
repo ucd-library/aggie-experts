@@ -51,8 +51,7 @@ export class CdlClient {
 
     // Author options
     this.author_truncate_to = opt.authorTruncateTo || 40;
-    this.author_trim_info = opt.authorTrimInfo || true
-
+    this.author_trim_info = opt.authorTrimInfo || true;
   }
 
   // Get the auth token from the secret manager
@@ -61,8 +60,8 @@ export class CdlClient {
       return this.auth;
     }
 
-    if( !process.env.GOOGLE_APPLICATION_CREDENTIALS ) {
-      throw new Error('GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.  Please set it to the path of your Google Cloud service account key file.');
+    if( !config.userConfig.serviceAccountFile ) {
+      throw new Error('No service account file provided.');
     }
 
     let secretResp = await gs.getSecret(this.secretpath);

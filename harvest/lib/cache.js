@@ -4,12 +4,14 @@ import config from './config.js';
 import logger from './logger.js';
 import crypto from 'crypto';
 import { reportFileWrite } from './reporting/index.js';
+import GcsCache from './google-cloud-storage.js';
 
 class FsCache {
 
   constructor() {
     this.rootDir = config.cache.rootDir;
     this.pgClient = null;
+    this.gcs = new GcsCache();
   }
 
   updateRootDir(newRootDir) {
@@ -46,9 +48,6 @@ class FsCache {
   async write(step, assetPath, data) {
     await fs.ensureDir(path.dirname(assetPath));
 
-    let parts = assetPath.split(path.sep);
-    let userId = parts.find(p => p.match(/@/)) || '';
-
     if (typeof data === 'object') {
       data = JSON.stringify(data, null, 2);
     }
@@ -73,6 +72,8 @@ class FsCache {
     if( !newHash ) {
       newHash = await this.hashFile(assetPath);
     }
+
+    await this.writeToGcs(assetPath);
 
     await reportFileWrite({
       file_path: assetPath,
@@ -120,6 +121,20 @@ class FsCache {
     if (fs.existsSync(assetPath)) {
       return fs.remove(assetPath);
     }
+  }
+
+  writeToGcs(filePath) {
+    if (!config.cache.gcs.enabled) {
+      return;
+    }
+    return this.gcs.upload(filePath);
+  }
+
+  readFromGcs(filePath) {
+    if (!config.cache.gcs.enabled) {
+      return;
+    }
+    return this.gcs.download(filePath);
   }
 
 }

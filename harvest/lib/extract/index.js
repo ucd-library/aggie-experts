@@ -39,7 +39,7 @@ async function run(options={}) {
         break; // exit loop if we got a valid response
       }
     } catch (err) {
-      // logger.error(`Error fetching IAM profile with options ${JSON.stringify(opt)}:`, err);
+      logger.error(`Error fetching IAM profile with options ${JSON.stringify(opt)}:`, err);
     }
   }
 

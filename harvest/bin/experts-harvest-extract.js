@@ -11,18 +11,23 @@ const env = process.env;
 program.name('extract')
   .description('extract data for aggie experts from cdl & iam')
   .argument('<user-id>', 'User id to extract')
-  .option('--force', 'Force extraction even if data already exists on disk')
   .option('--root-dir <root-dir>', 'Root directory for extracted data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this extraction')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
+  .option('--enable-gcs-cache', 'Enable Google Cloud Storage caching, respects env EXPERTS_CACHE_GCS_ENABLED')
   .action(async (user, options) => {
     if( options.reportingJobId || options.reporting ) {
       await enableFromCli('experts-harvest-extract', user, options);
     }
 
+    if( options.enableGcsCache ) {
+      config.cache.gcs.enabled = true;
+    }
+    logger.info('Google Cloud Storage caching '+ (config.cache.gcs.enabled ? 'enabled' : 'disabled'));    
+
     let resp = await extract.run({
       user: user,
-      force: options.force,
+      force: true,
       rootDir: options.rootDir
     });
 

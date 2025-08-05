@@ -1,24 +1,66 @@
 
 services:
 
+  dagit:
+    image: ${HARVEST_IMAGE:-localhost/local-dev/harvest:sandbox}
+    expose:
+      - '3000'
+    ports:
+      - '3000:3000'
+    environment:
+      DAGSTER_POSTGRES_USER: 'postgres'
+      DAGSTER_POSTGRES_PASSWORD: 'postgres'
+      DAGSTER_POSTGRES_DB: 'postgres'
+    volumes: # Make docker client accessible so we can terminate containers from the webserver
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/io_manager_storage:/tmp/io_manager_storage
+      - data_cache:/opt/cache
+      - dagster_home:/opt/dagster/dagster_home
+    depends_on:
+      postgres:
+        condition: service_healthy
+      harvest:
+        condition: service_started
+
+  dagster-daemon:
+    image: ${HARVEST_IMAGE:-localhost/local-dev/harvest:sandbox}
+    restart: on-failure
+    environment:
+      DAGSTER_POSTGRES_USER: 'postgres'
+      DAGSTER_POSTGRES_PASSWORD: 'postgres'
+      DAGSTER_POSTGRES_DB: 'postgres'
+    volumes: # Make docker client accessible so we can launch containers using host docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/io_manager_storage:/tmp/io_manager_storage
+    networks:
+      - docker_example_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      harvest:
+        condition: service_started
+    command: ["dagster-daemon", "run"]
+
   harvest:
     image: ${HARVEST_IMAGE:-localhost/local-dev/harvest:sandbox}
     env_file:
       - .env
     environment:
-      - EXPERTS_CACHE_ROOT_DIR=/opt/cache
-      - GOOGLE_APPLICATION_CREDENTIALS=/service-account.json
+      - EXPERTS_CACHE_ROOT_DIR: /opt/cache
+      - GOOGLE_APPLICATION_CREDENTIALS: /service-account.json
+      - DAGSTER_POSTGRES_USER: 'postgres'
+      - DAGSTER_POSTGRES_PASSWORD: 'postgres'
+      - DAGSTER_POSTGRES_DB: 'postgres'
+      - DAGSTER_CURRENT_IMAGE: ${HARVEST_IMAGE:-localhost/local-dev/harvest:sandbox}
     volumes:
       - ./harvest/lib:/opt/harvest/lib
       - ./harvest/bin:/opt/harvest/bin
       - ./harvest/vocabularies:/opt/harvest/vocabularies
       - ./dagster/defs.py:/opt/harvest/defs.py
-      - data_cache:/opt/cache
-      - dagster_home:/opt/dagster/dagster_home
       - ./service-account.json:/service-account.json
     ports:
       - "3000:3000"
-    command: bash -c "dagster dev -f /opt/harvest/defs.py -h 0.0.0.0"
+    command: ["dagster", "code-server", "start", "-h", "0.0.0.0", "-p", "4000", "-f", "/opt/harvest/defs.py"]
 
   elasticsearch:
     image: ${ES_IMAGE:-localhost/local-dev/fin-elastic-search:sandbox}

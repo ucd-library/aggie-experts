@@ -10,7 +10,20 @@ program
   .command('users')
   .argument('<group-id>')
   .description('list users from CDL group')
-  .action(async (groupId) => {
+  .option('--root-dir <root-dir>', 'Root directory for extracted data. Respects env EXPERTS_ROOT_DIR')
+  .option('--enable-gcs-cache', 'Enable Google Cloud Storage caching, respects env EXPERTS_CACHE_GCS_ENABLED')
+  .action(async (groupId, options) => {
+    if( options.reportingJobId || options.reporting ) {
+      await enableFromCli('experts-harvest-list', groupId, options);
+    }
+
+    if( options.enableGcsCache ) {
+      config.cache.gcs.enabled = true;
+    }
+    logger.info('Google Cloud Storage caching '+ (config.cache.gcs.enabled ? 'enabled' : 'disabled'));    
+
+
+
     const client = new CdlClient();
     const users = await client.getGroupList(groupId);
     logger.info({
