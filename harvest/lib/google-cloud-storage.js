@@ -42,9 +42,11 @@ class GcsCache {
 
   async filesChanged(filePath) {
     let fullFsFilePath = path.join(this.rootDir, filePath);
-    const localHash = await this.getLocalFileHash(fullFsFilePath);
+    let localHash = null;
+    if (fs.existsSync(fullFsFilePath)) {  // Check if local file exists
+      localHash = await this.getLocalFileHash(fullFsFilePath);
+    }
     const gcsHash = await this.getGcsFileHash(filePath);
-
 
     if (localHash === gcsHash) {
       logger.info('File is already in sync with GCS', { filePath, bucket: this.bucketName });
@@ -78,6 +80,20 @@ class GcsCache {
     });
   }
 
+  async delete(filePath) {
+    if( filePath.startsWith(this.rootDir) ) {
+      filePath = filePath.replace(this.rootDir + '/', '');
+    }
+    const file = this.bucket.file(filePath);
+    const [exists] = await file.exists();
+    if (!exists) {
+      logger.warn(`File does not exist in GCS: ${filePath}`);
+      return;
+    }
+    logger.info('Deleting file from GCS', { filePath, bucket: this.bucketName });
+    return file.delete();
+  }
+
   async download(filePath) {
     if( filePath.startsWith(this.rootDir) ) {
       filePath = filePath.replace(this.rootDir + '/', '');
@@ -90,6 +106,9 @@ class GcsCache {
 
     logger.info('Downloading file from GCS', { filePath, bucket: this.bucketName });
 
+    // Ensure the directory exists
+    await fs.ensureDir(path.dirname(fullFsFilePath));
+
     const options = {
       destination: fullFsFilePath,
     };
@@ -101,53 +120,100 @@ class GcsCache {
       const lastModified = new Date(metadata.metadata.fsLastModifiedTime);
       fs.utimesSync(fullFsFilePath, lastModified, lastModified);
     }
-
   }
 
-  async uploadDirectory(dirPath, gcsDir = '') {
+  async uploadDirectory(dirPath, opts = {}) {
+    logger.info(`Uploading directory to GCS: ${dirPath} from ${this.rootDir}`, { bucket: this.bucketName });
+  
+    let localFiles = await this.getAllFilesInDirectory(dirPath);
+    for (const file of localFiles) {
+      await this.upload(file);
+    }
+
+    if( opts.delete ) {
+      // Note: this will list all files in the bucket with the given prefix
+      // up to a certain limit (default is 1000 files).
+      // If you have more files, you may need to handle pagination.
+      const [files, nextQuery] = await this.bucket.getFiles({ prefix: dirPath });
+
+      let diff = this.getFileDifference(
+        localFiles,
+        files
+      );
+
+      logger.info('Deleting file in GCS not in local directory', { files: diff.onlyInGcs, bucket: this.bucketName });
+      for( let file of diff.onlyInGcs ) {
+        await this.delete(file);
+      }
+    }
+  }
+
+  async downloadDirectory(dirPath, opts={}) {
+    logger.info(`Downloading directory from GCS: ${dirPath} to ${this.rootDir}`, { bucket: this.bucketName });
+
+    // Note: this will list all files in the bucket with the given prefix
+    // up to a certain limit (default is 1000 files).
+    // If you have more files, you may need to handle pagination.
+    const [files, nextQuery] = await this.bucket.getFiles({ prefix: dirPath });
+    for (const file of files) {
+      await this.download(file.name);
+    }
+
+    if( opts.delete ) {
+      let diff = this.getFileDifference(
+        await this.getAllFilesInDirectory(dirPath),
+        files
+      );
+
+      logger.info('Deleting local file not in GCS', { files: diff.onlyLocal, bucket: this.bucketName });
+      for( let file of diff.onlyLocal ) {
+        let fullFsFilePath = path.join(this.rootDir, file);
+        if( fs.existsSync(fullFsFilePath) ) {
+          logger.info('Deleting local file');
+          await fs.remove(fullFsFilePath);
+        }
+      }
+    }
+  }
+
+  async getAllFilesInDirectory(dirPath) {
     const fullDirPath = path.join(this.rootDir, dirPath);
-    const files = fs.readdirSync(fullDirPath, { withFileTypes: true });
+    let results = [];
+
+    if (!fs.existsSync(fullDirPath)) {
+      return results;
+    }
+
+    const files = await fs.readdir(fullDirPath, { withFileTypes: true });
 
     for (const file of files) {
-      const localRelativePath = path.join(dirPath, file.name);
-      const gcsRelativePath = path.join(gcsDir, file.name);
-
+      const relativePath = path.join(dirPath, file.name);
       if (file.isDirectory()) {
-        await this.uploadDirectory(localRelativePath, gcsRelativePath);
+        const subFiles = await this.getAllFilesInDirectory(relativePath);
+        results = results.concat(subFiles);
       } else if (file.isFile()) {
-        await this.upload(localRelativePath);
+        results.push(relativePath);
       }
     }
+
+    return results;
   }
 
-  async downloadDirectory(gcsDir = '', localDir = '') {
-    const fullLocalDir = path.join(this.rootDir, localDir);
-    if (!fs.existsSync(fullLocalDir)) {
-      fs.mkdirSync(fullLocalDir, { recursive: true });
+  getFileDifference(localFiles, gcsFiles) {
+    if( typeof gcsFiles[0] === 'object' && gcsFiles[0].name ) {
+      gcsFiles = gcsFiles.map(file => file.name);
     }
 
-    const [files] = await this.bucket.getFiles({ prefix: gcsDir });
-    for (const file of files) {
-      const relativePath = path.relative(gcsDir, file.name);
-      if (relativePath.startsWith('..') || relativePath === '') continue;
-      const localFilePath = path.join(localDir, relativePath);
-      const fullLocalFilePath = path.join(this.rootDir, localFilePath);
+    const set1 = new Set(localFiles);
+    const set2 = new Set(gcsFiles);
 
-      if (file.name.endsWith('/')) {
-        // Directory, ensure exists
-        if (!fs.existsSync(fullLocalFilePath)) {
-          fs.mkdirSync(fullLocalFilePath, { recursive: true });
-        }
-      } else {
-        // File, download
-        const dirName = path.dirname(fullLocalFilePath);
-        if (!fs.existsSync(dirName)) {
-          fs.mkdirSync(dirName, { recursive: true });
-        }
-        await this.download(localDir + '/' + file.name);
-        await this.bucket.file(file.name).download({ destination: fullLocalFilePath });
-      }
-    }
+    const diff1 = localFiles.filter(item => !set2.has(item));
+    const diff2 = gcsFiles.filter(item => !set1.has(item));
+    
+    return {
+      onlyLocal: diff1,
+      onlyInGcs: diff2
+    };
   }
 
 }

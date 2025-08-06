@@ -7,5 +7,6 @@ program
   .command('extract', 'extract data from CDL, IAM, and Keycloak')
   .command('transform', 'transform extracted data into Aggie Experts format')
   .command('load', 'load data into database(s)')
+  .command('cache', 'manage Google Cloud Storage cache')
 
 program.parse(process.argv);

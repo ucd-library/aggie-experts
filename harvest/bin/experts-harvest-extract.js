@@ -14,7 +14,7 @@ program.name('extract')
   .option('--root-dir <root-dir>', 'Root directory for extracted data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this extraction')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
-  .option('--enable-gcs-cache', 'Enable Google Cloud Storage caching, respects env EXPERTS_CACHE_GCS_ENABLED')
+  .option('--enable-gcs-cache', 'Enable Google Cloud Storage caching. Respects env EXPERTS_CACHE_GCS_ENABLED=true')
   .action(async (user, options) => {
     if( options.reportingJobId || options.reporting ) {
       await enableFromCli('experts-harvest-extract', user, options);

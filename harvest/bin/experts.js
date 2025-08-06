@@ -1,8 +1,14 @@
 #! /usr/bin/env -S node --no-warnings
 
 import { Command } from 'commander';
+import path from 'path';
+import fs from 'fs-extra';
+import { fileURLToPath } from 'url';
+
 const program = new Command();
-import pkg from '../package.json' with { type: "json" };
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
 
 program
   .name('experts')

@@ -12,7 +12,7 @@ import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.j
 
 async function run(options={}) {
   if( options.rootDir ) {
-    cache.updateRootDir(options.rootDir);
+    config.cache.rootDir = options.rootDir;
   }
 
   if( !options.user.match(/@/) ) {

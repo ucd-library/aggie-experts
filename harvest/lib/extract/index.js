@@ -12,7 +12,7 @@ const kcClient = new ExpertsKcAdminClient();
 async function run(options={}) {
 
   if( options.rootDir ) {
-    cache.updateRootDir(options.rootDir);
+    config.cache.rootDir = options.rootDir;
   }
 
   logger.info('Extracting data for user', options.user);

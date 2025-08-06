@@ -6,11 +6,7 @@ import config from '../lib/config.js';
 import logger from '../lib/logger.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 
-const __filename = fileURLToPath(import.meta.url);
-
 const program = new Command();
-
-
 
 program.name('transform')
   .description('transform data from cdl & iam into aggie experts format')
@@ -18,7 +14,7 @@ program.name('transform')
   .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
-  .option('--enable-gcs-cache', 'Enable Google Cloud Storage caching, respects env EXPERTS_CACHE_GCS_ENABLED')
+  .option('--enable-gcs-cache', 'Enable Google Cloud Storage caching. Respects env EXPERTS_CACHE_GCS_ENABLED=true')
   .action(async (userId, options) => {
 
     if (options.reportingJobId || options.reporting) {
