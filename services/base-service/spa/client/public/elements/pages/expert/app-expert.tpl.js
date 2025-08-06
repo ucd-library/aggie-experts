@@ -1144,7 +1144,7 @@ return html`
         <hr class="separator">
 
           <div class="featured-works" ?hidden="${!this.featuredCitations.length}">
-            <div class="featured-works-toggle">
+            <!-- <div class="featured-works-toggle">
               <div class="featured-works-header">
                 <h3 class="heading--highlight">Highlights</h3>
                 <div class="toggle-switch" ?hidden="${this._hideEditExpertControls()}">
@@ -1162,9 +1162,10 @@ return html`
                   be added or removed by selecting the heart icon in the Works editing view.
                 </p>
               </div>
-            </div>
-            <div ?hidden="${!this.showFeaturedCitations}" class="featured-works-list">
-              ${this.featuredCitations.map(
+            </div> -->
+            <!-- <div ?hidden="${!this.showFeaturedCitations}" class="featured-works-list"> -->
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;">Highlights</h3>
+            ${this.featuredCitations.map(
               (cite) => html`
                 <div class="work">
                   <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
@@ -1178,7 +1179,7 @@ return html`
                 </div>
               `)}
             </div>
-          </div>
+          <!-- </div> -->
 
           ${this.citationsDisplayed.map(
           (cite) => html`

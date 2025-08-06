@@ -33,7 +33,7 @@ export default class AppExpert extends Mixin(LitElement)
       citations : { type : Array },
       citationsDisplayed : { type : Array },
       featuredCitations : { type : Array },
-      showFeaturedCitations : { type : Boolean },
+      // showFeaturedCitations : { type : Boolean },
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
@@ -267,7 +267,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.citations = [];
     this.citationsDisplayed = [];
     this.featuredCitations = [];
-    this.showFeaturedCitations = true;
+    // this.showFeaturedCitations = true;
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
@@ -928,14 +928,10 @@ export default class AppExpert extends Mixin(LitElement)
    * @description toggle featured citations
    * @param {Object} e click|keyup event
    */
-  _onFeaturedCitationsToggle(e) {
-    this.showFeaturedCitations = !this.showFeaturedCitations;
-
-    // TODO the toggle for featured collections should be default to on
-    // and untoggling it will be batch update to remove all favourites from all works for expert
-
-    this._loadCitations();
-  }
+  // _onFeaturedCitationsToggle(e) {
+  //   this.showFeaturedCitations = !this.showFeaturedCitations;
+  //   this._loadCitations();
+  // }
 
   _hideEditExpertControls() {
     return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;
