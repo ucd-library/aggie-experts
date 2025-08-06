@@ -559,7 +559,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citation.favourite = false;
     }
 
-    this.hiddenCitations--;
     this._updateHeaderLabels();
 
     this.modifiedWorks = true;
