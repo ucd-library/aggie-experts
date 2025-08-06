@@ -18,7 +18,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 construct {
   ?RELATIONSHIP__ a ucdlib:GrantRole, ?role;
 		    schema:name ?role_name;
-                ucdlib:favorite ?favorite;
+                ucdlib:favourite ?favourite;
                 ucdlib:is-visible ?visible;
                 vivo:relates ?grant,?EXPERT__;
                 obo:RO_0000052 ?EXPERT__;
@@ -105,8 +105,8 @@ WHERE {
     }
 
     OPTIONAL {
-      ?RELATIONSHIP__ :is-favourite "true".
-      bind(true as ?favorite)
+      ?RELATIONSHIP__ :favourite "true".
+      bind(true as ?favourite)
     }
 
     ?user :category "user";
@@ -307,7 +307,7 @@ WHERE {
 
   bind(concat(?role_abbrev,": ",?user_name) as ?role_name)
 
-  
+
   bind(replace(lcase(concat(?user_name_last,coalesce(concat('_',?user_name_first),""))),"[^a-z_]","") as ?user_name_match)
   bind(replace(lcase(concat(?user_name_last,
                             coalesce(concat('_',

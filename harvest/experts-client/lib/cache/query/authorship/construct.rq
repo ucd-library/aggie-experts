@@ -16,7 +16,7 @@ PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 construct {
   ?authorship a vivo:Authorship, ucdlib:Authorship;
-                ucdlib:favorite ?favorite;
+                ucdlib:favourite ?favourite;
                 ucdlib:is-visible ?visible;
                 vivo:relates ?EXPERT__,?work;
                 vivo:rank ?user_rank;
@@ -298,8 +298,8 @@ WHERE {
     #filter(?cite_include = true)
 
     OPTIONAL {
-      ?relationship :is-favourite "true".
-      bind(EXISTS{?relationship :is-favourite "true"} as ?favorite)
+      ?relationship :favourite "true".
+      bind(EXISTS{?relationship :favourite "true"} as ?favourite)
     }
     # Now we take CDLs preferred term
     OPTIONAL {

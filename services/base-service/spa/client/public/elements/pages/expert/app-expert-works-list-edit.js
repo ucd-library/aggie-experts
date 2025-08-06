@@ -238,9 +238,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
       cite['is-visible'] = (cite.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === this.expertId)));
       if( cite.relatedBy && Array.isArray(cite.relatedBy) ) {
-        cite.favorite = cite.relatedBy.some(rel => rel['ucdlib:favorite'] === true);
+        cite.favourite = cite.relatedBy.some(rel => rel['ucdlib:favourite'] === true);
       } else {
-        cite.favorite = cite.relatedBy && cite.relatedBy['ucdlib:favorite'] === true;
+        cite.favourite = cite.relatedBy && cite.relatedBy['ucdlib:favourite'] === true;
       }
     });
 
@@ -488,26 +488,26 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
   }
 
   /**
-   * @method _deselectFavorite
-   * @description remove favorite from work
+   * @method _deselectFavourite
+   * @description remove favourite from work
    */
-  async _deselectFavorite(e) {
+  async _deselectFavourite(e) {
     this.citationId = e.currentTarget.dataset.id;
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
-      let res = await this.ExpertModel.updateCitationFavorite(this.expertId, this.citationId, false);
+      let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, false);
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
       if( window.gtag ) {
-        gtag('event', 'citation_is_favorite', {
-          'description': 'citation ' + this.citationId + ' removed as favorite for expert ' + this.expertId,
+        gtag('event', 'citation_is_favourite', {
+          'description': 'citation ' + this.citationId + ' removed as favourite for expert ' + this.expertId,
           'relationshipId': this.citationId,
           'expertId': this.expertId,
           'fatal': false
         });
       }
-      this.logger.info('removing citation as favorite', { citationId : this.citationId, expertId : this.expertId });
+      this.logger.info('removing citation as favourite', { citationId : this.citationId, expertId : this.expertId });
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -530,14 +530,14 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.errorMode = true;
 
       if( window.gtag ) {
-        gtag('event', 'citation_is_favorite', {
-          'description': 'attempted to remove favorite on citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+        gtag('event', 'citation_is_favourite', {
+          'description': 'attempted to remove favourite on citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
           'relationshipId': this.citationId,
           'expertId': this.expertId,
           'fatal': false
         });
       }
-      this.logger.error('failed to remove citation as favorite', { citationId : this.citationId, expertId : this.expertId });
+      this.logger.error('failed to remove citation as favourite', { citationId : this.citationId, expertId : this.expertId });
 
       return;
     }
@@ -545,18 +545,18 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // update graph/display data
     let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
     if( citation ) {
-      citation.relatedBy[0]['ucdlib:favorite'] = false;
-      citation.favorite = false;
+      citation.relatedBy[0]['ucdlib:favourite'] = false;
+      citation.favourite = false;
     }
     citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
     if( citation ) {
-      citation.relatedBy[0]['ucdlib:favorite'] = false;
-      citation.favorite = false;
+      citation.relatedBy[0]['ucdlib:favourite'] = false;
+      citation.favourite = false;
     }
     citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
     if( citation ) {
-      citation.relatedBy[0]['ucdlib:favorite'] = false;
-      citation.favorite = false;
+      citation.relatedBy[0]['ucdlib:favourite'] = false;
+      citation.favourite = false;
     }
 
     this.hiddenCitations--;
@@ -568,26 +568,26 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
   }
 
   /**
-   * @method _markFavorite
-   * @description add favorite to work
+   * @method _markFavourite
+   * @description add favourite to work
    */
-  async _markFavorite(e) {
+  async _markFavourite(e) {
     this.citationId = e.currentTarget.dataset.id;
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
-      let res = await this.ExpertModel.updateCitationFavorite(this.expertId, this.citationId, true);
+      let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, true);
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
       if( window.gtag ) {
-        gtag('event', 'citation_is_favorite', {
-          'description': 'citation ' + this.citationId + ' added as favorite for expert ' + this.expertId,
+        gtag('event', 'citation_is_favourite', {
+          'description': 'citation ' + this.citationId + ' added as favourite for expert ' + this.expertId,
           'relationshipId': this.citationId,
           'expertId': this.expertId,
           'fatal': false
         });
       }
-      this.logger.info('adding citation as favorite', { citationId : this.citationId, expertId : this.expertId });
+      this.logger.info('adding citation as favourite', { citationId : this.citationId, expertId : this.expertId });
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
@@ -610,14 +610,14 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.errorMode = true;
 
       if( window.gtag ) {
-        gtag('event', 'citation_is_favorite', {
-          'description': 'attempted to add favorite on citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+        gtag('event', 'citation_is_favourite', {
+          'description': 'attempted to add favourite on citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
           'relationshipId': this.citationId,
           'expertId': this.expertId,
           'fatal': false
         });
       }
-      this.logger.error('failed to add citation as favorite', { citationId : this.citationId, expertId : this.expertId });
+      this.logger.error('failed to add citation as favourite', { citationId : this.citationId, expertId : this.expertId });
 
       return;
     }
@@ -625,18 +625,18 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // update graph/display data
     let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
     if( citation ) {
-      citation.relatedBy[0]['ucdlib:favorite'] = true;
-      citation.favorite = true;
+      citation.relatedBy[0]['ucdlib:favourite'] = true;
+      citation.favourite = true;
     }
     citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
     if( citation ) {
-      citation.relatedBy[0]['ucdlib:favorite'] = true;
-      citation.favorite = true;
+      citation.relatedBy[0]['ucdlib:favourite'] = true;
+      citation.favourite = true;
     }
     citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
     if( citation ) {
-      citation.relatedBy[0]['ucdlib:favorite'] = true;
-      citation.favorite = true;
+      citation.relatedBy[0]['ucdlib:favourite'] = true;
+      citation.favourite = true;
     }
 
     this.hiddenCitations--;

@@ -71,7 +71,7 @@ class ExpertService extends BaseService {
     });
   }
 
-  async updateCitationFavorite(id, citationId, favorite) {
+  async updateCitationFavourite(id, citationId, favourite) {
     return this.request({
       url : `${this.baseUrl}/${id}/${encodeURIComponent(citationId)}`,
       fetchOptions : {
@@ -81,7 +81,7 @@ class ExpertService extends BaseService {
         },
         body : JSON.stringify({
           "@id" : citationId,
-          "favorite" : favorite
+          "favourite" : favourite
         })
       },
       checkCached : () => null,

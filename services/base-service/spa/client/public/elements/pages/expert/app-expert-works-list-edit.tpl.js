@@ -385,26 +385,26 @@ return html`
           <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite['is-visible'] ? 'not-visible' : ''}">
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
-                <span class="tooltip deselect-favorite" data-text="Deselect as Favorite">
+                <span class="tooltip deselect-favourite" data-text="Deselect as favourite">
                   <ucdlib-icon
-                    ?hidden="${!cite.favorite}"
+                    ?hidden="${!cite.favourite}"
                     icon="ucdlib-experts:fa-solid-heart"
-                    @click=${this._deselectFavorite}
-                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._deselectFavorite(e); }}
+                    @click=${this._deselectFavourite}
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._deselectFavourite(e); }}
                     tabindex="0"
                     role="button"
-                    aria-label="Deselect as Favorite"
+                    aria-label="Deselect as Favourite"
                     data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
-                <span class="tooltip mark-favorite" data-text="Mark as Favorite">
+                <span class="tooltip mark-favourite" data-text="Mark as Favourite">
                   <ucdlib-icon
-                    ?hidden="${cite.favorite}"
+                    ?hidden="${cite.favourite}"
                     icon="ucdlib-experts:fa-regular-heart"
-                    @click=${this._markFavorite}
-                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._markFavorite(e); }}
+                    @click=${this._markFavourite}
+                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._markFavourite(e); }}
                     tabindex="0"
                     role="button"
-                    aria-label="Mark as Favorite"
+                    aria-label="Mark as Favourite"
                     data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
                 </span>
               </span>

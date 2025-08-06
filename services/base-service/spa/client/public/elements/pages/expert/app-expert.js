@@ -107,7 +107,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favoriteWorksFirst : true }), clearCache);
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favouriteWorksFirst : true }), clearCache);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
       this._onExpertUpdate(expert, modified);
@@ -343,7 +343,7 @@ export default class AppExpert extends Mixin(LitElement)
     let citationResults = all ? await Citation.generateCitations(citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
     citationResults = citationResults.map(c => c.value || c.reason?.data);
 
-    // TODO this needs to handle not showing favorites, so a new network request would need to be made..
+    // TODO this needs to handle not showing favourites, so a new network request would need to be made..
     // console.log('TODO handle moving featured citations to top of works list or into main list');
     // if( this.showFeaturedCitations ) {
     //   // filter featured citations from all citationResults
@@ -352,8 +352,8 @@ export default class AppExpert extends Mixin(LitElement)
     // }
 
     this.featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
-            ? c.relatedBy.some(rel => rel['ucdlib:favorite'] === true)
-            : c.relatedBy && c.relatedBy['ucdlib:favorite'] === true
+            ? c.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+            : c.relatedBy && c.relatedBy['ucdlib:favourite'] === true
     );
 
     if( this.featuredCitations.length ) {
@@ -932,7 +932,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.showFeaturedCitations = !this.showFeaturedCitations;
 
     // TODO the toggle for featured collections should be default to on
-    // and untoggling it will be batch update to remove all favorites from all works for expert
+    // and untoggling it will be batch update to remove all favourites from all works for expert
 
     this._loadCitations();
   }

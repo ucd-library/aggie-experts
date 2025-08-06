@@ -464,7 +464,7 @@ export class Impersonator {
       {com: 'setFavourite',
        objectId: data.objectId,
        categoryId: data.categoryId,
-       favourite: (data.favorite ? 'true' : 'false')
+       favourite: (data.favourite ? 'true' : 'false')
       });
   }
 }
