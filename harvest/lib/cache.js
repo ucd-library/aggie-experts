@@ -124,7 +124,15 @@ class FsCache {
       newHash = await this.hashFile(assetPath);
     }
 
-    await this.writeToGcs(assetPath);
+    // push file to gcs if configured.  This will return false if the file already exists and is unchanged.
+    // if the file did not change, set the proper last modified date
+    let gcsWrite = await this.writeToGcs(assetPath);
+    if( gcsWrite === false ) {
+      const lastModified = await this.gcs.getLastModified(assetPath);
+      if( lastModified ) {
+        fs.utimesSync(assetPath, lastModified, lastModified);
+      }
+    }
 
     await reportFileWrite({
       file_path: assetPath,
@@ -132,12 +140,13 @@ class FsCache {
       last_modified: lastModified,
       file_hash: newHash,
       last_file_hash: existingHash,
-      no_op: noOp
+      no_op: noOp,
+      gcs_write: gcsWrite
     });
 
     return {
       assetPath,
-      noOp,
+      noOp, gcsWrite,
       hash: newHash,
       lastModified
     };
@@ -222,9 +231,9 @@ class FsCache {
    */
   writeToGcs(filePath) {
     if (!config.cache.gcs.enabled) {
-      return;
+      return null;
     }
-    return this.gcs.upload(filePath);
+    return (await this.gcs.upload(filePath)) ? true : false;
   }
 
   /**

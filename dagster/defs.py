@@ -32,16 +32,10 @@ def extract_user(context, config: ExtractUserConfig) -> None:
   user_id = context.partition_key
   run = context.dagster_run
 
-  # Read force flag from config if provided, else default to True
-  force_flag = config.force
-
-  cmd = ["experts", "harvest", "extract", user_id, "--reporting-job-id", run.run_id]
-  if force_flag:
-    cmd.append("--force")
+  cmd = ["experts", "harvest", "extract", user_id, "--enable-gcs-cache", "--reporting-job-id", run.run_id]
 
   metadata = {
-    "user": user_id,
-    "force": force_flag
+    "user": user_id
   }
 
   result = exec(cmd)
@@ -70,7 +64,7 @@ def transform_user(context: AssetExecutionContext) -> None:
     user_id = context.partition_key
     run = context.dagster_run
 
-    exec(["experts", "harvest", "transform", user_id, "--reporting-job-id", run.run_id])
+    exec(["experts", "harvest", "transform", user_id, "--enable-gcs-cache", "--reporting-job-id", run.run_id])
 
     context.add_output_metadata(
       metadata={
@@ -91,6 +85,42 @@ def load_user(context: AssetExecutionContext) -> None:
     run = context.dagster_run
 
     exec(["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id])
+
+    context.add_output_metadata(
+      metadata={
+        "id": user_id
+      }
+    )
+
+    return None
+
+@dg.asset(
+    partitions_def=users_partitions,
+    code_version="1.1"
+)
+def pull_gcs_user_cache(context: AssetExecutionContext) -> None:
+    user_id = context.partition_key
+    run = context.dagster_run
+
+    exec(["experts", "harvest", "cache", "pull", user_id,])
+
+    context.add_output_metadata(
+      metadata={
+        "id": user_id
+      }
+    )
+
+    return None
+
+@dg.asset(
+    partitions_def=users_partitions,
+    code_version="1.1"
+)
+def push_gcs_user_cache(context: AssetExecutionContext) -> None:
+    user_id = context.partition_key
+    run = context.dagster_run
+
+    exec(["experts", "harvest", "cache", "push", user_id,])
 
     context.add_output_metadata(
       metadata={

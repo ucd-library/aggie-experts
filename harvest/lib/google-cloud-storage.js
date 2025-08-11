@@ -94,6 +94,18 @@ class GcsCache {
     return file.delete();
   }
 
+  async getLastModified(filePath) {
+    if( filePath.startsWith(this.rootDir) ) {
+      filePath = filePath.replace(this.rootDir + '/', '');
+    }
+
+    const [metadata] = await this.bucket.file(filePath).getMetadata();
+    if (metadata && metadata.metadata && metadata.metadata.fsLastModifiedTime) {
+      return new Date(metadata.metadata.fsLastModifiedTime);
+    }
+    return null; // No last modified time available
+  }
+
   async download(filePath) {
     if( filePath.startsWith(this.rootDir) ) {
       filePath = filePath.replace(this.rootDir + '/', '');
@@ -115,9 +127,8 @@ class GcsCache {
     await this.bucket.file(filePath).download(options);
 
     // get the file metadata to check last modified time
-    const [metadata] = await this.bucket.file(filePath).getMetadata();
-    if (metadata && metadata.metadata && metadata.metadata.fsLastModifiedTime) {
-      const lastModified = new Date(metadata.metadata.fsLastModifiedTime);
+    const lastModified = await this.getLastModified(filePath);
+    if (lastModified) {
       fs.utimesSync(fullFsFilePath, lastModified, lastModified);
     }
   }
