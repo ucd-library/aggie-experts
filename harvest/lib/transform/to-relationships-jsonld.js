@@ -11,21 +11,21 @@ import {transformGrants} from './grants.js';
 
 import {sortJsonArrayByIdAndKeys} from './utils.js';
 
-async function run(rel, expertId, options = {}) {
+async function run(rel, expertId, expertData, options = {}) {
   let {
     works,
     grants
   } = parseRelationshipTypes(rel);
 
   works = transformWorks(works, expertId);
-  grants = transformGrants(grants, expertId);
+  grants = transformGrants(grants, expertId, expertData);
 
   await saveRelationshipFiles([...works, ...grants], expertId, options);
 
   return { success: true, works: works.length, grants: grants.length };
 }
 
-async function runFromFiles(relationshipFiles, expertId, options) {
+async function runFromFiles(relationshipFiles, expertId, expertData, options) {
   if (!relationshipFiles || relationshipFiles.length === 0) {
     logger.warn(`No relationship files provided for user: ${options.user}`);
     return;
@@ -35,7 +35,7 @@ async function runFromFiles(relationshipFiles, expertId, options) {
   for( let file of relationshipFiles ) {
     logger.info(`Processing relationship file: ${file}`);
     let rel = JSON.parse(fs.readFileSync(file, 'utf8'));
-    await run(rel, expertId, options);
+    await run(rel, expertId, expertData, options);
   }
 
   return { success: true, message: "Transformation completed" };
@@ -109,7 +109,7 @@ function parseRelationshipTypes(rel) {
   let allRelationships = jsonpath.query(rel, '$..["api:relationship"]');
 
   let works = allRelationships.filter(r => r.type === "publication-user-authorship");
-  let grants = allRelationships.filter(r => r.type === "user-grant-research");
+  let grants = allRelationships.filter(r => r.type && r.type.startsWith("user-grant"));
 
   return { works, grants };
 }
