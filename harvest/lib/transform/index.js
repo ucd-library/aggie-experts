@@ -69,11 +69,14 @@ async function run(options={}) {
     throw new Error(`No email found in IAM profile for user: ${options.user}`);
   }
 
-  // Get expert ID from keycloak
+  // Get expert ID and name from keycloak
   let user = await cache.readUserAsset(options.user, config.cache.keycloakUserFilename);
   user = JSON.parse(user);
   logger.info(`User from Keycloak: ${JSON.stringify(user)}`);
   let expertId = `expert/${user.attributes.expertId[0]}`;
+  let expertData = {};
+  expertData['last-name'] = user.lastName;
+  expertData['first-name'] = user.firstName;
 
   // Transform in std AE Person data
   let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
@@ -82,7 +85,9 @@ async function run(options={}) {
   await personToWebapp(options.user, 'TODO', result.assetPath);
 
   // Transform in std AE relationships data
-  await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, options);
+  logger.info(`Deleting existing relationship files for user: ${options.user}`);
+  await cache.delete(options.user, `${config.cache.aeStdFormatDir}/${expertId}/rel`);
+  await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
 }
 
 export default run;

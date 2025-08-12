@@ -1,5 +1,5 @@
 import jsonpath from 'jsonpath';
-import { formatDate, getFieldValue, getFieldObject, extractAsArray } from './utils.js';
+import { formatDate, getFieldValue, getBestFieldValueFromRecords, getFieldObject, extractAsArray } from './utils.js';
 
 function transformWorks(works, expertId) {
   let results = [];
@@ -13,9 +13,66 @@ function transformWorks(works, expertId) {
   return results;
 }
 
+function getBestAuthorsFromRecords(records) {
+  // Priority order matching your SPARQL query
+  const sourceOrder = ['verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite', 'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp', 'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'];
+
+  for (const sourceName of sourceOrder) {
+    const record = records.find(r => r['source-name'] === sourceName);
+    if (record && record['api:native'] && record['api:native']['api:field']) {
+      const authorsField = record['api:native']['api:field'].find(f => f && f.name === 'authors');
+      if (authorsField && authorsField['api:people'] && authorsField['api:people']['api:person']) {
+        return authorsField;
+      }
+    }
+  }
+
+  return null;
+}
+
+function formatOnlinePublicationDate(fields, fieldName = 'online-publication-date') {
+  const dateField = fields.find(f => f && f.name === fieldName);
+  if (!dateField || !dateField['api:date']) return null;
+
+  return formatDate(dateField);
+}
+
+// function getBestFieldFromRecords(fieldName, records) {
+//   // Priority order matching your SPARQL query
+//   const sourceOrder = ['verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite', 'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp', 'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'];
+
+//   console.log(`\n=== Looking for field: ${fieldName} ===`);
+//   console.log('Available records:', records.map(r => r['source-name']));
+
+//   for (const sourceName of sourceOrder) {
+//     const record = records.find(r => r['source-name'] === sourceName);
+//     if (record) {
+//       console.log(`Checking source: ${sourceName}`);
+//       if (record['api:native'] && record['api:native']['api:field']) {
+//         const fieldNames = record['api:native']['api:field'].map(f => f.name);
+//         console.log(`  Available fields in ${sourceName}:`, fieldNames);
+
+//         const field = record['api:native']['api:field'].find(f => f && f.name === fieldName);
+//         if (field) {
+//           console.log(`  ✅ Found ${fieldName} in ${sourceName}:`, field);
+//           return field;
+//         } else {
+//           console.log(`  ❌ No ${fieldName} in ${sourceName}`);
+//         }
+//       } else {
+//         console.log(`  ❌ No api:native/api:field in ${sourceName}`);
+//       }
+//     }
+//   }
+
+//   console.log(`❌ Field ${fieldName} not found in any record`);
+//   return null;
+// }
+
 function transformWork(workRelationship, relationshipId, expertId) {
   const result = [];
-  const publicationId = workRelationship.id;
+
+  const publicationId = jsonpath.value(workRelationship, '$["api:related"]["id"]');
   const publicationUri = `ark:/87287/d7mh2m/publication/${publicationId}`;
   const relationshipUri = `ark:/87287/d7mh2m/relationship/${relationshipId}`;
   const expertUri = `http://experts.ucdavis.edu/${expertId}`;
@@ -33,18 +90,40 @@ function transformWork(workRelationship, relationshipId, expertId) {
 
   // Extract publication data using jsonpath
   const title = getFieldValue(fields, 'title');
-  const abstract = getFieldValue(fields, 'abstract');
+  const abstract = getBestFieldValueFromRecords('abstract', records);
   const doi = getFieldValue(fields, 'doi');
-  const issn = getFieldValue(fields, 'issn');
-  const eissn = getFieldValue(fields, 'eissn');
+  const issn = getBestFieldValueFromRecords('issn', records);
+  const eissn = getBestFieldValueFromRecords('eissn', records);
   const journal = getFieldValue(fields, 'journal');
-  const publisher = getFieldValue(fields, 'publisher');
+  const publisher = getBestFieldValueFromRecords('publisher', records);
   const volume = getFieldValue(fields, 'volume');
   const issue = getFieldValue(fields, 'issue');
   const language = getFieldValue(fields, 'language') || 'en';
   const medium = getFieldValue(fields, 'medium') || 'Undetermined';
+
+
+  // TODO fix, pulling null values..
+  // Instead of using the primary record's fields
+  // const onlinePublicationDateField = getBestFieldFromRecords('online-publication-date', records);
+  // const dateAvailable = onlinePublicationDateField ? formatDate(onlinePublicationDateField) : null;
+  // console.log(dateAvailable);
+
+
+    // Debug which record is being used
+  // console.log('Primary record source:', primaryRecord['source-name']);
+  // console.log('Available fields:', primaryRecord['api:native']['api:field'].map(f => f.name));
+
+  // // Try the source-specific approach
+  // const onlinePubDateField = getBestFieldFromRecords('online-publication-date', records);
+  // console.log('Best online-publication-date field:', onlinePubDateField);
+
+  // const dateAvailable = onlinePubDateField ? formatDate(onlinePubDateField) : null;
+  // console.log('Formatted date available:', dateAvailable);
+  let dateAvailable = '';
+
+
   const status = getFieldValue(fields, 'publication-status') || 'Published';
-  const url = getFieldValue(fields, 'public-url');
+  const url = getBestFieldValueFromRecords('public-url', records);
 
   // Extract pagination
   const pagination = getFieldObject(fields, 'pagination');
@@ -55,7 +134,10 @@ function transformWork(workRelationship, relationshipId, expertId) {
   const dateValue = formatDate(publicationDate);
 
   // Extract authors
-  const authorsField = fields.find(f => f && f.name === 'authors');
+  // const authorsField = fields.find(f => f && f.name === 'authors');
+  // const authors = authorsField ? extractAsArray(authorsField, '$["api:people"]["api:person"]') : [];
+  // Extract authors - use best source for author data
+  const authorsField = getBestAuthorsFromRecords(records);
   const authors = authorsField ? extractAsArray(authorsField, '$["api:people"]["api:person"]') : [];
 
   // Create main publication record
@@ -80,8 +162,10 @@ function transformWork(workRelationship, relationshipId, expertId) {
   if (publisher) publication["http://citationstyles.org/schema/publisher"] = [{ "@value": publisher }];
   if (volume) publication["http://citationstyles.org/schema/volume"] = [{ "@value": volume }];
   if (pages) publication["http://citationstyles.org/schema/page"] = [{ "@value": pages }];
+  if (issue) publication["http://citationstyles.org/schema/issue"] = [{ "@value": issue }];
   if (language) publication["http://citationstyles.org/schema/language"] = [{ "@value": language }];
   if (medium) publication["http://citationstyles.org/schema/medium"] = [{ "@value": medium }];
+  if (dateAvailable) publication["http://citationstyles.org/schema/date-available"] = [{ "@value": dateAvailable }];
   if (status) publication["http://citationstyles.org/schema/status"] = [{ "@value": status }];
   if (url) publication["http://citationstyles.org/schema/url"] = [{ "@value": url }];
   if (dateValue) publication["http://citationstyles.org/schema/issued"] = [{ "@value": dateValue }];
@@ -110,15 +194,15 @@ function transformWork(workRelationship, relationshipId, expertId) {
     authorUris.push({ "@id": authorUri });
 
     const lastName = jsonpath.value(author, '$["api:last-name"]');
-    const firstName = jsonpath.value(author, '$["api:first-names"]') ||
-                     jsonpath.value(author, '$["api:initials"]');
+    const firstName = jsonpath.value(author, '$["api:first-names"]');
+                                            // || jsonpath.value(author, '$["api:initials"]');
 
     result.push({
       "@id": authorUri,
       "http://citationstyles.org/schema/family": [{ "@value": lastName }],
       "http://citationstyles.org/schema/given": [{ "@value": firstName }],
       "http://vivoweb.org/ontology/core#rank": [
-        { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": rank }
+        { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": `${rank}` }
       ]
     });
   });
@@ -138,6 +222,9 @@ function transformWork(workRelationship, relationshipId, expertId) {
     ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": "true" }
+    ],
+    "http://vivoweb.org/ontology/core#rank": [
+      { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": "1" }
     ],
     "http://vivoweb.org/ontology/core#relates": [
       { "@id": publicationUri },
