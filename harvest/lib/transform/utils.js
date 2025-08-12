@@ -140,6 +140,7 @@ function extractAsArray(obj, path) {
 
 export {
   sortJsonArrayByIdAndKeys,
+  sortJsonRecursively,
   getFieldValue,
   getBestFieldValueFromRecords,
   getFieldObject,

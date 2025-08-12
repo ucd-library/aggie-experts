@@ -1,15 +1,37 @@
 {
   "@version": 1.1,
-  "@context": "/schema",
-  "Grant": {
-    "@embed":"@always",
-    "@omitDefault":true,
-    "@default":"@null"
-  },
-  "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
-  "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
-  "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
-  "relatedBy": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
-  "@embed": "@once",
-  "@type": ["Expert","Work","Grant","Authorship"]
+  "@context": {},
+  "@graph": [
+    {
+      "@type": "Grant",
+      "@embed": "@always",
+      "assignedBy": { "@embed": "@always" },
+      "dateTimeInterval": { "@embed": "@always" },
+      "relatedBy": { "@embed": "@always" }
+    },
+    {
+      "@type": ["Work","ScholarlyArticle"],
+      "@embed": "@always",
+      "author": {
+        "@embed": "@always",
+        "family": {},
+        "given": {},
+        "rank": {}
+      },
+      "hasPublicationVenue": { "@embed": "@always" },
+      "relatedBy": { "@embed": "@always" }
+    },
+    {
+      "@type": ["Expert","Person"],
+      "@embed": "@always",
+      "contactInfo": { "@embed": "@always" },
+      "hasName": { "@embed": "@always" },
+      "hasResearchArea": { "@embed": "@always" }
+    },
+    {
+      "@type": "Authorship",
+      "@embed": "@always",
+      "relates": { "@embed": "@always" }
+    }
+  ]
 }

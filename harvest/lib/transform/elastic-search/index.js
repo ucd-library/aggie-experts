@@ -5,91 +5,129 @@ import logger from '../../logger.js';
 import config from '../../config.js';
 import cache from '../../cache.js';
 
+import {sortJsonRecursively} from '../utils.js';
+
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const contextPath = path.join(__dirname, 'schema', '4', 'context.jsonld');
-const context = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+const contextFile = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
 const framePath = path.join(__dirname, 'frames', 'default.json');
 const frameFile = JSON.parse(fs.readFileSync(framePath, 'utf8'));
 
+
 async function frame(expertId, graph, expertGraph = null) {
-  let item = {
+  // Source item passed to framing
+  const item = {
     "@id": "info:fedora" + expertId,
     "@version": 1.1,
     "@graph": graph
   };
 
-  let frame = {
-    ...frameFile,
-    ...context
+  const frameDoc = {
+    ...frameFile
   };
+  frameDoc["@context"] = contextFile["@context"];
 
-  let framed = await jsonld.frame(item, frame, {omitGraph: false});
+  // JSON-LD framing with full embedding
+  const framedRaw = await jsonld.frame(
+    item,
+    frameDoc,
+    {
+      embed: '@always',
+      omitGraph: false,
+      explicit: false,
+      requireAll: false
+    }
+  );
 
-  // Order authors by rank
-  if (!Array.isArray(framed["@graph"])) {
-    framed["@graph"] = [framed["@graph"]];
+  // Compact to collapse value objects using the same context
+  let compacted = await jsonld.compact(framedRaw, contextFile["@context"], {
+    embed: '@always'
+  });
+
+  // Ensure @graph is always an array
+  if (!Array.isArray(compacted["@graph"])) {
+    compacted["@graph"] = compacted["@graph"] ? [compacted["@graph"]] : [];
   }
 
-  framed["@graph"]?.forEach((node) => {
-    if (node?.["author"]) {
-      if (!Array.isArray(node["author"])) {
-        node["author"] = [node["author"]];
-      } else {
-        node["author"].sort((a, b) => a["rank"] - b["rank"]);
+  // Normalize boolean value objects defensively (if any survived compaction)
+  const normalizeBooleans = (node) => {
+    if (!node || typeof node !== 'object') return;
+    Object.keys(node).forEach(k => {
+      const v = node[k];
+      if (Array.isArray(v)) {
+        v.forEach(normalizeBooleans);
+      } else if (v && typeof v === 'object') {
+        if (
+          v['@value'] !== undefined &&
+          (v['@type'] === 'xsd:boolean' || v['@type'] === 'http://www.w3.org/2001/XMLSchema#boolean')
+        ) {
+          node[k] = (v['@value'] === true || v['@value'] === 'true');
+        } else {
+          normalizeBooleans(v);
+        }
       }
+    });
+  };
+
+  const normalizeScalars = (node) => {
+    if (!node || typeof node !== 'object') return;
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      if (Array.isArray(v)) v.forEach(normalizeScalars);
+      else if (v && typeof v === 'object' && '@value' in v) {
+        if (v['@type'] === 'xsd:boolean') node[k] = v['@value'] === true || v['@value'] === 'true';
+        else if (v['@type'] === 'xsd:integer') node[k] = parseInt(v['@value'], 10);
+        else node[k] = v['@value'];
+      } else if (v && typeof v === 'object') normalizeScalars(v);
+    }
+  }
+
+  compacted['@graph'].forEach(normalizeScalars);
+  compacted["@graph"].forEach(normalizeBooleans);
+
+  // Order authors by rank
+  compacted["@graph"].forEach(node => {
+    if (node?.author) {
+      if (!Array.isArray(node.author)) {
+        node.author = [node.author];
+      }
+      node.author.sort((a, b) => (a?.rank || 0) - (b?.rank || 0));
     }
   });
 
-  // REORDER: Put expert first, then works/grants
-  if (framed["@graph"] && Array.isArray(framed["@graph"])) {
+  // Reorder: expert first, then works, then grants, then others
+  if (compacted["@graph"] && Array.isArray(compacted["@graph"])) {
     const expertNodes = [];
     const workNodes = [];
     const grantNodes = [];
     const otherNodes = [];
 
-    framed["@graph"].forEach(node => {
+    compacted["@graph"].forEach(node => {
       if (!node || !node['@type']) {
         otherNodes.push(node);
         return;
       }
-
       const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
-
-      const isExpert = types.some(type =>
-        type.includes('Expert') ||
-        type.includes('Person') ||
-        type.includes('Agent')
+      const isExpert = types.some(t => t.includes('Expert') || t.includes('Person') || t.includes('Agent'));
+      const isWork = types.some(t =>
+        t.includes('Work') || t.includes('ScholarlyArticle') || t.includes('Article') || t.includes('Publication')
       );
+      const isGrant = types.some(t => t.includes('Grant'));
 
-      const isWork = types.some(type =>
-        type.includes('Work') ||
-        type.includes('ScholarlyArticle') ||
-        type.includes('Article') ||
-        type.includes('Publication')
-      );
-
-      const isGrant = types.some(type =>
-        type.includes('Grant')
-      );
-
-      if (isExpert) {
-        expertNodes.push(node);
-      } else if (isWork) {
-        workNodes.push(node);
-      } else if (isGrant) {
-        grantNodes.push(node);
-      } else {
-        otherNodes.push(node);
-      }
+      if (isExpert) expertNodes.push(node);
+      else if (isWork) workNodes.push(node);
+      else if (isGrant) grantNodes.push(node);
+      else otherNodes.push(node);
     });
 
-    // Reorder: Expert first, then works, then grants, then others
-    framed["@graph"] = [...expertNodes, ...workNodes, ...grantNodes, ...otherNodes];
+    compacted["@graph"] = [...expertNodes, ...workNodes, ...grantNodes, ...otherNodes];
   }
 
-  framed["@id"] = expertId;
-  framed["@context"] = (config?.server?.url || 'https://experts.ucdavis.edu') + "/api/schema/context.jsonld";
-  return framed;
+  // Set clean @id and final public context (public URL)
+  compacted["@id"] = expertId;
+  compacted["@context"] = (config?.server?.url || 'https://experts.ucdavis.edu') + "/api/schema/context.jsonld";
+
+  return compacted;
 }
 
 async function readRelationshipFiles(cacheUsername, expertId) {
@@ -97,7 +135,6 @@ async function readRelationshipFiles(cacheUsername, expertId) {
   const relCachePath = cache.getPath(cacheUsername, relDir);
 
   logger.info(`Reading relationship files from: ${relCachePath}`);
-
   let combinedGraph = [];
 
   try {
@@ -106,132 +143,93 @@ async function readRelationshipFiles(cacheUsername, expertId) {
       return combinedGraph;
     }
 
-    const files = fs.readdirSync(relCachePath).filter(file => file.endsWith('.jsonld'));
+    const files = fs.readdirSync(relCachePath).filter(f => f.endsWith('.jsonld'));
     logger.info(`Found ${files.length} relationship files`);
 
     for (const file of files) {
+      const filePath = path.join(relCachePath, file);
+      let relationshipData;
       try {
-        const filePath = path.join(relCachePath, file);
-        const relationshipData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-
-        let graphItems = [];
-        if (Array.isArray(relationshipData)) {
-          graphItems = relationshipData;
-        } else if (relationshipData['@graph'] && Array.isArray(relationshipData['@graph'])) {
-          graphItems = relationshipData['@graph'];
-        } else {
-          graphItems = [relationshipData];
-        }
-
-        // Separate publications/grants from relationships
-        const publications = [];
-        const grants = [];
-        const relationships = [];
-
-        graphItems.forEach(item => {
-          if (!item || !item['@type']) return;
-
-          const types = Array.isArray(item['@type']) ? item['@type'] : [item['@type']];
-          // console.log('types', JSON.stringify(types));
-
-          const isPublication = types.some(type =>
-            type.includes('Work') ||
-            type.includes('ScholarlyArticle') ||
-            type.includes('Article') ||
-            type.includes('Publication')
-          );
-
-          const isGrant = types.some(type =>
-            type.includes('Grant') ||
-            type.includes('Grant_Service')
-          );
-
-          const isRelationship = types.some(type =>
-            type.includes('ucdlib:Authorship') ||
-            type.includes('Authorship') ||
-            type.includes('ResearcherRole') ||
-            type.includes('GrantRole')
-          );
-
-          if (isPublication) {
-            publications.push(item);
-          } else if (isGrant) {
-            grants.push(item);
-          } else if (isRelationship) {
-            relationships.push(item);
-          }
-        });
-
-        // Merge relationships into publications/grants
-        const mergedItems = [];
-
-        // Process publications
-        publications.forEach(publication => {
-          const mergedPublication = { ...publication };
-
-          // Find relationships that relate to this publication
-          const relatedRelationships = relationships.filter(rel => {
-            // Check if relationship relates to this publication
-            const relatesTo = rel['ucdlib:relates-to'] || rel['relatesTo'];
-            if (!relatesTo) return false;
-
-            const relatesToId = Array.isArray(relatesTo) ? relatesTo[0]['@id'] : relatesTo['@id'];
-            return relatesToId === publication['@id'];
-          });
-
-          // Add relationships to the publication's relatedBy property
-          if (relatedRelationships.length > 0) {
-            if (!mergedPublication.relatedBy) {
-              mergedPublication.relatedBy = [];
-            } else if (!Array.isArray(mergedPublication.relatedBy)) {
-              mergedPublication.relatedBy = [mergedPublication.relatedBy];
-            }
-
-            // Add the relationship data
-            mergedPublication.relatedBy = [...mergedPublication.relatedBy, ...relatedRelationships];
-          }
-
-          mergedItems.push(mergedPublication);
-        });
-
-        // Process grants similarly
-        grants.forEach(grant => {
-          const mergedGrant = { ...grant };
-
-          const relatedRelationships = relationships.filter(rel => {
-            const relatesTo = rel['ucdlib:relates-to'] || rel['relatesTo'];
-            if (!relatesTo) return false;
-
-            const relatesToId = Array.isArray(relatesTo) ? relatesTo[0]['@id'] : relatesTo['@id'];
-            return relatesToId === grant['@id'];
-          });
-
-          if (relatedRelationships.length > 0) {
-            if (!mergedGrant.relatedBy) {
-              mergedGrant.relatedBy = [];
-            } else if (!Array.isArray(mergedGrant.relatedBy)) {
-              mergedGrant.relatedBy = [mergedGrant.relatedBy];
-            }
-
-            mergedGrant.relatedBy = [...mergedGrant.relatedBy, ...relatedRelationships];
-          }
-
-          mergedItems.push(mergedGrant);
-        });
-
-        combinedGraph = [...combinedGraph, ...mergedItems];
-
-        logger.info(`Merged ${file}: ${publications.length} publications + ${grants.length} grants with ${relationships.length} relationships = ${mergedItems.length} final items`);
-
-      } catch (error) {
-        logger.error(`Error reading relationship file ${file}:`, error);
+        relationshipData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      } catch(e) {
+        logger.error(`Error parsing ${file}: ${e.message}`);
+        continue;
       }
+
+      let graphItems = Array.isArray(relationshipData)
+        ? relationshipData
+        : Array.isArray(relationshipData['@graph'])
+          ? relationshipData['@graph']
+          : [relationshipData];
+
+      // Index all nodes by @id
+      const byId = new Map();
+      graphItems.forEach(n => {
+        if (n && n['@id']) byId.set(n['@id'], n);
+      });
+
+      // Identify grants, works, role (relationship) nodes
+      const grants = [];
+      const works = [];
+      const roles = [];
+
+      graphItems.forEach(node => {
+        if (!node || !node['@type']) return;
+        const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+        if (types.some(t => t.includes('Grant'))) grants.push(node);
+        else if (types.some(t => t.includes('Work') || t.includes('Article') || t.includes('Publication'))) works.push(node);
+        else if (types.some(t => t.includes('ResearcherRole') || t.includes('GrantRole') || t.includes('Authorship'))) roles.push(node);
+      });
+
+      // Helper to pull relates predicate variants
+      const getRelatesIds = (role) => {
+        const candidates = [
+          'http://vivoweb.org/ontology/core#relates',
+          'ucdlib:relates-to',
+          'relatesTo'
+        ];
+        for (const p of candidates) {
+          if (role[p]) {
+            const arr = Array.isArray(role[p]) ? role[p] : [role[p]];
+            return arr.filter(x => x && x['@id']).map(x => x['@id']);
+          }
+        }
+        return [];
+      };
+
+      // Attach roles to their target grant/work via relatedBy, but DO NOT drop any nodes
+      const augmentTargets = new Set();
+      roles.forEach(role => {
+        const relatedIds = getRelatesIds(role);
+        relatedIds.forEach(rid => {
+          const target = byId.get(rid);
+            if (target) {
+              if (!target.relatedBy) target.relatedBy = [];
+              else if (!Array.isArray(target.relatedBy)) target.relatedBy = [target.relatedBy];
+              // Avoid duplicate role insertion
+              if (!target.relatedBy.find(rb => rb['@id'] === role['@id'])) {
+                target.relatedBy.push({"@id": role['@id']});
+              }
+              augmentTargets.add(rid);
+            }
+        });
+      });
+
+      // Keep ALL nodes (so funder, interval, date, vcard nodes remain)
+      combinedGraph.push(...graphItems);
+      logger.info(`Added ${graphItems.length} nodes from ${file} (grants=${grants.length}, works=${works.length}, roles=${roles.length})`);
     }
 
-    logger.info(`Combined graph contains ${combinedGraph.length} merged items`);
+    // De-duplicate by @id across files
+    const dedup = new Map();
+    combinedGraph.forEach(n => {
+      if (n && n['@id']) dedup.set(n['@id'], n);
+    });
+    combinedGraph = Array.from(dedup.values());
+    logger.info(`Combined graph node count after dedupe: ${combinedGraph.length}`);
 
-  } catch (error) {
-    logger.error(`Error reading relationship directory:`, error);
+  } catch (e) {
+    logger.error(`Error reading relationship directory: ${e.message}`);
   }
 
   return combinedGraph;
@@ -253,8 +251,14 @@ async function runFromFiles(cacheUsername, expertId, file) {
 
   logger.info(`Total items in combined graph: ${combinedGraph.length}`);
 
+  let testRel = relationshipGraph.filter(rel => rel['@id'] === 'ark:/87287/d7gt0q/grant/K323B17-117579' || rel['@id'].includes('14549982'));
+  if( testRel ) console.log("Found relationship:", JSON.stringify(testRel));
+
   // Frame the combined graph
   let framed = await frame(expertId, combinedGraph);
+
+  // TEMP remove, just diffing
+  framed = sortJsonRecursively(framed);
 
   return cache.writeUserAsset(
     'ae-webapp-transform',
