@@ -82,6 +82,8 @@ async function run(options={}) {
   await personToWebapp(options.user, 'TODO', result.assetPath);
 
   // Transform in std AE relationships data
+  logger.info(`Deleting existing relationship files for user: ${options.user}`);
+  await cache.delete(options.user, `${config.cache.aeStdFormatDir}/${expertId}/rel`);
   await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, options);
 }
 

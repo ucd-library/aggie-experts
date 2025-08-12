@@ -51,6 +51,46 @@ function getFieldValue(fields, fieldName) {
   return field?.['api:text'];
 }
 
+// function getBestFieldValue(fieldName, primaryRecord, records) {
+//   // Try primary record first
+//   let value = getFieldValue(primaryRecord['api:native']['api:field'] || [], fieldName);
+//   if (value) return value;
+
+//   // Fallback to other records for this specific field
+//   const preferredSources = ['manual', 'dspace', 'scopus', 'dimensions', 'crossref'];
+//   for (const sourceName of preferredSources) {
+//     const record = records.find(r => r['source-name'] === sourceName);
+//     if (record && record['api:native'] && record['api:native']['api:field']) {
+//       value = getFieldValue(record['api:native']['api:field'], fieldName);
+//       if (value) return value;
+//     }
+//   }
+//   return null;
+// }
+
+function getBestFieldValueFromRecords(fieldName, records) {
+  // Priority order matching your SPARQL query
+  const sourceOrder = ['manual', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite', 'crossref', 'epmc', 'dspace'];
+
+  for (const sourceName of sourceOrder) {
+    const record = records.find(r => r['source-name'] === sourceName);
+    if (record && record['api:native'] && record['api:native']['api:field']) {
+      const value = getFieldValue(record['api:native']['api:field'], fieldName);
+      if (value) return value;
+    }
+  }
+
+  // Fallback to any record that has the field
+  for (const record of records) {
+    if (record['api:native'] && record['api:native']['api:field']) {
+      const value = getFieldValue(record['api:native']['api:field'], fieldName);
+      if (value) return value;
+    }
+  }
+
+  return null;
+}
+
 function getFieldObject(fields, fieldName) {
   const field = fields.find(f => f.name === fieldName);
   return field ? (field['api:pagination'] || field['api:date'] || field['api:money']) : null;
@@ -101,6 +141,7 @@ function extractAsArray(obj, path) {
 export {
   sortJsonArrayByIdAndKeys,
   getFieldValue,
+  getBestFieldValueFromRecords,
   getFieldObject,
   formatDate,
   ensureArray,
