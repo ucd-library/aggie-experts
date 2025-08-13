@@ -463,6 +463,7 @@ export class Impersonator {
     return await this.listobjects(
       {com: 'setFavourite',
        objectId: data.objectId,
+       categoryId: data.categoryId,
        favourite: (data.favourite ? 'true' : 'false')
       });
   }

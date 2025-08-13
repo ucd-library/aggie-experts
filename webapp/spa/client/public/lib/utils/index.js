@@ -280,7 +280,7 @@ class Utils {
         includeHidden : false,
         includeWorksMisformatted : false,
         includeGrantsMisformatted : false,
-        favoriteWorksFirst : false,
+        favouriteWorksFirst : false,
         worksPage : 1,
         worksSize : 10,
         worksSort : [
@@ -333,7 +333,7 @@ class Utils {
         exclude : defaults.worksExclude,
         includeMisformatted : defaults.includeWorksMisformatted,
         sort : defaults.worksSort,
-        favoriteWorksFirst : defaults.favoriteWorksFirst
+        favouriteWorksFirst : defaults.favouriteWorksFirst
       }
     };
   }
