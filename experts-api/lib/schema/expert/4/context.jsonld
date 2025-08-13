@@ -190,7 +190,7 @@
     "relatedBy":{
       "@id":"vivo:relatedBy"
     },
-    "relates": { "@id":"vivo:relates", "@type":"@id" },
+    "relates": { "@id": "vivo:relates" },
     "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},
     "ResearcherRole":{"@id":"vivo:ResearcherRole"},
     "researchInterests":{"@id":"ucdlib:researchInterests"},

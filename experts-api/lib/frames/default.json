@@ -12,12 +12,7 @@
     {
       "@type": ["Work","ScholarlyArticle"],
       "@embed": "@always",
-      "author": {
-        "@embed": "@always",
-        "family": {},
-        "given": {},
-        "rank": {}
-      },
+      "author": { "@embed": "@always" },
       "hasPublicationVenue": { "@embed": "@always" },
       "relatedBy": { "@embed": "@always" }
     },
@@ -29,9 +24,16 @@
       "hasResearchArea": { "@embed": "@always" }
     },
     {
-      "@type": "Authorship",
+      "@type": [
+        "Authorship",
+        "GrantRole",
+        "ResearcherRole",
+        "PrincipalInvestigatorRole",
+        "CoPrincipalInvestigatorRole"
+      ],
       "@embed": "@always",
-      "relates": { "@embed": "@always" }
+      "relates": { "@embed": "@always" },
+      "inheres_in": { "@embed": "@always" }
     }
   ]
 }

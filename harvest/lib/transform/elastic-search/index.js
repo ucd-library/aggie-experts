@@ -27,6 +27,50 @@ async function frame(expertId, graph, expertGraph = null) {
   };
   frameDoc["@context"] = contextFile["@context"];
 
+  const normalizeExpertIdsDeep = (graph) => {
+    const seen = new WeakSet();
+
+    const fixIdString = (val) => {
+      if (typeof val === 'string' && val.startsWith('expert/expert/')) {
+        return val.replace(/^expert\/expert\//, 'expert/');
+      }
+      return val;
+    };
+
+    const recurse = (node) => {
+      if (!node || typeof node !== 'object') return;
+      if (seen.has(node)) return;
+      seen.add(node);
+
+      // If this object itself has an @id
+      if (node['@id']) {
+        node['@id'] = fixIdString(node['@id']);
+      }
+
+      // Iterate properties
+      for (const key of Object.keys(node)) {
+        const v = node[key];
+
+        if (Array.isArray(v)) {
+          for (let i = 0; i < v.length; i++) {
+            if (v[i] && typeof v[i] === 'object') {
+              recurse(v[i]);
+            } else {
+              v[i] = fixIdString(v[i]);
+            }
+          }
+        } else if (v && typeof v === 'object') {
+          recurse(v);
+        } else {
+          node[key] = fixIdString(v);
+        }
+      }
+    };
+
+    graph.forEach(n => recurse(n));
+    return graph;
+  }
+
   // JSON-LD framing with full embedding
   const framedRaw = await jsonld.frame(
     item,
@@ -49,7 +93,8 @@ async function frame(expertId, graph, expertGraph = null) {
     compacted["@graph"] = compacted["@graph"] ? [compacted["@graph"]] : [];
   }
 
-  // Normalize boolean value objects defensively (if any survived compaction)
+  compacted["@graph"] = normalizeExpertIdsDeep(compacted["@graph"]);
+
   const normalizeBooleans = (node) => {
     if (!node || typeof node !== 'object') return;
     Object.keys(node).forEach(k => {
@@ -209,6 +254,7 @@ async function readRelationshipFiles(cacheUsername, expertId) {
               // Avoid duplicate role insertion
               if (!target.relatedBy.find(rb => rb['@id'] === role['@id'])) {
                 target.relatedBy.push({"@id": role['@id']});
+                // target.relatedBy.push(role);
               }
               augmentTargets.add(rid);
             }
