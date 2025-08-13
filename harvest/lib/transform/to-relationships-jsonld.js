@@ -11,13 +11,35 @@ import {transformGrants} from './grants.js';
 
 import {sortJsonArrayByIdAndKeys} from './utils.js';
 
+function extractElementsUserId(rel) {
+  // Try from feed.id
+  const feedId = rel?.feed?.id;
+  if (feedId) {
+    const match = feedId.match(/\/users\/(\d+)\/relationships/);
+    if (match) return match[1];
+  }
+  // Fallback: search for first author with elements/user link
+  const relationships = jsonpath.query(rel, '$..["api:relationship"]');
+  for (const r of relationships) {
+    const authors = jsonpath.query(r, '$..["api:person"]');
+    for (const author of Array.isArray(authors) ? authors : [authors]) {
+      const link = author?.['api:links']?.['api:link'];
+      if (link && link.type === 'elements/user' && link.id) {
+        return link.id;
+      }
+    }
+  }
+  return null;
+}
+
 async function run(rel, expertId, expertData, options = {}) {
+  let elementsUserId = extractElementsUserId(rel);
   let {
     works,
     grants
   } = parseRelationshipTypes(rel);
 
-  works = transformWorks(works, expertId);
+  works = transformWorks(works, expertId, elementsUserId);
   grants = transformGrants(grants, expertId, expertData);
 
   await saveRelationshipFiles([...works, ...grants], expertId, options);
@@ -55,60 +77,14 @@ async function saveRelationshipFiles(relationships, expertId, options) {
   }
 }
 
-// Trim extraneous info from authors
-// function author_trim_info(author) {
-//   delete (author['api:addresses']);
-// }
-
-// // modify author information
-// function update_author(me, work) {
-//   const max_authors = me.author_truncate_to;
-//   let records = work?.['api:object']?.['api:records']?.['api:record'] || [];
-//   Array.isArray(records) || (records = [records]);
-//   records.forEach((record) => {
-//     // log.info(`record: ${record.id}`);
-//     let fields = record?.['api:native']?.['api:field'] || [];
-//     Array.isArray(fields) || (fields = [fields]);
-//     fields.forEach((field) => {
-//       if (field.name === 'authors') {
-//         let authors = field?.['api:people']?.['api:person'] || [];
-//         Array.isArray(authors) || (authors = [authors]);
-//         for (let i = 0; i < (authors.length < max_authors ? authors.length : max_authors); i++) {
-//           if (me.author_trim_info) { author_trim_info(authors[i]); }
-//         }
-//         if (authors.length>1) {
-//           if (me.author_trim_info) { author_trim_info(authors[authors.length-1]); }
-//         }
-//         authors.splice(max_authors, authors.length - max_authors - 1);
-//       }
-//     });
-//   });
-//   return work;
-// }
-
-// function initTransform(graph) {
-//   let results = [];
-//   for (let work of graph['@graph']) {
-//     let related = [];
-//     if (work['api:relationship']?.['api:related']) {
-//       if (this.author_truncate_to || this.author_trim_info) {
-//         related.push(update_author(this, work['api:relationship']['api:related']))
-//       } else {
-//         related.push(work['api:relationship']['api:related'])
-//       }
-//     }
-//     related.push({ direction: 'to', id: cdlId, category: 'user' })
-//     work['api:relationship'] ||= {};
-//     work['api:relationship']['api:related'] = related;
-//     results.push(work['api:relationship']);
-//   }
-//   return results;
-// }
 
 function parseRelationshipTypes(rel) {
   let allRelationships = jsonpath.query(rel, '$..["api:relationship"]');
 
-  let works = allRelationships.filter(r => r.type === "publication-user-authorship");
+  let works = allRelationships.filter(r =>
+    r.type === "publication-user-authorship" &&
+    r['api:related']?.['api:object']?.type !== "other"
+  );
   let grants = allRelationships.filter(r => r.type && r.type.startsWith("user-grant"));
 
   return { works, grants };

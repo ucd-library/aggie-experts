@@ -1,13 +1,13 @@
 import jsonpath from 'jsonpath';
 import { formatDate, getFieldValue, getBestFieldValueFromRecords, getFieldObject, extractAsArray } from './utils.js';
 
-function transformWorks(works, expertId) {
+function transformWorks(works, expertId, elementsUserId) {
   let results = [];
   works.forEach(work => {
     let relationshipId = work.id;
     let isVisible = work["api:is-visible"] === 'true';
     if (isVisible) {
-      results.push({ relationshipId, graph: transformWork(work, relationshipId, expertId) });
+      results.push({ relationshipId, graph: transformWork(work, relationshipId, expertId, elementsUserId) });
     }
   });
   return results;
@@ -30,46 +30,7 @@ function getBestAuthorsFromRecords(records) {
   return null;
 }
 
-function formatOnlinePublicationDate(fields, fieldName = 'online-publication-date') {
-  const dateField = fields.find(f => f && f.name === fieldName);
-  if (!dateField || !dateField['api:date']) return null;
-
-  return formatDate(dateField);
-}
-
-// function getBestFieldFromRecords(fieldName, records) {
-//   // Priority order matching your SPARQL query
-//   const sourceOrder = ['verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite', 'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp', 'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'];
-
-//   console.log(`\n=== Looking for field: ${fieldName} ===`);
-//   console.log('Available records:', records.map(r => r['source-name']));
-
-//   for (const sourceName of sourceOrder) {
-//     const record = records.find(r => r['source-name'] === sourceName);
-//     if (record) {
-//       console.log(`Checking source: ${sourceName}`);
-//       if (record['api:native'] && record['api:native']['api:field']) {
-//         const fieldNames = record['api:native']['api:field'].map(f => f.name);
-//         console.log(`  Available fields in ${sourceName}:`, fieldNames);
-
-//         const field = record['api:native']['api:field'].find(f => f && f.name === fieldName);
-//         if (field) {
-//           console.log(`  ✅ Found ${fieldName} in ${sourceName}:`, field);
-//           return field;
-//         } else {
-//           console.log(`  ❌ No ${fieldName} in ${sourceName}`);
-//         }
-//       } else {
-//         console.log(`  ❌ No api:native/api:field in ${sourceName}`);
-//       }
-//     }
-//   }
-
-//   console.log(`❌ Field ${fieldName} not found in any record`);
-//   return null;
-// }
-
-function transformWork(workRelationship, relationshipId, expertId) {
+function transformWork(workRelationship, relationshipId, expertId, elementsUserId) {
   const result = [];
 
   const publicationId = jsonpath.value(workRelationship, '$["api:related"]["id"]');
@@ -89,40 +50,26 @@ function transformWork(workRelationship, relationshipId, expertId) {
   const fields = primaryRecord['api:native']['api:field'] || [];
 
   // Extract publication data using jsonpath
-  const title = getFieldValue(fields, 'title');
+  const title = getBestFieldValueFromRecords('title', records);
   const abstract = getBestFieldValueFromRecords('abstract', records);
-  const doi = getFieldValue(fields, 'doi');
+  const doi = getBestFieldValueFromRecords('doi', records);
   const issn = getBestFieldValueFromRecords('issn', records);
   const eissn = getBestFieldValueFromRecords('eissn', records);
-  const journal = getFieldValue(fields, 'journal');
+  const journal = getBestFieldValueFromRecords('journal', records);
   const publisher = getBestFieldValueFromRecords('publisher', records);
-  const volume = getFieldValue(fields, 'volume');
-  const issue = getFieldValue(fields, 'issue');
-  const language = getFieldValue(fields, 'language') || 'en';
-  const medium = getFieldValue(fields, 'medium') || 'Undetermined';
+  const volume = getBestFieldValueFromRecords('volume', records);
+  const issue = getBestFieldValueFromRecords('issue', records);
+  const language = getBestFieldValueFromRecords('language', records) || 'en';
+  const medium = getBestFieldValueFromRecords('medium', records); // || 'Undetermined';
 
+  const dateAvailableField = records
+      .map(r => r['api:native'] && r['api:native']['api:field']
+        ? r['api:native']['api:field'].find(f => f.name === 'online-publication-date')
+        : null)
+      .find(f => !!f);
+  const dateAvailable = formatDate(dateAvailableField?.['api:date']);
 
-  // TODO fix, pulling null values..
-  // Instead of using the primary record's fields
-  // const onlinePublicationDateField = getBestFieldFromRecords('online-publication-date', records);
-  // const dateAvailable = onlinePublicationDateField ? formatDate(onlinePublicationDateField) : null;
-  // console.log(dateAvailable);
-
-
-    // Debug which record is being used
-  // console.log('Primary record source:', primaryRecord['source-name']);
-  // console.log('Available fields:', primaryRecord['api:native']['api:field'].map(f => f.name));
-
-  // // Try the source-specific approach
-  // const onlinePubDateField = getBestFieldFromRecords('online-publication-date', records);
-  // console.log('Best online-publication-date field:', onlinePubDateField);
-
-  // const dateAvailable = onlinePubDateField ? formatDate(onlinePubDateField) : null;
-  // console.log('Formatted date available:', dateAvailable);
-  let dateAvailable = '';
-
-
-  const status = getFieldValue(fields, 'publication-status') || 'Published';
+  const status = getBestFieldValueFromRecords('publication-status', records) || 'Published';
   const url = getBestFieldValueFromRecords('public-url', records);
 
   // Extract pagination
@@ -232,14 +179,23 @@ function transformWork(workRelationship, relationshipId, expertId) {
     ]
   };
 
-  // Find author rank for this user in the publication
-  const userAuthor = authors.find(author =>
-    jsonpath.value(author, '$["api:links"]["api:link"].id') === expertId
-  );
-  if (userAuthor) {
-    const userRank = authors.indexOf(userAuthor) + 1;
+  // Find the index of the expert in the authors array
+  let userRank = null;
+  for (let i = 0; i < authors.length; i++) {
+    const author = authors[i];
+    let links = author?.['api:links']?.['api:link'];
+    if (!links) continue;
+    if (!Array.isArray(links)) links = [links];
+    if (links.some(link => link && (link.id === elementsUserId || link.id === String(elementsUserId)))) {
+      userRank = i + 1;
+      break;
+    }
+  }
+
+  // If not found, fallback to previous logic or leave as null
+  if (userRank !== null) {
     authorship["http://vivoweb.org/ontology/core#rank"] = [
-      { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": userRank }
+      { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": `${userRank}` }
     ];
   }
 
