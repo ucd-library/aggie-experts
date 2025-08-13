@@ -85,7 +85,7 @@
     "edition":{"@id":"cite:edition"},
     "eissn":{"@id":"cite:eissn"},
     "Expert":{"@id":"ucdlib:Expert","@type":"@id"},
-    "favorite":{"@id":"ucdlib:favorite","@type":"xsd:boolean"},
+    "favourite":{"@id":"ucdlib:favourite","@type":"xsd:boolean"},
     "genre":{"@id":"cite:genre"},
     "Grant": {
       "@id":"vivo:Grant",

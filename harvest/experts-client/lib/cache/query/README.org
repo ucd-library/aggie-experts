@@ -264,7 +264,7 @@ relationship here for testing.
    <<prefixes>>
    construct {
      ?authorship a vivo:Authorship, ucdlib:Authorship;
-                   ucdlib:favorite ?favorite;
+                   ucdlib:favourite ?favourite;
                    ucdlib:is-visible ?visible;
                    vivo:relates ?expert,?work;
                    vivo:rank ?user_rank;
@@ -403,8 +403,8 @@ relationship here for testing.
        #filter(?cite_include = true)
 
        OPTIONAL {
-         ?relationship :is-favourite "true".
-         bind(true as ?favorite)
+         ?relationship :favourite "true".
+         bind(true as ?favourite)
        }
        # Now we take CDLs preferred term
        OPTIONAL {
@@ -591,7 +591,7 @@ relationship here for testing.
    <<prefixes>>
    construct {
      ?grant_role a ucdlib:GrantRole, ?role;
-                   ucdlib:favorite ?favorite;
+                   ucdlib:favourite ?favourite;
      ucdlib:is-visible ?visible;
      vivo:relates ?grant,?expert;
      obo:RO_0000052 ?expert;
@@ -655,8 +655,8 @@ relationship here for testing.
        }
 
        OPTIONAL {
-         ?RELATIONSHIP__ :is-favourite "true".
-         bind(true as ?favorite)
+         ?RELATIONSHIP__ :favourite "true".
+         bind(true as ?favourite)
        }
 
        ?user :category "user";

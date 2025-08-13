@@ -33,6 +33,7 @@ export default class AppExpert extends Mixin(LitElement)
       citations : { type : Array },
       citationsDisplayed : { type : Array },
       featuredCitations : { type : Array },
+      // showFeaturedCitations : { type : Boolean },
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
@@ -106,7 +107,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favoriteWorksFirst : true }), clearCache);
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favouriteWorksFirst : true }), clearCache);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
       this._onExpertUpdate(expert, modified);
@@ -266,6 +267,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.citations = [];
     this.citationsDisplayed = [];
     this.featuredCitations = [];
+    // this.showFeaturedCitations = true;
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
@@ -341,10 +343,18 @@ export default class AppExpert extends Mixin(LitElement)
     let citationResults = all ? await Citation.generateCitations(citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
     citationResults = citationResults.map(c => c.value || c.reason?.data);
 
+    // TODO this needs to handle not showing favourites, so a new network request would need to be made..
+    // console.log('TODO handle moving featured citations to top of works list or into main list');
+    // if( this.showFeaturedCitations ) {
+    //   // filter featured citations from all citationResults
+    // } else {
+    //   // show all citations in works list
+    // }
+
     this.featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
-            ? c.relatedBy.some(rel => rel['ucdlib:favorite'] === true)
-            : c.relatedBy && c.relatedBy['ucdlib:favorite'] === true
-    )
+            ? c.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+            : c.relatedBy && c.relatedBy['ucdlib:favourite'] === true
+    );
 
     if( this.featuredCitations.length ) {
       // ensure sorted by year descending
@@ -911,6 +921,20 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideOK = false;
     this.hideOaPolicyLink = true;
     this.errorMode = false;
+  }
+
+  /**
+   * @method _onFeaturedCitationsToggle
+   * @description toggle featured citations
+   * @param {Object} e click|keyup event
+   */
+  // _onFeaturedCitationsToggle(e) {
+  //   this.showFeaturedCitations = !this.showFeaturedCitations;
+  //   this._loadCitations();
+  // }
+
+  _hideEditExpertControls() {
+    return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;
   }
 
   _cdlErrorModal(e) {

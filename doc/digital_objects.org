@@ -155,7 +155,7 @@ for UC Davis records.
              },
              { "@id":"ark:/.../work/evap",
                "@type":["Work"],
-               "favorite": true,
+               "favourite": true,
                "title":"Evapotranspiration in California",
                "container-title": "California Agriculture"
                "authors": [{"family":"Muir","given":"John"},
