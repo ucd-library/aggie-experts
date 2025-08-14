@@ -140,6 +140,11 @@ async function frame(expertId, graph, expertGraph = null) {
     }
   });
 
+  // Filter out relationship nodes (those whose @id contains '/relationship/', included previously so we could embed their content)
+  compacted["@graph"] = compacted["@graph"].filter(
+    node => !(typeof node['@id'] === 'string' && node['@id'].includes('/relationship/'))
+  );
+
   // Reorder: expert first, then works, then grants, then others
   if (compacted["@graph"] && Array.isArray(compacted["@graph"])) {
     const expertNodes = [];
@@ -170,9 +175,133 @@ async function frame(expertId, graph, expertGraph = null) {
 
   // Set clean @id and final public context (public URL)
   compacted["@id"] = expertId;
-  compacted["@context"] = (config?.server?.url || 'https://experts.ucdavis.edu') + "/api/schema/context.jsonld";
+  compacted["@context"] = (config?.server?.url || 'https://stage.experts.library.ucdavis.edu') + "/api/schema/context.jsonld";
+
+  compacted = promoteExpertNodeToRoot(compacted, config);
+
+  // this is taken from the grant model update function,
+  //  relatedBy.relates is updated with expertId + name/label
+  updateGrantRelatedByRelates(compacted);
 
   return compacted;
+}
+
+/**
+ * @method updateGrantRelatedByRelates
+ * @description update relatedBy.relates field in Grant nodes with expertId + name/label.
+ * taken from the grant model update (and related) function
+ *
+ * @param {Object} compacted - The compacted JSON-LD document
+*/
+function updateGrantRelatedByRelates(compacted) {
+  // Find the expert node and get its @id and label/name
+  const expertNode = compacted["@graph"].find(
+    n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
+  );
+  if (!expertNode) return;
+
+  const expertIdStr = expertNode['@id'];
+  const expertLabel = expertNode.label || expertNode.name;
+
+  // Only update Grant nodes
+  compacted["@graph"].forEach(node => {
+    const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+    if (!types.some(t => t.includes('Grant'))) return;
+
+    if (Array.isArray(node.relatedBy)) {
+      node.relatedBy.forEach(role => {
+        if (role && role.relates) {
+          if (Array.isArray(role.relates)) {
+            role.relates = role.relates.map(r =>
+              (typeof r === "string" && r === expertIdStr) ||
+              (r && r["@id"] === expertIdStr)
+                ? { "@id": expertIdStr, "name": expertLabel }
+                : r
+            );
+          } else if (
+            (typeof role.relates === "string" && role.relates === expertIdStr) ||
+            (role.relates && role.relates["@id"] === expertIdStr)
+          ) {
+            role.relates = { "@id": expertIdStr, "name": expertLabel };
+          }
+        }
+      });
+    }
+  });
+}
+
+/**
+ * @method promoteExpertNodeToRoot
+ * @description promote fields to the document root
+ * taken from the expert model update (and related) functions
+ *
+ * @param {Object} compacted - The compacted JSON-LD document
+*/
+function promoteExpertNodeToRoot(compacted, config) {
+  // Find the expert node
+  const expertNode = compacted["@graph"].find(
+    n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
+  );
+  if (!expertNode) return compacted;
+
+  // Build the root doc
+  const doc = {
+    "@id": expertNode['@id'],
+    "@context": (config?.server?.url || 'https://stage.experts.library.ucdavis.edu') + "/api/schema/context.jsonld",
+    "@graph": compacted["@graph"],
+    "@type": "Expert"
+  };
+
+  // Add visibility
+  if (expertNode["is-visible"] !== undefined) {
+    doc["is-visible"] = expertNode["is-visible"];
+  }
+  if (expertNode["hasAvailability"]) {
+    doc["hasAvailability"] = Array.isArray(expertNode["hasAvailability"])
+      ? [...expertNode["hasAvailability"]]
+      : [expertNode["hasAvailability"]];
+  }
+
+  // Order the vcards, and get the first one
+  let contact = null;
+  let hasEmail = [];
+  let hasURL = [];
+  if (expertNode["contactInfo"]) {
+    let contactInfos = Array.isArray(expertNode["contactInfo"])
+      ? expertNode["contactInfo"]
+      : [expertNode["contactInfo"]];
+    contactInfos.sort((a, b) => (a["rank"] || 100) - (b["rank"] || 100));
+    contact = contactInfos[0];
+    // get the hasURL and hasEmail
+    contactInfos.forEach((info) => {
+      if (info.hasEmail) hasEmail = hasEmail.concat(info.hasEmail);
+      if (info?.hasURL) hasURL = hasURL.concat(info.hasURL);
+    });
+  }
+
+  doc["contactInfo"] = {};
+  if (hasURL.length > 0) doc.contactInfo["hasURL"] = hasURL;
+  doc.contactInfo["hasEmail"] = hasEmail?.[0];
+
+  ["name", "hasName", "hasTitle", "hasOrganizationalUnit"].forEach((key) => {
+    if (contact && contact[key]) {
+      doc.contactInfo[key] = contact[key];
+    }
+  });
+  if (doc.contactInfo.name) {
+    doc.name = doc.contactInfo.name;
+  }
+  if (expertNode["modified-date"]) {
+    doc["modified-date"] = expertNode["modified-date"];
+  }
+  if (expertNode["roles"]) {
+    doc["roles"] = expertNode["roles"];
+  }
+
+  // Add the full @graph as well (for downstream use)
+  doc["@graph"] = compacted["@graph"];
+
+  return doc;
 }
 
 async function readRelationshipFiles(cacheUsername, expertId) {
@@ -307,9 +436,9 @@ async function runFromFiles(cacheUsername, expertId, file) {
   framed = sortJsonRecursively(framed);
 
   return cache.writeUserAsset(
-    'ae-webapp-transform',
+    'ae-webapp-expert-transform',
     cacheUsername,
-    path.join(config.cache.aeWebappDir, 'webapp.jsonld'),
+    path.join(config.cache.aeWebappDir, 'webapp.expert.jsonld'),
     framed
   );
 }

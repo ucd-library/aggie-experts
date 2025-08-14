@@ -8,8 +8,13 @@
   },
   "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
   "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
-  "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
-  "relatedBy": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
+  "relates": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
+  "relatedBy": {
+    "@embed": "@always",
+    "@omitDefault": true,
+    "@default": "@null",
+    "@container": "@set"
+  },
   "@embed": "@once",
   "@type": ["Expert","Work","Grant","Authorship"]
 }

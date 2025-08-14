@@ -71,10 +71,10 @@ function getFieldValue(fields, fieldName) {
 function getBestFieldValueFromRecords(fieldName, records) {
   // Priority order matching your SPARQL query
   const sourceOrder = [
-  'verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite',
-  'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp',
-  'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'
-];
+    'verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite',
+    'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp',
+    'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'
+  ];
 
   for (const sourceName of sourceOrder) {
     const record = records.find(r => r['source-name'] === sourceName);
