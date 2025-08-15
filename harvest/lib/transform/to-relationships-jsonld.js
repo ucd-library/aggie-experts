@@ -9,24 +9,15 @@ import config from '../config.js';
 import {transformWorks} from './works.js';
 import {transformGrants} from './grants.js';
 
-import {sortJsonArrayByIdAndKeys} from './utils.js';
+import {sortJsonRecursively} from './utils.js';
 
 function extractElementsUserId(rel) {
-  // Try from feed.id
-  const feedId = rel?.feed?.id;
-  if (feedId) {
-    const match = feedId.match(/\/users\/(\d+)\/relationships/);
-    if (match) return match[1];
-  }
-  // Fallback: search for first author with elements/user link
-  const relationships = jsonpath.query(rel, '$..["api:relationship"]');
-  for (const r of relationships) {
-    const authors = jsonpath.query(r, '$..["api:person"]');
-    for (const author of Array.isArray(authors) ? authors : [authors]) {
-      const link = author?.['api:links']?.['api:link'];
-      if (link && link.type === 'elements/user' && link.id) {
-        return link.id;
-      }
+  // Find the node in @graph with an id matching /users/<digits>/relationships
+  const nodes = rel['@graph'] || [];
+  for (const node of nodes) {
+    if (typeof node.id === 'string') {
+      const match = node.id.match(/\/users\/(\d+)\/relationships/);
+      if (match) return match[1];
     }
   }
   return null;
@@ -39,7 +30,7 @@ async function run(rel, expertId, expertData, options = {}) {
     grants
   } = parseRelationshipTypes(rel);
 
-  works = transformWorks(works, expertId, elementsUserId);
+  works = transformWorks(works, expertId, elementsUserId, rel['@graph']);
   grants = transformGrants(grants, expertId, expertData);
 
   await saveRelationshipFiles([...works, ...grants], expertId, options);
@@ -66,7 +57,7 @@ async function runFromFiles(relationshipFiles, expertId, expertData, options) {
 async function saveRelationshipFiles(relationships, expertId, options) {
   for( let relationship of relationships ) {
     let { relationshipId, graph } = relationship;
-    graph = sortJsonArrayByIdAndKeys(graph);
+    graph = sortJsonRecursively(graph);
 
     await cache.writeUserAsset(
       'ae-std-relationship-transform',

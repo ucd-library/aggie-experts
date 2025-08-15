@@ -1,16 +1,29 @@
 import jsonpath from 'jsonpath';
 import { formatDate, getFieldValue, getBestFieldValueFromRecords, getFieldObject, extractAsArray } from './utils.js';
 
-function transformWorks(works, expertId, elementsUserId) {
+function transformWorks(works, expertId, elementsUserId, inputGraph) {
   let results = [];
   works.forEach(work => {
     let relationshipId = work.id;
-    let isVisible = work["api:is-visible"] === 'true';
-    if (isVisible) {
-      results.push({ relationshipId, graph: transformWork(work, relationshipId, expertId, elementsUserId) });
-    }
+    // let isVisible = work["api:is-visible"] === 'true';
+    // if (isVisible) {
+      results.push({ relationshipId, graph: transformWork(work, relationshipId, expertId, elementsUserId, inputGraph) });
+    // }
   });
   return results;
+}
+
+function findJournalByIssn(obj, issn) {
+  if (obj && typeof obj === 'object') {
+    if (obj['api:journal'] && obj['api:journal'].issn === issn) {
+      return obj['api:journal'];
+    }
+    for (const key in obj) {
+      const found = findJournalByIssn(obj[key], issn);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 function getBestAuthorsFromRecords(records) {
@@ -30,7 +43,7 @@ function getBestAuthorsFromRecords(records) {
   return null;
 }
 
-function transformWork(workRelationship, relationshipId, expertId, elementsUserId) {
+function transformWork(workRelationship, relationshipId, expertId, elementsUserId, inputGraph) {
   const result = [];
 
   const publicationId = jsonpath.value(workRelationship, '$["api:related"]["id"]');
@@ -59,7 +72,8 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const publisher = getBestFieldValueFromRecords('publisher', records);
   const volume = getBestFieldValueFromRecords('volume', records);
   const issue = getBestFieldValueFromRecords('issue', records);
-  const language = getBestFieldValueFromRecords('language', records) || 'en';
+  const language = getBestFieldValueFromRecords('language', records); // || 'en';
+  const license = getBestFieldValueFromRecords('publisher-licence', records);
   const medium = getBestFieldValueFromRecords('medium', records); // || 'Undetermined';
 
   const dateAvailableField = records
@@ -69,7 +83,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
       .find(f => !!f);
   const dateAvailable = formatDate(dateAvailableField?.['api:date']);
 
-  const status = getBestFieldValueFromRecords('publication-status', records) || 'Published';
+  const status = getBestFieldValueFromRecords('publication-status', records); // || 'Published';
   const url = getBestFieldValueFromRecords('public-url', records);
 
   // Extract pagination
@@ -111,24 +125,64 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (pages) publication["http://citationstyles.org/schema/page"] = [{ "@value": pages }];
   if (issue) publication["http://citationstyles.org/schema/issue"] = [{ "@value": issue }];
   if (language) publication["http://citationstyles.org/schema/language"] = [{ "@value": language }];
+  if (license) publication["http://citationstyles.org/schema/license"] = [{ "@value": license }];
   if (medium) publication["http://citationstyles.org/schema/medium"] = [{ "@value": medium }];
   if (dateAvailable) publication["http://citationstyles.org/schema/date-available"] = [{ "@value": dateAvailable }];
   if (status) publication["http://citationstyles.org/schema/status"] = [{ "@value": status }];
   if (url) publication["http://citationstyles.org/schema/url"] = [{ "@value": url }];
   if (dateValue) publication["http://citationstyles.org/schema/issued"] = [{ "@value": dateValue }];
 
-  publication["http://citationstyles.org/schema/type"] = [{ "@value": "article-journal" }];
+  const typeMap = {
+    "book": "book",
+    "chapter": "chapter",
+    "conference": "paper-conference",
+    "journal-article": "article-journal",
+    "dataset": "dataset",
+    "internet-publication": "webpage",
+    "media": "article",
+    "other": "article",
+    "poster": "speech",
+    "preprint": "article",
+    "presentation": "speech",
+    "report": "report",
+    "scholarly-edition": "manuscript",
+    "software": "software",
+    "thesis-dissertation": "thesis"
+    // Add more as needed
+  };
 
-  // Add journal venue if issn exists
+  // Try to get type from the publication object
+  let rawType = jsonpath.value(workRelationship, '$["api:related"]["api:object"]["type"]');
+
+  // Fallback: try to get from best record's api:field
+  if (!rawType) {
+    rawType = getBestFieldValueFromRecords('type', records);
+  }
+
+  const mappedType = typeMap[rawType] || rawType;
+  if (mappedType) {
+    publication["http://citationstyles.org/schema/type"] = [{ "@value": mappedType }];
+  }
+
   if (issn) {
+    const venueId = `http://experts.ucdavis.edu/venue/urn:issn:${issn}`;
     publication["http://vivoweb.org/ontology/core#hasPublicationVenue"] = [
-      { "@id": `http://experts.ucdavis.edu/venue/urn:issn:${issn}` }
+      { "@id": venueId }
     ];
+
+    let venueName = journal;
+    for (const node of inputGraph) {
+      const journalObj = findJournalByIssn(node, issn);
+      if (journalObj && journalObj.title) {
+        venueName = journalObj.title;
+        break;
+      }
+    }
 
     // Create journal venue record
     result.push({
-      "@id": `http://experts.ucdavis.edu/venue/urn:issn:${issn}`,
-      "http://schema.org/name": [{ "@value": journal }],
+      "@id": venueId,
+      "http://schema.org/name": [{ "@value": venueName }],
       "http://vivoweb.org/ontology/core#issn": [{ "@value": issn }]
     });
   }
@@ -160,6 +214,14 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   result.push(publication);
 
+  let isVisible = workRelationship["api:is-visible"];
+  if (typeof isVisible === "undefined" && workRelationship["api:relationship"]) {
+    isVisible = workRelationship["api:relationship"]["api:is-visible"];
+  }
+  if (typeof isVisible === "string") {
+    isVisible = isVisible.toLowerCase() === "true";
+  }
+
   // Create authorship relationship record
   const authorship = {
     "@id": relationshipUri,
@@ -168,7 +230,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
       "http://vivoweb.org/ontology/core#Authorship"
     ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": "true" }
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(!!isVisible) }
     ],
     "http://vivoweb.org/ontology/core#rank": [
       { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": "1" }

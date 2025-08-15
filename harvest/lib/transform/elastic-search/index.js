@@ -426,9 +426,6 @@ async function runFromFiles(cacheUsername, expertId, file) {
 
   logger.info(`Total items in combined graph: ${combinedGraph.length}`);
 
-  let testRel = relationshipGraph.filter(rel => rel['@id'] === 'ark:/87287/d7gt0q/grant/K323B17-117579' || rel['@id'].includes('14549982'));
-  if( testRel ) console.log("Found relationship:", JSON.stringify(testRel));
-
   // Frame the combined graph
   let framed = await frame(expertId, combinedGraph);
 
