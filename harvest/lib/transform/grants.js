@@ -1,22 +1,51 @@
 import jsonpath from 'jsonpath';
 import { formatDate, getFieldValue, getFieldObject } from './utils.js';
 
+const ROLE_TYPES = {
+  PI: 'http://vivoweb.org/ontology/core#PrincipalInvestigatorRole',
+  CO_PI: 'http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole',
+  RESEARCHER: 'http://vivoweb.org/ontology/core#ResearcherRole',
+  LEADER: 'http://vivoweb.org/ontology/core#LeaderRole'
+};
+
+const GRANT_TYPES = {
+  ACADEMIC_SUPPORT: 'http://schema.library.ucdavis.edu/schema#Grant_AcademicSupport',
+  DEFAULT: 'http://schema.library.ucdavis.edu/schema#Grant_Default',
+  INSTRUCTION: 'http://schema.library.ucdavis.edu/schema#Grant_Instruction',
+  RESEARCH: 'http://schema.library.ucdavis.edu/schema#Grant_Research',
+  SERVICE: 'http://schema.library.ucdavis.edu/schema#Grant_Service',
+  SCHOLARSHIP: 'http://schema.library.ucdavis.edu/schema#Grant_Scholarship',
+  STUDENT_SERVICE: 'http://schema.library.ucdavis.edu/schema#Grant_StudentService'
+};
+
+const ONTOLOGY = {
+  GRANT: 'http://vivoweb.org/ontology/core#Grant',
+  FUNDING_ORG: 'http://vivoweb.org/ontology/core#FundingOrganization',
+  GRANT_ROLE: 'http://schema.library.ucdavis.edu/schema#GrantRole',
+  RELATES: 'http://vivoweb.org/ontology/core#relates',
+  RELATED_BY: 'http://vivoweb.org/ontology/core#relatedBy',
+  ASSIGNED_BY: 'http://vivoweb.org/ontology/core#assignedBy',
+  DATE_TIME_INTERVAL: 'http://vivoweb.org/ontology/core#dateTimeInterval',
+  DATE_TIME: 'http://vivoweb.org/ontology/core#dateTime',
+  START: 'http://vivoweb.org/ontology/core#start',
+  END: 'http://vivoweb.org/ontology/core#end',
+  YEAR_MONTH_DAY_PRECISION: 'http://vivoweb.org/ontology/core#yearMonthDayPrecision',
+  TOTAL_AWARD_AMOUNT: 'http://vivoweb.org/ontology/core#totalAwardAmount',
+  SPONSOR_AWARD_ID: 'http://vivoweb.org/ontology/core#sponsorAwardId'
+};
+
 function capitalizeName(name) {
   if (!name) return '';
 
-  // Check if the entire string is either all uppercase or all lowercase
   const isAllUpperCase = name === name.toUpperCase();
   const isAllLowerCase = name === name.toLowerCase();
 
-  // Only proceed with capitalization if the string is all upper or lower case
   if (isAllUpperCase || isAllLowerCase) {
-    // Split the name into words
     const lowerName = name.toLowerCase();
     const words = lowerName.split(' ');
 
     // Capitalize each word and handle hyphenated and apostrophized parts
     const capitalizedWords = words.map(word => {
-      // Split by hyphen or apostrophe, capitalize each part, and join them back
       const capitalizeParts = (word, delimiter) => {
         return word.split(delimiter).map(part => {
           if (part.length === 0) return part;
@@ -24,26 +53,21 @@ function capitalizeName(name) {
         }).join(delimiter);
       };
 
-      // First handle hyphens
       word = capitalizeParts(word, '-');
-      // Then handle apostrophes
       word = capitalizeParts(word, '\'');
 
       return word;
     });
 
-    // Join the capitalized words back into a single string
     return capitalizedWords.join(' ');
   }
 
-  // Return the original string if it's not all upper or lower case
   return name;
 }
 
 function capitalizeTitle(title) {
   if (!title) return '';
 
-  // Canonical list of acronyms from the SPARQL functions
   const acronymsList = [
     "CA", "CDPH", "ACS", "AbbVie", "PHS", "GSK", "NIMH", "FAA", "US", "MRPI",
     "UCRI", "EPA", "UT", "UC","NIH","NCI", "NIAID", "NIDCR", "NIDDK", "NHLBI",
@@ -54,30 +78,24 @@ function capitalizeTitle(title) {
     'OPEC', 'UN', 'UNESCO', 'UNICEF', 'USA', 'USDA', 'WHO', 'WTO'
   ];
 
-  // Create lookup object for fast access
   const acronyms = {};
   acronymsList.forEach(acronym => {
     acronyms[acronym] = true;
   });
 
-  // Check if the entire string is either all uppercase or all lowercase
   const isAllUpperCase = title === title.toUpperCase();
   const isAllLowerCase = title === title.toLowerCase();
 
-  // Only proceed with capitalization if the string is all upper or lower case
   if (isAllUpperCase || isAllLowerCase) {
-    // Split the title into words
     const lowerTitle = title.toLowerCase();
     const words = lowerTitle.split(' ');
 
-    // Capitalize each word
     const capitalizedWords = words.map(word => {
       const upperCaseWord = word.toUpperCase();
       if (acronyms[upperCaseWord]) {
         return upperCaseWord;
       }
       
-      // Capitalize normally
       if (word.length === 0) return word;
       return word[0].toUpperCase() + word.slice(1);
     });
@@ -85,7 +103,6 @@ function capitalizeTitle(title) {
     return capitalizedWords.join(' ');
   }
 
-  // Return the original string if it's not all upper or lower case
   return title;
 }
 
@@ -113,17 +130,17 @@ function getGrantType(fields) {
   const fundingType = getFieldValue(fields, 'funding-type');
   
   const grantTypeMapping = {
-    'Academic Support': 'http://schema.library.ucdavis.edu/schema#Grant_AcademicSupport',
-    'Default': 'http://schema.library.ucdavis.edu/schema#Grant_Default',
-    'Instruction': 'http://schema.library.ucdavis.edu/schema#Grant_Instruction',
-    'Research': 'http://schema.library.ucdavis.edu/schema#Grant_Research',
-    'Public Service / Other': 'http://schema.library.ucdavis.edu/schema#Grant_Service',
-    'Scholarships / Fellowships': 'http://schema.library.ucdavis.edu/schema#Grant_Scholarship',
-    'Student Services': 'http://schema.library.ucdavis.edu/schema#Grant_StudentService'
+    'Academic Support': GRANT_TYPES.ACADEMIC_SUPPORT,
+    'Default': GRANT_TYPES.DEFAULT,
+    'Instruction': GRANT_TYPES.INSTRUCTION,
+    'Research': GRANT_TYPES.RESEARCH,
+    'Public Service / Other': GRANT_TYPES.SERVICE,
+    'Scholarships / Fellowships': GRANT_TYPES.SCHOLARSHIP,
+    'Student Services': GRANT_TYPES.STUDENT_SERVICE
   };
   
   // Default to Grant_Service if funding type not found or not specified
-  return grantTypeMapping[fundingType] || 'http://schema.library.ucdavis.edu/schema#Grant_Service';
+  return grantTypeMapping[fundingType] || GRANT_TYPES.SERVICE;
 }
 
 function getGrantStatus(endDate) {
@@ -147,44 +164,39 @@ function getGrantStatus(endDate) {
 
 // Create user role relationship
 function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData) {
-  // Extract relationship type to determine role abbreviation
   const relationshipType = grantRelationship.type || 'user-grant-research';
   
   // Map relationship types to role abbreviations
   const roleMapping = {
-    'user-grant-principal-investigation': { abbrev: 'PI', type: 'http://vivoweb.org/ontology/core#PrincipalInvestigatorRole' },
-    'user-grant-co-principal-investigation': { abbrev: 'CoPI', type: 'http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole' },
-    'user-grant-senior-key-personnel': { abbrev: 'Res', type: 'http://vivoweb.org/ontology/core#ResearcherRole' },
-    'user-grant-co-primary-investigation': { abbrev: 'CoPI', type: 'http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole' },
-    'user-grant-primary-investigation': { abbrev: 'PI', type: 'http://vivoweb.org/ontology/core#PrincipalInvestigatorRole' },
-    'user-grant-program-direction': { abbrev: 'Lead', type: 'http://vivoweb.org/ontology/core#LeaderRole' },
-    'user-grant-project-leadership': { abbrev: 'Lead', type: 'http://vivoweb.org/ontology/core#LeaderRole' },
-    'user-grant-research': { abbrev: 'Res', type: 'http://vivoweb.org/ontology/core#ResearcherRole' }
+    'user-grant-principal-investigation': { abbrev: 'PI', type: ROLE_TYPES.PI },
+    'user-grant-co-principal-investigation': { abbrev: 'CoPI', type: ROLE_TYPES.CO_PI },
+    'user-grant-senior-key-personnel': { abbrev: 'Res', type: ROLE_TYPES.RESEARCHER },
+    'user-grant-co-primary-investigation': { abbrev: 'CoPI', type: ROLE_TYPES.CO_PI },
+    'user-grant-primary-investigation': { abbrev: 'PI', type: ROLE_TYPES.PI },
+    'user-grant-program-direction': { abbrev: 'Lead', type: ROLE_TYPES.LEADER },
+    'user-grant-project-leadership': { abbrev: 'Lead', type: ROLE_TYPES.LEADER },
+    'user-grant-research': { abbrev: 'Res', type: ROLE_TYPES.RESEARCHER }
   };
   
   const roleInfo = roleMapping[relationshipType] || roleMapping['user-grant-research'];
   
   let userName = 'Unknown User';
   if (expertData) {
-    // Extract user last name and first name from expert data
     const userLastName = expertData['last-name'] || '';
     const userFirstName = expertData['first-name'] || '';
     
-    // Construct name: "Last, First" or just "Last" if no first name
     userName = userLastName + (userFirstName ? `, ${userFirstName}` : '');
   }
   
-  // Create role name
   const roleName = `${roleInfo.abbrev}: ${userName}`;
   
-  // Extract visibility
   const isVisible = grantRelationship["api:is-visible"] === 'true';
   
   const userRole = {
     "@id": relationshipUri,
     "@type": [
       roleInfo.type,
-      "http://schema.library.ucdavis.edu/schema#GrantRole"
+      ONTOLOGY.GRANT_ROLE
     ],
     "http://purl.obolibrary.org/obo/RO_0000052": [
       { "@id": expertUri }
@@ -195,13 +207,394 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     "http://schema.library.ucdavis.edu/schema#is-visible": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": isVisible.toString() }
     ],
-    "http://vivoweb.org/ontology/core#relates": [
+    [ONTOLOGY.RELATES]: [
       { "@id": expertUri },
       { "@id": grantUri }
     ]
   };
 
   return userRole;
+}
+
+function generatePersonId(lastName, firstName) {
+  return `${lastName.toLowerCase()}_${firstName.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')}`;
+}
+
+function isExpertMatch(personLastName, personFirstName, expertData) {
+  const expertLastName = expertData['last-name']?.toLowerCase() || '';
+  const expertFirstName = expertData['first-name']?.toLowerCase() || '';
+  
+  return personLastName === expertLastName && 
+    (personFirstName === expertFirstName || 
+     personFirstName.startsWith(expertFirstName) || 
+     expertFirstName.startsWith(personFirstName));
+}
+
+function createPersonRecord(personId, formattedName, grantUri) {
+  return {
+    "@id": `${grantUri}#${personId}`,
+    "http://schema.org/name": [{ "@value": formattedName }],
+    "http://www.w3.org/2006/vcard/ns#hasName": [
+      { "@id": `${grantUri}#vcard_${personId}` }
+    ]
+  };
+}
+
+function createVCardRecord(personId, lastName, firstName, grantUri) {
+  return {
+    "@id": `${grantUri}#vcard_${personId}`,
+    "http://www.w3.org/2006/vcard/ns#familyName": [{ "@value": capitalizeName(lastName) }],
+    "http://www.w3.org/2006/vcard/ns#givenName": [{ "@value": capitalizeName(firstName) }]
+  };
+}
+
+function createRoleRecord(personId, roleType, roleLabel, formattedName, grantUri) {
+  return {
+    "@id": `${grantUri}#roleof_${personId}`,
+    "@type": [roleType],
+    "http://schema.org/name": [
+      { "@value": `${roleLabel}: ${formattedName}` }
+    ],
+    [ONTOLOGY.RELATES]: [
+      { "@id": grantUri },
+      { "@id": `${grantUri}#${personId}` }
+    ]
+  };
+}
+
+function extractGrantData(grantRelationship, relationshipId, expertId) {
+  const grantId = jsonpath.value(grantRelationship, '$["api:related"]["id"]');
+  const relationshipUri = `ark:/87287/d7mh2m/${relationshipId}`;
+  const expertUri = `http://experts.ucdavis.edu/${expertId}`;
+
+  const records = jsonpath.value(grantRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"]') || [];
+  const recordsArray = Array.isArray(records) ? records : [records];
+
+  const record = recordsArray.find(r => 
+    r['api:native'] && 
+    r['api:native']['api:field'] && 
+    r['api:native']['api:field'].some(f => f.name === 'c-co-pis')
+  ) || recordsArray[0];
+
+  if (!record || !record['api:native'] || !record['api:native']['api:field']) {
+    return null;
+  }
+
+  const fields = record['api:native']['api:field'] || [];
+  
+  return {
+    grantId,
+    relationshipUri,
+    expertUri,
+    record,
+    fields,
+    grantUri: record['id-at-source']
+  };
+}
+
+function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
+  const rawTitle = getFieldValue(fields, 'title');
+  const title = cleanGrantTitle(rawTitle);
+  const funderName = capitalizeTitle(getFieldValue(fields, 'funder-name'));
+  const funderReference = getFieldValue(fields, 'funder-reference');
+  const amount = getFieldObject(fields, 'amount');
+  const startDate = getFieldObject(fields, 'start-date');
+  const endDate = getFieldObject(fields, 'end-date');
+
+  const startDateValue = formatDate(startDate);
+  const endDateValue = formatDate(endDate);
+  const grantStatus = getGrantStatus(endDate);
+  
+  const piTextValue = getFieldValue(fields, 'c-pi');
+  const formattedPiName = piTextValue ? updateNameCasing(piTextValue) : '';
+  
+  const grantName = `${title} § ${grantStatus} • ${startDate?.['api:year']} - ${endDate?.['api:year']} • ${formattedPiName} § ${funderName} • ${funderReference}`;
+  const specificGrantType = getGrantType(fields);
+  
+  const grant = {
+    "@id": grantUri,
+    "@type": [specificGrantType, ONTOLOGY.GRANT],
+    "http://citationstyles.org/schema/status": [{ "@value": grantStatus }],
+    "http://schema.org/identifier": [
+      { "@id": `ark:/87287/d7mh2m/${grantId}` },
+      { "@id": grantUri }
+    ],
+    "http://schema.org/name": [{ "@value": grantName }],
+    [ONTOLOGY.RELATED_BY]: [{ "@id": relationshipUri }]
+  };
+
+  if (amount) {
+    grant[ONTOLOGY.TOTAL_AWARD_AMOUNT] = [{ "@value": amount['$t'] }];
+  }
+
+  if (funderReference) {
+    grant[ONTOLOGY.SPONSOR_AWARD_ID] = [{ "@value": funderReference }];
+  }
+
+  return { grant, startDateValue, endDateValue, funderName, piTextValue, formattedPiName };
+}
+
+function createDateRecords(startDateValue, endDateValue, grantUri) {
+  const records = [];
+  
+  if (!startDateValue && !endDateValue) return records;
+
+  const interval = { "@id": `${grantUri}#interval` };
+
+  if (startDateValue) {
+    interval[ONTOLOGY.START] = [{ "@id": `${grantUri}#start_date` }];
+    records.push({
+      "@id": `${grantUri}#start_date`,
+      [ONTOLOGY.DATE_TIME]: [{ "@value": startDateValue }],
+      "http://vivoweb.org/ontology/core#dateTimePrecision": [
+        { "@id": ONTOLOGY.YEAR_MONTH_DAY_PRECISION }
+      ]
+    });
+  }
+
+  if (endDateValue) {
+    interval[ONTOLOGY.END] = [{ "@id": `${grantUri}#end_date` }];
+    records.push({
+      "@id": `${grantUri}#end_date`,
+      [ONTOLOGY.DATE_TIME]: [{ "@value": endDateValue }],
+      "http://vivoweb.org/ontology/core#dateTimePrecision": [
+        { "@id": ONTOLOGY.YEAR_MONTH_DAY_PRECISION }
+      ]
+    });
+  }
+
+  records.push(interval);
+  return { records, intervalId: `${grantUri}#interval` };
+}
+
+function createFunderRecord(funderName, grantUri) {
+  if (!funderName) return null;
+  
+  return {
+    "@id": `${grantUri}#funder`,
+    "@type": [ONTOLOGY.FUNDING_ORG],
+    "http://schema.org/name": [{ "@value": funderName }]
+  };
+}
+
+function processAllGrantPeople(fields, grantUri, expertData, piTextValue, formattedPiName) {
+  const processedPeople = new Set();
+  const createdRoles = [];
+  const peopleRecords = [];
+
+  // Calculate piRoleId for PI processing
+  let piRoleId = null;
+  if (piTextValue) {
+    const nameParts = formattedPiName.split(', ');
+    if (nameParts.length >= 2) {
+      const piId = generatePersonId(nameParts[0], nameParts[1]);
+      piRoleId = `${grantUri}#roleof_${piId}`;
+    }
+  }
+
+  // Create PI records if they exist
+  if (piTextValue && piRoleId) {
+    const nameParts = formattedPiName.split(', ');
+    if (nameParts.length >= 2) {
+      const lastName = nameParts[0];
+      const firstName = nameParts[1];
+      const piId = generatePersonId(lastName, firstName);
+      
+      const personLastName = lastName.toLowerCase();
+      const personFirstName = firstName.toLowerCase();
+      
+      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
+      
+      processedPeople.add(piId);
+    
+      peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
+      peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
+
+      if (!isCurrentExpert) {
+        const roleRecord = createRoleRecord(piId, ROLE_TYPES.PI, 'PI', formattedPiName, grantUri);
+        peopleRecords.push(roleRecord);
+        createdRoles.push({ "@id": roleRecord["@id"] });
+      }
+    }
+  }
+
+  // Process c-co-pis field
+  const coPiListField = fields.find(f => f.name === 'c-co-pis');
+  if (coPiListField && coPiListField['api:people']) {
+    const apiPerson = coPiListField['api:people']['api:person'];
+    const piPeople = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
+    
+    piPeople.forEach(person => {
+      if (typeof person === 'string') return;
+
+      const lastName = person['api:last-name'] || '';
+      const firstName = person['api:first-names'] || '';
+      
+      if (!lastName || !firstName) return;
+
+      const personLastName = lastName.toLowerCase().replace(/,?\s*$/, '');
+      const personFirstName = firstName.toLowerCase();
+
+      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
+      
+      const piName = `${lastName.replace(/,?\s*$/, '')}, ${firstName}`;
+      const piId = generatePersonId(lastName, firstName);
+      const formattedName = updateNameCasing(piName);
+
+      if (processedPeople.has(`copi_${piId}`)) return;
+      processedPeople.add(`copi_${piId}`);
+
+      if (!processedPeople.has(`person_${piId}`) && !processedPeople.has(piId)) {
+        processedPeople.add(`person_${piId}`);
+        
+        peopleRecords.push(createPersonRecord(piId, formattedName, grantUri));
+        peopleRecords.push(createVCardRecord(piId, lastName.replace(/,?\s*$/, ''), firstName, grantUri));
+      }
+
+      if (!isCurrentExpert) {
+        const roleRecord = createRoleRecord(piId, ROLE_TYPES.CO_PI, 'COPI', formattedName, grantUri);
+        peopleRecords.push(roleRecord);
+        createdRoles.push({ "@id": roleRecord["@id"] });
+      }
+    });
+  }
+
+  // Process c-pi field for additional PIs
+  const additionalPiField = fields.find(f => f.name === 'c-pi');
+  if (additionalPiField && additionalPiField['api:text']) {
+    const piTextValue = additionalPiField['api:text'];
+    const formattedPiName = updateNameCasing(piTextValue);
+    
+    const nameParts = formattedPiName.split(', ');
+    if (nameParts.length >= 2) {
+      const lastName = nameParts[0];
+      const firstName = nameParts[1];
+      
+      const personLastName = lastName.toLowerCase();
+      const personFirstName = firstName.toLowerCase();
+
+      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
+      
+      const piId = generatePersonId(lastName, firstName);
+
+      if (!isCurrentExpert && !processedPeople.has(piId)) {
+        processedPeople.add(piId);
+
+        peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
+        peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
+
+        const roleRecord = createRoleRecord(piId, ROLE_TYPES.PI, 'PI', formattedPiName, grantUri);
+        peopleRecords.push(roleRecord);
+        createdRoles.push({ "@id": roleRecord["@id"] });
+      }
+    }
+  }
+
+  return { peopleRecords, createdRoles };
+}
+
+function mergeRoles(result) {
+  const rolesByPersonId = {};
+  const rolesToRemove = [];
+  
+  // Group roles by the person they relate to
+  result.forEach((item, index) => {
+    if (item['@type'] && 
+        (item['@type'].includes(ROLE_TYPES.PI) ||
+        item['@type'].includes(ROLE_TYPES.CO_PI))) {
+      
+      const relates = item['http://vivoweb.org/ontology/core#relates'];
+      if (relates && relates.length >= 2) {
+        // Find the person ID (the one that contains # but doesn't contain 'roleof_')
+        const personId = relates.find(rel => 
+          rel['@id'].includes('#') && 
+          !rel['@id'].includes('roleof_') &&
+          !rel['@id'].endsWith('_date') && 
+          !rel['@id'].endsWith('funder') &&
+          !rel['@id'].endsWith('interval')
+        );
+        
+        if (personId) {
+          const personIdStr = personId['@id'];
+          
+          if (!rolesByPersonId[personIdStr]) {
+            rolesByPersonId[personIdStr] = [];
+          }
+          
+          rolesByPersonId[personIdStr].push({ item, index });
+        }
+      }
+    }
+  });
+  
+  // Merge roles for people who have multiple roles
+  Object.keys(rolesByPersonId).forEach(personId => {
+    const roles = rolesByPersonId[personId];
+    
+    if (roles.length > 1) {
+      // Merge into the first role
+      const primaryRole = roles[0].item;
+      const mergedTypes = new Set(primaryRole['@type'] || []);
+      const mergedNames = [...(primaryRole['http://schema.org/name'] || [])];
+      
+      // Add types and names from other roles
+      for (let i = 1; i < roles.length; i++) {
+        const otherRole = roles[i].item;
+        
+        (otherRole['@type'] || []).forEach(type => mergedTypes.add(type));
+        
+        (otherRole['http://schema.org/name'] || []).forEach(name => {
+          if (!mergedNames.some(existing => existing['@value'] === name['@value'])) {
+            mergedNames.push(name);
+          }
+        });
+        
+        rolesToRemove.push(roles[i].index);
+      }
+      
+      // Update the primary role
+      primaryRole['@type'] = Array.from(mergedTypes);
+      primaryRole['http://schema.org/name'] = mergedNames;
+    }
+  });
+  
+  // Remove duplicate roles (in reverse order to maintain indices)
+  rolesToRemove.sort((a, b) => b - a).forEach(index => {
+    result.splice(index, 1);
+  });
+  
+  return result;
+}
+
+function finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri) {
+  if (createdRoles.length > 0) {
+    grant[ONTOLOGY.RELATED_BY].push(...createdRoles);
+  }
+
+  result.push(grant);
+  result.push(userRole);
+
+  result = mergeRoles(result);
+  
+  const uniqueCreatedRoles = [];
+  const seenRoleIds = new Set();
+
+  createdRoles.forEach(role => {
+    if (!seenRoleIds.has(role['@id'])) {
+      seenRoleIds.add(role['@id']);
+      uniqueCreatedRoles.push(role);
+    }
+  });
+
+  const grantIndex = result.findIndex(item => item['@id'] === grantUri);
+  if (grantIndex !== -1) {
+    result[grantIndex][ONTOLOGY.RELATED_BY] = [
+      { "@id": relationshipUri },
+      ...uniqueCreatedRoles
+    ];
+  }
+  
+  return result;
 }
 
 function transformGrants(grants, expertId, expertData) {
@@ -217,465 +610,41 @@ function transformGrants(grants, expertId, expertData) {
 }
 
 function transformGrant(grantRelationship, relationshipId, expertId, expertData) {
-  let result = [];
-  const grantId = jsonpath.value(grantRelationship, '$["api:related"]["id"]');
-  const relationshipUri = `ark:/87287/d7mh2m/${relationshipId}`;
-  const expertUri = `http://experts.ucdavis.edu/${expertId}`;
+  // Extract data
+  const extractedData = extractGrantData(grantRelationship, relationshipId, expertId);
+  if (!extractedData) return [];
 
-  // Get grant record data
-  const records = jsonpath.value(grantRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"]') || [];
-  const recordsArray = Array.isArray(records) ? records : [records];
+  const { grantId, relationshipUri, expertUri, fields, grantUri } = extractedData;
 
-  // Find the record with the most complete field data (usually the institutional one)
-  const record = recordsArray.find(r => 
-    r['api:native'] && 
-    r['api:native']['api:field'] && 
-    r['api:native']['api:field'].some(f => f.name === 'c-co-pis')
-  ) || recordsArray[0]; // Fallback to first record if none has c-co-pis
-    if (!record || !record['api:native'] || !record['api:native']['api:field']) return result;
-
-  const fields = record['api:native']['api:field'] || [];
-
-  // Extract grant data
-  const rawTitle = getFieldValue(fields, 'title');
-  const title = cleanGrantTitle(rawTitle);
-  const funderName = capitalizeTitle(getFieldValue(fields, 'funder-name'));
-  const funderReference = getFieldValue(fields, 'funder-reference');
-  const amount = getFieldObject(fields, 'amount');
-  const startDate = getFieldObject(fields, 'start-date');
-  const endDate = getFieldObject(fields, 'end-date');
-
-  // Create grant ARK identifier
-  const grantArk = record['id-at-source'];
-  const grantUri = grantArk;
-
-  // Format dates
-  const startDateValue = formatDate(startDate);
-  const endDateValue = formatDate(endDate);
-
-  // Determine grant status
-  const grantStatus = getGrantStatus(endDate);
-
-  // Create grant name
-  const piTextValue = getFieldValue(fields, 'c-pi');
-  const formattedPiName = piTextValue ? updateNameCasing(piTextValue) : '';
-
-  let piRoleId = null;
-  if (piTextValue) {
-    // Extract first and last name from the formatted PI name
-    const nameParts = formattedPiName.split(', ');
-    if (nameParts.length >= 2) {
-      const lastName = nameParts[0].toLowerCase();
-      const firstName = nameParts[1].toLowerCase().replace(/\s+/g, '');
-      const piId = `${lastName}_${firstName}`;
-      piRoleId = `${grantUri}#roleof_${piId}`;
-    }
-  }
-
-  const grantName = `${title} § ${grantStatus} • ${startDate?.['api:year']} - ${endDate?.['api:year']} • ${formattedPiName} § ${funderName} • ${funderReference}`;
-  
-  // Get the appropriate grant type based on funding type
-  const specificGrantType = getGrantType(fields);
-  
   // Create main grant record
-  const grant = {
-    "@id": grantUri,
-    "@type": [
-      specificGrantType,
-      "http://vivoweb.org/ontology/core#Grant"
-    ],
-    "http://citationstyles.org/schema/status": [{ "@value": grantStatus }],
-    "http://schema.org/identifier": [
-      { "@id": `ark:/87287/d7mh2m/${grantId}` },
-      { "@id": grantUri }
-    ],
-    "http://schema.org/name": [{ "@value": grantName }],
-    "http://vivoweb.org/ontology/core#relatedBy": [
-      { "@id": relationshipUri }
-    ]
-  };
+  const { grant, startDateValue, endDateValue, funderName, piTextValue, formattedPiName } = 
+    createMainGrantRecord(fields, grantUri, grantId, relationshipUri);
 
-  if (amount) {
-    grant["http://vivoweb.org/ontology/core#totalAwardAmount"] = [
-      { "@value": amount['$t'] }
-    ];
+  let result = [];
+
+  // Add date records
+  const { records: dateRecords, intervalId } = createDateRecords(startDateValue, endDateValue, grantUri);
+  if (intervalId) {
+    grant[ONTOLOGY.DATE_TIME_INTERVAL] = [{ "@id": intervalId }];
+  }
+  result.push(...dateRecords);
+
+  // Add funder record
+  const funderRecord = createFunderRecord(funderName, grantUri);
+  if (funderRecord) {
+    grant[ONTOLOGY.ASSIGNED_BY] = [{ "@id": funderRecord["@id"] }];
+    result.push(funderRecord);
   }
 
-  if (funderReference) {
-    grant["http://vivoweb.org/ontology/core#sponsorAwardId"] = [
-      { "@value": funderReference }
-    ];
-  }
+  // Process people
+  const { peopleRecords, createdRoles } = processAllGrantPeople(fields, grantUri, expertData, piTextValue, formattedPiName);
+  result.push(...peopleRecords);
 
-  // Add date interval
-  if (startDateValue || endDateValue) {
-    grant["http://vivoweb.org/ontology/core#dateTimeInterval"] = [
-      { "@id": `${grantUri}#interval` }
-    ];
-
-    // Create interval record
-    const interval = {
-      "@id": `${grantUri}#interval`
-    };
-
-    if (startDateValue) {
-      interval["http://vivoweb.org/ontology/core#start"] = [
-        { "@id": `${grantUri}#start_date` }
-      ];
-
-      result.push({
-        "@id": `${grantUri}#start_date`,
-        "http://vivoweb.org/ontology/core#dateTime": [{ "@value": startDateValue }],
-        "http://vivoweb.org/ontology/core#dateTimePrecision": [
-          { "@id": "http://vivoweb.org/ontology/core#yearMonthDayPrecision" }
-        ]
-      });
-    }
-
-    if (endDateValue) {
-      interval["http://vivoweb.org/ontology/core#end"] = [
-        { "@id": `${grantUri}#end_date` }
-      ];
-
-      result.push({
-        "@id": `${grantUri}#end_date`,
-        "http://vivoweb.org/ontology/core#dateTime": [{ "@value": endDateValue }],
-        "http://vivoweb.org/ontology/core#dateTimePrecision": [
-          { "@id": "http://vivoweb.org/ontology/core#yearMonthDayPrecision" }
-        ]
-      });
-    }
-
-    result.push(interval);
-  }
-
-  // Add funder
-  if (funderName) {
-    grant["http://vivoweb.org/ontology/core#assignedBy"] = [
-      { "@id": `${grantUri}#funder` }
-    ];
-
-    result.push({
-      "@id": `${grantUri}#funder`,
-      "@type": ["http://vivoweb.org/ontology/core#FundingOrganization"],
-      "http://schema.org/name": [{ "@value": funderName }]
-    });
-  }
-
-  // Track processed people to avoid duplicates
-  const processedPeople = new Set();
-  const createdRoles = [];
-
-  // Create PI records if they exist
-  if (piTextValue && piRoleId) {
-    const nameParts = formattedPiName.split(', ');
-    if (nameParts.length >= 2) {
-      const lastName = nameParts[0];
-      const firstName = nameParts[1];
-      const piId = `${lastName.toLowerCase()}_${firstName.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')}`;
-      
-      // Check if this PI matches the current expert
-      const expertLastName = expertData['last-name']?.toLowerCase() || '';
-      const expertFirstName = expertData['first-name']?.toLowerCase() || '';
-      const personLastName = lastName.toLowerCase();
-      const personFirstName = firstName.toLowerCase();
-      
-      const isCurrentExpert = personLastName === expertLastName && 
-          (personFirstName === expertFirstName || 
-          personFirstName.startsWith(expertFirstName) || 
-          expertFirstName.startsWith(personFirstName));
-      
-      processedPeople.add(piId);
-    
-      // Create person record
-      result.push({
-        "@id": `${grantUri}#${piId}`,
-        "http://schema.org/name": [{ "@value": formattedPiName }],
-        "http://www.w3.org/2006/vcard/ns#hasName": [
-          { "@id": `${grantUri}#vcard_${piId}` }
-        ]
-      });
-
-      // Create vcard name
-      result.push({
-        "@id": `${grantUri}#vcard_${piId}`,
-        "http://www.w3.org/2006/vcard/ns#familyName": [{ "@value": capitalizeName(lastName) }],
-        "http://www.w3.org/2006/vcard/ns#givenName": [{ "@value": capitalizeName(firstName) }]
-      });
-
-      // Only create role if this person is NOT the current expert
-      if (!isCurrentExpert) {
-        result.push({
-          "@id": piRoleId,
-          "@type": [
-            "http://vivoweb.org/ontology/core#PrincipalInvestigatorRole"
-          ],
-          "http://schema.org/name": [
-            { "@value": `PI: ${formattedPiName}` }
-          ],
-          "http://vivoweb.org/ontology/core#relates": [
-            { "@id": grantUri },
-            { "@id": `${grantUri}#${piId}` }
-          ]
-        });
-        createdRoles.push({ "@id": piRoleId }); // Track created role
-      }
-    }
-  }
-
-  // Process c-co-pis field separately  
-  const coPiListField = fields.find(f => f.name === 'c-co-pis');
-  if (coPiListField && coPiListField['api:people']) {
-    const apiPerson = coPiListField['api:people']['api:person'];
-    
-    // Handle both single object and array cases
-    const piPeople = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
-
-    // Get current expert name for comparison
-    const expertLastName = expertData['last-name']?.toLowerCase() || '';
-    const expertFirstName = expertData['first-name']?.toLowerCase() || '';
-    
-    piPeople.forEach(person => {
-      if (typeof person === 'string') return;
-
-      const lastName = person['api:last-name'] || '';
-      const firstName = person['api:first-names'] || '';
-      
-      if (!lastName || !firstName) return;
-
-      // Check if this person matches the current expert
-      const personLastName = lastName.toLowerCase().replace(/,?\s*$/, '');
-      const personFirstName = firstName.toLowerCase();
-
-      const isCurrentExpert = personLastName === expertLastName && 
-          (personFirstName === expertFirstName || 
-           personFirstName.startsWith(expertFirstName) || 
-           expertFirstName.startsWith(personFirstName));
-      
-      const piName = `${lastName.replace(/,?\s*$/, '')}, ${firstName}`;
-      const piId = `${lastName.toLowerCase()}_${firstName.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')}`;
-      const formattedName = updateNameCasing(piName);
-
-      // Skip if we already processed this person as a Co-PI
-      if (processedPeople.has(`copi_${piId}`)) return;
-      processedPeople.add(`copi_${piId}`);
-
-      // Create person record if not already created
-      if (!processedPeople.has(`person_${piId}`) && !processedPeople.has(piId)) {
-        processedPeople.add(`person_${piId}`);
-        
-        result.push({
-          "@id": `${grantUri}#${piId}`,
-          "http://schema.org/name": [{ "@value": formattedName }],
-          "http://www.w3.org/2006/vcard/ns#hasName": [
-            { "@id": `${grantUri}#vcard_${piId}` }
-          ]
-        });
-
-        result.push({
-          "@id": `${grantUri}#vcard_${piId}`,
-          "http://www.w3.org/2006/vcard/ns#familyName": [{ "@value": capitalizeName(lastName.replace(/,?\s*$/, '')) }],
-          "http://www.w3.org/2006/vcard/ns#givenName": [{ "@value": capitalizeName(firstName) }]
-        });
-      }
-
-      // Create Co-PI role for ALL people in c-co-pis (including non-current experts)
-      if (!isCurrentExpert) {
-        const copiRoleId = `${grantUri}#roleof_${piId}`;
-        result.push({
-          "@id": copiRoleId,
-          "@type": [
-            "http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole"
-          ],
-          "http://schema.org/name": [
-            { "@value": `COPI: ${formattedName}` }
-          ],
-          "http://vivoweb.org/ontology/core#relates": [
-            { "@id": grantUri },
-            { "@id": `${grantUri}#${piId}` }
-          ]
-        });
-        createdRoles.push({ "@id": copiRoleId });
-      }
-    });
-  }
-
-  // ALSO process c-pi field for additional PIs
-  const additionalPiField = fields.find(f => f.name === 'c-pi');
-  if (additionalPiField && additionalPiField['api:text']) {
-    const piTextValue = additionalPiField['api:text'];
-    const formattedPiName = updateNameCasing(piTextValue);
-    
-    // Parse the name to extract components
-    const nameParts = formattedPiName.split(', ');
-    if (nameParts.length >= 2) {
-      const lastName = nameParts[0];
-      const firstName = nameParts[1];
-      
-      // Get current expert name for comparison
-      const expertLastName = expertData['last-name']?.toLowerCase() || '';
-      const expertFirstName = expertData['first-name']?.toLowerCase() || '';
-      
-      // Check if this person matches the current expert
-      const personLastName = lastName.toLowerCase();
-      const personFirstName = firstName.toLowerCase();
-
-      const isCurrentExpert = personLastName === expertLastName && 
-          (personFirstName === expertFirstName || 
-           personFirstName.startsWith(expertFirstName) || 
-           expertFirstName.startsWith(personFirstName));
-      
-      const piId = `${lastName.toLowerCase()}_${firstName.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')}`;
-
-      // Only create if this person is NOT the current expert AND we haven't processed them
-      if (!isCurrentExpert && !processedPeople.has(piId)) {
-        processedPeople.add(piId);
-
-        // Create person record (only if not already created)
-        result.push({
-          "@id": `${grantUri}#${piId}`,
-          "http://schema.org/name": [{ "@value": formattedPiName }],
-          "http://www.w3.org/2006/vcard/ns#hasName": [
-            { "@id": `${grantUri}#vcard_${piId}` }
-          ]
-        });
-
-        // Create vcard name
-        result.push({
-          "@id": `${grantUri}#vcard_${piId}`,
-          "http://www.w3.org/2006/vcard/ns#familyName": [{ "@value": capitalizeName(lastName) }],
-          "http://www.w3.org/2006/vcard/ns#givenName": [{ "@value": capitalizeName(firstName) }]
-        });
-
-        // Create PI role
-        result.push({
-          "@id": `${grantUri}#roleof_${piId}`,
-          "@type": [
-            "http://vivoweb.org/ontology/core#PrincipalInvestigatorRole"
-          ],
-          "http://schema.org/name": [
-            { "@value": `PI: ${formattedPiName}` }
-          ],
-          "http://vivoweb.org/ontology/core#relates": [
-            { "@id": grantUri },
-            { "@id": `${grantUri}#${piId}` }
-          ]
-        });
-        createdRoles.push({ "@id": `${grantUri}#roleof_${piId}` });
-      }
-    }
-  }
-
-  // Add created roles to grant's relatedBy array
-  if (createdRoles.length > 0) {
-    grant["http://vivoweb.org/ontology/core#relatedBy"].push(...createdRoles);
-  }
-
-  result.push(grant);
-
+  // Create user role
   const userRole = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData);
-  result.push(userRole);
-  
-  // After processing both PI and Co-PI lists, merge roles for people who appear in both
-  function mergeRoles(result) {
-    const rolesByPersonId = {};
-    const rolesToRemove = [];
-    
-    // Group roles by the person they relate to
-    result.forEach((item, index) => {
-      if (item['@type'] && 
-          (item['@type'].includes('http://vivoweb.org/ontology/core#PrincipalInvestigatorRole') ||
-          item['@type'].includes('http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole'))) {
-        
-        const relates = item['http://vivoweb.org/ontology/core#relates'];
-        if (relates && relates.length >= 2) {
-          // Find the person ID (the one that contains # but doesn't contain 'roleof_')
-          const personId = relates.find(rel => 
-            rel['@id'].includes('#') && 
-            !rel['@id'].includes('roleof_') &&
-            !rel['@id'].endsWith('_date') && 
-            !rel['@id'].endsWith('funder') &&
-            !rel['@id'].endsWith('interval')
-          );
-          
-          if (personId) {
-            const personIdStr = personId['@id'];
-            
-            if (!rolesByPersonId[personIdStr]) {
-              rolesByPersonId[personIdStr] = [];
-            }
-            
-            rolesByPersonId[personIdStr].push({ item, index });
-          }
-        }
-      }
-    });
-    
-    // Merge roles for people who have multiple roles
-    Object.keys(rolesByPersonId).forEach(personId => {
-      const roles = rolesByPersonId[personId];
-      
-      if (roles.length > 1) {
-        // Merge into the first role
-        const primaryRole = roles[0].item;
-        const mergedTypes = new Set(primaryRole['@type'] || []);
-        const mergedNames = [...(primaryRole['http://schema.org/name'] || [])];
-        
-        // Add types and names from other roles
-        for (let i = 1; i < roles.length; i++) {
-          const otherRole = roles[i].item;
-          
-          // Add types
-          (otherRole['@type'] || []).forEach(type => mergedTypes.add(type));
-          
-          // Add names
-          (otherRole['http://schema.org/name'] || []).forEach(name => {
-            if (!mergedNames.some(existing => existing['@value'] === name['@value'])) {
-              mergedNames.push(name);
-            }
-          });
-          
-          // Mark for removal
-          rolesToRemove.push(roles[i].index);
-        }
-        
-        // Update the primary role
-        primaryRole['@type'] = Array.from(mergedTypes);
-        primaryRole['http://schema.org/name'] = mergedNames;
-      }
-    });
-    
-    // Remove duplicate roles (in reverse order to maintain indices)
-    rolesToRemove.sort((a, b) => b - a).forEach(index => {
-      result.splice(index, 1);
-    });
-    
-    return result;
-  }
 
-  result = mergeRoles(result);
-  
-  // Remove duplicates from createdRoles array
-  const uniqueCreatedRoles = [];
-  const seenRoleIds = new Set();
-
-  createdRoles.forEach(role => {
-    if (!seenRoleIds.has(role['@id'])) {
-      seenRoleIds.add(role['@id']);
-      uniqueCreatedRoles.push(role);
-    }
-  });
-
-  // Update the grant's relatedBy with deduplicated roles
-  const grantIndex = result.findIndex(item => item['@id'] === grantUri);
-  if (grantIndex !== -1) {
-    result[grantIndex]["http://vivoweb.org/ontology/core#relatedBy"] = [
-      { "@id": relationshipUri },
-      ...uniqueCreatedRoles
-    ];
-  }
-  
-  return result;
+  // Finalize output
+  return finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri);
 }
 
 export { transformGrants };
