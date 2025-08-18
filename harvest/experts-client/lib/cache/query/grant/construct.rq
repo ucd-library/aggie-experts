@@ -105,7 +105,7 @@ WHERE {
     }
 
     OPTIONAL {
-      ?RELATIONSHIP__ :favourite "true".
+      ?RELATIONSHIP__ :is-favourite "true".
       bind(true as ?favourite)
     }
 

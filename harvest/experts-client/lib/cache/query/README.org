@@ -403,7 +403,7 @@ relationship here for testing.
        #filter(?cite_include = true)
 
        OPTIONAL {
-         ?relationship :favourite "true".
+         ?relationship :is-favourite "true".
          bind(true as ?favourite)
        }
        # Now we take CDLs preferred term
@@ -655,7 +655,7 @@ relationship here for testing.
        }
 
        OPTIONAL {
-         ?RELATIONSHIP__ :favourite "true".
+         ?RELATIONSHIP__ :is-favourite "true".
          bind(true as ?favourite)
        }
 
