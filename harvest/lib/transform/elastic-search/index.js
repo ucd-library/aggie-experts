@@ -14,6 +14,82 @@ const framePath = path.join(__dirname, 'frames', 'default.json');
 const frameFile = JSON.parse(fs.readFileSync(framePath, 'utf8'));
 
 
+const normalizeBooleans = (node) => {
+  if (!node || typeof node !== 'object') return;
+  Object.keys(node).forEach(k => {
+    const v = node[k];
+    if (Array.isArray(v)) {
+      v.forEach(normalizeBooleans);
+    } else if (v && typeof v === 'object') {
+      if (
+        v['@value'] !== undefined &&
+        (v['@type'] === 'xsd:boolean' || v['@type'] === 'http://www.w3.org/2001/XMLSchema#boolean')
+      ) {
+        node[k] = (v['@value'] === true || v['@value'] === 'true');
+      } else {
+        normalizeBooleans(v);
+      }
+    }
+  });
+};
+
+const normalizeScalars = (node) => {
+  if (!node || typeof node !== 'object') return;
+  for (const k of Object.keys(node)) {
+    const v = node[k];
+    if (Array.isArray(v)) v.forEach(normalizeScalars);
+    else if (v && typeof v === 'object' && '@value' in v) {
+      if (v['@type'] === 'xsd:boolean') node[k] = v['@value'] === true || v['@value'] === 'true';
+      else if (v['@type'] === 'xsd:integer') node[k] = parseInt(v['@value'], 10);
+      else node[k] = v['@value'];
+    } else if (v && typeof v === 'object') normalizeScalars(v);
+  }
+}
+
+const normalizeExpertIdsDeep = (graph) => {
+  const seen = new WeakSet();
+
+  const fixIdString = (val) => {
+    if (typeof val === 'string' && val.startsWith('expert/expert/')) {
+      return val.replace(/^expert\/expert\//, 'expert/');
+    }
+    return val;
+  };
+
+  const recurse = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (seen.has(node)) return;
+    seen.add(node);
+
+    // If this object itself has an @id
+    if (node['@id']) {
+      node['@id'] = fixIdString(node['@id']);
+    }
+
+    // Iterate properties
+    for (const key of Object.keys(node)) {
+      const v = node[key];
+
+      if (Array.isArray(v)) {
+        for (let i = 0; i < v.length; i++) {
+          if (v[i] && typeof v[i] === 'object') {
+            recurse(v[i]);
+          } else {
+            v[i] = fixIdString(v[i]);
+          }
+        }
+      } else if (v && typeof v === 'object') {
+        recurse(v);
+      } else {
+        node[key] = fixIdString(v);
+      }
+    }
+  };
+
+  graph.forEach(n => recurse(n));
+  return graph;
+}
+
 async function frame(expertId, graph, expertGraph = null) {
   // Source item passed to framing
   const item = {
@@ -26,50 +102,6 @@ async function frame(expertId, graph, expertGraph = null) {
     ...frameFile
   };
   frameDoc["@context"] = contextFile["@context"];
-
-  const normalizeExpertIdsDeep = (graph) => {
-    const seen = new WeakSet();
-
-    const fixIdString = (val) => {
-      if (typeof val === 'string' && val.startsWith('expert/expert/')) {
-        return val.replace(/^expert\/expert\//, 'expert/');
-      }
-      return val;
-    };
-
-    const recurse = (node) => {
-      if (!node || typeof node !== 'object') return;
-      if (seen.has(node)) return;
-      seen.add(node);
-
-      // If this object itself has an @id
-      if (node['@id']) {
-        node['@id'] = fixIdString(node['@id']);
-      }
-
-      // Iterate properties
-      for (const key of Object.keys(node)) {
-        const v = node[key];
-
-        if (Array.isArray(v)) {
-          for (let i = 0; i < v.length; i++) {
-            if (v[i] && typeof v[i] === 'object') {
-              recurse(v[i]);
-            } else {
-              v[i] = fixIdString(v[i]);
-            }
-          }
-        } else if (v && typeof v === 'object') {
-          recurse(v);
-        } else {
-          node[key] = fixIdString(v);
-        }
-      }
-    };
-
-    graph.forEach(n => recurse(n));
-    return graph;
-  }
 
   // JSON-LD framing with full embedding
   const framedRaw = await jsonld.frame(
@@ -94,39 +126,6 @@ async function frame(expertId, graph, expertGraph = null) {
   }
 
   compacted["@graph"] = normalizeExpertIdsDeep(compacted["@graph"]);
-
-  const normalizeBooleans = (node) => {
-    if (!node || typeof node !== 'object') return;
-    Object.keys(node).forEach(k => {
-      const v = node[k];
-      if (Array.isArray(v)) {
-        v.forEach(normalizeBooleans);
-      } else if (v && typeof v === 'object') {
-        if (
-          v['@value'] !== undefined &&
-          (v['@type'] === 'xsd:boolean' || v['@type'] === 'http://www.w3.org/2001/XMLSchema#boolean')
-        ) {
-          node[k] = (v['@value'] === true || v['@value'] === 'true');
-        } else {
-          normalizeBooleans(v);
-        }
-      }
-    });
-  };
-
-  const normalizeScalars = (node) => {
-    if (!node || typeof node !== 'object') return;
-    for (const k of Object.keys(node)) {
-      const v = node[k];
-      if (Array.isArray(v)) v.forEach(normalizeScalars);
-      else if (v && typeof v === 'object' && '@value' in v) {
-        if (v['@type'] === 'xsd:boolean') node[k] = v['@value'] === true || v['@value'] === 'true';
-        else if (v['@type'] === 'xsd:integer') node[k] = parseInt(v['@value'], 10);
-        else node[k] = v['@value'];
-      } else if (v && typeof v === 'object') normalizeScalars(v);
-    }
-  }
-
   compacted['@graph'].forEach(normalizeScalars);
   compacted["@graph"].forEach(normalizeBooleans);
 
@@ -179,8 +178,6 @@ async function frame(expertId, graph, expertGraph = null) {
 
   compacted = promoteExpertNodeToRoot(compacted, config);
 
-  // this is taken from the grant model update function,
-  //  relatedBy.relates is updated with expertId + name/label
   updateGrantRelatedByRelates(compacted);
 
   return compacted;
@@ -189,7 +186,7 @@ async function frame(expertId, graph, expertGraph = null) {
 /**
  * @method updateGrantRelatedByRelates
  * @description update relatedBy.relates field in Grant nodes with expertId + name/label.
- * taken from the grant model update (and related) function
+ * taken from the grant model update (and related) functions
  *
  * @param {Object} compacted - The compacted JSON-LD document
 */
