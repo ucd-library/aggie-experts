@@ -298,8 +298,8 @@ WHERE {
     #filter(?cite_include = true)
 
     OPTIONAL {
-      ?relationship :favourite "true".
-      bind(EXISTS{?relationship :favourite "true"} as ?favourite)
+      ?relationship :is-favourite "true".
+      bind(EXISTS{?relationship :is-favourite "true"} as ?favourite)
     }
     # Now we take CDLs preferred term
     OPTIONAL {
