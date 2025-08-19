@@ -322,12 +322,12 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       utils.getExpertApiOptions({
         includeWorks : false,
         grantsSize : 10000,
-        includeHidden : false
+        includeHidden : true
       })
     );
 
     let allGrants = JSON.parse(JSON.stringify((res?.payload?.['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
-    allGrants = utils.parseGrants(this.expertId, allGrants);
+    allGrants = utils.parseGrants(this.expertId, allGrants, false);
 
     let downloads = allGrants.filter(g => this.downloads.includes(g['@id']));
     let body = [];
