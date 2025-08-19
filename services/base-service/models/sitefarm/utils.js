@@ -136,9 +136,6 @@ function formatBaseDocArray(doc_array=[]) {
     }
 
     // Copy other Expert properties to the new document
-    newDoc["orcidId"] = doc["@graph"][i].orcidId;
-    newDoc["overview"] = doc["@graph"][i].overview;
-    newDoc["researcherId"] = doc["@graph"][i].researcherId;
     newDoc["orcidId"] = doc["@graph"][0].orcidId;
     newDoc["overview"] = doc["@graph"][0].overview;
     newDoc["researcherId"] = doc["@graph"][0].researcherId;
