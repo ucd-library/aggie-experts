@@ -199,7 +199,7 @@ function siteFarmPreviewFormat(req, res, next) {
     if( matchedGraph ) {
       let emails = matchedGraph.contactInfo?.filter(c => c['isPreferred'] === true).map(c => c?.hasEmail); // emails are from roles, different than website rank
       if( emails ) {
-        doc['contactInfo'].hasEmail = Array.isArray(emails) ? emails : [emails];
+        doc['contactInfo'].hasEmail = emails;
       }
     }
   });
