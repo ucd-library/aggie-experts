@@ -78,7 +78,7 @@ function formatBaseDocArray(doc_array=[]) {
           exclude: [
             "totalAwardAmount"
           ],
-          includeMisformattedd: false,
+          includeMisformatted: false,
           sort: [
             {
               "field": "dateTimeInterval.end.dateTime",
