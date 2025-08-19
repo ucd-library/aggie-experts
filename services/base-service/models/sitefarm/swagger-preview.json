@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Experts SiteFarm Integration API",
-    "version": "1.0.1",
-    "description": "Allows for the retrieval of expert information to be displayed on the SiteFarm platform.",
+    "version": "1.0.2 (Preview)",
+    "description": "Allows for the retrieval of expert information to be displayed on the SiteFarm platform.\n\n**What's New in 1.0.2 (Preview):**\n- Support for multiple emails for experts.",
     "termsOfService": "https://experts.ucdavis.edu/termsofuse",
     "contact": {
       "email": "experts@ucdavis.edu"
@@ -60,7 +60,10 @@
             "type": "array",
             "items": { "$ref": "#/components/schemas/URL" }
           },
-          "hasEmail": { "type": "string" },
+          "hasEmail": {
+            "type": "array",
+            "items": { "type": "string", "format": "email" }
+          },
           "hasName": { "$ref": "#/components/schemas/Name" },
           "name": { "type": "string" },
           "hasTitle": { "$ref": "#/components/schemas/Title" },
