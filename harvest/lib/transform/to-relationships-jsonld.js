@@ -9,7 +9,8 @@ import config from '../config.js';
 import {transformWorks} from './works.js';
 import {transformGrants} from './grants.js';
 
-import {sortJsonRecursively} from './utils.js';
+//import {sortJsonArrayByIdAndKeys} from './utils.js';
+import { sortJsonRecursively } from './utils.js';
 
 function extractElementsUserId(rel) {
   // Find the node in @graph with an id matching /users/<digits>/relationships
