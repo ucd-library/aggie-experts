@@ -367,7 +367,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       utils.getExpertApiOptions({
         includeGrants : false,
         worksSize : 10000,
-        includeHidden : false
+        includeHidden : true
       })
     );
 
