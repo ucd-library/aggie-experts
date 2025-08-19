@@ -139,7 +139,10 @@ function formatBaseDocArray(doc_array=[]) {
     newDoc["orcidId"] = doc["@graph"][i].orcidId;
     newDoc["overview"] = doc["@graph"][i].overview;
     newDoc["researcherId"] = doc["@graph"][i].researcherId;
-    newDoc["scopusId"] = doc["@graph"][i].scopusId;
+    newDoc["orcidId"] = doc["@graph"][0].orcidId;
+    newDoc["overview"] = doc["@graph"][0].overview;
+    newDoc["researcherId"] = doc["@graph"][0].researcherId;
+    newDoc["scopusId"] = doc["@graph"][0].scopusId;
 
     // Include the website list we filtered for above
     newDoc["contactInfo"].hasURL = websites.length > 0 && websites[0].hasURL ? websites[0].hasURL : null;
