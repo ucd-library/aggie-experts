@@ -28,7 +28,13 @@ function sortJsonRecursively(obj) {
     return obj
       .map(item => sortJsonRecursively(item))
       .sort((a, b) => {
-        // Sort arrays by their string representation
+        // Sort by @id if both items have it
+        if (a && typeof a === 'object' && a['@id'] && 
+            b && typeof b === 'object' && b['@id']) {
+          return a['@id'].localeCompare(b['@id']);
+        }
+        
+        // Fall back to string representation
         const aStr = typeof a === 'string' ? a : JSON.stringify(a);
         const bStr = typeof b === 'string' ? b : JSON.stringify(b);
         return aStr.localeCompare(bStr);
@@ -140,6 +146,7 @@ function extractAsArray(obj, path) {
 
 export {
   sortJsonArrayByIdAndKeys,
+  sortJsonRecursively,
   getFieldValue,
   getBestFieldValueFromRecords,
   getFieldObject,
