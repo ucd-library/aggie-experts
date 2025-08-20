@@ -1,6 +1,12 @@
 import jsonpath from 'jsonpath';
 
-function sortJsonArrayByIdAndKeys(jsonArray) {
+const WORKS_SOURCE_ORDER = [
+    'verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite',
+    'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp',
+    'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'
+  ];
+
+  function sortJsonArrayByIdAndKeys(jsonArray) {
   // sort the array by '@id', then by keys for each
   jsonArray.sort((a, b) => {
     if (a['@id'] < b['@id']) return -1;
@@ -57,48 +63,94 @@ function getFieldValue(fields, fieldName) {
   return field?.['api:text'];
 }
 
-// function getBestFieldValue(fieldName, primaryRecord, records) {
-//   // Try primary record first
-//   let value = getFieldValue(primaryRecord['api:native']['api:field'] || [], fieldName);
-//   if (value) return value;
-
-//   // Fallback to other records for this specific field
-//   const preferredSources = ['manual', 'dspace', 'scopus', 'dimensions', 'crossref'];
-//   for (const sourceName of preferredSources) {
-//     const record = records.find(r => r['source-name'] === sourceName);
-//     if (record && record['api:native'] && record['api:native']['api:field']) {
-//       value = getFieldValue(record['api:native']['api:field'], fieldName);
-//       if (value) return value;
-//     }
-//   }
-//   return null;
-// }
-
 function getBestFieldValueFromRecords(fieldName, records) {
-  // Priority order matching your SPARQL query
-  const sourceOrder = [
-    'verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite',
-    'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp',
-    'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'
-  ];
+  let bestValue = null;
+  let bestScore = Infinity;
 
-  for (const sourceName of sourceOrder) {
-    const record = records.find(r => r['source-name'] === sourceName);
-    if (record && record['api:native'] && record['api:native']['api:field']) {
-      const value = getFieldValue(record['api:native']['api:field'], fieldName);
-      if (value) return value;
-    }
-  }
-
-  // Fallback to any record that has the field
   for (const record of records) {
-    if (record['api:native'] && record['api:native']['api:field']) {
-      const value = getFieldValue(record['api:native']['api:field'], fieldName);
+    const source = record['source-name'];
+    if (!source) continue;
+    const order = WORKS_SOURCE_ORDER.indexOf(source);
+    if (order === -1) continue;
+
+    const fields = record['api:native']?.['api:field'] || [];
+    const value = getFieldValue(fields, fieldName);
+    if (!value) continue;
+
+    // DOI boost
+    let score = order + 1;
+    if (getFieldValue(fields, 'doi')) score -= 10;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestValue = value;
+    }
+  }
+
+  // Fallback to any record with the field
+  if (bestValue === null) {
+    for (const record of records) {
+      const fields = record['api:native']?.['api:field'] || [];
+      const value = getFieldValue(fields, fieldName);
       if (value) return value;
     }
   }
 
-  return null;
+  return bestValue;
+}
+
+// get best record, and return all values for fieldName from the best record
+// also if 2 sources tie for the best score, then return values from both
+// this is how the sparql behaved for things like 'title'
+function getBestFieldValuesFromRecords(fieldName, records) {
+  let bestScore = Infinity;
+  let scoredRecords = [];
+
+  for (const record of records) {
+    const source = record['source-name'];
+    if (!source) continue;
+    const order = WORKS_SOURCE_ORDER.indexOf(source);
+    if (order === -1) continue;
+
+    const fields = record['api:native']?.['api:field'] || [];
+    const matchingFields = fields.filter(f => f.name === fieldName && f['api:text']);
+    if (!matchingFields.length) continue;
+
+    let score = order + 1;
+    if (fields.some(f => f.name === 'doi')) score -= 10;
+
+    if (score < bestScore) {
+      bestScore = score;
+      scoredRecords = [{ record, matchingFields }];
+    } else if (score === bestScore) {
+      scoredRecords.push({ record, matchingFields });
+    }
+  }
+
+  // Collect all values from all matching fields in all best-score records
+  let bestValues = [];
+  for (const { matchingFields } of scoredRecords) {
+    bestValues.push(
+      ...matchingFields.flatMap(f =>
+        Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
+      )
+    );
+  }
+
+  // Fallback: any record with the field
+  if (!bestValues.length) {
+    for (const record of records) {
+      const fields = record['api:native']?.['api:field'] || [];
+      const matchingFields = fields.filter(f => f.name === fieldName && f['api:text']);
+      if (matchingFields.length) {
+        return matchingFields.flatMap(f =>
+          Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
+        );
+      }
+    }
+  }
+
+  return bestValues;
 }
 
 function getFieldObject(fields, fieldName) {
@@ -110,8 +162,8 @@ function formatDate(dateObj) {
   if (!dateObj) return null;
 
   const year = dateObj['api:year'];
-  const month = dateObj['api:month'];
-  const day = dateObj['api:day'];
+  const month = dateObj['api:month'] || '01';
+  const day = dateObj['api:day'] || '01';
 
   if (year && month && day) {
     return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
@@ -153,8 +205,10 @@ export {
   sortJsonRecursively,
   getFieldValue,
   getBestFieldValueFromRecords,
+  getBestFieldValuesFromRecords, // multiple values from same best
   getFieldObject,
   formatDate,
   ensureArray,
-  extractAsArray
+  extractAsArray,
+  WORKS_SOURCE_ORDER,
 };

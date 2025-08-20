@@ -95,7 +95,7 @@ function capitalizeTitle(title) {
       if (acronyms[upperCaseWord]) {
         return upperCaseWord;
       }
-      
+
       if (word.length === 0) return word;
       return word[0].toUpperCase() + word.slice(1);
     });
@@ -119,7 +119,7 @@ function updateNameCasing(name) {
 
 function cleanGrantTitle(rawTitle) {
   if (!rawTitle) return '';
-  
+
   return rawTitle
     .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
     .replace(/\s+[ABCKKXYZ]\d+[A-Z]*\d*$/i, '') // Remove trailing grant codes like K322D09
@@ -128,7 +128,7 @@ function cleanGrantTitle(rawTitle) {
 
 function getGrantType(fields) {
   const fundingType = getFieldValue(fields, 'funding-type');
-  
+
   const grantTypeMapping = {
     'Academic Support': GRANT_TYPES.ACADEMIC_SUPPORT,
     'Default': GRANT_TYPES.DEFAULT,
@@ -138,7 +138,7 @@ function getGrantType(fields) {
     'Scholarships / Fellowships': GRANT_TYPES.SCHOLARSHIP,
     'Student Services': GRANT_TYPES.STUDENT_SERVICE
   };
-  
+
   // Default to Grant_Service if funding type not found or not specified
   return grantTypeMapping[fundingType] || GRANT_TYPES.SERVICE;
 }
@@ -147,17 +147,17 @@ function getGrantStatus(endDate) {
   if (!endDate || !endDate['api:year']) {
     return 'Active'; // Default if no end date
   }
-  
+
   const currentYear = new Date().getFullYear();
   const endYear = parseInt(endDate['api:year']);
-  
+
   // If we have more detailed date info, use it
   if (endDate['api:month'] && endDate['api:day']) {
     const endDateObj = new Date(endYear, endDate['api:month'] - 1, endDate['api:day']);
     const currentDate = new Date();
     return endDateObj < currentDate ? 'Completed' : 'Active';
   }
-  
+
   // Otherwise just compare years
   return endYear < currentYear ? 'Completed' : 'Active';
 }
@@ -165,7 +165,7 @@ function getGrantStatus(endDate) {
 // Create user role relationship
 function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData) {
   const relationshipType = grantRelationship.type || 'user-grant-research';
-  
+
   // Map relationship types to role abbreviations
   const roleMapping = {
     'user-grant-principal-investigation': { abbrev: 'PI', type: ROLE_TYPES.PI },
@@ -177,21 +177,21 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     'user-grant-project-leadership': { abbrev: 'Lead', type: ROLE_TYPES.LEADER },
     'user-grant-research': { abbrev: 'Res', type: ROLE_TYPES.RESEARCHER }
   };
-  
+
   const roleInfo = roleMapping[relationshipType] || roleMapping['user-grant-research'];
-  
+
   let userName = 'Unknown User';
   if (expertData) {
     const userLastName = expertData['last-name'] || '';
     const userFirstName = expertData['first-name'] || '';
-    
+
     userName = userLastName + (userFirstName ? `, ${userFirstName}` : '');
   }
-  
+
   const roleName = `${roleInfo.abbrev}: ${userName}`;
-  
+
   const isVisible = grantRelationship["api:is-visible"] === 'true';
-  
+
   const userRole = {
     "@id": relationshipUri,
     "@type": [
@@ -223,10 +223,10 @@ function generatePersonId(lastName, firstName) {
 function isExpertMatch(personLastName, personFirstName, expertData) {
   const expertLastName = expertData['last-name']?.toLowerCase() || '';
   const expertFirstName = expertData['first-name']?.toLowerCase() || '';
-  
-  return personLastName === expertLastName && 
-    (personFirstName === expertFirstName || 
-     personFirstName.startsWith(expertFirstName) || 
+
+  return personLastName === expertLastName &&
+    (personFirstName === expertFirstName ||
+     personFirstName.startsWith(expertFirstName) ||
      expertFirstName.startsWith(personFirstName));
 }
 
@@ -270,9 +270,9 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
   const records = jsonpath.value(grantRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"]') || [];
   const recordsArray = Array.isArray(records) ? records : [records];
 
-  const record = recordsArray.find(r => 
-    r['api:native'] && 
-    r['api:native']['api:field'] && 
+  const record = recordsArray.find(r =>
+    r['api:native'] &&
+    r['api:native']['api:field'] &&
     r['api:native']['api:field'].some(f => f.name === 'c-co-pis')
   ) || recordsArray[0];
 
@@ -281,7 +281,7 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
   }
 
   const fields = record['api:native']['api:field'] || [];
-  
+
   return {
     grantId,
     relationshipUri,
@@ -304,13 +304,13 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   const startDateValue = formatDate(startDate);
   const endDateValue = formatDate(endDate);
   const grantStatus = getGrantStatus(endDate);
-  
+
   const piTextValue = getFieldValue(fields, 'c-pi');
   const formattedPiName = piTextValue ? updateNameCasing(piTextValue) : '';
-  
+
   const grantName = `${title} § ${grantStatus} • ${startDate?.['api:year']} - ${endDate?.['api:year']} • ${formattedPiName} § ${funderName} • ${funderReference}`;
   const specificGrantType = getGrantType(fields);
-  
+
   const grant = {
     "@id": grantUri,
     "@type": [specificGrantType, ONTOLOGY.GRANT],
@@ -336,7 +336,7 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
 
 function createDateRecords(startDateValue, endDateValue, grantUri) {
   const records = [];
-  
+
   if (!startDateValue && !endDateValue) return records;
 
   const interval = { "@id": `${grantUri}#interval` };
@@ -369,7 +369,7 @@ function createDateRecords(startDateValue, endDateValue, grantUri) {
 
 function createFunderRecord(funderName, grantUri) {
   if (!funderName) return null;
-  
+
   return {
     "@id": `${grantUri}#funder`,
     "@type": [ONTOLOGY.FUNDING_ORG],
@@ -399,14 +399,14 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
       const lastName = nameParts[0];
       const firstName = nameParts[1];
       const piId = generatePersonId(lastName, firstName);
-      
+
       const personLastName = lastName.toLowerCase();
       const personFirstName = firstName.toLowerCase();
-      
+
       const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
-      
+
       processedPeople.add(piId);
-    
+
       peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
       peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
 
@@ -423,20 +423,20 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   if (coPiListField && coPiListField['api:people']) {
     const apiPerson = coPiListField['api:people']['api:person'];
     const piPeople = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
-    
+
     piPeople.forEach(person => {
       if (typeof person === 'string') return;
 
       const lastName = person['api:last-name'] || '';
       const firstName = person['api:first-names'] || '';
-      
+
       if (!lastName || !firstName) return;
 
       const personLastName = lastName.toLowerCase().replace(/,?\s*$/, '');
       const personFirstName = firstName.toLowerCase();
 
       const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
-      
+
       const piName = `${lastName.replace(/,?\s*$/, '')}, ${firstName}`;
       const piId = generatePersonId(lastName, firstName);
       const formattedName = updateNameCasing(piName);
@@ -446,7 +446,7 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
 
       if (!processedPeople.has(`person_${piId}`) && !processedPeople.has(piId)) {
         processedPeople.add(`person_${piId}`);
-        
+
         peopleRecords.push(createPersonRecord(piId, formattedName, grantUri));
         peopleRecords.push(createVCardRecord(piId, lastName.replace(/,?\s*$/, ''), firstName, grantUri));
       }
@@ -464,17 +464,17 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   if (additionalPiField && additionalPiField['api:text']) {
     const piTextValue = additionalPiField['api:text'];
     const formattedPiName = updateNameCasing(piTextValue);
-    
+
     const nameParts = formattedPiName.split(', ');
     if (nameParts.length >= 2) {
       const lastName = nameParts[0];
       const firstName = nameParts[1];
-      
+
       const personLastName = lastName.toLowerCase();
       const personFirstName = firstName.toLowerCase();
 
       const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
-      
+
       const piId = generatePersonId(lastName, firstName);
 
       if (!isCurrentExpert && !processedPeople.has(piId)) {
@@ -496,73 +496,73 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
 function mergeRoles(result) {
   const rolesByPersonId = {};
   const rolesToRemove = [];
-  
+
   // Group roles by the person they relate to
   result.forEach((item, index) => {
-    if (item['@type'] && 
+    if (item['@type'] &&
         (item['@type'].includes(ROLE_TYPES.PI) ||
         item['@type'].includes(ROLE_TYPES.CO_PI))) {
-      
+
       const relates = item['http://vivoweb.org/ontology/core#relates'];
       if (relates && relates.length >= 2) {
         // Find the person ID (the one that contains # but doesn't contain 'roleof_')
-        const personId = relates.find(rel => 
-          rel['@id'].includes('#') && 
+        const personId = relates.find(rel =>
+          rel['@id'].includes('#') &&
           !rel['@id'].includes('roleof_') &&
-          !rel['@id'].endsWith('_date') && 
+          !rel['@id'].endsWith('_date') &&
           !rel['@id'].endsWith('funder') &&
           !rel['@id'].endsWith('interval')
         );
-        
+
         if (personId) {
           const personIdStr = personId['@id'];
-          
+
           if (!rolesByPersonId[personIdStr]) {
             rolesByPersonId[personIdStr] = [];
           }
-          
+
           rolesByPersonId[personIdStr].push({ item, index });
         }
       }
     }
   });
-  
+
   // Merge roles for people who have multiple roles
   Object.keys(rolesByPersonId).forEach(personId => {
     const roles = rolesByPersonId[personId];
-    
+
     if (roles.length > 1) {
       // Merge into the first role
       const primaryRole = roles[0].item;
       const mergedTypes = new Set(primaryRole['@type'] || []);
       const mergedNames = [...(primaryRole['http://schema.org/name'] || [])];
-      
+
       // Add types and names from other roles
       for (let i = 1; i < roles.length; i++) {
         const otherRole = roles[i].item;
-        
+
         (otherRole['@type'] || []).forEach(type => mergedTypes.add(type));
-        
+
         (otherRole['http://schema.org/name'] || []).forEach(name => {
           if (!mergedNames.some(existing => existing['@value'] === name['@value'])) {
             mergedNames.push(name);
           }
         });
-        
+
         rolesToRemove.push(roles[i].index);
       }
-      
+
       // Update the primary role
       primaryRole['@type'] = Array.from(mergedTypes);
       primaryRole['http://schema.org/name'] = mergedNames;
     }
   });
-  
+
   // Remove duplicate roles (in reverse order to maintain indices)
   rolesToRemove.sort((a, b) => b - a).forEach(index => {
     result.splice(index, 1);
   });
-  
+
   return result;
 }
 
@@ -575,7 +575,7 @@ function finalizeGrantOutput(grant, result, createdRoles, userRole, relationship
   result.push(userRole);
 
   result = mergeRoles(result);
-  
+
   const uniqueCreatedRoles = [];
   const seenRoleIds = new Set();
 
@@ -593,7 +593,7 @@ function finalizeGrantOutput(grant, result, createdRoles, userRole, relationship
       ...uniqueCreatedRoles
     ];
   }
-  
+
   return result;
 }
 
@@ -601,10 +601,7 @@ function transformGrants(grants, expertId, expertData) {
   let results = [];
   grants.forEach(grant => {
     let relationshipId = grant.id;
-    let isVisible = grant["api:is-visible"] === 'true';
-    if (isVisible) {
-      results.push({ relationshipId, graph: transformGrant(grant, relationshipId, expertId, expertData) });
-    }
+    results.push({ relationshipId, graph: transformGrant(grant, relationshipId, expertId, expertData) });
   });
   return results;
 }
@@ -617,7 +614,7 @@ function transformGrant(grantRelationship, relationshipId, expertId, expertData)
   const { grantId, relationshipUri, expertUri, fields, grantUri } = extractedData;
 
   // Create main grant record
-  const { grant, startDateValue, endDateValue, funderName, piTextValue, formattedPiName } = 
+  const { grant, startDateValue, endDateValue, funderName, piTextValue, formattedPiName } =
     createMainGrantRecord(fields, grantUri, grantId, relationshipUri);
 
   let result = [];

@@ -1,14 +1,11 @@
 import jsonpath from 'jsonpath';
-import { formatDate, getFieldValue, getBestFieldValueFromRecords, getFieldObject, extractAsArray } from './utils.js';
+import { formatDate, getFieldValue, getBestFieldValueFromRecords, getBestFieldValuesFromRecords, getFieldObject, extractAsArray, WORKS_SOURCE_ORDER } from './utils.js';
 
 function transformWorks(works, expertId, elementsUserId, inputGraph) {
   let results = [];
   works.forEach(work => {
     let relationshipId = work.id;
-    // let isVisible = work["api:is-visible"] === 'true';
-    // if (isVisible) {
-      results.push({ relationshipId, graph: transformWork(work, relationshipId, expertId, elementsUserId, inputGraph) });
-    // }
+    results.push({ relationshipId, graph: transformWork(work, relationshipId, expertId, elementsUserId, inputGraph) });
   });
   return results;
 }
@@ -27,10 +24,7 @@ function findJournalByIssn(obj, issn) {
 }
 
 function getBestAuthorsFromRecords(records) {
-  // Priority order matching your SPARQL query
-  const sourceOrder = ['verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite', 'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp', 'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'];
-
-  for (const sourceName of sourceOrder) {
+  for (const sourceName of WORKS_SOURCE_ORDER) {
     const record = records.find(r => r['source-name'] === sourceName);
     if (record && record['api:native'] && record['api:native']['api:field']) {
       const authorsField = record['api:native']['api:field'].find(f => f && f.name === 'authors');
@@ -41,6 +35,119 @@ function getBestAuthorsFromRecords(records) {
   }
 
   return null;
+}
+
+// function toArray(val) {
+//   if (Array.isArray(val)) return val;
+//   if (val === undefined || val === null) return [];
+//   return [val];
+// }
+
+// function collectAllNames(records, author) {
+//   const familyNames = new Set();
+//   const givenNames = new Set();
+
+//   // Try to match by last/given name, or by some unique property if available
+//   const lastName = author['api:last-name'];
+//   const firstName = author['api:first-names'];
+
+//   for (const rec of records) {
+//     const fields = rec['api:native']?.['api:field'] || [];
+//     const authorsField = fields.find(f => f && f.name === 'authors');
+//     if (!authorsField) continue;
+//     let people = authorsField['api:people']?.['api:person'];
+//     if (!people) continue;
+//     if (!Array.isArray(people)) people = [people];
+
+//     for (const a of people) {
+//       // Match on last/given name (or use a better unique key if available)
+//       if (
+//         (a['api:last-name'] === lastName && a['api:first-names'] === firstName)
+//         // Optionally add more robust matching here
+//       ) {
+//         toArray(a['api:last-name']).forEach(n => familyNames.add(n));
+//         toArray(a['api:first-names']).forEach(n => givenNames.add(n));
+//       }
+//     }
+//   }
+
+//   return {
+//     family: Array.from(familyNames),
+//     given: Array.from(givenNames)
+//   };
+// }
+
+function getAllValuesOfType(records, type) {
+  let values = new Set();
+  for (const rec of records) {
+    const fields = rec['api:native']?.['api:field'] || [];
+    for (const f of fields) {
+      if (f.name === type && f['api:text']) {
+        // If api:text is an array, add all; else add the single value
+        if (Array.isArray(f['api:text'])) {
+          f['api:text'].forEach(t => values.add(t));
+        } else {
+          values.add(f['api:text']);
+        }
+      }
+    }
+  }
+  return values;
+}
+
+// function getAllAuthors(records) {
+//   const authors = [];
+//   for (const rec of records) {
+//     const fields = rec['api:native']?.['api:field'] || [];
+//     const authorsField = fields.find(f => f && f.name === 'authors');
+//     if (!authorsField) continue;
+//     let people = authorsField['api:people']?.['api:person'];
+//     if (!people) continue;
+//     if (!Array.isArray(people)) people = [people];
+//     for (const a of people) {
+//       // Optionally, use a unique key to avoid duplicates (e.g., ORCID, Elements ID, or last+first name)
+//       authors.push(a);
+//     }
+//   }
+//   return authors;
+// }
+
+function getBestIssn(records, pubObj) {
+  let bestScore = Infinity;
+  let bestIssns = [];
+
+  for (const record of records) {
+    const source = record['source-name'];
+    if (!source) continue;
+    const order = WORKS_SOURCE_ORDER.indexOf(source);
+    if (order === -1) continue;
+
+    const fields = record['api:native']?.['api:field'] || [];
+    const issnFields = fields.filter(f => f.name === 'issn' && f['api:text']);
+    if (!issnFields.length) continue;
+
+    let score = order + 1;
+    if (fields.some(f => f.name === 'doi')) score -= 10;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestIssns = issnFields.flatMap(f =>
+        Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
+      );
+    } else if (score === bestScore) {
+      bestIssns.push(...issnFields.flatMap(f =>
+        Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
+      ));
+    }
+  }
+
+  // Fallback: check publication-level api:journal
+  if (!bestIssns.length && pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
+    bestIssns = [pubObj['api:journal'].issn];
+  }
+
+  // Return the first ISSN (SPARQL typically uses the first)
+  return bestIssns.length ? bestIssns[0] : undefined;
 }
 
 function transformWork(workRelationship, relationshipId, expertId, elementsUserId, inputGraph) {
@@ -63,11 +170,37 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const fields = primaryRecord['api:native']['api:field'] || [];
 
   // Extract publication data using jsonpath
-  const title = getBestFieldValueFromRecords('title', records);
+  // const title = getBestFieldValueFromRecords('title', records);
+  // Collect all unique titles from all records
+  // const titles = getAllValuesOfType(records, 'title');
+  const bestTitle = getBestFieldValuesFromRecords('title', records);
+  const titles = Array.isArray(bestTitle) ? bestTitle : [bestTitle].filter(Boolean);
+
   const abstract = getBestFieldValueFromRecords('abstract', records);
   const doi = getBestFieldValueFromRecords('doi', records);
+
+  // Collect all unique ISSNs from all records
+  // The sparql collects each publication, regardless of which record the ISSN
+  // comes from. not just the primaryRecord
+  // pull from fields
+  const issns = getAllValuesOfType(records, 'issn');
+  // and pull from journal objects
+  const pubObj = workRelationship?.['api:related']?.['api:object'];
+  if (pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
+    issns.add(pubObj['api:journal'].issn);
+  }
+
   const issn = getBestFieldValueFromRecords('issn', records);
   const eissn = getBestFieldValueFromRecords('eissn', records);
+
+  // the SPARQL query maps both isbn-10 and isbn-13 to cite:ISBN
+  // so if multiple values, an array is returned
+  const isbn13 = getBestFieldValueFromRecords('isbn-13', records);
+  const isbn10 = getBestFieldValueFromRecords('isbn-10', records);
+  const isbns = [];
+  if (isbn13) isbns.push(isbn13);
+  if (isbn10) isbns.push(isbn10);
+
   const journal = getBestFieldValueFromRecords('journal', records);
   const publisher = getBestFieldValueFromRecords('publisher', records);
   const volume = getBestFieldValueFromRecords('volume', records);
@@ -87,8 +220,22 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const url = getBestFieldValueFromRecords('public-url', records);
 
   // Extract pagination
-  const pagination = getFieldObject(fields, 'pagination');
-  const pages = pagination ? `${pagination['api:begin-page']}-${pagination['api:end-page']}` : null;
+  // const pagination = getFieldObject(fields, 'pagination');
+  // const pages = pagination ? `${pagination['api:begin-page']}-${pagination['api:end-page']}` : null;
+  let pageRanges = [];
+  for (const rec of records) {
+    const fields = rec['api:native']?.['api:field'] || [];
+    for (const f of fields) {
+      if (f.name === 'pagination' && f['api:pagination']) {
+        const begin = f['api:pagination']['api:begin-page'];
+        const end = f['api:pagination']['api:end-page'];
+        let value = '';
+        if (begin && end) value = `${begin}-${end}`;
+        else if (begin) value = begin;
+        if (value && !pageRanges.includes(value)) pageRanges.push(value);
+      }
+    }
+  }
 
   // Extract publication date
   const publicationDate = getFieldObject(fields, 'publication-date');
@@ -114,15 +261,22 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   };
 
   // Add optional fields
-  if (title) publication["http://citationstyles.org/schema/title"] = [{ "@value": title }];
+  // if (title) publication["http://citationstyles.org/schema/title"] = [{ "@value": title }];
+  if (titles.length) {
+    publication["http://citationstyles.org/schema/title"] = titles.map(val => ({ "@value": val }));
+  }
   if (abstract) publication["http://citationstyles.org/schema/abstract"] = [{ "@value": abstract }];
   if (doi) publication["http://citationstyles.org/schema/DOI"] = [{ "@value": doi }];
   if (issn) publication["http://citationstyles.org/schema/ISSN"] = [{ "@value": issn }];
   if (eissn) publication["http://citationstyles.org/schema/eissn"] = [{ "@value": eissn }];
+  if (isbns.length ) publication["http://citationstyles.org/schema/ISBN"] = isbns.map(val => ({ "@value": val }));
   if (journal) publication["http://citationstyles.org/schema/container-title"] = [{ "@value": journal }];
   if (publisher) publication["http://citationstyles.org/schema/publisher"] = [{ "@value": publisher }];
   if (volume) publication["http://citationstyles.org/schema/volume"] = [{ "@value": volume }];
-  if (pages) publication["http://citationstyles.org/schema/page"] = [{ "@value": pages }];
+  // if (pages) publication["http://citationstyles.org/schema/page"] = [{ "@value": pages }];
+  if (pageRanges.length) {
+    publication["http://citationstyles.org/schema/page"] = pageRanges.map(val => ({ "@value": val }));
+  }
   if (issue) publication["http://citationstyles.org/schema/issue"] = [{ "@value": issue }];
   if (language) publication["http://citationstyles.org/schema/language"] = [{ "@value": language }];
   if (license) publication["http://citationstyles.org/schema/license"] = [{ "@value": license }];
@@ -164,26 +318,34 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     publication["http://citationstyles.org/schema/type"] = [{ "@value": mappedType }];
   }
 
-  if (issn) {
-    const venueId = `http://experts.ucdavis.edu/venue/urn:issn:${issn}`;
+  // for publicationVenue, prefer issn from pub level (api:jounal -> issn)
+  // otherwise get the best issn from the records
+  let mainIssn = undefined;
+  if (pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
+    mainIssn = pubObj['api:journal'].issn;
+  } else {
+    mainIssn = getBestIssn(records, pubObj);
+  }
+
+  if (mainIssn) {
     publication["http://vivoweb.org/ontology/core#hasPublicationVenue"] = [
-      { "@id": venueId }
+      { "@id": `http://experts.ucdavis.edu/venue/urn:issn:${mainIssn}` }
     ];
 
+    const venueId = `http://experts.ucdavis.edu/venue/urn:issn:${mainIssn}`;
     let venueName = journal;
     for (const node of inputGraph) {
-      const journalObj = findJournalByIssn(node, issn);
+      const journalObj = findJournalByIssn(node, mainIssn);
       if (journalObj && journalObj.title) {
         venueName = journalObj.title;
         break;
       }
     }
 
-    // Create journal venue record
     result.push({
       "@id": venueId,
       "http://schema.org/name": [{ "@value": venueName }],
-      "http://vivoweb.org/ontology/core#issn": [{ "@value": issn }]
+      "http://vivoweb.org/ontology/core#issn": [{ "@value": mainIssn }]
     });
   }
 
@@ -194,6 +356,13 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     const authorUri = `${publicationUri}#${rank}`;
     authorUris.push({ "@id": authorUri });
 
+    // const { family, given } = collectAllNames(records, author);
+
+    // if( workRelationship.id == '6529533' ) {
+    //   console.log(family, given, author);
+    //   console.log(JSON.stringify(records))
+    // }
+
     const lastName = jsonpath.value(author, '$["api:last-name"]');
     const firstName = jsonpath.value(author, '$["api:first-names"]');
                                             // || jsonpath.value(author, '$["api:initials"]');
@@ -202,6 +371,10 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
       "@id": authorUri,
       "http://citationstyles.org/schema/family": [{ "@value": lastName }],
       "http://citationstyles.org/schema/given": [{ "@value": firstName }],
+
+      // "http://citationstyles.org/schema/family": family.map(val => ({ "@value": val })),
+      // "http://citationstyles.org/schema/given": given.map(val => ({ "@value": val })),
+
       "http://vivoweb.org/ontology/core#rank": [
         { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": `${rank}` }
       ]
