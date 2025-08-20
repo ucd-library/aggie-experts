@@ -77,6 +77,19 @@ FROM (
 ) ranked
 WHERE rn = 1;
 
+CREATE OR REPLACE VIEW user_activity_last_7_days AS
+SELECT
+  c.user_id,
+  BOOL_OR(f.gcs_write = TRUE) AS updated
+FROM
+  command c
+JOIN
+  file_cache f ON c.command_id = f.command_id
+WHERE
+  f.timestamp >= CURRENT_TIMESTAMP - INTERVAL '7 days'
+GROUP BY
+  c.user_id;
+
 CREATE TABLE IF NOT EXISTS error (
   error_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -101,6 +114,90 @@ SELECT
 FROM
   command c
 JOIN  error e ON c.command_id = e.command_id;
+
+CREATE OR REPLACE VIEW user_command_weekly_stats AS
+  WITH users as (
+    SELECT DISTINCT user_id
+    FROM command
+  ),
+  weeks AS (
+    SELECT DISTINCT
+      EXTRACT('week' FROM timestamp)::TEXT || '-' || EXTRACT('year' FROM timestamp)::TEXT AS week_of_year
+    FROM command
+  ),
+  user_commands as (
+    SELECT 
+      u.user_id,
+      w.week_of_year,
+      c.command,
+      c.command_id,
+      e.error_id
+    FROM
+      users u
+    LEFT JOIN
+      weeks w ON TRUE
+    LEFT JOIN
+      command c ON u.user_id = c.user_id AND (EXTRACT('week' FROM c.timestamp)::TEXT || '-' || EXTRACT('year' FROM c.timestamp)::TEXT) = w.week_of_year
+    LEFT JOIN
+      error e ON c.command_id = e.command_id
+  )
+  SELECT 
+    uc.user_id,
+    uc.command,
+    uc.week_of_year,
+    COUNT(uc.command_id) AS exec_count,
+    COUNT(e.error_id) AS error_count,
+      CASE
+        WHEN COUNT(e.error_id) > 0 THEN 'error'
+        WHEN COUNT(uc.command_id) = 0 THEN 'no_attempt'
+        ELSE 'ok' END AS state
+  FROM
+    user_commands uc
+  LEFT JOIN
+    error e ON uc.command_id = e.command_id
+  GROUP BY
+    uc.user_id, uc.command, uc.week_of_year
+  ORDER BY
+    uc.week_of_year, uc.user_id, uc.command;
+
+CREATE OR REPLACE VIEW user_command_weekly_state_changes AS
+  WITH state_with_lag AS (
+    SELECT
+      user_id,
+      command,
+      week_of_year,
+      state,
+      LAG(state) OVER (PARTITION BY user_id ORDER BY week_of_year) AS prev_state
+    FROM user_command_weekly_stats
+  )
+  SELECT
+    user_id,
+    command,
+    week_of_year,
+    state,
+    CASE
+      WHEN prev_state IS DISTINCT FROM state
+        THEN
+          'change:' ||
+          COALESCE(prev_state, 'null') ||
+          '-' ||
+          COALESCE(state, 'null')
+      ELSE
+        'no-change'
+    END AS state_change
+  FROM state_with_lag;
+
+CREATE OR REPLACE VIEW this_week_user_state_changes AS
+SELECT
+  user_id,
+  ARRAY_AGG(REGEXP_REPLACE(command, '^experts-harvest-', '')) AS commands,
+  week_of_year,
+  state,
+  state_change
+FROM user_command_weekly_state_changes
+WHERE week_of_year = EXTRACT('week' FROM CURRENT_TIMESTAMP)::TEXT || '-' || EXTRACT('year' FROM CURRENT_TIMESTAMP)::TEXT
+GROUP BY
+  user_id, week_of_year, state, state_change;
 
 CREATE OR REPLACE FUNCTION cleanup_old_commands()
 RETURNS TABLE(

@@ -117,7 +117,7 @@ class FsCache {
     }
 
     const stats = await fs.stat(assetPath);
-    const lastModified = stats.mtime.toISOString();
+    let lastModified = stats.mtime.toISOString();
 
     // new file or file changed, report the write
     if( !newHash ) {
@@ -128,10 +128,11 @@ class FsCache {
     // if the file did not change, set the proper last modified date
     let gcsWrite = await this.writeToGcs(assetPath);
     if( gcsWrite === false ) {
-      const lastModified = await this.gcs.getLastModified(assetPath);
-      if( lastModified ) {
-        fs.utimesSync(assetPath, lastModified, lastModified);
+      const gcsLastModified = await this.gcs.getLastModified(assetPath);
+      if( gcsLastModified ) {
+        fs.utimesSync(assetPath, gcsLastModified, gcsLastModified);
       }
+      lastModified = gcsLastModified.toISOString();
     }
 
     await reportFileWrite({
