@@ -9,7 +9,8 @@ import config from '../config.js';
 import {transformWorks} from './works.js';
 import {transformGrants} from './grants.js';
 
-import {sortJsonArrayByIdAndKeys} from './utils.js';
+//import {sortJsonArrayByIdAndKeys} from './utils.js';
+import { sortJsonRecursively } from './utils.js';
 
 async function run(rel, expertId, expertData, options = {}) {
   let {
@@ -44,7 +45,7 @@ async function runFromFiles(relationshipFiles, expertId, expertData, options) {
 async function saveRelationshipFiles(relationships, expertId, options) {
   for( let relationship of relationships ) {
     let { relationshipId, graph } = relationship;
-    graph = sortJsonArrayByIdAndKeys(graph);
+    graph = sortJsonRecursively(graph);
 
     await cache.writeUserAsset(
       'ae-std-relationship-transform',
