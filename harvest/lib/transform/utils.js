@@ -26,6 +26,15 @@ const WORKS_TYPE_MAP = {
   // #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
 };
 
+const SCHEMA_URI_TYPE_MAP = {
+    "book": "http://schema.org/Book",
+    "chapter": "http://schema.org/Chapter",
+    "conference": "http://schema.org/ScholarlyArticle",
+    "journal-article": "http://schema.org/ScholarlyArticle"
+
+    // as type_map above, others commented out
+  };
+
 /**
  * @method computeRecordScore
  * @description Compute a score for a work record based on its source and fields, and a DOI boost.
@@ -153,49 +162,58 @@ function getBestFieldValueFromRecords(fieldName, records) {
 // also if 2 sources tie for the best score, then return values from both
 // this is how the sparql behaved for things like 'title'
 function getBestFieldValuesFromRecords(fieldName, records) {
+  // compute score per record using WORKS_SOURCE_ORDER and computeRecordScore (DOI boost)
   let bestScore = Infinity;
-  let scoredRecords = [];
+  const bestRecords = [];
 
-  for (const record of records) {
-    const fields = record['api:native']?.['api:field'] || [];
-    const matchingFields = fields.filter(f => f.name === fieldName && f['api:text']);
-    if (!matchingFields.length) continue;
+  for (const rec of records || []) {
+    const fields = rec?.['api:native']?.['api:field'] || [];
+    const matching = fields.filter(f => f && f.name === fieldName);
+    if (!matching.length) continue;
 
-    // score with doi boost
-    const score = computeRecordScore(record);
+    const score = computeRecordScore(rec); // must implement same order + doi-boost logic
 
     if (score < bestScore) {
       bestScore = score;
-      scoredRecords = [{ record, matchingFields }];
+      bestRecords.length = 0;
+      bestRecords.push({ rec, matching });
     } else if (score === bestScore) {
-      scoredRecords.push({ record, matchingFields });
+      bestRecords.push({ rec, matching });
     }
   }
 
-  // Collect all values from all matching fields in all best-score records
-  let bestValues = [];
-  for (const { matchingFields } of scoredRecords) {
-    bestValues.push(
-      ...matchingFields.flatMap(f =>
-        Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
-      )
-    );
-  }
-
-  // Fallback: any record with the field
-  if (!bestValues.length) {
-    for (const record of records) {
-      const fields = record['api:native']?.['api:field'] || [];
-      const matchingFields = fields.filter(f => f.name === fieldName && f['api:text']);
-      if (matchingFields.length) {
-        return matchingFields.flatMap(f =>
-          Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
-        );
+  // fallback: take any record that has the field (keeps old behavior)
+  if (bestRecords.length === 0) {
+    for (const rec of records || []) {
+      const fields = rec?.['api:native']?.['api:field'] || [];
+      const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
+      if (matching.length) {
+        bestRecords.push({ rec, matching });
+        break;
       }
     }
   }
 
-  return bestValues;
+  const values = [];
+  for (const { matching } of bestRecords) {
+    for (const f of matching) {
+      // prefer api:text, but allow other structures (pagination, url keys)
+      if (f['api:text']) {
+        if (Array.isArray(f['api:text'])) values.push(...f['api:text']);
+        else values.push(f['api:text']);
+      } else if (f['api:url']) {
+        if (Array.isArray(f['api:url'])) values.push(...f['api:url']);
+        else values.push(f['api:url']);
+      } else if (f['api:pagination']) {
+        const b = f['api:pagination']['api:begin-page'];
+        const e = f['api:pagination']['api:end-page'];
+        if (b || e) values.push(e ? `${b}-${e}` : b);
+      }
+    }
+  }
+
+  // dedupe preserving order
+  return [...new Set(values)];
 }
 
 function getFieldObject(fields, fieldName) {
@@ -258,4 +276,5 @@ export {
   computeRecordScore,
   WORKS_SOURCE_ORDER,
   WORKS_TYPE_MAP,
+  SCHEMA_URI_TYPE_MAP,
 };

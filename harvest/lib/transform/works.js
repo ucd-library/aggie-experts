@@ -1,5 +1,14 @@
 import jsonpath from 'jsonpath';
-import { formatDate, getFieldValue, computeRecordScore, getBestFieldValueFromRecords, getBestFieldValuesFromRecords, getFieldObject, extractAsArray, WORKS_SOURCE_ORDER, WORKS_TYPE_MAP } from './utils.js';
+import {
+  formatDate,
+  computeRecordScore,
+  getBestFieldValueFromRecords,
+  getBestFieldValuesFromRecords,
+  extractAsArray,
+  // WORKS_SOURCE_ORDER,
+  WORKS_TYPE_MAP,
+  SCHEMA_URI_TYPE_MAP
+} from './utils.js';
 
 function transformWorks(works, expertId, elementsUserId, inputGraph) {
   let results = [];
@@ -184,6 +193,54 @@ function getBestDateObjectFromRecords(fieldName, records, pubObj) {
   return chosen['api:date'] ? chosen : chosen;
 }
 
+function getBestPaginationValues(records) {
+  let bestScore = Infinity;
+  const bestRecords = [];
+
+  for (const rec of records) {
+    const fields = rec['api:native']?.['api:field'] || [];
+    const pagField = fields.find(f => f && f.name === 'pagination' && f['api:pagination']);
+    if (!pagField) continue;
+
+    const score = computeRecordScore(rec);
+    if (score < bestScore) {
+      bestScore = score;
+      bestRecords.length = 0;
+      bestRecords.push(rec);
+    } else if (score === bestScore) {
+      bestRecords.push(rec);
+    }
+  }
+
+  // fallback: first record that has pagination
+  if (bestRecords.length === 0) {
+    for (const rec of records) {
+      const fields = rec['api:native']?.['api:field'] || [];
+      if (fields.find(f => f && f.name === 'pagination' && f['api:pagination'])) {
+        bestRecords.push(rec);
+        break;
+      }
+    }
+  }
+
+  const pages = [];
+  for (const rec of bestRecords) {
+    const fields = rec['api:native']?.['api:field'] || [];
+    for (const f of fields) {
+      if (f.name === 'pagination' && f['api:pagination']) {
+        const begin = f['api:pagination']['api:begin-page'];
+        const end = f['api:pagination']['api:end-page'];
+        let value = '';
+        if (begin && end) value = `${begin}-${end}`;
+        else if (begin) value = begin;
+        if (value && !pages.includes(value)) pages.push(value);
+      }
+    }
+  }
+
+  return pages;
+}
+
 function transformWork(workRelationship, relationshipId, expertId, elementsUserId, inputGraph) {
   const result = [];
 
@@ -235,7 +292,15 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (isbn13) isbns.push(isbn13);
   if (isbn10) isbns.push(isbn10);
 
+  // sparql maps journal, parent-title, and name-of-conference to cite:container-title
   const journal = getBestFieldValueFromRecords('journal', records);
+  const parentTitle = getBestFieldValueFromRecords('parent-title', records);
+  const conferenceName = getBestFieldValueFromRecords('name-of-conference', records);
+  const containerTitle = [];
+  if( journal ) containerTitle.push(journal);
+  if( parentTitle ) containerTitle.push(parentTitle);
+  if( conferenceName ) containerTitle.push(conferenceName);
+
   const publisher = getBestFieldValueFromRecords('publisher', records);
   const volume = getBestFieldValueFromRecords('volume', records);
   const issue = getBestFieldValueFromRecords('issue', records);
@@ -251,25 +316,15 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const dateAvailable = formatDate(dateAvailableField?.['api:date']);
 
   const status = getBestFieldValueFromRecords('publication-status', records); // || 'Published';
-  const url = getBestFieldValueFromRecords('public-url', records);
+
+  // collect urls (public-url and oa-location-url) and map both to cite:url (same as sparql)
+  const urlsPublic = getBestFieldValuesFromRecords('public-url', records) || [];
+  const urlsOa = getBestFieldValuesFromRecords('oa-location-url', records) || [];
+   // preserve order and dedupe
+  const urls = Array.from(new Set([].concat(urlsPublic, urlsOa)));
 
   // Extract pagination
-  // const pagination = getFieldObject(fields, 'pagination');
-  // const pages = pagination ? `${pagination['api:begin-page']}-${pagination['api:end-page']}` : null;
-  let pageRanges = [];
-  for (const rec of records) {
-    const fields = rec['api:native']?.['api:field'] || [];
-    for (const f of fields) {
-      if (f.name === 'pagination' && f['api:pagination']) {
-        const begin = f['api:pagination']['api:begin-page'];
-        const end = f['api:pagination']['api:end-page'];
-        let value = '';
-        if (begin && end) value = `${begin}-${end}`;
-        else if (begin) value = begin;
-        if (value && !pageRanges.includes(value)) pageRanges.push(value);
-      }
-    }
-  }
+  const pageRanges = getBestPaginationValues(records);
 
   // Extract publication date
   // sparql builds the issued date from the publication-date field chosen from the record(s)
@@ -278,11 +333,16 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const pubDateField = getBestDateObjectFromRecords('publication-date', records, pubObj);
   const issuedDate = formatDate(pubDateField ? (pubDateField['api:date'] || pubDateField) : undefined);
 
-  // Create main publication record
+  // Determine schema.org type (mirror SPARQL VALUES mapping)
+  // to use in publication @type, and cite:type
+  let rawType = jsonpath.value(pubObj, 'type') || getBestFieldValueFromRecords('type', records);
+  const schemaTypeUri = SCHEMA_URI_TYPE_MAP[rawType] || SCHEMA_URI_TYPE_MAP['journal-article'];
+
+  // Create main publication record with schema type + Work fallback
   const publication = {
     "@id": publicationUri,
     "@type": [
-      "http://schema.org/ScholarlyArticle",
+      schemaTypeUri,
       "http://schema.library.ucdavis.edu/schema#Work"
     ],
     "http://vivoweb.org/ontology/core#relatedBy": [
@@ -291,7 +351,6 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   };
 
   // Add optional fields
-  // if (title) publication["http://citationstyles.org/schema/title"] = [{ "@value": title }];
   if (titles.length) {
     publication["http://citationstyles.org/schema/title"] = titles.map(val => ({ "@value": val }));
   }
@@ -300,10 +359,9 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (issn) publication["http://citationstyles.org/schema/ISSN"] = [{ "@value": issn }];
   if (eissn) publication["http://citationstyles.org/schema/eissn"] = [{ "@value": eissn }];
   if (isbns.length ) publication["http://citationstyles.org/schema/ISBN"] = isbns.map(val => ({ "@value": val }));
-  if (journal) publication["http://citationstyles.org/schema/container-title"] = [{ "@value": journal }];
+  if (containerTitle.length) publication["http://citationstyles.org/schema/container-title"] = containerTitle.map(val => ({ "@value": val }));
   if (publisher) publication["http://citationstyles.org/schema/publisher"] = [{ "@value": publisher }];
   if (volume) publication["http://citationstyles.org/schema/volume"] = [{ "@value": volume }];
-  // if (pages) publication["http://citationstyles.org/schema/page"] = [{ "@value": pages }];
   if (pageRanges.length) {
     publication["http://citationstyles.org/schema/page"] = pageRanges.map(val => ({ "@value": val }));
   }
@@ -313,17 +371,10 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (medium) publication["http://citationstyles.org/schema/medium"] = [{ "@value": medium }];
   if (dateAvailable) publication["http://citationstyles.org/schema/date-available"] = [{ "@value": dateAvailable }];
   if (status) publication["http://citationstyles.org/schema/status"] = [{ "@value": status }];
-  if (url) publication["http://citationstyles.org/schema/url"] = [{ "@value": url }];
+  if (urls.length) publication["http://citationstyles.org/schema/url"] = urls.map(u => ({ "@value": u }));
   if (issuedDate) publication["http://citationstyles.org/schema/issued"] = [{ "@value": issuedDate }];
 
-  // Try to get type from the publication object
-  let rawType = jsonpath.value(workRelationship, '$["api:related"]["api:object"]["type"]');
-
-  // Fallback: try to get from best record's api:field
-  if (!rawType) {
-    rawType = getBestFieldValueFromRecords('type', records);
-  }
-
+  // set cite:type
   const mappedType = WORKS_TYPE_MAP[rawType] || rawType;
   if (mappedType) {
     publication["http://citationstyles.org/schema/type"] = [{ "@value": mappedType }];
@@ -419,9 +470,6 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(!!isVisible) }
-    ],
-    "http://vivoweb.org/ontology/core#rank": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": "1" }
     ],
     "http://vivoweb.org/ontology/core#relates": [
       { "@id": publicationUri },
