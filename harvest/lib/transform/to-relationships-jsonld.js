@@ -77,7 +77,7 @@ function parseRelationshipTypes(rel) {
     r.type === "publication-user-authorship" &&
     r['api:related']?.['api:object']?.type !== "other"
   );
-  let grants = allRelationships.filter(r => r.type && r.type.startsWith("user-grant"));
+  let grants = allRelationships.filter(r => r.type && (r.type.startsWith("user-grant") || r.type.startsWith('grant-user')));
 
   return { works, grants };
 }

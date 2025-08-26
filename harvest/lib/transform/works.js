@@ -312,6 +312,8 @@ function getUserRank(records, elementsUserId, positionGroups) {
       if (userRank !== null) break;
     }
   }
+
+  return userRank;
 }
 
 function transformWork(workRelationship, relationshipId, expertId, elementsUserId, inputGraph) {
@@ -459,15 +461,13 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     publication["http://citationstyles.org/schema/type"] = [{ "@value": mappedType }];
   }
 
-  // for publicationVenue, prefer issn from pub level (api:jounal -> issn)
-  // otherwise get the best issn from the records
+  // only create publicationVenue when the publication-level api:journal is present
   let mainIssn = undefined;
   if (pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
     mainIssn = pubObj['api:journal'].issn;
-  } else {
-    mainIssn = getBestIssn(records, pubObj);
   }
 
+  // only emit hasPublicationVenue and the venue node when api:journal exists on the publication (matches the ?pub :journal OPTIONAL in .rq)
   if (mainIssn) {
     publication["http://vivoweb.org/ontology/core#hasPublicationVenue"] = [
       { "@id": `http://experts.ucdavis.edu/venue/urn:issn:${mainIssn}` }
@@ -482,7 +482,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
         break;
       }
     }
-    if( Array.isArray(venueName)) venueName = venueName[0];
+    if (Array.isArray(venueName)) venueName = venueName[0];
 
     result.push({
       "@id": venueId,

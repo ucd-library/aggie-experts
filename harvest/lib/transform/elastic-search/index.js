@@ -129,6 +129,8 @@ async function frame(expertId, graph, expertGraph = null) {
   compacted['@graph'].forEach(normalizeScalars);
   compacted["@graph"].forEach(normalizeBooleans);
 
+  compacted["@graph"] = normalizeUnicodeSpacesDeep(compacted["@graph"]); // hack for unicode spaces
+
   // Order authors by rank
   compacted["@graph"].forEach(node => {
     if (node?.author) {
@@ -407,6 +409,42 @@ async function readRelationshipFiles(cacheUsername, expertId) {
   return combinedGraph;
 }
 
+const normalizeUnicodeSpacesDeep = (graph) => {
+  const seen = new WeakSet();
+  // cover common non-breaking / narrow no-break / figure space characters
+  const SPACE_RE = /[\u00A0\u202F\u2007\u2000-\u200A\u205F]/g;
+
+  const fixString = (s) => {
+    if (typeof s !== 'string') return s;
+    // replace unicode spaces with normal space
+    return s.replace(SPACE_RE, ' ');
+  };
+
+  const recurse = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (seen.has(node)) return;
+    seen.add(node);
+
+    // If this object itself has an @id or string props
+    for (const key of Object.keys(node)) {
+      const v = node[key];
+      if (typeof v === 'string') {
+        node[key] = fixString(v);
+      } else if (Array.isArray(v)) {
+        for (let i = 0; i < v.length; i++) {
+          if (typeof v[i] === 'string') v[i] = fixString(v[i]);
+          else if (v[i] && typeof v[i] === 'object') recurse(v[i]);
+        }
+      } else if (v && typeof v === 'object') {
+        recurse(v);
+      }
+    }
+  };
+
+  graph.forEach(n => recurse(n));
+  return graph;
+};
+
 async function runFromFiles(cacheUsername, expertId, file) {
   logger.info(`Running AE webapp transformation for user: ${cacheUsername}`);
 
@@ -426,7 +464,7 @@ async function runFromFiles(cacheUsername, expertId, file) {
   // Frame the combined graph
   let framed = await frame(expertId, combinedGraph);
 
-  // TEMP remove, just diffing
+  // sort for diff
   framed = sortJsonRecursively(framed);
 
   return cache.writeUserAsset(

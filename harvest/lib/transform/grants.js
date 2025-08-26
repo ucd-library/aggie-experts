@@ -282,13 +282,16 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
 
   const fields = record['api:native']['api:field'] || [];
 
+  let grantUri = record['id-at-source'];
+  if( !grantUri.includes('ark:/')) grantUri = `ark:/87287/d7mh2m/grant/${grantUri}`;
+
   return {
     grantId,
     relationshipUri,
     expertUri,
     record,
     fields,
-    grantUri: record['id-at-source']
+    grantUri,
   };
 }
 
@@ -600,6 +603,7 @@ function finalizeGrantOutput(grant, result, createdRoles, userRole, relationship
 function transformGrants(grants, expertId, expertData) {
   let results = [];
   grants.forEach(grant => {
+    // if( grant.id == '6184542' ) console.log('about to parse 6184542', JSON.stringify(grant));
     let relationshipId = grant.id;
     results.push({ relationshipId, graph: transformGrant(grant, relationshipId, expertId, expertData) });
   });
@@ -609,6 +613,7 @@ function transformGrants(grants, expertId, expertData) {
 function transformGrant(grantRelationship, relationshipId, expertId, expertData) {
   // Extract data
   const extractedData = extractGrantData(grantRelationship, relationshipId, expertId);
+  // if( grantRelationship.id == '6184542' ) console.log('extractedData 6184542', JSON.stringify(extractedData, null, 2));
   if (!extractedData) return [];
 
   const { grantId, relationshipUri, expertUri, fields, grantUri } = extractedData;
