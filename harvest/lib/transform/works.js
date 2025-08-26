@@ -5,7 +5,7 @@ import {
   getBestFieldValueFromRecords,
   getBestFieldValuesFromRecords,
   extractAsArray,
-  // WORKS_SOURCE_ORDER,
+  WORKS_SOURCE_ORDER,
   WORKS_TYPE_MAP,
   SCHEMA_URI_TYPE_MAP
 } from './utils.js';
@@ -146,17 +146,19 @@ function getBestIssn(records, pubObj) {
   return bestIssns.length ? bestIssns[0] : undefined;
 }
 
-function getBestDateObjectFromRecords(fieldName, records, pubObj) {
+function getBestDateObjectsFromRecords(fieldName, records, pubObj) {
   let bestScore = Infinity;
   const bestFields = [];
 
-  for (const rec of records) {
+  for (const rec of records || []) {
     const fields = rec['api:native']?.['api:field'] || [];
     const matching = fields.filter(f => f && f.name === fieldName);
     if (!matching.length) continue;
 
-    // score with doi boost
     const score = computeRecordScore(rec);
+
+    // ignore records with unknown/invalid score so they don't tie as "best"
+    if (!isFinite(score)) continue;
 
     if (score < bestScore) {
       bestScore = score;
@@ -167,30 +169,28 @@ function getBestDateObjectFromRecords(fieldName, records, pubObj) {
     }
   }
 
-  // fallback to publication-level object if no field found in records
-  if (!bestFields.length && pubObj && pubObj['api:journal'] === undefined && pubObj['api:records'] === undefined) {
-    if (pubObj && pubObj['api:reporting-date-1']) {
-      return { 'api:date': { api: { year: pubObj['api:reporting-date-1'] } } }; // minimal fallback
+  // fallback: first known-source record that has the field
+  if (bestFields.length === 0) {
+    for (const rec of records || []) {
+      const source = rec?.['source-name'];
+      const order = WORKS_SOURCE_ORDER.indexOf(source);
+      if (order === -1) continue;
+      const fields = rec?.['api:native']?.['api:field'] || [];
+      const matching = fields.filter(f => f && f.name === fieldName);
+      if (matching.length) { bestFields.push(...matching); break; }
     }
   }
 
-  if (!bestFields.length) return undefined;
+  if (!bestFields.length) return [];
 
-  // prefer a field that has api:date with year+month+day, then year+month, then year
-  let chosen = null;
+  // return date objects (api:date) from all bestFields
+  const dates = [];
   for (const f of bestFields) {
-    const d = f['api:date'];
-    if (d && d['api:year'] && d['api:month'] && d['api:day']) { chosen = f; break; }
+    const d = f['api:date'] || f;
+    if (d) dates.push(d);
   }
-  if (!chosen) {
-    for (const f of bestFields) {
-      const d = f['api:date'];
-      if (d && d['api:year'] && d['api:month']) { chosen = f; break; }
-    }
-  }
-  if (!chosen) chosen = bestFields[0];
 
-  return chosen['api:date'] ? chosen : chosen;
+  return dates;
 }
 
 function getBestPaginationValues(records) {
@@ -241,6 +241,79 @@ function getBestPaginationValues(records) {
   return pages;
 }
 
+function getUserRank(records, elementsUserId, positionGroups) {
+  // build scored list with scores (ignore non-finite)
+  const scoredWithMeta = records
+    .map((r, idx) => ({ r, score: computeRecordScore(r), idx }))
+    .filter(x => Number.isFinite(x.score))
+    .sort((a, b) => a.score - b.score); // sort by score only; stable in Node
+
+  // For each score-group (tied best records), check all tied records and pick the minimal matching author index
+  let userRank = null;
+  for (let i = 0; i < scoredWithMeta.length;) {
+    const groupScore = scoredWithMeta[i].score;
+    const tied = [];
+    let j = i;
+    while (j < scoredWithMeta.length && scoredWithMeta[j].score === groupScore) {
+      tied.push(scoredWithMeta[j].r);
+      j++;
+    }
+
+    // find all matching person indices across tied records
+    const matchingIndices = [];
+    for (const rec of tied) {
+      const authorsField = (rec['api:native']?.['api:field'] || []).find(f => f && f.name === 'authors');
+      if (!authorsField) continue;
+      let persons = authorsField['api:people']?.['api:person'];
+      if (!persons) continue;
+      if (!Array.isArray(persons)) persons = [persons];
+      for (let pIdx = 0; pIdx < persons.length; pIdx++) {
+        const person = persons[pIdx];
+        let links = person?.['api:links']?.['api:link'];
+        if (!links) continue;
+        if (!Array.isArray(links)) links = [links];
+        if (links.some(link => link && (
+          link.id === elementsUserId ||
+          String(link.id) === String(elementsUserId) ||
+          (link.href && String(link.href).includes(String(elementsUserId)))
+        ))) {
+          matchingIndices.push(pIdx);
+        }
+      }
+    }
+
+    if (matchingIndices.length) {
+      // choose the minimal author position across the tied records
+      userRank = Math.min(...matchingIndices) + 1;
+      break;
+    }
+
+    // advance to next score group
+    i = j;
+  }
+
+  // fallback: check the merged positionGroups (covers when SPARQL's rank comes from merged best-record groups)
+  if (userRank === null) {
+    for (let pos = 0; pos < positionGroups.length; pos++) {
+      const group = positionGroups[pos];
+      for (const person of group) {
+        let links = person?.['api:links']?.['api:link'];
+        if (!links) continue;
+        if (!Array.isArray(links)) links = [links];
+        if (links.some(link => link && (
+          link.id === elementsUserId ||
+          String(link.id) === String(elementsUserId) ||
+          (link.href && String(link.href).includes(String(elementsUserId)))
+        ))) {
+          userRank = pos + 1;
+          break;
+        }
+      }
+      if (userRank !== null) break;
+    }
+  }
+}
+
 function transformWork(workRelationship, relationshipId, expertId, elementsUserId, inputGraph) {
   const result = [];
 
@@ -258,7 +331,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   if (!primaryRecord || !primaryRecord['api:native'] || !primaryRecord['api:native']['api:field']) return result;
 
-  const fields = primaryRecord['api:native']['api:field'] || [];
+  // const fields = primaryRecord['api:native']['api:field'] || [];
 
   // Extract publication data using jsonpath
   // const title = getBestFieldValueFromRecords('title', records);
@@ -267,7 +340,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const bestTitle = getBestFieldValuesFromRecords('title', records);
   const titles = Array.isArray(bestTitle) ? bestTitle : [bestTitle].filter(Boolean);
 
-  const abstract = getBestFieldValueFromRecords('abstract', records);
+  const abstracts = getBestFieldValuesFromRecords('abstract', records);
   const doi = getBestFieldValueFromRecords('doi', records);
 
   // Collect all unique ISSNs from all records
@@ -293,16 +366,20 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (isbn10) isbns.push(isbn10);
 
   // sparql maps journal, parent-title, and name-of-conference to cite:container-title
-  const journal = getBestFieldValueFromRecords('journal', records);
-  const parentTitle = getBestFieldValueFromRecords('parent-title', records);
-  const conferenceName = getBestFieldValueFromRecords('name-of-conference', records);
-  const containerTitle = [];
-  if( journal ) containerTitle.push(journal);
-  if( parentTitle ) containerTitle.push(parentTitle);
-  if( conferenceName ) containerTitle.push(conferenceName);
+  const journal = getBestFieldValuesFromRecords('journal', records) || [];
+  const parentTitle = getBestFieldValuesFromRecords('parent-title', records) || [];
+  const conferenceName = getBestFieldValuesFromRecords('name-of-conference', records) || [];
+  const containerTitle =  Array.from(new Set([].concat(journal, parentTitle, conferenceName)));
+
+  // sparql maps 'number' and 'series' to cite:collection-number
+  const collectionNumber = getBestFieldValueFromRecords('number', records);
+  const series = getBestFieldValueFromRecords('series', records);
+  const collectionNumbers = [];
+  if (collectionNumber) collectionNumbers.push(collectionNumber);
+  if (series) collectionNumbers.push(series);
 
   const publisher = getBestFieldValueFromRecords('publisher', records);
-  const volume = getBestFieldValueFromRecords('volume', records);
+  const volume = getBestFieldValuesFromRecords('volume', records)[0];
   const issue = getBestFieldValueFromRecords('issue', records);
   const language = getBestFieldValueFromRecords('language', records); // || 'en';
   const license = getBestFieldValueFromRecords('publisher-licence', records);
@@ -326,12 +403,11 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   // Extract pagination
   const pageRanges = getBestPaginationValues(records);
 
-  // Extract publication date
-  // sparql builds the issued date from the publication-date field chosen from the record(s)
-  // with the minimum score (source order + DOI boost).
-  // pick the publication-date from the best-score record(s) the same way you pick other best fields. Add a helper that finds the best record(s) for a given field and returns the most specific date (prefer year+month+day), then format it.
-  const pubDateField = getBestDateObjectFromRecords('publication-date', records, pubObj);
-  const issuedDate = formatDate(pubDateField ? (pubDateField['api:date'] || pubDateField) : undefined);
+  // Extract publication date(s)
+  const pubDateFields = getBestDateObjectsFromRecords('publication-date', records, pubObj);
+  const issuedDates = (pubDateFields || [])
+    .map(d => formatDate(d['api:date'] ? d['api:date'] : d))
+    .filter(Boolean);
 
   // Determine schema.org type (mirror SPARQL VALUES mapping)
   // to use in publication @type, and cite:type
@@ -354,7 +430,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (titles.length) {
     publication["http://citationstyles.org/schema/title"] = titles.map(val => ({ "@value": val }));
   }
-  if (abstract) publication["http://citationstyles.org/schema/abstract"] = [{ "@value": abstract }];
+  if (abstracts.length) publication["http://citationstyles.org/schema/abstract"] = abstracts.map(val => ({ "@value": val }));
   if (doi) publication["http://citationstyles.org/schema/DOI"] = [{ "@value": doi }];
   if (issn) publication["http://citationstyles.org/schema/ISSN"] = [{ "@value": issn }];
   if (eissn) publication["http://citationstyles.org/schema/eissn"] = [{ "@value": eissn }];
@@ -365,6 +441,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (pageRanges.length) {
     publication["http://citationstyles.org/schema/page"] = pageRanges.map(val => ({ "@value": val }));
   }
+  if (collectionNumbers.length) publication["http://citationstyles.org/schema/collection-number"] = collectionNumbers.map(val => ({ "@value": val }));
   if (issue) publication["http://citationstyles.org/schema/issue"] = [{ "@value": issue }];
   if (language) publication["http://citationstyles.org/schema/language"] = [{ "@value": language }];
   if (license) publication["http://citationstyles.org/schema/license"] = [{ "@value": license }];
@@ -372,7 +449,9 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (dateAvailable) publication["http://citationstyles.org/schema/date-available"] = [{ "@value": dateAvailable }];
   if (status) publication["http://citationstyles.org/schema/status"] = [{ "@value": status }];
   if (urls.length) publication["http://citationstyles.org/schema/url"] = urls.map(u => ({ "@value": u }));
-  if (issuedDate) publication["http://citationstyles.org/schema/issued"] = [{ "@value": issuedDate }];
+  if (issuedDates.length) {
+    publication["http://citationstyles.org/schema/issued"] = issuedDates.map(v => ({ "@value": v }));
+  }
 
   // set cite:type
   const mappedType = WORKS_TYPE_MAP[rawType] || rawType;
@@ -403,6 +482,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
         break;
       }
     }
+    if( Array.isArray(venueName)) venueName = venueName[0];
 
     result.push({
       "@id": venueId,
@@ -477,21 +557,8 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     ]
   };
 
-  // determine expert's rank: check links inside each position group
-  let userRank = null;
-  for (let i = 0; i < positionGroups.length; i++) {
-    const group = positionGroups[i];
-    for (const person of group) {
-      let links = person?.['api:links']?.['api:link'];
-      if (!links) continue;
-      if (!Array.isArray(links)) links = [links];
-      if (links.some(link => link && (link.id === elementsUserId || link.id === String(elementsUserId)))) {
-        userRank = i + 1;
-        break;
-      }
-    }
-    if (userRank !== null) break;
-  }
+  // compute user rank / best score for elements user vs authors positions
+  const userRank = getUserRank(records, elementsUserId, positionGroups);
 
   if (userRank !== null) {
     authorship["http://vivoweb.org/ontology/core#rank"] = [

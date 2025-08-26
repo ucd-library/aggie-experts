@@ -128,50 +128,24 @@ function getFieldValue(fields, fieldName) {
   return field?.['api:text'];
 }
 
-function getBestFieldValueFromRecords(fieldName, records) {
-  let bestValue = null;
-  let bestScore = Infinity;
-
-  for (const record of records) {
-    const fields = record['api:native']?.['api:field'] || [];
-    const value = getFieldValue(fields, fieldName);
-    if (!value) continue;
-
-    // score with doi boost
-    const score = computeRecordScore(record);
-
-    if (score < bestScore) {
-      bestScore = score;
-      bestValue = value;
-    }
-  }
-
-  // Fallback to any record with the field
-  if (bestValue === null) {
-    for (const record of records) {
-      const fields = record['api:native']?.['api:field'] || [];
-      const value = getFieldValue(fields, fieldName);
-      if (value) return value;
-    }
-  }
-
-  return bestValue;
-}
-
-// get best record, and return all values for fieldName from the best record
-// also if 2 sources tie for the best score, then return values from both
-// this is how the sparql behaved for things like 'title'
-function getBestFieldValuesFromRecords(fieldName, records) {
-  // compute score per record using WORKS_SOURCE_ORDER and computeRecordScore (DOI boost)
+/**
+ * @method getBestFieldValueFromRecords
+ * @description Get the best field value from records based on a scoring function.
+ * only on known sources, ie WORKS_SOURCE_ORDER from this file
+ */
+function getBestFieldValueFromRecords(fieldName, records, scorer = computeRecordScore) {
   let bestScore = Infinity;
   const bestRecords = [];
 
   for (const rec of records || []) {
     const fields = rec?.['api:native']?.['api:field'] || [];
-    const matching = fields.filter(f => f && f.name === fieldName);
+    const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
     if (!matching.length) continue;
 
-    const score = computeRecordScore(rec); // must implement same order + doi-boost logic
+    const score = typeof scorer === 'function' ? scorer(rec) : computeRecordScore(rec);
+
+    // ignore records with unknown/invalid score so they don't tie as "best"
+    if (!isFinite(score)) continue;
 
     if (score < bestScore) {
       bestScore = score;
@@ -182,22 +156,85 @@ function getBestFieldValuesFromRecords(fieldName, records) {
     }
   }
 
-  // fallback: take any record that has the field (keeps old behavior)
+  // fallback: first record that has the field and a known source (match SPARQL behavior)
   if (bestRecords.length === 0) {
     for (const rec of records || []) {
+      const source = rec?.['source-name'];
+      const order = WORKS_SOURCE_ORDER.indexOf(source);
+      if (order === -1) continue; // skip unknown sources
       const fields = rec?.['api:native']?.['api:field'] || [];
       const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
-      if (matching.length) {
-        bestRecords.push({ rec, matching });
-        break;
+      if (matching.length) { bestRecords.push({ rec, matching }); break; }
+    }
+  }
+
+  if (!bestRecords.length) return null;
+
+  // Return the first sensible value from bestRecords (preserve the record order)
+  for (const { matching } of bestRecords) {
+    for (const f of matching) {
+      if (f['api:text']) {
+        return Array.isArray(f['api:text']) ? f['api:text'][0] : f['api:text'];
+      } else if (f['api:url']) {
+        return Array.isArray(f['api:url']) ? f['api:url'][0] : f['api:url'];
+      } else if (f['api:pagination']) {
+        const b = f['api:pagination']['api:begin-page'];
+        const e = f['api:pagination']['api:end-page'];
+        if (b && e) return `${b}-${e}`;
+        if (b) return b;
       }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * @method getBestFieldValuesFromRecords
+ * @description Get the best field values from records based on a scoring function.
+ * get best record, and return all values for fieldName from the best record
+ * also if 2 sources tie for the best score, then return values from both
+ * this is how the sparql behaved for things like 'title'.
+ * also fallback only on known sources, ie WORKS_SOURCE_ORDER from this file
+ */
+function getBestFieldValuesFromRecords(fieldName, records, scorer = computeRecordScore) {
+  let bestScore = Infinity;
+  const bestRecords = [];
+
+  for (const rec of records || []) {
+    const fields = rec?.['api:native']?.['api:field'] || [];
+    const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
+    if (!matching.length) continue;
+
+    const score = typeof scorer === 'function' ? scorer(rec) : computeRecordScore(rec);
+
+    // ignore records with unknown/invalid score so they don't tie as "best"
+    if (!isFinite(score)) continue;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestRecords.length = 0;
+      bestRecords.push({ rec, matching });
+    } else if (score === bestScore) {
+      bestRecords.push({ rec, matching });
+    }
+  }
+
+  // fallback: first record that has the field and a known source (match SPARQL behavior)
+  if (bestRecords.length === 0) {
+    for (const rec of records || []) {
+      const source = rec?.['source-name'];
+      const order = WORKS_SOURCE_ORDER.indexOf(source);
+      if (order === -1) continue; // skip unknown sources
+      const fields = rec?.['api:native']?.['api:field'] || [];
+      const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
+      if (matching.length) { bestRecords.push({ rec, matching }); break; }
     }
   }
 
   const values = [];
   for (const { matching } of bestRecords) {
     for (const f of matching) {
-      // prefer api:text, but allow other structures (pagination, url keys)
       if (f['api:text']) {
         if (Array.isArray(f['api:text'])) values.push(...f['api:text']);
         else values.push(f['api:text']);
@@ -207,12 +244,12 @@ function getBestFieldValuesFromRecords(fieldName, records) {
       } else if (f['api:pagination']) {
         const b = f['api:pagination']['api:begin-page'];
         const e = f['api:pagination']['api:end-page'];
-        if (b || e) values.push(e ? `${b}-${e}` : b);
+        if (b && e) values.push(`${b}-${e}`);
+        else if (b) values.push(b);
       }
     }
   }
 
-  // dedupe preserving order
   return [...new Set(values)];
 }
 
