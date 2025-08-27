@@ -32,31 +32,34 @@ function findJournalByIssn(obj, issn) {
   return null;
 }
 
-function getBestAuthorsPositionGroups(records) {
-  // find best-score records for the "authors" field (may be multiple ties)
-  let bestScore = Infinity;
-  const bestRecords = [];
-
-  for (const rec of records) {
+function getBestAuthorsPositionGroups(records, relationshipdId) {
+  // compute min score among records that have "authors", skipping unknown sources
+  let minScore = Infinity;
+  const recordsWithAuthors = [];
+  for (let i = 0; i < (records || []).length; i++) {
+    const rec = records[i];
     const fields = rec['api:native']?.['api:field'] || [];
     const authorsField = fields.find(f => f && f.name === 'authors');
     if (!authorsField) continue;
 
-    // score with doi boost
     const score = computeRecordScore(rec);
+    if (!isFinite(score)) continue; // mirror SPARQL: ignore unknown sources for scoring
 
-    if (score < bestScore) {
-      bestScore = score;
-      bestRecords.length = 0;
-      bestRecords.push(rec);
-    } else if (score === bestScore) {
-      bestRecords.push(rec);
-    }
+    recordsWithAuthors.push({ rec, score, idx: i });
+    if (score < minScore) minScore = score;
   }
 
-  // fallback: any single record with authors
+  // select tied best records (preserve original records array order)
+  const bestRecords = recordsWithAuthors
+    .filter(x => x.score === minScore)
+    .sort((a, b) => a.idx - b.idx) // preserve original graph order for ties
+    .map(x => x.rec);
+
+  // fallback: first known-source record that has authors (also mirrors SPARQL fallback)
   if (bestRecords.length === 0) {
-    for (const rec of records) {
+    for (const rec of records || []) {
+      const src = rec?.['source-name'];
+      if (WORKS_SOURCE_ORDER.indexOf(src) === -1) continue; // only known sources
       const fields = rec['api:native']?.['api:field'] || [];
       if (fields.find(f => f && f.name === 'authors')) {
         bestRecords.push(rec);
@@ -65,7 +68,7 @@ function getBestAuthorsPositionGroups(records) {
     }
   }
 
-  // Build position groups: for each author index, collect persons from all bestRecords
+  // build position groups: for each author index, collect persons from all bestRecords
   const groups = [];
   let maxLen = 0;
   const recordsPersons = bestRecords.map(rec => {
@@ -80,6 +83,7 @@ function getBestAuthorsPositionGroups(records) {
   for (let idx = 0; idx < maxLen; idx++) {
     const seen = new Set();
     const group = [];
+    // iterate bestRecords in their original order; for each record take the person at idx
     for (const persons of recordsPersons) {
       const p = persons[idx];
       if (!p) continue;
@@ -92,59 +96,90 @@ function getBestAuthorsPositionGroups(records) {
     if (group.length) groups.push(group);
   }
 
-  return groups; // array of groups; groups[i] is array of person objects for position i
+  // TODO
+  // fix authors list on relationshipId 2454246 (jeisen)
+  // authors 42 - 45 not showing up successfully
+  // if( relationshipdId == '2454246' ) {
+  //   console.log('--- recordsWithAuthors (detailed) ---');
+  //   for (const rw of recordsWithAuthors) {
+  //     const rec = rw.rec;
+  //     const id = rec.id || rec['id-at-source'] || '<no-id>';
+  //     const src = rec['source-name'] || '<no-src>';
+  //     const score = rw.score;
+  //     const fields = rec['api:native']?.['api:field'] || [];
+  //     const doiField = fields.find(f => f && f.name === 'doi');
+  //     let authorsField = fields.find(f => f && f.name === 'authors');
+  //     let persons = authorsField?.['api:people']?.['api:person'];
+  //     if (persons && !Array.isArray(persons)) persons = [persons];
+  //     const authorsCount = persons ? persons.length : 0;
+  //     const firstAuthor = persons && persons[0] ? `${persons[0]['api:last-name'] || ''},${persons[0]['api:first-names'] || ''}` : '<none>';
+  //     console.log({ idx: rw.idx, id, src, score, hasDoi: !!doiField, authorsCount, firstAuthor });
+  //   }
+  //   console.log('--- bestRecords details ---');
+  //   for (const br of bestRecords) {
+  //     const id = br.id || br['id-at-source'] || '<no-id>';
+  //     const src = br['source-name'] || '<no-src>';
+  //     const fields = br['api:native']?.['api:field'] || [];
+  //     let authorsField = fields.find(f => f && f.name === 'authors');
+  //     let persons = authorsField?.['api:people']?.['api:person'];
+  //     if (persons && !Array.isArray(persons)) persons = [persons];
+  //     console.log('best record:', { id, src, authorsCount: persons ? persons.length : 0, persons });
+  //   }
+  // }
+
+  return groups;
 }
 
-function getAllValuesOfType(records, type) {
-  let values = new Set();
-  for (const rec of records) {
-    const fields = rec['api:native']?.['api:field'] || [];
-    for (const f of fields) {
-      if (f.name === type && f['api:text']) {
-        // If api:text is an array, add all; else add the single value
-        if (Array.isArray(f['api:text'])) {
-          f['api:text'].forEach(t => values.add(t));
-        } else {
-          values.add(f['api:text']);
-        }
-      }
-    }
-  }
-  return values;
-}
+// function getAllValuesOfType(records, type) {
+//   let values = new Set();
+//   for (const rec of records) {
+//     const fields = rec['api:native']?.['api:field'] || [];
+//     for (const f of fields) {
+//       if (f.name === type && f['api:text']) {
+//         // If api:text is an array, add all; else add the single value
+//         if (Array.isArray(f['api:text'])) {
+//           f['api:text'].forEach(t => values.add(t));
+//         } else {
+//           values.add(f['api:text']);
+//         }
+//       }
+//     }
+//   }
+//   return values;
+// }
 
-function getBestIssn(records, pubObj) {
-  let bestScore = Infinity;
-  let bestIssns = [];
+// function getBestIssn(records, pubObj) {
+//   let bestScore = Infinity;
+//   let bestIssns = [];
 
-  for (const record of records) {
-    const fields = record['api:native']?.['api:field'] || [];
-    const issnFields = fields.filter(f => f.name === 'issn' && f['api:text']);
-    if (!issnFields.length) continue;
+//   for (const record of records) {
+//     const fields = record['api:native']?.['api:field'] || [];
+//     const issnFields = fields.filter(f => f.name === 'issn' && f['api:text']);
+//     if (!issnFields.length) continue;
 
-    // score with doi boost
-    const score = computeRecordScore(record);
+//     // score with doi boost
+//     const score = computeRecordScore(record);
 
-    if (score < bestScore) {
-      bestScore = score;
-      bestIssns = issnFields.flatMap(f =>
-        Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
-      );
-    } else if (score === bestScore) {
-      bestIssns.push(...issnFields.flatMap(f =>
-        Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
-      ));
-    }
-  }
+//     if (score < bestScore) {
+//       bestScore = score;
+//       bestIssns = issnFields.flatMap(f =>
+//         Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
+//       );
+//     } else if (score === bestScore) {
+//       bestIssns.push(...issnFields.flatMap(f =>
+//         Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
+//       ));
+//     }
+//   }
 
-  // Fallback: check publication-level api:journal
-  if (!bestIssns.length && pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
-    bestIssns = [pubObj['api:journal'].issn];
-  }
+//   // Fallback: check publication-level api:journal
+//   if (!bestIssns.length && pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
+//     bestIssns = [pubObj['api:journal'].issn];
+//   }
 
-  // Return the first ISSN (SPARQL typically uses the first)
-  return bestIssns.length ? bestIssns[0] : undefined;
-}
+//   // Return the first ISSN (SPARQL typically uses the first)
+//   return bestIssns.length ? bestIssns[0] : undefined;
+// }
 
 function getBestDateObjectsFromRecords(fieldName, records, pubObj) {
   let bestScore = Infinity;
@@ -343,18 +378,18 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const titles = Array.isArray(bestTitle) ? bestTitle : [bestTitle].filter(Boolean);
 
   const abstracts = getBestFieldValuesFromRecords('abstract', records);
-  const doi = getBestFieldValueFromRecords('doi', records);
+  const dois = getBestFieldValuesFromRecords('doi', records) || [];
 
   // Collect all unique ISSNs from all records
   // sparql collects each publication, regardless of which record the ISSN
   // comes from. not just the primaryRecord
   // pull from fields
-  const issns = getAllValuesOfType(records, 'issn');
-  // and pull from journal objects
+  // const issns = getAllValuesOfType(records, 'issn');
+  // // and pull from journal objects
   const pubObj = workRelationship?.['api:related']?.['api:object'];
-  if (pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
-    issns.add(pubObj['api:journal'].issn);
-  }
+  // if (pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
+  //   issns.add(pubObj['api:journal'].issn);
+  // }
 
   const issn = getBestFieldValueFromRecords('issn', records);
   const eissn = getBestFieldValueFromRecords('eissn', records);
@@ -433,7 +468,9 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     publication["http://citationstyles.org/schema/title"] = titles.map(val => ({ "@value": val }));
   }
   if (abstracts.length) publication["http://citationstyles.org/schema/abstract"] = abstracts.map(val => ({ "@value": val }));
-  if (doi) publication["http://citationstyles.org/schema/DOI"] = [{ "@value": doi }];
+  if (dois.length) {
+    publication["http://citationstyles.org/schema/DOI"] = Array.from(new Set(dois)).map(v => ({ "@value": v }));
+  }
   if (issn) publication["http://citationstyles.org/schema/ISSN"] = [{ "@value": issn }];
   if (eissn) publication["http://citationstyles.org/schema/eissn"] = [{ "@value": eissn }];
   if (isbns.length ) publication["http://citationstyles.org/schema/ISBN"] = isbns.map(val => ({ "@value": val }));
@@ -496,7 +533,8 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   // - For each author position index, collect all person entries from those tied records at that index.
   // - Create one author node per position, with family/given arrays built from those persons (deduped).
   // - Compute expert rank by checking links within each position group.
-  let positionGroups = getBestAuthorsPositionGroups(records);
+  let positionGroups = getBestAuthorsPositionGroups(records, workRelationship.id);
+  // console.log('workrelationshipId', workRelationship.id);
 
   // create author nodes: one node per position, family/given arrays from group
   const authorUris = [];

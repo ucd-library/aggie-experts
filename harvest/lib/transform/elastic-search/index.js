@@ -445,6 +445,16 @@ const normalizeUnicodeSpacesDeep = (graph) => {
   return graph;
 };
 
+function collapseSingleItemPrimitiveArrays(jsonText) {
+  // primitive = "string" or number or true/false/null (handles escaped quotes inside strings)
+  const primitivePattern = /("(?:\\.|[^"\\])*"|[-+]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)/;
+  const re = new RegExp(
+    '\\[\\n\\s*' + primitivePattern.source + '\\n\\s*\\]',
+    'g'
+  );
+  return jsonText.replace(re, '[$1]');
+}
+
 async function runFromFiles(cacheUsername, expertId, file) {
   logger.info(`Running AE webapp transformation for user: ${cacheUsername}`);
 
@@ -467,11 +477,14 @@ async function runFromFiles(cacheUsername, expertId, file) {
   // sort for diff
   framed = sortJsonRecursively(framed);
 
+  let outputText = JSON.stringify(framed, null, 2);
+  outputText = collapseSingleItemPrimitiveArrays(outputText);
+
   return cache.writeUserAsset(
     'ae-webapp-expert-transform',
     cacheUsername,
     path.join(config.cache.aeWebappDir, 'webapp.expert.jsonld'),
-    framed
+    outputText
   );
 }
 

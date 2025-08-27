@@ -139,8 +139,8 @@ function getGrantType(fields) {
     'Student Services': GRANT_TYPES.STUDENT_SERVICE
   };
 
-  // Default to Grant_Service if funding type not found or not specified
-  return grantTypeMapping[fundingType] || GRANT_TYPES.SERVICE;
+  if (!fundingType) return null;
+  return grantTypeMapping[fundingType] || null;
 }
 
 function getGrantStatus(endDate) {
@@ -313,10 +313,12 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
 
   const grantName = `${title} § ${grantStatus} • ${startDate?.['api:year']} - ${endDate?.['api:year']} • ${formattedPiName} § ${funderName} • ${funderReference}`;
   const specificGrantType = getGrantType(fields);
+  const grantTypes = [ONTOLOGY.GRANT];
+  if (specificGrantType) grantTypes.unshift(specificGrantType);
 
   const grant = {
     "@id": grantUri,
-    "@type": [specificGrantType, ONTOLOGY.GRANT],
+    "@type": grantTypes,
     "http://citationstyles.org/schema/status": [{ "@value": grantStatus }],
     "http://schema.org/identifier": [
       { "@id": `ark:/87287/d7mh2m/${grantId}` },
