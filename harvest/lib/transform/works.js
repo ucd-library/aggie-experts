@@ -32,7 +32,7 @@ function findJournalByIssn(obj, issn) {
   return null;
 }
 
-function getBestAuthorsPositionGroups(records, relationshipdId) {
+function getBestAuthorsPositionGroups(records, relationshipId) {
   // compute min score among records that have "authors", skipping unknown sources
   let minScore = Infinity;
   const recordsWithAuthors = [];
