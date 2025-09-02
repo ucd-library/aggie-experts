@@ -1,4 +1,4 @@
-const {config} = require('@ucd-lib/fin-service-utils');
+// const {config} = require('@ucd-lib/fin-service-utils');
 const Citation = require('../spa/client/public/lib/utils/citation.js');
 
 class Validate {

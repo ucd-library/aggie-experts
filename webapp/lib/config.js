@@ -48,6 +48,21 @@ const config = {
     // expires in seconds
     ttl : process.env.JWT_TTL ? parseInt(process.env.JWT_TTL) : (60 * 60 * 24 * 14),
     cookieName : process.env.JWT_COOKIE_NAME || 'fin-jwt'
+  },
+
+  elasticsearch: {
+    connStr: env.ELASTICSEARCH_CONN_STR || 'http://localhost:9200',
+    username: env.ELASTICSEARCH_USERNAME || 'elastic',
+    password: env.ELASTICSEARCH_PASSWORD || 'changeme',
+  },
+
+  experts : {
+    version : '1.0.0',
+    is_public : ! (process.env.EXPERTS_IS_PUBLIC === "false")
+  },
+
+  server : {
+      url : env.AE_EXPERTS_SERVER_URL || 'https://experts.ucdavis.edu'
   }
 
 }

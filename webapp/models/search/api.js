@@ -3,14 +3,14 @@ const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const WorkModel = require('../work/model.js');
-const utils = require('../utils.js')
+// const utils = require('../utils.js')
 const complete = require('./template/complete.js');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
 const works = new WorkModel();
 
-const {config} = require('@ucd-lib/fin-service-utils');
+// const {config} = require('@ucd-lib/fin-service-utils');
 
 const { openapi, public_or_is_user } = require('../middleware/index.js')
 

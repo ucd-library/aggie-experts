@@ -1,12 +1,12 @@
-const path = require('path');
-const express = require('express');
+// const path = require('path');
+// const express = require('express');
 const router = require('express').Router();
-const {dataModels, logger} = require('@ucd-lib/fin-service-utils');
+// const {dataModels, logger} = require('@ucd-lib/fin-service-utils');
 const ExpertModel = require('./model.js');
-const {defaultEsApiGenerator} = dataModels;
-const md5 = require('md5');
+// const {defaultEsApiGenerator} = dataModels;
+// const md5 = require('md5');
 // const { logger } = require('@ucd-lib/fin-service-utils');
-const model= new ExpertModel();
+const model = new ExpertModel();
 
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
 const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
@@ -135,7 +135,7 @@ router.route(
   expert_valid_path_error,
   user_can_edit,
   async (req, res, next) => {
-    logger.info(`DELETE ${req.url}`);
+    // logger.info(`DELETE ${req.url}`);
 
     try {
       let expertId = `expert/${req.params.expertId}`;

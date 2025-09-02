@@ -1,6 +1,7 @@
-const {config}= require('@ucd-lib/fin-service-utils');
+// const {config}= require('@ucd-lib/fin-service-utils');
 
 const models_package = require('./package.json');
+const config = {};
 
 // This is short lived, so we are only using the config file for this.
 config.experts = {

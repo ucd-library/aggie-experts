@@ -1,6 +1,6 @@
 const express = require('express');
 const router = require('express').Router();
-const { config, keycloak, dataModels, logger } = require('@ucd-lib/fin-service-utils');
+// const { config, keycloak, dataModels, logger } = require('@ucd-lib/fin-service-utils');
 const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
 const template = require('./template/modified-date.js');
@@ -8,7 +8,7 @@ const expert = new ExpertModel();
 const base = new BaseModel();
 // const experts = new ExpertModel();
 
-const { defaultEsApiGenerator } = dataModels;
+// const { defaultEsApiGenerator } = dataModels;
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
 
@@ -217,6 +217,6 @@ router.get(
 );
 
 const model = new ExpertModel();
-module.exports = defaultEsApiGenerator(model, { router });
+// module.exports = defaultEsApiGenerator(model, { router });
 
 module.exports = router;

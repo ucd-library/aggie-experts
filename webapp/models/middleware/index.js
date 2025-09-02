@@ -2,6 +2,7 @@ const OpenAPI = require('@wesleytodd/openapi')
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const template = require('../base/template/name.json');
+const config = require('../../lib/config');
 
 let AdminClient=null;
 
@@ -9,33 +10,60 @@ let MIVJWKSClient=null;
 
 
 async function item_endpoint(router, model, subselect = (req, res, next) => next()) {
-  router.route(
-    '/:id?'
-  ).get(
-    valid_path(
-      {
-        description: "Get a ${model.name} by id",
-        responses: {
-          "200": openapi.response(model.name),
-          "400": openapi.response('missing_id'),
-          "403": openapi.response('forbidden'),
-          "404": openapi.response('not_found')
-        }
-      //   parameters: {
-      //     "id": {
-      //       "name": "id",
-      //       "in": "path",
-      //       "description": "identifier",
-      //       "required": true,
-      //       "schema": { "type": "string" }
-      //     }
-      //   }
+  // router.route(
+  //   '/:id?'
+  // ).get(
+  //   valid_path(
+  //     {
+  //       description: "Get a ${model.name} by id",
+  //       responses: {
+  //         "200": openapi.response(model.name),
+  //         "400": openapi.response('missing_id'),
+  //         "403": openapi.response('forbidden'),
+  //         "404": openapi.response('not_found')
+  //       }
+  //     //   parameters: {
+  //     //     "id": {
+  //     //       "name": "id",
+  //     //       "in": "path",
+  //     //       "description": "identifier",
+  //     //       "required": true,
+  //     //       "schema": { "type": "string" }
+  //     //     }
+  //     //   }
+  //     }
+  //     ),
+  //   public_or_is_user,
+  //   valid_path_error,
+  //   async (req, res, next) => {
+  //     const id=req.params.id || req.query.id;
+  //     try {
+  //       res.thisDoc = await model.get(id);
+  //       next();
+  //     } catch (e) {
+  //       return res.status(404).json(`${id} resource not found`);
+  //     }
+  //   },
+  //   subselect,
+  //   (req, res) => {
+  //     res.status(200).json(res.thisDoc);
+  //   }
+  // )
+  // build handlers so we can inspect types before registering with Express
+  const handlerList = [
+    valid_path({
+      description: `Get a ${model.name} by id`,
+      responses: {
+        "200": openapi.response(model.name),
+        "400": openapi.response('missing_id'),
+        "403": openapi.response('forbidden'),
+        "404": openapi.response('not_found')
       }
-      ),
+    }),
     public_or_is_user,
     valid_path_error,
     async (req, res, next) => {
-      const id=req.params.id || req.query.id;
+      const id = req.params.id || req.query.id;
       try {
         res.thisDoc = await model.get(id);
         next();
@@ -47,7 +75,20 @@ async function item_endpoint(router, model, subselect = (req, res, next) => next
     (req, res) => {
       res.status(200).json(res.thisDoc);
     }
-  )
+  ];
+
+  // debug / guard: any non-function here will be logged (these get interpreted as paths)
+  handlerList.forEach((h, idx) => {
+    if (typeof h !== 'function') {
+      console.error(`Route handler at index ${idx} for /:id? is not a function:`, h);
+    }
+    // else {
+    //   console.log(`Route handler at index ${idx} for /:id? is a function:`, h.toString());
+    // }
+  });
+
+  // router.route('/:id?').get(...handlerList);
+  router.get(['/', '/:id'], ...handlerList);
 }
 
 function browse_endpoint(router,model) {

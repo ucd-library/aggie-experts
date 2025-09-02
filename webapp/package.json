@@ -17,6 +17,7 @@
     "@ucd-lib/spa-router-middleware": "^0.2.3",
     "@wesleytodd/openapi": "^1.0.0",
     "body-parser": "^2.2.0",
+    "citation-js": "^0.7.20",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-openid-connect": "^2.19.2",
@@ -26,12 +27,14 @@
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "node-fetch": "^2.7.0",
+    "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "yaml": "^2.8.1",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "@ucd-lib/cork-app-build": "^0.5.0",
+    "patch-package": "^8.0.0",
     "webpack": "^5.101.2",
     "webpack-cli": "^6.0.1"
   }

@@ -23,8 +23,6 @@ class BaseModel extends EsDataModel {
 
     super(name);
     this.schema = schema;  // Common schema for all experts data models
-    this.transformService = "node";
-
   }
 
   /** @inheritdoc */

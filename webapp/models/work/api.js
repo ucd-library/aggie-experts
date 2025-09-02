@@ -32,7 +32,7 @@ function subselect(req, res, next) {
       'is-visible': true
     };
     if (req.query["is-visible"]) {
-      params[is-visible] = req.query["is-visible"];
+      params['is-visible'] = req.query["is-visible"];
     }
 
     // only allow no-sanitize if they are an admin or the expert

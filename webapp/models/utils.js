@@ -1,12 +1,12 @@
-const {logger} = require('@ucd-lib/fin-service-utils');
+// const {logger} = require('@ucd-lib/fin-service-utils');
 
 class ControllerUtils {
 
   errorResponse(e, message) {
-    logger.error(e);
+    // logger.error(e);
     let details = this.errorToDetails(e);
     return {
-      error: true, 
+      error: true,
       message, details
     }
   }

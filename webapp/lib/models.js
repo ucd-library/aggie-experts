@@ -43,8 +43,8 @@ class FinModelLoader {
 
   /**
    * @method names
-   * @description return list of all model names 
-   * 
+   * @description return list of all model names
+   *
    * @returns {Promise<Array>}
    */
   async names() {
@@ -55,10 +55,10 @@ class FinModelLoader {
 
   /**
    * @method get
-   * @description return a model 
-   * 
+   * @description return a model
+   *
    * @param {String} model name of model
-   * @returns 
+   * @returns
    */
   async get(model) {
     await this.load();
@@ -129,13 +129,13 @@ class FinModelLoader {
         }
         if( !Array.isArray(swaggerBase.paths) ) {
           swaggerBase.paths = Object.entries((swaggerBase.paths || {})).map(([key, value]) => ({ path : key, docs : value }));
-        } 
+        }
 
-        swagger.paths.forEach(path => {          
+        swagger.paths.forEach(path => {
           let baseMatch = swaggerBase.paths.filter(sb => sb.path === path.path)[0];
-          
+
           if( baseMatch ) {
-            baseMatch.docs = path.docs;            
+            baseMatch.docs = path.docs;
           } else {
             swaggerBase.paths.push({
               path : path.path,
@@ -168,15 +168,15 @@ class FinModelLoader {
         if (swagger?.components?.parameters) {
           swaggerBase.components.parameters = Object.assign({}, swaggerBase.components.parameters, swagger.components.parameters);
         }
-        
+
         if (swagger?.components?.responses) {
           swaggerBase.components.responses = Object.assign({}, swaggerBase.components.responses, swagger.components.responses);
         }
-        
+
         if (swagger?.components?.requestBodies) {
           swaggerBase.components.requestBodies = Object.assign({}, swaggerBase.components.requestBodies, swagger.components.requestBodies);
         }
-        
+
         model.swagger = swaggerBase;
 
       } else if( isJsDoc ) {

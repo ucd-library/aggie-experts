@@ -1,4 +1,5 @@
-let {config} = require('@ucd-lib/fin-service-utils');
+// let {config} = require('@ucd-lib/fin-service-utils');
+let config = require('../lib/config');
 
 let env = process.env.CLIENT_ENV || 'prod';
 

@@ -1,4 +1,4 @@
-FROM node:22
+FROM node:20.19.4
 
 # Set the working directory
 WORKDIR /app
@@ -6,10 +6,13 @@ RUN mkdir -p /app
 
 # Copy package.json and package-lock.json
 COPY package.json package-lock.json ./
-# Install dependencies
-RUN npm install --production
+
+# Install all deps (including devDeps) so postinstall can run, then remove devDeps
+RUN npm ci && npm prune --production
 
 # Copy the rest of the application code
 COPY lib ./lib
 COPY models ./models
 COPY spa ./spa
+
+CMD ["node", "spa/index.js"]

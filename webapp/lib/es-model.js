@@ -9,10 +9,10 @@ const logger = require('./logger.js');
 class EsDataModel {
 
   constructor(modelName) {
-    super(modelName);
+    // super(modelName);
 
     this.UPDATE_RETRY_COUNT = 10;
-    
+
     this.readIndexAlias = modelName+'-read';
     this.writeIndexAlias = modelName+'-write';
 
@@ -22,9 +22,9 @@ class EsDataModel {
   /**
    * @method get
    * @description get a object by id
-   * 
+   *
    * @param {String} id @graph.identifier or @graph.@id
-   * 
+   *
    * @returns {Promise} resolves to elasticsearch result
    */
   async get(id, opts={}, index) {
@@ -49,7 +49,7 @@ class EsDataModel {
             minimum_should_match: 1
           }
         }
-      }, 
+      },
       {
         _source_excludes,
         roles: opts.roles
@@ -73,11 +73,11 @@ class EsDataModel {
    * @method esScroll
    * @description scroll a search request (retrieve the next set of results) after specifying the scroll parameter in a search() call.
    * https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/api-reference.html#api-scroll
-   * 
+   *
    * @param {Object} options
    * @param {String} options.scrollId current scroll id
    * @param {String} options.scroll time to keep open
-   * 
+   *
    * @returns {Promise} resolves to elasticsearch result
    */
   esScroll(options={}) {
@@ -92,9 +92,9 @@ class EsDataModel {
    * @method esSearch
    * @description search the elasticsearch collections using
    * es search document
-   * 
+   *
    * @param {Object} body elasticsearch search body
-   * 
+   *
    * @returns {Promise} resolves to elasticsearch result
    */
   esSearch(body = {}, options={}, index) {
@@ -107,7 +107,7 @@ class EsDataModel {
     if( options.roles ) delete options.roles;
 
     if( options._source_excludes === false ) {
-      delete options._source_excludes; 
+      delete options._source_excludes;
     } else if( options._source_excludes === 'compact' ) {
       options._source_excludes = config.elasticsearch.fields.excludeCompact.join(',');
     } else if( Array.isArray(options._source_excludes) ) {
@@ -126,7 +126,7 @@ class EsDataModel {
         options._source_excludes.splice(options._source_excludes.indexOf('roles'), 1);
       }
     }
-    
+
 
     return this.client.search(options);
   }
@@ -139,7 +139,7 @@ class EsDataModel {
   /**
    * @method ensureIndex
    * @description make sure given index exists in elastic search
-   * 
+   *
    * @returns {Promise}
    */
   async ensureIndex() {
@@ -151,16 +151,16 @@ class EsDataModel {
     let indexName = await this.createIndex();
     this.setAlias(indexName, this.readIndexAlias);
     this.setAlias(indexName, this.writeIndexAlias);
-    
+
     logger.info(`Index ${indexName} created pointing with aliases ${this.readIndexAlias} and ${this.writeIndexAlias}`);
   }
 
   /**
    * @method createIndex
    * @description create new new index with a unique name based on alias name
-   * 
+   *
    * @param {String} name model name to base index name off of
-   * 
+   *
    * @returns {Promise} resolves to string, new index name
    */
   async createIndex() {
@@ -175,7 +175,7 @@ class EsDataModel {
    * @description given a index alias name, find all real indexes that use this name.
    * This is done by querying for all indexes that regex for the alias name.  The indexers
    * index name creation always uses the alias name in the index.
-   * 
+   *
    * @param {String} alias name of alias to find real indexes for
    * @return {Promise} resolves to array of index names
    */
@@ -218,15 +218,15 @@ class EsDataModel {
   async recreateIndex(indexSource) {
     // create new index
     let indexDest = await this.createIndex();
-    
+
     // set new index as new write source
     await this.setAlias(indexDest, this.writeIndexAlias);
 
     // now copy over source indexes data
-    let response = await this.client.reindex({ 
+    let response = await this.client.reindex({
       wait_for_completion : false,
-      body: { 
-        source: { index: indexSource }, 
+      body: {
+        source: { index: indexSource },
         dest: { index: indexDest }
       }
     });
@@ -239,13 +239,13 @@ class EsDataModel {
       roles = [config.finac.agents.public];
     } else if( !roles.includes(config.finac.agents.public) ) {
       roles.push(config.finac.agents.public);
-    } 
+    }
 
     if( !body.query ) body.query = {};
     if( !body.query.bool ) body.query.bool = {};
     if( !body.query.bool.filter ) body.query.bool.filter = [];
     let hasRoles = body.query.bool.filter.findIndex(item => item?.terms?.roles);
-    
+
     if( hasRoles === -1 ) {
       body.query.bool.filter.push({
         terms : {roles}
@@ -277,7 +277,7 @@ class EsDataModel {
         if( role === config.finac.agents.protected ) {
           roles.push(config.finac.agents.protected+'-'+jsonld['@id']);
           roles.push(config.finac.agents.admin);
-          
+
           // add collection access roles
           if( jsonld.isPartOf ) {
             let isPartOf = jsonld.isPartOf;
@@ -314,7 +314,7 @@ class EsDataModel {
         settings : {
           analysis : {
             analyzer: {
-              autocomplete: { 
+              autocomplete: {
                 tokenizer: 'autocomplete',
                 filter: [
                   'lowercase'
