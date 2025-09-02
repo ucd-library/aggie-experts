@@ -188,7 +188,8 @@
     "publisher-place":{"@id":"cite:publisher-place"},
     "rank":{"@id":"vivo:rank"},
     "relatedBy":{
-      "@id":"vivo:relatedBy"
+      "@id":"vivo:relatedBy",
+      "@container": "@set"
     },
     "relates": { "@id":"vivo:relates", "@type":"@id" },
     "researchAreaOf":{"@id":"vivo:researchAreaOf","@type":"@id"},

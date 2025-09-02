@@ -82,7 +82,7 @@ async function run(options={}) {
   let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in webapp format
-  await personToWebapp(options.user, 'TODO', result.assetPath);
+  await personToWebapp(options.user, expertId, result.assetPath);
 
   // Transform in std AE relationships data
   logger.info(`Deleting existing relationship files for user: ${options.user}`);

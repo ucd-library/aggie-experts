@@ -132,7 +132,7 @@ export class CdlClient {
         return {
           writeResp: stats,
           jsonFile,
-          json        
+          json
         };
       }
     }
@@ -173,8 +173,11 @@ export class CdlClient {
     }
     let xml = await resp.text();
 
-    const json = await xmlToJson(xml);
+    let json = await xmlToJson(xml);
     delete json?.feed?.updated; // remove updated field from feed, always breaks the cache
+
+    // filter authors data
+    json = this.updateAuthors(json);
 
     const writeResp = await cache.writeUserAsset('cdl-'+name+'-extract', options.cacheName, jsonFile, json);
 
@@ -207,10 +210,46 @@ export class CdlClient {
   }
 
   /**
+   * @method updateAuthors
+   * @description Update authors in json object, trim to max number of
+   * authors and remove api:addresses depending on options in constructor
+   * @param {Object} json
+   */
+  updateAuthors(json) {
+    let entries = json?.feed?.entry;
+    if( entries ) {
+      if( !Array.isArray(entries) ) entries = [entries];
+
+      entries.forEach(entry => {
+        let records = entry?.['api:relationship']?.['api:related']?.['api:object']?.['api:records']?.['api:record'] || [];
+        Array.isArray(records) || (records = [records]);
+
+        records.forEach((record) => {
+          let fields = record?.['api:native']?.['api:field'] || [];
+          Array.isArray(fields) || (fields = [fields]);
+          fields.forEach((field) => {
+            if( field.name === 'authors' ) {
+              let authors = field?.['api:people']?.['api:person'] || [];
+              Array.isArray(authors) || (authors = [authors]);
+              for (let i = 0; i < (authors.length < this.author_truncate_to ? authors.length : this.author_truncate_to); i++) {
+                if (this.author_trim_info) delete (authors[i]['api:addresses']);
+              }
+              if (authors.length > 1 && this.author_trim_info) delete (authors[authors.length-1]['api:addresses']);
+              authors.splice(this.author_truncate_to, authors.length - this.author_truncate_to - 1);
+            }
+          });
+        });
+      });
+    }
+
+    return json;
+  }
+
+  /**
    * @method getGroupList
    * @description Get user from CDL and post to a fuseki database
    * @param {String} groups - Comma separated list of group IDs or names to get users from.
-   * 
+   *
    * @returns {Promise<void>}
    */
   async getGroupList(group, options={}) {
@@ -275,7 +314,7 @@ export class CdlClient {
    * @param {string} user - The user to get from CDL, can be a mailto: or just the username
    * @param {Object} options - Options for the request
    * @param {boolean} [options.force=false] - If true, will refetch the user even if it exists in the file cache
-   * 
+   *
    * @returns {Promise<void>} - Returns a promise that resolves when the user is fetched and saved
    *
    */
@@ -293,7 +332,7 @@ export class CdlClient {
       const { json, writeResp } = await this.fetch(nextPage, {
         name: 'user',
         cacheName : user,
-        count, 
+        count,
         force: options.force
       });
       writeResps.push(writeResp);
@@ -334,7 +373,7 @@ export class CdlClient {
     }
 
     logger.info(`Removing ${toRemove.length} files from ${dir} that are not in the feed`, {files: toRemove});
-    
+
     for (let file of toRemove) {
       try {
         fs.unlinkSync(file);
@@ -349,7 +388,7 @@ export class CdlClient {
   /**
    * @method getUserRelationships
    * @description Get relationships from CDL
-   * 
+   *
    * @param {string} user - The user to get relationships for, can be a mailto: or just the username
    * @param {Object} options - Options for the request
    * @param {boolean} [options.force=false] - If true, will refetch the relationships even if they exist in the file cache

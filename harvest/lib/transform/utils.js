@@ -1,5 +1,76 @@
 import jsonpath from 'jsonpath';
 
+const WORKS_SOURCE_ORDER = [
+  'verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite',
+  'crossref', 'epmc', 'google-books', 'arxiv', 'orcid', 'dblp',
+  'cinqii-english', 'figshare', 'cinii-japanese', 'manual', 'dspace'
+];
+
+const WORKS_TYPE_MAP = {
+  "book": "book",
+  "chapter": "chapter",
+  "conference": "paper-conference",
+  "journal-article": "article-journal",
+
+  // these are commented out of sparql:
+  // #("dataset" false ucdlib:Work "dataset" "")
+  // #("internet-publication" false ucdlib:Work "webpage" "")
+  // #("media" false ucdlib:Work "article" "media")
+  // #("other" false ucdlib:Work "article" "other")
+  // #("poster" false ucdlib:Work "speech" "poster")
+  // #("preprint" false ucdlib:Preprint "article" "preprint" )
+  // #("presentation" false ucdlib:Work "speech" "presentation")
+  // #("report" false ucdlib:Work "report" "")
+  // #("scholarly-edition" false ucdlib:Work "manuscript" "scholarly-edition")
+  // #("software" false ucdlib:Work "software" "")
+  // #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
+};
+
+const SCHEMA_URI_TYPE_MAP = {
+    "book": "http://schema.org/Book",
+    "chapter": "http://schema.org/Chapter",
+    "conference": "http://schema.org/ScholarlyArticle",
+    "journal-article": "http://schema.org/ScholarlyArticle"
+
+    // as type_map above, others commented out
+  };
+
+/**
+ * @method computeRecordScore
+ * @description Compute a score for a work record based on its source and fields, and a DOI boost.
+ * Summary: the DOI "boost" is a fixed negative adjustment applied to a record's base score
+ *   so records that contain a DOI are strongly preferred. SPARQL computes a numeric score per record
+ *   (source-order position + 1) then subtracts the DOI boost (10 in your code). The query then uses
+ *   MIN(score) per field and returns values from all records whose score equals that minimum.
+ * Effect: a record with a DOI will get score = (order + 1) - DOI_BOOST. Because DOI_BOOST (10)
+ *   is large relative to order differences, any record with a DOI usually wins over records without
+ *   a DOI unless source-order index is very different. If multiple records tie with the same min
+ *   score, SPARQL returns values from all of them.
+ */
+function computeRecordScore(record) {
+  // equiv to sparql code:
+  // BIND((?order + 1) AS ?baseScore)
+  // BIND(IF(EXISTS { ?record :native/:field [ :name "doi" ] } , ?baseScore - 10, ?baseScore) AS ?score)
+  // ...
+  // GROUP BY ?pub ?field_name
+  // BIND(min(?score) AS ?min_score)
+  // # then join back to records where ?score = ?min_score and pull their values
+
+  const DOI_BOOST = 10;
+
+  const source = record && record['source-name'];
+  if (!source) return Infinity;
+  const order = WORKS_SOURCE_ORDER.indexOf(source);
+  if (order === -1) return Infinity;
+  let score = order + 1;
+  const fields = record['api:native']?.['api:field'] || [];
+  // treat presence of a doi field as the boost trigger (case-insensitive safe)
+  if (fields.some(f => f && typeof f.name === 'string' && f.name.toLowerCase() === 'doi')) {
+    score -= DOI_BOOST;
+  }
+  return score;
+}
+
 function sortJsonArrayByIdAndKeys(jsonArray) {
   // sort the array by '@id', then by keys for each
   jsonArray.sort((a, b) => {
@@ -29,11 +100,11 @@ function sortJsonRecursively(obj) {
       .map(item => sortJsonRecursively(item))
       .sort((a, b) => {
         // Sort by @id if both items have it
-        if (a && typeof a === 'object' && a['@id'] && 
+        if (a && typeof a === 'object' && a['@id'] &&
             b && typeof b === 'object' && b['@id']) {
           return a['@id'].localeCompare(b['@id']);
         }
-        
+
         // Fall back to string representation
         const aStr = typeof a === 'string' ? a : JSON.stringify(a);
         const bStr = typeof b === 'string' ? b : JSON.stringify(b);
@@ -57,44 +128,129 @@ function getFieldValue(fields, fieldName) {
   return field?.['api:text'];
 }
 
-// function getBestFieldValue(fieldName, primaryRecord, records) {
-//   // Try primary record first
-//   let value = getFieldValue(primaryRecord['api:native']['api:field'] || [], fieldName);
-//   if (value) return value;
+/**
+ * @method getBestFieldValueFromRecords
+ * @description Get the best field value from records based on a scoring function.
+ * only on known sources, ie WORKS_SOURCE_ORDER from this file
+ */
+function getBestFieldValueFromRecords(fieldName, records, scorer = computeRecordScore) {
+  let bestScore = Infinity;
+  const bestRecords = [];
 
-//   // Fallback to other records for this specific field
-//   const preferredSources = ['manual', 'dspace', 'scopus', 'dimensions', 'crossref'];
-//   for (const sourceName of preferredSources) {
-//     const record = records.find(r => r['source-name'] === sourceName);
-//     if (record && record['api:native'] && record['api:native']['api:field']) {
-//       value = getFieldValue(record['api:native']['api:field'], fieldName);
-//       if (value) return value;
-//     }
-//   }
-//   return null;
-// }
+  for (const rec of records || []) {
+    const fields = rec?.['api:native']?.['api:field'] || [];
+    const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
+    if (!matching.length) continue;
 
-function getBestFieldValueFromRecords(fieldName, records) {
-  // Priority order matching your SPARQL query
-  const sourceOrder = ['manual', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite', 'crossref', 'epmc', 'dspace'];
+    const score = typeof scorer === 'function' ? scorer(rec) : computeRecordScore(rec);
 
-  for (const sourceName of sourceOrder) {
-    const record = records.find(r => r['source-name'] === sourceName);
-    if (record && record['api:native'] && record['api:native']['api:field']) {
-      const value = getFieldValue(record['api:native']['api:field'], fieldName);
-      if (value) return value;
+    // ignore records with unknown/invalid score so they don't tie as "best"
+    if (!isFinite(score)) continue;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestRecords.length = 0;
+      bestRecords.push({ rec, matching });
+    } else if (score === bestScore) {
+      bestRecords.push({ rec, matching });
     }
   }
 
-  // Fallback to any record that has the field
-  for (const record of records) {
-    if (record['api:native'] && record['api:native']['api:field']) {
-      const value = getFieldValue(record['api:native']['api:field'], fieldName);
-      if (value) return value;
+  // fallback: first record that has the field and a known source (match SPARQL behavior)
+  if (bestRecords.length === 0) {
+    for (const rec of records || []) {
+      const source = rec?.['source-name'];
+      const order = WORKS_SOURCE_ORDER.indexOf(source);
+      if (order === -1) continue; // skip unknown sources
+      const fields = rec?.['api:native']?.['api:field'] || [];
+      const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
+      if (matching.length) { bestRecords.push({ rec, matching }); break; }
+    }
+  }
+
+  if (!bestRecords.length) return null;
+
+  // Return the first sensible value from bestRecords (preserve the record order)
+  for (const { matching } of bestRecords) {
+    for (const f of matching) {
+      if (f['api:text']) {
+        return Array.isArray(f['api:text']) ? f['api:text'][0] : f['api:text'];
+      } else if (f['api:url']) {
+        return Array.isArray(f['api:url']) ? f['api:url'][0] : f['api:url'];
+      } else if (f['api:pagination']) {
+        const b = f['api:pagination']['api:begin-page'];
+        const e = f['api:pagination']['api:end-page'];
+        if (b && e) return `${b}-${e}`;
+        if (b) return b;
+      }
     }
   }
 
   return null;
+}
+
+/**
+ * @method getBestFieldValuesFromRecords
+ * @description Get the best field values from records based on a scoring function.
+ * get best record, and return all values for fieldName from the best record
+ * also if 2 sources tie for the best score, then return values from both
+ * this is how the sparql behaved for things like 'title'.
+ * also fallback only on known sources, ie WORKS_SOURCE_ORDER from this file
+ */
+function getBestFieldValuesFromRecords(fieldName, records, scorer = computeRecordScore) {
+  let bestScore = Infinity;
+  const bestRecords = [];
+
+  for (const rec of records || []) {
+    const fields = rec?.['api:native']?.['api:field'] || [];
+    const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
+    if (!matching.length) continue;
+
+    const score = typeof scorer === 'function' ? scorer(rec) : computeRecordScore(rec);
+
+    // ignore records with unknown/invalid score so they don't tie as "best"
+    if (!isFinite(score)) continue;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestRecords.length = 0;
+      bestRecords.push({ rec, matching });
+    } else if (score === bestScore) {
+      bestRecords.push({ rec, matching });
+    }
+  }
+
+  // fallback: first record that has the field and a known source (match SPARQL behavior)
+  if (bestRecords.length === 0) {
+    for (const rec of records || []) {
+      const source = rec?.['source-name'];
+      const order = WORKS_SOURCE_ORDER.indexOf(source);
+      if (order === -1) continue; // skip unknown sources
+      const fields = rec?.['api:native']?.['api:field'] || [];
+      const matching = fields.filter(f => f && f.name === fieldName && (f['api:text'] || f['api:url'] || f['api:pagination']));
+      if (matching.length) { bestRecords.push({ rec, matching }); break; }
+    }
+  }
+
+  const values = [];
+  for (const { matching } of bestRecords) {
+    for (const f of matching) {
+      if (f['api:text']) {
+        if (Array.isArray(f['api:text'])) values.push(...f['api:text']);
+        else values.push(f['api:text']);
+      } else if (f['api:url']) {
+        if (Array.isArray(f['api:url'])) values.push(...f['api:url']);
+        else values.push(f['api:url']);
+      } else if (f['api:pagination']) {
+        const b = f['api:pagination']['api:begin-page'];
+        const e = f['api:pagination']['api:end-page'];
+        if (b && e) values.push(`${b}-${e}`);
+        else if (b) values.push(b);
+      }
+    }
+  }
+
+  return [...new Set(values)];
 }
 
 function getFieldObject(fields, fieldName) {
@@ -106,8 +262,8 @@ function formatDate(dateObj) {
   if (!dateObj) return null;
 
   const year = dateObj['api:year'];
-  const month = dateObj['api:month'];
-  const day = dateObj['api:day'];
+  const month = dateObj['api:month']; // || '01';
+  const day = dateObj['api:day']; // || '01';
 
   if (year && month && day) {
     return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
@@ -149,8 +305,13 @@ export {
   sortJsonRecursively,
   getFieldValue,
   getBestFieldValueFromRecords,
+  getBestFieldValuesFromRecords, // multiple values from same best
   getFieldObject,
   formatDate,
   ensureArray,
-  extractAsArray
+  extractAsArray,
+  computeRecordScore,
+  WORKS_SOURCE_ORDER,
+  WORKS_TYPE_MAP,
+  SCHEMA_URI_TYPE_MAP,
 };
