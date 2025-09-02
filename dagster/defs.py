@@ -41,7 +41,7 @@ def extract_user(context, config: ExtractUserConfig) -> None:
 
   result = exec(cmd)
   for file_info in result.get('files', []):
-    metadata[file_info.get('assetPath')] = f'lastModified: {file_info.get("lastModified", "")}, updated: {not file_info.get("noOp", False)}'
+    metadata[file_info.get('assetPath')] = f'lastModified: {file_info.get("lastModified", "")}, updated: {not file_info.get("local_cache_write", False)}'
 
   context.add_output_metadata(
     metadata=metadata

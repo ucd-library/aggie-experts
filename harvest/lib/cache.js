@@ -77,7 +77,7 @@ class FsCache {
    * @param {String} assetKey asset key (file path)
    * @param {Object|String} data the data to write, can be an object or a string
    *
-   * @returns {Promise<Object>} an object containing the asset path, noOp status, hash, and last modified date
+   * @returns {Promise<Object>} an object containing the asset path, local cache write status, hash, and last modified date
    */
   async writeUserAsset(step, userId, assetKey, data) {
     const assetPath = this.getPath(userId, assetKey);
@@ -94,7 +94,7 @@ class FsCache {
    * @param {String} assetPath full path to the asset file
    * @param {Object|String} data the data to write, can be an object or a string
    *
-   * @returns {Promise<Object>} an object containing the asset path, noOp status, hash, and last modified date
+   * @returns {Promise<Object>} an object containing the asset path, local cache write status, hash, and last modified date
    */
   async write(step, assetPath, data) {
     await fs.ensureDir(path.dirname(assetPath));
@@ -103,16 +103,16 @@ class FsCache {
       data = JSON.stringify(data, null, 2);
     }
 
-    let noOp = false, newHash, existingHash;
+    let localCacheWrite = true, newHash, existingHash;
     if (fs.existsSync(assetPath)) {
       existingHash = await this.hashFile(assetPath);
       newHash = crypto.createHash('sha256').update(data).digest('hex');
       if (existingHash === newHash) {
-        noOp = true;
+        localCacheWrite = false;
       }
     }
 
-    if (noOp === false) {
+    if (localCacheWrite === true) {
       await fs.writeFile(assetPath, data);
     }
 
@@ -141,13 +141,13 @@ class FsCache {
       last_modified: lastModified,
       file_hash: newHash,
       last_file_hash: existingHash,
-      no_op: noOp,
+      local_cache_write: localCacheWrite,
       gcs_write: gcsWrite
     });
 
     return {
       assetPath,
-      noOp, gcsWrite,
+      localCacheWrite, gcsWrite,
       hash: newHash,
       lastModified
     };

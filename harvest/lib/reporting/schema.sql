@@ -22,13 +22,13 @@ CREATE TABLE IF NOT EXISTS file_cache (
   last_modified TIMESTAMP NOT NULL,
   file_hash VARCHAR(64) NOT NULL,
   last_file_hash VARCHAR(64),
-  no_op BOOLEAN,
+  local_cache_write BOOLEAN,
   gcs_write BOOLEAN DEFAULT FALSE
 );
 CREATE INDEX IF NOT EXISTS idx_file_cache_command_id ON file_cache (command_id);
 CREATE INDEX IF NOT EXISTS idx_file_cache_step ON file_cache (step);
 CREATE INDEX IF NOT EXISTS idx_file_cache_timestamp ON file_cache (timestamp);
-CREATE INDEX IF NOT EXISTS no_op_idx ON file_cache (no_op);
+CREATE INDEX IF NOT EXISTS local_cache_write_idx ON file_cache (local_cache_write);
 CREATE INDEX IF NOT EXISTS gcs_write_idx ON file_cache (gcs_write);
 
 CREATE OR REPLACE VIEW command_file_cache AS
@@ -46,7 +46,7 @@ SELECT
   f.last_modified,
   f.file_hash,
   f.last_file_hash,
-  f.no_op,
+  f.local_cache_write,
   f.gcs_write
 FROM
   command c
@@ -68,7 +68,7 @@ SELECT
   last_modified,
   file_hash,
   last_file_hash,
-  no_op,
+  local_cache_write,
   gcs_write
 FROM (
   SELECT *,

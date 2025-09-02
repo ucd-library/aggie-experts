@@ -1,7 +1,15 @@
 ARG DAGSTER_IMAGE
 FROM ${DAGSTER_IMAGE}
 
-RUN apt-get update && apt-get install -y build-essential make
+RUN apt-get update && \
+    apt-get install -y wget gnupg2 lsb-release && \
+    echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/postgres.gpg && \
+    apt-get update && \
+    apt-get install -y \
+    build-essential make \
+    postgresql-client-16 && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/harvest
 WORKDIR /opt/harvest

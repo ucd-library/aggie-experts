@@ -67,14 +67,15 @@ class PgClient {
       last_modified,
       file_hash,
       last_file_hash,
-      no_op
+      local_cache_write,
+      gcs_write
     } = opts;
 
     const query = `
-          INSERT INTO ${this.schema}.file_cache (command_id, step, file_path, last_modified, file_hash, last_file_hash, no_op)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+          INSERT INTO ${this.schema}.file_cache (command_id, step, file_path, last_modified, file_hash, last_file_hash, local_cache_write, gcs_write)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `;
-    return this.query(query, [command_id, step, file_path, last_modified, file_hash, last_file_hash, no_op]);
+    return this.query(query, [command_id, step, file_path, last_modified, file_hash, last_file_hash, local_cache_write, gcs_write]);
   }
 
   insertError(opts) {
