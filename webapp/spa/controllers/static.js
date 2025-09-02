@@ -14,58 +14,6 @@ module.exports = async (app) => {
   // path to your spa assets dir
   let assetsDir = path.join(__dirname, '..', 'client', config.client.assets);
 
-  console.log('config.client.appRoutes', config.client.appRoutes);
-
-  // normalize appRoutes -> array of valid path strings ("/foo", "/bar")
-  // const normalizeRoutes = (rawRoutes = []) => {
-  //   const out = [];
-  //   for (const r of rawRoutes) {
-  //     if (!r) continue;
-  //     let s = String(r).trim();
-  //     // if full URL, take the pathname
-  //     try {
-  //       if (s.startsWith('http://') || s.startsWith('https://')) {
-  //         const u = new URL(s);
-  //         s = u.pathname || '/';
-  //       }
-  //     } catch (e) {
-  //       // ignore
-  //     }
-  //     // drop querystring / fragment
-  //     s = s.split('?')[0].split('#')[0];
-  //     // ensure leading slash
-  //     if (!s.startsWith('/')) s = '/' + s;
-  //     // collapse multiple slashes and remove trailing slash (except root)
-  //     s = s.replace(/\/+/g, '/').replace(/\/+$/, '') || '/';
-  //     out.push(s);
-  //   }
-  //   return out;
-  // };
-  // const appRoutes = normalizeRoutes(config.client.appRoutes);
-  // // log any suspicious originals
-  // config.client.appRoutes.forEach((r, i) => {
-  //   const nr = appRoutes[i];
-  //   if (!nr || nr.includes('?') || nr.startsWith('http')) {
-  //     console.warn('WARN: appRoute normalized from', r, '->', nr);
-  //   }
-  // });
-  // console.log('NORMALIZED appRoutes', appRoutes);
-
-  // // build safe RegExp patterns to match route + any trailing path
-  // const appRoutePatterns = appRoutes.map(r => {
-  //   // escape the path so hyphens etc are literal
-  //   const esc = r.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  //   // match the path and anything after it
-  //   return new RegExp('^' + esc + '(?:.*)$');
-  // });
-  // console.log('APP ROUTE PATTERNS', appRoutePatterns);
-  // Ensure routes end with a slash so middleware appends '*' -> '/foo/*' (valid)
-  // const spaAppRoutes = appRoutes.map(r => {
-  //   if (r === '/') return r; // root stays root
-  //   return r.endsWith('/') ? r : r + '/';
-  // });
-  // console.log('SPA appRoutes (with trailing slash):', spaAppRoutes);
-
   /**
    * Setup SPA app routes
    */
@@ -81,9 +29,6 @@ module.exports = async (app) => {
 
     // array of root paths.  ie appRoutes = ['foo', 'bar'] to server /foo/* /bar/*
     appRoutes : config.client.appRoutes,
-    // appRoutes : appRoutes,
-    // appRoutes: appRoutePatterns,
-    // appRoutes: spaAppRoutes,
 
     // options for express.static(dir, opts)
     static : {

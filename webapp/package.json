@@ -14,7 +14,7 @@
     "@elastic/elasticsearch": "^9.1.1",
     "@ucd-lib/cork-app-load": "^0.3.2",
     "@ucd-lib/logger": "^0.0.7",
-    "@ucd-lib/spa-router-middleware": "^0.2.3",
+    "@ucd-lib/spa-router-middleware": "^0.2.4",
     "@wesleytodd/openapi": "^1.0.0",
     "body-parser": "^2.2.0",
     "citation-js": "^0.7.20",

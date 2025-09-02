@@ -8,7 +8,8 @@ RUN mkdir -p /app
 COPY package.json package-lock.json ./
 
 # Install all deps (including devDeps) so postinstall can run, then remove devDeps
-RUN npm ci && npm prune --production
+# RUN npm ci && npm prune --production
+RUN npm ci --include=dev
 
 # Copy the rest of the application code
 COPY lib ./lib
