@@ -8,6 +8,9 @@ docker-compose.yaml
 services/base-service/spa/client/public/bundle.js
 services/base-service/spa/client/public/js/
 services/base-service/spa/client/dist/
+webapp/spa/client/public/bundle.js
+webapp/spa/client/public/js/
+webapp/spa/client/dist/
 /log/
 test-data
 ae-harvest-cache

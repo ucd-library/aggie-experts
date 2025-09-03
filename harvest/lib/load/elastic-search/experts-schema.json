@@ -1,3 +1,235 @@
 {
-  "dynamic" : false
+  "dynamic" : false,
+  "properties" : {
+    "modified-date": {
+        "type": "date"
+    },
+    "@id" : {
+      "type" : "keyword"
+    },
+    "is-visible" : {
+      "type" : "boolean"
+    },
+    "hasAvailability": {
+      "properties" : {
+        "prefLabel" : {
+          "type": "keyword",
+          "normalizer": "identifier",
+          "ignore_above": 128
+        }
+      }
+    },
+    "@type" : {
+      "type" : "keyword",
+      "normalizer": "lowercase_ascii",
+      "ignore_above": 128
+    },
+    "type" : {
+      "type" : "keyword",
+      "normalizer": "lowercase_ascii",
+      "ignore_above": 128
+    },
+    "status": {
+      "type": "keyword",
+      "normalizer": "lowercase_ascii",
+      "ignore_above": 128
+    },
+    "name" : {
+      "type" : "text",
+      "analyzer" : "title",
+      "index_prefixes" : {
+        "min_chars" : 1,
+        "max_chars" : 7
+      },
+      "fields" : {
+        "kw" : {
+          "type" : "keyword",
+          "normalizer" : "title_start"
+        },
+        "first" : {
+          "type" : "keyword",
+          "normalizer" : "starts_with"
+        }
+      }
+    },
+    "lastmodified": {
+      "type": "date"
+    },
+    "@graph": {
+      "type": "nested",
+      "properties" : {
+        "@id" : {
+          "type" : "keyword",
+          "normalizer" : "identifier",
+          "ignore_above" : 256
+        },
+        "relates" : {
+          "type" : "keyword",
+          "normalizer" : "identifier"
+        },
+        "@type" : { "type" : "keyword" },
+        "is-visible" : { "type" : "boolean" },
+        "identifier" : {
+          "type" : "keyword",
+
+          "normalizer" : "identifier",
+          "ignore_above": 128
+        },
+        "contactInfo" : {
+          "properties" : {
+            "hasEmail": {
+              "type":  "keyword",
+              "normalizer" : "identifier",
+              "ignore_above": 128
+            },
+            "hasTitle":{
+              "properties" : {
+                "name" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                }
+              }
+            },
+            "hasOrganizationalUnit":{
+              "properties" : {
+                "name" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                }
+              }
+            },
+            "hasName" : {
+              "properties" : {
+                "family" : {
+                   "type" : "text",
+                  "analyzer" : "default"
+                },
+                "middle" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                },
+                "given" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                }
+              }
+            },
+            "hasURL": {
+              "properties" : {
+                "name" : {
+                  "type" : "text",
+                  "analyzer" : "default"
+                },
+                "url" : {
+                  "type" : "keyword",
+                  "normalizer" : "identifier",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "hasName" : {
+          "properties" : {
+            "family" : {
+              "type" : "text",
+              "analyzer" : "default",
+              "index_prefixes" : {
+                "min_chars" : 1,
+                "max_chars" : 7
+              },
+              "fields": {
+                "kw": {
+                  "type":  "keyword",
+                  "normalizer" : "lowercase_ascii"
+                }
+              }
+            },
+            "middle" : {
+              "type" : "text",
+              "analyzer" : "default"
+            },
+            "given" : {
+              "type" : "text",
+              "analyzer" : "default",
+              "index_prefixes" : {
+                "min_chars" : 1,
+                "max_chars" : 7
+              },
+              "fields": {
+                "kw": {
+                  "type":  "keyword",
+                  "normalizer" : "lowercase_ascii"
+                }
+              }
+            }
+          }
+        },
+        "dateTimeInterval" : {
+          "properties" : {
+            "start" : {
+              "properties" : {
+                "dateTime" : {
+                  "type" : "date",
+                  "format" : "date"
+                }
+              }
+            },
+            "end" : {
+              "properties" : {
+                "dateTime" : {
+                  "type" : "date",
+                  "format" : "date"
+                }
+              }
+            }
+          }
+        },
+        "name" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "orcidId" : {
+          "type":  "keyword",
+          "normalizer" : "identifier",
+          "ignore_above": 64
+        },
+        "overview" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "DOI" : {
+          "type":  "keyword",
+          "normalizer": "identifier",
+          "ignore_above": 128
+        },
+        "abstract" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "container-title" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "publisher" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "title" : {
+          "type" : "text",
+          "analyzer" : "default"
+        },
+        "relatedBy" : {
+          "properties" : {
+            "is-visible" : {
+              "type" : "boolean"
+            }
+          }
+        }
+       }
+    },
+    "roles": {
+      "type": "keyword"
+    }
+  }
 }
