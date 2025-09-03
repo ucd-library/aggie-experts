@@ -2,7 +2,7 @@
 const EsDataModel = require('../../lib/es-model.js');
 const logger = require('../../lib/logger.js');
 const config = require('../../lib/config.js');
-const models = require('../../lib/models.js');
+// const models = require('../../lib/models.js');
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
 
@@ -596,13 +596,24 @@ class BaseModel extends EsDataModel {
    * @description returns a model for a given type
    */
   async get_model(model) {
-    const method=model+'Model';
-    if (!(method in this)) {
-      this.method = (await models.get(model)).model;
-//      console.log(`get_model: ${model} not found, loading...`);
+    // TODO not sure on this
+    let esModel;
+    if (model === 'grant') {
+      esModel = require('../grant/model.js');
+    } else if (model === 'work') {
+      esModel = require('../work/model.js');
+    } else {
+      esModel = require('../expert/model.js');
     }
-//    console.log(`get_model: ${model} found`,this.method);
-    return this.method;
+    return esModel;
+    // return esModel;
+//     const method=model+'Model';
+//     if (!(method in this)) {
+//       this.method = (await models.get(model)).model;
+// //      console.log(`get_model: ${model} not found, loading...`);
+//     }
+// //    console.log(`get_model: ${model} found`,this.method);
+//     return this.method;
   }
 
   async update(jsonld) {

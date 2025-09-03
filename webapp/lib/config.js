@@ -18,9 +18,9 @@ const config = {
 
   oidc : {
     port : env.OIDC_PORT || 3000,
-    clientId : env.OIDC_CLIENT_ID,
+    clientId : env.OIDC_CLIENT_ID || '',
     baseUrl : env.OIDC_BASE_URL || 'https://auth.library.ucdavis.edu/realms/aggie-experts',
-    secret : env.OIDC_SECRET,
+    secret : env.OIDC_SECRET || '',
     scopes : env.OIDC_SCOPES || 'roles openid profile email',
     serviceName : env.OIDC_SERVICE_NAME || 'keycloak-oidc',
     roleIgnoreList : [
@@ -51,7 +51,7 @@ const config = {
   },
 
   elasticsearch: {
-    connStr: env.ELASTICSEARCH_CONN_STR || 'http://localhost:9200',
+    connStr: env.ELASTICSEARCH_CONN_STR || 'http://elasticsearch:9200',
     username: env.ELASTICSEARCH_USERNAME || 'elastic',
     password: env.ELASTICSEARCH_PASSWORD || 'changeme',
   },
@@ -62,7 +62,7 @@ const config = {
   },
 
   server : {
-      url : env.AE_EXPERTS_SERVER_URL || 'https://experts.ucdavis.edu'
+      url : env.AE_EXPERTS_SERVER_URL || 'https//spa:3000'
   }
 
 }

@@ -16,4 +16,4 @@ COPY lib ./lib
 COPY models ./models
 COPY spa ./spa
 
-CMD ["node", "spa/index.js"]
+RUN cd spa && npm run dist

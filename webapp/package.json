@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dist": "cd spa/client && ./dist.sh",
-    "watch": "cd spa/client && ./watch.sh"
+    "watch": "cd spa/client && ./watch.sh",
+    "gateway": "node lib/proxy/index.js",
+    "spa": "node spa/index.js",
+    "api": "node lib/api.js"
   },
   "author": "qjhart@ucdavis.edu",
   "license": "ISC",
@@ -17,7 +20,6 @@
     "@ucd-lib/spa-router-middleware": "^0.2.4",
     "@wesleytodd/openapi": "^1.0.0",
     "body-parser": "^2.2.0",
-    "citation-js": "^0.7.20",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-openid-connect": "^2.19.2",
@@ -26,6 +28,7 @@
     "jsonld": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
+    "md5": "^2.3.0",
     "node-fetch": "^2.7.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",

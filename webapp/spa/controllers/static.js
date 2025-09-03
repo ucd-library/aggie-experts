@@ -3,6 +3,7 @@ const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 // const esClient = require('@ucd-lib/fin-service-utils').esClient;
 const esClient = require('../../lib/es-client.js');
+const logger = require('../../lib/logger.js');
 
 // for seo
 let experts = require('../../models/expert/index.js');
@@ -13,6 +14,7 @@ module.exports = async (app) => {
 
   // path to your spa assets dir
   let assetsDir = path.join(__dirname, '..', 'client', config.client.assets);
+  logger.info('SPA assets directory', assetsDir);
 
   /**
    * Setup SPA app routes

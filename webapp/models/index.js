@@ -5,5 +5,5 @@ module.exports = {
   grant: require('./grant/index.js'),
   sitefarm: require('./sitefarm/index.js'),
   miv: require('./miv/index.js'),
-  schema: require('./schema/index.js'),
+  // schema: require('./schema/index.js'),
 }

@@ -48,7 +48,7 @@ async function init() {
       if( swagger?.info ) {
         swaggerDefinition.info = swagger.info;
       }
-      apis.push('api/'+name); 
+      apis.push('api/'+name);
     } catch (e) {
       logger.error('Error loading swagger for '+name, e);
     }
@@ -58,14 +58,14 @@ async function init() {
   }
 
   apis.push('api/controllers/*.js');
-  
+
   const options = {
     swaggerDefinition,
     apis,
   };
-  
+
   const swaggerSpec = swaggerJSDoc(options);
-  
+
   router.get('/', (req, res) => {
     res.json(swaggerSpec);
   });

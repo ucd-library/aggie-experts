@@ -20,7 +20,7 @@ app.use(bodyParser.json());
 
 // setup proxy
 let proxy = httpProxy.createProxyServer({
-  ignorePath : true,
+  ignorePath : false,
   timeout: config.proxy.timeout,
   proxyTimeout: config.proxy.proxyTimeout,
 });
@@ -28,8 +28,9 @@ proxy.on('error', e => {
   logger.error('http-proxy error', e.message, e.stack);
 });
 
-// setup oidc auth 
-auth(app);
+// TODO ask JM
+// setup oidc auth
+// auth(app);
 
 app.use('/api', (req, res) => {
   proxy.web(req, res, {
