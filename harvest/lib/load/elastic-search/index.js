@@ -7,18 +7,36 @@ import logger from '../../logger.js';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 async function loadFiles(id, files) {
-  const results = [];
-  for (const file of files) {
-    results.push(... (await loadFile(file))['@graph']);
-  }
+  // const results = [];
+  // for (const file of files) {
+  //   results.push(... (await loadFile(file))['@graph']);
+  // }
+
+  // const esClient = await getEsClient();
+  // await esClient.index({
+  //   index: config.elasticsearch.indexes.experts,
+  //   id: id,
+  //   body: {
+  //     '@id': `info:fedora/${id}`,
+  //     '@graph': results
+  //   }
+  // });
+
+  // TEMP, should we handle multiple files? will need to identify expert vs work/grant
+  const webappData = await loadFile(files[0]);
+  const expertId = webappData['@id'];
 
   const esClient = await getEsClient();
   await esClient.index({
     index: config.elasticsearch.indexes.experts,
-    id: id,
+    id: expertId,
     body: {
-      '@id': `info:fedora/${id}`,
-      '@graph': results
+      '@id': expertId,
+      '@graph': webappData['@graph'],
+      name: webappData.name,
+      'is-visible': webappData['is-visible'],
+      contactInfo: webappData.contactInfo,
+      '@type': 'Expert'
     }
   });
 }
@@ -40,14 +58,12 @@ async function initSchema() {
   const indexExists = await esClient.indices.exists({ index: config.elasticsearch.indexes.experts });
   if (!indexExists) {
     logger.info(`Creating index: ${config.elasticsearch.indexes.experts}`);
-    await esClient.indices.create({ index: config.elasticsearch.indexes.experts });
-
-    await esClient.indices.putMapping({
+    await esClient.indices.create({
       index: config.elasticsearch.indexes.experts,
       body: schema
     });
   } else {
-    logger.info(`Index already exists: ${config.elasticsearch.indexes.experts}, no schema changes applied.`); 
+    logger.info(`Index already exists: ${config.elasticsearch.indexes.experts}, no schema changes applied.`);
   }
 }
 
