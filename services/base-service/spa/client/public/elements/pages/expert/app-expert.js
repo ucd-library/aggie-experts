@@ -328,8 +328,9 @@ export default class AppExpert extends Mixin(LitElement)
    *
    * @param {Boolean} all load all citations, not just first 10, used for downloading all citations
    * @param {Object} apiResponse optional response from ExpertModel.get
+   * @param {Boolean} isDownload indicate if this is a download request, to include favourites, and not reset local data
    */
-  async _loadCitations(all=false, apiResponse={}) {
+  async _loadCitations(all=false, apiResponse={}, isDownload=false) {
     let citations = all ? JSON.parse(JSON.stringify((apiResponse['@graph'] || []).filter(g => g.issued))) : JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     citations = citations.map(c => {
@@ -338,35 +339,27 @@ export default class AppExpert extends Mixin(LitElement)
       return citation;
     });
 
-    if( !all ) this.citations = citations;
+    if( !all && !isDownload ) this.citations = citations;
 
     let citationResults = all ? await Citation.generateCitations(citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
     citationResults = citationResults.map(c => c.value || c.reason?.data);
 
-    // TODO this needs to handle not showing favourites, so a new network request would need to be made..
-    // console.log('TODO handle moving featured citations to top of works list or into main list');
-    // if( this.showFeaturedCitations ) {
-    //   // filter featured citations from all citationResults
-    // } else {
-    //   // show all citations in works list
-    // }
+    let featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
+        ? c.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+        : c.relatedBy && c.relatedBy['ucdlib:favourite'] === true
+      );
 
-    this.featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
-            ? c.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
-            : c.relatedBy && c.relatedBy['ucdlib:favourite'] === true
-    );
-
-    if( this.featuredCitations.length ) {
+    if( featuredCitations.length ) {
       // ensure sorted by year descending
-      this.featuredCitations.sort((a, b) => {
+      featuredCitations.sort((a, b) => {
         let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
         let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
         return bYear - aYear;
       });
 
-      this.featuredCitations = this.featuredCitations.slice(0, 5);
+      featuredCitations = featuredCitations.slice(0, 5);
 
-      citationResults = citationResults.filter(c => !this.featuredCitations.includes(c));
+      if( !isDownload ) citationResults = citationResults.filter(c => !featuredCitations.includes(c));
       citationResults.sort((a, b) => {
         let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
         let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
@@ -392,8 +385,11 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( all ) return citationResults;
 
-    this.citationsDisplayed = citationResults;
-    this.requestUpdate();
+    if( !isDownload ) {
+      this.citationsDisplayed = citationResults;
+      this.featuredCitations = featuredCitations;
+      this.requestUpdate();
+    }
   }
 
   /**
@@ -412,10 +408,11 @@ export default class AppExpert extends Mixin(LitElement)
         includeGrants : false,
         worksSize : 10000,
         includeHidden : false
-      })
+      }),
+      true
     );
 
-    let allCitations = await this._loadCitations(true, res.payload);
+    let allCitations = await this._loadCitations(true, res.payload, true);
 
     let text = allCitations.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
