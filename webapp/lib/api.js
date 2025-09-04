@@ -2,7 +2,9 @@ const express = require('express');
 const swaggerJSDoc = require('swagger-jsdoc');
 const logger = require('./logger.js');
 const models = require('./models.js');
+const config = require('./config.js')
 
+const app = express();
 
 const swaggerDefinition = {
   openapi: '3.0.0',
@@ -26,8 +28,10 @@ const swaggerDefinition = {
 async function init() {
   let apis = [];
   let names = await models.names();
+  logger.info(`Found ${names.length} API(s)`, { names });
   for( let name of names ) {
     let {api, swagger} = await models.get(name);
+    logger.info(`Found API for ${name}`, { api, swagger });
     if( !api ) continue;
 
     try {
@@ -54,7 +58,7 @@ async function init() {
     }
 
     logger.info(`Registering api routes for ${name} at /api/${name}`);
-    router.use('/'+name, api);
+    app.use('/'+name, api);
   }
 
   apis.push('api/controllers/*.js');
@@ -66,11 +70,23 @@ async function init() {
 
   const swaggerSpec = swaggerJSDoc(options);
 
-  router.get('/', (req, res) => {
+  app.get('/', (req, res) => {
     res.json(swaggerSpec);
   });
 
-  return router;
+  return app;
 }
 
 module.exports = init;
+
+if( require.main === module ) {
+  const port = config.api.port;
+  init().then(app => {
+    app.listen(port, () => {
+      logger.info(`API server listening on port ${port}`);
+    });
+  }).catch(err => {
+    logger.error('Failed to start API server:', err);
+    process.exit(1);
+  });
+}

@@ -1,30 +1,30 @@
 const router = require('express').Router();
-const { browse_endpoint, item_endpoint, openapi } = require('../middleware/index.js')
+const { browse_endpoint, item_endpoint, /*openapi*/ } = require('../middleware/index.js')
 const { public_or_is_user, valid_path, valid_path_error } = require('../middleware/index.js')
 
 const WorkModel = require('./model.js');
 const model = new WorkModel();
 
-openapi.schema('work',
-  {
-    type: 'object',
-    properties: {
-      "@id": { type: 'string' },
-      "@type": { type: Array, items: { type: 'string' } },
-    }
-  });
+// openapi.schema('work',
+//   {
+//     type: 'object',
+//     properties: {
+//       "@id": { type: 'string' },
+//       "@type": { type: Array, items: { type: 'string' } },
+//     }
+//   });
 
-openapi.response(
-  'work',
-  {
-    "description": "work",
-    "content": {
-      "application/json": {
-        "schema": openapi.schema('work')
-      }
-    }
-  }
-);
+// openapi.response(
+//   'work',
+//   {
+//     "description": "work",
+//     "content": {
+//       "application/json": {
+//         "schema": openapi.schema('work')
+//       }
+//     }
+//   }
+// );
 
 function subselect(req, res, next) {
   try {
@@ -49,17 +49,17 @@ function subselect(req, res, next) {
 router.get(
   '/search',
   public_or_is_user,
-  valid_path(
-    {
-      description: `Returns matching search results for ${model.name}s.`,
-      parameters: ['q', 'page', 'size'],
-      responses: {
-        "200": openapi.response('Search'),
-        "400": openapi.response('Invalid_request')
-      }
-    }
-  ),
-  valid_path_error,
+  // valid_path(
+  //   {
+  //     description: `Returns matching search results for ${model.name}s.`,
+  //     parameters: ['q', 'page', 'size'],
+  //     responses: {
+  //       "200": openapi.response('Search'),
+  //       "400": openapi.response('Invalid_request')
+  //     }
+  //   }
+  // ),
+  // valid_path_error,
   async (req, res) => {
     const template=model.search_template;
     delete(template.query);

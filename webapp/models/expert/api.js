@@ -9,7 +9,7 @@ const ExpertModel = require('./model.js');
 const model = new ExpertModel();
 
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
-const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
+const { /*openapi,*/ json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
 
 function subselect(req, res, next) {
   try {
@@ -30,13 +30,13 @@ function subselect(req, res, next) {
   }
 }
 
-router.get('/', (req, res) => {
-  res.redirect('/api/expert/openapi.json');
-});
+// router.get('/', (req, res) => {
+//   res.redirect('/api/expert/openapi.json');
+// });
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
-router.use(openapi);
+// router.use(openapi);
 
 browse_endpoint(router,model);
 
@@ -69,38 +69,38 @@ router.patch('/:expertId/availability',
 router.route(
   '/:expertId/:relationshipId'
 ).patch(
-  expert_valid_path(
-    {
-      description: "Update an expert relationship by id",
-      // hack, in the validate.js makeValidator() func of the npm package,
-      // it's looking for schema.requestBody.content to build from, and can't use the ref returned from openapi.requestBodies()
-      requestBody: {
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "@id": {
-                  "type": "string"
-                },
-                "visible": {
-                  "type": 'boolean'
-                },
-                "grant": {
-                  "type": 'boolean'
-                }
-              }
-            }
-          }
-        }
-      },
-      responses: {
-        "204": openapi.response('No_content'),
-        "404": openapi.response('Relationship_not_found')
-      }
-    }
-  ),
-  expert_valid_path_error,
+  // expert_valid_path(
+  //   {
+  //     description: "Update an expert relationship by id",
+  //     // hack, in the validate.js makeValidator() func of the npm package,
+  //     // it's looking for schema.requestBody.content to build from, and can't use the ref returned from openapi.requestBodies()
+  //     requestBody: {
+  //       "content": {
+  //         "application/json": {
+  //           "schema": {
+  //             "type": "object",
+  //             "properties": {
+  //               "@id": {
+  //                 "type": "string"
+  //               },
+  //               "visible": {
+  //                 "type": 'boolean'
+  //               },
+  //               "grant": {
+  //                 "type": 'boolean'
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     },
+  //     responses: {
+  //       "204": openapi.response('No_content'),
+  //       "404": openapi.response('Relationship_not_found')
+  //     }
+  //   }
+  // ),
+  // expert_valid_path_error,
   user_can_edit,
   json_only,
   async (req, res, next) => {
@@ -123,16 +123,16 @@ router.route(
     }
   }
 ).delete(
-  expert_valid_path(
-    {
-      description: "Update an expert relationship by id",
-      responses: {
-        "204": openapi.response('No_content'),
-        "404": openapi.response('Relationship_not_found')
-      }
-    }
-  ),
-  expert_valid_path_error,
+  // expert_valid_path(
+  //   {
+  //     description: "Update an expert relationship by id",
+  //     responses: {
+  //       "204": openapi.response('No_content'),
+  //       "404": openapi.response('Relationship_not_found')
+  //     }
+  //   }
+  // ),
+  // expert_valid_path_error,
   user_can_edit,
   async (req, res, next) => {
     // logger.info(`DELETE ${req.url}`);
@@ -207,28 +207,28 @@ function expert_valid_path_error(err, req, res, next) {
 router.route(
   '/:expertId'
 ).get(
-  expert_valid_path(
-    {
-      description: "Get all expert data by id",
-      responses: {
-        "200": openapi.response(model.name),
-        "400": openapi.response('missing_id'),
-        "403": openapi.response('forbidden'),
-        "404": openapi.response('not_found')
-      }
-    //   parameters: {
-    //     "id": {
-    //       "name": "id",
-    //       "in": "path",
-    //       "description": "identifier",
-    //       "required": true,
-    //       "schema": { "type": "string" }
-    //     }
-    //   }
-    }
-    ),
+  // expert_valid_path(
+  //   {
+  //     description: "Get all expert data by id",
+  //     responses: {
+  //       "200": openapi.response(model.name),
+  //       "400": openapi.response('missing_id'),
+  //       "403": openapi.response('forbidden'),
+  //       "404": openapi.response('not_found')
+  //     }
+  //   //   parameters: {
+  //   //     "id": {
+  //   //       "name": "id",
+  //   //       "in": "path",
+  //   //       "description": "identifier",
+  //   //       "required": true,
+  //   //       "schema": { "type": "string" }
+  //   //     }
+  //   //   }
+  //   }
+  //   ),
   public_or_is_user,
-  expert_valid_path_error,
+  // expert_valid_path_error,
   async (req, res, next) => {
     let expertId = `expert/${req.params.expertId}`;
     let includeHidden = req.query['include'] === 'hidden';
@@ -278,118 +278,118 @@ router.route(
   '/:expertId'
 ).post(
   public_or_is_user,
-  expert_valid_path(
-    {
-      description: "Get an expert by id",
-      requestBody: {
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "is-visible": {
-                  "type": "boolean"
-                },
-                "expert": {
-                  "type": "object",
-                  "properties": {
-                    "include": {
-                      "type": "boolean"
-                    }
-                  }
-                },
-                "grants": {
-                  "type": "object",
-                  "properties": {
-                    "include": {
-                      "type": "boolean"
-                    },
-                    "page": {
-                      "type": "integer"
-                    },
-                    "size": {
-                      "type": "integer"
-                    },
-                    "exclude": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "includeMisformatted": {
-                      "type": "boolean"
-                    },
-                    "sort": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "sort": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "works": {
-                  "type": "object",
-                  "properties": {
-                    "include": {
-                      "type": "boolean"
-                    },
-                    "page": {
-                      "type": "integer"
-                    },
-                    "size": {
-                      "type": "integer"
-                    },
-                    "exclude": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "includeMisformatted": {
-                      "type": "boolean"
-                    },
-                    "sort": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "field": {
-                            "type": "string"
-                          },
-                          "sort": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      responses: {
-        "200": openapi.response('Expert'),
-        "404": openapi.response('Expert_not_found')
-      }
-    }
-  ),
-  expert_valid_path_error,
+  // expert_valid_path(
+  //   {
+  //     description: "Get an expert by id",
+  //     requestBody: {
+  //       "content": {
+  //         "application/json": {
+  //           "schema": {
+  //             "type": "object",
+  //             "properties": {
+  //               "is-visible": {
+  //                 "type": "boolean"
+  //               },
+  //               "expert": {
+  //                 "type": "object",
+  //                 "properties": {
+  //                   "include": {
+  //                     "type": "boolean"
+  //                   }
+  //                 }
+  //               },
+  //               "grants": {
+  //                 "type": "object",
+  //                 "properties": {
+  //                   "include": {
+  //                     "type": "boolean"
+  //                   },
+  //                   "page": {
+  //                     "type": "integer"
+  //                   },
+  //                   "size": {
+  //                     "type": "integer"
+  //                   },
+  //                   "exclude": {
+  //                     "type": "array",
+  //                     "items": {
+  //                       "type": "string"
+  //                     }
+  //                   },
+  //                   "includeMisformatted": {
+  //                     "type": "boolean"
+  //                   },
+  //                   "sort": {
+  //                     "type": "array",
+  //                     "items": {
+  //                       "type": "object",
+  //                       "properties": {
+  //                         "field": {
+  //                           "type": "string"
+  //                         },
+  //                         "sort": {
+  //                           "type": "string"
+  //                         },
+  //                         "type": {
+  //                           "type": "string"
+  //                         }
+  //                       }
+  //                     }
+  //                   }
+  //                 }
+  //               },
+  //               "works": {
+  //                 "type": "object",
+  //                 "properties": {
+  //                   "include": {
+  //                     "type": "boolean"
+  //                   },
+  //                   "page": {
+  //                     "type": "integer"
+  //                   },
+  //                   "size": {
+  //                     "type": "integer"
+  //                   },
+  //                   "exclude": {
+  //                     "type": "array",
+  //                     "items": {
+  //                       "type": "string"
+  //                     }
+  //                   },
+  //                   "includeMisformatted": {
+  //                     "type": "boolean"
+  //                   },
+  //                   "sort": {
+  //                     "type": "array",
+  //                     "items": {
+  //                       "type": "object",
+  //                       "properties": {
+  //                         "field": {
+  //                           "type": "string"
+  //                         },
+  //                         "sort": {
+  //                           "type": "string"
+  //                         },
+  //                         "type": {
+  //                           "type": "string"
+  //                         }
+  //                       }
+  //                     }
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     },
+  //     responses: {
+  //       "200": openapi.response('Expert'),
+  //       "404": openapi.response('Expert_not_found')
+  //     }
+  //   }
+  // ),
+  // expert_valid_path_error,
   async (req, res, next) => {
     let expertId = `expert/${req.params.expertId}`;
     try {
@@ -404,32 +404,32 @@ router.route(
     res.status(200).json(res.thisDoc);
   }
 ).patch(
-  expert_valid_path(
-    {
-      description: "Update an experts visibility by expert id",
-      requestBody: {
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "@id": {
-                  "type": "string"
-                },
-                "visible": {
-                  "type": 'boolean'
-                }
-              }
-            }
-          }
-        }
-      },
-      responses: {
-        "204": openapi.response('No_content')
-      }
-    }
-  ),
-  expert_valid_path_error,
+  // expert_valid_path(
+  //   {
+  //     description: "Update an experts visibility by expert id",
+  //     requestBody: {
+  //       "content": {
+  //         "application/json": {
+  //           "schema": {
+  //             "type": "object",
+  //             "properties": {
+  //               "@id": {
+  //                 "type": "string"
+  //               },
+  //               "visible": {
+  //                 "type": 'boolean'
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     },
+  //     responses: {
+  //       "204": openapi.response('No_content')
+  //     }
+  //   }
+  // ),
+  // expert_valid_path_error,
   user_can_edit,
   json_only,
   async (req, res, next) => {
@@ -444,15 +444,15 @@ router.route(
     }
   }
 ).delete(
-  expert_valid_path(
-    {
-      description: "Delete an expert by id",
-      responses: {
-        "204": openapi.response('Expert_deleted')
-      }
-    }
-  ),
-  expert_valid_path_error,
+  // expert_valid_path(
+  //   {
+  //     description: "Delete an expert by id",
+  //     responses: {
+  //       "204": openapi.response('Expert_deleted')
+  //     }
+  //   }
+  // ),
+  // expert_valid_path_error,
   user_can_edit,
   async (req, res, next) => {
     try {
