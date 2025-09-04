@@ -446,7 +446,8 @@ export default class AppExpert extends Mixin(LitElement)
         includeWorks : false,
         grantsSize : 10000,
         includeHidden : false
-      })
+      }),
+      true
     );
 
     let allGrants = JSON.parse(JSON.stringify((res?.payload?.['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
