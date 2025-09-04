@@ -368,7 +368,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         includeGrants : false,
         worksSize : 10000,
         includeHidden : true
-      })
+      }),
+      true
     );
 
     let allCitations = await this._loadCitations(true, res.payload);
