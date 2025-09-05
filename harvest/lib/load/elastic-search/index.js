@@ -6,39 +6,39 @@ import logger from '../../logger.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
-async function loadFiles(id, files) {
-  // const results = [];
-  // for (const file of files) {
-  //   results.push(... (await loadFile(file))['@graph']);
-  // }
-
-  // const esClient = await getEsClient();
-  // await esClient.index({
-  //   index: config.elasticsearch.indexes.experts,
-  //   id: id,
-  //   body: {
-  //     '@id': `info:fedora/${id}`,
-  //     '@graph': results
-  //   }
-  // });
-
-  // TEMP, should we handle multiple files? will need to identify expert vs work/grant
-  const webappData = await loadFile(files[0]);
-  const expertId = webappData['@id'];
-
+async function insert(index, id, body) {
   const esClient = await getEsClient();
-  await esClient.index({
-    index: config.elasticsearch.indexes.experts,
-    id: expertId,
-    body: {
-      '@id': expertId,
-      '@graph': webappData['@graph'],
-      name: webappData.name,
-      'is-visible': webappData['is-visible'],
-      contactInfo: webappData.contactInfo,
-      '@type': 'Expert'
-    }
+  return esClient.index({
+    index: index,
+    id: id,
+    body: body
   });
+}
+
+async function loadFiles(files) {
+  for (const file of files) {
+    let filename = path.parse(file).base;
+    let parts = filename.split('.');
+    console.log({filename, parts});
+    if( parts[0] !== 'webapp' ) {
+      logger.info(`Skipping non-webapp file: ${filename}`);
+      continue;
+    }
+
+    let index = '';
+    if( parts[1] === 'expert' ) index = config.elasticsearch.indexes.experts;
+
+    if( !index ) {
+      logger.info(`Skipping index file: ${filename}`);
+      continue;
+    }
+
+    let contents = await loadFile(file);
+    let id = contents['@id'] || contents.id || contents._id;
+    logger.info(`Loading file=${filename} into index=${index} with id=${id}`);
+
+    await insert(index, id, contents);
+  }
 }
 
 async function loadFile(file) {

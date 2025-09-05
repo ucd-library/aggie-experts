@@ -9,7 +9,7 @@ async function run(user) {
   
   const webappDir = cache.getPath(user, config.cache.aeWebappDir);
   const files = findJsonldFiles(webappDir);
-  await loadEs(user, files);
+  await loadEs(files);
   logger.info(`Loaded data into elastic search for user: ${user}`);
 }
 
