@@ -13,8 +13,8 @@ class EsDataModel {
 
     this.UPDATE_RETRY_COUNT = 10;
 
-    this.readIndexAlias = modelName+'-read';
-    this.writeIndexAlias = modelName+'-write';
+    this.readIndexAlias = modelName+'s';
+    this.writeIndexAlias = modelName+'s';
 
     this.client = es;
   }
@@ -36,7 +36,7 @@ class EsDataModel {
     identifier.shift();
     identifier = '/'+identifier.join('/');
 
-    let result = await this.esSearch({
+      let result = await this.esSearch({
         from: 0,
         size: 1,
         query: {
