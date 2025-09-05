@@ -13,7 +13,7 @@ program
   .option('--drop-es-schema', 'Drop the ElasticSearch schema before initializing')
   .action(async (opts={}) => {
     let errors = [];
-    
+
     if (opts.dropEsSchema) {
       try {
         logger.info('Dropping existing ElasticSearch schema for aggie experts...');
@@ -31,9 +31,9 @@ program
       errors.push(`Error initializing ElasticSearch schema: ${error.message}`);
     }
 
+    const pgClient = new PgClient();
     try {
       logger.info('Initializing PostgreSQL schema for aggie experts...');
-      const pgClient = new PgClient();
       await pgClient.connect();
       await pgClient.queryFromFile(config.postgres.schemaFile);
       logger.info('PostgreSQL schema initialized successfully.');
