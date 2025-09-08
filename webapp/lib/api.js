@@ -1,4 +1,5 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const swaggerJSDoc = require('swagger-jsdoc');
 const logger = require('./logger.js');
 const models = require('./models.js');
@@ -58,10 +59,8 @@ async function init() {
     }
 
     logger.info(`Registering api routes for ${name} at /api/${name}`);
-    app.use('/'+name, api);
+    app.use('/'+name, bodyParser.json(), api);
   }
-
-  apis.push('api/controllers/*.js');
 
   const options = {
     swaggerDefinition,
@@ -77,16 +76,11 @@ async function init() {
   return app;
 }
 
-module.exports = init;
-
-if( require.main === module ) {
-  const port = config.api.port;
-  init().then(app => {
-    app.listen(port, () => {
-      logger.info(`API server listening on port ${port}`);
-    });
-  }).catch(err => {
-    logger.error('Failed to start API server:', err);
-    process.exit(1);
+init().then(app => {
+  app.listen(config.api.port, () => {
+    logger.info(`API server listening on port ${config.api.port}`);
   });
-}
+}).catch(err => {
+  logger.error('Error initializing API', err);
+  process.exit(1);
+});

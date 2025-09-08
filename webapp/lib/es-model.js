@@ -36,25 +36,16 @@ class EsDataModel {
     identifier.shift();
     identifier = '/'+identifier.join('/');
 
-      let result = await this.esSearch({
+    let result = await this.esSearch({
         from: 0,
         size: 1,
         query: {
-          bool : {
-            should : [
-              {term : {'@graph.identifier.raw' : identifier}},
-              {term: {'@graph.@id': id}},
-              {term: {'@id': id}}
-            ],
-            minimum_should_match: 1
-          }
+          term: { '@id': id }
         }
-      },
-      {
+      }, {
         _source_excludes,
         roles: opts.roles
-      },
-      index
+      }, index
     );
 
     if( result.hits.total.value >= 1 ) {

@@ -1,7 +1,7 @@
 const config = require('../config.js');
 const logger = require('../logger.js');
 const express = require('express');
-const bodyParser = require('body-parser');
+// const bodyParser = require('body-parser');
 const cors = require('cors');
 const auth = require('./oidc.js');
 const httpProxy = require('http-proxy');
@@ -16,7 +16,7 @@ app.use(cors());
 app.use(logReqMiddleware(logger, {
   debug : [/^\/health\/?/]
 }));
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
 
 // setup proxy
 let proxy = httpProxy.createProxyServer({
