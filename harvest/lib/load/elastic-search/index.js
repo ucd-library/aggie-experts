@@ -24,7 +24,7 @@ async function loadFiles(files) {
       logger.info(`Skipping non-webapp file: ${filename}`);
       continue;
     }
-     
+
     let index = '';
     if( parts[1] === 'expert' ) index = config.elasticsearch.indexes.experts;
 
@@ -58,14 +58,12 @@ async function initSchema() {
   const indexExists = await esClient.indices.exists({ index: config.elasticsearch.indexes.experts });
   if (!indexExists) {
     logger.info(`Creating index: ${config.elasticsearch.indexes.experts}`);
-    await esClient.indices.create({ index: config.elasticsearch.indexes.experts });
-
-    await esClient.indices.putMapping({
+    await esClient.indices.create({
       index: config.elasticsearch.indexes.experts,
       body: schema
     });
   } else {
-    logger.info(`Index already exists: ${config.elasticsearch.indexes.experts}, no schema changes applied.`); 
+    logger.info(`Index already exists: ${config.elasticsearch.indexes.experts}, no schema changes applied.`);
   }
 }
 

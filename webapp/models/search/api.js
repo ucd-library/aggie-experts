@@ -12,50 +12,50 @@ const works = new WorkModel();
 
 // const {config} = require('@ucd-lib/fin-service-utils');
 
-const { openapi, public_or_is_user } = require('../middleware/index.js')
+const { /*openapi,*/ public_or_is_user } = require('../middleware/index.js')
 
-function search_valid_path(options={}) {
-  const def = {
-    "description": "Search of experts and grants",
-    "parameters": [],
-  };
+// function search_valid_path(options={}) {
+//   const def = {
+//     "description": "Search of experts and grants",
+//     "parameters": [],
+//   };
 
-  (options.parameters || []).forEach((param) => {
-    def.parameters.push(openapi.parameters(param));
-  });
+//   (options.parameters || []).forEach((param) => {
+//     def.parameters.push(openapi.parameters(param));
+//   });
 
-  delete options.parameters;
+//   delete options.parameters;
 
-  return openapi.validPath({...def, ...options});
-}
+//   return openapi.validPath({...def, ...options});
+// }
 
-function search_valid_path_error(err, req, res, next) {
-  return res.status(err.status).json({
-    error: err.message,
-    validation: err.validationErrors,
-    schema: err.validationSchema
-  })
-}
+// function search_valid_path_error(err, req, res, next) {
+//   return res.status(err.status).json({
+//     error: err.message,
+//     validation: err.validationErrors,
+//     schema: err.validationSchema
+//   })
+// }
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
-router.use(openapi);
+// router.use(openapi);
 
 router.get(
   '/',
   public_or_is_user,
-  search_valid_path(
-    {
-      description: "Returns matching search results, including the number of matching works and grants",
-      parameters: ['p', 'page', 'size',
-                   '@type', 'type', 'status','availability','expert'],
-      responses: {
-        "200": openapi.response('Search'),
-        "400": openapi.response('Invalid_request')
-      }
-    }
-  ),
-  search_valid_path_error,
+  // search_valid_path(
+  //   {
+  //     description: "Returns matching search results, including the number of matching works and grants",
+  //     parameters: ['p', 'page', 'size',
+  //                  '@type', 'type', 'status','availability','expert'],
+  //     responses: {
+  //       "200": openapi.response('Search'),
+  //       "400": openapi.response('Invalid_request')
+  //     }
+  //   }
+  // ),
+  // search_valid_path_error,
   async (req, res) => {
     const params = {
       "@type":['expert','grant','work'],

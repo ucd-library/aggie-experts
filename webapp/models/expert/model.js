@@ -97,12 +97,12 @@ class ExpertModel extends BaseModel {
         if (node['@type'].includes('Person')) {
           seo["@graph"].push(this.to_seo(node));
         }
-        if (node['@type'].includes('Work')) {
-          seo["@graph"].push(workModel.to_seo(node));
-        }
-        if (node['@type'].includes('Grant')) {
-          seo["@graph"].push(grantModel.to_seo(node));
-        }
+        // if (node['@type'].includes('Work')) {
+        //   seo["@graph"].push(workModel.to_seo(node));
+        // }
+        // if (node['@type'].includes('Grant')) {
+        //   seo["@graph"].push(grantModel.to_seo(node));
+        // }
       }
     });
     return JSON.stringify(seo);

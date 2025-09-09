@@ -1,235 +1,418 @@
 {
-  "dynamic" : false,
-  "properties" : {
-    "modified-date": {
-        "type": "date"
+  "settings": {
+    "index": {
+      "max_inner_result_window": 1000,
+      "default_pipeline": "aggie-experts-pipeline"
     },
-    "@id" : {
-      "type" : "keyword"
-    },
-    "is-visible" : {
-      "type" : "boolean"
-    },
-    "hasAvailability": {
-      "properties" : {
-        "prefLabel" : {
-          "type": "keyword",
-          "normalizer": "identifier",
-          "ignore_above": 128
+    "analysis": {
+      "char_filter": {
+        "doi_to_url": {
+          "type": "pattern_replace",
+          "pattern": "\\b(/|doi:|https://doi.org/)?(10\\.\\d{4,})\\b",
+          "replacement": "http://doi.org/$2"
+        },
+        "xxx_to_doi": {
+          "type": "pattern_replace",
+          "pattern": "^(/|doi:|https?://doi.org/)?(10\\.\\d{4,})",
+          "replacement": "doi:$2"
+        },
+        "orcid_to_url": {
+          "type": "pattern_replace",
+          "pattern": "\\b(https?://oricid.org/|orcid:)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])",
+          "replacement": "https://orcid.org/$2"
+        },
+        "xxx_to_orcid": {
+          "type": "pattern_replace",
+          "pattern": "^(https?://oricid.org/|orcid:)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])",
+          "replacement": "https://orcid.org/$2"
+        },
+        "mailto_to_email": {
+          "type": "pattern_replace",
+          "pattern": "\\bmailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})\\b",
+          "replacement": "$1"
+        },
+        "email_to_mailto": {
+          "type": "pattern_replace",
+          "pattern": "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})",
+          "replacement": "mailto:$1"
+        },
+        "ark_to_n2t": {
+          "type": "pattern_replace",
+          "pattern": "\\b(ark:\\/\\d+\\/[a-zA-Z0-9_-]+)\\b",
+          "replacement": "http://n2t.net/$1"
+        },
+        "urn_to_n2t": {
+          "type": "pattern_replace",
+          "pattern": "\\b(urn:[a-zA-Z0-9][a-zA-Z0-9-]{0,31}:([a-zA-Z0-9()+,-.:=@;$_!*'%/?#]|%[0-9a-fA-F]{2})+)\\b",
+          "replacement": "http://n2t.net/$1"
+        },
+        "n2t_to_id": {
+          "type": "pattern_replace",
+          "pattern": "^https?://n2t.net/(.*)",
+          "replacement": "$1"
+        },
+        "text_mapper": {
+          "type": "mapping",
+          "mappings": ["& => and "]
+        },
+        "article_filter": {
+          "type": "pattern_replace",
+          "pattern": "^(The|A|An)\\s+",
+          "replacement": ""
+        },
+        "leading_space_filter": {
+          "type": "pattern_replace",
+          "pattern": "^\\s+",
+          "replacement": ""
+        },
+        "truncate_filter": {
+          "type": "pattern_replace",
+          "pattern": "^(.{1,128}).*",
+          "replacement": "$1"
+        },
+        "first_letter_filter": {
+          "type": "pattern_replace",
+          "pattern": "^(.).*",
+          "replacement": "$1"
+        },
+        "non_letter_filter": {
+          "type": "pattern_replace",
+          "pattern": "^(?s)(?i)([^a-z])",
+          "replacement": "other"
         }
-      }
-    },
-    "@type" : {
-      "type" : "keyword",
-      "normalizer": "lowercase_ascii",
-      "ignore_above": 128
-    },
-    "type" : {
-      "type" : "keyword",
-      "normalizer": "lowercase_ascii",
-      "ignore_above": 128
-    },
-    "status": {
-      "type": "keyword",
-      "normalizer": "lowercase_ascii",
-      "ignore_above": 128
-    },
-    "name" : {
-      "type" : "text",
-      "analyzer" : "title",
-      "index_prefixes" : {
-        "min_chars" : 1,
-        "max_chars" : 7
       },
-      "fields" : {
-        "kw" : {
-          "type" : "keyword",
-          "normalizer" : "title_start"
+      "filter": {
+        "email_to_mailto": {
+          "type": "pattern_replace",
+          "pattern": "([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})",
+          "replacement": "mailto:$1"
         },
-        "first" : {
-          "type" : "keyword",
-          "normalizer" : "starts_with"
+        "n2t_to_id": {
+          "type": "pattern_replace",
+          "pattern": "https?://n2t.net/(.*)",
+          "replacement": "$1"
+        },
+        "xxx_to_orcid": {
+          "type": "pattern_replace",
+          "pattern": "(https?://oricid.org/|orcid:)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])",
+          "replacement": "https://orcid.org/$2"
+        },
+        "xxx_to_doi": {
+          "type": "pattern_replace",
+          "pattern": "(/|doi:|https://doi.org/)?(10\\.\\d{4,})",
+          "replacement": "doi:$2"
+        }
+      },
+      "normalizer": {
+        "identifier": {
+          "type": "custom",
+          "char_filter": [
+            "xxx_to_doi",
+            "xxx_to_orcid",
+            "email_to_mailto",
+            "n2t_to_id"
+          ],
+          "filter": ["lowercase"]
+        },
+        "lowercase_ascii": {
+          "type": "custom",
+          "filter": ["lowercase", "asciifolding"]
+        },
+        "starts_with": {
+          "type": "custom",
+          "char_filter": [
+            "leading_space_filter",
+            "article_filter",
+            "first_letter_filter",
+            "non_letter_filter"
+          ],
+          "filter": ["lowercase", "asciifolding"]
+        },
+        "title_start": {
+          "type": "custom",
+          "char_filter": [
+            "leading_space_filter",
+            "article_filter",
+            "truncate_filter"
+          ],
+          "filter": ["lowercase", "asciifolding"]
+        }
+      },
+      "analyzer": {
+        "default": {
+          "type": "custom",
+          "tokenizer": "uax_url_email",
+          "char_filter": [
+            "leading_space_filter",
+            "text_mapper",
+            "doi_to_url",
+            "orcid_to_url",
+            "mailto_to_email",
+            "ark_to_n2t",
+            "urn_to_n2t",
+            "article_filter"
+          ],
+          "filter": [
+            "email_to_mailto",
+            "xxx_to_doi",
+            "xxx_to_orcid",
+            "n2t_to_id",
+            "lowercase",
+            "asciifolding"
+          ]
+        },
+        "title": {
+          "type": "custom",
+          "tokenizer": "uax_url_email",
+          "char_filter": [
+            "leading_space_filter",
+            "text_mapper",
+            "doi_to_url",
+            "orcid_to_url",
+            "mailto_to_email",
+            "ark_to_n2t",
+            "urn_to_n2t"
+          ],
+          "filter": [
+            "email_to_mailto",
+            "xxx_to_doi",
+            "xxx_to_orcid",
+            "n2t_to_id",
+            "lowercase",
+            "asciifolding"
+          ]
+        },
+        "autocomplete": {
+          "tokenizer": "autocomplete",
+          "filter": ["lowercase"]
+        },
+        "autocomplete_search": {
+          "tokenizer": "lowercase"
+        }
+      },
+      "tokenizer": {
+        "autocomplete": {
+          "type": "edge_ngram",
+          "min_gram": 1,
+          "max_gram": 20,
+          "token_chars": ["letter", "digit"]
         }
       }
-    },
-    "lastmodified": {
-      "type": "date"
-    },
-    "@graph": {
-      "type": "nested",
-      "properties" : {
-        "@id" : {
-          "type" : "keyword",
-          "normalizer" : "identifier",
-          "ignore_above" : 256
-        },
-        "relates" : {
-          "type" : "keyword",
-          "normalizer" : "identifier"
-        },
-        "@type" : { "type" : "keyword" },
-        "is-visible" : { "type" : "boolean" },
-        "identifier" : {
-          "type" : "keyword",
-
-          "normalizer" : "identifier",
-          "ignore_above": 128
-        },
-        "contactInfo" : {
-          "properties" : {
-            "hasEmail": {
-              "type":  "keyword",
-              "normalizer" : "identifier",
-              "ignore_above": 128
-            },
-            "hasTitle":{
-              "properties" : {
-                "name" : {
-                  "type" : "text",
-                  "analyzer" : "default"
-                }
-              }
-            },
-            "hasOrganizationalUnit":{
-              "properties" : {
-                "name" : {
-                  "type" : "text",
-                  "analyzer" : "default"
-                }
-              }
-            },
-            "hasName" : {
-              "properties" : {
-                "family" : {
-                   "type" : "text",
-                  "analyzer" : "default"
-                },
-                "middle" : {
-                  "type" : "text",
-                  "analyzer" : "default"
-                },
-                "given" : {
-                  "type" : "text",
-                  "analyzer" : "default"
-                }
-              }
-            },
-            "hasURL": {
-              "properties" : {
-                "name" : {
-                  "type" : "text",
-                  "analyzer" : "default"
-                },
-                "url" : {
-                  "type" : "keyword",
-                  "normalizer" : "identifier",
-                  "ignore_above": 256
-                }
-              }
-            }
+    }
+  },
+  "mappings": {
+    "dynamic": false,
+    "properties": {
+      "modified-date": { "type": "date" },
+      "@id": { "type": "keyword" },
+      "is-visible": { "type": "boolean" },
+      "hasAvailability": {
+        "properties": {
+          "prefLabel": {
+            "type": "keyword",
+            "normalizer": "identifier",
+            "ignore_above": 128
           }
-        },
-        "hasName" : {
-          "properties" : {
-            "family" : {
-              "type" : "text",
-              "analyzer" : "default",
-              "index_prefixes" : {
-                "min_chars" : 1,
-                "max_chars" : 7
+        }
+      },
+      "@type": {
+        "type": "keyword",
+        "normalizer": "lowercase_ascii",
+        "ignore_above": 128
+      },
+      "type": {
+        "type": "keyword",
+        "normalizer": "lowercase_ascii",
+        "ignore_above": 128
+      },
+      "status": {
+        "type": "keyword",
+        "normalizer": "lowercase_ascii",
+        "ignore_above": 128
+      },
+      "name": {
+        "type": "text",
+        "analyzer": "title",
+        "index_prefixes": { "min_chars": 1, "max_chars": 7 },
+        "fields": {
+          "kw": {
+            "type": "keyword",
+            "normalizer": "title_start"
+          },
+          "first": {
+            "type": "keyword",
+            "normalizer": "starts_with"
+          }
+        }
+      },
+      "lastmodified": { "type": "date" },
+      "@graph": {
+        "type": "nested",
+        "properties": {
+          "@id": {
+            "type": "keyword",
+            "normalizer": "identifier",
+            "ignore_above": 256
+          },
+          "relates": {
+            "type": "keyword",
+            "normalizer": "identifier"
+          },
+          "@type": { "type": "keyword" },
+          "is-visible": { "type": "boolean" },
+          "identifier": {
+            "type": "keyword",
+            "normalizer": "identifier",
+            "ignore_above": 128
+          },
+          "contactInfo": {
+            "properties": {
+              "hasEmail": {
+                "type": "keyword",
+                "normalizer": "identifier",
+                "ignore_above": 128
               },
-              "fields": {
-                "kw": {
-                  "type":  "keyword",
-                  "normalizer" : "lowercase_ascii"
+              "hasTitle": {
+                "properties": {
+                  "name": {
+                    "type": "text",
+                    "analyzer": "default"
+                  }
                 }
-              }
-            },
-            "middle" : {
-              "type" : "text",
-              "analyzer" : "default"
-            },
-            "given" : {
-              "type" : "text",
-              "analyzer" : "default",
-              "index_prefixes" : {
-                "min_chars" : 1,
-                "max_chars" : 7
               },
-              "fields": {
-                "kw": {
-                  "type":  "keyword",
-                  "normalizer" : "lowercase_ascii"
+              "hasOrganizationalUnit": {
+                "properties": {
+                  "name": {
+                    "type": "text",
+                    "analyzer": "default"
+                  }
+                }
+              },
+              "hasName": {
+                "properties": {
+                  "family": {
+                    "type": "text",
+                    "analyzer": "default"
+                  },
+                  "middle": {
+                    "type": "text",
+                    "analyzer": "default"
+                  },
+                  "given": {
+                    "type": "text",
+                    "analyzer": "default"
+                  }
+                }
+              },
+              "hasURL": {
+                "properties": {
+                  "name": {
+                    "type": "text",
+                    "analyzer": "default"
+                  },
+                  "url": {
+                    "type": "keyword",
+                    "normalizer": "identifier",
+                    "ignore_above": 256
+                  }
                 }
               }
             }
-          }
-        },
-        "dateTimeInterval" : {
-          "properties" : {
-            "start" : {
-              "properties" : {
-                "dateTime" : {
-                  "type" : "date",
-                  "format" : "date"
+          },
+          "hasName": {
+            "properties": {
+              "family": {
+                "type": "text",
+                "analyzer": "default",
+                "index_prefixes": { "min_chars": 1, "max_chars": 7 },
+                "fields": {
+                  "kw": {
+                    "type": "keyword",
+                    "normalizer": "lowercase_ascii"
+                  }
                 }
-              }
-            },
-            "end" : {
-              "properties" : {
-                "dateTime" : {
-                  "type" : "date",
-                  "format" : "date"
+              },
+              "middle": {
+                "type": "text",
+                "analyzer": "default"
+              },
+              "given": {
+                "type": "text",
+                "analyzer": "default",
+                "index_prefixes": { "min_chars": 1, "max_chars": 7 },
+                "fields": {
+                  "kw": {
+                    "type": "keyword",
+                    "normalizer": "lowercase_ascii"
+                  }
                 }
               }
             }
-          }
-        },
-        "name" : {
-          "type" : "text",
-          "analyzer" : "default"
-        },
-        "orcidId" : {
-          "type":  "keyword",
-          "normalizer" : "identifier",
-          "ignore_above": 64
-        },
-        "overview" : {
-          "type" : "text",
-          "analyzer" : "default"
-        },
-        "DOI" : {
-          "type":  "keyword",
-          "normalizer": "identifier",
-          "ignore_above": 128
-        },
-        "abstract" : {
-          "type" : "text",
-          "analyzer" : "default"
-        },
-        "container-title" : {
-          "type" : "text",
-          "analyzer" : "default"
-        },
-        "publisher" : {
-          "type" : "text",
-          "analyzer" : "default"
-        },
-        "title" : {
-          "type" : "text",
-          "analyzer" : "default"
-        },
-        "relatedBy" : {
-          "properties" : {
-            "is-visible" : {
-              "type" : "boolean"
+          },
+          "dateTimeInterval": {
+            "properties": {
+              "start": {
+                "properties": {
+                  "dateTime": {
+                    "type": "date",
+                    "format": "date"
+                  }
+                }
+              },
+              "end": {
+                "properties": {
+                  "dateTime": {
+                    "type": "date",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          },
+          "name": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "orcidId": {
+            "type": "keyword",
+            "normalizer": "identifier",
+            "ignore_above": 64
+          },
+          "overview": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "DOI": {
+            "type": "keyword",
+            "normalizer": "identifier",
+            "ignore_above": 128
+          },
+          "abstract": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "container-title": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "publisher": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "title": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "relatedBy" : {
+            "properties" : {
+              "is-visible" : {
+                "type" : "boolean"
+              }
             }
           }
         }
-       }
-    },
-    "roles": {
-      "type": "keyword"
+      },
+      "roles": { "type": "keyword" }
     }
   }
 }

@@ -5,7 +5,7 @@ const config = {
   url : env.AE_URL || 'http://localhost:3000',
 
   models : {
-    rootDir : env.AE_MODEL_ROOT || '/fin/services/models'
+    rootDir : env.AE_MODEL_ROOT || '/app/models'
   },
 
   client : {
@@ -14,6 +14,7 @@ const config = {
 
   api : {
     serviceHost : env.AE_API_SERVICE_NAME || 'http://api:3000',
+    port : env.AE_API_PORT || 3000
   },
 
   oidc : {

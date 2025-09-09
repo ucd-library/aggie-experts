@@ -12,7 +12,7 @@ const base = new BaseModel();
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
 
-const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
+const { /*openapi,*/ json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
 
 
 function siteFarmFormat(req, res, next) {
@@ -107,43 +107,43 @@ function siteFarmFormat(req, res, next) {
 }
 
 
-function sitefarm_valid_path(options={}) {
-  const def = {
-    "description": "A JSON array of expert profiles including their publications",
-    "parameters": [
-      {
-        "in": "path",
-        "name": "ids",
-        "description": "A comma separated list of expert IDs. Ids are in the format of '{idType}:{Id}'. For example 'expertId:12345'",
-        "required": true,
-        "schema": {
-          "type": "string"
-        }
-      }
-    ],
-  };
+// function sitefarm_valid_path(options={}) {
+//   const def = {
+//     "description": "A JSON array of expert profiles including their publications",
+//     "parameters": [
+//       {
+//         "in": "path",
+//         "name": "ids",
+//         "description": "A comma separated list of expert IDs. Ids are in the format of '{idType}:{Id}'. For example 'expertId:12345'",
+//         "required": true,
+//         "schema": {
+//           "type": "string"
+//         }
+//       }
+//     ],
+//   };
 
-  (options.parameters || []).forEach((param) => {
-    def.parameters.push(openapi.parameters(param));
-  });
+//   (options.parameters || []).forEach((param) => {
+//     def.parameters.push(openapi.parameters(param));
+//   });
 
-  delete options.parameters;
+//   delete options.parameters;
 
-  return openapi.validPath({...def, ...options});
-}
+//   return openapi.validPath({...def, ...options});
+// }
 
-function sitefarm_valid_path_error(err, req, res, next) {
-  return res.status(err.status).json({
-    error: err.message,
-    validation: err.validationErrors,
-    schema: err.validationSchema
-  })
-}
+// function sitefarm_valid_path_error(err, req, res, next) {
+//   return res.status(err.status).json({
+//     error: err.message,
+//     validation: err.validationErrors,
+//     schema: err.validationSchema
+//   })
+// }
 
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
-router.use(openapi);
+// router.use(openapi);
 
 const path = require('path');
 
@@ -155,17 +155,17 @@ router.get('/', (req, res) => {
 
 router.get(
   '/experts/:ids',
-  sitefarm_valid_path(
-    {
-      description: "Returns a JSON array of expert profiles",
-      responses: {
-        "200": openapi.response('Successful_operation'),
-        "400": openapi.response('Invalid_ID_supplied'),
-        "404": openapi.response('Expert_not_found')
-      }
-    }
-  ),
-  sitefarm_valid_path_error,
+  // sitefarm_valid_path(
+  //   {
+  //     description: "Returns a JSON array of expert profiles",
+  //     responses: {
+  //       "200": openapi.response('Successful_operation'),
+  //       "400": openapi.response('Invalid_ID_supplied'),
+  //       "404": openapi.response('Expert_not_found')
+  //     }
+  //   }
+  // ),
+  // sitefarm_valid_path_error,
   validate_admin_client,
   validate_miv_client,
   has_access('sitefarm'),

@@ -13,8 +13,8 @@ class EsDataModel {
 
     this.UPDATE_RETRY_COUNT = 10;
 
-    this.readIndexAlias = modelName+'-read';
-    this.writeIndexAlias = modelName+'-write';
+    this.readIndexAlias = modelName+'s';
+    this.writeIndexAlias = modelName+'s';
 
     this.client = es;
   }
@@ -40,21 +40,12 @@ class EsDataModel {
         from: 0,
         size: 1,
         query: {
-          bool : {
-            should : [
-              {term : {'@graph.identifier.raw' : identifier}},
-              {term: {'@graph.@id': id}},
-              {term: {'@id': id}}
-            ],
-            minimum_should_match: 1
-          }
+          term: { '@id': id }
         }
-      },
-      {
+      }, {
         _source_excludes,
         roles: opts.roles
-      },
-      index
+      }, index
     );
 
     if( result.hits.total.value >= 1 ) {

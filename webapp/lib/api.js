@@ -1,8 +1,11 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const swaggerJSDoc = require('swagger-jsdoc');
 const logger = require('./logger.js');
 const models = require('./models.js');
+const config = require('./config.js')
 
+const app = express();
 
 const swaggerDefinition = {
   openapi: '3.0.0',
@@ -26,8 +29,10 @@ const swaggerDefinition = {
 async function init() {
   let apis = [];
   let names = await models.names();
+  logger.info(`Found ${names.length} API(s)`, { names });
   for( let name of names ) {
     let {api, swagger} = await models.get(name);
+    logger.info(`Found API for ${name}`, { api, swagger });
     if( !api ) continue;
 
     try {
@@ -54,10 +59,8 @@ async function init() {
     }
 
     logger.info(`Registering api routes for ${name} at /api/${name}`);
-    router.use('/'+name, api);
+    app.use('/'+name, bodyParser.json(), api);
   }
-
-  apis.push('api/controllers/*.js');
 
   const options = {
     swaggerDefinition,
@@ -66,11 +69,18 @@ async function init() {
 
   const swaggerSpec = swaggerJSDoc(options);
 
-  router.get('/', (req, res) => {
+  app.get('/', (req, res) => {
     res.json(swaggerSpec);
   });
 
-  return router;
+  return app;
 }
 
-module.exports = init;
+init().then(app => {
+  app.listen(config.api.port, () => {
+    logger.info(`API server listening on port ${config.api.port}`);
+  });
+}).catch(err => {
+  logger.error('Error initializing API', err);
+  process.exit(1);
+});
