@@ -18,6 +18,7 @@ config.client = {
   gaId : process.env.GA4_MEASUREMENT_ID || '',
   assets : (env === 'prod') ? 'dist' : 'public',
   appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse', 'grant', 'work', 'search-tips'],
+  dagsterJobName : process.env.DAGSTER_JOB_NAME || 'etl_users_job',
   versions : {
     bundle : clientPackageVersion,
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')
@@ -36,7 +37,7 @@ config.client = {
     },
     experts: {
       is_public : ! (process.env.EXPERTS_IS_PUBLIC === "false")
-    },
+    }
   },
   env : {
     CLIENT_ENV : env,

@@ -152,6 +152,58 @@ class ExpertService extends BaseService {
     });
   }
 
+  /* DAGSTER / CDL integration */
+  async runJobPartition(jobName, partitionName) {
+    return this.request({
+      url : '/api/harvest/run-job-partition',
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({ partitionName, jobName })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async getLastRunForId(runId) {
+    return this.request({
+      url : `/api/harvest/run/${runId}`,
+      fetchOptions : {
+        method : 'GET',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({ runId })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async getLastRunForPartition(jobName, partitionName) {
+    return this.request({
+      url : '/api/harvest/last-runs-for-partition',
+      fetchOptions : {
+        method : 'GET',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({ partition: partitionName, jobName })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
 }
 
 module.exports = new ExpertService();

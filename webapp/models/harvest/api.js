@@ -47,3 +47,5 @@ router.get('/last-runs-for-partition', user_can_edit, async (req, res, next) => 
     next(error);
   }
 });
+
+module.exports = router;

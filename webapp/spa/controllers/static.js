@@ -55,7 +55,7 @@ module.exports = async (app) => {
           const esResult = await esClient.get(
             {
               ...{
-                index: 'expert-read',
+                index: 'experts',
                 id: user.expertId,
                 _source: false
               }
@@ -74,6 +74,7 @@ module.exports = async (app) => {
       next({
         user,
         appRoutes : config.client.appRoutes,
+        dagsterJobName : config.client.dagsterJobName,
         env : config.client.env,
         enableGA4Stats : config.client.enableGA4Stats,
         gaId : config.client.gaId,
