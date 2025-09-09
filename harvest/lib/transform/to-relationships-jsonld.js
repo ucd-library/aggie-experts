@@ -14,7 +14,8 @@ import { sortJsonRecursively } from './utils.js';
 
 function extractElementsUserId(rel) {
   // Find the node in @graph with an id matching /users/<digits>/relationships
-  const nodes = rel['@graph'] || [];
+  let nodes = rel['@graph'] || [];
+  if( nodes && !Array.isArray(nodes) ) nodes = [nodes];
   for (const node of nodes) {
     if (typeof node.id === 'string') {
       const match = node.id.match(/\/users\/(\d+)\/relationships/);

@@ -237,6 +237,7 @@ function updateGrantRelatedByRelates(compacted) {
  * @param {Object} compacted - The compacted JSON-LD document
 */
 function promoteExpertNodeToRoot(compacted, config) {
+  if( typeof compacted["is-visible"] === 'object' ) delete compacted["is-visible"];
   // Find the expert node
   const expertNode = compacted["@graph"].find(
     n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
@@ -251,8 +252,10 @@ function promoteExpertNodeToRoot(compacted, config) {
     "@type": "Expert"
   };
 
+  if( typeof expertNode["is-visible"] === 'object' ) delete expertNode["is-visible"];
+
   // Add visibility
-  if (expertNode["is-visible"] !== undefined) {
+  if( expertNode["is-visible"] !== undefined ) {
     doc["is-visible"] = expertNode["is-visible"];
   }
   if (expertNode["hasAvailability"]) {

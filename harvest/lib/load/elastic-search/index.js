@@ -19,7 +19,7 @@ async function loadFiles(files) {
   for (const file of files) {
     let filename = path.parse(file).base;
     let parts = filename.split('.');
-    console.log({filename, parts});
+    // console.log({filename, parts});
     if( parts[0] !== 'webapp' ) {
       logger.info(`Skipping non-webapp file: ${filename}`);
       continue;
