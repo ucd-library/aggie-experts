@@ -11,6 +11,10 @@ COPY package.json package-lock.json ./
 # RUN npm ci && npm prune --production
 RUN npm ci --include=dev
 
+RUN mkdir -p ./spa/client/public
+COPY spa/client/public/package.json ./spa/client/public/package-lock.json ./spa/client/public/
+RUN cd ./spa/client/public && npm ci --include=dev
+
 # Copy the rest of the application code
 COPY lib ./lib
 COPY models ./models

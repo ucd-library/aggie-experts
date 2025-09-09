@@ -13,6 +13,9 @@
           "DAGSTER_IMAGE=${project-anduin.dagster}"
         ]
       }
+    },
+    "webapp" : {
+      "contextPath" : "./webapp"
     }
   }
 }
