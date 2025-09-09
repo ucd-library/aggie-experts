@@ -81,13 +81,13 @@ async function run(options={}) {
   // Transform in std AE Person data
   let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
-  // Transform in webapp format
-  await personToWebapp(options.user, expertId, result.assetPath);
-
   // Transform in std AE relationships data
   logger.info(`Deleting existing relationship files for user: ${options.user}`);
   await cache.delete(options.user, `${config.cache.aeStdFormatDir}/${expertId}/rel`);
   await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
+
+  // Transform in webapp format
+  await personToWebapp(options.user, expertId, result.assetPath);
 }
 
 export default run;

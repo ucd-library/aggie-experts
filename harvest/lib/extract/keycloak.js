@@ -211,7 +211,9 @@ export default class ExpertsKcAdminClient {
     try {
       user = await this.findByEmail(email);
     } catch (error) {
-      if (username && profile) {
+      if( error.response?.status >= 400 ) {
+        throw new Error(`Could not access Keycloak to find user with email: ${email}. Status = ${error.response.status}, Message = ${error.response.statusText}`, );
+      } else if (username && profile) {
         user = await this.createNewExpert(email, username, profile);
       } else {
         throw new Error(`No user found with email: ${email} and no creation parameters`);
@@ -226,7 +228,7 @@ export default class ExpertsKcAdminClient {
       username: email,
       emailVerified: true,
       enabled: true,
-      federatedIdentities: [{ 
+      federatedIdentities: [{
         identityProvider: "cas-oidc",
         userId: username,
         userName: username
