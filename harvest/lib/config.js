@@ -79,7 +79,12 @@ const config = {
     },
     indexes : {
       experts : env.ES_INDEX_EXPERTS || 'experts',
-      hash : env.ES_INDEX_CACHE || 'cache',
+      // works : env.ES_INDEX_WORKS || 'works',
+      // grants : env.ES_INDEX_GRANTS || 'grants'
+    },
+    aliases : {
+      current : 'current',
+      stage : 'stage'
     }
   },
 
