@@ -10,7 +10,7 @@ where {
     [] oap:username ?EDUROAM__;
        oap:is-public "true";
        .
-    bind(replace(?EDUROAM,'@ucdavis.edu','') as ?USERID__)
+    bind(replace(?EDUROAM__,'@ucdavis.edu','') as ?USERID__)
   }
   graph <ark:/87287/d7c08j/> {
     [] iam:userID ?USERID__;
