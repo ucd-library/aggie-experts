@@ -773,6 +773,11 @@ return html`
     </div>
 
     <div class="main-content">
+      <div class="refresh-profile" ?hidden="${!this.canEdit || !this.expertEditing}">
+        <button class="btn--invert" @click="${this._refreshProfile}" ?disabled="${this.refreshingProfileData}"><span>Refresh Profile Data</span></button>
+        <span class="last-updated-label" ?hidden="${!this.lastUpdated}">Last Updated: ${this.lastUpdated}</span>
+      </div>
+
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>

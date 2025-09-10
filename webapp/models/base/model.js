@@ -240,7 +240,7 @@ class BaseModel extends EsDataModel {
    * @method verify_template
    * @description Adds template to elastic search if it doesn't exist
    */
-    async verify_template(template) {
+  async verify_template(template) {
     if (!Array.isArray(template)) {
       template = [template];
     }
@@ -320,8 +320,7 @@ class BaseModel extends EsDataModel {
   async search(opts) {
     const params = this.common_parms(opts.params);
 
-    const index = params.index || ['grant-read','expert-read'];
-    //const index = '*-read';
+    const index = params.index || ['grants','experts'];
     delete params.index;
     const options = {
       id: (opts.id)?opts.id:"default",

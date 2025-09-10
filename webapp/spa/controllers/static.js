@@ -74,7 +74,7 @@ module.exports = async (app) => {
       next({
         user,
         appRoutes : config.client.appRoutes,
-        dagsterJobName : config.client.dagsterJobName,
+        dagster : config.client.dagster,
         env : config.client.env,
         enableGA4Stats : config.client.enableGA4Stats,
         gaId : config.client.gaId,

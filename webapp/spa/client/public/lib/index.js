@@ -2,11 +2,12 @@ let {Registry} = require('@ucd-lib/cork-app-utils');
 
 const models =  {
   AppStateModel : require('./models/AppStateModel'),
-  WorkModel : require('./models/WorkModel'),
-  ExpertModel : require('./models/ExpertModel'),
-  SearchModel : require('./models/SearchModel'),
   BrowseByModel : require('./models/BrowseByModel'),
-  GrantModel : require('./models/GrantModel')
+  DagsterModel : require('./models/DagsterModel'),
+  ExpertModel : require('./models/ExpertModel'),
+  GrantModel : require('./models/GrantModel'),
+  SearchModel : require('./models/SearchModel'),
+  WorkModel : require('./models/WorkModel')
 };
 
 Registry.ready();

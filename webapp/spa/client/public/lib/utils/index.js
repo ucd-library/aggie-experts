@@ -461,6 +461,30 @@ class Utils {
     return words.filter(word => word && !stopWords.includes(word.toLowerCase()));
   }
 
+  /**
+   * @method formatDagsterTime
+   * @description given a dagster timestamp, return a formatted date string
+   * @param {Number} endTime dagster timestamp in seconds
+   * @return {String} formatted date string
+  */
+  formatDagsterTime(endTime) {
+    if (!endTime) return '';
+
+    // convert seconds to milliseconds
+    const date = new Date(endTime * 1000);
+
+    // format: 'Mon XX, 20XX, X:XXpm'
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: '2-digit',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
 }
 
 module.exports = new Utils();
