@@ -19,14 +19,14 @@ config.client = {
   assets : (env === 'prod') ? 'dist' : 'public',
   appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse', 'grant', 'work', 'search-tips'],
   dagster : {
-    host : env.DAGSTER_HOST || 'http://harvest:3000',
-    graphqlPath : env.DAGSTER_GRAPHQL_PATH || '/graphql',
-    repositoryLocationName : env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
-    repositoryName : env.DAGSTER_REPOSITORY_NAME || '__repository__',
-    etlPartitionSet : env.DAGSTER_ETL_PARTITION_SET || 'etl_users_job_partition_set',
+    host : process.env.DAGSTER_HOST || 'http://harvest:3000',
+    graphqlPath : process.env.DAGSTER_GRAPHQL_PATH || '/graphql',
+    repositoryLocationName : process.env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
+    repositoryName : process.env.DAGSTER_REPOSITORY_NAME || '__repository__',
+    etlPartitionSet : process.env.DAGSTER_ETL_PARTITION_SET || 'etl_users_job_partition_set',
     jobs : {
-      etlUsersJob : env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',
-      gcs_etl_users_job : env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
+      etlUsersJob : process.env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',
+      gcs_etl_users_job : process.env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
     }
   },
   versions : {
