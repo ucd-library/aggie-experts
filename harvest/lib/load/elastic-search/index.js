@@ -40,6 +40,8 @@ async function loadFiles(files, alias) {
     alias = [alias];
   }
 
+  let indexes = {};
+
   for (const file of files) {
     let filename = path.parse(file).base;
     let parts = filename.split('.');
@@ -67,14 +69,18 @@ async function loadFiles(files, alias) {
       md5,
       lastModified
     };
-    console.log(json._metadata)
 
     for( let a of alias ) {
       let aliasIndex = `${a}-${index}`;
       logger.info(`Loading file=${file} into index=${aliasIndex} with id=${id}`);
-      console.log(await insert(aliasIndex, id, json));
+      let resp = await insert(aliasIndex, id, json);
+      if( !indexes[aliasIndex] ) {
+        indexes[aliasIndex] = resp._index;
+      }
     }
   }
+
+  return indexes;
 }
 
 /**
@@ -308,8 +314,15 @@ async function getState() {
   return { indexes, aliases };
 }
 
+async function getIndexDocumentCount(index) {
+  const esClient = await getEsClient();
+  const resp = await esClient.count({ index });
+  return resp.count;
+}
+
 export {
   loadFiles,
+  getIndexDocumentCount,
   createIndex,
   deleteIndex,
   ensureCurrentIndexes,

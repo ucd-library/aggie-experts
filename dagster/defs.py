@@ -12,6 +12,9 @@ users_partitions = dg.DynamicPartitionsDefinition(name="users")
 class ExtractUserConfig(Config):
     force: bool = True  # Default value for force flag
 
+class LoadUserConfig(Config):
+    alias: str = "stage"  # Default alias for loading
+
 def exec(cmd, check=True, capture_output=True, text=True):
     """Helper function to run a command and return the result."""
     print(f"Executing command: {' '.join(cmd)}")
@@ -119,11 +122,11 @@ def transform_gcs_cache_user(context: AssetExecutionContext) -> None:
     auto_materialize_policy=AutoMaterializePolicy.eager(),
     deps=[transform_user]
 )
-def load_user(context: AssetExecutionContext) -> None:
+def load_user(context: AssetExecutionContext, config: LoadUserConfig) -> None:
     user_id = context.partition_key
     run = context.dagster_run
 
-    exec(["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id])
+    exec(["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id, "--alias", config.alias])
 
     context.add_output_metadata(
       metadata={

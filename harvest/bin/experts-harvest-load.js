@@ -1,8 +1,9 @@
 import { Command, Option } from 'commander';
 import load from '../lib/load/index.js';
 import config from '../lib/config.js';
-import PgClient from '../lib/pg-client.js';
-import { enableFromCli } from '../lib/reporting/index.js';
+import logger from '../lib/logger.js';
+import { enableFromCli, updateEsIndex } from '../lib/reporting/index.js';
+import { getIndexDocumentCount } from '../lib/load/elastic-search/index.js';
 
 const program = new Command();
 const env = process.env;
@@ -22,9 +23,19 @@ program.name('load')
       await enableFromCli('experts-harvest-load', userId, options);
     }
 
-    await load(userId, options.alias);
+    let indexes = await load(userId, options.alias);
+    logger.info('updated indexes', {indexes});
 
     if( config.reporting.enabled ) {
+      for( let alias in indexes ) {
+        let index = indexes[alias];
+        let count = await getIndexDocumentCount(index);
+        console.log({
+          alias, index, count
+        })
+        await updateEsIndex(alias, index, count);
+      }
+
       await config.postgres.client.end();
     }
   });

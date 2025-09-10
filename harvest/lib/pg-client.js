@@ -48,6 +48,16 @@ class PgClient {
     await this.client.end();
   }
 
+  async updateEsIndex(alias, indexName, docCount) {
+    let resp = await this.query(
+      `UPDATE ${this.schema}.elastic_search_index
+      SET index_name = $2, doc_count = $3, last_updated = CURRENT_TIMESTAMP
+      WHERE alias_name = $1`,
+      [alias, indexName, docCount]
+    );
+    return resp;
+  }
+
   async insertCommand(opts) {
     const { job_id, command, user_id, options } = opts;
     const query = `

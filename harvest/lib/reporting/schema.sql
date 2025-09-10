@@ -2,6 +2,15 @@ create schema if not exists etl_reporting;
 -- Set the search path to the etl_reporting schema
 set search_path = 'etl_reporting';
 
+CREATE TABLE IF NOT EXISTS elastic_search_index (
+  alias_name VARCHAR(255) PRIMARY KEY,
+  index_name VARCHAR(255),
+  doc_count INTEGER,
+  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO elastic_search_index (alias_name) VALUES ('stage-experts'), ('stage-works'), ('stage-grants'), ('current-experts'), ('current-works'), ('current-grants')
+ON CONFLICT (alias_name) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS command (
   command_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -16,6 +25,7 @@ CREATE TABLE IF NOT EXISTS command (
 --   GENERATED ALWAYS AS (EXTRACT('week' FROM timestamp)::TEXT || '-' || EXTRACT('year' FROM timestamp)::TEXT) STORED;
 CREATE INDEX IF NOT EXISTS idx_command_job_id ON command (job_id);
 CREATE INDEX IF NOT EXISTS idx_command_user_id ON command (user_id);
+CREATE INDEX IF NOT EXISTS idx_command_week_of_year_single ON command (week_of_year);
 CREATE INDEX IF NOT EXISTS idx_command_week_of_year ON command (command, user_id, week_of_year, timestamp DESC);
 
 CREATE TABLE IF NOT EXISTS file_cache (

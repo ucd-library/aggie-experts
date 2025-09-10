@@ -15,17 +15,11 @@ async function run(user, alias='stage') {
   const webappDir = cache.getPath(user, config.cache.aeWebappDir);
   const files = findJsonldFiles(webappDir);
 
-  for( let a of alias ) {
-    if( !config.elasticsearch.aliases[a] ) {
-      logger.error(`Invalid ElasticSearch alias: ${a}`);
-      continue;
-    }
-
-    logger.info(`Loading data into elastic search env=${a} for user=${user}`);
-    await loadEs(files, alias);
-  }
+  let indexes = await loadEs(files, alias);
 
   logger.info(`Loaded data into elastic search for user: ${user}`);
+
+  return indexes;
 }
 
 function findJsonldFiles(dir) {
