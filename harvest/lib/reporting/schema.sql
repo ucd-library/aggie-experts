@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS elastic_search_index (
   doc_count INTEGER,
   last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO elastic_search_index (alias_name) VALUES ('stage-experts'), ('stage-works'), ('stage-grants'), ('current-experts'), ('current-works'), ('current-grants')
+INSERT INTO elastic_search_index (alias_name) VALUES ('experts-stage'), ('works-stage'), ('grants-stage'), ('experts-current'), ('works-current'), ('grants-current')
 ON CONFLICT (alias_name) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS command (

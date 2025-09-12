@@ -85,7 +85,7 @@ program
     }
 
     for( let baseName of config.elasticsearch.indexes ) {
-      await setAlias(baseName, alias, date);
+      await setAlias(baseName, date, alias);
     }
   });
 

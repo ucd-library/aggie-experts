@@ -71,7 +71,7 @@ async function loadFiles(files, alias) {
     };
 
     for( let a of alias ) {
-      let aliasIndex = `${a}-${index}`;
+      let aliasIndex = `${index}-${a}`;
       logger.info(`Loading file=${file} into index=${aliasIndex} with id=${id}`);
       let resp = await insert(aliasIndex, id, json);
       if( !indexes[aliasIndex] ) {
@@ -132,6 +132,10 @@ async function ensureCurrentIndexes() {
  * @returns {Promise}
  */
 async function setAlias(index, date, alias) {
+  if( !alias.startsWith(index+'-') ) {
+    alias = `${index}-${alias}`;
+  }
+
   index = getIndexNameForDate(index, date);
   logger.info(`Setting alias ${alias} to point to index ${index}`);
   const esClient = await getEsClient();
@@ -245,8 +249,8 @@ function getCurrentIndexes() {
     let currentIndex = getIndexNameForDate(index, current);
     let stageIndex = getIndexNameForDate(index, stage);
     indexes[baseIndexName] = {
-      currentAlias: config.elasticsearch.aliases.current+`-${index}`,
-      stageAlias: config.elasticsearch.aliases.stage+`-${index}`,
+      currentAlias: `${index}-${config.elasticsearch.aliases.current}`,
+      stageAlias: `${index}-${config.elasticsearch.aliases.stage}`,
       base: index,
       currentIndex,
       stageIndex
