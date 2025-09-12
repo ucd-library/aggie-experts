@@ -18,7 +18,17 @@ config.client = {
   gaId : process.env.GA4_MEASUREMENT_ID || '',
   assets : (env === 'prod') ? 'dist' : 'public',
   appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse', 'grant', 'work', 'search-tips'],
-  dagsterJobName : process.env.DAGSTER_JOB_NAME || 'etl_users_job',
+  dagster : {
+    host : process.env.DAGSTER_HOST || 'http://harvest:3000',
+    graphqlPath : process.env.DAGSTER_GRAPHQL_PATH || '/graphql',
+    repositoryLocationName : process.env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
+    repositoryName : process.env.DAGSTER_REPOSITORY_NAME || '__repository__',
+    etlPartitionSet : process.env.DAGSTER_ETL_PARTITION_SET || 'etl_users_job_partition_set',
+    jobs : {
+      etlUsersJob : process.env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',
+      gcs_etl_users_job : process.env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
+    }
+  },
   versions : {
     bundle : clientPackageVersion,
     loader : clientPackage.dependencies['@ucd-lib/cork-app-load'].replace(/^\D/, '')

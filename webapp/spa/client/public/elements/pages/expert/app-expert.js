@@ -61,16 +61,20 @@ export default class AppExpert extends Mixin(LitElement)
       collabProjects : { type : Boolean },
       commPartner : { type : Boolean },
       industProjects : { type : Boolean },
-      mediaInterviews : { type : Boolean }
+      mediaInterviews : { type : Boolean },
+      lastUpdated : { type : String },
+      refreshingProfileData : { type : Boolean }
     }
   }
 
   constructor() {
     super();
-    this._injectModel('AppStateModel', 'ExpertModel');
+    this._injectModel('AppStateModel', 'ExpertModel', 'DagsterModel');
 
     this.expertId = '';
     this._reset();
+
+    this._profileSyncIntervalId = null;
 
     this.render = render.bind(this);
   }
@@ -88,7 +92,12 @@ export default class AppExpert extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     this.expertEditing = utils.getCookie('editingExpertId');
 
-    if( e.location.page !== 'expert' ) return;
+    if( e.location.page !== 'expert' ) {
+      clearInterval(this._profileSyncIntervalId);
+      this._profileSyncIntervalId = null;
+      this.refreshingProfileData = false;
+      return;
+    }
 
     let expertId = e.location.pathname.substr(1);
     let modified = e.modifiedWorks || e.modifiedGrants;
@@ -241,6 +250,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.industProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.industry);
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
     this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
+
+    this._updateProfileLastUpdated();
   }
 
   /**
@@ -292,6 +303,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.commPartner = false;
     this.industProjects = false;
     this.mediaInterviews = false;
+    this.lastUpdated = 'Mon XX, 20XX, X:XXpm';
+    this.refreshingProfileData = false;
 
     if( !this.expertEditing ) {
       this.expertEditing = '';
@@ -650,6 +663,69 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _refreshProfile
+   * @description update expert profile from elements
+   */
+  async _refreshProfile(e) {
+    e.preventDefault();
+
+    // TODO pull cas+@ucdavis.edu from the auth
+    let partitionName = 'todo@ucdavis.edu';
+    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+
+    // loop to check status of run
+    let runId = res.body?.data?.launchRun?.run?.runId || '';
+    if( runId ) {
+      this.lastLastUpdated = this.lastUpdated;
+      this.lastUpdated = 'Updating...';
+      this._startProfileSyncInterval(runId);
+    }
+  }
+
+  _startProfileSyncInterval(runId) {
+    if( this._profileSyncIntervalId ) {
+      clearInterval(this._profileSyncIntervalId);
+    }
+
+    this.refreshingProfileData = true;
+    this._profileSyncIntervalId = setInterval(async () => {
+      try {
+        let res = await this.DagsterModel.getLastRunForId(runId);
+        let status = res.body?.data?.runOrError?.status;
+
+        if (status === 'FAILED' || status === 'SUCCESS') {
+          clearInterval(this._profileSyncIntervalId);
+          this._profileSyncIntervalId = null;
+          this.refreshingProfileData = false;
+
+          if( status === 'SUCCESS' ) {
+            this._updateProfileLastUpdated();
+          } else {
+            this.lastUpdated = this.lastLastUpdated || '';
+            logger.warn('Profile update dagster job run failed', { runId });
+          }
+        }
+      } catch (err) {
+        logger.warn('Error checking profile status in dagster job run', err);
+      }
+
+    }, 5000);
+  }
+
+  async _updateProfileLastUpdated() {
+    // TODO pull cas+@ucdavis.edu from the auth
+    let partitionName = 'todo@ucdavis.edu';
+    let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+
+    let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
+        .filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED')
+        .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
+
+    if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
+    else this.lastUpdated = '';
+  }
+
+  /**
    * @method _showExpert
    * @description update expert visibility to true
    */
@@ -870,23 +946,23 @@ export default class AppExpert extends Mixin(LitElement)
    * @method _refreshProfileClicked
    * @description refresh expert profile
    */
-  _refreshProfileClicked(e) {
-    e.preventDefault();
+  // _refreshProfileClicked(e) {
+  //   e.preventDefault();
 
-    // TODO verify this user is who they say they are (logged in user)
+  //   // TODO verify this user is who they say they are (logged in user)
 
-    // TODO trigger api call to refresh profile
+  //   // TODO trigger api call to refresh profile
 
-    this.modalTitle = 'Your Profile is Updating';
-    this.modalSaveText = '';
-    this.modalContent = `<p>The latest data is currently being retrieved for your profile. You will receive an email confirmation when the process is complete.</p>`;
-    this.showModal = true;
-    this.hideCancel = true;
-    this.hideSave = true;
-    this.hideOK = false;
-    this.hideOaPolicyLink = true;
-    this.errorMode = false;
-  }
+  //   this.modalTitle = 'Your Profile is Updating';
+  //   this.modalSaveText = '';
+  //   this.modalContent = `<p>The latest data is currently being retrieved for your profile. You will receive an email confirmation when the process is complete.</p>`;
+  //   this.showModal = true;
+  //   this.hideCancel = true;
+  //   this.hideSave = true;
+  //   this.hideOK = false;
+  //   this.hideOaPolicyLink = true;
+  //   this.errorMode = false;
+  // }
 
   _cdlErrorModal(e) {
     e.preventDefault();

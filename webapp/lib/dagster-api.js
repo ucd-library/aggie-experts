@@ -3,13 +3,15 @@ const yaml = require('yaml');
 
 class DagsterAPI {
 
-  async graphqlQuery(query, variables = {}) {
+  async graphqlQuery(operationName, query, variables = {}) {
     let resp = await fetch(config.dagster.host+config.dagster.graphqlPath, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+
       body: JSON.stringify({
+        operationName,
         query,
         variables,
       }),
@@ -83,11 +85,14 @@ class DagsterAPI {
       }
       `;
 
-    return this.graphqlQuery(mutation, this.wrapDefaults({
-      jobName,
-      runConfigData: runConfig,
-      partitionName
-    }));
+    return this.graphqlQuery(
+      'LaunchRunMutation',
+      mutation,
+      this.wrapDefaults({
+        jobName,
+        runConfigData: runConfig,
+        partitionName
+      }));
   }
 
   async getRunStatus(runId) {
@@ -145,7 +150,7 @@ class DagsterAPI {
       }
     `;
 
-    return this.graphqlQuery(query, { runId });
+    return this.graphqlQuery('GetRunStatus', query, { runId });
   }
 
   async getLastRunsForPartition(jobName, partitionName, limit = 3) {
@@ -201,7 +206,9 @@ class DagsterAPI {
       ]
     };
 
-    return this.graphqlQuery(query, {
+    console.log({filter, limit, query});
+
+    return this.graphqlQuery('GetLastRunsForPartition', query, {
       filter,
       limit
     });
