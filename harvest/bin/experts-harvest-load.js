@@ -30,9 +30,6 @@ program.name('load')
       for( let alias in indexes ) {
         let index = indexes[alias];
         let count = await getIndexDocumentCount(index);
-        console.log({
-          alias, index, count
-        })
         await updateEsIndex(alias, index, count);
       }
 

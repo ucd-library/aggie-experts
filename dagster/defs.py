@@ -236,7 +236,8 @@ def loadUserGroup(groupId):
 
 defs = dg.Definitions(
     jobs=[etl_users_job, gcs_etl_users_job],
-    assets=[extract_user, transform_user, load_user, 
+    assets=[
+            extract_user, transform_user, load_user, 
             pull_gcs_user_cache, push_gcs_user_cache, transform_gcs_cache_user, load_gcs_cache_user],
     sensors=[dev_users_sensor, sandbox_users_sensor, success_sensor],
     resources={

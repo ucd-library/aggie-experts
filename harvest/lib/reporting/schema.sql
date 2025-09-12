@@ -178,6 +178,20 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
   LEFT JOIN error e ON uc.command_id = e.command_id
   ORDER BY user_id, week_of_year, command;
 
+CREATE OR REPLACE VIEW this_week_user_state_count AS
+SELECT
+  user_id,
+  week_of_year,
+  CASE
+    WHEN BOOL_OR(state = 'error') THEN 'error'
+    WHEN BOOL_AND(state = 'ok') THEN 'ok'
+    WHEN BOOL_AND(state = 'no_attempt') THEN 'no_attempt'
+    ELSE 'unknown'
+  END AS state
+FROM user_command_weekly_stats
+WHERE week_of_year = EXTRACT('week' FROM CURRENT_TIMESTAMP)::TEXT || '-' || EXTRACT('year' FROM CURRENT_TIMESTAMP)::TEXT
+GROUP BY user_id, week_of_year;
+
 CREATE OR REPLACE VIEW user_command_weekly_state_changes AS
   WITH state_with_lag AS (
     SELECT
