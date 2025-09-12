@@ -42,6 +42,14 @@ class DagsterAPI {
     if( !jobName ) throw new Error('jobName is required');
     if( !partitionName ) throw new Error('partitionName is required');
 
+    // by default ensure user is harvested in current and stage es index alias
+    if( !runConfig.ops?.load_user?.config ) {
+      if( !runConfig.ops ) runConfig.ops = {};
+      if( !runConfig.ops.load_user ) runConfig.ops.load_user = {};
+      if( !runConfig.ops.load_user.config ) runConfig.ops.load_user.config = {};
+      runConfig.ops.load_user.config.alias = 'all';
+    }
+
     const mutation = `
       mutation LaunchRunMutation(
         $repositoryLocationName: String!

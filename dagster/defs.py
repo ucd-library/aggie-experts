@@ -126,12 +126,19 @@ def load_user(context: AssetExecutionContext, config: LoadUserConfig) -> None:
     user_id = context.partition_key
     run = context.dagster_run
 
-    exec(["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id, "--alias", config.alias])
+    result = exec(["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id, "--alias", config.alias])
+
+    metadata = {
+      "id": user_id,
+      "alias": config.alias
+    }
+
+    if result.get('indexes'):
+      for key, value in result['indexes'].items():
+        metadata[key] = value
 
     context.add_output_metadata(
-      metadata={
-        "id": user_id
-      }
+      metadata=metadata
     )
 
     return None
