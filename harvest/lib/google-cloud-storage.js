@@ -27,15 +27,18 @@ class GcsCache {
   }
 
   async getGcsFileHash(filePath) {
-    let exists = (await this.bucket.file(filePath).exists())[0];
-    if (!exists) {
-      return null; // File does not exist in GCS
-    }
-
-    const [metadata] = await this.bucket.file(filePath).getMetadata();
-    // GCS stores MD5 hash as base64, convert to hex
-    if (metadata.md5Hash) {
-      return Buffer.from(metadata.md5Hash, 'base64').toString('hex');
+    // let exists = (await this.bucket.file(filePath).exists())[0];
+    // if (!exists) {
+    //   return null; // File does not exist in GCS
+    // }
+    try {
+      const [metadata] = await this.bucket.file(filePath).getMetadata();
+      // GCS stores MD5 hash as base64, convert to hex
+      if (metadata.md5Hash) {
+        return Buffer.from(metadata.md5Hash, 'base64').toString('hex');
+      }
+    } catch (error) {
+      // console.error('Error getting GCS file hash:', error);
     }
     return null;
   }

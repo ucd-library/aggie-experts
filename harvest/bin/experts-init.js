@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { initSchema, deleteSchema } from '../lib/load/elastic-search/index.js';
+import { ensureCurrentIndexes } from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import PgClient from '../lib/pg-client.js';
@@ -10,25 +10,15 @@ const env = process.env;
 program
   .name('init')
   .description('Init various database components for aggie experts')
-  .option('--drop-es-schema', 'Drop the ElasticSearch schema before initializing')
   .action(async (opts={}) => {
     let errors = [];
 
-    if (opts.dropEsSchema) {
-      try {
-        logger.info('Dropping existing ElasticSearch schema for aggie experts...');
-        await deleteSchema();
-      } catch (error) {
-        errors.push(`Error dropping ElasticSearch schema: ${error.message}`);
-      }
-    }
-
     try {
-      logger.info('Initializing ElasticSearch schema for aggie experts...');
-      await initSchema();
-      logger.info('ElasticSearch schema initialized successfully.');
+      logger.info('Ensuring current ElasticSearch indexes for aggie experts...');
+      let indexes = await ensureCurrentIndexes();
+      logger.info('ElasticSearch indexes ensured successfully.', indexes);
     } catch (error) {
-      errors.push(`Error initializing ElasticSearch schema: ${error.message}`);
+      errors.push(`Error initializing ElasticSearch indexes: ${error.message}`);
     }
 
     const pgClient = new PgClient();
@@ -48,7 +38,6 @@ program
     } else {
       logger.info('All database components initialized successfully.');
     }
-
   });
 
 

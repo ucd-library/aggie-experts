@@ -17,6 +17,10 @@ function captureError(error) {
   });
 }
 
+function updateEsIndex(alias, indexName, docCount) {
+  return config.postgres.client.updateEsIndex(alias, indexName, docCount);
+}
+
 function captureErrors() {
   process.on('uncaughtException', async (err) => {
     await captureError(err);
@@ -55,5 +59,6 @@ async function enableFromCli(command, user, options) {
 export {
   enableFromCli,
   reportFileWrite,
-  captureErrors
+  captureErrors,
+  updateEsIndex
 }

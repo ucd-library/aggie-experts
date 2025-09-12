@@ -5,12 +5,21 @@ import logger from '../logger.js';
 import config from '../config.js';
 import { loadFiles as loadEs } from './elastic-search/index.js';
 
-async function run(user) {
-  
+async function run(user, alias='stage') {
+  if( alias === 'all' ) {
+    alias = [config.elasticsearch.aliases.stage, config.elasticsearch.aliases.current];
+  } else {
+    alias = [alias]
+  }
+
   const webappDir = cache.getPath(user, config.cache.aeWebappDir);
   const files = findJsonldFiles(webappDir);
-  await loadEs(files);
+
+  let indexes = await loadEs(files, alias);
+
   logger.info(`Loaded data into elastic search for user: ${user}`);
+
+  return indexes;
 }
 
 function findJsonldFiles(dir) {

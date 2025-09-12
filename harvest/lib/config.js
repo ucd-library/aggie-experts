@@ -79,7 +79,12 @@ const config = {
     },
     indexes : {
       experts : env.ES_INDEX_EXPERTS || 'experts',
-      hash : env.ES_INDEX_CACHE || 'cache',
+      // works : env.ES_INDEX_WORKS || 'works',
+      // grants : env.ES_INDEX_GRANTS || 'grants'
+    },
+    aliases : {
+      current : 'current',
+      stage : 'stage'
     }
   },
 
@@ -188,6 +193,19 @@ const config = {
 
   logger : {
     name : 'harvest',
+  },
+
+  dagster : {
+    host : env.DAGSTER_HOST || 'http://harvest:3000',
+    graphqlPath : env.DAGSTER_GRAPHQL_PATH || '/graphql',
+    repositoryLocationName : env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
+    repositoryName : env.DAGSTER_REPOSITORY_NAME || '__repository__',
+    partitionName : env.DAGSTER_PARTITION_NAME || 'users',
+    etlPartitionSet : env.DAGSTER_ETL_PARTITION_SET || 'etl_users_job_partition_set',
+    jobs : {
+      etlUsersJob : env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',
+      gcs_etl_users_job : env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
+    }
   }
 }
 

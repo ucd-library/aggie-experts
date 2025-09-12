@@ -2,16 +2,31 @@ create schema if not exists etl_reporting;
 -- Set the search path to the etl_reporting schema
 set search_path = 'etl_reporting';
 
+CREATE TABLE IF NOT EXISTS elastic_search_index (
+  alias_name VARCHAR(255) PRIMARY KEY,
+  index_name VARCHAR(255),
+  doc_count INTEGER,
+  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO elastic_search_index (alias_name) VALUES ('stage-experts'), ('stage-works'), ('stage-grants'), ('current-experts'), ('current-works'), ('current-grants')
+ON CONFLICT (alias_name) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS command (
   command_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  week_of_year VARCHAR(10) GENERATED ALWAYS AS (EXTRACT('week' FROM timestamp)::TEXT || '-' || EXTRACT('year' FROM timestamp)::TEXT) STORED,
   job_id VARCHAR(255),
   command VARCHAR(255) NOT NULL,
   user_id VARCHAR(255) NOT NULL,
   options JSONB
 );
+-- ALTER TABLE command
+--   ADD COLUMN week_of_year VARCHAR(10)
+--   GENERATED ALWAYS AS (EXTRACT('week' FROM timestamp)::TEXT || '-' || EXTRACT('year' FROM timestamp)::TEXT) STORED;
 CREATE INDEX IF NOT EXISTS idx_command_job_id ON command (job_id);
 CREATE INDEX IF NOT EXISTS idx_command_user_id ON command (user_id);
+CREATE INDEX IF NOT EXISTS idx_command_week_of_year_single ON command (week_of_year);
+CREATE INDEX IF NOT EXISTS idx_command_week_of_year ON command (command, user_id, week_of_year, timestamp DESC);
 
 CREATE TABLE IF NOT EXISTS file_cache (
   file_cache_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -121,44 +136,61 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
     FROM command
   ),
   weeks AS (
-    SELECT DISTINCT
-      EXTRACT('week' FROM timestamp)::TEXT || '-' || EXTRACT('year' FROM timestamp)::TEXT AS week_of_year
+    SELECT DISTINCT week_of_year
     FROM command
   ),
-  user_commands as (
-    SELECT 
+  user_command_stats AS (
+    SELECT
       u.user_id,
       w.week_of_year,
       c.command,
-      c.command_id,
-      e.error_id
+      COUNT(c.command_id) AS exec_count,
+      COUNT(e.error_id) AS error_count
     FROM
       users u
     LEFT JOIN
       weeks w ON TRUE
     LEFT JOIN
-      command c ON u.user_id = c.user_id AND (EXTRACT('week' FROM c.timestamp)::TEXT || '-' || EXTRACT('year' FROM c.timestamp)::TEXT) = w.week_of_year
+      command c ON u.user_id = c.user_id AND c.week_of_year = w.week_of_year
     LEFT JOIN
       error e ON c.command_id = e.command_id
+    GROUP BY
+      u.user_id, w.week_of_year, c.command
+  ),
+  last_user_command AS (
+    SELECT DISTINCT ON (command, user_id, week_of_year) *
+    FROM command
+    ORDER BY command, user_id, week_of_year, timestamp DESC
   )
-  SELECT 
-    uc.user_id,
-    uc.command,
-    uc.week_of_year,
-    COUNT(uc.command_id) AS exec_count,
-    COUNT(e.error_id) AS error_count,
-      CASE
-        WHEN COUNT(e.error_id) > 0 THEN 'error'
-        WHEN COUNT(uc.command_id) = 0 THEN 'no_attempt'
-        ELSE 'ok' END AS state
-  FROM
-    user_commands uc
-  LEFT JOIN
-    error e ON uc.command_id = e.command_id
-  GROUP BY
-    uc.user_id, uc.command, uc.week_of_year
-  ORDER BY
-    uc.week_of_year, uc.user_id, uc.command;
+  SELECT
+    ucs.user_id,
+    ucs.command,
+    ucs.week_of_year,
+    ucs.exec_count,
+    ucs.error_count,
+    CASE
+      WHEN e.error_id is NOT NULL THEN 'error'
+      WHEN uc.command_id IS NULL THEN 'no_attempt'
+      ELSE 'ok'
+    END AS state
+  FROM user_command_stats ucs
+  LEFT JOIN last_user_command uc ON ucs.user_id = uc.user_id AND ucs.command = uc.command AND ucs.week_of_year = uc.week_of_year
+  LEFT JOIN error e ON uc.command_id = e.command_id
+  ORDER BY user_id, week_of_year, command;
+
+CREATE OR REPLACE VIEW this_week_user_state_count AS
+SELECT
+  user_id,
+  week_of_year,
+  CASE
+    WHEN BOOL_OR(state = 'error') THEN 'error'
+    WHEN BOOL_AND(state = 'ok') THEN 'ok'
+    WHEN BOOL_AND(state = 'no_attempt') THEN 'no_attempt'
+    ELSE 'unknown'
+  END AS state
+FROM user_command_weekly_stats
+WHERE week_of_year = EXTRACT('week' FROM CURRENT_TIMESTAMP)::TEXT || '-' || EXTRACT('year' FROM CURRENT_TIMESTAMP)::TEXT
+GROUP BY user_id, week_of_year;
 
 CREATE OR REPLACE VIEW user_command_weekly_state_changes AS
   WITH state_with_lag AS (
