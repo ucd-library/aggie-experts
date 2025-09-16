@@ -75,7 +75,7 @@ function siteFarmFormat(req, res, next) {
     newDoc["contactInfo"].hasURL = []; // initialize to empty array
     // We need to dig down for the preferred contactInfo website list
     // We will grab the first website that is not preferred and has a rank of 20 indicating it is a website list
-    let websites = doc["@graph"][i].contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
+    let websites = doc["@graph"][0].contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
 
     // ... but also grab all preferred contactInfo details
     for (let j = 0; j < doc["@graph"].length; j++) {
@@ -109,6 +109,15 @@ function siteFarmFormat(req, res, next) {
         url["@type"] = atType;
       });
     }
+
+    // ensure ucdlib:favourite always returns true/false (won't exist if not previously set)
+    (newDoc['publications'] || []).forEach((node) => {
+      (node.relatedBy || []).forEach((rel) => {
+        if( !rel['ucdlib:favourite'] ) {
+          rel['ucdlib:favourite'] = false;
+        }
+      });
+    });
 
     // preserve the modified-date
     newDoc["modified-date"] = doc["modified-date"];
