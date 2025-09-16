@@ -164,10 +164,19 @@ export default class AppExpert extends Mixin(LitElement)
     this.truncateResearchInterests = this.introduction.length + this.researchInterests.length > 500;
 
     this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true).map(c => {
+
+      let emails = [];
+      if( c.hasEmail && Array.isArray(c.hasEmail) ) {
+        emails = c.hasEmail;
+      } else if( c.hasEmail ) {
+        emails = [c.hasEmail];
+      }
+      emails = emails.map(email => email.replace('mailto:', ''));
+
       return {
         title : c.hasTitle?.prefLabel || c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.prefLabel || c.hasOrganizationalUnit?.name,
-        email : c?.hasEmail?.replace('mailto:', ''),
+        emails,
         websiteUrl : c.hasURL?.['url'],
         rank : c.rank
       }
@@ -175,11 +184,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.roles.sort((a, b) => a.rank - b.rank);
 
     // if all emails match, only show email under the last role
-    let uniqueEmails = [...new Set(this.roles.map(role => role.email))];
+    let uniqueEmails = [...new Set(this.roles.flatMap(role => role.emails))];
     if( uniqueEmails.length === 1 ) {
       for( let i = 0; i < this.roles.length - 1; i++ ) {
-        this.roles[i].email = null;
+        this.roles[i].emails = [];
       }
+      this.roles[this.roles.length - 1].emails = uniqueEmails;
     }
 
     this.orcId = graphRoot.orcidId;

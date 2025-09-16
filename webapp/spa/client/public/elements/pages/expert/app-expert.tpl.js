@@ -953,10 +953,16 @@ return html`
             <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <div class="link-row" ?hidden="${!role.email}">
-              <a href="mailto:${role.email}">
-                <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon> ${role.email}
-              </a>
+            <div ?hidden="${!role.emails.length}">
+              ${role.emails.map(
+              (email, index) => html`
+              <div class="link-row">
+                <a href="mailto:${email}">
+                  <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon> ${email}
+                </a>
+              </div>
+              `
+            )}
             </div>
           </div>
           `
