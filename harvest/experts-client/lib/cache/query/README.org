@@ -725,7 +725,7 @@ relationship here for testing.
        }
 
        OPTIONAL {
-         ?field :name "funder-name";
+         ?field :name "funder name";
                 :type "text";
                 :text ?funder_label;
                 .
