@@ -81,11 +81,31 @@ function getCsvHeaders(csvPath) {
     fs.createReadStream(csvPath)
       .pipe(csv_p())
       .on('headers', (headers) => {
-        resolve(headers);
+        // Normalize headers to handle the transition from "funder-name" to "funder name"
+        const normalizedHeaders = headers.map(header => {
+          if (header === 'funder-name') {
+            return 'funder name';
+          }
+          return header;
+        });
+        resolve(normalizedHeaders);
       })
       .on('error', (error) => {
         reject(error);
       });
+  });
+}
+
+// Helper function to normalize CSV data objects for consistent field name comparison
+function normalizeGrantData(grants) {
+  return grants.map(grant => {
+    const normalizedGrant = { ...grant };
+    // If the grant has "funder-name", rename it to "funder name"
+    if (normalizedGrant['funder-name']) {
+      normalizedGrant['funder name'] = normalizedGrant['funder-name'];
+      delete normalizedGrant['funder-name'];
+    }
+    return normalizedGrant;
   });
 }
 
@@ -100,11 +120,11 @@ async function readGrants() {
     csv()
     .fromFile(newGrantsPath)
     .then((innerNewGrants) => {
-      newGrants = innerNewGrants;
+      newGrants = normalizeGrantData(innerNewGrants);
       csv()
       .fromFile(oldGrantsPath)
       .then((innerOldGrants) => {
-        oldGrants = innerOldGrants;
+        oldGrants = normalizeGrantData(innerOldGrants);
         log.info('Old grants read');
         // For each new object, check if it exists in the old object based on the "id" field.
         // If it doesn't exist, add it to the delta object.
