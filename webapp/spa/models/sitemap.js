@@ -62,7 +62,7 @@ class SitemapModel {
     let time = '30s';
     let result = await experts.esSearch({
       from : 0,
-	    size: chunkSize
+      size: chunkSize
     }, {scroll: time, _source_includes: ['@id']});
 
     resp.write(`<?xml version="1.0" encoding="UTF-8"?>
