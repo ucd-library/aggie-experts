@@ -123,7 +123,7 @@ function createGrantDocument(grantNode, simplifiedExpert, framedDocument) {
     "identifier": grantNode.identifier,
     "is-visible": true,
     "modified-date": grantNode["modified-date"] || new Date().toISOString(),
-    "name": grantNode.name,
+    "name": generateGrantName(grantNode),
     "relatedBy": grantNode.relatedBy,
     "roles": ["public"],
     "sponsorAwardId": grantNode.sponsorAwardId,
