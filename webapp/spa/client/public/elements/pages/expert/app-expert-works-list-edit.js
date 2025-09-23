@@ -115,7 +115,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     }
 
 
-    this.modifiedWorks = false;
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
@@ -133,8 +132,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           worksSize : this.resultsPerPage,
           includeHidden : true,
           includeWorksMisformatted : true
-        })
+        }),
+        this.modifiedWorks // clear cache if modified works
       );
+      this.modifiedWorks = false;
 
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
@@ -236,6 +237,11 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     citationResults.forEach(cite => {
       if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
       cite['is-visible'] = (cite.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === this.expertId)));
+      if( cite.relatedBy && Array.isArray(cite.relatedBy) ) {
+        cite.favourite = cite.relatedBy.some(rel => rel['ucdlib:favourite'] === true);
+      } else {
+        cite.favourite = cite.relatedBy && cite.relatedBy['ucdlib:favourite'] === true;
+      }
     });
 
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
@@ -361,8 +367,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       utils.getExpertApiOptions({
         includeGrants : false,
         worksSize : 10000,
-        includeHidden : false
-      })
+        includeHidden : true
+      }),
+      true
     );
 
     let allCitations = await this._loadCitations(true, res.payload);
@@ -476,6 +483,166 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hiddenCitations--;
     this._updateHeaderLabels();
 
+    this.modifiedWorks = true;
+
+    this.requestUpdate();
+  }
+
+  /**
+   * @method _deselectFavourite
+   * @description remove favourite from work
+   */
+  async _deselectFavourite(e) {
+    this.citationId = e.currentTarget.dataset.id;
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
+    try {
+      let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, false);
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      if( window.gtag ) {
+        gtag('event', 'citation_is_favourite', {
+          'description': 'citation ' + this.citationId + ' removed as favourite for expert ' + this.expertId,
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
+          'fatal': false
+        });
+      }
+      this.logger.info('removing citation as favourite', { citationId : this.citationId, expertId : this.expertId });
+    } catch (error) {
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+      let modelContent = `
+        <p>
+          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
+          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
+        </p>
+        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
+      `;
+
+      this.modalTitle = 'Error: Update Failed';
+      this.modalContent = modelContent;
+      this.showModal = true;
+      this.hideCancel = true;
+      this.hideSave = true;
+      this.hideOK = false;
+      this.hideOaPolicyLink = true;
+      this.errorMode = true;
+
+      if( window.gtag ) {
+        gtag('event', 'citation_is_favourite', {
+          'description': 'attempted to remove favourite on citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
+          'fatal': false
+        });
+      }
+      this.logger.error('failed to remove citation as favourite', { citationId : this.citationId, expertId : this.expertId });
+
+      return;
+    }
+
+    // update graph/display data
+    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = false;
+      citation.favourite = false;
+    }
+    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = false;
+      citation.favourite = false;
+    }
+    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = false;
+      citation.favourite = false;
+    }
+
+    this._updateHeaderLabels();
+
+    this.modifiedWorks = true;
+
+    this.requestUpdate();
+  }
+
+  /**
+   * @method _markFavourite
+   * @description add favourite to work
+   */
+  async _markFavourite(e) {
+    this.citationId = e.currentTarget.dataset.id;
+    this.dispatchEvent(new CustomEvent("loading", {}));
+
+    try {
+      let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, true);
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      if( window.gtag ) {
+        gtag('event', 'citation_is_favourite', {
+          'description': 'citation ' + this.citationId + ' added as favourite for expert ' + this.expertId,
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
+          'fatal': false
+        });
+      }
+      this.logger.info('adding citation as favourite', { citationId : this.citationId, expertId : this.expertId });
+    } catch (error) {
+      this.dispatchEvent(new CustomEvent("loaded", {}));
+
+      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+      let modelContent = `
+        <p>
+          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
+          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
+        </p>
+        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
+      `;
+
+      this.modalTitle = 'Error: Update Failed';
+      this.modalContent = modelContent;
+      this.showModal = true;
+      this.hideCancel = true;
+      this.hideSave = true;
+      this.hideOK = false;
+      this.hideOaPolicyLink = true;
+      this.errorMode = true;
+
+      if( window.gtag ) {
+        gtag('event', 'citation_is_favourite', {
+          'description': 'attempted to add favourite on citation ' + this.citationId + ' for expert ' + this.expertId + ' but failed',
+          'relationshipId': this.citationId,
+          'expertId': this.expertId,
+          'fatal': false
+        });
+      }
+      this.logger.error('failed to add citation as favourite', { citationId : this.citationId, expertId : this.expertId });
+
+      return;
+    }
+
+    // update graph/display data
+    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = true;
+      citation.favourite = true;
+    }
+    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = true;
+      citation.favourite = true;
+    }
+    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = true;
+      citation.favourite = true;
+    }
+
+    this._updateHeaderLabels();
+
+    this.modifiedWorks = true;
+
     this.requestUpdate();
   }
 
@@ -535,6 +702,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           });
         }
         this.logger.error('failed to set citation to be hidden', { citationId : this.citationId, expertId : this.expertId });
+        return;
       }
 
       // update graph/display data
@@ -556,6 +724,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.hiddenCitations++;
 
       this._updateHeaderLabels();
+
+      this.modifiedWorks = true;
 
       this.requestUpdate();
 

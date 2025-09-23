@@ -71,6 +71,26 @@ class ExpertService extends BaseService {
     });
   }
 
+  async updateCitationFavourite(id, citationId, favourite) {
+    return this.request({
+      url : `${this.baseUrl}/${id}/${encodeURIComponent(citationId)}`,
+      fetchOptions : {
+        method : 'PATCH',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "@id" : citationId,
+          "favourite" : favourite
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
   async updateGrantVisibility(id, grantId, visible) {
     return this.request({
       url : `${this.baseUrl}/${id}/${encodeURIComponent(grantId)}`,
