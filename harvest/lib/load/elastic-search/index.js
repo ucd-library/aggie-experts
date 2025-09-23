@@ -203,7 +203,7 @@ async function createIndex(baseName, date) {
     logger.info(`Creating index: ${indexName}`);
     await esClient.indices.create({
       index: indexName,
-      body: schema
+      body: schema.json
     });
   } else {
     logger.info(`Index already exists: ${indexName}, no schema changes applied.`);

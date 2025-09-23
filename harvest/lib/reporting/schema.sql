@@ -114,6 +114,22 @@ CREATE TABLE IF NOT EXISTS error (
 );
 CREATE INDEX IF NOT EXISTS idx_error_command_id ON error (command_id);
 
+CREATE TABLE IF NOT EXISTS user_scholarly_output_load_stats (
+  user_load_stats_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  week_of_year VARCHAR(10) GENERATED ALWAYS AS (EXTRACT('week' FROM timestamp)::TEXT || '-' || EXTRACT('year' FROM timestamp)::TEXT) STORED,
+  command_id UUID NOT NULL REFERENCES command(command_id),
+  user_id VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL CHECK (type IN ('works', 'grants')),
+  visibility VARCHAR(20) NOT NULL CHECK (visibility IN ('public', 'private')),
+  count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_command_id ON user_scholarly_output_load_stats (command_id);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_user_id ON user_scholarly_output_load_stats (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_type ON user_scholarly_output_load_stats (type);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_visibility ON user_scholarly_output_load_stats (visibility);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_week_of_year ON user_scholarly_output_load_stats (week_of_year);
+
 CREATE OR REPLACE VIEW command_error AS
 SELECT
   c.command_id,
@@ -265,3 +281,37 @@ BEGIN
   RETURN QUERY SELECT file_cache_deleted, error_deleted, command_deleted;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE VIEW user_scholarly_output_weekly_changes AS
+  WITH weekly_counts AS (
+    SELECT
+      user_id,
+      week_of_year,
+      type,
+      visibility,
+      SUM(count) AS total_count
+    FROM user_scholarly_output_load_stats
+    GROUP BY user_id, week_of_year, type, visibility
+  ),
+  counts_with_lag AS (
+    SELECT
+      user_id,
+      week_of_year,
+      type,
+      visibility,
+      total_count,
+      LAG(total_count) OVER (
+        PARTITION BY user_id, type, visibility 
+        ORDER BY 
+          SPLIT_PART(week_of_year, '-', 2)::INTEGER,
+          SPLIT_PART(week_of_year, '-', 1)::INTEGER
+      ) AS prev_count
+    FROM weekly_counts
+  )
+  SELECT
+    user_id,
+    week_of_year,
+    type,
+    visibility,
+    COALESCE(total_count, 0) - COALESCE(prev_count, 0) AS change
+  FROM counts_with_lag;
