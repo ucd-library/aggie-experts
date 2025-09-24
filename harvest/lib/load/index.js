@@ -67,28 +67,30 @@ async function countUserAssets(user, files, assetType) {
         graphItems = [content];
       }
       
+      // Define valid types for each asset category
+      const ASSET_TYPE_MAP = {
+        work: [
+          'Work',
+          'Publication',
+          'Article',
+          'Book',
+          'Chapter'
+        ],
+        grant: [
+          'Grant',
+          'Grant_Research',
+          'Grant_Teaching'
+        ]
+      };
+      
       // Filter for the asset type we're counting
       const targetAssets = graphItems.filter(item => {
         if (!item['@type']) return false;
         
         const types = Array.isArray(item['@type']) ? item['@type'] : [item['@type']];
+        const validTypes = ASSET_TYPE_MAP[assetType] || [];
         
-        if (assetType === 'work') {
-          return types.some(type => 
-            type.includes('Work') || 
-            type.includes('Publication') || 
-            type.includes('Article') ||
-            type.includes('Book') ||
-            type.includes('Chapter')
-          );
-        } else if (assetType === 'grant') {
-          return types.some(type => 
-            type.includes('Grant') || 
-            type === 'Grant_Research' ||
-            type === 'Grant_Teaching'
-          );
-        }
-        return false;
+        return types.some(type => validTypes.includes(type));
       });
       
       // Count visibility for each asset
