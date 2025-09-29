@@ -237,9 +237,15 @@ async function executeCsvQuery(db, query, graphName) {
 
 function replaceHeaderHyphens(filename) {
   // Replace column headers underscores with dashes
+  // except funder_name becomes "funder name" because of change in Elements 6.23
   let data = fs.readFileSync(filename, 'utf8');
   let lines = data.split('\n');
+  
+  // Handle the special case for funder_name first
+  lines[0] = lines[0].replace(/funder_name/g, 'funder name');
+  // Then replace remaining underscores with dashes
   lines[0] = lines[0].replace(/_/g, '-');
+  
   let output = lines.join('\n');
   fs.writeFileSync(filename, output);
 }

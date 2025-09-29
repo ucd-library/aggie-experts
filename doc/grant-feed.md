@@ -52,7 +52,7 @@ They will not be carried over to the new Aggie Enterpise system. The legacy gran
 |type|text|The grant type as defined in Elements."c-ucdavis-pre-ae" for archived (KFS) grants. "c-ucd-enterprise" for Aggie Enterprise managed grants|
 |title|text| Grant title|
 |c-pi|text|Principle Investigator|
-|funder-name|text||
+|funder name|text||
 |funder-reference|text|Funder ID|
 |start-date|YYYY-MM-DD|Grant start date|
 |end-date| YYYY-MM-DD|Grant end date|
