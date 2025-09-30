@@ -15,10 +15,21 @@ class FsCache {
     this.rootDir = config.cache.rootDir;
     this.pgClient = null;
     // this.gcs = new GcsCache();
+
+    this.roots = {
+      active : '/active',
+      archive: '/archive'
+    }
+    this.validRoots = Object.values(this.roots);
+
     this.caskFs = new CaskFS({
       rootDir: this.rootDir,
       postgres: config.cache.postgres
     })
+  }
+
+  init() {
+    return this.caskFs.init();
   }
 
   getYearWeek(date) {
@@ -34,15 +45,36 @@ class FsCache {
    *
    * @param {String} userId expert user ID
    * @param  {String} assetKey either a single string or multiple strings that form the asset path
+   * @param {Object} opts options object
+   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
+   * 
    * @returns {String} full file path for the user asset
    */
-  getPath(userId, assetKey, date) {
+  getPath(userId, assetKey, opts={}) {
     if( typeof assetKey === 'object' && Array.isArray(assetKey) ) {
       assetKey = path.join(...assetKey);
     }
-    return path.join('/', this.getYearWeek(date), userId, assetKey);
+    if( !opts.root ) opts.root = this.roots.active;
+    if( !this.validRoots.includes(opts.root) ) {
+      throw new Error(`Invalid root specified: ${opts.root}`);
+    }
+
+    if( opts.root === this.roots.archive ) {
+      return path.join(opts.root, userId, assetKey);
+    }
+
+    return path.join(opts.root, this.getYearWeek(opts.date), userId, assetKey);
   }
 
+  /**
+   * @method exists
+   * @description Check if a file exists in the cache
+   * 
+   * @param {String} assetPath full path to the asset file
+   * 
+   * @returns {Boolean} true if the file exists, false otherwise
+   */
   exists(assetPath) {
     return this.caskFs.exists(assetPath);
   }
@@ -53,14 +85,23 @@ class FsCache {
    *
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
+   * @param {Object} opts options object
+   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    *
    * @returns {Boolean} true if the asset exists, false otherwise
    */
-  existsUserAsset(userId, assetKey, date) {
-    const assetPath = this.getPath(userId, assetKey, date);
+  existsUserAsset(userId, assetKey, opts={}) {
+    const assetPath = this.getPath(userId, assetKey, opts);
     return this.caskFs.exists(assetPath);
   }
 
+  /**
+   * @method readdir
+   * @description Read the contents of a directory in the cache
+   * @param {String} dir full path to the directory
+   * @returns {Promise<Object>} an object directory listing with 'file' and 'directory' arrays
+   */
   readdir(dir) {
     return this.caskFs.ls({directory: dir});
   }
@@ -70,11 +111,14 @@ class FsCache {
    * @description Read a user asset from the cache
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
-   *
+   * @param {Object} opts options object
+   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
+   * 
    * @returns {Promise<String>} the content of the user asset file
    */
-  async readUserAsset(userId, assetKey, date) {
-    const assetPath = this.getPath(userId, assetKey, date);
+  async readUserAsset(userId, assetKey, opts={}) {
+    const assetPath = this.getPath(userId, assetKey, opts);
     return this.read(assetPath);
   }
 
@@ -101,11 +145,14 @@ class FsCache {
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
    * @param {Object|String} data the data to write, can be an object or a string
-   *
+   * @param {Object} opts options object
+   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
+   * 
    * @returns {Promise<Object>} an object containing the asset path, local cache write status, hash, and last modified date
    */
-  async writeUserAsset(step, userId, assetKey, data, date) {
-    const assetPath = this.getPath(userId, assetKey, date);
+  async writeUserAsset(step, userId, assetKey, data, opts={}) {
+    const assetPath = this.getPath(userId, assetKey, opts);
     return this.write(step, assetPath, data);
   }
 
@@ -202,16 +249,28 @@ class FsCache {
    *
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
+   * @param {Object} opts options object
+   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
+   * 
    * @returns {Promise<void>}
    */
-  async deleteUserAsset(userId, assetKey, date) {
-    const assetPath = this.getPath(userId, assetKey, date);
+  async deleteUserAsset(userId, assetKey, opts={}) {
+    const assetPath = this.getPath(userId, assetKey, opts);
     if (await this.caskFs.exists(assetPath)) {
       await this.caskFs.delete(await this.caskFs.createContext({file: assetPath}));
     }
     // await this.deleteFromGcs(assetPath);
   }
 
+  /**
+   * @method delete
+   * @description Delete a file from the cache
+   *
+   * @param {String} assetPath full path to the asset file
+   *
+   * @returns {Promise<void>}
+   */
   async delete(assetPath) {
     if (await this.caskFs.exists(assetPath)) {
       await this.caskFs.delete(await this.caskFs.createContext({file: assetPath}));
@@ -225,12 +284,12 @@ class FsCache {
    * @param {String} filePath full path to the file in GCS
    * @returns {Promise<void>}
    */
-  deleteFromGcs(filePath) {
-    if (!config.cache.gcs.enabled) {
-      return;
-    }
-    return this.gcs.delete(filePath);
-  }
+  // deleteFromGcs(filePath) {
+  //   if (!config.cache.gcs.enabled) {
+  //     return;
+  //   }
+  //   return this.gcs.delete(filePath);
+  // }
 
   /**
    * @method writeToGcs
@@ -239,12 +298,12 @@ class FsCache {
    * @param {String} filePath full path to the file
    * @returns {Promise<void>}
    */
-  async writeToGcs(filePath) {
-    if (!config.cache.gcs.enabled) {
-      return null;
-    }
-    return (await this.gcs.upload(filePath)) ? true : false;
-  }
+  // async writeToGcs(filePath) {
+  //   if (!config.cache.gcs.enabled) {
+  //     return null;
+  //   }
+  //   return (await this.gcs.upload(filePath)) ? true : false;
+  // }
 
   /**
    * @method readFromGcs
@@ -253,12 +312,12 @@ class FsCache {
    * @param {String} filePath full path to the file
    * @returns {Promise<void>}
    */
-  readFromGcs(filePath) {
-    if (!config.cache.gcs.enabled) {
-      return;
-    }
-    return this.gcs.download(filePath);
-  }
+  // readFromGcs(filePath) {
+  //   if (!config.cache.gcs.enabled) {
+  //     return;
+  //   }
+  //   return this.gcs.download(filePath);
+  // }
 
   close() {
     return this.caskFs.close();

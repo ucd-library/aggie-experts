@@ -3,6 +3,7 @@ import { ensureCurrentIndexes } from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import PgClient from '../lib/pg-client.js';
+import cache from '../lib/cache.js';
 
 const program = new Command();
 const env = process.env;
@@ -31,6 +32,16 @@ program
       errors.push(`Error initializing PostgreSQL schema: ${error.message}`);
     } finally {
       pgClient.end();
+    }
+
+    try {
+      logger.info('Initializing caskfs cache...');
+      await cache.dbClient.init();
+      logger.info('Caskfs cache initialized successfully.');
+    } catch (error) {
+      errors.push(`Error initializing caskfs cache: ${error.message}`);
+    } finally {
+      await cache.close();
     }
 
     if (errors.length > 0) {
