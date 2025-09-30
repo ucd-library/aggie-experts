@@ -49,7 +49,7 @@ async function runFromFiles(relationshipFiles, expertId, expertData, options) {
   logger.info(`Running AE std relationship transformation for user: ${options.user}`);
   for( let file of relationshipFiles ) {
     logger.info(`Processing relationship file: ${file}`);
-    let rel = JSON.parse(fs.readFileSync(file, 'utf8'));
+    let rel = JSON.parse(await cache.read(file));
     await run(rel, expertId, expertData, options);
   }
 

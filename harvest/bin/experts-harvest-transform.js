@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import transform from '../lib/transform/index.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
+import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 
 const program = new Command();
@@ -35,6 +36,8 @@ program.name('transform')
     if( config.reporting.enabled ) {
       config.postgres.client.end();
     }
+
+    await cache.close();
 
     // TODO: why is this hanging?
     // process.exit();

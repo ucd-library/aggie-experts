@@ -249,19 +249,19 @@ async function readRelationshipFiles(cacheUsername, expertId) {
   let combinedGraph = [];
 
   try {
-    if (!fs.existsSync(relCachePath)) {
+    if (!await cache.exists(relCachePath)) {
       logger.warn(`Relationship directory does not exist: ${relCachePath}`);
       return combinedGraph;
     }
 
-    const files = fs.readdirSync(relCachePath).filter(f => f.endsWith('.jsonld'));
+    const files = (await cache.readdir(relCachePath)).files.filter(f => f.filename.endsWith('.jsonld'));
     logger.info(`Found ${files.length} relationship files`);
 
     for (const file of files) {
-      const filePath = path.join(relCachePath, file);
+      const filePath = file.filepath;
       let relationshipData;
       try {
-        relationshipData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        relationshipData = JSON.parse(await cache.read(filePath));
       } catch(e) {
         logger.error(`Error parsing ${file}: ${e.message}`);
         continue;
@@ -342,7 +342,10 @@ async function readRelationshipFiles(cacheUsername, expertId) {
 async function runFromFiles(cacheUsername, expertId, file) {
   logger.info(`Running AE webapp transformation for user: ${cacheUsername}`);
 
-  const expertGraph = JSON.parse(fs.readFileSync(file, 'utf8'));
+  // Read the main expert graph
+  const expertGraph = JSON.parse(await cache.read(file));
+
+  // Read all relationship files (works/grants)
   const relationshipGraph = await readRelationshipFiles(cacheUsername, expertId);
 
   const combinedGraph = Array.isArray(expertGraph)

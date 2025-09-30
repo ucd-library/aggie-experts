@@ -122,7 +122,7 @@ export class CdlClient {
     let jsonFile = path.join(config.cache.cdlDir, `${name}/${name}_${count.toString().padStart(3, '0')}.json`);
 
     if( options.noCache !== true ) {
-      if( !force && cache.exists(options.cacheName, jsonFile) ) {
+      if( !force && await cache.existsUserAsset(options.cacheName, jsonFile) ) {
         logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${jsonFile}`);
 
         const json = JSON.parse(await cache.readUserAsset(options.cacheName, jsonFile));
@@ -356,18 +356,17 @@ export class CdlClient {
     }
 
     // check to delete any cached files that are not in the feed
-    this.cleanupCache('user', user, writeResps);
+    await this.cleanupCache('user', user, writeResps);
 
     return writeResps;
   }
 
-  cleanupCache(type, user, writeResps) {
-    let dir = cache.getPath(user, 'cdl', type);
-    let files = fs.readdirSync(dir);
+  async cleanupCache(type, user, writeResps) {
+    let dir = cache.getPath(user, ['cdl', type]);
+    let {files} = await cache.readdir(dir);
     let toRemove = [];
     for (let file of files) {
-      file = path.join(dir, file);
-      if (!writeResps.find(resp => resp.assetPath === file)) {
+      if (!writeResps.find(resp => resp.assetPath === file.filepath)) {
         toRemove.push(file);
       }
     }
@@ -376,10 +375,11 @@ export class CdlClient {
 
     for (let file of toRemove) {
       try {
-        fs.unlinkSync(file);
-        logger.info(`Removed file ${file}`);
+        // fs.unlinkSync(file);
+        await cache.delete(file.filepath);
+        logger.info(`Removed file ${file.filepath}`);
       } catch (e) {
-        logger.error(`Error removing file ${file}: ${e.message}`);
+        logger.error(`Error removing file ${file.filepath}: ${e.message}`);
       }
     }
   }
@@ -422,7 +422,7 @@ export class CdlClient {
     }
 
     // check to delete any cached files that are not in the feed
-    this.cleanupCache('rel', user, writeResps);
+    await this.cleanupCache('rel', user, writeResps);
 
     return writeResps;
   }

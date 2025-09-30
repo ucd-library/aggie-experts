@@ -13,8 +13,8 @@ class EsDataModel {
 
     this.UPDATE_RETRY_COUNT = 10;
 
-    this.readIndexAlias = modelName+'s';
-    this.writeIndexAlias = modelName+'s';
+    this.readIndexAlias = modelName+'s-stage';
+    this.writeIndexAlias = modelName+'s-stage';
 
     this.client = es;
   }

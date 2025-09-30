@@ -92,7 +92,7 @@ export class IAM {
     const jsonldfn = path.join(config.cache.iamDir, config.cache.iamUserFilename);
 
     if( opts.noCache !== true ) {
-      if( !opts.force && cache.exists(expertEmail, jsonldfn) ) {
+      if( !opts.force && await cache.existsUserAsset(expertEmail, jsonldfn) ) {
         logger.info(`Skipping fetch IAM API as it is already cached at ${jsonldfn}`);
 
         const json = JSON.parse(await cache.readUserAsset(expertEmail, jsonldfn));
