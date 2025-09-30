@@ -1,4 +1,6 @@
 ARG DAGSTER_IMAGE
+ARG CASKFS_IMAGE
+FROM ${CASKFS_IMAGE} as caskfs
 FROM ${DAGSTER_IMAGE}
 
 RUN apt-get update && \
@@ -10,6 +12,12 @@ RUN apt-get update && \
     build-essential make \
     postgresql-client-16 && \
     rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/caskfs
+WORKDIR /opt/caskfs
+COPY --from=caskfs /opt/caskfs/package.json package.json
+RUN npm install --omit=dev
+COPY --from=caskfs /opt/caskfs/src src
 
 RUN mkdir -p /opt/harvest
 WORKDIR /opt/harvest
@@ -25,3 +33,4 @@ COPY harvest/lib /opt/harvest/lib
 COPY dagster/defs.py /opt/harvest/defs.py
 
 RUN cd /opt/harvest && npm install -g
+RUN cd /opt/caskfs && npm install -g

@@ -20,47 +20,47 @@ async function run(options={}) {
   }
 
   logger.info('Transforming data for user:', options.user);
-  logger.info('Root directory for transformed data:', cache.rootDir);
+  logger.info('Root directory for transformed data:', cache.getPath(options.user, []));
 
   // Transform CDL user data
   let cdlJsonLdFiles = [];
-  let cdlUserPath = cache.getPath(options.user, config.cache.cdlDir, 'user');
+  let cdlUserPath = cache.getPath(options.user, [config.cache.cdlDir, 'user']);
 
-  if( !fs.existsSync(cdlUserPath) ) {
+  if( !await cache.exists(cdlUserPath) ) {
     logger.warn(`CDL user path does not exist: ${cdlUserPath}`);
     return;
   }
 
-  let files = fs.readdirSync(cdlUserPath);
+  var {files} = await cache.readdir(cdlUserPath);
   for( let file of files ) {
-    if( path.extname(file) === '.json' ) {
-      logger.info(`Transform CDL user path: ${cdlUserPath}`);
-      let resp = await jsonAtomToJsonLd(path.join(cdlUserPath, file));
+    if( path.extname(file.filename) === '.json' ) {
+      logger.info(`Transform CDL user path: ${file.filepath}`);
+      let resp = await jsonAtomToJsonLd(file.filepath);
       cdlJsonLdFiles.push(resp.jsonldFile);
     }
   }
 
   // Transform CDL rel data
-  let cdlRelPath = cache.getPath(options.user, config.cache.cdlDir, 'rel');
+  let cdlRelPath = cache.getPath(options.user, [config.cache.cdlDir, 'rel']);
 
-  if( !fs.existsSync(cdlRelPath) ) {
+  if( !await cache.exists(cdlRelPath) ) {
     logger.warn(`CDL rel path does not exist: ${cdlRelPath}`);
     return;
   }
 
   let cdlRelJsonLdFiles = [];
-  files = fs.readdirSync(cdlRelPath);
+  var {files} = await cache.readdir(cdlRelPath);
   for( let file of files ) {
-    if( path.extname(file) === '.json' ) {
-      logger.info(`Transform CDL rel path: ${cdlRelPath}`);
-      let resp = await jsonAtomToJsonLd(path.join(cdlRelPath, file));
+    if( path.extname(file.filename) === '.json' ) {
+      logger.info(`Transform CDL rel path: ${file.filepath}`);
+      let resp = await jsonAtomToJsonLd(file.filepath);
       cdlJsonLdFiles.push(resp.jsonldFile);
       cdlRelJsonLdFiles.push(resp.jsonldFile);
     }
   }
 
   // Transform IAM directory data
-  let iamUserPath = cache.getPath(options.user, config.cache.iamDir, config.cache.iamUserFilename);
+  let iamUserPath = cache.getPath(options.user, [config.cache.iamDir, config.cache.iamUserFilename]);
   logger.info(`IAM user path: ${iamUserPath}`);
   let iamDir = await iamApiToJsonLd(iamUserPath);
 

@@ -2,7 +2,8 @@
   "registry" : "us-west1-docker.pkg.dev/aggie-experts/docker",
 
   "repositories" : {
-    "project-anduin" : "https://github.com/ucd-library/project-anduin"
+    "project-anduin" : "https://github.com/ucd-library/project-anduin",
+    "caskfs" : "https://github.com/ucd-library/caskfs"
   },
 
   "images" : {
@@ -10,7 +11,8 @@
       "contextPath" : ".",
       "options" : {
         "build-arg" : [
-          "DAGSTER_IMAGE=${project-anduin.dagster}"
+          "DAGSTER_IMAGE=${project-anduin.dagster}",
+          "CASKFS_IMAGE=${caskfs.caskfs}"
         ]
       }
     },

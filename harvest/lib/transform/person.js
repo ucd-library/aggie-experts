@@ -433,17 +433,17 @@ function run(expertId, profile, cdl, ucopVocab) {
   return result;
 }
 
-function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVocabFile) {
+async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVocabFile) {
   logger.info(`Running AE std person transformation for user: ${userCacheName}`);
 
-  const profile = JSON.parse(fs.readFileSync(odrFile, 'utf8'));
+  const profile = JSON.parse(await cache.read(odrFile));
 
   let cdlData = {
     '@graph': []
   }
 
-  cdlFiles.forEach(cdlFilePath => {
-    const cdl = JSON.parse(fs.readFileSync(cdlFilePath, 'utf8'));
+  for( let cdlFilePath of cdlFiles ) {
+    const cdl = JSON.parse(await cache.read(cdlFilePath));
 
     let graph = cdl['@graph'] || [];
     if (!Array.isArray(graph)) {
@@ -451,8 +451,9 @@ function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVocabFile)
     }
 
     cdlData['@graph'].push(...graph);
-  });
+  }
 
+  // TODO: add this to caskfs
   let ucopVocab = JSON.parse(fs.readFileSync(ucopVocabFile, 'utf8'));
   if( ucopVocab['@graph'] && ucopVocab['@graph'].length > 0 ) {
     ucopVocab = ucopVocab['@graph'][0];

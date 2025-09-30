@@ -3,6 +3,7 @@ import extract from '../lib/extract/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import PgClient from '../lib/pg-client.js';
+import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 
 const program = new Command();
@@ -38,6 +39,7 @@ program.name('extract')
     if( config.reporting.enabled ) {
       config.postgres.client.end();
     }
+    await cache.close();
   });
 
 program.parse(process.argv);
