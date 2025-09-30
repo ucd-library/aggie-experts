@@ -96,6 +96,15 @@ class PgClient {
     `;
     return this.query(query, [command_id, message, stack]);
   }
+
+  insertUserScholarlyOutputLoadStats(opts) {
+    const { command_id, user_id, type, visibility, count } = opts;
+    const query = `
+      INSERT INTO ${this.schema}.user_scholarly_output_load_stats (command_id, user_id, type, visibility, count)
+      VALUES ($1, $2, $3, $4, $5)
+    `;
+    return this.query(query, [command_id, user_id, type, visibility, count]);
+  }
 }
 
 export default PgClient;

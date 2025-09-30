@@ -198,6 +198,7 @@ class ExpertModel extends BaseModel {
         include : false,
         size : -1,
         includeMisformatted : false,
+        favouriteWorksFirst : true,
         sort : [
           {
               "field": "issued",
@@ -211,7 +212,22 @@ class ExpertModel extends BaseModel {
             } ]
       }
     }
-    options = {...defaults, ...options};
+
+    function deepMerge(target, source) {
+      const result = { ...target };
+
+      for (const key in source) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+          result[key] = deepMerge(target[key] || {}, source[key]);
+        } else {
+          result[key] = source[key];
+        }
+      }
+
+      return result;
+    }
+
+    options = deepMerge(defaults, options);
 
     if (doc["is-visible"] === false && !options.admin) {
       throw {status: 404, message: "Not found"};
@@ -354,7 +370,30 @@ class ExpertModel extends BaseModel {
           });
         }
 
+        // default sort
         works = works.sort((a,b) => sortGraph(a, b, options.works.sort));
+
+        if( options.works?.favouriteWorksFirst ) {
+          // Sort works with favourites first, then apply regular sorting
+          works = works.sort((a, b) => {
+            // Check if works are favourites
+            const aIsFavourite = a.relatedBy && Array.isArray(a.relatedBy)
+              ? a.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+              : a.relatedBy && a.relatedBy['ucdlib:favourite'] === true;
+
+            const bIsFavourite = b.relatedBy && Array.isArray(b.relatedBy)
+              ? b.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+              : b.relatedBy && b.relatedBy['ucdlib:favourite'] === true;
+
+            // favourites come first
+            if (aIsFavourite && !bIsFavourite) return -1;
+            if (!aIsFavourite && bIsFavourite) return 1;
+
+            // If both are favourites or both are not favourites, apply regular sorting
+            return sortGraph(a, b, options.works.sort);
+          });
+        }
+
         if( options.works?.includeMisformatted ) {
           invalidWorks = [...(invalidTitle.citations || []), ...(invalidIssueDate.citations || [])];
           doc.invalidWorks = invalidWorks;
@@ -759,7 +798,7 @@ class GrantRole {
   /**
    * @method patch
    * @description Patch an grant_role file.
-   * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
+   * @param {Object} patch :  { "@id", "is-visible", "favourite" }
    * @param {String} expertId : Expert Id
    * @returns {Object} : document object
    **/
@@ -806,7 +845,7 @@ class GrantRole {
       node['relatedBy']['is-visible'] = patch.visible;
     }
     if (patch.favourite != null) {
-      node['relatedBy']['is-favourite'] = patch.favourite;
+      node['relatedBy'].favourite = patch.favourite;
     }
     await this.expertModel.update_graph_node(expertId,node);
 
@@ -818,14 +857,14 @@ class GrantRole {
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
           ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`<${id}> ucdlib:is-favourite ?fav .`:''}
+          ${patch.favourite !=null ?`<${id}> ucdlib:favourite ?fav .`:''}
         }
         INSERT {
           ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`<${id}> ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.favourite != null ?`<${id}> ucdlib:favourite ${patch.favourite} .`:''}
         } WHERE {
-          <${id}> ucdlib:is-visible ?v .
-          OPTIONAL { <${id}> ucdlib:is-favourite ?fav } .
+          ${patch.visible != null ? `OPTIONAL { <${id}> ucdlib:is-visible ?v } .`:''}
+          ${patch.favourite != null ? `OPTIONAL { <${id}> ucdlib:favourite ?fav } .`:''}
         }
       `
     };
@@ -848,6 +887,7 @@ class GrantRole {
         logger.info({cdl_response:resp},`CDL propagate privacy ${config.experts.cdl.grant_role.propagate}`);
       }
       if (patch.favourite != null) {
+        patch.categoryId = 2;
         resp = await cdl_user.setFavourite(patch)
         logger.info({cdl_response:resp},`CDL propagate favourite ${config.experts.cdl.grant_role.propagate}`);
       }
@@ -866,7 +906,7 @@ class Authorship {
   /**
    * @method patch
    * @description Patch an authorship file.
-   * @param {Object} patch :  { "@id", "is-visible","is-favourite" "objectId" }
+   * @param {Object} patch :  { "@id", "is-visible", "favourite" }
    * @param {String} expertId : Expert Id
    * @returns {Object} : document object
     **/
@@ -899,7 +939,7 @@ class Authorship {
       node['relatedBy']['is-visible'] = patch.visible;
     }
     if (patch.favourite != null) {
-      node['relatedBy']['is-favourite'] = patch.favourite;
+      node['relatedBy'].favourite = patch.favourite;
     }
     //already a snippet node = workModel.snippet(have_part.Work.node);
     await this.expertModel.update_graph_node(expertId,node);
@@ -911,14 +951,14 @@ class Authorship {
         PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
         DELETE {
           ${patch.visible != null ? `<${rid}> ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`<${rid}> ucdlib:is-favourite ?f .`:''}
+          ${patch.favourite != null ?`<${rid}> ucdlib:favourite ?f .`:''}
         }
         INSERT {
           ${patch.visible != null ?`<${rid}> ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`<${rid}> ucdlib:is-favourite ${patch.favourite} .`:''}
+          ${patch.favourite != null ?`<${rid}> ucdlib:favourite ${patch.favourite} .`:''}
         } WHERE {
-          <${rid}> ucdlib:is-visible ?v .
-          OPTIONAL { <${rid}> ucdlib:is-favourite ?fav } .
+          ${patch.visible != null ? `OPTIONAL { <${rid}> ucdlib:is-visible ?v } .`:''}
+          ${patch.favourite != null ? `OPTIONAL { <${rid}> ucdlib:favourite ?f } .`:''}
         }
       `
     };
@@ -932,11 +972,20 @@ class Authorship {
 
     if (config.experts.cdl.authorship.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
-      resp = await cdl_user.setLinkPrivacy({
-        objectId: patch.objectId,
-        categoryId: 1,
-        privacy: patch.visible ? 'public' : 'internal'
-      })
+
+      if( patch.visible != null ) {
+        logger.info('CDL propagate visibility', patch.visible);
+        resp = await cdl_user.setLinkPrivacy({
+          objectId: patch.objectId,
+          categoryId: 1,
+          privacy: patch.visible ? 'public' : 'internal'
+        })
+      } else if( patch.favourite != null ) {
+        logger.info('CDL propagate favourite', patch.favourite);
+        patch.categoryId = 1;
+        resp = await cdl_user.setFavourite(patch)
+      }
+
       logger.info({cdl_response:resp},`CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
     } else {
       logger.info({cdl_response:null},`XCDL propagate changes ${config.experts.cdl.authorship.propagate}`);

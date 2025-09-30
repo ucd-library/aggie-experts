@@ -14,7 +14,7 @@ ON CONFLICT (alias_name) DO NOTHING;
 CREATE TABLE IF NOT EXISTS command (
   command_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  week_of_year VARCHAR(10) GENERATED ALWAYS AS (EXTRACT('week' FROM timestamp)::TEXT || '-' || EXTRACT('year' FROM timestamp)::TEXT) STORED,
+  year_week VARCHAR(10) GENERATED ALWAYS AS (EXTRACT('year' FROM timestamp)::TEXT || '-' || LPAD(EXTRACT('week' FROM timestamp)::TEXT, 2, '0')) STORED,
   job_id VARCHAR(255),
   command VARCHAR(255) NOT NULL,
   user_id VARCHAR(255) NOT NULL,
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS command (
 --   GENERATED ALWAYS AS (EXTRACT('week' FROM timestamp)::TEXT || '-' || EXTRACT('year' FROM timestamp)::TEXT) STORED;
 CREATE INDEX IF NOT EXISTS idx_command_job_id ON command (job_id);
 CREATE INDEX IF NOT EXISTS idx_command_user_id ON command (user_id);
-CREATE INDEX IF NOT EXISTS idx_command_week_of_year_single ON command (week_of_year);
-CREATE INDEX IF NOT EXISTS idx_command_week_of_year ON command (command, user_id, week_of_year, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_command_year_week_single ON command (year_week);
+CREATE INDEX IF NOT EXISTS idx_command_year_week ON command (command, user_id, year_week, timestamp DESC);
 
 CREATE TABLE IF NOT EXISTS file_cache (
   file_cache_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -114,6 +114,22 @@ CREATE TABLE IF NOT EXISTS error (
 );
 CREATE INDEX IF NOT EXISTS idx_error_command_id ON error (command_id);
 
+CREATE TABLE IF NOT EXISTS user_scholarly_output_load_stats (
+  user_load_stats_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  year_week VARCHAR(10) GENERATED ALWAYS AS (EXTRACT('year' FROM timestamp)::TEXT || '-' || LPAD(EXTRACT('week' FROM timestamp)::TEXT, 2, '0')) STORED,
+  command_id UUID NOT NULL REFERENCES command(command_id),
+  user_id VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL CHECK (type IN ('works', 'grants')),
+  visibility VARCHAR(20) NOT NULL CHECK (visibility IN ('public', 'private')),
+  count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_command_id ON user_scholarly_output_load_stats (command_id);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_user_id ON user_scholarly_output_load_stats (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_type ON user_scholarly_output_load_stats (type);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_visibility ON user_scholarly_output_load_stats (visibility);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_year_week ON user_scholarly_output_load_stats (year_week);
+
 CREATE OR REPLACE VIEW command_error AS
 SELECT
   c.command_id,
@@ -136,13 +152,13 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
     FROM command
   ),
   weeks AS (
-    SELECT DISTINCT week_of_year
+    SELECT DISTINCT year_week
     FROM command
   ),
   user_command_stats AS (
     SELECT
       u.user_id,
-      w.week_of_year,
+      w.year_week,
       c.command,
       COUNT(c.command_id) AS exec_count,
       COUNT(e.error_id) AS error_count
@@ -151,21 +167,21 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
     LEFT JOIN
       weeks w ON TRUE
     LEFT JOIN
-      command c ON u.user_id = c.user_id AND c.week_of_year = w.week_of_year
+      command c ON u.user_id = c.user_id AND c.year_week = w.year_week
     LEFT JOIN
       error e ON c.command_id = e.command_id
     GROUP BY
-      u.user_id, w.week_of_year, c.command
+      u.user_id, w.year_week, c.command
   ),
   last_user_command AS (
-    SELECT DISTINCT ON (command, user_id, week_of_year) *
+    SELECT DISTINCT ON (command, user_id, year_week) *
     FROM command
-    ORDER BY command, user_id, week_of_year, timestamp DESC
+    ORDER BY command, user_id, year_week, timestamp DESC
   )
   SELECT
     ucs.user_id,
     ucs.command,
-    ucs.week_of_year,
+    ucs.year_week,
     ucs.exec_count,
     ucs.error_count,
     CASE
@@ -174,14 +190,14 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
       ELSE 'ok'
     END AS state
   FROM user_command_stats ucs
-  LEFT JOIN last_user_command uc ON ucs.user_id = uc.user_id AND ucs.command = uc.command AND ucs.week_of_year = uc.week_of_year
+  LEFT JOIN last_user_command uc ON ucs.user_id = uc.user_id AND ucs.command = uc.command AND ucs.year_week = uc.year_week
   LEFT JOIN error e ON uc.command_id = e.command_id
-  ORDER BY user_id, week_of_year, command;
+  ORDER BY user_id, year_week, command;
 
 CREATE OR REPLACE VIEW this_week_user_state_count AS
 SELECT
   user_id,
-  week_of_year,
+  year_week,
   CASE
     WHEN BOOL_OR(state = 'error') THEN 'error'
     WHEN BOOL_AND(state = 'ok') THEN 'ok'
@@ -189,23 +205,23 @@ SELECT
     ELSE 'unknown'
   END AS state
 FROM user_command_weekly_stats
-WHERE week_of_year = EXTRACT('week' FROM CURRENT_TIMESTAMP)::TEXT || '-' || EXTRACT('year' FROM CURRENT_TIMESTAMP)::TEXT
-GROUP BY user_id, week_of_year;
+WHERE year_week = EXTRACT('year' FROM CURRENT_TIMESTAMP)::TEXT || '-' || LPAD(EXTRACT('week' FROM CURRENT_TIMESTAMP)::TEXT, 2, '0')
+GROUP BY user_id, year_week;
 
 CREATE OR REPLACE VIEW user_command_weekly_state_changes AS
   WITH state_with_lag AS (
     SELECT
       user_id,
       command,
-      week_of_year,
+      year_week,
       state,
-      LAG(state) OVER (PARTITION BY user_id ORDER BY week_of_year) AS prev_state
+      LAG(state) OVER (PARTITION BY user_id ORDER BY year_week) AS prev_state
     FROM user_command_weekly_stats
   )
   SELECT
     user_id,
     command,
-    week_of_year,
+    year_week,
     state,
     CASE
       WHEN prev_state IS DISTINCT FROM state
@@ -223,13 +239,13 @@ CREATE OR REPLACE VIEW this_week_user_state_changes AS
 SELECT
   user_id,
   ARRAY_AGG(REGEXP_REPLACE(command, '^experts-harvest-', '')) AS commands,
-  week_of_year,
+  year_week,
   state,
   state_change
 FROM user_command_weekly_state_changes
-WHERE week_of_year = EXTRACT('week' FROM CURRENT_TIMESTAMP)::TEXT || '-' || EXTRACT('year' FROM CURRENT_TIMESTAMP)::TEXT
+WHERE year_week = EXTRACT('year' FROM CURRENT_TIMESTAMP)::TEXT || '-' || LPAD(EXTRACT('week' FROM CURRENT_TIMESTAMP)::TEXT, 2, '0')
 GROUP BY
-  user_id, week_of_year, state, state_change;
+  user_id, year_week, state, state_change;
 
 CREATE OR REPLACE FUNCTION cleanup_old_commands()
 RETURNS TABLE(
@@ -265,3 +281,35 @@ BEGIN
   RETURN QUERY SELECT file_cache_deleted, error_deleted, command_deleted;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE VIEW user_scholarly_output_weekly_changes AS
+  WITH weekly_counts AS (
+    SELECT
+      user_id,
+      year_week,
+      type,
+      visibility,
+      SUM(count) AS total_count
+    FROM user_scholarly_output_load_stats
+    GROUP BY user_id, year_week, type, visibility
+  ),
+  counts_with_lag AS (
+    SELECT
+      user_id,
+      year_week,
+      type,
+      visibility,
+      total_count,
+      LAG(total_count) OVER (
+        PARTITION BY user_id, type, visibility 
+        ORDER BY year_week
+      ) AS prev_count
+    FROM weekly_counts
+  )
+  SELECT
+    user_id,
+    year_week,
+    type,
+    visibility,
+    COALESCE(total_count, 0) - COALESCE(prev_count, 0) AS change
+  FROM counts_with_lag;

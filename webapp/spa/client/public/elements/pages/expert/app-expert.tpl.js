@@ -153,7 +153,7 @@ return html`
       height: 2.2rem;
     }
 
-    .seperator {
+    .separator {
       display: block;
       height: 4px;
       border: 0;
@@ -162,7 +162,7 @@ return html`
       margin: 0.625rem 0;
     }
 
-    .about-me.seperator {
+    .about-me.separator {
       padding-bottom: 0.7rem;
     }
 
@@ -303,12 +303,12 @@ return html`
       height: 2.2rem;
     }
 
-    .grants-abbreviated .seperator {
+    .grants-abbreviated .separator {
       border-top: 4px dotted var(--color-thiebaud-icing);
       padding-bottom: .33rem;
     }
 
-    .works-abbreviated .seperator {
+    .works-abbreviated .separator {
       border-top: 4px dotted var(--color-sage);
       padding-bottom: .33rem;
     }
@@ -594,6 +594,83 @@ return html`
       line-height: 2rem;
     }
 
+    .featured-works {
+      background-color: rgba(108, 202, 152, 0.2);
+      padding: 2.38rem;
+      margin-bottom: 3.57rem;
+    }
+
+    .featured-works h3 {
+      margin: 1.19rem 0;
+    }
+
+    .featured-works .work {
+      padding-bottom: .6rem;
+    }
+
+    .featured-works-toggle {
+      text-align: left;
+      position: relative;
+      z-index: 500;
+    }
+
+    .featured-works-toggle .featured-works-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .featured-works-toggle .featured-works-header span {
+      font-weight: bold;
+    }
+
+    .featured-works-toggle .instructions-label {
+      font-style: italic;
+      line-height: 1.7rem;
+    }
+
+    .featured-works-toggle .instructions-label p {
+      margin: .5rem 0 0 0;
+    }
+
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toggle-button {
+      width: 35px;
+      height: 13px;
+      border-radius: 30px;
+      cursor: pointer;
+      position: relative;
+      background-color: var(--color-black-20);
+    }
+
+    .toggle-button::before {
+      position: absolute;
+      content: '';
+      background-color: white;
+      width: 22px;
+      height: 22px;
+      border-radius: 22px;
+      margin-top: -5px;
+      transition: 0.3s ease-in-out;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-switch input:checked + .toggle-button {
+      background-color: var(--color-aggie-blue-60);
+    }
+    .toggle-switch input:checked + .toggle-button::before {
+      transform: translateX(.8rem);
+      background-color: var(--color-aggie-blue-80);
+    }
+    .toggle-switch input {
+      display: none;
+    }
+
     @media (max-width: 1080px) {
       .tooltip.download-all-grants:before {
         right: -25px;
@@ -693,7 +770,7 @@ return html`
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT ${!this.isVisible ? '(HIDDEN)' : ''}</span>
           <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
-          <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+          <div ?hidden="${this._hideEditExpertControls()}" style="position: relative; display: flex;">
             <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-eye"
@@ -713,7 +790,7 @@ return html`
                 aria-label="Show expert"></ucdlib-icon>
             </span>
           </div>
-          <div ?hidden="${(!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId}" style="position: relative; display: flex;">
+          <div ?hidden="${this._hideEditExpertControls()}" style="position: relative; display: flex;">
             <span class="tooltip delete-expert" data-text="Delete expert">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-trash"
@@ -782,7 +859,7 @@ return html`
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
       </div>
-      <hr class="about-me seperator">
+      <hr class="about-me separator">
 
       <div class="introduction no-introduction" ?hidden="${!this.canEdit || this.introduction || this.researchInterests}">
         <h3 class="heading--highlight">Introduction
@@ -876,10 +953,16 @@ return html`
             <div ?hidden="${!role.title}">
               <p class="title-dept">${role.title}${role.department ? ', ' + role.department : ''}</p>
             </div>
-            <div class="link-row" ?hidden="${!role.email}">
-              <a href="mailto:${role.email}">
-                <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon> ${role.email}
-              </a>
+            <div ?hidden="${!role.emails.length}">
+              ${role.emails.map(
+              (email, index) => html`
+              <div class="link-row">
+                <a href="mailto:${email}">
+                  <ucdlib-icon icon="ucdlib-experts:fa-envelope"></ucdlib-icon> ${email}
+                </a>
+              </div>
+              `
+            )}
             </div>
           </div>
           `
@@ -986,7 +1069,7 @@ return html`
           ${this.hiddenGrants} additional grant${this.hiddenGrants === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
         </span>
 
-        <hr class="seperator">
+        <hr class="separator">
         ${this.grantsActiveDisplayed.map(
           (grant, index) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
@@ -1069,8 +1152,47 @@ return html`
           ${this.hiddenCitations} additional work${this.hiddenCitations === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
         </span>
 
-        <hr class="seperator">
-        ${this.citationsDisplayed.map(
+        <hr class="separator">
+
+          <div class="featured-works" ?hidden="${!this.featuredCitations.length}">
+            <!-- <div class="featured-works-toggle">
+              <div class="featured-works-header">
+                <h3 class="heading--highlight">Highlights</h3>
+                <div class="toggle-switch" ?hidden="${this._hideEditExpertControls()}">
+                  <input
+                    type="checkbox"
+                    id="toggle"
+                    ?checked="${this.showFeaturedCitations}"
+                    @change="${this._onFeaturedCitationsToggle}">
+                  <label for="toggle" class="toggle-button"></label>
+                </div>
+              </div>
+              <div class="instructions-label" ?hidden="${this.showFeaturedCitations || this._hideEditExpertControls()}">
+                <p>
+                  Enable this feature to show "Favorite" works at the top of your profile's Works list. Works may
+                  be added or removed by selecting the heart icon in the Works editing view.
+                </p>
+              </div>
+            </div> -->
+            <!-- <div ?hidden="${!this.showFeaturedCitations}" class="featured-works-list"> -->
+            <h3 class="heading--highlight" style="margin: 1.19rem 0;">Highlights</h3>
+            ${this.featuredCitations.map(
+              (cite) => html`
+                <div class="work">
+                  <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
+                  <div class="work-details">
+                    <span style="min-width: fit-content;">${cite.issued?.[0]}</span>
+                    <span class="dot">•</span>
+                    <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
+                    <span class="dot">•</span>
+                    ${unsafeHTML(utils.formatCitation(cite))}
+                  </div>
+                </div>
+              `)}
+            </div>
+          <!-- </div> -->
+
+          ${this.citationsDisplayed.map(
           (cite) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;">${cite.issued?.[0]}</h3>
             <div class="work">
@@ -1078,7 +1200,7 @@ return html`
               <div class="work-details">
                 <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
                 <span class="dot">•</span>
-                ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
+                ${unsafeHTML(utils.formatCitation(cite))}
               </div>
             </div>
             <br>

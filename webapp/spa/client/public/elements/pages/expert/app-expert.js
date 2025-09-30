@@ -32,6 +32,8 @@ export default class AppExpert extends Mixin(LitElement)
       websites : { type : Array },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      featuredCitations : { type : Array },
+      // showFeaturedCitations : { type : Boolean },
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
@@ -114,7 +116,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions(), clearCache);
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favouriteWorksFirst : true }), clearCache);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
       this._onExpertUpdate(expert, modified);
@@ -162,10 +164,19 @@ export default class AppExpert extends Mixin(LitElement)
     this.truncateResearchInterests = this.introduction.length + this.researchInterests.length > 500;
 
     this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true).map(c => {
+
+      let emails = [];
+      if( c.hasEmail && Array.isArray(c.hasEmail) ) {
+        emails = c.hasEmail;
+      } else if( c.hasEmail ) {
+        emails = [c.hasEmail];
+      }
+      emails = emails.map(email => email.replace('mailto:', ''));
+
       return {
         title : c.hasTitle?.prefLabel || c.hasTitle?.name,
         department : c.hasOrganizationalUnit?.prefLabel || c.hasOrganizationalUnit?.name,
-        email : c?.hasEmail?.replace('mailto:', ''),
+        emails,
         websiteUrl : c.hasURL?.['url'],
         rank : c.rank
       }
@@ -173,11 +184,12 @@ export default class AppExpert extends Mixin(LitElement)
     this.roles.sort((a, b) => a.rank - b.rank);
 
     // if all emails match, only show email under the last role
-    let uniqueEmails = [...new Set(this.roles.map(role => role.email))];
+    let uniqueEmails = [...new Set(this.roles.flatMap(role => role.emails))];
     if( uniqueEmails.length === 1 ) {
       for( let i = 0; i < this.roles.length - 1; i++ ) {
-        this.roles[i].email = null;
+        this.roles[i].emails = [];
       }
+      this.roles[this.roles.length - 1].emails = uniqueEmails;
     }
 
     this.orcId = graphRoot.orcidId;
@@ -275,6 +287,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.websites = [];
     this.citations = [];
     this.citationsDisplayed = [];
+    this.featuredCitations = [];
+    // this.showFeaturedCitations = true;
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
@@ -337,8 +351,9 @@ export default class AppExpert extends Mixin(LitElement)
    *
    * @param {Boolean} all load all citations, not just first 10, used for downloading all citations
    * @param {Object} apiResponse optional response from ExpertModel.get
+   * @param {Boolean} isDownload indicate if this is a download request, to include favourites, and not reset local data
    */
-  async _loadCitations(all=false, apiResponse={}) {
+  async _loadCitations(all=false, apiResponse={}, isDownload=false) {
     let citations = all ? JSON.parse(JSON.stringify((apiResponse['@graph'] || []).filter(g => g.issued))) : JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     citations = citations.map(c => {
@@ -347,10 +362,33 @@ export default class AppExpert extends Mixin(LitElement)
       return citation;
     });
 
-    if( !all ) this.citations = citations;
+    if( !all && !isDownload ) this.citations = citations;
 
     let citationResults = all ? await Citation.generateCitations(citations) : await Citation.generateCitations(this.citations.slice(0, this.worksPerPage));
     citationResults = citationResults.map(c => c.value || c.reason?.data);
+
+    let featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
+        ? c.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+        : c.relatedBy && c.relatedBy['ucdlib:favourite'] === true
+      );
+
+    if( featuredCitations.length ) {
+      // ensure sorted by year descending
+      featuredCitations.sort((a, b) => {
+        let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
+        let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
+        return bYear - aYear;
+      });
+
+      featuredCitations = featuredCitations.slice(0, 5);
+
+      if( !isDownload ) citationResults = citationResults.filter(c => !featuredCitations.includes(c));
+      citationResults.sort((a, b) => {
+        let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
+        let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
+        return bYear - aYear;
+      });
+    }
 
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
@@ -370,8 +408,11 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( all ) return citationResults;
 
-    this.citationsDisplayed = citationResults;
-    this.requestUpdate();
+    if( !isDownload ) {
+      this.citationsDisplayed = citationResults;
+      this.featuredCitations = featuredCitations;
+      this.requestUpdate();
+    }
   }
 
   /**
@@ -390,10 +431,11 @@ export default class AppExpert extends Mixin(LitElement)
         includeGrants : false,
         worksSize : 10000,
         includeHidden : false
-      })
+      }),
+      true
     );
 
-    let allCitations = await this._loadCitations(true, res.payload);
+    let allCitations = await this._loadCitations(true, res.payload, true);
 
     let text = allCitations.map(c => c.ris).join('\n');
     let blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
@@ -427,7 +469,8 @@ export default class AppExpert extends Mixin(LitElement)
         includeWorks : false,
         grantsSize : 10000,
         includeHidden : false
-      })
+      }),
+      true
     );
 
     let allGrants = JSON.parse(JSON.stringify((res?.payload?.['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
@@ -963,6 +1006,20 @@ export default class AppExpert extends Mixin(LitElement)
   //   this.hideOaPolicyLink = true;
   //   this.errorMode = false;
   // }
+
+  /**
+   * @method _onFeaturedCitationsToggle
+   * @description toggle featured citations
+   * @param {Object} e click|keyup event
+   */
+  // _onFeaturedCitationsToggle(e) {
+  //   this.showFeaturedCitations = !this.showFeaturedCitations;
+  //   this._loadCitations();
+  // }
+
+  _hideEditExpertControls() {
+    return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;
+  }
 
   _cdlErrorModal(e) {
     e.preventDefault();
