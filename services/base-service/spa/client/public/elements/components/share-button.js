@@ -116,10 +116,10 @@ export class ShareButton extends LitElement {
 
   _handleDismissCopyLinkClick(event) {
     const overlay = this.shadowRoot.querySelector('.copy-link-overlay');
-    if (overlay && !overlay.contains(event.target) && this.showCopyLinkOverlay) {
+    const path = event.composedPath();
+    if (overlay && !path.includes(overlay) && this.showCopyLinkOverlay) {
       this._dismissOverlay();
     }
-  }
 
   _dismissOverlay() {
     this.showCopyLinkOverlay = false;
