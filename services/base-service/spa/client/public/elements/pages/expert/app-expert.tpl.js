@@ -6,6 +6,8 @@ import { sharedStyles } from '../../styles/shared-styles';
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 import headingsCss from "@ucd-lib/theme-sass/2_base_class/_headings.css";
 
+import '../../components/share-button.js';
+
 import utils from '../../../lib/utils';
 
 export function render() {
@@ -75,6 +77,7 @@ return html`
     }
 
     .hero-main h1 .tooltip:hover ucdlib-icon,
+    .edit-availability:hover ucdlib-icon,
     .hero-main .experts span.hide-expert:hover ucdlib-icon,
     .hero-main .experts span.show-expert:hover ucdlib-icon,
     .hero-main .experts span.delete-expert:hover ucdlib-icon,
@@ -348,11 +351,13 @@ return html`
       text-decoration: none;
     }
 
-    .tooltip {
+    .tooltip,
+    share-button {
       cursor: pointer;
     }
 
-    .tooltip:hover:before {
+    .tooltip:hover:before,
+    share-button:hover:before {
       content: attr(data-text);
       position: absolute;
       bottom: 35px;
@@ -371,7 +376,8 @@ return html`
       transition: .2s opacity ease-out;
     }
 
-    .tooltip:hover:after {
+    .tooltip:hover:after,
+    share-button:hover:after {
       content: "";
       position: absolute;
       bottom: 25px;
@@ -384,8 +390,26 @@ return html`
       transition: .2s opacity ease-out;
     }
 
-    .tooltip:hover:before, .tooltip:hover:after {
+    share-button:hover:before {
+      content: "Share";
+    }
+
+    .tooltip:hover:before,
+    .tooltip:hover:after,
+    share-button:hover:before,
+    share-button:hover:after {
       opacity: 1;
+    }
+
+    share-button:hover:before {
+      width: 50px;
+      bottom: 40px;
+      right: -25px;
+    }
+
+    share-button:hover:after {
+      bottom: 30px;
+      right: 5px;
     }
 
     .tooltip.edit-name:hover:before {
@@ -746,7 +770,6 @@ return html`
         display: none;
       }
     }
-
   </style>
 
   <div class="content">
@@ -853,6 +876,7 @@ return html`
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
+        <share-button></share-button>
       </div>
       <hr class="about-me separator">
 
