@@ -239,12 +239,11 @@ export function styles() {
     }
 
     share-button:hover:before {
-      content: attr(data-text);
+      content: "Share";
       position: absolute;
-      bottom: 35px;
-      right: -35px;
-
-      width: 140px;
+      width: 50px;
+      bottom: 40px;
+      right: -25px;
       padding: 2px 10px;
       border-radius: 7px;
       background: #000;
@@ -260,8 +259,8 @@ export function styles() {
     share-button:hover:after {
       content: "";
       position: absolute;
-      bottom: 25px;
-      right: 40px;
+      bottom: 30px;
+      right: 5px;
 
       border: 5px solid #000;
       border-color: black transparent transparent transparent;
@@ -270,24 +269,9 @@ export function styles() {
       transition: .2s opacity ease-out;
     }
 
-    share-button:hover:before {
-      content: "Share";
-    }
-
     share-button:hover:before,
     share-button:hover:after {
       opacity: 1;
-    }
-
-    share-button:hover:before {
-      width: 50px;
-      bottom: 40px;
-      right: -25px;
-    }
-
-    share-button:hover:after {
-      bottom: 30px;
-      right: 5px;
     }
   `;
 

@@ -26,7 +26,6 @@ export class ShareButton extends LitElement {
   static get styles() {
     return css`
       :host {
-        display: block;
         margin-left: auto;
         align-items: center;
         cursor: pointer;
@@ -120,6 +119,7 @@ export class ShareButton extends LitElement {
     if (overlay && !path.includes(overlay) && this.showCopyLinkOverlay) {
       this._dismissOverlay();
     }
+  }
 
   _dismissOverlay() {
     this.showCopyLinkOverlay = false;
