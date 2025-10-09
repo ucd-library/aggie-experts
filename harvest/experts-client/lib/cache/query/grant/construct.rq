@@ -157,7 +157,7 @@ WHERE {
     }
 
     OPTIONAL {
-      ?native :field [ :name "funder name";
+      ?native :field [ :name "funder-name";
                                :type "text";
                                :text ?funder_label_cap ].
 
