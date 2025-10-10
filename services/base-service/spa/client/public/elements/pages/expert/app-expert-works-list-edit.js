@@ -214,8 +214,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    *
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    * @param {Object} apiResponse optional response from ExpertModel.get
+   * @param {Boolean} isDownload whether loading citations for download
    */
-  async _loadCitations(all=false, apiResponse={}) {
+  async _loadCitations(all=false, apiResponse={}, isDownload=false) {
     let citations = all ? JSON.parse(JSON.stringify((apiResponse['@graph'] || []).filter(g => g.issued))) : JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     citations = citations.map(c => {
@@ -224,12 +225,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return citation;
     });
 
-    if( !all ) this.citations = citations;
+    if( !all && !isDownload ) this.citations = citations;
 
     let citationResults = await Citation.generateCitations(citations);
     citationResults = citationResults.map(c => c.value || c.reason?.data);
-
-    // TODO handle download?
 
     // this.featuredCitations
     let featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
@@ -245,8 +244,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         return bYear - aYear;
       });
 
-      // if( !isDownload )
-      citationResults = citationResults.filter(c => !featuredCitations.includes(c));
+      if( !isDownload ) citationResults = citationResults.filter(c => !featuredCitations.includes(c));
       citationResults.sort((a, b) => {
         let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
         let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
@@ -288,7 +286,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
-    if( all ) return citationResults;
+    if( all || isDownload ) return citationResults;
 
     this.citationsDisplayed = citationResults;
     this.featuredCitations = featuredCitations;
@@ -363,13 +361,18 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   _selectAllChecked(e) {
     this.allSelected = e.currentTarget.checked;
-    let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-    checkboxes.forEach(checkbox => {
-      checkbox.checked = this.allSelected;
-      if( this.allSelected ) {
-        if( !this.downloads.includes(checkbox.dataset.id) ) this.downloads.push(checkbox.dataset.id);
-      } else {
-        this.downloads = this.downloads.filter(d => d !== checkbox.dataset.id);
+    let rows = this.shadowRoot.querySelectorAll('edit-work-result-row') || [];
+    rows.forEach(row => {
+      let checkbox = row.shadowRoot.querySelector('.select-checkbox input[type="checkbox"]');
+      if( checkbox ) {
+        checkbox.checked = this.allSelected;
+        let id = checkbox.dataset.id;
+
+        if( this.allSelected ) {
+          if( !this.downloads.includes(id) ) this.downloads.push(id);
+        } else {
+          this.downloads = this.downloads.filter(d => d !== id);
+        }
       }
     });
   }
@@ -415,7 +418,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       true
     );
 
-    let allCitations = await this._loadCitations(true, res.payload);
+    let allCitations = await this._loadCitations(true, res.payload, true);
     let downloads = allCitations.filter(c => this.downloads.includes(c['@id']));
 
     let text = downloads.map(c => c.ris).join('\n');

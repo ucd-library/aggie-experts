@@ -189,7 +189,7 @@ return html`
             ?hidden="${!this.cite.favourite}"
             icon="ucdlib-experts:fa-solid-heart"
             @click=${this._emitEvent('deselect-favourite')}
-            @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._deselectFavourite(e); }}
+            @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._emitEvent('deselect-favourite')(e); }}
             tabindex="0"
             role="button"
             aria-label="Remove from Highlights"
@@ -200,7 +200,7 @@ return html`
             ?hidden="${this.cite.favourite}"
             icon="ucdlib-experts:fa-regular-heart"
             @click=${this._emitEvent('mark-favourite')}
-            @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._markFavourite(e); }}
+            @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._emitEvent('mark-favourite')(e); }}
             tabindex="0"
             role="button"
             aria-label="Add to Highlights"
@@ -213,7 +213,7 @@ return html`
             ?hidden="${!this.cite['is-visible']}"
             icon="ucdlib-experts:fa-eye"
             @click=${this._emitEvent('hide-work')}
-            @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideWork(e); }}
+            @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._emitEvent('hide-work')(e); }}
             tabindex="0"
             role="button"
             aria-label="Hide work"
