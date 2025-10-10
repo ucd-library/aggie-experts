@@ -24,6 +24,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       expertName : { type : String },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      featuredCitations : { type : Array },
       totalCitations : { type : Number },
       hiddenCitations : { type : Number },
       paginationTotal : { type : Number },
@@ -57,6 +58,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.expertName = '';
     this.citations = [];
     this.citationsDisplayed = [];
+    this.featuredCitations = [];
     this.totalCitations = 0;
     this.hiddenCitations = 0;
     this.paginationTotal = 1;
@@ -131,7 +133,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           worksPage : this.currentPage,
           worksSize : this.resultsPerPage,
           includeHidden : true,
-          includeWorksMisformatted : true
+          includeWorksMisformatted : true,
+          // favouriteWorksFirst : true
+          favouritesPlusFirstPageWorks : this.currentPage === 1,
+          // shown only on the top of the first page,
+          // otherwise, not shown in normal list of works on other pages
+          excludeWorksFavourites : true
         }),
         this.modifiedWorks // clear cache if modified works
       );
@@ -222,6 +229,41 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let citationResults = await Citation.generateCitations(citations);
     citationResults = citationResults.map(c => c.value || c.reason?.data);
 
+    // TODO handle download?
+
+    // this.featuredCitations
+    let featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
+        ? c.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+        : c.relatedBy && c.relatedBy['ucdlib:favourite'] === true
+      );
+
+    if( featuredCitations.length ) {
+      // ensure sorted by year descending
+      featuredCitations.sort((a, b) => {
+        let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
+        let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
+        return bYear - aYear;
+      });
+
+      // if( !isDownload )
+      citationResults = citationResults.filter(c => !featuredCitations.includes(c));
+      citationResults.sort((a, b) => {
+        let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
+        let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
+        return bYear - aYear;
+      });
+
+      featuredCitations.forEach(cite => {
+        if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
+        cite['is-visible'] = (cite.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === this.expertId)));
+        if( cite.relatedBy && Array.isArray(cite.relatedBy) ) {
+          cite.favourite = cite.relatedBy.some(rel => rel['ucdlib:favourite'] === true);
+        } else {
+          cite.favourite = cite.relatedBy && cite.relatedBy['ucdlib:favourite'] === true;
+        }
+      });
+    }
+
     // also remove issued date from citations if not first displayed on page from that year
     let lastPrintedYear;
     citationResults.forEach((cite, i) => {
@@ -249,6 +291,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( all ) return citationResults;
 
     this.citationsDisplayed = citationResults;
+    this.featuredCitations = featuredCitations;
     this.requestUpdate();
   }
 
@@ -338,7 +381,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @param {Object} e click|keyup event
    */
   _selectChecked(e) {
-    let id = e.currentTarget.dataset.id;
+    let id = e.detail.citationId;
 
     if( e.currentTarget.checked ) {
       this.downloads.push(id);
@@ -396,7 +439,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show modal with link to hide work
    */
   _hideWork(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
 
     this.modalTitle = 'Hide Work';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
@@ -413,7 +456,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show work
    */
   async _showWork(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
@@ -493,7 +536,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description remove favourite from work
    */
   async _deselectFavourite(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
@@ -572,7 +615,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description add favourite to work
    */
   async _markFavourite(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
@@ -801,7 +844,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show modal with link to reject work
    */
   _rejectWork(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
 
     this.modalTitle = 'Reject Work';
     this.modalContent = `<p>This record will be <strong>permanently removed</strong> from your Aggie Experts profile. To reclaim this item, you must do so via the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;
