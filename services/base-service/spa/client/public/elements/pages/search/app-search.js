@@ -46,6 +46,8 @@ export default class AppSearch extends Mixin(LitElement)
       globalAggregations : { type : Object },
       resultsSelected : { type : Boolean },
       allResultsSelected : { type : Boolean },
+      dateFrom : { type : String },
+      dateTo : { type : String },
     }
   }
 
@@ -81,6 +83,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.resultsSelected = false;
     this.allResultsSelected = false;
     this.downloads = [];
+    this.dateFrom = '';
+    this.dateTo = '';
 
     this.render = render.bind(this);
   }
@@ -149,6 +153,9 @@ export default class AppSearch extends Mixin(LitElement)
       this.industProjects = query.availability?.includes('industry') ? true : false;
       this.mediaInterviews = query.availability?.includes('media') ? true : false;
 
+      this.dateFrom = query.dateFrom || '';
+      this.dateTo = query.dateTo || '';
+
       let page = this.AppStateModel.location?.path?.[1];
       if( page ) this.currentPage = page;
 
@@ -165,6 +172,8 @@ export default class AppSearch extends Mixin(LitElement)
       this.collabProjects = false;
       this.industProjects = false;
       this.mediaInterviews = false;
+      this.dateFrom = '';
+      this.dateTo = '';
 
       // update search term
       this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
@@ -327,7 +336,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
           this.AppStateModel.location.query.type,
-          this.filterByExpertId
+          this.filterByExpertId,
+          this.dateFrom,
+          this.dateTo
         )
       ),
       true
@@ -352,7 +363,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) availability.push('industry');
     if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length;
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || this.dateFrom || this.dateTo;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
@@ -364,6 +375,8 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.status.length ) path += `&status=${this.status}`;
     if( this.type.length ) path += `&type=${this.type}`;
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
+    if( this.dateFrom ) path += `&dateFrom=${this.dateFrom}`;
+    if( this.dateTo ) path += `&dateTo=${this.dateTo}`;
 
     this.AppStateModel.setLocation(path);
   }
@@ -581,7 +594,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
           this.AppStateModel.location.query.type,
-          this.filterByExpertId
+          this.filterByExpertId,
+          this.dateFrom,
+          this.dateTo
         )
       ),
       true
