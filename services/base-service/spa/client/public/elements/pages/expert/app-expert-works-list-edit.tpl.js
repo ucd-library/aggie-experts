@@ -102,13 +102,19 @@ return html`
       font-size: 1rem;
     }
 
-    .work-seperator {
+    .work-seperator,
+    .max-highlights-warning {
       display: block;
       height: 1px;
       border: 0;
       border-top: 1px solid var(--color-aggie-blue-40);
       padding: 0;
       margin: 1.19rem 0;
+    }
+
+    .max-highlights-warning {
+      border-top: 1px solid var(--color-aggie-gold, #FFBF00);
+      margin: 0;
     }
 
     input[type="checkbox"] {
@@ -223,6 +229,30 @@ return html`
       line-height: 1.6625rem;
     }
 
+    .max-highlights-warning-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+      background-color: var(--color-aggie-gold-20, #FFF9E6);
+    }
+
+    .max-highlights-warning-row ucdlib-icon {
+      width: 50px;
+      height: 50px;
+      fill: var(--color-aggie-gold);
+      margin: 0 0.5rem;
+    }
+
+    .max-highlights-warning-row .highlights-instructions {
+      color: var(--black, #000);
+      font-size: 1rem;
+      font-style: italic;
+      font-weight: 700;
+      line-height: 1.625rem;
+      margin-right: .5rem;
+    }
+
   </style>
 
   <div class="content">
@@ -312,7 +342,17 @@ return html`
           `
           )}
 
-        <hr class="work-seperator" style="margin-top: 0;" ?hidden="${this.featuredCitations.length > 0}">
+        <hr class="max-highlights-warning">
+        <div class="max-highlights-warning-row">
+          <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
+          <p class="highlights-instructions">
+            A maximum of 10 highlights will appear on your profile. These additional highlights will remain in your full
+            works list but will not be shown in the Highlights section:
+          </p>
+        </div>
+        <hr class="max-highlights-warning">
+
+        <hr class="work-seperator" ?hidden="${this.featuredCitations.length > 0}">
         <p class="no-works" ?hidden="${this.featuredCitations.length > 0}">No works highlighted</p>
 
       </div>
