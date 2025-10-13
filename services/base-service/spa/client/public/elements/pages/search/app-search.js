@@ -12,8 +12,6 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.
 import "../../components/search-box";
 import "../../components/search-result-row";
 import "../../components/category-filter-controller.js";
-// import '../../components/date-range-filter.js';
-// import '../../components/histogram.js';
 
 import utils from '../../../lib/utils';
 
@@ -43,11 +41,14 @@ export default class AppSearch extends Mixin(LitElement)
       filterByExpert : { type : Boolean },
       filterByExpertId : { type : String },
       filterByExpertName : { type : String },
+      filterByDate : { type : Boolean },
+      filterByDateLabel : { type : String },
       globalAggregations : { type : Object },
       resultsSelected : { type : Boolean },
       allResultsSelected : { type : Boolean },
       dateFrom : { type : String },
       dateTo : { type : String },
+      dateRangeData : { type : Array },
     }
   }
 
@@ -77,6 +78,8 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
+    this.filterByDate = false;
+    this.filterByDateLabel = '';
     this.globalAggregations = {};
     this.filteringByGrants = false;
     this.filteringByWorks = false;
@@ -85,6 +88,32 @@ export default class AppSearch extends Mixin(LitElement)
     this.downloads = [];
     this.dateFrom = '';
     this.dateTo = '';
+    this.dateRangeData = [
+      { stat : 2000, value : 0 },
+      { stat : 2001, value : 2 },
+      { stat : 2002, value : 7 },
+      { stat : 2003, value : 13 },
+      { stat : 2004, value : 12 },
+      { stat : 2005, value : 0 },
+      { stat : 2006, value : 4 },
+      { stat : 2007, value : 13 },
+      { stat : 2008, value : 23 },
+      { stat : 2009, value : 0 },
+      { stat : 2010, value : 0 },
+      { stat : 2011, value : 11 },
+      { stat : 2012, value : 22 },
+      { stat : 2013, value : 0 },
+      { stat : 2014, value : 7 },
+      { stat : 2015, value : 5 },
+      { stat : 2016, value : 12 },
+      { stat : 2017, value : 24 },
+      { stat : 2018, value : 5 },
+      { stat : 2019, value : 11 },
+      { stat : 2020, value : 1 },
+      { stat : 2021, value : 22 },
+      { stat : 2022, value : 3 },
+      { stat : 2023, value : 24 }
+    ];
 
     this.render = render.bind(this);
   }
@@ -281,6 +310,33 @@ export default class AppSearch extends Mixin(LitElement)
     this.filterByExpertName = '';
     this.filteringByGrants = false;
     this.filteringByWorks = false;
+    this._updateLocation();
+  }
+
+  /**
+   * @method _removeDateFilter
+   * @description remove the date filter
+   */
+  _removeDateFilter(e) {
+    this.filterByDate = false;
+    this.filterByDateLabel = '';
+
+    let rangeSlider = this.shadowRoot.querySelector('ucdlib-range-slider');
+    if( !rangeSlider ) return;
+
+    rangeSlider.reset();
+  }
+
+  /**
+   * @method _onRangeSliderChange
+   * @description handle range slider change events
+   * @param {Object} e
+   */
+  _onRangeSliderChange(e) {
+    this.filterByDate = true;
+    this.dateFrom = e.detail.min;
+    this.dateTo = e.detail.max;
+    this.filterByDateLabel = e.detail.min + ' - ' + e.detail.max;
     this._updateLocation();
   }
 
@@ -855,10 +911,6 @@ export default class AppSearch extends Mixin(LitElement)
     this.downloads = [];
     this.paginationChange = false;
     this._uncheckDownloads();
-
-    if( !['grant', 'work'].includes(this.atType) && this.filterByExpert ) {
-      this._removeExpertFilter();
-    }
 
     this._updateLocation();
   }

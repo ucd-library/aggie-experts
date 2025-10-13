@@ -5,6 +5,8 @@ import { sharedStyles } from '../../styles/shared-styles';
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 import formsCss from '@ucd-lib/theme-sass/2_base_class/_forms.css';
 
+import '@ucd-lib/theme-elements/ucdlib/ucdlib-range-slider/ucdlib-range-slider.js';
+
 export function render() {
 return html`
   <style>
@@ -144,7 +146,7 @@ return html`
     }
 
     .search-container .date-filter-heading h4 {
-      margin-top: 2.38rem;
+      margin-top: 0;
       margin-bottom: 1.78rem;
     }
 
@@ -342,6 +344,7 @@ return html`
     .results-filtered-to {
       display: flex;
       align-items: center;
+      gap: 0.875rem;
       color: var(--color-aggie-blue);
       font-size: 1.3rem;
       font-style: italic;
@@ -446,14 +449,16 @@ return html`
       </div>
 
       <hr class="search-seperator">
-      <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
-
-      <!-- <div class="date-filter-heading">
+      <div class="date-filter-heading">
         <h4>Date (Works, Grants)</h4>
       </div>
-      <date-range-filter></date-range-filter> -->
+      <ucdlib-range-slider
+        @range-slider-change="${this._onRangeSliderChange}"
+        .data="${this.dateRangeData}">
+      </ucdlib-range-slider>
 
-      <!-- <range-slider-with-histogram></range-slider-with-histogram> -->
+      <hr class="search-seperator">
+      <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
 
     </div>
     <div class="search-content">
@@ -511,11 +516,18 @@ return html`
         </div>
       </div>
 
-      <div class="results-filtered-to" ?hidden="${!this.filterByExpert}">
-        <span>Experts:</span>
-        <p>
+      <div class="results-filtered-to" ?hidden="${!this.filterByExpert && !this.filterByDate}">
+        <p ?hidden="${!this.filterByExpert}">
           <button class="btn btn--round" @click="${this._removeExpertFilter}">
             ${this.filterByExpertName}
+            <div class="close">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+            </div>
+          </button>
+        </p>
+        <p ?hidden="${!this.filterByDate}">
+          <button class="btn btn--round" @click="${this._removeDateFilter}">
+            ${this.filterByDateLabel}
             <div class="close">
               <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
             </div>
