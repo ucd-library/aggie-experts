@@ -25,6 +25,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citations : { type : Array },
       citationsDisplayed : { type : Array },
       featuredCitations : { type : Array },
+      maxFeaturedCitationsIndex : { type : Number },
       totalCitations : { type : Number },
       hiddenCitations : { type : Number },
       paginationTotal : { type : Number },
@@ -59,6 +60,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.citations = [];
     this.citationsDisplayed = [];
     this.featuredCitations = [];
+    this.maxFeaturedCitationsIndex = 10;
     this.totalCitations = 0;
     this.hiddenCitations = 0;
     this.paginationTotal = 1;
@@ -263,15 +265,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     }
 
     // also remove issued date from citations if not first displayed on page from that year
-    let lastPrintedYear;
-    citationResults.forEach((cite, i) => {
-      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
-      let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === citationResults[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
-        delete cite.issued;
-        lastPrintedYear = newIssueDate;
-      }
-    });
+    citationResults = this._updateCitationsDisplayedDates(citationResults);
 
     // make sure container-title is a single string, and update visibility
     citationResults.forEach(cite => {
@@ -290,7 +284,17 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.citationsDisplayed = citationResults;
     this.featuredCitations = featuredCitations;
+
+    this._updateMaxCitationsIndex();
     this.requestUpdate();
+  }
+
+  _updateMaxCitationsIndex() {
+    // need to get index of the last featured citation in the displayed citations
+    // to show disclaimer if more than 10 featured citations are visible
+    let visibleCount = 0;
+    this.maxFeaturedCitationsIndex = this.featuredCitations.findIndex(c => c['is-visible'] && ++visibleCount === 10) + 1;
+    if( this.maxFeaturedCitationsIndex < 10 ) this.maxFeaturedCitationsIndex = 10;
   }
 
   /**
@@ -605,6 +609,20 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citation.relatedBy[0]['ucdlib:favourite'] = false;
       citation.favourite = false;
     }
+    citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = false;
+      citation.favourite = false;
+
+      // update featured citations list
+      this.citationsDisplayed.push(citation);
+      this.featuredCitations = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] !== this.citationId);
+
+      this._reSortCitations();
+      this.citationsDisplayed = this._updateCitationsDisplayedDates();
+    }
+
+    this._updateMaxCitationsIndex();
 
     this._updateHeaderLabels();
 
@@ -685,11 +703,61 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citation.favourite = true;
     }
 
+    // update featured citations list
+    citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      this.featuredCitations.push(citation);
+      this.citationsDisplayed = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] !== this.citationId);
+
+      this._reSortCitations();
+      this.citationsDisplayed = this._updateCitationsDisplayedDates();
+    }
+
+    this._updateMaxCitationsIndex();
+
     this._updateHeaderLabels();
 
     this.modifiedWorks = true;
 
     this.requestUpdate();
+  }
+
+  /**
+   * @method _reSortCitations
+   * @description resort displayed/featured citations
+   */
+  _reSortCitations() {
+    this.citationsDisplayed.sort((a, b) => {
+      let aYear = Array.isArray(a.originalIssued) ? a.originalIssued[0] : a.originalIssued?.split('-')?.[0];
+      let bYear = Array.isArray(b.originalIssued) ? b.originalIssued[0] : b.originalIssued?.split('-')?.[0];
+      return bYear - aYear;
+    });
+    this.featuredCitations.sort((a, b) => {
+      let aYear = Array.isArray(a.originalIssued) ? a.originalIssued[0] : a.originalIssued?.split('-')?.[0];
+      let bYear = Array.isArray(b.originalIssued) ? b.originalIssued[0] : b.originalIssued?.split('-')?.[0];
+      return bYear - aYear;
+    });
+  }
+
+  _updateCitationsDisplayedDates(citationResults) {
+    let citations = citationResults || this.citationsDisplayed;
+
+    (citations || []).forEach(cite => {
+      if( !cite.issued && cite.originalIssued ) cite.issued = cite.originalIssued;
+    });
+
+    let lastPrintedYear;
+    (citations || []).forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
+      cite.originalIssued = cite.issued;
+      let newIssueDate = cite.issued?.[0];
+      if( i > 0 && ( newIssueDate === citations[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
+        delete cite.issued;
+        lastPrintedYear = newIssueDate;
+      }
+    });
+
+    return citations;
   }
 
   /**

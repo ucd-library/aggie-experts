@@ -327,7 +327,18 @@ return html`
       <div class="highlights-results">
         ${this.featuredCitations.map(
           (cite, index) => html`
-            <hr class="work-seperator" style="margin-top: ${index === 0 ? '0' : '1.19rem'};">
+            ${index === this.maxFeaturedCitationsIndex ? html`
+              <hr class="max-highlights-warning">
+              <div class="max-highlights-warning-row">
+                <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
+                <p class="highlights-instructions">
+                  A maximum of 10 highlights will appear on your profile. These additional highlights will remain in your full
+                  works list but will not be shown in the Highlights section:
+                </p>
+              </div>
+              <hr class="max-highlights-warning">
+            ` : html`<hr class="work-seperator" style="margin-top: ${index === 0 ? '0' : '1.19rem'};">`}
+
             <edit-work-result-row
               .cite="${cite}"
               .index="${index}"
@@ -342,17 +353,7 @@ return html`
           `
           )}
 
-        <hr class="max-highlights-warning">
-        <div class="max-highlights-warning-row">
-          <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
-          <p class="highlights-instructions">
-            A maximum of 10 highlights will appear on your profile. These additional highlights will remain in your full
-            works list but will not be shown in the Highlights section:
-          </p>
-        </div>
-        <hr class="max-highlights-warning">
-
-        <hr class="work-seperator" ?hidden="${this.featuredCitations.length > 0}">
+        <hr class="work-seperator" style="margin-bottom: 0.62rem;" ?hidden="${this.featuredCitations.length > 0}">
         <p class="no-works" ?hidden="${this.featuredCitations.length > 0}">No works highlighted</p>
 
       </div>
