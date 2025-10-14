@@ -29,9 +29,7 @@ template = {
                               "bool": {
                                 "must": [
                                   { "exists": { "field": "hasAvailability.prefLabel" } },
-                                  { "terms": {
-                                    "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}}
-                                  } }
+                                  { "terms": { "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}} } }
                                 ]
                               }
                             }
@@ -88,7 +86,6 @@ template = {
                 }
                 {{/type}}
 
-                {{!-- Top-level nested gate for date window --}}
                 {{#hasDate}}
                 ,{
                   "nested": {
@@ -102,8 +99,15 @@ template = {
                               "must": [
                                 { "term": { "@graph.@type": "Work" } },
                                 { "exists": { "field": "@graph.issued" } }
-                                {{#dateFrom}}, { "range": { "@graph.issued": { "gte": "{{dateFrom}}" } } }{{/dateFrom}}
-                                {{#dateTo}},   { "range": { "@graph.issued": { "lte": "{{dateTo}}" } } }{{/dateTo}}
+                                {{#dateFrom}}{{#dateTo}}
+                                ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}", "lte": "{{dateTo}}" } } }
+                                {{/dateTo}}{{/dateFrom}}
+                                {{#dateFrom}}{{^dateTo}}
+                                ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}" } } }
+                                {{/dateTo}}{{/dateFrom}}
+                                {{^dateFrom}}{{#dateTo}}
+                                ,{ "range": { "@graph.issued": { "lte": "{{dateTo}}" } } }
+                                {{/dateTo}}{{/dateFrom}}
                               ]
                             }
                           },
@@ -112,26 +116,44 @@ template = {
                               "must": [ { "term": { "@graph.@type": "Grant" } } ],
                               "should": [
                                 {
-                                  "bool": {  "must": [
-                                    { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
-                                    { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } }
-                                    {{#dateTo}}, { "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }{{/dateTo}}
-                                    {{#dateFrom}}, { "range": { "@graph.dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }{{/dateFrom}}
-                                  ] }
+                                  "bool": {
+                                    "must": [
+                                      { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
+                                      { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } }
+                                      {{#dateFrom}}{{#dateTo}}
+                                      ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                                      ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                      {{/dateTo}}{{/dateFrom}}
+                                      {{#dateFrom}}{{^dateTo}}
+                                      ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                      {{/dateTo}}{{/dateFrom}}
+                                      {{^dateFrom}}{{#dateTo}}
+                                      ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                                      {{/dateTo}}{{/dateFrom}}
+                                    ]
+                                  }
                                 },
                                 {
-                                  "bool": {  "must": [
-                                    { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
-                                    { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } } ] } }
-                                    {{#dateTo}}, { "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }{{/dateTo}}
-                                  ] }
+                                  "bool": {
+                                    "must": [
+                                      { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
+                                      { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } } ] } }
+                                      {{#dateTo}}
+                                      ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                                      {{/dateTo}}
+                                    ]
+                                  }
                                 },
                                 {
-                                  "bool": {  "must": [
-                                    { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } },
-                                    { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } } ] } }
-                                    {{#dateFrom}}, { "range": { "@graph.dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }{{/dateFrom}}
-                                  ] }
+                                  "bool": {
+                                    "must": [
+                                      { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } },
+                                      { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } } ] } }
+                                      {{#dateFrom}}
+                                      ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                      {{/dateFrom}}
+                                    ]
+                                  }
                                 }
                               ],
                               "minimum_should_match": 1
@@ -196,8 +218,15 @@ template = {
                                   "must": [
                                     { "term": { "@graph.@type": "Work" } },
                                     { "exists": { "field": "@graph.issued" } }
-                                    {{#dateFrom}}, { "range": { "@graph.issued": { "gte": "{{dateFrom}}" } } }{{/dateFrom}}
-                                    {{#dateTo}},   { "range": { "@graph.issued": { "lte": "{{dateTo}}" } } }{{/dateTo}}
+                                    {{#dateFrom}}{{#dateTo}}
+                                    ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}", "lte": "{{dateTo}}" } } }
+                                    {{/dateTo}}{{/dateFrom}}
+                                    {{#dateFrom}}{{^dateTo}}
+                                    ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}" } } }
+                                    {{/dateTo}}{{/dateFrom}}
+                                    {{^dateFrom}}{{#dateTo}}
+                                    ,{ "range": { "@graph.issued": { "lte": "{{dateTo}}" } } }
+                                    {{/dateTo}}{{/dateFrom}}
                                   ]
                                 }
                               },
@@ -210,8 +239,16 @@ template = {
                                         "must": [
                                           { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
                                           { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } }
-                                          {{#dateTo}}, { "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }{{/dateTo}}
-                                          {{#dateFrom}}, { "range": { "@graph.dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }{{/dateFrom}}
+                                          {{#dateFrom}}{{#dateTo}}
+                                          ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                                          ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                          {{/dateTo}}{{/dateFrom}}
+                                          {{#dateFrom}}{{^dateTo}}
+                                          ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                          {{/dateTo}}{{/dateFrom}}
+                                          {{^dateFrom}}{{#dateTo}}
+                                          ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                                          {{/dateTo}}{{/dateFrom}}
                                         ]
                                       }
                                     },
@@ -219,8 +256,10 @@ template = {
                                       "bool": {
                                         "must": [
                                           { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
-                                          { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } } ] } },
-                                          {{#dateTo}}, { "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }{{/dateTo}}
+                                          { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } } ] } }
+                                          {{#dateTo}}
+                                          ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                                          {{/dateTo}}
                                         ]
                                       }
                                     },
@@ -228,8 +267,10 @@ template = {
                                       "bool": {
                                         "must": [
                                           { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } },
-                                          { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } } ] } },
-                                          {{#dateFrom}}, { "range": { "@graph.dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }{{/dateFrom}}
+                                          { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } } ] } }
+                                          {{#dateFrom}}
+                                          ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                          {{/dateFrom}}
                                         ]
                                       }
                                     }
@@ -290,59 +331,17 @@ template = {
         }
       },
       "aggs": {
-        "@type": {
-          "terms": {
-            "field": "@type",
-            "size": 20
-          }
-        },
-        "availability": {
-          "terms": {
-            "field": "hasAvailability.prefLabel",
-            "size": 10
-          }
-        },
-        "status": {
-          "terms": {
-            "field": "status",
-            "size": 10
-          }
-        },
-        "type": {
-          "terms": {
-            "field": "type",
-            "size": 10
-          }
-        }
+        "@type": { "terms": { "field": "@type", "size": 20 } },
+        "availability": { "terms": { "field": "hasAvailability.prefLabel", "size": 10 } },
+        "status": { "terms": { "field": "status", "size": 10 } },
+        "type": { "terms": { "field": "type", "size": 10 } }
       },
       "_source": [
-        "@id",
-        "@type",
-        "name",
-        "contactInfo",
-        "title",
-        "issued",
-        "container-title",
-        "type",
-        "DOI",
-        "modified-date",
-        "status",
-        "author",
-        "volume",
-        "issue",
-        "page",
-        "abstract",
-        "sponsorAwardId",
-        "assignedBy",
-        "dateTimeInterval",
-        "relatedBy",
-        "_score"
+        "@id","@type","name","contactInfo","title","issued","container-title","type","DOI",
+        "modified-date","status","author","volume","issue","page","abstract","sponsorAwardId",
+        "assignedBy","dateTimeInterval","relatedBy","_score"
       ],
-      "sort": [
-        "_score",
-        "@type",
-        "name.kw"
-      ],
+      "sort": ["_score","@type","name.kw"],
       "from": "{{from}}{{^from}}0{{/from}}",
       "size": "{{size}}{{^size}}10{{/size}}",
       "min_score": "{{min_score}}{{^min_score}}5.0{{/min_score}}"

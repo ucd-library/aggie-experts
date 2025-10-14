@@ -438,7 +438,7 @@ const openapi = OpenAPI(
           description: "Comma-separated search filter on grant status",
           required: false,
           schema: {
-            type: "arary",
+            type: "array",
             items: {
               type: "string",
               enum: ["completed", "active"]
@@ -467,7 +467,7 @@ const openapi = OpenAPI(
           description: "Comma-separated search filter on expert availability types",
           required: false,
           schema: {
-            type: "arary",
+            type: "array",
             items: {
               type: "string",
               enum: [
