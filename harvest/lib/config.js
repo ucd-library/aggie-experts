@@ -79,8 +79,8 @@ const config = {
     },
     indexes : {
       experts : env.ES_INDEX_EXPERTS || 'experts',
-      // works : env.ES_INDEX_WORKS || 'works',
-      // grants : env.ES_INDEX_GRANTS || 'grants'
+      works : env.ES_INDEX_WORKS || 'works',
+      grants : env.ES_INDEX_GRANTS || 'grants'
     },
     aliases : {
       current : 'current',

@@ -7,7 +7,7 @@ import { reportFileWrite } from './reporting/index.js';
 import GcsCache from './google-cloud-storage.js';
 import CaskFS from '/opt/caskfs/src/index.js';
 import { getWeek } from 'date-fns';
-
+import os from 'os';
 
 class FsCache {
 
@@ -22,15 +22,21 @@ class FsCache {
     }
     this.validRoots = Object.values(this.roots);
 
+    let requestor = os.userInfo().username;
+    if( !requestor || requestor === 'root' ) {
+      requestor = 'aggie-experts-harvest';
+    }
+    this.caskRequestor = requestor;
+
     this.caskFs = new CaskFS({
       rootDir: this.rootDir,
       postgres: config.cache.postgres
     })
   }
 
-  init() {
-    return this.caskFs.init();
-  }
+  // init() {
+  //   return this.caskFs.init();
+  // }
 
   getYearWeek(date) {
     if( !date ) date = new Date();
@@ -76,7 +82,10 @@ class FsCache {
    * @returns {Boolean} true if the file exists, false otherwise
    */
   exists(assetPath) {
-    return this.caskFs.exists(assetPath);
+    return this.caskFs.exists({
+      filePath: assetPath,
+      requestor: this.caskRequestor
+    });
   }
 
   /**
@@ -93,7 +102,7 @@ class FsCache {
    */
   existsUserAsset(userId, assetKey, opts={}) {
     const assetPath = this.getPath(userId, assetKey, opts);
-    return this.caskFs.exists(assetPath);
+    return this.exists(assetPath);
   }
 
   /**
@@ -103,7 +112,10 @@ class FsCache {
    * @returns {Promise<Object>} an object directory listing with 'file' and 'directory' arrays
    */
   readdir(dir) {
-    return this.caskFs.ls({directory: dir});
+    return this.caskFs.ls({
+      directory: dir,
+      requestor: this.caskRequestor
+    });
   }
 
   /**
@@ -131,10 +143,13 @@ class FsCache {
    * @returns {Promise<String>} the content of the file
    */
   async read(assetPath) {
-    if (! await this.caskFs.exists(assetPath)) {
+    if (! await this.exists(assetPath)) {
       throw new Error(`Asset not found: ${assetPath}`);
     }
-    return this.caskFs.read(assetPath, {encoding: 'utf8'});
+    return this.caskFs.read({
+      filePath: assetPath,
+      requestor: this.caskRequestor
+    }, {encoding: 'utf8'});
   }
 
   /**
@@ -186,10 +201,13 @@ class FsCache {
     //   await fs.writeFile(assetPath, data);
     // }
 
-    let resp = await this.caskFs.write(
-      await this.caskFs.createContext({file: assetPath}), 
-      {data, replace: true}
-    );
+    let resp = await this.caskFs.write({
+      filePath: assetPath,
+      data,
+      replace: true,
+      requestor: this.caskRequestor
+    });
+    resp = resp.data;
 
     // const stats = await fs.stat(assetPath);
     // let lastModified = stats.mtime.toISOString();
@@ -239,7 +257,10 @@ class FsCache {
    * @returns {Promise<Object>} an object containing the asset path, hash, and last modified date
    */
   getFileStats(assetPath) {
-    return this.caskFs.metadata(assetPath);
+    return this.caskFs.metadata({
+      filePath: assetPath,
+      requestor: this.caskRequestor
+    });
   }
 
 
@@ -257,9 +278,7 @@ class FsCache {
    */
   async deleteUserAsset(userId, assetKey, opts={}) {
     const assetPath = this.getPath(userId, assetKey, opts);
-    if (await this.caskFs.exists(assetPath)) {
-      await this.caskFs.delete(await this.caskFs.createContext({file: assetPath}));
-    }
+    return this.delete(assetPath);
     // await this.deleteFromGcs(assetPath);
   }
 
@@ -272,8 +291,11 @@ class FsCache {
    * @returns {Promise<void>}
    */
   async delete(assetPath) {
-    if (await this.caskFs.exists(assetPath)) {
-      await this.caskFs.delete(await this.caskFs.createContext({file: assetPath}));
+    if (await this.exists(assetPath)) {
+      await this.caskFs.delete({
+        filePath: assetPath,
+        requestor: this.caskRequestor
+      });
     }
   }
 

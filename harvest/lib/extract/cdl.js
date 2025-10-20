@@ -121,21 +121,21 @@ export class CdlClient {
 
     let jsonFile = path.join(config.cache.cdlDir, `${name}/${name}_${count.toString().padStart(3, '0')}.json`);
 
-    if( options.noCache !== true ) {
-      if( !force && await cache.existsUserAsset(options.cacheName, jsonFile) ) {
-        logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${jsonFile}`);
+    // if( options.noCache !== true ) {
+    //   if( !force && await cache.existsUserAsset(options.cacheName, jsonFile) ) {
+    //     logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${jsonFile}`);
 
-        const json = JSON.parse(await cache.readUserAsset(options.cacheName, jsonFile));
-        let stats = await cache.getFileStats(cache.getPath(options.cacheName, jsonFile));
-        stats.noOp = true; // no operation, already exists
+    //     const json = JSON.parse(await cache.readUserAsset(options.cacheName, jsonFile));
+    //     let stats = await cache.getFileStats(cache.getPath(options.cacheName, jsonFile));
+    //     stats.noOp = true; // no operation, already exists
 
-        return {
-          writeResp: stats,
-          jsonFile,
-          json
-        };
-      }
-    }
+    //     return {
+    //       writeResp: stats,
+    //       jsonFile,
+    //       json
+    //     };
+    //   }
+    // }
 
     await this.getAuth();
 

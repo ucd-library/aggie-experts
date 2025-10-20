@@ -1,10 +1,10 @@
-import fs from 'fs';
 import path from 'path';
 import { getWeek } from 'date-fns';
 import getEsClient from '../../elastic-search-client.js';
 import config from '../../config.js';
 import logger from '../../logger.js';
 import crypto from 'crypto';
+import cache from '../../cache.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
@@ -18,6 +18,10 @@ const __dirname = path.dirname(new URL(import.meta.url).pathname);
  * @returns {Promise} Elasticsearch response
  */
 async function insert(index, id, body) {
+  if( body._id ) {
+    delete body._id;
+  }
+
   const esClient = await getEsClient();
   return esClient.index({
     index: index,
@@ -91,13 +95,14 @@ async function loadFiles(files, alias) {
  * @returns {Promise} JSON content of the file
  */
 async function loadFile(file) {
-  if (!fs.existsSync(file)) {
+  if (!await cache.exists(file)) {
     throw new Error(`File does not exist: ${file}`);
   }
-  const content = fs.readFileSync(file, 'utf-8');
+  const content = await cache.read(file);
+  const metadata = await cache.getFileStats(file);
   const sha256 = crypto.createHash('sha256').update(content).digest('hex');
   const md5 = crypto.createHash('md5').update(content).digest('hex');
-  const lastModified = fs.statSync(file).mtime;
+  const lastModified = metadata.modified;
   const json = JSON.parse(content);
   return {json, sha256, md5, lastModified};
 }

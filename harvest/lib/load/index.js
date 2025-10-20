@@ -13,7 +13,7 @@ async function run(user, alias='stage') {
   }
 
   const webappDir = cache.getPath(user, config.cache.aeWebappDir);
-  const files = findJsonldFiles(webappDir);
+  const files = await findJsonldFiles(webappDir);
 
   let indexes = await loadEs(files, alias);
 
@@ -52,7 +52,7 @@ async function countUserAssets(user, files, assetType) {
   
   for (const file of webappFiles) {
     try {
-      const content = JSON.parse(fs.readFileSync(file, 'utf8'));
+      const content = JSON.parse(await cache.read(file));
       
       // Handle different file structures
       let graphItems = [];
@@ -137,18 +137,19 @@ async function countUserAssets(user, files, assetType) {
   ];
 }
 
-function findJsonldFiles(dir) {
+async function findJsonldFiles(dir) {
   let results = [];
-  const list = fs.readdirSync(dir);
+  const list = await cache.readdir(dir);
 
-  for (const file of list) {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
-    if (stat && stat.isDirectory()) {
-      results = results.concat(findJsonldFiles(filePath));
-    } else if (file.endsWith('.jsonld')) {
-      results.push(filePath);
+  for( let file of list.files ) {
+    if( file.filename.endsWith('.jsonld') ) {
+      results.push(file.filepath);
     }
+  }
+
+  for (const dir of list.directories) {
+    const dirFiles = await findJsonldFiles(dir.filepath);
+    results = results.concat(dirFiles);
   }
 
   return results;
