@@ -240,7 +240,7 @@ class BaseModel extends FinEsDataModel {
    * @method verify_template
    * @description Adds template to elastic search if it doesn't exist
    */
-    async verify_template(template) {
+  async verify_template(template) {
     if (!Array.isArray(template)) {
       template = [template];
     }
@@ -260,6 +260,38 @@ class BaseModel extends FinEsDataModel {
     return true;
   }
 
+  // compact_search_results(results,params) {
+  //   const compact = {
+  //     params,
+  //     total: results.hits.total.value
+  //   }
+  //   const hits=[];
+  //   for (const hit of results.hits.hits) {
+  //     const source = hit._source;
+  //     const in_hits = hit?.inner_hits?.["@graph"].hits.hits;
+  //     const inner_hits = [];
+  //     if (in_hits) {
+  //       for (const in_hit of in_hits) {
+  //         inner_hits.push(in_hit._source);
+  //       }
+  //     }
+  //     if (inner_hits.length > 0) {
+  //       source._inner_hits = inner_hits;
+  //     }
+  //     hits.push(source);
+  //   }
+  //   compact.hits = hits;
+  //   const aggregations = {};
+  //   for (const key in results.aggregations) {
+  //     aggregations[key] = {}
+  //     const buckets = results.aggregations[key].buckets;
+  //     for (const bucket of buckets) {
+  //       aggregations[key][bucket.key] = bucket.doc_count;
+  //     }
+  //   }
+  //   compact.aggregations = aggregations;
+  //   return compact;
+  // }
   compact_search_results(results,params) {
     const compact = {
       params,
@@ -282,11 +314,51 @@ class BaseModel extends FinEsDataModel {
     }
     compact.hits = hits;
     const aggregations = {};
+
+    // Guard for missing aggregations
+    if (!results.aggregations || typeof results.aggregations !== 'object') {
+      compact.aggregations = aggregations;
+      return compact;
+    }
+
+    // recursive helper to find a buckets array inside various agg shapes
+    function findBuckets(node) {
+      if (!node || typeof node !== 'object') return null;
+      if (Array.isArray(node.buckets)) return node.buckets;
+      // sometimes aggs are under 'works' -> 'years' -> { buckets: [...] } or under filter/nested wrappers
+      for (const k of Object.keys(node)) {
+        if (k === 'meta' || k === 'value' || k === 'doc_count') continue;
+        try {
+          const child = node[k];
+          if (child && typeof child === 'object') {
+            const b = findBuckets(child);
+            if (b) return b;
+          }
+        } catch (e) {
+          // ignore and continue
+        }
+      }
+      return null;
+    }
+
     for (const key in results.aggregations) {
       aggregations[key] = {}
-      const buckets = results.aggregations[key].buckets;
+      const buckets = findBuckets(results.aggregations[key]);
+      if (!buckets) {
+        // no buckets found for this agg; skip or optionally include doc_count for filters
+        continue;
+      }
       for (const bucket of buckets) {
-        aggregations[key][bucket.key] = bucket.doc_count;
+        // aggregations[key][bucket.key] = bucket.doc_count;
+        // Prefer cardinality of parent id when available (unique parent count per year)
+        const parentDocs = bucket.parent_docs;
+        if (parentDocs && parentDocs.unique_parents && typeof parentDocs.unique_parents.value === 'number') {
+          aggregations[key][bucket.key] = parentDocs.unique_parents.value;
+        } else if (parentDocs && typeof parentDocs.doc_count === 'number') {
+          aggregations[key][bucket.key] = parentDocs.doc_count;
+        } else {
+          aggregations[key][bucket.key] = bucket.doc_count;
+        }
       }
     }
     compact.aggregations = aggregations;
@@ -328,8 +400,73 @@ class BaseModel extends FinEsDataModel {
       index,
       params
     }
-    const res=await this.client.searchTemplate(options);
-    return this.compact_search_results(res,params);
+    // const res=await this.client.searchTemplate(options);
+    // return this.compact_search_results(res,params);
+    try {
+      const res = await this.client.searchTemplate({
+        index: options.index,
+        body: { id: options.id, params: options.params }
+      });
+      const body = res?.body ?? res;
+      return this.compact_search_results(body, params);
+    } catch (err) {
+      console.error('searchTemplate error:', err?.meta?.body || err);
+      throw err;
+    }
+
+    // console.log('--- RENDERING TEMPLATE ---');
+    // // const rendered = await this.client.renderSearchTemplate({
+    // //   body: options
+    // // });
+    // // const out = rendered?.body?.template_output ?? rendered?.template_output ?? rendered;
+    // // console.log('--- RENDERED TEMPLATE START ---\n' + (typeof out === 'string' ? out : JSON.stringify(out, null, 2)) + '\n--- RENDERED TEMPLATE END ---');
+    // // return rendered;
+    // try {
+    //  // renderSearchTemplate expects body: { id, params }
+    //  const rendered = await this.client.renderSearchTemplate({
+    //    body: { id: options.id, params: options.params }
+    //  });
+
+    //   const out = rendered?.body?.template_output ?? rendered?.template_output ?? rendered;
+    //   const outStr = typeof out === 'string' ? out : JSON.stringify(out, null, 2);
+    //   console.log('--- RENDERED TEMPLATE START ---\n' + outStr + '\n--- RENDERED TEMPLATE END ---');
+
+    //   // write full rendered output to a tmp file for inspection
+    //   try {
+    //     const os = require('os');
+    //     const path = require('path');
+    //     const fs = require('fs');
+    //     const outPath = path.join(os.tmpdir(), `rendered_template_${Date.now()}.json`);
+    //     fs.writeFileSync(outPath, outStr, 'utf8');
+    //     console.error('WROTE rendered template to', outPath);
+    //   } catch (werr) {
+    //     console.error('Failed to write rendered template file:', werr);
+    //   }
+
+    //   return rendered;
+    // } catch (err) {
+    //   // Log helpful details from ES client error
+    //   try {
+    //     const meta = err?.meta?.body;
+    //     const data = meta?.data ?? meta ?? err;
+    //     console.error('renderSearchTemplate FAILED:', err.message || err);
+    //     // print a short tail so it appears in container logs even if file write fails
+    //     const s = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    //     console.error('renderSearchTemplate raw tail:\n', s.slice(Math.max(0, s.length - 800)));
+
+    //     // attempt to persist full raw response for offline inspection
+    //     const os = require('os');
+    //     const path = require('path');
+    //     const fs = require('fs');
+    //     const outPath = path.join(os.tmpdir(), `rendered_template_error_${Date.now()}.txt`);
+    //     fs.writeFileSync(outPath, s, 'utf8');
+    //     console.error('WROTE render error output to', outPath);
+    //   } catch (logErr) {
+    //     console.error('Error while logging renderSearchTemplate failure:', logErr);
+    //   }
+
+    //   throw err;
+    // }
   }
 
   async msearch(opts) {

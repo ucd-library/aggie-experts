@@ -334,7 +334,72 @@ template = {
         "@type": { "terms": { "field": "@type", "size": 20 } },
         "availability": { "terms": { "field": "hasAvailability.prefLabel", "size": 10 } },
         "status": { "terms": { "field": "status", "size": 10 } },
-        "type": { "terms": { "field": "type", "size": 10 } }
+        "type": { "terms": { "field": "type", "size": 10 } },
+        "issued_years": {
+          "nested": { "path": "@graph" },
+          "aggs": {
+            "works": {
+              "filter": {
+                "bool": {
+                  "must": [
+                    { "term": { "@graph.@type": "Work" } },
+                    { "exists": { "field": "@graph.issued" } }
+                  ]
+                }
+              },
+              "aggs": {
+                "years": {
+                  "terms": {
+                    "field": "@graph.issued.keyword",
+                    "size": 50,
+                    "order": { "_key": "desc" }
+                  },
+                  "aggs": {
+                    "parent_docs": {
+                      "reverse_nested": {},
+                      "aggs": {
+                        "unique_parents": { "cardinality": { "field": "@id.keyword" } }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "grants": {
+              "filter": { "term": { "@graph.@type": "Grant" } },
+              "aggs": {
+                "by_interval": {
+                  "filter": {
+                    "bool": {
+                      "must": [
+                        { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
+                        { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } }
+                      ]
+                    }
+                  },
+                  "aggs": {
+                    "years": {
+                      "date_histogram": {
+                        "field": "@graph.dateTimeInterval.start.dateTime",
+                        "calendar_interval": "year",
+                        "format": "yyyy",
+                        "min_doc_count": 1
+                      },
+                      "aggs": {
+                        "parent_docs": {
+                          "reverse_nested": {},
+                          "aggs": {
+                            "unique_parents": { "cardinality": { "field": "@id.keyword" } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "_source": [
         "@id","@type","name","contactInfo","title","issued","container-title","type","DOI",
