@@ -85,87 +85,6 @@ template = {
                   }
                 }
                 {{/type}}
-
-                {{#hasDate}}
-                ,{
-                  "nested": {
-                    "path": "@graph",
-                    "ignore_unmapped": true,
-                    "query": {
-                      "bool": {
-                        "should": [
-                          {
-                            "bool": {
-                              "must": [
-                                { "term": { "@graph.@type": "Work" } },
-                                { "exists": { "field": "@graph.issued" } }
-                                {{#dateFrom}}{{#dateTo}}
-                                ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}", "lte": "{{dateTo}}" } } }
-                                {{/dateTo}}{{/dateFrom}}
-                                {{#dateFrom}}{{^dateTo}}
-                                ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}" } } }
-                                {{/dateTo}}{{/dateFrom}}
-                                {{^dateFrom}}{{#dateTo}}
-                                ,{ "range": { "@graph.issued": { "lte": "{{dateTo}}" } } }
-                                {{/dateTo}}{{/dateFrom}}
-                              ]
-                            }
-                          },
-                          {
-                            "bool": {
-                              "must": [ { "term": { "@graph.@type": "Grant" } } ],
-                              "should": [
-                                {
-                                  "bool": {
-                                    "must": [
-                                      { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
-                                      { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } }
-                                      {{#dateFrom}}{{#dateTo}}
-                                      ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
-                                      ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
-                                      {{/dateTo}}{{/dateFrom}}
-                                      {{#dateFrom}}{{^dateTo}}
-                                      ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
-                                      {{/dateTo}}{{/dateFrom}}
-                                      {{^dateFrom}}{{#dateTo}}
-                                      ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
-                                      {{/dateTo}}{{/dateFrom}}
-                                    ]
-                                  }
-                                },
-                                {
-                                  "bool": {
-                                    "must": [
-                                      { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
-                                      { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } } ] } }
-                                      {{#dateTo}}
-                                      ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
-                                      {{/dateTo}}
-                                    ]
-                                  }
-                                },
-                                {
-                                  "bool": {
-                                    "must": [
-                                      { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } },
-                                      { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } } ] } }
-                                      {{#dateFrom}}
-                                      ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
-                                      {{/dateFrom}}
-                                    ]
-                                  }
-                                }
-                              ],
-                              "minimum_should_match": 1
-                            }
-                          }
-                        ],
-                        "minimum_should_match": 1
-                      }
-                    }
-                  }
-                }
-                {{/hasDate}}
               ]
             }
           }
@@ -197,7 +116,6 @@ template = {
                               "@graph.name^10",
                               "@graph.orcidId^10",
                               "@graph.overview^5",
-                              "@graph.abstract^5",
                               "@graph.identifier^10",
                               "@graph.container-title^5",
                               "@graph.publisher^5",
@@ -207,6 +125,31 @@ template = {
                               "@graph.relatedBy.relates.name^5"
                             ],
                             "default_operator": "and"
+                          }
+                        }
+                      ],
+                      "filter": [
+                        {
+                          "bool": {
+                            "should": [
+                              {
+                                "bool": {
+                                  "must": [
+                                    { "exists": { "field": "@graph.is-visible" }},
+                                    { "term": { "@graph.is-visible": true }}
+                                  ]
+                                }
+                              },
+                              {
+                                "bool": {
+                                  "must": [
+                                    { "exists": { "field": "@graph.relatedBy.is-visible" }},
+                                    { "term": { "@graph.relatedBy.is-visible": true }}
+                                  ]
+                                }
+                              }
+                            ],
+                            "minimum_should_match": 1
                           }
                         }
                         {{#hasDate}}
@@ -283,31 +226,6 @@ template = {
                           }
                         }
                         {{/hasDate}}
-                      ],
-                      "filter": [
-                        {
-                          "bool": {
-                            "should": [
-                              {
-                                "bool": {
-                                  "must": [
-                                    { "exists": { "field": "@graph.is-visible" }},
-                                    { "term": { "@graph.is-visible": true }}
-                                  ]
-                                }
-                              },
-                              {
-                                "bool": {
-                                  "must": [
-                                    { "exists": { "field": "@graph.relatedBy.is-visible" }},
-                                    { "term": { "@graph.relatedBy.is-visible": true }}
-                                  ]
-                                }
-                              }
-                            ],
-                            "minimum_should_match": 1
-                          }
-                        }
                       ]
                     }
                   },
@@ -316,7 +234,7 @@ template = {
                 }
               },
               "inner_hits": {
-                "size": "{{inner_hits_size}}{{^inner_hits_size}}500{{/inner_hits_size}}",
+                "size": {{inner_hits_size}}{{^inner_hits_size}}500{{/inner_hits_size}},
                 "_source": [
                   "@graph.@id",
                   "@graph.@type",
@@ -344,54 +262,180 @@ template = {
                   "must": [
                     { "term": { "@graph.@type": "Work" } },
                     { "exists": { "field": "@graph.issued" } }
+                    {{#hasDate}}
+                    ,{
+                      "range": {
+                        "@graph.issued": {
+                          {{#dateFrom}}"gte": "{{dateFrom}}"{{/dateFrom}}{{#dateFrom}}{{#dateTo}},{{/dateTo}}{{/dateFrom}}{{#dateTo}}"lte": "{{dateTo}}"{{/dateTo}}
+                        }
+                      }
+                    }
+                    {{/hasDate}},
+                    {
+                      "simple_query_string": {
+                        "query": "{{q}}",
+                        "fields": [
+                          "@graph.@id^10",
+                          "@graph.relates^2",
+                          "@graph.DOI^10",
+                          "@graph.abstract^5",
+                          "@graph.contactInfo.hasEmail^10",
+                          "@graph.contactInfo.hasName.family^20",
+                          "@graph.contactInfo.hasName.given^5",
+                          "@graph.contactInfo.hasName.middle^5",
+                          "@graph.contactInfo.hasTitle.name^5",
+                          "@graph.contactInfo.hasURL.name^5",
+                          "@graph.contactInfo.hasOrganizationalUnit.name^5",
+                          "@graph.name^10",
+                          "@graph.orcidId^10",
+                          "@graph.overview^5",
+                          "@graph.identifier^10",
+                          "@graph.container-title^5",
+                          "@graph.publisher^5",
+                          "@graph.title^10",
+                          "@graph.author.family^10",
+                          "@graph.author.given^5",
+                          "@graph.relatedBy.relates.name^5"
+                        ],
+                        "default_operator": "and"
+                      }
+                    },
+                    {
+                      "bool": {
+                        "should": [
+                          {
+                            "bool": {
+                              "must": [
+                                { "exists": { "field": "@graph.is-visible" } },
+                                { "term":  { "@graph.is-visible": true } }
+                              ]
+                            }
+                          },
+                          {
+                            "bool": {
+                              "must": [
+                                { "exists": { "field": "@graph.relatedBy.is-visible" } },
+                                { "term":  { "@graph.relatedBy.is-visible": true } }
+                              ]
+                            }
+                          }
+                        ],
+                        "minimum_should_match": 1
+                      }
+                    }
                   ]
                 }
               },
               "aggs": {
                 "years": {
-                  "terms": {
-                    "field": "@graph.issued.keyword",
-                    "size": 50,
-                    "order": { "_key": "desc" }
+                  "date_histogram": {
+                    "field": "@graph.issued",
+                    "calendar_interval": "year",
+                    "min_doc_count": 0
+                    {{#hasDate}},"extended_bounds": { "min": "{{dateFrom}}", "max": "{{dateTo}}" }{{/hasDate}},
+                    "time_zone": "UTC"
                   },
                   "aggs": {
-                    "parent_docs": {
-                      "reverse_nested": {},
-                      "aggs": {
-                        "unique_parents": { "cardinality": { "field": "@id.keyword" } }
+                    "unique_works": {
+                      "cardinality": {
+                        "field": "@graph.@id",
+                        "precision_threshold": 40000
                       }
                     }
                   }
                 }
               }
             },
-            "grants": {
-              "filter": { "term": { "@graph.@type": "Grant" } },
-              "aggs": {
-                "by_interval": {
-                  "filter": {
-                    "bool": {
-                      "must": [
-                        { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
-                        { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } }
-                      ]
+
+            "grants_active": {
+              "filter": {
+                "bool": {
+                  "must": [
+                    { "term": { "@graph.@type": "Grant" } }
+                    {{#hasDate}}
+                    ,{
+                      "range": {
+                        "@graph.graph_active_year": {
+                          {{#dateFrom}}"gte": "{{dateFrom}}"{{/dateFrom}}{{#dateFrom}}{{#dateTo}},{{/dateTo}}{{/dateFrom}}{{#dateTo}}"lte": "{{dateTo}}"{{/dateTo}}
+                        }
+                      }
                     }
+                    {{/hasDate}},
+                    {
+                      "simple_query_string": {
+                        "query": "{{q}}",
+                        "fields": [
+                          "@graph.@id^10",
+                          "@graph.relates^2",
+                          "@graph.DOI^10",
+                          "@graph.abstract^5",
+                          "@graph.contactInfo.hasEmail^10",
+                          "@graph.contactInfo.hasName.family^20",
+                          "@graph.contactInfo.hasName.given^5",
+                          "@graph.contactInfo.hasName.middle^5",
+                          "@graph.contactInfo.hasTitle.name^5",
+                          "@graph.contactInfo.hasURL.name^5",
+                          "@graph.contactInfo.hasOrganizationalUnit.name^5",
+                          "@graph.name^10",
+                          "@graph.orcidId^10",
+                          "@graph.overview^5",
+                          "@graph.identifier^10",
+                          "@graph.container-title^5",
+                          "@graph.publisher^5",
+                          "@graph.title^10",
+                          "@graph.author.family^10",
+                          "@graph.author.given^5",
+                          "@graph.relatedBy.relates.name^5"
+                        ],
+                        "default_operator": "and"
+                      }
+                    },
+                    {
+                      "bool": {
+                        "should": [
+                          {
+                            "bool": {
+                              "must": [
+                                { "exists": { "field": "@graph.is-visible" } },
+                                { "term":  { "@graph.is-visible": true } }
+                              ]
+                            }
+                          },
+                          {
+                            "bool": {
+                              "must": [
+                                { "exists": { "field": "@graph.relatedBy.is-visible" } },
+                                { "term":  { "@graph.relatedBy.is-visible": true } }
+                              ]
+                            }
+                          }
+                        ],
+                        "minimum_should_match": 1
+                      }
+                    }
+                  ]
+                }
+              },
+              "aggs": {
+                "years": {
+                  "date_histogram": {
+                    "field": "@graph.graph_active_year",
+                    "calendar_interval": "year",
+                    "min_doc_count": 0
+                    {{#hasDate}},"extended_bounds": { "min": "{{dateFrom}}", "max": "{{dateTo}}" }{{/hasDate}},
+                    "time_zone": "UTC"
                   },
                   "aggs": {
-                    "years": {
-                      "date_histogram": {
-                        "field": "@graph.dateTimeInterval.start.dateTime",
-                        "calendar_interval": "year",
-                        "format": "yyyy",
-                        "min_doc_count": 1
-                      },
+                    "parent_docs": {
+                      "reverse_nested": {},
                       "aggs": {
-                        "parent_docs": {
-                          "reverse_nested": {},
-                          "aggs": {
-                            "unique_parents": { "cardinality": { "field": "@id.keyword" } }
-                          }
-                        }
+                        "unique_parents": { "cardinality": { "field": "@id" } }
+                      }
+                    },
+                    "unique_grants": {
+                      "cardinality": {
+                        "field": "@graph.@id",
+                        "precision_threshold": 40000
                       }
                     }
                   }
@@ -407,9 +451,17 @@ template = {
         "assignedBy","dateTimeInterval","relatedBy","_score"
       ],
       "sort": ["_score","@type","name.kw"],
-      "from": "{{from}}{{^from}}0{{/from}}",
-      "size": "{{size}}{{^size}}10{{/size}}",
-      "min_score": "{{min_score}}{{^min_score}}5.0{{/min_score}}"
+      "from": {{from}}{{^from}}0{{/from}},
+      "size": {{size}}{{^size}}10{{/size}},
+      "min_score": {{min_score}}{{^min_score}}5.0{{/min_score}},
+      "runtime_mappings": {
+        "@graph.graph_active_year": {
+          "type": "date",
+          "script": {
+            "source": "boolean hasStart = !doc['@graph.dateTimeInterval.start.dateTime'].empty; boolean hasEnd = !doc['@graph.dateTimeInterval.end.dateTime'].empty; if (!hasStart && !hasEnd) return; Instant startI = hasStart ? doc['@graph.dateTimeInterval.start.dateTime'].value.toInstant() : null; Instant endI = hasEnd ? doc['@graph.dateTimeInterval.end.dateTime'].value.toInstant() : Instant.ofEpochMilli(new Date().getTime()); int ys = hasStart ? ZonedDateTime.ofInstant(startI, ZoneOffset.UTC).getYear() : ZonedDateTime.ofInstant(endI, ZoneOffset.UTC).getYear(); int ye = ZonedDateTime.ofInstant(endI, ZoneOffset.UTC).getYear(); if (!hasStart) { emit(ZonedDateTime.of(ys,1,1,0,0,0,0, ZoneOffset.UTC).toInstant().toEpochMilli()); return; } if (ye < ys) { emit(ZonedDateTime.of(ys,1,1,0,0,0,0, ZoneOffset.UTC).toInstant().toEpochMilli()); return; } for (int y = ys; y <= ye; y++) { emit(ZonedDateTime.of(y,1,1,0,0,0,0, ZoneOffset.UTC).toInstant().toEpochMilli()); }"
+          }
+        }
+      }
     }`,
     "params": {
       "q": "My query string",

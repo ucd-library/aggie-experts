@@ -260,107 +260,105 @@ class BaseModel extends FinEsDataModel {
     return true;
   }
 
-  // compact_search_results(results,params) {
-  //   const compact = {
-  //     params,
-  //     total: results.hits.total.value
-  //   }
-  //   const hits=[];
-  //   for (const hit of results.hits.hits) {
-  //     const source = hit._source;
-  //     const in_hits = hit?.inner_hits?.["@graph"].hits.hits;
-  //     const inner_hits = [];
-  //     if (in_hits) {
-  //       for (const in_hit of in_hits) {
-  //         inner_hits.push(in_hit._source);
-  //       }
-  //     }
-  //     if (inner_hits.length > 0) {
-  //       source._inner_hits = inner_hits;
-  //     }
-  //     hits.push(source);
-  //   }
-  //   compact.hits = hits;
-  //   const aggregations = {};
-  //   for (const key in results.aggregations) {
-  //     aggregations[key] = {}
-  //     const buckets = results.aggregations[key].buckets;
-  //     for (const bucket of buckets) {
-  //       aggregations[key][bucket.key] = bucket.doc_count;
-  //     }
-  //   }
-  //   compact.aggregations = aggregations;
-  //   return compact;
-  // }
-  compact_search_results(results,params) {
+  /**
+   * @method compact_search_results
+   * @description Compact ES search results into simpler format
+   * @returns object
+   */
+  compact_search_results(results, params) {
     const compact = {
       params,
-      total: results.hits.total.value
-    }
-    const hits=[];
-    for (const hit of results.hits.hits) {
-      const source = hit._source;
-      const in_hits = hit?.inner_hits?.["@graph"].hits.hits;
-      const inner_hits = [];
-      if (in_hits) {
-        for (const in_hit of in_hits) {
-          inner_hits.push(in_hit._source);
-        }
-      }
-      if (inner_hits.length > 0) {
-        source._inner_hits = inner_hits;
+      total: results?.hits?.total?.value ?? 0
+    };
+
+    // hits + inner_hits
+    const hits = [];
+    for (const hit of results?.hits?.hits ?? []) {
+      const source = hit._source || {};
+      const in_hits = hit?.inner_hits?.['@graph']?.hits?.hits;
+      if (Array.isArray(in_hits) && in_hits.length) {
+        source._inner_hits = in_hits.map(h => h._source);
       }
       hits.push(source);
     }
     compact.hits = hits;
-    const aggregations = {};
 
-    // Guard for missing aggregations
-    if (!results.aggregations || typeof results.aggregations !== 'object') {
+    const aggregations = {};
+    const aggs = results.aggregations;
+    if (!aggs || typeof aggs !== 'object') {
       compact.aggregations = aggregations;
       return compact;
     }
 
-    // recursive helper to find a buckets array inside various agg shapes
+    // helper to find first buckets array under a node
     function findBuckets(node) {
       if (!node || typeof node !== 'object') return null;
       if (Array.isArray(node.buckets)) return node.buckets;
-      // sometimes aggs are under 'works' -> 'years' -> { buckets: [...] } or under filter/nested wrappers
       for (const k of Object.keys(node)) {
         if (k === 'meta' || k === 'value' || k === 'doc_count') continue;
-        try {
-          const child = node[k];
-          if (child && typeof child === 'object') {
-            const b = findBuckets(child);
-            if (b) return b;
-          }
-        } catch (e) {
-          // ignore and continue
-        }
+        const b = findBuckets(node[k]);
+        if (b) return b;
       }
       return null;
     }
 
-    for (const key in results.aggregations) {
-      aggregations[key] = {}
-      const buckets = findBuckets(results.aggregations[key]);
-      if (!buckets) {
-        // no buckets found for this agg; skip or optionally include doc_count for filters
-        continue;
+    // --- Special handling for issued_years (merge works + grants) ---
+    if (aggs.issued_years) {
+      const out = {}; // yearEpoch -> totalCount
+
+      // Works buckets
+      const worksBuckets =
+        aggs.issued_years?.works?.years?.buckets ||
+        findBuckets(aggs.issued_years?.works?.years) ||
+        [];
+
+      for (const b of worksBuckets) {
+        const key = String(b.key);
+        const val =
+          b?.unique_works?.value ??
+          b?.parent_docs?.unique_parents?.value ??
+          b?.doc_count ?? 0;
+        out[key] = (out[key] || 0) + (typeof val === 'number' ? val : 0);
       }
+
+      // Grants buckets
+      const grantsBuckets =
+        aggs.issued_years?.grants_active?.years?.buckets ||
+        findBuckets(aggs.issued_years?.grants_active?.years) ||
+        [];
+
+      for (const b of grantsBuckets) {
+        const key = String(b.key);
+        const val =
+          b?.unique_grants?.value ??                       // new metric
+          b?.parent_docs?.unique_parents?.value ??         // fallback (unique roots)
+          b?.doc_count ?? 0;                               // last resort
+        out[key] = (out[key] || 0) + (typeof val === 'number' ? val : 0);
+      }
+
+      aggregations['issued_years'] = out;
+    }
+
+    // --- Default handling for all other aggs ---
+    for (const key of Object.keys(aggs)) {
+      if (key === 'issued_years') continue; // already handled
+
+      const buckets = findBuckets(aggs[key]);
+      if (!buckets) continue;
+
+      aggregations[key] = {};
       for (const bucket of buckets) {
-        // aggregations[key][bucket.key] = bucket.doc_count;
-        // Prefer cardinality of parent id when available (unique parent count per year)
+        const k = String(bucket.key ?? bucket.key_as_string ?? '');
+        if (!k) continue;
         const parentDocs = bucket.parent_docs;
-        if (parentDocs && parentDocs.unique_parents && typeof parentDocs.unique_parents.value === 'number') {
-          aggregations[key][bucket.key] = parentDocs.unique_parents.value;
-        } else if (parentDocs && typeof parentDocs.doc_count === 'number') {
-          aggregations[key][bucket.key] = parentDocs.doc_count;
-        } else {
-          aggregations[key][bucket.key] = bucket.doc_count;
+        if (parentDocs?.unique_parents && typeof parentDocs.unique_parents.value === 'number') {
+          aggregations[key][k] = parentDocs.unique_parents.value;
+        } else if (typeof bucket.doc_count === 'number') {
+          aggregations[key][k] = bucket.doc_count;
         }
       }
     }
+
     compact.aggregations = aggregations;
     return compact;
   }
@@ -400,8 +398,7 @@ class BaseModel extends FinEsDataModel {
       index,
       params
     }
-    // const res=await this.client.searchTemplate(options);
-    // return this.compact_search_results(res,params);
+    
     try {
       const res = await this.client.searchTemplate({
         index: options.index,

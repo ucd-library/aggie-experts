@@ -120,54 +120,6 @@ router.get(
       await experts.verify_template(complete);
       const find = await base.search(opts);
 
-      // // Client-side inner_hits date filter (preserves scoring)
-      // if (params.dateFrom || params.dateTo) {
-      //   const from = params.dateFrom ? new Date(`${params.dateFrom}-01-01`) : null;
-      //   const to   = params.dateTo   ? new Date(`${params.dateTo}-12-31`) : null;
-
-      //   const inRange = (d) => {
-      //     if (!d) return false;
-      //     const dt = new Date(d);
-      //     if (Number.isNaN(dt)) return false;
-      //     if (from && dt < from) return false;
-      //     if (to && dt > to) return false;
-      //     return true;
-      //   };
-
-      //   const overlaps = (start, end) => {
-      //     const s = start ? new Date(start) : null;
-      //     const e = end ? new Date(end) : null;
-      //     if (!s || !e) return false;
-      //     if (from && e < from) return false; // ends before window
-      //     if (to && s > to) return false;     // starts after window
-      //     return true;
-      //   };
-
-      //   if (find?.hits?.hits?.length) {
-      //     for (const h of find.hits.hits) {
-      //       const ih = h.inner_hits?.['@graph']?.hits?.hits;
-      //       if (!ih) continue;
-
-      //       // Keep scoring the same: only filter the array returned
-      //       h.inner_hits['@graph'].hits.hits = ih.filter(n => {
-      //         const src = n._source?.['@graph'] || {};
-      //         const t = src['@type'];
-
-      //         if (t === 'Work') {
-      //           return inRange(src.issued);
-      //         }
-      //         if (t === 'Grant') {
-      //           const start = src?.dateTimeInterval?.start?.dateTime;
-      //           const end   = src?.dateTimeInterval?.end?.dateTime;
-      //           return overlaps(start, end);
-      //         }
-
-      //         return true;
-      //       });
-      //     }
-      //   }
-      // }
-
       // Now remove type filters, research
       delete params["@type"];
       delete params.status;
