@@ -41,6 +41,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       resultsPerPage : { type : Number },
       manageWorksLabel : { type : String },
       worksWithErrors : { type : Array },
+      showingAllHighlights : { type : Boolean }
     }
   }
 
@@ -78,6 +79,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.isVisible = true;
     this.manageWorksLabel = 'Manage My Works';
     this.worksWithErrors = [];
+    this.showingAllHighlights = false;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -140,7 +142,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           favouritesPlusFirstPageWorks : this.currentPage === 1,
           // shown only on the top of the first page,
           // otherwise, not shown in normal list of works on other pages
-          excludeWorksFavourites : true
         }),
         this.modifiedWorks // clear cache if modified works
       );
@@ -246,7 +247,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         return bYear - aYear;
       });
 
-      if( !isDownload ) citationResults = citationResults.filter(c => !featuredCitations.includes(c));
       citationResults.sort((a, b) => {
         let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
         let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
@@ -280,6 +280,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
+    // also dedupe results (featured citations may be in normal list too)
+    citationResults = citationResults.filter((cite, index, self) => index === self.findIndex((c) => (c['@id'] === cite['@id'])));
+    featuredCitations = featuredCitations.filter((cite, index, self) => index === self.findIndex((c) => (c['@id'] === cite['@id'])));
+
     if( all || isDownload ) return citationResults;
 
     this.citationsDisplayed = citationResults;
@@ -295,6 +299,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let visibleCount = 0;
     this.maxFeaturedCitationsIndex = this.featuredCitations.findIndex(c => c['is-visible'] && ++visibleCount === 10) + 1;
     if( this.maxFeaturedCitationsIndex < 10 ) this.maxFeaturedCitationsIndex = 10;
+  }
+
+  _toggleShowAllHighlights(e) {
+    this.showingAllHighlights = !this.showingAllHighlights;
   }
 
   /**
@@ -615,11 +623,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citation.favourite = false;
 
       // update featured citations list
-      this.citationsDisplayed.push(citation);
       this.featuredCitations = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] !== this.citationId);
 
       this._reSortCitations();
-      this.citationsDisplayed = this._updateCitationsDisplayedDates();
     }
 
     this._updateMaxCitationsIndex();
@@ -628,6 +634,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.modifiedWorks = true;
 
+    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
   }
 
@@ -707,10 +714,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
     if( citation ) {
       this.featuredCitations.push(citation);
-      this.citationsDisplayed = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] !== this.citationId);
 
       this._reSortCitations();
-      this.citationsDisplayed = this._updateCitationsDisplayedDates();
     }
 
     this._updateMaxCitationsIndex();
@@ -719,6 +724,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.modifiedWorks = true;
 
+    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
   }
 

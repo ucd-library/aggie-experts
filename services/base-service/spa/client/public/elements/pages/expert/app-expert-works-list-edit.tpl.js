@@ -204,6 +204,8 @@ return html`
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
     }
 
     .hightlights-instructions {
@@ -212,7 +214,7 @@ return html`
       font-style: italic;
       font-weight: 400;
       line-height: 1.625rem;
-      margin-top: 0.5rem;
+      margin: 0;
     }
 
     @media (max-width: 778px) {
@@ -251,6 +253,22 @@ return html`
       font-weight: 700;
       line-height: 1.625rem;
       margin-right: .5rem;
+    }
+
+    .show-all-highlights-toggle {
+      cursor: pointer;
+    }
+
+    .show-all-highlights-toggle .expand,
+    .show-all-highlights-toggle .collapse {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: var(--color-aggie-blue-80, #13639E);
+      font-style: normal;
+      font-weight: 600;
+      line-height: normal;
     }
 
   </style>
@@ -313,33 +331,38 @@ return html`
       </div>
 
       <div class="works-results-header">
-        <h2>Highlights</h2>
+        <div>
+          <h2 ?hidden="${this.currentPage > 1}">Highlights (${this.featuredCitations.length})</h2>
+        </div>
         <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
       </div>
       <div class="works-results-header">
-        <p class="hightlights-instructions">Click the heart icon beside a work to add or remove it from your profile Highlights.</p>
+        <div>
+          <p ?hidden="${this.currentPage > 1}" class="hightlights-instructions">Click the heart icon beside a work to add or remove it from your profile Highlights.</p>
+        </div>
         <div class="select-all">
           <label for="select-all">Select All</label>
           <input type="checkbox" id="select-all" name="select-all" value="select-all" ?checked="${this.allSelected}" @click="${this._selectAllChecked}">
         </div>
       </div>
 
-      <div class="highlights-results">
+      <div class="highlights-results" ?hidden="${this.currentPage > 1}">
         ${this.featuredCitations.map(
           (cite, index) => html`
             ${index === this.maxFeaturedCitationsIndex ? html`
-              <hr class="max-highlights-warning">
-              <div class="max-highlights-warning-row">
+              <hr class="max-highlights-warning" ?hidden="${!this.showingAllHighlights && index > 4}">
+              <div class="max-highlights-warning-row" ?hidden="${!this.showingAllHighlights && index > 4}">
                 <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
                 <p class="highlights-instructions">
                   A maximum of 10 highlights will appear on your profile. These additional highlights will remain in your full
                   works list but will not be shown in the Highlights section:
                 </p>
               </div>
-              <hr class="max-highlights-warning">
-            ` : html`<hr class="work-seperator" style="margin-top: ${index === 0 ? '0' : '1.19rem'};">`}
+              <hr class="max-highlights-warning" ?hidden="${!this.showingAllHighlights && index > 4}">
+            ` : html`<hr class="work-seperator" ?hidden="${!this.showingAllHighlights && index > 4}" style="margin-top: ${index === 0 ? '0' : '1.19rem'};">`}
 
             <edit-work-result-row
+              ?hidden="${!this.showingAllHighlights && index > 4}"
               .cite="${cite}"
               .index="${index}"
               .showYear="${true}"
@@ -353,15 +376,32 @@ return html`
           `
           )}
 
+        <hr class="work-seperator">
+        <div class="show-all-highlights-toggle">
+          <div class="expand"
+            ?hidden="${this.showingAllHighlights}"
+            @click="${this._toggleShowAllHighlights}">
+            <span>Show All Highlights</span>
+            <ucdlib-icon icon="ucdlib-experts:fa-chevron-down"></ucdlib-icon>
+          </div>
+          <div class="collapse"
+            ?hidden="${!this.showingAllHighlights}"
+            @click="${this._toggleShowAllHighlights}">
+            <span>Show Fewer Highlights</span>
+            <ucdlib-icon icon="ucdlib-experts:fa-chevron-up"></ucdlib-icon>
+          </div>
+        </div>
+
         <hr class="work-seperator" style="margin-bottom: 0.62rem;" ?hidden="${this.featuredCitations.length > 0}">
         <p class="no-works" ?hidden="${this.featuredCitations.length > 0}">No works highlighted</p>
 
       </div>
 
+      <h2 ?hidden="${this.currentPage > 1}" style="margin-top: 2.38rem;">All Works</h2>
       <div class="works-results" style="padding-bottom: 2.5rem;">
         ${this.citationsDisplayed.map(
         (cite, index) => html`
-          <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h2>
+          <h4 style="margin-top: 1rem;" class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h4>
           <hr class="work-seperator">
           <edit-work-result-row
             .cite="${cite}"

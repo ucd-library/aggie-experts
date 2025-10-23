@@ -247,7 +247,7 @@ return html`
     <div class="work">
       <h5><a href="/work/${this.cite['@id']}">${unsafeHTML(this.cite.title || this.cite['container-title'])}</a></h5>
       <div class="work-details">
-        <span ?hidden="${!this.showYear}" style="min-width: fit-content;">${this.cite.issued?.[0]}</span>
+        <span ?hidden="${!this.showYear}" style="min-width: fit-content;">${this.cite.originalIssued?.[0]}</span>
         <span ?hidden="${!this.showYear}" class="dot">•</span>
         <span style="min-width: fit-content;">${utils.getCitationType(this.cite.type)}</span>
         <span class="dot">•</span>

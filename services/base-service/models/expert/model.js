@@ -202,7 +202,6 @@ class ExpertModel extends BaseModel {
         includeMisformatted : false,
         favouriteWorksFirst : true,
         favouritesPlusFirstPageWorks : false,
-        excludeWorksFavourites : false,
         sort : [
           {
               "field": "issued",
@@ -401,21 +400,14 @@ class ExpertModel extends BaseModel {
         }
 
         // to handle favourites in the ui on the edit works page vs expert profile page
-        // the first edit works page will show all favourites plus 25 regular works
-        // pages 2+ will show just 25 regular works
+        // the first edit works page will show all favourites plus 25 works (including favourites if in that list)
+        // pages 2+ will show just 25 works in order (including favourites if in that list)
         favouriteWorks = works.filter(w => {
           return w.relatedBy && (Array.isArray(w.relatedBy)
             ? w.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
             : w.relatedBy && w.relatedBy['ucdlib:favourite'] === true);
         });
 
-        if( options.works?.favouritesPlusFirstPageWorks || options.works?.excludeWorksFavourites ) {
-          works = works.filter(w => {
-            return !(w.relatedBy && (Array.isArray(w.relatedBy)
-              ? w.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
-              : w.relatedBy && w.relatedBy['ucdlib:favourite'] === true));
-          });
-        }
 
         if( options.works?.includeMisformatted ) {
           invalidWorks = [...(invalidTitle.citations || []), ...(invalidIssueDate.citations || [])];
