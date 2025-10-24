@@ -332,7 +332,7 @@ return html`
             (work, index) => html`
               <div style="display: flex; justify-content: space-between; margin: ${index === 0 ? '0' : '1.19rem'} 0 ${index+1 === this.worksWithErrors.length ? '0' : '1.19rem'};">
                 <div class="work">
-                  <h5 data-id=${work['@id']}>${work.issued.split('-')?.[0]}
+                  <h5 data-id=${work['@id']}>${work.issued?.split('-')?.[0]}
                     <span style="padding: 0 0.25rem;"
                     class="dot">•</span> ${work.title}</h5>
                   <p style="margin-bottom: 0;">Error: Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>

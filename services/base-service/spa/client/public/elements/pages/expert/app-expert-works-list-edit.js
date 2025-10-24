@@ -186,6 +186,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.worksWithErrors = this.expert.invalidWorks || [];
     if( this.worksWithErrors.length ) this.logger.error('works with errors', { expertId : this.expertId, worksWithErrors : this.worksWithErrors });
 
+    this.worksWithErrors.forEach(work => {
+      if( Array.isArray(work.issued) ) work.issued = work.issued[0];
+    });
+
     this.worksWithErrors.sort((a, b) => {
       if( typeof a.issued !== 'string' ) a.issued = 'Date Unknown';
       if( typeof b.issued !== 'string' ) b.issued = 'Date Unknown';
@@ -199,7 +203,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
 
       return a.title.localeCompare(b.title);
-    })
+    });
 
     // only expert graph record, no works for this pagination of results
     if( this.expert['@graph'].length === 1 ) {
