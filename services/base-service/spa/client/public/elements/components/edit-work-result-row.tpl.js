@@ -121,6 +121,12 @@ export function styles() {
       right: 21px;
     }
 
+    .tooltip.deselect-favourite:before,
+    .tooltip.mark-favourite:before {
+      width: 190px;
+      right: -140px;
+    }
+
     .work {
       max-width: calc(90vw - 100px);
     }

@@ -269,6 +269,21 @@ return html`
       font-style: normal;
       font-weight: 600;
       line-height: normal;
+      font-size: 0.875rem;
+    }
+
+    /* wrappers for animated expand/collapse */
+    .row-wrapper {
+      transition: height 600ms cubic-bezier(.2,.9,.2,1), opacity 300ms ease;
+      will-change: height, opacity;
+    }
+    .row-wrapper.collapsed {
+      height: 0 !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .row-wrapper:not(.collapsed) {
+      opacity: 1;
     }
 
   </style>
@@ -361,23 +376,24 @@ return html`
               <hr class="max-highlights-warning" ?hidden="${!this.showingAllHighlights && index > 4}">
             ` : html`<hr class="work-seperator" ?hidden="${!this.showingAllHighlights && index > 4}" style="margin-top: ${index === 0 ? '0' : '1.19rem'};">`}
 
-            <edit-work-result-row
-              ?hidden="${!this.showingAllHighlights && index > 4}"
-              .cite="${cite}"
-              .index="${index}"
-              .showYear="${true}"
-              @deselect-favourite="${this._deselectFavourite}"
-              @mark-favourite="${this._markFavourite}"
-              @hide-work="${this._hideWork}"
-              @show-work="${this._showWork}"
-              @reject-work="${this._rejectWork}"
-              @select-checked="${this._selectChecked}">
-            </edit-work-result-row>
+            <div class="row-wrapper ${!this.showingAllHighlights && index > 4 ? 'collapsed' : ''}" data-index="${index}">
+              <edit-work-result-row
+                .cite="${cite}"
+                .index="${index}"
+                .showYear="${true}"
+                @deselect-favourite="${this._deselectFavourite}"
+                @mark-favourite="${this._markFavourite}"
+                @hide-work="${this._hideWork}"
+                @show-work="${this._showWork}"
+                @reject-work="${this._rejectWork}"
+                @select-checked="${this._selectChecked}">
+              </edit-work-result-row>
+            </div>
           `
           )}
 
-        <hr class="work-seperator">
-        <div class="show-all-highlights-toggle">
+        <hr class="work-seperator" ?hidden="${this.featuredCitations.length <= 5}">
+        <div class="show-all-highlights-toggle" ?hidden="${this.featuredCitations.length <= 5}">
           <div class="expand"
             ?hidden="${this.showingAllHighlights}"
             @click="${this._toggleShowAllHighlights}">
@@ -429,4 +445,6 @@ return html`
     </div>
 
   </div>
+
+<app-toast-popup></app-toast-popup>
 `;}

@@ -9,6 +9,7 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
 
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
+import '../../components/app-toast-popup.js';
 
 import Citation from '../../../lib/utils/citation.js';
 
@@ -289,6 +290,20 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.citationsDisplayed = citationResults;
     this.featuredCitations = featuredCitations;
 
+    // hack to hide inner content of collapsed rows on first load, to remove extra white space
+    requestAnimationFrame(() => {
+      const wrappers = Array.from(this.renderRoot?.querySelectorAll('.row-wrapper') || []);
+      wrappers.forEach(w => {
+        const idx = Number(w.dataset.index || -1);
+        // keep first 5 always visible; hide others if not showingAllHighlights
+        if (idx > 4 && !this.showingAllHighlights) {
+          const content = w.firstElementChild;
+          if (content) content.style.display = 'none';
+          w.classList.add('collapsed');
+        }
+      });
+    });
+
     this._updateMaxCitationsIndex();
     this.requestUpdate();
   }
@@ -301,8 +316,73 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( this.maxFeaturedCitationsIndex < 10 ) this.maxFeaturedCitationsIndex = 10;
   }
 
+  /**
+   * @method _toggleShowAllHighlights
+   * @description toggle showing all highlights in the list, and animate the expand/collapse
+   * @param {Object} e click|keyup event
+   */
   _toggleShowAllHighlights(e) {
-    this.showingAllHighlights = !this.showingAllHighlights;
+    let willShow = !this.showingAllHighlights;
+    const wrappers = Array.from(this.renderRoot.querySelectorAll('.row-wrapper'));
+
+    // expand/collapse animation
+    if( willShow ) {
+      // expand
+      wrappers.forEach(w => {
+        const idx = Number(w.dataset.index || -1);
+        if (idx <= 4) return; // keep first 5 always visible
+
+        // Ensure inner content is rendered and visible before measuring
+        const content = w.firstElementChild;
+        if (content) content.style.display = '';
+
+        // expand: remove collapsed state then animate from 0 -> measured height
+        w.classList.remove('collapsed');
+        w.style.height = '0px';
+        void w.offsetHeight;
+        const target = content ? (content.scrollHeight || content.getBoundingClientRect().height) : w.scrollHeight;
+        w.style.height = target + 'px';
+
+        const onEnd = (ev) => {
+          if (ev.target !== w) return;
+          // clear inline height so layout is natural
+          w.style.height = '';
+          // make sure inner content stays visible
+          if (content) content.style.display = '';
+          w.removeEventListener('transitionend', onEnd);
+        };
+        w.addEventListener('transitionend', onEnd);
+      });
+    } else {
+      // collapse
+      wrappers.forEach(w => {
+        const idx = Number(w.dataset.index || -1);
+        if (idx <= 4) return;
+
+        const content = w.firstElementChild;
+        // measure current height (content must be visible to measure)
+        if (content && getComputedStyle(content).display === 'none') {
+          content.style.display = '';
+        }
+        const start = content ? (content.getBoundingClientRect().height) : w.scrollHeight;
+        w.style.height = start + 'px';
+        void w.offsetHeight;
+        // animate to zero height
+        w.style.height = '0px';
+
+        const onEnd = (ev) => {
+          if (ev.target !== w) return;
+          // hide inner content to remove any residual white space
+          if (content) content.style.display = 'none';
+          w.classList.add('collapsed');
+          w.style.height = '';
+          w.removeEventListener('transitionend', onEnd);
+        };
+        w.addEventListener('transitionend', onEnd);
+      });
+    }
+
+    this.showingAllHighlights = willShow;
   }
 
   /**
@@ -636,6 +716,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
+
+    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+    if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
   }
 
   /**
@@ -726,6 +809,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
+
+    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+    if( toastPopup ) toastPopup.showPopup('Added to Highlights');
   }
 
   /**
