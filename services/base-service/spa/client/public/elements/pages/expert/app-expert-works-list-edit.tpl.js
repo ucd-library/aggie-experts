@@ -208,7 +208,7 @@ return html`
       margin-bottom: 1rem;
     }
 
-    .hightlights-instructions {
+    .highlights-instructions {
       color: var(--ucd-black-70, #4C4C4C);
       font-size: 1rem;
       font-style: italic;
@@ -218,7 +218,7 @@ return html`
     }
 
     @media (max-width: 778px) {
-      .hightlights-instructions {
+      .highlights-instructions {
         max-width: 60vw;
       }
     }
@@ -353,7 +353,7 @@ return html`
       </div>
       <div class="works-results-header">
         <div>
-          <p ?hidden="${this.currentPage > 1}" class="hightlights-instructions">Click the heart icon beside a work to add or remove it from your profile Highlights.</p>
+          <p ?hidden="${this.currentPage > 1}" class="highlights-instructions">Click the heart icon beside a work to add or remove it from your profile Highlights.</p>
         </div>
         <div class="select-all">
           <label for="select-all">Select All</label>
