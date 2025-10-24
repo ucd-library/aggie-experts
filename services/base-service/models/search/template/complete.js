@@ -253,6 +253,7 @@ template = {
         "availability": { "terms": { "field": "hasAvailability.prefLabel", "size": 10 } },
         "status": { "terms": { "field": "status", "size": 10 } },
         "type": { "terms": { "field": "type", "size": 10 } },
+
         "issued_years": {
           "nested": { "path": "@graph" },
           "aggs": {
@@ -261,16 +262,7 @@ template = {
                 "bool": {
                   "must": [
                     { "term": { "@graph.@type": "Work" } },
-                    { "exists": { "field": "@graph.issued" } }
-                    {{#hasDate}}
-                    ,{
-                      "range": {
-                        "@graph.issued": {
-                          {{#dateFrom}}"gte": "{{dateFrom}}"{{/dateFrom}}{{#dateFrom}}{{#dateTo}},{{/dateTo}}{{/dateFrom}}{{#dateTo}}"lte": "{{dateTo}}"{{/dateTo}}
-                        }
-                      }
-                    }
-                    {{/hasDate}},
+                    { "exists": { "field": "@graph.issued" } },
                     {
                       "simple_query_string": {
                         "query": "{{q}}",
@@ -331,8 +323,7 @@ template = {
                   "date_histogram": {
                     "field": "@graph.issued",
                     "calendar_interval": "year",
-                    "min_doc_count": 0
-                    {{#hasDate}},"extended_bounds": { "min": "{{dateFrom}}", "max": "{{dateTo}}" }{{/hasDate}},
+                    "min_doc_count": 0,
                     "time_zone": "UTC"
                   },
                   "aggs": {
@@ -351,16 +342,7 @@ template = {
               "filter": {
                 "bool": {
                   "must": [
-                    { "term": { "@graph.@type": "Grant" } }
-                    {{#hasDate}}
-                    ,{
-                      "range": {
-                        "@graph.graph_active_year": {
-                          {{#dateFrom}}"gte": "{{dateFrom}}"{{/dateFrom}}{{#dateFrom}}{{#dateTo}},{{/dateTo}}{{/dateFrom}}{{#dateTo}}"lte": "{{dateTo}}"{{/dateTo}}
-                        }
-                      }
-                    }
-                    {{/hasDate}},
+                    { "term": { "@graph.@type": "Grant" } },
                     {
                       "simple_query_string": {
                         "query": "{{q}}",
@@ -421,8 +403,7 @@ template = {
                   "date_histogram": {
                     "field": "@graph.graph_active_year",
                     "calendar_interval": "year",
-                    "min_doc_count": 0
-                    {{#hasDate}},"extended_bounds": { "min": "{{dateFrom}}", "max": "{{dateTo}}" }{{/hasDate}},
+                    "min_doc_count": 0,
                     "time_zone": "UTC"
                   },
                   "aggs": {

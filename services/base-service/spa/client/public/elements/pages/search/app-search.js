@@ -88,32 +88,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.downloads = [];
     this.dateFrom = '';
     this.dateTo = '';
-    this.dateRangeData = [
-      { stat : 2000, value : 0 },
-      { stat : 2001, value : 2 },
-      { stat : 2002, value : 7 },
-      { stat : 2003, value : 13 },
-      { stat : 2004, value : 12 },
-      { stat : 2005, value : 0 },
-      { stat : 2006, value : 4 },
-      { stat : 2007, value : 13 },
-      { stat : 2008, value : 23 },
-      { stat : 2009, value : 0 },
-      { stat : 2010, value : 0 },
-      { stat : 2011, value : 11 },
-      { stat : 2012, value : 22 },
-      { stat : 2013, value : 0 },
-      { stat : 2014, value : 7 },
-      { stat : 2015, value : 5 },
-      { stat : 2016, value : 12 },
-      { stat : 2017, value : 24 },
-      { stat : 2018, value : 5 },
-      { stat : 2019, value : 11 },
-      { stat : 2020, value : 1 },
-      { stat : 2021, value : 22 },
-      { stat : 2022, value : 3 },
-      { stat : 2023, value : 24 }
-    ];
+    this.dateRangeData = [];
 
     this.render = render.bind(this);
   }
@@ -341,6 +316,53 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   /**
+   * @method _computeAggSignature
+   * @description compute the aggregation signature for the current search state
+   * @returns {String} JSON string of the aggregation signature
+   */
+  _computeAggSignature() {
+    const q = this.searchTerm || '';
+    const availability = {
+      collab: this.collabProjects,
+      community: this.commPartner,
+      industry: this.industProjects,
+      media: this.mediaInterviews
+    };
+    return JSON.stringify({
+      q,
+      availability,
+      atType: this.atType || '',
+      status: this.status || '',
+      type: this.type || '',
+      expert: this.filterByExpert ? this.filterByExpertId : ''
+    });
+  }
+
+  /**
+   * @method _buildHistogramDataFromAgg
+   * @description build histogram data from the aggregation results
+   * @param {Object} issuedYearsObj
+   */
+  _buildHistogramDataFromAgg(issuedYearsObj = {}) {
+    // keys are epoch ms; convert to year ints
+    const entries = Object.entries(issuedYearsObj)
+      .map(([k, v]) => [new Date(Number(k)).getUTCFullYear(), v])
+      .sort((a, b) => a[0] - b[0]);
+
+    if (!entries.length) return [];
+
+    const minY = entries[0][0];
+    const maxY = entries[entries.length - 1][0];
+    const map = new Map(entries); // year -> count
+
+    const data = [];
+    for (let y = minY; y <= maxY; y++) {
+      data.push({ stat: y, value: map.get(y) || 0 });
+    }
+    return data;
+  }
+
+  /**
    * @method _onSearch
    * @description called from the search box button is clicked or
    * the enter key is hit. search
@@ -438,85 +460,115 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   async _onSearchUpdate(e, fromSearchPage=false) {
-    if( e?.state !== 'loaded' || !fromSearchPage ) return;
+    if (e?.state !== 'loaded' || !fromSearchPage) return;
 
-    if( this.filterByExpert && this.filterByExpertId && !this.filterByExpertName ) {
+    if (this.filterByExpert && this.filterByExpertId && !this.filterByExpertName) {
       this.filterByExpertName = await this._getExpertNameById(this.filterByExpertId);
     }
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
-
     this.globalAggregations = this.rawSearchData['global_aggregations'] || {};
 
+    // histogram/slider: refresh ONLY when the “agg signature” changes (q, availability, type, status, expert)
+    const newSig = this._computeAggSignature(); // this must NOT include dateFrom/dateTo
+    if (newSig !== this.lastAggSignature) {
+      const issuedYears = (this.globalAggregations || {})['issued_years'] || {};
+      this.dateRangeData = this._buildHistogramDataFromAgg(issuedYears); // [{stat: YYYY, value: count}, ...]
+
+      const range = this.shadowRoot.querySelector('ucdlib-range-slider');
+      if (range && Array.isArray(this.dateRangeData) && this.dateRangeData.length) {
+        // Feed histogram data (component derives absMin/absMax from data)
+        range.data = this.dateRangeData;
+        range.hideHistogram = false;
+
+        // Initial selection: honor URL params if present, else full range
+        const absMin = this.dateRangeData[0].stat;
+        const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
+
+        const urlMin = this.dateFrom ? Number(this.dateFrom) : null;
+        const urlMax = this.dateTo ? Number(this.dateTo) : null;
+
+        const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
+        const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
+
+        range.min = clampedMin;
+        range.max = clampedMax;
+
+        // Optional: update chip label if a date filter is active
+        if (this.filterByDate && (this.dateFrom || this.dateTo)) {
+          this.filterByDateLabel = `${clampedMin} - ${clampedMax}`;
+        }
+
+        // Nudge the component to re-render
+        range.hasRendered = false;
+        range.requestUpdate();
+      }
+
+      this.lastAggSignature = newSig;
+    }
+
+    // results list mapping
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let resultType = '';
-      if( r['@type'] === 'Grant' || r['@type']?.includes?.('Grant') ) resultType = 'grant';
-      if( r['@type'] === 'Expert' || r['@type']?.includes?.('Expert') ) resultType = 'expert';
-      if( r['@type'] === 'Work' || r['@type']?.includes?.('Work') ) resultType = 'work';
+      if (r['@type'] === 'Grant' || r['@type']?.includes?.('Grant')) resultType = 'grant';
+      if (r['@type'] === 'Expert' || r['@type']?.includes?.('Expert')) resultType = 'expert';
+      if (r['@type'] === 'Work' || r['@type']?.includes?.('Work')) resultType = 'work';
 
       let id = r['@id'];
-      if( Array.isArray(r.name) ) r.name = r.name[0];
+      if (Array.isArray(r.name)) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
 
       let subtitle, numberOfWorks, numberOfGrants;
 
-      if( resultType === 'expert' ) {
+      if (resultType === 'expert') {
         subtitle = r.name?.split('§')?.pop()?.trim();
-        if( name === subtitle ) subtitle = '';
+        if (name === subtitle) subtitle = '';
         numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
         numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 
-      } else if( resultType === 'grant' ) {
+      } else if (resultType === 'grant') {
         subtitle = ((r.name?.split('§') || [])[1] || '').trim();
-
         let [status, dateRange, pi] = subtitle.split('•');
         subtitle = 'Grant';
-        if( status ) subtitle += ' <span class="dot-separator">•</span>  ' + status.trim();
-        if( dateRange ) subtitle += ' <span class="dot-separator">•</span>  ' + dateRange.trim();
-        if( pi ) subtitle += ' <span class="dot-separator">•</span> PI:  ' + pi.trim();
-
+        if (status)    subtitle += ' <span class="dot-separator">•</span> ' + status.trim();
+        if (dateRange) subtitle += ' <span class="dot-separator">•</span> ' + dateRange.trim();
+        if (pi)        subtitle += ' <span class="dot-separator">•</span> PI: ' + pi.trim();
         id = 'grant/' + id;
-      } else if( resultType === 'work' ) {
-        subtitle = '';
-        // parse work type + date + authors from subtitle
-        // ie '“A Chinaman’s Chance” in Court: Asian Pacific Americans and Racial Rules of Evidence §  • article-journal • 2013-12-01 • Chin, G. § UC Irvine Law Review • 2327-4514 § '
-        let subtitleParts = ((r.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
-        if( subtitleParts.length ) {
-          let type = subtitleParts[0]?.trim() || '';
-          if( type ) subtitle += utils.getCitationType(type) + ' <span class="dot-separator">•</span> ';
 
-          let date = subtitleParts[1]?.trim() || '';
-          if( date ) {
-            let [ year, month, day ] = date.split?.('-');
+      } else if (resultType === 'work') {
+        subtitle = '';
+        const subtitleParts = ((r.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
+        if (subtitleParts.length) {
+          const type = subtitleParts[0]?.trim() || '';
+          if (type) subtitle += utils.getCitationType(type) + ' <span class="dot-separator">•</span> ';
+          const date = subtitleParts[1]?.trim() || '';
+          if (date) {
+            const [year] = date.split?.('-');
             subtitle += utils.formatDate({ year }) + ' <span class="dot-separator">•</span> ';
           }
-
-          let authors = subtitleParts[2]?.trim() || '';
-          if( authors ) subtitle += authors;
+          const authors = subtitleParts[2]?.trim() || '';
+          if (authors) subtitle += authors;
         }
         id = 'work/' + id;
       }
 
       return {
         resultType,
-        position: index+1,
+        position: index + 1,
         id,
         name,
         subtitle,
         numberOfWorks,
         numberOfGrants,
         graph: r
-      }
+      };
     });
 
     this.totalResultsCount = e.payload.total;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
 
     this.requestUpdate();
-
-    requestAnimationFrame(() => {
-      this._clearSelectedSearchResults();
-    })
+    requestAnimationFrame(() => this._clearSelectedSearchResults());
   }
 
   /**

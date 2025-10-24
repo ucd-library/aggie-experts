@@ -410,60 +410,6 @@ class BaseModel extends FinEsDataModel {
       console.error('searchTemplate error:', err?.meta?.body || err);
       throw err;
     }
-
-    // console.log('--- RENDERING TEMPLATE ---');
-    // // const rendered = await this.client.renderSearchTemplate({
-    // //   body: options
-    // // });
-    // // const out = rendered?.body?.template_output ?? rendered?.template_output ?? rendered;
-    // // console.log('--- RENDERED TEMPLATE START ---\n' + (typeof out === 'string' ? out : JSON.stringify(out, null, 2)) + '\n--- RENDERED TEMPLATE END ---');
-    // // return rendered;
-    // try {
-    //  // renderSearchTemplate expects body: { id, params }
-    //  const rendered = await this.client.renderSearchTemplate({
-    //    body: { id: options.id, params: options.params }
-    //  });
-
-    //   const out = rendered?.body?.template_output ?? rendered?.template_output ?? rendered;
-    //   const outStr = typeof out === 'string' ? out : JSON.stringify(out, null, 2);
-    //   console.log('--- RENDERED TEMPLATE START ---\n' + outStr + '\n--- RENDERED TEMPLATE END ---');
-
-    //   // write full rendered output to a tmp file for inspection
-    //   try {
-    //     const os = require('os');
-    //     const path = require('path');
-    //     const fs = require('fs');
-    //     const outPath = path.join(os.tmpdir(), `rendered_template_${Date.now()}.json`);
-    //     fs.writeFileSync(outPath, outStr, 'utf8');
-    //     console.error('WROTE rendered template to', outPath);
-    //   } catch (werr) {
-    //     console.error('Failed to write rendered template file:', werr);
-    //   }
-
-    //   return rendered;
-    // } catch (err) {
-    //   // Log helpful details from ES client error
-    //   try {
-    //     const meta = err?.meta?.body;
-    //     const data = meta?.data ?? meta ?? err;
-    //     console.error('renderSearchTemplate FAILED:', err.message || err);
-    //     // print a short tail so it appears in container logs even if file write fails
-    //     const s = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-    //     console.error('renderSearchTemplate raw tail:\n', s.slice(Math.max(0, s.length - 800)));
-
-    //     // attempt to persist full raw response for offline inspection
-    //     const os = require('os');
-    //     const path = require('path');
-    //     const fs = require('fs');
-    //     const outPath = path.join(os.tmpdir(), `rendered_template_error_${Date.now()}.txt`);
-    //     fs.writeFileSync(outPath, s, 'utf8');
-    //     console.error('WROTE render error output to', outPath);
-    //   } catch (logErr) {
-    //     console.error('Error while logging renderSearchTemplate failure:', logErr);
-    //   }
-
-    //   throw err;
-    // }
   }
 
   async msearch(opts) {
