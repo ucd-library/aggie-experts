@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs/promises';
 import { getWeek } from 'date-fns';
 import getEsClient from '../../elastic-search-client.js';
 import config from '../../config.js';
@@ -100,8 +101,10 @@ async function loadFile(file) {
   }
   const content = await cache.read(file);
   const metadata = await cache.getFileStats(file);
-  const sha256 = crypto.createHash('sha256').update(content).digest('hex');
-  const md5 = crypto.createHash('md5').update(content).digest('hex');
+  const sha256 = metadata.digests.sha256;
+  const md5 = metadata.digests.md5;
+  // const sha256 = crypto.createHash('sha256').update(content).digest('hex');
+  // const md5 = crypto.createHash('md5').update(content).digest('hex');
   const lastModified = metadata.modified;
   const json = JSON.parse(content);
   return {json, sha256, md5, lastModified};
@@ -199,7 +202,7 @@ async function createIndex(baseName, date) {
   logger.info(`Initializing Elasticsearch schema for index: ${indexName}`);
 
   const esClient = await getEsClient();
-  const schema = await loadFile(path.join(__dirname, baseName+'-schema.json'));
+  const schema = JSON.parse(await fs.readFile(path.join(__dirname, 'experts-schema.json'), 'utf8'));
 
   const indexExists = await esClient.indices.exists({ 
     index: indexName
@@ -208,7 +211,7 @@ async function createIndex(baseName, date) {
     logger.info(`Creating index: ${indexName}`);
     await esClient.indices.create({
       index: indexName,
-      body: schema.json
+      body: schema
     });
   } else {
     logger.info(`Index already exists: ${indexName}, no schema changes applied.`);

@@ -1,10 +1,6 @@
-import fs from 'fs-extra';
 import path from 'path';
 import config from './config.js';
-import logger from './logger.js';
-import crypto from 'crypto';
 import { reportFileWrite } from './reporting/index.js';
-import GcsCache from './google-cloud-storage.js';
 import CaskFS from '/opt/caskfs/src/index.js';
 import { getWeek } from 'date-fns';
 import os from 'os';
@@ -17,7 +13,7 @@ class FsCache {
     // this.gcs = new GcsCache();
 
     this.roots = {
-      active : '/active',
+      weekly: '/weekly',
       archive: '/archive'
     }
     this.validRoots = Object.values(this.roots);
@@ -34,9 +30,9 @@ class FsCache {
     })
   }
 
-  // init() {
-  //   return this.caskFs.init();
-  // }
+  init() {
+    return this.caskFs.dbClient.init();
+  }
 
   getYearWeek(date) {
     if( !date ) date = new Date();
@@ -52,7 +48,7 @@ class FsCache {
    * @param {String} userId expert user ID
    * @param  {String} assetKey either a single string or multiple strings that form the asset path
    * @param {Object} opts options object
-   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {String} opts.root root directory to use, either 'weekly' or 'archive', defaults to 'active'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    * 
    * @returns {String} full file path for the user asset
@@ -61,7 +57,7 @@ class FsCache {
     if( typeof assetKey === 'object' && Array.isArray(assetKey) ) {
       assetKey = path.join(...assetKey);
     }
-    if( !opts.root ) opts.root = this.roots.active;
+    if( !opts.root ) opts.root = this.roots.weekly;
     if( !this.validRoots.includes(opts.root) ) {
       throw new Error(`Invalid root specified: ${opts.root}`);
     }
@@ -217,32 +213,18 @@ class FsCache {
     //   newHash = await this.hashFile(assetPath);
     // }
 
-    // push file to gcs if configured.  This will return false if the file already exists and is unchanged.
-    // if the file did not change, set the proper last modified date
-    // let gcsWrite = await this.writeToGcs(assetPath);
-    // if( gcsWrite === false ) {
-    //   const gcsLastModified = await this.gcs.getLastModified(assetPath);
-    //   if( gcsLastModified ) {
-    //     fs.utimesSync(assetPath, gcsLastModified, gcsLastModified);
-    //   }
-    //   lastModified = gcsLastModified.toISOString();
-    // }
-    let gcsWrite = false;
-
     await reportFileWrite({
       file_path: assetPath,
       step: step,
       last_modified: resp.file.modified,
       file_hash: resp.file.digests[resp.primaryDigest],
       last_file_hash: resp.replacedFile?.digests?.[resp.primaryDigest] || null,
-      local_cache_write: resp.copied ? true : false,
-      gcs_write: gcsWrite
+      local_cache_write: resp.copied ? true : false
     });
 
     return {
       assetPath,
       localCacheWrite: resp.copied ? true : false,
-      gcsWrite,
       hash: resp.file.digests[resp.primaryDigest],
       lastModified : resp.file.modified
     };
@@ -298,48 +280,6 @@ class FsCache {
       });
     }
   }
-
-  /**
-   * @method deleteFromGcs
-   * @description Delete a file from Google Cloud Storage if configured.
-   *
-   * @param {String} filePath full path to the file in GCS
-   * @returns {Promise<void>}
-   */
-  // deleteFromGcs(filePath) {
-  //   if (!config.cache.gcs.enabled) {
-  //     return;
-  //   }
-  //   return this.gcs.delete(filePath);
-  // }
-
-  /**
-   * @method writeToGcs
-   * @description Write a file to Google Cloud Storage if configured.
-   *
-   * @param {String} filePath full path to the file
-   * @returns {Promise<void>}
-   */
-  // async writeToGcs(filePath) {
-  //   if (!config.cache.gcs.enabled) {
-  //     return null;
-  //   }
-  //   return (await this.gcs.upload(filePath)) ? true : false;
-  // }
-
-  /**
-   * @method readFromGcs
-   * @description Read a file from Google Cloud Storage if configured.
-   *
-   * @param {String} filePath full path to the file
-   * @returns {Promise<void>}
-   */
-  // readFromGcs(filePath) {
-  //   if (!config.cache.gcs.enabled) {
-  //     return;
-  //   }
-  //   return this.gcs.download(filePath);
-  // }
 
   close() {
     return this.caskFs.close();

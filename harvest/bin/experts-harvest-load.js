@@ -2,6 +2,7 @@ import { Command, Option } from 'commander';
 import load from '../lib/load/index.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
+import cache from '../lib/cache.js';
 import { enableFromCli, updateEsIndex } from '../lib/reporting/index.js';
 import { getIndexDocumentCount } from '../lib/load/elastic-search/index.js';
 
@@ -33,8 +34,10 @@ program.name('load')
         await updateEsIndex(alias, index, count);
       }
 
-      await config.postgres.client.end();
+       await config.postgres.client.end();
     }
+
+    await cache.close();
   });
 
 program.parse(process.argv);

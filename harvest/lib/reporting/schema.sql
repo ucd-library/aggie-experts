@@ -37,14 +37,12 @@ CREATE TABLE IF NOT EXISTS file_cache (
   last_modified TIMESTAMP NOT NULL,
   file_hash VARCHAR(64) NOT NULL,
   last_file_hash VARCHAR(64),
-  local_cache_write BOOLEAN,
-  gcs_write BOOLEAN DEFAULT FALSE
+  local_cache_write BOOLEAN
 );
 CREATE INDEX IF NOT EXISTS idx_file_cache_command_id ON file_cache (command_id);
 CREATE INDEX IF NOT EXISTS idx_file_cache_step ON file_cache (step);
 CREATE INDEX IF NOT EXISTS idx_file_cache_timestamp ON file_cache (timestamp);
 CREATE INDEX IF NOT EXISTS local_cache_write_idx ON file_cache (local_cache_write);
-CREATE INDEX IF NOT EXISTS gcs_write_idx ON file_cache (gcs_write);
 
 CREATE OR REPLACE VIEW command_file_cache AS
 SELECT
@@ -61,8 +59,7 @@ SELECT
   f.last_modified,
   f.file_hash,
   f.last_file_hash,
-  f.local_cache_write,
-  f.gcs_write
+  f.local_cache_write
 FROM
   command c
 JOIN
@@ -83,8 +80,7 @@ SELECT
   last_modified,
   file_hash,
   last_file_hash,
-  local_cache_write,
-  gcs_write
+  local_cache_write
 FROM (
   SELECT *,
     ROW_NUMBER() OVER (PARTITION BY file_path ORDER BY file_cache_timestamp DESC) as rn
@@ -95,7 +91,7 @@ WHERE rn = 1;
 CREATE OR REPLACE VIEW user_activity_last_7_days AS
 SELECT
   c.user_id,
-  BOOL_OR(f.gcs_write = TRUE) AS updated
+  BOOL_OR(f.local_cache_write = TRUE) AS updated
 FROM
   command c
 JOIN

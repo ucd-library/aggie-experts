@@ -28,15 +28,24 @@ def exec(cmd, check=True, capture_output=True, text=True):
     return json.loads(last_line)
 
 @dg.asset(
-  partitions_def=users_partitions,
   code_version="1.0"
+)
+def init_databases(context, ) -> None:
+  cmd = ["experts", "init"]
+  exec(cmd)
+  return None
+
+@dg.asset(
+  partitions_def=users_partitions,
+  code_version="1.0",
+  deps=[init_databases]
 )
 def extract_user(context, config: ExtractUserConfig) -> None:
 # def extract_user(context, config: ExtractUserConfig) -> None:
   user_id = context.partition_key
   run = context.dagster_run
 
-  cmd = ["experts", "harvest", "extract", user_id, "--enable-gcs-cache", "--reporting-job-id", run.run_id]
+  cmd = ["experts", "harvest", "extract", user_id, "--reporting-job-id", run.run_id]
 
   metadata = {
     "user": user_id
@@ -57,23 +66,6 @@ def extract_user(context, config: ExtractUserConfig) -> None:
 
   return None
 
-@dg.asset(
-    partitions_def=users_partitions,
-    code_version="1.1"
-)
-def pull_gcs_user_cache(context: AssetExecutionContext) -> None:
-    user_id = context.partition_key
-    run = context.dagster_run
-
-    exec(["experts", "harvest", "cache", "pull", user_id, "--reporting-job-id", run.run_id])
-
-    context.add_output_metadata(
-      metadata={
-        "id": user_id
-      }
-    )
-
-    return None
 
 @dg.asset(
     partitions_def=users_partitions,
@@ -85,32 +77,11 @@ def transform_user(context: AssetExecutionContext) -> None:
     user_id = context.partition_key
     run = context.dagster_run
 
-    exec(["experts", "harvest", "transform", user_id, "--enable-gcs-cache", "--reporting-job-id", run.run_id])
+    exec(["experts", "harvest", "transform", user_id, "--reporting-job-id", run.run_id])
 
     context.add_output_metadata(
       metadata={
         "id": user_id
-      }
-    )
-
-    return None
-
-@dg.asset(
-    partitions_def=users_partitions,
-    code_version="1.1",
-    auto_materialize_policy=AutoMaterializePolicy.eager(),
-    deps=[pull_gcs_user_cache]
-)
-def transform_gcs_cache_user(context: AssetExecutionContext) -> None:
-    user_id = context.partition_key
-    run = context.dagster_run
-
-    exec(["experts", "harvest", "transform", user_id, "--enable-gcs-cache", "--reporting-job-id", run.run_id])
-
-    context.add_output_metadata(
-      metadata={
-        "id": user_id,
-        "cache": "gcs"
       }
     )
 
@@ -143,55 +114,20 @@ def load_user(context: AssetExecutionContext, config: LoadUserConfig) -> None:
 
     return None
 
-@dg.asset(
-    partitions_def=users_partitions,
-    code_version="1.1",
-    auto_materialize_policy=AutoMaterializePolicy.eager(),
-    deps=[transform_gcs_cache_user]
-)
-def load_gcs_cache_user(context: AssetExecutionContext) -> None:
-    user_id = context.partition_key
-    run = context.dagster_run
-
-    exec(["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id])
-
-    context.add_output_metadata(
-      metadata={
-        "id": user_id,
-        "cache": "gcs"
-      }
-    )
-
-    return None
-
-@dg.asset(
-    partitions_def=users_partitions,
-    code_version="1.1"
-)
-def push_gcs_user_cache(context: AssetExecutionContext) -> None:
-    user_id = context.partition_key
-    run = context.dagster_run
-
-    exec(["experts", "harvest", "cache", "push", user_id, "--reporting-job-id", run.run_id])
-
-    context.add_output_metadata(
-      metadata={
-        "id": user_id
-      }
-    )
-
-    return None
-
-
 # Create a job that materializes both assets in the correct order
 etl_users_job = dg.define_asset_job(
     name="etl_users_job",
     selection=dg.AssetSelection.assets(extract_user, transform_user, load_user)
 )
 
-gcs_etl_users_job = dg.define_asset_job(
-    name="gcs_etl_users_job",
-    selection=dg.AssetSelection.assets(pull_gcs_user_cache, transform_gcs_cache_user, load_gcs_cache_user)
+extract_users_job = dg.define_asset_job(
+    name="extract_users_job",
+    selection=dg.AssetSelection.assets(init_databases, extract_user)
+)
+
+transform_load_users_job = dg.define_asset_job(
+    name="transform_load_users_job",
+    selection=dg.AssetSelection.assets(transform_user, load_user)
 )
 
 @run_status_sensor(run_status=DagsterRunStatus.SUCCESS, monitored_jobs=[etl_users_job])
@@ -242,10 +178,8 @@ def loadUserGroup(groupId):
     return user_ids
 
 defs = dg.Definitions(
-    jobs=[etl_users_job, gcs_etl_users_job],
-    assets=[
-            extract_user, transform_user, load_user, 
-            pull_gcs_user_cache, push_gcs_user_cache, transform_gcs_cache_user, load_gcs_cache_user],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job],
+    assets=[extract_user, transform_user, load_user, init_databases],
     sensors=[dev_users_sensor, sandbox_users_sensor, success_sensor],
     resources={
         "io_manager": FilesystemIOManager(base_dir="/opt/dagster/dagster_home/storage")

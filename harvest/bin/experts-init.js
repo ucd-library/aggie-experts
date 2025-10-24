@@ -36,7 +36,7 @@ program
 
     try {
       logger.info('Initializing caskfs cache...');
-      await cache.dbClient.init();
+      await cache.init();
       logger.info('Caskfs cache initialized successfully.');
     } catch (error) {
       errors.push(`Error initializing caskfs cache: ${error.message}`);
