@@ -73,11 +73,32 @@ def extract_user(context, config: ExtractUserConfig) -> None:
     auto_materialize_policy=AutoMaterializePolicy.eager(),
     deps=[extract_user]
 )
-def transform_user(context: AssetExecutionContext) -> None:
+def transform_user_standard(context: AssetExecutionContext) -> None:
     user_id = context.partition_key
     run = context.dagster_run
 
-    exec(["experts", "harvest", "transform", user_id, "--reporting-job-id", run.run_id])
+    exec(["experts", "harvest", "transform", "ae-std", user_id, "--reporting-job-id", run.run_id])
+
+    context.add_output_metadata(
+      metadata={
+        "id": user_id
+      }
+    )
+
+    return None
+
+
+@dg.asset(
+    partitions_def=users_partitions,
+    code_version="1.1",
+    auto_materialize_policy=AutoMaterializePolicy.eager(),
+    deps=[transform_user_standard]
+)
+def transform_user_webapp(context: AssetExecutionContext) -> None:
+    user_id = context.partition_key
+    run = context.dagster_run
+
+    exec(["experts", "harvest", "transform", "webapp", user_id, "--reporting-job-id", run.run_id])
 
     context.add_output_metadata(
       metadata={
@@ -91,7 +112,7 @@ def transform_user(context: AssetExecutionContext) -> None:
     partitions_def=users_partitions,
     code_version="1.1",
     auto_materialize_policy=AutoMaterializePolicy.eager(),
-    deps=[transform_user]
+    deps=[transform_user_webapp]
 )
 def load_user(context: AssetExecutionContext, config: LoadUserConfig) -> None:
     user_id = context.partition_key
@@ -117,17 +138,17 @@ def load_user(context: AssetExecutionContext, config: LoadUserConfig) -> None:
 # Create a job that materializes both assets in the correct order
 etl_users_job = dg.define_asset_job(
     name="etl_users_job",
-    selection=dg.AssetSelection.assets(extract_user, transform_user, load_user)
+    selection=dg.AssetSelection.assets(extract_user, transform_user_webapp, transform_user_standard, load_user)
 )
 
 extract_users_job = dg.define_asset_job(
     name="extract_users_job",
-    selection=dg.AssetSelection.assets(init_databases, extract_user)
+    selection=dg.AssetSelection.assets(init_databases, extract_user, transform_user_standard, transform_user_webapp)
 )
 
 transform_load_users_job = dg.define_asset_job(
     name="transform_load_users_job",
-    selection=dg.AssetSelection.assets(transform_user, load_user)
+    selection=dg.AssetSelection.assets(transform_user_webapp, load_user)
 )
 
 @run_status_sensor(run_status=DagsterRunStatus.SUCCESS, monitored_jobs=[etl_users_job])

@@ -339,11 +339,15 @@ async function readRelationshipFiles(cacheUsername, expertId) {
   return combinedGraph;
 }
 
-async function runFromFiles(cacheUsername, expertId, file) {
+async function runFromFiles(cacheUsername) {
   logger.info(`Running AE webapp transformation for user: ${cacheUsername}`);
 
   // Read the main expert graph
-  const expertGraph = JSON.parse(await cache.read(file));
+  const expertGraph = JSON.parse(await cache.readUserAsset(cacheUsername, 'ae-std/person.jsonld'));
+  
+  // Get expert ID
+  let expertId = expertGraph.find(n => n['@type'] && n['@type'].includes('http://schema.library.ucdavis.edu/schema#Expert'));
+  expertId = expertId['@id'].replace('http://experts.ucdavis.edu/expert/', '');
 
   // Read all relationship files (works/grants)
   const relationshipGraph = await readRelationshipFiles(cacheUsername, expertId);

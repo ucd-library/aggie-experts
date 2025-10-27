@@ -10,7 +10,7 @@ import {runFromFiles as jsonLdToPerson} from './person.js';
 import {runFromFiles as personToWebapp} from './elastic-search/index.js';
 import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
-async function run(options={}) {
+async function srcToAeStd(options={}) {
   if( options.rootDir ) {
     config.cache.rootDir = options.rootDir;
   }
@@ -85,9 +85,15 @@ async function run(options={}) {
   logger.info(`Deleting existing relationship files for user: ${options.user}`);
   await cache.delete(options.user, `${config.cache.aeStdFormatDir}/${expertId}/rel`);
   await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
-
-  // Transform in webapp format
-  await personToWebapp(options.user, expertId, result.assetPath);
 }
 
-export default run;
+async function aeStdToWebapp(options={}) {
+  if( !options.user.match(/@/) ) {
+    options.user += '@ucdavis.edu'; // ensure user has a domain
+  }
+
+  // Transform in webapp format
+  await personToWebapp(options.user);
+}
+
+export { srcToAeStd, aeStdToWebapp };

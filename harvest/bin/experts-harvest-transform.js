@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import transform from '../lib/transform/index.js';
+import { srcToAeStd, aeStdToWebapp } from '../lib/transform/index.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
@@ -9,26 +9,48 @@ import { enableFromCli } from '../lib/reporting/index.js';
 
 const program = new Command();
 
-program.name('transform')
-  .description('transform data from cdl & iam into aggie experts format')
-  .argument('<user-id>', 'User id to extract')
+program
+  .command('ae-std')
+  .description('transform data from cdl & iam into aggie experts standard format')
+  .argument('<user-id>', 'User id to transform')
   .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
-  .option('--enable-gcs-cache', 'Enable Google Cloud Storage caching. Respects env EXPERTS_CACHE_GCS_ENABLED=true')
   .action(async (userId, options) => {
 
     if (options.reportingJobId || options.reporting) {
-      await enableFromCli('experts-harvest-transform', userId, options);
+      await enableFromCli('experts-harvest-transform-ae-std', userId, options);
     }
 
-    if( options.enableGcsCache ) {
-      config.cache.gcs.enabled = true;
+    await srcToAeStd({
+      user: userId,
+      rootDir: options.rootDir
+    });
+
+    if( config.reporting.enabled ) {
+      config.postgres.client.end();
     }
-    logger.info('Google Cloud Storage caching '+ (config.cache.gcs.enabled ? 'enabled' : 'disabled'));    
 
+    await cache.close();
 
-    await transform({
+    // TODO: why is this hanging?
+    // process.exit();
+  });
+
+program
+  .command('webapp')
+  .description('transform aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
+  .argument('<user-id>', 'User id to transform')
+  .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
+  .option('--reporting', 'Enable reporting for this transformation')
+  .option('--reporting-job-id <job-id>', 'Job ID for reporting')
+  .action(async (userId, options) => {
+
+    if (options.reportingJobId || options.reporting) {
+      await enableFromCli('experts-harvest-transform-webapp', userId, options);
+    }
+
+    await aeStdToWebapp({
       user: userId,
       rootDir: options.rootDir
     });
