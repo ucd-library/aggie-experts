@@ -33,7 +33,6 @@ export default class AppExpert extends Mixin(LitElement)
       citations : { type : Array },
       citationsDisplayed : { type : Array },
       featuredCitations : { type : Array },
-      // showFeaturedCitations : { type : Boolean },
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
@@ -277,7 +276,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.citations = [];
     this.citationsDisplayed = [];
     this.featuredCitations = [];
-    // this.showFeaturedCitations = true;
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
@@ -367,7 +365,7 @@ export default class AppExpert extends Mixin(LitElement)
         return bYear - aYear;
       });
 
-      featuredCitations = featuredCitations.slice(0, 5);
+      // featuredCitations = featuredCitations.slice(0, 10);
 
       if( !isDownload ) citationResults = citationResults.filter(c => !featuredCitations.includes(c));
       citationResults.sort((a, b) => {
@@ -930,16 +928,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideOaPolicyLink = true;
     this.errorMode = false;
   }
-
-  /**
-   * @method _onFeaturedCitationsToggle
-   * @description toggle featured citations
-   * @param {Object} e click|keyup event
-   */
-  // _onFeaturedCitationsToggle(e) {
-  //   this.showFeaturedCitations = !this.showFeaturedCitations;
-  //   this._loadCitations();
-  // }
 
   _hideEditExpertControls() {
     return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;

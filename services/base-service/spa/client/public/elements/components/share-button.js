@@ -1,5 +1,7 @@
 import { LitElement, html, css } from 'lit';
 
+import '../components/app-toast-popup.js';
+
 export class ShareButton extends LitElement {
   static get properties() {
     return {
@@ -99,6 +101,7 @@ export class ShareButton extends LitElement {
           <span>Copy Link</span>
         </div>
       </div>
+      <app-toast-popup></app-toast-popup>
     `;
   }
 
@@ -111,6 +114,9 @@ export class ShareButton extends LitElement {
     e.stopPropagation();
     navigator.clipboard.writeText(window.location.href);
     this._dismissOverlay();
+
+    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+    if( toastPopup ) toastPopup.showPopup('Copied successfully');
   }
 
   _handleDismissCopyLinkClick(event) {

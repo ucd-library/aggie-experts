@@ -9,6 +9,7 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
 
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
+import '../../components/app-toast-popup.js';
 
 import Citation from '../../../lib/utils/citation.js';
 
@@ -24,6 +25,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       expertName : { type : String },
       citations : { type : Array },
       citationsDisplayed : { type : Array },
+      featuredCitations : { type : Array },
+      maxFeaturedCitationsIndex : { type : Number },
       totalCitations : { type : Number },
       hiddenCitations : { type : Number },
       paginationTotal : { type : Number },
@@ -39,6 +42,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       resultsPerPage : { type : Number },
       manageWorksLabel : { type : String },
       worksWithErrors : { type : Array },
+      showingAllHighlights : { type : Boolean }
     }
   }
 
@@ -57,6 +61,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.expertName = '';
     this.citations = [];
     this.citationsDisplayed = [];
+    this.featuredCitations = [];
+    this.maxFeaturedCitationsIndex = 10;
     this.totalCitations = 0;
     this.hiddenCitations = 0;
     this.paginationTotal = 1;
@@ -74,6 +80,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.isVisible = true;
     this.manageWorksLabel = 'Manage My Works';
     this.worksWithErrors = [];
+    this.showingAllHighlights = false;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -131,7 +138,11 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           worksPage : this.currentPage,
           worksSize : this.resultsPerPage,
           includeHidden : true,
-          includeWorksMisformatted : true
+          includeWorksMisformatted : true,
+          // favouriteWorksFirst : true
+          favouritesPlusFirstPageWorks : this.currentPage === 1,
+          // shown only on the top of the first page,
+          // otherwise, not shown in normal list of works on other pages
         }),
         this.modifiedWorks // clear cache if modified works
       );
@@ -175,6 +186,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.worksWithErrors = this.expert.invalidWorks || [];
     if( this.worksWithErrors.length ) this.logger.error('works with errors', { expertId : this.expertId, worksWithErrors : this.worksWithErrors });
 
+    this.worksWithErrors.forEach(work => {
+      if( Array.isArray(work.issued) ) work.issued = work.issued[0];
+    });
+
     this.worksWithErrors.sort((a, b) => {
       if( typeof a.issued !== 'string' ) a.issued = 'Date Unknown';
       if( typeof b.issued !== 'string' ) b.issued = 'Date Unknown';
@@ -188,7 +203,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       }
 
       return a.title.localeCompare(b.title);
-    })
+    });
 
     // only expert graph record, no works for this pagination of results
     if( this.expert['@graph'].length === 1 ) {
@@ -207,8 +222,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    *
    * @param {Boolean} all load all citations, not just first 25, used for downloading all citations
    * @param {Object} apiResponse optional response from ExpertModel.get
+   * @param {Boolean} isDownload whether loading citations for download
    */
-  async _loadCitations(all=false, apiResponse={}) {
+  async _loadCitations(all=false, apiResponse={}, isDownload=false) {
     let citations = all ? JSON.parse(JSON.stringify((apiResponse['@graph'] || []).filter(g => g.issued))) : JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g.issued)));
 
     citations = citations.map(c => {
@@ -217,21 +233,44 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return citation;
     });
 
-    if( !all ) this.citations = citations;
+    if( !all && !isDownload ) this.citations = citations;
 
     let citationResults = await Citation.generateCitations(citations);
     citationResults = citationResults.map(c => c.value || c.reason?.data);
 
+    // this.featuredCitations
+    let featuredCitations = citationResults.filter(c => c.relatedBy && Array.isArray(c.relatedBy)
+        ? c.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+        : c.relatedBy && c.relatedBy['ucdlib:favourite'] === true
+      );
+
+    if( featuredCitations.length ) {
+      // ensure sorted by year descending
+      featuredCitations.sort((a, b) => {
+        let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
+        let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
+        return bYear - aYear;
+      });
+
+      citationResults.sort((a, b) => {
+        let aYear = Array.isArray(a.issued) ? a.issued[0] : a.issued.split('-')[0];
+        let bYear = Array.isArray(b.issued) ? b.issued[0] : b.issued.split('-')[0];
+        return bYear - aYear;
+      });
+
+      featuredCitations.forEach(cite => {
+        if( Array.isArray(cite['container-title']) ) cite['container-title'] = cite['container-title'][0];
+        cite['is-visible'] = (cite.relatedBy.some(related => related['is-visible'] && related?.relates?.some(r => r === this.expertId)));
+        if( cite.relatedBy && Array.isArray(cite.relatedBy) ) {
+          cite.favourite = cite.relatedBy.some(rel => rel['ucdlib:favourite'] === true);
+        } else {
+          cite.favourite = cite.relatedBy && cite.relatedBy['ucdlib:favourite'] === true;
+        }
+      });
+    }
+
     // also remove issued date from citations if not first displayed on page from that year
-    let lastPrintedYear;
-    citationResults.forEach((cite, i) => {
-      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
-      let newIssueDate = cite.issued?.[0];
-      if( i > 0 && ( newIssueDate === citationResults[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
-        delete cite.issued;
-        lastPrintedYear = newIssueDate;
-      }
-    });
+    citationResults = this._updateCitationsDisplayedDates(citationResults);
 
     // make sure container-title is a single string, and update visibility
     citationResults.forEach(cite => {
@@ -246,10 +285,108 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.paginationTotal = Math.ceil(this.totalCitations / this.resultsPerPage);
 
-    if( all ) return citationResults;
+    // also dedupe results (featured citations may be in normal list too)
+    citationResults = citationResults.filter((cite, index, self) => index === self.findIndex((c) => (c['@id'] === cite['@id'])));
+    featuredCitations = featuredCitations.filter((cite, index, self) => index === self.findIndex((c) => (c['@id'] === cite['@id'])));
+
+    if( all || isDownload ) return citationResults;
 
     this.citationsDisplayed = citationResults;
+    this.featuredCitations = featuredCitations;
+
+    // hack to hide inner content of collapsed rows on first load, to remove extra white space
+    requestAnimationFrame(() => {
+      const wrappers = Array.from(this.renderRoot?.querySelectorAll('.row-wrapper') || []);
+      wrappers.forEach(w => {
+        const idx = Number(w.dataset.index || -1);
+        // keep first 5 always visible; hide others if not showingAllHighlights
+        if (idx > 4 && !this.showingAllHighlights) {
+          const content = w.firstElementChild;
+          if (content) content.style.display = 'none';
+          w.classList.add('collapsed');
+        }
+      });
+    });
+
+    this._updateMaxCitationsIndex();
     this.requestUpdate();
+  }
+
+  _updateMaxCitationsIndex() {
+    // need to get index of the last featured citation in the displayed citations
+    // to show disclaimer if more than 10 featured citations are visible
+    let visibleCount = 0;
+    this.maxFeaturedCitationsIndex = this.featuredCitations.findIndex(c => c['is-visible'] && ++visibleCount === 10) + 1;
+    if( this.maxFeaturedCitationsIndex < 10 ) this.maxFeaturedCitationsIndex = 10;
+  }
+
+  /**
+   * @method _toggleShowAllHighlights
+   * @description toggle showing all highlights in the list, and animate the expand/collapse
+   * @param {Object} e click|keyup event
+   */
+  _toggleShowAllHighlights(e) {
+    let willShow = !this.showingAllHighlights;
+    const wrappers = Array.from(this.renderRoot.querySelectorAll('.row-wrapper'));
+
+    // expand/collapse animation
+    if( willShow ) {
+      // expand
+      wrappers.forEach(w => {
+        const idx = Number(w.dataset.index || -1);
+        if (idx <= 4) return; // keep first 5 always visible
+
+        // Ensure inner content is rendered and visible before measuring
+        const content = w.firstElementChild;
+        if (content) content.style.display = '';
+
+        // expand: remove collapsed state then animate from 0 -> measured height
+        w.classList.remove('collapsed');
+        w.style.height = '0px';
+        void w.offsetHeight;
+        const target = content ? (content.scrollHeight || content.getBoundingClientRect().height) : w.scrollHeight;
+        w.style.height = target + 'px';
+
+        const onEnd = (ev) => {
+          if (ev.target !== w) return;
+          // clear inline height so layout is natural
+          w.style.height = '';
+          // make sure inner content stays visible
+          if (content) content.style.display = '';
+          w.removeEventListener('transitionend', onEnd);
+        };
+        w.addEventListener('transitionend', onEnd);
+      });
+    } else {
+      // collapse
+      wrappers.forEach(w => {
+        const idx = Number(w.dataset.index || -1);
+        if (idx <= 4) return;
+
+        const content = w.firstElementChild;
+        // measure current height (content must be visible to measure)
+        if (content && getComputedStyle(content).display === 'none') {
+          content.style.display = '';
+        }
+        const start = content ? (content.getBoundingClientRect().height) : w.scrollHeight;
+        w.style.height = start + 'px';
+        void w.offsetHeight;
+        // animate to zero height
+        w.style.height = '0px';
+
+        const onEnd = (ev) => {
+          if (ev.target !== w) return;
+          // hide inner content to remove any residual white space
+          if (content) content.style.display = 'none';
+          w.classList.add('collapsed');
+          w.style.height = '';
+          w.removeEventListener('transitionend', onEnd);
+        };
+        w.addEventListener('transitionend', onEnd);
+      });
+    }
+
+    this.showingAllHighlights = willShow;
   }
 
   /**
@@ -320,13 +457,18 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   _selectAllChecked(e) {
     this.allSelected = e.currentTarget.checked;
-    let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-    checkboxes.forEach(checkbox => {
-      checkbox.checked = this.allSelected;
-      if( this.allSelected ) {
-        if( !this.downloads.includes(checkbox.dataset.id) ) this.downloads.push(checkbox.dataset.id);
-      } else {
-        this.downloads = this.downloads.filter(d => d !== checkbox.dataset.id);
+    let rows = this.shadowRoot.querySelectorAll('edit-work-result-row') || [];
+    rows.forEach(row => {
+      let checkbox = row.shadowRoot.querySelector('.select-checkbox input[type="checkbox"]');
+      if( checkbox ) {
+        checkbox.checked = this.allSelected;
+        let id = checkbox.dataset.id;
+
+        if( this.allSelected ) {
+          if( !this.downloads.includes(id) ) this.downloads.push(id);
+        } else {
+          this.downloads = this.downloads.filter(d => d !== id);
+        }
       }
     });
   }
@@ -338,7 +480,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @param {Object} e click|keyup event
    */
   _selectChecked(e) {
-    let id = e.currentTarget.dataset.id;
+    let id = e.detail.citationId;
 
     if( e.currentTarget.checked ) {
       this.downloads.push(id);
@@ -372,7 +514,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       true
     );
 
-    let allCitations = await this._loadCitations(true, res.payload);
+    let allCitations = await this._loadCitations(true, res.payload, true);
     let downloads = allCitations.filter(c => this.downloads.includes(c['@id']));
 
     let text = downloads.map(c => c.ris).join('\n');
@@ -396,7 +538,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show modal with link to hide work
    */
   _hideWork(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
 
     this.modalTitle = 'Hide Work';
     this.modalContent = `<p>This record will be <strong>hidden from your profile</strong> and marked as "Internal" in the UC Publication Management System.</p><p>Are you sure you want to hide this work?</p>`;
@@ -413,7 +555,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show work
    */
   async _showWork(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
@@ -493,7 +635,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description remove favourite from work
    */
   async _deselectFavourite(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
@@ -559,12 +701,28 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citation.relatedBy[0]['ucdlib:favourite'] = false;
       citation.favourite = false;
     }
+    citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = false;
+      citation.favourite = false;
+
+      // update featured citations list
+      this.featuredCitations = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] !== this.citationId);
+
+      this._reSortCitations();
+    }
+
+    this._updateMaxCitationsIndex();
 
     this._updateHeaderLabels();
 
     this.modifiedWorks = true;
 
+    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
+
+    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+    if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
   }
 
   /**
@@ -572,7 +730,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description add favourite to work
    */
   async _markFavourite(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
@@ -639,11 +797,63 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citation.favourite = true;
     }
 
+    // update featured citations list
+    citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      this.featuredCitations.push(citation);
+
+      this._reSortCitations();
+    }
+
+    this._updateMaxCitationsIndex();
+
     this._updateHeaderLabels();
 
     this.modifiedWorks = true;
 
+    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
+
+    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+    if( toastPopup ) toastPopup.showPopup('Added to Highlights');
+  }
+
+  /**
+   * @method _reSortCitations
+   * @description resort displayed/featured citations
+   */
+  _reSortCitations() {
+    this.citationsDisplayed.sort((a, b) => {
+      let aYear = Array.isArray(a.originalIssued) ? a.originalIssued[0] : a.originalIssued?.split('-')?.[0];
+      let bYear = Array.isArray(b.originalIssued) ? b.originalIssued[0] : b.originalIssued?.split('-')?.[0];
+      return bYear - aYear;
+    });
+    this.featuredCitations.sort((a, b) => {
+      let aYear = Array.isArray(a.originalIssued) ? a.originalIssued[0] : a.originalIssued?.split('-')?.[0];
+      let bYear = Array.isArray(b.originalIssued) ? b.originalIssued[0] : b.originalIssued?.split('-')?.[0];
+      return bYear - aYear;
+    });
+  }
+
+  _updateCitationsDisplayedDates(citationResults) {
+    let citations = citationResults || this.citationsDisplayed;
+
+    (citations || []).forEach(cite => {
+      if( !cite.issued && cite.originalIssued ) cite.issued = cite.originalIssued;
+    });
+
+    let lastPrintedYear;
+    (citations || []).forEach((cite, i) => {
+      if( !Array.isArray(cite.issued) ) cite.issued = cite.issued.split('-');
+      cite.originalIssued = cite.issued;
+      let newIssueDate = cite.issued?.[0];
+      if( i > 0 && ( newIssueDate === citations[i-1].issued?.[0] || lastPrintedYear === newIssueDate ) && i % this.resultsPerPage !== 0 ) {
+        delete cite.issued;
+        lastPrintedYear = newIssueDate;
+      }
+    });
+
+    return citations;
   }
 
   /**
@@ -801,7 +1011,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @description show modal with link to reject work
    */
   _rejectWork(e) {
-    this.citationId = e.currentTarget.dataset.id;
+    this.citationId = e.detail.citationId;
 
     this.modalTitle = 'Reject Work';
     this.modalContent = `<p>This record will be <strong>permanently removed</strong> from your Aggie Experts profile. To reclaim this item, you must do so via the UC Publication Management System.</p><p>Are you sure you want to reject this work?</p>`;

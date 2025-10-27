@@ -1174,26 +1174,6 @@ return html`
         <hr class="separator">
 
           <div class="featured-works" ?hidden="${!this.featuredCitations.length}">
-            <!-- <div class="featured-works-toggle">
-              <div class="featured-works-header">
-                <h3 class="heading--highlight">Highlights</h3>
-                <div class="toggle-switch" ?hidden="${this._hideEditExpertControls()}">
-                  <input
-                    type="checkbox"
-                    id="toggle"
-                    ?checked="${this.showFeaturedCitations}"
-                    @change="${this._onFeaturedCitationsToggle}">
-                  <label for="toggle" class="toggle-button"></label>
-                </div>
-              </div>
-              <div class="instructions-label" ?hidden="${this.showFeaturedCitations || this._hideEditExpertControls()}">
-                <p>
-                  Enable this feature to show "Favorite" works at the top of your profile's Works list. Works may
-                  be added or removed by selecting the heart icon in the Works editing view.
-                </p>
-              </div>
-            </div> -->
-            <!-- <div ?hidden="${!this.showFeaturedCitations}" class="featured-works-list"> -->
             <h3 class="heading--highlight" style="margin: 1.19rem 0;">Highlights</h3>
             ${this.featuredCitations.map(
               (cite) => html`
@@ -1207,9 +1187,8 @@ return html`
                     ${unsafeHTML(utils.formatCitation(cite))}
                   </div>
                 </div>
-              `)}
-            </div>
-          <!-- </div> -->
+            `)}
+          </div>
 
           ${this.citationsDisplayed.map(
           (cite) => html`
