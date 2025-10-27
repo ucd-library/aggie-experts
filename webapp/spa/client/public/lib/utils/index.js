@@ -281,6 +281,7 @@ class Utils {
         includeWorksMisformatted : false,
         includeGrantsMisformatted : false,
         favouriteWorksFirst : false,
+        favouritesPlusFirstPageWorks : false,
         worksPage : 1,
         worksSize : 10,
         worksSort : [
@@ -333,7 +334,8 @@ class Utils {
         exclude : defaults.worksExclude,
         includeMisformatted : defaults.includeWorksMisformatted,
         sort : defaults.worksSort,
-        favouriteWorksFirst : defaults.favouriteWorksFirst
+        favouriteWorksFirst : defaults.favouriteWorksFirst,
+        favouritesPlusFirstPageWorks : defaults.favouritesPlusFirstPageWorks
       }
     };
   }
