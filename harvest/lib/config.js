@@ -63,6 +63,18 @@ const config = {
     cdlUserFilename : 'user_000.json',
     iamUserFilename : 'profile.json',
 
+    autoPathPartitions : [{
+      name : 'year-week',
+      filterRegex : /^\d{4}-\d{2}$/
+    },{
+      name : 'user',
+      filterRegex : /^.*\@.*$/
+    },{
+      name : 'transform-type',
+      filterRegex : /^(cdl|iam|ae-std|ae-webapp)$/,
+      getValue : 'return regexMatch[1]'
+    }],
+
     gcs : {
       enabled : env.EXPERTS_CACHE_GCS_ENABLED || false,
       bucketName : env.EXPERTS_CACHE_BUCKET_NAME || 'experts-harvest-test-cache',
