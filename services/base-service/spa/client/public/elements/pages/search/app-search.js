@@ -93,6 +93,21 @@ export default class AppSearch extends Mixin(LitElement)
     this.render = render.bind(this);
   }
 
+  connectedCallback() {
+    super.connectedCallback && super.connectedCallback();
+    this._boundWindowResize = this._onWindowResize.bind(this);
+    window.addEventListener('resize', this._boundWindowResize, { passive: true });
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('resize', this._boundWindowResize);
+    super.disconnectedCallback && super.disconnectedCallback();
+  }
+
+  async _onWindowResize() {
+    this._refreshRange();
+  }
+
   firstUpdated() {
     if( this.AppStateModel.location.page !== 'search' ) return;
 
@@ -122,6 +137,17 @@ export default class AppSearch extends Mixin(LitElement)
 
     this._updateFilters();
     this._onSearch({ detail: this.searchTerm });
+  }
+
+  async _refreshRange() {
+    const rangeSlider = this.shadowRoot?.querySelector('ucdlib-range-slider');
+    if (!rangeSlider) return;
+
+    rangeSlider.hasRendered = false;
+    rangeSlider.requestUpdate();
+    await (rangeSlider.updateComplete?.catch(() => {}));
+    // rangeSlider._onResize();
+    rangeSlider._updateHistogram();
   }
 
   _updateFilters() {
@@ -159,6 +185,10 @@ export default class AppSearch extends Mixin(LitElement)
 
       this.dateFrom = query.dateFrom || '';
       this.dateTo = query.dateTo || '';
+      if( this.dateFrom || this.dateTo ) {
+        this.filterByDate = true;
+        this.filterByDateLabel = (this.dateFrom || '') + ' - ' + (this.dateTo || '');
+      }
 
       let page = this.AppStateModel.location?.path?.[1];
       if( page ) this.currentPage = page;
@@ -178,6 +208,8 @@ export default class AppSearch extends Mixin(LitElement)
       this.mediaInterviews = false;
       this.dateFrom = '';
       this.dateTo = '';
+      this.filterByDate = false;
+      this.filterByDateLabel = '';
 
       // update search term
       this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
@@ -220,7 +252,8 @@ export default class AppSearch extends Mixin(LitElement)
    * @param {Object} e
    */
   _filterByGrants(e) {
-    // TODO eventually multiple experts could be supported, for now just one needed
+    console.log('todo need to keep the date filtering in place when filtering by expert grants');
+
     // filter by grants for this expert
     this.filterByExpertId = e.detail.id;
     this.filterByExpertName = e.detail.name;
@@ -251,6 +284,8 @@ export default class AppSearch extends Mixin(LitElement)
    * @param {Object} e
    */
   _filterByWorks(e) {
+    console.log('todo need to keep the date filtering in place when filtering by expert works');
+
     // filter by works for this expert
     this.filterByExpertId = e.detail.id;
     this.filterByExpertName = e.detail.name;
@@ -295,11 +330,15 @@ export default class AppSearch extends Mixin(LitElement)
   _removeDateFilter(e) {
     this.filterByDate = false;
     this.filterByDateLabel = '';
+    this.dateFrom = '';
+    this.dateTo = '';
+    this._updateLocation();
 
     let rangeSlider = this.shadowRoot.querySelector('ucdlib-range-slider');
     if( !rangeSlider ) return;
 
     rangeSlider.reset();
+    this._refreshRange();
   }
 
   /**
@@ -474,6 +513,7 @@ export default class AppSearch extends Mixin(LitElement)
     if (newSig !== this.lastAggSignature) {
       const issuedYears = (this.globalAggregations || {})['issued_years'] || {};
       this.dateRangeData = this._buildHistogramDataFromAgg(issuedYears); // [{stat: YYYY, value: count}, ...]
+      console.log('dateRangeData', this.dateRangeData);
 
       const range = this.shadowRoot.querySelector('ucdlib-range-slider');
       if (range && Array.isArray(this.dateRangeData) && this.dateRangeData.length) {
@@ -491,17 +531,15 @@ export default class AppSearch extends Mixin(LitElement)
         const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
         const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
 
-        range.min = clampedMin;
-        range.max = clampedMax;
-
         // Optional: update chip label if a date filter is active
         if (this.filterByDate && (this.dateFrom || this.dateTo)) {
           this.filterByDateLabel = `${clampedMin} - ${clampedMax}`;
         }
 
-        // Nudge the component to re-render
-        range.hasRendered = false;
-        range.requestUpdate();
+        // Update slider values and re-render
+        await this._refreshRange();
+        range.min = clampedMin;
+        range.max = clampedMax;
       }
 
       this.lastAggSignature = newSig;

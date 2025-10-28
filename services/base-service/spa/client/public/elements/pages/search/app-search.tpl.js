@@ -91,11 +91,15 @@ return html`
       align-items: flex-start;
       gap: 1.1875rem;
       flex-grow: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .search-container .search-content > * {
       width: 100%;
       box-sizing: border-box;
+      min-width: 0;
     }
 
     .search-container .search-content .search-tips-link {
@@ -397,6 +401,22 @@ return html`
       font-weight: 400;
     }
 
+    /* constrain the range slider so it never grows past the refine column */
+    .search-container .refine-search .slider-container {
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 18.5rem;
+      max-width: 18.5rem;
+      padding: 0 .75rem;
+      overflow: hidden;
+    }
+
+    .search-container .refine-search .slider-container ucdlib-range-slider {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+    }
   </style>
 
   <div class="search-header">
@@ -452,10 +472,13 @@ return html`
       <div class="date-filter-heading">
         <h4>Date (Works, Grants)</h4>
       </div>
-      <ucdlib-range-slider
-        @range-slider-change="${this._onRangeSliderChange}"
-        .data="${this.dateRangeData}">
-      </ucdlib-range-slider>
+      <div class="slider-container">
+        <ucdlib-range-slider
+          @range-slider-change="${this._onRangeSliderChange}"
+          .data="${this.dateRangeData}"
+          .showUnknown="${true}">
+        </ucdlib-range-slider>
+      </div>
 
       <hr class="search-seperator">
       <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
