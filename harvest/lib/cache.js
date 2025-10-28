@@ -30,8 +30,11 @@ class FsCache {
     })
   }
 
-  init() {
-    return this.caskFs.dbClient.init();
+  async init() {
+    await this.caskFs.dbClient.init();
+    for( let partition of config.cache.autoPathPartitions ) {
+      await this.caskFs.autoPath.partition.set(partition);
+    }
   }
 
   getYearWeek(date) {

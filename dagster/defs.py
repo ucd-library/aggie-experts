@@ -200,7 +200,7 @@ def loadUserGroup(groupId):
 
 defs = dg.Definitions(
     jobs=[etl_users_job, extract_users_job, transform_load_users_job],
-    assets=[extract_user, transform_user, load_user, init_databases],
+    assets=[extract_user, transform_user_webapp, transform_user_standard, load_user, init_databases],
     sensors=[dev_users_sensor, sandbox_users_sensor, success_sensor],
     resources={
         "io_manager": FilesystemIOManager(base_dir="/opt/dagster/dagster_home/storage")
