@@ -69,7 +69,7 @@ for i in "${letters_to_process[@]}"; do
       continue
     fi
 
-    echo "Processing expert: $e" >&2
+    #echo "Processing expert: $e" >&2
     
     http POST $host/api/$e <<<'{"grants" : {"include" : true,"size":2000},"works" : {"include" : true,"size":10000}}' | jq -r --arg i "$i" --arg e "$e" '
     (.name | if type == "array" then join(" ") else . end) as $n | 
