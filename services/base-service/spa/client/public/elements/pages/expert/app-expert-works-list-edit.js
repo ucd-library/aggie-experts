@@ -81,6 +81,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.manageWorksLabel = 'Manage My Works';
     this.worksWithErrors = [];
     this.showingAllHighlights = false;
+    this.modifiedWorks = false;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -396,7 +397,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @param {Object} e click|keyup event
    */
   async _onPaginationChange(e) {
-    this.allSelected = true;
+    this.allSelected = false;
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
     if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
@@ -423,9 +424,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     requestAnimationFrame(() => {
       // loop over checkboxes to see if any are checked
-      let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-      checkboxes.forEach(checkbox => {
-        if( this.downloads.includes(checkbox.dataset.id) ) {
+      let rows = this.shadowRoot.querySelectorAll('edit-work-result-row') || [];
+      rows.forEach(row => {
+        let checkbox = row.shadowRoot.querySelector('.select-checkbox input[type="checkbox"]');
+        if( this.downloads.includes(checkbox?.dataset?.id) ) {
           checkbox.checked = true;
         } else {
           checkbox.checked = false;
@@ -482,7 +484,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
   _selectChecked(e) {
     let id = e.detail.citationId;
 
-    if( e.currentTarget.checked ) {
+    if( e.currentTarget.checked || e.detail.checked ) {
       this.downloads.push(id);
     } else {
       this.downloads = this.downloads.filter(d => d !== id);
@@ -627,6 +629,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.modifiedWorks = true;
 
+    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
   }
 
@@ -937,6 +940,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this.modifiedWorks = true;
 
+      this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
       this.requestUpdate();
 
       return;

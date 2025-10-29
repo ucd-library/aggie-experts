@@ -31,7 +31,12 @@ export default class EditWorkResultRow extends Mixin(LitElement)
    _emitEvent(eventName) {
     return (e) => {
       const event = new CustomEvent(eventName, {
-        detail: { cite: this.cite, index: this.index, citationId: e.currentTarget.dataset.id },
+        detail: {
+          cite: this.cite,
+          index: this.index,
+          citationId: e.currentTarget.dataset.id,
+          checked: e.currentTarget.checked
+        },
         bubbles: true,
         composed: true,
       });
