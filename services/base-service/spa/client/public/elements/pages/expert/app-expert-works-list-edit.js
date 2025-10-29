@@ -632,6 +632,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
+
+    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+    if( toastPopup ) toastPopup.showPopup('Work set as Visible');
   }
 
   /**
@@ -944,6 +947,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
       this.requestUpdate();
 
+      let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+      if( toastPopup ) toastPopup.showPopup('Work set as Hidden');
+
       return;
     } else if ( action === 'reject' ) {
       try {
@@ -1009,6 +1015,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       true // clear cache
     );
     this._onExpertUpdate(expert);
+
+    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+    if( toastPopup ) toastPopup.showPopup('Work Rejected');
   }
 
   /**

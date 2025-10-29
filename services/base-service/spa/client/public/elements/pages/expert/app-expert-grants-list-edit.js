@@ -9,6 +9,7 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
 
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
+import '../../components/app-toast-popup.js';
 
 import utils from '../../../lib/utils';
 
@@ -437,6 +438,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         });
       }
       this.logger.error('failed to set grant to be visible', { grantId : this.grantId, expertId : this.expertId });
+      return;
     }
 
     this.modifiedGrants = true;
@@ -454,6 +456,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this._updateManageGrantsLabel();
 
     this.requestUpdate();
+
+    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+    if( toastPopup ) toastPopup.showPopup('Grant set as Visible');
   }
 
   /**
@@ -529,6 +534,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       this._updateManageGrantsLabel();
 
       this.requestUpdate();
+      let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+      if( toastPopup ) toastPopup.showPopup('Grant set as Hidden');
     }
   }
 
