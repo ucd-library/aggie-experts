@@ -630,6 +630,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citation.relatedBy[0]['is-visible'] = true;
       citation['is-visible'] = true;
     }
+    citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = true;
+      citation['is-visible'] = true;
+      this.featuredCitations = JSON.parse(JSON.stringify(this.featuredCitations));
+      this._updateMaxCitationsIndex();
+    }
 
     this.hiddenCitations--;
     this._updateHeaderLabels();
@@ -952,6 +959,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       if( citation ) {
         citation.relatedBy[0]['is-visible'] = false;
         citation['is-visible'] = false;
+      }
+      citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+      if( citation ) {
+        citation.relatedBy[0]['is-visible'] = false;
+        citation['is-visible'] = false;
+        this.featuredCitations = JSON.parse(JSON.stringify(this.featuredCitations));
+        this._updateMaxCitationsIndex();
       }
       this.hiddenCitations++;
 
