@@ -145,7 +145,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           // shown only on the top of the first page,
           // otherwise, not shown in normal list of works on other pages
         }),
-        this.modifiedWorks // clear cache if modified works
+        this.isAdmin // clear cache if modified works
       );
       this.modifiedWorks = false;
 
@@ -418,7 +418,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         worksSize : this.resultsPerPage,
         includeHidden : true,
         includeWorksMisformatted : true
-      })
+      }),
+      this.isAdmin
     );
     await this._onExpertUpdate(expert);
 
