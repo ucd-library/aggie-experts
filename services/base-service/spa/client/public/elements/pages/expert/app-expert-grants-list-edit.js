@@ -396,7 +396,13 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     let updated = true;
     try {
       let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
-      this.dispatchEvent(new CustomEvent("loaded", {}));
+      setTimeout(() => {
+        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+        if( toastPopup ) toastPopup.showPopup('Showing on Profile');
+      }, 1500);
 
       if( window.gtag ) {
         gtag('event', 'grant_is_visible', {
@@ -456,9 +462,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this._updateManageGrantsLabel();
 
     this.requestUpdate();
-
-    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-    if( toastPopup ) toastPopup.showPopup('Grant set as Visible');
   }
 
   /**
@@ -477,7 +480,13 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( action === 'hide' ) {
       try {
         let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
-        this.dispatchEvent(new CustomEvent("loaded", {}));
+        setTimeout(() => {
+          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
+        }, 1500);
 
         if( window.gtag ) {
           gtag('event', 'grant_is_visible', {
@@ -534,8 +543,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       this._updateManageGrantsLabel();
 
       this.requestUpdate();
-      let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-      if( toastPopup ) toastPopup.showPopup('Grant set as Hidden');
     }
   }
 

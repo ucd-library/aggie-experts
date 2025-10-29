@@ -563,7 +563,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
-      this.dispatchEvent(new CustomEvent("loaded", {}));
+      setTimeout(() => {
+        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+        if( toastPopup ) toastPopup.showPopup('Showing on Profile');
+      }, 1500);
 
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
@@ -632,9 +638,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
-
-    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-    if( toastPopup ) toastPopup.showPopup('Work set as Visible');
   }
 
   /**
@@ -647,7 +650,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, false);
-      this.dispatchEvent(new CustomEvent("loaded", {}));
+      setTimeout(() => {
+        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+        if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
+      }, 1500);
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -727,9 +736,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
-
-    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-    if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
   }
 
   /**
@@ -742,7 +748,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, true);
-      this.dispatchEvent(new CustomEvent("loaded", {}));
+      setTimeout(() => {
+        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+        if( toastPopup ) toastPopup.showPopup('Added to Highlights');
+      }, 1500);
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -820,9 +832,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
-
-    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-    if( toastPopup ) toastPopup.showPopup('Added to Highlights');
   }
 
   /**
@@ -878,7 +887,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( action === 'hide' ) {
       try {
         let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
-        this.dispatchEvent(new CustomEvent("loaded", {}));
+        setTimeout(() => {
+          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
+        }, 1500);
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -946,15 +961,17 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
       this.requestUpdate();
-
-      let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-      if( toastPopup ) toastPopup.showPopup('Work set as Hidden');
-
       return;
     } else if ( action === 'reject' ) {
       try {
         let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
-        this.dispatchEvent(new CustomEvent("loaded", {}));
+        setTimeout(() => {
+          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Removed from Profile');
+        }, 1500);
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {
@@ -1015,9 +1032,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       true // clear cache
     );
     this._onExpertUpdate(expert);
-
-    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-    if( toastPopup ) toastPopup.showPopup('Work Rejected');
   }
 
   /**
