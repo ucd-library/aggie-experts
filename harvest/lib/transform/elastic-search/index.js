@@ -11,7 +11,7 @@ import {
   promoteExpertNodeToRoot,
   normalizeExpertIdsDeep
 } from './to-person-webapp.js';
-import { generateWorkFiles } from './to-work-webapp.js';
+import { generateWorkFiles, updateWorkRelatedByRelates } from './to-work-webapp.js';
 import { generateGrantFiles, updateGrantRelatedByRelates } from './to-grant-webapp.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
@@ -228,6 +228,7 @@ async function frame(expertId, graph) {
   compacted["@context"] = (config?.server?.url || 'https://stage.experts.library.ucdavis.edu') + "/api/schema/context.jsonld";
 
   compacted = promoteExpertNodeToRoot(compacted, config);
+  updateWorkRelatedByRelates(compacted);
   updateGrantRelatedByRelates(compacted);
 
   return compacted;
@@ -344,7 +345,7 @@ async function runFromFiles(cacheUsername) {
 
   // Read the main expert graph
   const expertGraph = JSON.parse(await cache.readUserAsset(cacheUsername, 'ae-std/person.jsonld'));
-  
+
   // Get expert ID
   let expertId = expertGraph.find(n => n['@type'] && n['@type'].includes('http://schema.library.ucdavis.edu/schema#Expert'));
   expertId = expertId['@id'].replace('http://experts.ucdavis.edu/expert/', '');
