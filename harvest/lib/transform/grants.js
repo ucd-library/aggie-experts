@@ -265,7 +265,7 @@ function createRoleRecord(personId, roleType, roleLabel, formattedName, grantUri
 function extractGrantData(grantRelationship, relationshipId, expertId) {
   const grantId = jsonpath.value(grantRelationship, '$["api:related"]["id"]');
   const relationshipUri = `ark:/87287/d7mh2m/${relationshipId}`;
-  const expertUri = `http://experts.ucdavis.edu/${expertId}`;
+  const expertUri = `http://experts.ucdavis.edu/expert/${expertId}`;
 
   const records = jsonpath.value(grantRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"]') || [];
   const recordsArray = Array.isArray(records) ? records : [records];

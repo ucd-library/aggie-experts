@@ -357,7 +357,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const publicationId = jsonpath.value(workRelationship, '$["api:related"]["id"]');
   const publicationUri = `ark:/87287/d7mh2m/publication/${publicationId}`;
   const relationshipUri = `ark:/87287/d7mh2m/relationship/${relationshipId}`;
-  const expertUri = `http://experts.ucdavis.edu/${expertId}`;
+  const expertUri = `http://experts.ucdavis.edu/expert/${expertId}`;
 
   // Get the best record data (prefer manual > dimensions > crossref > others)
   const records = extractAsArray(workRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"]');
@@ -392,7 +392,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   // }
 
   const issn = getBestFieldValueFromRecords('issn', records);
-  const eissn = getBestFieldValueFromRecords('eissn', records);
+  const eissn = getBestFieldValuesFromRecords('eissn', records);
 
   // sparql maps both isbn-10 and isbn-13 to cite:ISBN
   // so if multiple values, an array is returned
@@ -472,7 +472,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     publication["http://citationstyles.org/schema/DOI"] = Array.from(new Set(dois)).map(v => ({ "@value": v }));
   }
   if (issn) publication["http://citationstyles.org/schema/ISSN"] = [{ "@value": issn }];
-  if (eissn) publication["http://citationstyles.org/schema/eissn"] = [{ "@value": eissn }];
+  if (eissn.length) publication["http://citationstyles.org/schema/eissn"] = eissn.map(val => ({ "@value": val }));
   if (isbns.length ) publication["http://citationstyles.org/schema/ISBN"] = isbns.map(val => ({ "@value": val }));
   if (containerTitle.length) publication["http://citationstyles.org/schema/container-title"] = containerTitle.map(val => ({ "@value": val }));
   if (publisher) publication["http://citationstyles.org/schema/publisher"] = [{ "@value": publisher }];
@@ -579,6 +579,12 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     isVisible = isVisible.toLowerCase() === "true";
   }
 
+  // normalize favourite flag
+  let isFavourite = workRelationship["api:is-favourite"];
+  if (typeof isFavourite === "string") {
+    isFavourite = isFavourite.toLowerCase() === "true";
+  }
+
   // Create authorship relationship record
   const authorship = {
     "@id": relationshipUri,
@@ -594,6 +600,13 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
       { "@id": expertUri }
     ]
   };
+
+  // include favourite only when true
+  if (isFavourite) {
+    authorship["http://schema.library.ucdavis.edu/schema#favourite"] = [
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(!!isFavourite) }
+    ];
+  }
 
   // compute user rank / best score for elements user vs authors positions
   const userRank = getUserRank(records, elementsUserId, positionGroups);

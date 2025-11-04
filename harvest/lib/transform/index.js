@@ -73,7 +73,7 @@ async function srcToAeStd(options={}) {
   let user = await cache.readUserAsset(options.user, config.cache.keycloakUserFilename);
   user = JSON.parse(user);
   logger.info(`User from Keycloak: ${JSON.stringify(user)}`);
-  let expertId = `expert/${user.attributes.expertId[0]}`;
+  let expertId = user.attributes.expertId[0];
   let expertData = {};
   expertData['last-name'] = user.lastName;
   expertData['first-name'] = user.firstName;
