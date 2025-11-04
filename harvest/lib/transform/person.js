@@ -304,21 +304,16 @@ function run(expertId, profile, cdl, ucopVocab) {
         });
       }
 
-      // Website nodes (only public & de-duped)
-      const websites = uniq((cdlWebsites || []).map(w => w?.["api:url"]).filter(Boolean));
-      odrContact["http://www.w3.org/2006/vcard/ns#hasURL"] = [];
-      websites.forEach((url, idx) => {
-        const urlId = `${base}-url-${idx}`;
-        odrContact["http://www.w3.org/2006/vcard/ns#hasURL"].push({ "@id": urlId });
+      // Website from the *directory listing* only, and only if public
+      if (listing.websiteWwwFlag === 'Y' && listing.website) {
+        const urlId = `${base}-url`;
+        odrContact["http://www.w3.org/2006/vcard/ns#hasURL"] = [{ "@id": urlId }];
         pushUniqueById(result, {
           "@id": urlId,
           "@type": ["http://www.w3.org/2006/vcard/ns#URL"],
-          "http://www.w3.org/2006/vcard/ns#url": [{ "@value": url }],
-          "http://vivoweb.org/ontology/core#rank": [
-            { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": String(idx) }
-          ]
+          "http://www.w3.org/2006/vcard/ns#url": [{ "@value": listing.website }]
         });
-      });
+      }
 
       pushUniqueById(result, odrContact);
     }
@@ -341,19 +336,44 @@ function run(expertId, profile, cdl, ucopVocab) {
     "http://www.w3.org/2006/vcard/ns#hasURL": []
   };
 
-  const websitesDeDuped = uniq((cdlWebsites || []).map(w => w?.["api:url"]).filter(Boolean));
-  websitesDeDuped.forEach((url, index) => {
+  const websitesRaw = (cdlWebsites || []);
+  const websitesDeDuped = [];
+  const seenUrls = new Set();
+  for (const w of websitesRaw) {
+    const url = w?.["api:url"];
+    if (!url || seenUrls.has(url)) continue;
+    seenUrls.add(url);
+    websitesDeDuped.push(w);
+  }
+
+  oapVcard["http://www.w3.org/2006/vcard/ns#hasURL"] = [];
+  websitesDeDuped.forEach((w, index) => {
+    const url = w["api:url"];
     const urlId = `${expertUri}#vcard-oap-1-web-${index}`;
+
     oapVcard["http://www.w3.org/2006/vcard/ns#hasURL"].push({ "@id": urlId });
-    pushUniqueById(result, {
+
+    const node = {
       "@id": urlId,
       "@type": ["http://www.w3.org/2006/vcard/ns#URL"],
       "http://www.w3.org/2006/vcard/ns#url": [{ "@value": url }],
       "http://vivoweb.org/ontology/core#rank": [
         { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": String(index) }
       ]
-    });
+    };
+
+    // restore old metadata:
+    if (w["api:type"] === "other") {
+      node["@type"].push("http://schema.library.ucdavis.edu/schema#URL_other");
+    }
+    if (w["api:label"]) {
+      node["http://www.w3.org/2006/vcard/ns#title"] = [{ "@value": w["api:label"] }];
+    }
+
+    pushUniqueById(result, node);
   });
+
+  // Ensure the OAP vCard itself is emitted (even if there are 0 websites)
   pushUniqueById(result, oapVcard);
 
   // OAP name record
