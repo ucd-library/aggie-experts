@@ -770,6 +770,29 @@ return html`
         display: none;
       }
     }
+
+    .no-works button.btn.add-work {
+      font-size: .85rem;
+      margin: .85rem 0;
+    }
+
+    .no-works button.btn.add-work::before {
+      padding: 0 .4rem;
+      opacity: 1;
+      transform: initial;
+      transition: initial;
+
+      content: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20448%20512%22%3E%3C!--!Font%20Awesome%20Free%206.5.1%20by%20%40fontawesome%20-%20https%3A%2F%2Ffontawesome.com%20License%20-%20https%3A%2F%2Ffontawesome.com%2Flicense%2Ffree%20Copyright%202024%20Fonticons%2C%20Inc.--%3E%3Cpath%20d%3D%22M416%20208H272V64c0-17.7-14.3-32-32-32h-32c-17.7%200-32%2014.3-32%2032v144H32c-17.7%200-32%2014.3-32%2032v32c0%2017.7%2014.3%2032%2032%2032h144v144c0%2017.7%2014.3%2032%2032%2032h32c17.7%200%2032-14.3%2032-32V304h144c17.7%200%2032-14.3%2032-32v-32c0-17.7-14.3-32-32-32z%22%20fill%3D%22%23FFBF00%22%2F%3E%3C%2Fsvg%3E");
+    }
+
+    .no-works button.btn.add-work:hover {
+      padding-right: 1.5em;
+      padding-left: 0.75em;
+    }
+
+    .no-works p {
+      margin: 0;
+    }
   </style>
 
   <div class="content">
@@ -1051,11 +1074,11 @@ return html`
         </div>
       </div>
 
-      <div class="grants-abbreviated" ?hidden="${this.totalGrants === 0 && (!this.canEdit || this.totalGrants === 0)}">
+      <div class="grants-abbreviated" ?hidden="${(!this.totalGrants && !this.hiddenGrants) || (!this.canEdit && !this.totalGrants)}">
         <div class="grants-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="file-invoice-dollar" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
-            <h2>${this.totalGrants} Grants</h2>
+            <h2>${this.totalGrants ? this.totalGrants + ' ' : ''}Grant${this.totalGrants === 1 ? '' : 's'}</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
             <span ?hidden="${!this.canEdit}" style="position: relative;">
@@ -1085,10 +1108,13 @@ return html`
           </div>
         </div>
         <span class="hidden-grants-label" ?hidden="${this.hiddenGrants === 0 || !this.canEdit}">
-          ${this.hiddenGrants} additional grant${this.hiddenGrants === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+          ${this.hiddenGrants} grant${this.hiddenGrants === 1 ? ' is' : 's are'} hidden. You can manage them in edit mode.
         </span>
 
         <hr class="separator">
+
+        <p style="margin: 0;" ?hidden="${this.totalGrants !== 0 || this.hiddenGrants === 0 || !this.canEdit}">No public grants to display</p>
+
         ${this.grantsActiveDisplayed.map(
           (grant, index) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
@@ -1134,14 +1160,14 @@ return html`
         </div>
       </div>
 
-      <div class="works-abbreviated" ?hidden="${this.totalCitations === 0 && (!this.canEdit || this.totalCitations === 0)}">
+      <div class="works-abbreviated" ?hidden="${this.totalCitations === 0 && !this.canEdit}">
         <div class="works-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
-            <h2>${this.totalCitations} Works</h2>
+            <h2>${this.totalCitations > 0 ? this.totalCitations + ' ' : ''}Work${this.totalCitations === 1 ? '' : 's'}</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
-            <span ?hidden="${!this.canEdit}" style="position: relative;">
+            <span ?hidden="${!this.canEdit || (this.totalCitations === 0 && this.hiddenCitations === 0)}" style="position: relative;">
               <span class="tooltip edit-works" data-text="Edit works">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
@@ -1154,7 +1180,7 @@ return html`
               </span>
             </span>
 
-            <span ?hidden="${!this.canEdit}" style="position: relative;">
+            <span ?hidden="${!this.canEdit || this.totalCitations === 0}" style="position: relative;">
               <span class="tooltip download-all-works" data-text="Download all works">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
                   @click=${this._downloadWorks}
@@ -1168,10 +1194,16 @@ return html`
           </div>
         </div>
         <span class="hidden-works-label" ?hidden="${this.hiddenCitations === 0 || !this.canEdit}">
-          ${this.hiddenCitations} additional work${this.hiddenCitations === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+          ${this.hiddenCitations} work${this.hiddenCitations === 1 ? ' is' : 's are'} hidden. You can manage them in edit mode.
         </span>
 
         <hr class="separator">
+
+        <p style="margin: 0;" ?hidden="${this.totalCitations !== 0 || this.hiddenCitations === 0 || !this.canEdit}">No public works to display</p>
+        <div class="no-works" ?hidden="${this.totalCitations !== 0 || this.hiddenCitations !== 0 || !this.canEdit}">
+          <p>No works to display</p>
+          <button class="btn btn--round btn--alt2 add-work" @click="${this._addNewWorkClicked}">Add New Work</button>
+        </div>
 
           <div class="featured-works" ?hidden="${!this.featuredCitations.length}">
             <h3 class="heading--highlight" style="margin: 1.19rem 0;">Highlights</h3>

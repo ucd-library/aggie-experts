@@ -691,6 +691,22 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _addNewWorkClicked
+   * @description show modal with link to add work
+   */
+  _addNewWorkClicked(e) {
+    e.preventDefault();
+    this.modalTitle = 'Add New Work';
+    this.modalContent = `<p>New works are added, claimed or rejected via the <strong>UC Publication Management System.</strong></p><p>You will be redirected to this system.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = true;
+    this.hideOK = true;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
+  }
+
+  /**
    * @method _showExpert
    * @description update expert visibility to true
    */
