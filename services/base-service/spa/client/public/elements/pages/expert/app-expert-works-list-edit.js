@@ -42,7 +42,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       resultsPerPage : { type : Number },
       manageWorksLabel : { type : String },
       worksWithErrors : { type : Array },
-      showingAllHighlights : { type : Boolean }
+      showingAllHighlights : { type : Boolean },
+      isAdmin : { type : Boolean }
     }
   }
 
@@ -417,7 +418,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         worksPage : this.currentPage,
         worksSize : this.resultsPerPage,
         includeHidden : true,
-        includeWorksMisformatted : true
+        includeWorksMisformatted : true,
+        favouritesPlusFirstPageWorks : this.currentPage === 1,
       }),
       this.isAdmin
     );
