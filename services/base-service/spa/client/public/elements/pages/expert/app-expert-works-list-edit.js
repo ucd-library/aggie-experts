@@ -82,7 +82,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.manageWorksLabel = 'Manage My Works';
     this.worksWithErrors = [];
     this.showingAllHighlights = false;
-    this.modifiedWorks = false;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -148,7 +147,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         }),
         this.isAdmin
       );
-      this.modifiedWorks = false;
 
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
@@ -643,8 +641,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hiddenCitations--;
     this._updateHeaderLabels();
 
-    this.modifiedWorks = true;
-
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
   }
@@ -741,8 +737,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this._updateHeaderLabels();
 
-    this.modifiedWorks = true;
-
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
   }
@@ -836,8 +830,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this._updateMaxCitationsIndex();
 
     this._updateHeaderLabels();
-
-    this.modifiedWorks = true;
 
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
@@ -973,8 +965,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this._updateHeaderLabels();
 
-      this.modifiedWorks = true;
-
       this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
       this.requestUpdate();
       return;
@@ -1032,8 +1022,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       }
     }
-
-    this.modifiedWorks = true;
 
     let expert = await this.ExpertModel.get(
       this.expertId,
@@ -1104,8 +1092,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
 
+    this.AppStateModel.set({ modifiedWorks : true });
     this.AppStateModel.setLocation('/'+this.expertId);
-    this.AppStateModel.set({ modifiedWorks : this.modifiedWorks });
   }
 
 }
