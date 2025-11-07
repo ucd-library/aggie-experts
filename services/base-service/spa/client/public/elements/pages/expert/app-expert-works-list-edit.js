@@ -126,9 +126,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
+    this.isAdmin = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId) || (APP_CONFIG.user?.roles || []).includes('admin');
 
-    if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
+    if( !expertId || !this.isAdmin ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
       let expert = await this.ExpertModel.get(
@@ -145,7 +145,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           // shown only on the top of the first page,
           // otherwise, not shown in normal list of works on other pages
         }),
-        this.isAdmin // clear cache if modified works
+        this.isAdmin
       );
       this.modifiedWorks = false;
 
