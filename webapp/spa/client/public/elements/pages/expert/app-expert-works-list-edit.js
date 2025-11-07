@@ -42,7 +42,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       resultsPerPage : { type : Number },
       manageWorksLabel : { type : String },
       worksWithErrors : { type : Array },
-      showingAllHighlights : { type : Boolean }
+      showingAllHighlights : { type : Boolean },
+      isAdmin : { type : Boolean }
     }
   }
 
@@ -81,7 +82,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.manageWorksLabel = 'Manage My Works';
     this.worksWithErrors = [];
     this.showingAllHighlights = false;
-    this.modifiedWorks = false;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -126,9 +126,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
+    this.isAdmin = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId) || (APP_CONFIG.user?.roles || []).includes('admin');
 
-    if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
+    if( !expertId || !this.isAdmin ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
       let expert = await this.ExpertModel.get(
@@ -145,9 +145,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           // shown only on the top of the first page,
           // otherwise, not shown in normal list of works on other pages
         }),
-        this.isAdmin // clear cache if modified works
+        this.isAdmin
       );
-      this.modifiedWorks = false;
 
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
@@ -417,7 +416,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         worksPage : this.currentPage,
         worksSize : this.resultsPerPage,
         includeHidden : true,
-        includeWorksMisformatted : true
+        includeWorksMisformatted : true,
+        favouritesPlusFirstPageWorks : this.currentPage === 1,
       }),
       this.isAdmin
     );
@@ -641,8 +641,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hiddenCitations--;
     this._updateHeaderLabels();
 
-    this.modifiedWorks = true;
-
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
   }
@@ -739,8 +737,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this._updateHeaderLabels();
 
-    this.modifiedWorks = true;
-
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
   }
@@ -834,8 +830,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this._updateMaxCitationsIndex();
 
     this._updateHeaderLabels();
-
-    this.modifiedWorks = true;
 
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
@@ -971,8 +965,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       this._updateHeaderLabels();
 
-      this.modifiedWorks = true;
-
       this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
       this.requestUpdate();
       return;
@@ -1030,8 +1022,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       }
     }
-
-    this.modifiedWorks = true;
 
     let expert = await this.ExpertModel.get(
       this.expertId,
@@ -1102,8 +1092,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
 
+    this.AppStateModel.set({ modifiedWorks : true });
     this.AppStateModel.setLocation('/'+this.expertId);
-    this.AppStateModel.set({ modifiedWorks : this.modifiedWorks });
   }
 
 }
