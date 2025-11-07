@@ -704,79 +704,20 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
-   * @method _refreshProfile
-   * @description update expert profile from elements
+   * @method _addNewWorkClicked
+   * @description show modal with link to add work
    */
-  async _refreshProfile(e) {
+  _addNewWorkClicked(e) {
     e.preventDefault();
-
-    // only allow if admin or if user is the expert
-    if( !this.isAdmin && APP_CONFIG.user?.expertId !== this.expertId ) return;
-
-    // TODO
-    // how to get the expert email if not viewing own profile, like only 'Editing' expert..
-    // maybe only need to handle this if using keycloak impersonate
-    let partitionName = APP_CONFIG.user.email || '';
-    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
-
-    // loop to check status of run
-    let runId = res.body?.data?.launchRun?.run?.runId || '';
-    if( runId ) {
-      this.lastLastUpdated = this.lastUpdated;
-      this.lastUpdated = 'Updating...';
-      this._startProfileSyncInterval(runId);
-    }
+    this.modalTitle = 'Add New Work';
+    this.modalContent = `<p>New works are added, claimed or rejected via the <strong>UC Publication Management System.</strong></p><p>You will be redirected to this system.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = true;
+    this.hideOK = true;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
   }
-
-  // _startProfileSyncInterval(runId) {
-  //   if( this._profileSyncIntervalId ) {
-  //     clearInterval(this._profileSyncIntervalId);
-  //   }
-
-  //   this.refreshingProfileData = true;
-  //   this._profileSyncIntervalId = setInterval(async () => {
-  //     try {
-  //       let res = await this.DagsterModel.getLastRunForId(runId);
-  //       let status = res.body?.data?.runOrError?.status;
-
-  //       if (status === 'FAILED' || status === 'SUCCESS') {
-  //         clearInterval(this._profileSyncIntervalId);
-  //         this._profileSyncIntervalId = null;
-  //         this.refreshingProfileData = false;
-
-  //         if( status === 'SUCCESS' ) {
-  //           this._updateProfileLastUpdated();
-
-  //           console.log('TODO should update/refresh expert page after getting the latest data.. need to test changes to elements first and see how quickly they show up here');
-  //         } else {
-  //           this.lastUpdated = this.lastLastUpdated || '';
-  //           logger.warn('Profile update dagster job run failed', { runId });
-  //         }
-  //       }
-  //     } catch (err) {
-  //       logger.warn('Error checking profile status in dagster job run', err);
-  //     }
-
-  //   }, 5000);
-  // }
-
-  // async _updateProfileLastUpdated() {
-  //   // TODO pull cas+@ucdavis.edu from the auth
-  //   let email = this.expert?.contactInfo?.hasEmail || '';
-  //   if( Array.isArray(email) ) email = email[0];
-  //   if( email.startsWith('mailto:') ) email = email.replace('mailto:', '');
-  //   if( !email ) return;
-
-  //   let partitionName = email;
-  //   let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
-
-  //   let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
-  //       .filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED')
-  //       .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
-
-  //   if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
-  //   else this.lastUpdated = '';
-  // }
 
   /**
    * @method _showExpert
