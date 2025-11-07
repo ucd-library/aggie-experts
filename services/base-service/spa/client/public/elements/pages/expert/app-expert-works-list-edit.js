@@ -42,7 +42,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       resultsPerPage : { type : Number },
       manageWorksLabel : { type : String },
       worksWithErrors : { type : Array },
-      showingAllHighlights : { type : Boolean }
+      showingAllHighlights : { type : Boolean },
+      isAdmin : { type : Boolean }
     }
   }
 
@@ -125,9 +126,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
-    let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
+    this.isAdmin = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId) || (APP_CONFIG.user?.roles || []).includes('admin');
 
-    if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
+    if( !expertId || !this.isAdmin ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
     try {
       let expert = await this.ExpertModel.get(
@@ -144,9 +145,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           // shown only on the top of the first page,
           // otherwise, not shown in normal list of works on other pages
         }),
-        this.modifiedWorks // clear cache if modified works
+        this.isAdmin
       );
-      this.modifiedWorks = false;
 
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
@@ -396,7 +396,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @param {Object} e click|keyup event
    */
   async _onPaginationChange(e) {
-    this.allSelected = true;
+    this.allSelected = false;
     e.detail.startIndex = e.detail.page * this.resultsPerPage - this.resultsPerPage;
     let maxIndex = e.detail.page * (e.detail.startIndex || this.resultsPerPage);
     if( maxIndex > this.totalCitations ) maxIndex = this.totalCitations;
@@ -416,16 +416,19 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         worksPage : this.currentPage,
         worksSize : this.resultsPerPage,
         includeHidden : true,
-        includeWorksMisformatted : true
-      })
+        includeWorksMisformatted : true,
+        favouritesPlusFirstPageWorks : this.currentPage === 1,
+      }),
+      this.isAdmin
     );
     await this._onExpertUpdate(expert);
 
     requestAnimationFrame(() => {
       // loop over checkboxes to see if any are checked
-      let checkboxes = this.shadowRoot.querySelectorAll('.select-checkbox input[type="checkbox"]') || [];
-      checkboxes.forEach(checkbox => {
-        if( this.downloads.includes(checkbox.dataset.id) ) {
+      let rows = this.shadowRoot.querySelectorAll('edit-work-result-row') || [];
+      rows.forEach(row => {
+        let checkbox = row.shadowRoot.querySelector('.select-checkbox input[type="checkbox"]');
+        if( this.downloads.includes(checkbox?.dataset?.id) ) {
           checkbox.checked = true;
         } else {
           checkbox.checked = false;
@@ -482,7 +485,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
   _selectChecked(e) {
     let id = e.detail.citationId;
 
-    if( e.currentTarget.checked ) {
+    if( e.currentTarget.checked || e.detail.checked ) {
       this.downloads.push(id);
     } else {
       this.downloads = this.downloads.filter(d => d !== id);
@@ -560,7 +563,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
-      this.dispatchEvent(new CustomEvent("loaded", {}));
+      setTimeout(() => {
+        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+        if( toastPopup ) toastPopup.showPopup('Showing on Profile');
+      }, 1500);
 
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
@@ -621,12 +630,18 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       citation.relatedBy[0]['is-visible'] = true;
       citation['is-visible'] = true;
     }
+    citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = true;
+      citation['is-visible'] = true;
+      this.featuredCitations = JSON.parse(JSON.stringify(this.featuredCitations));
+      this._updateMaxCitationsIndex();
+    }
 
     this.hiddenCitations--;
     this._updateHeaderLabels();
 
-    this.modifiedWorks = true;
-
+    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
   }
 
@@ -640,7 +655,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, false);
-      this.dispatchEvent(new CustomEvent("loaded", {}));
+      setTimeout(() => {
+        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+        if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
+      }, 1500);
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -716,13 +737,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this._updateHeaderLabels();
 
-    this.modifiedWorks = true;
-
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
-
-    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-    if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
   }
 
   /**
@@ -735,7 +751,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, true);
-      this.dispatchEvent(new CustomEvent("loaded", {}));
+      setTimeout(() => {
+        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+        this.dispatchEvent(new CustomEvent("loaded", {}));
+
+        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+        if( toastPopup ) toastPopup.showPopup('Added to Highlights');
+      }, 1500);
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -809,13 +831,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     this._updateHeaderLabels();
 
-    this.modifiedWorks = true;
-
     this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
     this.requestUpdate();
-
-    let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-    if( toastPopup ) toastPopup.showPopup('Added to Highlights');
   }
 
   /**
@@ -871,7 +888,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( action === 'hide' ) {
       try {
         let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
-        this.dispatchEvent(new CustomEvent("loaded", {}));
+        setTimeout(() => {
+          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
+        }, 1500);
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -931,19 +954,30 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         citation.relatedBy[0]['is-visible'] = false;
         citation['is-visible'] = false;
       }
+      citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
+      if( citation ) {
+        citation.relatedBy[0]['is-visible'] = false;
+        citation['is-visible'] = false;
+        this.featuredCitations = JSON.parse(JSON.stringify(this.featuredCitations));
+        this._updateMaxCitationsIndex();
+      }
       this.hiddenCitations++;
 
       this._updateHeaderLabels();
 
-      this.modifiedWorks = true;
-
+      this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
       this.requestUpdate();
-
       return;
     } else if ( action === 'reject' ) {
       try {
         let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
-        this.dispatchEvent(new CustomEvent("loaded", {}));
+        setTimeout(() => {
+          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Removed from Profile');
+        }, 1500);
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {
@@ -988,8 +1022,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       }
     }
-
-    this.modifiedWorks = true;
 
     let expert = await this.ExpertModel.get(
       this.expertId,
@@ -1060,8 +1092,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     // reset data to first page of results
     this.currentPage = 1;
 
+    this.AppStateModel.set({ modifiedWorks : true });
     this.AppStateModel.setLocation('/'+this.expertId);
-    this.AppStateModel.set({ modifiedWorks : this.modifiedWorks });
   }
 
 }
