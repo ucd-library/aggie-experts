@@ -57,16 +57,32 @@ function getExpertNode(framedDocument) {
 function createSimplifiedExpert(expertNode) {
   if (!expertNode) return null;
 
+  // Prefer explicit contactInfo entries if present
+  let contact = null;
+  if (expertNode.contactInfo) {
+    const infos = Array.isArray(expertNode.contactInfo) ? expertNode.contactInfo.slice() : [expertNode.contactInfo];
+    infos.sort((a, b) => ( (a.rank || 100) - (b.rank || 100) ));
+    contact = infos[0];
+  }
+
+  // Fallback to top-level name if no contact info
+  const name = (contact && contact.name) ? contact.name : (expertNode.name || expertNode.label);
+
+  // Build contactInfo entry preserving hasName object and hasEmail when present
+  let contactInfoEntry = null;
+  if (contact) {
+    contactInfoEntry = {};
+    if (contact.hasEmail) contactInfoEntry.hasEmail = contact.hasEmail;
+    if (contact.hasName) contactInfoEntry.hasName = { ...contact.hasName };
+    if (contact.name) contactInfoEntry.name = contact.name;
+  }
+
   return {
     "@id": expertNode["@id"],
     "@type": "Expert",
-    "contactInfo": expertNode.contactInfo ? [{
-      "hasEmail": expertNode.contactInfo.hasEmail,
-      "hasName": expertNode.contactInfo.hasName,
-      "name": expertNode.contactInfo.name || expertNode.name
-    }] : [],
+    "contactInfo": contactInfoEntry ? [contactInfoEntry] : [],
     "is-visible": expertNode["is-visible"],
-    "name": expertNode.name || expertNode.label
+    "name": name
   };
 }
 

@@ -51,7 +51,7 @@ class FsCache {
    * @param {String} userId expert user ID
    * @param  {String} assetKey either a single string or multiple strings that form the asset path
    * @param {Object} opts options object
-   * @param {String} opts.root root directory to use, either 'weekly' or 'archive', defaults to 'active'
+   * @param {String} opts.root root directory to use, either 'weekly' or 'archive', defaults to 'archive'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    * 
    * @returns {String} full file path for the user asset
