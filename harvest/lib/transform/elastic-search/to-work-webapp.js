@@ -245,43 +245,19 @@ function updateWorkRelatedByRelates(workDocument) {
     // Process relatedBy (authorships)
     if (Array.isArray(node.relatedBy)) {
       node.relatedBy.forEach(authorship => {
-        if (authorship && authorship.relates) {
-          // Ensure relates is an array
-          if (!Array.isArray(authorship.relates)) {
-            authorship.relates = [authorship.relates];
-          }
-
-          const workId = node['@id'];
-          const newRelates = [];
-
-          // Add the work ID if not present
-          const hasWork = authorship.relates.some(r =>
-            (typeof r === 'string' && r === workId) ||
-            (r && r['@id'] === workId)
-          );
-          if (!hasWork) {
-            newRelates.push(workId);
-          }
-
-          // Add the expert ID if not present (convert objects to strings)
-          const hasExpert = authorship.relates.some(r =>
-            (typeof r === 'string' && r === expertIdStr) ||
-            (r && r['@id'] === expertIdStr)
-          );
-          if (!hasExpert) {
-            newRelates.push(expertIdStr);
-          }
-
-          // Keep all existing IDs (converting objects to strings)
-          authorship.relates.forEach(r => {
-            const rId = typeof r === 'string' ? r : r['@id'];
-            if (rId && !newRelates.includes(rId)) {
-              newRelates.push(rId);
-            }
-          });
-
-          authorship.relates = newRelates;
-        }
+        if (!authorship || authorship.relates === undefined) return;
+        let relatesArr = Array.isArray(authorship.relates) ? authorship.relates : [authorship.relates];
+        // Ensure string @id only; collect ids, add work + expert if present as objects without duplication
+        const ids = new Set();
+        relatesArr.forEach(r => {
+          if (typeof r === 'string') ids.add(r);
+          else if (r && typeof r === 'object' && r['@id']) ids.add(r['@id']);
+        });
+        // Guarantee work id present when authorship references work
+        if (!ids.has(node['@id'])) ids.add(node['@id']);
+        // Guarantee expert id present when authorship references expert
+        if (!ids.has(expertIdStr)) ids.add(expertIdStr);
+        authorship.relates = Array.from(ids);
       });
     }
   });

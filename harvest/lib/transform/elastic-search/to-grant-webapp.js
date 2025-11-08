@@ -207,7 +207,7 @@ function updateGrantRelatedByRelates(compacted) {
   if (!expertNode) return;
 
   const expertIdStr = expertNode['@id'];
-  const expertLabel = expertNode.label || expertNode.name;
+  // const expertLabel = expertNode.label || expertNode.name; // no longer embedded in relates to keep mapping keyword
 
   compacted["@graph"].forEach(node => {
     const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
@@ -215,21 +215,20 @@ function updateGrantRelatedByRelates(compacted) {
 
     if (Array.isArray(node.relatedBy)) {
       node.relatedBy.forEach(role => {
-        if (role && role.relates) {
-          if (Array.isArray(role.relates)) {
-            role.relates = role.relates.map(r =>
-              (typeof r === "string" && r === expertIdStr) ||
-              (r && r["@id"] === expertIdStr)
-                ? { "@id": expertIdStr, "name": expertLabel }
-                : r
-            );
-          } else if (
-            (typeof role.relates === "string" && role.relates === expertIdStr) ||
-            (role.relates && role.relates["@id"] === expertIdStr)
-          ) {
-            role.relates = { "@id": expertIdStr, "name": expertLabel };
+        if (!role || role.relates === undefined) return;
+        // Normalize to array
+        let relatesArr = Array.isArray(role.relates) ? role.relates : [role.relates];
+        // Flatten any objects to their @id string; ensure expertId present if originally referenced
+        const flattened = [];
+        relatesArr.forEach(r => {
+          if (typeof r === 'string') {
+            flattened.push(r);
+          } else if (r && typeof r === 'object') {
+            if (r['@id']) flattened.push(r['@id']);
           }
-        }
+        });
+        // Remove dups
+        role.relates = [...new Set(flattened)];
       });
     }
   });

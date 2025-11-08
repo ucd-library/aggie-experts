@@ -327,6 +327,28 @@ async function frame(expertId, graph) {
   compacted = promoteExpertNodeToRoot(compacted, config);
   updateWorkRelatedByRelates(compacted);
   updateGrantRelatedByRelates(compacted);
+  // Flatten any embedded relates objects across all nodes/roles
+  function flattenRelates(doc){
+    if (!doc || !Array.isArray(doc['@graph'])) return;
+    doc['@graph'].forEach(node => {
+      if (!node) return;
+      if (node.relates !== undefined) {
+        let arr = Array.isArray(node.relates) ? node.relates : [node.relates];
+        node.relates = [...new Set(arr.map(r => typeof r === 'string' ? r : (r && r['@id'])).filter(Boolean))];
+      }
+      if (Array.isArray(node.relatedBy)) {
+        node.relatedBy.forEach(role => {
+          if (!role || role.relates === undefined) return;
+          let arr = Array.isArray(role.relates) ? role.relates : [role.relates];
+          role.relates = [...new Set(arr.map(r => typeof r === 'string' ? r : (r && r['@id'])).filter(Boolean))];
+        });
+      } else if (node.relatedBy && node.relatedBy.relates !== undefined) {
+        let arr = Array.isArray(node.relatedBy.relates) ? node.relatedBy.relates : [node.relatedBy.relates];
+        node.relatedBy.relates = [...new Set(arr.map(r => typeof r === 'string' ? r : (r && r['@id'])).filter(Boolean))];
+      }
+    });
+  }
+  flattenRelates(compacted);
 
   return compacted;
 }
