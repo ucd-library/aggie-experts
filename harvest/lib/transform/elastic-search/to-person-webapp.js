@@ -40,12 +40,22 @@ async function generateExpertFile(cacheUsername, framedDocument, utils = {}) {
 /**
  * @method getExpertNode
  * @description Extract expert node from framed document
+ * Prefer the node whose @id matches the document root @id when available.
  * @param {*} framedDocument the framed document to extract from
  */
 function getExpertNode(framedDocument) {
-  return framedDocument["@graph"].find(
-    n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
-  );
+  const graph = Array.isArray(framedDocument?.['@graph']) ? framedDocument['@graph'] : [];
+  const isExpert = (n) => n && (n['@type'] === 'Expert' || (Array.isArray(n['@type']) && n['@type'].includes('Expert')));
+
+  // First try to match the root @id (primary expert for this document)
+  const rootId = framedDocument && framedDocument['@id'];
+  if (rootId) {
+    const byRoot = graph.find(n => isExpert(n) && n['@id'] === rootId);
+    if (byRoot) return byRoot;
+  }
+
+  // Fallback to the first Expert node
+  return graph.find(isExpert);
 }
 
 /**
@@ -98,13 +108,31 @@ function createSimplifiedExpert(expertNode) {
  */
 function promoteExpertNodeToRoot(compacted, config) {
   if( typeof compacted["is-visible"] === 'object' ) delete compacted["is-visible"];
-  const expertNode = compacted["@graph"].find(
-    n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
-  );
+
+  const graph = Array.isArray(compacted?.['@graph']) ? compacted['@graph'] : [];
+  const isExpert = (n) => n && (n['@type'] === 'Expert' || (Array.isArray(n['@type']) && n['@type'].includes('Expert')));
+
+  const normalizeShortId = (id) => {
+    if (!id || typeof id !== 'string') return id;
+    if (id.startsWith('http://experts.ucdavis.edu/expert/')) return id.replace('http://experts.ucdavis.edu/expert/', '');
+    if (id.startsWith('expert/')) return id.replace(/^expert\//, '');
+    return id;
+  };
+
+  const rootShort = normalizeShortId(compacted && compacted['@id']);
+
+  // Prefer the expert whose @id matches the document root @id
+  let expertNode = graph.find(n => isExpert(n) && normalizeShortId(n['@id']) === rootShort);
+  // Fallback to the first Expert node if no match found
+  if (!expertNode) {
+    expertNode = graph.find(isExpert);
+  }
   if (!expertNode) return compacted;
 
+  const canonicalRootId = rootShort ? `expert/${rootShort}` : expertNode['@id'];
+
   const doc = {
-    "@id": expertNode['@id'],
+    "@id": canonicalRootId,
     "@context": (config?.server?.url || 'https://stage.experts.library.ucdavis.edu') + "/api/schema/context.jsonld",
     "@graph": compacted["@graph"],
     "@type": "Expert"
@@ -125,9 +153,7 @@ function promoteExpertNodeToRoot(compacted, config) {
   let hasEmail = [];
   let hasURL = [];
   if (expertNode["contactInfo"]) {
-    let contactInfos = Array.isArray(expertNode["contactInfo"])
-      ? expertNode["contactInfo"]
-      : [expertNode["contactInfo"]];
+    let contactInfos = Array.isArray(expertNode["contactInfo"]) ? expertNode["contactInfo"] : [expertNode["contactInfo"]];
     contactInfos.sort((a, b) => (a["rank"] || 100) - (b["rank"] || 100));
     contact = contactInfos[0];
     contactInfos.forEach((info) => {

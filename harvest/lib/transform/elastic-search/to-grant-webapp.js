@@ -46,7 +46,7 @@ async function generateGrantFiles(cacheUsername, expertId, framedDocument, utils
       const fileId = extractGrantFileId(grantId);
 
       // Create the grant document structure
-      const grantDocument = createGrantDocument(grantNode, simplifiedExpert, framedDocument);
+      const grantDocument = createGrantDocument(grantNode, simplifiedExpert, framedDocument, expertId);
 
       // Sort the document
       const sortedDocument = sortJsonRecursively(grantDocument);
@@ -100,16 +100,39 @@ function extractGrantFileId(grantId) {
  * @param {*} grantNode the source grant node
  * @param {*} simplifiedExpert the simplified expert node to include
  * @param {*} framedDocument the full framed document for context
+ * @param {*} expertId the expert identifier
  * @returns {*} the grant document structure
  */
-function createGrantDocument(grantNode, simplifiedExpert, framedDocument) {
+function createGrantDocument(grantNode, simplifiedExpert, framedDocument, expertId) {
+  const norm = (id) => {
+    if (!id || typeof id !== 'string') return id;
+    if (id.startsWith('http://experts.ucdavis.edu/expert/')) return id.replace('http://experts.ucdavis.edu/expert/', '');
+    if (id.startsWith('expert/')) return id.replace(/^expert\//,'');
+    return id;
+  };
+  const expertShort = norm(expertId);
+
+  // Filter relatedBy roles to only those that reference this expert
+  let filteredRelatedBy = Array.isArray(grantNode.relatedBy) ? grantNode.relatedBy.map(r => ({...r})) : (grantNode.relatedBy ? [{...grantNode.relatedBy}] : []);
+  filteredRelatedBy = filteredRelatedBy.filter(role => {
+    if (!role || role.relates === undefined) return false;
+    const arr = Array.isArray(role.relates) ? role.relates : [role.relates];
+    return arr.some(r => {
+      const rid = (typeof r === 'string') ? r : (r && r['@id']);
+      if (!rid) return false;
+      const short = norm(rid.split('#')[0]);
+      return short === expertShort;
+    });
+  });
+
   return {
     "@context": framedDocument["@context"],
     "@graph": [
       // Include the grant node with all its data
       {
         ...grantNode,
-        "is-visible": true // Ensure visibility
+        "is-visible": true,
+        "relatedBy": filteredRelatedBy
       },
       // Include simplified expert node
       simplifiedExpert
@@ -124,7 +147,7 @@ function createGrantDocument(grantNode, simplifiedExpert, framedDocument) {
     "is-visible": true,
     "modified-date": grantNode["modified-date"] || new Date().toISOString(),
     "name": generateGrantName(grantNode),
-    "relatedBy": grantNode.relatedBy,
+    "relatedBy": filteredRelatedBy,
     "roles": ["public"],
     "sponsorAwardId": grantNode.sponsorAwardId,
     "status": grantNode.status,

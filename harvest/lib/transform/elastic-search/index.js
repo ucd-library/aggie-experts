@@ -321,7 +321,10 @@ async function frame(expertId, graph) {
     compacted["@graph"] = [...expertNodes, ...workNodes, ...grantNodes, ...otherNodes];
   }
 
-  compacted["@id"] = expertId;
+  // Ensure the document root @id matches canonical expert/<id> form
+  const rootIdShort = expertId;
+  const canonicalRoot = rootIdShort.startsWith('expert/') ? rootIdShort : `expert/${rootIdShort}`;
+  compacted["@id"] = canonicalRoot;
   compacted["@context"] = (config?.server?.url || 'https://stage.experts.library.ucdavis.edu') + "/api/schema/context.jsonld";
 
   compacted = promoteExpertNodeToRoot(compacted, config);

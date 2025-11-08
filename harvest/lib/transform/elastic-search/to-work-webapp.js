@@ -51,7 +51,7 @@ async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils 
       const fileId = workId.replace(/^ark:\/87287\/d7mh2m\/publication\//, '');
 
       // Create the work document structure
-      const workDocument = createWorkDocument(workNode, simplifiedExpert, framedDocument);
+      const workDocument = createWorkDocument(workNode, simplifiedExpert, framedDocument, expertId);
 
       // Sort the document
       const sortedDocument = sortJsonRecursively(workDocument);
@@ -92,8 +92,8 @@ async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils 
  * @param {*} framedDocument the original framed document for context
  * @returns {*} the work document structure
  */
-function createWorkDocument(workNode, simplifiedExpert, framedDocument) {
-  const relatedBy = buildWorkRelatedBy(workNode, framedDocument);
+function createWorkDocument(workNode, simplifiedExpert, framedDocument, expertId) {
+  const relatedBy = buildWorkRelatedBy(workNode, framedDocument, expertId);
 
   // start graph with the work node
   const graph = [
@@ -271,8 +271,15 @@ function updateWorkRelatedByRelates(workDocument) {
  * @param {*} expertNode the expert node
  * @returns {Array} array of authorship objects with proper relates structure
  */
-function buildWorkRelatedBy(workNode,framedDocument) {
+function buildWorkRelatedBy(workNode,framedDocument, expertId) {
   const workId = workNode['@id'];
+  const normExpertId = (id) => {
+    if (!id || typeof id !== 'string') return id;
+    if (id.startsWith('http://experts.ucdavis.edu/expert/')) return id.replace('http://experts.ucdavis.edu/expert/', '');
+    if (id.startsWith('expert/')) return id.replace(/^expert\//,'');
+    return id;
+  };
+  const shortExpertId = normExpertId(expertId);
 
   // Collect authorship nodes from the framed document when available
   let relatedBy = [];
@@ -344,6 +351,19 @@ function buildWorkRelatedBy(workNode,framedDocument) {
     const ra = (a && typeof a.rank !== 'undefined') ? a.rank : Number.MAX_SAFE_INTEGER;
     const rb = (b && typeof b.rank !== 'undefined') ? b.rank : Number.MAX_SAFE_INTEGER;
     return ra - rb;
+  });
+
+  // After building relatedBy array, filter to those authorships that reference this expert
+  relatedBy = relatedBy.filter(auth => {
+    if (!auth || !auth.relates) return false;
+    const relArr = Array.isArray(auth.relates) ? auth.relates : [auth.relates];
+    const hasExpert = relArr.some(r => {
+      const id = (typeof r === 'string') ? r : (r && r['@id']);
+      if (!id) return false;
+      const short = normExpertId(id.split('#')[0]);
+      return short === shortExpertId;
+    });
+    return hasExpert;
   });
 
   return deduped;
