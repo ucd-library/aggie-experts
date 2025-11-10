@@ -128,7 +128,7 @@ function createWorkDocument(workNode, simplifiedExpert, framedDocument, expertId
         if (framedDocument && framedDocument['@graph']) {
           const exNode = framedDocument['@graph'].find(n => n && n['@id'] === id);
           if (exNode) {
-            const simp = createSimplifiedExpert(exNode, framedDocument);
+            const simp = createSimplifiedExpert(exNode);
             if (simp) {
               graph.push(simp);
               addedExperts.add(id);
