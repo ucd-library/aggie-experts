@@ -366,7 +366,7 @@ function buildWorkRelatedBy(workNode,framedDocument, expertId) {
     return hasExpert;
   });
 
-  return deduped;
+  return relatedBy;
 }
 
 export {
