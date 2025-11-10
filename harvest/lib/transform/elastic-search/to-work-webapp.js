@@ -354,17 +354,6 @@ function buildWorkRelatedBy(workNode,framedDocument, expertId) {
   });
 
   // After building relatedBy array, filter to those authorships that reference this expert
-  relatedBy = relatedBy.filter(auth => {
-    if (!auth || !auth.relates) return false;
-    const relArr = Array.isArray(auth.relates) ? auth.relates : [auth.relates];
-    const hasExpert = relArr.some(r => {
-      const id = (typeof r === 'string') ? r : (r && r['@id']);
-      if (!id) return false;
-      const short = normExpertId(id.split('#')[0]);
-      return short === shortExpertId;
-    });
-    return hasExpert;
-  });
 
   return relatedBy;
 }
