@@ -51,7 +51,7 @@ async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils 
       const fileId = workId.replace(/^ark:\/87287\/d7mh2m\/publication\//, '');
 
       // Create the work document structure
-      const workDocument = createWorkDocument(workNode, simplifiedExpert, framedDocument);
+      const workDocument = createWorkDocument(workNode, simplifiedExpert, framedDocument, expertId);
 
       // Sort the document
       const sortedDocument = sortJsonRecursively(workDocument);
@@ -92,29 +92,67 @@ async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils 
  * @param {*} framedDocument the original framed document for context
  * @returns {*} the work document structure
  */
-function createWorkDocument(workNode, simplifiedExpert, framedDocument) {
+function createWorkDocument(workNode, simplifiedExpert, framedDocument, expertId) {
+  const relatedBy = buildWorkRelatedBy(workNode, framedDocument, expertId);
+
+  // start graph with the work node
+  const graph = [
+    {
+      ...workNode,
+      "is-visible": true,
+      "relatedBy": relatedBy
+    }
+  ];
+
+  // include expert nodes in the order they appear in relatedBy (by rank)
+  const addedExperts = new Set();
+
+  if (Array.isArray(relatedBy)) {
+    for (const authorship of relatedBy) {
+      if (!authorship || !authorship.relates) continue;
+      const relates = Array.isArray(authorship.relates) ? authorship.relates : [authorship.relates];
+      // for each relates entry after the workId, add the corresponding expert node in order
+      for (const r of relates) {
+        const id = (typeof r === 'string') ? r : (r && r['@id']);
+        if (!id || id === workNode['@id']) continue;
+        if (addedExperts.has(id)) continue;
+
+        // If this is the primary simplified expert, add it
+        if (simplifiedExpert && simplifiedExpert['@id'] === id) {
+          graph.push(simplifiedExpert);
+          addedExperts.add(id);
+          continue;
+        }
+
+        // Otherwise find the expert node in the framed document and create simplified node
+        if (framedDocument && framedDocument['@graph']) {
+          const exNode = framedDocument['@graph'].find(n => n && n['@id'] === id);
+          if (exNode) {
+            const simp = createSimplifiedExpert(exNode);
+            if (simp) {
+              graph.push(simp);
+              addedExperts.add(id);
+            }
+          }
+        }
+      }
+    }
+  }
+
   return {
     "@context": framedDocument["@context"],
-    "@graph": [
-      // Include the work node with all its data
-      {
-        ...workNode,
-        "is-visible": true // Ensure visibility
-      },
-      // Include simplified expert node
-      simplifiedExpert
-    ],
+    "@graph": graph,
     // Root-level properties (same as work node)
     "@id": workNode["@id"],
     "@type": workNode["@type"],
     "DOI": workNode.DOI,
-    "_id": workNode["@id"],
+    // "_id": workNode["@id"],  // removed to match old output
     "abstract": workNode.abstract,
     "author": workNode.author,
     "container-title": workNode["container-title"],
     "is-visible": true,
     "issued": workNode.issued,
-    "modified-date": workNode["modified-date"] || new Date().toISOString(),
+    // "modified-date": workNode["modified-date"] || new Date().toISOString(), // removed to match old output
     "name": generateWorkName(workNode),
     "page": workNode.page,
     "roles": ["public"],
@@ -178,9 +216,153 @@ function getWorkNodes(framedDocument) {
   });
 }
 
+/**
+ * @method updateWorkRelatedByRelates
+ * @description Update relatedBy relates fields in work nodes to use string expert references
+ * Similar to grant pattern but adapted for work authorships
+ * @param {*} workDocument the work document containing work and expert nodes
+ */
+function updateWorkRelatedByRelates(workDocument) {
+  // Find the expert node
+  const expertNode = workDocument["@graph"].find(
+    n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
+  );
+  if (!expertNode) return;
+
+  const expertIdStr = expertNode['@id'];
+
+  // Find the work node
+  workDocument["@graph"].forEach(node => {
+    const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+    const isWork = types.some(t =>
+      t.includes('Work') ||
+      t.includes('ScholarlyArticle') ||
+      t.includes('Article') ||
+      t.includes('Publication')
+    );
+    if (!isWork) return;
+
+    // Process relatedBy (authorships)
+    if (Array.isArray(node.relatedBy)) {
+      node.relatedBy.forEach(authorship => {
+        if (!authorship || authorship.relates === undefined) return;
+        let relatesArr = Array.isArray(authorship.relates) ? authorship.relates : [authorship.relates];
+        // Ensure string @id only; collect ids, add work + expert if present as objects without duplication
+        const ids = new Set();
+        relatesArr.forEach(r => {
+          if (typeof r === 'string') ids.add(r);
+          else if (r && typeof r === 'object' && r['@id']) ids.add(r['@id']);
+        });
+        // Guarantee work id present when authorship references work
+        if (!ids.has(node['@id'])) ids.add(node['@id']);
+        // Guarantee expert id present when authorship references expert
+        if (!ids.has(expertIdStr)) ids.add(expertIdStr);
+        authorship.relates = Array.from(ids);
+      });
+    }
+  });
+}
+
+/**
+ * @method buildWorkRelatedBy
+ * @description Build relatedBy array for a work, ensuring it contains authorships
+ * with relates arrays containing both the work ark and expert ark as strings
+ * @param {*} workNode the work node
+ * @param {*} expertNode the expert node
+ * @returns {Array} array of authorship objects with proper relates structure
+ */
+function buildWorkRelatedBy(workNode,framedDocument, expertId) {
+  const workId = workNode['@id'];
+  const normExpertId = (id) => {
+    if (!id || typeof id !== 'string') return id;
+    if (id.startsWith('http://experts.ucdavis.edu/expert/')) return id.replace('http://experts.ucdavis.edu/expert/', '');
+    if (id.startsWith('expert/')) return id.replace(/^expert\//,'');
+    return id;
+  };
+  const shortExpertId = normExpertId(expertId);
+
+  // Collect authorship nodes from the framed document when available
+  let relatedBy = [];
+
+  if (framedDocument && Array.isArray(framedDocument['@graph'])) {
+    for (const n of framedDocument['@graph']) {
+      if (!n || !n['@type']) continue;
+      const types = Array.isArray(n['@type']) ? n['@type'] : [n['@type']];
+      const isAuthorship = types.some(t => (typeof t === 'string') && (t.includes('Authorship') || t.includes('ucdlib:Authorship') || t.includes('ResearcherRole')));
+      if (!isAuthorship) continue;
+
+      // determine relates ids for this authorship
+      const relatesRaw = n.relates ? (Array.isArray(n.relates) ? n.relates : [n.relates]) : [];
+      const relateIds = relatesRaw.map(r => (typeof r === 'string' ? r : (r && r['@id']))).filter(Boolean);
+      if (!relateIds.includes(workId)) continue;
+
+      relatedBy.push({ ...n });
+    }
+  }
+
+  // If none found in framedDocument, fall back to workNode.relatedBy
+  if (relatedBy.length === 0) {
+    relatedBy = Array.isArray(workNode.relatedBy)
+      ? workNode.relatedBy.map(r => ({ ...r }))
+      : (workNode.relatedBy ? [{ ...workNode.relatedBy }] : []);
+  } else {
+    // Also include any authorships embedded on the work node that weren't in framedDocument
+    const embedded = Array.isArray(workNode.relatedBy)
+      ? workNode.relatedBy.map(r => ({ ...r }))
+      : (workNode.relatedBy ? [{ ...workNode.relatedBy }] : []);
+    for (const emb of embedded) {
+      const exists = emb['@id'] && relatedBy.find(rb => rb['@id'] === emb['@id']);
+      if (!exists) relatedBy.push(emb);
+    }
+  }
+
+  // Normalize each authorship: ensure relates is array of id strings with workId first
+  relatedBy = relatedBy.map(authorship => {
+    const updated = { ...authorship };
+    if (!updated.relates) updated.relates = [];
+    else if (!Array.isArray(updated.relates)) updated.relates = [updated.relates];
+
+    // Convert relates to id strings preserving original order
+    const ids = updated.relates.map(r => (typeof r === 'string' ? r : (r && r['@id']))).filter(Boolean);
+
+    // Ensure workId first
+    const newRelates = [];
+    if (!ids.includes(workId)) newRelates.push(workId);
+    for (const id of ids) {
+      if (!newRelates.includes(id)) newRelates.push(id);
+    }
+
+    updated.relates = newRelates;
+    return updated;
+  });
+
+  // Remove duplicates by @id or by serialized relates
+  const seen = new Set();
+  const deduped = [];
+  for (const item of relatedBy) {
+    const key = item && item['@id'] ? item['@id'] : JSON.stringify(item.relates || item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+  }
+
+  // Sort by rank ascending when available
+  deduped.sort((a, b) => {
+    const ra = (a && typeof a.rank !== 'undefined') ? a.rank : Number.MAX_SAFE_INTEGER;
+    const rb = (b && typeof b.rank !== 'undefined') ? b.rank : Number.MAX_SAFE_INTEGER;
+    return ra - rb;
+  });
+
+  // After building relatedBy array, filter to those authorships that reference this expert
+
+  return relatedBy;
+}
+
 export {
   generateWorkFiles,
   createWorkDocument,
   generateWorkName,
-  getWorkNodes
+  getWorkNodes,
+  updateWorkRelatedByRelates,
+  buildWorkRelatedBy
 };
