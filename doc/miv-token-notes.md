@@ -6,7 +6,7 @@ host="https://auth.library.ucdavis.edu"
   http --form $connect grant_type=client_credentials client_id=miv client_secret="$secret" | tee token_package.json
 ```
 
-You can investigate this with `jq . token_package.json. See the long ttl eg.
+You can investigate this with `jq . token_package.json`. See the long ttl eg:
 ```
   token=$(jq -r .access_token token_package.json)
 
