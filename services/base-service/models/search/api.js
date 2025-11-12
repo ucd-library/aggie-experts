@@ -120,10 +120,17 @@ router.get(
       await experts.verify_template(complete);
       const find = await base.search(opts);
 
-      // Now remove type filters, research
+      // Capture type/status filters before deletion
+      const filteredType = req?.query.type ? req.query.type.split(',') : null;
+      const filteredStatus = req?.query.status ? req.query.status.split(',') : null;
+
+      // Now remove type filters and date filters for global aggregations
       delete params["@type"];
       delete params.status;
       delete params.type;
+      delete params.dateFrom;
+      delete params.dateTo;
+      delete params.hasDate;
 
       const global = await base.search(
         { id: complete.id,
@@ -136,6 +143,51 @@ router.get(
           }
         });
       find.global_aggregations = global.aggregations;
+
+      // If type or status filters were applied, get year-by-year breakdown for that subfilter
+      if (filteredType || filteredStatus) {
+        const filteredParams = { ...opts.params };
+        delete filteredParams.dateFrom;
+        delete filteredParams.dateTo;
+        delete filteredParams.hasDate;
+        if (filteredType) filteredParams.type = filteredType;
+        if (filteredStatus) filteredParams.status = filteredStatus;
+
+        const filtered = await base.search({
+          id: complete.id,
+          params: {
+            ...filteredParams,
+            size: 0,
+            index: [experts.readIndexAlias,
+                    grants.readIndexAlias,
+                    works.readIndexAlias]
+          }
+        });
+
+        // Add filtered year aggregations with descriptive keys,
+        // zero-filling to the full global combined year range so min/max match full histogram
+        const globalCombined = global?.aggregations?.issued_years_combined || {};
+        const globalYearKeys = Object.keys(globalCombined);
+
+        const filteredCombined = filtered?.aggregations?.issued_years_combined || {};
+        const zeroFilled = (sourceMap) => {
+          if (!globalYearKeys.length) return sourceMap; // fallback if global is empty
+          const filled = {};
+          for (const y of globalYearKeys) {
+            const v = sourceMap?.[y];
+            filled[y] = (typeof v === 'number') ? v : 0;
+          }
+          return filled;
+        };
+
+        if (filteredType && filteredCombined) {
+          find.global_aggregations[`issued_years_type_${filteredType.join('_')}`] = zeroFilled(filteredCombined);
+        }
+        if (filteredStatus && filteredCombined) {
+          find.global_aggregations[`issued_years_status_${filteredStatus.join('_')}`] = zeroFilled(filteredCombined);
+        }
+      }
+
       res.send(find);
     } catch (err) {
       res.status(400).send('Invalid request');

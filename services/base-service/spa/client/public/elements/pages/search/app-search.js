@@ -38,6 +38,7 @@ export default class AppSearch extends Mixin(LitElement)
       status : { type : String },
       type : { type : String },
       showOpenTo : { type : Boolean },
+      rangeFilterTypes : { type : String },
       filterByExpert : { type : Boolean },
       filterByExpertId : { type : String },
       filterByExpertName : { type : String },
@@ -75,6 +76,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.status = '';
     this.type = '';
     this.showOpenTo = false;
+    this.rangeFilterTypes = 'Works, Grants';
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
@@ -140,14 +142,40 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   async _refreshRange() {
-    const rangeSlider = this.shadowRoot?.querySelector('ucdlib-range-slider');
-    if (!rangeSlider) return;
+    const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
+    for( const range of ranges ) {
+      // Force a full histogram rebuild similar to a resize-triggered refresh.
+      try {
+        // Many versions of ucdlib-range-slider compute bins on first render or on resize.
+        // Reset the internal render guard (if present) to ensure recalculation.
+        if ('hasRendered' in range) range.hasRendered = false;
 
-    rangeSlider.hasRendered = false;
-    rangeSlider.requestUpdate();
-    await (rangeSlider.updateComplete?.catch(() => {}));
-    // rangeSlider._onResize();
-    rangeSlider._updateHistogram();
+        // Request a refresh of the component and wait for DOM to settle
+        range.requestUpdate?.();
+        await (range.updateComplete?.catch(() => {}));
+
+        // Trigger internal resize handler if available (matches user-observed behavior on window resize)
+        if (typeof range._onResize === 'function') {
+          range._onResize();
+        } else {
+          // Fallback: broadcast a window resize event to nudge any internal listeners
+          try { window.dispatchEvent(new Event('resize')); } catch (_) {}
+        }
+
+        // Defer histogram update to the next frame so layout/width are final
+        requestAnimationFrame(() => {
+          try {
+            if (typeof range._updateHistogram === 'function') {
+              range._updateHistogram();
+            }
+          } catch (e) {
+            console.warn('range slider histogram update error', e);
+          }
+        });
+      } catch (err) {
+        console.warn('range slider refresh error', err);
+      }
+    }
   }
 
   _updateFilters() {
@@ -188,6 +216,7 @@ export default class AppSearch extends Mixin(LitElement)
       if( this.dateFrom || this.dateTo ) {
         this.filterByDate = true;
         this.filterByDateLabel = (this.dateFrom || '') + ' - ' + (this.dateTo || '');
+        requestAnimationFrame(() => this._refreshRange());
       }
 
       let page = this.AppStateModel.location?.path?.[1];
@@ -228,6 +257,9 @@ export default class AppSearch extends Mixin(LitElement)
 
     // hide/show filters depending on filter type, later will add date filters etc
     this.showOpenTo = this.atType === 'expert';
+    this.rangeFilterTypes = 'Works, Grants';
+    if( this.atType === 'work' ) this.rangeFilterTypes = 'Works';
+    else if( this.atType === 'grant' ) this.rangeFilterTypes = 'Grants';
   }
 
   /**
@@ -284,8 +316,6 @@ export default class AppSearch extends Mixin(LitElement)
    * @param {Object} e
    */
   _filterByWorks(e) {
-    console.log('todo need to keep the date filtering in place when filtering by expert works');
-
     // filter by works for this expert
     this.filterByExpertId = e.detail.id;
     this.filterByExpertName = e.detail.name;
@@ -321,6 +351,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.filteringByGrants = false;
     this.filteringByWorks = false;
     this._updateLocation();
+    // this._refreshRange();
   }
 
   /**
@@ -334,10 +365,11 @@ export default class AppSearch extends Mixin(LitElement)
     this.dateTo = '';
     this._updateLocation();
 
-    let rangeSlider = this.shadowRoot.querySelector('ucdlib-range-slider');
-    if( !rangeSlider ) return;
+    let ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
+    for( const range of ranges ) {
+      range.reset();
+    }
 
-    rangeSlider.reset();
     this._refreshRange();
   }
 
@@ -401,6 +433,11 @@ export default class AppSearch extends Mixin(LitElement)
     return data;
   }
 
+  _toggleRefineSearch() {
+    this.refineSearchCollapsed = !this.refineSearchCollapsed;    
+    if( !this.refineSearchCollapsed ) this._refreshRange();
+  }
+
   /**
    * @method _onSearch
    * @description called from the search box button is clicked or
@@ -460,6 +497,8 @@ export default class AppSearch extends Mixin(LitElement)
       ),
       true
     );
+
+    // Histogram refresh is handled in _onSearchUpdate after data/min/max are applied.
   }
 
   /**
@@ -511,35 +550,51 @@ export default class AppSearch extends Mixin(LitElement)
     // histogram/slider: refresh ONLY when the “agg signature” changes (q, availability, type, status, expert)
     const newSig = this._computeAggSignature(); // this must NOT include dateFrom/dateTo
     if (newSig !== this.lastAggSignature) {
-      const issuedYears = (this.globalAggregations || {})['issued_years'] || {};
-      this.dateRangeData = this._buildHistogramDataFromAgg(issuedYears); // [{stat: YYYY, value: count}, ...]
-      console.log('dateRangeData', this.dateRangeData);
+      const issuedYearsCombined = (this.globalAggregations || {})['issued_years_combined'] || {};
+      const issuedYearsWorks = (this.globalAggregations || {})['issued_years_works'] || {};
+      const issuedYearsGrants = (this.globalAggregations || {})['issued_years_grants'] || {};
+      const issueYearsWorksSubfilter = (this.globalAggregations || {})[`issued_years_type_${this.type}`] || {};
+      const issueYearsGrantsSubfilter = (this.globalAggregations || {})[`issued_years_status_${this.status}`] || {};
 
-      const range = this.shadowRoot.querySelector('ucdlib-range-slider');
-      if (range && Array.isArray(this.dateRangeData) && this.dateRangeData.length) {
-        // Feed histogram data (component derives absMin/absMax from data)
-        range.data = this.dateRangeData;
-        range.hideHistogram = false;
+      // if filtering All Results, use combined; if filtering by Works or Grants, use those specific aggs
+      let issuedYears = issuedYearsCombined;
+      if( this.atType === 'work' ) {
+        if( this.type ) issuedYears = issueYearsWorksSubfilter;
+        else issuedYears = issuedYearsWorks;
+      } else if( this.atType === 'grant' ) {
+        if( this.status ) issuedYears = issueYearsGrantsSubfilter;
+        else issuedYears = issuedYearsGrants;
+      }
 
-        // Initial selection: honor URL params if present, else full range
-        const absMin = this.dateRangeData[0].stat;
-        const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
+      this.dateRangeData = this._buildHistogramDataFromAgg(JSON.parse(JSON.stringify(issuedYears))); // [{stat: YYYY, value: count}, ...]
 
-        const urlMin = this.dateFrom ? Number(this.dateFrom) : null;
-        const urlMax = this.dateTo ? Number(this.dateTo) : null;
+      const ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
+      for (const range of ranges) {
+        if (range && Array.isArray(this.dateRangeData) && this.dateRangeData.length) {
+          // Feed histogram data (component derives absMin/absMax from data)
+          range.data = this.dateRangeData;
+          range.hideHistogram = false;
 
-        const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
-        const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
+          // Initial selection: honor URL params if present, else full range
+          const absMin = this.dateRangeData[0].stat;
+          const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
 
-        // Optional: update chip label if a date filter is active
-        if (this.filterByDate && (this.dateFrom || this.dateTo)) {
-          this.filterByDateLabel = `${clampedMin} - ${clampedMax}`;
+          const urlMin = this.dateFrom ? Number(this.dateFrom) : null;
+          const urlMax = this.dateTo ? Number(this.dateTo) : null;
+
+          const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
+          const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
+
+          // Optional: update chip label if a date filter is active
+          if (this.filterByDate && (this.dateFrom || this.dateTo)) {
+            this.filterByDateLabel = `${clampedMin} - ${clampedMax}`;
+          }
+
+          // Update slider values and re-render
+          await this._refreshRange();
+          range.min = clampedMin;
+          range.max = clampedMax;
         }
-
-        // Update slider values and re-render
-        await this._refreshRange();
-        range.min = clampedMin;
-        range.max = clampedMax;
       }
 
       this.lastAggSignature = newSig;

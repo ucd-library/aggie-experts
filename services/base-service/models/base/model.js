@@ -304,7 +304,9 @@ class BaseModel extends FinEsDataModel {
 
     // --- Special handling for issued_years (merge works + grants) ---
     if (aggs.issued_years) {
-      const out = {}; // yearEpoch -> totalCount
+      const outCombined = {}; // yearEpoch -> totalCount
+      const outWorks = {};
+      const outGrants = {};
 
       // Works buckets
       const worksBuckets =
@@ -318,7 +320,8 @@ class BaseModel extends FinEsDataModel {
           b?.unique_works?.value ??
           b?.parent_docs?.unique_parents?.value ??
           b?.doc_count ?? 0;
-        out[key] = (out[key] || 0) + (typeof val === 'number' ? val : 0);
+        outCombined[key] = (outCombined[key] || 0) + (typeof val === 'number' ? val : 0);
+        outWorks[key] = (outWorks[key] || 0) + (typeof val === 'number' ? val : 0);
       }
 
       // Grants buckets
@@ -333,10 +336,20 @@ class BaseModel extends FinEsDataModel {
           b?.unique_grants?.value ??                       // new metric
           b?.parent_docs?.unique_parents?.value ??         // fallback (unique roots)
           b?.doc_count ?? 0;                               // last resort
-        out[key] = (out[key] || 0) + (typeof val === 'number' ? val : 0);
+        outCombined[key] = (outCombined[key] || 0) + (typeof val === 'number' ? val : 0);
+        outGrants[key] = (outGrants[key] || 0) + (typeof val === 'number' ? val : 0);
       }
 
-      aggregations['issued_years'] = out;
+      // Ensure per-type maps include every year present in outCombined
+      // So the ui can show 0 counts for missing years and not have differences in years between all results/works/grants
+      for (const yearKey of Object.keys(outCombined)) {
+        if (!(yearKey in outWorks)) outWorks[yearKey] = 0;
+        if (!(yearKey in outGrants)) outGrants[yearKey] = 0;
+      }
+
+      aggregations['issued_years_combined'] = outCombined;
+      aggregations['issued_years_works'] = outWorks;
+      aggregations['issued_years_grants'] = outGrants;
     }
 
     // --- Default handling for all other aggs ---

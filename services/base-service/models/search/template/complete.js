@@ -31,9 +31,18 @@ template = {
                                   { "exists": { "field": "hasAvailability.prefLabel" } },
                                   { "terms": { "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}} } }
                                 ]
-                              }
+                                "minimum_should_match": 1
                             }
                             {{/availability}}
+                            {{#hasDate}}
+                            ,{
+                              "range": {
+                                "@graph.issued": {
+                                  {{#dateFrom}}"gte": "{{dateFrom}}"{{/dateFrom}}{{#dateTo}}{{#dateFrom}},{{/dateFrom}}"lte": "{{dateTo}}"{{/dateTo}}
+                                }
+                              }
+                            }
+                            {{/hasDate}}
                             {{#expert}}
                             ,{ "terms": { "@id": {{#toJson}}expert{{/toJson}} } }
                             {{/expert}}
