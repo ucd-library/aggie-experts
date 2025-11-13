@@ -422,14 +422,49 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const license = getBestFieldValueFromRecords('publisher-licence', records);
   const medium = getBestFieldValueFromRecords('medium', records); // || 'Undetermined';
 
-  const dateAvailableField = records
-      .map(r => r['api:native'] && r['api:native']['api:field']
-        ? r['api:native']['api:field'].find(f => f.name === 'online-publication-date')
-        : null)
-      .find(f => !!f);
-  const dateAvailable = formatDate(dateAvailableField?.['api:date']);
+  // Choose online-publication-date using the same scoring logic as other date fields
+  const dateAvailableFields = getBestDateObjectsFromRecords('online-publication-date', records, pubObj);
+  // Replicate SPARQL: BIND(CONCAT(?opub_year, COALESCE(?opub_month, ""), COALESCE(?opub_day, "")) AS ?opub_datestr)
+  // => produce YYYY, YYYY-MM, or YYYY-MM-DD with zero-padded month/day when present
+  const rawDate = dateAvailableFields.length ? (dateAvailableFields[0]['api:date'] ? dateAvailableFields[0]['api:date'] : dateAvailableFields[0]) : null;
+
+  const formatSparqlDate = (raw) => {
+    if (!raw) return null;
+    // if it's a plain string like '2010-12-25' or '2010' or '20101225', parse and build with hyphens
+    if (typeof raw === 'string') {
+      const m = raw.match(/^(\d{4})(?:-?(\d{1,2})(?:-?(\d{1,2}))?)?/);
+      if (!m) return raw;
+      const year = m[1];
+      const month = m[2] ? String(m[2]).padStart(2, '0') : '';
+      const day = m[3] ? String(m[3]).padStart(2, '0') : '';
+      return `${year}${month ? `-${month}` : ''}${day ? `-${day}` : ''}`;
+    }
+
+    // if it's an object with api:year/api:month/api:day (or year/month/day)
+    const year = raw['api:year'] || raw.year || raw['year'];
+    const month = raw['api:month'] || raw.month || raw['month'];
+    const day = raw['api:day'] || raw.day || raw['day'];
+    if (year) {
+      return `${String(year)}${month ? `-${String(month).padStart(2, '0')}` : ''}${day ? `-${String(day).padStart(2, '0')}` : ''}`;
+    }
+
+    // fallback: if object contains @value string, try parsing that
+    if (raw['@value'] && typeof raw['@value'] === 'string') {
+      const m = raw['@value'].match(/^(\d{4})(?:-?(\d{1,2})(?:-?(\d{1,2}))?)?/);
+      if (m) {
+        const mo = m[2] ? String(m[2]).padStart(2, '0') : '';
+        const da = m[3] ? String(m[3]).padStart(2, '0') : '';
+        return `${m[1]}${mo ? `-${mo}` : ''}${da ? `-${da}` : ''}`;
+      }
+    }
+
+    return null;
+  };
+
+  const dateAvailable = formatSparqlDate(rawDate);
 
   const status = getBestFieldValueFromRecords('publication-status', records); // || 'Published';
+  const notes = getBestFieldValuesFromRecords('notes', records) || [];
 
   // collect urls (public-url and oa-location-url) and map both to cite:url (same as sparql)
   const urlsPublic = getBestFieldValuesFromRecords('public-url', records) || [];
@@ -443,7 +478,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   // Extract publication date(s)
   const pubDateFields = getBestDateObjectsFromRecords('publication-date', records, pubObj);
   const issuedDates = (pubDateFields || [])
-    .map(d => formatDate(d['api:date'] ? d['api:date'] : d))
+    .map(d => formatSparqlDate(d['api:date'] ? d['api:date'] : d))
     .filter(Boolean);
 
   // Determine schema.org type (mirror SPARQL VALUES mapping)
@@ -487,9 +522,15 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (medium) publication["http://citationstyles.org/schema/medium"] = [{ "@value": medium }];
   if (dateAvailable) publication["http://citationstyles.org/schema/date-available"] = [{ "@value": dateAvailable }];
   if (status) publication["http://citationstyles.org/schema/status"] = [{ "@value": status }];
+  // Emit notes only when present in the input records (don't synthesize from status)
+  if (notes && notes.length) {
+    publication["http://citationstyles.org/schema/note"] = notes.map(v => ({ "@value": v }));
+  }
   if (urls.length) publication["http://citationstyles.org/schema/url"] = urls.map(u => ({ "@value": u }));
   if (issuedDates.length) {
-    publication["http://citationstyles.org/schema/issued"] = issuedDates.map(v => ({ "@value": v }));
+    // remove exact duplicate date strings while preserving original order
+    const uniqueIssued = issuedDates.filter((v, i, a) => a.indexOf(v) === i);
+    if (uniqueIssued.length) publication["http://citationstyles.org/schema/issued"] = uniqueIssued.map(v => ({ "@value": v }));
   }
 
   // set cite:type
@@ -554,14 +595,15 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
       if (giv && !seenGiven.has(giv)) { seenGiven.add(giv); givenVals.push(giv); }
     }
 
-    result.push({
-      "@id": authorUri,
-      "http://citationstyles.org/schema/family": familyVals.map(v => ({ "@value": v })),
-      "http://citationstyles.org/schema/given": givenVals.map(v => ({ "@value": v })),
-      "http://vivoweb.org/ontology/core#rank": [
-        { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": `${idx + 1}` }
-      ]
-    });
+    // Build author node, only include family/given when we actually have values
+    const authorNode = { "@id": authorUri };
+    if (familyVals.length) authorNode["http://citationstyles.org/schema/family"] = familyVals.map(v => ({ "@value": v }));
+    if (givenVals.length)  authorNode["http://citationstyles.org/schema/given"] = givenVals.map(v => ({ "@value": v }));
+    authorNode["http://vivoweb.org/ontology/core#rank"] = [
+      { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": `${idx + 1}` }
+    ];
+
+    result.push(authorNode);
   });
 
   if (authorUris.length) {

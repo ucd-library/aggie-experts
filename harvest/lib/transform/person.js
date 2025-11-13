@@ -127,7 +127,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     .flatMap(field => (field["api:web-addresses"]?.["api:web-address"]) ? field["api:web-addresses"]["api:web-address"] : []);
 
   const orcidId      = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"][?(@.scheme=="orcid")]["$t"]');
-  const scopusId     = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"][?(@.scheme=="scopus-author-id")]["$t"]');
+  const scopusIds    = jsonpath.query(cdl, '$["@graph"][0]["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"][?(@.scheme=="scopus-author-id")]["$t"]') || [];
   const researcherId = jsonpath.value(cdl, '$["@graph"][0]["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"][?(@.scheme=="researcherid")]["$t"]');
 
   // --- Name variations
@@ -160,7 +160,7 @@ function run(expertId, profile, cdl, ucopVocab) {
   };
 
   if (orcidId)  expert["http://vivoweb.org/ontology/core#orcidId"]     = [{ "@value": orcidId }];
-  if (scopusId) expert["http://vivoweb.org/ontology/core#scopusId"]     = [{ "@value": scopusId }];
+  if (scopusIds && scopusIds.length) expert["http://vivoweb.org/ontology/core#scopusId"] = scopusIds.map(v => ({ "@value": v }));
   if (researcherId) expert["http://vivoweb.org/ontology/core#researcherId"] = [{ "@value": researcherId }];
   if (cdlOverview) expert["http://vivoweb.org/ontology/core#overview"] = [{ "@value": cdlOverview }];
   if (cdlResearchInterests) expert["http://schema.library.ucdavis.edu/schema#researchInterests"] = [{ "@value": cdlResearchInterests }];
@@ -176,7 +176,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     { "@id": `ark:/87287/d7mh2m/user/${cdlUserId}` },
     ...(ppsEmailAllowed && !isHSEmployee && email ? [{ "@id": `mailto:${email}` }] : []),
     ...(orcidId ? [{ "@id": `http://orcid.org/${orcidId}` }] : []),
-    ...(scopusId ? [{ "@id": `https://www.scopus.com/authid/detail.uri?authorId=${scopusId}` }] : []),
+    ...(scopusIds && scopusIds.length ? scopusIds.map(id => ({ "@id": `https://www.scopus.com/authid/detail.uri?authorId=${id}` })) : []),
     ...(researcherId ? [{ "@id": `https://www.webofscience.com/wos/author/record/${researcherId}` }] : [])
   ];
   expert["http://schema.org/identifier"] = uniqById(identifiers);
