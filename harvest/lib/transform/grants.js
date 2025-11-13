@@ -318,8 +318,16 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
 function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   const rawTitle = getFieldValue(fields, 'title');
   const title = cleanGrantTitle(rawTitle);
-  const funderName = capitalizeTitle(getFieldValue(fields, 'funder-name')) || '';
-  const funderReference = getFieldValue(fields, 'funder-reference') || '';
+  // Replicate SPARQL OPTIONAL grouping: only treat funder-name and
+  // funder-reference as present if both are present on the same record.
+  const rawFunderName = getFieldValue(fields, 'funder-name');
+  const rawFunderRef = getFieldValue(fields, 'funder-reference');
+  let funderName = '';
+  let funderReference = '';
+  if (rawFunderName && rawFunderRef) {
+    funderName = capitalizeTitle(rawFunderName);
+    funderReference = rawFunderRef;
+  }
   const amount = getFieldObject(fields, 'amount');
   const startDate = getFieldObject(fields, 'start-date');
   const endDate = getFieldObject(fields, 'end-date');
