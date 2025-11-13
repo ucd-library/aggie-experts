@@ -142,6 +142,7 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   async _refreshRange() {
+    // TODO move to ucdlib-range-slider component
     const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
     for( const range of ranges ) {
       // Force a full histogram rebuild similar to a resize-triggered refresh.
@@ -176,6 +177,21 @@ export default class AppSearch extends Mixin(LitElement)
         console.warn('range slider refresh error', err);
       }
     }
+
+    // override styles in mobile
+    const mobileSlider = this.shadowRoot.querySelector('.refine-search-mobile ucdlib-range-slider');
+    if( mobileSlider ) {
+      let fillLine = mobileSlider.shadowRoot.querySelector('#fillLine');
+      if( fillLine ) {
+        fillLine.style.borderTop = `5px solid #EBF3FA`;
+        fillLine.style.borderBottom = `5px solid #EBF3FA`;
+      }
+      let numberLine = mobileSlider.shadowRoot.querySelector('#numberLine');
+      if( numberLine ) {
+        numberLine.style.borderTop = `5px solid #EBF3FA`;
+        numberLine.style.borderBottom = `5px solid #EBF3FA`;
+      }
+    }    
   }
 
   _updateFilters() {
