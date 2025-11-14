@@ -144,7 +144,7 @@ export default class AppSearch extends Mixin(LitElement)
   async _refreshRange(dataChanged=false) {
     const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
     for( const range of ranges ) {
-      range.refresh(dataChanged); // don't force bin recalculation unless data changed
+      range.refresh(dataChanged);
     }
 
     // override styles in mobile
@@ -360,7 +360,7 @@ export default class AppSearch extends Mixin(LitElement)
       range.reset();
     }
 
-    this._refreshRange();
+    this._refreshRange(true);
   }
 
   /**
@@ -477,6 +477,11 @@ export default class AppSearch extends Mixin(LitElement)
       this.dateFrom = '';
       this.dateTo = '';
 
+      let ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
+      for( const range of ranges ) {
+        range.reset();
+      }
+
       this._updateLocation();
     }
 
@@ -571,10 +576,6 @@ export default class AppSearch extends Mixin(LitElement)
       const ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
       for (const range of ranges) {
         if (range && Array.isArray(this.dateRangeData) && this.dateRangeData.length) {
-          // Feed histogram data (component derives absMin/absMax from data)
-          range.data = this.dateRangeData;
-          range.hideHistogram = false;
-
           // Initial selection: honor URL params if present, else full range
           const absMin = this.dateRangeData[0].stat;
           const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
@@ -585,15 +586,18 @@ export default class AppSearch extends Mixin(LitElement)
           const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
           const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
 
-          // Optional: update chip label if a date filter is active
+          await this._refreshRange(true);
+
+          range.initialMin = clampedMin;
+          range.initialMax = clampedMax;
+          range.min = clampedMin;
+          range.max = clampedMax;
+          range.data = this.dateRangeData;
+          range.hideHistogram = false;
+
           if (this.filterByDate && (this.dateFrom || this.dateTo)) {
             this.filterByDateLabel = `${clampedMin} - ${clampedMax}`;
           }
-
-          // Update slider values and re-render
-          await this._refreshRange(true);
-          range.min = clampedMin;
-          range.max = clampedMax;
         }
       }
 
