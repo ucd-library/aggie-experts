@@ -88,10 +88,18 @@ router.get(
       params.type = req.query.type.split(',');
     }
     if (req?.query.dateFrom) {
-      params.dateFrom = `${req.query.dateFrom}-01-01`;
+      if (/^\d{4}$/.test(req.query.dateFrom)) {
+        params.dateFrom = `${req.query.dateFrom}-01-01`;
+      } else {
+        return res.status(400).json({ error: 'Invalid dateFrom year format. Must be a 4-digit year.' });
+      }
     }
     if (req?.query.dateTo) {
-      params.dateTo = `${req.query.dateTo}-12-31`;
+      if (/^\d{4}$/.test(req.query.dateTo)) {
+        params.dateTo = `${req.query.dateTo}-12-31`;
+      } else {
+        return res.status(400).json({ error: 'Invalid dateTo year format. Must be a 4-digit year.' });
+      }
     }
     params.hasDate = !!(params.dateFrom || params.dateTo);
     if ( ! params.q ) {
