@@ -141,41 +141,10 @@ export default class AppSearch extends Mixin(LitElement)
     this._onSearch({ detail: this.searchTerm });
   }
 
-  async _refreshRange() {
-    // TODO move to ucdlib-range-slider component
+  async _refreshRange(dataChanged=false) {
     const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
     for( const range of ranges ) {
-      // Force a full histogram rebuild similar to a resize-triggered refresh.
-      try {
-        // Many versions of ucdlib-range-slider compute bins on first render or on resize.
-        // Reset the internal render guard (if present) to ensure recalculation.
-        if ('hasRendered' in range) range.hasRendered = false;
-
-        // Request a refresh of the component and wait for DOM to settle
-        range.requestUpdate?.();
-        await (range.updateComplete?.catch(() => {}));
-
-        // Trigger internal resize handler if available (matches user-observed behavior on window resize)
-        if (typeof range._onResize === 'function') {
-          range._onResize();
-        } else {
-          // Fallback: broadcast a window resize event to nudge any internal listeners
-          try { window.dispatchEvent(new Event('resize')); } catch (_) {}
-        }
-
-        // Defer histogram update to the next frame so layout/width are final
-        requestAnimationFrame(() => {
-          try {
-            if (typeof range._updateHistogram === 'function') {
-              range._updateHistogram();
-            }
-          } catch (e) {
-            console.warn('range slider histogram update error', e);
-          }
-        });
-      } catch (err) {
-        console.warn('range slider refresh error', err);
-      }
+      range.refresh(dataChanged); // don't force bin recalculation unless data changed
     }
 
     // override styles in mobile
@@ -191,6 +160,11 @@ export default class AppSearch extends Mixin(LitElement)
         numberLine.style.borderTop = `5px solid #EBF3FA`;
         numberLine.style.borderBottom = `5px solid #EBF3FA`;
       }
+
+      let minInput = mobileSlider.shadowRoot.querySelector('#minInput');
+      let maxInput = mobileSlider.shadowRoot.querySelector('#maxInput');
+      if( minInput ) minInput.style.backgroundColor = 'white';
+      if( maxInput ) maxInput.style.backgroundColor = 'white';
     }    
   }
 
@@ -492,7 +466,17 @@ export default class AppSearch extends Mixin(LitElement)
       this.downloads = [];
       this.paginationChange = false;
 
-      // TODO reset selected download boxes
+      // remove filters
+      this.filterByExpert = false;
+      this.filterByExpertId = '';
+      this.filterByExpertName = '';
+      this.filteringByGrants = false;
+      this.filteringByWorks = false;
+      this.filterByDate = false;
+      this.filterByDateLabel = '';
+      this.dateFrom = '';
+      this.dateTo = '';
+
       this._updateLocation();
     }
 
@@ -607,7 +591,7 @@ export default class AppSearch extends Mixin(LitElement)
           }
 
           // Update slider values and re-render
-          await this._refreshRange();
+          await this._refreshRange(true);
           range.min = clampedMin;
           range.max = clampedMax;
         }
