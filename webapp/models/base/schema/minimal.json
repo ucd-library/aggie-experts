@@ -231,6 +231,10 @@
           "type" : "text",
           "analyzer" : "default"
         },
+        "issued" : {
+          "type" : "date",
+          "format" : "date"
+        },
         "relatedBy" : {
           "properties" : {
             "is-visible" : {

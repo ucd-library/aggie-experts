@@ -1,8 +1,8 @@
 const OpenAPI = require('@wesleytodd/openapi')
+const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const template = require('../base/template/name.json');
-const config = require('../../lib/config');
 
 let AdminClient=null;
 
@@ -10,60 +10,33 @@ let MIVJWKSClient=null;
 
 
 async function item_endpoint(router, model, subselect = (req, res, next) => next()) {
-  // router.route(
-  //   '/:id?'
-  // ).get(
-  //   valid_path(
-  //     {
-  //       description: "Get a ${model.name} by id",
-  //       responses: {
-  //         "200": openapi.response(model.name),
-  //         "400": openapi.response('missing_id'),
-  //         "403": openapi.response('forbidden'),
-  //         "404": openapi.response('not_found')
-  //       }
-  //     //   parameters: {
-  //     //     "id": {
-  //     //       "name": "id",
-  //     //       "in": "path",
-  //     //       "description": "identifier",
-  //     //       "required": true,
-  //     //       "schema": { "type": "string" }
-  //     //     }
-  //     //   }
-  //     }
-  //     ),
-  //   public_or_is_user,
-  //   valid_path_error,
-  //   async (req, res, next) => {
-  //     const id=req.params.id || req.query.id;
-  //     try {
-  //       res.thisDoc = await model.get(id);
-  //       next();
-  //     } catch (e) {
-  //       return res.status(404).json(`${id} resource not found`);
-  //     }
-  //   },
-  //   subselect,
-  //   (req, res) => {
-  //     res.status(200).json(res.thisDoc);
-  //   }
-  // )
-  // build handlers so we can inspect types before registering with Express
-  const handlerList = [
-    // valid_path({
-    //   description: `Get a ${model.name} by id`,
-    //   responses: {
-    //     "200": openapi.response(model.name),
-    //     "400": openapi.response('missing_id'),
-    //     "403": openapi.response('forbidden'),
-    //     "404": openapi.response('not_found')
-    //   }
-    // }),
+  router.route(
+    '/:id?'
+  ).get(
+    valid_path(
+      {
+        description: "Get a ${model.name} by id",
+        responses: {
+          "200": openapi.response(model.name),
+          "400": openapi.response('missing_id'),
+          "403": openapi.response('forbidden'),
+          "404": openapi.response('not_found')
+        }
+      //   parameters: {
+      //     "id": {
+      //       "name": "id",
+      //       "in": "path",
+      //       "description": "identifier",
+      //       "required": true,
+      //       "schema": { "type": "string" }
+      //     }
+      //   }
+      }
+      ),
     public_or_is_user,
-    // valid_path_error,
+    valid_path_error,
     async (req, res, next) => {
-      const id = req.params.id || req.query.id;
+      const id=req.params.id || req.query.id;
       try {
         res.thisDoc = await model.get(id);
         next();
@@ -75,20 +48,7 @@ async function item_endpoint(router, model, subselect = (req, res, next) => next
     (req, res) => {
       res.status(200).json(res.thisDoc);
     }
-  ];
-
-  // debug / guard: any non-function here will be logged (these get interpreted as paths)
-  handlerList.forEach((h, idx) => {
-    if (typeof h !== 'function') {
-      console.error(`Route handler at index ${idx} for /:id? is not a function:`, h);
-    }
-    // else {
-    //   console.log(`Route handler at index ${idx} for /:id? is a function:`, h.toString());
-    // }
-  });
-
-  // router.route('/:id?').get(...handlerList);
-  router.get(['/', '/:id'], ...handlerList);
+  )
 }
 
 function browse_endpoint(router,model) {
@@ -96,17 +56,17 @@ function browse_endpoint(router,model) {
     '/browse',
   ).get(
     public_or_is_user,
-    // valid_path(
-    //   {
-    //     description: `Returns for ${model.name} for  A - Z, or if sending query param p={letter}, will return results for ${model.name} with last names of that letter`,
-    //     parameters: ['p', 'page', 'size'],
-    //     responses: {
-    //       "200": openapi.response('Browse'),
-    //       "400": openapi.response('Invalid_request')
-    //     }
-    //   }
-    // ),
-    // valid_path_error,
+    valid_path(
+      {
+        description: `Returns for ${model.name} for  A - Z, or if sending query param p={letter}, will return results for ${model.name} with last names of that letter`,
+        parameters: ['p', 'page', 'size'],
+        responses: {
+          "200": openapi.response('Browse'),
+          "400": openapi.response('Invalid_request')
+        }
+      }
+    ),
+    valid_path_error,
     async (req, res) => {
       const params = {
         size: 25,
@@ -365,697 +325,772 @@ function schema_error(err, req, res, next) {
   })
 }
 
-// function valid_path(options={}) {
-//   const def = {
-//     "description": "API Path",
-//     "parameters": []
-//   };
+function valid_path(options={}) {
+  const def = {
+    "description": "API Path",
+    "parameters": []
+  };
 
-//   // what would this do, overwritten below w/ ...options
-// //  (options.parameters || []).forEach((param) => {
-// //    def.parameters.push(openapi.parameters(param));
-// //  });
+  // what would this do, overwritten below w/ ...options
+//  (options.parameters || []).forEach((param) => {
+//    def.parameters.push(openapi.parameters(param));
+//  });
 
-//    return openapi.validPath({...def, ...options});
-// }
+   return openapi.validPath({...def, ...options});
+}
 
-// function valid_path_error(err, req, res, next) {
-//   return res.status(err.status).json({
-//     error: err.message,
-//     validation: err.validationErrors,
-//     schema: err.validationSchema
-//   })
-// }
+function valid_path_error(err, req, res, next) {
+  return res.status(err.status).json({
+    error: err.message,
+    validation: err.validationErrors,
+    schema: err.validationSchema
+  })
+}
 
-// const openapi = OpenAPI(
-//   {
-//     openapi: '3.0.3',
-//     info: {
-//       title: 'Experts',
-//       description: 'The Experts API specifies updates to a particular expert. Publically available API endpoints can be used for access to an experts data.  The permissions of current user allow additional access to the data.',
-//       termsOfService: 'http://swagger.io/terms/',
-//       contact: {
-//         email: 'experts@ucdavis.edu'
-//       },
-//       license: {
-//         name: 'Apache 2.0',
-//         url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-//       },
-//       version: config.experts.version,
-//     },
-//     components: {
-//       parameters: {
-//         expert: {
-//           in: "query",
-//           name: "expert",
-//           description: "Comma-separated search filter on experts",
-//           required: false,
-//           schema: {
-//             type: "array"
-//           },
-//           style: "simple",
-//           explode: false
-//         },
-//         expertId: {
-//           name: 'expertId',
-//           in: 'path',
-//           required: true,
-//           schema: {
-//             type: 'string',
-//             format: 'nano(\\d{8})',
-//             description: 'The unique identifier for the expert'
-//           }
-//         },
-//         relationshipId: {
-//           name: 'relationshipId',
-//           in: 'path',
-//           required: true,
-//           schema: {
-//             type: 'string',
-//             format: 'urlencoded',
-//             description: 'A unique identifier for an expert relationship'
-//           }
-//         },
-//         p: {
-//           in: "query",
-//           name: "p",
-//           description: "The letter the experts last name starts with",
-//           required: false,
-//           schema: {
-//             type: "string"
-//           }
-//         },
-//         page: {
-//           in: "query",
-//           name: "page",
-//           description: "The pagination of results to return, defaults to 1",
-//           required: false,
-//           schema: {
-//             type: "integer"
-//           }
-//         },
-//         q: {
-//           in: "query",
-//           name: "q",
-//           description: "Text query to search for",
-//           required: false,
-//           schema: {
-//             type: "string"
-//           }
-//         },
-//         size: {
-//           in: "query",
-//           name: "size",
-//           description: "The number of results to return per page, defaults to 25",
-//           required: false,
-//           schema: {
-//             type: "integer"
-//           }
-//         },
-//         status: {
-//           in: "query",
-//           name: "status",
-//           description: "Comma-separated search filter on grant status",
-//           required: false,
-//           schema: {
-//             type: "arary",
-//             items: {
-//               type: "string",
-//               enum: ["completed", "active"]
-//             }
-//           },
-//           style: "simple",
-//           explode: false
-//         },
-//         type: {
-//           in: "query",
-//           name: "type",
-//           description: "Comma-separated search filter on citation type",
-//           required: false,
-//           schema: {
-//             type: "array",
-//             items: {
-//               type: "string"
-//             }
-//           },
-//           style: "simple",
-//           explode: false
-//         },
-//         availability: {
-//           in: "query",
-//           name: "availability",
-//           description: "Comma-separated search filter on expert availability types",
-//           required: false,
-//           schema: {
-//             type: "arary",
-//             items: {
-//               type: "string",
-//               enum: [
-//                 "community partnerships",
-//                 "collaborative projects",
-//                 "industry Projects",
-//                 "media enquiries"
-//               ]
-//             }
-//           },
-//           style: "simple",
-//           explode: false
-//         },
-//         "@type": {
-//             in: "query",
-//           name: "@type",
-//           description: "Comma-separated list of item @types to return.",
-//           required: false,
-//           schema: {
-//             type: "array",
-//             items: {
-//               type: "string",
-//               enum: ["expert", "grant", "work"],
-//               default: "expert,grant"
-//             }
-//           },
-//           style: "simple",
-//           explode: false
-//         },
-//         "type": {
-//             in: "query",
-//           name: "type",
-//           description: "Comma-separated list of citation-types to return. From https://github.com/Juris-M/schema/blob/master/csl-types.rnc",
-//           required: false,
-//           schema: {
-//             type: "array",
-//             items: {
-//               type: "string",
-//               enum: [ "article","article-journal","article-magazine","article-newspaper","bill","book","broadcast","chapter","dataset","entry","entry-dictionary","entry-encyclopedia","figure","graphic","interview","legal_case","legislation","manuscript","map","motion_picture","musical_score","pamphlet","paper-conference","patent","personal_communication","post","post-weblog","report","review","review-book","song","speech","thesis","treaty","webpage"]
-//             }
-//           },
-//           style: "simple",
-//           explode: false
-//         }
-//       },
-//       schemas: {
-//         expert: {
-//           type: 'object',
-//           properties: {
-//             '@id': {
-//               type: 'string',
-//               description: 'The unique identifier for the expert.',
-//             },
-//             '@type': {
-//               type: 'array',
-//               items: {
-//                 type: 'string',
-//               },
-//               description: 'The type of the expert.',
-//             },
-//             'rank': {
-//               type: 'integer',
-//               description: 'The rank of the expert.',
-//             },
-//             'name': {
-//               type: 'string',
-//               description: 'The name of the expert.',
-//             },
-//             'url': {
-//               type: 'string',
-//               format: 'url',
-//               description: 'The URL related to the expert.',
-//             },
-//             'hasEmail': {
-//               type: 'string',
-//               format: 'email',
-//               description: 'The email address of the expert.',
-//             },
-//             'hasName': {
-//               type: 'object',
-//               properties: {
-//                 '@id': {
-//                   type: 'string',
-//                   description: 'The unique identifier for the name.',
-//                 },
-//                 '@type': {
-//                   type: 'string',
-//                   description: 'The type of the name.',
-//                 },
-//                 'family': {
-//                   type: 'string',
-//                   description: 'The family name of the expert.',
-//                 },
-//                 'given': {
-//                   type: 'string',
-//                   description: 'The given name of the expert.',
-//                 },
-//                 'pronouns': {
-//                   type: 'string',
-//                   description: 'The pronouns of the expert.',
-//                 },
-//               },
-//               required: ['@id', '@type', 'family', 'given', 'pronouns'],
-//             },
-//             'hasTitle': {
-//               type: 'object',
-//               properties: {
-//                 '@id': {
-//                   type: 'string',
-//                   description: 'The unique identifier for the title.',
-//                 },
-//                 '@type': {
-//                   type: 'string',
-//                   description: 'The type of the title.',
-//                 },
-//                 'name': {
-//                   type: 'string',
-//                   description: 'The title of the expert.',
-//                 },
-//               },
-//               required: ['@id', '@type', 'name'],
-//             },
-//             'hasOrganizationalUnit': {
-//               type: 'object',
-//               properties: {
-//                 '@id': {
-//                   type: 'string',
-//                   description: 'The unique identifier for the organizational unit.',
-//                 },
-//                 'name': {
-//                   type: 'string',
-//                   description: 'The name of the organizational unit.',
-//                 },
-//               },
-//               required: ['@id', 'name'],
-//             },
-//             'roles': {
-//               type: 'array',
-//               items: {
-//                 type: 'string',
-//               },
-//               description: 'The roles of the expert.',
-//             },
-//           },
-//           required: ['@id', '@type', 'rank', 'name', 'url', 'hasEmail', 'hasName', 'hasTitle', 'hasOrganizationalUnit', 'roles'],
-//         },
-//         Relationship: {
-//           "type": "object",
-//           "properties": {
-//             "@id": {
-//               "type": "string"
-//             },
-//             "@type": {
-//               "type": "array",
-//               "items": {
-//                 "type": "string"
-//               }
-//             },
-//             "@graph": {
-//               "type": "array",
-//               "items": {
-//                 "type": "object",
-//                 "properties": {
-//                   "@id": {
-//                     "type": "string"
-//                   },
-//                   "@type": {
-//                     "type": "array",
-//                     "items": {
-//                       "type": "string"
-//                     }
-//                   },
-//                   "is-visible": {
-//                     "type": "boolean"
-//                   },
-//                   "rank": {
-//                     "type": "integer",
-//                     "format": "int32"
-//                   },
-//                   "relates": {
-//                     "type": "array",
-//                     "items": {
-//                       "type": "string"
-//                     }
-//                   },
-//                   "_": {
-//                     "type": "object",
-//                     "properties": {
-//                       "event": {
-//                         "type": "object",
-//                         "properties": {
-//                           "id": {
-//                             "type": "string"
-//                           },
-//                           "timestamp": {
-//                             "type": "string",
-//                             "format": "date-time"
-//                           },
-//                           "updateType": {
-//                             "type": "array",
-//                             "items": {
-//                               "type": "string"
-//                             }
-//                           }
-//                         },
-//                         "required": ["id", "timestamp", "updateType"]
-//                       },
-//                       "updated": {
-//                         "type": "string",
-//                         "format": "date-time"
-//                       }
-//                     },
-//                     "required": ["event", "updated"]
-//                   }
-//                 },
-//                 "required": ["@id", "@type", "is-visible", "rank", "relates", "_"]
-//               }
-//             },
-//             "roles": {
-//               "type": "array",
-//               "items": {
-//                 "type": "string"
-//               }
-//             }
-//           },
-//           "required": ["@id", "@type", "@graph", "roles"]
-//         },
-//         Browse: {
-//           type: 'object',
-//           properties: {
-//             "total": {
-//               "type": "integer"
-//             },
-//             "hits": {
-//               "type": "array",
-//               "items": {
-//                 "type": "object",
-//                 "properties": {
-//                   "contactInfo": {
-//                     "type": "object",
-//                     "properties": {
-//                       "hasURL": {
-//                         "type": "array",
-//                         "items": {
-//                           "type": "object",
-//                           "properties": {
-//                             "@type": {
-//                               "type": "array",
-//                               "items": {
-//                                 "type": "string"
-//                               }
-//                             },
-//                             "@id": {
-//                               "type": "string"
-//                             },
-//                             "url": {
-//                               "type": "string"
-//                             },
-//                             "name": {
-//                               "type": "string"
-//                             },
-//                             "rank": {
-//                               "type": "integer"
-//                             }
-//                           }
-//                         }
-//                       },
-//                       "hasEmail": {
-//                         "type": "string"
-//                       },
-//                       "hasName": {
-//                         "type": "object",
-//                         "properties": {
-//                           "given": {
-//                             "type": "string"
-//                           },
-//                           "@type": {
-//                             "type": "string"
-//                           },
-//                           "pronouns": {
-//                             "type": "string"
-//                           },
-//                           "@id": {
-//                             "type": "string"
-//                           },
-//                           "family": {
-//                             "type": "string"
-//                           }
-//                         }
-//                       },
-//                       "name": {
-//                         "type": "string"
-//                       },
-//                       "hasTitle": {
-//                         "type": "object",
-//                         "properties": {
-//                           "@type": {
-//                             "type": "string"
-//                           },
-//                           "name": {
-//                             "type": "string"
-//                           },
-//                           "@id": {
-//                             "type": "string"
-//                           }
-//                         }
-//                       },
-//                       "hasOrganizationalUnit": {
-//                         "type": "object",
-//                         "properties": {
-//                           "name": {
-//                             "type": "string"
-//                           },
-//                           "@id": {
-//                             "type": "string"
-//                           }
-//                         }
-//                       }
-//                     }
-//                   },
-//                   "name": {
-//                     "type": "string"
-//                   },
-//                   "@id": {
-//                     "type": "string"
-//                   }
-//                 }
-//               }
-//             }
-//           }
-//         },
-//         Search: {
-//           type: 'object',
-//           properties: {
-//             "total": { "type": "integer" },
-//             "hits": {
-//               "type": "array",
-//               "items": {
-//                 "type": "object",
-//                 "properties": {
-//                   "contactInfo": {
-//                     "type": "object",
-//                     "properties": {
-//                       "hasEmail": { "type": "string" },
-//                       "hasName": {
-//                         "type": "object",
-//                         "properties": {
-//                           "given": { "type": "string" },
-//                           "@type": { "type": "string" },
-//                           "@id": { "type": "string" },
-//                           "family": { "type": "string" }
-//                         }
-//                       },
-//                       "name": { "type": "string" },
-//                       "hasTitle": {
-//                         "type": "object",
-//                         "properties": {
-//                           "@type": { "type": "string" },
-//                           "name": { "type": "string" },
-//                           "@id": { "type": "string" }
-//                         }
-//                       },
-//                       "hasOrganizationalUnit": {
-//                         "type": "object",
-//                         "properties": {
-//                           "name": { "type": "string" },
-//                           "@id": { "type": "string" }
-//                         }
-//                       }
-//                     }
-//                   },
-//                   "@type": { "type": "string" },
-//                   "name": { "type": "string" },
-//                   "@id": { "type": "string" },
-//                   "_inner_hits": {
-//                     "type": "array",
-//                     "items": {
-//                       "type": "object",
-//                       "properties": {
-//                         "volume": { "type": "string" },
-//                         "@type": { "type": "array", "items": { "type": "string" } },
-//                         "author": {
-//                           "type": "array",
-//                           "items": {
-//                             "type": "object",
-//                             "properties": {
-//                               "given": { "type": "string" },
-//                               "rank": { "type": "integer" },
-//                               "@id": { "type": "string" },
-//                               "family": { "type": "string" }
-//                             }
-//                           }
-//                         },
-//                         "container-title": { "type": "string" },
-//                         "ISSN": { "type": "string" },
-//                         "abstract": { "type": "string" },
-//                         "page": { "type": "string" },
-//                         "title": { "type": "string" },
-//                         "type": { "type": "string" },
-//                         "issued": { "type": "string" },
-//                         "status": { "type": "string" }
-//                       }
-//                     }
-//                   }
-//                 }
-//               }
-//             }
-//           }
-//         }
-//       },
-//       securitySchemes: {
-//         bearerAuth: {
-//           type: 'http',
-//           scheme: 'bearer',
-//         }
-//       }
-//     },
-//     servers: [
-//       {
-//         url: `${config.server.url}/api/expert`
-//       }
-//     ],
-//     tags: [
-//       {
-//         name: 'expert',
-//         description: 'Expert Information'
-//       }
-//     ]
-//   }
-// );
+const openapi = OpenAPI(
+  {
+    openapi: '3.0.3',
+    info: {
+      title: 'Experts',
+      description: 'The Experts API specifies updates to a particular expert. Publically available API endpoints can be used for access to an experts data.  The permissions of current user allow additional access to the data.',
+      termsOfService: 'http://swagger.io/terms/',
+      contact: {
+        email: 'experts@ucdavis.edu'
+      },
+      license: {
+        name: 'Apache 2.0',
+        url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+      },
+      version: config.experts.version,
+    },
+    components: {
+      parameters: {
+        expert: {
+          in: "query",
+          name: "expert",
+          description: "Comma-separated search filter on experts",
+          required: false,
+          schema: {
+            type: "array"
+          },
+          style: "simple",
+          explode: false
+        },
+        expertId: {
+          name: 'expertId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            format: 'nano(\\d{8})',
+            description: 'The unique identifier for the expert'
+          }
+        },
+        email: {
+          in: "query",
+          name: "email",
+          description: "Filter grants by email",
+          required: false,
+          schema: {
+            type: "string"
+          }
+        },
+        ucdPersonUUID: {
+          in: "query",
+          name: "ucdPersonUUID",
+          description: "Filter grants by UCD Person UUID",
+          required: false,
+          schema: {
+            type: "string"
+          }
+        },
+        iamId: {
+          in: "query",
+          name: "iamId",
+          description: "Filter grants by IAM ID",
+          required: false,
+          schema: {
+            type: "string"
+          }
+        },
+        since: {
+          in: "query",
+          name: "since",
+          description: "Filter grants starting from this date (inclusive).",
+          required: false,
+          schema: {
+            type: "string",
+            format: "date",
+            pattern: "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$",
+            example: "2010-01-01"
+          }
+        },
+        until: {
+          in: "query",
+          name: "until",
+          description: "Filter grants up to this date (inclusive). Defaults to today if not provided.",
+          required: false,
+          schema: {
+            type: "string",
+            format: "date",
+            pattern: "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$",
+            example: "2030-12-31"
+          }
+        },
+        relationshipId: {
+          name: 'relationshipId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            format: 'urlencoded',
+            description: 'A unique identifier for an expert relationship'
+          }
+        },
+        p: {
+          in: "query",
+          name: "p",
+          description: "The letter the experts last name starts with",
+          required: false,
+          schema: {
+            type: "string"
+          }
+        },
+        page: {
+          in: "query",
+          name: "page",
+          description: "The pagination of results to return, defaults to 1",
+          required: false,
+          schema: {
+            type: "integer"
+          }
+        },
+        q: {
+          in: "query",
+          name: "q",
+          description: "Text query to search for",
+          required: false,
+          schema: {
+            type: "string"
+          }
+        },
+        size: {
+          in: "query",
+          name: "size",
+          description: "The number of results to return per page, defaults to 25",
+          required: false,
+          schema: {
+            type: "integer"
+          }
+        },
+        status: {
+          in: "query",
+          name: "status",
+          description: "Comma-separated search filter on grant status",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: ["completed", "active"]
+            }
+          },
+          style: "simple",
+          explode: false
+        },
+        type: {
+          in: "query",
+          name: "type",
+          description: "Comma-separated search filter on citation type",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string"
+            }
+          },
+          style: "simple",
+          explode: false
+        },
+        availability: {
+          in: "query",
+          name: "availability",
+          description: "Comma-separated search filter on expert availability types",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: [
+                "community partnerships",
+                "collaborative projects",
+                "industry Projects",
+                "media enquiries"
+              ]
+            }
+          },
+          style: "simple",
+          explode: false
+        },
+        "@type": {
+            in: "query",
+          name: "@type",
+          description: "Comma-separated list of item @types to return.",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: ["expert", "grant", "work"],
+              default: "expert,grant,work"
+            }
+          },
+          style: "simple",
+          explode: false
+        },
+        "dateFrom": {
+          in: "query",
+          name: "dateFrom",
+          description: "Filter results starting from this date (inclusive). A 4-digit year (YYYY) will automatically expand to the first day of that year (YYYY-01-01).",
+          required: false,
+          schema: {
+            type: "string",
+            format: "date",
+            pattern: "^[0-9]{4}(-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?$",
+            example: "2017-01-01"
+          }
+        },
+        "dateTo": {
+          in: "query",
+          name: "dateTo",
+          description: "Filter results up to this date (inclusive). A 4-digit year (YYYY) will automatically expand to the last day of that year (YYYY-12-31).",
+          required: false,
+          schema: {
+            type: "string",
+            format: "date",
+            pattern: "^[0-9]{4}(-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?$",
+            example: "2023-12-31"
+          }
+        },
+        "type": {
+          in: "query",
+          name: "type",
+          description: "Comma-separated list of citation-types to return. From https://github.com/Juris-M/schema/blob/master/csl-types.rnc",
+          required: false,
+          schema: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: [ "article","article-journal","article-magazine","article-newspaper","bill","book","broadcast","chapter","dataset","entry","entry-dictionary","entry-encyclopedia","figure","graphic","interview","legal_case","legislation","manuscript","map","motion_picture","musical_score","pamphlet","paper-conference","patent","personal_communication","post","post-weblog","report","review","review-book","song","speech","thesis","treaty","webpage"]
+            }
+          },
+          style: "simple",
+          explode: false
+        }
+      },
+      schemas: {
+        expert: {
+          type: 'object',
+          properties: {
+            '@id': {
+              type: 'string',
+              description: 'The unique identifier for the expert.',
+            },
+            '@type': {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              description: 'The type of the expert.',
+            },
+            'rank': {
+              type: 'integer',
+              description: 'The rank of the expert.',
+            },
+            'name': {
+              type: 'string',
+              description: 'The name of the expert.',
+            },
+            'url': {
+              type: 'string',
+              format: 'url',
+              description: 'The URL related to the expert.',
+            },
+            'hasEmail': {
+              type: 'string',
+              format: 'email',
+              description: 'The email address of the expert.',
+            },
+            'hasName': {
+              type: 'object',
+              properties: {
+                '@id': {
+                  type: 'string',
+                  description: 'The unique identifier for the name.',
+                },
+                '@type': {
+                  type: 'string',
+                  description: 'The type of the name.',
+                },
+                'family': {
+                  type: 'string',
+                  description: 'The family name of the expert.',
+                },
+                'given': {
+                  type: 'string',
+                  description: 'The given name of the expert.',
+                },
+                'pronouns': {
+                  type: 'string',
+                  description: 'The pronouns of the expert.',
+                },
+              },
+              required: ['@id', '@type', 'family', 'given', 'pronouns'],
+            },
+            'hasTitle': {
+              type: 'object',
+              properties: {
+                '@id': {
+                  type: 'string',
+                  description: 'The unique identifier for the title.',
+                },
+                '@type': {
+                  type: 'string',
+                  description: 'The type of the title.',
+                },
+                'name': {
+                  type: 'string',
+                  description: 'The title of the expert.',
+                },
+              },
+              required: ['@id', '@type', 'name'],
+            },
+            'hasOrganizationalUnit': {
+              type: 'object',
+              properties: {
+                '@id': {
+                  type: 'string',
+                  description: 'The unique identifier for the organizational unit.',
+                },
+                'name': {
+                  type: 'string',
+                  description: 'The name of the organizational unit.',
+                },
+              },
+              required: ['@id', 'name'],
+            },
+            'roles': {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              description: 'The roles of the expert.',
+            },
+          },
+          required: ['@id', '@type', 'rank', 'name', 'url', 'hasEmail', 'hasName', 'hasTitle', 'hasOrganizationalUnit', 'roles'],
+        },
+        Relationship: {
+          "type": "object",
+          "properties": {
+            "@id": {
+              "type": "string"
+            },
+            "@type": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "@graph": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "@id": {
+                    "type": "string"
+                  },
+                  "@type": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "is-visible": {
+                    "type": "boolean"
+                  },
+                  "rank": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "relates": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "_": {
+                    "type": "object",
+                    "properties": {
+                      "event": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updateType": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["id", "timestamp", "updateType"]
+                      },
+                      "updated": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": ["event", "updated"]
+                  }
+                },
+                "required": ["@id", "@type", "is-visible", "rank", "relates", "_"]
+              }
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["@id", "@type", "@graph", "roles"]
+        },
+        Browse: {
+          type: 'object',
+          properties: {
+            "total": {
+              "type": "integer"
+            },
+            "hits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "contactInfo": {
+                    "type": "object",
+                    "properties": {
+                      "hasURL": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "@type": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "@id": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "rank": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      },
+                      "hasEmail": {
+                        "type": "string"
+                      },
+                      "hasName": {
+                        "type": "object",
+                        "properties": {
+                          "given": {
+                            "type": "string"
+                          },
+                          "@type": {
+                            "type": "string"
+                          },
+                          "pronouns": {
+                            "type": "string"
+                          },
+                          "@id": {
+                            "type": "string"
+                          },
+                          "family": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "hasTitle": {
+                        "type": "object",
+                        "properties": {
+                          "@type": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "@id": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "hasOrganizationalUnit": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "@id": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "@id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        Search: {
+          type: 'object',
+          properties: {
+            "total": { "type": "integer" },
+            "hits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "contactInfo": {
+                    "type": "object",
+                    "properties": {
+                      "hasEmail": { "type": "string" },
+                      "hasName": {
+                        "type": "object",
+                        "properties": {
+                          "given": { "type": "string" },
+                          "@type": { "type": "string" },
+                          "@id": { "type": "string" },
+                          "family": { "type": "string" }
+                        }
+                      },
+                      "name": { "type": "string" },
+                      "hasTitle": {
+                        "type": "object",
+                        "properties": {
+                          "@type": { "type": "string" },
+                          "name": { "type": "string" },
+                          "@id": { "type": "string" }
+                        }
+                      },
+                      "hasOrganizationalUnit": {
+                        "type": "object",
+                        "properties": {
+                          "name": { "type": "string" },
+                          "@id": { "type": "string" }
+                        }
+                      }
+                    }
+                  },
+                  "@type": { "type": "string" },
+                  "name": { "type": "string" },
+                  "@id": { "type": "string" },
+                  "_inner_hits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "volume": { "type": "string" },
+                        "@type": { "type": "array", "items": { "type": "string" } },
+                        "author": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "given": { "type": "string" },
+                              "rank": { "type": "integer" },
+                              "@id": { "type": "string" },
+                              "family": { "type": "string" }
+                            }
+                          }
+                        },
+                        "container-title": { "type": "string" },
+                        "ISSN": { "type": "string" },
+                        "abstract": { "type": "string" },
+                        "page": { "type": "string" },
+                        "title": { "type": "string" },
+                        "type": { "type": "string" },
+                        "issued": { "type": "string" },
+                        "status": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+        }
+      }
+    },
+    servers: [
+      {
+        url: `${config.server.url}/api/expert`
+      }
+    ],
+    tags: [
+      {
+        name: 'expert',
+        description: 'Expert Information'
+      }
+    ]
+  }
+);
 
-// openapi.response(
-//   'not_found',
-//   {
-//     "description": "Resource not found"
-//   }
-// );
+openapi.response(
+  'not_found',
+  {
+    "description": "Resource not found"
+  }
+);
 
-// openapi.response(
-//   'missing_id',
-//   {
-//     "description": "Request needs id"
-//   }
-// );
+openapi.response(
+  'missing_id',
+  {
+    "description": "Request needs id"
+  }
+);
 
-// openapi.response(
-//   'forbidden',
-//   {
-//     "description": "Request is forbidden"
-//   }
-// );
+openapi.response(
+  'forbidden',
+  {
+    "description": "Request is forbidden"
+  }
+);
 
-// openapi.response(
-//   'Expert',
-//   {
-//     "description": "The expert",
-//     "content": {
-//       "application/json": {
-//         "schema": openapi.schema('expert')
-//       }
-//     }
-//   }
-// );
+openapi.response(
+  'Expert',
+  {
+    "description": "The expert",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('expert')
+      }
+    }
+  }
+);
 
-// openapi.response(
-//   'Expert_not_found',
-//   {
-//     "description": "Expert not found"
-//   }
-// );
+openapi.response(
+  'Expert_not_found',
+  {
+    "description": "Expert not found"
+  }
+);
 
-// openapi.response(
-//   'Expert_deleted',
-//   {
-//     "description": "Expert deleted"
-//   }
-// );
+openapi.response(
+  'Expert_deleted',
+  {
+    "description": "Expert deleted"
+  }
+);
 
-// openapi.response(
-//   'No_content',
-//   {
-//     "description": "No Content"
-//   }
-// );
+openapi.response(
+  'No_content',
+  {
+    "description": "No Content"
+  }
+);
 
-// openapi.response(
-//   'Relationship',
-//   {
-//     "description": "The relationship",
-//     "content": {
-//       "application/json": {
-//         "schema": openapi.schema('Relationship')
-//       }
-//     }
-//   }
-// );
+openapi.response(
+  'Relationship',
+  {
+    "description": "The relationship",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('Relationship')
+      }
+    }
+  }
+);
 
-// openapi.response(
-//   'Relationship_not_found',
-//   {
-//     "description": "Relationship not found"
-//   }
-// );
+openapi.response(
+  'Relationship_not_found',
+  {
+    "description": "Relationship not found"
+  }
+);
 
-// openapi.response(
-//   'Browse',
-//   {
-//     "description": "The list of experts",
-//     "content": {
-//       "application/json": {
-//         "schema": openapi.schema('Browse')
-//       }
-//     }
-//   }
-// );
+openapi.response(
+  'Browse',
+  {
+    "description": "The list of experts",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('Browse')
+      }
+    }
+  }
+);
 
-// openapi.response(
-//   'Invalid_request',
-//   {
-//     "description": "Invalid request"
-//   }
-// );
+openapi.response(
+  'Invalid_request',
+  {
+    "description": "Invalid request"
+  }
+);
 
-// openapi.response(
-//   'Search',
-//   {
-//     "description": "The list of search results",
-//     "content": {
-//       "application/json": {
-//         "schema": openapi.schema('Search')
-//       }
-//     }
-//   }
-// );
+openapi.response(
+  'Search',
+  {
+    "description": "The list of search results",
+    "content": {
+      "application/json": {
+        "schema": openapi.schema('Search')
+      }
+    }
+  }
+);
 
-// openapi.response(
-//   'Successful_operation',
-//   {
-//     "description": "Successful operation"
-//   }
-// );
+openapi.response(
+  'Successful_operation',
+  {
+    "description": "Successful operation"
+  }
+);
 
-// openapi.response(
-//   'Invalid_ID_supplied',
-//   {
-//     "description": "Invalid ID supplied"
-//   }
-// );
+openapi.response(
+  'Invalid_ID_supplied',
+  {
+    "description": "Invalid ID supplied"
+  }
+);
 
 // export this middleware functions
 module.exports = {
@@ -1066,11 +1101,11 @@ module.exports = {
   public_or_is_user,
   item_endpoint,
   json_only,
-  // openapi,
+  openapi,
   schema_error,
   user_can_edit,
   validate_admin_client,
   validate_miv_client,
-  // valid_path,
-  // valid_path_error
+  valid_path,
+  valid_path_error
 };
