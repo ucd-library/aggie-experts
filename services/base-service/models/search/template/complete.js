@@ -30,7 +30,7 @@ template = {
                                 "must": [
                                   { "exists": { "field": "hasAvailability.prefLabel" } },
                                   { "terms": { "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}} } }
-                                ]
+                                ],
                                 "minimum_should_match": 1
                             }
                             {{/availability}}
