@@ -274,8 +274,6 @@ export default class AppSearch extends Mixin(LitElement)
    * @param {Object} e
    */
   _filterByGrants(e) {
-    console.log('todo need to keep the date filtering in place when filtering by expert grants');
-
     // filter by grants for this expert
     this.filterByExpertId = e.detail.id;
     this.filterByExpertName = e.detail.name;
@@ -341,7 +339,6 @@ export default class AppSearch extends Mixin(LitElement)
     this.filteringByGrants = false;
     this.filteringByWorks = false;
     this._updateLocation();
-    // this._refreshRange();
   }
 
   /**
