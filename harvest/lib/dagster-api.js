@@ -77,6 +77,7 @@ class DagsterAPI {
       partitionKeys
     }, true));
   }
+
   async createDynamicPartitions(partitionsDefName, partitionKeys) {
     if( !partitionsDefName ) throw new Error('partitionsDefName is required');
     if( !partitionKeys || !Array.isArray(partitionKeys) || partitionKeys.length === 0 ) {

@@ -19,7 +19,7 @@ config.client = {
   assets : (env === 'prod') ? 'dist' : 'public',
   appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse', 'grant', 'work', 'search-tips'],
   dagster : {
-    host : process.env.DAGSTER_HOST || 'http://harvest:3000',
+    host : process.env.DAGSTER_HOST || 'http://dagster-ui:3000',
     graphqlPath : process.env.DAGSTER_GRAPHQL_PATH || '/graphql',
     repositoryLocationName : process.env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
     repositoryName : process.env.DAGSTER_REPOSITORY_NAME || '__repository__',

@@ -5,12 +5,13 @@ import json
 import dagster as dg
 import time
 import subprocess
+from typing import Literal
 
 users_partitions = dg.DynamicPartitionsDefinition(name="users")
 
 # Define a config schema for the asset
-class ExtractUserConfig(Config):
-    force: bool = True  # Default value for force flag
+class FetchUserListConfig(Config):
+    group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # Default value for group ID
 
 class LoadUserConfig(Config):
     alias: str = "stage"  # Default alias for loading
@@ -30,18 +31,37 @@ def exec(cmd, check=True, capture_output=True, text=True):
 @dg.asset(
   code_version="1.0"
 )
-def init_databases(context, ) -> None:
+def init_databases(context) -> None:
+  """Initialize PostgreSQL schema and current weeks ElasticSearch Indexes."""
   cmd = ["experts", "init"]
   exec(cmd)
   return None
+
+@dg.asset(
+  code_version="1.0"
+)
+def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
+    """Get current user list from CDL and create dynamic partitions."""
+
+    result = exec(["experts", "harvest", "list", "users", config.group_id])
+
+    # Read JSON file if exists
+    rpath = result.get('cachePath', {}).get('assetPath', '')
+    if os.path.exists(rpath):
+      with open(rpath, "r") as f:
+        user_ids = json.load(f)
+        user_ids = user_ids.get("users", [])
+    else:
+      user_ids = []
+
+    return user_ids
 
 @dg.asset(
   partitions_def=users_partitions,
   code_version="1.0",
   deps=[init_databases]
 )
-def extract_user(context, config: ExtractUserConfig) -> None:
-# def extract_user(context, config: ExtractUserConfig) -> None:
+def extract_user(context) -> None:
   user_id = context.partition_key
   run = context.dagster_run
 
@@ -138,16 +158,19 @@ def load_user(context: AssetExecutionContext, config: LoadUserConfig) -> None:
 # Create a job that materializes both assets in the correct order
 etl_users_job = dg.define_asset_job(
     name="etl_users_job",
+    description="Job to run the full ETL for a user: extract, transform (Aggie Experts Standard and Webapp), and load.  For realtime refreshes.",
     selection=dg.AssetSelection.assets(extract_user, transform_user_webapp, transform_user_standard, load_user)
 )
 
 extract_users_job = dg.define_asset_job(
     name="extract_users_job",
-    selection=dg.AssetSelection.assets(init_databases, extract_user, transform_user_standard, transform_user_webapp)
+    description="Job to run extract a user and first transform Aggie Experts Standard Transform.",
+    selection=dg.AssetSelection.assets(extract_user, transform_user_standard)
 )
 
 transform_load_users_job = dg.define_asset_job(
     name="transform_load_users_job",
+    description="Job to run the second Webapp Transform (requires all users) and load user after extraction.",
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user)
 )
 
@@ -159,49 +182,22 @@ def success_sensor(context: RunStatusSensorContext):
     # Example: Print, or replace with logic to send email/Slack/etc.
     context.log.info(message)
 
-@dg.sensor(
-    job=etl_users_job, 
-    minimum_interval_seconds=3600
-)
-def dev_users_sensor(context: dg.SensorEvaluationContext):
-    user_ids = loadUserGroup("dev")
+# @dg.sensor(
+#     job=etl_users_job, 
+#     minimum_interval_seconds=3600
+# )
+# def sandbox_users_sensor(context: dg.SensorEvaluationContext):
+#     user_ids = loadUserGroup("sandbox")
 
-    return dg.SensorResult(
-        run_requests=[dg.RunRequest(partition_key=user) for user in user_ids],
-        dynamic_partitions_requests=[users_partitions.build_add_request(user_ids)],
-    )
-
-@dg.sensor(
-    job=etl_users_job, 
-    minimum_interval_seconds=3600
-)
-def sandbox_users_sensor(context: dg.SensorEvaluationContext):
-    user_ids = loadUserGroup("sandbox")
-
-    return dg.SensorResult(
-        run_requests=[dg.RunRequest(partition_key=user) for user in user_ids],
-        dynamic_partitions_requests=[users_partitions.build_add_request(user_ids)],
-    )
-
-def loadUserGroup(groupId):
-    """Load user group from CDL."""
-    result = exec(["experts", "harvest", "list", "users", groupId])
-
-    # Read JSON file if exists
-    rpath = result.get('cachePath', {}).get('assetPath', '')
-    if os.path.exists(rpath):
-      with open(rpath, "r") as f:
-        user_ids = json.load(f)
-        user_ids = user_ids.get("users", [])
-    else:
-      user_ids = []
-
-    return user_ids
+#     return dg.SensorResult(
+#         run_requests=[dg.RunRequest(partition_key=user) for user in user_ids],
+#         dynamic_partitions_requests=[users_partitions.build_add_request(user_ids)],
+#     )
 
 defs = dg.Definitions(
     jobs=[etl_users_job, extract_users_job, transform_load_users_job],
-    assets=[extract_user, transform_user_webapp, transform_user_standard, load_user, init_databases],
-    sensors=[dev_users_sensor, sandbox_users_sensor, success_sensor],
+    assets=[extract_user, transform_user_webapp, transform_user_standard, load_user, init_databases, fetch_user_list_from_cdl],
+    sensors=[success_sensor],
     resources={
         "io_manager": FilesystemIOManager(base_dir="/opt/dagster/dagster_home/storage")
     }
