@@ -440,8 +440,10 @@ class Utils {
    * @param {String} status status of search, ie 'active', 'completed'. if none set, returns all results
    * @param {String} type citation type, ie 'book', 'journal'
    * @param {String} expertId expertId to filter grants/works to
+   * @param {String} dateFrom start for date filtering
+   * @param {String} dateTo end for date filtering
    */
-  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId) {
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, dateFrom, dateTo) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
     if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
@@ -449,6 +451,8 @@ class Utils {
     if( status ) searchQuery += `&status=${status}`;
     if( type ) searchQuery += `&type=${type}`;
     if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
+    if( dateFrom ) searchQuery += `&dateFrom=${dateFrom}`;
+    if( dateTo ) searchQuery += `&dateTo=${dateTo}`;
 
     return searchQuery;
   }

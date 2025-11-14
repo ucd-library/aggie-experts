@@ -438,7 +438,7 @@ const openapi = OpenAPI(
           description: "Comma-separated search filter on grant status",
           required: false,
           schema: {
-            type: "arary",
+            type: "array",
             items: {
               type: "string",
               enum: ["completed", "active"]
@@ -467,7 +467,7 @@ const openapi = OpenAPI(
           description: "Comma-separated search filter on expert availability types",
           required: false,
           schema: {
-            type: "arary",
+            type: "array",
             items: {
               type: "string",
               enum: [
@@ -491,14 +491,38 @@ const openapi = OpenAPI(
             items: {
               type: "string",
               enum: ["expert", "grant", "work"],
-              default: "expert,grant"
+              default: "expert,grant,work"
             }
           },
           style: "simple",
           explode: false
         },
+        "dateFrom": {
+          in: "query",
+          name: "dateFrom",
+          description: "Filter results starting from this date (inclusive). A 4-digit year (YYYY) will automatically expand to the first day of that year (YYYY-01-01).",
+          required: false,
+          schema: {
+            type: "string",
+            format: "date",
+            pattern: "^[0-9]{4}(-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?$",
+            example: "2017-01-01"
+          }
+        },
+        "dateTo": {
+          in: "query",
+          name: "dateTo",
+          description: "Filter results up to this date (inclusive). A 4-digit year (YYYY) will automatically expand to the last day of that year (YYYY-12-31).",
+          required: false,
+          schema: {
+            type: "string",
+            format: "date",
+            pattern: "^[0-9]{4}(-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?$",
+            example: "2023-12-31"
+          }
+        },
         "type": {
-            in: "query",
+          in: "query",
           name: "type",
           description: "Comma-separated list of citation-types to return. From https://github.com/Juris-M/schema/blob/master/csl-types.rnc",
           required: false,
