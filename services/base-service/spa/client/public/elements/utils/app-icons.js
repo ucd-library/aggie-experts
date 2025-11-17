@@ -5,6 +5,9 @@
  */
 
 import { html } from "lit";
+
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-iconset/ucdlib-iconset";
+
 import { renderIconSet } from "@ucd-lib/theme-elements/ucdlib/ucdlib-icons/utils.js";
 
 const template = html`
