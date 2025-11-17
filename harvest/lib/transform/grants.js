@@ -120,10 +120,22 @@ function updateNameCasing(name) {
 function cleanGrantTitle(rawTitle) {
   if (!rawTitle) return '';
 
-  return rawTitle
+  // First strip known leading/trailing grant codes and other noisy suffixes (existing logic)
+  let title = rawTitle
     .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
     .replace(/\s+[ABCKKXYZ]\d+[A-Z]*\d*$/i, '') // Remove trailing grant codes like K322D09
     .trim();
+
+  // Collapse repeated whitespace to a single space
+  title = title.replace(/\s+/g, ' ');
+
+  // Normalize spacing after common punctuation (colon, semicolon, em-dash)
+  title = title.replace(/:\s*/g, ': ').replace(/;\s*/g, '; ').replace(/—\s*/g, '— ');
+
+  // Remove stray leading/trailing bullets, section markers or hyphens
+  title = title.replace(/^[\s•§\-–—]+/, '').replace(/[\s•§\-–—]+$/, '');
+
+  return title;
 }
 
 function getGrantType(fields) {
