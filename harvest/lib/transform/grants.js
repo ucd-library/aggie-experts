@@ -229,7 +229,9 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
 }
 
 function generatePersonId(lastName, firstName) {
-  return `${lastName.toLowerCase()}_${firstName.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')}`;
+  const cleanLast = (lastName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
+  const cleanFirst = (firstName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
+  return `${cleanLast}_${cleanFirst}`;
 }
 
 function isExpertMatch(personLastName, personFirstName, expertData) {
