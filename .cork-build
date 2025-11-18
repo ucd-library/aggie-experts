@@ -16,8 +16,19 @@
         ]
       }
     },
+    "anduin-gateway" : {
+      "contextPath" : "./anduin-gateway",
+      "options" : {
+        "build-arg" : [
+          "ANDUIN_AUTH_GATEWAY_IMAGE=${project-anduin.auth-gateway}"
+        ]
+      }
+    },
     "webapp" : {
       "contextPath" : "./webapp"
+    },
+    "elastic-search" : {
+      "contextPath" : "./elastic-search"
     }
   }
 }

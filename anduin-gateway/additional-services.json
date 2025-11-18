@@ -1,0 +1,22 @@
+[
+  {
+    "name":"webapp",
+    "title":"Webapp",
+    "subtitle":"Aggie Experts",
+    "url":"http://localhost:3000",
+    "color":"brand-secondary-70",
+    "icon":"fas fa-browser",
+    "public" :true
+  },
+  {
+    "name":"kibana",
+    "title":"Elasticsearch Admin",
+    "subtitle":"Kibana",
+    "url":"http://kibana:5601",
+    "color":"brand-secondary-70",
+    "icon":"fas fa-chart-bar",
+    "role" : "kibana",
+    "internal": true,
+    "pathPrefix": "/kibana"
+  }
+]
