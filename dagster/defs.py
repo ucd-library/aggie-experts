@@ -14,7 +14,7 @@ class FetchUserListConfig(Config):
     group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # Default value for group ID
 
 class LoadUserConfig(Config):
-    alias: str = "stage"  # Default alias for loading
+    alias: Literal['stage', 'current', 'all'] = 'stage'  # Default alias/index for loading
 
 def exec(cmd, check=True, capture_output=True, text=True):
     """Helper function to run a command and return the result."""
@@ -43,18 +43,13 @@ def init_databases(context) -> None:
 def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
     """Get current user list from CDL and create dynamic partitions."""
 
-    result = exec(["experts", "harvest", "list", "users", config.group_id])
-
-    # Read JSON file if exists
-    rpath = result.get('cachePath', {}).get('assetPath', '')
-    if os.path.exists(rpath):
-      with open(rpath, "r") as f:
-        user_ids = json.load(f)
-        user_ids = user_ids.get("users", [])
-    else:
-      user_ids = []
-
-    return user_ids
+    result = exec(["experts", "harvest", "dagster", "init-partitions", config.group_id])
+  
+    context.add_output_metadata(
+      metadata={
+        "group_id": config.group_id
+      }
+    )
 
 @dg.asset(
   partitions_def=users_partitions,
@@ -196,7 +191,8 @@ def success_sensor(context: RunStatusSensorContext):
 
 defs = dg.Definitions(
     jobs=[etl_users_job, extract_users_job, transform_load_users_job],
-    assets=[extract_user, transform_user_webapp, transform_user_standard, load_user, init_databases, fetch_user_list_from_cdl],
+    assets=[extract_user, transform_user_webapp, transform_user_standard, 
+            load_user, init_databases, fetch_user_list_from_cdl],
     sensors=[success_sensor],
     resources={
         "io_manager": FilesystemIOManager(base_dir="/opt/dagster/dagster_home/storage")

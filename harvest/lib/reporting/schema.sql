@@ -131,6 +131,11 @@ SELECT
   c.command_id,
   c.timestamp AS command_timestamp,
   c.job_id,
+  CONCAT(
+    '<a href="/dagster/runs/', c.job_id, '" target="_blank">',
+    c.job_id,
+    '</a>'
+  ) as job_link,
   c.command,
   c.user_id,
   c.options,
