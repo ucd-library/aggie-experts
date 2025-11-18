@@ -14,7 +14,11 @@ function transformWorks(works, expertId, elementsUserId, inputGraph) {
   let results = [];
   works.forEach(work => {
     let relationshipId = work.id;
-    results.push({ relationshipId, graph: transformWork(work, relationshipId, expertId, elementsUserId, inputGraph) });
+    const graph = transformWork(work, relationshipId, expertId, elementsUserId, inputGraph);
+    // Only include non-empty graphs (replicate legacy SPARQL behavior which may exclude some relationships)
+    if (graph && Array.isArray(graph) && graph.length) {
+      results.push({ relationshipId, graph });
+    }
   });
   return results;
 }
@@ -96,90 +100,8 @@ function getBestAuthorsPositionGroups(records, relationshipId) {
     if (group.length) groups.push(group);
   }
 
-  // TODO
-  // fix authors list on relationshipId 2454246 (jeisen)
-  // authors 42 - 45 not showing up successfully
-  // if( relationshipdId == '2454246' ) {
-  //   console.log('--- recordsWithAuthors (detailed) ---');
-  //   for (const rw of recordsWithAuthors) {
-  //     const rec = rw.rec;
-  //     const id = rec.id || rec['id-at-source'] || '<no-id>';
-  //     const src = rec['source-name'] || '<no-src>';
-  //     const score = rw.score;
-  //     const fields = rec['api:native']?.['api:field'] || [];
-  //     const doiField = fields.find(f => f && f.name === 'doi');
-  //     let authorsField = fields.find(f => f && f.name === 'authors');
-  //     let persons = authorsField?.['api:people']?.['api:person'];
-  //     if (persons && !Array.isArray(persons)) persons = [persons];
-  //     const authorsCount = persons ? persons.length : 0;
-  //     const firstAuthor = persons && persons[0] ? `${persons[0]['api:last-name'] || ''},${persons[0]['api:first-names'] || ''}` : '<none>';
-  //     console.log({ idx: rw.idx, id, src, score, hasDoi: !!doiField, authorsCount, firstAuthor });
-  //   }
-  //   console.log('--- bestRecords details ---');
-  //   for (const br of bestRecords) {
-  //     const id = br.id || br['id-at-source'] || '<no-id>';
-  //     const src = br['source-name'] || '<no-src>';
-  //     const fields = br['api:native']?.['api:field'] || [];
-  //     let authorsField = fields.find(f => f && f.name === 'authors');
-  //     let persons = authorsField?.['api:people']?.['api:person'];
-  //     if (persons && !Array.isArray(persons)) persons = [persons];
-  //     console.log('best record:', { id, src, authorsCount: persons ? persons.length : 0, persons });
-  //   }
-  // }
-
   return groups;
 }
-
-// function getAllValuesOfType(records, type) {
-//   let values = new Set();
-//   for (const rec of records) {
-//     const fields = rec['api:native']?.['api:field'] || [];
-//     for (const f of fields) {
-//       if (f.name === type && f['api:text']) {
-//         // If api:text is an array, add all; else add the single value
-//         if (Array.isArray(f['api:text'])) {
-//           f['api:text'].forEach(t => values.add(t));
-//         } else {
-//           values.add(f['api:text']);
-//         }
-//       }
-//     }
-//   }
-//   return values;
-// }
-
-// function getBestIssn(records, pubObj) {
-//   let bestScore = Infinity;
-//   let bestIssns = [];
-
-//   for (const record of records) {
-//     const fields = record['api:native']?.['api:field'] || [];
-//     const issnFields = fields.filter(f => f.name === 'issn' && f['api:text']);
-//     if (!issnFields.length) continue;
-
-//     // score with doi boost
-//     const score = computeRecordScore(record);
-
-//     if (score < bestScore) {
-//       bestScore = score;
-//       bestIssns = issnFields.flatMap(f =>
-//         Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
-//       );
-//     } else if (score === bestScore) {
-//       bestIssns.push(...issnFields.flatMap(f =>
-//         Array.isArray(f['api:text']) ? f['api:text'] : [f['api:text']]
-//       ));
-//     }
-//   }
-
-//   // Fallback: check publication-level api:journal
-//   if (!bestIssns.length && pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
-//     bestIssns = [pubObj['api:journal'].issn];
-//   }
-
-//   // Return the first ISSN (SPARQL typically uses the first)
-//   return bestIssns.length ? bestIssns[0] : undefined;
-// }
 
 function getBestDateObjectsFromRecords(fieldName, records, pubObj) {
   let bestScore = Infinity;
@@ -361,6 +283,10 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   // Get the best record data (prefer manual > dimensions > crossref > others)
   const records = extractAsArray(workRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"]');
+
+  // Publication-level object
+  const pubObj = workRelationship?.['api:related']?.['api:object'];
+
   let primaryRecord = records.find(r => r['source-name'] === 'manual') ||
                      records.find(r => r['source-name'] === 'dimensions') ||
                      records.find(r => r['source-name'] === 'crossref') ||
@@ -368,29 +294,15 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   if (!primaryRecord || !primaryRecord['api:native'] || !primaryRecord['api:native']['api:field']) return result;
 
-  // const fields = primaryRecord['api:native']['api:field'] || [];
-
-  // Extract publication data using jsonpath
-  // const title = getBestFieldValueFromRecords('title', records);
-  // Collect all unique titles from all records
-  // const titles = getAllValuesOfType(records, 'title');
   const bestTitle = getBestFieldValuesFromRecords('title', records);
   const titles = Array.isArray(bestTitle) ? bestTitle : [bestTitle].filter(Boolean);
 
   const abstracts = getBestFieldValuesFromRecords('abstract', records);
-  const dois = getBestFieldValuesFromRecords('doi', records) || [];
+  const dois = getBestFieldValuesFromRecords('doi', records);
 
   // Collect all unique ISSNs from all records
   // sparql collects each publication, regardless of which record the ISSN
   // comes from. not just the primaryRecord
-  // pull from fields
-  // const issns = getAllValuesOfType(records, 'issn');
-  // // and pull from journal objects
-  const pubObj = workRelationship?.['api:related']?.['api:object'];
-  // if (pubObj && pubObj['api:journal'] && pubObj['api:journal'].issn) {
-  //   issns.add(pubObj['api:journal'].issn);
-  // }
-
   const issn = getBestFieldValueFromRecords('issn', records);
   const eissn = getBestFieldValuesFromRecords('eissn', records);
 
@@ -403,9 +315,9 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (isbn10) isbns.push(isbn10);
 
   // sparql maps journal, parent-title, and name-of-conference to cite:container-title
-  const journal = getBestFieldValuesFromRecords('journal', records) || [];
-  const parentTitle = getBestFieldValuesFromRecords('parent-title', records) || [];
-  const conferenceName = getBestFieldValuesFromRecords('name-of-conference', records) || [];
+  const journal = getBestFieldValuesFromRecords('journal', records);
+  const parentTitle = getBestFieldValuesFromRecords('parent-title', records);
+  const conferenceName = getBestFieldValuesFromRecords('name-of-conference', records);
   const containerTitle =  Array.from(new Set([].concat(journal, parentTitle, conferenceName)));
 
   // sparql maps 'number' and 'series' to cite:collection-number
@@ -422,18 +334,53 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const license = getBestFieldValueFromRecords('publisher-licence', records);
   const medium = getBestFieldValueFromRecords('medium', records); // || 'Undetermined';
 
-  const dateAvailableField = records
-      .map(r => r['api:native'] && r['api:native']['api:field']
-        ? r['api:native']['api:field'].find(f => f.name === 'online-publication-date')
-        : null)
-      .find(f => !!f);
-  const dateAvailable = formatDate(dateAvailableField?.['api:date']);
+  // Choose online-publication-date using the same scoring logic as other date fields
+  const dateAvailableFields = getBestDateObjectsFromRecords('online-publication-date', records, pubObj);
+  // Replicate SPARQL: BIND(CONCAT(?opub_year, COALESCE(?opub_month, ""), COALESCE(?opub_day, "")) AS ?opub_datestr)
+  // => produce YYYY, YYYY-MM, or YYYY-MM-DD with zero-padded month/day when present
+  const rawDate = dateAvailableFields.length ? (dateAvailableFields[0]['api:date'] ? dateAvailableFields[0]['api:date'] : dateAvailableFields[0]) : null;
+
+  const formatSparqlDate = (raw) => {
+    if (!raw) return null;
+    // if it's a plain string like '2010-12-25' or '2010' or '20101225', parse and build with hyphens
+    if (typeof raw === 'string') {
+      const m = raw.match(/^(\d{4})(?:-?(\d{1,2})(?:-?(\d{1,2}))?)?/);
+      if (!m) return raw;
+      const year = m[1];
+      const month = m[2] ? String(m[2]).padStart(2, '0') : '';
+      const day = m[3] ? String(m[3]).padStart(2, '0') : '';
+      return `${year}${month ? `-${month}` : ''}${day ? `-${day}` : ''}`;
+    }
+
+    // if it's an object with api:year/api:month/api:day (or year/month/day)
+    const year = raw['api:year'] || raw.year;
+    const month = raw['api:month'] || raw.month;
+    const day = raw['api:day'] || raw.day;
+    if (year) {
+      return `${String(year)}${month ? `-${String(month).padStart(2, '0')}` : ''}${day ? `-${String(day).padStart(2, '0')}` : ''}`;
+    }
+
+    // fallback: if object contains @value string, try parsing that
+    if (raw['@value'] && typeof raw['@value'] === 'string') {
+      const m = raw['@value'].match(/^(\d{4})(?:-?(\d{1,2})(?:-?(\d{1,2}))?)?/);
+      if (m) {
+        const mo = m[2] ? String(m[2]).padStart(2, '0') : '';
+        const da = m[3] ? String(m[3]).padStart(2, '0') : '';
+        return `${m[1]}${mo ? `-${mo}` : ''}${da ? `-${da}` : ''}`;
+      }
+    }
+
+    return null;
+  };
+
+  const dateAvailable = formatSparqlDate(rawDate);
 
   const status = getBestFieldValueFromRecords('publication-status', records); // || 'Published';
+  const notes = getBestFieldValuesFromRecords('notes', records);
 
   // collect urls (public-url and oa-location-url) and map both to cite:url (same as sparql)
-  const urlsPublic = getBestFieldValuesFromRecords('public-url', records) || [];
-  const urlsOa = getBestFieldValuesFromRecords('oa-location-url', records) || [];
+  const urlsPublic = getBestFieldValuesFromRecords('public-url', records);
+  const urlsOa = getBestFieldValuesFromRecords('oa-location-url', records);
    // preserve order and dedupe
   const urls = Array.from(new Set([].concat(urlsPublic, urlsOa)));
 
@@ -443,12 +390,24 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   // Extract publication date(s)
   const pubDateFields = getBestDateObjectsFromRecords('publication-date', records, pubObj);
   const issuedDates = (pubDateFields || [])
-    .map(d => formatDate(d['api:date'] ? d['api:date'] : d))
+    .map(d => formatSparqlDate(d['api:date'] ? d['api:date'] : d))
     .filter(Boolean);
 
   // Determine schema.org type (mirror SPARQL VALUES mapping)
   // to use in publication @type, and cite:type
   let rawType = jsonpath.value(pubObj, 'type') || getBestFieldValueFromRecords('type', records);
+
+  // replicate legacy behavior: only include specific work types that were present in the legacy VALUES()
+  // Allowed types: book, chapter, conference, journal-article
+  const ALLOWED_WORK_TYPES = new Set(['book', 'chapter', 'conference', 'journal-article']);
+  // normalize rawType to an array of lowercase strings
+  const rawTypeValues = rawType === undefined || rawType === null ? [] : (Array.isArray(rawType) ? rawType.map(String) : [String(rawType)]);
+  const normalizedTypes = rawTypeValues.map(t => (t || '').toLowerCase());
+  // If none of the publication types are in the allowed set, skip producing JSON-LD (matches legacy bind.rq)
+  if (!normalizedTypes.some(t => ALLOWED_WORK_TYPES.has(t))) {
+    return result; // empty -> will be skipped by transformWorks
+  }
+
   const schemaTypeUri = SCHEMA_URI_TYPE_MAP[rawType] || SCHEMA_URI_TYPE_MAP['journal-article'];
 
   // Create main publication record with schema type + Work fallback
@@ -487,9 +446,15 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (medium) publication["http://citationstyles.org/schema/medium"] = [{ "@value": medium }];
   if (dateAvailable) publication["http://citationstyles.org/schema/date-available"] = [{ "@value": dateAvailable }];
   if (status) publication["http://citationstyles.org/schema/status"] = [{ "@value": status }];
+  // Emit notes only when present in the input records (don't synthesize from status)
+  if (notes && notes.length) {
+    publication["http://citationstyles.org/schema/note"] = notes.map(v => ({ "@value": v }));
+  }
   if (urls.length) publication["http://citationstyles.org/schema/url"] = urls.map(u => ({ "@value": u }));
   if (issuedDates.length) {
-    publication["http://citationstyles.org/schema/issued"] = issuedDates.map(v => ({ "@value": v }));
+    // remove exact duplicate date strings while preserving original order
+    const uniqueIssued = issuedDates.filter((v, i, a) => a.indexOf(v) === i);
+    if (uniqueIssued.length) publication["http://citationstyles.org/schema/issued"] = uniqueIssued.map(v => ({ "@value": v }));
   }
 
   // set cite:type
@@ -534,7 +499,6 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   // - Create one author node per position, with family/given arrays built from those persons (deduped).
   // - Compute expert rank by checking links within each position group.
   let positionGroups = getBestAuthorsPositionGroups(records, workRelationship.id);
-  // console.log('workrelationshipId', workRelationship.id);
 
   // create author nodes: one node per position, family/given arrays from group
   const authorUris = [];
@@ -554,14 +518,15 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
       if (giv && !seenGiven.has(giv)) { seenGiven.add(giv); givenVals.push(giv); }
     }
 
-    result.push({
-      "@id": authorUri,
-      "http://citationstyles.org/schema/family": familyVals.map(v => ({ "@value": v })),
-      "http://citationstyles.org/schema/given": givenVals.map(v => ({ "@value": v })),
-      "http://vivoweb.org/ontology/core#rank": [
-        { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": `${idx + 1}` }
-      ]
-    });
+    // Build author node, only include family/given when we actually have values
+    const authorNode = { "@id": authorUri };
+    if (familyVals.length) authorNode["http://citationstyles.org/schema/family"] = familyVals.map(v => ({ "@value": v }));
+    if (givenVals.length)  authorNode["http://citationstyles.org/schema/given"] = givenVals.map(v => ({ "@value": v }));
+    authorNode["http://vivoweb.org/ontology/core#rank"] = [
+      { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": `${idx + 1}` }
+    ];
+
+    result.push(authorNode);
   });
 
   if (authorUris.length) {

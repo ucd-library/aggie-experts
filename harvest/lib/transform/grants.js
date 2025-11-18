@@ -120,10 +120,22 @@ function updateNameCasing(name) {
 function cleanGrantTitle(rawTitle) {
   if (!rawTitle) return '';
 
-  return rawTitle
+  // First strip known leading/trailing grant codes and other noisy suffixes (existing logic)
+  let title = rawTitle
     .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
     .replace(/\s+[ABCKKXYZ]\d+[A-Z]*\d*$/i, '') // Remove trailing grant codes like K322D09
     .trim();
+
+  // Collapse repeated whitespace to a single space
+  title = title.replace(/\s+/g, ' ');
+
+  // Normalize spacing after common punctuation (colon, semicolon, em-dash)
+  title = title.replace(/:\s*/g, ': ').replace(/;\s*/g, '; ').replace(/—\s*/g, '— ');
+
+  // Remove stray leading/trailing bullets, section markers or hyphens
+  title = title.replace(/^[\s•§\-–—]+/, '').replace(/[\s•§\-–—]+$/, '');
+
+  return title;
 }
 
 function getGrantType(fields) {
@@ -217,7 +229,9 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
 }
 
 function generatePersonId(lastName, firstName) {
-  return `${lastName.toLowerCase()}_${firstName.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')}`;
+  const cleanLast = (lastName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
+  const cleanFirst = (firstName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
+  return `${cleanLast}_${cleanFirst}`;
 }
 
 function isExpertMatch(personLastName, personFirstName, expertData) {
@@ -270,11 +284,31 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
   const records = jsonpath.value(grantRelationship, '$["api:related"]["api:object"]["api:records"]["api:record"]') || [];
   const recordsArray = Array.isArray(records) ? records : [records];
 
-  const record = recordsArray.find(r =>
-    r['api:native'] &&
-    r['api:native']['api:field'] &&
-    r['api:native']['api:field'].some(f => f.name === 'c-co-pis')
-  ) || recordsArray[0];
+  // Prefer the record with the minimal numeric source-id (mirrors SPARQL's min(?id))
+  let record = null;
+  try {
+    const candidates = recordsArray
+      .map(r => ({ r, id: (r && (r['source-id'] ?? r['api:source-id'] ?? r['sourceId'] ?? r['id-at-source'])) }))
+      .filter(x => x.id !== undefined && x.id !== null);
+    // Normalize numeric-like ids
+    candidates.forEach(c => {
+      if (typeof c.id === 'string' && /^\d+$/.test(c.id)) c.numId = Number(c.id);
+      else if (typeof c.id === 'number') c.numId = c.id;
+      else c.numId = null;
+    });
+    const withNum = candidates.filter(c => c.numId !== null);
+    if (withNum.length) {
+      const minId = Math.min(...withNum.map(c => c.numId));
+      const found = withNum.find(c => c.numId === minId);
+      if (found) record = found.r;
+    }
+  } catch (e) {
+    // ignore and fallback
+  }
+  // Fallback: prefer a record containing c-co-pis, else first record
+  if (!record) {
+    record = recordsArray.find(r => r && r['api:native'] && r['api:native']['api:field'] && r['api:native']['api:field'].some(f => f.name === 'c-co-pis')) || recordsArray[0];
+  }
 
   if (!record || !record['api:native'] || !record['api:native']['api:field']) {
     return null;
@@ -298,8 +332,16 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
 function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   const rawTitle = getFieldValue(fields, 'title');
   const title = cleanGrantTitle(rawTitle);
-  const funderName = capitalizeTitle(getFieldValue(fields, 'funder-name'));
-  const funderReference = getFieldValue(fields, 'funder-reference');
+  // Replicate SPARQL OPTIONAL grouping: only treat funder-name and
+  // funder-reference as present if both are present on the same record.
+  const rawFunderName = getFieldValue(fields, 'funder-name');
+  const rawFunderRef = getFieldValue(fields, 'funder-reference');
+  let funderName = '';
+  let funderReference = '';
+  if (rawFunderName && rawFunderRef) {
+    funderName = capitalizeTitle(rawFunderName);
+    funderReference = rawFunderRef;
+  }
   const amount = getFieldObject(fields, 'amount');
   const startDate = getFieldObject(fields, 'start-date');
   const endDate = getFieldObject(fields, 'end-date');
@@ -311,7 +353,36 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   const piTextValue = getFieldValue(fields, 'c-pi');
   const formattedPiName = piTextValue ? updateNameCasing(piTextValue) : '';
 
-  const grantName = `${title} § ${grantStatus} • ${startDate?.['api:year']} - ${endDate?.['api:year']} • ${formattedPiName} § ${funderName} • ${funderReference}`;
+  // Build a compact date range (years only) when available
+  const startYear = startDate && startDate['api:year'] ? String(startDate['api:year']) : '';
+  const endYear = endDate && endDate['api:year'] ? String(endDate['api:year']) : '';
+  let dateRange = '';
+  if (startYear && endYear) dateRange = `${startYear} - ${endYear}`;
+  else if (startYear) dateRange = startYear;
+  else if (endYear) dateRange = endYear;
+
+  // Build status subpart (status plus optional date range and PI)
+  const statusParts = [];
+  if (grantStatus) statusParts.push(grantStatus);
+  if (dateRange) statusParts.push(dateRange);
+  if (formattedPiName) statusParts.push(formattedPiName);
+  const statusPart = statusParts.length ? statusParts.join(' • ') : '';
+
+  // Compose name pieces: title, statusPart, funderName, funderReference
+  const mainPieces = [];
+  if (title) mainPieces.push(title);
+  if (statusPart) mainPieces.push(statusPart);
+
+  // Build combined funder piece: funderName optionally followed by ' • ' + funderReference
+  let funderPiece = '';
+  if (funderName && funderReference) funderPiece = `${funderName} • ${funderReference}`;
+  else if (funderName) funderPiece = funderName;
+  else if (funderReference) funderPiece = funderReference;
+
+  if (funderPiece) mainPieces.push(funderPiece);
+
+  const grantName = mainPieces.join(' § ');
+
   const specificGrantType = getGrantType(fields);
   const grantTypes = [ONTOLOGY.GRANT];
   if (specificGrantType) grantTypes.unshift(specificGrantType);
@@ -324,14 +395,19 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
       { "@id": `ark:/87287/d7mh2m/${grantId}` },
       { "@id": grantUri }
     ],
-    "http://schema.org/name": [{ "@value": grantName }],
     [ONTOLOGY.RELATED_BY]: [{ "@id": relationshipUri }]
   };
+
+  // Only include a human-readable name if we actually built one from record fields
+  if (grantName) {
+    grant["http://schema.org/name"] = [{ "@value": grantName }];
+  }
 
   if (amount) {
     grant[ONTOLOGY.TOTAL_AWARD_AMOUNT] = [{ "@value": amount['$t'] }];
   }
 
+  // Only include sponsorAwardId when the selected record actually has a funderReference
   if (funderReference) {
     grant[ONTOLOGY.SPONSOR_AWARD_ID] = [{ "@value": funderReference }];
   }
@@ -373,13 +449,15 @@ function createDateRecords(startDateValue, endDateValue, grantUri) {
 }
 
 function createFunderRecord(funderName, grantUri) {
-  if (!funderName) return null;
-
-  return {
+  // Always create a funder node (the SPARQL output included a funder node even when name was empty).
+  const node = {
     "@id": `${grantUri}#funder`,
-    "@type": [ONTOLOGY.FUNDING_ORG],
-    "http://schema.org/name": [{ "@value": funderName }]
+    "@type": [ONTOLOGY.FUNDING_ORG]
   };
+  if (funderName) {
+    node["http://schema.org/name"] = [{ "@value": funderName }];
+  }
+  return node;
 }
 
 function processAllGrantPeople(fields, grantUri, expertData, piTextValue, formattedPiName) {
