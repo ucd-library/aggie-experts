@@ -353,9 +353,9 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     }
 
     // if it's an object with api:year/api:month/api:day (or year/month/day)
-    const year = raw['api:year'] || raw.year || raw['year'];
-    const month = raw['api:month'] || raw.month || raw['month'];
-    const day = raw['api:day'] || raw.day || raw['day'];
+    const year = raw['api:year'] || raw.year;
+    const month = raw['api:month'] || raw.month;
+    const day = raw['api:day'] || raw.day;
     if (year) {
       return `${String(year)}${month ? `-${String(month).padStart(2, '0')}` : ''}${day ? `-${String(day).padStart(2, '0')}` : ''}`;
     }
