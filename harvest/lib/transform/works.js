@@ -298,7 +298,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const titles = Array.isArray(bestTitle) ? bestTitle : [bestTitle].filter(Boolean);
 
   const abstracts = getBestFieldValuesFromRecords('abstract', records);
-  const dois = getBestFieldValuesFromRecords('doi', records) || [];
+  const dois = getBestFieldValuesFromRecords('doi', records);
 
   // Collect all unique ISSNs from all records
   // sparql collects each publication, regardless of which record the ISSN
@@ -315,9 +315,9 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   if (isbn10) isbns.push(isbn10);
 
   // sparql maps journal, parent-title, and name-of-conference to cite:container-title
-  const journal = getBestFieldValuesFromRecords('journal', records) || [];
-  const parentTitle = getBestFieldValuesFromRecords('parent-title', records) || [];
-  const conferenceName = getBestFieldValuesFromRecords('name-of-conference', records) || [];
+  const journal = getBestFieldValuesFromRecords('journal', records);
+  const parentTitle = getBestFieldValuesFromRecords('parent-title', records);
+  const conferenceName = getBestFieldValuesFromRecords('name-of-conference', records);
   const containerTitle =  Array.from(new Set([].concat(journal, parentTitle, conferenceName)));
 
   // sparql maps 'number' and 'series' to cite:collection-number
@@ -376,11 +376,11 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   const dateAvailable = formatSparqlDate(rawDate);
 
   const status = getBestFieldValueFromRecords('publication-status', records); // || 'Published';
-  const notes = getBestFieldValuesFromRecords('notes', records) || [];
+  const notes = getBestFieldValuesFromRecords('notes', records);
 
   // collect urls (public-url and oa-location-url) and map both to cite:url (same as sparql)
-  const urlsPublic = getBestFieldValuesFromRecords('public-url', records) || [];
-  const urlsOa = getBestFieldValuesFromRecords('oa-location-url', records) || [];
+  const urlsPublic = getBestFieldValuesFromRecords('public-url', records);
+  const urlsOa = getBestFieldValuesFromRecords('oa-location-url', records);
    // preserve order and dedupe
   const urls = Array.from(new Set([].concat(urlsPublic, urlsOa)));
 
