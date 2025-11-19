@@ -32,7 +32,14 @@ async function run(rel, expertId, expertData, options = {}) {
     grants
   } = parseRelationshipTypes(rel);
 
-  works = transformWorks(works, expertId, elementsUserId, rel['@graph']);
+  // Normalise rel['@graph'] to an array so downstream code that does `for (const node of inputGraph)`
+  // does not throw "inputGraph is not iterable" when @graph is a single object.
+  let inputGraph = rel['@graph'];
+  if (!Array.isArray(inputGraph)) {
+    inputGraph = inputGraph ? [inputGraph] : []; // ensure iterable
+  }
+
+  works = transformWorks(works, expertId, elementsUserId, inputGraph);
   grants = transformGrants(grants, expertId, expertData);
 
   await saveRelationshipFiles([...works, ...grants], expertId, options);
