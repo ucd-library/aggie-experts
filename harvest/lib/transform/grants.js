@@ -174,10 +174,40 @@ function getGrantStatus(endDate) {
   return endYear < currentYear ? 'Completed' : 'Active';
 }
 
-// Create user role relationship
-function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData) {
-  const relationshipType = grantRelationship.type || 'user-grant-research';
+// Choose best display name for the expert from grant people variants (prefer hyphenated/person-provided),
+// falling back to expertData
+function pickExpertDisplayName(fields, expertData) {
+  const expertLast = expertData['last-name'] || '';
+  const expertFirst = expertData['first-name'] || '';
+  const normalizeLast = s => (s||'').toLowerCase().replace(/[-\s]/g,'');
+  const normalizeFirstCore = s => (s||'').toLowerCase().replace(/\s+/g,'').replace(/[^a-z]/g,'');
+  // Look through c-co-pis for a matching variant to prefer its last/first
+  const coPiListField = fields.find(f => f.name === 'c-co-pis');
+  if (coPiListField && coPiListField['api:people']) {
+    const apiPerson = coPiListField['api:people']['api:person'];
+    const people = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
+    for (const person of people) {
+      if (typeof person === 'string') continue;
+      const lastName = person['api:last-name'] || '';
+      const firstName = person['api:first-names'] || '';
+      // Match expert by normalized last and first token/core
+      if (normalizeLast(lastName) === normalizeLast(expertLast)) {
+        const firstTok = (firstName || '').split(/\s+/)[0];
+        if (normalizeFirstCore(firstTok) === normalizeFirstCore(expertFirst)) {
+          // Strip trailing single-letter middle initial in first name for label
+          const cleanedFirst = firstName.replace(/\s+[A-Za-z]$/,'');
+          return updateNameCasing(`${lastName}, ${cleanedFirst}`);
+        }
+      }
+    }
+  }
+  // Fallback to expertData
+  return updateNameCasing(`${expertLast}, ${expertFirst}`.trim().replace(/,\s*$/, ''));
+}
 
+// Create user role relationship
+function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields) {
+  const relationshipType = grantRelationship.type || 'user-grant-research';
   // Map relationship types to role abbreviations
   const roleMapping = {
     'user-grant-principal-investigation': { abbrev: 'PI', type: ROLE_TYPES.PI },
@@ -189,42 +219,23 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     'user-grant-project-leadership': { abbrev: 'Lead', type: ROLE_TYPES.LEADER },
     'user-grant-research': { abbrev: 'Res', type: ROLE_TYPES.RESEARCHER }
   };
-
   const roleInfo = roleMapping[relationshipType] || roleMapping['user-grant-research'];
 
-  let userName = 'Unknown User';
-  if (expertData) {
-    const userLastName = expertData['last-name'] || '';
-    const userFirstName = expertData['first-name'] || '';
-
-    userName = userLastName + (userFirstName ? `, ${userFirstName}` : '');
-  }
-
+  // Prefer grant-provided variant for expert name when available
+  const userName = pickExpertDisplayName(fields || [], expertData);
   const roleName = `${roleInfo.abbrev}: ${userName}`;
-
   const isVisible = grantRelationship["api:is-visible"] === 'true';
 
   const userRole = {
     "@id": relationshipUri,
-    "@type": [
-      roleInfo.type,
-      ONTOLOGY.GRANT_ROLE
-    ],
-    "http://purl.obolibrary.org/obo/RO_0000052": [
-      { "@id": expertUri }
-    ],
-    "http://schema.org/name": [
-      { "@value": roleName }
-    ],
+    "@type": [ roleInfo.type, ONTOLOGY.GRANT_ROLE ],
+    "http://purl.obolibrary.org/obo/RO_0000052": [ { "@id": expertUri } ],
+    "http://schema.org/name": [ { "@value": roleName } ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": isVisible.toString() }
     ],
-    [ONTOLOGY.RELATES]: [
-      { "@id": expertUri },
-      { "@id": grantUri }
-    ]
+    [ONTOLOGY.RELATES]: [ { "@id": expertUri }, { "@id": grantUri } ]
   };
-
   return userRole;
 }
 
@@ -232,6 +243,48 @@ function generatePersonId(lastName, firstName) {
   const cleanLast = (lastName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
   const cleanFirst = (firstName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
   return `${cleanLast}_${cleanFirst}`;
+}
+
+function sanitizePart(s) {
+  return (s || '').toLowerCase().replace(/[^a-z]/g,'');
+}
+
+function firstToken(s) {
+  return (s || '').split(/\s+/)[0];
+}
+
+function buildNameVariants(last, first, initials) {
+  const lastSan = sanitizePart(last);
+  const firstSan = sanitizePart(first);
+  const firstTokSan = sanitizePart(firstToken(first));
+  const initialsSan = sanitizePart(initials);
+  const firstInitialSan = initialsSan ? initialsSan.charAt(0) : (firstSan.charAt(0) || '');
+  return {
+    full: lastSan + (firstSan ? '_' + firstSan : ''),
+    firstToken: lastSan + (firstTokSan ? '_' + firstTokSan : ''),
+    initials: lastSan + (initialsSan ? '_' + initialsSan : ''),
+    firstInitial: lastSan + (firstInitialSan ? '_' + firstInitialSan : ''),
+    lastSan,
+    firstSan
+  };
+}
+
+function expertMatches(expertData, last, first, initials) {
+  const eLast = expertData['last-name'] || '';
+  const eFirst = expertData['first-name'] || '';
+  const eInitials = expertData['initials'] || '';
+  const expertVars = buildNameVariants(eLast, eFirst, eInitials);
+  const personVars = buildNameVariants(last, first, initials);
+  return (
+    expertVars.full === personVars.full ||
+    expertVars.firstToken === personVars.firstToken ||
+    expertVars.initials === personVars.initials ||
+    expertVars.firstInitial === personVars.firstInitial
+  );
+}
+
+function generatePersonIdStrict(last, first) {
+  return `${sanitizePart(last)}_${sanitizePart(first)}`;
 }
 
 function isExpertMatch(personLastName, personFirstName, expertData) {
@@ -465,43 +518,48 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   const createdRoles = [];
   const peopleRecords = [];
 
-  // Calculate piRoleId for PI processing
-  let piRoleId = null;
-  if (piTextValue) {
-    const nameParts = formattedPiName.split(', ');
-    if (nameParts.length >= 2) {
-      const piId = generatePersonId(nameParts[0], nameParts[1]);
-      piRoleId = `${grantUri}#roleof_${piId}`;
-    }
+  const normalizeLast = s => (s||'').toLowerCase().replace(/[-\s]/g,'');
+  const normalizeFirstCore = s => (s||'').toLowerCase().replace(/\s+/g,'').replace(/[^a-z]/g,'');
+
+  // Pre-calc: presence of any Co-PIs
+  let hasCoPIs = false;
+  const coPiListFieldProbe = fields.find(f => f.name === 'c-co-pis');
+  if (coPiListFieldProbe && coPiListFieldProbe['api:people']) {
+    const ap = coPiListFieldProbe['api:people']['api:person'];
+    const arr = Array.isArray(ap) ? ap : [ap];
+    hasCoPIs = arr.some(p => typeof p !== 'string' && (p['api:last-name'] || p['api:first-names']));
   }
 
-  // Create PI records if they exist
-  if (piTextValue && piRoleId) {
+  // PI person + conditional separate PI role
+  if (piTextValue) {
     const nameParts = formattedPiName.split(', ');
     if (nameParts.length >= 2) {
       const lastName = nameParts[0];
       const firstName = nameParts[1];
-      const piId = generatePersonId(lastName, firstName);
+      const piId = generatePersonIdStrict(lastName, firstName);
+      const isCurrentExpert = expertMatches(expertData, lastName, firstName, '');
 
-      const personLastName = lastName.toLowerCase();
-      const personFirstName = firstName.toLowerCase();
+      if (!processedPeople.has(piId)) {
+        processedPeople.add(piId);
+        peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
+        peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
+      }
 
-      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
-
-      processedPeople.add(piId);
-
-      peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
-      peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
-
-      if (!isCurrentExpert) {
+      // Emit a separate PI role only when:
+      // - PI is not the current expert, OR
+      // - last name differs from expert (variant), OR
+      // - there are CoPIs and the PI is not the expert (so external PI appears alongside expert user role)
+      const lastSameAsExpert = normalizeLast(lastName) === normalizeLast(expertData['last-name'] || '');
+      const emitPiRole = (!isCurrentExpert && (hasCoPIs || true)) || (!lastSameAsExpert);
+      if (emitPiRole) {
         const roleRecord = createRoleRecord(piId, ROLE_TYPES.PI, 'PI', formattedPiName, grantUri);
         peopleRecords.push(roleRecord);
-        createdRoles.push({ "@id": roleRecord["@id"] });
+        createdRoles.push({ '@id': roleRecord['@id'] });
       }
     }
   }
 
-  // Process c-co-pis field
+  // CoPIs (unchanged; still suppress when person is the current expert)
   const coPiListField = fields.find(f => f.name === 'c-co-pis');
   if (coPiListField && coPiListField['api:people']) {
     const apiPerson = coPiListField['api:people']['api:person'];
@@ -512,65 +570,28 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
 
       const lastName = person['api:last-name'] || '';
       const firstName = person['api:first-names'] || '';
-
+      const initials = person['api:initials'] || '';
       if (!lastName || !firstName) return;
 
-      const personLastName = lastName.toLowerCase().replace(/,?\s*$/, '');
-      const personFirstName = firstName.toLowerCase();
+      const formattedName = updateNameCasing(`${lastName}, ${firstName}`);
+      const coPiId = generatePersonIdStrict(lastName, firstName);
 
-      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
+      if (processedPeople.has('copi_' + coPiId)) return;
+      processedPeople.add('copi_' + coPiId);
 
-      const piName = `${lastName.replace(/,?\s*$/, '')}, ${firstName}`;
-      const piId = generatePersonId(lastName, firstName);
-      const formattedName = updateNameCasing(piName);
-
-      if (processedPeople.has(`copi_${piId}`)) return;
-      processedPeople.add(`copi_${piId}`);
-
-      if (!processedPeople.has(`person_${piId}`) && !processedPeople.has(piId)) {
-        processedPeople.add(`person_${piId}`);
-
-        peopleRecords.push(createPersonRecord(piId, formattedName, grantUri));
-        peopleRecords.push(createVCardRecord(piId, lastName.replace(/,?\s*$/, ''), firstName, grantUri));
+      if (!processedPeople.has('person_' + coPiId) && !processedPeople.has(coPiId)) {
+        processedPeople.add('person_' + coPiId);
+        peopleRecords.push(createPersonRecord(coPiId, formattedName, grantUri));
+        peopleRecords.push(createVCardRecord(coPiId, lastName, firstName, grantUri));
       }
 
+      const isCurrentExpert = expertMatches(expertData, lastName, firstName, initials);
       if (!isCurrentExpert) {
-        const roleRecord = createRoleRecord(piId, ROLE_TYPES.CO_PI, 'COPI', formattedName, grantUri);
+        const roleRecord = createRoleRecord(coPiId, ROLE_TYPES.CO_PI, 'COPI', formattedName, grantUri);
         peopleRecords.push(roleRecord);
-        createdRoles.push({ "@id": roleRecord["@id"] });
+        createdRoles.push({ '@id': roleRecord['@id'] });
       }
     });
-  }
-
-  // Process c-pi field for additional PIs
-  const additionalPiField = fields.find(f => f.name === 'c-pi');
-  if (additionalPiField && additionalPiField['api:text']) {
-    const piTextValue = additionalPiField['api:text'];
-    const formattedPiName = updateNameCasing(piTextValue);
-
-    const nameParts = formattedPiName.split(', ');
-    if (nameParts.length >= 2) {
-      const lastName = nameParts[0];
-      const firstName = nameParts[1];
-
-      const personLastName = lastName.toLowerCase();
-      const personFirstName = firstName.toLowerCase();
-
-      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
-
-      const piId = generatePersonId(lastName, firstName);
-
-      if (!isCurrentExpert && !processedPeople.has(piId)) {
-        processedPeople.add(piId);
-
-        peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
-        peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
-
-        const roleRecord = createRoleRecord(piId, ROLE_TYPES.PI, 'PI', formattedPiName, grantUri);
-        peopleRecords.push(roleRecord);
-        createdRoles.push({ "@id": roleRecord["@id"] });
-      }
-    }
   }
 
   return { peopleRecords, createdRoles };
@@ -693,7 +714,6 @@ function transformGrants(grants, expertId, expertData) {
 function transformGrant(grantRelationship, relationshipId, expertId, expertData) {
   // Extract data
   const extractedData = extractGrantData(grantRelationship, relationshipId, expertId);
-  // if( grantRelationship.id == '6184542' ) console.log('extractedData 6184542', JSON.stringify(extractedData, null, 2));
   if (!extractedData) return [];
 
   const { grantId, relationshipUri, expertUri, fields, grantUri } = extractedData;
@@ -722,8 +742,8 @@ function transformGrant(grantRelationship, relationshipId, expertId, expertData)
   const { peopleRecords, createdRoles } = processAllGrantPeople(fields, grantUri, expertData, piTextValue, formattedPiName);
   result.push(...peopleRecords);
 
-  // Create user role
-  const userRole = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData);
+  // Create user role (pass fields so we can choose best expert display variant)
+  const userRole = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields);
 
   // Finalize output
   return finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri);
