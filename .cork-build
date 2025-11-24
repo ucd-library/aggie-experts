@@ -1,5 +1,5 @@
 {
-  "registry" : "us-west1-docker.pkg.dev/aggie-experts/docker",
+  "registry" : "us-west1-docker.pkg.dev/aggie-experts/pub",
 
   "repositories" : {
     "project-anduin" : "https://github.com/ucd-library/project-anduin",
