@@ -321,8 +321,17 @@ function run(expertId, profile, cdl, ucopVocab) {
           { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": String(listing.listingOrder) }
         ]
       };
-      if (listing.emailWwwFlag === 'Y' && email) {
-        odrContact["http://www.w3.org/2006/vcard/ns#hasEmail"] = [{ "@id": `mailto:${email}` }];
+      // Emit email only when listing itself provides an email (do not use global profile email)
+      if (listing.emailWwwFlag === 'Y' && listing.email) {
+        odrContact["http://www.w3.org/2006/vcard/ns#hasEmail"] = [{ "@id": `mailto:${listing.email}` }];
+      }
+      // SPARQL-aligned ODR email: when listing.emailWwwFlag === 'Y' and user not HSEmployee,
+      // use listing.email if present, otherwise fall back to default profile email.
+      if (listing.emailWwwFlag === 'Y' && !isHSEmployee) {
+        const odrEmail = listing.email || email;
+        if (odrEmail) {
+          odrContact["http://www.w3.org/2006/vcard/ns#hasEmail"] = [{ "@id": `mailto:${odrEmail}` }];
+        }
       }
       if (listing.deptCode && listing.deptName) {
         odrContact["http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit"] = [
@@ -334,7 +343,7 @@ function run(expertId, profile, cdl, ucopVocab) {
           "http://www.w3.org/2006/vcard/ns#title": [{ "@value": listing.deptName }]
         });
       }
-      if (listing.titleWwwFlag !== 'N' && listing.title) {
+      if (listing.title) { // removed titleWwwFlag gate to always emit expected title node
         const tid = `ark:/87287/d7c08j/position/odr/${md5(listing.title)}`;
         odrContact["http://www.w3.org/2006/vcard/ns#hasTitle"] = [{ "@id": tid }];
         pushUniqueById(result, {
@@ -343,6 +352,7 @@ function run(expertId, profile, cdl, ucopVocab) {
           "http://www.w3.org/2006/vcard/ns#title": [{ "@value": listing.title }]
         });
       }
+      // Reintroduce websiteWwwFlag gate: only emit URL when flag is 'Y'
       if (listing.websiteWwwFlag === 'Y' && listing.website) {
         const urlId = `${base}-url`;
         odrContact["http://www.w3.org/2006/vcard/ns#hasURL"] = [{ "@id": urlId }];

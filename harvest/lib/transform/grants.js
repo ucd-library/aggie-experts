@@ -179,10 +179,9 @@ function getGrantStatus(endDate) {
 function pickExpertDisplayName(fields, expertData) {
   const expertLast = expertData['last-name'] || '';
   const expertFirst = expertData['first-name'] || '';
-  const normalizeLast = s => (s||'').toLowerCase().replace(/[-\s]/g,'');
-  const normalizeFirstCore = s => (s||'').toLowerCase().replace(/\s+/g,'').replace(/[^a-z]/g,'');
-  // Look through c-co-pis for a matching variant to prefer its last/first
+  const normalizeFirstCore = s => (s||'').toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g,'');
   const coPiListField = fields.find(f => f.name === 'c-co-pis');
+  let best = null;
   if (coPiListField && coPiListField['api:people']) {
     const apiPerson = coPiListField['api:people']['api:person'];
     const people = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
@@ -190,19 +189,46 @@ function pickExpertDisplayName(fields, expertData) {
       if (typeof person === 'string') continue;
       const lastName = person['api:last-name'] || '';
       const firstName = person['api:first-names'] || '';
-      // Match expert by normalized last and first token/core
-      if (normalizeLast(lastName) === normalizeLast(expertLast)) {
-        const firstTok = (firstName || '').split(/\s+/)[0];
-        if (normalizeFirstCore(firstTok) === normalizeFirstCore(expertFirst)) {
-          // Strip trailing single-letter middle initial in first name for label
-          const cleanedFirst = firstName.replace(/\s+[A-Za-z]$/,'');
-          return updateNameCasing(`${lastName}, ${cleanedFirst}`);
+      if (lastNamesEquivalent(lastName, expertLast) && normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst)) {
+        const cleanedFirst = firstName.replace(/\s+[A-Za-z]$/,'');
+        const formatted = updateNameCasing(`${lastName}, ${cleanedFirst}`);
+        if (!best || (lastName.includes('-') && !best.includes('-'))) best = formatted;
+      }
+    }
+  }
+  // Also consider c-pi field when no co-pi variant chosen
+  if (!best) {
+    const piField = fields.find(f => f.name === 'c-pi');
+    const piVal = piField && (piField['api:text'] || piField['api:field-value']);
+    if (piVal) {
+      const formattedPi = updateNameCasing(piVal);
+      const piParts = formattedPi.split(', ');
+      if (piParts.length === 2) {
+        const [piLast, piFirst] = piParts;
+        if (piLast.includes('-') && lastNamesEquivalent(piLast, expertLast) && normalizeFirstCore(piFirst) === normalizeFirstCore(expertFirst)) {
+          best = formattedPi.replace(/\s+[A-Za-z]$/,''); // drop trailing middle initial for display consistency
         }
       }
     }
   }
-  // Fallback to expertData
-  return updateNameCasing(`${expertLast}, ${expertFirst}`.trim().replace(/,\s*$/, ''));
+  if (!best) {
+    return updateNameCasing(`${expertLast}, ${expertFirst}`.trim().replace(/,\s*$/, ''));
+  }
+  return best;
+}
+
+function lastNamesEquivalent(a,b) {
+  if (!a || !b) return false;
+  const normA = a.toLowerCase();
+  const normB = b.toLowerCase();
+  if (normA === normB) return true;
+  if (normA.includes('-') && !normB.includes('-')) {
+    if (normA.split('-')[0] === normB) return true;
+  }
+  if (normB.includes('-') && !normA.includes('-')) {
+    if (normB.split('-')[0] === normA) return true;
+  }
+  return false;
 }
 
 // Create user role relationship
@@ -519,15 +545,61 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   const peopleRecords = [];
 
   const normalizeLast = s => (s||'').toLowerCase().replace(/[-\s]/g,'');
-  const normalizeFirstCore = s => (s||'').toLowerCase().replace(/\s+/g,'').replace(/[^a-z]/g,'');
+  const normalizeFirstCore = s => (s||'').toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g,'');
+  const stripMiddleInitial = s => (s||'').replace(/\s+[A-Za-z]$/,'');
+  const lastNamesEquivalent = (a,b) => {
+    if (!a || !b) return false;
+    const normA = a.toLowerCase();
+    const normB = b.toLowerCase();
+    if (normA === normB) return true;
+    // Treat hyphenated variant whose first segment equals the other as equivalent (Makagon vs Makagon-Stuart)
+    if (normA.includes('-') && !normB.includes('-')) {
+      if (normA.split('-')[0] === normB) return true;
+    }
+    if (normB.includes('-') && !normA.includes('-')) {
+      if (normB.split('-')[0] === normA) return true;
+    }
+    return false;
+  };
 
-  // Pre-calc: presence of any Co-PIs
-  let hasCoPIs = false;
+  const expertLast = expertData['last-name'] || '';
+  const expertFirst = expertData['first-name'] || '';
+
+  // Determine distinct CoPIs (exclude variants of expert name differing only by middle initial or hyphen extension)
+  let distinctCoPIs = [];
   const coPiListFieldProbe = fields.find(f => f.name === 'c-co-pis');
   if (coPiListFieldProbe && coPiListFieldProbe['api:people']) {
     const ap = coPiListFieldProbe['api:people']['api:person'];
     const arr = Array.isArray(ap) ? ap : [ap];
-    hasCoPIs = arr.some(p => typeof p !== 'string' && (p['api:last-name'] || p['api:first-names']));
+    arr.forEach(p => {
+      if (typeof p === 'string') return;
+      const l = p['api:last-name'] || '';
+      const f = p['api:first-names'] || '';
+      if (!l || !f) return;
+      const coreMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(f) === normalizeFirstCore(expertFirst);
+      const middleStripMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(stripMiddleInitial(f)) === normalizeFirstCore(expertFirst);
+      const matchesExpert = coreMatch || middleStripMatch;
+      if (!matchesExpert) distinctCoPIs.push(p);
+    });
+  }
+  const hasDistinctCoPIs = distinctCoPIs.length > 0;
+
+  // Capture expert variants that add a trailing middle initial token (e.g. "Maja M" / "Nicole T") so we can emit person/vcard without a CoPI role.
+  let expertExtraVariants = [];
+  if (coPiListFieldProbe && coPiListFieldProbe['api:people']) {
+    const ap = coPiListFieldProbe['api:people']['api:person'];
+    const arr = Array.isArray(ap) ? ap : [ap];
+    arr.forEach(p => {
+      if (typeof p === 'string') return;
+      const l = p['api:last-name'] || '';
+      const f = p['api:first-names'] || '';
+      if (!l || !f) return;
+      const coreMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(f) === normalizeFirstCore(expertFirst);
+      const hasExtraTrailingInitial = /\s+[A-Za-z]$/.test(f);
+      if (coreMatch && hasExtraTrailingInitial) {
+        expertExtraVariants.push(p);
+      }
+    });
   }
 
   // PI person + conditional separate PI role
@@ -537,20 +609,27 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
       const lastName = nameParts[0];
       const firstName = nameParts[1];
       const piId = generatePersonIdStrict(lastName, firstName);
-      const isCurrentExpert = expertMatches(expertData, lastName, firstName, '');
+      const isCurrentExpert = lastNamesEquivalent(lastName, expertLast) && (
+        normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst) ||
+        normalizeFirstCore(stripMiddleInitial(firstName)) === normalizeFirstCore(expertFirst)
+      );
 
-      if (!processedPeople.has(piId)) {
-        processedPeople.add(piId);
-        peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
-        peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
-      }
-
-      // Emit a separate PI role only when:
-      // - PI is not the current expert, OR
-      // - last name differs from expert (variant), OR
-      // - there are CoPIs and the PI is not the expert (so external PI appears alongside expert user role)
-      const lastSameAsExpert = normalizeLast(lastName) === normalizeLast(expertData['last-name'] || '');
-      const emitPiRole = (!isCurrentExpert && (hasCoPIs || true)) || (!lastSameAsExpert);
+      // Detect hyphenated variant in co-pis when PI last name is canonical (no hyphen)
+      const hyphenVariantPresent = !lastName.includes('-') && coPiListFieldProbe && coPiListFieldProbe['api:people'] && (Array.isArray(coPiListFieldProbe['api:people']['api:person']) ? coPiListFieldProbe['api:people']['api:person'] : [coPiListFieldProbe['api:people']['api:person']]).some(p => {
+        if (typeof p === 'string') return false;
+        const l = (p['api:last-name']||'');
+        if (!l.includes('-')) return false;
+        return l.split('-')[0].toLowerCase() === expertLast.toLowerCase();
+      });
+      // SPARQL-aligned suppression treating hyphenated last-name variants as equivalent, but project requirement:
+      // If a hyphenated variant exists in co-pis and PI is canonical, still emit separate PI role.
+      const strictLastMatch = lastNamesEquivalent(lastName, expertLast); // hyphenated equivalence
+      const firstCoreMatch = (
+        normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst) ||
+        normalizeFirstCore(stripMiddleInitial(firstName)) === normalizeFirstCore(expertFirst)
+      );
+      const isCurrentExpertStrict = strictLastMatch && firstCoreMatch;
+      const emitPiRole = !isCurrentExpertStrict || (isCurrentExpertStrict && hyphenVariantPresent && !lastName.includes('-'));
       if (emitPiRole) {
         const roleRecord = createRoleRecord(piId, ROLE_TYPES.PI, 'PI', formattedPiName, grantUri);
         peopleRecords.push(roleRecord);
@@ -559,39 +638,61 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
     }
   }
 
-  // CoPIs (unchanged; still suppress when person is the current expert)
-  const coPiListField = fields.find(f => f.name === 'c-co-pis');
-  if (coPiListField && coPiListField['api:people']) {
-    const apiPerson = coPiListField['api:people']['api:person'];
-    const piPeople = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
+  // Emit expert middle-initial variant person/vcard (no CoPI role)
+  expertExtraVariants.forEach(person => {
+    const lastName = capitalizeName(person['api:last-name'] || '');
+    const firstName = capitalizeName(person['api:first-names'] || '');
+    if (!lastName || !firstName) return;
+    const formattedName = updateNameCasing(`${lastName}, ${firstName}`); // retain middle initial token
+    const variantId = generatePersonIdStrict(lastName, firstName);
+    if (!processedPeople.has(variantId)) {
+      processedPeople.add(variantId);
+      // Keep full firstName (with middle initial) in display name
+      peopleRecords.push(createPersonRecord(variantId, formattedName, grantUri));
+      peopleRecords.push(createVCardRecord(variantId, lastName, firstName, grantUri));
+    }
+  });
 
-    piPeople.forEach(person => {
-      if (typeof person === 'string') return;
+  // CoPIs: iterate only distinct (already filtered) and suppress expert variants entirely
+  distinctCoPIs.forEach(person => {
+    const lastName = person['api:last-name'] || '';
+    const firstName = person['api:first-names'] || '';
+    const initials = person['api:initials'] || '';
+    if (!lastName || !firstName) return;
+    const formattedName = updateNameCasing(`${lastName}, ${firstName}`);
+    const coPiId = generatePersonIdStrict(lastName, firstName);
+    if (processedPeople.has('copi_' + coPiId)) return;
+    processedPeople.add('copi_' + coPiId);
+    if (!processedPeople.has('person_' + coPiId) && !processedPeople.has(coPiId)) {
+      processedPeople.add('person_' + coPiId);
+      peopleRecords.push(createPersonRecord(coPiId, formattedName, grantUri));
+      peopleRecords.push(createVCardRecord(coPiId, lastName, firstName, grantUri));
+    }
+    const isCurrentExpert = lastNamesEquivalent(lastName, expertLast) && (
+      normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst) || normalizeFirstCore(stripMiddleInitial(firstName)) === normalizeFirstCore(expertFirst)
+    );
+    if (!isCurrentExpert) {
+      const roleRecord = createRoleRecord(coPiId, ROLE_TYPES.CO_PI, 'COPI', formattedName, grantUri);
+      peopleRecords.push(roleRecord);
+      createdRoles.push({ '@id': roleRecord['@id'] });
+    }
+  });
 
-      const lastName = person['api:last-name'] || '';
-      const firstName = person['api:first-names'] || '';
-      const initials = person['api:initials'] || '';
-      if (!lastName || !firstName) return;
-
-      const formattedName = updateNameCasing(`${lastName}, ${firstName}`);
-      const coPiId = generatePersonIdStrict(lastName, firstName);
-
-      if (processedPeople.has('copi_' + coPiId)) return;
-      processedPeople.add('copi_' + coPiId);
-
-      if (!processedPeople.has('person_' + coPiId) && !processedPeople.has(coPiId)) {
-        processedPeople.add('person_' + coPiId);
-        peopleRecords.push(createPersonRecord(coPiId, formattedName, grantUri));
-        peopleRecords.push(createVCardRecord(coPiId, lastName, firstName, grantUri));
+  // Guarantee PI person & vcard exist even if role suppressed
+  if (piTextValue && formattedPiName) {
+    const parts = formattedPiName.split(', ');
+    if (parts.length >= 2) {
+      const piLastCheck = parts[0];
+      const piFirstCheck = parts[1];
+      const piEnsureId = generatePersonIdStrict(piLastCheck, piFirstCheck);
+      const personUri = `${grantUri}#${piEnsureId}`;
+      const vcardUri = `${grantUri}#vcard_${piEnsureId}`;
+      const hasPerson = peopleRecords.some(r => r['@id'] === personUri);
+      if (!hasPerson) {
+        peopleRecords.push(createPersonRecord(piEnsureId, formattedPiName, grantUri));
+        peopleRecords.push(createVCardRecord(piEnsureId, piLastCheck, piFirstCheck, grantUri));
       }
-
-      const isCurrentExpert = expertMatches(expertData, lastName, firstName, initials);
-      if (!isCurrentExpert) {
-        const roleRecord = createRoleRecord(coPiId, ROLE_TYPES.CO_PI, 'COPI', formattedName, grantUri);
-        peopleRecords.push(roleRecord);
-        createdRoles.push({ '@id': roleRecord['@id'] });
-      }
-    });
+    }
   }
 
   return { peopleRecords, createdRoles };
