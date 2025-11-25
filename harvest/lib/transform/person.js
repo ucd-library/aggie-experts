@@ -321,10 +321,7 @@ function run(expertId, profile, cdl, ucopVocab) {
           { "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": String(listing.listingOrder) }
         ]
       };
-      // Emit email only when listing itself provides an email (do not use global profile email)
-      if (listing.emailWwwFlag === 'Y' && listing.email) {
-        odrContact["http://www.w3.org/2006/vcard/ns#hasEmail"] = [{ "@id": `mailto:${listing.email}` }];
-      }
+      // Removed unconditional email emission; gate by emailWwwFlag==='Y' and not HSEmployee
       // SPARQL-aligned ODR email: when listing.emailWwwFlag === 'Y' and user not HSEmployee,
       // use listing.email if present, otherwise fall back to default profile email.
       if (listing.emailWwwFlag === 'Y' && !isHSEmployee) {

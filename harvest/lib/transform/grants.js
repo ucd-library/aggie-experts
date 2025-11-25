@@ -120,19 +120,16 @@ function updateNameCasing(name) {
 function cleanGrantTitle(rawTitle) {
   if (!rawTitle) return '';
 
-  // First strip known leading/trailing grant codes and other noisy suffixes (existing logic)
   let title = rawTitle
-    .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
-    .replace(/\s+[ABCKKXYZ]\d+[A-Z]*\d*$/i, '') // Remove trailing grant codes like K322D09
+    // Match SPARQL: strip optional leading SEE, leading agency codes, optional hyphen, optional SP0A######, capture title, and optional trailing K.<digits>.<digits>
+    .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K\.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
+    // Strip specific trailing agency codes, matching SPARQL behavior
+    .replace(/\s+[ABCKKXYZ]\d+[A-Z]*\d*$/i, '')
     .trim();
 
-  // Collapse repeated whitespace to a single space
+  // Normalize whitespace and punctuation spacing
   title = title.replace(/\s+/g, ' ');
-
-  // Normalize spacing after common punctuation (colon, semicolon, em-dash)
   title = title.replace(/:\s*/g, ': ').replace(/;\s*/g, '; ').replace(/—\s*/g, '— ');
-
-  // Remove stray leading/trailing bullets, section markers or hyphens
   title = title.replace(/^[\s•§\-–—]+/, '').replace(/[\s•§\-–—]+$/, '');
 
   return title;
@@ -573,8 +570,8 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
     const arr = Array.isArray(ap) ? ap : [ap];
     arr.forEach(p => {
       if (typeof p === 'string') return;
-      const l = p['api:last-name'] || '';
-      const f = p['api:first-names'] || '';
+      const l = p['api:last-name'] || p['api:last-name'] || ''; // last name (fallback identical kept for clarity)
+      const f = p['api:first-names'] || p['api:first-name'] || ''; // support singular first-name
       if (!l || !f) return;
       const coreMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(f) === normalizeFirstCore(expertFirst);
       const middleStripMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(stripMiddleInitial(f)) === normalizeFirstCore(expertFirst);
@@ -586,20 +583,37 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
 
   // Capture expert variants that add a trailing middle initial token (e.g. "Maja M" / "Nicole T") so we can emit person/vcard without a CoPI role.
   let expertExtraVariants = [];
+  let expertBaseCoPiPresent = false; // track if expert appears as a co-pi exact/base (without extra middle initial variant)
   if (coPiListFieldProbe && coPiListFieldProbe['api:people']) {
     const ap = coPiListFieldProbe['api:people']['api:person'];
     const arr = Array.isArray(ap) ? ap : [ap];
     arr.forEach(p => {
       if (typeof p === 'string') return;
-      const l = p['api:last-name'] || '';
-      const f = p['api:first-names'] || '';
+      const l = p['api:last-name'] || p['api:last-name'] || '';
+      const f = p['api:first-names'] || p['api:first-name'] || '';
       if (!l || !f) return;
       const coreMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(f) === normalizeFirstCore(expertFirst);
       const hasExtraTrailingInitial = /\s+[A-Za-z]$/.test(f);
-      if (coreMatch && hasExtraTrailingInitial) {
-        expertExtraVariants.push(p);
+      if (coreMatch) {
+        if (hasExtraTrailingInitial) {
+          expertExtraVariants.push(p);
+        } else {
+          expertBaseCoPiPresent = true; // expert appears directly in co-pis
+        }
       }
     });
+  }
+
+  // If expert appears as a co-pi (base form) ensure person & vcard nodes exist (no CoPI role)
+  if (expertBaseCoPiPresent) {
+    const formattedExpertName = updateNameCasing(`${expertLast}, ${expertFirst}`);
+    const expertPersonId = generatePersonIdStrict(expertLast, expertFirst);
+    const personUriCheck = `${grantUri}#${expertPersonId}`;
+    const hasExpertPerson = peopleRecords.some(r => r['@id'] === personUriCheck);
+    if (!hasExpertPerson) {
+      peopleRecords.push(createPersonRecord(expertPersonId, formattedExpertName, grantUri));
+      peopleRecords.push(createVCardRecord(expertPersonId, expertLast, expertFirst, grantUri));
+    }
   }
 
   // PI person + conditional separate PI role
@@ -655,8 +669,8 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
 
   // CoPIs: iterate only distinct (already filtered) and suppress expert variants entirely
   distinctCoPIs.forEach(person => {
-    const lastName = person['api:last-name'] || '';
-    const firstName = person['api:first-names'] || '';
+    const lastName = person['api:last-name'] || person['api:last-name'] || '';
+    const firstName = person['api:first-names'] || person['api:first-name'] || '';
     const initials = person['api:initials'] || '';
     if (!lastName || !firstName) return;
     const formattedName = updateNameCasing(`${lastName}, ${firstName}`);
