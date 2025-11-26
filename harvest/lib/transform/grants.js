@@ -405,9 +405,22 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
   };
 }
 
+function stripGrantIdentifierFromTitle(title, grantUri) {
+  if (!title || !grantUri) return title || '';
+  const parts = String(grantUri).split('grant/');
+  const ident = parts.length > 1 ? parts[1] : '';
+  if (!ident) return title;
+  const escaped = ident.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(escaped, 'g');
+  let out = title.replace(re, '').replace(/\s{2,}/g, ' ').trim();
+  return out;
+}
+
 function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   const rawTitle = getFieldValue(fields, 'title');
-  const title = cleanGrantTitle(rawTitle);
+  let title = cleanGrantTitle(rawTitle);
+  // Strip the grant identifier (from id-at-source / grant URI) if it appears in the title
+  title = stripGrantIdentifierFromTitle(title, grantUri);
   // Replicate SPARQL OPTIONAL grouping: only treat funder-name and
   // funder-reference as present if both are present on the same record.
   const rawFunderName = getFieldValue(fields, 'funder-name');
