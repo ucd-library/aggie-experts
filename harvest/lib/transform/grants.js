@@ -411,8 +411,32 @@ function stripGrantIdentifierFromTitle(title, grantUri) {
   const ident = parts.length > 1 ? parts[1] : '';
   if (!ident) return title;
   const escaped = ident.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(escaped, 'g');
-  let out = title.replace(re, '').replace(/\s{2,}/g, ' ').trim();
+
+  // Determine if the identifier appears at the start of the title (allowing leading whitespace)
+  const firstPos = title.indexOf(ident);
+  const leadingIndex = firstPos >= 0 && title.slice(0, firstPos).trim() === '';
+
+  let out;
+  if (leadingIndex) {
+    // Preserve the leading occurrence, remove subsequent occurrences only
+    const re = new RegExp(escaped, 'g');
+    let seenFirstAtPos = false;
+    out = title.replace(re, function(match, offset) {
+      // In replace callback the offset is the second argument when there are no capture groups
+      const off = arguments.length >= 2 ? arguments[1] : 0;
+      if (!seenFirstAtPos && off === firstPos) {
+        seenFirstAtPos = true;
+        return match;
+      }
+      return '';
+    });
+  } else {
+    // No leading identifier -- remove all occurrences
+    out = title.replace(new RegExp(escaped, 'g'), '');
+  }
+
+  // Collapse multiple spaces and tidy
+  out = out.replace(/\s{2,}/g, ' ').trim();
   return out;
 }
 
