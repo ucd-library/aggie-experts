@@ -44,10 +44,21 @@ function buildOdrDisplayName(lastName, firstName, listing) {
 // Approximate SPARQL’s ODR “public/usable” gates by WWW flags
 function hasUsableOdr(listing) {
   if (!listing) return false;
-  const hasTitle = listing.title && listing.titleWwwFlag !== 'N';
+  // SPARQL treats presence of a title as making the ODR listing usable regardless of titleWwwFlag.
+  const hasTitle = Boolean(listing.title && String(listing.title).trim() !== '');
+  // Website still requires explicit WWW flag 'Y' to be considered usable
   const hasWeb   = listing.website && listing.websiteWwwFlag === 'Y';
   // Dept alone no longer triggers an ODR vcard; must have title or website.
-  return Boolean(hasTitle || hasWeb);
+  const usable = Boolean(hasTitle || hasWeb);
+  // Debug: log non-usable listings to aid investigation of edge cases.
+  try {
+    if (!usable && logger && typeof logger.debug === 'function') {
+      logger.debug(`hasUsableOdr: listing filtered out => ${JSON.stringify(listing)}`);
+    }
+  } catch (e) {
+    // swallow logging errors
+  }
+  return usable;
 }
 
 // Mirror SPARQL-ish PPS visibility logic from directory listings flags.
