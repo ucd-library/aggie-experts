@@ -103,11 +103,14 @@ function run(expertId, profile, cdl, ucopVocab) {
   const firstName    = jsonpath.value(profile, '$["@graph"][0].dFirstName');
   const middleName   = jsonpath.value(profile, '$["@graph"][0].dMiddleName');
   const lastName     = jsonpath.value(profile, '$["@graph"][0].dLastName');
+  // Prefer the directory preferred last name when present (mirror old SPARQL behavior)
+  const preferredLname = jsonpath.value(profile, '$["@graph"][0].directory.displayName.preferredLname');
+  const lastNameCandidate = preferredLname || lastName;
   // Normalize ALL-CAPS first/middle/last (>=2 chars) to Capitalized (e.g. WILLIAM -> William)
   const normalizeAllCaps = s => (typeof s === 'string' && /^[A-Z]{2,}$/.test(s)) ? (s.charAt(0) + s.slice(1).toLowerCase()) : s;
   const formattedFirstName = normalizeAllCaps(firstName);
   const formattedMiddleName = normalizeAllCaps(middleName);
-  const formattedLastName = normalizeAllCaps(lastName);
+  const formattedLastName = normalizeAllCaps(lastNameCandidate);
   const isFaculty    = jsonpath.value(profile, '$["@graph"][0].isFaculty') || false;
   const isHSEmployee = jsonpath.value(profile, '$["@graph"][0].isHSEmployee') || false;
   const pronouns     = jsonpath.value(profile, '$["@graph"][0].directory.displayName.preferredPronouns');
@@ -189,7 +192,8 @@ function run(expertId, profile, cdl, ucopVocab) {
   const researcherId = findAssoc('researcherid');
 
   // --- Name variations (canonical ordering incl full middle name)
-  const rawLast = (lastName || '').toLowerCase();
+  // Use the same last-name candidate for matching (preferredLname if present, otherwise IAM last)
+  const rawLast = (lastNameCandidate || '').toLowerCase();
   const cleanLast = rawLast.replace(/[^a-z]/g,'');
   const cleanFirst = (firstName || '').toLowerCase().replace(/[^a-z]/g,'');
   const cleanMiddle = (middleName || '').toLowerCase().replace(/[^a-z]/g,'');
@@ -422,11 +426,15 @@ function run(expertId, profile, cdl, ucopVocab) {
     });
   }
   pushUniqueById(result, oapVcard);
+
+  // OA vcard name: prefer CDL-provided family/given when available (matches SPARQL behavior)
+  const oapFamilyName = cdlUserLastName || formattedLastName;
+  const oapGivenName = cdlUserFirstName || formattedFirstName;
   pushUniqueById(result, {
     "@id": `${expertUri}#vcard-oap-1-name`,
     "@type": ["http://www.w3.org/2006/vcard/ns#Name"],
-    "http://www.w3.org/2006/vcard/ns#familyName": [{ "@value": formattedLastName }],
-    "http://www.w3.org/2006/vcard/ns#givenName": [{ "@value": formattedFirstName }]
+    "http://www.w3.org/2006/vcard/ns#familyName": [{ "@value": oapFamilyName }],
+    "http://www.w3.org/2006/vcard/ns#givenName": [{ "@value": oapGivenName }]
   });
 
   // --- SPARQL-aligned FoR & Availability logic (no publication threshold)
