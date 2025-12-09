@@ -375,7 +375,6 @@ class BaseModel extends FinEsDataModel {
     }
 
     // Add issued years raw node for debugging/reference
-    if (issuedYearsNode) globalFacets.issued_years_raw = issuedYearsNode;
 
     // Filtered facets (date constrained) if present
     let filteredFacets = {};
