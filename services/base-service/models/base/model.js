@@ -423,8 +423,12 @@ class BaseModel extends FinEsDataModel {
         const unique = b.unique_works?.value || 0;
         if (!yearsCombined[key]) yearsCombined[key] = { works_unique: 0, grants_unique: 0 };
         yearsCombined[key].works_unique = unique;
-        const statusBuckets = b.parent_docs?.status?.buckets || [];
-        const typeBuckets = b.parent_docs?.type?.buckets || [];
+        
+        // Use filtered aggregation if available, otherwise fall back to global
+        const parentDocsAgg = b.parent_docs_filtered?.reverse_nested_filtered || b.parent_docs;
+        const statusBuckets = parentDocsAgg?.status?.buckets || [];
+        const typeBuckets = parentDocsAgg?.type?.buckets || [];
+        
         yearsWorks[key] = {
           unique,
           status: Object.fromEntries(statusBuckets.map(x => [String(x.key), x.doc_count])),

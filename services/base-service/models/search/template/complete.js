@@ -287,6 +287,32 @@ template = {
                                     "status": { "terms": { "field": "status", "size": 10 } },
                                     "type": { "terms": { "field": "type", "size": 10 } }
                               }
+                            },
+                            "parent_docs_filtered": {
+                              "filter": {
+                                "bool": {
+                                  "must": [
+                                    {{#dateFrom}}{{#dateTo}}
+                                    { "range": { "@graph.issued": { "gte": "{{dateFrom}}", "lte": "{{dateTo}}" } } }
+                                    {{/dateTo}}{{/dateFrom}}
+                                    {{#dateFrom}}{{^dateTo}}
+                                    { "range": { "@graph.issued": { "gte": "{{dateFrom}}" } } }
+                                    {{/dateTo}}{{/dateFrom}}
+                                    {{^dateFrom}}{{#dateTo}}
+                                    { "range": { "@graph.issued": { "lte": "{{dateTo}}" } } }
+                                    {{/dateTo}}{{/dateFrom}}
+                                  ]
+                                }
+                              },
+                              "aggs": {
+                                "reverse_nested_filtered": {
+                                  "reverse_nested": {},
+                                  "aggs": {
+                                    "status": { "terms": { "field": "status", "size": 10 } },
+                                    "type": { "terms": { "field": "type", "size": 10 } }
+                                  }
+                                }
+                              }
                             }
                           }
                         }
@@ -316,6 +342,16 @@ template = {
                                 "minimum_should_match": 1
                               }
                             }
+                            {{#dateFrom}}{{#dateTo}}
+                            ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                            ,{ "range": { "@graph.dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }
+                            {{/dateTo}}{{/dateFrom}}
+                            {{#dateFrom}}{{^dateTo}}
+                            ,{ "range": { "@graph.dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }
+                            {{/dateTo}}{{/dateFrom}}
+                            {{^dateFrom}}{{#dateTo}}
+                            ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                            {{/dateTo}}{{/dateFrom}}
                             {{#q}}
                             ,{ "simple_query_string": { "query": "{{q}}", "fields": [
                               "@graph.@id^10","@graph.relates^2","@graph.DOI^10","@graph.abstract^5",
