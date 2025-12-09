@@ -106,10 +106,14 @@ function run(expertId, profile, cdl, ucopVocab) {
   // Prefer the directory preferred last name when present (mirror old SPARQL behavior)
   const preferredLname = jsonpath.value(profile, '$["@graph"][0].directory.displayName.preferredLname');
   const lastNameCandidate = preferredLname || lastName;
+  // Prefer the directory preferred middle name when present to match legacy behavior
+  const preferredMname = jsonpath.value(profile, '$["@graph"][0].directory.displayName.preferredMname');
+  // Use preferred middle name if present; otherwise treat as absent for vcard emission
+  const middleNameUsed = (preferredMname != null && preferredMname !== '') ? preferredMname : null;
   // Normalize ALL-CAPS first/middle/last (>=2 chars) to Capitalized (e.g. WILLIAM -> William)
   const normalizeAllCaps = s => (typeof s === 'string' && /^[A-Z]{2,}$/.test(s)) ? (s.charAt(0) + s.slice(1).toLowerCase()) : s;
   const formattedFirstName = normalizeAllCaps(firstName);
-  const formattedMiddleName = normalizeAllCaps(middleName);
+  const formattedMiddleName = normalizeAllCaps(middleNameUsed);
   const formattedLastName = normalizeAllCaps(lastNameCandidate);
   const isFaculty    = jsonpath.value(profile, '$["@graph"][0].isFaculty') || false;
   const isHSEmployee = jsonpath.value(profile, '$["@graph"][0].isHSEmployee') || false;
@@ -196,7 +200,7 @@ function run(expertId, profile, cdl, ucopVocab) {
   const rawLast = (lastNameCandidate || '').toLowerCase();
   const cleanLast = rawLast.replace(/[^a-z]/g,'');
   const cleanFirst = (firstName || '').toLowerCase().replace(/[^a-z]/g,'');
-  const cleanMiddle = (middleName || '').toLowerCase().replace(/[^a-z]/g,'');
+  const cleanMiddle = (middleNameUsed || '').toLowerCase().replace(/[^a-z]/g,'');
   const nameVariants = [
     `${cleanLast}_${cleanFirst.charAt(0)}`,
     ...(cleanMiddle ? [`${cleanLast}_${cleanFirst.charAt(0)}${cleanMiddle.charAt(0)}`] : []),
@@ -254,6 +258,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     "http://www.w3.org/2006/vcard/ns#familyName": [{ "@value": formattedLastName }],
     "http://www.w3.org/2006/vcard/ns#givenName": [{ "@value": formattedFirstName }]
   };
+  // Emit middleName only when the directory preferred middle name exists (formattedMiddleName set)
   if (formattedMiddleName) {
     nameRecord["http://www.w3.org/2006/vcard/ns#middleName"] = [{ "@value": formattedMiddleName }];
   }

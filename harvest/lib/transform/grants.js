@@ -179,6 +179,7 @@ function pickExpertDisplayName(fields, expertData) {
   const normalizeFirstCore = s => (s||'').toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g,'');
   const coPiListField = fields.find(f => f.name === 'c-co-pis');
   let best = null;
+  let bestScore = 0;
   if (coPiListField && coPiListField['api:people']) {
     const apiPerson = coPiListField['api:people']['api:person'];
     const people = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
@@ -186,10 +187,29 @@ function pickExpertDisplayName(fields, expertData) {
       if (typeof person === 'string') continue;
       const lastName = person['api:last-name'] || '';
       const firstName = person['api:first-names'] || '';
+      // Consider suffix match (e.g. 'Hendrick Holt' endsWith 'Holt') in addition to lastNamesEquivalent
+      const lastNorm = (lastName || '').toLowerCase().trim();
+      const expertLastNorm = (expertLast || '').toLowerCase().trim();
+      const lastIsSuffix = lastNorm.split(/\s+/).filter(Boolean).slice(-1)[0] === expertLastNorm;
       if (lastNamesEquivalent(lastName, expertLast) && normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst)) {
         const cleanedFirst = firstName.replace(/\s+[A-Za-z]$/,'');
         const formatted = updateNameCasing(`${lastName}, ${cleanedFirst}`);
-        if (!best || (lastName.includes('-') && !best.includes('-'))) best = formatted;
+        // Score candidate by number of name-part tokens and total length to prefer multi-word/hyphenated last names
+        const score = (lastName.split(/[-\s]+/).filter(Boolean).length * 100) + (lastName.length || 0);
+        if (!best || score > bestScore) {
+          best = formatted;
+          bestScore = score;
+        }
+      }
+      // If last name ends with expert last and first-name core matches, prefer this multi-word variant when higher score
+      else if (lastIsSuffix && normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst)) {
+        const cleanedFirst = firstName.replace(/\s+[A-ZaZ]$/,'');
+        const formatted = updateNameCasing(`${lastName}, ${cleanedFirst}`);
+        const score = (lastName.split(/[-\s]+/).filter(Boolean).length * 100) + (lastName.length || 0);
+        if (!best || score > bestScore) {
+          best = formatted;
+          bestScore = score;
+        }
       }
     }
   }
@@ -216,16 +236,8 @@ function pickExpertDisplayName(fields, expertData) {
 
 function lastNamesEquivalent(a,b) {
   if (!a || !b) return false;
-  const normA = a.toLowerCase();
-  const normB = b.toLowerCase();
-  if (normA === normB) return true;
-  if (normA.includes('-') && !normB.includes('-')) {
-    if (normA.split('-')[0] === normB) return true;
-  }
-  if (normB.includes('-') && !normA.includes('-')) {
-    if (normB.split('-')[0] === normA) return true;
-  }
-  return false;
+  const norm = s => s.toLowerCase().replace(/[^a-z]/g,'');
+  return norm(a) === norm(b);
 }
 
 // Create user role relationship
@@ -244,9 +256,13 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
   };
   const roleInfo = roleMapping[relationshipType] || roleMapping['user-grant-research'];
 
-  // Prefer grant-provided variant for expert name when available
-  const userName = pickExpertDisplayName(fields || [], expertData);
-  const roleName = `${roleInfo.abbrev}: ${userName}`;
+  // SPARQL behavior: relationship label is constructed from the directory user fields
+  // (last-name and optional first-name). Format accordingly and prefix with abbrev.
+  const userLast = expertData['last-name'] || '';
+  const userFirst = expertData['first-name'] || '';
+  const formattedUserName = updateNameCasing((userLast + (userFirst ? (', ' + userFirst) : '')).trim());
+  const roleName = `${roleInfo.abbrev}: ${formattedUserName}`;
+
   const isVisible = grantRelationship["api:is-visible"] === 'true';
 
   const userRole = {
@@ -583,17 +599,8 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   const stripMiddleInitial = s => (s||'').replace(/\s+[A-Za-z]$/,'');
   const lastNamesEquivalent = (a,b) => {
     if (!a || !b) return false;
-    const normA = a.toLowerCase();
-    const normB = b.toLowerCase();
-    if (normA === normB) return true;
-    // Treat hyphenated variant whose first segment equals the other as equivalent (Makagon vs Makagon-Stuart)
-    if (normA.includes('-') && !normB.includes('-')) {
-      if (normA.split('-')[0] === normB) return true;
-    }
-    if (normB.includes('-') && !normA.includes('-')) {
-      if (normB.split('-')[0] === normA) return true;
-    }
-    return false;
+    const norm = s => s.toLowerCase().replace(/[^a-z]/g,'');
+    return norm(a) === norm(b);
   };
 
   const expertLast = expertData['last-name'] || '';

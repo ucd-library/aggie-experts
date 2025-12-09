@@ -75,8 +75,13 @@ async function srcToAeStd(options={}) {
   logger.info(`User from Keycloak: ${JSON.stringify(user)}`);
   let expertId = user.attributes.expertId[0];
   let expertData = {};
-  expertData['last-name'] = user.lastName;
-  expertData['first-name'] = user.firstName;
+  // Prefer IAM/Directory preferred name when available (keeps behavior consistent with person transform)
+  const iamGraph = iamDir && iamDir.graph;
+  const iamNode = iamGraph && iamGraph['@graph'] && iamGraph['@graph'][0];
+  const iamFirst = iamNode && iamNode.dFirstName;
+  const iamPreferredLname = iamNode && iamNode.directory && iamNode.directory.displayName && iamNode.directory.displayName.preferredLname;
+  expertData['last-name'] = iamPreferredLname || user.lastName;
+  expertData['first-name'] = iamFirst || user.firstName;
 
   // Transform in std AE Person data
   let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
