@@ -287,32 +287,6 @@ template = {
                                     "status": { "terms": { "field": "status", "size": 10 } },
                                     "type": { "terms": { "field": "type", "size": 10 } }
                               }
-                            },
-                            "parent_docs_filtered": {
-                              "filter": {
-                                "bool": {
-                                  "must": [
-                                    {{#dateFrom}}{{#dateTo}}
-                                    { "range": { "@graph.issued": { "gte": "{{dateFrom}}", "lte": "{{dateTo}}" } } }
-                                    {{/dateTo}}{{/dateFrom}}
-                                    {{#dateFrom}}{{^dateTo}}
-                                    { "range": { "@graph.issued": { "gte": "{{dateFrom}}" } } }
-                                    {{/dateTo}}{{/dateFrom}}
-                                    {{^dateFrom}}{{#dateTo}}
-                                    { "range": { "@graph.issued": { "lte": "{{dateTo}}" } } }
-                                    {{/dateTo}}{{/dateFrom}}
-                                  ]
-                                }
-                              },
-                              "aggs": {
-                                "reverse_nested_filtered": {
-                                  "reverse_nested": {},
-                                  "aggs": {
-                                    "status": { "terms": { "field": "status", "size": 10 } },
-                                    "type": { "terms": { "field": "type", "size": 10 } }
-                                  }
-                                }
-                              }
                             }
                           }
                         }

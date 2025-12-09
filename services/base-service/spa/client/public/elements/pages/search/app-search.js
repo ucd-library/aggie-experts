@@ -555,8 +555,24 @@ export default class AppSearch extends Mixin(LitElement)
 
     // Process works - unique per year, so we can sum directly
     const yearsWorks = data.years_works || {};
+    
+    // Convert date filter strings to epoch milliseconds for comparison
+    let dateFromEpoch = null;
+    let dateToEpoch = null;
+    if (this.dateFrom) {
+      dateFromEpoch = new Date(this.dateFrom).getTime();
+    }
+    if (this.dateTo) {
+      dateToEpoch = new Date(this.dateTo).getTime();
+    }
+    
     for (const yearKey of Object.keys(yearsWorks)) {
       const yearData = yearsWorks[yearKey];
+      const yearEpoch = Number(yearKey);
+      
+      // Skip years outside the date filter range (if date filter is applied)
+      if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
+      if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
       
       // Aggregate type counts
       if (yearData.type) {
