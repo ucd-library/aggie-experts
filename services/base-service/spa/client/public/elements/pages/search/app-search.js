@@ -692,7 +692,7 @@ export default class AppSearch extends Mixin(LitElement)
       
       const grants = years[year]?.grants || [];
       for (const grant of grants) {
-        if (grant?.id && grant[subfilterValue] === subfilterValue && !seenIds.has(grant.id)) {
+        if (grant?.id && (grant.status === subfilterValue || grant.type === subfilterValue) && !seenIds.has(grant.id)) {
           seenIds.add(grant.id);
           counts[year] = (counts[year] || 0) + 1;
         }
