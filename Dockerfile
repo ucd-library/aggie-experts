@@ -29,6 +29,7 @@ RUN cd /opt/harvest && \
 
 COPY harvest/bin /opt/harvest/bin
 COPY harvest/lib /opt/harvest/lib
+COPY harvest/vocabularies /opt/harvest/vocabularies
 
 COPY dagster/defs.py /opt/harvest/defs.py
 
