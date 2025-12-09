@@ -712,9 +712,7 @@ export default class AppSearch extends Mixin(LitElement)
 
     for (const [year, count] of Object.entries(allYears || {})) {
       // if not already included from specific maps, add it
-      // if (!combined[year]) {
         combined[year] = (combined[year] || 0) + count;
-      // }
     }
     return combined;
   }
