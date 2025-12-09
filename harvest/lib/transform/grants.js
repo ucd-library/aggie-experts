@@ -120,10 +120,11 @@ function updateNameCasing(name) {
 function cleanGrantTitle(rawTitle) {
   if (!rawTitle) return '';
 
-  let title = rawTitle
-    // Match SPARQL: strip optional leading SEE, leading agency codes, optional hyphen, optional SP0A######, capture title, and optional trailing K.<digits>.<digits>
-    .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K\.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
-    // Strip specific trailing agency codes, matching SPARQL behavior
+  // Apply SPARQL-style leading/trailing code stripping then normalize spacing/punctuation
+  let title = String(rawTitle)
+    // Strip optional leading SEE and repeated agency/id tokens, optional SP0A#####, capture remainder, optional trailing K.xx.x
+    .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K\.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
+    // Strip specific trailing agency codes, mirroring SPARQL behavior
     .replace(/\s+[ABCKKXYZ]\d+[A-Z]*\d*$/i, '')
     .trim();
 
@@ -171,75 +172,6 @@ function getGrantStatus(endDate) {
   return endYear < currentYear ? 'Completed' : 'Active';
 }
 
-// Choose best display name for the expert from grant people variants (prefer hyphenated/person-provided),
-// falling back to expertData
-function pickExpertDisplayName(fields, expertData) {
-  const expertLast = expertData['last-name'] || '';
-  const expertFirst = expertData['first-name'] || '';
-  const normalizeFirstCore = s => (s||'').toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g,'');
-  const coPiListField = fields.find(f => f.name === 'c-co-pis');
-  let best = null;
-  let bestScore = 0;
-  if (coPiListField && coPiListField['api:people']) {
-    const apiPerson = coPiListField['api:people']['api:person'];
-    const people = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
-    for (const person of people) {
-      if (typeof person === 'string') continue;
-      const lastName = person['api:last-name'] || '';
-      const firstName = person['api:first-names'] || '';
-      // Consider suffix match (e.g. 'Hendrick Holt' endsWith 'Holt') in addition to lastNamesEquivalent
-      const lastNorm = (lastName || '').toLowerCase().trim();
-      const expertLastNorm = (expertLast || '').toLowerCase().trim();
-      const lastIsSuffix = lastNorm.split(/\s+/).filter(Boolean).slice(-1)[0] === expertLastNorm;
-      if (lastNamesEquivalent(lastName, expertLast) && normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst)) {
-        const cleanedFirst = firstName.replace(/\s+[A-Za-z]$/,'');
-        const formatted = updateNameCasing(`${lastName}, ${cleanedFirst}`);
-        // Score candidate by number of name-part tokens and total length to prefer multi-word/hyphenated last names
-        const score = (lastName.split(/[-\s]+/).filter(Boolean).length * 100) + (lastName.length || 0);
-        if (!best || score > bestScore) {
-          best = formatted;
-          bestScore = score;
-        }
-      }
-      // If last name ends with expert last and first-name core matches, prefer this multi-word variant when higher score
-      else if (lastIsSuffix && normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst)) {
-        const cleanedFirst = firstName.replace(/\s+[A-ZaZ]$/,'');
-        const formatted = updateNameCasing(`${lastName}, ${cleanedFirst}`);
-        const score = (lastName.split(/[-\s]+/).filter(Boolean).length * 100) + (lastName.length || 0);
-        if (!best || score > bestScore) {
-          best = formatted;
-          bestScore = score;
-        }
-      }
-    }
-  }
-  // Also consider c-pi field when no co-pi variant chosen
-  if (!best) {
-    const piField = fields.find(f => f.name === 'c-pi');
-    const piVal = piField && (piField['api:text'] || piField['api:field-value']);
-    if (piVal) {
-      const formattedPi = updateNameCasing(piVal);
-      const piParts = formattedPi.split(', ');
-      if (piParts.length === 2) {
-        const [piLast, piFirst] = piParts;
-        if (piLast.includes('-') && lastNamesEquivalent(piLast, expertLast) && normalizeFirstCore(piFirst) === normalizeFirstCore(expertFirst)) {
-          best = formattedPi.replace(/\s+[A-Za-z]$/,''); // drop trailing middle initial for display consistency
-        }
-      }
-    }
-  }
-  if (!best) {
-    return updateNameCasing(`${expertLast}, ${expertFirst}`.trim().replace(/,\s*$/, ''));
-  }
-  return best;
-}
-
-function lastNamesEquivalent(a,b) {
-  if (!a || !b) return false;
-  const norm = s => s.toLowerCase().replace(/[^a-z]/g,'');
-  return norm(a) === norm(b);
-}
-
 // Create user role relationship
 function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields) {
   const relationshipType = grantRelationship.type || 'user-grant-research';
@@ -278,62 +210,12 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
   return userRole;
 }
 
-function generatePersonId(lastName, firstName) {
-  const cleanLast = (lastName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
-  const cleanFirst = (firstName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
-  return `${cleanLast}_${cleanFirst}`;
-}
-
 function sanitizePart(s) {
   return (s || '').toLowerCase().replace(/[^a-z]/g,'');
 }
 
-function firstToken(s) {
-  return (s || '').split(/\s+/)[0];
-}
-
-function buildNameVariants(last, first, initials) {
-  const lastSan = sanitizePart(last);
-  const firstSan = sanitizePart(first);
-  const firstTokSan = sanitizePart(firstToken(first));
-  const initialsSan = sanitizePart(initials);
-  const firstInitialSan = initialsSan ? initialsSan.charAt(0) : (firstSan.charAt(0) || '');
-  return {
-    full: lastSan + (firstSan ? '_' + firstSan : ''),
-    firstToken: lastSan + (firstTokSan ? '_' + firstTokSan : ''),
-    initials: lastSan + (initialsSan ? '_' + initialsSan : ''),
-    firstInitial: lastSan + (firstInitialSan ? '_' + firstInitialSan : ''),
-    lastSan,
-    firstSan
-  };
-}
-
-function expertMatches(expertData, last, first, initials) {
-  const eLast = expertData['last-name'] || '';
-  const eFirst = expertData['first-name'] || '';
-  const eInitials = expertData['initials'] || '';
-  const expertVars = buildNameVariants(eLast, eFirst, eInitials);
-  const personVars = buildNameVariants(last, first, initials);
-  return (
-    expertVars.full === personVars.full ||
-    expertVars.firstToken === personVars.firstToken ||
-    expertVars.initials === personVars.initials ||
-    expertVars.firstInitial === personVars.firstInitial
-  );
-}
-
 function generatePersonIdStrict(last, first) {
   return `${sanitizePart(last)}_${sanitizePart(first)}`;
-}
-
-function isExpertMatch(personLastName, personFirstName, expertData) {
-  const expertLastName = expertData['last-name']?.toLowerCase() || '';
-  const expertFirstName = expertData['first-name']?.toLowerCase() || '';
-
-  return personLastName === expertLastName &&
-    (personFirstName === expertFirstName ||
-     personFirstName.startsWith(expertFirstName) ||
-     expertFirstName.startsWith(personFirstName));
 }
 
 function createPersonRecord(personId, formattedName, grantUri) {
@@ -428,28 +310,12 @@ function stripGrantIdentifierFromTitle(title, grantUri) {
   if (!ident) return title;
   const escaped = ident.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // Determine if the identifier appears at the start of the title (allowing leading whitespace)
-  const firstPos = title.indexOf(ident);
-  const leadingIndex = firstPos >= 0 && title.slice(0, firstPos).trim() === '';
-
-  let out;
-  if (leadingIndex) {
-    // Preserve the leading occurrence, remove subsequent occurrences only
-    const re = new RegExp(escaped, 'g');
-    let seenFirstAtPos = false;
-    out = title.replace(re, function(match, offset) {
-      // In replace callback the offset is the second argument when there are no capture groups
-      const off = arguments.length >= 2 ? arguments[1] : 0;
-      if (!seenFirstAtPos && off === firstPos) {
-        seenFirstAtPos = true;
-        return match;
-      }
-      return '';
-    });
-  } else {
-    // No leading identifier -- remove all occurrences
-    out = title.replace(new RegExp(escaped, 'g'), '');
-  }
+  // Remove occurrences of the identifier only when it is standalone or bounded
+  // by non-alphanumeric characters (whitespace or punctuation). This avoids
+  // stripping identifiers that are attached directly to other words/text.
+  // Pattern: (^|[^A-Za-z0-9])IDENT(?=[^A-Za-z0-9]|$) -- keep the prefix capture.
+  const re = new RegExp('(^|[^A-Za-z0-9])' + escaped + '(?=[^A-Za-z0-9]|$)', 'g');
+  let out = title.replace(re, '$1');
 
   // Collapse multiple spaces and tidy
   out = out.replace(/\s{2,}/g, ' ').trim();
@@ -457,10 +323,36 @@ function stripGrantIdentifierFromTitle(title, grantUri) {
 }
 
 function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
-  const rawTitle = getFieldValue(fields, 'title');
+  const rawTitleVal = getFieldValue(fields, 'title');
+  const rawTitle = Array.isArray(rawTitleVal) ? rawTitleVal[0] : rawTitleVal;
   let title = cleanGrantTitle(rawTitle);
+
   // Strip the grant identifier (from id-at-source / grant URI) if it appears in the title
   title = stripGrantIdentifierFromTitle(title, grantUri);
+
+  // If cleaning removed the title entirely, attempt fallbacks.
+  if (!title || title.trim() === '') {
+    // Try to pull a short code from the raw title when available (e.g. "SEE X236881")
+    if (typeof rawTitle === 'string') {
+      const seen = rawTitle.match(/^\s*(?:SEE\s+)?([A-Za-z][A-Za-z0-9\-]*)\b\s*$/i);
+      if (seen) {
+        title = seen[1];
+      }
+    }
+
+    // If still empty, fall back to funder-reference or id-at-source
+    if ((!title || title.trim() === '')) {
+      const rawFunderRef = getFieldValue(fields, 'funder-reference') || '';
+      if (rawFunderRef) {
+        title = String(rawFunderRef).trim();
+      } else if (grantUri) {
+        const parts = String(grantUri).split('grant/');
+        const ident = parts.length > 1 ? parts[1] : '';
+        if (ident) title = ident;
+      }
+    }
+  }
+
   // Replicate SPARQL OPTIONAL grouping: only treat funder-name and
   // funder-reference as present if both are present on the same record.
   const rawFunderName = getFieldValue(fields, 'funder-name');
