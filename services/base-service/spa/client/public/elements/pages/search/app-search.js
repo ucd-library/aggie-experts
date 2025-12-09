@@ -675,12 +675,16 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
     this.globalAggregations = this.convertSearchAggregations(this.rawSearchData);
-
-    // convert years_grants/years_works to histogram data
-    // ie "1072915200000": 2, becomes { stat: 2003, value: 2 }
-    // but first need to convert to `"1072915200000": 2` from the years_works/years_grants format
-    const issuedYearsWorks = this.computeYearCounts(this.rawSearchData.global_aggregations.years, this.rawSearchData.years_works, false);
-    const issuedYearsGrants = this.computeYearCounts(this.rawSearchData.global_aggregations.years, this.rawSearchData.years_grants, true);
+    
+    // Get all years across both works and grants for complete year range
+    const allYearsCombined = {
+      ...this.rawSearchData.years_works,
+      ...this.rawSearchData.years_grants
+    };
+    
+    const issuedYearsWorks = this.computeYearCounts(allYearsCombined, this.rawSearchData.years_works, false);
+    // For histogram, keep per-year counts as returned (no cross-year dedupe)
+    const issuedYearsGrants = this.computeYearCounts(allYearsCombined, this.rawSearchData.years_grants, false);
 
     // add missing years between min/max, so the histogram is continuous
     const issuedYearsCombined = this._combineYearCounts(this.rawSearchData.global_aggregations.years, issuedYearsWorks, issuedYearsGrants);
@@ -688,6 +692,7 @@ export default class AppSearch extends Mixin(LitElement)
     // histogram/slider: refresh ONLY when the “agg signature” changes (q, availability, type, status, expert)
     const newSig = this._computeAggSignature(); // this must NOT include dateFrom/dateTo
     if (newSig !== this.lastAggSignature) {
+
       // TODO fix histogram years for subfilters
       const issueYearsWorksSubfilter = (this.globalAggregations || {})[`issued_years_type_${this.type}`] || {};
       const issueYearsGrantsSubfilter = (this.globalAggregations || {})[`issued_years_status_${this.status}`] || {};

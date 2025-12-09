@@ -406,8 +406,14 @@ class BaseModel extends FinEsDataModel {
     // Option A years aggregation parsing (works/grants with per-year status/type)
     if (aggs.years) {
       const yearsAgg = aggs.years;
-      const worksBuckets = yearsAgg.works?.years?.buckets || [];
-      const grantsBuckets = yearsAgg.grants?.years?.buckets || [];
+      const worksBuckets =
+        yearsAgg.works?.works_nested?.filtered?.years?.buckets ||
+        findBuckets(yearsAgg.works?.works_nested?.filtered?.years) ||
+        [];
+      const grantsBuckets =
+        yearsAgg.grants?.grants_nested?.filtered?.years?.buckets ||
+        findBuckets(yearsAgg.grants?.grants_nested?.filtered?.years) ||
+        [];
       const yearsCombined = {}; // epoch -> { works_unique, grants_unique }
       const yearsWorks = {}; // epoch -> { unique, status:{}, type:{} }
       const yearsGrants = {}; // epoch -> { unique, status:{}, type:{} }
