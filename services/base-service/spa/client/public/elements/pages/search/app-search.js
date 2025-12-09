@@ -539,6 +539,133 @@ export default class AppSearch extends Mixin(LitElement)
     this.AppStateModel.setLocation(path);
   }
 
+  convertSearchAggregations(data) {
+    const result = {
+      type: {},
+      status: {},
+      '@type': {}
+    };
+
+    // Process @type aggregation (document type counts)
+    if (data.aggregations?.['@type']) {
+      for (const [typeKey, count] of Object.entries(data.aggregations['@type'])) {
+        result['@type'][typeKey] = count;
+      }
+    }
+
+    // Process works - unique per year, so we can sum directly
+    const yearsWorks = data.years_works || {};
+    for (const yearKey of Object.keys(yearsWorks)) {
+      const yearData = yearsWorks[yearKey];
+      
+      // Aggregate type counts
+      if (yearData.type) {
+        for (const [typeKey, count] of Object.entries(yearData.type)) {
+          if (!result.type[typeKey]) result.type[typeKey] = 0;
+          result.type[typeKey] += count;
+        }
+      }
+      
+      // Aggregate status counts (for works, though typically they use type)
+      if (yearData.status) {
+        for (const [statusKey, count] of Object.entries(yearData.status)) {
+          if (!result.status[statusKey]) result.status[statusKey] = 0;
+          result.status[statusKey] += count;
+        }
+      }
+    }
+
+    // Process grants - need deduplication since they can span multiple years
+    const yearsGrants = data.years_grants || {};
+    const seenGrantIds = new Set();
+    const grantMetadata = {}; // id -> { status, type }
+
+    // First pass: collect all unique grant IDs and their metadata
+    for (const yearKey of Object.keys(yearsGrants)) {
+      const yearData = yearsGrants[yearKey];
+      const grants = yearData.grants || [];
+      
+      for (const grant of grants) {
+        if (!seenGrantIds.has(grant.id)) {
+          seenGrantIds.add(grant.id);
+          grantMetadata[grant.id] = {
+            status: grant.status || '',
+            type: grant.type || ''
+          };
+        }
+      }
+    }
+
+    // Second pass: count unique grants by status and type
+    for (const [grantId, metadata] of Object.entries(grantMetadata)) {
+      if (metadata.status) {
+        if (!result.status[metadata.status]) result.status[metadata.status] = 0;
+        result.status[metadata.status] += 1;
+      }
+      
+      if (metadata.type) {
+        if (!result.type[metadata.type]) result.type[metadata.type] = 0;
+        result.type[metadata.type] += 1;
+      }
+    }
+
+    return result;
+  }
+
+  computeYearCounts(allYears = {}, years = {}, dedupe = false) {
+    const counts = {};
+
+    // Initialize all years with 0
+    for (const [year] of Object.entries(allYears)) {
+      counts[year] = 0;
+    }
+
+    if (!dedupe) {
+      for (const [year, yearData] of Object.entries(years)) {
+        const count = yearData?.unique || 0;
+        if (count) counts[year] = (counts[year] || 0) + count;
+      }
+      return counts;
+    }
+
+    // Deduped mode (for grants): count each id once, in the earliest year seen
+    const seenIds = new Set();
+    // Sort by all years, not just the ones in the years object
+    const sortedYears = Object.keys(allYears).sort((a, b) => Number(a) - Number(b));
+
+    for (const year of sortedYears) {
+      // Only process if this year exists in the years data
+      if (!years[year]) continue;
+      
+      const grants = years[year]?.grants || [];
+      for (const grant of grants) {
+        if (grant?.id && !seenIds.has(grant.id)) {
+          seenIds.add(grant.id);
+          counts[year] = (counts[year] || 0) + 1;
+        }
+      }
+    }
+
+    return counts;
+  }
+
+  _combineYearCounts(allYears={}, ...countMaps) {
+    const combined = {};
+    for (const map of countMaps) {
+      for (const [year, count] of Object.entries(map || {})) {
+        combined[year] = (combined[year] || 0) + count;
+      }
+    }
+
+    for (const [year, count] of Object.entries(allYears || {})) {
+      // if not already included from specific maps, add it
+      // if (!combined[year]) {
+        combined[year] = (combined[year] || 0) + count;
+      // }
+    }
+    return combined;
+  }
+
   async _onSearchUpdate(e, fromSearchPage=false) {
     if (e?.state !== 'loaded' || !fromSearchPage) return;
 
@@ -547,14 +674,21 @@ export default class AppSearch extends Mixin(LitElement)
     }
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
-    this.globalAggregations = this.rawSearchData['global_aggregations'] || {};
+    this.globalAggregations = this.convertSearchAggregations(this.rawSearchData);
+
+    // convert years_grants/years_works to histogram data
+    // ie "1072915200000": 2, becomes { stat: 2003, value: 2 }
+    // but first need to convert to `"1072915200000": 2` from the years_works/years_grants format
+    const issuedYearsWorks = this.computeYearCounts(this.rawSearchData.global_aggregations.years, this.rawSearchData.years_works, false);
+    const issuedYearsGrants = this.computeYearCounts(this.rawSearchData.global_aggregations.years, this.rawSearchData.years_grants, true);
+
+    // add missing years between min/max, so the histogram is continuous
+    const issuedYearsCombined = this._combineYearCounts(this.rawSearchData.global_aggregations.years, issuedYearsWorks, issuedYearsGrants);
 
     // histogram/slider: refresh ONLY when the “agg signature” changes (q, availability, type, status, expert)
     const newSig = this._computeAggSignature(); // this must NOT include dateFrom/dateTo
     if (newSig !== this.lastAggSignature) {
-      const issuedYearsCombined = (this.globalAggregations || {})['issued_years_combined'] || {};
-      const issuedYearsWorks = (this.globalAggregations || {})['issued_years_works'] || {};
-      const issuedYearsGrants = (this.globalAggregations || {})['issued_years_grants'] || {};
+      // TODO fix histogram years for subfilters
       const issueYearsWorksSubfilter = (this.globalAggregations || {})[`issued_years_type_${this.type}`] || {};
       const issueYearsGrantsSubfilter = (this.globalAggregations || {})[`issued_years_status_${this.status}`] || {};
 
