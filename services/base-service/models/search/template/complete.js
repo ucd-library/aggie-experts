@@ -223,11 +223,11 @@ template = {
             { "terms": { "@type": {{#toJson}}@type{{/toJson}}{{^@type}}["expert","grant","work"]{{/@type}} } }
             {{#status}}
             ,{ "exists": { "field": "status" } }
-            ,{ "terms": { "status": [{{#status}}"{{.}}"{{^last}},{{/last}}{{/status}}] } }
+            ,{ "terms": { "status": {{#toJson}}status{{/toJson}} } }
             {{/status}}
             {{#type}}
             ,{ "exists": { "field": "type" } }
-            ,{ "terms": { "type": [{{#type}}"{{.}}"{{^last}},{{/last}}{{/type}}] } }
+            ,{ "terms": { "type": {{#toJson}}type{{/toJson}} } }
             {{/type}}
           ]
         }

@@ -649,6 +649,43 @@ export default class AppSearch extends Mixin(LitElement)
     return counts;
   }
 
+  computeYearCountsForSubfilter(allYears = {}, years = {}, dedupe = false, subfilterValue = '') {
+    const counts = {};
+
+    // Initialize all years with 0
+    for (const [year] of Object.entries(allYears)) {
+      counts[year] = 0;
+    }
+
+    if (!dedupe) {
+      for (const [year, yearData] of Object.entries(years)) {
+        const subfilterCounts = yearData?.status?.[subfilterValue] || yearData?.type?.[subfilterValue] || 0;
+        if (subfilterCounts) counts[year] = (counts[year] || 0) + subfilterCounts;
+      }
+      return counts;
+    }
+
+    // Deduped mode (for grants): count each id once, in the earliest year seen
+    const seenIds = new Set();
+    // Sort by all years, not just the ones in the years object
+    const sortedYears = Object.keys(allYears).sort((a, b) => Number(a) - Number(b));
+
+    for (const year of sortedYears) {
+      // Only process if this year exists in the years data
+      if (!years[year]) continue;
+      
+      const grants = years[year]?.grants || [];
+      for (const grant of grants) {
+        if (grant?.id && grant[subfilterValue] === subfilterValue && !seenIds.has(grant.id)) {
+          seenIds.add(grant.id);
+          counts[year] = (counts[year] || 0) + 1;
+        }
+      }
+    }
+
+    return counts;
+  }
+
   _combineYearCounts(allYears={}, ...countMaps) {
     const combined = {};
     for (const map of countMaps) {
@@ -686,16 +723,16 @@ export default class AppSearch extends Mixin(LitElement)
     // For histogram, keep per-year counts as returned (no cross-year dedupe)
     const issuedYearsGrants = this.computeYearCounts(allYearsCombined, this.rawSearchData.years_grants, false);
 
+    // compute year counts for type/status subfilters
+    const issueYearsWorksSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, this.rawSearchData.years_works, false, this.type);
+    const issueYearsGrantsSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, this.rawSearchData.years_grants, false, this.status);
+
     // add missing years between min/max, so the histogram is continuous
     const issuedYearsCombined = this._combineYearCounts(this.rawSearchData.global_aggregations.years, issuedYearsWorks, issuedYearsGrants);
 
     // histogram/slider: refresh ONLY when the “agg signature” changes (q, availability, type, status, expert)
     const newSig = this._computeAggSignature(); // this must NOT include dateFrom/dateTo
     if (newSig !== this.lastAggSignature) {
-
-      // TODO fix histogram years for subfilters
-      const issueYearsWorksSubfilter = (this.globalAggregations || {})[`issued_years_type_${this.type}`] || {};
-      const issueYearsGrantsSubfilter = (this.globalAggregations || {})[`issued_years_status_${this.status}`] || {};
 
       // if filtering All Results, use combined; if filtering by Works or Grants, use those specific aggs
       let issuedYears = issuedYearsCombined;
