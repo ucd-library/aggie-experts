@@ -7,7 +7,7 @@ const scriptDir = path.dirname(new URL(import.meta.url).pathname);
 const env = process.env;
 
 const esHostname = process.env.ES_HOST || 'elasticsearch';
-const esPort = process.env.ES_PORT || 9200;
+const esPort = parseK8sPort(process.env.ES_PORT || 9200);
 const userConfigDir = env.EXPERTS_USER_CONFIG_DIR || path.join(os.homedir(), '.ae');
 const userConfigFile = path.join(userConfigDir, 'harvest.json');
 
@@ -102,7 +102,7 @@ const config = {
 
   postgres : {
     host : env.POSTGRES_HOST || 'postgres',
-    port : env.POSTGRES_PORT || 5432,
+    port : parseK8sPort(env.POSTGRES_PORT || 5432),
     user : env.POSTGRES_USER || 'postgres',
     password : env.POSTGRES_PASSWORD || 'postgres',
     database : env.POSTGRES_DB || 'postgres',
@@ -219,6 +219,20 @@ const config = {
       gcs_etl_users_job : env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
     }
   }
+}
+
+function parseK8sPort(value) {
+  if (typeof value === 'string') {
+    const intValue = parseInt(value);
+    if (!isNaN(intValue)) {
+      return intValue;
+    }
+
+    if( value.startsWith('tcp:') ) {
+      return parseInt(value.split(':').pop());
+    }
+  }
+  return value;
 }
 
 
