@@ -613,7 +613,7 @@ export default class AppSearch extends Mixin(LitElement)
     }
 
     // Second pass: count unique grants by status and type
-    for (const [grantId, metadata] of Object.entries(grantMetadata)) {
+    for (const metadata of Object.values(grantMetadata)) {
       if (metadata.status) {
         if (!result.status[metadata.status]) result.status[metadata.status] = 0;
         result.status[metadata.status] += 1;
