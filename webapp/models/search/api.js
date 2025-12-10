@@ -111,15 +111,20 @@ router.get(
       grant: grants.readIndexAlias,
       work: works.readIndexAlias,
     };
-    for (const t of params["@type"]) {
-      const indexAlias = typeToIndex[t];
-      if (!indexAlias) {
-        return res.status(400).json({ error: 'Invalid type' });
-      }
-      if (!params.index.includes(indexAlias)) {
-        params.index.push(indexAlias);
+    // Validate @type values but always search all indices (post_filter will handle @type filtering)
+    if (params["@type"]) {
+      for (const t of params["@type"]) {
+        if (!typeToIndex[t]) {
+          return res.status(400).json({ error: 'Invalid type' });
+        }
       }
     }
+    // Always include all indices so aggregations see all document types
+    params.index.push(experts.readIndexAlias);
+    params.index.push(grants.readIndexAlias);
+    params.index.push(works.readIndexAlias);
+    // Remove duplicates
+    params.index = [...new Set(params.index)];
     opts = {
       id: complete.id,
       params
