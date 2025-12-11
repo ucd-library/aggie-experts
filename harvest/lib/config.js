@@ -209,7 +209,7 @@ const config = {
 
   transform: {
     // enable sorting of ae-std output files for debugging
-    stdSort: (env.EXPERTS_STD_SORT === 'true') || false
+    stdSort: (env.EXPERTS_STD_SORT === 'true')
   },
 
   dagster : {
