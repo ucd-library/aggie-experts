@@ -207,6 +207,11 @@ const config = {
     name : 'harvest',
   },
 
+  transform: {
+    // enable sorting of ae-std output files for debugging
+    stdSort: (env.EXPERTS_STD_SORT === 'true')
+  },
+
   dagster : {
     host : env.DAGSTER_HOST || 'http://dagster-ui:3000/dagster',
     graphqlPath : env.DAGSTER_GRAPHQL_PATH || '/graphql',
