@@ -23,6 +23,9 @@ program
       await enableFromCli('experts-harvest-transform-ae-std', userId, options);
     }
 
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
     // Enable ae-std sorting only when requested via CLI flag
     if (options.stdSort) {
       config.transform = config.transform || {};
@@ -58,6 +61,9 @@ program
     if (options.reportingJobId || options.reporting) {
       await enableFromCli('experts-harvest-transform-webapp', userId, options);
     }
+
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
 
     // If requested, enable sorting so any processing that re-sorts will do so
     if (options.stdSort) {
