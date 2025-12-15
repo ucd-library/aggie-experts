@@ -29,6 +29,14 @@
     },
     "elastic-search" : {
       "contextPath" : "./elastic-search"
+    },
+    "ae-postgres" : {
+      "contextPath" : "./postgres",
+      "options" : {
+        "build-arg" : [
+          "POSTGRES_IMAGE=${project-anduin.anduin-pg}"
+        ]
+      }
     }
   }
 }

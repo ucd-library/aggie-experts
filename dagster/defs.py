@@ -1,5 +1,6 @@
 from dagster import asset, DynamicOutput, AssetExecutionContext, AutoMaterializePolicy, Config, FilesystemIOManager, run_status_sensor, DagsterRunStatus, RunStatusSensorContext
 import os
+import sys
 import hashlib
 import json
 import dagster as dg
@@ -19,13 +20,35 @@ class LoadUserConfig(Config):
 def exec(cmd, check=True, capture_output=True, text=True):
     """Helper function to run a command and return the result."""
     print(f"Executing command: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=capture_output, text=text)
-    print(result.stdout)  # Log output to console
-    if check and result.returncode != 0:
-      print(result.stderr)
-      raise subprocess.CalledProcessError(result.returncode, cmd, output=result.stdout, stderr=result.stderr)
-    output_lines = result.stdout.strip().split('\n')
-    last_line = output_lines[-1] if output_lines else ""
+    
+    # result = subprocess.run(cmd, capture_output=capture_output, text=text)
+    # print(result.stdout)  # Log output to console
+    # if check and result.returncode != 0:
+    #   print(result.stderr)
+    #   raise subprocess.CalledProcessError(result.returncode, cmd, output=result.stdout, stderr=result.stderr)
+    # output_lines = result.stdout.strip().split('\n')
+    # last_line = output_lines[-1] if output_lines else ""
+    
+    process = subprocess.Popen(
+      cmd,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.STDOUT,  # Merge stderr into stdout for single-stream reading
+      text=True,
+      bufsize=1 # Line buffering
+    )
+
+    last_line = ""
+    for line in process.stdout:
+      sys.stdout.write(line)
+      sys.stdout.flush()  # Ensure it prints immediately
+      # You can also perform additional processing on the 'line' variable here
+      last_line = line
+
+    process.wait()
+
+    if check and process.returncode != 0:
+      raise subprocess.CalledProcessError(process.returncode, cmd)
+
     return json.loads(last_line)
 
 @dg.asset(
