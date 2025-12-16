@@ -175,6 +175,7 @@ function getGrantStatus(endDate) {
 // Create user role relationship
 function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields) {
   const relationshipType = grantRelationship.type || 'user-grant-research';
+
   // Map relationship types to role abbreviations
   const roleMapping = {
     'user-grant-principal-investigation': { abbrev: 'PI', type: ROLE_TYPES.PI },
@@ -186,6 +187,7 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     'user-grant-project-leadership': { abbrev: 'Lead', type: ROLE_TYPES.LEADER },
     'user-grant-research': { abbrev: 'Res', type: ROLE_TYPES.RESEARCHER }
   };
+
   const roleInfo = roleMapping[relationshipType] || roleMapping['user-grant-research'];
 
   // SPARQL behavior: relationship label is constructed from the directory user fields
@@ -207,6 +209,7 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     ],
     [ONTOLOGY.RELATES]: [ { "@id": expertUri }, { "@id": grantUri } ]
   };
+
   return userRole;
 }
 
@@ -303,19 +306,39 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
   };
 }
 
-function stripGrantIdentifierFromTitle(title, grantUri) {
+function stripGrantIdentifierFromTitle(title, grantUri, funderRef) {
   if (!title || !grantUri) return title || '';
   const parts = String(grantUri).split('grant/');
   const ident = parts.length > 1 ? parts[1] : '';
-  if (!ident) return title;
-  const escaped = ident.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!ident && !funderRef) return title;
 
-  // Remove occurrences of the identifier only when it is standalone or bounded
+  // normalize candidates (ident from grantUri and optional funderRef)
+  const candidates = new Set();
+  if (ident) candidates.add(String(ident).replace(/[^A-Za-z0-9]/g, '').toLowerCase());
+  if (funderRef) candidates.add(String(funderRef).replace(/[^A-Za-z0-9]/g, '').toLowerCase());
+
+  let out = String(title);
+
+  // --- Remove a single leading token if it exactly matches a candidate ---
+  // Match a leading token consisting of alnum and hyphen characters followed by a dash, colon, or whitespace separator
+  const leadMatch = out.match(/^\s*([A-Za-z0-9\-]+)(?:\s*[:\-–—]\s*|\s+)/i);
+  if (leadMatch) {
+    const token = leadMatch[1];
+    const normToken = String(token).replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+    if (candidates.has(normToken)) {
+      // remove the matched leading token and any following separator
+      out = out.slice(leadMatch[0].length).trim();
+    }
+  }
+
+  // Remove occurrences of the grantUri identifier only when it is standalone or bounded
   // by non-alphanumeric characters (whitespace or punctuation). This avoids
   // stripping identifiers that are attached directly to other words/text.
-  // Pattern: (^|[^A-Za-z0-9])IDENT(?=[^A-Za-z0-9]|$) -- keep the prefix capture.
-  const re = new RegExp('(^|[^A-Za-z0-9])' + escaped + '(?=[^A-Za-z0-9]|$)', 'g');
-  let out = title.replace(re, '$1');
+  if (ident) {
+    const escaped = ident.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('(^|[^A-Za-z0-9])' + escaped + '(?=[^A-Za-z0-9]|$)', 'g');
+    out = out.replace(re, '$1');
+  }
 
   // Collapse multiple spaces and tidy
   out = out.replace(/\s{2,}/g, ' ').trim();
@@ -327,8 +350,11 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   const rawTitle = Array.isArray(rawTitleVal) ? rawTitleVal[0] : rawTitleVal;
   let title = cleanGrantTitle(rawTitle);
 
-  // Strip the grant identifier (from id-at-source / grant URI) if it appears in the title
-  title = stripGrantIdentifierFromTitle(title, grantUri);
+  // get funder-reference early so we can remove leading funder tokens if present
+  const rawFunderRefEarly = getFieldValue(fields, 'funder-reference') || '';
+
+  // Strip the grant identifier (from id-at-source / grant URI) or leading funder-ref token if it appears in the title
+  title = stripGrantIdentifierFromTitle(title, grantUri, rawFunderRefEarly);
 
   // If cleaning removed the title entirely, attempt fallbacks.
   if (!title || title.trim() === '') {
