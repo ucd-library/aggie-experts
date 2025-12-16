@@ -28,7 +28,8 @@
       "contextPath" : "./webapp"
     },
     "elastic-search" : {
-      "contextPath" : "./elastic-search"
+      "contextPath" : "./elastic-search",
+      "user" : "elasticsearch"
     },
     "ae-postgres" : {
       "contextPath" : "./postgres",
