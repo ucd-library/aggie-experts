@@ -43,6 +43,8 @@ program.name('extract')
       config.postgres.client.end();
     }
     await cache.close();
+
+    process.exit();
   });
 
 program.parse(process.argv);

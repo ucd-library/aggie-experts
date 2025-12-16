@@ -17,6 +17,10 @@ class FetchUserListConfig(Config):
 class LoadUserConfig(Config):
     alias: Literal['stage', 'current', 'all'] = 'stage'  # Default alias/index for loading
 
+class PurgeUserCaskFilesConfig(Config):
+    year_week: str = ''  # Default year-week for CaskFS purge
+
+
 def exec(cmd, check=True, capture_output=True, text=True):
     """Helper function to run a command and return the result."""
     print(f"Executing command: {' '.join(cmd)}")
@@ -147,6 +151,22 @@ def transform_user_webapp(context: AssetExecutionContext) -> None:
     return None
 
 @dg.asset(
+    partitions_def=users_partitions
+)
+def purge_user_cask_files(context: AssetExecutionContext, config: PurgeUserCaskFilesConfig) -> None:
+    """Purge user files from CaskFS before."""
+    user_id = context.partition_key
+    run = context.dagster_run
+
+    year_week = config.year_week
+    if not year_week:
+      raise ValueError("year_week must be provided in PurgeUserCaskFilesConfig")
+
+    result = exec(["cask", "rm", "-d", f"/weekly/{year_week}/{user_id}"])
+
+    return None
+
+@dg.asset(
     partitions_def=users_partitions,
     code_version="1.1",
     auto_materialize_policy=AutoMaterializePolicy.eager(),
@@ -215,7 +235,8 @@ def success_sensor(context: RunStatusSensorContext):
 defs = dg.Definitions(
     jobs=[etl_users_job, extract_users_job, transform_load_users_job],
     assets=[extract_user, transform_user_webapp, transform_user_standard, 
-            load_user, init_databases, fetch_user_list_from_cdl],
+            load_user, init_databases, fetch_user_list_from_cdl,
+            purge_user_cask_files],
     sensors=[success_sensor],
     resources={
         "io_manager": FilesystemIOManager(base_dir="/opt/dagster/dagster_home/storage")

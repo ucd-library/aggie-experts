@@ -45,7 +45,7 @@ program
     await cache.close();
 
     // TODO: why is this hanging?
-    // process.exit();
+    process.exit();
   });
 
 program
@@ -84,7 +84,7 @@ program
     await cache.close();
 
     // TODO: why is this hanging?
-    // process.exit();
+    process.exit();
   });
 
 program.parse(process.argv);
