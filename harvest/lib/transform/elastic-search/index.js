@@ -560,9 +560,15 @@ async function runFromFiles(cacheUsername) {
     const uniq = new Map();
     for (const n of combinedGraph) {
       if (n && n['@id']) {
-        if (!uniq.has(n['@id'])) uniq.set(n['@id'], n);
+        const existing = uniq.get(n['@id']);
+        if (existing) {
+          // merge properties from later occurrences into the first one
+          Object.assign(existing, n);
+        } else {
+          uniq.set(n['@id'], n);
+        }
       } else {
-        // preserve nodes without @id by generating a stable key
+        // preserve nodes without @id by generating a unique key
         const key = `__noid_${Math.random().toString(36).slice(2,8)}`;
         uniq.set(key, n);
       }
@@ -574,7 +580,7 @@ async function runFromFiles(cacheUsername) {
     const mAfter = process.memoryUsage();
     logger.debug(`post-dedupe memory rss=${mAfter.rss} heapUsed=${mAfter.heapUsed} heapTotal=${mAfter.heapTotal}`);
   } catch (err) {
-    logger.debug(`Error during pre-frame dedupe/logging: ${err.message}`);
+    logger.error(`Error during pre-frame dedupe/logging: ${err.message}`, { error: err });
   }
 
   let framed = await frame(expertId, combinedGraph);
