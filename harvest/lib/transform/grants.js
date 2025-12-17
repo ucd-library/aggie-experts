@@ -172,6 +172,32 @@ function getGrantStatus(endDate) {
   return endYear < currentYear ? 'Completed' : 'Active';
 }
 
+// Format PI text (e.g. 'Jose Lado Abeal') into 'Lado Abeal, Jose' when appropriate
+function formatPiDisplayName(piText) {
+  if (!piText || typeof piText !== 'string') return '';
+  const s = piText.trim();
+  if (!s) return '';
+  const parts = s.split(/\s+/);
+  if (parts.length === 1) return capitalizeName(parts[0]);
+  if (parts.length === 2) return `${capitalizeName(parts[1])}, ${capitalizeName(parts[0])}`;
+
+  // For 3+ tokens, if the last two tokens look like a composite surname (start with uppercase), treat them as surname
+  const penult = parts[parts.length - 2];
+  const last = parts[parts.length - 1];
+  const isPenultCap = /^[A-ZÁÉÍÓÚÑ]/.test(penult);
+  const isLastCap = /^[A-ZÁÉÍÓÚÑ]/.test(last);
+  if (isPenultCap && isLastCap) {
+    const surname = parts.slice(parts.length - 2).join(' ');
+    const given = parts.slice(0, parts.length - 2).join(' ');
+    return `${capitalizeName(surname)}, ${capitalizeName(given)}`;
+  }
+
+  // Fallback: treat last token as surname
+  const surname = parts[parts.length - 1];
+  const given = parts.slice(0, parts.length - 1).join(' ');
+  return `${capitalizeName(surname)}, ${capitalizeName(given)}`;
+}
+
 // Create user role relationship
 function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields) {
   const relationshipType = grantRelationship.type || 'user-grant-research';
@@ -190,12 +216,113 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
 
   const roleInfo = roleMapping[relationshipType] || roleMapping['user-grant-research'];
 
+  // Helpers to normalize and format
+  const normalize = s => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
+  const formatApiPerson = p => {
+    const last = p['api:last-name'] || p['api:family-name'] || '';
+    // prefer separate-first-names.api:first-name if present
+    let given = '';
+    if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+      const fn = p['api:separate-first-names']['api:first-name'];
+      if (Array.isArray(fn)) given = fn.join(' ');
+      else given = fn;
+    } else if (p['api:first-names']) {
+      given = p['api:first-names'];
+    } else if (p['api:first-name']) {
+      given = p['api:first-name'];
+    }
+    given = (given || '').trim();
+    const combined = `${last || ''}${given ? (', ' + given) : ''}`.trim();
+    return updateNameCasing(combined);
+  };
+
   // SPARQL behavior: relationship label is constructed from the directory user fields
   // (last-name and optional first-name). Format accordingly and prefix with abbrev.
+  // Prefer a matching person from the grant record for CoPI roles; otherwise prefer the
+  // grant's c-pi for PI roles; fall back to the directory name.
   const userLast = expertData['last-name'] || '';
   const userFirst = expertData['first-name'] || '';
+
+  // Try to get PI name from the grant record fields (if available)
+  let grantPiText = '';
+  try {
+    grantPiText = getFieldValue(fields, 'c-pi') || '';
+  } catch (e) {
+    grantPiText = '';
+  }
+
+  // For CoPI roles, try to find a matching person in c-co-pis
+  let formattedMatchingCoPi = '';
+  if (roleInfo.abbrev === 'CoPI') {
+    try {
+      const coPiField = fields.find(f => f.name === 'c-co-pis');
+      const people = coPiField && coPiField['api:people'] && coPiField['api:people']['api:person'];
+      if (people) {
+        const list = Array.isArray(people) ? people : [people];
+        for (const p of list) {
+          const pLast = p['api:last-name'] || p['api:family-name'] || '';
+          if (pLast && normalize(pLast) === normalize(userLast)) {
+            formattedMatchingCoPi = formatApiPerson(p);
+            break;
+          }
+          // also try matching on given+last if needed
+          const pGiven = p['api:first-names'] || '';
+          if (pGiven && normalize((pGiven + pLast)) === normalize((userFirst + userLast))) {
+            formattedMatchingCoPi = formatApiPerson(p);
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      formattedMatchingCoPi = '';
+    }
+  }
+
+  // Format grant PI into 'Family, Given' form when used
+  let formattedGrantPi = '';
+  if (grantPiText) {
+    const raw = String(grantPiText).trim();
+    if (/,/.test(raw)) {
+      const cleaned = raw.replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1');
+      formattedGrantPi = updateNameCasing(cleaned);
+    } else {
+      const parts = raw.split(/\s+/);
+      if (parts.length === 1) {
+        if (userLast) {
+          formattedGrantPi = updateNameCasing(`${userLast}, ${parts[0]}`);
+        } else {
+          formattedGrantPi = updateNameCasing(parts[0]);
+        }
+      } else if (parts.length === 2) {
+        const second = parts[1];
+        if (second.length === 1) {
+          if (userLast) {
+            formattedGrantPi = updateNameCasing(`${userLast}, ${parts[0]}`);
+          } else {
+            formattedGrantPi = updateNameCasing(`${parts[1]}, ${parts[0]}`);
+          }
+        } else {
+          formattedGrantPi = updateNameCasing(`${parts[1]}, ${parts[0]}`);
+        }
+      } else {
+        const given = parts[0];
+        const family = parts.slice(1).join(' ');
+        formattedGrantPi = updateNameCasing(`${family}, ${given}`);
+      }
+    }
+    // Final clean: remove trailing single-letter initial
+    formattedGrantPi = String(formattedGrantPi).replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1').replace(/\s+[A-Za-z]\.?(\s*)$/,'').trim();
+  }
+
   const formattedUserName = updateNameCasing((userLast + (userFirst ? (', ' + userFirst) : '')).trim());
-  const roleName = `${roleInfo.abbrev}: ${formattedUserName}`;
+
+  // Choose name: prefer matching CoPI where applicable, then grant PI (for PI roles), then directory
+  let finalName = '';
+  if (formattedMatchingCoPi) finalName = formattedMatchingCoPi;
+  else if (roleInfo.abbrev === 'PI' && formattedGrantPi) finalName = formattedGrantPi;
+  else finalName = formattedUserName;
+
+  const roleName = `${roleInfo.abbrev}: ${finalName}`;
 
   const isVisible = grantRelationship["api:is-visible"] === 'true';
 
