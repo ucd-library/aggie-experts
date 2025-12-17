@@ -558,24 +558,20 @@ async function runFromFiles(cacheUsername) {
     logger.info(`combinedGraph length before dedupe: ${combinedGraph.length}`);
 
     const uniq = new Map();
+    // Dedupe only nodes that have an @id. Nodes without an @id (blank nodes)
+    // cannot be reliably deduplicated across runs, so preserve them as-is
+    // in their original order.
+    const noIdNodes = [];
     for (const n of combinedGraph) {
       if (n && n['@id']) {
-        const existing = uniq.get(n['@id']);
-        if (existing) {
-          // merge properties from later occurrences into the first one
-          Object.assign(existing, n);
-        } else {
-          uniq.set(n['@id'], n);
-        }
+        if (!uniq.has(n['@id'])) uniq.set(n['@id'], n);
       } else {
-        // preserve nodes without @id by generating a unique key
-        const key = `__noid_${Math.random().toString(36).slice(2,8)}`;
-        uniq.set(key, n);
+        noIdNodes.push(n);
       }
     }
 
-    logger.info(`unique node count before frame: ${uniq.size}`);
-    combinedGraph = Array.from(uniq.values());
+    logger.info(`unique node count before frame: ${uniq.size} (plus ${noIdNodes.length} nodes without @id preserved)`);
+    combinedGraph = [...Array.from(uniq.values()), ...noIdNodes];
 
     const mAfter = process.memoryUsage();
     logger.debug(`post-dedupe memory rss=${mAfter.rss} heapUsed=${mAfter.heapUsed} heapTotal=${mAfter.heapTotal}`);
