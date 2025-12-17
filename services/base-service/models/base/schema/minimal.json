@@ -233,7 +233,7 @@
         },
         "issued" : {
           "type" : "date",
-          "format" : "date"
+          "format" : "yyyy-MM-dd||yyyy-MM||yyyy"
         },
         "relatedBy" : {
           "properties" : {
