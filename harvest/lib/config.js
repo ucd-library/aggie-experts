@@ -218,7 +218,10 @@ const config = {
     graphqlPath : env.DAGSTER_GRAPHQL_PATH || '/graphql',
     repositoryLocationName : env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
     repositoryName : env.DAGSTER_REPOSITORY_NAME || '__repository__',
-    partitionName : env.DAGSTER_PARTITION_NAME || 'users',
+    partitions : {
+      user : env.DAGSTER_PARTITION_USER || 'users',
+      yearWeek : env.DAGSTER_PARTITION_YEAR_WEEK || 'year-week'
+    },
     etlPartitionSet : env.DAGSTER_ETL_PARTITION_SET || 'etl_users_job_partition_set',
     jobs : {
       etlUsersJob : env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',

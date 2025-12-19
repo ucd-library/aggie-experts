@@ -286,10 +286,10 @@ function getIndexNameForDate(index, date) {
     }
 
     if( parts.length !== 2  ) {
-      throw new Error('Date string must be in the format "weekNumber-year", e.g., "37-2023"');
+      throw new Error('Date string must be in the format "year-week", e.g., "2023-37"');
     }
-    weekNumber = parseInt(parts[0], 10);
-    year = parseInt(parts[1], 10);
+    year = parseInt(parts[0], 10);
+    weekNumber = parseInt(parts[1], 10);
   } else if( date instanceof Date ) {
     weekNumber = getWeek(date, { weekStartsOn: 1 });
     year = date.getFullYear();
@@ -297,7 +297,7 @@ function getIndexNameForDate(index, date) {
     throw new Error('Date must be a string or Date object');
   }
 
-  return `${index}-${weekNumber}-${year}`;
+  return `${index}-${year}-${weekNumber}`;
 }
 
 /**
