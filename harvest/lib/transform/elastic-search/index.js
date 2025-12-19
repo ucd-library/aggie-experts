@@ -547,9 +547,37 @@ async function runFromFiles(cacheUsername) {
   // Read all relationship files (works/grants)
   const relationshipGraph = await readRelationshipFiles(cacheUsername, expertId);
 
-  const combinedGraph = Array.isArray(expertGraph)
+  let combinedGraph = Array.isArray(expertGraph)
     ? [...expertGraph, ...relationshipGraph]
     : [expertGraph, ...relationshipGraph];
+
+  // Log memory and node counts, then dedupe nodes by @id to avoid huge graphs
+  try {
+    const mBefore = process.memoryUsage();
+    logger.debug(`pre-frame memory rss=${mBefore.rss} heapUsed=${mBefore.heapUsed} heapTotal=${mBefore.heapTotal}`);
+    logger.info(`combinedGraph length before dedupe: ${combinedGraph.length}`);
+
+    const uniq = new Map();
+    // Dedupe only nodes that have an @id. Nodes without an @id (blank nodes)
+    // cannot be reliably deduplicated across runs, so preserve them as-is
+    // in their original order.
+    const noIdNodes = [];
+    for (const n of combinedGraph) {
+      if (n && n['@id']) {
+        if (!uniq.has(n['@id'])) uniq.set(n['@id'], n);
+      } else {
+        noIdNodes.push(n);
+      }
+    }
+
+    logger.info(`unique node count before frame: ${uniq.size} (plus ${noIdNodes.length} nodes without @id preserved)`);
+    combinedGraph = [...Array.from(uniq.values()), ...noIdNodes];
+
+    const mAfter = process.memoryUsage();
+    logger.debug(`post-dedupe memory rss=${mAfter.rss} heapUsed=${mAfter.heapUsed} heapTotal=${mAfter.heapTotal}`);
+  } catch (err) {
+    logger.error(`Error during pre-frame dedupe/logging: ${err.message}`, { error: err });
+  }
 
   let framed = await frame(expertId, combinedGraph);
   framed = sortJsonRecursively(framed);
