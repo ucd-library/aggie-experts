@@ -19,7 +19,7 @@ program
     const client = new CdlClient();
     const dagster = new DagsterAPI();
     const users = await client.getGroupList(groupId);
-    await dagster.createDynamicPartitions(config.dagster.partitionName, users.users);
+    await dagster.createDynamicPartitions(config.dagster.partitions.user, users.users);
 
     // things seem to hang after this point... so force exit
     process.exit();
