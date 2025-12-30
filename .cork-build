@@ -1,5 +1,5 @@
 {
-  "registry" : "us-west1-docker.pkg.dev/aggie-experts/docker",
+  "registry" : "us-west1-docker.pkg.dev/aggie-experts/pub",
 
   "repositories" : {
     "project-anduin" : "https://github.com/ucd-library/project-anduin",
@@ -28,7 +28,16 @@
       "contextPath" : "./webapp"
     },
     "elastic-search" : {
-      "contextPath" : "./elastic-search"
+      "contextPath" : "./elastic-search",
+      "user" : "elasticsearch"
+    },
+    "ae-postgres" : {
+      "contextPath" : "./postgres",
+      "options" : {
+        "build-arg" : [
+          "POSTGRES_IMAGE=${project-anduin.anduin-pg}"
+        ]
+      }
     }
   }
 }

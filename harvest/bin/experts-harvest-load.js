@@ -38,6 +38,8 @@ program.name('load')
     }
 
     await cache.close();
+
+    process.exit();
   });
 
 program.parse(process.argv);

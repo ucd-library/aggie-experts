@@ -757,7 +757,12 @@ export default class AppExpert extends Mixin(LitElement)
 
   async _updateProfileLastUpdated() {
     // TODO pull cas+@ucdavis.edu from the auth
-    let partitionName = 'todo@ucdavis.edu';
+    let email = this.expert?.contactInfo?.hasEmail || '';
+    if( Array.isArray(email) ) email = email[0];
+    if( email.startsWith('mailto:') ) email = email.replace('mailto:', '');
+    if( !email ) return;
+
+    let partitionName = email;
     let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
 
     let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])

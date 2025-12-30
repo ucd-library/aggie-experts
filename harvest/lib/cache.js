@@ -26,7 +26,8 @@ class FsCache {
 
     this.caskFs = new CaskFS({
       rootDir: this.rootDir,
-      postgres: config.cache.postgres
+      postgres: config.cache.postgres,
+      dbPool : config.cache.poolDbConnection,
     })
   }
 

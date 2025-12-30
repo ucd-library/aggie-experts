@@ -214,8 +214,6 @@ class DagsterAPI {
       ]
     };
 
-    console.log({filter, limit, query});
-
     return this.graphqlQuery('GetLastRunsForPartition', query, {
       filter,
       limit

@@ -16,10 +16,21 @@ program
   .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
+  .option('--std-sort', 'Sort the ae-std output files for debugging')
   .action(async (userId, options) => {
 
     if (options.reportingJobId || options.reporting) {
       await enableFromCli('experts-harvest-transform-ae-std', userId, options);
+    }
+
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
+    // Enable ae-std sorting only when requested via CLI flag
+    if (options.stdSort) {
+      config.transform = config.transform || {};
+      config.transform.stdSort = true;
+      logger.info('ae-std sorting enabled via --std-sort');
     }
 
     await srcToAeStd({
@@ -34,7 +45,7 @@ program
     await cache.close();
 
     // TODO: why is this hanging?
-    // process.exit();
+    process.exit();
   });
 
 program
@@ -44,10 +55,21 @@ program
   .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
+  .option('--std-sort', 'Sort the ae-std output files for debugging')
   .action(async (userId, options) => {
 
     if (options.reportingJobId || options.reporting) {
       await enableFromCli('experts-harvest-transform-webapp', userId, options);
+    }
+
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
+    // If requested, enable sorting so any processing that re-sorts will do so
+    if (options.stdSort) {
+      config.transform = config.transform || {};
+      config.transform.stdSort = true;
+      logger.info('ae-std sorting enabled via --std-sort');
     }
 
     await aeStdToWebapp({
@@ -62,7 +84,7 @@ program
     await cache.close();
 
     // TODO: why is this hanging?
-    // process.exit();
+    process.exit();
   });
 
 program.parse(process.argv);

@@ -1,4 +1,5 @@
 import jsonpath from 'jsonpath';
+import config from '../config.js';
 
 const WORKS_SOURCE_ORDER = [
   'verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite',
@@ -72,6 +73,9 @@ function computeRecordScore(record) {
 }
 
 function sortJsonArrayByIdAndKeys(jsonArray) {
+  // If sorting of ae-std files not enabled, return original array unchanged
+  if (!config?.transform?.stdSort) return jsonArray;
+
   // sort the array by '@id', then by keys for each
   jsonArray.sort((a, b) => {
     if (a['@id'] < b['@id']) return -1;
@@ -90,6 +94,9 @@ function sortJsonArrayByIdAndKeys(jsonArray) {
 }
 
 function sortJsonRecursively(obj) {
+  // If sorting is disabled, return the object as-is
+  if (!config?.transform?.stdSort) return obj;
+
   if (obj === null || typeof obj !== 'object') {
     return obj;
   }

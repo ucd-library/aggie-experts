@@ -7,7 +7,7 @@ const scriptDir = path.dirname(new URL(import.meta.url).pathname);
 const env = process.env;
 
 const esHostname = process.env.ES_HOST || 'elasticsearch';
-const esPort = process.env.ES_PORT || 9200;
+const esPort = parseK8sPort(process.env.ES_PORT || 9200);
 const userConfigDir = env.EXPERTS_USER_CONFIG_DIR || path.join(os.homedir(), '.ae');
 const userConfigFile = path.join(userConfigDir, 'harvest.json');
 
@@ -53,6 +53,7 @@ const config = {
   },
 
   cache : {
+    poolDbConnection : env.EXPERTS_CACHE_POOL_DB_CONNECTION || false,
     rootDir : env.EXPERTS_CACHE_ROOT_DIR || path.join(process.cwd(), 'ae-harvest-cache'),
     cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'cdl',
     iamDir : env.EXPERTS_IAM_CACHE_DIR || 'iam',
@@ -102,7 +103,7 @@ const config = {
 
   postgres : {
     host : env.POSTGRES_HOST || 'postgres',
-    port : env.POSTGRES_PORT || 5432,
+    port : parseK8sPort(env.POSTGRES_PORT || 5432),
     user : env.POSTGRES_USER || 'postgres',
     password : env.POSTGRES_PASSWORD || 'postgres',
     database : env.POSTGRES_DB || 'postgres',
@@ -207,18 +208,40 @@ const config = {
     name : 'harvest',
   },
 
+  transform: {
+    // enable sorting of ae-std output files for debugging
+    stdSort: (env.EXPERTS_STD_SORT === 'true')
+  },
+
   dagster : {
     host : env.DAGSTER_HOST || 'http://dagster-ui:3000/dagster',
     graphqlPath : env.DAGSTER_GRAPHQL_PATH || '/graphql',
     repositoryLocationName : env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
     repositoryName : env.DAGSTER_REPOSITORY_NAME || '__repository__',
-    partitionName : env.DAGSTER_PARTITION_NAME || 'users',
+    partitions : {
+      user : env.DAGSTER_PARTITION_USER || 'users',
+      yearWeek : env.DAGSTER_PARTITION_YEAR_WEEK || 'year-week'
+    },
     etlPartitionSet : env.DAGSTER_ETL_PARTITION_SET || 'etl_users_job_partition_set',
     jobs : {
       etlUsersJob : env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',
       gcs_etl_users_job : env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
     }
   }
+}
+
+function parseK8sPort(value) {
+  if (typeof value === 'string') {
+    const intValue = parseInt(value);
+    if (!isNaN(intValue)) {
+      return intValue;
+    }
+
+    if( value.startsWith('tcp:') ) {
+      return parseInt(value.split(':').pop());
+    }
+  }
+  return value;
 }
 
 

@@ -21,6 +21,9 @@ program.name('extract')
       await enableFromCli('experts-harvest-extract', user, options);
     }
 
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
     if( options.enableGcsCache ) {
       config.cache.gcs.enabled = true;
     }
@@ -40,6 +43,8 @@ program.name('extract')
       config.postgres.client.end();
     }
     await cache.close();
+
+    process.exit();
   });
 
 program.parse(process.argv);

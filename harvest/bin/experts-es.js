@@ -19,21 +19,21 @@ program
 program
   .command('create-index')
   .description('Create specific ElasticSearch indexes for aggie experts')
-  .option('-w, --week <week>', 'Week number for the index (1-52)')
-  .option('-y, --year <year>', 'Year for the index (e.g. 2024)')
+  .option('-w, --year-week <year-week>', 'YYYY-MM format. Week number for the index (1-52)')
   .option('-d, --date <date>', 'Date for the index (format: iso)')
   .action(async (opts={}) => {
     let date;
     if( opts.date ) {
       date = new Date(opts.date);
-    } else if( opts.week && opts.year ) {
-      date = opts.week+'-'+opts.year;
+    } else if( opts.yearWeek ) {
+      date = opts.yearWeek;
     } else {
       logger.error('You must provide either a date or a week and year for the index');
       process.exit(1);
     }
 
-    for( let baseName of config.elasticsearch.indexes ) {
+    for( let baseName in config.elasticsearch.indexes ) {
+      baseName = config.elasticsearch.indexes[baseName];
       try {
         await createIndex(baseName, date);
       } catch (error) {
@@ -45,21 +45,21 @@ program
 program
   .command('delete-index')
   .description('Delete specific ElasticSearch indexes for aggie experts')
-  .option('-w, --week <week>', 'Week number for the index (1-52)')
-  .option('-y, --year <year>', 'Year for the index (e.g. 2024)')
+  .option('-w, --year-week <year-week>', 'YYYY-MM format. Week number for the index (1-52)')
   .option('-d, --date <date>', 'Date for the index (format: iso)')
   .action(async (opts={}) => {
     let date;
     if( opts.date ) {
       date = new Date(opts.date);
-    } else if( opts.week && opts.year ) {
-      date = opts.week+'-'+opts.year;
+    } else if( opts.yearWeek ) {
+      date = opts.yearWeek;
     } else {
       logger.error('You must provide either a date or a week and year for the index');
       process.exit(1);
     }
 
-    for( let baseName of config.elasticsearch.indexes ) {
+    for( let baseName in config.elasticsearch.indexes ) {
+      baseName = config.elasticsearch.indexes[baseName];
       await deleteIndex(baseName, date);
     }
   });
@@ -67,16 +67,15 @@ program
 program
   .command('set-alias')
   .argument('<alias>', 'Alias name to set; either current or stage')
-  .option('-w, --week <week>', 'Week number for the index (1-52)')
-  .option('-y, --year <year>', 'Year for the index (e.g. 2024)')
+  .option('-w, --year-week <year-week>', 'YYYY-MM format. Week number for the index (1-52)')
   .option('-d, --date <date>', 'Date for the index (format: iso)')
   .option('-c, --current', 'Set the current week')
   .action(async (alias, opts={}) => {
     let date;
     if( opts.date ) {
       date = new Date(opts.date);
-    } else if( opts.week && opts.year ) {
-      date = opts.week+'-'+opts.year;
+    } else if( opts.yearWeek ) {
+      date = opts.yearWeek;
     } else if( opts.current ) {
       date = new Date();
     } else {
@@ -84,7 +83,8 @@ program
       process.exit(1);
     }
 
-    for( let baseName of config.elasticsearch.indexes ) {
+    for( let baseName in config.elasticsearch.indexes ) {
+      baseName = config.elasticsearch.indexes[baseName];
       await setAlias(baseName, date, alias);
     }
   });
