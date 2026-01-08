@@ -556,15 +556,27 @@ export default class AppSearch extends Mixin(LitElement)
     // Process works - unique per year, so we can sum directly
     const yearsWorks = data.years_works || {};
     
-    // Convert date filter strings to epoch milliseconds for comparison
-    let dateFromEpoch = null;
-    let dateToEpoch = null;
-    if (this.dateFrom) {
-      dateFromEpoch = new Date(this.dateFrom).getTime();
-    }
-    if (this.dateTo) {
-      dateToEpoch = new Date(this.dateTo).getTime();
-    }
+    // Convert date filter strings to epoch milliseconds (UTC) for comparison
+    // Supports year-only (YYYY) and full ISO dates. Year-only uses start/end of year UTC.
+    const parseUtcEpoch = (val, isEnd=false) => {
+      if (val === undefined || val === null || val === '') return null;
+      // Numeric year (from slider) or year string
+      if (typeof val === 'number' && Number.isFinite(val)) {
+        const y = Math.trunc(val);
+        return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
+      }
+      if (typeof val === 'string' && /^\d{4}$/.test(val)) {
+        const y = Number(val);
+        return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
+      }
+      // Full date string
+      const d = new Date(val);
+      const t = d.getTime();
+      return Number.isFinite(t) ? t : null;
+    };
+
+    const dateFromEpoch = parseUtcEpoch(this.dateFrom, false);
+    const dateToEpoch = parseUtcEpoch(this.dateTo, true);
     
     for (const yearKey of Object.keys(yearsWorks)) {
       const yearData = yearsWorks[yearKey];
@@ -596,19 +608,24 @@ export default class AppSearch extends Mixin(LitElement)
     const seenGrantIds = new Set();
     const grantMetadata = {}; // id -> { status, type }
 
-    // First pass: collect all unique grant IDs and their metadata
+    // First pass: collect unique grant IDs and metadata, restricted to active years in date range (if applied)
     for (const yearKey of Object.keys(yearsGrants)) {
+      const yearEpoch = Number(yearKey);
+      if (!Number.isFinite(yearEpoch)) continue;
+      if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
+      if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
+
       const yearData = yearsGrants[yearKey];
       const grants = yearData.grants || [];
-      
+
       for (const grant of grants) {
-        if (!seenGrantIds.has(grant.id)) {
-          seenGrantIds.add(grant.id);
-          grantMetadata[grant.id] = {
-            status: grant.status || '',
-            type: grant.type || ''
-          };
-        }
+        const id = grant.id;
+        if (!id || seenGrantIds.has(id)) continue;
+        seenGrantIds.add(id);
+        grantMetadata[id] = {
+          status: grant.status || '',
+          type: grant.type || ''
+        };
       }
     }
 
@@ -665,7 +682,7 @@ export default class AppSearch extends Mixin(LitElement)
     return counts;
   }
 
-  computeYearCountsForSubfilter(allYears = {}, years = {}, dedupe = false, subfilterValue = '') {
+  computeYearCountsForSubfilter(allYears = {}, years = {}, dedupe = false, subfilterValue = '', applyDateFilter = true) {
     const counts = {};
 
     // Initialize all years with 0
@@ -673,8 +690,31 @@ export default class AppSearch extends Mixin(LitElement)
       counts[year] = 0;
     }
 
+    // Parse date range boundaries (UTC), support year-only and ISO dates
+    const parseUtcEpoch = (val, isEnd=false) => {
+      if (val === undefined || val === null || val === '') return null;
+      if (typeof val === 'number' && Number.isFinite(val)) {
+        const y = Math.trunc(val);
+        return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
+      }
+      if (typeof val === 'string' && /^\d{4}$/.test(val)) {
+        const y = Number(val);
+        return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
+      }
+      const d = new Date(val);
+      const t = d.getTime();
+      return Number.isFinite(t) ? t : null;
+    };
+    const dateFromEpoch = applyDateFilter ? parseUtcEpoch(this.dateFrom, false) : null;
+    const dateToEpoch = applyDateFilter ? parseUtcEpoch(this.dateTo, true) : null;
+
     if (!dedupe) {
       for (const [year, yearData] of Object.entries(years)) {
+        const yearEpoch = Number(year);
+        if (Number.isFinite(yearEpoch)) {
+          if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
+          if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
+        }
         const subfilterCounts = yearData?.status?.[subfilterValue] || yearData?.type?.[subfilterValue] || 0;
         if (subfilterCounts) counts[year] = (counts[year] || 0) + subfilterCounts;
       }
@@ -689,6 +729,11 @@ export default class AppSearch extends Mixin(LitElement)
     for (const year of sortedYears) {
       // Only process if this year exists in the years data
       if (!years[year]) continue;
+      const yearEpoch = Number(year);
+      if (Number.isFinite(yearEpoch)) {
+        if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
+        if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
+      }
       
       const grants = years[year]?.grants || [];
       for (const grant of grants) {
@@ -738,8 +783,8 @@ export default class AppSearch extends Mixin(LitElement)
     const issuedYearsGrants = this.computeYearCounts(allYearsCombined, this.rawSearchData.years_grants, false);
 
     // compute year counts for type/status subfilters
-    const issueYearsWorksSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, this.rawSearchData.years_works, false, this.type);
-    const issueYearsGrantsSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, this.rawSearchData.years_grants, false, this.status);
+    const issueYearsWorksSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, this.rawSearchData.years_works, false, this.type, false);
+    const issueYearsGrantsSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, this.rawSearchData.years_grants, false, this.status, false);
 
     // add missing years between min/max, so the histogram is continuous
     const issuedYearsCombined = this._combineYearCounts(this.rawSearchData.global_aggregations.years, issuedYearsWorks, issuedYearsGrants);
