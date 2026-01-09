@@ -33,7 +33,7 @@ class SetAliasConfig(Config):
     alias: Literal['stage', 'current']
 
 class ReloadSearchTemplateConfig(Config):
-  template: str = Field('complete', description="Search template name to load into Elasticsearch")
+    template: str = Field('complete', description="Search template name to load into Elasticsearch")
 
 year_week_partitions = dg.DynamicPartitionsDefinition(name="year-week")
 multi_partitions = MultiPartitionsDefinition(
