@@ -237,7 +237,28 @@ template = {
           "global": {},
           "aggs": {
             "works": {
-              "filter": { "term": { "@type": "work" } },
+              "filter": {
+                "bool": {
+                  "must": [
+                    { "term": { "@type": "work" } }
+                    {{#expert}}
+                    ,{
+                      "nested": {
+                        "path": "@graph",
+                        "query": {
+                          "bool": {
+                            "must": [
+                              { "exists": { "field": "@graph.@id" } },
+                              { "terms": { "@graph.@id": {{#toJson}}expert{{/toJson}} } }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                    {{/expert}}
+                  ]
+                }
+              },
               "aggs": {
                 "works_nested": {
                   "nested": { "path": "@graph" },
@@ -297,7 +318,28 @@ template = {
               }
             },
             "grants": {
-              "filter": { "term": { "@type": "grant" } },
+              "filter": {
+                "bool": {
+                  "must": [
+                    { "term": { "@type": "grant" } }
+                    {{#expert}}
+                    ,{
+                      "nested": {
+                        "path": "@graph",
+                        "query": {
+                          "bool": {
+                            "must": [
+                              { "exists": { "field": "@graph.@id" } },
+                              { "terms": { "@graph.@id": {{#toJson}}expert{{/toJson}} } }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                    {{/expert}}
+                  ]
+                }
+              },
               "aggs": {
                 "grants_nested": {
                   "nested": { "path": "@graph" },
@@ -316,16 +358,6 @@ template = {
                                 "minimum_should_match": 1
                               }
                             }
-                            {{#dateFrom}}{{#dateTo}}
-                            ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
-                            ,{ "range": { "@graph.dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }
-                            {{/dateTo}}{{/dateFrom}}
-                            {{#dateFrom}}{{^dateTo}}
-                            ,{ "range": { "@graph.dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }
-                            {{/dateTo}}{{/dateFrom}}
-                            {{^dateFrom}}{{#dateTo}}
-                            ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
-                            {{/dateTo}}{{/dateFrom}}
                             {{#q}}
                             ,{ "simple_query_string": { "query": "{{q}}", "fields": [
                               "@graph.@id^10","@graph.relates^2","@graph.DOI^10","@graph.abstract^5",

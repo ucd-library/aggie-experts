@@ -154,9 +154,8 @@ export class CategoryFilterController extends Mixin(LitElement)
         });
       });
 
-      if( workSubFilters.length ) {
-        worksFilter.subFilters = workSubFilters;
-      }
+      // Always update subFilters, even if empty, to clear stale ones
+      worksFilter.subFilters = workSubFilters;
     }
 
     this.filters = [...this.filters];
