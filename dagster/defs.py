@@ -366,12 +366,12 @@ def success_sensor(context: RunStatusSensorContext):
 #     )
 
 defs = dg.Definitions(
-  jobs=[etl_users_job, extract_users_job, transform_load_users_job, reload_search_template_job],
-  assets=[extract_user, transform_user_webapp, transform_user_standard, 
-      load_user, init_databases, fetch_user_list_from_cdl,
-      purge_user_cask_files, ensure_current_indexes, set_alias,
-      create_indexes, delete_indexes, get_current_es_state,
-      reload_search_template],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job, reload_search_template_job],
+    assets=[extract_user, transform_user_webapp, transform_user_standard, 
+        load_user, init_databases, fetch_user_list_from_cdl,
+        purge_user_cask_files, ensure_current_indexes, set_alias,
+        create_indexes, delete_indexes, get_current_es_state,
+        reload_search_template],
     sensors=[success_sensor],
     resources={}
 )
