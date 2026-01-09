@@ -175,6 +175,7 @@ def reload_search_template(context, config: ReloadSearchTemplateConfig) -> None:
   """Reload the mustache search template into Elasticsearch."""
   exec(["experts", "es", "load-search-template", "--template", config.template])
   context.add_output_metadata({"template": config.template})
+  return None
 
 @dg.asset(
   code_version=CODE_VERSION,
