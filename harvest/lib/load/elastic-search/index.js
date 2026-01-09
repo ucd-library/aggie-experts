@@ -332,6 +332,51 @@ async function getIndexDocumentCount(index) {
   return resp.count;
 }
 
+/**
+ * @function deleteSearchScript
+ * @description Delete a stored script from Elasticsearch
+ * 
+ * @param {String} scriptId - The ID of the script to delete
+ * @returns {Promise}
+ */
+async function deleteSearchScript(scriptId) {
+  logger.info(`Deleting search script: ${scriptId}`);
+  const esClient = await getEsClient();
+  
+  try {
+    await esClient.deleteScript({ id: scriptId });
+    logger.info(`Successfully deleted search script: ${scriptId}`);
+  } catch (error) {
+    if (error.statusCode === 404) {
+      logger.info(`Search script does not exist: ${scriptId}, nothing to delete.`);
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * @function loadSearchScript
+ * @description Load a stored script into Elasticsearch
+ * 
+ * @param {String} scriptId - The ID for the script
+ * @param {Object} scriptBody - The script body object with lang and source properties
+ * @returns {Promise}
+ */
+async function loadSearchScript(scriptId, scriptBody) {
+  logger.info(`Loading search script: ${scriptId}`);
+  const esClient = await getEsClient();
+  
+  await esClient.putScript({
+    id: scriptId,
+    body: {
+      script: scriptBody
+    }
+  });
+  
+  logger.info(`Successfully loaded search script: ${scriptId}`);
+}
+
 export {
   loadFiles,
   getIndexDocumentCount,
@@ -341,5 +386,7 @@ export {
   setAlias,
   getCurrentIndexes,
   getIndexNameForDate,
-  getState
+  getState,
+  deleteSearchScript,
+  loadSearchScript
 }
