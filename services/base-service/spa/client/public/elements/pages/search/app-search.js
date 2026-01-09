@@ -539,6 +539,23 @@ export default class AppSearch extends Mixin(LitElement)
     this.AppStateModel.setLocation(path);
   }
 
+  parseUtcEpoch(val, isEnd=false) {
+    if (val === undefined || val === null || val === '') return null;
+    // Numeric year (from slider) or year string
+    if (typeof val === 'number' && Number.isFinite(val)) {
+      const y = Math.trunc(val);
+      return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
+    }
+    if (typeof val === 'string' && /^\d{4}$/.test(val)) {
+      const y = Number(val);
+      return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
+    }
+    // Full date string
+    const d = new Date(val);
+    const t = d.getTime();
+    return Number.isFinite(t) ? t : null;
+  }
+
   convertSearchAggregations(data) {
     const result = {
       type: {},
@@ -555,28 +572,9 @@ export default class AppSearch extends Mixin(LitElement)
 
     // Process works - unique per year, so we can sum directly
     const yearsWorks = data.years_works || {};
-    
-    // Convert date filter strings to epoch milliseconds (UTC) for comparison
-    // Supports year-only (YYYY) and full ISO dates. Year-only uses start/end of year UTC.
-    const parseUtcEpoch = (val, isEnd=false) => {
-      if (val === undefined || val === null || val === '') return null;
-      // Numeric year (from slider) or year string
-      if (typeof val === 'number' && Number.isFinite(val)) {
-        const y = Math.trunc(val);
-        return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
-      }
-      if (typeof val === 'string' && /^\d{4}$/.test(val)) {
-        const y = Number(val);
-        return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
-      }
-      // Full date string
-      const d = new Date(val);
-      const t = d.getTime();
-      return Number.isFinite(t) ? t : null;
-    };
 
-    const dateFromEpoch = parseUtcEpoch(this.dateFrom, false);
-    const dateToEpoch = parseUtcEpoch(this.dateTo, true);
+    const dateFromEpoch = this.parseUtcEpoch(this.dateFrom, false);
+    const dateToEpoch = this.parseUtcEpoch(this.dateTo, true);
     
     for (const yearKey of Object.keys(yearsWorks)) {
       const yearData = yearsWorks[yearKey];
@@ -690,23 +688,8 @@ export default class AppSearch extends Mixin(LitElement)
       counts[year] = 0;
     }
 
-    // Parse date range boundaries (UTC), support year-only and ISO dates
-    const parseUtcEpoch = (val, isEnd=false) => {
-      if (val === undefined || val === null || val === '') return null;
-      if (typeof val === 'number' && Number.isFinite(val)) {
-        const y = Math.trunc(val);
-        return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
-      }
-      if (typeof val === 'string' && /^\d{4}$/.test(val)) {
-        const y = Number(val);
-        return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
-      }
-      const d = new Date(val);
-      const t = d.getTime();
-      return Number.isFinite(t) ? t : null;
-    };
-    const dateFromEpoch = applyDateFilter ? parseUtcEpoch(this.dateFrom, false) : null;
-    const dateToEpoch = applyDateFilter ? parseUtcEpoch(this.dateTo, true) : null;
+    const dateFromEpoch = applyDateFilter ? this.parseUtcEpoch(this.dateFrom, false) : null;
+    const dateToEpoch = applyDateFilter ? this.parseUtcEpoch(this.dateTo, true) : null;
 
     if (!dedupe) {
       for (const [year, yearData] of Object.entries(years)) {
