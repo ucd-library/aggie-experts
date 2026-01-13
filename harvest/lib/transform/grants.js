@@ -241,8 +241,8 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
   // (last-name and optional first-name). Format accordingly and prefix with abbrev.
   // Prefer a matching person from the grant record for CoPI roles; otherwise prefer the
   // grant's c-pi for PI roles; fall back to the directory name.
-  const userLast = expertData['last-name'] || '';
-  const userFirst = expertData['first-name'] || '';
+  const userLast = expertData['last-name'] || expertData['family-name'] || expertData['lastName'] || expertData['familyName'] || '';
+  const userFirst = expertData['first-name'] || expertData['first-names'] || expertData['firstName'] || expertData['givenName'] || expertData['given-name'] || '';
 
   // Try to get PI name from the grant record fields (if available)
   let grantPiText = '';
@@ -260,40 +260,73 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
       const people = coPiField && coPiField['api:people'] && coPiField['api:people']['api:person'];
       if (people) {
         const list = Array.isArray(people) ? people : [people];
-        for (const p of list) {
-          const pLast = p['api:last-name'] || p['api:family-name'] || '';
-          if (pLast && normalize(pLast) === normalize(userLast)) {
-            // build formatted name from API person
-            let candidate = formatApiPerson(p);
-            // get raw given from API person for comparison
-            let pGiven = '';
-            if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
-              const fn = p['api:separate-first-names']['api:first-name'];
-              pGiven = Array.isArray(fn) ? fn.join(' ') : fn;
-            } else if (p['api:first-names']) {
-              pGiven = p['api:first-names'];
-            } else if (p['api:first-name']) {
-              pGiven = p['api:first-name'];
-            }
-            pGiven = (pGiven || '').trim();
 
-            // If the API person is same as directory user except for a trailing middle initial,
-            // prefer the directory-formatted user name (drops the initial).
-            const pGivenNoInitial = pGiven.replace(/\s+[A-Za-z]\.?(\s*)$/,'').trim();
-            if (userFirst && normalize(pGivenNoInitial) === normalize(userFirst)) {
-              formattedMatchingCoPi = candidate;
-            } else {
-              // Otherwise strip any trailing single-letter initial from the candidate label
-              candidate = candidate.replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1').trim();
-              formattedMatchingCoPi = candidate;
-            }
+        // 1) Prefer an exact match where family matches and given-name (after stripping trailing initial) matches directory first name
+        let chosen = null;
+        for (const p of list) {
+          if (typeof p === 'string') continue;
+          const pLast = p['api:last-name'] || p['api:family-name'] || '';
+          if (!pLast) continue;
+
+          let pGivenRaw = '';
+          if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+            const fn = p['api:separate-first-names']['api:first-name'];
+            pGivenRaw = Array.isArray(fn) ? fn.join(' ') : fn;
+          } else if (p['api:first-names']) {
+            pGivenRaw = p['api:first-names'];
+          } else if (p['api:first-name']) {
+            pGivenRaw = p['api:first-name'];
+          }
+          pGivenRaw = (pGivenRaw || '').trim();
+          const pGivenNoInitial = pGivenRaw.replace(/\s+[A-Za-z]\.?$/,'').trim();
+
+          if (userFirst && normalize(pLast) === normalize(userLast) && normalize(pGivenNoInitial) === normalize(userFirst)) {
+            chosen = p;
             break;
           }
-          // also try matching on given+last if needed
-          const pGivenFallback = p['api:first-names'] || '';
-          if (pGivenFallback && normalize((pGivenFallback + pLast)) === normalize((userFirst + userLast))) {
-            formattedMatchingCoPi = formatApiPerson(p);
-            break;
+        }
+
+        if (chosen) {
+          formattedMatchingCoPi = formatApiPerson(chosen).replace(/\s+[A-Za-z]\.?$/,'').trim();
+        } else {
+          // 2) Score candidates by family/given match as fallback
+          let best = null;
+          let bestScore = -1;
+          const normU = normalize(userLast || '');
+          const normUFirst = normalize(userFirst || '');
+
+          for (const p of list) {
+            if (typeof p === 'string') continue;
+            const pLast = p['api:last-name'] || p['api:family-name'] || '';
+            if (!pLast) continue;
+
+            let pGivenRaw = '';
+            if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+              const fn = p['api:separate-first-names']['api:first-name'];
+              pGivenRaw = Array.isArray(fn) ? fn.join(' ') : fn;
+            } else if (p['api:first-names']) {
+              pGivenRaw = p['api:first-names'];
+            } else if (p['api:first-name']) {
+              pGivenRaw = p['api:first-name'];
+            }
+            pGivenRaw = (pGivenRaw || '').trim();
+
+            const normP = normalize(pLast);
+            const normPGiven = normalize((pGivenRaw.split(/\s+/)[0] || ''));
+
+            let score = 0;
+            if (normP && normU && normP === normU) score += 200;
+            if (normPGiven && normUFirst && normPGiven === normUFirst) score += 100;
+            if (normP && normU && (normU.includes(normP) || normP.includes(normU))) score += Math.max(normP.length, normU.length);
+
+            if (score > bestScore) {
+              bestScore = score;
+              best = p;
+            }
+          }
+
+          if (best) {
+            formattedMatchingCoPi = formatApiPerson(best).replace(/\s+[A-Za-z]\.?$/,'').trim();
           }
         }
       }
@@ -416,14 +449,37 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     formattedGrantPi = String(formattedGrantPi).replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1').replace(/\s+[A-Za-z]\.?(\s*)$/,'').trim();
   }
 
+  // Strip trailing single-letter initials from matched CoPI/PI formatted names
+  function stripTrailingInitialFromLabel(name) {
+    if (!name) return name;
+    // remove trailing single-letter initial, with optional period, after a space
+    return String(name).replace(/\s+[A-Za-z]\.?(\s*)$/,'').trim();
+  }
+
+  if (formattedMatchingCoPi) formattedMatchingCoPi = stripTrailingInitialFromLabel(formattedMatchingCoPi);
+  if (formattedMatchingPi) formattedMatchingPi = stripTrailingInitialFromLabel(formattedMatchingPi);
+
   const formattedUserName = updateNameCasing((userLast + (userFirst ? (', ' + userFirst) : '')).trim());
 
   // Choose name: prefer matching CoPI where applicable, then grant PI (for PI roles), then directory
   let finalName = '';
-  if (formattedMatchingCoPi) finalName = formattedMatchingCoPi;
-  else if (formattedMatchingPi) finalName = formattedMatchingPi;
-  else if (roleInfo.abbrev === 'PI' && formattedGrantPi) finalName = formattedGrantPi;
-  else finalName = formattedUserName;
+  if (roleInfo.abbrev === 'PI') {
+    // For PI roles prefer the directory user's name (the user this relationship belongs to),
+    // then any matched PI from person-list fields, then the raw grant c-pi text, then matched CoPI.
+    if (formattedUserName) finalName = formattedUserName;
+    else if (formattedMatchingPi) finalName = formattedMatchingPi;
+    else if (formattedGrantPi) finalName = formattedGrantPi;
+    else if (formattedMatchingCoPi) finalName = formattedMatchingCoPi;
+    else finalName = '';
+  } else {
+    // Non-PI roles: prefer the directory user's name first (the person the relationship belongs to),
+    // then any matched CoPI/PI from the grant, then the raw grant PI text as fallback.
+    if (formattedUserName) finalName = formattedUserName;
+    else if (formattedMatchingCoPi) finalName = formattedMatchingCoPi;
+    else if (formattedMatchingPi) finalName = formattedMatchingPi;
+    else if (formattedGrantPi) finalName = formattedGrantPi;
+    else finalName = '';
+  }
 
   // Normalize casing for the visible name to match SPARQL-style output
   finalName = updateNameCasing(finalName);
