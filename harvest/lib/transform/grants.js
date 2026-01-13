@@ -773,7 +773,7 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
     const arr = Array.isArray(ap) ? ap : [ap];
     arr.forEach(p => {
       if (typeof p === 'string') return;
-      const l = p['api:last-name'] || p['api:last-name'] || ''; // last name (fallback identical kept for clarity)
+      const l = p['api:last-name'] || p['api:family-name'] || ''; // last name with family-name fallback
       const f = p['api:first-names'] || p['api:first-name'] || ''; // support singular first-name
       if (!l || !f) return;
       const coreMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(f) === normalizeFirstCore(expertFirst);
