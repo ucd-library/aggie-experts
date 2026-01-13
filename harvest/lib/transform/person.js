@@ -111,7 +111,10 @@ function run(expertId, profile, cdl, ucopVocab) {
   // Use preferred middle name if present; otherwise treat as absent for vcard emission
   const middleNameUsed = (preferredMname != null && preferredMname !== '') ? preferredMname : null;
   // Normalize ALL-CAPS first/middle/last (>=2 chars) to Capitalized (e.g. WILLIAM -> William)
-  const normalizeAllCaps = s => (typeof s === 'string' && /^[A-Z]{2,}$/.test(s)) ? (s.charAt(0) + s.slice(1).toLowerCase()) : s;
+  const normalizeAllCaps = s =>
+    (typeof s === 'string' && /^[A-Z][A-Z\-']+$/.test(s))
+      ? (s.charAt(0) + s.slice(1).toLowerCase())
+      : s;
   const formattedFirstName = normalizeAllCaps(firstName);
   const formattedMiddleName = normalizeAllCaps(middleNameUsed);
   const formattedLastName = normalizeAllCaps(lastNameCandidate);
