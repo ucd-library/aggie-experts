@@ -899,7 +899,7 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
 
   // CoPIs: iterate only distinct (already filtered) and suppress expert variants entirely
   distinctCoPIs.forEach(person => {
-    const lastName = person['api:last-name'] || person['api:last-name'] || '';
+    const lastName = person['api:last-name'] || person['api:family-name'] || '';
     const firstName = person['api:first-names'] || person['api:first-name'] || '';
     const initials = person['api:initials'] || '';
     if (!lastName || !firstName) return;
