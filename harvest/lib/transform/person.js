@@ -281,7 +281,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     const ucopVocabArray = Array.isArray(ucopVocab) ? ucopVocab : [];
     let ucopPrefLabel = ucopVocabArray.find(code => code['@id'] === pps.titleCode);
     if (ucopPrefLabel) ucopPrefLabel = ucopPrefLabel.prefLabel;
-    const trimmedOfficialTitle = pps.titleOfficialName ? pps.titleOfficialName.replace(/\s-.*$/,'') : pps.titleOfficialName;
+    const trimmedOfficialTitle = (pps.titleOfficialName || '').replace(/\s-.*$/, '');
 
     const ppsContact = {
       "@id": `ark:/87287/d7c08j/user/${iamId}#pps-${pps.assocRank + 10}`,
