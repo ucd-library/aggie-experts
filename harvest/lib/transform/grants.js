@@ -399,8 +399,8 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
 
         let candidate = '';
         // If given starts with JR/SR (or variants) fold into family
-        if (/^\b(jr|sr)\b\.?\s+/i.test(pGivenRaw)) {
-          const givenNoPrefix = pGivenRaw.replace(/^\b(jr|sr)\b\.?\s+/i, '').trim();
+        if (/^(jr|sr)\b\.?\s+/i.test(pGivenRaw)) {
+          const givenNoPrefix = pGivenRaw.replace(/^(jr|sr)\b\.?\s+/i, '').trim();
           const familyWithSuffix = (pLastRaw + ' Jr').trim();
           candidate = updateNameCasing(`${familyWithSuffix}, ${givenNoPrefix}`);
         } else {
