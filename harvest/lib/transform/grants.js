@@ -913,7 +913,6 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
       const piFirstCheck = parts[1];
       const piEnsureId = generatePersonIdStrict(piLastCheck, piFirstCheck);
       const personUri = `${grantUri}#${piEnsureId}`;
-      const vcardUri = `${grantUri}#vcard_${piEnsureId}`;
       const hasPerson = peopleRecords.some(r => r['@id'] === personUri);
       if (!hasPerson) {
         peopleRecords.push(createPersonRecord(piEnsureId, formattedPiName, grantUri));
