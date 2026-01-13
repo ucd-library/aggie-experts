@@ -428,8 +428,6 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
   // Normalize casing for the visible name to match SPARQL-style output
   finalName = updateNameCasing(finalName);
 
-  const roleName = `${roleInfo.abbrev}: ${finalName}`;
-
   const isVisible = grantRelationship["api:is-visible"] === 'true';
 
   const userRole = {
@@ -646,7 +644,6 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   // Build status subpart (status plus optional date range and PI)
   const statusParts = [];
   // SPARQL included status whenever end-date was present; replicate that gating
-  // Only include a non-Active status (e.g. 'Completed')
   if (hasEndDate && grantStatus) statusParts.push(grantStatus);
   if (dateRange) statusParts.push(dateRange);
   if (formattedPiName) statusParts.push(formattedPiName);
@@ -682,7 +679,6 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   };
 
   // Only include a citationstyles status triple when the source record actually provided an end-date
-  // Only emit a status triple when the status is meaningful (i.e. not 'Active')
   if (hasEndDate && grantStatus) {
     grant["http://citationstyles.org/schema/status"] = [{ "@value": grantStatus }];
   }
@@ -782,7 +778,6 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
       if (!matchesExpert) distinctCoPIs.push(p);
     });
   }
-  const hasDistinctCoPIs = distinctCoPIs.length > 0;
 
   // Capture expert variants that add a trailing middle initial token (e.g. "Maja M" / "Nicole T") so we can emit person/vcard without a CoPI role.
   let expertExtraVariants = [];
