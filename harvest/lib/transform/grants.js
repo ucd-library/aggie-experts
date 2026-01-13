@@ -754,7 +754,6 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   const createdRoles = [];
   const peopleRecords = [];
 
-  const normalizeLast = s => (s||'').toLowerCase().replace(/[-\s]/g,'');
   const normalizeFirstCore = s => (s||'').toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g,'');
   const stripMiddleInitial = s => (s||'').replace(/\s+[A-Za-z]$/,'');
   const lastNamesEquivalent = (a,b) => {
