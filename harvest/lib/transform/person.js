@@ -272,8 +272,7 @@ function run(expertId, profile, cdl, ucopVocab) {
   const odrPreferred = hasOdr;
 
   // --- PPS contacts
-  const { emailVisible: ppsEmailVisible2, deptVisible: ppsDeptVisible, titleVisible: ppsTitleVisible } =
-    derivePpsVisibility(directoryListings);
+  // Visibility for PPS contacts is derived earlier via derivePpsVisibility(directoryListings)
 
   for (const pps of (viablePpsAssociations || [])) {
     let ucopPrefLabel = ucopVocab.find(code => code['@id'] === pps.titleCode);
