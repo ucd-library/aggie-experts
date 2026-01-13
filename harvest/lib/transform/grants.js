@@ -199,32 +199,6 @@ function getGrantStatus(endDate) {
   return endYear < currentYear ? 'Completed' : 'Active';
 }
 
-// Format PI text (e.g. 'Jose Lado Abeal') into 'Lado Abeal, Jose' when appropriate
-function formatPiDisplayName(piText) {
-  if (!piText || typeof piText !== 'string') return '';
-  const s = piText.trim();
-  if (!s) return '';
-  const parts = s.split(/\s+/);
-  if (parts.length === 1) return capitalizeName(parts[0]);
-  if (parts.length === 2) return `${capitalizeName(parts[1])}, ${capitalizeName(parts[0])}`;
-
-  // For 3+ tokens, if the last two tokens look like a composite surname (start with uppercase), treat them as surname
-  const penult = parts[parts.length - 2];
-  const last = parts[parts.length - 1];
-  const isPenultCap = /^[A-ZÁÉÍÓÚÑ]/.test(penult);
-  const isLastCap = /^[A-ZÁÉÍÓÚÑ]/.test(last);
-  if (isPenultCap && isLastCap) {
-    const surname = parts.slice(parts.length - 2).join(' ');
-    const given = parts.slice(0, parts.length - 2).join(' ');
-    return `${capitalizeName(surname)}, ${capitalizeName(given)}`;
-  }
-
-  // Fallback: treat last token as surname
-  const surname = parts[parts.length - 1];
-  const given = parts.slice(0, parts.length - 1).join(' ');
-  return `${capitalizeName(surname)}, ${capitalizeName(given)}`;
-}
-
 // Create user role relationship
 function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields) {
   const relationshipType = grantRelationship.type || 'user-grant-research';
