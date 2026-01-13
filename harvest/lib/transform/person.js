@@ -307,7 +307,7 @@ function run(expertId, profile, cdl, ucopVocab) {
         "http://www.w3.org/2006/vcard/ns#title": [{ "@value": pps.deptDisplayName }]
       });
     }
-    if (ppsTitleVisible && pps.titleCode && trimmedOfficialTitle) {
+    if (titleVisible && pps.titleCode && trimmedOfficialTitle) {
       ppsContact["http://www.w3.org/2006/vcard/ns#hasTitle"] = [
         { "@id": `ark:/87287/d7c08j/position/${pps.titleCode}` }
       ];
