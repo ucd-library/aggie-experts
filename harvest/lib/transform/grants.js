@@ -859,12 +859,22 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
       );
 
       // Detect hyphenated variant in co-pis when PI last name is canonical (no hyphen)
-      const hyphenVariantPresent = !lastName.includes('-') && coPiListFieldProbe && coPiListFieldProbe['api:people'] && (Array.isArray(coPiListFieldProbe['api:people']['api:person']) ? coPiListFieldProbe['api:people']['api:person'] : [coPiListFieldProbe['api:people']['api:person']]).some(p => {
-        if (typeof p === 'string') return false;
-        const l = (p['api:last-name']||'');
-        if (!l.includes('-')) return false;
-        return l.split('-')[0].toLowerCase() === expertLast.toLowerCase();
-      });
+      let hyphenVariantPresent = false;
+      if (
+        !lastName.includes('-') &&
+        coPiListFieldProbe &&
+        coPiListFieldProbe['api:people'] &&
+        coPiListFieldProbe['api:people']['api:person']
+      ) {
+        const rawPeople = coPiListFieldProbe['api:people']['api:person'];
+        const peopleArray = Array.isArray(rawPeople) ? rawPeople : [rawPeople];
+        hyphenVariantPresent = peopleArray.some(p => {
+          if (typeof p === 'string') return false;
+          const l = (p['api:last-name'] || '');
+          if (!l.includes('-')) return false;
+          return l.split('-')[0].toLowerCase() === expertLast.toLowerCase();
+        });
+      }
       // SPARQL-aligned suppression treating hyphenated last-name variants as equivalent, but project requirement:
       // If a hyphenated variant exists in co-pis and PI is canonical, still emit separate PI role.
       const strictLastMatch = lastNamesEquivalent(lastName, expertLast); // hyphenated equivalence
