@@ -148,9 +148,9 @@ function cleanGrantTitle(rawTitle) {
   // Apply SPARQL-style leading/trailing code stripping then normalize spacing/punctuation
   let title = String(rawTitle)
     // Strip optional leading SEE and repeated agency/id tokens, optional SP0A#####, capture remainder, optional trailing K.xx.x
-    .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K\.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
+    .replace(/^(?:SEE\s+)?(?:(?:[ABCKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K\.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
     // Strip specific trailing agency codes, mirroring SPARQL behavior
-    .replace(/\s+[ABCKKXYZ]\d+[A-Z]*\d*$/i, '')
+    .replace(/\s+[ABCKXYZ]\d+[A-Z]*\d*$/i, '')
     .trim();
 
   // Normalize whitespace and punctuation spacing
