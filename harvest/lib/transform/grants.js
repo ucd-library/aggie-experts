@@ -648,9 +648,9 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   if (!title || title.trim() === '') {
     // Try to pull a short code from the raw title when available (e.g. "SEE X236881")
     if (typeof rawTitle === 'string') {
-      const seen = rawTitle.match(/^\s*(?:SEE\s+)?([A-Za-z][A-Za-z0-9\-]*)\b\s*$/i);
-      if (seen) {
-        title = seen[1];
+      const shortCodeMatch = rawTitle.match(/^\s*(?:SEE\s+)?([A-Za-z][A-Za-z0-9\-]*)\b\s*$/i);
+      if (shortCodeMatch) {
+        title = shortCodeMatch[1];
       }
     }
 
