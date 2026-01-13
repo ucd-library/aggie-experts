@@ -826,10 +826,6 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
       const lastName = nameParts[0];
       const firstName = nameParts[1];
       const piId = generatePersonIdStrict(lastName, firstName);
-      const isCurrentExpert = lastNamesEquivalent(lastName, expertLast) && (
-        normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst) ||
-        normalizeFirstCore(stripMiddleInitial(firstName)) === normalizeFirstCore(expertFirst)
-      );
 
       // Detect hyphenated variant in co-pis when PI last name is canonical (no hyphen)
       let hyphenVariantPresent = false;
