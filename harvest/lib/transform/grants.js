@@ -307,7 +307,7 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
             // prefer the directory-formatted user name (drops the initial).
             const pGivenNoInitial = pGiven.replace(/\s+[A-Za-z]\.?(\s*)$/,'').trim();
             if (userFirst && normalize(pGivenNoInitial) === normalize(userFirst)) {
-              formattedMatchingCoPi = formattedUserName;
+              formattedMatchingCoPi = candidate;
             } else {
               // Otherwise strip any trailing single-letter initial from the candidate label
               candidate = candidate.replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1').trim();
