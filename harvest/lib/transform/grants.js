@@ -914,8 +914,8 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
 
   // Emit expert middle-initial variant person/vcard (no CoPI role)
   expertExtraVariants.forEach(person => {
-    const lastName = capitalizeName(person['api:last-name'] || '');
-    const firstName = capitalizeName(person['api:first-names'] || '');
+    const lastName = titleCase(person['api:last-name'] || '');
+    const firstName = titleCase(person['api:first-names'] || '');
     if (!lastName || !firstName) return;
     const formattedName = updateNameCasing(`${lastName}, ${firstName}`); // retain middle initial token
     const variantId = generatePersonIdStrict(lastName, firstName);
