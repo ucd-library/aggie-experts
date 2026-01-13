@@ -287,6 +287,34 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
   // Publication-level object
   const pubObj = workRelationship?.['api:related']?.['api:object'];
 
+  // SPARQL gating: only produce output if the publication has at least one relevant field
+  // (matches the VALUES list in construct.rq) OR when a publication-level api:journal is present.
+  // Legacy SPARQL only constructs a work when one of these fields exists; replicate that behavior.
+  const SPARQL_FIELD_NAMES = new Set([
+    'abstract','authors','doi','edition','eissn','external-identifiers','is-open-access',
+    'isbn-10','isbn-13','issn','issue','journal','keywords','language','medium',
+    'name-of-conference','notes','number','oa-location-url','online-publication-date',
+    'pagination','parent-title','place-of-publication','public-url','publication-date',
+    'publication-status','publisher','publisher-licence','series','thesis-type','title','volume'
+  ]);
+
+  let hasRelevantField = false;
+  for (const rec of records || []) {
+    const source = rec?.['source-name'];
+    // only consider records from known sources (matches the VALUES list in construct.rq)
+    if (WORKS_SOURCE_ORDER.indexOf(source) === -1) continue;
+    const fields = rec?.['api:native']?.['api:field'] || [];
+    for (const f of fields) {
+      if (f && SPARQL_FIELD_NAMES.has(f.name)) { hasRelevantField = true; break; }
+    }
+    if (hasRelevantField) break;
+  }
+
+  // Also allow when the publication-level journal exists (matches OPTIONAL ?pub :journal in .rq)
+  if (!hasRelevantField && !(pubObj && pubObj['api:journal'])) {
+    return result; // empty -> will be skipped by transformWorks
+  }
+
   let primaryRecord = records.find(r => r['source-name'] === 'manual') ||
                      records.find(r => r['source-name'] === 'dimensions') ||
                      records.find(r => r['source-name'] === 'crossref') ||

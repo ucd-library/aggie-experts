@@ -106,33 +106,56 @@ function capitalizeTitle(title) {
   return title;
 }
 
+function titleCase(str) {
+  if (!str) return '';
+  // normalize to lowercase then capitalize word parts; always apply
+  const lower = String(str).toLowerCase().trim();
+  const words = lower.split(/\s+/).map(word => {
+    const capitalizeParts = (w, delimiter) => {
+      return w.split(delimiter).map(part => {
+        if (!part) return part;
+        return part[0].toUpperCase() + part.slice(1);
+      }).join(delimiter);
+    };
+    let out = capitalizeParts(word, '-');
+    out = capitalizeParts(out, "'");
+    return out;
+  });
+  return words.join(' ');
+}
+
 function updateNameCasing(name) {
+  if (!name) return '';
   if (/,/.test(name)) {
-    // If name already contains a comma, just clean up spacing around comma
-    name = capitalizeName(name.replace(/,\s*/, ', '));
+    // If name already contains a comma, title-case each side separately
+    const parts = name.split(',');
+    const family = titleCase(parts[0].trim());
+    const given = titleCase(parts.slice(1).join(',').trim());
+    return `${family}, ${given}`;
   } else {
-    // If no comma, convert "First Last" to "Last, First" format
-    name = capitalizeName(name.replace(/(.*) ([^ ]*)$/, '$2, $1'));
+    // If no comma, convert "First Last" to "Last, First" format then title-case
+    const converted = name.replace(/(.*) ([^ ]*)$/, '$2, $1');
+    const parts = converted.split(',');
+    const family = titleCase(parts[0].trim());
+    const given = titleCase(parts.slice(1).join(',').trim());
+    return `${family}${given ? ', ' + given : ''}`;
   }
-  return name;
 }
 
 function cleanGrantTitle(rawTitle) {
   if (!rawTitle) return '';
 
-  // First strip known leading/trailing grant codes and other noisy suffixes (existing logic)
-  let title = rawTitle
-    .replace(/^(?:SEE\s+)?(?:(?:[ABCKKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
-    .replace(/\s+[ABCKKXYZ]\d+[A-Z]*\d*$/i, '') // Remove trailing grant codes like K322D09
+  // Apply SPARQL-style leading/trailing code stripping then normalize spacing/punctuation
+  let title = String(rawTitle)
+    // Strip optional leading SEE and repeated agency/id tokens, optional SP0A#####, capture remainder, optional trailing K.xx.x
+    .replace(/^(?:SEE\s+)?(?:(?:[ABCKXYZ][0-9CF]{6})*(?:\s*-)?\s*)*\s*(?:SP0A\d{6})?\s*(.*?)(?:\s+K\.[0-9]{2}\.[0-9]{1,2})?$/i, '$1')
+    // Strip specific trailing agency codes, mirroring SPARQL behavior
+    .replace(/\s+[ABCKXYZ]\d+[A-Z]*\d*$/i, '')
     .trim();
 
-  // Collapse repeated whitespace to a single space
+  // Normalize whitespace and punctuation spacing
   title = title.replace(/\s+/g, ' ');
-
-  // Normalize spacing after common punctuation (colon, semicolon, em-dash)
   title = title.replace(/:\s*/g, ': ').replace(/;\s*/g, '; ').replace(/—\s*/g, '— ');
-
-  // Remove stray leading/trailing bullets, section markers or hyphens
   title = title.replace(/^[\s•§\-–—]+/, '').replace(/[\s•§\-–—]+$/, '');
 
   return title;
@@ -160,22 +183,24 @@ function getGrantStatus(endDate) {
     return 'Active'; // Default if no end date
   }
 
-  const currentYear = new Date().getFullYear();
   const endYear = parseInt(endDate['api:year']);
 
-  // If we have more detailed date info, use it
+  // If we have more detailed date info, use it but compare dates only (ignore time)
   if (endDate['api:month'] && endDate['api:day']) {
     const endDateObj = new Date(endYear, endDate['api:month'] - 1, endDate['api:day']);
-    const currentDate = new Date();
-    return endDateObj < currentDate ? 'Completed' : 'Active';
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Treat the end date as inclusive: if endDate is before today => Completed, otherwise Active
+    return endDateObj < today ? 'Completed' : 'Active';
   }
 
-  // Otherwise just compare years
+  // Otherwise just compare years (treat end year < current year as Completed)
+  const currentYear = new Date().getFullYear();
   return endYear < currentYear ? 'Completed' : 'Active';
 }
 
 // Create user role relationship
-function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData) {
+function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields) {
   const relationshipType = grantRelationship.type || 'user-grant-research';
 
   // Map relationship types to role abbreviations
@@ -192,56 +217,296 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
 
   const roleInfo = roleMapping[relationshipType] || roleMapping['user-grant-research'];
 
-  let userName = 'Unknown User';
-  if (expertData) {
-    const userLastName = expertData['last-name'] || '';
-    const userFirstName = expertData['first-name'] || '';
+  // Helpers to normalize and format
+  const normalize = s => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
+  const formatApiPerson = p => {
+    const last = p['api:last-name'] || p['api:family-name'] || '';
+    // prefer separate-first-names.api:first-name if present
+    let given = '';
+    if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+      const fn = p['api:separate-first-names']['api:first-name'];
+      if (Array.isArray(fn)) given = fn.join(' ');
+      else given = fn;
+    } else if (p['api:first-names']) {
+      given = p['api:first-names'];
+    } else if (p['api:first-name']) {
+      given = p['api:first-name'];
+    }
+    given = (given || '').trim();
+    const combined = `${last || ''}${given ? (', ' + given) : ''}`.trim();
+    return updateNameCasing(combined);
+  };
 
-    userName = userLastName + (userFirstName ? `, ${userFirstName}` : '');
+  // SPARQL behavior: relationship label is constructed from the directory user fields
+  // (last-name and optional first-name). Format accordingly and prefix with abbrev.
+  // Prefer a matching person from the grant record for CoPI roles; otherwise prefer the
+  // grant's c-pi for PI roles; fall back to the directory name.
+  const userLast = expertData['last-name'] || expertData['family-name'] || expertData['lastName'] || expertData['familyName'] || '';
+  const userFirst = expertData['first-name'] || expertData['first-names'] || expertData['firstName'] || expertData['givenName'] || expertData['given-name'] || '';
+
+  // Try to get PI name from the grant record fields (if available)
+  let grantPiText = '';
+  try {
+    grantPiText = getFieldValue(fields, 'c-pi') || '';
+  } catch (e) {
+    grantPiText = '';
   }
 
-  const roleName = `${roleInfo.abbrev}: ${userName}`;
+  // For CoPI roles, try to find a matching person in c-co-pis
+  let formattedMatchingCoPi = '';
+  if (roleInfo.abbrev === 'CoPI') {
+    try {
+      const coPiField = fields.find(f => f.name === 'c-co-pis');
+      const people = coPiField && coPiField['api:people'] && coPiField['api:people']['api:person'];
+      if (people) {
+        const list = Array.isArray(people) ? people : [people];
+
+        // 1) Prefer an exact match where family matches and given-name (after stripping trailing initial) matches directory first name
+        let chosen = null;
+        for (const p of list) {
+          if (typeof p === 'string') continue;
+          const pLast = p['api:last-name'] || p['api:family-name'] || '';
+          if (!pLast) continue;
+
+          let pGivenRaw = '';
+          if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+            const fn = p['api:separate-first-names']['api:first-name'];
+            pGivenRaw = Array.isArray(fn) ? fn.join(' ') : fn;
+          } else if (p['api:first-names']) {
+            pGivenRaw = p['api:first-names'];
+          } else if (p['api:first-name']) {
+            pGivenRaw = p['api:first-name'];
+          }
+          pGivenRaw = (pGivenRaw || '').trim();
+          const pGivenNoInitial = pGivenRaw.replace(/\s+[A-Za-z]\.?$/,'').trim();
+
+          if (userFirst && normalize(pLast) === normalize(userLast) && normalize(pGivenNoInitial) === normalize(userFirst)) {
+            chosen = p;
+            break;
+          }
+        }
+
+        if (chosen) {
+          formattedMatchingCoPi = formatApiPerson(chosen).replace(/\s+[A-Za-z]\.?$/,'').trim();
+        } else {
+          // 2) Score candidates by family/given match as fallback
+          let best = null;
+          let bestScore = -1;
+          const normU = normalize(userLast || '');
+          const normUFirst = normalize(userFirst || '');
+
+          for (const p of list) {
+            if (typeof p === 'string') continue;
+            const pLast = p['api:last-name'] || p['api:family-name'] || '';
+            if (!pLast) continue;
+
+            let pGivenRaw = '';
+            if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+              const fn = p['api:separate-first-names']['api:first-name'];
+              pGivenRaw = Array.isArray(fn) ? fn.join(' ') : fn;
+            } else if (p['api:first-names']) {
+              pGivenRaw = p['api:first-names'];
+            } else if (p['api:first-name']) {
+              pGivenRaw = p['api:first-name'];
+            }
+            pGivenRaw = (pGivenRaw || '').trim();
+
+            const normP = normalize(pLast);
+            const normPGiven = normalize((pGivenRaw.split(/\s+/)[0] || ''));
+
+            let score = 0;
+            if (normP && normU && normP === normU) score += 200;
+            if (normPGiven && normUFirst && normPGiven === normUFirst) score += 100;
+            if (normP && normU && (normU.includes(normP) || normP.includes(normU))) score += Math.max(normP.length, normU.length);
+
+            if (score > bestScore) {
+              bestScore = score;
+              best = p;
+            }
+          }
+
+          if (best) {
+            formattedMatchingCoPi = formatApiPerson(best).replace(/\s+[A-Za-z]\.?$/,'').trim();
+          }
+        }
+      }
+    } catch (e) {
+      formattedMatchingCoPi = '';
+    }
+  }
+
+  // For PI roles, prefer a matching person from any person-list field whose family name best
+  // matches the directory last-name. This handles cases like Makagon vs Makagon-Stuart.
+  let formattedMatchingPi = '';
+  if (roleInfo.abbrev === 'PI') {
+    try {
+      const peopleFields = fields.filter(f => f['api:people']);
+      let bestMatch = null;
+      let bestScore = -1;
+      const normU = normalize(userLast || '');
+      // strip common suffix/prefix tokens (jr, sr, ii, iii) from the directory first name
+      const userFirstCore = String(userFirst || '').replace(/\b(jr|sr|ii|iii)\b\.?/gi, '').trim();
+      const normUFirst = normalize(userFirstCore || '');
+      for (const f of peopleFields) {
+        const people = f['api:people'] && f['api:people']['api:person'];
+        if (!people) continue;
+        const list = Array.isArray(people) ? people : [people];
+        for (const p of list) {
+          const pLast = p['api:last-name'] || p['api:family-name'] || '';
+          if (!pLast) continue;
+          let pGiven = '';
+          if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+            const fn = p['api:separate-first-names']['api:first-name'];
+            pGiven = Array.isArray(fn) ? fn[0] : fn;
+          } else if (p['api:first-names']) {
+            pGiven = (String(p['api:first-names']).split(/\s+/)[0] || '').trim();
+          } else if (p['api:first-name']) {
+            pGiven = (String(p['api:first-name']).split(/\s+/)[0] || '').trim();
+          }
+
+          const normP = normalize(pLast);
+          const normPGiven = normalize(pGiven || '');
+
+          let score = 0;
+          if (normP && normU && normP === normU) score += 200; // exact family match
+          // prefer containment (e.g. macmillan contains macmillanjr or vice versa)
+          if (normP && normU && (normU.includes(normP) || normP.includes(normU))) score += Math.max(normP.length, normU.length);
+          // prefer given-name match
+          if (normPGiven && normUFirst && normPGiven === normUFirst) score += 100;
+
+          // small boost if family contains 'jr' token and userLast also contains it
+          if (/jr|sr|ii|iii/.test(normP) && /jr|sr|ii|iii/.test(normU)) score += 20;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = p;
+          }
+        }
+      }
+      if (bestMatch) {
+        // Prefer to fold leading JR/SR tokens from the given name into the family name
+        let pLastRaw = bestMatch['api:last-name'] || bestMatch['api:family-name'] || '';
+        let pGivenRaw = '';
+        if (bestMatch['api:separate-first-names'] && bestMatch['api:separate-first-names']['api:first-name']) {
+          const fn = bestMatch['api:separate-first-names']['api:first-name'];
+          pGivenRaw = Array.isArray(fn) ? fn.join(' ') : fn;
+        } else if (bestMatch['api:first-names']) {
+          pGivenRaw = bestMatch['api:first-names'];
+        } else if (bestMatch['api:first-name']) {
+          pGivenRaw = bestMatch['api:first-name'];
+        }
+        pGivenRaw = (String(pGivenRaw || '')).trim();
+
+        let candidate = '';
+        // If given starts with JR/SR (or variants) fold into family
+        if (/^(jr|sr)\b\.?\s+/i.test(pGivenRaw)) {
+          const givenNoPrefix = pGivenRaw.replace(/^(jr|sr)\b\.?\s+/i, '').trim();
+          const familyWithSuffix = (pLastRaw + ' Jr').trim();
+          candidate = updateNameCasing(`${familyWithSuffix}, ${givenNoPrefix}`);
+        } else {
+          candidate = formatApiPerson(bestMatch).replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1').trim();
+        }
+        formattedMatchingPi = candidate;
+      }
+    } catch (e) {
+      formattedMatchingPi = '';
+    }
+  }
+
+  // Format grant PI into 'Family, Given' form when used
+  let formattedGrantPi = '';
+  if (grantPiText) {
+    const raw = String(grantPiText).trim();
+    if (/,/.test(raw)) {
+      const cleaned = raw.replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1');
+      formattedGrantPi = updateNameCasing(cleaned);
+    } else {
+      const parts = raw.split(/\s+/);
+      if (parts.length === 1) {
+        if (userLast) {
+          formattedGrantPi = updateNameCasing(`${userLast}, ${parts[0]}`);
+        } else {
+          formattedGrantPi = updateNameCasing(parts[0]);
+        }
+      } else if (parts.length === 2) {
+        const second = parts[1];
+        if (second.length === 1) {
+          if (userLast) {
+            formattedGrantPi = updateNameCasing(`${userLast}, ${parts[0]}`);
+          } else {
+            formattedGrantPi = updateNameCasing(`${parts[1]}, ${parts[0]}`);
+          }
+        } else {
+          formattedGrantPi = updateNameCasing(`${parts[1]}, ${parts[0]}`);
+        }
+      } else {
+        const given = parts[0];
+        const family = parts.slice(1).join(' ');
+        formattedGrantPi = updateNameCasing(`${family}, ${given}`);
+      }
+    }
+    // Final clean: remove trailing single-letter initial
+    formattedGrantPi = String(formattedGrantPi).replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1').replace(/\s+[A-Za-z]\.?(\s*)$/,'').trim();
+  }
+
+  // Strip trailing single-letter initials from matched CoPI/PI formatted names
+  function stripTrailingInitialFromLabel(name) {
+    if (!name) return name;
+    // remove trailing single-letter initial, with optional period, after a space
+    return String(name).replace(/\s+[A-Za-z]\.?(\s*)$/,'').trim();
+  }
+
+  if (formattedMatchingCoPi) formattedMatchingCoPi = stripTrailingInitialFromLabel(formattedMatchingCoPi);
+  if (formattedMatchingPi) formattedMatchingPi = stripTrailingInitialFromLabel(formattedMatchingPi);
+
+  const formattedUserName = updateNameCasing((userLast + (userFirst ? (', ' + userFirst) : '')).trim());
+
+  // Choose name: prefer matching CoPI where applicable, then grant PI (for PI roles), then directory
+  let finalName = '';
+  if (roleInfo.abbrev === 'PI') {
+    // For PI roles prefer the directory user's name (the user this relationship belongs to),
+    // then any matched PI from person-list fields, then the raw grant c-pi text, then matched CoPI.
+    if (formattedUserName) finalName = formattedUserName;
+    else if (formattedMatchingPi) finalName = formattedMatchingPi;
+    else if (formattedGrantPi) finalName = formattedGrantPi;
+    else if (formattedMatchingCoPi) finalName = formattedMatchingCoPi;
+    else finalName = '';
+  } else {
+    // Non-PI roles: prefer the directory user's name first (the person the relationship belongs to),
+    // then any matched CoPI/PI from the grant, then the raw grant PI text as fallback.
+    if (formattedUserName) finalName = formattedUserName;
+    else if (formattedMatchingCoPi) finalName = formattedMatchingCoPi;
+    else if (formattedMatchingPi) finalName = formattedMatchingPi;
+    else if (formattedGrantPi) finalName = formattedGrantPi;
+    else finalName = '';
+  }
+
+  // Normalize casing for the visible name to match SPARQL-style output
+  finalName = updateNameCasing(finalName);
 
   const isVisible = grantRelationship["api:is-visible"] === 'true';
 
   const userRole = {
     "@id": relationshipUri,
-    "@type": [
-      roleInfo.type,
-      ONTOLOGY.GRANT_ROLE
-    ],
-    "http://purl.obolibrary.org/obo/RO_0000052": [
-      { "@id": expertUri }
-    ],
-    "http://schema.org/name": [
-      { "@value": roleName }
-    ],
+    "@type": [ roleInfo.type, ONTOLOGY.GRANT_ROLE ],
+    "http://purl.obolibrary.org/obo/RO_0000052": [ { "@id": expertUri } ],
+    // Ensure the displayed name is properly cased (e.g. "Macmillan Jr, John")
+    "http://schema.org/name": [ { "@value": `${roleInfo.abbrev}: ${updateNameCasing(finalName)}` } ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": isVisible.toString() }
     ],
-    [ONTOLOGY.RELATES]: [
-      { "@id": expertUri },
-      { "@id": grantUri }
-    ]
+    [ONTOLOGY.RELATES]: [ { "@id": expertUri }, { "@id": grantUri } ]
   };
 
   return userRole;
 }
 
-function generatePersonId(lastName, firstName) {
-  const cleanLast = (lastName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
-  const cleanFirst = (firstName || '').toLowerCase().replace(/-/g, '').replace(/\s+/g, '');
-  return `${cleanLast}_${cleanFirst}`;
+function sanitizePart(s) {
+  return (s || '').toLowerCase().replace(/[^a-z]/g,'');
 }
 
-function isExpertMatch(personLastName, personFirstName, expertData) {
-  const expertLastName = expertData['last-name']?.toLowerCase() || '';
-  const expertFirstName = expertData['first-name']?.toLowerCase() || '';
-
-  return personLastName === expertLastName &&
-    (personFirstName === expertFirstName ||
-     personFirstName.startsWith(expertFirstName) ||
-     expertFirstName.startsWith(personFirstName));
+function generatePersonIdStrict(last, first) {
+  return `${sanitizePart(last)}_${sanitizePart(first)}`;
 }
 
 function createPersonRecord(personId, formattedName, grantUri) {
@@ -329,9 +594,79 @@ function extractGrantData(grantRelationship, relationshipId, expertId) {
   };
 }
 
+function stripGrantIdentifierFromTitle(title, grantUri, funderRef) {
+  if (!title || !grantUri) return title || '';
+  const parts = String(grantUri).split('grant/');
+  const ident = parts.length > 1 ? parts[1] : '';
+  if (!ident && !funderRef) return title;
+
+  // normalize candidates (ident from grantUri and optional funderRef)
+  const candidates = new Set();
+  if (ident) candidates.add(String(ident).replace(/[^A-Za-z0-9]/g, '').toLowerCase());
+  if (funderRef) candidates.add(String(funderRef).replace(/[^A-Za-z0-9]/g, '').toLowerCase());
+
+  let out = String(title);
+
+  // --- Remove a single leading token if it exactly matches a candidate ---
+  // Match a leading token consisting of alnum and hyphen characters followed by a dash, colon, or whitespace separator
+  const leadMatch = out.match(/^\s*([A-Za-z0-9\-]+)(?:\s*[:\-–—]\s*|\s+)/i);
+  if (leadMatch) {
+    const token = leadMatch[1];
+    const normToken = String(token).replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+    if (candidates.has(normToken)) {
+      // remove the matched leading token and any following separator
+      out = out.slice(leadMatch[0].length).trim();
+    }
+  }
+
+  // Remove occurrences of the grantUri identifier only when it is standalone or bounded
+  // by non-alphanumeric characters (whitespace or punctuation). This avoids
+  // stripping identifiers that are attached directly to other words/text.
+  if (ident) {
+    const escaped = ident.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('(^|[^A-Za-z0-9])' + escaped + '(?=[^A-Za-z0-9]|$)', 'g');
+    out = out.replace(re, '$1');
+  }
+
+  // Collapse multiple spaces and tidy
+  out = out.replace(/\s{2,}/g, ' ').trim();
+  return out;
+}
+
 function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
-  const rawTitle = getFieldValue(fields, 'title');
-  const title = cleanGrantTitle(rawTitle);
+  const rawTitleVal = getFieldValue(fields, 'title');
+  const rawTitle = Array.isArray(rawTitleVal) ? rawTitleVal[0] : rawTitleVal;
+  let title = cleanGrantTitle(rawTitle);
+
+  // get funder-reference early so we can remove leading funder tokens if present
+  const rawFunderRefEarly = getFieldValue(fields, 'funder-reference') || '';
+
+  // Strip the grant identifier (from id-at-source / grant URI) or leading funder-ref token if it appears in the title
+  title = stripGrantIdentifierFromTitle(title, grantUri, rawFunderRefEarly);
+
+  // If cleaning removed the title entirely, attempt fallbacks.
+  if (!title || title.trim() === '') {
+    // Try to pull a short code from the raw title when available (e.g. "SEE X236881")
+    if (typeof rawTitle === 'string') {
+      const shortCodeMatch = rawTitle.match(/^\s*(?:SEE\s+)?([A-Za-z][A-Za-z0-9\-]*)\b\s*$/i);
+      if (shortCodeMatch) {
+        title = shortCodeMatch[1];
+      }
+    }
+
+    // If still empty, fall back to funder-reference or id-at-source
+    if ((!title || title.trim() === '')) {
+      const rawFunderRef = getFieldValue(fields, 'funder-reference') || '';
+      if (rawFunderRef) {
+        title = String(rawFunderRef).trim();
+      } else if (grantUri) {
+        const parts = String(grantUri).split('grant/');
+        const ident = parts.length > 1 ? parts[1] : '';
+        if (ident) title = ident;
+      }
+    }
+  }
+
   // Replicate SPARQL OPTIONAL grouping: only treat funder-name and
   // funder-reference as present if both are present on the same record.
   const rawFunderName = getFieldValue(fields, 'funder-name');
@@ -348,7 +683,8 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
 
   const startDateValue = formatDate(startDate);
   const endDateValue = formatDate(endDate);
-  const grantStatus = getGrantStatus(endDate);
+  const hasEndDate = Boolean(endDate && endDate['api:year']);
+  const grantStatus = hasEndDate ? getGrantStatus(endDate) : '';
 
   const piTextValue = getFieldValue(fields, 'c-pi');
   const formattedPiName = piTextValue ? updateNameCasing(piTextValue) : '';
@@ -363,7 +699,8 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
 
   // Build status subpart (status plus optional date range and PI)
   const statusParts = [];
-  if (grantStatus) statusParts.push(grantStatus);
+  // SPARQL included status whenever end-date was present; replicate that gating
+  if (hasEndDate && grantStatus) statusParts.push(grantStatus);
   if (dateRange) statusParts.push(dateRange);
   if (formattedPiName) statusParts.push(formattedPiName);
   const statusPart = statusParts.length ? statusParts.join(' • ') : '';
@@ -390,13 +727,17 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   const grant = {
     "@id": grantUri,
     "@type": grantTypes,
-    "http://citationstyles.org/schema/status": [{ "@value": grantStatus }],
     "http://schema.org/identifier": [
       { "@id": `ark:/87287/d7mh2m/${grantId}` },
       { "@id": grantUri }
     ],
     [ONTOLOGY.RELATED_BY]: [{ "@id": relationshipUri }]
   };
+
+  // Only include a citationstyles status triple when the source record actually provided an end-date
+  if (hasEndDate && grantStatus) {
+    grant["http://citationstyles.org/schema/status"] = [{ "@value": grantStatus }];
+  }
 
   // Only include a human-readable name if we actually built one from record fields
   if (grantName) {
@@ -465,110 +806,163 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   const createdRoles = [];
   const peopleRecords = [];
 
-  // Calculate piRoleId for PI processing
-  let piRoleId = null;
-  if (piTextValue) {
-    const nameParts = formattedPiName.split(', ');
-    if (nameParts.length >= 2) {
-      const piId = generatePersonId(nameParts[0], nameParts[1]);
-      piRoleId = `${grantUri}#roleof_${piId}`;
-    }
+  const normalizeFirstCore = s => (s||'').toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g,'');
+  const stripMiddleInitial = s => (s||'').replace(/\s+[A-Za-z]$/,'');
+  const lastNamesEquivalent = (a,b) => {
+    if (!a || !b) return false;
+    const norm = s => s.toLowerCase().replace(/[^a-z]/g,'');
+    return norm(a) === norm(b);
+  };
+
+  const expertLast = expertData['last-name'] || '';
+  const expertFirst = expertData['first-name'] || '';
+
+  // Determine distinct CoPIs (exclude variants of expert name differing only by middle initial or hyphen extension)
+  let distinctCoPIs = [];
+  const coPiListFieldProbe = fields.find(f => f.name === 'c-co-pis');
+  if (coPiListFieldProbe && coPiListFieldProbe['api:people']) {
+    const ap = coPiListFieldProbe['api:people']['api:person'];
+    const arr = Array.isArray(ap) ? ap : [ap];
+    arr.forEach(p => {
+      if (typeof p === 'string') return;
+      const l = p['api:last-name'] || p['api:family-name'] || ''; // last name with family-name fallback
+      const f = p['api:first-names'] || p['api:first-name'] || ''; // support singular first-name
+      if (!l || !f) return;
+      const coreMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(f) === normalizeFirstCore(expertFirst);
+      const middleStripMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(stripMiddleInitial(f)) === normalizeFirstCore(expertFirst);
+      const matchesExpert = coreMatch || middleStripMatch;
+      if (!matchesExpert) distinctCoPIs.push(p);
+    });
   }
 
-  // Create PI records if they exist
-  if (piTextValue && piRoleId) {
-    const nameParts = formattedPiName.split(', ');
-    if (nameParts.length >= 2) {
-      const lastName = nameParts[0];
-      const firstName = nameParts[1];
-      const piId = generatePersonId(lastName, firstName);
-
-      const personLastName = lastName.toLowerCase();
-      const personFirstName = firstName.toLowerCase();
-
-      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
-
-      processedPeople.add(piId);
-
-      peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
-      peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
-
-      if (!isCurrentExpert) {
-        const roleRecord = createRoleRecord(piId, ROLE_TYPES.PI, 'PI', formattedPiName, grantUri);
-        peopleRecords.push(roleRecord);
-        createdRoles.push({ "@id": roleRecord["@id"] });
-      }
-    }
-  }
-
-  // Process c-co-pis field
-  const coPiListField = fields.find(f => f.name === 'c-co-pis');
-  if (coPiListField && coPiListField['api:people']) {
-    const apiPerson = coPiListField['api:people']['api:person'];
-    const piPeople = Array.isArray(apiPerson) ? apiPerson : [apiPerson];
-
-    piPeople.forEach(person => {
-      if (typeof person === 'string') return;
-
-      const lastName = person['api:last-name'] || '';
-      const firstName = person['api:first-names'] || '';
-
-      if (!lastName || !firstName) return;
-
-      const personLastName = lastName.toLowerCase().replace(/,?\s*$/, '');
-      const personFirstName = firstName.toLowerCase();
-
-      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
-
-      const piName = `${lastName.replace(/,?\s*$/, '')}, ${firstName}`;
-      const piId = generatePersonId(lastName, firstName);
-      const formattedName = updateNameCasing(piName);
-
-      if (processedPeople.has(`copi_${piId}`)) return;
-      processedPeople.add(`copi_${piId}`);
-
-      if (!processedPeople.has(`person_${piId}`) && !processedPeople.has(piId)) {
-        processedPeople.add(`person_${piId}`);
-
-        peopleRecords.push(createPersonRecord(piId, formattedName, grantUri));
-        peopleRecords.push(createVCardRecord(piId, lastName.replace(/,?\s*$/, ''), firstName, grantUri));
-      }
-
-      if (!isCurrentExpert) {
-        const roleRecord = createRoleRecord(piId, ROLE_TYPES.CO_PI, 'COPI', formattedName, grantUri);
-        peopleRecords.push(roleRecord);
-        createdRoles.push({ "@id": roleRecord["@id"] });
+  // Capture expert variants that add a trailing middle initial token (e.g. "Maja M" / "Nicole T") so we can emit person/vcard without a CoPI role.
+  let expertExtraVariants = [];
+  let expertBaseCoPiPresent = false; // track if expert appears as a co-pi exact/base (without extra middle initial variant)
+  if (coPiListFieldProbe && coPiListFieldProbe['api:people']) {
+    const ap = coPiListFieldProbe['api:people']['api:person'];
+    const arr = Array.isArray(ap) ? ap : [ap];
+    arr.forEach(p => {
+      if (typeof p === 'string') return;
+      const l = p['api:last-name'] || p['api:family-name'] || '';
+      const f = p['api:first-names'] || p['api:first-name'] || '';
+      if (!l || !f) return;
+      const coreMatch = lastNamesEquivalent(l, expertLast) && normalizeFirstCore(f) === normalizeFirstCore(expertFirst);
+      const hasExtraTrailingInitial = /\s+[A-Za-z]$/.test(f);
+      if (coreMatch) {
+        if (hasExtraTrailingInitial) {
+          expertExtraVariants.push(p);
+        } else {
+          expertBaseCoPiPresent = true; // expert appears directly in co-pis
+        }
       }
     });
   }
 
-  // Process c-pi field for additional PIs
-  const additionalPiField = fields.find(f => f.name === 'c-pi');
-  if (additionalPiField && additionalPiField['api:text']) {
-    const piTextValue = additionalPiField['api:text'];
-    const formattedPiName = updateNameCasing(piTextValue);
+  // If expert appears as a co-pi (base form) ensure person & vcard nodes exist (no CoPI role)
+  if (expertBaseCoPiPresent) {
+    const formattedExpertName = updateNameCasing(`${expertLast}, ${expertFirst}`);
+    const expertPersonId = generatePersonIdStrict(expertLast, expertFirst);
+    const personUriCheck = `${grantUri}#${expertPersonId}`;
+    const hasExpertPerson = peopleRecords.some(r => r['@id'] === personUriCheck);
+    if (!hasExpertPerson) {
+      peopleRecords.push(createPersonRecord(expertPersonId, formattedExpertName, grantUri));
+      peopleRecords.push(createVCardRecord(expertPersonId, expertLast, expertFirst, grantUri));
+    }
+  }
 
+  // PI person + conditional separate PI role
+  if (piTextValue) {
     const nameParts = formattedPiName.split(', ');
     if (nameParts.length >= 2) {
       const lastName = nameParts[0];
       const firstName = nameParts[1];
+      const piId = generatePersonIdStrict(lastName, firstName);
 
-      const personLastName = lastName.toLowerCase();
-      const personFirstName = firstName.toLowerCase();
-
-      const isCurrentExpert = isExpertMatch(personLastName, personFirstName, expertData);
-
-      const piId = generatePersonId(lastName, firstName);
-
-      if (!isCurrentExpert && !processedPeople.has(piId)) {
-        processedPeople.add(piId);
-
-        peopleRecords.push(createPersonRecord(piId, formattedPiName, grantUri));
-        peopleRecords.push(createVCardRecord(piId, lastName, firstName, grantUri));
-
+      // Detect hyphenated variant in co-pis when PI last name is canonical (no hyphen)
+      let hyphenVariantPresent = false;
+      if (
+        !lastName.includes('-') &&
+        coPiListFieldProbe &&
+        coPiListFieldProbe['api:people'] &&
+        coPiListFieldProbe['api:people']['api:person']
+      ) {
+        const rawPeople = coPiListFieldProbe['api:people']['api:person'];
+        const peopleArray = Array.isArray(rawPeople) ? rawPeople : [rawPeople];
+        hyphenVariantPresent = peopleArray.some(p => {
+          if (typeof p === 'string') return false;
+          const l = (p['api:last-name'] || '');
+          if (!l.includes('-')) return false;
+          return l.split('-')[0].toLowerCase() === expertLast.toLowerCase();
+        });
+      }
+      // SPARQL-aligned suppression treating hyphenated last-name variants as equivalent, but project requirement:
+      // If a hyphenated variant exists in co-pis and PI is canonical, still emit separate PI role.
+      const strictLastMatch = lastNamesEquivalent(lastName, expertLast); // hyphenated equivalence
+      const firstCoreMatch = (
+        normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst) ||
+        normalizeFirstCore(stripMiddleInitial(firstName)) === normalizeFirstCore(expertFirst)
+      );
+      const isCurrentExpertStrict = strictLastMatch && firstCoreMatch;
+      const emitPiRole = !isCurrentExpertStrict || (isCurrentExpertStrict && hyphenVariantPresent && !lastName.includes('-'));
+      if (emitPiRole) {
         const roleRecord = createRoleRecord(piId, ROLE_TYPES.PI, 'PI', formattedPiName, grantUri);
         peopleRecords.push(roleRecord);
-        createdRoles.push({ "@id": roleRecord["@id"] });
+        createdRoles.push({ '@id': roleRecord['@id'] });
+      }
+    }
+  }
+
+  // Emit expert middle-initial variant person/vcard (no CoPI role)
+  expertExtraVariants.forEach(person => {
+    const lastName = titleCase(person['api:last-name'] || '');
+    const firstName = titleCase(person['api:first-names'] || '');
+    if (!lastName || !firstName) return;
+    const formattedName = updateNameCasing(`${lastName}, ${firstName}`); // retain middle initial token
+    const variantId = generatePersonIdStrict(lastName, firstName);
+    if (!processedPeople.has(variantId)) {
+      processedPeople.add(variantId);
+      // Keep full firstName (with middle initial) in display name
+      peopleRecords.push(createPersonRecord(variantId, formattedName, grantUri));
+      peopleRecords.push(createVCardRecord(variantId, lastName, firstName, grantUri));
+    }
+  });
+
+  // CoPIs: iterate only distinct (already filtered) and suppress expert variants entirely
+  distinctCoPIs.forEach(person => {
+    const lastName = person['api:last-name'] || person['api:family-name'] || '';
+    const firstName = person['api:first-names'] || person['api:first-name'] || '';
+    if (!lastName || !firstName) return;
+    const formattedName = updateNameCasing(`${lastName}, ${firstName}`);
+    const coPiId = generatePersonIdStrict(lastName, firstName);
+    if (processedPeople.has('copi_' + coPiId)) return;
+    processedPeople.add('copi_' + coPiId);
+    if (!processedPeople.has('person_' + coPiId) && !processedPeople.has(coPiId)) {
+      processedPeople.add('person_' + coPiId);
+      peopleRecords.push(createPersonRecord(coPiId, formattedName, grantUri));
+      peopleRecords.push(createVCardRecord(coPiId, lastName, firstName, grantUri));
+    }
+    const isCurrentExpert = lastNamesEquivalent(lastName, expertLast) && (
+      normalizeFirstCore(firstName) === normalizeFirstCore(expertFirst) || normalizeFirstCore(stripMiddleInitial(firstName)) === normalizeFirstCore(expertFirst)
+    );
+    if (!isCurrentExpert) {
+      const roleRecord = createRoleRecord(coPiId, ROLE_TYPES.CO_PI, 'COPI', formattedName, grantUri);
+      peopleRecords.push(roleRecord);
+      createdRoles.push({ '@id': roleRecord['@id'] });
+    }
+  });
+
+  // Guarantee PI person & vcard exist even if role suppressed
+  if (piTextValue && formattedPiName) {
+    const parts = formattedPiName.split(', ');
+    if (parts.length >= 2) {
+      const piLastCheck = parts[0];
+      const piFirstCheck = parts[1];
+      const piEnsureId = generatePersonIdStrict(piLastCheck, piFirstCheck);
+      const personUri = `${grantUri}#${piEnsureId}`;
+      const hasPerson = peopleRecords.some(r => r['@id'] === personUri);
+      if (!hasPerson) {
+        peopleRecords.push(createPersonRecord(piEnsureId, formattedPiName, grantUri));
+        peopleRecords.push(createVCardRecord(piEnsureId, piLastCheck, piFirstCheck, grantUri));
       }
     }
   }
@@ -693,7 +1087,6 @@ function transformGrants(grants, expertId, expertData) {
 function transformGrant(grantRelationship, relationshipId, expertId, expertData) {
   // Extract data
   const extractedData = extractGrantData(grantRelationship, relationshipId, expertId);
-  // if( grantRelationship.id == '6184542' ) console.log('extractedData 6184542', JSON.stringify(extractedData, null, 2));
   if (!extractedData) return [];
 
   const { grantId, relationshipUri, expertUri, fields, grantUri } = extractedData;
@@ -722,8 +1115,8 @@ function transformGrant(grantRelationship, relationshipId, expertId, expertData)
   const { peopleRecords, createdRoles } = processAllGrantPeople(fields, grantUri, expertData, piTextValue, formattedPiName);
   result.push(...peopleRecords);
 
-  // Create user role
-  const userRole = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData);
+  // Create user role (pass fields so we can choose best expert display variant)
+  const userRole = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields);
 
   // Finalize output
   return finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri);
