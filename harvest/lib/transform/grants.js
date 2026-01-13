@@ -316,8 +316,8 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
             break;
           }
           // also try matching on given+last if needed
-          const pGiven = p['api:first-names'] || '';
-          if (pGiven && normalize((pGiven + pLast)) === normalize((userFirst + userLast))) {
+          const pGivenFallback = p['api:first-names'] || '';
+          if (pGivenFallback && normalize((pGivenFallback + pLast)) === normalize((userFirst + userLast))) {
             formattedMatchingCoPi = formatApiPerson(p);
             break;
           }
