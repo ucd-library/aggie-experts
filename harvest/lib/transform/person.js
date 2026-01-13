@@ -109,7 +109,7 @@ function run(expertId, profile, cdl, ucopVocab) {
   // Prefer the directory preferred middle name when present to match legacy behavior
   const preferredMname = jsonpath.value(profile, '$["@graph"][0].directory.displayName.preferredMname');
   // Use preferred middle name if present; otherwise treat as absent for vcard emission
-  const middleNameUsed = (preferredMname != null && preferredMname !== '') ? preferredMname : null;
+  const middleNameUsed = preferredMname || null;
   // Normalize ALL-CAPS first/middle/last (>=2 chars) to Capitalized (e.g. WILLIAM -> William)
   const normalizeAllCaps = s =>
     (typeof s === 'string' && /^[A-Z][A-Z\-']+$/.test(s))
