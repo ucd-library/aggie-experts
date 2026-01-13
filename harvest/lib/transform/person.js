@@ -275,7 +275,8 @@ function run(expertId, profile, cdl, ucopVocab) {
   // Visibility for PPS contacts is derived earlier via derivePpsVisibility(directoryListings)
 
   for (const pps of (viablePpsAssociations || [])) {
-    let ucopPrefLabel = ucopVocab.find(code => code['@id'] === pps.titleCode);
+    const ucopVocabArray = Array.isArray(ucopVocab) ? ucopVocab : [];
+    let ucopPrefLabel = ucopVocabArray.find(code => code['@id'] === pps.titleCode);
     if (ucopPrefLabel) ucopPrefLabel = ucopPrefLabel.prefLabel;
     const trimmedOfficialTitle = pps.titleOfficialName ? pps.titleOfficialName.replace(/\s-.*$/,'') : pps.titleOfficialName;
 
