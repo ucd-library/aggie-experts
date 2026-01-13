@@ -239,7 +239,7 @@ function run(expertId, profile, cdl, ucopVocab) {
   if (cdlTeachingSummary)  expert["http://schema.library.ucdavis.edu/schema#teachingSummary"]   = [{ "@value": cdlTeachingSummary }];
 
   // --- schema:identifier (gate mailto like SPARQL using ppsEmailVisible)
-  const { emailVisible: ppsEmailVisible } = derivePpsVisibility(directoryListings);
+  const { emailVisible: ppsEmailVisible, deptVisible: ppsDeptVisible, titleVisible } = derivePpsVisibility(directoryListings);
   const identifiers = [
     { "@id": expertUri },
     { "@id": `ark:/87287/d7c08j/user/${iamId}` },
