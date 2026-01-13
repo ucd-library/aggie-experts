@@ -880,7 +880,6 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   distinctCoPIs.forEach(person => {
     const lastName = person['api:last-name'] || person['api:family-name'] || '';
     const firstName = person['api:first-names'] || person['api:first-name'] || '';
-    const initials = person['api:initials'] || '';
     if (!lastName || !firstName) return;
     const formattedName = updateNameCasing(`${lastName}, ${firstName}`);
     const coPiId = generatePersonIdStrict(lastName, firstName);
