@@ -106,15 +106,40 @@ function capitalizeTitle(title) {
   return title;
 }
 
+function titleCase(str) {
+  if (!str) return '';
+  // normalize to lowercase then capitalize word parts; always apply
+  const lower = String(str).toLowerCase().trim();
+  const words = lower.split(/\s+/).map(word => {
+    const capitalizeParts = (w, delimiter) => {
+      return w.split(delimiter).map(part => {
+        if (!part) return part;
+        return part[0].toUpperCase() + part.slice(1);
+      }).join(delimiter);
+    };
+    let out = capitalizeParts(word, '-');
+    out = capitalizeParts(out, "'");
+    return out;
+  });
+  return words.join(' ');
+}
+
 function updateNameCasing(name) {
+  if (!name) return '';
   if (/,/.test(name)) {
-    // If name already contains a comma, just clean up spacing around comma
-    name = capitalizeName(name.replace(/,\s*/, ', '));
+    // If name already contains a comma, title-case each side separately
+    const parts = name.split(',');
+    const family = titleCase(parts[0].trim());
+    const given = titleCase(parts.slice(1).join(',').trim());
+    return `${family}, ${given}`;
   } else {
-    // If no comma, convert "First Last" to "Last, First" format
-    name = capitalizeName(name.replace(/(.*) ([^ ]*)$/, '$2, $1'));
+    // If no comma, convert "First Last" to "Last, First" format then title-case
+    const converted = name.replace(/(.*) ([^ ]*)$/, '$2, $1');
+    const parts = converted.split(',');
+    const family = titleCase(parts[0].trim());
+    const given = titleCase(parts.slice(1).join(',').trim());
+    return `${family}${given ? ', ' + given : ''}`;
   }
-  return name;
 }
 
 function cleanGrantTitle(rawTitle) {
@@ -158,17 +183,19 @@ function getGrantStatus(endDate) {
     return 'Active'; // Default if no end date
   }
 
-  const currentYear = new Date().getFullYear();
   const endYear = parseInt(endDate['api:year']);
 
-  // If we have more detailed date info, use it
+  // If we have more detailed date info, use it but compare dates only (ignore time)
   if (endDate['api:month'] && endDate['api:day']) {
     const endDateObj = new Date(endYear, endDate['api:month'] - 1, endDate['api:day']);
-    const currentDate = new Date();
-    return endDateObj < currentDate ? 'Completed' : 'Active';
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Treat the end date as inclusive: if endDate is before today => Completed, otherwise Active
+    return endDateObj < today ? 'Completed' : 'Active';
   }
 
-  // Otherwise just compare years
+  // Otherwise just compare years (treat end year < current year as Completed)
+  const currentYear = new Date().getFullYear();
   return endYear < currentYear ? 'Completed' : 'Active';
 }
 
@@ -262,7 +289,30 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
         for (const p of list) {
           const pLast = p['api:last-name'] || p['api:family-name'] || '';
           if (pLast && normalize(pLast) === normalize(userLast)) {
-            formattedMatchingCoPi = formatApiPerson(p);
+            // build formatted name from API person
+            let candidate = formatApiPerson(p);
+            // get raw given from API person for comparison
+            let pGiven = '';
+            if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+              const fn = p['api:separate-first-names']['api:first-name'];
+              pGiven = Array.isArray(fn) ? fn.join(' ') : fn;
+            } else if (p['api:first-names']) {
+              pGiven = p['api:first-names'];
+            } else if (p['api:first-name']) {
+              pGiven = p['api:first-name'];
+            }
+            pGiven = (pGiven || '').trim();
+
+            // If the API person is same as directory user except for a trailing middle initial,
+            // prefer the directory-formatted user name (drops the initial).
+            const pGivenNoInitial = pGiven.replace(/\s+[A-Za-z]\.?(\s*)$/,'').trim();
+            if (userFirst && normalize(pGivenNoInitial) === normalize(userFirst)) {
+              formattedMatchingCoPi = formattedUserName;
+            } else {
+              // Otherwise strip any trailing single-letter initial from the candidate label
+              candidate = candidate.replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1').trim();
+              formattedMatchingCoPi = candidate;
+            }
             break;
           }
           // also try matching on given+last if needed
@@ -275,6 +325,84 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
       }
     } catch (e) {
       formattedMatchingCoPi = '';
+    }
+  }
+
+  // For PI roles, prefer a matching person from any person-list field whose family name best
+  // matches the directory last-name. This handles cases like Makagon vs Makagon-Stuart.
+  let formattedMatchingPi = '';
+  if (roleInfo.abbrev === 'PI') {
+    try {
+      const peopleFields = fields.filter(f => f['api:people']);
+      let bestMatch = null;
+      let bestScore = -1;
+      const normU = normalize(userLast || '');
+      // strip common suffix/prefix tokens (jr, sr, ii, iii) from the directory first name
+      const userFirstCore = String(userFirst || '').replace(/\b(jr|sr|ii|iii)\b\.?/gi, '').trim();
+      const normUFirst = normalize(userFirstCore || '');
+      for (const f of peopleFields) {
+        const people = f['api:people'] && f['api:people']['api:person'];
+        if (!people) continue;
+        const list = Array.isArray(people) ? people : [people];
+        for (const p of list) {
+          const pLast = p['api:last-name'] || p['api:family-name'] || '';
+          if (!pLast) continue;
+          let pGiven = '';
+          if (p['api:separate-first-names'] && p['api:separate-first-names']['api:first-name']) {
+            const fn = p['api:separate-first-names']['api:first-name'];
+            pGiven = Array.isArray(fn) ? fn[0] : fn;
+          } else if (p['api:first-names']) {
+            pGiven = (String(p['api:first-names']).split(/\s+/)[0] || '').trim();
+          } else if (p['api:first-name']) {
+            pGiven = (String(p['api:first-name']).split(/\s+/)[0] || '').trim();
+          }
+
+          const normP = normalize(pLast);
+          const normPGiven = normalize(pGiven || '');
+
+          let score = 0;
+          if (normP && normU && normP === normU) score += 200; // exact family match
+          // prefer containment (e.g. macmillan contains macmillanjr or vice versa)
+          if (normP && normU && (normU.includes(normP) || normP.includes(normU))) score += Math.max(normP.length, normU.length);
+          // prefer given-name match
+          if (normPGiven && normUFirst && normPGiven === normUFirst) score += 100;
+
+          // small boost if family contains 'jr' token and userLast also contains it
+          if (/jr|sr|ii|iii/.test(normP) && /jr|sr|ii|iii/.test(normU)) score += 20;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = p;
+          }
+        }
+      }
+      if (bestMatch) {
+        // Prefer to fold leading JR/SR tokens from the given name into the family name
+        let pLastRaw = bestMatch['api:last-name'] || bestMatch['api:family-name'] || '';
+        let pGivenRaw = '';
+        if (bestMatch['api:separate-first-names'] && bestMatch['api:separate-first-names']['api:first-name']) {
+          const fn = bestMatch['api:separate-first-names']['api:first-name'];
+          pGivenRaw = Array.isArray(fn) ? fn.join(' ') : fn;
+        } else if (bestMatch['api:first-names']) {
+          pGivenRaw = bestMatch['api:first-names'];
+        } else if (bestMatch['api:first-name']) {
+          pGivenRaw = bestMatch['api:first-name'];
+        }
+        pGivenRaw = (String(pGivenRaw || '')).trim();
+
+        let candidate = '';
+        // If given starts with JR/SR (or variants) fold into family
+        if (/^\b(jr|sr)\b\.?\s+/i.test(pGivenRaw)) {
+          const givenNoPrefix = pGivenRaw.replace(/^\b(jr|sr)\b\.?\s+/i, '').trim();
+          const familyWithSuffix = (pLastRaw + ' Jr').trim();
+          candidate = updateNameCasing(`${familyWithSuffix}, ${givenNoPrefix}`);
+        } else {
+          candidate = formatApiPerson(bestMatch).replace(/(,\s*[^,]+?)\s+[A-Za-z]\.?(\s*)$/,'$1').trim();
+        }
+        formattedMatchingPi = candidate;
+      }
+    } catch (e) {
+      formattedMatchingPi = '';
     }
   }
 
@@ -319,8 +447,12 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
   // Choose name: prefer matching CoPI where applicable, then grant PI (for PI roles), then directory
   let finalName = '';
   if (formattedMatchingCoPi) finalName = formattedMatchingCoPi;
+  else if (formattedMatchingPi) finalName = formattedMatchingPi;
   else if (roleInfo.abbrev === 'PI' && formattedGrantPi) finalName = formattedGrantPi;
   else finalName = formattedUserName;
+
+  // Normalize casing for the visible name to match SPARQL-style output
+  finalName = updateNameCasing(finalName);
 
   const roleName = `${roleInfo.abbrev}: ${finalName}`;
 
@@ -330,7 +462,8 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     "@id": relationshipUri,
     "@type": [ roleInfo.type, ONTOLOGY.GRANT_ROLE ],
     "http://purl.obolibrary.org/obo/RO_0000052": [ { "@id": expertUri } ],
-    "http://schema.org/name": [ { "@value": roleName } ],
+    // Ensure the displayed name is properly cased (e.g. "Macmillan Jr, John")
+    "http://schema.org/name": [ { "@value": `${roleInfo.abbrev}: ${updateNameCasing(finalName)}` } ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": isVisible.toString() }
     ],
@@ -522,7 +655,8 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
 
   const startDateValue = formatDate(startDate);
   const endDateValue = formatDate(endDate);
-  const grantStatus = getGrantStatus(endDate);
+  const hasEndDate = Boolean(endDate && endDate['api:year']);
+  const grantStatus = hasEndDate ? getGrantStatus(endDate) : '';
 
   const piTextValue = getFieldValue(fields, 'c-pi');
   const formattedPiName = piTextValue ? updateNameCasing(piTextValue) : '';
@@ -537,7 +671,9 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
 
   // Build status subpart (status plus optional date range and PI)
   const statusParts = [];
-  if (grantStatus) statusParts.push(grantStatus);
+  // SPARQL included status whenever end-date was present; replicate that gating
+  // Only include a non-Active status (e.g. 'Completed')
+  if (hasEndDate && grantStatus) statusParts.push(grantStatus);
   if (dateRange) statusParts.push(dateRange);
   if (formattedPiName) statusParts.push(formattedPiName);
   const statusPart = statusParts.length ? statusParts.join(' • ') : '';
@@ -564,13 +700,18 @@ function createMainGrantRecord(fields, grantUri, grantId, relationshipUri) {
   const grant = {
     "@id": grantUri,
     "@type": grantTypes,
-    "http://citationstyles.org/schema/status": [{ "@value": grantStatus }],
     "http://schema.org/identifier": [
       { "@id": `ark:/87287/d7mh2m/${grantId}` },
       { "@id": grantUri }
     ],
     [ONTOLOGY.RELATED_BY]: [{ "@id": relationshipUri }]
   };
+
+  // Only include a citationstyles status triple when the source record actually provided an end-date
+  // Only emit a status triple when the status is meaningful (i.e. not 'Active')
+  if (hasEndDate && grantStatus) {
+    grant["http://citationstyles.org/schema/status"] = [{ "@value": grantStatus }];
+  }
 
   // Only include a human-readable name if we actually built one from record fields
   if (grantName) {
