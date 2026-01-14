@@ -4,16 +4,21 @@ import fetch from 'node-fetch';
 
 class DagsterAPI {
 
-  async graphqlQuery(query, variables = {}) {
+  async graphqlQuery(query, variables = {}, operationName = null) {
+    let body = {
+      query,
+      variables,
+    };
+    if( operationName ) {
+      body.operationName = operationName;
+    }
+
     let resp = await fetch(config.dagster.host+config.dagster.graphqlPath, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
+      body: JSON.stringify(body)
     });
 
     if( !resp.ok ) {

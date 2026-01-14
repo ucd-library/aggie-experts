@@ -3,20 +3,32 @@ from dagster import (
   FilesystemIOManager, run_status_sensor, DagsterRunStatus, RunStatusSensorContext,
   DailyPartitionsDefinition, StaticPartitionsDefinition, MultiPartitionsDefinition
 )
+from dagster_celery import celery_executor
 import os
 import sys
 import hashlib
 import json
 import dagster as dg
+import requests
 import time
 import subprocess
 import signal
 import atexit
 from typing import Literal
 from pydantic import Field
+import psycopg2
 
 users_partitions = dg.DynamicPartitionsDefinition(name="users")
 CODE_VERSION = "0.1"
+
+conn = psycopg2.connect(
+  host=os.getenv('DAGSTER_POSTGRES_HOST', 'localhost'),
+  database=os.getenv('DAGSTER_POSTGRES_DB', 'dagster'),
+  user=os.getenv('DAGSTER_POSTGRES_USER', 'postgres'),
+  password=os.getenv('DAGSTER_POSTGRES_PASSWORD', 'postgres')
+)
+BACKFILL_STATUS_TABLE = "anduin.backfill_status"
+BACKFILL_UPDATE_FN = "anduin.set_backfill_finished"
 
 # Define a config schema for the asset
 class FetchUserListConfig(Config):
@@ -91,7 +103,7 @@ def exec(cmd, check=True, capture_output=True, text=True):
 
 @dg.asset(
   code_version=CODE_VERSION,
-  group_name="init",
+  group_name="init"
 )
 def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
     """Get current user list from CDL and create dynamic partitions."""
@@ -327,25 +339,146 @@ transform_load_users_job = dg.define_asset_job(
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user)
 )
 
-@run_status_sensor(run_status=DagsterRunStatus.SUCCESS, monitored_jobs=[etl_users_job])
-def success_sensor(context: RunStatusSensorContext):
-    run = context.dagster_run
-    message = f"✅ Dagster job `{run.job_name}` succeeded! Run ID: {run.run_id}"
+TERMINAL = {
+    dg.DagsterRunStatus.SUCCESS,
+    dg.DagsterRunStatus.FAILURE,
+    dg.DagsterRunStatus.CANCELED,
+}
+
+def send_slack_notification(backfill_id: str, status: str, message: str):
+    """Send a Slack notification about backfill completion via webhook."""
+    webhook_url = os.getenv('SLACK_WEBHOOK_URL')
     
-    # Example: Print, or replace with logic to send email/Slack/etc.
-    context.log.info(message)
+    if not webhook_url:
+        context.log.warning(f"Warning: SLACK_WEBHOOK_URL not set, skipping Slack notification")
+        return
+    
+    try:
+        response = requests.post(
+            webhook_url,
+            json={"text": f"*Backfill {status.upper()}*\n{message}\nBackfill ID: `{backfill_id}`"},
+            timeout=5
+        )
+        response.raise_for_status()
+    except Exception as e:
+        context.log.error(f"Error sending Slack notification: {e}")
 
-# @dg.sensor(
-#     job=etl_users_job, 
-#     minimum_interval_seconds=3600
-# )
-# def sandbox_users_sensor(context: dg.SensorEvaluationContext):
-#     user_ids = loadUserGroup("sandbox")
+# def _cursor_state(context: dg.RunStatusSensorContext) -> dict:
+#     return json.loads(context.cursor) if context.cursor else {"notified_backfills": []}
 
-#     return dg.SensorResult(
-#         run_requests=[dg.RunRequest(partition_key=user) for user in user_ids],
-#         dynamic_partitions_requests=[users_partitions.build_add_request(user_ids)],
-#     )
+@dg.run_status_sensor(
+  run_status=dg.DagsterRunStatus.SUCCESS,
+  monitored_jobs=[extract_users_job],
+  request_job=transform_load_users_job,
+)
+def notify_on_backfill_completion(context: dg.RunStatusSensorContext):
+    backfill_id = context.dagster_run.tags.get("dagster/backfill")
+    if not backfill_id:
+        return
+
+    notify = context.dagster_run.tags.get("notify")
+    next_job = context.dagster_run.tags.get("next_job")
+
+    # state = _cursor_state(context)
+    # if backfill_id in state["notified_backfills"]:
+    #     return dg.SkipReason(f"Already notified for backfill {backfill_id}")
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT status, notified FROM {BACKFILL_STATUS_TABLE} WHERE backfill_id = %s;",
+            (backfill_id,)
+        )
+        conn_result = cur.fetchone()
+        if conn_result:
+            status, notified = conn_result
+            if notified:
+                return dg.SkipReason(f"Already notified for backfill {backfill_id}")
+        else:
+            cur.execute(
+                f"""
+                INSERT INTO {BACKFILL_STATUS_TABLE} (backfill_id)
+                VALUES (%s)
+                ON CONFLICT (backfill_id) DO NOTHING;
+                """,
+                (backfill_id,)
+            )
+            conn.commit()
+
+    # Query all runs that belong to this backfill (by tag)
+    run_records = context.instance.get_run_records(
+        filters=dg.RunsFilter(tags={"dagster/backfill": backfill_id})
+    )
+    statuses = [r.dagster_run.status for r in run_records]
+    partitions = [r.dagster_run.tags.get("dagster/partition") for r in run_records]
+
+    # Not done yet if any run is still non-terminal
+    if not statuses or not all(s in TERMINAL for s in statuses):
+      return dg.SkipReason(f"Backfill {backfill_id} still running")
+
+    # Mark backfill has finished in the database
+    # This has a row lock to prevent double notifications
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT {BACKFILL_UPDATE_FN}(%s) as updated;
+            """,
+            (backfill_id,)
+        )
+        result = cur.fetchone()
+        if result:
+            updated = result[0]
+            if not updated:
+                context.log.warning(f"Backfill {backfill_id} was already marked as notified in the database.")
+                return dg.SkipReason(f"Already notified for backfill {backfill_id}")
+        conn.commit()
+
+    # Decide what “completion” means for you
+    if any(s != dg.DagsterRunStatus.SUCCESS for s in statuses):
+        # send a "backfill finished with issues" notification
+        context.log.info(f"Backfill {backfill_id} completed with issues.")
+        send_slack_notification(backfill_id, "failure", f"Backfill {backfill_id} completed with issues.")
+    else:
+        context.log.info(f"Backfill {backfill_id} completed successfully.")
+        # send a "backfill completed successfully" notification
+        send_slack_notification(backfill_id, "success", f"Backfill {backfill_id} completed successfully.")
+
+    with conn.cursor() as cur:
+      cur.execute(
+        f"""
+        UPDATE {BACKFILL_STATUS_TABLE}
+        SET notified = TRUE
+        WHERE backfill_id = %s;
+        """,
+        (backfill_id,)
+      )
+    conn.commit()
+
+    if next_job:
+      runs = []
+      context.log.info(f"Triggering next job {next_job} for backfill {backfill_id}. {len(partitions)} partitions found.")
+      for key in partitions:
+        runs.append(
+          dg.RunRequest(
+            job_name=next_job,
+            partition_key=key, 
+            run_key=f"{backfill_id}-{key}", 
+            tags={
+              "triggered_by_backfill": backfill_id,
+              "notify": "true"
+            }
+          )
+        )
+      return runs
+    else:
+      return dg.SkipReason(f"No next_job specified for backfill {backfill_id}, skipping triggering next job.")
+
+
+# @dg.definitions
+# def executor() -> dg.Definitions:
+#     return dg.Definitions(executor=celery_executor)
+
+    # state["notified_backfills"].append(backfill_id)
+    # context.update_cursor(json.dumps(state))
 
 defs = dg.Definitions(
     jobs=[etl_users_job, extract_users_job, transform_load_users_job],
@@ -353,6 +486,7 @@ defs = dg.Definitions(
             load_user, init_databases, fetch_user_list_from_cdl,
             purge_user_cask_files, ensure_current_indexes, set_alias,
             create_indexes, delete_indexes, get_current_es_state],
-    sensors=[success_sensor],
-    resources={}
+    sensors=[notify_on_backfill_completion],
+    resources={},
+    executor=celery_executor
 )

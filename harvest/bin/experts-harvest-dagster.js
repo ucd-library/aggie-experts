@@ -45,6 +45,18 @@ program
     process.exit();
   });
 
+program
+  .command('get-backfill-details')
+  .argument('<backfill-id>', 'Dagster backfill ID to get details for')
+  .description('Get details about a specific Dagster backfill')
+  .action(async (backfillId) => {
+    const dagster = new DagsterAPI();
+    console.log(JSON.stringify(await dagster.getBackfillDetails(backfillId), null, 2));
+
+    // things seem to hang after this point... so force exit
+    process.exit();
+  });
+
 // program
 //   .command('remove-partition')
 //   .argument('<key>', 'CDL group ID to remove users from')
