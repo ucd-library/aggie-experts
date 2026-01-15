@@ -57,6 +57,50 @@ program
     process.exit();
   });
 
+program
+  .command('run-transform-load-users-job')
+  .description('Trigger the transform-load-users Dagster job')
+  .option('--tags <tags>', 'Comma-separated list of tags to apply to the backfill', null)
+  .option('--partition-keys <keys>', 'Comma-separated list of partition keys to process.  Use "." for stdin', null)
+  .action(async (opts) => {
+    const dagster = new DagsterAPI();
+
+    const jobName = 'transform_load_users_job';
+    const steps = ['transform_user_webapp', 'load_user'];
+    let tags = opts.tags ? opts.tags.split(',').map(t => t.trim()) : [];
+    let t = {};
+    for( let tag of tags ) {
+      const [k,v] = tag.split('=').map(s => s.trim());
+      t[k] = v;
+    }
+    tags = t;
+    
+    let partitionKeys = [];
+    if( opts.partitionKeys ) {
+      if( opts.partitionKeys === '.' ) {
+        const stdin = await new Promise((resolve) => {
+          let data = '';
+          process.stdin.on('data', chunk => data += chunk);
+          process.stdin.on('end', () => resolve(data));
+        });
+        partitionKeys = stdin.split(',').map(l => l.trim()).filter(l => l.length > 0);
+      } else {
+        partitionKeys = opts.partitionKeys.split(',').map(k => k.trim());
+      }
+    }
+
+    console.log(partitionKeys);
+    console.log(`Starting backfill for job ${jobName} with steps ${partitionKeys.length} partition keys...`);
+
+    console.log(JSON.stringify(
+      await dagster.startBackfill(jobName, steps, partitionKeys, tags), 
+      null, 2
+    ));
+
+    // things seem to hang after this point... so force exit
+    process.exit();
+  });
+
 // program
 //   .command('remove-partition')
 //   .argument('<key>', 'CDL group ID to remove users from')

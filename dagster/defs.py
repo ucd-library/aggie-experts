@@ -52,7 +52,7 @@ multi_partitions = MultiPartitionsDefinition(
     }
 )
 
-def exec(cmd, check=True, capture_output=True, text=True):
+def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_json_parse=False):
     """Helper function to run a command and return the result."""
     print(f"Executing command: {' '.join(cmd)}")
     
@@ -68,9 +68,14 @@ def exec(cmd, check=True, capture_output=True, text=True):
       cmd,
       stdout=subprocess.PIPE,
       stderr=subprocess.STDOUT,  # Merge stderr into stdout for single-stream reading
+      stdin=subprocess.PIPE if stdin_data is not None else None,
       text=True,
       bufsize=1 # Line buffering
     )
+
+    if stdin_data is not None:
+      process.stdin.write(stdin_data)
+      process.stdin.close()
 
     def _terminate_child():
       if process.poll() is None:
@@ -98,6 +103,9 @@ def exec(cmd, check=True, capture_output=True, text=True):
 
     if check and process.returncode != 0:
       raise subprocess.CalledProcessError(process.returncode, cmd)
+
+    if no_json_parse:
+      return None
 
     return json.loads(last_line)
 
@@ -368,16 +376,16 @@ def send_slack_notification(backfill_id: str, status: str, message: str):
 
 @dg.run_status_sensor(
   run_status=dg.DagsterRunStatus.SUCCESS,
-  monitored_jobs=[extract_users_job],
-  request_job=transform_load_users_job,
+  monitored_jobs=[extract_users_job, transform_load_users_job]
 )
-def notify_on_backfill_completion(context: dg.RunStatusSensorContext):
+def full_etl_notify_and_continue(context: dg.RunStatusSensorContext):
     backfill_id = context.dagster_run.tags.get("dagster/backfill")
     if not backfill_id:
         return
 
     notify = context.dagster_run.tags.get("notify")
-    next_job = context.dagster_run.tags.get("next_job")
+    continue_etl = context.dagster_run.tags.get("continue_etl")
+    job_name = context.dagster_run.job_name
 
     # state = _cursor_state(context)
     # if backfill_id in state["notified_backfills"]:
@@ -433,15 +441,18 @@ def notify_on_backfill_completion(context: dg.RunStatusSensorContext):
         conn.commit()
 
     # Decide what “completion” means for you
+    
     if any(s != dg.DagsterRunStatus.SUCCESS for s in statuses):
         # send a "backfill finished with issues" notification
         context.log.info(f"Backfill {backfill_id} completed with issues.")
-        send_slack_notification(backfill_id, "failure", f"Backfill {backfill_id} completed with issues.")
+        if notify == "true":
+            send_slack_notification(backfill_id, "failure", f"Backfill {backfill_id} completed with issues.")
     else:
         context.log.info(f"Backfill {backfill_id} completed successfully.")
         # send a "backfill completed successfully" notification
-        send_slack_notification(backfill_id, "success", f"Backfill {backfill_id} completed successfully.")
-
+        if notify == "true":
+            send_slack_notification(backfill_id, "success", f"Backfill {backfill_id} completed successfully.")
+    
     with conn.cursor() as cur:
       cur.execute(
         f"""
@@ -453,32 +464,19 @@ def notify_on_backfill_completion(context: dg.RunStatusSensorContext):
       )
     conn.commit()
 
-    if next_job:
+    if continue_etl == "true" and job_name == "extract_users_job":
       runs = []
-      context.log.info(f"Triggering next job {next_job} for backfill {backfill_id}. {len(partitions)} partitions found.")
-      for key in partitions:
-        runs.append(
-          dg.RunRequest(
-            job_name=next_job,
-            partition_key=key, 
-            run_key=f"{backfill_id}-{key}", 
-            tags={
-              "triggered_by_backfill": backfill_id,
-              "notify": "true"
-            }
-          )
-        )
-      return runs
+      context.log.info(f"Triggering transform_load_users_job for backfill {backfill_id}. {len(partitions)} partitions found.")
+      stdin_data = ",".join(partitions)
+      try:
+          exec(["experts", "harvest", "dagster", "run-transform-load-users-job", "--tags", "notify=true", "--partition-keys", "."], stdin_data=stdin_data, no_json_parse=True)
+      except Exception as e:
+          context.log.error(f"Error triggering transform_load_users_job for backfill {backfill_id}: {e}")
+          raise e
+      return dg.SkipReason(f"Executed backfill via cli.")
     else:
-      return dg.SkipReason(f"No next_job specified for backfill {backfill_id}, skipping triggering next job.")
+      return dg.SkipReason(f"No not a extract_users_job or continue_etl is not true for backfill {backfill_id}, skipping triggering next job.")
 
-
-# @dg.definitions
-# def executor() -> dg.Definitions:
-#     return dg.Definitions(executor=celery_executor)
-
-    # state["notified_backfills"].append(backfill_id)
-    # context.update_cursor(json.dumps(state))
 
 defs = dg.Definitions(
     jobs=[etl_users_job, extract_users_job, transform_load_users_job],
@@ -486,7 +484,10 @@ defs = dg.Definitions(
             load_user, init_databases, fetch_user_list_from_cdl,
             purge_user_cask_files, ensure_current_indexes, set_alias,
             create_indexes, delete_indexes, get_current_es_state],
-    sensors=[notify_on_backfill_completion],
+    sensors=[full_etl_notify_and_continue],
     resources={},
-    executor=celery_executor
+    executor=celery_executor.configured({
+        "broker": "pyamqp://guest:guest@rabbitmq:5672//",
+        "backend": "rpc://"
+    })
 )
