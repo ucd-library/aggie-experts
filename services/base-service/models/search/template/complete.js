@@ -28,10 +28,12 @@ template = {
                             ,{
                               "bool": {
                                 "must": [
-                                  { "exists": { "field": "hasAvailability.prefLabel" } },
-                                  { "terms": { "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}} } }
-                                ],
-                                "minimum_should_match": 1
+                                  { "exists": { "field": "hasAvailability.prefLabel" }},
+                                  { "terms": {
+                                    "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}}
+                                  }}
+                                ]
+                              }
                             }
                             {{/availability}}
                             {{#expert}}
@@ -198,7 +200,7 @@ template = {
                       ]
                     }
                   },
-                  "min_score": {{min_nested_score}}{{^min_nested_score}}1.0{{/min_nested_score}},
+                  "min_score": {{min_nested_score}}{{^min_nested_score}}10.0{{/min_nested_score}},
                   "boost_mode": "replace"
                 }
               },
