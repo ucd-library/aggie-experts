@@ -281,6 +281,17 @@ def transform_user_webapp(context: AssetExecutionContext) -> None:
     return None
 
 @dg.asset(
+    code_version=CODE_VERSION,
+    group_name="etl",
+)
+def exec_weekly_etl(context: AssetExecutionContext) -> None:
+    """Start the full weekly ETL process for all users."""
+
+    exec(["experts", "harvest", "dagster", "run-extract-users-job", "--notify", "true", "--continue-etl", "true"], no_json_parse=True)
+
+    return None
+
+@dg.asset(
     partitions_def=users_partitions,
     code_version=CODE_VERSION,
     group_name="cleanup",
@@ -333,6 +344,12 @@ etl_users_job = dg.define_asset_job(
     name="etl_users_job",
     description="Job to run the full ETL for a user: extract, transform (Aggie Experts Standard and Webapp), and load.  For realtime refreshes.",
     selection=dg.AssetSelection.assets(extract_user, transform_user_webapp, transform_user_standard, load_user),
+)
+
+init_weekly_etl = dg.define_asset_job(
+    name="init_weekly_etl",
+    description="Job to run init the new es index and harvest the new user list.",
+    selection=dg.AssetSelection.assets(init_databases, fetch_user_list_from_cdl)
 )
 
 extract_users_job = dg.define_asset_job(
@@ -440,18 +457,19 @@ def full_etl_notify_and_continue(context: dg.RunStatusSensorContext):
                 return dg.SkipReason(f"Already notified for backfill {backfill_id}")
         conn.commit()
 
-    # Decide what “completion” means for you
+    # get counts for each status
+    status_counts = {status.value: statuses.count(status) for status in set(statuses)}
     
     if any(s != dg.DagsterRunStatus.SUCCESS for s in statuses):
         # send a "backfill finished with issues" notification
         context.log.info(f"Backfill {backfill_id} completed with issues.")
         if notify == "true":
-            send_slack_notification(backfill_id, "failure", f"Backfill {backfill_id} completed with issues.")
+            send_slack_notification(backfill_id, "failure", f"Backfill {backfill_id} completed with issues. Status counts: {status_counts}")
     else:
         context.log.info(f"Backfill {backfill_id} completed successfully.")
         # send a "backfill completed successfully" notification
         if notify == "true":
-            send_slack_notification(backfill_id, "success", f"Backfill {backfill_id} completed successfully.")
+            send_slack_notification(backfill_id, "success", f"Backfill {backfill_id} completed successfully. Status counts: {status_counts}")
     
     with conn.cursor() as cur:
       cur.execute(
@@ -477,15 +495,36 @@ def full_etl_notify_and_continue(context: dg.RunStatusSensorContext):
     else:
       return dg.SkipReason(f"No not a extract_users_job or continue_etl is not true for backfill {backfill_id}, skipping triggering next job.")
 
+weekly_elt_init_schedule = dg.ScheduleDefinition(
+    name="weekly_elt_init_schedule",
+    cron_schedule="0 1 * * 6",  # Every Saturday at 1:00 AM
+    job=init_weekly_etl,
+    run_config={},
+    execution_timezone="America/Los_Angeles",
+    tags={
+      "schedule": "weekly_elt_init_schedule",
+      "notify": "true"
+    },
+)
+
+weekly_elt_schedule = dg.ScheduleDefinition(
+    name="weekly_elt_schedule",
+    cron_schedule="30 1 * * 6",  # Every Saturday at 1:30 AM
+    target=[exec_weekly_etl],
+    execution_timezone="America/Los_Angeles",
+    run_config={},
+    tags={},
+)
 
 defs = dg.Definitions(
     jobs=[etl_users_job, extract_users_job, transform_load_users_job],
     assets=[extract_user, transform_user_webapp, transform_user_standard, 
             load_user, init_databases, fetch_user_list_from_cdl,
             purge_user_cask_files, ensure_current_indexes, set_alias,
-            create_indexes, delete_indexes, get_current_es_state],
+            create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl],
     sensors=[full_etl_notify_and_continue],
     resources={},
+    schedules=[weekly_elt_init_schedule, weekly_elt_schedule],
     executor=celery_executor.configured({
         "broker": "pyamqp://guest:guest@rabbitmq:5672//",
         "backend": "rpc://"

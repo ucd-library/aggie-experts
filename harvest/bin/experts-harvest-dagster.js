@@ -58,6 +58,37 @@ program
   });
 
 program
+  .command('run-extract-users-job')
+  .description('Trigger the weekly extract-users Dagster job on all partitions')
+  .option('--group-id <group-id>', 'CDL group ID to initialize users from. Must be one of: '+GROUP_IDS.join(', '), GROUP_IDS[2])
+  .option('--notify', 'Whether to send notifications for the backfill')
+  .option('--continue-etl', 'Whether to continue to the ETL process after extraction')
+  .action(async (opts) => {
+    const dagster = new DagsterAPI();
+
+    const jobName = 'extract_users_job';
+    const steps = ['extract_user', 'transform_user_standard'];
+    
+    console.log(`Starting backfill for job ${jobName} with ${steps.length} steps...`);
+
+    // TODO: should we just read this from the database??
+    const client = new CdlClient();
+    const users = await client.getGroupList(opts.groupId);
+
+    console.log(JSON.stringify(
+      await dagster.startBackfill(jobName, steps, users.users, {
+        'cdl_group_id': opts.groupId,
+        'notify': opts.notify ? 'true' : 'false',
+        'continue_etl': opts.continueEtl ? 'true' : 'false'
+      }), 
+      null, 2
+    ));
+
+    // things seem to hang after this point... so force exit
+    process.exit();
+  });
+
+program
   .command('run-transform-load-users-job')
   .description('Trigger the transform-load-users Dagster job')
   .option('--tags <tags>', 'Comma-separated list of tags to apply to the backfill', null)
