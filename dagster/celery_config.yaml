@@ -1,0 +1,19 @@
+execution:
+  config:
+    broker: pyamqp://guest:guest@rabbitmq:5672//
+    backend: rpc://
+    config_source:
+      worker_concurrency: 5
+
+      worker_redirect_stdouts: false
+      worker_hijack_root_logger: false
+
+      broker_heartbeat: 0
+      broker_transport_options:
+        heartbeat: 0
+        socket_keepalive: true
+
+      # broker_heartbeat: 30
+      broker_heartbeat_checkrate: 2
+      broker_connection_retry_on_startup: true
+      broker_connection_max_retries: 0

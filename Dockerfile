@@ -32,6 +32,9 @@ COPY harvest/lib /opt/harvest/lib
 COPY harvest/vocabularies /opt/harvest/vocabularies
 
 COPY dagster/defs.py /opt/harvest/defs.py
+COPY dagster/dagster.yaml /opt/dagster/dagster_home/dagster.yaml
+COPY dagster/celery_config.yaml /opt/dagster/dagster_home/celery_config.yaml
+COPY dagster/workspace.yaml /opt/dagster/dagster_home/workspace.yaml
 
 RUN cd /opt/harvest && npm install -g
 RUN cd /opt/caskfs && npm install -g
