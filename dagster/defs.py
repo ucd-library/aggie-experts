@@ -44,6 +44,9 @@ class SetAliasConfig(Config):
     year_week: str = Field(..., description="Year-week for CaskFS purge in format YYYY-WW")
     alias: Literal['stage', 'current']
 
+class ReloadSearchTemplateConfig(Config):
+    template: str = Field('complete', description="Search template name to load into Elasticsearch")
+
 year_week_partitions = dg.DynamicPartitionsDefinition(name="year-week")
 multi_partitions = MultiPartitionsDefinition(
     {
@@ -199,6 +202,16 @@ def get_current_es_state(context) -> None:
   """Prints all indexes and alias pointers in ElasticSearch"""
   cmd = ["experts", "es", "state"]
   exec(cmd)
+  return None
+
+@dg.asset(
+  code_version=CODE_VERSION,
+  group_name="elasticsearch"
+)
+def reload_search_template(context, config: ReloadSearchTemplateConfig) -> None:
+  """Reload the mustache search template into Elasticsearch."""
+  exec(["experts", "es", "load-search-template", "--template", config.template])
+  context.add_output_metadata({"template": config.template})
   return None
 
 @dg.asset(
@@ -384,6 +397,7 @@ transform_load_users_job = dg.define_asset_job(
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user)
 )
 
+<<<<<<< HEAD
 TERMINAL = {
     dg.DagsterRunStatus.SUCCESS,
     dg.DagsterRunStatus.FAILURE,
@@ -393,6 +407,18 @@ TERMINAL = {
 def send_slack_notification(backfill_id: str, status: str, message: str):
     """Send a Slack notification about backfill completion via webhook."""
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
+=======
+reload_search_template_job = dg.define_asset_job(
+  name="reload_search_template_job",
+  description="Reload the Elasticsearch search template.",
+  selection=dg.AssetSelection.assets(reload_search_template)
+)
+
+@run_status_sensor(run_status=DagsterRunStatus.SUCCESS, monitored_jobs=[etl_users_job])
+def success_sensor(context: RunStatusSensorContext):
+    run = context.dagster_run
+    message = f"✅ Dagster job `{run.job_name}` succeeded! Run ID: {run.run_id}"
+>>>>>>> anduin
     
     if not webhook_url:
         context.log.warning(f"Warning: SLACK_WEBHOOK_URL not set, skipping Slack notification")
@@ -537,11 +563,11 @@ weekly_elt_schedule = dg.ScheduleDefinition(
 )
 
 defs = dg.Definitions(
-    jobs=[etl_users_job, extract_users_job, transform_load_users_job],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job, reload_search_template_job],
     assets=[extract_user, transform_user_webapp, transform_user_standard, 
             load_user, init_databases, fetch_user_list_from_cdl,
             purge_user_cask_files, ensure_current_indexes, set_alias,
-            create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl],
+            create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl, reload_search_template],
     sensors=[full_etl_notify_and_continue],
     resources={},
     schedules=[weekly_elt_init_schedule, weekly_elt_schedule],

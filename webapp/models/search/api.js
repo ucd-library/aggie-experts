@@ -93,8 +93,8 @@ router.get(
 
     const typeToIndex = {
       expert: experts.readIndexAlias,
-      // grant: grants.readIndexAlias,
-      // work: works.readIndexAlias,
+      grant: grants.readIndexAlias,
+      work: works.readIndexAlias,
     };
     for (const t of params["@type"]) {
       const indexAlias = typeToIndex[t];
@@ -119,11 +119,7 @@ router.get(
           params: {
             ...opts.params,
             size: 0,
-            index: [
-              experts.readIndexAlias //,
-              // grants.readIndexAlias,
-              // works.readIndexAlias
-            ]
+            index: Object.values(typeToIndex)
           }
         });
       find.global_aggregations = global.aggregations;
