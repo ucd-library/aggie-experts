@@ -443,46 +443,25 @@ class BaseModel extends EsDataModel {
       return null;
     }
 
-    // Add fcrepo and dbsync data if admin, for the dashboard
-    if( opts.admin === true ) {
-      try {
-        let response = await api.metadata({
-          path : id,
-          host : config.gateway.host
-        });
-        if( response.data.statusCode === 200 ) {
-          result.fcrepo = JSON.parse(response.data.body);
-        } else {
-          result.fcrepo = {
-            error: true,
-            body : response.data.body,
-            statusCode : response.data.statusCode
-          }
-        }
-      } catch(e) {
-        result.fcrepo = {
-          error: true,
-          message : e.message,
-          stack : e.stack
-        }
-      }
+    // never reached..
+    // Add dbsync data if admin, for the dashboard
+    // if( opts.admin === true ) {
+    //   try {
+    //     result.dbsync = {};
+    //     let response = await this.pg.query('select * from dbsync.update_status where path = $1', [id]);
+    //     if( response.rows.length ) result.dbsync[id] = response.rows[0];
 
-      try {
-        result.dbsync = {};
-        let response = await this.pg.query('select * from dbsync.update_status where path = $1', [id]);
-        if( response.rows.length ) result.dbsync[id] = response.rows[0];
+    //     response = await this.pg.query('select * from dbsync.update_status where path = $1', [id+'/fcr:metadata']);
+    //     if( response.rows.length ) result.dbsync[id+'/fcr:metadata'] = response.rows[0];
+    //   } catch(e) {
+    //     result.dbsync = {
+    //       message : e.message,
+    //       stack : e.stack
+    //     }
+    //   }
+    // }
 
-        response = await this.pg.query('select * from dbsync.update_status where path = $1', [id+'/fcr:metadata']);
-        if( response.rows.length ) result.dbsync[id+'/fcr:metadata'] = response.rows[0];
-      } catch(e) {
-        result.dbsync = {
-          message : e.message,
-          stack : e.stack
-        }
-      }
-    }
-
-    return result;
+    // return result;
   }
 
 

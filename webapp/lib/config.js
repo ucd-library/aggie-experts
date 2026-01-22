@@ -21,7 +21,7 @@ const config = {
     port : env.OIDC_PORT || 3000,
     clientId : env.OIDC_CLIENT_ID || '',
     baseUrl : env.OIDC_BASE_URL || 'https://auth.library.ucdavis.edu/realms/aggie-experts',
-    secret : env.OIDC_SECRET || '',
+    secret : env.OIDC_CLIENT_SECRET || '',
     scopes : env.OIDC_SCOPES || 'roles openid profile email',
     serviceName : env.OIDC_SERVICE_NAME || 'keycloak-oidc',
     roleIgnoreList : [
@@ -43,12 +43,12 @@ const config = {
   },
 
   jwt : {
-    jwksUri : process.env.JWT_JWKS_URI,
-    secret : process.env.JWT_SECRET,
-    issuer : process.env.JWT_ISSUER,
+    jwksUri : env.JWT_JWKS_URI,
+    secret : env.JWT_SECRET,
+    issuer : env.JWT_ISSUER,
     // expires in seconds
-    ttl : process.env.JWT_TTL ? parseInt(process.env.JWT_TTL) : (60 * 60 * 24 * 14),
-    cookieName : process.env.JWT_COOKIE_NAME || 'fin-jwt'
+    ttl : env.JWT_TTL ? parseInt(env.JWT_TTL) : (60 * 60 * 24 * 14),
+    cookieName : env.JWT_COOKIE_NAME || 'fin-jwt'
   },
 
   elasticsearch: {
@@ -59,11 +59,23 @@ const config = {
 
   experts : {
     version : '1.0.0',
-    is_public : ! (process.env.EXPERTS_IS_PUBLIC === "false")
+    is_public : ! (env.EXPERTS_IS_PUBLIC === "false"),
+    cdl: {
+      expert: {
+        propagate: (env.CDL_PROPAGATE_CHANGES === "true") || false,
+        instance: env.CDL_PROPAGATE_CHANGES_INSTANCE || "qa" },
+      grant_role: {
+        propagate: (env.CDL_PROPAGATE_CHANGES === "true") || false,
+        instance: env.CDL_PROPAGATE_CHANGES_INSTANCE || "qa" },
+      authorship: {
+        propagate: (env.CDL_PROPAGATE_CHANGES === "true") || false,
+        instance: env.CDL_PROPAGATE_CHANGES_INSTANCE || "qa"
+      }
+    }
   },
 
   server : {
-      url : env.AE_EXPERTS_SERVER_URL || 'https//spa:3000'
+      url : env.AE_EXPERTS_SERVER_URL || 'https://spa:3000'
   },
 
   dagster : {

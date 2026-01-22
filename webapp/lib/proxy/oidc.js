@@ -29,16 +29,17 @@ function init(app) {
   });
 
   app.use(auth({
+    authRequired: false,
     issuerBaseURL: config.oidc.baseUrl,
     baseURL: config.url,
     clientID: config.oidc.clientId,
     clientSecret: config.oidc.secret,
     secret : config.jwt.secret,
     routes : {
-      callback : '/auth/'+config.oidc.serviceName+'/callback',
-      login : '/auth/'+config.oidc.serviceName+'/login',
-      logout : '/auth/'+config.oidc.serviceName+'/logout',
-      postLogoutRedirect : '/auth/'+config.oidc.serviceName+'/postLogoutRedirect'
+      callback : '/auth/callback',
+      login : '/auth/login',
+      logout : '/auth/logout',
+      // postLogoutRedirect : '/auth/postLogoutRedirect'
     },
     authorizationParams: {
       response_type: 'code',
@@ -46,7 +47,13 @@ function init(app) {
     },
     idpLogout: true,
     afterCallback : (req, res, session, decodedState) => {
-      res.set('X-FIN-AUTHORIZED-TOKEN', session.access_token);
+      // set cookie for front-end access token use:
+      res.cookie(config.jwt.cookieName, session.access_token, {
+        httpOnly: false,
+        secure: true,
+        sameSite: 'Lax'
+      });
+
       return session
     }
   }));

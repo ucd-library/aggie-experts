@@ -281,8 +281,8 @@ export class CdlClient {
       if (json?.feed?.entry) {
         entries = entries.concat(json.feed.entry);
         for (let entry of entries) {
-          console.log(entry)
           entry = entry['api:object'];
+          console.log(`Found user "${entry['username']}" in group ${group}`);
           users.push(entry['username']);
         }
       }

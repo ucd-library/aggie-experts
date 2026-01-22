@@ -2,10 +2,11 @@ const express = require('express');
 // const {keycloak} = require('@ucd-lib/fin-service-utils');
 const config = require('./config');
 const path = require('path');
+const keycloak = require('../lib/keycloak.js');
 
 const app = express();
 
-// app.use(keycloak.setUser);
+app.use(keycloak.setUser);
 
 // path to your spa assets dir
 let assetsDir = path.join(__dirname, 'client', 'public');
