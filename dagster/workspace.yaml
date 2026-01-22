@@ -1,6 +1,7 @@
 load_from:
   # Each entry here corresponds to a service in the docker-compose file that exposes user code.
-  - grpc_server:
-      host: harvest
-      port: 4000
-      location_name: "harvest"
+  # - grpc_server:
+  #     host: dagster-code-server
+  #     port: 4000
+  #     location_name: "dagster-code-server"
+  - python_file: /opt/harvest/defs.py

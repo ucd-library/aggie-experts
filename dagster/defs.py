@@ -1,7 +1,7 @@
 from dagster import (
   asset, DynamicOutput, AssetExecutionContext, AutoMaterializePolicy, Config, 
   FilesystemIOManager, run_status_sensor, DagsterRunStatus, RunStatusSensorContext,
-  DailyPartitionsDefinition, StaticPartitionsDefinition, MultiPartitionsDefinition
+  DailyPartitionsDefinition, StaticPartitionsDefinition, MultiPartitionsDefinition, RetryPolicy
 )
 from dagster_celery import celery_executor
 import os
@@ -85,29 +85,46 @@ def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_js
           pass
 
     # Ensure child is killed on normal interpreter shutdown
-    atexit.register(_terminate_child)
+    # atexit.register(_terminate_child)
 
     # Ensure child is killed on SIGINT/SIGTERM
-    def _handle_term(signum, frame):
-      _terminate_child()
-      raise SystemExit(128 + signum)
+    # def _handle_term(signum, frame):
+    #   _terminate_child()
+    #   raise SystemExit(128 + signum)
 
-    last_line = ""
-    for line in process.stdout:
-      sys.stdout.write(line)
-      sys.stdout.flush()  # Ensure it prints immediately
-      # You can also perform additional processing on the 'line' variable here
-      last_line = line
+    # Register cleanup handler
+    cleanup_handler = lambda: _terminate_child()
+    atexit.register(cleanup_handler)
 
-    process.wait()
+    # Register signal handlers
+    old_sigint = signal.signal(signal.SIGINT, lambda signum, frame: (_terminate_child(), sys.exit(128 + signum)))
+    old_sigterm = signal.signal(signal.SIGTERM, lambda signum, frame: (_terminate_child(), sys.exit(128 + signum)))
 
-    if check and process.returncode != 0:
-      raise subprocess.CalledProcessError(process.returncode, cmd)
+    try:
+      last_line = ""
+      for line in process.stdout:
+        sys.stdout.write(line)
+        sys.stdout.flush()  # Ensure it prints immediately
+        # You can also perform additional processing on the 'line' variable here
+        last_line = line
 
-    if no_json_parse:
-      return None
+      process.wait()
 
-    return json.loads(last_line)
+      if check and process.returncode != 0:
+        raise subprocess.CalledProcessError(process.returncode, cmd)
+
+      if no_json_parse:
+        return None
+
+      return json.loads(last_line)
+    finally:
+      # Clean up handlers
+      atexit.unregister(cleanup_handler)
+      signal.signal(signal.SIGINT, old_sigint)
+      signal.signal(signal.SIGTERM, old_sigterm)
+      # Ensure stdout is closed
+      if process.stdout:
+        process.stdout.close()
 
 @dg.asset(
   code_version=CODE_VERSION,
@@ -283,6 +300,9 @@ def transform_user_webapp(context: AssetExecutionContext) -> None:
 @dg.asset(
     code_version=CODE_VERSION,
     group_name="etl",
+    retry_policy=RetryPolicy(
+        max_retries=0
+    )
 )
 def exec_weekly_etl(context: AssetExecutionContext) -> None:
     """Start the full weekly ETL process for all users."""

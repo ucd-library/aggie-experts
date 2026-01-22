@@ -63,6 +63,7 @@ program
   .option('--group-id <group-id>', 'CDL group ID to initialize users from. Must be one of: '+GROUP_IDS.join(', '), GROUP_IDS[2])
   .option('--notify', 'Whether to send notifications for the backfill')
   .option('--continue-etl', 'Whether to continue to the ETL process after extraction')
+  .option('--skip <count>', 'Number of users to skip from the start of the list')
   .action(async (opts) => {
     const dagster = new DagsterAPI();
 
@@ -74,6 +75,14 @@ program
     // TODO: should we just read this from the database??
     const client = new CdlClient();
     const users = await client.getGroupList(opts.groupId);
+
+    if( opts.skip ) {
+      const skipCount = parseInt(opts.skip, 10);
+      if( isNaN(skipCount) || skipCount < 0 ) {
+        throw new Error('Invalid skip count specified: '+opts.skip);
+      }
+      users.users = users.users.slice(skipCount);
+    }
 
     console.log(JSON.stringify(
       await dagster.startBackfill(jobName, steps, users.users, {
