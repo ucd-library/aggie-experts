@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import cache from '../lib/cache.js';
 const program = new Command();
 
 program
@@ -10,5 +11,24 @@ program
   .command('load', 'load data into database(s)')
   .command('reporting', 'import/export reporting database')
   .command('transform', 'transform extracted data into Aggie Experts format')
+
+program
+  .command('year-week')
+  .description('Get the year-week number for a given date, defaults to current date')
+  .option('--date <date>', 'Date to get week number for (format: YYYY-MM-DD).  Defaults to current date.', null)
+  .option('-v, --verbose', 'Enable verbose logging', false)
+  .action((opts) => {
+    let date;
+    if( opts.date ) {
+      date = new Date(opts.date);
+      if( isNaN(date.getTime()) ) {
+        throw new Error('Invalid date format specified.  Must be in format YYYY-MM-DD');
+      }
+    } else {
+      date = new Date();
+    }
+
+    console.log(cache.getYearWeek(date, { allValues: opts.verbose }));
+  });
 
 program.parse(process.argv);
