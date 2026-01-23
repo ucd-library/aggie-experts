@@ -623,11 +623,8 @@ class ExpertModel extends BaseModel {
       throw new Error('Invalid patch, visible is required');
     }
 
-    // Immediate Update Elasticsearch document
-    const expertModel = await this.get_model('expert');
-
     try {
-      expert = await expertModel.client_get(expertId);
+      expert = await this.client_get(expertId);
     } catch(e) {
       e.message = `expert "@id"=${expertId} not found`;
       e.status=500;
@@ -636,7 +633,8 @@ class ExpertModel extends BaseModel {
     if (patch.visible != null) {
       expert['is-visible'] = patch.visible;
     }
-    // Just update the existing document
+
+    // update Elasticsearch
     await this.client.index({
       index : this.writeIndexAlias,
       id : expert['@id'],
@@ -667,13 +665,6 @@ class ExpertModel extends BaseModel {
        index:this.writeIndexAlias
       });
 
-    await finApi.delete(
-      {
-        path: expertId,
-        permanent: true
-      }
-    );
-
     if (config.experts.cdl.expert.propagate) {
       const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
       let resp = await cdl_user.updateUserPrivacyLevel({
@@ -700,10 +691,42 @@ class ExpertModel extends BaseModel {
       expert = await this.client_get(expertId);
     } catch(e) {
       logger.info(`expert @id ${expertId} not found`);
-      return 404
-    };
+      return 404;
+    }
 
-    // TODO where is the elasticsearch update ??
+    if( expert.hasAvailability ) delete expert.hasAvailability;
+    expert['@graph'].forEach(n => { 
+      if( n['@id'] === expertId && n.hasAvailability ) {
+        delete n.hasAvailability;
+      }
+    });
+
+    // build availability nodes
+    if (data.currentLabels.length > 0) {
+      const hasAvailability = data.currentLabels.map(label => ({
+        "@id": `ark:/87287/d7mh2m/keyword/c-ucd-avail/${encodeURIComponent(label)}`,
+        "@type": "Concept",
+        "prefLabel": label,
+        "skos:inScheme": {
+          "@id": "ark:/87287/d7mh2m/keyword/c-ucd-avail/"
+        },
+        "availabilityOf": expertId
+      }));
+
+      expert['hasAvailability'] = hasAvailability;
+      expert['@graph'].forEach(n => { 
+        if( n['@id'] === expertId ) {
+          n.hasAvailability = hasAvailability;
+        }
+      });
+    }
+
+    // update Elasticsearch
+    await this.client.index({
+      index: this.writeIndexAlias,
+      id: expert['@id'],
+      document: expert
+    });
 
     // update cdl
     if (config.experts.cdl.expert.propagate) {
@@ -717,7 +740,6 @@ class ExpertModel extends BaseModel {
       logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
     }
   }
-
 }
 
 class GrantRole {
@@ -861,7 +883,7 @@ class Authorship {
       node['relatedBy'][roleIndex]['is-visible'] = patch.visible;
     }
     if (patch.favourite != null) {
-      node['relatedBy'][roleIndex].favourite = patch.favourite;
+      node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
     }
 
     //already a snippet node = workModel.snippet(have_part.Work.node);
