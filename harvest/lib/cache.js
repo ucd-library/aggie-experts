@@ -2,7 +2,7 @@ import path from 'path';
 import config from './config.js';
 import { reportFileWrite } from './reporting/index.js';
 import CaskFS from '/opt/caskfs/src/index.js';
-import { getWeek } from 'date-fns';
+import { getWeek, startOfYear, nextSaturday, isSaturday } from 'date-fns';
 import os from 'os';
 
 class FsCache {
@@ -38,11 +38,73 @@ class FsCache {
     }
   }
 
-  getYearWeek(date) {
+  /**
+   * @method getYearWeek
+   * @description Get the year-week string (format: YYYY-WW) for a given date.  Weeks start on Saturday.
+   * Prior to the first Saturday of the year is considered week 52/53 of the previous year.
+   * 
+   * Note: this math is a pain.  Always use this method to get year-week instead of trying to calculate it yourself.
+   * 
+   * @param {Object} date Date object, defaults to current date
+   * @param {Object} opts options object
+   * @param {Boolean} opts.allValues if true, will return 'all' for year-week instead of calculating it
+   * 
+   * @returns {String} year-week string in format YYYY-WW
+   */
+  getYearWeek(date, opts={}) {
     if( !date ) date = new Date();
-    let week = getWeek(date)+'';
-    if( week.length === 1 ) week = '0'+week;
-    return date.getFullYear()+'-'+week;
+
+    // for prior year calculations, we need to set the original date
+    if( !opts.date ) opts.date = date;
+
+    // find first Saturday of the year
+    let yearOffset = new Date(date.getFullYear(), 0, 1, 0, 0, 0).getDay();
+    let firstSat = null
+
+    // if Jan 1 is a Saturday, week 1 starts that day
+    if( yearOffset === 6 ) {
+      firstSat = new Date(date.getFullYear(), 0, 1, 0, 0, 0);
+
+    // otherwise, week 1 starts the first Saturday on or after Jan 1
+    } else {
+      firstSat = new Date(date.getFullYear(), 0, (6-yearOffset)+1, 0, 0, 0);
+
+      // date is in week 52/53 of previous year
+      if( date < firstSat ) {
+        const prevYearDate = new Date(date.getFullYear()-1, 11, 31, 0, 0, 0);
+        return this.getYearWeek(prevYearDate, opts);
+      }
+    }
+
+    // calculate week number, starting with week 1 on first Saturday
+    let week = 1, weekStart, weekEnd;
+    while( week <= 53 ) {
+      weekStart = new Date(firstSat);
+      weekStart.setDate(firstSat.getDate() + ((week-1)*7));
+      weekEnd = new Date(firstSat);
+      weekEnd.setDate(firstSat.getDate() + ((week)*7) - 1);
+
+      if( date >= weekStart && date <= weekEnd ) {
+        break;
+      }
+      week++;
+    }
+
+    const year = date.getFullYear();
+
+    // pad week with leading zero if needed
+    if( (week+'').length === 1 ) week = '0'+week;
+
+    if( opts.allValues ) {
+      return {
+        yearWeek : year+'-'+week,
+        weekStart,
+        weekEnd,
+        date: opts.date
+      }
+    }
+
+    return year+'-'+week;
   }
 
   /**
