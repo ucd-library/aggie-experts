@@ -30,6 +30,12 @@ conn = psycopg2.connect(
 BACKFILL_STATUS_TABLE = "anduin.backfill_status"
 BACKFILL_UPDATE_FN = "anduin.set_backfill_finished"
 
+TERMINAL = {
+    dg.DagsterRunStatus.SUCCESS,
+    dg.DagsterRunStatus.FAILURE,
+    dg.DagsterRunStatus.CANCELED,
+}
+
 # Define a config schema for the asset
 class FetchUserListConfig(Config):
     group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # Default value for group ID
@@ -397,28 +403,10 @@ transform_load_users_job = dg.define_asset_job(
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user)
 )
 
-<<<<<<< HEAD
-TERMINAL = {
-    dg.DagsterRunStatus.SUCCESS,
-    dg.DagsterRunStatus.FAILURE,
-    dg.DagsterRunStatus.CANCELED,
-}
 
 def send_slack_notification(backfill_id: str, status: str, message: str):
     """Send a Slack notification about backfill completion via webhook."""
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
-=======
-reload_search_template_job = dg.define_asset_job(
-  name="reload_search_template_job",
-  description="Reload the Elasticsearch search template.",
-  selection=dg.AssetSelection.assets(reload_search_template)
-)
-
-@run_status_sensor(run_status=DagsterRunStatus.SUCCESS, monitored_jobs=[etl_users_job])
-def success_sensor(context: RunStatusSensorContext):
-    run = context.dagster_run
-    message = f"✅ Dagster job `{run.job_name}` succeeded! Run ID: {run.run_id}"
->>>>>>> anduin
     
     if not webhook_url:
         context.log.warning(f"Warning: SLACK_WEBHOOK_URL not set, skipping Slack notification")
