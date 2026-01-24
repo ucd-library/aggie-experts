@@ -403,7 +403,6 @@ transform_load_users_job = dg.define_asset_job(
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user)
 )
 
-
 def send_slack_notification(backfill_id: str, status: str, message: str):
     """Send a Slack notification about backfill completion via webhook."""
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
@@ -427,7 +426,8 @@ def send_slack_notification(backfill_id: str, status: str, message: str):
 
 @dg.run_status_sensor(
   run_status=dg.DagsterRunStatus.SUCCESS,
-  monitored_jobs=[extract_users_job, transform_load_users_job]
+  monitored_jobs=[extract_users_job, transform_load_users_job],
+  minimum_interval_seconds=60*2 # 2 minutes
 )
 def full_etl_notify_and_continue(context: dg.RunStatusSensorContext):
     backfill_id = context.dagster_run.tags.get("dagster/backfill")
@@ -551,7 +551,7 @@ weekly_elt_schedule = dg.ScheduleDefinition(
 )
 
 defs = dg.Definitions(
-    jobs=[etl_users_job, extract_users_job, transform_load_users_job, reload_search_template_job],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job],
     assets=[extract_user, transform_user_webapp, transform_user_standard, 
             load_user, init_databases, fetch_user_list_from_cdl,
             purge_user_cask_files, ensure_current_indexes, set_alias,
