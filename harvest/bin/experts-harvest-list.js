@@ -10,7 +10,6 @@ program
   .command('users')
   .argument('<group-id>')
   .description('list users from CDL group')
-  .option('--root-dir <root-dir>', 'Root directory for extracted data. Respects env EXPERTS_ROOT_DIR')
   .action(async (groupId, options) => {
     if( options.reportingJobId || options.reporting ) {
       await enableFromCli('experts-harvest-list', groupId, options);
@@ -18,11 +17,12 @@ program
 
     const client = new CdlClient();
     const users = await client.getGroupList(groupId);
-    logger.info({
+    console.log({
       groupId: users.groupId,
       groupName: users.groupName,
       cachePath: users.cachePath
     })
+    users.users.forEach( u => console.log(u) );
   });
 
 program

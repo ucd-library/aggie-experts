@@ -4,16 +4,21 @@ import fetch from 'node-fetch';
 
 class DagsterAPI {
 
-  async graphqlQuery(query, variables = {}) {
+  async graphqlQuery(query, variables = {}, operationName = null) {
+    let body = {
+      query,
+      variables,
+    };
+    if( operationName ) {
+      body.operationName = operationName;
+    }
+
     let resp = await fetch(config.dagster.host+config.dagster.graphqlPath, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
+      body: JSON.stringify(body)
     });
 
     if( !resp.ok ) {
@@ -121,6 +126,54 @@ class DagsterAPI {
       partitionsDefName,
       partitionKey
     }, true));
+  }
+
+  startBackfill(jobName, steps, partitionKeys, tags={}) {
+    if( !partitionKeys || !Array.isArray(partitionKeys) || partitionKeys.length === 0 ) {
+      throw new Error('partitionKeys must be a non-empty array');
+    }
+
+    let t = [];
+    for( let key in tags ) {
+      t.push({ key: key, value: tags[key] });
+    }
+    tags = t;
+
+    const mutation = `mutation LaunchPartitionBackfill(
+        $backfillParams: LaunchBackfillParams!
+    ) {
+        launchPartitionBackfill(backfillParams: $backfillParams) {
+            __typename
+            ... on LaunchBackfillSuccess {
+                backfillId
+                launchedRunIds
+            }
+            ... on PartitionSetNotFoundError {
+                message
+            }
+            ... on PythonError {
+                message
+                stack
+            }
+        }
+    }`;
+
+    const variables = {
+      backfillParams: {
+        assetSelection: steps.map(i => ({ path: [i] })),
+        partitionNames: partitionKeys,
+        selector: {
+          repositorySelector: {
+            repositoryLocationName: config.dagster.repositoryLocationName,
+            repositoryName: config.dagster.repositoryName
+          },
+          partitionSetName: jobName + "_partition_set"
+        },
+        tags
+      }
+    }
+
+    return this.graphqlQuery(mutation, variables);
   }
 }
 
