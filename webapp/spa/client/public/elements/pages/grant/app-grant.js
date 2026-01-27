@@ -116,10 +116,10 @@ export default class AppGrant extends Mixin(LitElement)
       if( !g || !g['@id'] ) return false;
       const id = g['@id'];
       if( id === this.grantId ) return false;
-      // include explicit expert/ ark: and mailto: nodes
-      if( id.startsWith('expert/') || id.startsWith('ark:') || id.startsWith('mailto:') ) return true;
       // exclude any fragment ids (likely non-expert person records tied to the grant like {grant}#personId)
       if( id.includes('#') ) return false;
+      // include explicit expert/ ark: and mailto: nodes
+      if( id.startsWith('expert/') || id.startsWith('ark:') || id.startsWith('mailto:') ) return true;
       // fallback: exclude other record types
       return false;
     }) || [];
