@@ -112,7 +112,17 @@ export default class AppGrant extends Mixin(LitElement)
       return;
     }
 
-    let aeContributors = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
+    let aeContributors = (e.payload['@graph'] || []).filter(g => {
+      if( !g || !g['@id'] ) return false;
+      const id = g['@id'];
+      if( id === this.grantId ) return false;
+      // exclude any fragment ids (likely non-expert person records tied to the grant like {grant}#personId)
+      if( id.includes('#') ) return false;
+      // include explicit expert/ ark: and mailto: nodes
+      if( id.startsWith('expert/') || id.startsWith('ark:') || id.startsWith('mailto:') ) return true;
+      // fallback: exclude other record types
+      return false;
+    }) || [];
     let otherContributors = [];
 
     this.grantName = grantGraph.name?.split('§')?.shift()?.trim() || '';
@@ -141,19 +151,51 @@ export default class AppGrant extends Mixin(LitElement)
 
     otherContributors = contributors.filter(c => !c['inheres_in']);
 
-    aeContributors.forEach(contributor => {
-      let name = contributor.contactInfo[0]?.name;
-      let subtitle = name.split('§')?.pop()?.trim() || '';
-      name = name.split('§')?.shift()?.trim() || '';
+    // helper to find the relatedBy entry for a contributor, tolerant to shapes
+    const _findMatchingRelated = (contributor) => {
+      return contributors.find(r => {
+        if( !r ) return false;
+        // Ignore roleof_ relationship nodes — those are handled in otherContributors
+        if( r['@id'] && String(r['@id']).includes('#roleof_') ) return false;
 
-      let type = grantGraph.relatedBy.filter(r => r['inheres_in'] === contributor['@id'])?.[0]?.['@type'];
+        const inh = r?.inheres_in;
+        const inhId = (typeof inh === 'string') ? inh : (inh && inh['@id']) || null;
+        if( inhId === contributor['@id'] ) return true;
+
+        let relates = r?.relates || [];
+        if( !Array.isArray(relates) ) relates = [relates];
+        for( const rel of relates ) {
+          if( typeof rel === 'string' && rel === contributor['@id'] ) return true;
+          if( rel && rel['@id'] === contributor['@id'] ) return true;
+        }
+        return false;
+      });
+    };
+
+    aeContributors.forEach(contributor => {
+      // derive a safe name value, with fallbacks and array handling
+      let rawName = contributor?.contactInfo?.[0]?.name ?? contributor?.name ?? contributor?.label ?? '';
+      if( Array.isArray(rawName) ) {
+        rawName = rawName[0] ?? '';
+      }
+      if( typeof rawName !== 'string' ) {
+        rawName = String(rawName ?? '');
+      }
+      const nameParts = rawName.split('§').map(p => p.trim());
+      let name = nameParts[0] || '';
+      let subtitle = nameParts.length > 1 ? (nameParts[nameParts.length - 1] || '') : '';
+
+      // find matching relatedBy entry for this contributor in a tolerant way
+      const matchingRel = _findMatchingRelated(contributor);
+
+      let type = matchingRel?.['@type'] || [];
       if( !Array.isArray(type) ) type = [type];
 
       // 2. If there are other experts related to the grant, the grant landing page will continue to resolve, but
       //   --if the expert who changed the visibility setting is a PI or coPI,
       //        their name will continue to appear in the list of contributors, but not link back to their profile page
       //   --if that expert is a different type of contributor, they will be removed from the list of contributors
-      let isVisible = grantGraph.relatedBy.filter(r => r['inheres_in'] === contributor['@id'])?.[0]?.['is-visible'];
+      let isVisible = matchingRel?.['is-visible'];
 
       if( type.includes('PrincipalInvestigatorRole') ) {
         this.pis.push({
