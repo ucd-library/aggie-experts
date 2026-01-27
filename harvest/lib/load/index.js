@@ -139,7 +139,7 @@ async function countUserAssets(user, files, assetType) {
 
 async function findJsonldFiles(dir) {
   let results = [];
-  const list = await cache.readdir(dir);
+  const list = await cache.readdir(dir, true);
 
   for( let file of list.files ) {
     if( file.filename.endsWith('.jsonld') ) {

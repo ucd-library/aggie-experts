@@ -31,7 +31,7 @@ async function srcToAeStd(options={}) {
     return;
   }
 
-  var {files} = await cache.readdir(cdlUserPath);
+  var {files} = await cache.readdir(cdlUserPath, true);
   for( let file of files ) {
     if( path.extname(file.filename) === '.json' ) {
       logger.info(`Transform CDL user path: ${file.filepath}`);
@@ -49,7 +49,7 @@ async function srcToAeStd(options={}) {
   }
 
   let cdlRelJsonLdFiles = [];
-  var {files} = await cache.readdir(cdlRelPath);
+  var {files} = await cache.readdir(cdlRelPath, true);
   for( let file of files ) {
     if( path.extname(file.filename) === '.json' ) {
       logger.info(`Transform CDL rel path: ${file.filepath}`);

@@ -171,13 +171,40 @@ class FsCache {
    * @method readdir
    * @description Read the contents of a directory in the cache
    * @param {String} dir full path to the directory
+   * @param {Boolean} allFiles if true, will return all files in the directory, otherwise will limit to default limit
    * @returns {Promise<Object>} an object directory listing with 'file' and 'directory' arrays
    */
-  readdir(dir) {
-    return this.caskFs.ls({
-      directory: dir,
-      requestor: this.caskRequestor
-    });
+  async readdir(dir, allFiles=false) {
+    if( allFiles ) {
+      // loop through 500 file increments to get all files
+      let allResults = { files: [], directories: [] };
+      let limit = 500;
+      let offset = 0;
+      let filesFetched = 0;
+      let totalCount = 0;
+ 
+      do {
+        let res = await this.caskFs.ls({
+          directory: dir,
+          limit,
+          offset,
+          requestor: this.caskRequestor
+        });
+        allResults.files.push(...res.files);
+        allResults.directories.push(...res.directories);
+        filesFetched += res.files.length;
+        totalCount = res.totalCount || 0;
+        offset += limit;
+      } while ( filesFetched < totalCount );
+
+      return allResults;
+
+    } else {
+      return await this.caskFs.ls({
+        directory: dir,
+        requestor: this.caskRequestor
+      });
+    }
   }
 
   /**

@@ -364,7 +364,7 @@ export class CdlClient {
 
   async cleanupCache(type, user, writeResps) {
     let dir = cache.getPath(user, ['cdl', type]);
-    let {files} = await cache.readdir(dir);
+    let {files} = await cache.readdir(dir, true);
     let toRemove = [];
     for (let file of files) {
       if (!writeResps.find(resp => resp.assetPath === file.filepath)) {
