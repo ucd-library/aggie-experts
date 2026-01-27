@@ -391,7 +391,7 @@ async function readRelationshipFiles(cacheUsername, expertId) {
       return combinedGraph;
     }
 
-    const files = (await cache.readdir(relCachePath)).files.filter(f => f.filename.endsWith('.jsonld'));
+    const files = (await cache.readdir(relCachePath, true)).files.filter(f => f.filename.endsWith('.jsonld'));
     logger.info(`Found ${files.length} relationship files`);
 
     for (const file of files) {
