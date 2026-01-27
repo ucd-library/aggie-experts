@@ -159,9 +159,17 @@ export default class AppGrant extends Mixin(LitElement)
     };
 
     aeContributors.forEach(contributor => {
-      let name = contributor.contactInfo[0]?.name;
-      let subtitle = name.split('§')?.pop()?.trim() || '';
-      name = name.split('§')?.shift()?.trim() || '';
+      // derive a safe name value, with fallbacks and array handling
+      let rawName = contributor?.contactInfo?.[0]?.name ?? contributor?.name ?? contributor?.label ?? '';
+      if( Array.isArray(rawName) ) {
+        rawName = rawName[0] ?? '';
+      }
+      if( typeof rawName !== 'string' ) {
+        rawName = String(rawName ?? '');
+      }
+      const nameParts = rawName.split('§').map(p => p.trim());
+      let name = nameParts[0] || '';
+      let subtitle = nameParts.length > 1 ? (nameParts[nameParts.length - 1] || '') : '';
 
       // find matching relatedBy entry for this contributor in a tolerant way
       const matchingRel = _findMatchingRelated(contributor);
