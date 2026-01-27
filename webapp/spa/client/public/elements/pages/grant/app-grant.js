@@ -143,8 +143,7 @@ export default class AppGrant extends Mixin(LitElement)
 
     // helper to find the relatedBy entry for a contributor, tolerant to shapes
     const _findMatchingRelated = (contributor) => {
-      const rels = Array.isArray(grantGraph.relatedBy) ? grantGraph.relatedBy : (grantGraph.relatedBy ? [grantGraph.relatedBy] : []);
-      return rels.find(r => {
+      return contributors.find(r => {
         const inh = r?.inheres_in;
         const inhId = (typeof inh === 'string') ? inh : (inh && inh['@id']) || null;
         if( inhId === contributor['@id'] ) return true;
