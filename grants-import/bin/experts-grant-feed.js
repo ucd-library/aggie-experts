@@ -7,9 +7,7 @@ import fs from 'fs';
 import { Command } from '../lib/experts-commander.js';
 import { GoogleSecret } from '@ucd-lib/experts-api';
 import { Storage } from '@google-cloud/storage';
-import parser from 'xml2json';
-import { parse } from 'csv-parse/sync';
-import { stringify } from 'csv-stringify/sync';
+import xmlToJson from '../../harvest/lib/transform/xml-to-json.js';
 
 
 // Trick for getting __dirname in ES6 modules
@@ -296,12 +294,8 @@ async function main(opt) {
   await downloadFile(opt.bucket, opt.filePath, localFilePath, fileVersions[opt.generation]);
   const xml = fs.readFileSync(localFilePath, 'utf8');
 
-  // Convert the XML to JSON make sure all number values to be quoted strings (e.g. ucop_sponsor_code) are not coerced to numbers
-  let json = parser.toJson(xml, {
-    object: true,
-    arrayNotation: false,
-    coerce: false,
-  });
+  // Convert XML to JSON using shared helper (normalizes text nodes to strings where appropriate)
+  let json = await xmlToJson(xml);
 
 
   // Create the JSON-LD context
