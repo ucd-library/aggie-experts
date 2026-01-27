@@ -112,7 +112,17 @@ export default class AppGrant extends Mixin(LitElement)
       return;
     }
 
-    let aeContributors = (e.payload['@graph'] || []).filter(g => g['@id'] !== this.grantId) || [];
+    let aeContributors = (e.payload['@graph'] || []).filter(g => {
+      if( !g || !g['@id'] ) return false;
+      const id = g['@id'];
+      if( id === this.grantId ) return false;
+      // include explicit expert/ ark: and mailto: nodes
+      if( id.startsWith('expert/') || id.startsWith('ark:') || id.startsWith('mailto:') ) return true;
+      // exclude any fragment ids (likely non-expert person records tied to the grant like {grant}#personId)
+      if( id.includes('#') ) return false;
+      // fallback: exclude other record types
+      return false;
+    }) || [];
     let otherContributors = [];
 
     this.grantName = grantGraph.name?.split('§')?.shift()?.trim() || '';
@@ -144,6 +154,10 @@ export default class AppGrant extends Mixin(LitElement)
     // helper to find the relatedBy entry for a contributor, tolerant to shapes
     const _findMatchingRelated = (contributor) => {
       return contributors.find(r => {
+        if( !r ) return false;
+        // Ignore roleof_ relationship nodes — those are handled in otherContributors
+        if( r['@id'] && String(r['@id']).includes('#roleof_') ) return false;
+
         const inh = r?.inheres_in;
         const inhId = (typeof inh === 'string') ? inh : (inh && inh['@id']) || null;
         if( inhId === contributor['@id'] ) return true;
