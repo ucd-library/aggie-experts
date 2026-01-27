@@ -141,19 +141,40 @@ export default class AppGrant extends Mixin(LitElement)
 
     otherContributors = contributors.filter(c => !c['inheres_in']);
 
+    // helper to find the relatedBy entry for a contributor, tolerant to shapes
+    const _findMatchingRelated = (contributor) => {
+      const rels = Array.isArray(grantGraph.relatedBy) ? grantGraph.relatedBy : (grantGraph.relatedBy ? [grantGraph.relatedBy] : []);
+      return rels.find(r => {
+        const inh = r?.inheres_in;
+        const inhId = (typeof inh === 'string') ? inh : (inh && inh['@id']) || null;
+        if( inhId === contributor['@id'] ) return true;
+
+        let relates = r?.relates || [];
+        if( !Array.isArray(relates) ) relates = [relates];
+        for( const rel of relates ) {
+          if( typeof rel === 'string' && rel === contributor['@id'] ) return true;
+          if( rel && rel['@id'] === contributor['@id'] ) return true;
+        }
+        return false;
+      });
+    };
+
     aeContributors.forEach(contributor => {
       let name = contributor.contactInfo[0]?.name;
       let subtitle = name.split('§')?.pop()?.trim() || '';
       name = name.split('§')?.shift()?.trim() || '';
 
-      let type = grantGraph.relatedBy.filter(r => r['inheres_in'] === contributor['@id'])?.[0]?.['@type'];
+      // find matching relatedBy entry for this contributor in a tolerant way
+      const matchingRel = _findMatchingRelated(contributor);
+
+      let type = matchingRel?.['@type'] || [];
       if( !Array.isArray(type) ) type = [type];
 
       // 2. If there are other experts related to the grant, the grant landing page will continue to resolve, but
       //   --if the expert who changed the visibility setting is a PI or coPI,
       //        their name will continue to appear in the list of contributors, but not link back to their profile page
       //   --if that expert is a different type of contributor, they will be removed from the list of contributors
-      let isVisible = grantGraph.relatedBy.filter(r => r['inheres_in'] === contributor['@id'])?.[0]?.['is-visible'];
+      let isVisible = matchingRel?.['is-visible'];
 
       if( type.includes('PrincipalInvestigatorRole') ) {
         this.pis.push({
