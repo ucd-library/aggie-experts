@@ -377,8 +377,7 @@ return html`
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">•</span>
-                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
+                ${grant.awardedBy ? html`<span class="dot">•</span><span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>` : ''}
               </div>
             </div>
             <div class="select-checkbox">
@@ -425,8 +424,7 @@ return html`
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">•</span>
-                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
+                ${grant.awardedBy ? html`<span class="dot">•</span><span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>` : ''}
               </div>
             </div>
             <div class="select-checkbox">
