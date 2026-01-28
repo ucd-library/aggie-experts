@@ -149,9 +149,18 @@ return html`
       margin-top: 0;
     }
 
+    .search-container .date-filter-heading {
+      margin-bottom: 1.78rem;
+    }
+
     .search-container .date-filter-heading h4 {
       margin-top: 0;
-      margin-bottom: 1.78rem;
+      margin-bottom: .5rem;
+    }
+    
+    .search-container .date-filter-heading span {
+      color: #666; 
+      font-size: .92rem;
     }
 
     .results-count {
@@ -473,6 +482,7 @@ return html`
 
         <div class="date-filter-heading">
           <h4>Date (${this.rangeFilterTypes})</h4>
+          <span ?hidden="${!this.rangeFilterTypes.includes('Grants')}">Grants are shown across their active years</span>
         </div>
         <div class="slider-container">
           <ucdlib-range-slider
@@ -543,6 +553,7 @@ return html`
 
             <div class="date-filter-heading">
               <h4>Date (${this.rangeFilterTypes})</h4>
+              <span ?hidden="${!this.rangeFilterTypes.includes('Grants')}">Grants are shown across their active years</span>
             </div>
             <div class="slider-container">
               <ucdlib-range-slider
