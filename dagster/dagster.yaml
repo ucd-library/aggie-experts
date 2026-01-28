@@ -1,6 +1,6 @@
 concurrency:
   runs:
-    max_concurrent_runs: 10
+    max_concurrent_runs: 15
 
 run_storage:
   module: dagster_postgres.run_storage
