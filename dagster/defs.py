@@ -164,9 +164,12 @@ def init_databases(context) -> None:
   code_version=CODE_VERSION,
   group_name="elasticsearch"
 )
-def ensure_current_indexes(context) -> None:
-  """Ensure current week and next week indexes in ElasticSearch"""
+def ensure_current_index(context) -> None:
+  """Ensure current week index in ElasticSearch.  Set stage to this week"""
   cmd = ["experts", "es", "ensure"]
+  exec(cmd)
+
+  cmd = ["experts", "es", "set-alias", "stage", "--current"]
   exec(cmd)
   return None
 
@@ -195,7 +198,7 @@ def delete_indexes(context, config: YearWeekConfig) -> None:
   group_name="elasticsearch"
 )
 def create_indexes(context, config: YearWeekConfig) -> None:
-  """Manually create year-week indexes in ElasticSearch.  FYI, normally you use ensure_current_indexes asset."""
+  """Manually create year-week indexes in ElasticSearch.  FYI, normally you use ensure_current_index asset."""
   cmd = ["experts", "es", "create-index", "--year-week", config.year_week]
   exec(cmd)
   return None
@@ -383,24 +386,28 @@ etl_users_job = dg.define_asset_job(
     name="etl_users_job",
     description="Job to run the full ETL for a user: extract, transform (Aggie Experts Standard and Webapp), and load.  For realtime refreshes.",
     selection=dg.AssetSelection.assets(extract_user, transform_user_webapp, transform_user_standard, load_user),
+    tags={"dagster/priority": "2"}
 )
 
 init_weekly_etl = dg.define_asset_job(
     name="init_weekly_etl",
     description="Job to run init the new es index and harvest the new user list.",
-    selection=dg.AssetSelection.assets(init_databases, fetch_user_list_from_cdl)
+    selection=dg.AssetSelection.assets(ensure_current_index, fetch_user_list_from_cdl),
+    tags={"dagster/priority": "3"}
 )
 
 extract_users_job = dg.define_asset_job(
     name="extract_users_job",
     description="Job to run extract a user and first transform Aggie Experts Standard Transform.",
-    selection=dg.AssetSelection.assets(extract_user, transform_user_standard)
+    selection=dg.AssetSelection.assets(extract_user, transform_user_standard),
+    tags={"dagster/priority": "-1"}
 )
 
 transform_load_users_job = dg.define_asset_job(
     name="transform_load_users_job",
     description="Job to run the second Webapp Transform (requires all users) and load user after extraction.",
-    selection=dg.AssetSelection.assets(transform_user_webapp, load_user)
+    selection=dg.AssetSelection.assets(transform_user_webapp, load_user),
+    tags={"dagster/priority": "-1"}
 )
 
 def send_slack_notification(backfill_id: str, status: str, message: str):
@@ -425,6 +432,7 @@ def send_slack_notification(backfill_id: str, status: str, message: str):
 #     return json.loads(context.cursor) if context.cursor else {"notified_backfills": []}
 
 @dg.run_status_sensor(
+  description="Sensor to notify when a backfill is complete and optionally continue the ETL process, executing transform_load_users_job on complete of extract_users_job.",
   run_status=dg.DagsterRunStatus.SUCCESS,
   monitored_jobs=[extract_users_job, transform_load_users_job],
   minimum_interval_seconds=60*2 # 2 minutes
@@ -432,7 +440,7 @@ def send_slack_notification(backfill_id: str, status: str, message: str):
 def full_etl_notify_and_continue(context: dg.RunStatusSensorContext):
     backfill_id = context.dagster_run.tags.get("dagster/backfill")
     if not backfill_id:
-        return
+        return dg.SkipReason("Completed run is not part of a backfill, skipping.")
 
     notify = context.dagster_run.tags.get("notify")
     continue_etl = context.dagster_run.tags.get("continue_etl")
@@ -531,6 +539,7 @@ def full_etl_notify_and_continue(context: dg.RunStatusSensorContext):
 
 weekly_elt_init_schedule = dg.ScheduleDefinition(
     name="weekly_elt_init_schedule",
+    description="Init the elastic search index and pull users from CDL for weekly ETL process.",
     cron_schedule="0 1 * * 6",  # Every Saturday at 1:00 AM
     job=init_weekly_etl,
     run_config={},
@@ -543,6 +552,7 @@ weekly_elt_init_schedule = dg.ScheduleDefinition(
 
 weekly_elt_schedule = dg.ScheduleDefinition(
     name="weekly_elt_schedule",
+    description="Run the weekly exec_weekly_etl process which kicks of the extract_users_job for all partitions.",
     cron_schedule="30 1 * * 6",  # Every Saturday at 1:30 AM
     target=[exec_weekly_etl],
     execution_timezone="America/Los_Angeles",
@@ -554,7 +564,7 @@ defs = dg.Definitions(
     jobs=[etl_users_job, extract_users_job, transform_load_users_job],
     assets=[extract_user, transform_user_webapp, transform_user_standard, 
             load_user, init_databases, fetch_user_list_from_cdl,
-            purge_user_cask_files, ensure_current_indexes, set_alias,
+            purge_user_cask_files, ensure_current_index, set_alias,
             create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl, reload_search_template],
     sensors=[full_etl_notify_and_continue],
     resources={},

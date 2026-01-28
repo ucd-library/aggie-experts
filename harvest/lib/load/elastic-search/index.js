@@ -112,7 +112,7 @@ async function loadFile(file) {
 
 /**
  * @function ensureCurrentIndexes
- * @description Ensure that the current and stage indexes exist in Elasticsearch
+ * @description Ensure that the current index exists and that current and stage aliases are set
  * 
  * @returns {Promise}
  */
@@ -120,11 +120,11 @@ async function ensureCurrentIndexes() {
   let indexes = getCurrentIndexes();
 
   for (let baseName in indexes) {
-    let { currentIndex, stageIndex,  currentAlias, stageAlias } = indexes[baseName];
+    let { currentIndex,  currentAlias, stageAlias } = indexes[baseName];
     await createIndex(baseName, currentIndex);
-    await createIndex(baseName, stageIndex);
+    // await createIndex(baseName, stageIndex);
     await ensureAlias(currentIndex, currentAlias);
-    await ensureAlias(stageIndex, stageAlias);
+    await ensureAlias(currentIndex, stageAlias);
   }
 
   return indexes;
@@ -173,6 +173,15 @@ async function setAlias(index, date, alias) {
   await esClient.indices.putAlias({ index: index, name: alias });
 }
 
+/**
+ * @function ensureAlias
+ * @description Ensure that an alias exists for a given index. 
+ * If the alias already exists, do nothing.
+ * 
+ * @param {String} index 
+ * @param {String} alias 
+ * @returns {Promise}
+ */
 async function ensureAlias(index, alias) {
   const esClient = await getEsClient();
 
@@ -248,20 +257,20 @@ async function deleteIndex(index, date) {
  */
 function getCurrentIndexes() {
   let current = new Date();
-  let stage = new Date(current.getTime() + 7 * 24 * 60 * 60 * 1000); // one week from now
+  // let stage = new Date(current.getTime() + 7 * 24 * 60 * 60 * 1000); // one week from now
 
   let indexes = {};
 
   for( let baseIndexName in config.elasticsearch.indexes ) {
     let index = config.elasticsearch.indexes[baseIndexName];
     let currentIndex = getIndexNameForDate(index, current);
-    let stageIndex = getIndexNameForDate(index, stage);
+    // let stageIndex = getIndexNameForDate(index, stage);
     indexes[baseIndexName] = {
       currentAlias: `${index}-${config.elasticsearch.aliases.current}`,
       stageAlias: `${index}-${config.elasticsearch.aliases.stage}`,
       base: index,
-      currentIndex,
-      stageIndex
+      currentIndex
+      // stageIndex
     }
   }
 
