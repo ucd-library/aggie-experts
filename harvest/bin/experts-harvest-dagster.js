@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import CdlClient from '../lib/extract/cdl.js';
-import DagsterAPI from '../lib/dagster-api.js';
+import DagsterAPI from '../lib/dagster/api.js';
 import config from '../lib/config.js';
 import { getWeek } from 'date-fns';
 const program = new Command();

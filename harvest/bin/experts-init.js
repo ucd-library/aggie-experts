@@ -4,6 +4,7 @@ import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
+import {init as dgInit} from '../lib/dagster/init.js';
 
 const program = new Command();
 const env = process.env;
@@ -31,7 +32,13 @@ program
     } catch (error) {
       errors.push(`Error initializing PostgreSQL schema: ${error.message}`);
     } finally {
-      pgClient.end();
+      await pgClient.end();
+    }
+
+    try {
+      await dgInit();
+    } catch (error) {
+      errors.push(`Error initializing Dagster database schema: ${error.message}`);
     }
 
     try {

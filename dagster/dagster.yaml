@@ -65,6 +65,16 @@ run_monitoring:
   max_runtime_seconds: 600   # optional; prevents “hung in STARTED forever”
   poll_interval_seconds: 120
 
+retention:
+  sensor:
+    purge_after_days: 7
+  schedule:
+    purge_after_days: 7
+  runs:
+    purge_after_days: 90
+  event_logs:
+    purge_after_days: 90
+
 # run_retries:
 #   enabled: true
 #   max_retries: 2
