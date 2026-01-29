@@ -70,10 +70,10 @@ retention:
     purge_after_days: 7
   schedule:
     purge_after_days: 7
-  runs:
-    purge_after_days: 90
-  event_logs:
-    purge_after_days: 90
+  # runs:
+  #   purge_after_days: 90
+  # event_logs:
+  #   purge_after_days: 90
 
 # run_retries:
 #   enabled: true

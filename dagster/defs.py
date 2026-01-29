@@ -419,7 +419,7 @@ def send_slack_notification(backfill_id: str, status: str, message: str):
     try:
         response = requests.post(
             webhook_url,
-            json={"text": f"*Backfill {status.upper()}*\n{message}\nBackfill ID: `{backfill_id}`\n<{app_url}/runs/b/{backfill_id}|View Backfill Details on {app_url}>"},
+            json={"text": f"*Backfill {status.upper()}*\n{message}\nBackfill ID: `{backfill_id}`\n<{app_url}/dagster/runs/b/{backfill_id}|View Backfill Details on {app_url}>"},
             timeout=5
         )
         response.raise_for_status()
