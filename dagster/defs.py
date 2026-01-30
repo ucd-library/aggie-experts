@@ -540,7 +540,7 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
           context.log.info(f"Triggering transform_load_users_job for backfill {backfill_id}. {len(partitions)} partitions found.")
           stdin_data = ",".join(partitions)
           try:
-              exec(["experts", "harvest", "dagster", "run-transform-load-users-job", "--tags", "notify=true", "--partition-keys", "."], stdin_data=stdin_data, no_json_parse=True)
+              exec(["experts", "harvest", "dagster", "run-transform-load-users-job", "--notify", "true", "--partition-keys", "."], stdin_data=stdin_data, no_json_parse=True)
           except Exception as e:
               context.log.error(f"Error triggering transform_load_users_job for backfill {backfill_id}: {e}")
               raise e

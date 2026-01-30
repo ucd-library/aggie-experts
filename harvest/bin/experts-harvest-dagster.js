@@ -64,6 +64,7 @@ program
   .option('--notify', 'Whether to send notifications for the backfill')
   .option('--continue-etl', 'Whether to continue to the ETL process after extraction')
   .option('--skip <count>', 'Number of users to skip from the start of the list')
+  .option('--retries <count>', 'Number of times to retry failed steps', '2')
   .action(async (opts) => {
     const dagster = new DagsterAPI();
 
@@ -88,7 +89,8 @@ program
       await dagster.startBackfill(jobName, steps, users.users, {
         'cdl_group_id': opts.groupId,
         'notify': opts.notify ? 'true' : 'false',
-        'continue_etl': opts.continueEtl ? 'true' : 'false'
+        'continue_etl': opts.continueEtl ? 'true' : 'false',
+        'dagster/max_retries' : opts.retries
       }), 
       null, 2
     ));
@@ -100,20 +102,18 @@ program
 program
   .command('run-transform-load-users-job')
   .description('Trigger the transform-load-users Dagster job')
-  .option('--tags <tags>', 'Comma-separated list of tags to apply to the backfill', null)
+  .option('--notify', 'Whether to send notifications for the backfill')
+  .option('--retries <count>', 'Number of times to retry failed steps', '2')
   .option('--partition-keys <keys>', 'Comma-separated list of partition keys to process.  Use "." for stdin', null)
   .action(async (opts) => {
     const dagster = new DagsterAPI();
 
     const jobName = 'transform_load_users_job';
     const steps = ['transform_user_webapp', 'load_user'];
-    let tags = opts.tags ? opts.tags.split(',').map(t => t.trim()) : [];
-    let t = {};
-    for( let tag of tags ) {
-      const [k,v] = tag.split('=').map(s => s.trim());
-      t[k] = v;
-    }
-    tags = t;
+    let tags = {
+      'notify': opts.notify ? 'true' : 'false',
+      'dagster/max_retries' : opts.retries
+    };
     
     let partitionKeys = [];
     if( opts.partitionKeys ) {
