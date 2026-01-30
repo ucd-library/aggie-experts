@@ -48,12 +48,25 @@ async function run(options={}) {
     throw new Error(`No valid IAM profile found for user: ${userText}`);
   }
 
-  let email = iamResp.json?.responseData?.results?.[0]?.email;
-  if( !email ) {
+  let profile = iamResp.json?.responseData?.results?.[0];
+  if( !profile ) {
+    throw new Error(`No IAM profile found for user: ${userText}`);
+  }
+
+  if( !profile.email ) {
     throw new Error(`No email found in IAM profile for user: ${userText}`);
   }
 
-  let user = await kcClient.getOrCreateExpert(email);
+  let kcUser = {
+    firstName: profile.oFirstName,
+    lastName: profile.oLastName,
+    attributes: {
+      ucdPersonUUID: profile.mothraId,
+      iamId: profile.iamId
+    }
+  };
+
+  let user = await kcClient.getOrCreateExpert(profile.email, profile.userID, kcUser);
   await cache.writeUserAsset('keycloak-json-extract', options.user, config.cache.keycloakUserFilename, user);
 
   // const cdlClient = new CdlClient();
