@@ -566,45 +566,6 @@ export default class AppSearch extends Mixin(LitElement)
       }
     }
 
-    // Process grants - need deduplication since they can span multiple years
-    const yearsGrants = data.years_grants || {};
-    const seenGrantIds = new Set();
-    const grantMetadata = {}; // id -> { status, type }
-
-    // First pass: collect unique grant IDs and metadata, restricted to active years in date range (if applied)
-    for (const yearKey of Object.keys(yearsGrants)) {
-      const yearEpoch = Number(yearKey);
-      if (!Number.isFinite(yearEpoch)) continue;
-      if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
-      if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
-
-      const yearData = yearsGrants[yearKey];
-      const grants = yearData.grants || [];
-
-      for (const grant of grants) {
-        const id = grant.id;
-        if (!id || seenGrantIds.has(id)) continue;
-        seenGrantIds.add(id);
-        grantMetadata[id] = {
-          status: grant.status || '',
-          type: grant.type || ''
-        };
-      }
-    }
-
-    // Second pass: count unique grants by status and type
-    for (const metadata of Object.values(grantMetadata)) {
-      if (metadata.status) {
-        if (!result.status[metadata.status]) result.status[metadata.status] = 0;
-        result.status[metadata.status] += 1;
-      }
-      
-      if (metadata.type) {
-        if (!result.type[metadata.type]) result.type[metadata.type] = 0;
-        result.type[metadata.type] += 1;
-      }
-    }
-
     return result;
   }
 
