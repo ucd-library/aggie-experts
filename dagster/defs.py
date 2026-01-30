@@ -407,7 +407,7 @@ transform_load_users_job = dg.define_asset_job(
     tags={"dagster/priority": "-1"}
 )
 
-def send_slack_notification(backfill_id: str, status: str, message: str):
+def send_slack_notification(context, backfill_id: str, status: str, message: str):
     """Send a Slack notification about backfill completion via webhook."""
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
     app_url = os.getenv('APP_URL', 'http://localhost:4000')
@@ -419,7 +419,7 @@ def send_slack_notification(backfill_id: str, status: str, message: str):
     try:
         response = requests.post(
             webhook_url,
-            json={"text": f"*Backfill {status.upper()}*\n{message}\nBackfill ID: `{backfill_id}`\n<{app_url}/dagster/runs/b/{backfill_id}|View Backfill Details on {app_url}>"},
+            json={"text": f"\n{message}\nBackfill ID: `{backfill_id}`\n<{app_url}/dagster/runs/b/{backfill_id}|View Backfill Details on {app_url}>"},
             timeout=5
         )
         response.raise_for_status()
@@ -576,12 +576,11 @@ def _notify_backfill_completion(context: dg.RunStatusSensorContext, backfill_id:
   if any(s != dg.DagsterRunStatus.SUCCESS for s in statuses):
     # send a "backfill finished with issues" notification
     context.log.info(f"Backfill {backfill_id} completed with issues.")
-    send_slack_notification(backfill_id, "failure", f"Backfill {backfill_id} completed with issues. Status counts: {status_counts}")
+    send_slack_notification(context, backfill_id, "failure", f"Backfill {backfill_id} completed *with issues.*\nStatus counts: {status_counts}")
   else:
     context.log.info(f"Backfill {backfill_id} completed successfully.")
     # send a "backfill completed successfully" notification
-    send_slack_notification(backfill_id, "success", f"Backfill {backfill_id} completed successfully. Status counts: {status_counts}")
-
+    send_slack_notification(context, backfill_id, "success", f"Backfill {backfill_id} completed *successfully.*\nStatus counts: {status_counts}")
 @dg.run_status_sensor(
   description="Sensor to notify when a backfill is complete and optionally continue the ETL process, executing transform_load_users_job on complete of extract_users_job.",
   run_status=dg.DagsterRunStatus.SUCCESS,
