@@ -463,22 +463,6 @@ export default class AppSearch extends Mixin(LitElement)
       this.downloads = [];
       this.paginationChange = false;
 
-      // remove filters
-      this.filterByExpert = false;
-      this.filterByExpertId = '';
-      this.filterByExpertName = '';
-      this.filteringByGrants = false;
-      this.filteringByWorks = false;
-      this.filterByDate = false;
-      this.filterByDateLabel = '';
-      this.dateFrom = '';
-      this.dateTo = '';
-
-      let ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
-      for( const range of ranges ) {
-        range.reset();
-      }
-
       this._updateLocation();
     }
 
@@ -563,80 +547,22 @@ export default class AppSearch extends Mixin(LitElement)
       '@type': {}
     };
 
-    // Process @type aggregation (document type counts)
-    if (data.aggregations?.['@type']) {
-      for (const [typeKey, count] of Object.entries(data.aggregations['@type'])) {
-        result['@type'][typeKey] = count;
+    // The API returns aggregations that already reflect all active filters
+    // (including date filters), so we should always use them directly
+    if (data.aggregations) {
+      // Process @type aggregation (document type counts)
+      if (data.aggregations['@type']) {
+        result['@type'] = { ...data.aggregations['@type'] };
       }
-    }
 
-    // Process works - unique per year, so we can sum directly
-    const yearsWorks = data.years_works || {};
-
-    const dateFromEpoch = this.parseUtcEpoch(this.dateFrom, false);
-    const dateToEpoch = this.parseUtcEpoch(this.dateTo, true);
-    
-    for (const yearKey of Object.keys(yearsWorks)) {
-      const yearData = yearsWorks[yearKey];
-      const yearEpoch = Number(yearKey);
-      
-      // Skip years outside the date filter range (if date filter is applied)
-      if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
-      if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
-      
-      // Aggregate type counts
-      if (yearData.type) {
-        for (const [typeKey, count] of Object.entries(yearData.type)) {
-          if (!result.type[typeKey]) result.type[typeKey] = 0;
-          result.type[typeKey] += count;
-        }
+      // Process type aggregation (work type counts)
+      if (data.aggregations.type) {
+        result.type = { ...data.aggregations.type };
       }
-      
-      // Aggregate status counts (for works, though typically they use type)
-      if (yearData.status) {
-        for (const [statusKey, count] of Object.entries(yearData.status)) {
-          if (!result.status[statusKey]) result.status[statusKey] = 0;
-          result.status[statusKey] += count;
-        }
-      }
-    }
 
-    // Process grants - need deduplication since they can span multiple years
-    const yearsGrants = data.years_grants || {};
-    const seenGrantIds = new Set();
-    const grantMetadata = {}; // id -> { status, type }
-
-    // First pass: collect unique grant IDs and metadata, restricted to active years in date range (if applied)
-    for (const yearKey of Object.keys(yearsGrants)) {
-      const yearEpoch = Number(yearKey);
-      if (!Number.isFinite(yearEpoch)) continue;
-      if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
-      if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
-
-      const yearData = yearsGrants[yearKey];
-      const grants = yearData.grants || [];
-
-      for (const grant of grants) {
-        const id = grant.id;
-        if (!id || seenGrantIds.has(id)) continue;
-        seenGrantIds.add(id);
-        grantMetadata[id] = {
-          status: grant.status || '',
-          type: grant.type || ''
-        };
-      }
-    }
-
-    // Second pass: count unique grants by status and type
-    for (const metadata of Object.values(grantMetadata)) {
-      if (metadata.status) {
-        if (!result.status[metadata.status]) result.status[metadata.status] = 0;
-        result.status[metadata.status] += 1;
-      }
-      
-      if (metadata.type) {
-        if (!result.type[metadata.type]) result.type[metadata.type] = 0;
-        result.type[metadata.type] += 1;
+      // Process status aggregation
+      if (data.aggregations.status) {
+        result.status = { ...data.aggregations.status };
       }
     }
 
