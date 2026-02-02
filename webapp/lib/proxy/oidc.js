@@ -30,7 +30,7 @@ function init(app) {
 
   app.get('/auth/postLogoutRedirect', (req, res) => {
     res.clearCookie(config.jwt.cookieName, {
-      httpOnly: false,
+      // httpOnly: false,
       secure: true,
       sameSite: 'Lax'
     });
@@ -58,9 +58,10 @@ function init(app) {
     afterCallback : (req, res, session, decodedState) => {
       // set cookie for front-end access token use:
       res.cookie(config.jwt.cookieName, session.access_token, {
-        httpOnly: false,
+        // httpOnly: false,
         secure: true,
-        sameSite: 'Lax'
+        sameSite: 'Lax',
+        maxAge: config.jwt.ttl || (3600 * 1000)
       });
 
       return session
