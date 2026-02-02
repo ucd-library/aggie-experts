@@ -36,9 +36,6 @@ class DagsterAPI {
 
 
   runJobPartition(jobName, partitionName, runConfig = {}) {
-    if (typeof runConfig === 'object') {
-      runConfig = yaml.stringify(runConfig);
-    }
     if( !jobName ) throw new Error('jobName is required');
     if( !partitionName ) throw new Error('partitionName is required');
 
@@ -48,6 +45,10 @@ class DagsterAPI {
       if( !runConfig.ops.load_user ) runConfig.ops.load_user = {};
       if( !runConfig.ops.load_user.config ) runConfig.ops.load_user.config = {};
       runConfig.ops.load_user.config.alias = 'all';
+    }
+
+    if( typeof runConfig === 'object' ) {
+      runConfig = yaml.stringify(runConfig);
     }
 
     const mutation = `
