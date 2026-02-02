@@ -263,7 +263,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
     this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
 
-    this._updateProfileLastUpdated();
+    // this._updateProfileLastUpdated();
   }
 
   /**
@@ -712,8 +712,13 @@ export default class AppExpert extends Mixin(LitElement)
   async _refreshProfile(e) {
     e.preventDefault();
 
-    // TODO pull cas+@ucdavis.edu from the auth
-    let partitionName = 'todo@ucdavis.edu';
+    // only allow if admin or if user is the expert
+    if( !this.isAdmin && APP_CONFIG.user?.expertId !== this.expertId ) return;
+
+    // TODO
+    // how to get the expert email if not viewing own profile, like only 'Editing' expert..
+    // maybe only need to handle this if using keycloak impersonate
+    let partitionName = APP_CONFIG.user.email || '';
     let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
 
     // loop to check status of run
@@ -725,53 +730,55 @@ export default class AppExpert extends Mixin(LitElement)
     }
   }
 
-  _startProfileSyncInterval(runId) {
-    if( this._profileSyncIntervalId ) {
-      clearInterval(this._profileSyncIntervalId);
-    }
+  // _startProfileSyncInterval(runId) {
+  //   if( this._profileSyncIntervalId ) {
+  //     clearInterval(this._profileSyncIntervalId);
+  //   }
 
-    this.refreshingProfileData = true;
-    this._profileSyncIntervalId = setInterval(async () => {
-      try {
-        let res = await this.DagsterModel.getLastRunForId(runId);
-        let status = res.body?.data?.runOrError?.status;
+  //   this.refreshingProfileData = true;
+  //   this._profileSyncIntervalId = setInterval(async () => {
+  //     try {
+  //       let res = await this.DagsterModel.getLastRunForId(runId);
+  //       let status = res.body?.data?.runOrError?.status;
 
-        if (status === 'FAILED' || status === 'SUCCESS') {
-          clearInterval(this._profileSyncIntervalId);
-          this._profileSyncIntervalId = null;
-          this.refreshingProfileData = false;
+  //       if (status === 'FAILED' || status === 'SUCCESS') {
+  //         clearInterval(this._profileSyncIntervalId);
+  //         this._profileSyncIntervalId = null;
+  //         this.refreshingProfileData = false;
 
-          if( status === 'SUCCESS' ) {
-            this._updateProfileLastUpdated();
-          } else {
-            this.lastUpdated = this.lastLastUpdated || '';
-            logger.warn('Profile update dagster job run failed', { runId });
-          }
-        }
-      } catch (err) {
-        logger.warn('Error checking profile status in dagster job run', err);
-      }
+  //         if( status === 'SUCCESS' ) {
+  //           this._updateProfileLastUpdated();
 
-    }, 5000);
-  }
+  //           console.log('TODO should update/refresh expert page after getting the latest data.. need to test changes to elements first and see how quickly they show up here');
+  //         } else {
+  //           this.lastUpdated = this.lastLastUpdated || '';
+  //           logger.warn('Profile update dagster job run failed', { runId });
+  //         }
+  //       }
+  //     } catch (err) {
+  //       logger.warn('Error checking profile status in dagster job run', err);
+  //     }
 
-  async _updateProfileLastUpdated() {
-    // TODO pull cas+@ucdavis.edu from the auth
-    let email = this.expert?.contactInfo?.hasEmail || '';
-    if( Array.isArray(email) ) email = email[0];
-    if( email.startsWith('mailto:') ) email = email.replace('mailto:', '');
-    if( !email ) return;
+  //   }, 5000);
+  // }
 
-    let partitionName = email;
-    let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+  // async _updateProfileLastUpdated() {
+  //   // TODO pull cas+@ucdavis.edu from the auth
+  //   let email = this.expert?.contactInfo?.hasEmail || '';
+  //   if( Array.isArray(email) ) email = email[0];
+  //   if( email.startsWith('mailto:') ) email = email.replace('mailto:', '');
+  //   if( !email ) return;
 
-    let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
-        .filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED')
-        .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
+  //   let partitionName = email;
+  //   let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
 
-    if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
-    else this.lastUpdated = '';
-  }
+  //   let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
+  //       .filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED')
+  //       .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
+
+  //   if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
+  //   else this.lastUpdated = '';
+  // }
 
   /**
    * @method _showExpert
