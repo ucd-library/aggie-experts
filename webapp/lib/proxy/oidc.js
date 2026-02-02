@@ -28,6 +28,15 @@ function init(app) {
       .json(loginResp.body);
   });
 
+  app.get('/auth/postLogoutRedirect', (req, res) => {
+    res.clearCookie(config.jwt.cookieName, {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'Lax'
+    });
+    res.redirect('/');
+  });
+
   app.use(auth({
     authRequired: false,
     issuerBaseURL: config.oidc.baseUrl,
@@ -39,7 +48,7 @@ function init(app) {
       callback : '/auth/callback',
       login : '/auth/login',
       logout : '/auth/logout',
-      // postLogoutRedirect : '/auth/postLogoutRedirect'
+      postLogoutRedirect : '/auth/postLogoutRedirect'
     },
     authorizationParams: {
       response_type: 'code',
