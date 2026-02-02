@@ -1,6 +1,6 @@
 concurrency:
   runs:
-    max_concurrent_runs: 10
+    max_concurrent_runs: 15
 
 run_storage:
   module: dagster_postgres.run_storage
@@ -53,10 +53,10 @@ schedule_storage:
 run_coordinator:
   module: dagster.core.run_coordinator
   class: QueuedRunCoordinator
-  # config:
-    #dequeue_interval_seconds: 2
-    # dequeue_use_threads: true
-    # dequeue_num_workers: 4
+  config:
+    dequeue_interval_seconds: 2
+    dequeue_use_threads: true
+    dequeue_num_workers: 4
   
 run_monitoring:
   enabled: true
@@ -64,6 +64,16 @@ run_monitoring:
   cancel_timeout_seconds: 300
   max_runtime_seconds: 600   # optional; prevents “hung in STARTED forever”
   poll_interval_seconds: 120
+
+retention:
+  sensor:
+    purge_after_days: 7
+  schedule:
+    purge_after_days: 7
+  # runs:
+  #   purge_after_days: 90
+  # event_logs:
+  #   purge_after_days: 90
 
 # run_retries:
 #   enabled: true

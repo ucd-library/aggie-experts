@@ -3,15 +3,20 @@ import fs from 'fs/promises';
 import config from './config.js';
 
 class PgClient {
-  constructor() {
-    this.schema = 'etl_reporting';
-    this.client = new Client({
-      host: config.postgres.host,
-      port: config.postgres.port,
-      user: config.postgres.user,
-      password: config.postgres.password,
-      database: config.postgres.database
-    });
+  constructor(_config, schema=null) {
+    this.schema = schema || 'etl_reporting';
+
+    if( !_config ) {
+      _config = {
+        host: config.postgres.host,
+        port: config.postgres.port,
+        user: config.postgres.user,
+        password: config.postgres.password,
+        database: config.postgres.database
+      };
+    }
+
+    this.client = new Client(_config);
   }
 
   async connect() {

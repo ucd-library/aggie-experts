@@ -81,8 +81,10 @@ class FsCache {
     while( week <= 53 ) {
       weekStart = new Date(firstSat);
       weekStart.setDate(firstSat.getDate() + ((week-1)*7));
+
       weekEnd = new Date(firstSat);
       weekEnd.setDate(firstSat.getDate() + ((week)*7) - 1);
+      weekEnd.setHours(23,59,59,999);
 
       if( date >= weekStart && date <= weekEnd ) {
         break;

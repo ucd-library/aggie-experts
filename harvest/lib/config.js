@@ -216,6 +216,7 @@ const config = {
   dagster : {
     host : env.DAGSTER_HOST || 'http://dagster-ui:3000/dagster',
     graphqlPath : env.DAGSTER_GRAPHQL_PATH || '/graphql',
+    databaseName : env.DAGSTER_DATABASE_NAME || 'dagster',
     repositoryLocationName : env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
     repositoryName : env.DAGSTER_REPOSITORY_NAME || '__repository__',
     partitions : {
