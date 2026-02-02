@@ -805,9 +805,9 @@ class GrantRole {
     if (patch.visible != null) {
       node['relatedBy'][roleIndex]['is-visible'] = patch.visible;
     }
-    if (patch.favourite != null) {
-      node['relatedBy'][roleIndex].favourite = patch.favourite;
-    }
+    // if (patch.favourite != null) {
+    //   node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
+    // }
 
     await this.expertModel.update_graph_node(expertId,node);
 
