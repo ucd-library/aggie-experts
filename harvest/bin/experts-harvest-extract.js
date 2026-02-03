@@ -16,6 +16,10 @@ program.name('extract')
   .option('--reporting', 'Enable reporting for this extraction')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .action(async (user, options) => {
+    if( !user.match(/@/ ) ) {
+      user += '@ucdavis.edu';
+    }
+
     if( options.reportingJobId || options.reporting ) {
       await enableFromCli('experts-harvest-extract', user, options);
     }

@@ -40,17 +40,21 @@ function captureErrors() {
 }
 
 async function enableFromCli(command, user, options) {
+  let weekYearInfo = cache.getYearWeek(null, {allValues: true});
+
   config.reporting.enabled = true;
   config.reporting.jobId = options.reportingJobId || config.reporting.jobId;
   config.reporting.command = command;
   config.reporting.opts = options;
-  config.reporting.yearWeek = options.yearWeek || cache.getYearWeek();
+  config.reporting.yearWeek = weekYearInfo.yearWeek;
+  config.reporting.weekStart = weekYearInfo.weekStart;
   config.reporting.userId = user;
   config.postgres.client = new PgClient();
   let commandId = await config.postgres.client.insertCommand({
     job_id: config.reporting.jobId,
     command: config.reporting.command,
     year_week: config.reporting.yearWeek,
+    week_start: config.reporting.weekStart,
     user_id: config.reporting.userId,
     options: config.reporting.opts
   });

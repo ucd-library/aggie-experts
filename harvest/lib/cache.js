@@ -47,7 +47,7 @@ class FsCache {
    * 
    * @param {Object} date Date object, defaults to current date
    * @param {Object} opts options object
-   * @param {Boolean} opts.allValues if true, will return 'all' for year-week instead of calculating it
+   * @param {Boolean} opts.allValues if true, will return an object with yearWeek, weekStart, weekEnd, and date
    * 
    * @returns {String} year-week string in format YYYY-WW
    */

@@ -14,15 +14,46 @@ ON CONFLICT (alias_name) DO NOTHING;
 CREATE TABLE IF NOT EXISTS command (
   command_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  week_start DATE,
   year_week VARCHAR(10) NOT NULL,
   job_id VARCHAR(255),
   command VARCHAR(255) NOT NULL,
   user_id VARCHAR(255) NOT NULL,
+  latest_weekly_attempt BOOLEAN DEFAULT FALSE,
   options JSONB
 );
-CREATE INDEX IF NOT EXISTS idx_command_user_id ON command (user_id);
-CREATE INDEX IF NOT EXISTS idx_command_year_week_single ON command (year_week);
-CREATE INDEX IF NOT EXISTS idx_command_year_week ON command (command, user_id, year_week, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_command_week_year ON command (year_week, user_id);
+CREATE INDEX IF NOT EXISTS idx_command_command ON command (command, user_id);
+CREATE INDEX IF NOT EXISTS idx_command_year_week_latest ON command (user_id, command, year_week, latest_weekly_attempt);
+
+CREATE OR REPLACE FUNCTION insert_command(
+  p_year_week VARCHAR(10),
+  p_week_start DATE,
+  p_job_id VARCHAR(255),
+  p_command VARCHAR(255),
+  p_user_id VARCHAR(255),
+  p_options JSONB DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+  new_command_id UUID;
+BEGIN
+  -- Set existing records for this user_id, year_week, and command to latest_weekly_attempt = false
+  UPDATE etl_reporting.command
+  SET latest_weekly_attempt = FALSE
+  WHERE year_week = p_year_week
+    AND command = p_command
+    AND user_id = p_user_id
+    AND latest_weekly_attempt = TRUE;
+
+  -- Insert new command with latest_weekly_attempt = true
+  INSERT INTO etl_reporting.command (year_week, week_start, job_id, command, user_id, latest_weekly_attempt, options)
+  VALUES (p_year_week, p_week_start, p_job_id, p_command, p_user_id, TRUE, p_options)
+  RETURNING command_id INTO new_command_id;
+
+  RETURN new_command_id;
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS error (
   error_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -70,51 +101,52 @@ FROM
 JOIN  error e ON c.command_id = e.command_id;
 
 CREATE OR REPLACE VIEW user_command_weekly_stats AS
-  WITH users as (
+  WITH all_users as (
     SELECT DISTINCT user_id
     FROM command
   ),
-  weeks AS (
+  all_weeks AS (
     SELECT DISTINCT year_week
+    FROM command
+  ),
+  all_commands AS (
+    SELECT DISTINCT command
     FROM command
   ),
   user_command_stats AS (
     SELECT
-      u.user_id,
-      w.year_week,
-      c.command,
-      COUNT(c.command_id) AS exec_count,
-      COUNT(e.error_id) AS error_count
+      all_u.user_id,
+      all_w.year_week,
+      all_c.command,
+      c.week_start as week_start,
+      c.command_id as command_id,
+      e.error_id as error_id
     FROM
-      users u
+      all_users all_u
     LEFT JOIN
-      weeks w ON TRUE
+      all_weeks all_w ON TRUE
     LEFT JOIN
-      command c ON u.user_id = c.user_id AND c.year_week = w.year_week
+      all_commands all_c ON TRUE
+    LEFT JOIN
+      command c ON all_u.user_id = c.user_id AND c.year_week = all_w.year_week AND c.command = all_c.command
     LEFT JOIN
       error e ON c.command_id = e.command_id
+    WHERE 
+      c.latest_weekly_attempt = TRUE
     GROUP BY
-      u.user_id, w.year_week, c.command
-  ),
-  last_user_command AS (
-    SELECT DISTINCT ON (command, user_id, year_week) *
-    FROM command
-    ORDER BY command, user_id, year_week, timestamp DESC
+      all_u.user_id, all_w.year_week, all_c.command, c.week_start, c.command_id, e.error_id
   )
   SELECT
     ucs.user_id,
     ucs.command,
     ucs.year_week,
-    ucs.exec_count,
-    ucs.error_count,
+    ucs.week_start,
     CASE
-      WHEN e.error_id is NOT NULL THEN 'error'
-      WHEN uc.command_id IS NULL THEN 'no_attempt'
+      WHEN ucs.error_id is NOT NULL THEN 'error'
+      WHEN ucs.command_id IS NULL THEN 'no_attempt'
       ELSE 'ok'
     END AS state
   FROM user_command_stats ucs
-  LEFT JOIN last_user_command uc ON ucs.user_id = uc.user_id AND ucs.command = uc.command AND ucs.year_week = uc.year_week
-  LEFT JOIN error e ON uc.command_id = e.command_id
   ORDER BY user_id, year_week, command;
 
 CREATE OR REPLACE FUNCTION etl_reporting.get_year_week(p_date DATE DEFAULT CURRENT_DATE)
@@ -202,15 +234,27 @@ FROM user_command_weekly_stats
 WHERE year_week = (SELECT year_week FROM get_year_week())
 GROUP BY user_id, year_week;
 
+SELECT
+  user_id,
+  year_week,
+  ARRAY_AGG(state) AS states
+FROM user_command_weekly_stats
+WHERE year_week = (SELECT year_week FROM get_year_week())
+GROUP BY user_id, year_week;
+
 CREATE OR REPLACE VIEW user_command_weekly_state_changes AS
-  WITH state_with_lag AS (
+  WITH state AS (
     SELECT
-      user_id,
-      command,
-      year_week,
-      state,
-      LAG(state) OVER (PARTITION BY user_id ORDER BY year_week) AS prev_state
-    FROM user_command_weekly_stats
+      ucs.user_id,
+      ucs.command,
+      ucs.year_week,
+      ucs.state,
+      (SELECT ucs2.state FROM user_command_weekly_stats ucs2
+       WHERE ucs2.user_id = ucs.user_id
+         AND ucs2.command = ucs.command
+         AND ucs2.week_start = ucs.week_start - INTERVAL '7 days'
+      ) AS prior_week_state
+      FROM user_command_weekly_stats ucs
   )
   SELECT
     user_id,
@@ -218,16 +262,16 @@ CREATE OR REPLACE VIEW user_command_weekly_state_changes AS
     year_week,
     state,
     CASE
-      WHEN prev_state IS DISTINCT FROM state
+      WHEN prior_week_state IS DISTINCT FROM state
         THEN
           'change:' ||
-          COALESCE(prev_state, 'null') ||
+          COALESCE(prior_week_state, 'null') ||
           '-' ||
           COALESCE(state, 'null')
       ELSE
         'no-change'
     END AS state_change
-  FROM state_with_lag;
+  FROM state;
 
 CREATE OR REPLACE VIEW this_week_user_state_changes AS
 SELECT
@@ -281,30 +325,33 @@ CREATE OR REPLACE VIEW user_scholarly_output_weekly_changes AS
     SELECT
       s.user_id,
       c.year_week,
+      c.week_start,
       s.type,
       s.visibility,
       SUM(s.count) AS total_count
     FROM user_scholarly_output_load_stats s
     LEFT JOIN command c ON s.command_id = c.command_id
-    GROUP BY s.user_id, c.year_week, s.type, s.visibility
-  ),
-  counts_with_lag AS (
-    SELECT
-      user_id,
-      year_week,
-      type,
-      visibility,
-      total_count,
-      LAG(total_count) OVER (
-        PARTITION BY user_id, type, visibility 
-        ORDER BY year_week
-      ) AS prev_count
-    FROM weekly_counts
+    WHERE c.latest_weekly_attempt = TRUE
+    GROUP BY s.user_id, c.year_week, c.week_start, s.type, s.visibility
   )
   SELECT
-    user_id,
-    year_week,
-    type,
-    visibility,
-    COALESCE(total_count, 0) - COALESCE(prev_count, 0) AS change
-  FROM counts_with_lag;
+    wc.user_id,
+    wc.year_week,
+    wc.type,
+    wc.visibility,
+    COALESCE(wc.total_count, 0) - COALESCE(wc_prev.total_count, 0) AS change
+  FROM weekly_counts wc
+  LEFT JOIN weekly_counts wc_prev ON
+    wc.user_id = wc_prev.user_id AND
+    wc.type = wc_prev.type AND
+    wc.visibility = wc_prev.visibility AND
+    wc.week_start = wc_prev.week_start + INTERVAL '7 days'
+
+CREATE OR REPLACE VIEW this_week_user_scholarly_output_changes AS
+SELECT
+  user_id,
+  type,
+  visibility,
+  change
+FROM user_scholarly_output_weekly_changes
+WHERE year_week = (SELECT year_week FROM get_year_week());
