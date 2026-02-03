@@ -64,33 +64,31 @@ class PgClient {
   }
 
   async insertCommand(opts) {
-    const { job_id, command, user_id, options } = opts;
+    const { job_id, year_week, week_start, command, user_id, options } = opts;
     const query = `
-      INSERT INTO ${this.schema}.command (job_id, command, user_id, options)
-      VALUES ($1, $2, $3, $4)
-      RETURNING command_id
+      SELECT insert_command as command_id FROM ${this.schema}.insert_command($1, $2, $3, $4, $5, $6)
     `;
-    let resp = await this.query(query, [job_id, command, user_id, JSON.stringify(options)]);
+    let resp = await this.query(query, [year_week, week_start, job_id, command, user_id, JSON.stringify(options)]);
     return resp.rows[0].command_id;
   }
 
-  insertFileCacheOp(opts) {
-    const {
-      command_id,
-      step,
-      file_path,
-      last_modified,
-      file_hash,
-      last_file_hash,
-      local_cache_write
-    } = opts;
+  // insertFileCacheOp(opts) {
+  //   const {
+  //     command_id,
+  //     step,
+  //     file_path,
+  //     last_modified,
+  //     file_hash,
+  //     last_file_hash,
+  //     local_cache_write
+  //   } = opts;
 
-    const query = `
-          INSERT INTO ${this.schema}.file_cache (command_id, step, file_path, last_modified, file_hash, last_file_hash, local_cache_write)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `;
-    return this.query(query, [command_id, step, file_path, last_modified, file_hash, last_file_hash, local_cache_write]);
-  }
+  //   const query = `
+  //         INSERT INTO ${this.schema}.file_cache (command_id, step, file_path, last_modified, file_hash, last_file_hash, local_cache_write)
+  //     VALUES ($1, $2, $3, $4, $5, $6, $7)
+  //   `;
+  //   return this.query(query, [command_id, step, file_path, last_modified, file_hash, last_file_hash, local_cache_write]);
+  // }
 
   insertError(opts) {
     const { command_id, message, stack } = opts;

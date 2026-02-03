@@ -19,6 +19,10 @@ program
   .option('--std-sort', 'Sort the ae-std output files for debugging')
   .action(async (userId, options) => {
 
+    if( !userId.match(/@/ ) ) {
+      userId += '@ucdavis.edu';
+    }
+
     if (options.reportingJobId || options.reporting) {
       await enableFromCli('experts-harvest-transform-ae-std', userId, options);
     }
@@ -57,6 +61,10 @@ program
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .option('--std-sort', 'Sort the ae-std output files for debugging')
   .action(async (userId, options) => {
+
+    if( !userId.match(/@/ ) ) {
+      userId += '@ucdavis.edu';
+    }
 
     if (options.reportingJobId || options.reporting) {
       await enableFromCli('experts-harvest-transform-webapp', userId, options);

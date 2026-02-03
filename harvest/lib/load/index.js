@@ -6,38 +6,47 @@ import config from '../config.js';
 import { loadFiles as loadEs } from './elastic-search/index.js';
 
 async function run(user, alias='stage') {
+  // check which aliases to write to.  ALL means both stage & current
   if( alias === 'all' ) {
     alias = [config.elasticsearch.aliases.stage, config.elasticsearch.aliases.current];
   } else {
     alias = [alias]
   }
 
+  // get the root directory for this user's ae-webapp files
   const webappDir = cache.getPath(user, config.cache.aeWebappDir);
+  
+  // find all jsonld files in the webapp directory
   const files = await findJsonldFiles(webappDir);
 
+  // load files into elastic search
   let indexes = await loadEs(files, alias);
 
-  // Count works and grants for reporting
-  let workStats = await countUserAssets(user, files, 'work');
-  let grantStats = await countUserAssets(user, files, 'grant');
-  
-  // Insert load statistics into database if reporting is enabled
+  // Insert load statistics on scholarly output into database if reporting is enabled
   if (config.reporting.enabled && config.postgres.client) {
-    for (let stat of [...workStats, ...grantStats]) {
-      await config.postgres.client.insertUserScholarlyOutputLoadStats({
-        command_id: config.reporting.commandId,
-        user_id: user,
-        type: stat.type,
-        visibility: stat.visibility,
-        count: stat.count
-      });
-    }
-    logger.info(`Recorded load statistics for user: ${user}`, { workStats, grantStats });
+    await reportScholarlyOutputLoadStats(user, files);
   }
   
   logger.info(`Loaded data into elastic search for user: ${user}`);
 
   return indexes;
+}
+
+async function reportScholarlyOutputLoadStats(user, files) {
+    // Count works and grants for reporting
+  let workStats = await countUserAssets(user, files, 'work');
+  let grantStats = await countUserAssets(user, files, 'grant');
+
+  for (let stat of [...workStats, ...grantStats]) {
+    await config.postgres.client.insertUserScholarlyOutputLoadStats({
+      command_id: config.reporting.commandId,
+      user_id: user,
+      type: stat.type,
+      visibility: stat.visibility,
+      count: stat.count
+    });
+  }
+  logger.info(`Recorded load statistics for user: ${user}`, { workStats, grantStats });
 }
 
 async function countUserAssets(user, files, assetType) {

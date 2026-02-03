@@ -254,8 +254,8 @@ def extract_user(context) -> None:
   }
 
   result = exec(cmd)
-  for file_info in result.get('files', []):
-    metadata[file_info.get('assetPath')] = f'lastModified: {file_info.get("lastModified", "")}, updated: {not file_info.get("local_cache_write", False)}'
+  if result.get('filesCount'):
+    metadata["file_count"] = result.get('filesCount')
 
   context.add_output_metadata(
     metadata=metadata
@@ -263,7 +263,7 @@ def extract_user(context) -> None:
 
   context.set_data_version(
     asset_key=context.asset_key,
-    data_version=dg.DataVersion("123456")
+    # data_version=dg.DataVersion("123456")
   )
 
   return None

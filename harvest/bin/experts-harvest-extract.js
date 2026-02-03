@@ -15,19 +15,17 @@ program.name('extract')
   .option('--root-dir <root-dir>', 'Root directory for extracted data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this extraction')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
-  .option('--enable-gcs-cache', 'Enable Google Cloud Storage caching. Respects env EXPERTS_CACHE_GCS_ENABLED=true')
   .action(async (user, options) => {
+    if( !user.match(/@/ ) ) {
+      user += '@ucdavis.edu';
+    }
+
     if( options.reportingJobId || options.reporting ) {
       await enableFromCli('experts-harvest-extract', user, options);
     }
 
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
-
-    if( options.enableGcsCache ) {
-      config.cache.gcs.enabled = true;
-    }
-    logger.info('Google Cloud Storage caching '+ (config.cache.gcs.enabled ? 'enabled' : 'disabled'));    
 
     let resp = await extract.run({
       user: user,
@@ -36,7 +34,7 @@ program.name('extract')
     });
 
     logger.info('Extraction complete for user', user, { 
-      files : [resp.iam, ...resp.cdl] 
+      filesCount : [resp.iam, ...resp.cdl].length
     });
 
     if( config.reporting.enabled ) {
