@@ -1,13 +1,14 @@
 import config from '../config.js';
+import cache from '../cache.js';
 import PgClient from '../pg-client.js';
 
-function reportFileWrite(opts={}) {
-  if( !config?.reporting?.enabled ) {
-    return;
-  }
-  opts.command_id = config.reporting.commandId;
-  return config.postgres.client.insertFileCacheOp(opts);
-}
+// function reportFileWrite(opts={}) {
+//   if( !config?.reporting?.enabled ) {
+//     return;
+//   }
+//   opts.command_id = config.reporting.commandId;
+//   return config.postgres.client.insertFileCacheOp(opts);
+// }
 
 function captureError(error) {  
   return config.postgres.client.insertError({
@@ -43,11 +44,13 @@ async function enableFromCli(command, user, options) {
   config.reporting.jobId = options.reportingJobId || config.reporting.jobId;
   config.reporting.command = command;
   config.reporting.opts = options;
+  config.reporting.yearWeek = options.yearWeek || cache.getYearWeek();
   config.reporting.userId = user;
   config.postgres.client = new PgClient();
   let commandId = await config.postgres.client.insertCommand({
     job_id: config.reporting.jobId,
     command: config.reporting.command,
+    year_week: config.reporting.yearWeek,
     user_id: config.reporting.userId,
     options: config.reporting.opts
   });
@@ -58,7 +61,6 @@ async function enableFromCli(command, user, options) {
 
 export {
   enableFromCli,
-  reportFileWrite,
   captureErrors,
   updateEsIndex
 }

@@ -30,7 +30,8 @@ program
       await pgClient.queryFromFile(config.postgres.schemaFile);
       logger.info('PostgreSQL schema initialized successfully.');
     } catch (error) {
-      errors.push(`Error initializing PostgreSQL schema: ${error.message}`);
+      throw error;
+      // errors.push(`Error initializing PostgreSQL schema: ${error.message}`);
     } finally {
       await pgClient.end();
     }

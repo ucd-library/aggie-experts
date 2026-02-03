@@ -1,6 +1,6 @@
 import path from 'path';
 import config from './config.js';
-import { reportFileWrite } from './reporting/index.js';
+// import { reportFileWrite } from './reporting/index.js';
 import CaskFS from '/opt/caskfs/src/index.js';
 import { getWeek, startOfYear, nextSaturday, isSaturday } from 'date-fns';
 import os from 'os';
@@ -281,14 +281,14 @@ class FsCache {
     //   newHash = await this.hashFile(assetPath);
     // }
 
-    await reportFileWrite({
-      file_path: assetPath,
-      step: step,
-      last_modified: resp.file.modified,
-      file_hash: resp.file.digests[resp.primaryDigest],
-      last_file_hash: resp.replacedFile?.digests?.[resp.primaryDigest] || null,
-      local_cache_write: resp.copied ? true : false
-    });
+    // await reportFileWrite({
+    //   file_path: assetPath,
+    //   step: step,
+    //   last_modified: resp.file.modified,
+    //   file_hash: resp.file.digests[resp.primaryDigest],
+    //   last_file_hash: resp.replacedFile?.digests?.[resp.primaryDigest] || null,
+    //   local_cache_write: resp.copied ? true : false
+    // });
 
     return {
       assetPath,
