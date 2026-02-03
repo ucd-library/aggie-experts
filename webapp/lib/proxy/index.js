@@ -6,6 +6,8 @@ const cors = require('cors');
 const auth = require('./oidc.js');
 const httpProxy = require('http-proxy');
 const {logReqMiddleware} = require('@ucd-lib/logger');
+const keycloak = require('../keycloak.js');
+const cookieParser = require('cookie-parser');
 
 logger.debug('Initializing gateway proxy');
 
@@ -13,6 +15,7 @@ const app = express();
 
 // JM - TODO: do we have advanced cors needs?
 app.use(cors());
+app.use(cookieParser());
 app.use(logReqMiddleware(logger, {
   debug : [/^\/health\/?/]
 }));
@@ -28,9 +31,10 @@ proxy.on('error', e => {
   logger.error('http-proxy error', e.message, e.stack);
 });
 
-// TODO ask JM
 // setup oidc auth
-// auth(app);
+auth(app);
+
+app.use(keycloak.setUser);
 
 app.use('/api', (req, res) => {
   proxy.web(req, res, {

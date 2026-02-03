@@ -300,6 +300,16 @@ async function frame(expertId, graph) {
     const grantNodes = [];
     const otherNodes = [];
 
+    // Normalize expert IDs for comparison
+    const normalizeId = (id) => {
+      if (!id || typeof id !== 'string') return id;
+      if (id.startsWith('http://experts.ucdavis.edu/expert/')) return id.replace('http://experts.ucdavis.edu/expert/', '');
+      if (id.startsWith('info:fedora/expert/')) return id.replace('info:fedora/expert/', '');
+      if (id.startsWith('expert/')) return id.replace(/^expert\//, '');
+      return id;
+    };
+    const primaryExpertIdNormalized = normalizeId(expertId);
+
     compacted["@graph"].forEach(node => {
       if (!node || !node['@type']) {
         otherNodes.push(node);
@@ -312,8 +322,12 @@ async function frame(expertId, graph) {
       );
       const isGrant = types.some(t => t.includes('Grant'));
 
-      if (isExpert) expertNodes.push(node);
-      else if (isWork) workNodes.push(node);
+      if (isExpert) {
+        // Only keep the primary expert, filter out related experts
+        if (normalizeId(node['@id']) === primaryExpertIdNormalized) {
+          expertNodes.push(node);
+        }
+      } else if (isWork) workNodes.push(node);
       else if (isGrant) grantNodes.push(node);
       else otherNodes.push(node);
     });
@@ -377,7 +391,7 @@ async function readRelationshipFiles(cacheUsername, expertId) {
       return combinedGraph;
     }
 
-    const files = (await cache.readdir(relCachePath)).files.filter(f => f.filename.endsWith('.jsonld'));
+    const files = (await cache.readdir(relCachePath, true)).files.filter(f => f.filename.endsWith('.jsonld'));
     logger.info(`Found ${files.length} relationship files`);
 
     for (const file of files) {

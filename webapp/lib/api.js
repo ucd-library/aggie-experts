@@ -4,8 +4,11 @@ const swaggerJSDoc = require('swagger-jsdoc');
 const logger = require('./logger.js');
 const models = require('./models.js');
 const config = require('./config.js')
+const keycloak = require('./keycloak.js');
 
 const app = express();
+
+app.use(keycloak.setUser);
 
 const swaggerDefinition = {
   openapi: '3.0.0',
