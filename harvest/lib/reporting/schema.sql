@@ -345,7 +345,7 @@ CREATE OR REPLACE VIEW user_scholarly_output_weekly_changes AS
     wc.user_id = wc_prev.user_id AND
     wc.type = wc_prev.type AND
     wc.visibility = wc_prev.visibility AND
-    wc.week_start = wc_prev.week_start + INTERVAL '7 days'
+    wc.week_start = wc_prev.week_start + INTERVAL '7 days';
 
 CREATE OR REPLACE VIEW this_week_user_scholarly_output_changes AS
 SELECT

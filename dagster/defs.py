@@ -261,10 +261,10 @@ def extract_user(context) -> None:
     metadata=metadata
   )
 
-  context.set_data_version(
-    asset_key=context.asset_key,
-    # data_version=dg.DataVersion("123456")
-  )
+  # context.set_data_version(
+  #   asset_key=context.asset_key,
+  #   data_version=dg.DataVersion("123456")
+  # )
 
   return None
 
