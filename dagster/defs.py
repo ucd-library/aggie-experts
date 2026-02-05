@@ -530,15 +530,17 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
             filters=dg.RunsFilter(tags={"dagster/backfill": backfill_id})
         )
         statuses = [r.dagster_run.status for r in run_records]
-        partitions = [r.dagster_run.tags.get("dagster/partition") for r in run_records]
+
+        successfull_runs = [r for r in run_records if r.dagster_run.status == dg.DagsterRunStatus.SUCCESS]
+        next_partitions = [r.dagster_run.tags.get("dagster/partition") for r in successfull_runs]
 
         if notify == "true":
           _notify_backfill_completion(context, backfill_id, statuses=statuses)
 
         if continue_etl == "true" and job_name == "extract_users_job":
           runs = []
-          context.log.info(f"Triggering transform_load_users_job for backfill {backfill_id}. {len(partitions)} partitions found.")
-          stdin_data = ",".join(partitions)
+          context.log.info(f"Triggering transform_load_users_job for backfill {backfill_id}. {len(next_partitions)} successfull partitions found.")
+          stdin_data = ",".join(next_partitions)
           try:
               exec(["experts", "harvest", "dagster", "run-transform-load-users-job", "--notify", "true", "--partition-keys", "."], stdin_data=stdin_data, no_json_parse=True)
           except Exception as e:
@@ -581,125 +583,6 @@ def _notify_backfill_completion(context: dg.RunStatusSensorContext, backfill_id:
     context.log.info(f"Backfill {backfill_id} completed successfully.")
     # send a "backfill completed successfully" notification
     send_slack_notification(context, backfill_id, "success", f"Backfill {backfill_id} completed *successfully.*\nStatus counts: {status_counts}")
-@dg.run_status_sensor(
-  description="Sensor to notify when a backfill is complete and optionally continue the ETL process, executing transform_load_users_job on complete of extract_users_job.",
-  run_status=dg.DagsterRunStatus.SUCCESS,
-  monitored_jobs=[extract_users_job, transform_load_users_job],
-  minimum_interval_seconds=2 # Check every 2 seconds
-)
-def full_etl_notify_and_continue(context: dg.RunStatusSensorContext):
-    backfill_id = context.dagster_run.tags.get("dagster/backfill")
-    if not backfill_id:
-        return dg.SkipReason("Completed run is not part of a backfill, skipping.")
-
-    notify = context.dagster_run.tags.get("notify")
-    continue_etl = context.dagster_run.tags.get("continue_etl")
-    job_name = context.dagster_run.job_name
-
-    # state = _cursor_state(context)
-    # if backfill_id in state["notified_backfills"]:
-    #     return dg.SkipReason(f"Already notified for backfill {backfill_id}")
-
-    # Get all runs with NON_TERMINAL status
-    all_in_flight_runs = context.instance.get_run_records(
-        dg.RunsFilter(
-            statuses=NON_TERMINAL,
-        )
-    )
-
-    # Group by backfill_id and keep one run per backfill
-    active_backfills = {}
-    for run_record in all_in_flight_runs:
-        run_backfill_id = run_record.dagster_run.tags.get("dagster/backfill")
-        if run_backfill_id and run_backfill_id not in active_backfills:
-            active_backfills[run_backfill_id] = run_record
-
-    # Check if current backfill is still in flight
-    if backfill_id in active_backfills:
-        return dg.SkipReason(f"Backfill {backfill_id} still running") 
-
-    with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT status, notified FROM {BACKFILL_STATUS_TABLE} WHERE backfill_id = %s;",
-            (backfill_id,)
-        )
-        conn_result = cur.fetchone()
-        if conn_result:
-            status, notified = conn_result
-            if notified:
-                return dg.SkipReason(f"Already notified for backfill {backfill_id}")
-        else:
-            cur.execute(
-                f"""
-                INSERT INTO {BACKFILL_STATUS_TABLE} (backfill_id)
-                VALUES (%s)
-                ON CONFLICT (backfill_id) DO NOTHING;
-                """,
-                (backfill_id,)
-            )
-            conn.commit()           
-
-    # Mark backfill has finished in the database
-    # This has a row lock to prevent double notifications
-    with conn.cursor() as cur:
-        cur.execute(
-            f"""
-            SELECT {BACKFILL_UPDATE_FN}(%s) as updated;
-            """,
-            (backfill_id,)
-        )
-        result = cur.fetchone()
-        if result:
-            updated = result[0]
-            if not updated:
-                context.log.warning(f"Backfill {backfill_id} was already marked as notified in the database.")
-                return dg.SkipReason(f"Already notified for backfill {backfill_id}")
-        conn.commit()
-
-    # Query all runs that belong to this backfill (by tag)
-    run_records = context.instance.get_run_records(
-        filters=dg.RunsFilter(tags={"dagster/backfill": backfill_id})
-    )
-    statuses = [r.dagster_run.status for r in run_records]
-    partitions = [r.dagster_run.tags.get("dagster/partition") for r in run_records]
-
-    # get counts for each status
-    status_counts = {status.value: statuses.count(status) for status in set(statuses)}
-    
-    if any(s != dg.DagsterRunStatus.SUCCESS for s in statuses):
-        # send a "backfill finished with issues" notification
-        context.log.info(f"Backfill {backfill_id} completed with issues.")
-        if notify == "true":
-            send_slack_notification(backfill_id, "failure", f"Backfill {backfill_id} completed with issues. Status counts: {status_counts}")
-    else:
-        context.log.info(f"Backfill {backfill_id} completed successfully.")
-        # send a "backfill completed successfully" notification
-        if notify == "true":
-            send_slack_notification(backfill_id, "success", f"Backfill {backfill_id} completed successfully. Status counts: {status_counts}")
-    
-    with conn.cursor() as cur:
-      cur.execute(
-        f"""
-        UPDATE {BACKFILL_STATUS_TABLE}
-        SET notified = TRUE
-        WHERE backfill_id = %s;
-        """,
-        (backfill_id,)
-      )
-    conn.commit()
-
-    if continue_etl == "true" and job_name == "extract_users_job":
-      runs = []
-      context.log.info(f"Triggering transform_load_users_job for backfill {backfill_id}. {len(partitions)} partitions found.")
-      stdin_data = ",".join(partitions)
-      try:
-          exec(["experts", "harvest", "dagster", "run-transform-load-users-job", "--tags", "notify=true", "--partition-keys", "."], stdin_data=stdin_data, no_json_parse=True)
-      except Exception as e:
-          context.log.error(f"Error triggering transform_load_users_job for backfill {backfill_id}: {e}")
-          raise e
-      return dg.SkipReason(f"Executed backfill via cli.")
-    else:
-      return dg.SkipReason(f"No not a extract_users_job or continue_etl is not true for backfill {backfill_id}, skipping triggering next job.")
 
 weekly_elt_init_schedule = dg.ScheduleDefinition(
     name="weekly_elt_init_schedule",
