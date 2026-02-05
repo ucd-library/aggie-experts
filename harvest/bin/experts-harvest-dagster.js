@@ -1,6 +1,8 @@
 import { Command } from 'commander';
 import CdlClient from '../lib/extract/cdl.js';
 import DagsterAPI from '../lib/dagster/api.js';
+import logger from '../lib/logger.js';
+import PgClient from '../lib/pg-client.js';
 import config from '../lib/config.js';
 import { getWeek } from 'date-fns';
 const program = new Command();
@@ -19,6 +21,21 @@ program
     const client = new CdlClient();
     const dagster = new DagsterAPI();
     const users = await client.getGroupList(groupId);
+
+    // report users we see
+    let pgClient;
+    try {
+      pgClient = new PgClient();
+      await pgClient.connect();
+      for( let user of users.users ) {
+        await pgClient.insertCdlUser(user);
+      }
+    } catch (error) {
+      logger.error('Error reporting users to database', { error: error.message });
+    } finally {
+      await pgClient.end();
+    }
+
     await dagster.createDynamicPartitions(config.dagster.partitions.user, users.users);
 
     // things seem to hang after this point... so force exit

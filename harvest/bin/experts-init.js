@@ -5,6 +5,7 @@ import config from '../lib/config.js';
 import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
 import {init as dgInit} from '../lib/dagster/init.js';
+import { initYearWeek } from '../lib/reporting/index.js';
 
 const program = new Command();
 const env = process.env;
@@ -28,6 +29,7 @@ program
       logger.info('Initializing PostgreSQL schema for aggie experts...');
       await pgClient.connect();
       await pgClient.queryFromFile(config.postgres.schemaFile);
+      await initYearWeek(pgClient);
       logger.info('PostgreSQL schema initialized successfully.');
     } catch (error) {
       throw error;

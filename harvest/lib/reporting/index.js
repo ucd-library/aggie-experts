@@ -2,6 +2,10 @@ import config from '../config.js';
 import cache from '../cache.js';
 import PgClient from '../pg-client.js';
 
+const WEEK_YEAR_START = 2026;
+const WEEK_YEAR_END = WEEK_YEAR_START + 20;
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
 // function reportFileWrite(opts={}) {
 //   if( !config?.reporting?.enabled ) {
 //     return;
@@ -9,6 +13,22 @@ import PgClient from '../pg-client.js';
 //   opts.command_id = config.reporting.commandId;
 //   return config.postgres.client.insertFileCacheOp(opts);
 // }
+
+async function initYearWeek(pgClient) {
+  let weekYearInfo = cache.getYearWeek(null, {allValues: true});
+  let date = new Date(WEEK_YEAR_START, 0, 1, 0, 0, 0);
+  let endDate = new Date(WEEK_YEAR_END+1, 0, 1, 0, 0, 0);
+
+  while( date < endDate ) {
+    weekYearInfo = cache.getYearWeek(date, {allValues: true});
+    await pgClient.insertYearWeek(
+      weekYearInfo.yearWeek,
+      weekYearInfo.weekStart,
+      weekYearInfo.weekEnd
+    );
+    date = new Date(date.getTime() + MS_PER_WEEK);
+  }
+}
 
 function captureError(error) {  
   return config.postgres.client.insertError({
@@ -66,5 +86,6 @@ async function enableFromCli(command, user, options) {
 export {
   enableFromCli,
   captureErrors,
-  updateEsIndex
+  updateEsIndex,
+  initYearWeek
 }

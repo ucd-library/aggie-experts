@@ -26,6 +26,42 @@ CREATE INDEX IF NOT EXISTS idx_command_week_year ON command (year_week, user_id)
 CREATE INDEX IF NOT EXISTS idx_command_command ON command (command, user_id);
 CREATE INDEX IF NOT EXISTS idx_command_year_week_latest ON command (user_id, command, year_week, latest_weekly_attempt);
 
+CREATE TABLE IF NOT EXISTS error (
+  error_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  command_id UUID NOT NULL REFERENCES command(command_id),
+  message TEXT NOT NULL,
+  stack TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_error_command_id ON error (command_id);
+
+CREATE TABLE IF NOT EXISTS user_scholarly_output_load_stats (
+  user_load_stats_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  command_id UUID NOT NULL REFERENCES command(command_id),
+  user_id VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL CHECK (type IN ('works', 'grants')),
+  visibility VARCHAR(20) NOT NULL CHECK (visibility IN ('public', 'private')),
+  count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_command_id ON user_scholarly_output_load_stats (command_id);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_user_id ON user_scholarly_output_load_stats (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_type ON user_scholarly_output_load_stats (type);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_visibility ON user_scholarly_output_load_stats (visibility);
+
+CREATE TABLE IF NOT EXISTS "user" (
+  email VARCHAR(255) PRIMARY KEY,
+  first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_seen_iam TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS year_week (
+  year_week VARCHAR(10) PRIMARY KEY,
+  week_start DATE NOT NULL,
+  week_end DATE NOT NULL
+);
+
 CREATE OR REPLACE FUNCTION insert_command(
   p_year_week VARCHAR(10),
   p_week_start DATE,
@@ -54,29 +90,6 @@ BEGIN
   RETURN new_command_id;
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE TABLE IF NOT EXISTS error (
-  error_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id),
-  message TEXT NOT NULL,
-  stack TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_error_command_id ON error (command_id);
-
-CREATE TABLE IF NOT EXISTS user_scholarly_output_load_stats (
-  user_load_stats_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id),
-  user_id VARCHAR(255) NOT NULL,
-  type VARCHAR(50) NOT NULL CHECK (type IN ('works', 'grants')),
-  visibility VARCHAR(20) NOT NULL CHECK (visibility IN ('public', 'private')),
-  count INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_command_id ON user_scholarly_output_load_stats (command_id);
-CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_user_id ON user_scholarly_output_load_stats (user_id);
-CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_type ON user_scholarly_output_load_stats (type);
-CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_visibility ON user_scholarly_output_load_stats (visibility);
 
 CREATE OR REPLACE VIEW command_error AS
 SELECT
@@ -157,67 +170,11 @@ RETURNS TABLE(
   date DATE
 )
 LANGUAGE sql
-IMMUTABLE
-AS
-$$
-WITH params AS (
-  SELECT
-    p_date AS d,
-    EXTRACT(YEAR FROM p_date)::int AS yr
-),
-first_sat AS (
-  SELECT
-    d, yr,
-    make_date(yr,1,1) AS jan1,
-    EXTRACT(DOW FROM make_date(yr,1,1))::int AS dow_jan1
-  FROM params
-),
-first_sat_calc AS (
-  SELECT
-    d, yr,
-    ((6 - dow_jan1 + 7) % 7) AS offset_days,
-    (make_date(yr,1,1)
-      + ((6 - dow_jan1 + 7) % 7) * INTERVAL '1 day')::date AS first_sat
-  FROM first_sat
-),
-effective_year AS (
-  SELECT
-    d,
-    CASE WHEN d < first_sat THEN yr - 1 ELSE yr END AS eff_year
-  FROM first_sat_calc
-),
-eff_first_sat AS (
-  SELECT
-    e.d,
-    e.eff_year,
-    make_date(e.eff_year,1,1) AS jan1,
-    EXTRACT(DOW FROM make_date(e.eff_year,1,1))::int AS dow_jan1
-  FROM effective_year e
-),
-eff_first_sat_calc AS (
-  SELECT
-    d,
-    eff_year,
-    (make_date(eff_year,1,1)
-      + ((6 - dow_jan1 + 7) % 7) * INTERVAL '1 day')::date AS first_sat
-  FROM eff_first_sat
-),
-week_data AS (
-  SELECT
-    d,
-    eff_year,
-    first_sat,
-    FLOOR((d - first_sat)::int / 7) + 1 AS week_number,
-    (first_sat + FLOOR((d - first_sat)::int / 7) * INTERVAL '7 days')::date AS week_start,
-    (first_sat + FLOOR((d - first_sat)::int / 7) * INTERVAL '7 days' + INTERVAL '6 days')::date AS week_end
-  FROM eff_first_sat_calc
-)
+IMMUTABLE AS $$
 SELECT
-  eff_year::text || '-' || LPAD(week_number::text, 2, '0') AS year_week,
-  week_start,
-  week_end,
-  d AS date
-FROM week_data;
+  *, p_date as date
+FROM year_week
+WHERE p_date >= week_start AND p_date <= week_end;
 $$;
 
 CREATE OR REPLACE VIEW this_week_user_state_count AS
