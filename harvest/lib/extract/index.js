@@ -56,7 +56,7 @@ async function run(options={}) {
   }
 
   // JM - I got a response was a string "null" for email for some users, which caused the code to try to create a user with email "null".  Adding this check to prevent that.
-  if( !profile.email || profile.email === "null" ) {
+  if( !profile.email || (typeof profile.email === "string" && !profile.email.match(/@/)) ) {
     // if no email is found but we have all other properties.  lets use the provided email
     if( REQUIRED_PROFILE_FIELDS.every(field => profile[field]) ) {
       logger.warn(`No email found in IAM profile for user: ${options.user}, but all other required fields are present.  Using provided user identifier as email.`);
