@@ -176,12 +176,17 @@ export default class ExpertsKcAdminClient {
   }
 
   /**
-   * Find a user by IDP email
-   * @param {Object} idp - The IDP object
-   * @param {string} idp.email - The email of the user
+   * @method findByEmail
+   * @description Find a user by IDP email. If the user email is found in keycloak
+   * but the user does not have an expertId, this function will mint a new expertId 
+   * and patch the user. 
+   * 
+   * @param {string} email - The email of the user
+   * @param {Object} attributes - Attributes to use if a patch is required
+   * 
    * @returns {Promise} - A promise that resolves with the user object
    */
-  async findByEmail(email) {
+  async findByEmail(email, attributes={}) {
     await this.authenticate();
 
     //get the users from keycloak
@@ -194,10 +199,15 @@ export default class ExpertsKcAdminClient {
       throw new Error(`No keycloak user found with email: ${email}`);
     }
 
-    if (users[0].attributes['expertId'] === undefined) {
+    if( users[0]?.attributes?.expertId === undefined ) {
       // throw new Error(`Keycloak user with email ${email} does not have an expertId`);
       logger.warn(`Keycloak user with email ${email} does not have an expertId, minting a new one`);
       const user = users[0];
+
+      if( !user.attributes ) user.attributes = {};
+      for( let [key, value] of Object.entries(attributes) ) {
+        user.attributes[key] = value;
+      }
       user.attributes.expertId = this.mintExpertId();
       
       await this.kcadmin.users.update(
@@ -222,10 +232,9 @@ export default class ExpertsKcAdminClient {
    * @returns {Promise} - A promise that resolves with the user expertId
    */
   async getOrCreateExpert(email, username, profile) {
-    
     let user;
     try {
-      user = await this.findByEmail(email);
+      user = await this.findByEmail(email, profile.attributes);
     } catch (error) {
       if( error.response?.status >= 400 ) {
         throw new Error(`Could not access Keycloak to find user with email: ${email}. Status = ${error.response.status}, Message = ${error.response.statusText}`, );
