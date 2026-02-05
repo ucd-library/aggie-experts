@@ -166,6 +166,7 @@ export default class ExpertsKcAdminClient {
       const expertId = this.mintExpertId();
       profile.attributes ||= {};
       profile.attributes.expertId = expertId;
+      logger.info(`Creating new Keycloak user with email ${email} and expertId ${expertId}`);
       const userId = await this.kcadmin.users.create(profile);
       let user = await this.verifyExpertId(userId,expertId);
       return user;
@@ -257,7 +258,7 @@ export default class ExpertsKcAdminClient {
       }
     });
 
-    user = await this.createExpert(email, new_user);
+    let user = await this.createExpert(email, new_user);
     return user;
   }
 }
