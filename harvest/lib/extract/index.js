@@ -66,6 +66,10 @@ async function run(options={}) {
     }
   }
 
+  if( config.reporting.enabled && config.postgres.client ) {
+    await config.postgres.client.iamUserFetched(options.user);
+  }
+
   let kcUser = {
     firstName: profile.oFirstName,
     lastName: profile.oLastName,

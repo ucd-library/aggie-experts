@@ -107,6 +107,34 @@ class PgClient {
     `;
     return this.query(query, [command_id, user_id, type, visibility, count]);
   }
+
+  insertCdlUser(email) {
+    const query = `
+      INSERT INTO ${this.schema}.user (email)
+      VALUES ($1)
+      ON CONFLICT (email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP
+    `;
+    return this.query(query, [email]);
+  }
+
+  iamUserFetched(email) {
+    const query = `
+      UPDATE ${this.schema}.user
+      SET last_seen_iam = CURRENT_TIMESTAMP
+      WHERE email = $1
+    `;
+    return this.query(query, [email]);
+  }
+
+  insertYearWeek(yearWeek, weekStart, weekEnd) {
+    const query = `
+      INSERT INTO ${this.schema}.year_week (year_week, week_start, week_end)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (year_week) DO NOTHING
+    `;
+    return this.query(query, [yearWeek, weekStart, weekEnd]); 
+  }
+
 }
 
 export default PgClient;
