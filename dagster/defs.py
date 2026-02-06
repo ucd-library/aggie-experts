@@ -413,10 +413,10 @@ transform_load_users_job = dg.define_asset_job(
     tags={"dagster/priority": "-1"}
 )
 
-def send_slack_notification(context, backfill_id: str, job_name: str, status: str, message: str):
+def send_slack_notification(context, backfill_id: str, status: str, message: str):
     """Send a Slack notification about backfill completion via webhook."""
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
-    app_url = os.getenv('APP_URL', 'http://localhost:4000')
+    app_url = os.getenv('ANDUIN_APP_URL', 'http://localhost:4000')
     
     if not webhook_url:
         context.log.warning(f"Warning: SLACK_WEBHOOK_URL not set, skipping Slack notification")
@@ -584,11 +584,11 @@ def _notify_backfill_completion(context: dg.RunStatusSensorContext, backfill_id:
   if any(s != dg.DagsterRunStatus.SUCCESS for s in statuses):
     # send a "backfill finished with issues" notification
     context.log.info(f"Backfill {backfill_id} completed with issues.")
-    send_slack_notification(context, backfill_id, job_name, "failure", f"Backfill {backfill_id} completed *with issues.*\nStatus counts: {status_counts}")
+    send_slack_notification(context, backfill_id, "failure", f"Job {job_name} completed *with issues.*\nStatus counts: {status_counts}")
   else:
     context.log.info(f"Backfill {backfill_id} completed successfully.")
     # send a "backfill completed successfully" notification
-    send_slack_notification(context, backfill_id, job_name, "success", f"Backfill {backfill_id} completed *successfully.*\nStatus counts: {status_counts}")
+    send_slack_notification(context, backfill_id, "success", f"Job {job_name} completed *successfully.*\nStatus counts: {status_counts}")
 
 weekly_elt_init_schedule = dg.ScheduleDefinition(
     name="weekly_elt_init_schedule",
