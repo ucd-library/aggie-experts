@@ -159,7 +159,8 @@ def init_databases(context) -> None:
 
 @dg.asset(
   code_version=CODE_VERSION,
-  group_name="elasticsearch"
+  group_name="elasticsearch",
+  tags={"dagster/priority": "3"}
 )
 def ensure_current_index(context) -> None:
   """Ensure current week index in ElasticSearch.  Set stage to this week"""
@@ -326,6 +327,11 @@ def transform_user_webapp(context: AssetExecutionContext) -> None:
 def exec_weekly_etl(context: AssetExecutionContext) -> None:
     """Start the full weekly ETL process for all users."""
 
+    tags = context.dagster_run.tags
+    if tags.get("pull-cdl"):
+      context.log.info("Pulling user list from CDL before starting ETL.")
+      exec(["experts", "harvest", "dagster", "init-user-partitions", tags.get("pull-cdl")])
+
     exec(["experts", "harvest", "dagster", "run-extract-users-job", "--notify", "true", "--continue-etl", "true"], no_json_parse=True)
 
     return None
@@ -407,7 +413,7 @@ transform_load_users_job = dg.define_asset_job(
     tags={"dagster/priority": "-1"}
 )
 
-def send_slack_notification(context, backfill_id: str, status: str, message: str):
+def send_slack_notification(context, backfill_id: str, job_name: str, status: str, message: str):
     """Send a Slack notification about backfill completion via webhook."""
     webhook_url = os.getenv('SLACK_WEBHOOK_URL')
     app_url = os.getenv('APP_URL', 'http://localhost:4000')
@@ -535,7 +541,7 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
         next_partitions = [r.dagster_run.tags.get("dagster/partition") for r in successfull_runs]
 
         if notify == "true":
-          _notify_backfill_completion(context, backfill_id, statuses=statuses)
+          _notify_backfill_completion(context, backfill_id, statuses=statuses, job_name=job_name)
 
         if continue_etl == "true" and job_name == "extract_users_job":
           runs = []
@@ -550,7 +556,7 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
         else:
           context.log.info(f"No not a extract_users_job or continue_etl is not true for backfill {backfill_id}, skipping triggering next job.")
 
-def _notify_backfill_completion(context: dg.RunStatusSensorContext, backfill_id: str, statuses: list = None):
+def _notify_backfill_completion(context: dg.RunStatusSensorContext, backfill_id: str, statuses: list = None, job_name: str = None):
   with conn.cursor() as cur:
     cur.execute(
         f"SELECT status, notified FROM {BACKFILL_STATUS_TABLE} WHERE backfill_id = %s;",
@@ -578,17 +584,17 @@ def _notify_backfill_completion(context: dg.RunStatusSensorContext, backfill_id:
   if any(s != dg.DagsterRunStatus.SUCCESS for s in statuses):
     # send a "backfill finished with issues" notification
     context.log.info(f"Backfill {backfill_id} completed with issues.")
-    send_slack_notification(context, backfill_id, "failure", f"Backfill {backfill_id} completed *with issues.*\nStatus counts: {status_counts}")
+    send_slack_notification(context, backfill_id, job_name, "failure", f"Backfill {backfill_id} completed *with issues.*\nStatus counts: {status_counts}")
   else:
     context.log.info(f"Backfill {backfill_id} completed successfully.")
     # send a "backfill completed successfully" notification
-    send_slack_notification(context, backfill_id, "success", f"Backfill {backfill_id} completed *successfully.*\nStatus counts: {status_counts}")
+    send_slack_notification(context, backfill_id, job_name, "success", f"Backfill {backfill_id} completed *successfully.*\nStatus counts: {status_counts}")
 
 weekly_elt_init_schedule = dg.ScheduleDefinition(
     name="weekly_elt_init_schedule",
-    description="Init the elastic search index and pull users from CDL for weekly ETL process.",
+    description="Init the elastic search index",
     cron_schedule="0 1 * * 6",  # Every Saturday at 1:00 AM
-    job=init_weekly_etl,
+    target=[ensure_current_index],
     run_config={},
     execution_timezone="America/Los_Angeles",
     tags={
@@ -599,12 +605,14 @@ weekly_elt_init_schedule = dg.ScheduleDefinition(
 
 weekly_elt_schedule = dg.ScheduleDefinition(
     name="weekly_elt_schedule",
-    description="Run the weekly exec_weekly_etl process which kicks of the extract_users_job for all partitions.",
+    description="Pull experts group users from CDL. Run the weekly exec_weekly_etl process which kicks of the extract_users_job for all partitions.",
     cron_schedule="30 1 * * 6",  # Every Saturday at 1:30 AM
     target=[exec_weekly_etl],
     execution_timezone="America/Los_Angeles",
     run_config={},
-    tags={},
+    tags={
+      "pull-cdl": "experts"
+    },
 )
 
 defs = dg.Definitions(

@@ -105,6 +105,7 @@ SELECT
   c.command,
   c.user_id,
   c.options,
+  c.latest_weekly_attempt,
   e.error_id,
   e.timestamp AS error_timestamp,
   e.message,
@@ -112,6 +113,7 @@ SELECT
 FROM
   command c
 JOIN  error e ON c.command_id = e.command_id;
+
 
 CREATE OR REPLACE VIEW user_command_weekly_stats AS
   WITH all_users as (
