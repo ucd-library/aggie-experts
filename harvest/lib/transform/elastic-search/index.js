@@ -465,19 +465,33 @@ async function readRelationshipFiles(cacheUsername, expertId) {
                       const externalCacheUsername = parts[aeStdIdx - 1];
                       const personAssetPath = 'ae-std/person.jsonld';
                       try {
-                        const personTxt = await cache.readUserAsset(externalCacheUsername, personAssetPath);
-                        const personNode = JSON.parse(personTxt);
-                        // If personNode is an array or has @graph, normalize to array of nodes
-                        const personNodes = Array.isArray(personNode)
-                          ? personNode
-                          : Array.isArray(personNode['@graph'])
-                            ? personNode['@graph']
-                            : [personNode];
-                        for (const pn of personNodes) {
-                          if (pn && pn['@id'] && !byId.has(pn['@id'])) {
-                            graphItems.push(pn);
-                            byId.set(pn['@id'], pn);
-                            logger.debug(`Appended person node ${pn['@id']} for external expert ${shortId}`);
+                        // Check for PRIVATE marker before inlining another user's person.jsonld
+                        let includePerson = true;
+                        try {
+                          includePerson = !(await cache.existsUserAsset(externalCacheUsername, 'PRIVATE', { root: '/archive' }) || await cache.existsUserAsset(externalCacheUsername, 'PRIVATE'));
+                        } catch (pe) {
+                          // Fail-closed: if we can't determine privacy status, do not inline
+                          logger.warn(`Could not determine privacy for external user ${externalCacheUsername}; skipping inlining: ${pe.message}`);
+                          includePerson = false;
+                        }
+
+                        if (!includePerson) {
+                          logger.debug(`Skipping inlining person.jsonld for external expert ${shortId} (cache user ${externalCacheUsername}) due to PRIVATE marker`);
+                        } else {
+                          const personTxt = await cache.readUserAsset(externalCacheUsername, personAssetPath);
+                          const personNode = JSON.parse(personTxt);
+                          // If personNode is an array or has @graph, normalize to array of nodes
+                          const personNodes = Array.isArray(personNode)
+                            ? personNode
+                            : Array.isArray(personNode['@graph'])
+                              ? personNode['@graph']
+                              : [personNode];
+                          for (const pn of personNodes) {
+                            if (pn && pn['@id'] && !byId.has(pn['@id'])) {
+                              graphItems.push(pn);
+                              byId.set(pn['@id'], pn);
+                              logger.debug(`Appended person node ${pn['@id']} for external expert ${shortId}`);
+                            }
                           }
                         }
                       } catch (e) {
