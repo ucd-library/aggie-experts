@@ -83,7 +83,7 @@ async function srcToAeStd(options={}) {
   expertData['first-name'] = iamFirst || user.firstName;
 
   // Transform in std AE Person data
-  let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlUserJsonLdFiles, config.vocab.ucopFile);
+  await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlUserJsonLdFiles, config.vocab.ucopFile);
 
   // Mark PRIVATE if IAM or CDL indicate profile privacy so downstream (webapp) can skip
   try {
