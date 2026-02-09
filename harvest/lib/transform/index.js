@@ -86,6 +86,80 @@ async function srcToAeStd(options={}) {
   // Transform in std AE Person data
   let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
+  // Mark PRIVATE if IAM or CDL indicate profile privacy so downstream (webapp) can skip
+  try {
+    let isPrivate = false;
+    const iamNameFlag = iamDir.graph?.['@graph']?.[0]?.directory?.displayName?.nameWwwFlag;
+    if (iamNameFlag === 'N') {
+      logger.info(`User ${options.user} marked private via IAM nameWwwFlag=N`);
+      isPrivate = true;
+    }
+
+    if (!isPrivate) {
+      for (const cdlFilePath of cdlJsonLdFiles) {
+        try {
+          // Use cache.read so CaskFS-backed paths are read correctly
+          const cdlRaw = await cache.read(cdlFilePath);
+          const cdl = JSON.parse(cdlRaw);
+          let graph = cdl['@graph'] || [];
+          if (!Array.isArray(graph)) graph = [graph];
+          for (const g of graph) {
+            const obj = g && g['api:object'];
+            if (!obj) continue;
+            const isPublic = obj['api:is-public'] || obj['is-public'];
+            if (isPublic === 'false' || isPublic === false) {
+              logger.info(`User ${options.user} marked private via CDL is-public=false in ${cdlFilePath}`);
+              isPrivate = true;
+              break;
+            }
+          }
+        } catch (e) {
+          logger.debug(`Error reading/parsing CDL file ${cdlFilePath}: ${e.message}`);
+        }
+        if (isPrivate) break;
+      }
+    }
+
+    if (isPrivate) {
+      try {
+        await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '');
+        // Also write marker to archive root for stable lookup from Dagster
+        try {
+          await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '', { root: '/archive' });
+        } catch (e) {
+          logger.debug(`Failed to write PRIVATE marker to archive for user ${options.user}: ${e.message}`);
+        }
+        logger.info(`Wrote PRIVATE marker for user: ${options.user}`);
+      } catch (e) {
+        logger.warn(`Failed to write PRIVATE marker for user ${options.user}: ${e.message}`);
+      }
+    } else {
+      // If user is no longer private, remove any existing PRIVATE markers
+      try {
+        if (await cache.existsUserAsset(options.user, 'PRIVATE')) {
+          await cache.deleteUserAsset(options.user, 'PRIVATE');
+          logger.info(`Removed PRIVATE marker for user: ${options.user} from active root`);
+        } else {
+          logger.debug(`No PRIVATE marker present in active root for user ${options.user}`);
+        }
+      } catch (e) {
+        logger.warn(`Error checking/deleting PRIVATE marker from active root for user ${options.user}: ${e.message}`);
+      }
+      try {
+        if (await cache.existsUserAsset(options.user, 'PRIVATE', { root: '/archive' })) {
+          await cache.deleteUserAsset(options.user, 'PRIVATE', { root: '/archive' });
+          logger.info(`Removed PRIVATE marker for user: ${options.user} from archive root`);
+        } else {
+          logger.debug(`No PRIVATE marker present in archive root for user ${options.user}`);
+        }
+      } catch (e) {
+        logger.warn(`Error checking/deleting PRIVATE marker from archive root for user ${options.user}: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    logger.warn(`Error while determining privacy for user ${options.user}: ${e.message}`);
+  }
+
   // Transform in std AE relationships data
   logger.info(`Deleting existing relationship files for user: ${options.user}`);
   await cache.delete(options.user, `${config.cache.aeStdFormatDir}/${expertId}/rel`);
@@ -97,7 +171,75 @@ async function aeStdToWebapp(options={}) {
     options.user += '@ucdavis.edu'; // ensure user has a domain
   }
 
-  // Transform in webapp format
+  logger.info(`Checking privacy flags for user: ${options.user}`);
+
+  let isPrivate = false;
+
+  // Check IAM profile for nameWwwFlag === 'N'
+  try {
+    let iamUserPath = cache.getPath(options.user, [config.cache.iamDir, config.cache.iamUserFilename]);
+    if (await cache.exists(iamUserPath)) {
+      const iamRaw = await cache.read(iamUserPath);
+      const iamJson = JSON.parse(iamRaw);
+      const nameWwwFlag = iamJson?.['@graph']?.[0]?.directory?.displayName?.nameWwwFlag;
+      if (nameWwwFlag === 'N') {
+        logger.info(`User ${options.user} marked private via IAM nameWwwFlag=N`);
+        isPrivate = true;
+      }
+    } else {
+      logger.debug(`IAM user path does not exist: ${iamUserPath}`);
+    }
+  } catch (e) {
+    logger.warn(`Error reading IAM profile for user ${options.user}: ${e.message}`);
+  }
+
+  // Check CDL user graphs for api:is-public === 'false'
+  try {
+    let cdlUserPath = cache.getPath(options.user, [config.cache.cdlDir, 'user']);
+    if (await cache.exists(cdlUserPath)) {
+      const listing = await cache.readdir(cdlUserPath, true);
+      const files = listing.files || [];
+      for (let file of files) {
+        if (path.extname(file.filename) !== '.json') continue;
+        try {
+          const cdlRaw = await cache.read(file.filepath);
+          const cdl = JSON.parse(cdlRaw);
+          let graph = cdl['@graph'] || [];
+          if (!Array.isArray(graph)) graph = [graph];
+          for (const g of graph) {
+            const obj = g && g['api:object'];
+            if (!obj) continue;
+            const isPublic = obj['api:is-public'] || obj['is-public'];
+            if (isPublic === 'false' || isPublic === false) {
+              logger.info(`User ${options.user} marked private via CDL is-public=false in ${file.filepath}`);
+              isPrivate = true;
+              break;
+            }
+          }
+        } catch (e) {
+          logger.debug(`Error parsing CDL file ${file.filepath}: ${e.message}`);
+        }
+        if (isPrivate) break;
+      }
+    } else {
+      logger.debug(`CDL user path does not exist: ${cdlUserPath}`);
+    }
+  } catch (e) {
+    logger.warn(`Error reading CDL data for user ${options.user}: ${e.message}`);
+  }
+
+  if (isPrivate) {
+    // write a root-level PRIVATE marker and exit before webapp transform/load
+    try {
+      await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '');
+      logger.info(`Wrote PRIVATE marker for user: ${options.user}. Skipping ae-webapp transform.`);
+    } catch (e) {
+      logger.warn(`Failed to write PRIVATE marker for user ${options.user}: ${e.message}`);
+    }
+    return;
+  }
+
+  // Transform in webapp format for public profiles
   await personToWebapp(options.user);
 }
 

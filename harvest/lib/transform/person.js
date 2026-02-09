@@ -143,12 +143,12 @@ function run(expertId, profile, cdl, ucopVocab) {
   const odrIsVisible   = odrNameWwwFlag === 'N' ? false : true;
 
   // --- SPARQL bind.rq template join gating ---
-  // Need: IAM userID present; CDL user graph with category "user" & is-public "true" & is-login-allowed "true"; nameWwwFlag === 'Y'
+  // Need: IAM userID present; CDL user graph with category "user" (privacy handled elsewhere); nameWwwFlag may be 'N' for private profiles
   const cdlUserGraphs = (cdl['@graph'] || []).filter(g => {
     const obj = g && g['api:object'];
     if (!obj) return false;
     const cat = obj['api:category'] || obj['category'];
-    return cat === 'user' && obj['api:is-public'] === 'true' && obj['api:is-login-allowed'] === 'true';
+    return cat === 'user';
   });
   const cdlUserGraph = cdlUserGraphs[0];
   const cdlUsername = cdlUserGraph && cdlUserGraph['api:object'] && (cdlUserGraph['api:object']['api:username'] || cdlUserGraph['api:object']['username']);
@@ -157,7 +157,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     : null;
 
   // If gating fails, emit no output (match SPARQL which would not construct anything for this profile)
-  if (!iamUserId || !joinedUserId || iamUserId !== joinedUserId || odrNameWwwFlag !== 'Y') {
+  if (!iamUserId || !joinedUserId || iamUserId !== joinedUserId) {
     return []; // hard gate
   }
 
