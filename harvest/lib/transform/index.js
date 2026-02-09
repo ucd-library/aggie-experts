@@ -183,6 +183,8 @@ async function aeStdToWebapp(options={}) {
     }
   } catch (e) {
     logger.warn(`Error checking PRIVATE marker for user ${options.user}: ${e.message}`);
+    // Fail closed: if we can't determine privacy status, do not run the webapp transform.
+    return;
   }
 
   // Transform in webapp format for public profiles
