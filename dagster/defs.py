@@ -307,20 +307,6 @@ def transform_user_webapp(context: AssetExecutionContext) -> None:
     user_id = context.partition_key
     run = context.dagster_run
 
-    # If a privacy marker exists in archive, skip webapp transform
-    try:
-        # caskfs path for archive PRIVATE marker
-        archive_path = f"/archive/{user_id}/PRIVATE"
-        # Try listing the path using cask ls - if the file exists, returncode will be 0
-        p = subprocess.Popen(["cask", "ls", archive_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
-        if p.returncode == 0:
-            context.log.info(f"Skipping webapp transform for user {user_id}: PRIVATE marker present")
-            context.add_output_metadata(metadata={"id": user_id, "skipped": True, "reason": "private"})
-            return None
-    except Exception as e:
-        context.log.debug(f"Error checking for PRIVATE marker for user {user_id}: {e}")
-
     exec(["experts", "harvest", "transform", "webapp", user_id, "--reporting-job-id", run.run_id])
 
     context.add_output_metadata(
