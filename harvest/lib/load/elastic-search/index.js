@@ -1,10 +1,10 @@
 import path from 'path';
 import fs from 'fs/promises';
-import { getWeek } from 'date-fns';
+import { getYearWeek, getTodaysDate } from '../../year-week.js';
+import { Temporal } from '@js-temporal/polyfill';
 import getEsClient from '../../elastic-search-client.js';
 import config from '../../config.js';
 import logger from '../../logger.js';
-import crypto from 'crypto';
 import cache from '../../cache.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
@@ -256,7 +256,7 @@ async function deleteIndex(index, date) {
  * @returns {Object} - An object containing the current and stage indexes
  */
 function getCurrentIndexes() {
-  let current = new Date();
+  let current = getTodaysDate();
   // let stage = new Date(current.getTime() + 7 * 24 * 60 * 60 * 1000); // one week from now
 
   let indexes = {};
@@ -299,11 +299,10 @@ function getIndexNameForDate(index, date) {
     }
     year = parseInt(parts[0], 10);
     weekNumber = parseInt(parts[1], 10);
-  } else if( date instanceof Date ) {
-    weekNumber = getWeek(date, { weekStartsOn: 1 });
-    year = date.getFullYear();
+  } else if( date instanceof Temporal.PlainDate ) {
+    [year, weekNumber] = getYearWeek({date}).split('-');
   } else {
-    throw new Error('Date must be a string or Date object');
+    throw new Error('Date must be a string or Temporal.PlainDate object');
   }
 
   return `${index}-${year}-${weekNumber}`;
