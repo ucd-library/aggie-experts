@@ -146,7 +146,7 @@ function collapseSingleItemPrimitiveArrays(jsonText) {
  * @returns {Array} objects with `node` and corresponding `filepath` properties
  */
 async function findRelatedExperts(subject, excludeExpertId) {
-  const partitionKeys = [cache.getYearWeek(), 'ae-std'];
+  const partitionKeys = [getYearWeek(), 'ae-std'];
   const relNodes = [];
 
   if (!cache || !cache.caskFs || !cache.caskFs.rdf || typeof cache.caskFs.rdf.find !== 'function') {

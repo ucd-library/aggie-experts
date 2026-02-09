@@ -4,7 +4,7 @@ import DagsterAPI from '../lib/dagster/api.js';
 import logger from '../lib/logger.js';
 import PgClient from '../lib/pg-client.js';
 import config from '../lib/config.js';
-import { getWeek } from 'date-fns';
+import { getYearWeek } from '../lib/year-week.js';
 const program = new Command();
 
 const GROUP_IDS = ['dev', 'sandbox', 'experts'];
@@ -48,10 +48,7 @@ program
   .option('--year-week <year-week>', 'Year-week to add partitions for (format: YYYY-WW).  Defaults to current week.', null)
   .action(async (opts) => {
     if( !opts.yearWeek ) {
-      const date = new Date();
-      let week = getWeek(date)+'';
-      if( week.length === 1 ) week = '0'+week;
-      opts.yearWeek = date.getFullYear()+'-'+week;
+      opts.yearWeek = getYearWeek();
     }
 
     const client = new CdlClient();

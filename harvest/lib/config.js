@@ -22,6 +22,8 @@ if( fs.existsSync(userConfigFile) ) {
 
 const config = {
 
+  timezone : env.EXPERTS_HARVEST_TIMEZONE || 'America/Los_Angeles',
+
   userConfig : {
     rootDir : userConfigDir,
     configFile : userConfigFile,

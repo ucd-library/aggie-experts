@@ -1,5 +1,7 @@
 import config from '../config.js';
 import cache from '../cache.js';
+import { Temporal } from '@js-temporal/polyfill';
+import { getYearWeek } from '../year-week.js';
 import PgClient from '../pg-client.js';
 
 const WEEK_YEAR_START = 2026;
@@ -15,18 +17,18 @@ const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 // }
 
 async function initYearWeek(pgClient) {
-  let weekYearInfo = cache.getYearWeek(null, {allValues: true});
-  let date = new Date(WEEK_YEAR_START, 0, 1, 0, 0, 0);
-  let endDate = new Date(WEEK_YEAR_END+1, 0, 1, 0, 0, 0);
+  let weekYearInfo = getYearWeek({allValues: true});
+  let date = new Temporal.PlainDate(WEEK_YEAR_START, 1, 1);
+  let endDate = new Temporal.PlainDate(WEEK_YEAR_END+1, 1, 1);
 
-  while( date < endDate ) {
-    weekYearInfo = cache.getYearWeek(date, {allValues: true});
+  while( Temporal.PlainDate.compare(date, endDate) < 0 ) {
+    weekYearInfo = getYearWeek({date, allValues: true, asString: true});
     await pgClient.insertYearWeek(
       weekYearInfo.yearWeek,
       weekYearInfo.weekStart,
       weekYearInfo.weekEnd
     );
-    date = new Date(date.getTime() + MS_PER_WEEK);
+    date = date.add({ days: 7 });
   }
 }
 
@@ -60,7 +62,7 @@ function captureErrors() {
 }
 
 async function enableFromCli(command, user, options) {
-  let weekYearInfo = cache.getYearWeek(null, {allValues: true});
+  let weekYearInfo = getYearWeek({allValues: true, asString: true});
 
   config.reporting.enabled = true;
   config.reporting.jobId = options.reportingJobId || config.reporting.jobId;

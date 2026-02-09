@@ -1,5 +1,6 @@
 import { Command } from 'commander';
-import cache from '../lib/cache.js';
+import { getYearWeek } from '../lib/year-week.js';
+import { Temporal } from '@js-temporal/polyfill';
 const program = new Command();
 
 program
@@ -15,20 +16,16 @@ program
 program
   .command('year-week')
   .description('Get the year-week number for a given date, defaults to current date')
-  .option('--date <date>', 'Date to get week number for (format: YYYY-MM-DD).  Defaults to current date.', null)
+  .option('-d, --date <date>', 'Date to get week number for (format: YYYY-MM-DD).  Defaults to current date.', null)
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action((opts) => {
-    let date;
-    if( opts.date ) {
-      date = new Date(opts.date);
-      if( isNaN(date.getTime()) ) {
-        throw new Error('Invalid date format specified.  Must be in format YYYY-MM-DD');
-      }
-    } else {
-      date = new Date();
+    let fnOpts = {
+      date : opts.date ? Temporal.PlainDate.from(opts.date) : undefined,
+      allValues: opts.verbose,
+      asString: true
     }
 
-    console.log(cache.getYearWeek(date, { allValues: opts.verbose }));
+    console.log(getYearWeek(fnOpts));
   });
 
 program.parse(process.argv);
