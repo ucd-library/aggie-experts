@@ -114,7 +114,9 @@ async function srcToAeStd(options={}) {
             }
           }
         } catch (e) {
-          logger.debug(`Error reading/parsing CDL file ${cdlFilePath}: ${e.message}`);
+          // Fail closed: any CDL read/parse error means we conservatively treat the user as private
+          logger.warn(`Error reading/parsing CDL file ${cdlFilePath} for user ${options.user}; treating user as PRIVATE: ${e.message}`);
+          isPrivate = true;
         }
         if (isPrivate) break;
       }
