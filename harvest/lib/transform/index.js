@@ -106,7 +106,7 @@ async function srcToAeStd(options={}) {
           for (const g of graph) {
             const obj = g && g['api:object'];
             if (!obj) continue;
-            const isPublic = obj['api:is-public'] || obj['is-public'];
+            const isPublic = obj['api:is-public'] ?? obj['is-public'];
             if (isPublic === 'false' || isPublic === false) {
               logger.info(`User ${options.user} marked private via CDL is-public=false in ${cdlFilePath}`);
               isPrivate = true;
