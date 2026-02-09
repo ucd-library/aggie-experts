@@ -135,7 +135,7 @@ async function ensureCurrentIndexes() {
  * @description Set an alias to point to a specific index, removing it from any other indexes
  * 
  * @param {String} index index base name to point the alias to 
- * @param {Date|String|Temporal.PlainDate} date Date object, Temporal.PlainDate, or string in the format "year-week" (e.g., "2023-37") to suffix the index name
+ * @param {String|Temporal.PlainDate|Date} date String in the format "year-week" (e.g., "2023-37"), Temporal.PlainDate, or Date object to suffix the index name
  * @param {String} alias alias name to set
  * @returns {Promise}
  */
@@ -197,7 +197,7 @@ async function ensureAlias(index, alias) {
  * @description Create an Elasticsearch index with the appropriate schema
  * 
  * @param {String} baseName base name of the index (e.g., 'experts', 'works') 
- * @param {Date|String|Temporal.PlainDate} date Date object, Temporal.PlainDate, or string in the format "year-week" (e.g., "2023-37") to suffix the index name 
+ * @param {String|Temporal.PlainDate|Date} date String in the format "year-week" (e.g., "2023-37"), Temporal.PlainDate, or Date object to suffix the index name 
  * 
  * @returns {Promise}
  */
@@ -282,7 +282,7 @@ function getCurrentIndexes() {
  * @description Get the index name for a given base index and date.
  *
  * @param {String} index - The base index name (e.g., 'experts', 'works')
- * @param {Date|String|Temporal.PlainDate} date - The date for which to get the index name. Can be a Date object, a Temporal.PlainDate, or a string in the format "year-week" (e.g., "2023-37").
+ * @param {String|Temporal.PlainDate|Date} date - The date for which to get the index name. Can be a string in the format "year-week" (e.g., "2023-37"), a Temporal.PlainDate, or a Date object.
  * @returns {String} - The formatted index name
  */
 function getIndexNameForDate(index, date) {
