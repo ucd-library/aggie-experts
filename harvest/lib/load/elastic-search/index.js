@@ -135,7 +135,7 @@ async function ensureCurrentIndexes() {
  * @description Set an alias to point to a specific index, removing it from any other indexes
  * 
  * @param {String} index index base name to point the alias to 
- * @param {Date|String} date Date object or string in the format "weekNumber-year" (e.g., "37-2023") to suffix the index name
+ * @param {Date|Temporal.PlainDate|String} date Date object, Temporal.PlainDate, or string in the format "year-week" (e.g., "2023-37") to suffix the index name
  * @param {String} alias alias name to set
  * @returns {Promise}
  */
@@ -197,7 +197,7 @@ async function ensureAlias(index, alias) {
  * @description Create an Elasticsearch index with the appropriate schema
  * 
  * @param {String} baseName base name of the index (e.g., 'experts', 'works') 
- * @param {Date|String} date Date object or string in the format "weekNumber-year" (e.g., "37-2023") to suffix the index name 
+ * @param {Date|Temporal.PlainDate|String} date Date object, Temporal.PlainDate, or string in the format "year-week" (e.g., "2023-37") to suffix the index name 
  * 
  * @returns {Promise}
  */
@@ -232,6 +232,7 @@ async function createIndex(baseName, date) {
  * @description Delete an Elasticsearch index
  * 
  * @param {String} index index name to delete
+ * @param {Date|Temporal.PlainDate|String} date Date object, Temporal.PlainDate, or string in the format "year-week" (e.g., "2023-37") to suffix the index name
  * @returns {Promise}
  */
 async function deleteIndex(index, date) {
@@ -282,7 +283,7 @@ function getCurrentIndexes() {
  * @description Get the index name for a given base index and date.
  *
  * @param {String} index - The base index name (e.g., 'experts', 'works')
- * @param {Date|String} date - The date for which to get the index name. Can be a Date object or a string in the format "weekNumber-year" (e.g., "37-2023").
+ * @param {Date|Temporal.PlainDate|String} date - The date for which to get the index name. Can be a Date object, Temporal.PlainDate, or a string in the format "year-week" (e.g., "2023-37").
  * @returns {String} - The formatted index name
  */
 function getIndexNameForDate(index, date) {
@@ -299,10 +300,16 @@ function getIndexNameForDate(index, date) {
     }
     year = parseInt(parts[0], 10);
     weekNumber = parseInt(parts[1], 10);
+  } else if( date instanceof Date ) {
+    // Convert JS Date to Temporal.PlainDate using the configured timezone
+    const instant = Temporal.Instant.fromEpochMilliseconds(date.getTime());
+    const zonedDateTime = instant.toZonedDateTimeISO(config.timezone);
+    const plainDate = zonedDateTime.toPlainDate();
+    [year, weekNumber] = getYearWeek({date: plainDate}).split('-');
   } else if( date instanceof Temporal.PlainDate ) {
     [year, weekNumber] = getYearWeek({date}).split('-');
   } else {
-    throw new Error('Date must be a string or Temporal.PlainDate object');
+    throw new Error('Date must be a string, Date object, or Temporal.PlainDate object');
   }
 
   return `${index}-${year}-${weekNumber}`;
