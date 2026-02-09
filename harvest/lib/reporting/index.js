@@ -62,7 +62,7 @@ function captureErrors() {
 }
 
 async function enableFromCli(command, user, options) {
-  let weekYearInfo = getYearWeek({allValues: true});
+  let weekYearInfo = getYearWeek({allValues: true, asString: true});
 
   config.reporting.enabled = true;
   config.reporting.jobId = options.reportingJobId || config.reporting.jobId;
