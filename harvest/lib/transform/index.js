@@ -124,14 +124,11 @@ async function srcToAeStd(options={}) {
       try {
         await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '');
         // Also write marker to archive root for stable lookup from Dagster
-        try {
-          await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '', { root: '/archive' });
-        } catch (e) {
-          logger.debug(`Failed to write PRIVATE marker to archive for user ${options.user}: ${e.message}`);
-        }
+        await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '', { root: '/archive' });
         logger.info(`Wrote PRIVATE marker for user: ${options.user}`);
       } catch (e) {
-        logger.warn(`Failed to write PRIVATE marker for user ${options.user}: ${e.message}`);
+        logger.error(`Failed to write PRIVATE marker(s) for user ${options.user}: ${e.message}`);
+        throw e;
       }
     } else {
       // If user is no longer private, remove any existing PRIVATE markers
