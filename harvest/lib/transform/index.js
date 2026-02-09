@@ -123,57 +123,38 @@ async function srcToAeStd(options={}) {
     }
 
     if (isPrivate) {
+      // write PRIVATE marker to active root
+      await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '');
+
+      // Attempt to also write to archive root for stability; do not treat archive failures as fatal.
       try {
-        try {
-          await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '');
-        } catch (e) {
-          logger.error(`Failed to write PRIVATE marker to active root for user ${options.user}: ${e.message}`);
-          throw e;
-        }
-        // Also write PRIVATE marker to archive root; non-fatal
-        try {
-          await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '', { root: '/archive' });
-        } catch (e) {
-          logger.warn(`Failed to write PRIVATE marker to archive for user ${options.user}: ${e.message}`);
-        }
-        logger.info(`Wrote PRIVATE marker for user: ${options.user}`);
+        await cache.writeUserAsset('privacy-marker', options.user, 'PRIVATE', '', { root: '/archive' });
       } catch (e) {
-        throw e;
+        logger.warn(`Failed to write PRIVATE marker to archive for user ${options.user}: ${e.message}`);
       }
+
+      logger.info(`Wrote PRIVATE marker for user: ${options.user}`);
     } else {
       // If user is no longer private, remove any existing PRIVATE markers
-      try {
-        try {
-          const hasActive = await cache.existsUserAsset(options.user, 'PRIVATE');
-          if (hasActive) {
-            await cache.deleteUserAsset(options.user, 'PRIVATE');
-            logger.info(`Removed PRIVATE marker for user: ${options.user} from active root`);
-          } else {
-            logger.debug(`No PRIVATE marker present in active root for user ${options.user}`);
-          }
-        } catch (e) {
-          logger.error(`Failed to remove PRIVATE marker from active root for user ${options.user}: ${e.message}`);
-          throw e;
-        }
+      const hasActive = await cache.existsUserAsset(options.user, 'PRIVATE');
+      if (hasActive) {
+        await cache.deleteUserAsset(options.user, 'PRIVATE');
+        logger.info(`Removed PRIVATE marker for user: ${options.user} from active root`);
+      } else {
+        logger.debug(`No PRIVATE marker present in active root for user ${options.user}`);
+      }
 
-        try {
-          const hasArchive = await cache.existsUserAsset(options.user, 'PRIVATE', { root: '/archive' });
-          if (hasArchive) {
-            await cache.deleteUserAsset(options.user, 'PRIVATE', { root: '/archive' });
-            logger.info(`Removed PRIVATE marker for user: ${options.user} from archive root`);
-          } else {
-            logger.debug(`No PRIVATE marker present in archive root for user ${options.user}`);
-          }
-        } catch (e) {
-          logger.error(`Failed to remove PRIVATE marker from archive root for user ${options.user}: ${e.message}`);
-          throw e;
-        }
-      } catch (e) {
-        throw e;
+      const hasArchive = await cache.existsUserAsset(options.user, 'PRIVATE', { root: '/archive' });
+      if (hasArchive) {
+        await cache.deleteUserAsset(options.user, 'PRIVATE', { root: '/archive' });
+        logger.info(`Removed PRIVATE marker for user: ${options.user} from archive root`);
+      } else {
+        logger.debug(`No PRIVATE marker present in archive root for user ${options.user}`);
       }
     }
   } catch (e) {
     logger.warn(`Error while determining privacy for user ${options.user}: ${e.message}`);
+    // do not fail-open
     throw e;
   }
 
