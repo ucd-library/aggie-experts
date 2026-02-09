@@ -466,7 +466,7 @@ async function readRelationshipFiles(cacheUsername, expertId) {
                       const personAssetPath = 'ae-std/person.jsonld';
                       try {
                         // Check for PRIVATE marker before inlining another user's person.jsonld
-                        let includePerson = true;
+                        let includePerson;
                         try {
                           includePerson = !(await cache.existsUserAsset(externalCacheUsername, 'PRIVATE', { root: '/archive' }) || await cache.existsUserAsset(externalCacheUsername, 'PRIVATE'));
                         } catch (pe) {
