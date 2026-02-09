@@ -14,9 +14,13 @@ import '@ucd-lib/theme-elements/brand/ucd-theme-search-form/ucd-theme-search-for
 import '@ucd-lib/theme-elements/brand/ucd-theme-quick-links/ucd-theme-quick-links.js';
 import '@ucd-lib/theme-elements/ucdlib/ucdlib-pages/ucdlib-pages.js';
 
+import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import './utils/app-icons.js';
+
 import './pages/404/app-404.js';
 
 import utils from '../lib/utils';
+import indexedDb from '../lib/utils/indexedDb.js';
 
 export default class FinApp extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -35,6 +39,8 @@ export default class FinApp extends Mixin(LitElement)
       searchTerm : { type : String },
       quickLinksTitle: { type : String },
       quickLinks : { type : Array },
+      currentElasticIndex : { type : String },
+      hideEsIndexPreviewing : { type : Boolean }
     }
   }
 
@@ -59,6 +65,7 @@ export default class FinApp extends Mixin(LitElement)
     this.allLinks = [
       { type: 'profile', text: 'Profile', href: '/'+this.expertId },
       { type: 'faq', text: 'Help', href: '/faq' },
+      { type: 'admin', text: 'Admin', href: '/admin' },
       { type: 'login', text: 'Log In', href: '/auth/login' },
       { type: 'logout', text: 'Log Out', href: '/auth/logout' },
       { type: 'odr', text: 'UC Davis Online Directory Listing', href: 'https://org.ucdavis.edu/odr/' },
@@ -66,6 +73,8 @@ export default class FinApp extends Mixin(LitElement)
     ];
     this.quickLinksTitle = 'Sign In';
     this.quickLinks = [];
+    this.currentElasticIndex = '';
+    this.hideEsIndexPreviewing = true;
 
     this.render = render.bind(this);
     this._init404();
@@ -180,6 +189,8 @@ export default class FinApp extends Mixin(LitElement)
     this.backButtonPressed = false;
 
     this._closeHeader();
+
+    this._checkPreviewingEsIndex();
   }
 
   async _updateScrollPosition(page=this.page) {
@@ -276,6 +287,8 @@ export default class FinApp extends Mixin(LitElement)
       return import(/* webpackChunkName: "page-grants" */ "./pages/expert/app-expert-grants-list");
     } else if( page === 'grants-edit' ) {
       return import(/* webpackChunkName: "page-grants-edit" */ "./pages/expert/app-expert-grants-list-edit");
+    } else if( page === 'admin' ) {
+      return import(/* webpackChunkName: "page-admin" */ "./pages/admin/app-admin");
     }
     this.logger.warn('No code chunk loaded for this page');
     return false;
@@ -420,6 +433,50 @@ export default class FinApp extends Mixin(LitElement)
     let appExpert = this.shadowRoot.querySelector('app-expert');
     if( appExpert ) appExpert.cancelEditExpert();
     this._styleEditExpertButton();
+  }
+
+  /**
+   * @method _previewEsIndexClick
+   * @description handle preview es index click from admin page
+   * @param {Object} e 
+   */
+  async _previewEsIndexClick(e) {
+    e.preventDefault();
+
+    if( !(APP_CONFIG.user?.roles || []).includes('admin') ) return;
+  
+    let esIndexes = await indexedDb.getElasticsearchIndexes();
+    this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.displayName || '';
+    this.hideEsIndexPreviewing = !this.currentElasticIndex;
+
+    console.log('TODO preview es index clicked', this.currentElasticIndex);
+  }
+
+  /**
+   * @method _cancelEsIndexPreviewClick
+   * @description cancel previewing an ES index
+   *
+   * @param {Object} e
+   */
+  async _cancelEsIndexPreviewClick(e) {
+    e.preventDefault();
+    
+    await indexedDb.deleteElasticsearchIndexes();
+    this.hideEsIndexPreviewing = true;
+    this.currentElasticIndex = '';
+
+    window.location.reload(); // is there a better way to refresh? this.AppStateModel.setLocation('/x') updates the uul but doesn't refresh the page
+  }
+
+  async _checkPreviewingEsIndex() {
+    let esIndexes = await indexedDb.getElasticsearchIndexes();
+    if( esIndexes && (APP_CONFIG.user?.roles || []).includes('admin')) {
+      this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.displayName || '';
+      this.hideEsIndexPreviewing = false;
+    } else {
+      this.currentElasticIndex = '';
+      this.hideEsIndexPreviewing = true;
+    }
   }
 
 }

@@ -112,8 +112,12 @@ function browse_endpoint(router,model) {
         size: 25,
         index: model.readIndexAlias,
       };
-      ["size","page","p"].forEach((key) => {
-        if (req.query[key]) { params[key] = req.query[key]; }
+      ["size", "page", "p", "previewEsIndex"].forEach((key) => {
+        if( key === 'previewEsIndex' && req.query[key] ) {
+          params.index = req.query[key];
+        } else if( req.query[key] ) { 
+          params[key] = req.query[key]; 
+        }
       });
 
       if (params.p) {
@@ -144,9 +148,18 @@ function browse_endpoint(router,model) {
           ["1","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O",
            "P","Q","R","S","T","U","V","W","X","Y","Z"].forEach((letter) => {
              search_templates.push({});
-             search_templates.push({id:"name",params:{p:letter,size:0}});
+             search_templates.push({
+              id : "name",
+              params : {
+                ...params, 
+                p:letter, 
+                size:0
+              }
+            });
            });
-          const finds = await model.msearch({search_templates});
+          let opts = { search_templates };
+          if( params.index ) opts.index = params.index;
+          const finds = await model.msearch(opts);
           res.send(finds);
         } catch (err) {
           res.status(400).send('Invalid request');

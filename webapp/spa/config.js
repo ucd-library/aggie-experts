@@ -17,7 +17,7 @@ config.client = {
   enableGA4Stats : process.env.GA4_ENABLE_STATS === 'true',
   gaId : process.env.GA4_MEASUREMENT_ID || '',
   assets : (env === 'prod') ? 'dist' : 'public',
-  appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse', 'grant', 'work', 'search-tips'],
+  appRoutes : ['home', '404', 'faq', 'termsofuse', 'expert', 'search', 'browse', 'grant', 'work', 'search-tips', 'admin'],
   dagster : {
     host : process.env.DAGSTER_HOST || 'http://dagster-ui:3000',
     graphqlPath : process.env.DAGSTER_GRAPHQL_PATH || '/graphql',

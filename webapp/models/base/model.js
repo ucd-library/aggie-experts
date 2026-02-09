@@ -193,6 +193,19 @@ class BaseModel extends EsDataModel {
     return doc;
   }
 
+  async getAvailableIndexes() {
+    return await this.client.indices.get({ index: '*' });
+  }
+
+  async getAvailableAliases() {
+    return await this.client.indices.getAlias();
+  }
+
+  async setReadWriteIndexes(indexSuffix) {
+    this.readIndexAlias = this.modelName+'s-'+indexSuffix;
+    this.writeIndexAlias = this.modelName+'s-'+indexSuffix;
+  }
+
   /**
    * @method update_or_create_doc_from_graph_node
    * @description Update main @node of a document. Create if document does not exist.
@@ -332,8 +345,7 @@ class BaseModel extends EsDataModel {
   }
 
   async msearch(opts) {
-
-    if (! opts.index) {
+    if( !opts.index ) {
       opts.index = this.readIndexAlias;
     }
 
@@ -345,7 +357,7 @@ class BaseModel extends EsDataModel {
       }
     }
 
-    const res=await this.client.msearchTemplate(opts);
+    const res = await this.client.msearchTemplate(opts);
     //console.log(res);
     // Compact each result
     for(let i=0;i<res.responses.length;i++) {

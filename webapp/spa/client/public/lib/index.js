@@ -6,6 +6,7 @@ const models =  {
   DagsterModel : require('./models/DagsterModel'),
   ExpertModel : require('./models/ExpertModel'),
   GrantModel : require('./models/GrantModel'),
+  SchemaModel : require('./models/SchemaModel'),
   SearchModel : require('./models/SearchModel'),
   WorkModel : require('./models/WorkModel')
 };
