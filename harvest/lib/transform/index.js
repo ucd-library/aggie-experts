@@ -175,6 +175,13 @@ async function aeStdToWebapp(options={}) {
   try {
     if (await cache.existsUserAsset(options.user, 'PRIVATE', { root: '/archive' }) || await cache.existsUserAsset(options.user, 'PRIVATE')) {
       logger.info(`Skipping ae-webapp transform for user ${options.user}: PRIVATE marker present`);
+      // Clean up any existing ae-webapp outputs for this user so that stale public data is not exposed.
+      try {
+        logger.info(`Deleting existing ae-webapp outputs for user: ${options.user}`);
+        await cache.delete(options.user, config.cache.aeWebappFormatDir);
+      } catch (cleanupError) {
+        logger.warn(`Error deleting ae-webapp outputs for user ${options.user}: ${cleanupError.message}`);
+      }
       return;
     }
   } catch (e) {
