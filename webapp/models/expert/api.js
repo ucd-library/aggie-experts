@@ -236,6 +236,8 @@ router.route(
     if( 'all' in req.query ) {
       all = true;
     }
+    let options = {};
+    if( req.query['previewEsIndex'] ) options.previewEsIndex = req.query['previewEsIndex'];
 
     // only logged in user/admin can specify to include non-visible entries (using url param 'is-visible=include')
     // and (for now) only owner/admin can ask for the complete record (all grants/works, using url param 'all')
@@ -245,7 +247,7 @@ router.route(
     if( !userLoggedIn && !userCanEdit ) includeHidden = false;
     if( !userCanEdit && all ) all = false;
 
-    let options = {
+    let subselectOptions = {
       'is-visible': !includeHidden,
       expert : { include : true },
       grants : { include : true },
@@ -253,19 +255,19 @@ router.route(
     };
 
     if( userCanEdit ) {
-      options.admin = true;
+      subselectOptions.admin = true;
     }
 
     if( !all ) {
-      options.grants.page = 1;
-      options.grants.size = 5;
-      options.works.page = 1;
-      options.works.size = 10;
+      subselectOptions.grants.page = 1;
+      subselectOptions.grants.size = 5;
+      subselectOptions.works.page = 1;
+      subselectOptions.works.size = 10;
     }
 
     try {
-      res.thisDoc = await model.get(expertId);
-      res.thisDoc = model.subselect(res.thisDoc, options);
+      res.thisDoc = await model.get(expertId, options);
+      res.thisDoc = model.subselect(res.thisDoc, subselectOptions);
       res.status(200).json(res.thisDoc);
     } catch (e) {
       return res.status(404).json(`${expertId} resource not found`);
@@ -392,8 +394,11 @@ router.route(
   // expert_valid_path_error,
   async (req, res, next) => {
     let expertId = `expert/${req.params.expertId}`;
+    let options = {};
+    if( req.query['previewEsIndex'] ) options.previewEsIndex = req.query['previewEsIndex'];
+
     try {
-      res.thisDoc = await model.get(expertId);
+      res.thisDoc = await model.get(expertId, options);
       next();
     } catch (e) {
       return res.status(404).json(`${req.path} resource not found`);

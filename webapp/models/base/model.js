@@ -434,9 +434,11 @@ class BaseModel extends EsDataModel {
     if( opts.admin ) _source_excludes = false;
     else if( opts.compact ) _source_excludes = 'compact';
 
+    opts.index = opts.previewEsIndex || this.readIndexAlias;
+
     let result = await this.client.get(
       {
-        index: this.readIndexAlias,
+        index: opts.index,
         id: id,
         _source: true,
 	      _source_excludes: _source_excludes

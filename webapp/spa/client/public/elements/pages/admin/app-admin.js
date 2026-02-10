@@ -70,21 +70,6 @@ export default class AppAdmin extends Mixin(LitElement)
     } 
 
     if( this.isAdmin ) await this._getAvailableElasticIndexes();
-
-    // TODO next steps:
-    // 2
-    // get browse page api call working for preview index switch.
-    // indexedDb has the full object with all indexes and aliases.
-    // choose the right 'type' in the ui model/service/store, 
-    // and send the correct previewEsIndex to api
-    
-    // 3
-    // get search page and landing pages working, 
-    // might be different in how api handles the index to read from
-
-    // 4 
-    // auth needs to stay alive for something like 24hrs?, super annoying as is..
-
   }
 
   async _getAvailableElasticIndexes() {

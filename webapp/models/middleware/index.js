@@ -64,8 +64,12 @@ async function item_endpoint(router, model, subselect = (req, res, next) => next
     // valid_path_error,
     async (req, res, next) => {
       const id = req.params.id || req.query.id;
+
+      let options = {};
+      if( req.query['previewEsIndex'] ) options.previewEsIndex = req.query['previewEsIndex'];
+
       try {
-        res.thisDoc = await model.get(id);
+        res.thisDoc = await model.get(id, options);
         next();
       } catch (e) {
         return res.status(404).json(`${id} resource not found`);
