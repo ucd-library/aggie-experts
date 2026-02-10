@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS command (
 CREATE INDEX IF NOT EXISTS idx_command_week_year ON command (year_week, user_id);
 CREATE INDEX IF NOT EXISTS idx_command_command ON command (command, user_id);
 CREATE INDEX IF NOT EXISTS idx_command_year_week_latest ON command (user_id, command, year_week, latest_weekly_attempt);
+CREATE INDEX IF NOT EXISTS idx_command_latest_weekly_attempt ON command (latest_weekly_attempt);
 
 CREATE TABLE IF NOT EXISTS error (
   error_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -119,39 +120,25 @@ JOIN  error e ON c.command_id = e.command_id;
 
 CREATE OR REPLACE VIEW user_command_weekly_stats AS
   WITH all_users as (
-    SELECT DISTINCT user_id
-    FROM command
-  ),
-  all_weeks AS (
-    SELECT DISTINCT year_week
-    FROM command
-  ),
-  all_commands AS (
-    SELECT DISTINCT command
-    FROM command
+    SELECT email as user_id
+    FROM "user"
   ),
   user_command_stats AS (
     SELECT
-      all_u.user_id,
-      all_w.year_week,
-      all_c.command,
+      c.user_id,
+      c.year_week,
+      c.command,
       c.week_start as week_start,
       c.command_id as command_id,
       e.error_id as error_id
     FROM
       all_users all_u
     LEFT JOIN
-      all_weeks all_w ON TRUE
-    LEFT JOIN
-      all_commands all_c ON TRUE
-    LEFT JOIN
-      command c ON all_u.user_id = c.user_id AND c.year_week = all_w.year_week AND c.command = all_c.command
+      command c ON all_u.user_id = c.user_id 
     LEFT JOIN
       error e ON c.command_id = e.command_id
     WHERE 
       c.latest_weekly_attempt = TRUE
-    GROUP BY
-      all_u.user_id, all_w.year_week, all_c.command, c.week_start, c.command_id, e.error_id
   )
   SELECT
     ucs.user_id,
@@ -163,8 +150,7 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
       WHEN ucs.command_id IS NULL THEN 'no_attempt'
       ELSE 'ok'
     END AS state
-  FROM user_command_stats ucs
-  ORDER BY user_id, year_week, command;
+  FROM user_command_stats ucs;
 
 CREATE OR REPLACE FUNCTION etl_reporting.get_year_week(p_date DATE DEFAULT CURRENT_DATE)
 RETURNS TABLE(
