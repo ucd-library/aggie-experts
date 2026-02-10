@@ -126,6 +126,43 @@ class PgClient {
     return this.query(query, [email]);
   }
 
+  /**
+   * @method setUserPrivacyFlags
+   * @description Set privacy flags for a user. The two flags are:
+   * - iamNameWwwFlag: "nameWwwFlag" from IAM
+   * - cdlIsPublic: "api:is-public":"false" from cdl
+   * 
+   * @param {String} email 
+   * @param {Object} opts 
+   * @param {Boolean} opts.iamNameWwwFlag - Whether the user's IAM profile "nameWwwFlag" 
+   * @param {Boolean} opts.cdlIsPublic - Whether the user's CDL profile "api:is-public"
+   * @returns {Promise} Resolves when the database has been updated
+   */
+  setUserPrivacyFlags(email, opts={}) {
+    let args = [email];
+    let setClauses = [];
+
+    if( typeof opts.iamNameWwwFlag === 'boolean' ) {
+      setClauses.push(`iam_name_www_flag = $${args.length + 1}`);
+      args.push(opts.iamNameWwwFlag);
+    }
+    if( typeof opts.cdlIsPublic === 'boolean' ) {
+      setClauses.push(`cdl_is_public = $${args.length + 1}`);
+      args.push(opts.cdlIsPublic);
+    }
+
+    if( setClauses.length === 0 ) {
+      return; // nothing to update
+    }
+
+    const query = `
+      UPDATE ${this.schema}.user
+      SET ${setClauses.join(', ')}
+      WHERE email = $1
+    `;
+    return this.query(query, args);
+  }
+
   insertYearWeek(yearWeek, weekStart, weekEnd) {
     const query = `
       INSERT INTO ${this.schema}.year_week (year_week, week_start, week_end)
