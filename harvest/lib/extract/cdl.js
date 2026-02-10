@@ -121,22 +121,6 @@ export class CdlClient {
 
     let jsonFile = path.join(config.cache.cdlDir, `${name}/${name}_${count.toString().padStart(3, '0')}.json`);
 
-    // if( options.noCache !== true ) {
-    //   if( !force && await cache.existsUserAsset(options.cacheName, jsonFile) ) {
-    //     logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${jsonFile}`);
-
-    //     const json = JSON.parse(await cache.readUserAsset(options.cacheName, jsonFile));
-    //     let stats = await cache.getFileStats(cache.getPath(options.cacheName, jsonFile));
-    //     stats.noOp = true; // no operation, already exists
-
-    //     return {
-    //       writeResp: stats,
-    //       jsonFile,
-    //       json
-    //     };
-    //   }
-    // }
-
     await this.getAuth();
 
     const controller = new AbortController();
@@ -356,33 +340,7 @@ export class CdlClient {
       nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
 
-    // check to delete any cached files that are not in the feed
-    await this.cleanupCache('user', user, writeResps);
-
     return writeResps;
-  }
-
-  async cleanupCache(type, user, writeResps) {
-    let dir = cache.getPath(user, ['cdl', type]);
-    let {files} = await cache.readdir(dir, true);
-    let toRemove = [];
-    for (let file of files) {
-      if (!writeResps.find(resp => resp.assetPath === file.filepath)) {
-        toRemove.push(file);
-      }
-    }
-
-    logger.info(`Removing ${toRemove.length} files from ${dir} that are not in the feed`, {files: toRemove});
-
-    for (let file of toRemove) {
-      try {
-        // fs.unlinkSync(file);
-        await cache.delete(file.filepath);
-        logger.info(`Removed file ${file.filepath}`);
-      } catch (e) {
-        logger.error(`Error removing file ${file.filepath}: ${e.message}`);
-      }
-    }
   }
 
 
@@ -422,8 +380,6 @@ export class CdlClient {
       nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
 
-    // check to delete any cached files that are not in the feed
-    await this.cleanupCache('rel', user, writeResps);
 
     return writeResps;
   }

@@ -51,10 +51,10 @@ async function loadFiles(files, alias) {
     let filename = path.parse(file).base;
     let parts = filename.split('.');
     // console.log({filename, parts});
-    if( parts[0] !== 'webapp' ) {
-      logger.info(`Skipping non-webapp file: ${filename}`);
-      continue;
-    }
+    // if( parts[0] !== 'webapp' ) {
+    //   logger.info(`Skipping non-webapp file: ${filename}`);
+    //   continue;
+    // }
 
     let index = '';
     if( parts[1] === 'expert' ) index = config.elasticsearch.indexes.experts;
@@ -385,6 +385,38 @@ async function loadSearchScript(scriptId, scriptBody) {
   logger.info(`Successfully loaded search script: ${scriptId}`);
 }
 
+async function getUsersScholarlyWorks(expertId, type, alias='stage') {
+  const esClient = await getEsClient();
+  const index = type+'s-'+config.elasticsearch.aliases[alias];
+
+  console.log(JSON.stringify({query: {
+        bool: {
+          must: [
+            { term: { "@graph.@id": expertId } }
+          ]
+        }
+      }}));
+  const resp = await esClient.search({
+    index,
+    body: {
+        "query": {
+        "nested": {
+          "path": "@graph",
+          "query": {
+            "term": {
+              "@graph.@id": expertId
+            }
+          }
+        }
+      },
+      _source: ["@graph.@id", "@graph.type"] // Only return the @id field
+    },
+    size: 10000 // adjust as needed, consider using scroll API for large datasets
+  });
+
+  return resp.hits.hits.map(hit => hit._source);
+}
+
 export {
   loadFiles,
   getIndexDocumentCount,
@@ -396,5 +428,6 @@ export {
   getIndexNameForDate,
   getState,
   deleteSearchScript,
-  loadSearchScript
+  loadSearchScript,
+  getUsersScholarlyWorks
 }

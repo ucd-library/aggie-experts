@@ -63,12 +63,12 @@ async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils 
       }
 
       // Write the work file
-      const filename = `webapp.work.${fileId}.jsonld`;
+      const filename = `${fileId}.jsonld`;
       const filePath = path.join(config.cache.aeWebappDir, filename);
 
-      await cache.writeUserAsset(
+      await cache.writeScholarlyAsset(
         'ae-webapp-work-transform',
-        cacheUsername,
+        'work',
         filePath,
         outputText
       );

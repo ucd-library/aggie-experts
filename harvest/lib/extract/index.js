@@ -18,7 +18,6 @@ async function run(options={}) {
   }
 
   logger.info('Extracting data for user', options.user);
-  logger.info('Root directory for extracted data', cache.rootDir);
 
   if( options.user.indexOf('@') === -1 ) {
     options.user += '@ucdavis.edu'; // ensure user has a domain
@@ -28,6 +27,10 @@ async function run(options={}) {
     { userId : options.user.replace(/@.*/, '') }, // remove domain if present
     { email : options.user } // extract domain from user
   ]
+
+  logger.info('Clearing cache for user', options.user);
+  await cache.deleteUserAsset(options.user, config.cache.cdlDir, { isDirectory: true });
+  await cache.deleteUserAsset(options.user, config.cache.iamDir, { isDirectory: true }); 
 
   // const iamClient = new IamClient();
   let iamResp;

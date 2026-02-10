@@ -14,7 +14,7 @@ async function run(user, alias='stage') {
   }
 
   // get the root directory for this user's ae-webapp files
-  const webappDir = cache.getPath(user, config.cache.aeWebappDir);
+  const webappDir = cache.getUserPath(user, config.cache.aeWebappDir);
   
   // find all jsonld files in the webapp directory
   const files = await findJsonldFiles(webappDir);

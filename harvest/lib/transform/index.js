@@ -20,16 +20,15 @@ async function srcToAeStd(options={}) {
   }
 
   logger.info('Transforming data for user:', options.user);
-  logger.info('Root directory for transformed data:', cache.getPath(options.user, []));
+  logger.info('Root directory for transformed data:', cache.getUserPath(options.user, config.cache.aeStdFormatDir));
+
+  logger.info('Clearing existing ae-std transformed data for user:', options.user);
+  await cache.deleteUserAsset(options.user, config.cache.aeStdFormatDir, { isDirectory: true });
 
   // Transform CDL user data
   let cdlJsonLdFiles = [];
-  let cdlUserPath = cache.getPath(options.user, [config.cache.cdlDir, 'user']);
+  let cdlUserPath = cache.getUserPath(options.user, [config.cache.cdlDir, 'user']);
 
-  if( !await cache.exists(cdlUserPath) ) {
-    logger.warn(`CDL user path does not exist: ${cdlUserPath}`);
-    return;
-  }
 
   var {files} = await cache.readdir(cdlUserPath, true);
   for( let file of files ) {
@@ -41,7 +40,7 @@ async function srcToAeStd(options={}) {
   }
 
   // Transform CDL rel data
-  let cdlRelPath = cache.getPath(options.user, [config.cache.cdlDir, 'rel']);
+  let cdlRelPath = cache.getUserPath(options.user, [config.cache.cdlDir, 'rel']);
 
   if( !await cache.exists(cdlRelPath) ) {
     logger.warn(`CDL rel path does not exist: ${cdlRelPath}`);
@@ -60,7 +59,7 @@ async function srcToAeStd(options={}) {
   }
 
   // Transform IAM directory data
-  let iamUserPath = cache.getPath(options.user, [config.cache.iamDir, config.cache.iamUserFilename]);
+  let iamUserPath = cache.getUserPath(options.user, [config.cache.iamDir, config.cache.iamUserFilename]);
   logger.info(`IAM user path: ${iamUserPath}`);
   let iamDir = await iamApiToJsonLd(iamUserPath);
 
@@ -72,7 +71,7 @@ async function srcToAeStd(options={}) {
   // Get expert ID and name from keycloak
   let user = await cache.readUserAsset(options.user, config.cache.keycloakUserFilename);
   user = JSON.parse(user);
-  logger.info(`User from Keycloak: ${JSON.stringify(user)}`);
+
   let expertId = user.attributes.expertId[0];
   let expertData = {};
   // Prefer IAM/Directory preferred name when available (keeps behavior consistent with person transform)
@@ -87,8 +86,6 @@ async function srcToAeStd(options={}) {
   let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
-  logger.info(`Deleting existing relationship files for user: ${options.user}`);
-  await cache.delete(options.user, `${config.cache.aeStdFormatDir}/${expertId}/rel`);
   await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
 }
 
@@ -96,6 +93,9 @@ async function aeStdToWebapp(options={}) {
   if( !options.user.match(/@/) ) {
     options.user += '@ucdavis.edu'; // ensure user has a domain
   }
+
+  logger.info('Clearing existing webapp transformed data for user:', options.user);
+  await cache.deleteUserAsset(options.user, config.cache.aeWebappDir, { isDirectory: true });
 
   // Transform in webapp format
   await personToWebapp(options.user);

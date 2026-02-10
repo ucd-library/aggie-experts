@@ -380,7 +380,7 @@ async function frame(expertId, graph) {
  */
 async function readRelationshipFiles(cacheUsername, expertId) {
   const relDir = path.join(config.cache.aeStdFormatDir, expertId, 'rel');
-  const relCachePath = cache.getPath(cacheUsername, relDir);
+  const relCachePath = cache.getUserPath(cacheUsername, relDir);
 
   logger.info(`Reading relationship files from: ${relCachePath}`);
   let combinedGraph = [];
