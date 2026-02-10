@@ -119,6 +119,10 @@ router.get(
               }
             });
           }
+
+          // trim to just the name
+          hit.name = (hit.name || '').split('§')?.[0]?.trim() || hit.name;
+
           grants.push({
             '@id': hit['@id'],
             title: hit.name,
@@ -167,8 +171,12 @@ router.get(
       await expert.verify_template(template);
       const find = await expert.search(opts);
       let grants = [];
-      for (const hit of find.hits[0]._inner_hits) {
-        grants.push(hit);
+      if (find?.hits && find.hits[0] && Array.isArray(find.hits[0]._inner_hits)) {
+        for (const hit of find.hits[0]._inner_hits) {
+          // trim to just the name
+          hit.name = (hit.name || '').split('§')?.[0]?.trim() || hit.name;
+          grants.push(hit);
+        }
       }
       res.send(grants);
     } catch (err) {
