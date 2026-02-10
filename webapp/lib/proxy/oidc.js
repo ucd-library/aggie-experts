@@ -54,6 +54,11 @@ function init(app) {
       response_type: 'code',
       scope : config.oidc.scopes
     },
+    session: {
+      rolling: true,
+      rollingDuration: config.jwt.ttl,
+      absoluteDuration: config.jwt.ttl * 2
+    },
     idpLogout: true,
     afterCallback : (req, res, session, decodedState) => {
       // set cookie for front-end access token use:
@@ -61,7 +66,7 @@ function init(app) {
         // httpOnly: false,
         secure: true,
         sameSite: 'Lax',
-        maxAge: config.jwt.ttl || (3600 * 1000)
+        maxAge: (config.jwt.ttl || 3600) * 1000
       });
 
       return session

@@ -20,6 +20,29 @@ class SchemaService extends BaseService {
     });
   }
 
+  async setAlias(aliasName) {
+    console.log('TODO update stage alias to be current', aliasName)
+
+    return;
+
+    return this.request({
+      url : `${this.baseUrl}/es/indexes`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "alias" : aliasName
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
 }
 
 module.exports = new SchemaService();

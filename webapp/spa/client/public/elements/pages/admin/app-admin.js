@@ -6,6 +6,8 @@ import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import '@ucd-lib/theme-elements/brand/ucd-theme-list-accordion/ucd-theme-list-accordion.js'
 
+import '../../components/modal-overlay.js';
+
 import indexedDb from '../../../lib/utils/indexedDb.js';
 
 export default class AppAdmin extends Mixin(LitElement)
@@ -21,7 +23,12 @@ export default class AppAdmin extends Mixin(LitElement)
       yearWeek : { type : String },
       dateRangeStart : { type : String },
       dateRangeEnd : { type : String },
-      uniqueElasticIndexes : { type : Array }
+      uniqueElasticIndexes : { type : Array },
+      showModal : { type : Boolean },
+      modalTitle : { type : String },
+      modalSaveText : { type : String },
+      modalContent : { type : String },
+      toSwitchIndex : { type : String }
     }
   }
 
@@ -39,6 +46,12 @@ export default class AppAdmin extends Mixin(LitElement)
     this.yearWeek = '';
     this.dateRangeStart = '';
     this.dateRangeEnd = '';
+
+    this.showModal = false;
+    this.modalTitle = "Switch Index Alias";
+    this.modalSaveText = "Switch Index";
+    this.modalContent = "<p>Changing the alias will update the index the public application is currently using. Are you sure you want to switch the current index alias to point to this new index?</p>";
+    this.toSwitchIndex = '';
 
     this.render = render.bind(this);
   }
@@ -84,7 +97,7 @@ export default class AppAdmin extends Mixin(LitElement)
       indexes.push({
         indexName,
         aliasName,
-        displayName : indexYYYYMM + ' (' + aliasName.split('-')?.[1] + ')' + (aliasName.includes('current') ? ' [Active]' : '')
+        displayName : indexYYYYMM + ' (' + aliasName.split('-')?.[1] + ')' + (aliasName.includes('current') ? ' [Selected]' : '')
       });
     }
 
@@ -113,8 +126,24 @@ export default class AppAdmin extends Mixin(LitElement)
     );
   }
 
-  async _onSwitchIndexChange(e) {
-    console.log('_onSwitchIndexChange', e.detail.value);
+  _onSwitchIndexDropdownChange(e) {
+    console.log('_onSwitchIndexDropdownChange', e.detail.value);
+    this.toSwitchIndex = e.detail.value;
+  }
+
+  _onSwitchIndex() {
+    this.modalContent = `
+      <p>
+        Changing the alias will update the index the public application is currently using. 
+        Are you sure you want to switch the current index alias to point to 
+        <strong>${this.toSwitchIndex}</strong>?</p>
+    `;
+
+    this.showModal = true;
+  }
+
+  _onSaveIndexSwitch() {
+    this.showModal = false;
   }
 
   _getDateRangeForWeek(currentDate = new Date()) {

@@ -98,6 +98,13 @@ return html`
             ${this.uniqueElasticIndexes.map(index => html`<li>${index}</li>`)}
           </ul>
         `}
+
+        <h5 style="margin-top: 2.5rem; margin-bottom: 1rem">Full List of Available Indexes</h5>
+        ${this.availableElasticIndexes.length === 0 ? html`<p>Loading...</p>` : html`
+          <ul class="list--arrow">
+            ${this.availableElasticIndexes.map(i => html`<li>${i.indexName} (alias: ${i.aliasName})</li>`)}
+          </ul>
+        `}
       </div>
       <div class="l-second">
         <div class="preview-index-panel">
@@ -119,15 +126,14 @@ return html`
         </div>
 
         <div class="switch-index-panel">
-          <h3>Switch Current/Active Index</h3>
-          <ucd-theme-slim-select @change="${this._onSwitchIndexChange}">
+          <h3 style="margin-top: 5rem;">Switch Current/Active Index</h3>
+          <ucd-theme-slim-select @change="${this._onSwitchIndexDropdownChange}">
             <select>
                <option></option>
               ${this.uniqueElasticIndexes.map(
                 (index) => html`
                   <option
                     .value=${index}
-                    ?selected=${index.includes('current')}
                     ?disabled=${index.includes('current')}>
                     ${index}
                   </option>
@@ -135,9 +141,25 @@ return html`
               )}
             </select>
           </ucd-theme-slim-select>
-          <button class="btn btn--primary" style="margin-top: 1rem;" @click="${this._onSwitchIndexChange}">Switch Index</button>
+          <button
+            ?disabled=${!this.toSwitchIndex}
+            class="btn btn--primary" 
+            style="margin-top: 1rem;" 
+            @click="${this._onSwitchIndex}">Switch Index</button>
         </div>
       </div>
+      <app-modal-overlay
+        ?hidden="${!this.showModal}"
+        .visible="${this.showModal}"
+        .title="${this.modalTitle}"
+        .content="${this.modalContent}"
+        .hideCancel="${false}"
+        .hideSave="${false}"
+        .hideOK="${true}"
+        .hideOaPolicyLink="${true}"
+        @cancel=${(e) => this.showModal = false}
+        @save=${this._onSaveIndexSwitch}>
+      </app-modal-overlay>
     </div>
   </div>
 </div>
