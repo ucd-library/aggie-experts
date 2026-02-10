@@ -4,6 +4,7 @@ import { sharedStyles } from '../../styles/shared-styles';
 
 import layoutCss from '@ucd-lib/theme-sass/5_layout/_index.css';
 import listsCss from '@ucd-lib/theme-sass/2_base_class/_lists.css';
+import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 
 import '@ucd-lib/theme-elements/brand/ucd-theme-slim-select/ucd-theme-slim-select.js'
 
@@ -14,6 +15,7 @@ return html`
     ${sharedStyles}
     ${layoutCss}
     ${listsCss}
+    ${buttonsCss}
     :host {
       display: block;
     }
@@ -118,7 +120,22 @@ return html`
 
         <div class="switch-index-panel">
           <h3>Switch Current/Active Index</h3>
-          <p>Coming soon...</p>
+          <ucd-theme-slim-select @change="${this._onSwitchIndexChange}">
+            <select>
+               <option></option>
+              ${this.uniqueElasticIndexes.map(
+                (index) => html`
+                  <option
+                    .value=${index}
+                    ?selected=${index.includes('current')}
+                    ?disabled=${index.includes('current')}>
+                    ${index}
+                  </option>
+                `
+              )}
+            </select>
+          </ucd-theme-slim-select>
+          <button class="btn btn--primary" style="margin-top: 1rem;" @click="${this._onSwitchIndexChange}">Switch Index</button>
         </div>
       </div>
     </div>

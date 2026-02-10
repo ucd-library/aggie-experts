@@ -14,6 +14,9 @@ const ID_ORDER = [
   'browseType', 
   'workId', 
   'previewEsIndex',
+  'previewEsIndexExperts',
+  'previewEsIndexGrants',
+  'previewEsIndexWorks',
   'browseAz'
 ];
 

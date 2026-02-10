@@ -333,14 +333,16 @@ class BaseModel extends EsDataModel {
   async search(opts) {
     const params = this.common_parms(opts.params);
 
-    const index = params.index || ['grants','experts'];
+    const index = params.index; // || ['grants', 'works', 'experts'];
     delete params.index;
     const options = {
       id: (opts.id)?opts.id:"default",
       index,
       params
     }
-    const res=await this.client.searchTemplate(options);
+
+    const res = await this.client.searchTemplate(options);
+
     return this.compact_search_results(res,params);
   }
 

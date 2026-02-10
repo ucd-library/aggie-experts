@@ -58,15 +58,17 @@ router.get(
   // search_valid_path_error,
   async (req, res) => {
     const params = {
-      "@type":['expert'], //,'grant','work'],
-      "q": "",
-      "size": 10,
-      "page": 1,
-      index: []
+      "@type" : ['expert', 'grant', 'work'],
+      "q" : "",
+      "size" : 10,
+      "page" : 1,
+      index : []
     };
+
     ["p","inner_hits_size","size","page","q"].forEach((key) => {
       if (req.query[key]) { params[key] = req.query[key]; }
     });
+
     // if the user is not logged in, we need to set the default
     if (params.size > 100) {
       res.status(400).json({ error: 'Size exceeds limit' });
@@ -91,11 +93,12 @@ router.get(
       res.status(400).json({ error: 'Missing required query parameter "q"' });
     }
 
-    const typeToIndex = {
-      expert: experts.readIndexAlias,
-      grant: grants.readIndexAlias,
-      work: works.readIndexAlias,
+    let typeToIndex = {
+      expert: req.query['previewEsIndexExperts'] || experts.readIndexAlias,
+      grant: req.query['previewEsIndexGrants'] || grants.readIndexAlias,
+      work: req.query['previewEsIndexWorks'] || works.readIndexAlias,
     };
+
     for (const t of params["@type"]) {
       const indexAlias = typeToIndex[t];
       if (!indexAlias) {
@@ -107,13 +110,16 @@ router.get(
       id: complete.id,
       params
     };
+
     try {
       await experts.verify_template(complete);
       const find = await base.search(opts);
+
       // Now remove type filters, research
       delete params["@type"];
       delete params.status;
       delete params.type;
+
       const global = await base.search(
         { id: complete.id,
           params: {

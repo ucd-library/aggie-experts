@@ -84,7 +84,7 @@ export default class AppAdmin extends Mixin(LitElement)
       indexes.push({
         indexName,
         aliasName,
-        displayName : indexYYYYMM + ' (' + aliasName.split('-')?.[1] + ')'
+        displayName : indexYYYYMM + ' (' + aliasName.split('-')?.[1] + ')' + (aliasName.includes('current') ? ' [Active]' : '')
       });
     }
 
@@ -111,8 +111,10 @@ export default class AppAdmin extends Mixin(LitElement)
         }
       })
     );
+  }
 
-    // trigger api save? or just on next page load?
+  async _onSwitchIndexChange(e) {
+    console.log('_onSwitchIndexChange', e.detail.value);
   }
 
   _getDateRangeForWeek(currentDate = new Date()) {
