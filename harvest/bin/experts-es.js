@@ -1,11 +1,15 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes, createIndex, deleteIndex, setAlias, getState, deleteSearchScript, loadSearchScript } from '../lib/load/elastic-search/index.js';
+import { 
+  ensureCurrentIndexes, 
+  createIndex, 
+  deleteIndex, 
+  setAlias, 
+  getState, 
+  loadSearchTemplate, 
+  initPipeline 
+} from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
-import path from 'path';
-import { readFile } from 'fs/promises';
-
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 
 const program = new Command();
@@ -117,26 +121,23 @@ program
     let templateName = opts.template;
     
     try {
-      let templatePath = path.join(__dirname, '../../webapp/models/search/template', `${templateName}.js`);
-      let fileContent = await readFile(templatePath, 'utf8');
-      
-      // parse commonJS file
-      let templateMatch = fileContent.match(/template\s*=\s*({[\s\S]*?});[\s\S]*module\.exports/);
-      if (!templateMatch) {
-        throw new Error(`Could not parse template from ${templateName}.js`);
-      }
-      
-      let template = eval(`(${templateMatch[1]})`);
-      if (!template || !template.id || !template.script) {
-        throw new Error(`Invalid template structure: missing id or script property`);
-      }
-      
-      await deleteSearchScript(template.id);
-      await loadSearchScript(template.id, template.script);
-      
-      logger.info(`Successfully loaded search template: ${template.id}`);
+      await loadSearchTemplate(templateName);
     } catch (error) {
       logger.error(`Error loading search template ${templateName}:`, error.message);
+      process.exit(1);
+    }
+  });
+
+  program
+  .command('init-pipeline')
+  .description('Initialize the Dagster pipeline for aggie experts')
+  .action(async (opts={}) => {
+    try {
+      await initPipeline();
+      logger.info('Dagster pipeline initialized successfully.');
+    }
+    catch (error) {
+      logger.error('Error initializing Dagster pipeline:', error.message);
       process.exit(1);
     }
   });

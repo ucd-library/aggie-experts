@@ -385,6 +385,94 @@ async function loadSearchScript(scriptId, scriptBody) {
   logger.info(`Successfully loaded search script: ${scriptId}`);
 }
 
+/** 
+ * @function loadSearchTemplate
+ * @description Load a search template script into Elasticsearch.
+ *
+ * @param {String} templateName - The name of the template file (without .js extension) located in webapp/models/search/template/
+ * @returns {Promise<String>} - The ID of the loaded search template, default is 'complete'
+ */
+async function loadSearchTemplate(templateName = 'complete') {
+  try {
+    let templatePath = path.join(__dirname, '../../models/search/template', `${templateName}.js`);
+    let fileContent = await fs.readFile(templatePath, 'utf8');
+
+    // parse commonJS file
+    let templateMatch = fileContent.match(/template\s*=\s*({[\s\S]*?});[\s\S]*module\.exports/);
+    if (!templateMatch) {
+      throw new Error(`Could not parse template from ${templateName}.js`);
+    }
+
+    let template = eval(`(${templateMatch[1]})`);
+    if (!template || !template.id || !template.script) {
+      throw new Error('Invalid template structure: missing id or script property');
+    }
+
+    await deleteSearchScript(template.id);
+    await loadSearchScript(template.id, template.script);
+
+    logger.info(`Successfully loaded search template: ${template.id}`);
+    return template.id;
+  } catch (error) {
+    logger.error(`Error loading search template ${templateName}:`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * @function initPipeline
+ * @description Initialize Elasticsearch ingest pipeline for aggie experts.
+ * Checks if the pipeline exists and creates it if it doesn't.
+ * The pipeline adds a modified-date field to documents.
+ * 
+ * @returns {Promise<Object>} Pipeline response from Elasticsearch
+ */
+async function initPipeline() {
+  const esClient = await getEsClient();
+  const pipelineId = 'aggie-experts-pipeline';
+  
+  try {
+    // Check if pipeline exists
+    logger.info(`Checking if ingest pipeline exists: ${pipelineId}`);
+    await esClient.ingest.getPipeline({ id: pipelineId });
+    logger.info(`Ingest pipeline already exists: ${pipelineId}`);
+    return;
+  } catch (error) {
+    // Pipeline doesn't exist, create it
+    if (error.statusCode === 404) {
+      logger.info(`Creating ingest pipeline: ${pipelineId}`);
+      
+      const pipelineBody = {
+        description: 'Adds a modified-date field',
+        processors: [
+          {
+            set: {
+              field: 'modified-date',
+              value: '{{_ingest.timestamp}}'
+            }
+          }
+        ]
+      };
+      
+      try {
+        const response = await esClient.ingest.putPipeline({
+          id: pipelineId,
+          body: pipelineBody
+        });
+        logger.info(`Successfully created ingest pipeline: ${pipelineId}`);
+        return response;
+      } catch (createError) {
+        logger.error(`Failed to create ingest pipeline ${pipelineId}:`, createError.message);
+        throw createError;
+      }
+    } else {
+      // Some other error occurred
+      logger.error(`Error checking ingest pipeline ${pipelineId}:`, error.message);
+      throw error;
+    }
+  }
+}
+
 export {
   loadFiles,
   getIndexDocumentCount,
@@ -396,5 +484,7 @@ export {
   getIndexNameForDate,
   getState,
   deleteSearchScript,
-  loadSearchScript
+  loadSearchScript,
+  loadSearchTemplate,
+  initPipeline
 }
