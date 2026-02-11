@@ -25,10 +25,11 @@ router.get(
   }
 );
 
-// function miv_valid_path(options = {}) {
-//   const def = {
-//     "description": "A JSON array an expert's grants",
-//   };
+function miv_valid_path(options = {}) {
+  const def = {
+    "description": "A JSON array an expert's grants",
+    "parameters": [],
+  };
 
 //   (options.parameters || []).forEach((param) => {
 //     def.parameters.push(openapi.parameters(param));
@@ -36,8 +37,15 @@ router.get(
 
 //   delete options.parameters;
 
-//   return openapi.validPath({ ...def, ...options });
-// }
+  return openapi.validPath({ ...def, ...options });
+}
+
+function generateGrantFormattedDate() {
+  const now = new Date();
+  const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  const localDate = new Date(now.getTime() - tzOffsetMs);
+  return localDate.toISOString().split('T')[0];
+}
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
@@ -54,16 +62,17 @@ const path = require('path');
 
 router.get(
   '/grants',
-  // miv_valid_path(
-  //   {
-  //     description: "Returns a JSON array of an expert's grants",
-  //     responses: {
-  //       "200": openapi.response('Successful_operation'),
-  //       "400": openapi.response('Invalid_ID_supplied'),
-  //       "404": openapi.response('Expert_not_found')
-  //     }
-  //   }
-  // ),
+  miv_valid_path(
+    {
+      description: "Returns a JSON array of an expert's grants. One of 'email', 'ucdPersonUUID', or 'iamId' must be provided to identify the expert. The 'until' date defaults to today if not provided.",
+      parameters: ['since', 'until', 'email', 'ucdPersonUUID', 'iamId'],
+      responses: {
+        "200": openapi.response('Successful_operation'),
+        "400": openapi.response('Invalid_ID_supplied'),
+        "404": openapi.response('Expert_not_found')
+      }
+    }
+  ),
   validate_miv_client,
   has_access('miv'),
   validate_admin_client,
@@ -71,6 +80,10 @@ router.get(
   async (req, res) => {
     const params = {};
     req.query.expert = `expert/${req.query.expertId}`;
+
+    // default to today unless an until date is provided to filter results
+    if( !req.query.until ) req.query.until = generateGrantFormattedDate();    
+    
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
@@ -154,6 +167,10 @@ router.get(
   async (req, res) => {
     const params = {};
     req.expert = `expert/${req.query.expertId}`;
+    
+    // default to today unless an until date is provided to filter results
+    if( !req.query.until ) req.query.until = generateGrantFormattedDate();
+    
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
