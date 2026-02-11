@@ -40,6 +40,13 @@ function miv_valid_path(options = {}) {
   return openapi.validPath({ ...def, ...options });
 }
 
+function generateGrantFormattedDate() {
+  const now = new Date();
+  const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  const localDate = new Date(now.getTime() - tzOffsetMs);
+  return localDate.toISOString().split('T')[0];
+}
+
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
 router.use(openapi);
@@ -75,10 +82,7 @@ router.get(
     req.query.expert = `expert/${req.query.expertId}`;
 
     // default to today unless an until date is provided to filter results
-    if( !req.query.until ) {
-      const today = new Date();
-      req.query.until = today.toISOString().split('T')[0];
-    }
+    if( !req.query.until ) req.query.until = generateGrantFormattedDate();    
     
     for (const key in template.script.params) {
       if (req.query[key]) {
@@ -165,10 +169,7 @@ router.get(
     req.expert = `expert/${req.query.expertId}`;
     
     // default to today unless an until date is provided to filter results
-    if( !req.query.until ) {
-      const today = new Date();
-      req.query.until = today.toISOString().split('T')[0];
-    }
+    if( !req.query.until ) req.query.until = generateGrantFormattedDate();
     
     for (const key in template.script.params) {
       if (req.query[key]) {
