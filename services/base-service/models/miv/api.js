@@ -57,8 +57,8 @@ router.get(
   '/grants',
   miv_valid_path(
     {
-      description: "Returns a JSON array of an expert's grants. The 'until' date defaults to today if not provided",
-      parameters: ['since', 'until'],
+      description: "Returns a JSON array of an expert's grants. One of 'email', 'ucdPersonUUID', or 'iamId' must be provided to identify the expert. The 'until' date defaults to today if not provided.",
+      parameters: ['since', 'until', 'email', 'ucdPersonUUID', 'iamId'],
       responses: {
         "200": openapi.response('Successful_operation'),
         "400": openapi.response('Invalid_ID_supplied'),
