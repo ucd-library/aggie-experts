@@ -386,6 +386,30 @@ const openapi = OpenAPI(
             description: 'The unique identifier for the expert'
           }
         },
+        since: {
+          in: "query",
+          name: "since",
+          description: "Filter grants starting from this date (inclusive).",
+          required: false,
+          schema: {
+            type: "string",
+            format: "date",
+            pattern: "^[0-9]{4}(-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?$",
+            example: "2010-01-01"
+          }
+        },
+        until: {
+          in: "query",
+          name: "until",
+          description: "Filter grants up to this date (inclusive). Defaults to today if not provided.",
+          required: false,
+          schema: {
+            type: "string",
+            format: "date",
+            pattern: "^[0-9]{4}(-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?$",
+            example: "2030-12-31"
+          }
+        },
         relationshipId: {
           name: 'relationshipId',
           in: 'path',

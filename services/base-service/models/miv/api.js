@@ -28,6 +28,7 @@ router.get(
 function miv_valid_path(options = {}) {
   const def = {
     "description": "A JSON array an expert's grants",
+    "parameters": [],
   };
 
   (options.parameters || []).forEach((param) => {
@@ -56,7 +57,8 @@ router.get(
   '/grants',
   miv_valid_path(
     {
-      description: "Returns a JSON array of an expert's grants",
+      description: "Returns a JSON array of an expert's grants. The 'until' date defaults to today if not provided",
+      parameters: ['since', 'until'],
       responses: {
         "200": openapi.response('Successful_operation'),
         "400": openapi.response('Invalid_ID_supplied'),
@@ -71,6 +73,13 @@ router.get(
   async (req, res) => {
     const params = {};
     req.query.expert = `expert/${req.query.expertId}`;
+
+    // default to today unless an until date is provided to filter results
+    if( !req.query.until ) {
+      const today = new Date();
+      req.query.until = today.toISOString().split('T')[0];
+    }
+    
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
@@ -154,6 +163,13 @@ router.get(
   async (req, res) => {
     const params = {};
     req.expert = `expert/${req.query.expertId}`;
+    
+    // default to today unless an until date is provided to filter results
+    if( !req.query.until ) {
+      const today = new Date();
+      req.query.until = today.toISOString().split('T')[0];
+    }
+    
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
