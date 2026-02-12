@@ -1,8 +1,7 @@
 import { Command } from 'commander';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { srcToAeStd, aeStdToWebapp } from '../lib/transform/index.js';
-import { transformWork } from '../lib/transform/elastic-search/to-work-webapp.js';
+// import { srcToAeStd, aeStdToWebapp } from '../lib/transform/index.js';
+import { generateWork } from '../lib/transform/webapp/work.js';
+import { generateExpert, generateSimplifiedExpert } from '../lib/transform/webapp/expert.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
@@ -101,7 +100,40 @@ program
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-    console.log(JSON.stringify(await transformWork(subjectUri), null, 2));
+    console.log(JSON.stringify(await generateWork(subjectUri), null, 2));
+    await cache.close();
+
+    // TODO: why is this hanging?
+    process.exit();
+  });
+
+program
+  .command('webapp-base-expert')
+  .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
+  .argument('<email>', 'Email of the expert to transform')
+  .action(async (email, options) => {
+
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
+    console.log(JSON.stringify(await generateExpert(email), null, 2));
+    await cache.close();
+
+    // TODO: why is this hanging?
+    process.exit();
+  });
+
+program
+  .command('webapp-simplified-expert')
+  .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
+  .argument('<email>', 'Email of the expert to transform')
+  .action(async (email, options) => {
+
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
+
+    console.log(JSON.stringify(await generateSimplifiedExpert(email), null, 2));
     await cache.close();
 
     // TODO: why is this hanging?

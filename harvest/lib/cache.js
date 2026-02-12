@@ -357,6 +357,7 @@ class FsCache {
 
     const rdfResp = await this.caskFs.rdf.find(query);
     this.findRelatedExpertsCache.set(cacheKey, rdfResp);
+
     return rdfResp;
   }
 

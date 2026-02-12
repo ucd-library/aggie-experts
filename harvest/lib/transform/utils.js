@@ -332,6 +332,14 @@ function getGraphAsItems(obj={}) {
   return [obj];
 }
 
+/**
+ * @method asArray
+ * @description Utility function to ensure a value is always returned as an array.
+ * 
+ * @param {*} value - The value to normalize to an array
+ * 
+ * @returns {Array} - Always returns an array
+ */
 function asArray(value) {
   if (value === null || value === undefined) {
     return [];
@@ -339,6 +347,17 @@ function asArray(value) {
   return Array.isArray(value) ? value : [value];
 }
 
+/**
+ * @method getNodeByType
+ * @description Utility function to find a node of a given type in a 
+ * JSON-LD graph structure.
+ * 
+ * @param {Object|Array} graph - The JSON-LD graph or array of nodes
+ * @param {string|Array} types - The type(s) to match
+ * @param {Object} opts - Options for matching
+ * @param {boolean} opts.match - If true, performs partial match on type strings
+ * @returns {Object|null} - The first matching node or null if none found
+ */
 function getNodeByType(graph, types, opts={}) {
   graph = getGraphAsItems(graph);
   types = asArray(types);

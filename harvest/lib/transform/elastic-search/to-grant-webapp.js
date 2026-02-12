@@ -218,44 +218,7 @@ function getGrantNodes(framedDocument) {
   });
 }
 
-/**
- * @method updateGrantRelatedByRelates
- * @description Update relatedBy relates fields in grant nodes to use simplified expert references
- * @param {*} compacted the compacted document containing grants and expert
- */
-function updateGrantRelatedByRelates(compacted) {
-  const expertNode = compacted["@graph"].find(
-    n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
-  );
-  if (!expertNode) return;
 
-  const expertIdStr = expertNode['@id'];
-  // const expertLabel = expertNode.label || expertNode.name; // no longer embedded in relates to keep mapping keyword
-
-  compacted["@graph"].forEach(node => {
-    const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
-    if (!types.some(t => t.includes('Grant'))) return;
-
-    if (Array.isArray(node.relatedBy)) {
-      node.relatedBy.forEach(role => {
-        if (!role || role.relates === undefined) return;
-        // Normalize to array
-        let relatesArr = Array.isArray(role.relates) ? role.relates : [role.relates];
-        // Flatten any objects to their @id string; ensure expertId present if originally referenced
-        const flattened = [];
-        relatesArr.forEach(r => {
-          if (typeof r === 'string') {
-            flattened.push(r);
-          } else if (r && typeof r === 'object') {
-            if (r['@id']) flattened.push(r['@id']);
-          }
-        });
-        // Remove dups
-        role.relates = [...new Set(flattened)];
-      });
-    }
-  });
-}
 
 export {
   generateGrantFiles,
