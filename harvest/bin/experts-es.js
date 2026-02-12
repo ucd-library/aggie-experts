@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes, createIndex, deleteIndex, setAlias, getState, deleteSearchScript, loadSearchScript, getUsersScholarlyWorks } from '../lib/load/elastic-search/index.js';
+import { ensureCurrentIndexes, createIndex, deleteIndex, setAlias, getState, deleteSearchScript, loadSearchScript, getUsersCurrentScholarlyWorks } from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import path from 'path';
@@ -149,8 +149,8 @@ program
   .option('--alias <alias>', 'ElasticSearch alias to query (default: stage)', 'stage')
   .action(async (type, userId, opts={}) => {
     try {
-      let works = await getUsersScholarlyWorks(userId, type, opts.alias);
-      console.log(JSON.stringify(works, null, 2));
+      let workIds = await getUsersCurrentScholarlyWorks(userId, type, opts.alias);
+      console.log(workIds.join('\n'));
     } catch (error) {
       logger.error(`Error fetching scholarly works for user ${userId}:`, error.message);
       process.exit(1);

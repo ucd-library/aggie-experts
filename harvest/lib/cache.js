@@ -30,7 +30,9 @@ class FsCache {
       rootDir: this.rootDir,
       postgres: config.postgres,
       dbPool : config.cache.poolDbConnection
-    })
+    });
+
+    this.findRelatedExpertsCache = new Map();
   }
 
   async init() {
@@ -324,6 +326,40 @@ class FsCache {
       softDelete: opts.softDelete || false
     });
   }
+
+  /**
+   * @method findRelatedExperts
+   * @description Find related experts for a given subject by querying the RDF data in the cache.  
+   * This method uses an in-memory cache to avoid redundant queries for the same subject and partition keys.
+   * 
+   * @param {String} subject 
+   * @param {Object} opts options object
+   * @param {Array} opts.partitionKeys array of partition keys
+   * @param {Boolean} opts.limit if true, will limit the number of results returned (default: false)
+   * 
+   * @returns {Promise<Object>} RDF response object containing related files from cask
+   */
+  async findRelatedExperts(subject, opts={}) {
+    if( !opts.partitionKeys ) {
+      opts.partitionKeys = [];
+    }
+    const partitionKeys = opts.partitionKeys;
+    let query = { subject, partitionKeys };
+    const limit = opts.limit || false;
+    if( limit ) {
+      query.limit = limit;
+    }
+
+    const cacheKey = `${subject}|${partitionKeys.join('|')}|${limit}`;
+    if (this.findRelatedExpertsCache.has(cacheKey)) {
+      return this.findRelatedExpertsCache.get(cacheKey);
+    }
+
+    const rdfResp = await this.caskFs.rdf.find(query);
+    this.findRelatedExpertsCache.set(cacheKey, rdfResp);
+    return rdfResp;
+  }
+
 
   close() {
     return this.caskFs.close();

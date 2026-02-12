@@ -3,7 +3,8 @@ import path from 'path';
 import cache from '../cache.js';
 import logger from '../logger.js';
 import config from '../config.js';
-import { loadFiles as loadEs } from './elastic-search/index.js';
+import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
+import { type } from 'os';
 
 async function run(user, alias='stage') {
   // check which aliases to write to.  ALL means both stage & current
@@ -15,9 +16,19 @@ async function run(user, alias='stage') {
 
   // get the root directory for this user's ae-webapp files
   const webappDir = cache.getUserPath(user, config.cache.aeWebappDir);
-  
-  // find all jsonld files in the webapp directory
-  const files = await findJsonldFiles(webappDir);
+
+  // find all users scholarly work files (expert file, works, grants) for loading into elastic search
+  const files = await getScholarlyWorkFiles(user);
+
+  let expertId = JSON.parse(await cache.readUserAsset(user, 'keycloak.json')).attributes.expertId[0];
+
+  // get current works, see if anything is elasticsearch is not in current list
+  // if so we need to re transform and reload into elastic search
+  // the user may have disassociated work from their profile
+  let currentWorks = await getUsersCurrentScholarlyWorks('expert/'+expertId, 'work');
+  let currentGrants = await getUsersCurrentScholarlyWorks('expert/'+expertId, 'grant');
+  console.log({currentWorks, currentGrants});
+
 
   // load files into elastic search
   let indexes = await loadEs(files, alias);
@@ -146,20 +157,27 @@ async function countUserAssets(user, files, assetType) {
   ];
 }
 
-async function findJsonldFiles(dir) {
-  let results = [];
-  const list = await cache.readdir(dir, true);
+async function getScholarlyWorkFiles(user) {
+  const list = JSON.parse(await cache.readUserAsset(user, 'scholarly-works.json'));
 
-  for( let file of list.files ) {
-    if( file.filename.endsWith('.jsonld') ) {
-      results.push(file.filepath);
-    }
-  }
-
-  for (const dir of list.directories) {
-    const dirFiles = await findJsonldFiles(dir.filepath);
-    results = results.concat(dirFiles);
-  }
+  let results = [
+    {
+      type: 'expert',
+      path: cache.getUserPath(user, 'webapp.expert.jsonld')
+    },
+    ...list.works.map(workId => {
+      return {
+        type: 'work',
+        path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${workId}.jsonld`)
+      }
+    }),
+    ...list.grants.map(grantId => {
+      return {
+        type: 'grant',
+        path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grantId}.jsonld`)
+      }
+    })
+  ]
 
   return results;
 }

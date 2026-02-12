@@ -61,6 +61,7 @@ function getExpertNode(framedDocument) {
 /**
  * @method createSimplifiedExpert
  * @description Create a simplified expert node for inclusion in other documents
+ * 
  * @param {*} expertNode the source expert node
  * @return {*} the simplified expert node
  */

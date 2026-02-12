@@ -40,7 +40,7 @@ async function srcToAeStd(options={}) {
   }
 
   // Transform CDL rel data
-  let cdlRelPath = cache.getUserPath(options.user, [config.cache.cdlDir, 'rel']);
+  let cdlRelPath = cache.getUserPath(options.user, [config.cache.cdlDir, 'scholarly-works']);
 
   if( !await cache.exists(cdlRelPath) ) {
     logger.warn(`CDL rel path does not exist: ${cdlRelPath}`);

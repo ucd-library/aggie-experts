@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { srcToAeStd, aeStdToWebapp } from '../lib/transform/index.js';
+import { transformWork } from '../lib/transform/elastic-search/to-work-webapp.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
@@ -13,7 +14,6 @@ program
   .command('ae-std')
   .description('transform data from cdl & iam into aggie experts standard format')
   .argument('<user-id>', 'User id to transform')
-  .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .option('--std-sort', 'Sort the ae-std output files for debugging')
@@ -38,8 +38,7 @@ program
     }
 
     await srcToAeStd({
-      user: userId,
-      rootDir: options.rootDir
+      user: userId
     });
 
     if( config.reporting.enabled ) {
@@ -56,7 +55,6 @@ program
   .command('webapp')
   .description('transform aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<user-id>', 'User id to transform')
-  .option('--root-dir <root-dir>', 'Root directory for transformed data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .option('--std-sort', 'Sort the ae-std output files for debugging')
@@ -81,14 +79,29 @@ program
     }
 
     await aeStdToWebapp({
-      user: userId,
-      rootDir: options.rootDir
+      user: userId
     });
 
     if( config.reporting.enabled ) {
       config.postgres.client.end();
     }
 
+    await cache.close();
+
+    // TODO: why is this hanging?
+    process.exit();
+  });
+
+program
+  .command('webapp-work')
+  .description('transform single work from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
+  .argument('<subject-uri>', 'Subject URI of the work to transform')
+  .action(async (subjectUri, options) => {
+
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
+    console.log(JSON.stringify(await transformWork(subjectUri), null, 2));
     await cache.close();
 
     // TODO: why is this hanging?

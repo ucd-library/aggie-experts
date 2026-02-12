@@ -2,24 +2,173 @@ import path from 'path';
 import logger from '../../logger.js';
 import config from '../../config.js';
 import cache from '../../cache.js';
-import {sortJsonRecursively} from '../utils.js';
+import {sortJsonRecursively, getGraphAsItems, asArray, SHORT_TYPES, getNodeByType} from '../utils.js';
 import { getExpertNode, createSimplifiedExpert } from './to-person-webapp.js';
+import { getYearWeek } from '../../year-week.js';
+import jsonld from 'jsonld';
+import fs from 'fs';
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const contextPath = path.join(__dirname, 'schema', '4', 'context.jsonld');
+const contextFile = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+const framePath = path.join(__dirname, 'frames', 'default.json');
+const frameFile = JSON.parse(fs.readFileSync(framePath, 'utf8'));
+
+/**
+ * @method transformWork
+ * @description Given a subject, transform the corresponding work
+ * 
+ * @param {String} subject the subject URI of the work to transform
+ * @param {Object} opts 
+ */
+async function transformWork(subject, opts={}) {
+  const partitionKeys = ['year-week-'+getYearWeek(opts.date), 'ae-std'];
+  let relNodes = [];
+  let expertNodes = [];
+
+  const rdfResp = await cache.findRelatedExperts(subject, {partitionKeys});
+  let workNode = null;
+
+  // loop through all found rel files, extract the authorship nodes that relate to an expert
+  for (const res of rdfResp.results) {
+    const fp = res.filepath;
+    if (!fp) continue;
+    try {
+      const rel = JSON.parse(await cache.read(fp));
+      if ( !workNode ) {
+        workNode = getNodeByType(rel, SHORT_TYPES.WORKS, {match: true});
+      }
+
+      const items = getGraphAsItems(rel);
+
+      for (const node of items) {
+        let parsedNode = _parseWorkNode(subject, node);
+        if( !parsedNode ) continue;
+        
+        relNodes.push(parsedNode);
+        let expert = await _findWorkExpert(parsedNode, partitionKeys, subject);        
+        if( expert ) expertNodes.push(expert);
+      }
+    } catch (e) {
+      logger.error(`Failed to read/parse RDF-found rel file ${fp}`, e);
+    }
+  }
+
+
+
+  let workGraph = await jsonld.compact([workNode, ...relNodes], contextFile["@context"]);
+  workGraph = [...workGraph["@graph"], ...expertNodes];
+
+  workGraph = workGraph.map(node => {
+    if( node.rank ) node.rank = parseInt(node.rank);
+    if( node['is-visible'] ) node['is-visible'] = node['is-visible'] === 'true';
+    return node;
+  });
+
+  return workGraph;
+}
+
+async function _findWorkExpert(workRelNode, partitionKeys, subject) {
+  let expertId = asArray(workRelNode['http://vivoweb.org/ontology/core#relates'])
+    .find(value => value['@id'].startsWith('http://experts.ucdavis.edu/expert/'));
+
+  if( !expertId ) {
+    logger.warn(`No expert relates found in node ${workRelNode['@id']} for subject ${subject}`);
+    return null;
+  } 
+
+  expertId = expertId['@id'];
+  let relatedExpert = await cache.findRelatedExperts(expertId, {partitionKeys});
+  if( !relatedExpert.results.length ) {
+    logger.warn(`No related experts found for expertId ${expertId} in node ${parsedNode['@id']} for subject ${subject}`);
+    return null;
+  }
+
+  let person = JSON.parse(await cache.read(relatedExpert.results[0].filepath));
+  // console.log(SHORT_TYPES.EXPERT)
+  
+
+  const frameDoc = {
+    ...frameFile
+  };
+  frameDoc["@context"] = contextFile["@context"];
+
+  const framedRaw = await jsonld.frame(
+    person,
+    frameDoc,
+    {
+      embed: '@always',
+      omitGraph: false,
+      explicit: false,
+      requireAll: false
+    }
+  );
+    console.log(JSON.stringify(framedRaw, null, 2));
+
+
+  let compacted = await jsonld.compact(framedRaw, contextFile["@context"], {
+    embed: '@always'
+  }); 
+
+
+  person = getNodeByType(compacted, SHORT_TYPES.EXPERT, {match: true});
+
+  console.log(person);
+
+
+  return createSimplifiedExpert(person);
+}
+
+
+function _parseWorkNode(subject, node) {
+  if (!node || !node['@id']) return;
+
+  // Only consider relationship nodes
+  if (!(typeof node['@id'] === 'string' && node['@id'].includes('/relationship/'))) {
+    logger.debug(`Skipping non-relationship node ${node['@id']}`);
+    return;
+  }
+
+  const relatesAny = node['http://vivoweb.org/ontology/core#relates'] || node['ucdlib:relates-to'] || node['relatesTo'];
+  const relatesArr = Array.isArray(relatesAny) ? relatesAny : (relatesAny ? [relatesAny] : []);
+  if (!relatesArr.length) {
+    logger.warn(`Relationship node ${node['@id']} has no relates field`);
+    return;
+  }
+
+  // must reference the publication subject
+  const referencesPub = relatesArr.some(r => {
+    const rid = (typeof r === 'string') ? r : (r && r['@id'] ? r['@id'] : null);
+    return rid && rid.split('#')[0] === subject;
+  });
+  if (!referencesPub) {
+    logger.warn(`Relationship node ${node['@id']} does not reference the publication subject ${subject}`);
+    return;
+  }
+
+  // clone node and set vivoweb relates to the collected relates
+  const outNode = JSON.parse(JSON.stringify(node));
+  outNode['http://vivoweb.org/ontology/core#relates'] = relatesArr;
+  
+  return outNode;
+}
 
 /**
  * @method generateWorkFiles
  * @description Generate individual work files for Elasticsearch
- * @param {*} cacheUsername the cache username
+ * 
  * @param {*} expertId the expert identifier
- * @param {*} framedDocument the framed document to transform
+ * @param {*} expertsGraphDocument the framed document to transform
  * @param {*} utils functions used for transformations
+ * 
  * @returns {*} array of generated work file paths
  */
-async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils = {}) {
+async function generateWorkFiles(expertId, expertsGraphDocument, utils = {}) {
   const { collapseSingleItemPrimitiveArrays } = utils;
   const workFiles = [];
 
   // Extract work nodes from the framed document
-  const workNodes = framedDocument["@graph"].filter(node => {
+  const workNodes = expertsGraphDocument["@graph"].filter(node => {
     if (!node || !node['@type']) return false;
     const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
     return types.some(t =>
@@ -31,18 +180,18 @@ async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils 
   });
 
   // Get the expert node for reference
-  const expertNode = getExpertNode(framedDocument);
+  const expertNode = getExpertNode(expertsGraphDocument);
   if (!expertNode) {
-    logger.warn('No expert node found in framed document');
+    logger.warn('No expert node found in experts graph document');
     return workFiles;
   }
 
-  // Create a simplified expert node for inclusion in work files
-  const simplifiedExpert = createSimplifiedExpert(expertNode);
-  if (!simplifiedExpert) {
-    logger.warn('Could not create simplified expert node');
-    return workFiles;
-  }
+  // // Create a simplified expert node for inclusion in work files
+  // const simplifiedExpert = createSimplifiedExpert(expertNode);
+  // if (!simplifiedExpert) {
+  //   logger.warn('Could not create simplified expert node');
+  //   return workFiles;
+  // }
 
   for (const workNode of workNodes) {
     try {
@@ -51,7 +200,7 @@ async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils 
       const fileId = workId.replace(/^ark:\/87287\/d7mh2m\/publication\//, '');
 
       // Create the work document structure
-      const workDocument = createWorkDocument(workNode, simplifiedExpert, framedDocument, expertId);
+      const workDocument = createWorkDocument(workNode, expertsGraphDocument, expertId);
 
       // Sort the document
       const sortedDocument = sortJsonRecursively(workDocument);
@@ -92,8 +241,8 @@ async function generateWorkFiles(cacheUsername, expertId, framedDocument, utils 
  * @param {*} framedDocument the original framed document for context
  * @returns {*} the work document structure
  */
-function createWorkDocument(workNode, simplifiedExpert, framedDocument, expertId) {
-  const relatedBy = buildWorkRelatedBy(workNode, framedDocument, expertId);
+function createWorkDocument(workNode, framedDocument, expertId) {
+  // const relatedBy = buildWorkRelatedBy(workNode, framedDocument, expertId);
 
   // start graph with the work node
   const graph = [
@@ -117,12 +266,6 @@ function createWorkDocument(workNode, simplifiedExpert, framedDocument, expertId
         if (!id || id === workNode['@id']) continue;
         if (addedExperts.has(id)) continue;
 
-        // If this is the primary simplified expert, add it
-        if (simplifiedExpert && simplifiedExpert['@id'] === id) {
-          graph.push(simplifiedExpert);
-          addedExperts.add(id);
-          continue;
-        }
 
         // Otherwise find the expert node in the framed document and create simplified node
         if (framedDocument && framedDocument['@graph']) {
@@ -269,17 +412,18 @@ function updateWorkRelatedByRelates(workDocument) {
  * with relates arrays containing both the work ark and expert ark as strings
  * @param {*} workNode the work node
  * @param {*} expertNode the expert node
+ * 
  * @returns {Array} array of authorship objects with proper relates structure
  */
-function buildWorkRelatedBy(workNode,framedDocument, expertId) {
+function buildWorkRelatedBy(workNode, framedDocument, expertId) {
   const workId = workNode['@id'];
-  const normExpertId = (id) => {
-    if (!id || typeof id !== 'string') return id;
-    if (id.startsWith('http://experts.ucdavis.edu/expert/')) return id.replace('http://experts.ucdavis.edu/expert/', '');
-    if (id.startsWith('expert/')) return id.replace(/^expert\//,'');
-    return id;
-  };
-  const shortExpertId = normExpertId(expertId);
+  // const normExpertId = (id) => {
+  //   if (!id || typeof id !== 'string') return id;
+  //   if (id.startsWith('http://experts.ucdavis.edu/expert/')) return id.replace('http://experts.ucdavis.edu/expert/', '');
+  //   if (id.startsWith('expert/')) return id.replace(/^expert\//,'');
+  //   return id;
+  // };
+  // const shortExpertId = normExpertId(expertId);
 
   // Collect authorship nodes from the framed document when available
   let relatedBy = [];
@@ -364,5 +508,6 @@ export {
   generateWorkName,
   getWorkNodes,
   updateWorkRelatedByRelates,
-  buildWorkRelatedBy
+  buildWorkRelatedBy,
+  transformWork
 };

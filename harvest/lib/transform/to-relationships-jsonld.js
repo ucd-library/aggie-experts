@@ -40,7 +40,7 @@ async function run(rel, expertId, expertData, options = {}) {
   works = transformWorks(works, expertId, elementsUserId, inputGraph);
   grants = transformGrants(grants, expertId, expertData);
 
-  await saveRelationshipFiles([...works, ...grants], expertId, options);
+  await saveRelationshipFiles([...works, ...grants], options);
 
   return { success: true, works: works.length, grants: grants.length };
 }
@@ -61,7 +61,7 @@ async function runFromFiles(relationshipFiles, expertId, expertData, options) {
   return { success: true, message: "Transformation completed" };
 }
 
-async function saveRelationshipFiles(relationships, expertId, options) {
+async function saveRelationshipFiles(relationships, options) {
   for( let relationship of relationships ) {
     let { relationshipId, graph } = relationship;
     graph = sortJsonRecursively(graph);
@@ -69,7 +69,7 @@ async function saveRelationshipFiles(relationships, expertId, options) {
     await cache.writeUserAsset(
       'ae-std-relationship-transform',
       options.user,
-      path.join(config.cache.aeStdFormatDir + `/${expertId}/rel/`, `${relationshipId}.jsonld`),
+      path.join(config.cache.aeStdFormatDir, 'rel', `${relationshipId}.jsonld`),
       graph
     );
   }
