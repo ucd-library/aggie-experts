@@ -28,7 +28,7 @@ async function generateBaseExpert(username, opts={}) {
   const node = getNodeByType(framed, SHORT_TYPES.EXPERT, {match: true});
 
   if( !node ) {
-    logger.warn(`No expert node found for user ${username} in framed graph`);
+    logger.error(`No expert node found for user ${username} in framed graph`);
     return null;
   }
 

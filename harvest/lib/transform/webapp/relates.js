@@ -20,7 +20,7 @@ const RELATED_BY = 'http://vivoweb.org/ontology/core#relatedBy';
  * and return them as a graph.  Only returns relationship nodes that directly relate to 
  * the given subject, other nodes in the rel files are ignored.
  * 
- * @param {String} subject 
+ * @param {String} subject uri
  * @param {Object} opts
  * @param {Temporal.PlainDate} opts.date the date to use for partitioning when finding related nodes (defaults to now)
  * @param {Boolean} opts.includeWork When finding relationships to a scholorly work, this lookup returns the work in every file
