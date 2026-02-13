@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 // import { srcToAeStd, aeStdToWebapp } from '../lib/transform/index.js';
-import { generateScholarlyWork } from '../lib/transform/webapp/scholary-work.js';
-import { generateExpert, generateSimplifiedExpert } from '../lib/transform/webapp/expert.js';
+import { generateScholarlyWork, generateBaseScholarlyWork } from '../lib/transform/webapp/scholary-work.js';
+import { generateExpert, generateBaseExpert, generateSimplifiedExpert } from '../lib/transform/webapp/expert.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
@@ -92,6 +92,22 @@ program
   });
 
 program
+  .command('webapp-base-scholarly-work')
+  .description('transform single scholarly work from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
+  .argument('<subject-uri>', 'Subject URI of the scholarly work to transform')
+  .action(async (subjectUri, options) => {
+
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
+    console.log(JSON.stringify(await generateBaseScholarlyWork(subjectUri), null, 2));
+    await cache.close();
+
+    // TODO: why is this hanging?
+    process.exit();
+  });
+
+program
   .command('webapp-scholarly-work')
   .description('transform single scholarly work from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<subject-uri>', 'Subject URI of the scholarly work to transform')
@@ -116,7 +132,25 @@ program
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-    console.log(JSON.stringify(await generateExpert(email), null, 2));
+    console.log(JSON.stringify(await generateBaseExpert(email), null, 2));
+    await cache.close();
+
+    // TODO: why is this hanging?
+    process.exit();
+  });
+
+program
+  .command('webapp-expert')
+  .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
+  .argument('<email>', 'Email of the expert to transform')
+  .option('--fresh', 'Force fresh transformation by bypassing any cached framed expert data')
+  .action(async (email, options) => {
+
+    // use a connection pool to speed up writes
+    config.cache.poolDbConnection = true;
+
+    let expert = await generateExpert(email, {fresh: options.fresh});
+    console.log(JSON.stringify(expert, null, 2));
     await cache.close();
 
     // TODO: why is this hanging?
@@ -127,13 +161,14 @@ program
   .command('webapp-simplified-expert')
   .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<email>', 'Email of the expert to transform')
+  .option('--fresh', 'Force fresh transformation by bypassing any cached framed expert data')
   .action(async (email, options) => {
 
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-
-    console.log(JSON.stringify(await generateSimplifiedExpert(email), null, 2));
+    let simplified = await generateSimplifiedExpert(email, {fresh: options.fresh});
+    console.log(JSON.stringify(simplified, null, 2));
     await cache.close();
 
     // TODO: why is this hanging?

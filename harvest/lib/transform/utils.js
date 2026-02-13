@@ -33,6 +33,7 @@ const SHORT_TYPES = {
   ROLES : ['ResearcherRole', 'GrantRole', 'Authorship'],
   EXPERT : ['Expert', 'Person', 'FacultyMember']
 }
+SHORT_TYPES.SCHOLARLY_WORK_TYPES = [...SHORT_TYPES.WORKS, ...SHORT_TYPES.GRANTS];
 
 const SCHEMA_URI_TYPE_MAP = {
     "book": "http://schema.org/Book",

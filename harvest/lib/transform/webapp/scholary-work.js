@@ -3,127 +3,153 @@ import logger from '../../logger.js';
 import {frame, simplifiedExpert} from './frame.js';
 import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js';
 import { getYearWeek } from '../../year-week.js';
+import { getRelates } from './relates.js';
+import { Graph } from './graph.js';
 
 const TYPES = [
   ...SHORT_TYPES.WORKS, ...SHORT_TYPES.GRANTS
 ]
 
+const FOLDER_TYPES = {
+  'grant': SHORT_TYPES.GRANTS,
+  'work': SHORT_TYPES.WORKS
+}
+
+/**
+ * @method generateBaseScholarlyWork
+ * @description Given a scholarly work subject, transform the corresponding work into the framed and
+ * compacted base scholarly work format used for the webapp.  This function returns a single node 
+ * for the scholarly work.
+ * 
+ * @param {String} subject the subject URI of the work to transform
+ * @param {Object} opts 
+ * @param {Temporal.PlainDate} opts.date the date to use for partitioning when finding related nodes (defaults to now)
+ * 
+ * @return {Object} base scholarly work node
+ */
+async function generateBaseScholarlyWork(subject, opts={}) {
+  let graph = await getRelates(subject, {date: opts.date, includeWork: true});
+  if( graph.nodes.size === 0 ) {
+    logger.warn(`No relationships found for scholarly work subject ${subject}`);
+    return null;
+  }
+
+  graph = await frame(graph.toRdfGraph(), true);
+
+  // hack.  the works get extra data at the moment, the relationships are transformed into the root
+  if( graph['@graph'] ) {
+    graph = getNodeByType(graph, TYPES, {match: true});
+  }
+
+  if( graph['@context'] ) {
+    delete graph['@context'];
+  }
+
+  return graph;
+}
+
 /**
  * @method generateScholarlyWork
- * @description Given a work subject, transform the corresponding work
+ * @description Given a scholarly work subject, transform the corresponding work into the framed and
+ * compacted scholarly work format used for the webapp.  This function returns a single node 
+ * for the scholarly work.
  * 
  * @param {String} subject the subject URI of the work to transform
  * @param {Object} opts 
  */
 async function generateScholarlyWork(subject, opts={}) {
-  const partitionKeys = ['year-week-'+getYearWeek(opts.date), 'ae-std'];
+  let graph = new Graph();
 
-  let relNodes = [];
-  let expertNodes = [];
+  // get the base work node with all relationships added
+  const baseWork = await generateBaseScholarlyWork(subject, opts);
+  graph.addNode(baseWork);
+  
+  // get the experts related to the work and add to the graph
+  const experts = await _getScholarlyWorkExperts(baseWork, opts);
+  graph.addNodes(experts);
 
-  const rdfResp = await cache.findRelatedExperts(subject, {partitionKeys});
-  let workNode = null;
+  graph = graph.toRdfGraph();
 
-  // loop through all found rel files, extract the authorship nodes that relate to an expert
-  for (const res of rdfResp.results) {
-    const fp = res.filepath;
-    if (!fp) continue;
-    try {
-      const rel = JSON.parse(await cache.read(fp));
-      if ( !workNode ) {
-        workNode = getNodeByType(rel, TYPES, {match: true});
+  if( opts.write ) {
+    // we need to get the 'simiplifed' types for folder name
+    let folderType = getFolderType(baseWork['@type']);
+
+    if( !folderType ) {
+      throw new Error(`Failed to determine folder type for scholarly work ${baseWork['@id']} with types ${baseWork['@type']}`);
+    }
+    let filename = subject.split(/[\/|#]/).pop();
+
+    await cache.writeScholarlyAsset(
+      'ae-webapp-expert-transform',
+      folderType,
+      path.join('ae-webapp', filename+'.json'),
+      JSON.stringify(graph, null, 2)
+    );
+  }
+
+  return graph;
+}
+
+function getFolderType(nodeTypes) {
+  nodeTypes = asArray(nodeTypes);
+
+  for( let folderType in FOLDER_TYPES ) {
+    for( let type in FOLDER_TYPES[folderType] ) {
+      for( let nodeType of nodeTypes ) {
+        if( FOLDER_TYPES[folderType].includes(nodeType) ) {
+          return folderType;
+        }
       }
-
-      const items = getGraphAsItems(rel);
-
-      for (const node of items) {
-        let parsedNode = _parseWorkNode(subject, node);
-        if( !parsedNode ) continue;
-        
-        relNodes.push(parsedNode);
-        let expert = await _findWorkExpert(parsedNode, partitionKeys, subject);        
-        if( expert ) expertNodes.push(expert);
-      }
-    } catch (e) {
-      logger.error(`Failed to read/parse RDF-found rel file ${fp}`, e);
     }
   }
-
-  let workGraph = await frame([workNode]);
-  let relGraph = await frame(relNodes);
-  workGraph = [...workGraph["@graph"], ...relGraph["@graph"], ...expertNodes];
-
-  workGraph = workGraph.map(node => {
-    if( node.rank ) node.rank = parseInt(node.rank);
-    if( node['is-visible'] ) node['is-visible'] = node['is-visible'] === 'true';
-    return node;
-  });
-
-  return workGraph;
-}
-
-async function _findWorkExpert(workRelNode, partitionKeys, subject) {
-  // TODO: lets precook this
-  let expertId = asArray(workRelNode['http://vivoweb.org/ontology/core#relates'])
-    .find(value => value['@id'].startsWith('http://experts.ucdavis.edu/expert/'));
-
-  if( !expertId ) {
-    logger.warn(`No expert relates found in node ${workRelNode['@id']} for subject ${subject}`);
-    return null;
-  }
-
-  expertId = expertId['@id'];
-  let relatedExpert = await cache.findRelatedExperts(expertId, {partitionKeys});
-  if( !relatedExpert.results.length ) {
-    logger.warn(`No related experts found for expertId ${expertId} in node ${workRelNode['@id']} for subject ${subject}`);
-    return null;
-  }
-
-  let person = JSON.parse(await cache.read(relatedExpert.results[0].filepath));
-
-  person = await frame(person);
-
-  person = getNodeByType(person, SHORT_TYPES.EXPERT, {match: true});
-
-  return simplifiedExpert(person);
 }
 
 
-function _parseWorkNode(subject, node) {
-  if (!node || !node['@id']) return;
+async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
+  let experts = new Set();
 
-  // Only consider relationship nodes
-  // if (!(typeof node['@id'] === 'string' && node['@id'].includes('/relationship/'))) {
-  //   logger.info(`Skipping non-relationship node ${node['@id']}`);
-  //   return;
-  // }
-
-  const relatesAny = node['http://vivoweb.org/ontology/core#relates'] || node['ucdlib:relates-to'] || node['relatesTo'];
-  if( !relatesAny ) return;
+  // get all unique relatedBy.relates id's
+  baseWorkNode?.relatedBy?.map(rel => rel.relates)
+    .filter(rel => rel)
+    .forEach(relates => {
+      asArray(relates).forEach(item => {
+        if( typeof item === 'object' && item['@id'] ) {
+          experts.add(item['@id']);
+        } else if (typeof item === 'string') {
+          experts.add(item);
+        }
+      });
+    });
   
-  const relatesArr = Array.isArray(relatesAny) ? relatesAny : (relatesAny ? [relatesAny] : []);
-  if (!relatesArr.length) {
-    logger.warn(`Relationship node ${node['@id']} has no relates field`);
-    return;
-  }
+  // filter to the experts id pattern
+  experts = Array.from(experts).filter(id => id.startsWith('expert/'));
 
-  // must reference the publication subject
-  const referencesPub = relatesArr.some(r => {
-    const rid = (typeof r === 'string') ? r : (r && r['@id'] ? r['@id'] : null);
-    return rid && rid.split('#')[0] === subject;
-  });
-  if (!referencesPub) {
-    logger.warn(`Relationship node ${node['@id']} does not reference the publication subject ${subject}`);
-    return;
-  }
-
-  // clone node and set vivoweb relates to the collected relates
-  const outNode = JSON.parse(JSON.stringify(node));
-  outNode['http://vivoweb.org/ontology/core#relates'] = relatesArr;
+  const partitionKeys = ['year-week-'+getYearWeek(opts.date), 'ae-std'];
+  const results = [];
   
-  return outNode;
+  for( let expertId of experts ) {
+    expertId = 'http://experts.ucdavis.edu/'+expertId;
+
+    let relatedExpert = await cache.findRelatedExperts(expertId, {partitionKeys});
+    if( !relatedExpert.results.length ) {
+      logger.warn(`Related expert not found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}`);
+      return null;
+    }
+
+    let person = JSON.parse(await cache.read(relatedExpert.results[0].filepath));
+
+    person = await frame(person);
+
+    person = getNodeByType(person, SHORT_TYPES.EXPERT, {match: true});
+
+    results.push(simplifiedExpert(person));
+  }
+
+  return results;
 }
+
 
 export {
+  generateBaseScholarlyWork,
   generateScholarlyWork
 };

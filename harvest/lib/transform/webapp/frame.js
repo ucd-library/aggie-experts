@@ -341,9 +341,10 @@ const normalizeScalars = (node) => {
  * @description Frames the data for indexing into elasticsearch.
  *
  * @param {*} graph the graph to frame
+ * @param {boolean} compact whether to compact the framed graph
  * @returns
  */
-async function frame(graph) {
+async function frame(graph, compact=false) {
   if( !graph['@graph'] ) {
     graph['@graph'] = Array.isArray(graph) ? graph : [graph];
   }
@@ -363,10 +364,15 @@ async function frame(graph) {
       requireAll: false
     }
   );
-
   cleanupFramedDocument(framedRaw);
 
-  return framedRaw;
+  if( !compact ) return framedRaw;
+
+  let compacted = await jsonld.compact(framedRaw, contextFile["@context"], {
+    embed: '@always'
+  }); 
+
+  return compacted;
 }
 
 function cleanupFramedDocument(compacted) {
@@ -403,15 +409,7 @@ async function frameExpert(expertId, graph) {
     "@graph": graph
   };
 
-  let framedRaw = await frame(item);
-
-    let compacted = await jsonld.compact(framedRaw, contextFile["@context"], {
-    embed: '@always'
-  }); 
-
-  if (!Array.isArray(compacted["@graph"])) {
-    compacted["@graph"] = compacted["@graph"] ? [compacted["@graph"]] : [];
-  }
+  let compacted = await frame(item, true );
 
 
   compacted["@graph"] = compacted["@graph"].filter((node) => {

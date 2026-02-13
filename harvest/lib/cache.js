@@ -361,6 +361,16 @@ class FsCache {
     return rdfResp;
   }
 
+  async getExpertAeStdRelations(username, opts={}) {
+    let yearWeek = getYearWeek(opts.date);
+
+    let {files} = await this.readdir(
+      path.join(this.roots.weekly, yearWeek, 'users', username, 'ae-std', 'rel'), 
+      true
+    );
+    
+    return files;
+  }
 
   close() {
     return this.caskFs.close();
