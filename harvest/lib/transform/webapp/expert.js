@@ -23,6 +23,11 @@ async function generateBaseExpert(username, opts={}) {
   const keycloak = await cache.readUserAsset(username, 'keycloak.json');
   const expertId = JSON.parse(keycloak).attributes.expertId[0];
 
+
+  // TODO should we do extra cleanup before framing?
+  // like the promoteAttributes to root
+  // or for works/grants, the updateRelatedBy stuff  
+
   // Frame the expert graph to webapp format
   const framed = await frame(expertGraph);
   const node = getNodeByType(framed, SHORT_TYPES.EXPERT, {match: true});
