@@ -4,15 +4,20 @@ import {frame, simplifiedExpert} from './frame.js';
 import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js';
 import { getYearWeek } from '../../year-week.js';
 
+const TYPES = [
+  ...SHORT_TYPES.WORKS, ...SHORT_TYPES.GRANTS
+]
+
 /**
- * @method generateWork 
+ * @method generateScholarlyWork
  * @description Given a work subject, transform the corresponding work
  * 
  * @param {String} subject the subject URI of the work to transform
  * @param {Object} opts 
  */
-async function generateWork(subject, opts={}) {
+async function generateScholarlyWork(subject, opts={}) {
   const partitionKeys = ['year-week-'+getYearWeek(opts.date), 'ae-std'];
+
   let relNodes = [];
   let expertNodes = [];
 
@@ -26,7 +31,7 @@ async function generateWork(subject, opts={}) {
     try {
       const rel = JSON.parse(await cache.read(fp));
       if ( !workNode ) {
-        workNode = getNodeByType(rel, SHORT_TYPES.WORKS, {match: true});
+        workNode = getNodeByType(rel, TYPES, {match: true});
       }
 
       const items = getGraphAsItems(rel);
@@ -88,12 +93,14 @@ function _parseWorkNode(subject, node) {
   if (!node || !node['@id']) return;
 
   // Only consider relationship nodes
-  if (!(typeof node['@id'] === 'string' && node['@id'].includes('/relationship/'))) {
-    logger.debug(`Skipping non-relationship node ${node['@id']}`);
-    return;
-  }
+  // if (!(typeof node['@id'] === 'string' && node['@id'].includes('/relationship/'))) {
+  //   logger.info(`Skipping non-relationship node ${node['@id']}`);
+  //   return;
+  // }
 
   const relatesAny = node['http://vivoweb.org/ontology/core#relates'] || node['ucdlib:relates-to'] || node['relatesTo'];
+  if( !relatesAny ) return;
+  
   const relatesArr = Array.isArray(relatesAny) ? relatesAny : (relatesAny ? [relatesAny] : []);
   if (!relatesArr.length) {
     logger.warn(`Relationship node ${node['@id']} has no relates field`);
@@ -118,5 +125,5 @@ function _parseWorkNode(subject, node) {
 }
 
 export {
-  generateWork
+  generateScholarlyWork
 };

@@ -11,7 +11,6 @@ async function generateExpert(username) {
 
   const keycloak = await cache.readUserAsset(username, 'keycloak.json');
   const expertId = JSON.parse(keycloak).attributes.expertId[0];
-  console.log('User attributes from keycloak.json:', expertId);
 
   // Frame the expert graph to webapp format
   const framed = await frameExpert(expertId, expertGraph);

@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 // import { srcToAeStd, aeStdToWebapp } from '../lib/transform/index.js';
-import { generateWork } from '../lib/transform/webapp/work.js';
+import { generateScholarlyWork } from '../lib/transform/webapp/scholary-work.js';
 import { generateExpert, generateSimplifiedExpert } from '../lib/transform/webapp/expert.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
@@ -92,15 +92,15 @@ program
   });
 
 program
-  .command('webapp-work')
-  .description('transform single work from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
-  .argument('<subject-uri>', 'Subject URI of the work to transform')
+  .command('webapp-scholarly-work')
+  .description('transform single scholarly work from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
+  .argument('<subject-uri>', 'Subject URI of the scholarly work to transform')
   .action(async (subjectUri, options) => {
 
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-    console.log(JSON.stringify(await generateWork(subjectUri), null, 2));
+    console.log(JSON.stringify(await generateScholarlyWork(subjectUri), null, 2));
     await cache.close();
 
     // TODO: why is this hanging?

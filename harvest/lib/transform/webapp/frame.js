@@ -540,9 +540,11 @@ function simplifiedExpert(expertNode) {
 
   return {
     "@id": expertNode["@id"],
-    "@type": "Expert",
+    "@type": expertNode["@type"],
     "contactInfo": contactInfoEntry ? [contactInfoEntry] : [],
     "is-visible": expertNode["is-visible"],
+    "identifier": expertNode.identifier,
+    "orcidId": expertNode.orcidId,
     "name": name
   };
 }
