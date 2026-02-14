@@ -11,102 +11,99 @@ const framePath = path.join(__dirname, 'frames', 'default.json');
 const frameFile = JSON.parse(fs.readFileSync(framePath, 'utf8'));
 
 /**
- * @method updateGrantRelatedByRelates
- * @description Update relatedBy relates fields in grant nodes to use simplified expert references
- * @param {*} compacted the compacted document containing grants and expert
+ * @method flattenScholarlyWorksRelatedBy
+ * @description Update relates fields across all nodes, with special handling for works and grants.
+ * Flattens all embedded object references to @id strings, and ensures 'relates' is just an array of strings, including:
+ * - Node-level relates fields
+ * - RelatedBy array items' relates fields
+ * - Single relatedBy object relates fields
+ * For works, also enforces presence of work and expert IDs in relatedBy relates arrays.
+ * For grants, simply flattens without adding mandatory IDs.
+ * @param {*} document the compacted document containing works, grants, and expert nodes
  */
-function updateGrantRelatedByRelates(compacted) {
-  const expertNode = compacted["@graph"].find(
-    n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
-  );
-  if (!expertNode) return;
-
-  const expertIdStr = expertNode['@id'];
-  // const expertLabel = expertNode.label || expertNode.name; // no longer embedded in relates to keep mapping keyword
-
-  compacted["@graph"].forEach(node => {
-    const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
-    if (!types.some(t => t.includes('Grant'))) return;
-
-    if (Array.isArray(node.relatedBy)) {
-      node.relatedBy.forEach(role => {
-        if (!role || role.relates === undefined) return;
-        // Normalize to array
-        let relatesArr = Array.isArray(role.relates) ? role.relates : [role.relates];
-        // Flatten any objects to their @id string; ensure expertId present if originally referenced
-        const flattened = [];
-        relatesArr.forEach(r => {
-          if (typeof r === 'string') {
-            flattened.push(r);
-          } else if (r && typeof r === 'object') {
-            if (r['@id']) flattened.push(r['@id']);
-          }
-        });
-        // Remove dups
-        role.relates = [...new Set(flattened)];
-      });
-    }
-  });
-}
-
-/**
- * @method updateWorkRelatedByRelates
- * @description Update relatedBy relates fields in work nodes to use string expert references
- * Similar to grant pattern but adapted for work authorships
- * @param {*} workDocument the work document containing work and expert nodes
- */
-function updateWorkRelatedByRelates(workDocument) {
+function flattenScholarlyWorksRelatedBy(document) {
   // Find the expert node
-  const expertNode = workDocument["@graph"].find(
+  const expertNode = document["@graph"].find(
     n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
   );
   if (!expertNode) return;
 
   const expertIdStr = expertNode['@id'];
 
-  // Find the work node
-  workDocument["@graph"].forEach(node => {
+  const flattenRelatesHelper = (arr) => {
+    if (!arr) return [];
+    let relatesArr = Array.isArray(arr) ? arr : [arr];
+    const ids = new Set();
+    relatesArr.forEach(r => {
+      if (typeof r === 'string') {
+        ids.add(r);
+      } else if (r && typeof r === 'object' && r['@id']) {
+        ids.add(r['@id']);
+      }
+    });
+    return Array.from(ids);
+  };
+
+  document["@graph"].forEach(node => {
+    if (!node) return;
+
+    // Flatten node-level relates (for all nodes)
+    if (node.relates !== undefined) {
+      node.relates = flattenRelatesHelper(node.relates);
+    }
+
     const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+    
+    // Determine node type for work/grant specific handling
     const isWork = types.some(t =>
       t.includes('Work') ||
       t.includes('ScholarlyArticle') ||
       t.includes('Article') ||
       t.includes('Publication')
     );
-    if (!isWork) return;
+    const isGrant = types.some(t => t.includes('Grant'));
 
-    // Process relatedBy (authorships)
+    // Process relatedBy (both array and single object cases)
     if (Array.isArray(node.relatedBy)) {
-      node.relatedBy.forEach(authorship => {
-        if (!authorship || authorship.relates === undefined) return;
-        let relatesArr = Array.isArray(authorship.relates) ? authorship.relates : [authorship.relates];
-        // Ensure string @id only; collect ids, add work + expert if present as objects without duplication
-        const ids = new Set();
-        relatesArr.forEach(r => {
-          if (typeof r === 'string') ids.add(r);
-          else if (r && typeof r === 'object' && r['@id']) ids.add(r['@id']);
-        });
-        // Guarantee work id present when authorship references work
-        if (!ids.has(node['@id'])) ids.add(node['@id']);
-        // Guarantee expert id present when authorship references expert
-        if (!ids.has(expertIdStr)) ids.add(expertIdStr);
-        authorship.relates = Array.from(ids);
+      node.relatedBy.forEach(role => {
+        if (!role || role.relates === undefined) return;
+        
+        const ids = new Set(flattenRelatesHelper(role.relates));
+        
+        // For works: guarantee presence of both work and expert IDs
+        if (isWork) {
+          if (!ids.has(node['@id'])) ids.add(node['@id']);
+          if (!ids.has(expertIdStr)) ids.add(expertIdStr);
+        }
+        // For grants: just use the flattened IDs as-is
+        
+        role.relates = Array.from(ids);
       });
+    } else if (node.relatedBy && node.relatedBy.relates !== undefined) {
+      const ids = new Set(flattenRelatesHelper(node.relatedBy.relates));
+      
+      // For works: guarantee presence of both work and expert IDs
+      if (isWork) {
+        if (!ids.has(node['@id'])) ids.add(node['@id']);
+        if (!ids.has(expertIdStr)) ids.add(expertIdStr);
+      }
+      
+      node.relatedBy.relates = Array.from(ids);
     }
   });
 }
 
 /**
- * @method promoteExpertNodeToRoot
- * @description Promotes the expert node to the root of the document,
- * restructures the document to have several properties at the top level.
- *
+ * @method promoteAttributesToRoot
+ * @description Promotes hasAvailability, type, contactInfo, is-visible and name
+ * from the expert node to the root of the document.
  * This is pulled from the fin model in AEv2.
+ * 
  * @param {*} compacted the compacted JSON-LD document
  * @param {*} config the config object with context properties
  * @returns {*} the restructured document
  */
-function promoteExpertNodeToRoot(compacted, config) {
+function promoteAttributesToRoot(compacted, config) {
   if( typeof compacted["is-visible"] === 'object' ) delete compacted["is-visible"];
 
   const graph = Array.isArray(compacted?.['@graph']) ? compacted['@graph'] : [];
@@ -469,32 +466,9 @@ async function frameExpert(expertId, graph) {
   compacted["@id"] = canonicalRoot;
   compacted["@context"] = (config?.server?.url || 'https://stage.experts.library.ucdavis.edu') + "/api/schema/context.jsonld";
 
+  compacted = promoteAttributesToRoot(compacted, config);
 
-  compacted = promoteExpertNodeToRoot(compacted, config);
-  updateWorkRelatedByRelates(compacted);
-  updateGrantRelatedByRelates(compacted);
-  // Flatten any embedded relates objects across all nodes/roles
-  function flattenRelates(doc){
-    if (!doc || !Array.isArray(doc['@graph'])) return;
-    doc['@graph'].forEach(node => {
-      if (!node) return;
-      if (node.relates !== undefined) {
-        let arr = Array.isArray(node.relates) ? node.relates : [node.relates];
-        node.relates = [...new Set(arr.map(r => typeof r === 'string' ? r : (r && r['@id'])).filter(Boolean))];
-      }
-      if (Array.isArray(node.relatedBy)) {
-        node.relatedBy.forEach(role => {
-          if (!role || role.relates === undefined) return;
-          let arr = Array.isArray(role.relates) ? role.relates : [role.relates];
-          role.relates = [...new Set(arr.map(r => typeof r === 'string' ? r : (r && r['@id'])).filter(Boolean))];
-        });
-      } else if (node.relatedBy && node.relatedBy.relates !== undefined) {
-        let arr = Array.isArray(node.relatedBy.relates) ? node.relatedBy.relates : [node.relatedBy.relates];
-        node.relatedBy.relates = [...new Set(arr.map(r => typeof r === 'string' ? r : (r && r['@id'])).filter(Boolean))];
-      }
-    });
-  }
-  flattenRelates(compacted);
+  flattenScholarlyWorksRelatedBy(compacted);
 
   return compacted;
 }
