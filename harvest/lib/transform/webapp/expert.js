@@ -111,6 +111,7 @@ async function generateExpert(username, opts={}) {
   }
   
   graph = graph.toRdfGraph();
+  graph['@id'] = expertNode['@id'];
 
   if( opts.write ) {
     await cache.writeUserAsset(

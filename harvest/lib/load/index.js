@@ -15,7 +15,7 @@ async function run(user, alias='stage') {
   }
 
   // get the root directory for this user's ae-webapp files
-  const webappDir = cache.getUserPath(user, config.cache.aeWebappDir);
+  // const webappDir = cache.getUserPath(user, config.cache.aeWebappDir);
 
   // find all users scholarly work files (expert file, works, grants) for loading into elastic search
   const files = await getScholarlyWorkFiles(user);
@@ -27,7 +27,7 @@ async function run(user, alias='stage') {
   // the user may have disassociated work from their profile
   let currentWorks = await getUsersCurrentScholarlyWorks('expert/'+expertId, 'work');
   let currentGrants = await getUsersCurrentScholarlyWorks('expert/'+expertId, 'grant');
-  console.log({currentWorks, currentGrants});
+  // console.log({currentWorks, currentGrants});
 
 
   // load files into elastic search
@@ -163,18 +163,18 @@ async function getScholarlyWorkFiles(user) {
   let results = [
     {
       type: 'expert',
-      path: cache.getUserPath(user, 'webapp.expert.jsonld')
+      path: cache.getUserPath(user, ['webapp', 'expert.jsonld'])
     },
     ...list.works.map(workId => {
       return {
         type: 'work',
-        path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${workId}.jsonld`)
+        path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${workId}.json`)
       }
     }),
     ...list.grants.map(grantId => {
       return {
         type: 'grant',
-        path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grantId}.jsonld`)
+        path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grantId}.json`)
       }
     })
   ]

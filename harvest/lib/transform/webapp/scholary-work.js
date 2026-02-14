@@ -5,6 +5,7 @@ import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js'
 import { getYearWeek } from '../../year-week.js';
 import { getRelates } from './relates.js';
 import { Graph } from './graph.js';
+import path from 'path';
 
 const TYPES = [
   ...SHORT_TYPES.WORKS, ...SHORT_TYPES.GRANTS
@@ -58,6 +59,8 @@ async function generateBaseScholarlyWork(subject, opts={}) {
  * @param {Object} opts 
  */
 async function generateScholarlyWork(subject, opts={}) {
+  logger.info(`Running AE webapp scholarly work transformation for subject: ${subject}`);
+  
   let graph = new Graph();
 
   // get the base work node with all relationships added
@@ -69,10 +72,11 @@ async function generateScholarlyWork(subject, opts={}) {
   graph.addNodes(experts);
 
   graph = graph.toRdfGraph();
+  graph['@id'] = baseWork['@id'];
 
   if( opts.write ) {
     // we need to get the 'simiplifed' types for folder name
-    let folderType = getFolderType(baseWork['@type']);
+    let folderType = getScholarlyWorkType(baseWork['@type']);
 
     if( !folderType ) {
       throw new Error(`Failed to determine folder type for scholarly work ${baseWork['@id']} with types ${baseWork['@type']}`);
@@ -90,13 +94,13 @@ async function generateScholarlyWork(subject, opts={}) {
   return graph;
 }
 
-function getFolderType(nodeTypes) {
+function getScholarlyWorkType(nodeTypes) {
   nodeTypes = asArray(nodeTypes);
 
   for( let folderType in FOLDER_TYPES ) {
-    for( let type in FOLDER_TYPES[folderType] ) {
+    for( let type of FOLDER_TYPES[folderType] ) {
       for( let nodeType of nodeTypes ) {
-        if( FOLDER_TYPES[folderType].includes(nodeType) ) {
+        if( nodeType.includes(type) ) {
           return folderType;
         }
       }
@@ -151,5 +155,6 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
 
 export {
   generateBaseScholarlyWork,
-  generateScholarlyWork
+  generateScholarlyWork,
+  getScholarlyWorkType
 };

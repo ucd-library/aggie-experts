@@ -1,7 +1,8 @@
 import { Command } from 'commander';
 import { srcToAeStd } from '../lib/transform/ae-std/index.js';
-import { generateScholarlyWork, generateBaseScholarlyWork } from '../lib/transform/webapp/scholary-work.js';
+import { generateScholarlyWork, generateBaseScholarlyWork, getScholarlyWorkType } from '../lib/transform/webapp/scholary-work.js';
 import { generateExpert, generateBaseExpert, generateSimplifiedExpert } from '../lib/transform/webapp/expert.js';
+import { getNodeByType, SHORT_TYPES } from '../lib/transform/utils.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
@@ -82,7 +83,29 @@ program
       logger.info('ae-std sorting enabled via --std-sort');
     }
 
-    await generateExpert(userId, {write: true});
+    let expert = await generateExpert(userId, {write: true});
+
+    let swSubjects = expert['@graph']
+      .filter(node => getNodeByType(node, SHORT_TYPES.SCHOLARLY_WORK_TYPES, {match: true}))
+      .map(node => ({
+        uri: node['@id'],
+        type: getScholarlyWorkType(node['@type'])
+      }));
+
+    let scholarlyWorksRef = {
+      works: [],
+      grants: []
+    };
+
+
+    for( let subject of swSubjects ) {
+      await generateScholarlyWork(subject.uri, {write: true});
+      scholarlyWorksRef[subject.type+'s'].push(subject.uri.split(/[\/|#]/).pop());
+    }
+
+    await cache.writeUserAsset('', userId, 'scholarly-works.json', 
+      JSON.stringify(scholarlyWorksRef, null, 2)
+    );
 
     if( config.reporting.enabled ) {
       config.postgres.client.end();
