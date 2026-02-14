@@ -14,7 +14,7 @@ import { generateBaseScholarlyWork } from './scholary-work.js';
  * @returns {Object} the framed expert data ready for webapp consumption
 */
 async function generateBaseExpert(username, opts={}) {
-  logger.info(`Running AE webapp expert transformation for user: ${username}`);
+  logger.info(`Running AE webapp base expert transformation for user: ${username}`);
 
   // Read the main expert graph
   const aeStdPerson = await cache.readUserAsset(username, 'ae-std/person.jsonld');
@@ -54,7 +54,7 @@ async function generateSimplifiedExpert(username, opts={}) {
     expertNode = await generateBaseExpert(username, {write: false});
   } else {
     // If not fresh, we can attempt to read the already framed expert data (faster)
-    expertNode = await cache.readUserAsset(username, 'webapp/expert-base.jsonld');
+    expertNode = JSON.parse(await cache.readUserAsset(username, 'webapp/expert-base.jsonld'));
   }
 
   let simplified = simplifiedExpert(expertNode);
@@ -72,6 +72,8 @@ async function generateSimplifiedExpert(username, opts={}) {
 }
 
 async function generateExpert(username, opts={}) {
+  logger.info(`Running AE webapp expert transformation for user: ${username}`);
+
   let graph = new Graph();
 
   let expertNode;
@@ -80,7 +82,7 @@ async function generateExpert(username, opts={}) {
     expertNode = await generateBaseExpert(username, {write: false});
   } else {
     // If not fresh, we can attempt to read the already framed expert data (faster)
-    expertNode = await cache.readUserAsset(username, 'webapp/expert-base.jsonld');
+    expertNode = JSON.parse(await cache.readUserAsset(username, 'webapp/expert-base.jsonld'));
   }
   graph.addNode(expertNode);
   

@@ -1,12 +1,12 @@
 import jsonpath from 'jsonpath';
 import fs from 'fs';
 import md5 from 'md5';
-import cache from '../cache.js';
-import config from '../config.js';
-import logger from '../logger.js';
+import cache from '../../cache.js';
+import config from '../../config.js';
+import logger from '../../logger.js';
 import path from 'path';
 
-import {sortJsonArrayByIdAndKeys} from './utils.js';
+import {sortJsonArrayByIdAndKeys} from '../utils.js';
 
 // ---- helpers ----
 const uniq = arr => Array.from(new Set((arr || []).filter((v) => v != null)));

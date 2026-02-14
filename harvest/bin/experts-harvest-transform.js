@@ -1,11 +1,12 @@
 import { Command } from 'commander';
-// import { srcToAeStd, aeStdToWebapp } from '../lib/transform/index.js';
+import { srcToAeStd } from '../lib/transform/ae-std/index.js';
 import { generateScholarlyWork, generateBaseScholarlyWork } from '../lib/transform/webapp/scholary-work.js';
 import { generateExpert, generateBaseExpert, generateSimplifiedExpert } from '../lib/transform/webapp/expert.js';
 import config from '../lib/config.js';
 import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
+import { write } from 'fs-extra';
 
 const program = new Command();
 
@@ -39,6 +40,10 @@ program
     await srcToAeStd({
       user: userId
     });
+
+    await generateBaseExpert(userId, {write: true});
+
+    await generateSimplifiedExpert(userId, {write: true});
 
     if( config.reporting.enabled ) {
       config.postgres.client.end();
@@ -77,9 +82,7 @@ program
       logger.info('ae-std sorting enabled via --std-sort');
     }
 
-    await aeStdToWebapp({
-      user: userId
-    });
+    await generateExpert(userId, {write: true});
 
     if( config.reporting.enabled ) {
       config.postgres.client.end();

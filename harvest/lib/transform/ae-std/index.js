@@ -1,13 +1,11 @@
-import cache from '../cache.js';
-import logger from '../logger.js';
-import config from '../config.js';
+import cache from '../../cache.js';
+import logger from '../../logger.js';
+import config from '../../config.js';
 import path from 'path';
-import fs from 'fs';
 
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
 import {runFromFiles as jsonLdToPerson} from './person.js';
-import {runFromFiles as personToWebapp} from './elastic-search/index.js';
 import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
 async function srcToAeStd(options={}) {
@@ -89,16 +87,6 @@ async function srcToAeStd(options={}) {
   await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
 }
 
-async function aeStdToWebapp(options={}) {
-  if( !options.user.match(/@/) ) {
-    options.user += '@ucdavis.edu'; // ensure user has a domain
-  }
-
-  logger.info('Clearing existing webapp transformed data for user:', options.user);
-  await cache.deleteUserAsset(options.user, config.cache.aeWebappDir, { isDirectory: true });
-
-  // Transform in webapp format
-  await personToWebapp(options.user);
+export {
+  srcToAeStd
 }
-
-export { srcToAeStd, aeStdToWebapp };

@@ -1,5 +1,5 @@
 import jsonpath from 'jsonpath';
-import { formatDate, getFieldValue, getFieldObject } from './utils.js';
+import { formatDate, getFieldValue, getFieldObject } from '../utils.js';
 
 const ROLE_TYPES = {
   PI: 'http://vivoweb.org/ontology/core#PrincipalInvestigatorRole',

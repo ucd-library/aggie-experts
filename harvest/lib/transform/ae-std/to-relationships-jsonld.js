@@ -1,16 +1,15 @@
 import jsonpath from 'jsonpath';
-import fs from 'fs';
 import path from 'path';
 
-import cache from '../cache.js';
-import logger from '../logger.js';
-import config from '../config.js';
+import cache from '../../cache.js';
+import logger from '../../logger.js';
+import config from '../../config.js';
 
 import {transformWorks} from './works.js';
 import {transformGrants} from './grants.js';
 
 //import {sortJsonArrayByIdAndKeys} from './utils.js';
-import { sortJsonRecursively } from './utils.js';
+import { sortJsonRecursively } from '../utils.js';
 
 function extractElementsUserId(rel) {
   // Find the node in @graph with an id matching /users/<digits>/relationships

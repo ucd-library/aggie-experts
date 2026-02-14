@@ -8,7 +8,7 @@ import {
   WORKS_SOURCE_ORDER,
   WORKS_TYPE_MAP,
   SCHEMA_URI_TYPE_MAP
-} from './utils.js';
+} from '../utils.js';
 
 function transformWorks(works, expertId, elementsUserId, inputGraph) {
   let results = [];
