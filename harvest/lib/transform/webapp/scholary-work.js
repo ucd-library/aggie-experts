@@ -72,7 +72,7 @@ async function generateScholarlyWork(subject, opts={}) {
   graph.addNodes(experts);
 
   graph = graph.toRdfGraph();
-  graph['@id'] = baseWork['@id'];
+  graph = promoteAttributesToRoot(baseWork, graph);
 
   if( opts.write ) {
     // we need to get the 'simiplifed' types for folder name
@@ -150,6 +150,66 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
   }
 
   return results;
+}
+
+function promoteAttributesToRoot(workNode, graph) {
+  return {
+    "@context": framedDocument["@context"],
+    "@graph": graph,
+    // Root-level properties (same as work node)
+    "@id": workNode["@id"],
+    "@type": workNode["@type"],
+    "DOI": workNode.DOI,
+    // "_id": workNode["@id"],  // removed to match old output
+    "abstract": workNode.abstract,
+    "author": workNode.author,
+    "container-title": workNode["container-title"],
+    "is-visible": true,
+    "issued": workNode.issued,
+    // "modified-date": workNode["modified-date"] || new Date().toISOString(), // removed to match old output
+    "name": generateWorkName(workNode),
+    "page": workNode.page,
+    "roles": ["public"],
+    "status": workNode.status,
+    "title": workNode.title,
+    "type": workNode.type,
+    "volume": workNode.volume
+  };
+}
+
+/**
+ * @method generateWorkName
+ * @description Generate a formatted work name string
+ * @param {*} workNode the source work node
+ * @returns {string} the formatted work name
+ */
+function generateWorkName(workNode) {
+  const title = workNode.title || '';
+  const status = workNode.status || '';
+  const type = workNode.type || '';
+  const issued = workNode.issued || '';
+
+  // Extract author names for abbreviated format
+  let authorString = '';
+  let authorArr = asArray(workNode.author);
+  if (authorArr.length > 0) {
+    const firstAuthor = authorArr[0];
+    const lastAuthor = authorArr[authorArr.length - 1];
+
+    if (authorArr.length === 1) {
+      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}`;
+    } else if (authorArr.length === 2) {
+      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}. & ${lastAuthor.family}, ${lastAuthor.given?.charAt(0) || ''}.`;
+    } else {
+      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}. & ${lastAuthor.family}, ${lastAuthor.given?.charAt(0) || ''}. et al.`;
+    }
+  }
+
+  const containerTitle = workNode["container-title"] || '';
+  const eissn = workNode.eissn || '';
+  const doi = workNode.DOI || '';
+
+  return `${title} § ${status} • ${type} • ${issued} • ${authorString} § ${containerTitle} • ${eissn} § ${doi}`;
 }
 
 

@@ -1,8 +1,9 @@
 import cache from '../../cache.js';
 import logger from '../../logger.js';
+import config from '../../config.js';
 import { Graph } from './graph.js';
 import {frame, simplifiedExpert} from './frame.js';
-import {getNodeByType, SHORT_TYPES} from '../utils.js';
+import {asArray, getNodeByType, SHORT_TYPES} from '../utils.js';
 import { generateBaseScholarlyWork } from './scholary-work.js';
 
 /**
@@ -111,7 +112,7 @@ async function generateExpert(username, opts={}) {
   }
   
   graph = graph.toRdfGraph();
-  graph['@id'] = expertNode['@id'];
+  graph = promoteAttributesToRoot(expertNode, graph['@graph']);
 
   if( opts.write ) {
     await cache.writeUserAsset(
@@ -119,10 +120,80 @@ async function generateExpert(username, opts={}) {
       username,
       'webapp/expert.jsonld',
       JSON.stringify(graph, null, 2)
-    ); 
+    );
   }
 
+
   return graph;
+}
+
+/**
+ * @method promoteAttributesToRoot
+ * @description Promotes hasAvailability, type, contactInfo, is-visible and name
+ * from the expert node to the root of the document.
+ * This is pulled from the fin model in AEv2.
+ * 
+ * @param {Object} expertNode the expert node to promote attributes from
+ * @param {Object} graph the graph to promote attributes to
+ * 
+ * @returns {*} the restructured document
+ */
+function promoteAttributesToRoot(expertNode, graph) {
+  // hummm
+  // if( typeof compacted["is-visible"] === 'object' ) delete compacted["is-visible"];
+
+
+  const doc = {
+    "@id": expertNode['@id'],
+    "@context": (config?.server?.url || 'https://stage.experts.library.ucdavis.edu') + "/api/schema/context.jsonld",
+    "@graph": graph,
+    "@type": "Expert"
+  };
+
+  // if( typeof expertNode["is-visible"] === 'object' ) delete expertNode["is-visible"];
+
+  if( expertNode["is-visible"] !== undefined ) {
+    doc["is-visible"] = expertNode["is-visible"];
+  }
+  if (expertNode["hasAvailability"]) {
+    doc["hasAvailability"] = Array.isArray(expertNode["hasAvailability"])
+      ? [...expertNode["hasAvailability"]]
+      : [expertNode["hasAvailability"]];
+  }
+
+  let contact = null;
+  let hasEmail = [];
+  let hasURL = [];
+  if (expertNode["contactInfo"]) {
+    let contactInfos = asArray(expertNode["contactInfo"]);
+    contactInfos.sort((a, b) => (a["rank"] || 100) - (b["rank"] || 100));
+    contact = contactInfos[0];
+    contactInfos.forEach((info) => {
+      if (info.hasEmail) hasEmail = hasEmail.concat(info.hasEmail);
+      if (info?.hasURL) hasURL = hasURL.concat(info.hasURL);
+    });
+  }
+
+  doc["contactInfo"] = {};
+  if (hasURL.length > 0) doc.contactInfo["hasURL"] = hasURL;
+  doc.contactInfo["hasEmail"] = hasEmail?.[0];
+
+  ["name", "hasName", "hasTitle", "hasOrganizationalUnit"].forEach((key) => {
+    if (contact && contact[key]) {
+      doc.contactInfo[key] = contact[key];
+    }
+  });
+  if (doc.contactInfo.name) {
+    doc.name = doc.contactInfo.name;
+  }
+  if (expertNode["modified-date"]) {
+    doc["modified-date"] = expertNode["modified-date"];
+  }
+  if (expertNode["roles"]) {
+    doc["roles"] = expertNode["roles"];
+  }
+
+  return doc;
 }
 
 export {
