@@ -16,6 +16,29 @@ const FOLDER_TYPES = {
   'work': SHORT_TYPES.WORKS
 }
 
+const PROMPT_ROOT_PROPS = [
+  "@id",
+  "@type",
+  "DOI",
+  "abstract",
+  "author",
+  "container-title",
+  "is-visible",
+  "issued",
+  "page",
+  "status",
+  "title",
+  "type",
+  "volume",
+  "assignedBy",
+  "dateTimeInterval",
+  "identifier",
+  "modified-date",
+  "sponsorAwardId",
+  "status",
+  "totalAwardAmount"
+];
+
 /**
  * @method generateBaseScholarlyWork
  * @description Given a scholarly work subject, transform the corresponding work into the framed and
@@ -71,21 +94,21 @@ async function generateScholarlyWork(subject, opts={}) {
   const experts = await _getScholarlyWorkExperts(baseWork, opts);
   graph.addNodes(experts);
 
+  let swType = getScholarlyWorkType(baseWork['@type']);
+  if( !swType ) {
+    throw new Error(`Failed to determine folder type for scholarly work ${baseWork['@id']} with types ${baseWork['@type']}`);
+  }
+
   graph = graph.toRdfGraph();
-  graph = promoteAttributesToRoot(baseWork, graph);
+  graph = promoteAttributesToRoot(baseWork, graph, swType);
 
   if( opts.write ) {
-    // we need to get the 'simiplifed' types for folder name
-    let folderType = getScholarlyWorkType(baseWork['@type']);
 
-    if( !folderType ) {
-      throw new Error(`Failed to determine folder type for scholarly work ${baseWork['@id']} with types ${baseWork['@type']}`);
-    }
     let filename = subject.split(/[\/|#]/).pop();
 
     await cache.writeScholarlyAsset(
       'ae-webapp-expert-transform',
-      folderType,
+      swType,
       path.join('ae-webapp', filename+'.json'),
       JSON.stringify(graph, null, 2)
     );
@@ -152,29 +175,95 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
   return results;
 }
 
-function promoteAttributesToRoot(workNode, graph) {
-  return {
-    "@context": framedDocument["@context"],
+/**
+ * @function promoteAttributesToRoot
+ * @description Promotes select attributes from the scholarly work node 
+ * to the root graph of the elastic saerch document for easier webapp search. 
+ * 
+ * @param {Object} workNode the scholarly work node to promote attributes from
+ * @param {Object} graph the full scholarly work graph to promote attributes to
+ * @param {String} type generic work type (e.g. 'work' or 'grant') 
+ * @returns 
+ */
+function promoteAttributesToRoot(workNode, graph, type) {
+  let name;
+
+  switch(type) {
+    case 'work':
+      name = generateWorkName(workNode);
+      break;
+    case 'grant':
+      name = generateGrantName(workNode); 
+      break;
+    default:
+      throw new Error(`Unknown type ${type} in promoteAttributesToRoot`);
+  }
+
+  let root = {
+    "@context": workNode["@context"],
     "@graph": graph,
-    // Root-level properties (same as work node)
-    "@id": workNode["@id"],
-    "@type": workNode["@type"],
-    "DOI": workNode.DOI,
-    // "_id": workNode["@id"],  // removed to match old output
-    "abstract": workNode.abstract,
-    "author": workNode.author,
-    "container-title": workNode["container-title"],
     "is-visible": true,
-    "issued": workNode.issued,
-    // "modified-date": workNode["modified-date"] || new Date().toISOString(), // removed to match old output
-    "name": generateWorkName(workNode),
-    "page": workNode.page,
     "roles": ["public"],
-    "status": workNode.status,
-    "title": workNode.title,
-    "type": workNode.type,
-    "volume": workNode.volume
+    "name": name,
   };
+
+  // promote select properties to the root 
+  PROMPT_ROOT_PROPS.forEach(prop => {
+    if( workNode[prop] !== undefined ) {
+      root[prop] = workNode[prop];
+    }
+  });
+
+  return root;
+}
+
+/**
+ * @method generateGrantName
+ * @description Generate grant name if missing
+ * @param {*} grantNode the source grant node
+ * @returns {string} the generated grant name
+ */
+function generateGrantName(grantNode) {
+  // Use existing name if available, or construct one
+  if (grantNode.name) {
+    return grantNode.name;
+  }
+
+  const title = grantNode.title || '';
+  const status = grantNode.status || '';
+  const assignedBy = grantNode.assignedBy?.name || '';
+  const sponsorAwardId = grantNode.sponsorAwardId || '';
+
+  // Extract date range from dateTimeInterval
+  let dateRange = '';
+  if (grantNode.dateTimeInterval) {
+    const start = grantNode.dateTimeInterval.start?.dateTime;
+    const end = grantNode.dateTimeInterval.end?.dateTime;
+    if (start && end) {
+      const startYear = new Date(start).getFullYear();
+      const endYear = new Date(end).getFullYear();
+      dateRange = `${startYear} - ${endYear}`;
+    }
+  }
+
+  // Extract PI name from relatedBy roles
+  let piName = '';
+  if (grantNode.relatedBy && Array.isArray(grantNode.relatedBy)) {
+    const piRole = grantNode.relatedBy.find(role => {
+      const types = Array.isArray(role['@type']) ? role['@type'] : [role['@type']];
+      return types.some(t => t.includes('PrincipalInvestigatorRole'));
+    });
+    if (piRole && piRole.relates) {
+      const piPerson = Array.isArray(piRole.relates)
+        ? piRole.relates.find(r => r.name || r.hasName)
+        : piRole.relates;
+      if (piPerson) {
+        piName = piPerson.name || (piPerson.hasName ? `${piPerson.hasName.family}, ${piPerson.hasName.given}` : '');
+      }
+    }
+  }
+
+  return `${title} § ${status} • ${dateRange} • ${piName} § ${assignedBy} • ${sponsorAwardId}`;
 }
 
 /**
