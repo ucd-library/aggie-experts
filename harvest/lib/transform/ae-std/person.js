@@ -6,7 +6,7 @@ import config from '../../config.js';
 import logger from '../../logger.js';
 import path from 'path';
 
-import {getNodeByType, sortJsonArrayByIdAndKeys, SHORT_TYPES} from '../utils.js';
+import {getNodeByType, sortJsonArrayByIdAndKeys, SHORT_TYPES, asArray} from '../utils.js';
 
 // ---- helpers ----
 const uniq = arr => Array.from(new Set((arr || []).filter((v) => v != null)));
@@ -163,6 +163,8 @@ function run(expertId, profile, cdl, ucopVocab) {
 
   // CDL user object fields sourced from gated user graph only
   const cdlObj = (cdlUserGraph && cdlUserGraph['api:object']) || {};
+  const cdlIsPublic = cdlObj['api:is-public'] === 'true';
+  const cdlPrivacyLevel = cdlObj['api:privacy-level'];
   const cdlUserFirstName = cdlObj['api:first-name'] || cdlObj['first-name'];
   const cdlUserLastName  = cdlObj['api:last-name']  || cdlObj['last-name'];
   const cdlDepartment    = cdlObj['api:department'] || cdlObj['department'];
@@ -177,7 +179,9 @@ function run(expertId, profile, cdl, ucopVocab) {
   function extractFieldText(name) {
     const node = flattenNative.find(f => f && f.name === name);
     const textNode = node && node['api:text'];
-    return textNode && textNode['$t'];
+    if( !textNode ) return null;
+    if( textNode['privacy'] !== 'public' ) return null; // enforce public gate at field level
+    return textNode['$t'];
   }
   const cdlOverview          = extractFieldText('overview');
   const cdlResearchInterests = extractFieldText('research-interests');
@@ -185,7 +189,9 @@ function run(expertId, profile, cdl, ucopVocab) {
 
   // Extract websites ONLY from gated user graph
   const websiteFields = flattenNative.filter(f => f && f.name === 'personal-websites');
-  const cdlWebsites = websiteFields.flatMap(field => (field['api:web-addresses']?.['api:web-address']) ? field['api:web-addresses']['api:web-address'] : []);
+  const cdlWebsites = websiteFields
+    .flatMap(field => asArray(field['api:web-addresses']?.['api:web-address']))
+    .filter(w => w && w['privacy'] === 'public')
 
   // Identifier associations inside gated user graph
   const assocNodes = jsonpath.query(cdlUserGraph, '$["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"]') || [];
@@ -226,7 +232,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     "http://www.w3.org/2000/01/rdf-schema#label": [{ "@value": `${formattedLastName}, ${formattedFirstName}` }],
     // TODO: JM this is only controlled by ODR?  What about CDL visibility rules?
     "http://schema.library.ucdavis.edu/schema#is-visible": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(odrIsVisible) }
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": (odrIsVisible && cdlIsPublic && cdlPrivacyLevel !== 'Public') }
     ],
     "http://schema.library.ucdavis.edu/schema#isHSEmployee": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(isHSEmployee) }
@@ -526,7 +532,7 @@ function run(expertId, profile, cdl, ucopVocab) {
 
   // --- Push expert
   pushUniqueById(result, expert);
-  return result;
+  return {result, odrIsVisible, cdlIsPublic, cdlPrivacyLevel}; ;
 }
 
 async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVocabFile) {
@@ -544,7 +550,9 @@ async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVoca
   let ucopVocab = JSON.parse(fs.readFileSync(ucopVocabFile, 'utf8'));
   if (ucopVocab['@graph'] && ucopVocab['@graph'].length > 0) ucopVocab = ucopVocab['@graph'][0];
   if (!profile['@graph'][0].expertId) profile['@graph'][0].expertId = userCacheName.replace(/@.*/g, '');
-  let result = sortJsonArrayByIdAndKeys(run(expertId, profile, cdlData, ucopVocab));
+  
+  let {result, odrIsVisible, cdlIsPublic, cdlPrivacyLevel} = run(expertId, profile, cdlData, ucopVocab);
+  result = sortJsonArrayByIdAndKeys(result);
 
   await cache.writeUserAsset(
     'ae-std-person-transform',
@@ -557,11 +565,14 @@ async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVoca
 
   if( expert ) {
     let isVisible = jsonpath.value(expert, '$["http://schema.library.ucdavis.edu/schema#is-visible"][0]["@value"]') === 'true';
-    return {isVisible};
+    return {isVisible, odrIsVisible, cdlIsPublic, cdlPrivacyLevel};
   }
 
   return {
-    isVisible: false
+    isVisible: false,
+    odrIsVisible, 
+    cdlIsPublic, 
+    cdlPrivacyLevel
   };
 }
 
