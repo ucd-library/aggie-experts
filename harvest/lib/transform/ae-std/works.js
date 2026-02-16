@@ -14,10 +14,10 @@ function transformWorks(works, expertId, elementsUserId, inputGraph) {
   let results = [];
   works.forEach(work => {
     let relationshipId = work.id;
-    const graph = transformWork(work, relationshipId, expertId, elementsUserId, inputGraph);
+    const result = transformWork(work, relationshipId, expertId, elementsUserId, inputGraph);
     // Only include non-empty graphs (replicate legacy SPARQL behavior which may exclude some relationships)
-    if (graph && Array.isArray(graph) && graph.length) {
-      results.push({ relationshipId, graph });
+    if (result.graph && Array.isArray(result.graph) && result.graph.length) {
+      results.push(result);
     }
   });
   return results;
@@ -610,9 +610,9 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     ];
   }
 
-  result.push(authorship);
+  result.push(authorship);``
 
-  return result;
+  return {isVisible, workUri: publicationUri, relationshipUri, graph: result};
 }
 
 export { transformWorks };

@@ -81,10 +81,34 @@ async function srcToAeStd(options={}) {
   expertData['first-name'] = iamFirst || user.firstName;
 
   // Transform in std AE Person data
-  let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
+  let { isVisible } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
-  await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
+  let { grants, works } = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
+  
+  // TODO: mark if person is visible or not based on if they have any visible grants/works? or just include in metadata file? for now just include in metadata file
+  let metadata = {
+    expertId,
+    isVisible,
+    grants: grants.map(g => ({ 
+      relationshipUri: g.relationshipUri, 
+      grantUri: g.grantUri, 
+      isVisible: g.isVisible 
+    })),
+    works: works.map(w => ({ 
+      relationshipUri: w.relationshipUri, 
+      workUri: w.workUri, 
+      isVisible: w.isVisible 
+    })),
+  }
+
+  await cache.writeUserAsset(
+    'ae-std-relationship-transform',
+    options.user,
+    'metadata.json',
+    JSON.stringify(metadata, null, 2)
+  );
+  
 }
 
 export {

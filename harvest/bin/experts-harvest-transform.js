@@ -87,10 +87,12 @@ program
 
     let swSubjects = expert['@graph']
       .filter(node => getNodeByType(node, SHORT_TYPES.SCHOLARLY_WORK_TYPES, {match: true}))
-      .map(node => ({
-        uri: node['@id'],
-        type: getScholarlyWorkType(node['@type'])
-      }));
+      .map(node => {
+        return {
+          uri: node['@id'],
+          type: getScholarlyWorkType(node['@type'])
+        };
+      });
 
     let scholarlyWorksRef = {
       works: [],

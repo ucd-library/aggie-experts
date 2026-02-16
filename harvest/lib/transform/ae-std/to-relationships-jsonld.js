@@ -41,7 +41,7 @@ async function run(rel, expertId, expertData, options = {}) {
 
   await saveRelationshipFiles([...works, ...grants], options);
 
-  return { success: true, works: works.length, grants: grants.length };
+  return { success: true, works, grants };
 }
 
 async function runFromFiles(relationshipFiles, expertId, expertData, options) {
@@ -50,25 +50,30 @@ async function runFromFiles(relationshipFiles, expertId, expertData, options) {
     return;
   }
 
+  let grants = [];
+  let works = [];
+
   logger.info(`Running AE std relationship transformation for user: ${options.user}`);
   for( let file of relationshipFiles ) {
     logger.info(`Processing relationship file: ${file}`);
     let rel = JSON.parse(await cache.read(file));
-    await run(rel, expertId, expertData, options);
+    let result = await run(rel, expertId, expertData, options);
+    grants.push(...result.grants);
+    works.push(...result.works);
   }
 
-  return { success: true, message: "Transformation completed" };
+  return { success: true, message: "Transformation completed", grants, works };
 }
 
 async function saveRelationshipFiles(relationships, options) {
   for( let relationship of relationships ) {
-    let { relationshipId, graph } = relationship;
+    let { relationshipUri, graph } = relationship;
     graph = sortJsonRecursively(graph);
 
     await cache.writeUserAsset(
       'ae-std-relationship-transform',
       options.user,
-      path.join(config.cache.aeStdFormatDir, 'rel', `${relationshipId}.jsonld`),
+      path.join(config.cache.aeStdFormatDir, 'rel', `${relationshipUri}.jsonld`),
       graph
     );
   }

@@ -6,7 +6,7 @@ import config from '../../config.js';
 import logger from '../../logger.js';
 import path from 'path';
 
-import {sortJsonArrayByIdAndKeys} from '../utils.js';
+import {getNodeByType, sortJsonArrayByIdAndKeys, SHORT_TYPES} from '../utils.js';
 
 // ---- helpers ----
 const uniq = arr => Array.from(new Set((arr || []).filter((v) => v != null)));
@@ -224,6 +224,7 @@ function run(expertId, profile, cdl, ucopVocab) {
       expertType
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [{ "@value": `${formattedLastName}, ${formattedFirstName}` }],
+    // TODO: JM this is only controlled by ODR?  What about CDL visibility rules?
     "http://schema.library.ucdavis.edu/schema#is-visible": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(odrIsVisible) }
     ],
@@ -544,12 +545,24 @@ async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVoca
   if (ucopVocab['@graph'] && ucopVocab['@graph'].length > 0) ucopVocab = ucopVocab['@graph'][0];
   if (!profile['@graph'][0].expertId) profile['@graph'][0].expertId = userCacheName.replace(/@.*/g, '');
   let result = sortJsonArrayByIdAndKeys(run(expertId, profile, cdlData, ucopVocab));
-  return cache.writeUserAsset(
+
+  await cache.writeUserAsset(
     'ae-std-person-transform',
     userCacheName,
     path.join(config.cache.aeStdFormatDir, 'person.jsonld'),
     result
   );
+
+  let expert = getNodeByType(result, SHORT_TYPES.EXPERT, {match: true});
+
+  if( expert ) {
+    let isVisible = jsonpath.value(expert, '$["http://schema.library.ucdavis.edu/schema#is-visible"][0]["@value"]') === 'true';
+    return {isVisible};
+  }
+
+  return {
+    isVisible: false
+  };
 }
 
 export { run, runFromFiles };

@@ -45,8 +45,34 @@ async function run(user, alias='stage') {
 
 async function reportScholarlyOutputLoadStats(user, files) {
     // Count works and grants for reporting
-  let workStats = await countUserAssets(user, files, 'work');
-  let grantStats = await countUserAssets(user, files, 'grant');
+  // TODO: fix this
+  // let workStats = await countUserAssets(user, files, 'work');
+  // let grantStats = await countUserAssets(user, files, 'grant');
+  let workStats = [
+    {
+      type: 'works',
+      visibility: 'public',
+      count: files.filter(file => file.type === 'work').length
+    },
+    {
+      type: 'works',
+      visibility: 'private',
+      count: 0
+    }
+  ];
+
+  let grantStats = [
+    {
+      type: 'grants',
+      visibility: 'public',
+      count: files.filter(file => file.type === 'grant').length
+    },
+    {
+      type: 'grants',
+      visibility: 'private',
+      count: 0
+    }
+  ];
 
   for (let stat of [...workStats, ...grantStats]) {
     await config.postgres.client.insertUserScholarlyOutputLoadStats({

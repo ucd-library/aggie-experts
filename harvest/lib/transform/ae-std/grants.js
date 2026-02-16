@@ -498,7 +498,7 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     [ONTOLOGY.RELATES]: [ { "@id": expertUri }, { "@id": grantUri } ]
   };
 
-  return userRole;
+  return {isVisible, userRole};
 }
 
 function sanitizePart(s) {
@@ -1043,7 +1043,7 @@ function mergeRoles(result) {
   return result;
 }
 
-function finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri) {
+function finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri, isVisible) {
   if (createdRoles.length > 0) {
     grant[ONTOLOGY.RELATED_BY].push(...createdRoles);
   }
@@ -1071,7 +1071,12 @@ function finalizeGrantOutput(grant, result, createdRoles, userRole, relationship
     ];
   }
 
-  return result;
+  return {
+    relationshipUri,
+    grantUri,
+    graph: result,
+    isVisible
+  };
 }
 
 function transformGrants(grants, expertId, expertData) {
@@ -1079,7 +1084,7 @@ function transformGrants(grants, expertId, expertData) {
   grants.forEach(grant => {
     // if( grant.id == '6184542' ) console.log('about to parse 6184542', JSON.stringify(grant));
     let relationshipId = grant.id;
-    results.push({ relationshipId, graph: transformGrant(grant, relationshipId, expertId, expertData) });
+    results.push(transformGrant(grant, relationshipId, expertId, expertData));
   });
   return results;
 }
@@ -1116,10 +1121,10 @@ function transformGrant(grantRelationship, relationshipId, expertId, expertData)
   result.push(...peopleRecords);
 
   // Create user role (pass fields so we can choose best expert display variant)
-  const userRole = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields);
+  const {isVisible, userRole} = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields);
 
   // Finalize output
-  return finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri);
+  return finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri, isVisible);
 }
 
 export { transformGrants };
