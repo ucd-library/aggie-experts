@@ -91,22 +91,6 @@ export class IAM {
 
     const jsonldfn = path.join(config.cache.iamDir, config.cache.iamUserFilename);
 
-    // if( opts.noCache !== true ) {
-    //   if( !opts.force && await cache.existsUserAsset(expertEmail, jsonldfn) ) {
-    //     logger.info(`Skipping fetch IAM API as it is already cached at ${jsonldfn}`);
-
-    //     const json = JSON.parse(await cache.readUserAsset(expertEmail, jsonldfn));
-    //     let stats = await cache.getFileStats(cache.getPath(expertEmail, jsonldfn));
-    //     stats.noOp = true; // no operation, already exists
-
-    //     return {
-    //       writeResp: stats,
-    //       jsonldfn,
-    //       json
-    //     };
-    //   }
-    // }
-
     // Mask the key in the URL for logging
     const maskedUrl = url.replace(/([?&]key=)[^&]+/, '$1********');
     this.log.info(`Fetching iam profile ${id} from: ${maskedUrl}`);
@@ -125,7 +109,9 @@ export class IAM {
     }
 
     if( !res.responseData || !res.responseData.results || res.responseData.results.length === 0 ) {
-      throw new Error(`✘ profile(${id}) - no results found`);
+      return {
+        notFound : true
+      }
     }
 
     let writeResp = await cache.writeUserAsset('iam-extract', expertEmail, jsonldfn, res);

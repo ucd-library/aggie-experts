@@ -55,8 +55,9 @@ CREATE TABLE IF NOT EXISTS "user" (
   first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_iam TIMESTAMP,
-  iam_name_www_flag BOOLEAN,
-  cdl_is_public BOOLEAN
+  is_public BOOLEAN DEFAULT FALSE,
+  cdl_privacy JSONB,
+  odr_privacy JSONB
 );
 
 CREATE TABLE IF NOT EXISTS year_week (

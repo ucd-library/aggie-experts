@@ -1,14 +1,12 @@
-import cache from '../cache.js';
-import logger from '../logger.js';
-import config from '../config.js';
+import cache from '../../cache.js';
+import logger from '../../logger.js';
+import config from '../../config.js';
 import path from 'path';
-import fs from 'fs';
 
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
-import {runFromFiles as jsonLdToPerson} from './person.js';
-import {runFromFiles as personToWebapp} from './elastic-search/index.js';
-import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.js';
+import {jsonLdToPerson} from './person.js';
+import {toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
 async function srcToAeStd(options={}) {
   if( options.rootDir ) {
@@ -83,22 +81,44 @@ async function srcToAeStd(options={}) {
   expertData['first-name'] = iamFirst || user.firstName;
 
   // Transform in std AE Person data
-  let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
+  let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
-  await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
-}
-
-async function aeStdToWebapp(options={}) {
-  if( !options.user.match(/@/) ) {
-    options.user += '@ucdavis.edu'; // ensure user has a domain
+  let { grants, works } = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
+  
+  let metadata = {
+    expertId,
+    isPublic,
+    odrPrivacy,
+    cdlPrivacy,
+    privacyAttributes,
+    grants: grants.map(g => ({ 
+      relationshipUri: g.relationshipUri, 
+      uri: g.grantUri, 
+      privacy: g.privacy 
+    })),
+    works: works.map(w => ({ 
+      relationshipUri: w.relationshipUri, 
+      uri: w.workUri, 
+      privacy: w.privacy 
+    })),
   }
 
-  logger.info('Clearing existing webapp transformed data for user:', options.user);
-  await cache.deleteUserAsset(options.user, config.cache.aeWebappDir, { isDirectory: true });
+  if( noPPSAssociations === true ) {
+    metadata.iamExtractIssues = metadata.iamExtractIssues || {};
+    metadata.iamExtractIssues.noPPSAssociations = true;
+  }
 
-  // Transform in webapp format
-  await personToWebapp(options.user);
+  await cache.writeUserAsset(
+    'ae-std-relationship-transform',
+    options.user,
+    'metadata.json',
+    JSON.stringify(metadata, null, 2)
+  );
+ 
+  return metadata;
 }
 
-export { srcToAeStd, aeStdToWebapp };
+export {
+  srcToAeStd
+}

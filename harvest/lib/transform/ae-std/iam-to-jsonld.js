@@ -1,6 +1,6 @@
-import cache from '../cache.js';
-import logger from '../logger.js';
-import config from '../config.js';
+import cache from '../../cache.js';
+import logger from '../../logger.js';
+import config from '../../config.js';
 
 /**
  * @function iamApiToJsonLd

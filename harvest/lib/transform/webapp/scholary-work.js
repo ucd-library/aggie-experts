@@ -1,0 +1,306 @@
+import cache from '../../cache.js';
+import logger from '../../logger.js';
+import {frame, simplifiedExpert} from './frame.js';
+import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js';
+import { getYearWeek } from '../../year-week.js';
+import { getRelates } from './relates.js';
+import { Graph } from './graph.js';
+import path from 'path';
+
+const TYPES = [
+  ...SHORT_TYPES.WORKS, ...SHORT_TYPES.GRANTS
+]
+
+const FOLDER_TYPES = {
+  'grant': SHORT_TYPES.GRANTS,
+  'work': SHORT_TYPES.WORKS
+}
+
+const PROMPT_ROOT_PROPS = [
+  "@id",
+  "@type",
+  "DOI",
+  "abstract",
+  "author",
+  "container-title",
+  "is-visible",
+  "issued",
+  "page",
+  "status",
+  "title",
+  "type",
+  "volume",
+  "assignedBy",
+  "dateTimeInterval",
+  "identifier",
+  "modified-date",
+  "sponsorAwardId",
+  "status",
+  "totalAwardAmount"
+];
+
+/**
+ * @method generateBaseScholarlyWork
+ * @description Given a scholarly work subject, transform the corresponding work into the framed and
+ * compacted base scholarly work format used for the webapp.  This function returns a single node 
+ * for the scholarly work.
+ * 
+ * @param {String} subject the subject URI of the work to transform
+ * @param {Object} opts 
+ * @param {Temporal.PlainDate} opts.date the date to use for partitioning when finding related nodes (defaults to now)
+ * 
+ * @return {Object} base scholarly work node
+ */
+async function generateBaseScholarlyWork(subject, opts={}) {
+  let graph = await getRelates(subject, {date: opts.date, includeWork: true});
+  if( graph.nodes.size === 0 ) {
+    logger.warn(`No relationships found for scholarly work subject ${subject}`);
+    return null;
+  }
+
+  graph = await frame(graph.toRdfGraph(), true);
+
+  // hack.  the works get extra data at the moment, the relationships are transformed into the root
+  if( graph['@graph'] ) {
+    graph = getNodeByType(graph, TYPES, {match: true});
+  }
+
+  if( graph['@context'] ) {
+    delete graph['@context'];
+  }
+
+  return graph;
+}
+
+/**
+ * @method generateScholarlyWork
+ * @description Given a scholarly work subject, transform the corresponding work into the framed and
+ * compacted scholarly work format used for the webapp.  This function returns a single node 
+ * for the scholarly work.
+ * 
+ * @param {String} subject the subject URI of the work to transform
+ * @param {Object} opts 
+ */
+async function generateScholarlyWork(subject, opts={}) {
+  logger.info(`Running AE webapp scholarly work transformation for subject: ${subject}`);
+  
+  let graph = new Graph();
+
+  // get the base work node with all relationships added
+  const baseWork = await generateBaseScholarlyWork(subject, opts);
+  graph.addNode(baseWork);
+  
+  // get the experts related to the work and add to the graph
+  const experts = await _getScholarlyWorkExperts(baseWork, opts);
+  graph.addNodes(experts);
+
+  let swType = getScholarlyWorkType(baseWork['@type']);
+  if( !swType ) {
+    throw new Error(`Failed to determine folder type for scholarly work ${baseWork['@id']} with types ${baseWork['@type']}`);
+  }
+
+  graph = graph.toRdfGraph();
+  graph = promoteAttributesToRoot(baseWork, graph, swType);
+
+  if( opts.write ) {
+    await cache.writeScholarlyAsset(
+      'ae-webapp-expert-transform',
+      swType,
+      path.join('ae-webapp', subject+'.json'),
+      JSON.stringify(graph, null, 2)
+    );
+  }
+
+  return graph;
+}
+
+function getScholarlyWorkType(nodeTypes) {
+  nodeTypes = asArray(nodeTypes);
+
+  for( let folderType in FOLDER_TYPES ) {
+    for( let type of FOLDER_TYPES[folderType] ) {
+      for( let nodeType of nodeTypes ) {
+        if( nodeType.includes(type) ) {
+          return folderType;
+        }
+      }
+    }
+  }
+}
+
+
+async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
+  let experts = new Set();
+
+  // get all unique relatedBy.relates id's
+  baseWorkNode?.relatedBy?.map(rel => rel.relates)
+    .filter(rel => rel)
+    .forEach(relates => {
+      asArray(relates).forEach(item => {
+        if( typeof item === 'object' && item['@id'] ) {
+          experts.add(item['@id']);
+        } else if (typeof item === 'string') {
+          experts.add(item);
+        }
+      });
+    });
+  
+  // filter to the experts id pattern
+  experts = Array.from(experts).filter(id => id.startsWith('expert/'));
+
+  const partitionKeys = ['year-week-'+getYearWeek(opts.date), 'ae-std'];
+  const results = [];
+  
+  for( let expertId of experts ) {
+    expertId = 'http://experts.ucdavis.edu/'+expertId;
+
+    let relatedExpert = await cache.findRelatedExperts(expertId, {partitionKeys});
+    if( !relatedExpert.results.length ) {
+      logger.warn(`Related expert not found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}`);
+      return null;
+    }
+
+    let person = JSON.parse(await cache.read(relatedExpert.results[0].filepath));
+
+    person = await frame(person);
+
+    person = getNodeByType(person, SHORT_TYPES.EXPERT, {match: true});
+
+    results.push(simplifiedExpert(person));
+  }
+
+  return results;
+}
+
+/**
+ * @function promoteAttributesToRoot
+ * @description Promotes select attributes from the scholarly work node 
+ * to the root graph of the elastic saerch document for easier webapp search. 
+ * 
+ * @param {Object} workNode the scholarly work node to promote attributes from
+ * @param {Object} graph the full scholarly work graph to promote attributes to
+ * @param {String} type generic work type (e.g. 'work' or 'grant') 
+ * @returns 
+ */
+function promoteAttributesToRoot(workNode, graph, type) {
+  let name;
+
+  switch(type) {
+    case 'work':
+      name = generateWorkName(workNode);
+      break;
+    case 'grant':
+      name = generateGrantName(workNode); 
+      break;
+    default:
+      throw new Error(`Unknown type ${type} in promoteAttributesToRoot`);
+  }
+
+  let root = {
+    "@context": workNode["@context"],
+    "@graph": graph,
+    "is-visible": true,
+    "roles": ["public"],
+    "name": name,
+  };
+
+  // promote select properties to the root 
+  PROMPT_ROOT_PROPS.forEach(prop => {
+    if( workNode[prop] !== undefined ) {
+      root[prop] = workNode[prop];
+    }
+  });
+
+  return root;
+}
+
+/**
+ * @method generateGrantName
+ * @description Generate grant name if missing
+ * @param {*} grantNode the source grant node
+ * @returns {string} the generated grant name
+ */
+function generateGrantName(grantNode) {
+  // Use existing name if available, or construct one
+  if (grantNode.name) {
+    return grantNode.name;
+  }
+
+  const title = grantNode.title || '';
+  const status = grantNode.status || '';
+  const assignedBy = grantNode.assignedBy?.name || '';
+  const sponsorAwardId = grantNode.sponsorAwardId || '';
+
+  // Extract date range from dateTimeInterval
+  let dateRange = '';
+  if (grantNode.dateTimeInterval) {
+    const start = grantNode.dateTimeInterval.start?.dateTime;
+    const end = grantNode.dateTimeInterval.end?.dateTime;
+    if (start && end) {
+      const startYear = new Date(start).getFullYear();
+      const endYear = new Date(end).getFullYear();
+      dateRange = `${startYear} - ${endYear}`;
+    }
+  }
+
+  // Extract PI name from relatedBy roles
+  let piName = '';
+  if (grantNode.relatedBy && Array.isArray(grantNode.relatedBy)) {
+    const piRole = grantNode.relatedBy.find(role => {
+      const types = Array.isArray(role['@type']) ? role['@type'] : [role['@type']];
+      return types.some(t => t.includes('PrincipalInvestigatorRole'));
+    });
+    if (piRole && piRole.relates) {
+      const piPerson = Array.isArray(piRole.relates)
+        ? piRole.relates.find(r => r.name || r.hasName)
+        : piRole.relates;
+      if (piPerson) {
+        piName = piPerson.name || (piPerson.hasName ? `${piPerson.hasName.family}, ${piPerson.hasName.given}` : '');
+      }
+    }
+  }
+
+  return `${title} § ${status} • ${dateRange} • ${piName} § ${assignedBy} • ${sponsorAwardId}`;
+}
+
+/**
+ * @method generateWorkName
+ * @description Generate a formatted work name string
+ * @param {*} workNode the source work node
+ * @returns {string} the formatted work name
+ */
+function generateWorkName(workNode) {
+  const title = workNode.title || '';
+  const status = workNode.status || '';
+  const type = workNode.type || '';
+  const issued = workNode.issued || '';
+
+  // Extract author names for abbreviated format
+  let authorString = '';
+  let authorArr = asArray(workNode.author);
+  if (authorArr.length > 0) {
+    const firstAuthor = authorArr[0];
+    const lastAuthor = authorArr[authorArr.length - 1];
+
+    if (authorArr.length === 1) {
+      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}`;
+    } else if (authorArr.length === 2) {
+      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}. & ${lastAuthor.family}, ${lastAuthor.given?.charAt(0) || ''}.`;
+    } else {
+      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}. & ${lastAuthor.family}, ${lastAuthor.given?.charAt(0) || ''}. et al.`;
+    }
+  }
+
+  const containerTitle = workNode["container-title"] || '';
+  const eissn = workNode.eissn || '';
+  const doi = workNode.DOI || '';
+
+  return `${title} § ${status} • ${type} • ${issued} • ${authorString} § ${containerTitle} • ${eissn} § ${doi}`;
+}
+
+
+export {
+  generateBaseScholarlyWork,
+  generateScholarlyWork,
+  getScholarlyWorkType
+};

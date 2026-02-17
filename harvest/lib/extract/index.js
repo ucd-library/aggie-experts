@@ -18,7 +18,6 @@ async function run(options={}) {
   }
 
   logger.info('Extracting data for user', options.user);
-  logger.info('Root directory for extracted data', cache.rootDir);
 
   if( options.user.indexOf('@') === -1 ) {
     options.user += '@ucdavis.edu'; // ensure user has a domain
@@ -29,14 +28,20 @@ async function run(options={}) {
     { email : options.user } // extract domain from user
   ]
 
+  logger.info('Clearing cache for user', options.user);
+  await cache.deleteUserAsset(options.user, config.cache.cdlDir, { isDirectory: true });
+  await cache.deleteUserAsset(options.user, config.cache.iamDir, { isDirectory: true }); 
+
   // const iamClient = new IamClient();
   let iamResp;
+  let responses = [];
   for( let opt of IAMLookupOptions ) {
     try {
       iamResp = await iamClient.profile(opt, {
         force: options.force,
         cacheKey : options.user
       });
+      responses.push(iamResp);
       if( iamResp.json ) {
         break; // exit loop if we got a valid response
       }
@@ -44,6 +49,20 @@ async function run(options={}) {
       logger.error(`Error fetching IAM profile with options ${JSON.stringify(opt)}:`, err);
     }
   }
+
+  let notFound = true;
+  for( let resp of responses ) {
+    if( resp.notFound === undefined ) {
+      notFound = false;
+      break;
+    }
+  }
+  if( notFound ) {
+    let userText = `userId=${IAMLookupOptions[0].userId} or email=${IAMLookupOptions[1].email}`;
+    logger.warn(`No IAM profile found for user: ${userText}`);
+    return {notFound: true};
+  }
+
 
   if( !iamResp || !iamResp.json ) {
     let userText = `userId=${IAMLookupOptions[0].userId} or email=${IAMLookupOptions[1].email}`;

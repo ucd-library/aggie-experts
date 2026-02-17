@@ -37,10 +37,6 @@ async function insert(index, id, body) {
  * @param {Array} files array of file paths to load
  */
 async function loadFiles(files, alias) {
-  if( !Array.isArray(files) ) {
-    throw new Error('Files must be an array of file paths');
-  }
-
   if( !Array.isArray(alias) ) {
     alias = [alias];
   }
@@ -48,28 +44,21 @@ async function loadFiles(files, alias) {
   let indexes = {};
 
   for (const file of files) {
-    let filename = path.parse(file).base;
-    let parts = filename.split('.');
-    // console.log({filename, parts});
-    if( parts[0] !== 'webapp' ) {
-      logger.info(`Skipping non-webapp file: ${filename}`);
-      continue;
-    }
 
     let index = '';
-    if( parts[1] === 'expert' ) index = config.elasticsearch.indexes.experts;
-    else if( parts[1] === 'work' ) index = config.elasticsearch.indexes.works;
-    else if( parts[1] === 'grant' ) index = config.elasticsearch.indexes.grants;
+    if( file.type === 'expert' ) index = config.elasticsearch.indexes.experts;
+    else if( file.type === 'work' ) index = config.elasticsearch.indexes.works;
+    else if( file.type === 'grant' ) index = config.elasticsearch.indexes.grants;
 
     if( !index ) {
-      logger.info(`Skipping index file: ${filename}`);
+      logger.info(`Skipping index file: ${file.path} with unknown type: ${file.type}`);
       continue;
     }
 
-    let {json, sha256, md5, lastModified} = await loadFile(file);
+    let {json, sha256, md5, lastModified} = await loadFile(file.path);
     let id = json['@id'] || json.id || json._id;
     json._metadata = {
-      file,
+      file: file.path,
       sha256,
       md5,
       lastModified
@@ -77,7 +66,7 @@ async function loadFiles(files, alias) {
 
     for( let a of alias ) {
       let aliasIndex = `${index}-${a}`;
-      logger.info(`Loading file=${file} into index=${aliasIndex} with id=${id}`);
+      logger.info(`Loading file=${file.path} into index=${aliasIndex} with id=${id}`);
       let resp = await insert(aliasIndex, id, json);
       if( !indexes[aliasIndex] ) {
         indexes[aliasIndex] = resp._index;
@@ -385,6 +374,34 @@ async function loadSearchScript(scriptId, scriptBody) {
   logger.info(`Successfully loaded search script: ${scriptId}`);
 }
 
+async function getUsersCurrentScholarlyWorks(expertId, type, alias='stage') {
+  const esClient = await getEsClient();
+  const index = type+'s-'+config.elasticsearch.aliases[alias];
+  const resp = await esClient.search({
+    index,
+    body: {
+        "query": {
+        "nested": {
+          "path": "@graph",
+          "query": {
+            "term": {
+              "@graph.@id": expertId
+            }
+          }
+        }
+      },
+      _source: ["@graph.@id", "@graph.type", "@graph.@type"] // Only return the @id field
+    },
+    size: 10000 // adjust as needed, consider using scroll API for large datasets
+  });
+
+  return resp.hits.hits
+    .map(hit => hit._source['@graph'])
+    .flat()
+    .filter(node => node['@id'] && (node['type'] || node['@type']) !== 'Expert')
+    .map(node => node['@id']);
+}
+
 export {
   loadFiles,
   getIndexDocumentCount,
@@ -396,5 +413,6 @@ export {
   getIndexNameForDate,
   getState,
   deleteSearchScript,
-  loadSearchScript
+  loadSearchScript,
+  getUsersCurrentScholarlyWorks
 }

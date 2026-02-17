@@ -4,8 +4,14 @@ import jsonld from 'jsonld';
 import logger from '../../logger.js';
 import config from '../../config.js';
 import cache from '../../cache.js';
+import { getYearWeek } from '../../year-week.js';
 
-import {sortJsonRecursively} from '../utils.js';
+import {
+  sortJsonRecursively, 
+  getGraphAsItems,
+  SHORT_TYPES,
+  asArray
+} from '../utils.js';
 import {
   generateExpertFile,
   promoteExpertNodeToRoot,
@@ -20,104 +26,6 @@ const contextFile = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
 const framePath = path.join(__dirname, 'frames', 'default.json');
 const frameFile = JSON.parse(fs.readFileSync(framePath, 'utf8'));
 
-/**
- * @method normalizeBooleans
- * @description Recursively mutates jsonld boolean values
- * (for example `{"@value": "true", "@type": "xsd:boolean"}`)
- * to native javascript booleans.
- * @param {@} node
- * @returns
- */
-const normalizeBooleans = (node) => {
-  if (!node || typeof node !== 'object') return;
-  Object.keys(node).forEach(k => {
-    const v = node[k];
-    if (Array.isArray(v)) {
-      v.forEach(normalizeBooleans);
-    } else if (v && typeof v === 'object') {
-      if (
-        v['@value'] !== undefined &&
-        (v['@type'] === 'xsd:boolean' || v['@type'] === 'http://www.w3.org/2001/XMLSchema#boolean')
-      ) {
-        node[k] = (v['@value'] === true || v['@value'] === 'true');
-      } else {
-        normalizeBooleans(v);
-      }
-    }
-  });
-};
-
-/**
- * @method normalizeScalars
- * @description Recursively mutates jsonld scalar values (boolean, integer, string,
- * for example `{"@value": "true", "@type": "xsd:boolean"}`)
- * to native javascript types.
- * @param {@} node
- * @returns
- */
-const normalizeScalars = (node) => {
-  if (!node || typeof node !== 'object') return;
-  for (const k of Object.keys(node)) {
-    const v = node[k];
-    if (Array.isArray(v)) v.forEach(normalizeScalars);
-    else if (v && typeof v === 'object' && '@value' in v) {
-      if (v['@type'] === 'xsd:boolean') node[k] = v['@value'] === true || v['@value'] === 'true';
-      else if (v['@type'] === 'xsd:integer') node[k] = parseInt(v['@value'], 10);
-      else node[k] = v['@value'];
-    } else if (v && typeof v === 'object') normalizeScalars(v);
-  }
-}
-
-/**
- * @method normalizeUnicodeSpacesDeep
- * @description Recursively mutates jsonld string values to replace
- * various unicode space characters with regular spaces.
- * Some descriptions in works/grants contain different types of spaces
- * which causes issues during diff comparisons.
- *
- * The following unicode space characters are targeted:
- * ```
- * \u00A0 - Non-breaking space (NBSP)
- * \u202F - Narrow no-break space
- * \u2007 - Figure space
- * \u2000-\u200A - Various em/en spaces, thin spaces, hair spaces, etc.
- * \u205F - Medium mathematical space
- * ```
- * @param {Object} graph
- * @returns {Object} updated graph
- */
-const normalizeUnicodeSpacesDeep = (graph) => {
-  const seen = new WeakSet();
-  const SPACE_RE = /[\u00A0\u202F\u2007\u2000-\u200A\u205F]/g;
-
-  const fixString = (s) => {
-    if (typeof s !== 'string') return s;
-    return s.replace(SPACE_RE, ' ');
-  };
-
-  const recurse = (node) => {
-    if (!node || typeof node !== 'object') return;
-    if (seen.has(node)) return;
-    seen.add(node);
-
-    for (const key of Object.keys(node)) {
-      const v = node[key];
-      if (typeof v === 'string') {
-        node[key] = fixString(v);
-      } else if (Array.isArray(v)) {
-        for (let i = 0; i < v.length; i++) {
-          if (typeof v[i] === 'string') v[i] = fixString(v[i]);
-          else if (v[i] && typeof v[i] === 'object') recurse(v[i]);
-        }
-      } else if (v && typeof v === 'object') {
-        recurse(v);
-      }
-    }
-  };
-
-  graph.forEach(n => recurse(n));
-  return graph;
-};
 
 /**
  * @method collapseSingleItemPrimitiveArrays
@@ -150,7 +58,7 @@ async function findRelatedExperts(subject, excludeExpertId) {
   const relNodes = [];
 
   if (!cache || !cache.caskFs || !cache.caskFs.rdf || typeof cache.caskFs.rdf.find !== 'function') {
-    logger.debug('cask RDF interface not available');
+    logger.warn('cask RDF interface not available');
     return [];
   }
 
@@ -221,7 +129,7 @@ async function findRelatedExperts(subject, excludeExpertId) {
         relNodes.push({ node: outNode, filepath: fp });
       }
     } catch (e) {
-      logger.debug(`Failed to read/parse RDF-found rel file ${fp}: ${e.message}`);
+      logger.error(`Failed to read/parse RDF-found rel file ${fp}`, e);
     }
   }
 
@@ -371,16 +279,17 @@ async function frame(expertId, graph) {
 }
 
 /**
- * @method readRelationshipFiles
- * @description Reads all relationship files for a given expert in the `/expertId/rel` directory,
+ * @method createScholarlyWorksGraph
+ * @description Reads all relationship files for a given expert in the `/scholarly-works` directory,
  * identifies the type of relationship, links the roles in relatedBy, and returns the deduped/combined array.
+ * 
  * @param {*} cacheUsername
  * @param {*} expertId
  * @returns
  */
-async function readRelationshipFiles(cacheUsername, expertId) {
-  const relDir = path.join(config.cache.aeStdFormatDir, expertId, 'rel');
-  const relCachePath = cache.getPath(cacheUsername, relDir);
+async function createScholarlyWorksGraph(cacheUsername, expertId) {
+  const relDir = path.join(config.cache.aeStdFormatDir, 'scholarly-works');
+  const relCachePath = cache.getUserPath(cacheUsername, relDir);
 
   logger.info(`Reading relationship files from: ${relCachePath}`);
   let combinedGraph = [];
@@ -395,157 +304,157 @@ async function readRelationshipFiles(cacheUsername, expertId) {
     logger.info(`Found ${files.length} relationship files`);
 
     for (const file of files) {
-      const filePath = file.filepath;
-      let relationshipData;
-      try {
-        relationshipData = JSON.parse(await cache.read(filePath));
-      } catch (e) {
-        logger.error(`Error parsing ${filePath}: ${e.message}`);
-        continue;
-      }
-
-      let graphItems = Array.isArray(relationshipData)
-        ? relationshipData
-        : Array.isArray(relationshipData['@graph'])
-          ? relationshipData['@graph']
-          : [relationshipData];
-
-      const byId = new Map();
-      graphItems.forEach(n => {
-        if (n && n['@id']) byId.set(n['@id'], n);
-      });
-
-      // For this file, find any publication/grant subjects and fetch relationship nodes
-      // from other experts that reference the same subject, then append those nodes
-      // onto this file's graphItems (avoid duplicates via byId).
-      try {
-        const subjects = Array.from(new Set(
-          graphItems
-            .map(n => (n && n['@id']) ? n['@id'] : null)
-            .filter(id => typeof id === 'string' && (id.includes('/publication/') || id.includes('/grant/')))
-            .map(id => id.split('#')[0])
-        ));
-
-        for (const subj of subjects) {
-          try {
-            const relNodes = await findRelatedExperts(subj, expertId);
-            if (!Array.isArray(relNodes) || relNodes.length === 0) continue;
-            for (const rnObj of relNodes) {
-              const rn = rnObj.node;
-              const relFilePath = rnObj.filepath;
-              if (!rn || !rn['@id']) continue;
-              if (!byId.has(rn['@id'])) {
-                graphItems.push(rn);
-                byId.set(rn['@id'], rn);
-                logger.debug(`Appended external relationship node ${rn['@id']} for subject ${subj} (from RDF)`);
-
-                // --- Add external expert person.jsonld node(s) ---
-                // Find all expert URIs referenced in this relationship node
-                const relates = rn['http://vivoweb.org/ontology/core#relates'] || [];
-                const relatesArr = Array.isArray(relates) ? relates : [relates];
-                for (const r of relatesArr) {
-                  const rid = typeof r === 'string' ? r : (r && r['@id'] ? r['@id'] : null);
-                  if (!rid) continue;
-                  // Only fetch if it's an expert URI
-                  let shortId = null;
-                  if (rid.startsWith('http://experts.ucdavis.edu/expert/')) {
-                    shortId = rid.replace('http://experts.ucdavis.edu/expert/', '').split('#')[0];
-                  } else if (rid.startsWith('expert/')) {
-                    shortId = rid.replace(/^expert\//, '').split('#')[0];
-                  }
-                  if (shortId && !byId.has(rid)) {
-                    // Derive the external expert's cache username from the relFilePath
-                    // relFilePath: /weekly/<year-week>/<external_expert_cache_username>/ae-std/<external_expert_id>/rel/<rel_filename>
-                    // person.jsonld path: /weekly/<year-week>/<external_expert_cache_username>/ae-std/person.jsonld
-                    const parts = relFilePath.split(path.sep);
-                    // Find the index of 'ae-std'
-                    const aeStdIdx = parts.findIndex(p => p === 'ae-std');
-                    if (aeStdIdx > 1) {
-                      // Get the cache username from the path (should be just before 'ae-std')
-                      const externalCacheUsername = parts[aeStdIdx - 1];
-                      const personAssetPath = 'ae-std/person.jsonld';
-                      try {
-                        const personTxt = await cache.readUserAsset(externalCacheUsername, personAssetPath);
-                        const personNode = JSON.parse(personTxt);
-                        // If personNode is an array or has @graph, normalize to array of nodes
-                        const personNodes = Array.isArray(personNode)
-                          ? personNode
-                          : Array.isArray(personNode['@graph'])
-                            ? personNode['@graph']
-                            : [personNode];
-                        for (const pn of personNodes) {
-                          if (pn && pn['@id'] && !byId.has(pn['@id'])) {
-                            graphItems.push(pn);
-                            byId.set(pn['@id'], pn);
-                            logger.debug(`Appended person node ${pn['@id']} for external expert ${shortId}`);
-                          }
-                        }
-                      } catch (e) {
-                        logger.debug(`Could not fetch person.jsonld for external expert ${shortId}: ${e.message}`);
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            logger.debug(`findRelatedExperts failed for ${subj}: ${e.message}`);
-          }
-        }
-      } catch (e) {
-        logger.debug(`Error fetching external relationship nodes: ${e.message}`);
-      }
-
-      const grants = [];
-      const works = [];
-      const roles = [];
-
-      graphItems.forEach(node => {
-        if (!node || !node['@type']) return;
-        const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
-        if (types.some(t => t.includes('Grant'))) grants.push(node);
-        else if (types.some(t => t.includes('Work') || t.includes('Article') || t.includes('Publication'))) works.push(node);
-        else if (types.some(t => t.includes('ResearcherRole') || t.includes('GrantRole') || t.includes('Authorship'))) roles.push(node);
-      });
-
-      const getRelatesIds = (role) => {
-        const candidates = [
-          'http://vivoweb.org/ontology/core#relates',
-          'ucdlib:relates-to',
-          'relatesTo'
-        ];
-        for (const p of candidates) {
-          if (role[p]) {
-            const arr = Array.isArray(role[p]) ? role[p] : [role[p]];
-            return arr.filter(x => x && x['@id']).map(x => x['@id']);
-          }
-        }
-        return [];
-      };
-
-      roles.forEach(role => {
-        const relatedIds = getRelatesIds(role);
-        relatedIds.forEach(rid => {
-          const target = byId.get(rid);
-          if (target) {
-            if (!target.relatedBy) target.relatedBy = [];
-            else if (!Array.isArray(target.relatedBy)) target.relatedBy = [target.relatedBy];
-            if (!target.relatedBy.find(rb => rb['@id'] === role['@id'])) {
-              target.relatedBy.push({"@id": role['@id']});
-            }
-          }
-        });
-      });
-
-      combinedGraph.push(...graphItems);
-      const fileLabel = (file && typeof file === 'object') ? (file.filename || file.filepath || JSON.stringify(file)) : file;
-      logger.info(`Added ${graphItems.length} nodes from ${fileLabel} (grants=${grants.length}, works=${works.length}, roles=${roles.length})`);
+      await _parseExpertsScholarlyWorks(expertId, file);
     }
   } catch (e) {
     logger.error(`Error reading relationship files for ${expertId}: ${e.message}`);
   }
 
   return combinedGraph;
+}
+
+async function _parseExpertsScholarlyWorks(expertId, file) {
+  const filePath = file.filepath;
+  let relationshipData;
+  try {
+    relationshipData = JSON.parse(await cache.read(filePath));
+  } catch (e) {
+    logger.error(`Error parsing ${filePath}: ${e.message}`);
+    return;
+  }
+
+  let graphItems = getGraphAsItems(relationshipData);
+
+  const tmp = new Map();
+  graphItems.forEach(n => {
+    if (n && n['@id']) tmp.set(n['@id'], n);
+  });
+  graphItems = tmp;
+
+  // For this file, find any publication/grant subjects and fetch relationship nodes
+  // from other experts that reference the same subject, then append those nodes
+  // onto this file's graphItems (avoid duplicates via byId).
+  try {
+    const subjects = Array.from(new Set(
+      graphItems.keys()
+        .filter(id => id.includes('/publication/') || id.includes('/grant/'))
+        .map(id => id.split('#')[0])
+    ));
+
+    for (const subj of subjects) {
+      try {
+        await _parseExpertsScholarlyWork(subj, expertId, graphItems);
+      } catch (e) {
+        logger.error(`_parseExpertsScholarlyWork failed for ${subj}: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    logger.error(`Error fetching external relationship nodes: ${e.message}`);
+  }
+
+  let grantCount = 0;
+  let workCount = 0;
+  const roles = [];
+
+  graphItems.values().forEach(node => {
+    if (!node || !node['@type']) return;
+    const types = asArray(node['@type']);
+    if (types.some(t => SHORT_TYPES.GRANTS.includes(t))) grantCount++;
+    else if (types.some(t => SHORT_TYPES.WORKS.includes(t))) workCount++;
+    else if (types.some(t => SHORT_TYPES.ROLES.includes(t))) roles.push(node);
+  });
+
+  const getRelatesIds = (role) => {
+    const candidates = [
+      'http://vivoweb.org/ontology/core#relates',
+      'ucdlib:relates-to',
+      'relatesTo'
+    ];
+    for (const p of candidates) {
+      if (role[p]) {
+        const arr = Array.isArray(role[p]) ? role[p] : [role[p]];
+        return arr.filter(x => x && x['@id']).map(x => x['@id']);
+      }
+    }
+    return [];
+  };
+
+  roles.forEach(role => {
+    const relatedIds = getRelatesIds(role);
+    relatedIds.forEach(rid => {
+      const target = byId.get(rid);
+      if (target) {
+        if (!target.relatedBy) target.relatedBy = [];
+        else if (!Array.isArray(target.relatedBy)) target.relatedBy = [target.relatedBy];
+        if (!target.relatedBy.find(rb => rb['@id'] === role['@id'])) {
+          target.relatedBy.push({"@id": role['@id']});
+        }
+      }
+    });
+  });
+
+  combinedGraph.push(...graphItems.values());
+  const fileLabel = (file && typeof file === 'object') ? (file.filename || file.filepath || JSON.stringify(file)) : file;
+  logger.info(`Added ${graphItems.length} nodes from ${fileLabel} (grants=${grantCount}, works=${workCount}, roles=${roles.length})`);
+}
+
+async function _parseExpertsScholarlyWork(subject, expertId, graphItems) {
+  const relNodes = await findRelatedExperts(subject, expertId);
+  if (!Array.isArray(relNodes) || relNodes.length === 0) return;
+
+  for (const rnObj of relNodes) {
+    const rn = rnObj.node;
+    const relFilePath = rnObj.filepath;
+    if (!rn || !rn['@id']) continue;
+    if (graphItems.has(rn['@id'])) continue;
+
+    graphItems.set(rn['@id'], rn);
+    logger.debug(`Appended external relationship node ${rn['@id']} for subject ${subject} (from RDF)`);
+
+    // --- Add external expert person.jsonld node(s) ---
+    // Find all expert URIs referenced in this relationship node
+    const relates = rn['http://vivoweb.org/ontology/core#relates'] || [];
+    const relatesArr = Array.isArray(relates) ? relates : [relates];
+
+    for (const r of relatesArr) {
+      const rid = typeof r === 'string' ? r : (r && r['@id'] ? r['@id'] : null);
+      if (!rid) continue;
+
+      // Only fetch if it's an expert URI
+      let shortId = null;
+      if (rid.startsWith('http://experts.ucdavis.edu/expert/')) {
+        shortId = rid.replace('http://experts.ucdavis.edu/expert/', '').split('#')[0];
+      } else if (rid.startsWith('expert/')) {
+        shortId = rid.replace(/^expert\//, '').split('#')[0];
+      }
+
+      if( !shortId ) continue;
+      if( graphItems.has(rid) ) continue;
+
+      // Derive the external expert's cache username from the relFilePath
+      // relFilePath: /weekly/<year-week>/<external_expert_cache_username>/ae-std/scholary-output/<rel_filename>
+      // person.jsonld path: /weekly/<year-week>/<external_expert_cache_username>/ae-std/person.jsonld
+      const externalCacheUsername = relFilePath.match(/\/([a-z0-9@\.]+)\/ae-std\//)?.[1];
+      if (!externalCacheUsername) continue;
+
+      const personAssetPath = 'ae-std/person.jsonld';
+      try {
+        const personTxt = await cache.readUserAsset(externalCacheUsername, personAssetPath);
+        const personNode = JSON.parse(personTxt);
+        // If personNode is an array or has @graph, normalize to array of nodes
+        const personNodes = getGraphAsItems(personNode);
+        
+        for (const pn of personNodes) {
+          if (pn && pn['@id'] && !graphItems.has(pn['@id'])) {
+            graphItems.set(pn['@id'], pn);
+            logger.debug(`Appended person node ${pn['@id']} for external expert ${shortId}`);
+          }
+        }
+      } catch (e) {
+        logger.error(`Could not fetch person.jsonld for external expert ${shortId}: ${e.message}`);
+      }        
+    }
+  }
 }
 
 async function runFromFiles(cacheUsername) {
@@ -559,7 +468,7 @@ async function runFromFiles(cacheUsername) {
   expertId = expertId['@id'].replace('http://experts.ucdavis.edu/expert/', '');
 
   // Read all relationship files (works/grants)
-  const relationshipGraph = await readRelationshipFiles(cacheUsername, expertId);
+  const {relationshipGraph, workFiles, grantFiles} = await readRelationshipFiles(cacheUsername, expertId);
 
   let combinedGraph = Array.isArray(expertGraph)
     ? [...expertGraph, ...relationshipGraph]
@@ -598,8 +507,17 @@ async function runFromFiles(cacheUsername) {
 
   // generate files
   const expertFile = await generateExpertFile(cacheUsername, framed, { collapseSingleItemPrimitiveArrays });
-  const workFiles = await generateWorkFiles(cacheUsername, expertId, framed, { collapseSingleItemPrimitiveArrays });
-  const grantFiles = await generateGrantFiles(cacheUsername, expertId, framed, { collapseSingleItemPrimitiveArrays });
+  // const workFiles = await generateWorkFiles(cacheUsername, expertId, framed, { collapseSingleItemPrimitiveArrays });
+  // const grantFiles = await generateGrantFiles(cacheUsername, expertId, framed, { collapseSingleItemPrimitiveArrays });
+
+  // create a simple lookup file of scholarly works for user
+  let scholarlyWorksRef = {
+    works: workFiles.map(f => path.parse(f).name),
+    grants: grantFiles.map(f => path.parse(f).name)
+  };
+  await cache.writeUserAsset('', cacheUsername, 'scholarly-works.json', 
+    JSON.stringify(scholarlyWorksRef, null, 2)
+  );
 
   return {
     expertFile,
@@ -611,6 +529,6 @@ async function runFromFiles(cacheUsername) {
 export {
   runFromFiles,
   frame,
-  readRelationshipFiles,
+  // readRelationshipFiles,
   collapseSingleItemPrimitiveArrays
 };

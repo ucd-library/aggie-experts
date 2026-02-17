@@ -3,6 +3,7 @@ import extract from '../lib/extract/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import PgClient from '../lib/pg-client.js';
+import ExpertsKcAdminClient from '../lib/extract/keycloak.js';
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 
@@ -33,10 +34,41 @@ program.name('extract')
       rootDir: options.rootDir
     });
 
-    logger.info('Extraction complete for user', user, { 
-      filesCount : [resp.iam, ...resp.cdl].length
-    });
+    if( resp.notFound ) {
+      // attempt to get their keycloak profile for their expert id.
+      const kcClient = new ExpertsKcAdminClient();
+      let expertId = null;
+      try {
+        await kcClient.authenticate();
+        const users = await kcClient.kcadmin.users.find({
+          email: user,
+          exact: true
+        });
+        if( users.length > 0 ) {
+          const user = users[0];
+          expertId = user.attributes?.expertId?.[0];
+        }
+      } catch(e) {
+        logger.error(`Error fetching Keycloak profile for user ${user}:`, e);
+      }
 
+      let metadata = {
+        expertId,
+        isPublic: false,
+        iamExtractIssues : {
+          notFound: true
+        }
+      };
+      await cache.writeUserAsset('iam-extract', user, 'metadata.json', JSON.stringify(metadata));
+      if( options.reporting || options.reportingJobId ) {
+        await config.postgres.client.setUserPrivacy(user, false);
+      }
+    } else {
+      logger.info('Extraction complete for user', user, { 
+        filesCount : [resp.iam, ...resp.cdl].length
+      });
+    }
+    
     if( config.reporting.enabled ) {
       config.postgres.client.end();
     }

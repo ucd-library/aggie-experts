@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes, createIndex, deleteIndex, setAlias, getState, deleteSearchScript, loadSearchScript } from '../lib/load/elastic-search/index.js';
+import { ensureCurrentIndexes, createIndex, deleteIndex, setAlias, getState, deleteSearchScript, loadSearchScript, getUsersCurrentScholarlyWorks } from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import path from 'path';
@@ -137,6 +137,22 @@ program
       logger.info(`Successfully loaded search template: ${template.id}`);
     } catch (error) {
       logger.error(`Error loading search template ${templateName}:`, error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('get-users-scholarly-works')
+  .description('Get scholarly works for a specific user')
+  .argument('type', 'Type of scholarly works to fetch (work or grant)')
+  .argument('<user-id>', 'User ID to fetch scholarly works for')
+  .option('--alias <alias>', 'ElasticSearch alias to query (default: stage)', 'stage')
+  .action(async (type, userId, opts={}) => {
+    try {
+      let workIds = await getUsersCurrentScholarlyWorks(userId, type, opts.alias);
+      console.log(workIds.join('\n'));
+    } catch (error) {
+      logger.error(`Error fetching scholarly works for user ${userId}:`, error.message);
       process.exit(1);
     }
   });

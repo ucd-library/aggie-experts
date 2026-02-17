@@ -8,16 +8,16 @@ import {
   WORKS_SOURCE_ORDER,
   WORKS_TYPE_MAP,
   SCHEMA_URI_TYPE_MAP
-} from './utils.js';
+} from '../utils.js';
 
 function transformWorks(works, expertId, elementsUserId, inputGraph) {
   let results = [];
   works.forEach(work => {
     let relationshipId = work.id;
-    const graph = transformWork(work, relationshipId, expertId, elementsUserId, inputGraph);
+    const result = transformWork(work, relationshipId, expertId, elementsUserId, inputGraph);
     // Only include non-empty graphs (replicate legacy SPARQL behavior which may exclude some relationships)
-    if (graph && Array.isArray(graph) && graph.length) {
-      results.push({ relationshipId, graph });
+    if (result.graph && Array.isArray(result.graph) && result.graph.length) {
+      results.push(result);
     }
   });
   return results;
@@ -564,13 +564,24 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   result.push(publication);
 
-  let isVisible = workRelationship["api:is-visible"];
-  if (typeof isVisible === "undefined" && workRelationship["api:relationship"]) {
-    isVisible = workRelationship["api:relationship"]["api:is-visible"];
+  
+
+  let privacyLevel = workRelationship["api:privacy-level"];
+  let effectivePrivacyLevel = workRelationship["api:effective-privacy-level"];
+  let privacy = {
+    'is-visible': workRelationship["api:is-visible"],
+    'privacy-level': privacyLevel,
+    'effective-privacy-level': effectivePrivacyLevel,
+    value : effectivePrivacyLevel === 'Public'
   }
-  if (typeof isVisible === "string") {
-    isVisible = isVisible.toLowerCase() === "true";
-  }
+
+  // JM: this doesn't seem to match the response type.  If this breaks things, blame me.
+  // if (typeof isVisible === "undefined" && workRelationship["api:relationship"]) {
+  //   isVisible = workRelationship["api:relationship"]["api:is-visible"];
+  // }
+  // if (typeof isVisible === "string") {
+  //   isVisible = isVisible.toLowerCase() === "true";
+  // }
 
   // normalize favourite flag
   let isFavourite = workRelationship["api:is-favourite"];
@@ -586,7 +597,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
       "http://vivoweb.org/ontology/core#Authorship"
     ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(!!isVisible) }
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(privacy.value) }
     ],
     "http://vivoweb.org/ontology/core#relates": [
       { "@id": publicationUri },
@@ -610,9 +621,9 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     ];
   }
 
-  result.push(authorship);
+  result.push(authorship);``
 
-  return result;
+  return {privacy, workUri: publicationUri, relationshipUri, graph: result};
 }
 
 export { transformWorks };
