@@ -286,8 +286,8 @@ function getIndexNameForDate(index, date) {
     if( parts.length !== 2  ) {
       throw new Error('Date string must be in the format "year-week", e.g., "2023-37"');
     }
-    year = parseInt(parts[0], 10);
-    weekNumber = parseInt(parts[1], 10);
+    year = parts[0];
+    weekNumber = parts[1];
   } else if( date instanceof Temporal.PlainDate ) {
     [year, weekNumber] = getYearWeek({date}).split('-');
   } else {
