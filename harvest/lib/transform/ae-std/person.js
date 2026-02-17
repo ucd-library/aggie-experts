@@ -137,9 +137,10 @@ function run(expertId, profile, cdl, ucopVocab) {
     logger.warn(`No viable PPS associations found for user ${expertId} (found ${ppsAssociations.length} total, ${viablePpsAssociations.length} with required fields)`);
     return {
       result: [], 
-      odrIsVisible: null, 
-      cdlIsPublic: null, 
-      cdlPrivacyLevel: null
+      isPublic: false,
+      odrPrivacy: null, 
+      cdlPrivacy: null,
+      privacyAttributes
     }; // gate to empty result if no viable PPS associations
   }
 
@@ -148,6 +149,10 @@ function run(expertId, profile, cdl, ucopVocab) {
   // ODR visibility gate (SPARQL sets ?odr_is_visible via nameWwwFlag=N ⇒ false)
   const odrNameWwwFlag = jsonpath.value(profile, '$["@graph"][0].directory.displayName.nameWwwFlag');
   const odrIsVisible   = odrNameWwwFlag === 'N' ? false : true;
+  const odrPrivacy = {
+    nameWwwFlag: odrNameWwwFlag,
+    value: odrIsVisible
+  }
 
   // --- SPARQL bind.rq template join gating ---
   // Need: IAM userID present; CDL user graph with category "user" & is-public "true" & is-login-allowed "true"; nameWwwFlag === 'Y'
@@ -165,27 +170,38 @@ function run(expertId, profile, cdl, ucopVocab) {
     ? cdlUsername.replace(/@ucdavis\.edu$/i,'')
     : null;
 
-  // If gating fails, emit no output (match SPARQL which would not construct anything for this profile)
+  // Keeping old gating logic around for now.  Just sending a good old WARN
   if (!iamUserId || !joinedUserId || iamUserId !== joinedUserId || odrNameWwwFlag !== 'Y') {
     logger.warn(`Gating failed for user ${expertId}: iamUserId=${iamUserId}, joinedUserId=${joinedUserId}, odrNameWwwFlag=${odrNameWwwFlag}`);
-    return {
-      result: [], 
-      odrIsVisible,
-      cdlIsPublic: null, 
-      cdlPrivacyLevel: null
-    };
+  //   return {
+  //     result: [],
+  //     isPublic: false, 
+  //     odrPrivacy,
+  //     cdlPrivacy: null,
+  //     privacyAttributes
+  //   };
   }
 
   // CDL user object fields sourced from gated user graph only
   const cdlObj = (cdlUserGraph && cdlUserGraph['api:object']) || {};
   const cdlIsPublic = cdlObj['api:is-public'] === 'true';
   const cdlPrivacyLevel = cdlObj['api:privacy-level'];
+  const cdlIsLoginAllowed = cdlObj['api:is-login-allowed'] === 'true';
+  const cdlCategory = cdlObj['category'];
   const cdlUserFirstName = cdlObj['api:first-name'] || cdlObj['first-name'];
   const cdlUserLastName  = cdlObj['api:last-name']  || cdlObj['last-name'];
   const cdlDepartment    = cdlObj['api:department'] || cdlObj['department'];
   const cdlPosition      = cdlObj['api:position']   || cdlObj['position'];
   // The oapolicy/user identifier association ark (keep existing logic using id if present)
   const cdlUserId        = cdlObj.id; // retained for legacy identifier list
+
+  const cdlPrivacy = {
+    'is-public': cdlIsPublic,
+    'privacy-level': cdlPrivacyLevel,
+    'is-login-allowed': cdlIsLoginAllowed,
+    category: cdlCategory || null,
+    value : (cdlIsPublic && cdlPrivacyLevel === 'Public' && cdlIsLoginAllowed && cdlCategory === 'user')
+  }
 
   // Overview / research-interests / teaching-summary only from this gated user graph
   // (native fields under records/record/native/field with privacy public already pre-filtered upstream)
@@ -241,6 +257,7 @@ function run(expertId, profile, cdl, ucopVocab) {
 
   // --- Expert node
   const expertType = (isFaculty ? "http://vivoweb.org/ontology/core#FacultyMember" : "http://vivoweb.org/ontology/core#NonAcademic");
+  const isPublic = odrIsVisible && cdlPrivacy.value; 
 
   const expert = {
     "@id": expertUri,
@@ -252,7 +269,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     "http://www.w3.org/2000/01/rdf-schema#label": [{ "@value": `${formattedLastName}, ${formattedFirstName}` }],
     // TODO: JM this is only controlled by ODR?  What about CDL visibility rules?
     "http://schema.library.ucdavis.edu/schema#is-visible": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": (odrIsVisible && cdlIsPublic && cdlPrivacyLevel !== 'Public') }
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(isPublic) }
     ],
     "http://schema.library.ucdavis.edu/schema#isHSEmployee": [
       { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(isHSEmployee) }
@@ -552,10 +569,16 @@ function run(expertId, profile, cdl, ucopVocab) {
 
   // --- Push expert
   pushUniqueById(result, expert);
-  return {result, odrIsVisible, cdlIsPublic, cdlPrivacyLevel, privacyAttributes}; ;
+  return {
+    result, 
+    isPublic,
+    odrPrivacy,
+    cdlPrivacy,
+    privacyAttributes
+  };
 }
 
-async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVocabFile) {
+async function jsonLdToPerson(userCacheName, expertId, odrFile, cdlFiles, ucopVocabFile) {
   logger.info(`Running AE std person transformation for user: ${userCacheName}`);
   const profile = JSON.parse(await cache.read(odrFile));
   let cdlData = { '@graph': [] };
@@ -571,7 +594,7 @@ async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVoca
   if (ucopVocab['@graph'] && ucopVocab['@graph'].length > 0) ucopVocab = ucopVocab['@graph'][0];
   if (!profile['@graph'][0].expertId) profile['@graph'][0].expertId = userCacheName.replace(/@.*/g, '');
   
-  let {result, odrIsVisible, cdlIsPublic, cdlPrivacyLevel, privacyAttributes} = run(expertId, profile, cdlData, ucopVocab);
+  let {result, isPublic, odrPrivacy, cdlPrivacy, privacyAttributes} = run(expertId, profile, cdlData, ucopVocab);
   result = sortJsonArrayByIdAndKeys(result);
 
   await cache.writeUserAsset(
@@ -581,20 +604,11 @@ async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVoca
     result
   );
 
-  let expert = getNodeByType(result, SHORT_TYPES.EXPERT, {match: true});
-
-  if( expert ) {
-    let isVisible = jsonpath.value(expert, '$["http://schema.library.ucdavis.edu/schema#is-visible"][0]["@value"]') === 'true';
-    return {isVisible, odrIsVisible, cdlIsPublic, cdlPrivacyLevel, privacyAttributes};
+  if( !isPublic ) {
+    logger.info(`Result for user ${userCacheName} is not public. Privacy details: ODR privacy=${JSON.stringify(odrPrivacy)}, CDL privacy=${JSON.stringify(cdlPrivacy)}`);
   }
 
-  return {
-    isVisible: false,
-    odrIsVisible, 
-    cdlIsPublic,
-    cdlPrivacyLevel,
-    privacyAttributes 
-  };
+  return {isPublic, odrPrivacy, cdlPrivacy, privacyAttributes};
 }
 
-export { run, runFromFiles };
+export { run, jsonLdToPerson };

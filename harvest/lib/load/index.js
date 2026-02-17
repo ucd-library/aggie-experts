@@ -14,19 +14,24 @@ async function run(user, alias='stage') {
     alias = [alias]
   }
 
+  let metadata = JSON.parse(await cache.readUserAsset(user, 'metadata.json'));
+  if( metadata.isPublic === false ) {
+    logger.warn(`User ${user} is marked as not public, skipping load.`);
+    // TODO: NEED TO DELETE EVERYTHING (for user)!
+    return;
+  }
+
   // get the root directory for this user's ae-webapp files
   // const webappDir = cache.getUserPath(user, config.cache.aeWebappDir);
 
   // find all users scholarly work files (expert file, works, grants) for loading into elastic search
-  const files = await getScholarlyWorkFiles(user);
-
-  let expertId = JSON.parse(await cache.readUserAsset(user, 'keycloak.json')).attributes.expertId[0];
+  const files = await getPublicScholarlyWorkFiles(user);
 
   // get current works, see if anything is elasticsearch is not in current list
   // if so we need to re transform and reload into elastic search
   // the user may have disassociated work from their profile
-  let currentWorks = await getUsersCurrentScholarlyWorks('expert/'+expertId, 'work');
-  let currentGrants = await getUsersCurrentScholarlyWorks('expert/'+expertId, 'grant');
+  let currentWorks = await getUsersCurrentScholarlyWorks('expert/'+metadata.expertId, 'work');
+  let currentGrants = await getUsersCurrentScholarlyWorks('expert/'+metadata.expertId, 'grant');
   // console.log({currentWorks, currentGrants});
 
 
@@ -35,7 +40,7 @@ async function run(user, alias='stage') {
 
   // Insert load statistics on scholarly output into database if reporting is enabled
   if (config.reporting.enabled && config.postgres.client) {
-    await reportScholarlyOutputLoadStats(user, files);
+    await reportScholarlyOutputLoadStats(user, metadata);
   }
   
   logger.info(`Loaded data into elastic search for user: ${user}`);
@@ -43,21 +48,23 @@ async function run(user, alias='stage') {
   return indexes;
 }
 
-async function reportScholarlyOutputLoadStats(user, files) {
-    // Count works and grants for reporting
+async function reportScholarlyOutputLoadStats(user, metadata) {
+
+  // Count works and grants for reporting
   // TODO: fix this
   // let workStats = await countUserAssets(user, files, 'work');
   // let grantStats = await countUserAssets(user, files, 'grant');
+
   let workStats = [
     {
       type: 'works',
       visibility: 'public',
-      count: files.filter(file => file.type === 'work').length
+      count: metadata.works.filter(work => work.privacy.value === true).length
     },
     {
       type: 'works',
       visibility: 'private',
-      count: 0
+      count: metadata.works.filter(work => work.privacy.value === false).length
     }
   ];
 
@@ -65,12 +72,12 @@ async function reportScholarlyOutputLoadStats(user, files) {
     {
       type: 'grants',
       visibility: 'public',
-      count: files.filter(file => file.type === 'grant').length
+      count: metadata.grants.filter(grant => grant.privacy.value === true).length
     },
     {
       type: 'grants',
       visibility: 'private',
-      count: 0
+      count: metadata.grants.filter(grant => grant.privacy.value === false).length
     }
   ];
 
@@ -183,24 +190,24 @@ async function countUserAssets(user, files, assetType) {
   ];
 }
 
-async function getScholarlyWorkFiles(user) {
-  const list = JSON.parse(await cache.readUserAsset(user, 'scholarly-works.json'));
+async function getPublicScholarlyWorkFiles(user) {
+  const list = JSON.parse(await cache.readUserAsset(user, 'metadata.json'));
 
   let results = [
     {
       type: 'expert',
       path: cache.getUserPath(user, ['webapp', 'expert.jsonld'])
     },
-    ...list.works.map(workId => {
+    ...list.works.filter(work => work.privacy.value === true).map(work => {
       return {
         type: 'work',
-        path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${workId}.json`)
+        path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.json`)
       }
     }),
-    ...list.grants.map(grantId => {
+    ...list.grants.filter(grant => grant.privacy.value === true).map(grant => {
       return {
         type: 'grant',
-        path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grantId}.json`)
+        path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grant.uri}.json`)
       }
     })
   ]

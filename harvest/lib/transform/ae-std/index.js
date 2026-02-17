@@ -5,8 +5,8 @@ import path from 'path';
 
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
-import {runFromFiles as jsonLdToPerson} from './person.js';
-import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.js';
+import {jsonLdToPerson} from './person.js';
+import {toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
 async function srcToAeStd(options={}) {
   if( options.rootDir ) {
@@ -81,27 +81,26 @@ async function srcToAeStd(options={}) {
   expertData['first-name'] = iamFirst || user.firstName;
 
   // Transform in std AE Person data
-  let { isVisible, odrIsVisible, cdlIsPublic, cdlPrivacyLevel, privacyAttributes } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
+  let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
   let { grants, works } = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
   
   let metadata = {
     expertId,
-    isVisible,
-    odrIsVisible,
-    cdlIsPublic,
-    cdlPrivacyLevel,
+    isPublic,
+    odrPrivacy,
+    cdlPrivacy,
     privacyAttributes,
     grants: grants.map(g => ({ 
       relationshipUri: g.relationshipUri, 
-      grantUri: g.grantUri, 
-      isVisible: g.isVisible 
+      uri: g.grantUri, 
+      privacy: g.privacy 
     })),
     works: works.map(w => ({ 
       relationshipUri: w.relationshipUri, 
-      workUri: w.workUri, 
-      isVisible: w.isVisible 
+      uri: w.workUri, 
+      privacy: w.privacy 
     })),
   }
 
@@ -111,7 +110,8 @@ async function srcToAeStd(options={}) {
     'metadata.json',
     JSON.stringify(metadata, null, 2)
   );
-  
+ 
+  return metadata;
 }
 
 export {

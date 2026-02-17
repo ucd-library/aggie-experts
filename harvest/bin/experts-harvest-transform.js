@@ -38,9 +38,17 @@ program
       logger.info('ae-std sorting enabled via --std-sort');
     }
 
-    await srcToAeStd({
+    let metadata = await srcToAeStd({
       user: userId
     });
+    if( options.reporting || options.reportingJobId ) {
+      await config.postgres.client.setUserPrivacy(
+        userId,
+        metadata.isPublic,
+        metadata.cdlPrivacy || null,
+        metadata.odrPrivacy || null
+      );
+    }
 
     await generateBaseExpert(userId, {write: true});
 
@@ -94,20 +102,10 @@ program
         };
       });
 
-    let scholarlyWorksRef = {
-      works: [],
-      grants: []
-    };
-
 
     for( let subject of swSubjects ) {
       await generateScholarlyWork(subject.uri, {write: true});
-      scholarlyWorksRef[subject.type+'s'].push(subject.uri.split(/[\/|#]/).pop());
     }
-
-    await cache.writeUserAsset('', userId, 'scholarly-works.json', 
-      JSON.stringify(scholarlyWorksRef, null, 2)
-    );
 
     if( config.reporting.enabled ) {
       config.postgres.client.end();

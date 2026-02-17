@@ -484,7 +484,14 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
   // Normalize casing for the visible name to match SPARQL-style output
   finalName = updateNameCasing(finalName);
 
-  const isVisible = grantRelationship["api:is-visible"] === 'true';
+  const effectivePrivacyLevel = grantRelationship["api:effective-privacy-level"];
+  let privacy = {
+    'is-visible': grantRelationship["api:is-visible"],
+    'privacy-level': grantRelationship["api:privacy-level"],
+    'effective-privacy-level': effectivePrivacyLevel,
+    value : effectivePrivacyLevel === 'Public'
+  }
+  
 
   const userRole = {
     "@id": relationshipUri,
@@ -493,12 +500,12 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
     // Ensure the displayed name is properly cased (e.g. "Macmillan Jr, John")
     "http://schema.org/name": [ { "@value": `${roleInfo.abbrev}: ${updateNameCasing(finalName)}` } ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": isVisible.toString() }
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": privacy.value.toString() }
     ],
     [ONTOLOGY.RELATES]: [ { "@id": expertUri }, { "@id": grantUri } ]
   };
 
-  return {isVisible, userRole};
+  return {privacy, userRole};
 }
 
 function sanitizePart(s) {
@@ -1043,7 +1050,7 @@ function mergeRoles(result) {
   return result;
 }
 
-function finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri, isVisible) {
+function finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri, privacy) {
   if (createdRoles.length > 0) {
     grant[ONTOLOGY.RELATED_BY].push(...createdRoles);
   }
@@ -1075,7 +1082,7 @@ function finalizeGrantOutput(grant, result, createdRoles, userRole, relationship
     relationshipUri,
     grantUri,
     graph: result,
-    isVisible
+    privacy
   };
 }
 
@@ -1121,10 +1128,10 @@ function transformGrant(grantRelationship, relationshipId, expertId, expertData)
   result.push(...peopleRecords);
 
   // Create user role (pass fields so we can choose best expert display variant)
-  const {isVisible, userRole} = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields);
+  const {privacy, userRole} = createUserRole(grantRelationship, relationshipUri, expertUri, grantUri, expertData, fields);
 
   // Finalize output
-  return finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri, isVisible);
+  return finalizeGrantOutput(grant, result, createdRoles, userRole, relationshipUri, grantUri, privacy);
 }
 
 export { transformGrants };

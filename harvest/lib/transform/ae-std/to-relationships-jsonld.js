@@ -44,7 +44,7 @@ async function run(rel, expertId, expertData, options = {}) {
   return { success: true, works, grants };
 }
 
-async function runFromFiles(relationshipFiles, expertId, expertData, options) {
+async function toRelationshipsJsonLd(relationshipFiles, expertId, expertData, options) {
   if (!relationshipFiles || relationshipFiles.length === 0) {
     logger.warn(`No relationship files provided for user: ${options.user}`);
     return;
@@ -92,4 +92,4 @@ function parseRelationshipTypes(rel) {
   return { works, grants };
 }
 
-export { run, runFromFiles, saveRelationshipFiles };
+export { run, toRelationshipsJsonLd, saveRelationshipFiles };

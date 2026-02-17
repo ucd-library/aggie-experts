@@ -103,13 +103,10 @@ async function generateScholarlyWork(subject, opts={}) {
   graph = promoteAttributesToRoot(baseWork, graph, swType);
 
   if( opts.write ) {
-
-    let filename = subject.split(/[\/|#]/).pop();
-
     await cache.writeScholarlyAsset(
       'ae-webapp-expert-transform',
       swType,
-      path.join('ae-webapp', filename+'.json'),
+      path.join('ae-webapp', subject+'.json'),
       JSON.stringify(graph, null, 2)
     );
   }

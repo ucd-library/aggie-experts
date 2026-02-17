@@ -564,13 +564,24 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   result.push(publication);
 
-  let isVisible = workRelationship["api:is-visible"];
-  if (typeof isVisible === "undefined" && workRelationship["api:relationship"]) {
-    isVisible = workRelationship["api:relationship"]["api:is-visible"];
+  
+
+  let privacyLevel = workRelationship["api:privacy-level"];
+  let effectivePrivacyLevel = workRelationship["api:effective-privacy-level"];
+  let privacy = {
+    'is-visible': workRelationship["api:is-visible"],
+    'privacy-level': privacyLevel,
+    'effective-privacy-level': effectivePrivacyLevel,
+    value : effectivePrivacyLevel === 'Public'
   }
-  if (typeof isVisible === "string") {
-    isVisible = isVisible.toLowerCase() === "true";
-  }
+
+  // JM: this doesn't seem to match the response type.  If this breaks things, blame me.
+  // if (typeof isVisible === "undefined" && workRelationship["api:relationship"]) {
+  //   isVisible = workRelationship["api:relationship"]["api:is-visible"];
+  // }
+  // if (typeof isVisible === "string") {
+  //   isVisible = isVisible.toLowerCase() === "true";
+  // }
 
   // normalize favourite flag
   let isFavourite = workRelationship["api:is-favourite"];
@@ -586,7 +597,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
       "http://vivoweb.org/ontology/core#Authorship"
     ],
     "http://schema.library.ucdavis.edu/schema#is-visible": [
-      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(!!isVisible) }
+      { "@type": "http://www.w3.org/2001/XMLSchema#boolean", "@value": String(privacy.value) }
     ],
     "http://vivoweb.org/ontology/core#relates": [
       { "@id": publicationUri },
@@ -612,7 +623,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   result.push(authorship);``
 
-  return {isVisible, workUri: publicationUri, relationshipUri, graph: result};
+  return {privacy, workUri: publicationUri, relationshipUri, graph: result};
 }
 
 export { transformWorks };

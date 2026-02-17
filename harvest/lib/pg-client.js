@@ -126,6 +126,15 @@ class PgClient {
     return this.query(query, [email]);
   }
 
+  setUserPrivacy(email, isPublic, cdlPrivacy, odrPrivacy) {
+    const query = `
+      UPDATE ${this.schema}.user
+      SET is_public = $2, cdl_privacy = $3, odr_privacy = $4
+      WHERE email = $1
+    `;
+    return this.query(query, [email, isPublic, JSON.stringify(cdlPrivacy), JSON.stringify(odrPrivacy)]);
+  }
+
   insertYearWeek(yearWeek, weekStart, weekEnd) {
     const query = `
       INSERT INTO ${this.schema}.year_week (year_week, week_start, week_end)

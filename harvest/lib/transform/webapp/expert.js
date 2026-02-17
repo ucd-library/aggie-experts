@@ -95,9 +95,9 @@ async function generateExpert(username, opts={}) {
   // get list of all relationstips from ae-std cask data
   let files = await cache.getExpertAeStdRelations(username, {date: opts.date});
   let workUris = new Set();
-  
+
   for( let file of files ) {
-    let work = JSON.parse(await cache.read(file.filepath));
+    let work = JSON.parse(await cache.read(file));
     let workNode = getNodeByType(work, SHORT_TYPES.SCHOLARLY_WORK_TYPES, {match: true});
     if( workNode ) {
       workUris.add(workNode['@id']);

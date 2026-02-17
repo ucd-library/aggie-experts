@@ -54,7 +54,10 @@ CREATE TABLE IF NOT EXISTS "user" (
   email VARCHAR(255) PRIMARY KEY,
   first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_seen_iam TIMESTAMP
+  last_seen_iam TIMESTAMP,
+  is_public BOOLEAN DEFAULT FALSE,
+  cdl_privacy JSONB,
+  odr_privacy JSONB
 );
 
 CREATE TABLE IF NOT EXISTS year_week (

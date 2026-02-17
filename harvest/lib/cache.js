@@ -18,6 +18,8 @@ class FsCache {
     }
     this.validRoots = Object.values(this.roots);
 
+    this.userRoot = 'user';
+
     this.scholarlyWorkType = ['work', 'grant'];
 
     let requestor = os.userInfo().username;
@@ -80,9 +82,9 @@ class FsCache {
   getUserPath(userId, assetKey, opts={}) {
     let rootPath = this.getPath(opts);
     if( Array.isArray(assetKey) ) {
-      return path.join(rootPath, 'users', userId, ...assetKey);
+      assetKey = path.join(...assetKey);
     }
-    return path.join(rootPath, 'users', userId, assetKey);
+    return path.join(rootPath, this.userRoot, userId, assetKey);
   }
 
   getScholarlyWorkPath(type, assetKey, opts={}) {
@@ -362,13 +364,18 @@ class FsCache {
   }
 
   async getExpertAeStdRelations(username, opts={}) {
-    let yearWeek = getYearWeek(opts.date);
+    let metadata = await this.readUserAsset(username, 'metadata.json', {date: opts.date});
+    metadata = JSON.parse(metadata);
 
-    let {files} = await this.readdir(
-      path.join(this.roots.weekly, yearWeek, 'users', username, 'ae-std', 'rel'), 
-      true
+    const works = metadata.works.map(work => 
+      this.getUserPath(username, ['ae-std', 'rel', work.relationshipUri+'.jsonld'], {date: opts.date})
     );
-    
+    const grants = metadata.grants.map(grant => 
+      this.getUserPath(username, ['ae-std', 'rel', grant.relationshipUri+'.jsonld'], {date: opts.date})
+    );
+    let files = [...works, ...grants];
+
+
     return files;
   }
 
