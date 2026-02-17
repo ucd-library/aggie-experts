@@ -320,7 +320,14 @@ export class CdlClient {
         count,
         force: options.force
       });
+
+      if( json?.feed?.entry === undefined && count === 0 ) {
+        // if there are no entries on the first page, the user doesn't exist
+        throw new Error(`User ${user} not found in CDL elements`); 
+      }
+
       writeResps.push(writeResp);
+
 
       // add the entries to the results array
       if (json?.feed?.entry && json.feed.entry ) {
