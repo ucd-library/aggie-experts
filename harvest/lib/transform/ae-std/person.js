@@ -138,6 +138,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     return {
       result: [], 
       isPublic: false,
+      noPPSAssociations: true, // flag to indicate this specific gating reason
       odrPrivacy: null, 
       cdlPrivacy: null,
       privacyAttributes
@@ -574,6 +575,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     isPublic,
     odrPrivacy,
     cdlPrivacy,
+    noPPSAssociations: false, // explicit false to distinguish from gating skip
     privacyAttributes
   };
 }
@@ -594,7 +596,7 @@ async function jsonLdToPerson(userCacheName, expertId, odrFile, cdlFiles, ucopVo
   if (ucopVocab['@graph'] && ucopVocab['@graph'].length > 0) ucopVocab = ucopVocab['@graph'][0];
   if (!profile['@graph'][0].expertId) profile['@graph'][0].expertId = userCacheName.replace(/@.*/g, '');
   
-  let {result, isPublic, odrPrivacy, cdlPrivacy, privacyAttributes} = run(expertId, profile, cdlData, ucopVocab);
+  let {result, isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations} = run(expertId, profile, cdlData, ucopVocab);
   result = sortJsonArrayByIdAndKeys(result);
 
   await cache.writeUserAsset(
@@ -608,7 +610,7 @@ async function jsonLdToPerson(userCacheName, expertId, odrFile, cdlFiles, ucopVo
     logger.info(`Result for user ${userCacheName} is not public. Privacy details: ODR privacy=${JSON.stringify(odrPrivacy)}, CDL privacy=${JSON.stringify(cdlPrivacy)}`);
   }
 
-  return {isPublic, odrPrivacy, cdlPrivacy, privacyAttributes};
+  return {isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations};
 }
 
 export { run, jsonLdToPerson };

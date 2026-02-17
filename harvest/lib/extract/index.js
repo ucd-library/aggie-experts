@@ -34,12 +34,14 @@ async function run(options={}) {
 
   // const iamClient = new IamClient();
   let iamResp;
+  let responses = [];
   for( let opt of IAMLookupOptions ) {
     try {
       iamResp = await iamClient.profile(opt, {
         force: options.force,
         cacheKey : options.user
       });
+      responses.push(iamResp);
       if( iamResp.json ) {
         break; // exit loop if we got a valid response
       }
@@ -47,6 +49,20 @@ async function run(options={}) {
       logger.error(`Error fetching IAM profile with options ${JSON.stringify(opt)}:`, err);
     }
   }
+
+  let notFound = true;
+  for( let resp of responses ) {
+    if( resp.notFound === undefined ) {
+      notFound = false;
+      break;
+    }
+  }
+  if( notFound ) {
+    let userText = `userId=${IAMLookupOptions[0].userId} or email=${IAMLookupOptions[1].email}`;
+    logger.warn(`No IAM profile found for user: ${userText}`);
+    return {notFound: true};
+  }
+
 
   if( !iamResp || !iamResp.json ) {
     let userText = `userId=${IAMLookupOptions[0].userId} or email=${IAMLookupOptions[1].email}`;

@@ -19,6 +19,7 @@ async function generateBaseExpert(username, opts={}) {
 
   // Read the main expert graph
   const aeStdPerson = await cache.readUserAsset(username, 'ae-std/person.jsonld');
+  
   const expertGraph = JSON.parse(aeStdPerson);
 
   const keycloak = await cache.readUserAsset(username, 'keycloak.json');

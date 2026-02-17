@@ -81,7 +81,7 @@ async function srcToAeStd(options={}) {
   expertData['first-name'] = iamFirst || user.firstName;
 
   // Transform in std AE Person data
-  let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
+  let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
   let { grants, works } = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
@@ -102,6 +102,11 @@ async function srcToAeStd(options={}) {
       uri: w.workUri, 
       privacy: w.privacy 
     })),
+  }
+
+  if( noPPSAssociations === true ) {
+    metadata.iamExtractIssues = metadata.iamExtractIssues || {};
+    metadata.iamExtractIssues.noPPSAssociations = true;
   }
 
   await cache.writeUserAsset(

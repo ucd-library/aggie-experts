@@ -38,9 +38,25 @@ program
       logger.info('ae-std sorting enabled via --std-sort');
     }
 
+    if( cache.existsUserAsset(userId, 'metadata.json') ) {
+      let metadata = await cache.readUserAsset(userId, 'metadata.json');
+      metadata = JSON.parse(metadata);
+      if( metadata.iamExtractIssues?.notFound ) {
+        logger.warn(`User ${userId} is marked as not found from IAM extraction, skipping transformation.`);
+        
+        if( config.reporting.enabled ) {
+          config.postgres.client.end();
+        }
+
+        await cache.close();
+        return;
+      }
+    }
+
     let metadata = await srcToAeStd({
       user: userId
     });
+
     if( options.reporting || options.reportingJobId ) {
       await config.postgres.client.setUserPrivacy(
         userId,
@@ -50,9 +66,17 @@ program
       );
     }
 
-    await generateBaseExpert(userId, {write: true});
-
-    await generateSimplifiedExpert(userId, {write: true});
+    if( !metadata?.iamExtractIssues ) {
+      let baseExpert = await generateBaseExpert(userId, {write: true});
+    
+      if( !baseExpert ) {
+        logger.warn(`Base expert transformation failed for user ${userId}, skipping simplifed transformations.`);
+      } else {
+        await generateSimplifiedExpert(userId, {write: true});
+      }
+    } else {
+      logger.warn(`Skipping webapp transformations for user ${userId} due to IAM extraction issues: ${JSON.stringify(metadata.iamExtractIssues)}`);
+    }
 
     if( config.reporting.enabled ) {
       config.postgres.client.end();
@@ -79,6 +103,25 @@ program
 
     if (options.reportingJobId || options.reporting) {
       await enableFromCli('experts-harvest-transform-webapp', userId, options);
+    }
+
+    if( cache.existsUserAsset(userId, 'metadata.json') ) {
+      let metadata = await cache.readUserAsset(userId, 'metadata.json');
+      metadata = JSON.parse(metadata);
+      if( metadata.iamExtractIssues ) {
+        if( metadata.iamExtractIssues.notFound ) {
+          logger.warn(`User ${userId} is marked as not found from IAM extraction, skipping transformation.`);
+        } else if (metadata.iamExtractIssues.noPPSAssociations) {
+          logger.warn(`User ${userId} has no PPS associations from IAM extraction, skipping transformation.`);
+        }
+
+        if( config.reporting.enabled ) {
+          config.postgres.client.end();
+        }
+
+        await cache.close();
+        return;
+      }
     }
 
     // use a connection pool to speed up writes

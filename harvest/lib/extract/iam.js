@@ -109,7 +109,9 @@ export class IAM {
     }
 
     if( !res.responseData || !res.responseData.results || res.responseData.results.length === 0 ) {
-      throw new Error(`✘ profile(${id}) - no results found`);
+      return {
+        notFound : true
+      }
     }
 
     let writeResp = await cache.writeUserAsset('iam-extract', expertEmail, jsonldfn, res);
