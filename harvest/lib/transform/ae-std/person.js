@@ -93,6 +93,7 @@ function derivePpsVisibility(listings = []) {
 function run(expertId, profile, cdl, ucopVocab) {
   const result = [];
   const expertUri = `http://experts.ucdavis.edu/expert/${expertId}`;
+  const privacyAttributes = [];
 
   // --- Basic profile pulls
   const iamId        = jsonpath.value(profile, '$["@graph"][0].iamId');
@@ -133,7 +134,13 @@ function run(expertId, profile, cdl, ucopVocab) {
     (a.deptDisplayName || a.deptOfficialName)
   );
   if (!viablePpsAssociations.length) {
-    return []; // Gate: no PPS association satisfying required pattern
+    logger.warn(`No viable PPS associations found for user ${expertId} (found ${ppsAssociations.length} total, ${viablePpsAssociations.length} with required fields)`);
+    return {
+      result: [], 
+      odrIsVisible: null, 
+      cdlIsPublic: null, 
+      cdlPrivacyLevel: null
+    }; // gate to empty result if no viable PPS associations
   }
 
   const directoryListings = jsonpath.value(profile, '$["@graph"][0].directory.listings') || [];
@@ -144,21 +151,29 @@ function run(expertId, profile, cdl, ucopVocab) {
 
   // --- SPARQL bind.rq template join gating ---
   // Need: IAM userID present; CDL user graph with category "user" & is-public "true" & is-login-allowed "true"; nameWwwFlag === 'Y'
-  const cdlUserGraphs = (cdl['@graph'] || []).filter(g => {
-    const obj = g && g['api:object'];
-    if (!obj) return false;
-    const cat = obj['api:category'] || obj['category'];
-    return cat === 'user' && obj['api:is-public'] === 'true' && obj['api:is-login-allowed'] === 'true';
-  });
+  // const cdlUserGraphs = (cdl['@graph'] || []).filter(g => {
+  //   const obj = g && g['api:object'];
+  //   if (!obj) return false;
+  //   const cat = obj['api:category'] || obj['category'];
+  //   return cat === 'user' && obj['api:is-public'] === 'true' && obj['api:is-login-allowed'] === 'true';
+  // });
+  const cdlUserGraphs = asArray(cdl['@graph'])
   const cdlUserGraph = cdlUserGraphs[0];
-  const cdlUsername = cdlUserGraph && cdlUserGraph['api:object'] && (cdlUserGraph['api:object']['api:username'] || cdlUserGraph['api:object']['username']);
+  const cdlUsername = cdlUserGraph && cdlUserGraph['api:object'] && 
+    (cdlUserGraph['api:object']['api:username'] || cdlUserGraph['api:object']['username']);
   const joinedUserId = cdlUsername && /@ucdavis\.edu$/i.test(cdlUsername)
     ? cdlUsername.replace(/@ucdavis\.edu$/i,'')
     : null;
 
   // If gating fails, emit no output (match SPARQL which would not construct anything for this profile)
   if (!iamUserId || !joinedUserId || iamUserId !== joinedUserId || odrNameWwwFlag !== 'Y') {
-    return []; // hard gate
+    logger.warn(`Gating failed for user ${expertId}: iamUserId=${iamUserId}, joinedUserId=${joinedUserId}, odrNameWwwFlag=${odrNameWwwFlag}`);
+    return {
+      result: [], 
+      odrIsVisible,
+      cdlIsPublic: null, 
+      cdlPrivacyLevel: null
+    };
   }
 
   // CDL user object fields sourced from gated user graph only
@@ -180,8 +195,8 @@ function run(expertId, profile, cdl, ucopVocab) {
     const node = flattenNative.find(f => f && f.name === name);
     const textNode = node && node['api:text'];
     if( !textNode ) return null;
-    if( textNode['privacy'] !== 'public' ) return null; // enforce public gate at field level
-    return textNode['$t'];
+    privacyAttributes.push({name, level: textNode['privacy']});
+    if( textNode['privacy'] !== 'public' ) return null; 
   }
   const cdlOverview          = extractFieldText('overview');
   const cdlResearchInterests = extractFieldText('research-interests');
@@ -191,7 +206,12 @@ function run(expertId, profile, cdl, ucopVocab) {
   const websiteFields = flattenNative.filter(f => f && f.name === 'personal-websites');
   const cdlWebsites = websiteFields
     .flatMap(field => asArray(field['api:web-addresses']?.['api:web-address']))
-    .filter(w => w && w['privacy'] === 'public')
+    .filter(w => {
+      if( w && w['privacy'] ) {
+        privacyAttributes.push({name: 'personal-websites', level: w['privacy'], value: w['api:url']});
+      }
+      return (w && w['privacy'] === 'public')
+    })
 
   // Identifier associations inside gated user graph
   const assocNodes = jsonpath.query(cdlUserGraph, '$["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"]') || [];
@@ -532,7 +552,7 @@ function run(expertId, profile, cdl, ucopVocab) {
 
   // --- Push expert
   pushUniqueById(result, expert);
-  return {result, odrIsVisible, cdlIsPublic, cdlPrivacyLevel}; ;
+  return {result, odrIsVisible, cdlIsPublic, cdlPrivacyLevel, privacyAttributes}; ;
 }
 
 async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVocabFile) {
@@ -551,7 +571,7 @@ async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVoca
   if (ucopVocab['@graph'] && ucopVocab['@graph'].length > 0) ucopVocab = ucopVocab['@graph'][0];
   if (!profile['@graph'][0].expertId) profile['@graph'][0].expertId = userCacheName.replace(/@.*/g, '');
   
-  let {result, odrIsVisible, cdlIsPublic, cdlPrivacyLevel} = run(expertId, profile, cdlData, ucopVocab);
+  let {result, odrIsVisible, cdlIsPublic, cdlPrivacyLevel, privacyAttributes} = run(expertId, profile, cdlData, ucopVocab);
   result = sortJsonArrayByIdAndKeys(result);
 
   await cache.writeUserAsset(
@@ -565,14 +585,15 @@ async function runFromFiles(userCacheName, expertId, odrFile, cdlFiles, ucopVoca
 
   if( expert ) {
     let isVisible = jsonpath.value(expert, '$["http://schema.library.ucdavis.edu/schema#is-visible"][0]["@value"]') === 'true';
-    return {isVisible, odrIsVisible, cdlIsPublic, cdlPrivacyLevel};
+    return {isVisible, odrIsVisible, cdlIsPublic, cdlPrivacyLevel, privacyAttributes};
   }
 
   return {
     isVisible: false,
     odrIsVisible, 
-    cdlIsPublic, 
-    cdlPrivacyLevel
+    cdlIsPublic,
+    cdlPrivacyLevel,
+    privacyAttributes 
   };
 }
 

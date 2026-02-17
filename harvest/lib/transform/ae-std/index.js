@@ -81,7 +81,7 @@ async function srcToAeStd(options={}) {
   expertData['first-name'] = iamFirst || user.firstName;
 
   // Transform in std AE Person data
-  let { isVisible, odrIsVisible, cdlIsPublic, cdlPrivacyLevel } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
+  let { isVisible, odrIsVisible, cdlIsPublic, cdlPrivacyLevel, privacyAttributes } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
   let { grants, works } = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
@@ -92,6 +92,7 @@ async function srcToAeStd(options={}) {
     odrIsVisible,
     cdlIsPublic,
     cdlPrivacyLevel,
+    privacyAttributes,
     grants: grants.map(g => ({ 
       relationshipUri: g.relationshipUri, 
       grantUri: g.grantUri, 
