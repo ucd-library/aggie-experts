@@ -5,7 +5,7 @@ const BaseModel = require('../base/model.js');
 router.route(
     '/es/indexes'
 ).get(
-    // user_can_edit,
+    user_can_edit,
     async (req, res) => {
         try {
             const model = new BaseModel();
@@ -20,6 +20,7 @@ router.route(
                     aliases: aliases[indexName] ? Object.keys(aliases[indexName].aliases) : []
                 };
             }
+
             res.status(200).json(result);
         } catch (e) {
             res.status(500).json({ error: e.message });
@@ -28,23 +29,67 @@ router.route(
 ).post( 
     user_can_edit,
     async (req, res) => {
-        // if admin and want to set alias to point to different index
-        // check cookies for elasticIndex and update model accordingly
-        res.status(501).json({ error: 'Not implemented yet' });
- 
-        // also model.setReadWriteIndexes() is just alias, need to update indexes the aliases point to too? not sure
-        // try {
-        //     const { indexName, aliasName } = req.body;
-        //     if (!indexName || !aliasName) {
-        //         return res.status(400).json({ error: 'indexName and aliasName are required' });
-        //     }
-        //     const model = new BaseModel();
-        //     await model.setAlias(indexName, aliasName);
-        //     res.status(200).json({ message: `Alias ${aliasName} set to index ${indexName}` });
-        // } catch (e) {
-        //     res.status(500).json({ error: e.message });
-        // }
+        try {
+            const model = new BaseModel();
+            let esClient = model.client;
+
+            let indexesToSwitch = req.body.indexesToSwitch;
+            if( !indexesToSwitch || !Array.isArray(indexesToSwitch) ) {
+                return res.status(400).json({ error: 'indexesToSwitch is required and should be an array' });
+            }
+
+            for( const { indexName: index, aliasName: alias } of indexesToSwitch ) {
+                const aliasExists = await esClient.indices.existsAlias({ name: alias });
+                let alreadySet = false;
+
+                if( aliasExists ) {
+                    const currentAliases = await esClient.indices.getAlias({ name: alias });
+                    const currentIndexes = Object.keys(currentAliases);
+                    for( const currentIndex of currentIndexes ) {
+                        if( currentIndex === index ) {
+                            alreadySet = true;
+                            continue;
+                        }
+
+                        console.log(`Removing alias ${alias} from index ${currentIndex}`);
+                        await esClient.indices.deleteAlias({ index: currentIndex, name: alias });
+                    }
+                }
+
+                if( alreadySet ) {
+                    console.log(`Alias ${alias} is already set to index ${index}, no changes made.`);
+                    return;
+                }
+
+                console.log(`Adding alias ${alias} to index ${index}`);
+                await esClient.indices.putAlias({ index: index, name: alias });
+            }
+           
+            res.status(200).json({ 
+                message: `Updated aliases successfully`, 
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
     }
-)
+).delete(
+    user_can_edit,
+    async (req, res) => {
+        try {
+            const { aliasName } = req.body;
+            if (!aliasName) {
+                return res.status(400).json({ error: 'aliasName is required' });
+            }
+
+            // TODO implement delete alias in BaseModel and call here
+            
+            res.status(200).json({ 
+                message: `Alias ${aliasName} deleted` 
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    }
+);
 
 module.exports = router;

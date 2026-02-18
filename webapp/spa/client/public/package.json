@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@citation-js/date": "^0.5.1",
+    "@js-temporal/polyfill": "^0.5.1",
     "@ucd-lib/cork-app-load": "^0.3.2",
     "@ucd-lib/cork-app-state": "^2.0.1",
     "@ucd-lib/cork-app-utils": "^6.3.1",

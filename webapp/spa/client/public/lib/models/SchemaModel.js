@@ -22,6 +22,17 @@ class SchemaModel extends BaseModel {
     return this.service.getIndexes();
   }
 
+  /**
+   * @method setAlias
+   * @description set an alias for an index in elastic search
+   *
+   * @param {Array} indexesToSwitch - array of objects with indexName and aliasName properties
+   * @returns {Promise} resolves to record
+   */
+  async setAlias(indexesToSwitch) {
+    return this.service.setAlias(indexesToSwitch);
+  }
+
 }
 
 module.exports = new SchemaModel();

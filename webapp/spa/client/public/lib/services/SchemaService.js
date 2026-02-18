@@ -20,11 +20,7 @@ class SchemaService extends BaseService {
     });
   }
 
-  async setAlias(aliasName) {
-    console.log('TODO update stage alias to be current', aliasName)
-
-    return;
-
+  async setAlias(indexesToSwitch) {
     return this.request({
       url : `${this.baseUrl}/es/indexes`,
       fetchOptions : {
@@ -33,7 +29,7 @@ class SchemaService extends BaseService {
           'Content-Type' : 'application/json'
         },
         body : JSON.stringify({
-          "alias" : aliasName
+          "indexesToSwitch" : indexesToSwitch
         })
       },
       checkCached : () => null,

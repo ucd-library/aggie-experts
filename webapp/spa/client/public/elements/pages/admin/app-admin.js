@@ -6,6 +6,8 @@ import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import '@ucd-lib/theme-elements/brand/ucd-theme-list-accordion/ucd-theme-list-accordion.js'
 
+import { getYearWeek, getTodaysDate } from '../../../../../../harvest/lib/year-week.js';
+
 import '../../components/modal-overlay.js';
 
 import indexedDb from '../../../lib/utils/indexedDb.js';
@@ -69,11 +71,13 @@ export default class AppAdmin extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'admin' ) return;
     
-    let { dateRangeStart, dateRangeEnd } = this._getDateRangeForWeek();
-    this.dateRangeStart = dateRangeStart;
-    this.dateRangeEnd = dateRangeEnd;
-    this.currentDate = new Date().toISOString().split('T')[0];
-    this.yearWeek = this._getYearWeekInterval();
+    let yearWeek = getYearWeek({ allValues : true });
+    let todaysDate = getTodaysDate();
+
+    this.dateRangeStart = yearWeek.weekStart.toLocaleString();
+    this.dateRangeEnd = yearWeek.weekEnd.toLocaleString();
+    this.currentDate = todaysDate.toLocaleString();
+    this.yearWeek = yearWeek.yearWeek;
 
     if( !(APP_CONFIG.user?.roles || []).includes('admin') ) {
       this.dispatchEvent(
@@ -90,21 +94,26 @@ export default class AppAdmin extends Mixin(LitElement)
     
     let res = await this.SchemaModel.getIndexes();
     
+    console.log('res from getIndexes', res.body);
+
     let indexes = [];
     for( let indexName in (res.body || {}) ) {
       let indexYYYYMM = indexName.replace(/^(experts|grants|works)-/, '');
       let aliasName = (res.body || {})[indexName]?.aliases?.[0];
+
+      let displayName = indexYYYYMM;
+      if( aliasName ) displayName += ' (' + aliasName.split('-')?.[1] + ')';
+      if( aliasName?.includes('current') ) displayName += ' [Selected]';
+
       indexes.push({
         indexName,
         aliasName,
-        displayName : indexYYYYMM + ' (' + aliasName.split('-')?.[1] + ')' + (aliasName.includes('current') ? ' [Selected]' : '')
+        displayName
       });
     }
 
     this.availableElasticIndexes = indexes;
     this.uniqueElasticIndexes = [...new Set(indexes.map(i => i.displayName))];
-
-    console.log('availableElasticIndexes', this.availableElasticIndexes);
   }
 
   async _onPreviewIndexChange(e) {
@@ -142,53 +151,18 @@ export default class AppAdmin extends Mixin(LitElement)
     this.showModal = true;
   }
 
-  _onSaveIndexSwitch() {
+  async _onSaveIndexSwitch() {
     this.showModal = false;
-  }
+    
+    let indexesToSwitch = this.availableElasticIndexes.filter(a => a.displayName === this.toSwitchIndex).map(a => {
+        return {
+            indexName: a.indexName,
+            aliasName: a.indexName.split('-')?.[0]+'-current'
+        }
+    });
 
-  _getDateRangeForWeek(currentDate = new Date()) {
-    const date = new Date(currentDate);
-    const day = date.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
-    const mondayOffset = day === 0 ? -6 : 1 - day;
-
-    const dateRangeStart = new Date(date);
-    dateRangeStart.setDate(date.getDate() + mondayOffset);
-    dateRangeStart.setHours(0, 0, 0, 0);
-
-    const dateRangeEnd = new Date(dateRangeStart);
-    dateRangeEnd.setDate(dateRangeStart.getDate() + 5);
-    dateRangeEnd.setHours(23, 59, 59, 999);
-
-    return { 
-      dateRangeStart: dateRangeStart.toISOString().split('T')[0], 
-      dateRangeEnd: dateRangeEnd.toISOString().split('T')[0] 
-    };
-  }
-
-  _getYearWeekInterval(currentDate = new Date(), { padWeek = false } = {}) {
-    const date = new Date(currentDate);
-    const day = date.getDay(); // 0=Sun..6=Sat
-    const mondayOffset = day === 0 ? -6 : 1 - day;
-
-    // Start of this week (Monday)
-    const weekStart = new Date(date);
-    weekStart.setDate(date.getDate() + mondayOffset);
-    weekStart.setHours(0, 0, 0, 0);
-
-    // Week number: count Mondays since Jan 1
-    const year = date.getFullYear();
-    const jan1 = new Date(year, 0, 1);
-    const jan1Day = jan1.getDay();
-    const jan1MondayOffset = jan1Day === 0 ? -6 : 1 - jan1Day;
-
-    const firstWeekMonday = new Date(jan1);
-    firstWeekMonday.setDate(jan1.getDate() + jan1MondayOffset);
-    firstWeekMonday.setHours(0, 0, 0, 0);
-
-    const weekNumber = Math.floor((weekStart - firstWeekMonday) / (7 * 24 * 60 * 60 * 1000)) + 1;
-    const weekStr = padWeek ? String(weekNumber).padStart(2, "0") : String(weekNumber);
-
-    return `${year}-${weekStr}`;
+    await this.SchemaModel.setAlias(indexesToSwitch);
+    await this._getAvailableElasticIndexes();
   }
 
 }
