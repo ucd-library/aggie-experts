@@ -285,6 +285,9 @@ function generateWorkName(workNode) {
   }
 
   function firstChar(str) {
+    if( Array.isArray(str) ) {
+      str = str[0];
+    }
     return str ? str.charAt(0) : '';
   }
 
