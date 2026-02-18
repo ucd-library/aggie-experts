@@ -157,7 +157,7 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
     let relatedExpert = await cache.findRelatedExperts(expertId, {partitionKeys});
     if( !relatedExpert.results.length ) {
       logger.warn(`Related expert not found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}`);
-      return null;
+      continue;
     }
 
     let person = JSON.parse(await cache.read(relatedExpert.results[0].filepath));
@@ -275,27 +275,42 @@ function generateWorkName(workNode) {
   const type = workNode.type || '';
   const issued = workNode.issued || '';
 
+  // only append values that exist
+  function joinValues(values, joiner = ' ') {
+    let arr = [];
+    values.forEach(v => {
+      if( v ) arr.push(v);
+    });
+    return arr.join(joiner);
+  }
+
+  function firstChar(str) {
+    return str ? str.charAt(0) : '';
+  }
+
   // Extract author names for abbreviated format
   let authorString = '';
   let authorArr = asArray(workNode.author);
+
   if (authorArr.length > 0) {
     const firstAuthor = authorArr[0];
     const lastAuthor = authorArr[authorArr.length - 1];
 
-    if (authorArr.length === 1) {
-      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}`;
-    } else if (authorArr.length === 2) {
-      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}. & ${lastAuthor.family}, ${lastAuthor.given?.charAt(0) || ''}.`;
-    } else {
-      authorString = `${firstAuthor.family}, ${firstAuthor.given?.charAt(0) || ''}. & ${lastAuthor.family}, ${lastAuthor.given?.charAt(0) || ''}. et al.`;
-    }
+    if( authorArr.length > 0 ) authorString = joinValues([firstAuthor.family, firstChar(firstAuthor.given)], ', ')+'.';
+    if( authorArr.length > 1 ) authorString += ' & '+joinValues([lastAuthor.family, firstChar(lastAuthor.given)], ', ')+'.';
+    if( authorArr.length > 2 ) authorString += ' et al.';
   }
 
   const containerTitle = workNode["container-title"] || '';
   const eissn = workNode.eissn || '';
   const doi = workNode.DOI || '';
 
-  return `${title} § ${status} • ${type} • ${issued} • ${authorString} § ${containerTitle} • ${eissn} § ${doi}`;
+  return joinValues([
+    title,
+    joinValues([status, type, issued, authorString], ' • '),
+    joinValues([containerTitle, eissn], ' • '),
+    doi
+  ], ' § ');
 }
 
 

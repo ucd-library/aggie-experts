@@ -35,6 +35,8 @@ class FsCache {
     });
 
     this.findRelatedExpertsCache = new Map();
+    this.readFileCache = new Map();
+    this.existsCache = new Map();
   }
 
   async init() {
@@ -107,10 +109,18 @@ class FsCache {
    * @returns {Boolean} true if the file exists, false otherwise
    */
   exists(assetPath) {
-    return this.caskFs.exists({
+    if( this.existsCache.has(assetPath) ) {
+      return this.existsCache.get(assetPath);
+    }
+
+    const result = this.caskFs.exists({
       filePath: assetPath,
       requestor: this.caskRequestor
     });
+
+    this.existsCache.set(assetPath, result);
+
+    return result;
   }
 
   /**
@@ -203,10 +213,19 @@ class FsCache {
     if (! await this.exists(assetPath)) {
       throw new Error(`Asset not found: ${assetPath}`);
     }
-    return this.caskFs.read({
+
+    if( this.readFileCache.has(assetPath) ) {
+      return this.readFileCache.get(assetPath);
+    }
+
+    const content = await this.caskFs.read({
       filePath: assetPath,
       requestor: this.caskRequestor
     }, {encoding: 'utf8'});
+
+    this.readFileCache.set(assetPath, content);
+
+    return content;
   }
 
   /**
@@ -248,6 +267,14 @@ class FsCache {
   async write(step, assetPath, data) {
     if (typeof data === 'object') {
       data = JSON.stringify(data, null, 2);
+    }
+
+    // clear read cache for this asset if it exists
+    if( this.readFileCache.has(assetPath) ) {
+      this.readFileCache.delete(assetPath);
+    }
+    if( this.existsCache.has(assetPath) ) {
+      this.existsCache.delete(assetPath);
     }
 
     let resp = await this.caskFs.write({
