@@ -38,7 +38,7 @@ program
       logger.info('ae-std sorting enabled via --std-sort');
     }
 
-    if( cache.existsUserAsset(userId, 'metadata.json') ) {
+    if( await cache.existsUserAsset(userId, 'metadata.json') ) {
       let metadata = await cache.readUserAsset(userId, 'metadata.json');
       metadata = JSON.parse(metadata);
       if( metadata.iamExtractIssues?.notFound ) {
@@ -105,7 +105,7 @@ program
       await enableFromCli('experts-harvest-transform-webapp', userId, options);
     }
 
-    if( cache.existsUserAsset(userId, 'metadata.json') ) {
+    if( await cache.existsUserAsset(userId, 'metadata.json') ) {
       let metadata = await cache.readUserAsset(userId, 'metadata.json');
       metadata = JSON.parse(metadata);
       if( metadata.iamExtractIssues ) {
