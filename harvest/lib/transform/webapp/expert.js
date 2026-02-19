@@ -22,8 +22,8 @@ async function generateBaseExpert(username, opts={}) {
   
   const expertGraph = JSON.parse(aeStdPerson);
 
-  const keycloak = await cache.readUserAsset(username, 'keycloak.json');
-  const expertId = JSON.parse(keycloak).attributes.expertId[0];
+  // const keycloak = await cache.readUserAsset(username, 'keycloak.json');
+  // const expertId = JSON.parse(keycloak).attributes.expertId[0];
 
 
   // TODO should we do extra cleanup before framing?
@@ -92,7 +92,7 @@ async function generateExpert(username, opts={}) {
     expertNode = JSON.parse(await cache.readUserAsset(username, 'webapp/expert-base.jsonld'));
   }
   graph.addNode(expertNode);
-  
+
   // get list of all relationstips from ae-std cask data
   let files = await cache.getExpertAeStdRelations(username, {date: opts.date});
   let workUris = new Set();
