@@ -585,6 +585,7 @@ async function jsonLdToPerson(userCacheName, expertId, odrFile, cdlFiles, ucopVo
   const profile = JSON.parse(await cache.read(odrFile));
   let cdlData = { '@graph': [] };
   for ( let cdlFilePath of cdlFiles ) {
+    logger.info(`Processing person file: ${cdlFilePath}`);
     const cdl = JSON.parse(await cache.read(cdlFilePath));
     let graph = cdl['@graph'] || [];
     if (!Array.isArray(graph)) graph = [graph];

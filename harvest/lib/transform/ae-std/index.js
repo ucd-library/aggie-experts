@@ -51,7 +51,6 @@ async function srcToAeStd(options={}) {
     if( path.extname(file.filename) === '.json' ) {
       logger.info(`Transform CDL rel path: ${file.filepath}`);
       let resp = await jsonAtomToJsonLd(file.filepath);
-      cdlJsonLdFiles.push(resp.jsonldFile);
       cdlRelJsonLdFiles.push(resp.jsonldFile);
     }
   }

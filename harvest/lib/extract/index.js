@@ -28,7 +28,7 @@ async function run(options={}) {
     { email : options.user } // extract domain from user
   ]
 
-  logger.info('Clearing cache for user', options.user);
+  logger.info('Clearing existing cdl and iam data for user', options.user);
   await cache.deleteUserAsset(options.user, config.cache.cdlDir, { isDirectory: true });
   await cache.deleteUserAsset(options.user, config.cache.iamDir, { isDirectory: true }); 
 
@@ -100,6 +100,7 @@ async function run(options={}) {
 
   let user = await kcClient.getOrCreateExpert(profile.email, profile.userID, kcUser);
   await cache.writeUserAsset('keycloak-json-extract', options.user, config.cache.keycloakUserFilename, user);
+  await cache.writeUserIdLookup(options.user, user.attributes.expertId[0]);
 
   // const cdlClient = new CdlClient();
   let cdlUserResps = await cdlClient.getUser(options.user, {

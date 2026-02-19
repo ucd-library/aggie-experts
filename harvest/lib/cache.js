@@ -19,6 +19,7 @@ class FsCache {
     this.validRoots = Object.values(this.roots);
 
     this.userRoot = 'user';
+    this.idLookupRoot = '/id-map';
 
     this.scholarlyWorkType = ['work', 'grant'];
 
@@ -201,6 +202,19 @@ class FsCache {
     return this.read(assetPath);
   }
 
+  writeUserIdLookup(email, expertId) {
+    let filePath = path.join(this.idLookupRoot, expertId);
+    return this.write('id-lookup', filePath, email);
+  }
+
+  async getUserIdLookup(expertId) {
+    let filePath = path.join(this.idLookupRoot, expertId);
+    if( !await this.exists(filePath) ) {
+      return null;
+    }
+    return this.read(filePath);
+  }
+
   /**
    * @method read
    * @description Read a file from the cache
@@ -283,6 +297,11 @@ class FsCache {
       replace: true,
       requestor: this.caskRequestor
     });
+    
+    if( resp.hasError() ) {
+      throw resp.getError();
+    }
+
     resp = resp.data;
 
     return {
@@ -372,6 +391,10 @@ class FsCache {
     if( !opts.partitionKeys ) {
       opts.partitionKeys = [];
     }
+    if( !Array.isArray(opts.partitionKeys) ) {
+      opts.partitionKeys = [opts.partitionKeys];
+    }
+
     const partitionKeys = opts.partitionKeys;
     let query = { subject, partitionKeys };
     const limit = opts.limit || false;

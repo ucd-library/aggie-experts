@@ -152,18 +152,31 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
   const results = [];
   
   for( let expertId of experts ) {
-    expertId = 'http://experts.ucdavis.edu/'+expertId;
 
-    let relatedExpert = await cache.findRelatedExperts(expertId, {partitionKeys});
-    if( !relatedExpert.results.length ) {
-      logger.warn(`Related expert not found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}`);
+    // first try the cache id map lookup
+    let filepath = '';
+    let cachedEmail = await cache.getUserIdLookup(expertId.split('/').pop());
+    if( cachedEmail ) {
+      filepath = cache.getUserPath(cachedEmail, 'ae-std/person.jsonld');
+    } else {
+      logger.warn(`No cached email found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}.  Attempting to find related expert via RDF search.`);
+      expertId = 'http://experts.ucdavis.edu/'+expertId;
+
+      let relatedExpert = await cache.findRelatedExperts(expertId, {partitionKeys});
+      if( !relatedExpert.results.length ) {
+        logger.warn(`Related expert not found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}`);
+        continue;
+      }
+      filepath = relatedExpert.results[0].filepath;
+    }
+
+    if( !await cache.exists(filepath) ) {
+      logger.warn(`Expert file not found in cache at ${filepath} for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}`);
       continue;
     }
 
-    let person = JSON.parse(await cache.read(relatedExpert.results[0].filepath));
-
+    let person = JSON.parse(await cache.read(filepath));
     person = await frame(person);
-
     person = getNodeByType(person, SHORT_TYPES.EXPERT, {match: true});
 
     results.push(simplifiedExpert(person));
