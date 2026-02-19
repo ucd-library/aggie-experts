@@ -146,6 +146,13 @@ return html`
             class="btn btn--primary" 
             style="margin-top: 1rem;" 
             @click="${this._onSwitchIndex}">Switch Index</button>
+
+          <button
+            ?disabled=${!this.toSwitchIndex}
+            class="btn btn--primary" 
+            style="margin-top: 1rem; background-color: #C10230; color: white;" 
+            @click="${this._onDeleteIndex}">Delete Index</button>
+
         </div>
       </div>
       <app-modal-overlay

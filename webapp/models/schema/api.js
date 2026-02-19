@@ -76,15 +76,27 @@ router.route(
     user_can_edit,
     async (req, res) => {
         try {
-            const { aliasName } = req.body;
-            if (!aliasName) {
-                return res.status(400).json({ error: 'aliasName is required' });
+            const model = new BaseModel();
+            let esClient = model.client;
+
+            let indexesToDelete = req.body.indexesToDelete;
+            if( !indexesToDelete || !Array.isArray(indexesToDelete) ) {
+                return res.status(400).json({ error: 'indexesToDelete is required and should be an array' });
             }
 
-            // TODO implement delete alias in BaseModel and call here
+            for( const index of indexesToDelete ) {
+                const indexExists = await esClient.indices.exists({ index });
+                if( !indexExists ) {
+                    console.log(`Index ${index} does not exist, skipping deletion.`);
+                    continue;
+                }
+
+                console.log(`Deleting index: ${index}`);
+                await esClient.indices.delete({ index });
+            }
             
             res.status(200).json({ 
-                message: `Alias ${aliasName} deleted` 
+                message: `Deleted indexes ${indexesToDelete.join(', ')} successfully` 
             });
         } catch (e) {
             res.status(500).json({ error: e.message });

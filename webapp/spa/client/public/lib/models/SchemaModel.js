@@ -33,6 +33,17 @@ class SchemaModel extends BaseModel {
     return this.service.setAlias(indexesToSwitch);
   }
 
+  /**
+   * @method deleteIndex
+   * @description delete an index in elastic search
+   *
+   * @param {Array} indexesToDelete - array of index names to delete
+   * @returns {Promise} resolves to record
+   */
+  async deleteIndex(indexesToDelete) {
+    return this.service.deleteIndex(indexesToDelete);
+  }
+
 }
 
 module.exports = new SchemaModel();

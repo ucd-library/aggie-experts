@@ -36,7 +36,7 @@ export default class AppAdmin extends Mixin(LitElement)
 
   constructor() {
     super();
-    this._injectModel('AppStateModel', 'SchemaModel');
+    this._injectModel('AppStateModel', 'SchemaModel', 'BrowseByModel', 'ExpertModel', 'GrantModel', 'WorkModel', 'SearchModel');
 
     this.isLoggedIn = APP_CONFIG.user?.preferred_username ? true : false;
     this.availableElasticIndexes = [];
@@ -162,9 +162,33 @@ export default class AppAdmin extends Mixin(LitElement)
     });
 
     await this.SchemaModel.setAlias(indexesToSwitch);
+
+    this._clearCache();
+
     await this._getAvailableElasticIndexes();
   }
 
+  async _onDeleteIndex() {
+    let indexesToDelete = this.availableElasticIndexes.filter(a => a.displayName === this.toSwitchIndex).map(a => a.indexName);
+
+    await this.SchemaModel.deleteIndex(indexesToDelete);
+
+    await this._getAvailableElasticIndexes();
+  }
+
+  _clearCache() {    
+    this.BrowseByModel.store.data.byExpertsAZ.purge();
+    this.BrowseByModel.store.data.byGrantsAZ.purge();
+    this.BrowseByModel.store.data.byWorksAZ.purge();
+    this.BrowseByModel.store.data.byExpertsLastInitial.purge();
+    this.BrowseByModel.store.data.byGrantsLastInitial.purge();
+    this.BrowseByModel.store.data.byWorksLastInitial.purge();
+    
+    this.ExpertModel.store.data.byId.purge();
+    this.GrantModel.store.data.byId.purge();
+    this.WorkModel.store.data.byId.purge();
+    this.SearchModel.store.data.bySearchQuery.purge();
+  }
 }
 
 customElements.define('app-admin', AppAdmin);
