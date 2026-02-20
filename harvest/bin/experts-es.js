@@ -4,6 +4,9 @@ import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import path from 'path';
 import { readFile } from 'fs/promises';
+import { Temporal } from '@js-temporal/polyfill';
+import { getTodaysDate } from '../lib/year-week.js';
+
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
@@ -28,7 +31,7 @@ program
   .action(async (opts={}) => {
     let date;
     if( opts.date ) {
-      date = new Date(opts.date);
+      date = Temporal.PlainDate.from(opts.date);
     } else if( opts.yearWeek ) {
       date = opts.yearWeek;
     } else {
@@ -54,7 +57,7 @@ program
   .action(async (opts={}) => {
     let date;
     if( opts.date ) {
-      date = new Date(opts.date);
+      date = Temporal.PlainDate.from(opts.date);
     } else if( opts.yearWeek ) {
       date = opts.yearWeek;
     } else {
@@ -77,11 +80,11 @@ program
   .action(async (alias, opts={}) => {
     let date;
     if( opts.date ) {
-      date = new Date(opts.date);
+      date = Temporal.PlainDate.from(opts.date);
     } else if( opts.yearWeek ) {
       date = opts.yearWeek;
     } else if( opts.current ) {
-      date = new Date();
+      date = getTodaysDate();
     } else {
       logger.error('You must provide either a date or a week and year for the index');
       process.exit(1);
