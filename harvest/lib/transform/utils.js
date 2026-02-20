@@ -247,7 +247,7 @@ function getBestFieldValuesFromRecords(fieldName, records, scorer = computeRecor
     }
   }
 
-  const values = [];
+  let values = [];
   for (const { matching } of bestRecords) {
     for (const f of matching) {
       if (f['api:text']) {
@@ -265,7 +265,9 @@ function getBestFieldValuesFromRecords(fieldName, records, scorer = computeRecor
     }
   }
 
-  return [...new Set(values)];
+  // hack.  we are getting some string fields with objects which break jsonld @value spec.
+  values = [...new Set(values)].filter(v => typeof v === 'string');
+  return values;
 }
 
 function getFieldObject(fields, fieldName) {

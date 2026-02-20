@@ -114,6 +114,17 @@ async function srcToAeStd(options={}) {
     'metadata.json',
     JSON.stringify(metadata, null, 2)
   );
+
+  if( metadata.isPublic === false ) {
+    await cache.writeUserAsset(
+      'ae-std-relationship-transform',
+      options.user,
+      'PRIVATE',
+      ''
+    );
+  } else if( await cache.existsUserAsset(options.user, 'PRIVATE') ) {
+    await cache.deleteUserAsset(options.user, 'PRIVATE');
+  }
  
   return metadata;
 }

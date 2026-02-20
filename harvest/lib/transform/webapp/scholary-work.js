@@ -152,12 +152,12 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
   const results = [];
   
   for( let expertId of experts ) {
-
     // first try the cache id map lookup
     let filepath = '';
     let cachedEmail = await cache.getUserIdLookup(expertId.split('/').pop());
     if( cachedEmail ) {
       filepath = cache.getUserPath(cachedEmail, 'ae-std/person.jsonld');
+    // else use the RDF search to find the expert file based on expertId
     } else {
       logger.warn(`No cached email found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}.  Attempting to find related expert via RDF search.`);
       expertId = 'http://experts.ucdavis.edu/'+expertId;
@@ -168,6 +168,9 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
         continue;
       }
       filepath = relatedExpert.results[0].filepath;
+
+      // hack out their email from the filepath for the cache lookup since we don't have it
+      cachedEmail = filepath.split('/').find(part => part.includes('@'));
     }
 
     if( !await cache.exists(filepath) ) {
@@ -175,9 +178,21 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
       continue;
     }
 
+    // check if expert is private
+    let isPrivate = await cache.exists(cache.getUserPath(cachedEmail, 'PRIVATE'));
+    if( isPrivate ) {
+      logger.warn(`Expert ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']} is marked private.  Skipping.`);
+      continue;
+    }
+
     let person = JSON.parse(await cache.read(filepath));
     person = await frame(person);
     person = getNodeByType(person, SHORT_TYPES.EXPERT, {match: true});
+
+    if( !person ) {
+      logger.warn(`Failed to frame expert node for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}`);
+      continue;
+    }
 
     results.push(simplifiedExpert(person));
   }

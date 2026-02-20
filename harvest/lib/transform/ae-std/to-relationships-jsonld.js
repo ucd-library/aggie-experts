@@ -68,7 +68,7 @@ async function toRelationshipsJsonLd(relationshipFiles, expertId, expertData, op
 async function saveRelationshipFiles(relationships, options) {
   for( let relationship of relationships ) {
     let { relationshipUri, graph } = relationship;
-    graph = sortJsonRecursively(graph);
+    // graph = sortJsonRecursively(graph);
 
     await cache.writeUserAsset(
       'ae-std-relationship-transform',
