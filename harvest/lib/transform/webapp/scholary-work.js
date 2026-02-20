@@ -226,7 +226,7 @@ function promoteAttributesToRoot(workNode, graph, type) {
 
   let root = {
     "@context": workNode["@context"],
-    "@graph": graph,
+    "@graph": getGraphAsItems(graph),
     "is-visible": true,
     "roles": ["public"],
     "name": name,
