@@ -75,6 +75,7 @@ retention:
   # event_logs:
   #   purge_after_days: 90
 
-# run_retries:
-#   enabled: true
+run_retries:
+  enabled: true
+  max_retries: 1
 #   max_retries: 2
