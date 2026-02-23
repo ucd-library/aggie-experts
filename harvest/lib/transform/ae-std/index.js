@@ -109,7 +109,6 @@ async function srcToAeStd(options={}) {
   }
 
   await cache.writeUserAsset(
-    'ae-std-relationship-transform',
     options.user,
     'metadata.json',
     JSON.stringify(metadata, null, 2)
@@ -117,7 +116,6 @@ async function srcToAeStd(options={}) {
 
   if( metadata.isPublic === false ) {
     await cache.writeUserAsset(
-      'ae-std-relationship-transform',
       options.user,
       'PRIVATE',
       ''

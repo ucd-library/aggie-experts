@@ -1,13 +1,16 @@
 import path from 'path';
 import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import { getYearWeek, getTodaysDate } from '../../year-week.js';
 import { Temporal } from '@js-temporal/polyfill';
 import getEsClient from '../../elastic-search-client.js';
 import config from '../../config.js';
 import logger from '../../logger.js';
 import cache from '../../cache.js';
+import { getNodeByType, SHORT_TYPES } from '../../transform/utils.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const SEARCH_TEMPLATE_DIR = path.join(__dirname, '../../../../webapp/models/search/template');
 
 /**
  * @function insert
@@ -29,6 +32,41 @@ async function insert(index, id, body) {
     id: id,
     body: body
   });
+}
+
+async function deleteDocument(index, id) {
+  const esClient = await getEsClient();
+
+  try {
+    return await esClient.delete({
+      index: index,
+      id: id
+    });
+  } catch (error) {
+    if (error.statusCode === 404) {
+      logger.info(`Document not found for delete: index=${index}, id=${id}`);
+      return error?.meta?.body;
+    }
+    throw error;
+  }
+}
+
+async function getMetadata(index, id) {
+  const esClient = await getEsClient();
+  try {
+    const resp = await esClient.get({
+      index: index,
+      id: id,
+      _source: ['_metadata']
+    });
+    if( resp._source?._metadata ) {
+      return {
+        metadata: resp._source._metadata,
+        index: resp._index
+      }
+    }
+  } catch (error) {}
+  return null;
 }
 
 /**
@@ -66,6 +104,16 @@ async function loadFiles(files, alias) {
 
     for( let a of alias ) {
       let aliasIndex = `${index}-${a}`;
+
+      let metadataResp = await getMetadata(aliasIndex, id);
+      if( metadataResp && metadataResp.metadata.sha256 === sha256 ) {
+        logger.info(`Skipping file=${file.path} for alias=${aliasIndex}, index=${metadataResp.index} with id=${id} - no changes detected`);
+        if( !indexes[aliasIndex] ) {
+          indexes[aliasIndex] = metadataResp.index;
+        }
+        continue;
+      }
+
       logger.info(`Loading file=${file.path} into index=${aliasIndex} with id=${id}`);
       let resp = await insert(aliasIndex, id, json);
       if( !indexes[aliasIndex] ) {
@@ -92,8 +140,6 @@ async function loadFile(file) {
   const metadata = await cache.getFileStats(file);
   const sha256 = metadata.digests.sha256;
   const md5 = metadata.digests.md5;
-  // const sha256 = crypto.createHash('sha256').update(content).digest('hex');
-  // const md5 = crypto.createHash('md5').update(content).digest('hex');
   const lastModified = metadata.modified;
   const json = JSON.parse(content);
   return {json, sha256, md5, lastModified};
@@ -329,6 +375,35 @@ async function getIndexDocumentCount(index) {
   return resp.count;
 }
 
+async function ensureSearchScript(opts={}) {
+  let templateName = opts.template || 'complete';
+  let templatePath = path.resolve(SEARCH_TEMPLATE_DIR, `${templateName}.js`);
+  if( !existsSync(templatePath) ) {
+    throw new Error(`Template file not found: ${templatePath}`);
+  }
+  logger.info(`Loading search template from ${templatePath}...`);
+
+  let template = (await import(templatePath)).default;
+
+  // let template = eval(`(${templateMatch[1]})`);
+  if (!template || !template.id || !template.script) {
+    throw new Error(`Invalid template structure: missing id or script property`);
+  }
+
+  if( !opts.replace ) {
+    let exists = await searchTemplateExists(template.id);
+    if( exists ) {
+      logger.info(`Search template with id ${template.id} already exists. Use replace flag to overwrite.`);
+      return;
+    }
+  }
+  
+  await deleteSearchScript(template.id);
+  await loadSearchScript(template.id, template.script);
+
+  logger.info(`Successfully loaded search template: ${template.id}`);
+}
+
 /**
  * @function deleteSearchScript
  * @description Delete a stored script from Elasticsearch
@@ -349,6 +424,19 @@ async function deleteSearchScript(scriptId) {
     } else {
       throw error;
     }
+  }
+}
+
+async function searchTemplateExists(templateId) {
+  const esClient = await getEsClient();
+  try {
+    await esClient.getScript({ id: templateId });
+    return true;
+  } catch (error) {
+    if (error.statusCode === 404) {
+      return false;
+    }
+    throw error;
   }
 }
 
@@ -398,11 +486,13 @@ async function getUsersCurrentScholarlyWorks(expertId, type, alias='stage') {
   return resp.hits.hits
     .map(hit => hit._source['@graph'])
     .flat()
-    .filter(node => node['@id'] && (node['type'] || node['@type']) !== 'Expert')
+    .filter(node => node['@id'])
+    .filter(node => getNodeByType(node, SHORT_TYPES.SCHOLARLY_WORK_TYPES) )
     .map(node => node['@id']);
 }
 
 export {
+  deleteDocument,
   loadFiles,
   getIndexDocumentCount,
   createIndex,
@@ -412,7 +502,9 @@ export {
   getCurrentIndexes,
   getIndexNameForDate,
   getState,
+  ensureSearchScript,
   deleteSearchScript,
   loadSearchScript,
+  searchTemplateExists,
   getUsersCurrentScholarlyWorks
 }

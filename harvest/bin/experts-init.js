@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes } from '../lib/load/elastic-search/index.js';
+import { ensureCurrentIndexes, ensureSearchScript } from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import PgClient from '../lib/pg-client.js';
@@ -22,6 +22,12 @@ program
       logger.info('ElasticSearch indexes ensured successfully.', indexes);
     } catch (error) {
       errors.push(`Error initializing ElasticSearch indexes: ${error.message}`);
+    }
+
+    try {
+      await ensureSearchScript();
+    } catch (error) {
+      errors.push(`Error loading ElasticSearch search template: ${error.message}`);
     }
 
     const pgClient = new PgClient();

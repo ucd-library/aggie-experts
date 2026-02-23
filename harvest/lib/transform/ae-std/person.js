@@ -601,7 +601,6 @@ async function jsonLdToPerson(userCacheName, expertId, odrFile, cdlFiles, ucopVo
   result = sortJsonArrayByIdAndKeys(result);
 
   await cache.writeUserAsset(
-    'ae-std-person-transform',
     userCacheName,
     path.join(config.cache.aeStdFormatDir, 'person.jsonld'),
     result

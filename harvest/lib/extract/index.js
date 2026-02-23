@@ -101,7 +101,7 @@ async function run(options={}) {
   };
 
   let user = await kcClient.getOrCreateExpert(profile.email, profile.userID, kcUser);
-  await cache.writeUserAsset('keycloak-json-extract', options.user, config.cache.keycloakUserFilename, user);
+  await cache.writeUserAsset(options.user, config.cache.keycloakUserFilename, user);
   await cache.writeUserIdLookup(options.user, user.attributes.expertId[0]);
 
   // const cdlClient = new CdlClient();

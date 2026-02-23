@@ -14,8 +14,7 @@ import logger from '../logger.js';
 import GoogleSecret from '../google-secret.js';
 import config from '../config.js'
 import cache from '../cache.js';
-import xmlToJson from '../transform/xml-to-json.js';
-import fs from 'fs';
+import xmlToJson from './xml-to-json.js';
 
 
 const gs = new GoogleSecret();
@@ -163,7 +162,7 @@ export class CdlClient {
     // filter authors data
     json = this.updateAuthors(json);
 
-    const writeResp = await cache.writeUserAsset('cdl-'+name+'-extract', options.cacheName, jsonFile, json);
+    const writeResp = await cache.writeUserAsset(options.cacheName, jsonFile, json);
 
     return {
       writeResp,
@@ -283,7 +282,7 @@ export class CdlClient {
       }
     }
 
-    let cachePath = await cache.writeUserAsset('cdl-group-extract', 'group-' + group, 'users.json', {groupId: group, groupName, users});
+    let cachePath = await cache.writeUserAsset('users.json', {groupId: group, groupName, users});
     return {
       groupId: group,
       groupName,

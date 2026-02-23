@@ -6,11 +6,12 @@ import PgClient from '../lib/pg-client.js';
 import ExpertsKcAdminClient from '../lib/extract/keycloak.js';
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
+import IAM from '../lib/extract/iam.js';
 
 const program = new Command();
 const env = process.env;
 
-program.name('extract')
+program.command('run')
   .description('extract data for aggie experts from cdl & iam')
   .argument('<user-id>', 'User id to extract')
   .option('--root-dir <root-dir>', 'Root directory for extracted data.  Respects env EXPERTS_ROOT_DIR')
@@ -59,7 +60,7 @@ program.name('extract')
           notFound: true
         }
       };
-      await cache.writeUserAsset('iam-extract', user, 'metadata.json', JSON.stringify(metadata));
+      await cache.writeUserAsset(user, 'metadata.json', JSON.stringify(metadata));
       if( options.reporting || options.reportingJobId ) {
         await config.postgres.client.setUserPrivacy(user, false);
       }
@@ -75,6 +76,16 @@ program.name('extract')
     await cache.close();
 
     process.exit();
+  });
+
+program.command('view-iam')
+  .description('View the raw IAM profile for a user')
+  .argument('<user-id>', 'User id to extract')
+  .action(async (user, options) => {
+    const iamClient = new IAM();
+    await iamClient.getKey();
+    const profile = await iamClient.profile(user);
+    console.log(JSON.stringify(profile.json, null, 2));
   });
 
 program.parse(process.argv);

@@ -248,7 +248,7 @@ def extract_user(context) -> None:
   user_id = context.partition_key
   run = context.dagster_run
 
-  cmd = ["experts", "harvest", "extract", user_id, "--reporting-job-id", run.run_id]
+  cmd = ["experts", "harvest", "extract", "run", user_id, "--reporting-job-id", run.run_id]
 
   metadata = {
     "user": user_id

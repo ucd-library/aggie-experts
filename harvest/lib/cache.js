@@ -10,7 +10,6 @@ class FsCache {
   constructor() {
     this.rootDir = config.cache.rootDir;
     this.pgClient = null;
-    // this.gcs = new GcsCache();
 
     this.roots = {
       weekly: '/weekly',
@@ -204,7 +203,7 @@ class FsCache {
 
   writeUserIdLookup(email, expertId) {
     let filePath = path.join(this.idLookupRoot, expertId);
-    return this.write('id-lookup', filePath, email);
+    return this.write(filePath, email);
   }
 
   async getUserIdLookup(expertId) {
@@ -246,7 +245,6 @@ class FsCache {
    * @method writeUserAsset
    * @description Write a user asset to the cache.  See `write` method for details.
    *
-   * @param {String} step the step of the process (e.g., 'extract', 'transform')
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
    * @param {Object|String} data the data to write, can be an object or a string
@@ -256,14 +254,14 @@ class FsCache {
    * 
    * @returns {Promise<Object>} an object containing the asset path, local cache write status, hash, and last modified date
    */
-  async writeUserAsset(step, userId, assetKey, data, opts={}) {
+  async writeUserAsset(userId, assetKey, data, opts={}) {
     const assetPath = this.getUserPath(userId, assetKey, opts);
-    return this.write(step, assetPath, data);
+    return this.write(assetPath, data);
   }
 
-  async writeScholarlyAsset(step, type, assetKey, data, opts={}) {
+  async writeScholarlyAsset(type, assetKey, data, opts={}) {
     const assetPath = this.getScholarlyWorkPath(type, assetKey, opts);
-    return this.write(step, assetPath, data);
+    return this.write(assetPath, data);
   }
 
   /**
@@ -272,13 +270,12 @@ class FsCache {
    * It checks if the file already exists and compares hashes to avoid unnecessary writes to both local and cloud storage.  Any
    * directories in the path will be created if they do not exist.
    *
-   * @param {String} step the step of the process (e.g., 'extract', 'transform')
    * @param {String} assetPath full path to the asset file
    * @param {Object|String} data the data to write, can be an object or a string
    *
    * @returns {Promise<Object>} an object containing the asset path, local cache write status, hash, and last modified date
    */
-  async write(step, assetPath, data) {
+  async write(assetPath, data) {
     if (typeof data === 'object') {
       data = JSON.stringify(data, null, 2);
     }

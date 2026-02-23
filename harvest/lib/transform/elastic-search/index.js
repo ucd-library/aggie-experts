@@ -515,7 +515,7 @@ async function runFromFiles(cacheUsername) {
     works: workFiles.map(f => path.parse(f).name),
     grants: grantFiles.map(f => path.parse(f).name)
   };
-  await cache.writeUserAsset('', cacheUsername, 'scholarly-works.json', 
+  await cache.writeUserAsset(cacheUsername, 'scholarly-works.json', 
     JSON.stringify(scholarlyWorksRef, null, 2)
   );
 

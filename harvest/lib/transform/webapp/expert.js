@@ -41,7 +41,6 @@ async function generateBaseExpert(username, opts={}) {
 
   if( opts.write ) {
     await cache.writeUserAsset(
-      'ae-webapp-expert-transform',
       username,
       'webapp/expert-base.jsonld',
       JSON.stringify(node, null, 2)
@@ -68,7 +67,6 @@ async function generateSimplifiedExpert(username, opts={}) {
 
   if( opts.write ) {
     await cache.writeUserAsset(
-      'ae-webapp-expert-transform',
       username,
       'webapp/expert-simplified.jsonld',
       JSON.stringify(simplified, null, 2)
@@ -117,7 +115,6 @@ async function generateExpert(username, opts={}) {
 
   if( opts.write ) {
     await cache.writeUserAsset(
-      'ae-webapp-expert-transform',
       username,
       'webapp/expert.jsonld',
       JSON.stringify(graph, null, 2)
@@ -126,6 +123,20 @@ async function generateExpert(username, opts={}) {
 
 
   return graph;
+}
+
+/**
+ * @method promoteExpertInfoToWorkRoot
+ * @description For a given work node, promotes relevant expert information from the expert node to the root of the work node.
+ */
+function promoteExpertInfoToWorkRoot(workNode, expertNode) {
+  if( expertNode.hasName && !workNode.hasName ) {
+    workNode.hasName = expertNode.hasName;
+  }
+  // TODO: was there a method for picking which contact info node to promote?
+  if( expertNode.contactInfo?.length && !workNode.contactInfo ) {
+    workNode.contactInfo = expertNode.contactInfo[0];
+  }
 }
 
 /**
