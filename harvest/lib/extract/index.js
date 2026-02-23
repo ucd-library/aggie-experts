@@ -13,10 +13,6 @@ const REQUIRED_PROFILE_FIELDS = ['oFirstName', 'oLastName', 'mothraId', 'iamId',
 
 async function run(options={}) {
 
-  if( options.rootDir ) {
-    config.cache.rootDir = options.rootDir;
-  }
-
   logger.info('Extracting data for user', options.user);
 
   if( options.user.indexOf('@') === -1 ) {

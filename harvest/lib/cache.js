@@ -8,7 +8,6 @@ import os from 'os';
 class FsCache {
 
   constructor() {
-    this.rootDir = config.cache.rootDir;
     this.pgClient = null;
 
     this.roots = {
@@ -29,7 +28,6 @@ class FsCache {
     this.caskRequestor = requestor;
 
     this.caskFs = new CaskFS({
-      rootDir: this.rootDir,
       postgres: config.postgres,
       dbPool : config.cache.poolDbConnection
     });

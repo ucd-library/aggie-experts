@@ -9,10 +9,6 @@ import {jsonLdToPerson} from './person.js';
 import {toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
 async function srcToAeStd(options={}) {
-  if( options.rootDir ) {
-    config.cache.rootDir = options.rootDir;
-  }
-
   if( !options.user.match(/@/) ) {
     options.user += '@ucdavis.edu'; // ensure user has a domain
   }
