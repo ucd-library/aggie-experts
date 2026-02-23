@@ -102,16 +102,17 @@ async function generateScholarlyWork(subject, opts={}) {
   graph = graph.toRdfGraph();
   graph = promoteAttributesToRoot(baseWork, graph, swType);
 
+  let caskPath;
   if( opts.write ) {
-    await cache.writeScholarlyAsset(
-      'ae-webapp-expert-transform',
+    caskPath = await cache.writeScholarlyAsset(
       swType,
       path.join('ae-webapp', subject+'.json'),
       JSON.stringify(graph, null, 2)
     );
+    caskPath = caskPath.assetPath;
   }
 
-  return graph;
+  return { filepath: caskPath, json: graph };
 }
 
 function getScholarlyWorkType(nodeTypes) {

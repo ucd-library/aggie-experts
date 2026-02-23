@@ -31,6 +31,9 @@ COPY harvest/bin /opt/harvest/bin
 COPY harvest/lib /opt/harvest/lib
 COPY harvest/vocabularies /opt/harvest/vocabularies
 
+# Copy the search template for init scripts
+COPY webapp/models/search/template /opt/webapp/models/search/template
+
 COPY dagster/defs.py /opt/harvest/defs.py
 COPY dagster/dagster.yaml /opt/dagster/dagster_home/dagster.yaml
 COPY dagster/celery_config.yaml /opt/dagster/dagster_home/celery_config.yaml

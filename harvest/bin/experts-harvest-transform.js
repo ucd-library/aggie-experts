@@ -185,7 +185,8 @@ program
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-    console.log(JSON.stringify(await generateScholarlyWork(subjectUri), null, 2));
+    let result = await generateScholarlyWork(subjectUri);
+    console.log(JSON.stringify(result.json, null, 2));
     await cache.close();
 
     // TODO: why is this hanging?

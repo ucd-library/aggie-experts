@@ -71,7 +71,6 @@ async function saveRelationshipFiles(relationships, options) {
     // graph = sortJsonRecursively(graph);
 
     await cache.writeUserAsset(
-      'ae-std-relationship-transform',
       options.user,
       path.join(config.cache.aeStdFormatDir, 'rel', `${relationshipUri}.jsonld`),
       graph

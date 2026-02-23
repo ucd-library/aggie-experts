@@ -21,7 +21,7 @@ async function iamApiToJsonLd(jsonFile) {
     "@graph" : res.responseData.results || []
   };
 
-  await cache.write('iam-to-jsonld-transform', jsonldFile, graph);
+  await cache.write(jsonldFile, graph);
 
   return {jsonldFile, graph};
 }
