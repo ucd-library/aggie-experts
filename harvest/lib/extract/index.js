@@ -4,6 +4,7 @@ import ExpertsKcAdminClient from './keycloak.js';
 import cache from '../cache.js';
 import logger from '../logger.js';
 import config from '../config.js';
+import wrapUserDomain from '../user-domain.js';
 
 const cdlClient = new CdlClient();
 const iamClient = new IamClient();
@@ -15,9 +16,7 @@ async function run(options={}) {
 
   logger.info('Extracting data for user', options.user);
 
-  if( options.user.indexOf('@') === -1 ) {
-    options.user += '@ucdavis.edu'; // ensure user has a domain
-  }
+  options.user = wrapUserDomain(options.user);
 
   let IAMLookupOptions = [
     { userId : options.user.replace(/@.*/, '') }, // remove domain if present

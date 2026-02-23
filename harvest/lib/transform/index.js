@@ -9,11 +9,10 @@ import iamApiToJsonLd from './iam-to-jsonld.js';
 import {runFromFiles as jsonLdToPerson} from './person.js';
 import {runFromFiles as personToWebapp} from './elastic-search/index.js';
 import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.js';
+import wrapUserDomain from '../user-domain.js';
 
 async function srcToAeStd(options={}) {
-  if( !options.user.match(/@/) ) {
-    options.user += '@ucdavis.edu'; // ensure user has a domain
-  }
+  options.user = wrapUserDomain(options.user);
 
   logger.info('Transforming data for user:', options.user);
   logger.info('Root directory for transformed data:', cache.getUserPath(options.user, config.cache.aeStdFormatDir));
@@ -86,9 +85,7 @@ async function srcToAeStd(options={}) {
 }
 
 async function aeStdToWebapp(options={}) {
-  if( !options.user.match(/@/) ) {
-    options.user += '@ucdavis.edu'; // ensure user has a domain
-  }
+  options.user = wrapUserDomain(options.user);
 
   logger.info('Clearing existing webapp transformed data for user:', options.user);
   await cache.deleteUserAsset(options.user, config.cache.aeWebappDir, { isDirectory: true });

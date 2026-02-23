@@ -2,11 +2,11 @@ import { Command } from 'commander';
 import extract from '../lib/extract/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
-import PgClient from '../lib/pg-client.js';
 import ExpertsKcAdminClient from '../lib/extract/keycloak.js';
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 import IAM from '../lib/extract/iam.js';
+import wrapUserDomain from '../lib/user-domain.js';
 
 const program = new Command();
 const env = process.env;
@@ -18,9 +18,7 @@ program.command('run')
   .option('--reporting', 'Enable reporting for this extraction')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .action(async (user, options) => {
-    if( !user.match(/@/ ) ) {
-      user += '@ucdavis.edu';
-    }
+    user = wrapUserDomain(user);
 
     if( options.reportingJobId || options.reporting ) {
       await enableFromCli('experts-harvest-extract', user, options);

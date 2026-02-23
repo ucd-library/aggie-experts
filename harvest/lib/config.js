@@ -24,6 +24,8 @@ const config = {
 
   timezone : env.EXPERTS_HARVEST_TIMEZONE || 'America/Los_Angeles',
 
+  userDomain : env.EXPERTS_USER_DOMAIN || '@ucdavis.edu',
+
   userConfig : {
     rootDir : userConfigDir,
     configFile : userConfigFile,

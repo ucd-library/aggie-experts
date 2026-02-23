@@ -9,9 +9,7 @@ import {jsonLdToPerson} from './person.js';
 import {toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
 async function srcToAeStd(options={}) {
-  if( !options.user.match(/@/) ) {
-    options.user += '@ucdavis.edu'; // ensure user has a domain
-  }
+  options.user = wrapUserDomain(options.user);
 
   logger.info('Transforming data for user:', options.user);
   logger.info('Root directory for transformed data:', cache.getUserPath(options.user, config.cache.aeStdFormatDir));
