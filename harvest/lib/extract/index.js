@@ -46,6 +46,8 @@ async function run(options={}) {
         break; // exit loop if we got a valid response
       }
     } catch (err) {
+      // TODO: we should probably distinguish between "not found" errors and other types of errors here, 
+      // unexpected errors need to throw the error so it can be retried, while "not found" errors should be handled gracefully and not retried.
       logger.error(`Error fetching IAM profile with options ${JSON.stringify(opt)}:`, err);
     }
   }
