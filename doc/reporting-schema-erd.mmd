@@ -1,0 +1,59 @@
+erDiagram
+    COMMAND {
+        uuid command_id PK
+        timestamp timestamp
+        date week_start
+        varchar year_week
+        varchar job_id
+        varchar command
+        varchar user_id
+        boolean latest_weekly_attempt
+        jsonb options
+    }
+
+    ERROR {
+        uuid error_id PK
+        timestamp timestamp
+        uuid command_id FK
+        text message
+        text stack
+    }
+
+    USER_SCHOLARLY_OUTPUT_LOAD_STATS {
+        uuid user_load_stats_id PK
+        timestamp timestamp
+        uuid command_id FK
+        varchar user_id
+        varchar type
+        varchar visibility
+        integer count
+    }
+
+    USER {
+        varchar email PK
+        timestamp first_seen_cdl
+        timestamp last_seen_cdl
+        timestamp last_seen_iam
+        boolean is_public
+        jsonb cdl_privacy
+        jsonb odr_privacy
+    }
+
+    YEAR_WEEK {
+        varchar year_week PK
+        date week_start
+        date week_end
+    }
+
+    ELASTIC_SEARCH_INDEX {
+        varchar alias_name PK
+        varchar index_name
+        integer doc_count
+        timestamp last_updated
+    }
+
+    COMMAND ||--o{ ERROR : "command_id"
+    COMMAND ||--o{ USER_SCHOLARLY_OUTPUT_LOAD_STATS : "command_id"
+
+    USER ||--o{ COMMAND : "user_id (logical)"
+    YEAR_WEEK ||--o{ COMMAND : "year_week (logical)"

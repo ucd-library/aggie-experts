@@ -24,3 +24,4 @@ ae-harvest-cache
 
 corkbuild.Dockerfile
 *.cork-build.json
+.npm-cache

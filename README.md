@@ -21,6 +21,7 @@ Aggie Experts is a joint project between the Office of the Provost and the UC Da
 - [Docker Images and Deployment](doc/docker-deployment.md)
 - Process Descriptions
   - [Code and Data Deployment](doc/experts-deploy-harvest.md)
+  - [Dagster Harvest Workflow](doc/dagster-harvest-workflow.md)
   - [Process Weekly Grants](./doc/grant-feed.md)
   - Update Archived Grants
 - APIs
