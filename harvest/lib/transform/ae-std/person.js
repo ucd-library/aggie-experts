@@ -214,6 +214,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     if( !textNode ) return null;
     privacyAttributes.push({name, level: textNode['privacy']});
     if( textNode['privacy'] !== 'public' ) return null; 
+    return textNode['$t'] || null;
   }
   const cdlOverview          = extractFieldText('overview');
   const cdlResearchInterests = extractFieldText('research-interests');
