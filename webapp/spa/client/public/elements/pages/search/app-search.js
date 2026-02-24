@@ -144,7 +144,10 @@ export default class AppSearch extends Mixin(LitElement)
   async _refreshRange(dataChanged=false) {
     const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
     for( const range of ranges ) {
-      range.refresh(dataChanged);
+      // Some versions of ucdlib-range-slider don't expose refresh(); avoid crashing the whole page.
+      if( range && typeof range.refresh === 'function' ) {
+        range.refresh(dataChanged);
+      }
     }
 
     // override styles in mobile
@@ -680,23 +683,31 @@ export default class AppSearch extends Mixin(LitElement)
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
     this.globalAggregations = this.convertSearchAggregations(this.rawSearchData);
-    
+    // ---- Date histogram/range slider ----
+    // Canonical payload shape:
+    //   payload.global_aggregations.years + payload.years_works/years_grants
+    const yearsWorksMap = this.rawSearchData.years_works || {};
+    const yearsGrantsMap = this.rawSearchData.years_grants || {};
+
+    // map of epochMs -> count used to ensure full min/max range is represented
+    const globalYearsAgg = this.rawSearchData?.global_aggregations?.years || {};
+
     // Get all years across both works and grants for complete year range
     const allYearsCombined = {
-      ...this.rawSearchData.years_works,
-      ...this.rawSearchData.years_grants
+      ...yearsWorksMap,
+      ...yearsGrantsMap
     };
-    
-    const issuedYearsWorks = this.computeYearCounts(allYearsCombined, this.rawSearchData.years_works, false);
+
+    const issuedYearsWorks = this.computeYearCounts(allYearsCombined, yearsWorksMap, false);
     // For histogram, keep per-year counts as returned (no cross-year dedupe)
-    const issuedYearsGrants = this.computeYearCounts(allYearsCombined, this.rawSearchData.years_grants, false);
+    const issuedYearsGrants = this.computeYearCounts(allYearsCombined, yearsGrantsMap, false);
 
     // compute year counts for type/status subfilters
-    const issueYearsWorksSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, this.rawSearchData.years_works, false, this.type, false);
-    const issueYearsGrantsSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, this.rawSearchData.years_grants, false, this.status, false);
+    const issueYearsWorksSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, yearsWorksMap, false, this.type, false);
+    const issueYearsGrantsSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, yearsGrantsMap, false, this.status, false);
 
     // add missing years between min/max, so the histogram is continuous
-    const issuedYearsCombined = this._combineYearCounts(this.rawSearchData.global_aggregations.years, issuedYearsWorks, issuedYearsGrants);
+    const issuedYearsCombined = this._combineYearCounts(globalYearsAgg, issuedYearsWorks, issuedYearsGrants);
 
     // histogram/slider: refresh ONLY when the “agg signature” changes (q, availability, type, status, expert)
     const newSig = this._computeAggSignature(); // this must NOT include dateFrom/dateTo
