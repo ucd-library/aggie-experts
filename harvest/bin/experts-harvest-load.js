@@ -27,12 +27,11 @@ program.name('load')
     logger.info('updated indexes', {indexes});
 
     if( config.reporting.enabled ) {
-      for( let alias in indexes ) {
-        let index = indexes[alias];
-        let count = await getIndexDocumentCount(index);
-        await updateEsIndex(alias, index, count);
-      }
-
+      // for( let alias in indexes ) {
+      //   let index = indexes[alias];
+      //   let count = await getIndexDocumentCount(index);
+      //   await updateEsIndex(alias, index, count);
+      // }
        await config.postgres.client.end();
     }
 

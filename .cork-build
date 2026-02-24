@@ -9,7 +9,7 @@
   "images" : {
     "harvest" : {
       "contextPath" : ".",
-      "dockerfile" : "./harvest",
+      "dockerfile" : "./harvest/Dockerfile",
       "options" : {
         "build-arg" : [
           "DAGSTER_IMAGE=${project-anduin.dagster}",

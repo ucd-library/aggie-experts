@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS "user" (
   last_seen_iam TIMESTAMP,
   is_public BOOLEAN DEFAULT FALSE,
   cdl_privacy JSONB,
-  odr_privacy JSONB
+  odr_privacy JSONB,
+  es_stage_inserted_at TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS year_week (
@@ -169,18 +170,29 @@ WHERE p_date >= week_start AND p_date <= week_end;
 $$;
 
 CREATE OR REPLACE VIEW this_week_user_state_count AS
+WITH state AS (
+  SELECT
+    user_id,
+    year_week,
+    CASE
+      WHEN BOOL_OR(state = 'error') THEN 'error'
+      WHEN BOOL_AND(state = 'ok') THEN 'ok'
+      WHEN BOOL_AND(state = 'no_attempt') THEN 'no_attempt'
+      ELSE 'unknown'
+    END AS state
+  FROM user_command_weekly_stats
+  WHERE year_week = (SELECT year_week FROM get_year_week())
+  GROUP BY user_id, year_week
+)
 SELECT
-  user_id,
-  year_week,
+  state.*,
   CASE
-    WHEN BOOL_OR(state = 'error') THEN 'error'
-    WHEN BOOL_AND(state = 'ok') THEN 'ok'
-    WHEN BOOL_AND(state = 'no_attempt') THEN 'no_attempt'
-    ELSE 'unknown'
-  END AS state
-FROM user_command_weekly_stats
-WHERE year_week = (SELECT year_week FROM get_year_week())
-GROUP BY user_id, year_week;
+    WHEN u.es_stage_inserted_at IS NULL THEN 'removed'
+    WHEN (SELECT year_week FROM get_year_week()) = (SELECT year_week FROM get_year_week(u.es_stage_inserted_at::DATE)) THEN 'inserted'
+    ELSE 'not_inserted'
+  END AS es_stage_status
+FROM state
+LEFT JOIN "user" u ON state.user_id = u.email;
 
 SELECT
   user_id,
