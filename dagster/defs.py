@@ -537,10 +537,14 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
           filters=dg.RunsFilter(tags={"dagster/backfill": backfill_id})
         )
 
+        # Currently these seem to come out in reverse order (latest first), so we will ignore keys we have already seen
         latest_by_partition = {}
         for run_record in run_records:
           partition_key = run_record.dagster_run.tags.get("dagster/partition")
           if not partition_key:
+            continue
+
+          if partition_key in latest_by_partition:
             continue
 
           latest_by_partition[partition_key] = run_record
