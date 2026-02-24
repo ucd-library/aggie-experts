@@ -63,7 +63,7 @@ export class IAM {
    * @returns {json} - The JSON profile, with @context added.
    * @throws {Error} - Throws an error if the person is not found.
    **/
-  async profile(expert, opts) {
+  async profile(expert, opts={}) {
     let key = await this.getKey();
     let url = `${this.url}/people/profile/search?key=${key}`;
 
@@ -87,8 +87,6 @@ export class IAM {
       url = encodeURI(`${url}&userId=${expert}`);
     }
 
-    let expertEmail = opts.cacheKey;
-
     const jsonldfn = path.join(config.cache.iamDir, config.cache.iamUserFilename);
 
     // Mask the key in the URL for logging
@@ -109,12 +107,16 @@ export class IAM {
     }
 
     if( !res.responseData || !res.responseData.results || res.responseData.results.length === 0 ) {
+      logger.warn(`No IAM profile found for expert: ${id}`, JSON.stringify(res || {}));
       return {
         notFound : true
       }
     }
 
-    let writeResp = await cache.writeUserAsset('iam-extract', expertEmail, jsonldfn, res);
+    let writeResp;
+    if( opts.cacheKey ) {
+      writeResp = await cache.writeUserAsset(opts.cacheKey, jsonldfn, res);
+    }
 
     return {
       writeResp,

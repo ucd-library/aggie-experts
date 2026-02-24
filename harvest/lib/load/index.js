@@ -1,10 +1,8 @@
-import fs from 'fs';
-import path from 'path';
 import cache from '../cache.js';
 import logger from '../logger.js';
 import config from '../config.js';
-import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
-import { type } from 'os';
+import { loadFiles as loadEs, getUsersCurrentScholarlyWorks, deleteDocument } from './elastic-search/index.js';
+import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
 
 async function run(user, alias='stage') {
   // check which aliases to write to.  ALL means both stage & current
@@ -18,22 +16,43 @@ async function run(user, alias='stage') {
   if( metadata.isPublic === false ) {
     logger.warn(`User ${user} is marked as not public, skipping load.`);
     // TODO: NEED TO DELETE EVERYTHING (for user)!
+    await purgeUser(metadata.expertId, alias);
     return;
   }
 
-  // get the root directory for this user's ae-webapp files
-  // const webappDir = cache.getUserPath(user, config.cache.aeWebappDir);
 
   // find all users scholarly work files (expert file, works, grants) for loading into elastic search
-  const files = await getPublicScholarlyWorkFiles(user);
+  let files = await getPublicScholarlyWorkFiles(user);
 
   // get current works, see if anything is elasticsearch is not in current list
   // if so we need to re transform and reload into elastic search
   // the user may have disassociated work from their profile
-  let currentWorks = await getUsersCurrentScholarlyWorks('expert/'+metadata.expertId, 'work');
-  let currentGrants = await getUsersCurrentScholarlyWorks('expert/'+metadata.expertId, 'grant');
-  // console.log({currentWorks, currentGrants});
+  let currentWorks = await getUsersCurrentScholarlyWorks('expert/'+metadata.expertId, 'work', alias);
+  let currentGrants = await getUsersCurrentScholarlyWorks('expert/'+metadata.expertId, 'grant', alias);
 
+  let currentScholarlyWorks = new Set([...currentWorks, ...currentGrants]);
+  let newScholarlyWorks = new Set(files
+    .filter(file => file.type !== 'expert') 
+    .map(file => file.uri)
+  );
+
+  let disassociatedWorks = [...currentScholarlyWorks].filter(uri => !newScholarlyWorks.has(uri));
+  if( disassociatedWorks.length > 0 ) {
+    logger.info(`Found ${disassociatedWorks.length} scholarly works that need to be transformed and reloaded into elastic search for user ${user}`, {disassociatedWorks});
+    for( let uri of disassociatedWorks ) {
+      // TODO: this kinda sucks
+      let type = currentWorks.includes(uri) ? 'work' : 'grant';
+      try {
+        let result = await generateScholarlyWork(uri, {write: true});
+        files.push({
+          type,
+          path: result.filepath
+        });
+      } catch (error) {
+        logger.error(`Failed to generate scholarly work for URI ${uri}: ${error.message}`);
+      }
+    }
+  }
 
   // load files into elastic search
   let indexes = await loadEs(files, alias);
@@ -49,11 +68,6 @@ async function run(user, alias='stage') {
 }
 
 async function reportScholarlyOutputLoadStats(user, metadata) {
-
-  // Count works and grants for reporting
-  // TODO: fix this
-  // let workStats = await countUserAssets(user, files, 'work');
-  // let grantStats = await countUserAssets(user, files, 'grant');
 
   let workStats = [
     {
@@ -93,101 +107,29 @@ async function reportScholarlyOutputLoadStats(user, metadata) {
   logger.info(`Recorded load statistics for user: ${user}`, { workStats, grantStats });
 }
 
-async function countUserAssets(user, files, assetType) {
-  let publicCount = 0;
-  let privateCount = 0;
-  
-  // Process all webapp files (they may contain embedded assets)
-  const webappFiles = files.filter(file => {
-    const filename = path.basename(file);
-    return filename.startsWith('webapp.') && filename.endsWith('.jsonld');
-  });
-  
-  for (const file of webappFiles) {
-    try {
-      const content = JSON.parse(await cache.read(file));
-      
-      // Handle different file structures
-      let graphItems = [];
-      if (content['@graph']) {
-        // Expert files with embedded @graph array
-        graphItems = content['@graph'];
-      } else if (Array.isArray(content)) {
-        // Files that are arrays themselves
-        graphItems = content;
-      } else {
-        // Single object files
-        graphItems = [content];
+async function purgeUser(expertId, alias='stage') {
+  logger.info(`Purging scholarly works for user with expertId ${expertId} from elastic search index with alias ${alias}`);
+
+  // Delete document associated with the user
+  let deleteResp= await deleteDocument('experts-'+alias, 'expert/'+expertId);
+  logger.info('Delete response for expert document:', {deleteResp});
+
+  // get current works
+  let current = {
+    work : await getUsersCurrentScholarlyWorks('expert/'+expertId, 'work', alias),
+    grant : await getUsersCurrentScholarlyWorks('expert/'+expertId, 'grant', alias)
+  }
+
+  for( let type in current ) {
+    let works = current[type];
+    for( let uri of works ) {
+      try {
+        await generateScholarlyWork(uri, {write: true});
+      } catch (error) {
+        logger.error(`Failed to generate scholarly work for URI ${uri}: ${error.message}`);
       }
-      
-      // Define valid types for each asset category
-      const ASSET_TYPE_MAP = {
-        work: [
-          'Work',
-          'Publication',
-          'Article',
-          'Book',
-          'Chapter'
-        ],
-        grant: [
-          'Grant',
-          'Grant_Research',
-          'Grant_Teaching'
-        ]
-      };
-      
-      // Filter for the asset type we're counting
-      const targetAssets = graphItems.filter(item => {
-        if (!item['@type']) return false;
-        
-        const types = Array.isArray(item['@type']) ? item['@type'] : [item['@type']];
-        const validTypes = ASSET_TYPE_MAP[assetType] || [];
-        
-        return types.some(type => validTypes.includes(type));
-      });
-      
-      // Count visibility for each asset
-      for (const asset of targetAssets) {
-        let isVisible = true; // Default to visible
-        
-        // Check visibility in relatedBy relationships
-        if (asset.relatedBy && Array.isArray(asset.relatedBy)) {
-          // Look for visibility in the relationship data
-          const visibilityInfo = asset.relatedBy.find(rel => 
-            rel.hasOwnProperty('is-visible') && rel['inheres_in']
-          );
-          if (visibilityInfo) {
-            isVisible = visibilityInfo['is-visible'] === true;
-          }
-        } else if (asset.hasOwnProperty('is-visible')) {
-          // Direct visibility property
-          isVisible = asset['is-visible'] === true;
-        }
-        
-        if (isVisible) {
-          publicCount++;
-        } else {
-          privateCount++;
-        }
-      }
-      
-    } catch (error) {
-      logger.warn(`Error reading file for counting: ${file}`, error);
     }
   }
-  
-  return [
-    {
-      type: assetType === 'work' ? 'works' : 'grants',
-      visibility: 'public',
-      count: publicCount
-    },
-    {
-      type: assetType === 'work' ? 'works' : 'grants',
-      visibility: 'private',
-      count: privateCount
-    }
-  ];
 }
 
 async function getPublicScholarlyWorkFiles(user) {
@@ -201,12 +143,14 @@ async function getPublicScholarlyWorkFiles(user) {
     ...list.works.filter(work => work.privacy.value === true).map(work => {
       return {
         type: 'work',
+        uri: work.uri,
         path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.json`)
       }
     }),
     ...list.grants.filter(grant => grant.privacy.value === true).map(grant => {
       return {
         type: 'grant',
+        uri: grant.uri,
         path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grant.uri}.json`)
       }
     })

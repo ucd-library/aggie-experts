@@ -303,3 +303,26 @@ SELECT
   change
 FROM user_scholarly_output_weekly_changes
 WHERE year_week = (SELECT year_week FROM get_year_week());
+
+CREATE OR REPLACE VIEW user_left_this_week AS
+WITH last_year_week AS (
+  SELECT year_week FROM get_year_week((NOW() - INTERVAL '7 days')::DATE)
+)
+SELECT
+  u.email AS user_id,
+  u.last_seen_cdl,
+  u.last_seen_iam
+FROM "user" u
+WHERE 
+  (select year_week from last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_cdl::DATE)) OR
+  (SELECT year_week FROM last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_iam::DATE));
+
+CREATE OR REPLACE VIEW this_week_harvest_errors AS
+SELECT
+  c.user_id,
+  c.command,
+  (c.timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/Los_Angeles') AS timestamp
+FROM command c
+JOIN error e ON c.command_id = e.command_id
+WHERE c.latest_weekly_attempt = TRUE
+  AND c.year_week = (SELECT year_week FROM get_year_week());

@@ -62,7 +62,6 @@ async function generateGrantFiles(cacheUsername, expertId, framedDocument, utils
       const filePath = path.join(config.cache.aeWebappDir, filename);
 
       await cache.writeScholarlyAsset(
-        'ae-webapp-grant-transform',
         'grant',
         filePath,
         outputText

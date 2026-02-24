@@ -78,7 +78,6 @@ async function generateWorkFiles(expertId, expertsGraphDocument, utils = {}) {
       const filePath = path.join(config.cache.aeWebappDir, filename);
 
       await cache.writeScholarlyAsset(
-        'ae-webapp-work-transform',
         'work',
         filePath,
         outputText

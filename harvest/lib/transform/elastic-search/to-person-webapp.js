@@ -22,7 +22,6 @@ async function generateExpertFile(cacheUsername, framedDocument, utils = {}) {
     }
 
     const expertFile = await cache.writeUserAsset(
-      'ae-webapp-expert-transform',
       cacheUsername,
       'webapp.expert.jsonld',
       outputText

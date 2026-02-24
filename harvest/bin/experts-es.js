@@ -1,9 +1,16 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes, createIndex, deleteIndex, setAlias, getState, deleteSearchScript, loadSearchScript, getUsersCurrentScholarlyWorks } from '../lib/load/elastic-search/index.js';
+import { ensureCurrentIndexes, 
+  createIndex, 
+  deleteIndex, 
+  setAlias, 
+  getState, 
+  ensureSearchScript, 
+  getUsersCurrentScholarlyWorks 
+} from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import path from 'path';
-import { readFile } from 'fs/promises';
+import fs from 'fs';
 import { Temporal } from '@js-temporal/polyfill';
 import { getTodaysDate } from '../lib/year-week.js';
 
@@ -116,30 +123,12 @@ program
   .command('load-search-template')
   .description('Load search template script into Elasticsearch')
   .option('-t, --template <name>', 'Template name to load (default: complete)', 'complete')
+  .option('--replace', 'Replace existing template if it exists')
   .action(async (opts={}) => {
-    let templateName = opts.template;
-    
     try {
-      let templatePath = path.join(__dirname, '../../webapp/models/search/template', `${templateName}.js`);
-      let fileContent = await readFile(templatePath, 'utf8');
-      
-      // parse commonJS file
-      let templateMatch = fileContent.match(/template\s*=\s*({[\s\S]*?});[\s\S]*module\.exports/);
-      if (!templateMatch) {
-        throw new Error(`Could not parse template from ${templateName}.js`);
-      }
-      
-      let template = eval(`(${templateMatch[1]})`);
-      if (!template || !template.id || !template.script) {
-        throw new Error(`Invalid template structure: missing id or script property`);
-      }
-      
-      await deleteSearchScript(template.id);
-      await loadSearchScript(template.id, template.script);
-      
-      logger.info(`Successfully loaded search template: ${template.id}`);
+      await ensureSearchScript(opts);
     } catch (error) {
-      logger.error(`Error loading search template ${templateName}:`, error.message);
+      logger.error(`Error loading search template ${opts.template}:`, error.message);
       process.exit(1);
     }
   });
