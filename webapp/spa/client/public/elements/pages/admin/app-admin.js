@@ -104,6 +104,7 @@ export default class AppAdmin extends Mixin(LitElement)
       let displayName = indexYYYYMM;
       if( aliasName ) displayName += ' (' + aliasName.split('-')?.[1] + ')';
       if( aliasName?.includes('current') ) displayName += ' [Selected]';
+      if( !aliasName ) aliasName = '(No alias)';
 
       indexes.push({
         indexName,
@@ -164,6 +165,8 @@ export default class AppAdmin extends Mixin(LitElement)
     await this.SchemaModel.setAlias(indexesToSwitch);
 
     this._clearCache();
+
+    // TODO clear selected preview index in fin-app
 
     await this._getAvailableElasticIndexes();
   }

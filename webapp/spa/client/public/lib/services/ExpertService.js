@@ -21,7 +21,7 @@ class ExpertService extends BaseService {
     let esIndexes = await indexedDb.getElasticsearchIndexes();
     let matchedAlias;
     if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
-      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.aliasName.startsWith('expert'))?.aliasName;
+      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith('expert'))?.aliasName;
       if( matchedAlias && isAdmin ) {
         qs.previewEsIndex = matchedAlias;
         ido.previewEsIndex = matchedAlias;
