@@ -13,10 +13,21 @@ async function run(user, alias='stage') {
   }
 
   let metadata = JSON.parse(await cache.readUserAsset(user, 'metadata.json'));
+
+  // Insert load statistics on scholarly output into database if reporting is enabled
+  if (config.reporting.enabled && config.postgres.client) {
+    await reportScholarlyOutputLoadStats(user, metadata);
+  }
+
   if( metadata.isPublic === false ) {
     logger.warn(`User ${user} is marked as not public, skipping load.`);
-    // TODO: NEED TO DELETE EVERYTHING (for user)!
+
     await purgeUser(metadata.expertId, alias);
+
+    if (config.reporting.enabled && config.postgres.client && 
+        alias.includes(config.elasticsearch.aliases.stage) ) {
+      await config.postgres.client.setEsStageInsertedAt(user, null);
+    }
     return;
   }
 
@@ -57,9 +68,9 @@ async function run(user, alias='stage') {
   // load files into elastic search
   let indexes = await loadEs(files, alias);
 
-  // Insert load statistics on scholarly output into database if reporting is enabled
-  if (config.reporting.enabled && config.postgres.client) {
-    await reportScholarlyOutputLoadStats(user, metadata);
+  if (config.reporting.enabled && config.postgres.client && 
+      alias.includes(config.elasticsearch.aliases.stage) ) {
+    await config.postgres.client.setEsStageInsertedAt(user, new Date());
   }
   
   logger.info(`Loaded data into elastic search for user: ${user}`);
@@ -68,6 +79,8 @@ async function run(user, alias='stage') {
 }
 
 async function reportScholarlyOutputLoadStats(user, metadata) {
+  if( !metadata.works ) metadata.works = [];
+  if( !metadata.grants ) metadata.grants = [];
 
   let workStats = [
     {
@@ -110,23 +123,29 @@ async function reportScholarlyOutputLoadStats(user, metadata) {
 async function purgeUser(expertId, alias='stage') {
   logger.info(`Purging scholarly works for user with expertId ${expertId} from elastic search index with alias ${alias}`);
 
-  // Delete document associated with the user
-  let deleteResp= await deleteDocument('experts-'+alias, 'expert/'+expertId);
-  logger.info('Delete response for expert document:', {deleteResp});
-
-  // get current works
-  let current = {
-    work : await getUsersCurrentScholarlyWorks('expert/'+expertId, 'work', alias),
-    grant : await getUsersCurrentScholarlyWorks('expert/'+expertId, 'grant', alias)
+  if( !Array.isArray(alias) ) {
+    alias = [alias];
   }
 
-  for( let type in current ) {
-    let works = current[type];
-    for( let uri of works ) {
-      try {
-        await generateScholarlyWork(uri, {write: true});
-      } catch (error) {
-        logger.error(`Failed to generate scholarly work for URI ${uri}: ${error.message}`);
+  for( let a of alias ) {
+    // Delete document associated with the user
+    let deleteResp = await deleteDocument('experts-'+a, 'expert/'+expertId);
+    logger.info('Delete response for expert document:', {deleteResp});
+
+    // get current works
+    let current = {
+      work : await getUsersCurrentScholarlyWorks('expert/'+expertId, 'work', a),
+      grant : await getUsersCurrentScholarlyWorks('expert/'+expertId, 'grant', a)
+    }
+
+    for( let type in current ) {
+      let works = current[type];
+      for( let uri of works ) {
+        try {
+          await generateScholarlyWork(uri, {write: true});
+        } catch (error) {
+          logger.error(`Failed to generate scholarly work for URI ${uri}: ${error.message}`);
+        }
       }
     }
   }

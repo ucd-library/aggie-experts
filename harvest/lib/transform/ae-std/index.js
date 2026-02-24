@@ -1,6 +1,7 @@
 import cache from '../../cache.js';
 import logger from '../../logger.js';
 import config from '../../config.js';
+import wrapUserDomain from '../../user-domain.js';
 import path from 'path';
 
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
@@ -9,13 +10,7 @@ import {jsonLdToPerson} from './person.js';
 import {toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
 async function srcToAeStd(options={}) {
-  if( options.rootDir ) {
-    config.cache.rootDir = options.rootDir;
-  }
-
-  if( !options.user.match(/@/) ) {
-    options.user += '@ucdavis.edu'; // ensure user has a domain
-  }
+  options.user = wrapUserDomain(options.user);
 
   logger.info('Transforming data for user:', options.user);
   logger.info('Root directory for transformed data:', cache.getUserPath(options.user, config.cache.aeStdFormatDir));

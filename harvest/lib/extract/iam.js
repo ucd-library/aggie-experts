@@ -83,7 +83,7 @@ export class IAM {
         throw new Error('Invalid expert');
       }
       id = expert;
-      expert = expert.replace(/^mailto:/, '').replace(/@ucdavis.edu$/, '');
+      expert = expert.replace(/^mailto:/, '').replace(new RegExp(config.userDomain+'$'), '');
       url = encodeURI(`${url}&userId=${expert}`);
     }
 

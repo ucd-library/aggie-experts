@@ -1,0 +1,454 @@
+# Aggie Experts Elasticsearch documents
+
+Aggie Experts documents are the JSON documents that are stored within
+elasticsearch and are the standard documents searched in aggie experts.
+
+Elasticsearch has three indexes; one for each document type in the system;
+`Expert`s, `Work`s, (peer-reviewed articles), and `Grant`s. These differ from
+their LDP counterparts in that they include more information then a single LDP
+node. For example an `Expert`'s document includes detailed information about the
+citations they have authored, and their grants, not just a link to their
+work. Elasticsearch documents are managed incrementally, with updates
+happening when relevant documents are added to or changed on the LDP.
+
+This document gives a basic summary of how data is added into the system, the
+general format of the elastic search documents; various important identifiers
+and types. Then the representation of each type are described in more detail.
+
+## Document Workflow and Updates
+
+The overall all workflow for data updates in AggieExperts is as follows:
+- **Data is added** into the LDP
+- Via FIN, these LDP events are monitored and initiate **model updates**. These
+  updates modify multiple documents in ElasticSearch
+- Aggie Experts use an API to retrieve these documents, the API also runs
+  **filtering and selection** on the document before they are delivered to the
+  client
+- AggieExperts also allows experts to preform **directly alteration** their data,
+  which is a typically a separate method in the models.
+
+In the current framework <2025-04-25 Fri>, Aggie Experts is typically reloaded
+from scratch on a weekly or biweekly timeframe. Because of these, LDP
+generated deletion events are not typically part of the process.
+
+### Data is Added
+
+Aggie Experts uses a pretty simplified implementation of the LDP. In
+particular, because we don't use it for archiving, we **don't** use any archive
+groups. Also, we **don't** use and direct or indirect containers to further
+organize the experts data. This is because, in general these data connections
+are more efficiently managed in the elastic search documents themselves.
+
+Currently, there is only one type of root container in AggieExperts, the expert.
+`contained` within the expert we include `Authorships` and `GrantRoles`. These
+objects define relationships between an `Expert` and their scholarly output.
+Importantly, the `Authorship` contains the complete `Work`, and the `GrantRole`
+contains the complete `Grant`. To allow for further additions, we store these
+roles using an `ark:` based filename to designate the source of the data. These
+roles are `contained` in the Expert, to ensure the `Expert` exists as the
+relationships are processed.
+
+`Expert`, `Authorship`, and `GrantRole` all follow the vivo schema. `Grant`
+also follow vivo, but we have chosen to use `CitationStyles` for our `Work`,
+because they are more suitable for citation, and frankly are a better semantic
+set. In addition, we also use `schema.org` for very general description of
+these objects.
+
+#### Data Representation
+
+The data that goes into the LDP can vary syntactically depending on the format
+used. For most applications, we want to use a format more suited to
+programmatic modifications. We do this in a consistent manner by using JSON-LD
+frames on the data. This make the data much closer to a typical JSON object.
+For consistency, we use the same frame on all data in the system. Using
+standard FIN suffix functions, any item in the LDP can be seen in it's framed
+form with `${fcrepo_url}/svc:node`. The frame identifies the particularly
+container, as it's own unique graph, and then uses the `@graph` parameter to
+describe the subjects, for which there can be more then one. For example, and
+`Authorship` node contains two objects, the `Authorship` and the `Work`.
+
+The context for the frame will likely change on a MAJOR release, and can be
+found at: [schema/expert](https://github.com/ucd-library/aggie-experts/tree/dev/experts-api/lib/schema/expert). The processing [frame](https://github.com/ucd-library/aggie-experts/tree/dev/experts-api/lib/frames) is used in the [transform.js](https://github.com/ucd-library/aggie-experts/blob/dev/services/base-service/models/base/transform.js)
+function, which also orders the authors (to match CitationStyles expectations)
+and matches the context to the server URI.
+
+### Model Updates
+
+When a new node is added to the LDP, the FIN application will look to see if any
+models should be updated. We use `@type` matching to determine this. FIN will
+look for **every** `@type` within a document, although the framing brings the
+expected `@type` to the root. `Expert`, `Work`, and `Grant` all use the same
+`BaseModel` which itself extends the `FinESDataModel`.
+
+However, updates **always** include multiple models, so expect to see other
+document types fetched and updated on any update. This is because the documents
+can be considered as standalone records for searching.
+
+### Filtering and Selection
+
+Experts are allowed to alter the visibility of parts of their document, and each
+node in the document graph has an `is-visible` flag that specifies this.
+Because of this, we **cannot** deliver our elastic search documents directly to
+a public user, nor can we make the `/fcrepo` endpoint available to the public
+either. In addition, some expert documents can get quite large, `12Mb`, and for
+the normal web client, there is no reason to send the complete data to the
+client when only a small portion will be used.
+
+Therefore, whenever direct items are returned, they are first sent to a
+`subselect` function where they can be sanitized for the public, and subselected
+to be smaller.
+
+In addition, all elasticsearch templates include components that limit searching
+to the public parts of a document.
+
+### Direct Alteration
+
+Finally, experts can directly alter their works and grants via the API. Every
+alteration occurs thru the `/api/expert` endpoint. Experts are able to change
+the visibility of their `Work` and `Grant` items. They can also permanently
+remove `Work` items that don't belong to them.
+
+Because we consider CDL to be the canonical source for this information, these
+alterations; first alter the affected record at CDL, using a service account;
+and then alter the visibility in the elasticsearch record, and then alter the
+visibility in the fcrepo instance.
+
+**Important:** Aggie Experts does **not** use the Elements API to perform this
+action. The authorization for the API is much to coarsely grained. Instead, we
+use the `proxy` mechanism available via the web interface, and then also alter
+the record via the web interface. The `aggie-experts` user, can only be used
+for UC Davis records.
+
+## Basic document format
+
+All elasticsearch documents contain what we call `root` information, and then
+nodes within the `@graph` set of objects that contain ancillary information
+of other documents related to the root. For experts, these nodes are
+summaries of all the works and grants for the expert. A work document will
+contain summaries for all the experts that are authors, and for grants the
+Co-PIs.
+
+The documents are all valid jsonld files. The JSON-LD data is framed so that
+some minor objects are embedded into larger objects.
+
+All ancillary `nodes` are stored in the `@graph`. Nodes have their own
+`@ids` and `@types`, the `@ids` describe the same object, though they have
+different amounts of specificity based on the document they are in. Any
+additional information outside the `@graph` is related to the `root`.
+
+One main reason the data is organized this way, is that we use **nested**
+indices in elastic search, where each node in the `@graph` is searched as
+it's own entity, though hits respond with the complete document.
+
+Here is an example of a typical document:
+```json
+{
+    "@context":"https://schema.library.ucdavis.edu/context/experts.json",
+    "_id":"expert/quinn",
+    "@id":"http://experts.ucdavis.edu/expert/quinn",
+    "@graph":[
+        { "@id":"http://experts.ucdavis.edu/expert/quinn",
+          "@type":["Expert", "Non-acedemic"],
+          "identifiers" : [ "https://orcid.org/XXX" ],
+          "is-visible": true,
+          "contactInfo": {
+              "name" : {"family": "Hart"
+                        "given": "Quinn" }
+          }
+        },
+        { "@id":"ark:/.../work/evap",
+          "@type":["Work"],
+          "favourite": true,
+          "title":"Evapotranspiration in California",
+          "container-title": "California Agriculture"
+          "authors": [{"family":"Muir","given":"John"},
+                      {"family":"Hart","given":"QJ"}],
+          "relatedBy": {
+            "@type": [
+              "Authorship",
+            ],
+            "rank": 3,
+            "@id": "ark:/...",
+            "is-visible": true
+          },
+        },
+        { "@id":"ark:/..../grant/CA-water",
+          "@type":["Grant"],
+          "title":"Evapotranspiration Grant"
+          "relatedBy": {
+            "@type": [
+              "Principal Investigator",
+            ],
+            "@id": "ark:.../",
+            "is-visible": true
+          },
+        }
+    ]
+}
+```
+
+The node in the graph that shares the "@id" with the document we call the
+root node. Root nodes can be of `@type`, `Expert`, `Work`, `Grant`, and
+`Relationship`. `Relationships` are documents in the index, but not often
+surfaced to a user, although they are combined with other nodes in other
+documents.
+
+**Linked data Nerd out:** The documents are formatted to provide a multi-tiered
+experience for linked data. At the `root` level, all the information
+regarding the document are referenced as `n-triples`. You can consider this
+what the system believes about that object. However all the objects within
+the `@graph` array, are referenced as `n-quads`, meaning in addition to the
+subject, predicate, and object, they also include a graph specification. The
+graph is again the document identifier itself. You can consider this as what
+that particular document believes about Aggie Experts.
+
+Root nodes are the JSON-LD representation of the corresponding LDP node for
+that particular type. Other nodes are added to the document on LDP events.
+For example, in the above example, the original `Expert` document, was
+decorated with a node corresponding to one `Work` and one `Grant` that were
+also added to the system, and connected to the user via `Relationships`.
+
+### JSONLD Context
+
+The `@context` for a document is available via the Aggie Experts application,
+The `@context` can change for every major revision, sometimes explicitly
+identified in the `@context` URL. The "official" most recent context will be
+found at https://experts.ucdavis.edu/experts/api/schema/context.jsonld.
+
+Properties that are experimental retain a prefix in their name to help separate
+them from the production properties.
+
+### Frame
+
+Every document used the same frame when it was added into the elasticsearch
+document. The frame mostly controls what types are made the root type, and
+which are embedded. Since frames don't modify the semantics of the data, we
+don't generally publish them. Aggie Experts currently uses the same frame for
+every node.
+
+Below is a recent frame. The contactInfo has special @embedding so that
+names are replicated accross multiple vcards, even though in linked data land,
+the data has already been included.
+
+#+name: experts_frame
+```json
+{
+  "@version": 1.1,
+  "@context": "https://experts.ucdavis.edu/experts/api/schema/context.jsonld",
+  "Grant": {
+    "@embed":"@always",
+    "@omitDefault":true,
+    "@default":"@null"
+  },
+  "contactInfo": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
+  "hasName": { "@embed":"@always","@omitDefault":true, "@default":"@null" },
+  "relates": { "@embed":"@never","@omitDefault":true, "@default":"@null" },
+  "relatedBy": { "@embed":"@always", "@omitDefault":true, "@default":"@null" },
+  "@embed": "@once",
+  "@type": ["Expert","Work","Grant"]
+}
+```
+
+### Identifiers
+
+In addition to `@ids`, nodes can also have an `identifier` property. In
+linked data this is a `schema:identifier` property. All `@id`s and
+`identifier`s should all be standardized to a known cataloging system. URNs,
+URIs and other labeled schemes eg `ark:`s and `DOI`s are good examples. An
+identifier should uniquely identify the node.
+
+All identifiers are public, though they don't need to resolve to public URLs.
+
+A note on identifiers: Whenever we need to reference an identifier that was
+generated in another system, and that system doesn't have a methodology for
+uniqueness, our default setup is to mint and ark: for that particular system.
+This allows us to identify each individual system, and then use ark: paths to
+identify individual items. Typically, we make a new ark for each system.
+Some examples are:
+
+| ark:              | system           | example                          |
+|-------------------|------------------|----------------------------------|
+| ark:/87287/d7mh2m | CDL Elements     | ark:/87287/d7mh2m/user/[number]  |
+| ark:/87287/d7gt0q | DAFIS Grants     | ark:/87287/d7gt0q/grant/[number] |
+| ark:/87287/d7c08j | Aggie Enterprise | ark:/87287/d7c08j/grant/[id]     |
+| ark:/87287/d7c08j | Aggie Enterprise | ark:/87287/d7c08j/user/[iamId]   |
+
+`ark:/87287/d7mh2m` arks are for UC Davis CDL Elements; and the suffix scheme
+to identify CDL components, uses the standard API endpoints for inspiration on
+the names. For example, although we identify a expert, the elements API uses
+the term `user`. So the CDL specific identifier for Quinn Hart will be
+`ark:/87287/d7mh2m/user/42956`.
+
+`ark:/87287/d7gt0q` identify grants archived from UC Davis' old grants
+information system
+
+`ark:/87287/d7c08j` identify grants, users and potentially other objects in
+the new UC Davis Aggie Enterprise system.
+
+## Specific Types
+
+### Expert
+
+The root for an expert includes; `name`, `modified-date`, `@id`, the best `contactInfo`,
+and `availability`. The subselect process also adds a summary of the total
+works and grants. in the `@graph` there is a node for the user, which includes
+all contactInfo, themes, and identifiers. In addition, there is a single node
+for each work and grant associated with the user. These are almost complete
+replicates of those objects.
+
+Recall that the subselect feature will strip much of the data by default. You
+can get a complete records; with the `all` and optional `hidden` parameters as
+in `http GET https://experts.ucdavis.edu/expert/LDdgBTXN all==1 include==hidden`
+
+For the initial public availability of Aggie Experts, there were 4132
+experts. The Q2=0, Q3=5, and max 197. For works, Q2=6, 3Q=52, and max 1674.
+The size of the works themselves can affect the size of an expert, the maximum
+size record is about 5M.
+
+#### Identifiers
+
+**ORCID** - We use the standard URI for this, eg:
+`https://orcid.org/0000-0001-9829-8914` Note that ORCID uses https: as their
+identifier of choice.
+
+**UC Davis Aggie Enterprise**: Aggie Enterprise uses UC Path identifiers for
+users. We use a one-dimensional function to map this to a public identifier.
+This allows agents with knowledge of a users' Aggie Enterprise identifier to
+find that user, but disallows public discovery of a users' identifier.
+
+**CDL ARK** - use `ark:/87287/d7mh2m/user/[number]` as in
+`ark:/87287/d7mh2m/user/42956` We will mint a new ark: everytime numbering
+changes
+
+**mailto** - If email is public via ODR, we will add campus emails as in
+`mailto:qjhart@ucdavis.edu`
+
+Other identifiers, https://www.webofscience.com/wos/author/record/M-4572-2018,
+http://www.scopus.com/authid/detail.url?authorId=6506365550 are **TBD**
+
+### Work
+
+Works specify scholarly research, mostly peer reviewed data. The root
+contains most of the citation information for the work, using citationStyle
+format. the `@graph` also contains the citation, including all the links to
+experts, and a node for each expert as well. The Expert nodes include their
+name, and identifiers.
+
+#### Identifiers
+
+Works can have `DOIs` and the CDL element `ark:` DOIs are case insenstive, but
+should be in upper-case in the identifier property. If a work has a DOI, we
+will use that as the `@id` in Aggie Experts, if it doesn't then we'll use the
+CDL `ark` identifier.
+
+### Grant
+
+The root of a grant record contains basic information about the grant. The
+`@graph` contains one node for the grant, and nodes for each expert involved in
+the grant.
+
+#### Identifiers
+
+Grants come from 3 distinct locations. We have grant information that was
+generated from the DAFIS decision support queries; Grants from the Aggie
+Enterprise system, and grants that come from the CDL elements system. Note
+that it's expected that grants generated from DAFIS and Aggie Enterprise will
+also be referenced in the CDL elements, so they will have two identifiers. In
+that case, the
+
+**DAFIS** - Use `ark:/87287/d7gt0q` as the base for grants that were recovered
+from the DAFIS system via the purpose built SQL query. We add `grant/` plus
+the DAFIS local grant number for the identifier,
+eg. `ark:/87287/d7gt0q/grant/1`
+
+**Aggie Enterprise** - Use `ark:/87287/d7c08j` for grants from the Aggie
+Enterprise system. Add `grant/[id]` as the path, as in:
+`ark:/87287/d7c08j/grant/K337D88`
+
+**CDL Elements** - Use `ark:/87287/d7mh2m/grant/[number]` to reference CDL
+Elements identifiers. Some, but not all CDL Elements grants will use either
+of the above identifiers as their local ids.
+
+## `is-visible` and Sanitization
+
+Note in the above examples, that `nodes` or the `relatedBy` component of a
+node have an `is-visible` property. The documents in the system can also
+have nodes where the `is-visible: false`. These are nodes not available to
+the public, but are available to admins, some elevated applications and the
+expert that the document describes. These nodes are removed during the
+`subselect` step when users access the system via the API. Every record is
+`subselected` before it's delivered to the user. The advantage for this is that
+elevated users will be able to see the hidden data with a low overhead on the
+system, and a more consistent experience with our experts.
+
+### Node Removal for Experts
+
+A normal expert has a `@graph` of data, each node can be a Work, a Grant or
+an Expert. There is only ever one Expert. Work and Grants include their
+relationship with the Expert in the `vivo:relatedBy` field. Individual Works
+and Grants may have an `is-visible` boolean value. In addtion, the relation
+itself as defined may have an `is-visible` value. (Actually is **always**
+should have one.
+
+If either of these flags are `false` then, the node is removed from the
+`@graph` during the sanitization. Note in the examples below, Grants
+themselves don't have an `is-visible` flag to be checked, but Works and
+Experts do.
+
+```json
+{
+  "@id": "expert/66356b7eec24c51f01e757af2b27ebb8",
+  "@graph": [
+    {
+    "@id": "expert/66356b7eec24c51f01e757af2b27ebb8",
+    "@type": [
+      "vivo:Person",
+      "Expert",
+      "NonAcademic"
+    ],
+    "orcidId": "0000-0001-9829-8914",
+    "is-visible": true
+  },
+    {
+    "@type": [ "Grant" ],
+    "totalAwardAmount": "783000",
+    "name": "NEAR REAL TIME SCIENCE PROCESSING ALGORITHM FOR LIVE FUEL MOISTURE CONTENT FOR THE MODIS DIRECT READOUT SYSTEM",
+    "@id": "ark:/87287/d7mh2m/grant/4316321",
+    "relatedBy": {
+      "relates": [
+        "expert/66356b7eec24c51f01e757af2b27ebb8",
+        "ark:/87287/d7mh2m/grant/4316321"
+      ],
+      "@type": "GrantRole",
+      "@id": "ark:/87287/d7mh2m/relationship/13338362",
+      "is-visible": true
+    }
+  },
+    {
+  "@id": "ark:/87287/d7mh2m/publication/1875203",
+  "@type": "Work",
+  "is-visible": true,
+  "title": "Impact of biases in gridded weather datasets on biomass estimates of short rotation woody cropping systems",
+  "DOI": "10.1016/j.agrformet.2016.11.008"
+  "relatedBy": {
+    "relates": [
+      "expert/66356b7eec24c51f01e757af2b27ebb8",
+      "ark:/87287/d7mh2m/publication/1875203"
+    ],
+    "@type": [
+      "Authorship",
+      "ucdlib:Authorship"
+    ],
+    "rank": 3,
+    "@id": "ark:/87287/d7mh2m/relationship/5921819",
+    "is-visible": true
+  }
+}
+  ]
+}
+```
+
+### Grant Sanitization
+
+In addition to grant visibility, we are currently sanitizing Award amounts
+from the grant system. The items that are removed are `totalAwardAmount`.

@@ -532,12 +532,27 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
         conn.commit()
 
         # Query all runs that belong to this backfill (by tag)
+        # TODO: get run start time.
         run_records = context.instance.get_run_records(
-            filters=dg.RunsFilter(tags={"dagster/backfill": backfill_id})
+          filters=dg.RunsFilter(tags={"dagster/backfill": backfill_id})
         )
-        statuses = [r.dagster_run.status for r in run_records]
 
-        successfull_runs = [r for r in run_records if r.dagster_run.status == dg.DagsterRunStatus.SUCCESS]
+        # Currently these seem to come out in reverse order (latest first), so we will ignore keys we have already seen
+        latest_by_partition = {}
+        for run_record in run_records:
+          partition_key = run_record.dagster_run.tags.get("dagster/partition")
+          if not partition_key:
+            continue
+
+          if partition_key in latest_by_partition:
+            continue
+
+          latest_by_partition[partition_key] = run_record
+
+        latest_run_records = list(latest_by_partition.values())
+        statuses = [r.dagster_run.status for r in latest_run_records]
+
+        successfull_runs = [r for r in latest_run_records if r.dagster_run.status == dg.DagsterRunStatus.SUCCESS]
         next_partitions = [r.dagster_run.tags.get("dagster/partition") for r in successfull_runs]
 
         if notify == "true":
@@ -620,7 +635,8 @@ defs = dg.Definitions(
     assets=[extract_user, transform_user_webapp, transform_user_standard, 
             load_user, init_databases, fetch_user_list_from_cdl,
             purge_user_cask_files, ensure_current_index, set_alias,
-            create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl, reload_search_template],
+            create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl, 
+            reload_search_template],
     sensors=[etl_notify_and_continue],
     resources={},
     schedules=[weekly_elt_init_schedule, weekly_elt_schedule],

@@ -7,7 +7,7 @@ import config from '../lib/config.js';
 import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
-import { write } from 'fs-extra';
+import wrapUserDomain from '../lib/user-domain.js';
 
 const program = new Command();
 
@@ -20,9 +20,7 @@ program
   .option('--std-sort', 'Sort the ae-std output files for debugging')
   .action(async (userId, options) => {
 
-    if( !userId.match(/@/ ) ) {
-      userId += '@ucdavis.edu';
-    }
+    userId = wrapUserDomain(userId);
 
     if (options.reportingJobId || options.reporting) {
       await enableFromCli('experts-harvest-transform-ae-std', userId, options);
@@ -97,9 +95,7 @@ program
   .option('--std-sort', 'Sort the ae-std output files for debugging')
   .action(async (userId, options) => {
 
-    if( !userId.match(/@/ ) ) {
-      userId += '@ucdavis.edu';
-    }
+    userId = wrapUserDomain(userId);
 
     if (options.reportingJobId || options.reporting) {
       await enableFromCli('experts-harvest-transform-webapp', userId, options);
