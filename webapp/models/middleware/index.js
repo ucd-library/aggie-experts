@@ -1,5 +1,6 @@
 const OpenAPI = require('@wesleytodd/openapi')
-const {config, keycloak} = require('@ucd-lib/fin-service-utils');
+const config = require('../../lib/config');
+const keycloak = require('../../lib/keycloak');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const template = require('../base/template/name.json');
@@ -10,8 +11,11 @@ let MIVJWKSClient=null;
 
 
 async function item_endpoint(router, model, subselect = (req, res, next) => next()) {
+  // Express 5 path-to-regexp is stricter; avoid optional path params like '/:id?'.
+  // Support both '/:id' and '/' with query param 'id'.
+
   router.route(
-    '/:id?'
+    '/:id'
   ).get(
     valid_path(
       {
@@ -37,6 +41,38 @@ async function item_endpoint(router, model, subselect = (req, res, next) => next
     valid_path_error,
     async (req, res, next) => {
       const id=req.params.id || req.query.id;
+      try {
+        res.thisDoc = await model.get(id);
+        next();
+      } catch (e) {
+        return res.status(404).json(`${id} resource not found`);
+      }
+    },
+    subselect,
+    (req, res) => {
+      res.status(200).json(res.thisDoc);
+    }
+  )
+
+  router.route(
+    '/'
+  ).get(
+    valid_path(
+      {
+        description: "Get a ${model.name} by id (via query param id)",
+        responses: {
+          "200": openapi.response(model.name),
+          "400": openapi.response('missing_id'),
+          "403": openapi.response('forbidden'),
+          "404": openapi.response('not_found')
+        }
+      }
+      ),
+    public_or_is_user,
+    valid_path_error,
+    async (req, res, next) => {
+      const id=req.query.id;
+      if( !id ) return res.status(400).json('missing id');
       try {
         res.thisDoc = await model.get(id);
         next();
