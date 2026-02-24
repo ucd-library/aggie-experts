@@ -135,6 +135,18 @@ class PgClient {
     return this.query(query, [email, isPublic, JSON.stringify(cdlPrivacy), JSON.stringify(odrPrivacy)]);
   }
 
+  setEsStageInsertedAt(email, timestamp) {
+    if( timestamp === undefined ) {
+      timestamp = new Date();
+    }
+    const query = `
+      UPDATE ${this.schema}.user
+      SET es_stage_inserted_at = $2
+      WHERE email = $1
+    `;
+    return this.query(query, [email, timestamp]);
+  }
+
   insertYearWeek(yearWeek, weekStart, weekEnd) {
     const query = `
       INSERT INTO ${this.schema}.year_week (year_week, week_start, week_end)
