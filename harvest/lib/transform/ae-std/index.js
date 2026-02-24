@@ -1,6 +1,7 @@
 import cache from '../../cache.js';
 import logger from '../../logger.js';
 import config from '../../config.js';
+import wrapUserDomain from '../../user-domain.js';
 import path from 'path';
 
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';

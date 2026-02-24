@@ -1,6 +1,6 @@
 import config from './config.js';
 
-async function wrapUserDomain(user) {
+function wrapUserDomain(user) {
   if( !user ) throw new Error('User object is required');
 
   if( !user.endsWith(config.userDomain) ) {
