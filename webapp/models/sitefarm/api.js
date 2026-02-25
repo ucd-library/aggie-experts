@@ -12,7 +12,7 @@ const base = new BaseModel();
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
 
-const { /*openapi,*/ json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
+const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
 
 
 function siteFarmFormat(req, res, next) {
@@ -166,12 +166,54 @@ function siteFarmFormat(req, res, next) {
 // (as well as the swagger-ui if configured)
 // router.use(openapi);
 
+router.get('/openapi.json', (req, res) => {
+  res.json({
+    openapi: '3.0.3',
+    info: openapi?.definition?.info || {
+      title: 'Sitefarm',
+      version: '0.0.0',
+      description: 'Sitefarm API'
+    },
+    servers: openapi?.definition?.servers || [{ url: '/api/sitefarm' }],
+    components: openapi?.definition?.components || {},
+    paths: {
+      '/api/sitefarm/experts/{ids}': {
+        get: {
+          description: 'Return a JSON array of expert profiles formatted for sitefarm',
+          parameters: [
+            {
+              name: 'ids',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: "Comma-separated list of ids in the format '{idType}:{id}'"
+            },
+            {
+              name: 'modified_since',
+              in: 'query',
+              required: false,
+              schema: { type: 'string', format: 'date' }
+            }
+          ],
+          responses: {
+            '200': { description: 'OK' },
+            '400': { description: 'Invalid request' },
+            '403': { description: 'Not authorized' },
+            '500': { description: 'Server error' }
+          }
+        }
+      }
+    }
+  });
+});
+
 const path = require('path');
 
 router.get('/', (req, res) => {
-  // Send the pre-made swagger.json file
-  res.sendFile(path.join(__dirname, 'swagger.json'));
-  // res.redirect('/api/sitefarm/openapi.json');
+  // Short term: keep this route, but redirect to the OpenAPI JSON endpoint
+  res.redirect('/api/sitefarm/openapi.json');
+  // Previous behavior (kept here if needed later):
+  // res.sendFile(path.join(__dirname, 'swagger.json'));
 });
 
 router.get(
