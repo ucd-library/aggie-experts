@@ -162,7 +162,15 @@ export class CdlClient {
     // filter authors data
     json = this.updateAuthors(json);
 
-    const writeResp = await cache.writeUserAsset(options.cacheName, jsonFile, json);
+    let writeResp = null;
+    if( options.name === 'groups' ) {
+      writeResp = await cache.write(
+        path.join(cache.getPath(), options.cacheName), 
+        json
+      );
+    } else {
+      writeResp = await cache.writeUserAsset(options.cacheName, jsonFile, json);
+    }
 
     return {
       writeResp,
@@ -286,6 +294,7 @@ export class CdlClient {
       path.join(cache.getPath(), 'users.json'), 
       {groupId: group, groupName, users}
     );
+
     return {
       groupId: group,
       groupName,
