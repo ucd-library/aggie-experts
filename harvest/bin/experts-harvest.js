@@ -17,12 +17,17 @@ program
   .command('year-week')
   .description('Get the year-week number for a given date, defaults to current date')
   .option('-d, --date <date>', 'Date to get week number for (format: YYYY-MM-DD).  Defaults to current date.', null)
+  .option('--weeks-ago <number>', 'Get the year-week for a date a number of weeks ago.  Overrides --date option.', parseInt)
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action((opts) => {
     let fnOpts = {
       date : opts.date ? Temporal.PlainDate.from(opts.date) : undefined,
       allValues: opts.verbose,
       asString: true
+    }
+
+    if( opts.weeksAgo ) {
+      fnOpts.date = Temporal.Now.plainDateISO().subtract({ weeks: opts.weeksAgo });
     }
 
     console.log(getYearWeek(fnOpts));
