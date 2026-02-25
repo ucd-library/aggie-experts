@@ -55,6 +55,12 @@ class LoadUserConfig(Config):
 class YearWeekConfig(Config):
     year_week: str = Field(..., description="Year-week for CaskFS purge in format YYYY-WW")
 
+class PurgeYearWeekConfig(Config):
+    year_week: str | None = Field(
+        default=None,
+        description="Optional year-week in format YYYY-WW"
+    )
+
 class SetAliasConfig(Config):
     year_week: str = Field(..., description="Year-week for CaskFS purge in format YYYY-WW")
     alias: Literal['stage', 'current']
@@ -123,7 +129,7 @@ def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_js
         raise subprocess.CalledProcessError(rc, cmd, output="")
 
       if no_json_parse:
-        return None
+        return last_line
 
       # if you expect JSON on the last line:
       return json.loads(last_line)
@@ -355,6 +361,53 @@ def purge_user_cask_files(context: AssetExecutionContext, config: YearWeekConfig
     return None
 
 @dg.asset(
+    code_version=CODE_VERSION,
+    group_name="cleanup",
+    tags={
+      "dagster/max_runtime": str(60*60*2) # 2 hour max runtime since there could be a lot of files to delete
+    }
+)
+def purge_year_week_cask_files(context: AssetExecutionContext, config: PurgeYearWeekConfig) -> None:
+    """Purge all files from CaskFS before a given year-week.  Defaults to 4 weeks ago if year-week not provided since that is the typical retention period for CaskFS."""
+    year_week = config.year_week
+    if not year_week:
+      year_week = subprocess.check_output(["experts", "harvest", "year-week", "--weeks-ago", "4"], text=True).strip()
+
+    print(f"Purging CaskFS files for year-week {year_week}") 
+    result = exec(["cask", "rm", "-d", f"/weekly/{year_week}"], no_json_parse=True)
+
+    return None
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="cleanup",
+    tags={
+      "dagster/max_runtime": str(60*60*2) # 2 hour max runtime since there could be a lot of files to delete
+    }
+)
+def purge_dagster_runs(context: AssetExecutionContext) -> None:
+    """Purge runs more than 8 weeks old."""
+    result = exec(
+      ["python", "/opt/dagster/dagster_home/dagster_cleanup.py", "--weeks", "8", "--dry-run", "--yes"],
+      no_json_parse=True
+    )
+
+    return None
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="cleanup"
+)
+def purge_reporting_db(context: AssetExecutionContext) -> None:
+    """Purge commands more than 8 weeks old.  Purge users not seen for 6 months."""
+    result = exec(
+      ["experts", "harvest", "cleanup", "--weeks", "8", "--users-weeks", "26", "--yes"],
+      no_json_parse=True
+    )
+
+    return None
+
+@dg.asset(
     partitions_def=users_partitions,
     code_version=CODE_VERSION,
     auto_materialize_policy=AutoMaterializePolicy.eager(),
@@ -411,6 +464,16 @@ transform_load_users_job = dg.define_asset_job(
     description="Job to run the second Webapp Transform (requires all users) and load user after extraction.",
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user),
     tags={"dagster/priority": "-1"}
+)
+
+cleanup_job = dg.define_asset_job(
+    name="cleanup",
+    description="Job to cleanup; old reporting data (commands 8 weeks, users 6 months), old CaskFS files (weekly harvest from 4 weeks ago), and old Dagster runs (older than 8 weeks).",
+    selection=dg.AssetSelection.assets(purge_dagster_runs, purge_reporting_db, purge_year_week_cask_files),
+    tags={
+      "dagster/priority": "-1",
+      "dagster/max_runtime": str(60*60*6) # 6 hour max runtime since there could be a lot of files to delete
+    }
 )
 
 def send_slack_notification(context, backfill_id: str, status: str, message: str):
@@ -631,12 +694,12 @@ weekly_elt_schedule = dg.ScheduleDefinition(
 )
 
 defs = dg.Definitions(
-    jobs=[etl_users_job, extract_users_job, transform_load_users_job],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job, cleanup_job],
     assets=[extract_user, transform_user_webapp, transform_user_standard, 
             load_user, init_databases, fetch_user_list_from_cdl,
-            purge_user_cask_files, ensure_current_index, set_alias,
+            ensure_current_index, set_alias, reload_search_template,
             create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl, 
-            reload_search_template],
+            purge_user_cask_files, purge_year_week_cask_files, purge_dagster_runs, purge_reporting_db],
     sensors=[etl_notify_and_continue],
     resources={},
     schedules=[weekly_elt_init_schedule, weekly_elt_schedule],

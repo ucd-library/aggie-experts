@@ -30,7 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_command_latest_weekly_attempt ON command (latest_
 CREATE TABLE IF NOT EXISTS error (
   error_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id),
+  command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
   message TEXT NOT NULL,
   stack TEXT
 );
@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_error_command_id ON error (command_id);
 CREATE TABLE IF NOT EXISTS user_scholarly_output_load_stats (
   user_load_stats_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id),
+  command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
   user_id VARCHAR(255) NOT NULL,
   type VARCHAR(50) NOT NULL CHECK (type IN ('works', 'grants')),
   visibility VARCHAR(20) NOT NULL CHECK (visibility IN ('public', 'private')),
@@ -338,3 +338,29 @@ FROM command c
 JOIN error e ON c.command_id = e.command_id
 WHERE c.latest_weekly_attempt = TRUE
   AND c.year_week = (SELECT year_week FROM get_year_week());
+
+CREATE OR REPLACE FUNCTION cleanup_old_commands(p_weeks_to_keep INTEGER DEFAULT 8) 
+RETURNS INTEGER AS $$
+DECLARE
+  cutoff_date DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
+  deleted_command_count INTEGER;
+BEGIN
+  DELETE FROM etl_reporting.command
+  WHERE timestamp::DATE < cutoff_date;
+  GET DIAGNOSTICS deleted_command_count = ROW_COUNT;
+  RETURN deleted_command_count;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION cleanup_old_users(p_weeks_to_keep INTEGER DEFAULT 24) 
+RETURNS INTEGER AS $$
+DECLARE
+  cutoff_date DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
+  deleted_user_count INTEGER;
+BEGIN
+  DELETE FROM etl_reporting."user"
+  WHERE last_seen_cdl < cutoff_date;
+  GET DIAGNOSTICS deleted_user_count = ROW_COUNT;
+  RETURN deleted_user_count;
+END;
+$$ LANGUAGE plpgsql;
