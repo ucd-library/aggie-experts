@@ -368,10 +368,10 @@ def purge_user_cask_files(context: AssetExecutionContext, config: YearWeekConfig
     }
 )
 def purge_year_week_cask_files(context: AssetExecutionContext, config: PurgeYearWeekConfig) -> None:
-    """Purge all files from CaskFS before a given year-week.  Defaults to 4 weeks ago if year-week not provided since that is the typical retention period for CaskFS."""
+    """Purge all files from CaskFS before a given year-week.  Defaults to 5 weeks ago if year-week not provided since that is the typical retention period for CaskFS."""
     year_week = config.year_week
     if not year_week:
-      year_week = subprocess.check_output(["experts", "harvest", "year-week", "--weeks-ago", "4"], text=True).strip()
+      year_week = subprocess.check_output(["experts", "harvest", "year-week", "--weeks-ago", "5"], text=True).strip()
 
     print(f"Purging CaskFS files for year-week {year_week}") 
     result = exec(["cask", "rm", "-d", f"/weekly/{year_week}"], no_json_parse=True)
