@@ -5,6 +5,8 @@ import logger from '../lib/logger.js';
 import PgClient from '../lib/pg-client.js';
 import config from '../lib/config.js';
 import { getYearWeek } from '../lib/year-week.js';
+import cache from '../lib/cache.js';
+import path from 'path';
 const program = new Command();
 
 const GROUP_IDS = ['dev', 'sandbox', 'experts'];
@@ -87,27 +89,38 @@ program
     
     console.log(`Starting backfill for job ${jobName} with ${steps.length} steps...`);
 
-    // TODO: should we just read this from the database??
-    const client = new CdlClient();
-    const users = await client.getGroupList(opts.groupId);
+    // // TODO: should we just read this from the database??
+    // const client = new CdlClient();
+    // const users = await client.getGroupList(opts.groupId);
+
+    let userListPath = path.join(cache.getPath(), `users-list-${opts.groupId}.json`);
+    let users = await cache.read(userListPath);
+    users = JSON.parse(users).users;
 
     if( opts.skip ) {
       const skipCount = parseInt(opts.skip, 10);
       if( isNaN(skipCount) || skipCount < 0 ) {
         throw new Error('Invalid skip count specified: '+opts.skip);
       }
-      users.users = users.users.slice(skipCount);
+      users = users.slice(skipCount);
     }
 
-    console.log(JSON.stringify(
-      await dagster.startBackfill(jobName, steps, users.users, {
-        'cdl_group_id': opts.groupId,
-        'notify': opts.notify ? 'true' : 'false',
-        'continue_etl': opts.continueEtl ? 'true' : 'false',
-        'dagster/max_retries' : opts.retries
-      }), 
-      null, 2
-    ));
+    console.log(`Found ${users.length} users for group ${opts.groupId} at ${userListPath}. Starting backfill with these users as dynamic partitions...`);
+
+    let resp = await dagster.startBackfill(jobName, steps, users, {
+      'cdl_group_id': opts.groupId,
+      'notify': opts.notify ? 'true' : 'false',
+      'continue_etl': opts.continueEtl ? 'true' : 'false',
+      'dagster/max_retries' : opts.retries
+    });
+
+
+    if( resp?.data?.launchPartitionBackfill?.__typename != 'LaunchBackfillSuccess' ) {
+      console.error('Failed to start backfill', JSON.stringify(resp, null, 2));
+      throw new Error('Failed to start backfill: '+jobName);
+    }
+
+    console.log(`Backfill started successfully with ID: ${resp.data.launchPartitionBackfill.backfillId}`);
 
     // things seem to hang after this point... so force exit
     process.exit();
