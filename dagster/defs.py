@@ -61,6 +61,12 @@ class PurgeYearWeekConfig(Config):
         description="Optional year-week in format YYYY-WW"
     )
 
+class NotifyConfig(Config):
+    notify: str | None = Field(
+        default=None,
+        description="Optional slack notification message"
+    )
+
 class SetAliasConfig(Config):
     year_week: str = Field(..., description="Year-week for CaskFS purge in format YYYY-WW")
     alias: Literal['stage', 'current']
@@ -143,15 +149,15 @@ def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_js
   group_name="init"
 )
 def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
-    """Get current user list from CDL and create dynamic partitions."""
+  """Get current user list from CDL and create dynamic partitions."""
 
-    result = exec(["experts", "harvest", "dagster", "init-user-partitions", config.group_id])
-  
-    context.add_output_metadata(
-      metadata={
-        "group_id": config.group_id
-      }
-    )
+  result = exec(["experts", "harvest", "dagster", "init-user-partitions", config.group_id])
+
+  context.add_output_metadata(
+    metadata={
+      "group_id": config.group_id
+    }
+  )
 
 @dg.asset(
   code_version=CODE_VERSION,
@@ -230,6 +236,7 @@ def reload_search_template(context, config: ReloadSearchTemplateConfig) -> None:
 @dg.asset(
   code_version=CODE_VERSION,
   group_name="init",
+  deps=[ensure_current_index]
 )
 def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
     """Get current user list from CDL and create dynamic partitions."""
@@ -326,19 +333,17 @@ def transform_user_webapp(context: AssetExecutionContext) -> None:
 @dg.asset(
     code_version=CODE_VERSION,
     group_name="etl",
-    retry_policy=RetryPolicy(
-        max_retries=0
-    )
+    deps=[fetch_user_list_from_cdl]
 )
-def exec_weekly_etl(context: AssetExecutionContext) -> None:
+def exec_weekly_etl(context: AssetExecutionContext, config: NotifyConfig) -> None:
     """Start the full weekly ETL process for all users."""
 
-    tags = context.dagster_run.tags
-    if tags.get("pull-cdl"):
-      context.log.info("Pulling user list from CDL before starting ETL.")
-      exec(["experts", "harvest", "dagster", "init-user-partitions", tags.get("pull-cdl")])
+    cmd = ["experts", "harvest", "dagster", "run-extract-users-job"]
+    if config.notify == "true":
+      cmd += ["--notify", "true"]
+    cmd += ["--continue-etl", "true"]
 
-    exec(["experts", "harvest", "dagster", "run-extract-users-job", "--notify", "true", "--continue-etl", "true"], no_json_parse=True)
+    exec(cmd, no_json_parse=True)
 
     return None
 
@@ -445,10 +450,10 @@ etl_users_job = dg.define_asset_job(
     tags={"dagster/priority": "2"}
 )
 
-init_weekly_etl = dg.define_asset_job(
-    name="init_weekly_etl",
-    description="Job to run init the new es index and harvest the new user list.",
-    selection=dg.AssetSelection.assets(ensure_current_index, fetch_user_list_from_cdl),
+start_weekly_etl_job = dg.define_asset_job(
+    name="start_weekly_etl_job",
+    description="Job to run init the new es index, harvest the new user list, kick of the extract_users_job for all users via dynamic partitions.",
+    selection=dg.AssetSelection.assets(ensure_current_index, fetch_user_list_from_cdl, exec_weekly_etl),
     tags={"dagster/priority": "3"}
 )
 
@@ -472,7 +477,7 @@ cleanup_job = dg.define_asset_job(
     selection=dg.AssetSelection.assets(purge_dagster_runs, purge_reporting_db, purge_year_week_cask_files),
     tags={
       "dagster/priority": "-1",
-      "dagster/max_runtime": str(60*60*6) # 6 hour max runtime since there could be a lot of files to delete
+      "dagster/max_runtime": str(60*60*2) # 2 hour max runtime since there could be a lot of files to delete
     }
 )
 
@@ -557,7 +562,6 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
     if len(backfill_ids) == 0:
       return dg.SkipReason("No completed backfills found.")
 
-    
     context.log.info(f"Completed backfills found: {backfill_ids}")
 
     with conn.cursor() as cur:
@@ -626,7 +630,11 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
           context.log.info(f"Triggering transform_load_users_job for backfill {backfill_id}. {len(next_partitions)} successfull partitions found.")
           stdin_data = ",".join(next_partitions)
           try:
-              exec(["experts", "harvest", "dagster", "run-transform-load-users-job", "--notify", "true", "--partition-keys", "."], stdin_data=stdin_data, no_json_parse=True)
+              cmd = ["experts", "harvest", "dagster", "run-transform-load-users-job"]
+              if notify == "true":
+                cmd += ["--notify", "true"]
+              cmd += ["--partition-keys", "."]
+              exec(cmd, stdin_data=stdin_data, no_json_parse=True)
           except Exception as e:
               context.log.error(f"Error triggering transform_load_users_job for backfill {backfill_id}: {e}")
               raise e
@@ -668,24 +676,57 @@ def _notify_backfill_completion(context: dg.RunStatusSensorContext, backfill_id:
     # send a "backfill completed successfully" notification
     send_slack_notification(context, backfill_id, "success", f"Job {job_name} completed *successfully.*\nStatus counts: {status_counts}")
 
-weekly_elt_init_schedule = dg.ScheduleDefinition(
-    name="weekly_elt_init_schedule",
-    description="Init the elastic search index",
-    cron_schedule="0 1 * * 6",  # Every Saturday at 1:00 AM
-    target=[ensure_current_index],
-    run_config={},
+# weekly_elt_init_schedule = dg.ScheduleDefinition(
+#     name="weekly_elt_init_schedule",
+#     description="Init the elastic search index",
+#     cron_schedule="0 1 * * 6",  # Every Saturday at 1:00 AM
+#     target=[ensure_current_index],
+#     run_config={},
+#     execution_timezone="America/Los_Angeles",
+#     tags={
+#       "schedule": "weekly_elt_init_schedule",
+#       "notify": "true"
+#     },
+# )
+
+cleanup_schedule_prod = dg.ScheduleDefinition(
+    name="weekly_cleanup_schedule_prod",
+    description=" Kick off cleanup_job.",
+    cron_schedule="0 17 * * 6",  # Every Saturday at 5:00 PM
+    job=cleanup_job,
     execution_timezone="America/Los_Angeles",
+    run_config={},
+    tags={},
+)
+
+cleanup_schedule_dev = dg.ScheduleDefinition(
+    name="weekly_cleanup_schedule_dev",
+    description=" Kick off cleanup_job.",
+    cron_schedule="0 17 * * 0",  # Every Sunday at 5:00 PM
+    job=cleanup_job,
+    execution_timezone="America/Los_Angeles",
+    run_config={},
+    tags={},
+)
+
+weekly_elt_schedule_prod = dg.ScheduleDefinition(
+    name="weekly_elt_schedule_prod",
+    description=" Kick off start_weekly_etl_job.",
+    cron_schedule="0 1 * * 6",  # Every Saturday at 1:00 AM
+    job=start_weekly_etl_job,
+    execution_timezone="America/Los_Angeles",
+    run_config={},
     tags={
-      "schedule": "weekly_elt_init_schedule",
+      "pull-cdl": "experts",
       "notify": "true"
     },
 )
 
-weekly_elt_schedule = dg.ScheduleDefinition(
-    name="weekly_elt_schedule",
-    description="Pull experts group users from CDL. Run the weekly exec_weekly_etl process which kicks of the extract_users_job for all partitions.",
-    cron_schedule="30 1 * * 6",  # Every Saturday at 1:30 AM
-    target=[exec_weekly_etl],
+weekly_elt_schedule_dev = dg.ScheduleDefinition(
+    name="weekly_elt_schedule_dev",
+    description=" Kick off start_weekly_etl_job.",
+    cron_schedule="0 1 * * 0",  # Every Sunday at 1:00 AM
+    job=start_weekly_etl_job,
     execution_timezone="America/Los_Angeles",
     run_config={},
     tags={
@@ -694,7 +735,7 @@ weekly_elt_schedule = dg.ScheduleDefinition(
 )
 
 defs = dg.Definitions(
-    jobs=[etl_users_job, extract_users_job, transform_load_users_job, cleanup_job],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, cleanup_job],
     assets=[extract_user, transform_user_webapp, transform_user_standard, 
             load_user, init_databases, fetch_user_list_from_cdl,
             ensure_current_index, set_alias, reload_search_template,
@@ -702,7 +743,8 @@ defs = dg.Definitions(
             purge_user_cask_files, purge_year_week_cask_files, purge_dagster_runs, purge_reporting_db],
     sensors=[etl_notify_and_continue],
     resources={},
-    schedules=[weekly_elt_init_schedule, weekly_elt_schedule],
+    schedules=[weekly_elt_schedule_prod, weekly_elt_schedule_dev, 
+      cleanup_schedule_prod, cleanup_schedule_dev],
     executor=celery_executor.configured({
         "broker": "pyamqp://guest:guest@rabbitmq:5672//",
         "backend": "rpc://"

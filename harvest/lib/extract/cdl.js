@@ -291,7 +291,7 @@ export class CdlClient {
     }
 
     let cachePath = await cache.write(
-      path.join(cache.getPath(), 'users.json'), 
+      path.join(cache.getPath(), `users-list-${groupName}.json`), 
       {groupId: group, groupName, users}
     );
 
