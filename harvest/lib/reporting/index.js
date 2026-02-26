@@ -1,5 +1,4 @@
 import config from '../config.js';
-import cache from '../cache.js';
 import { Temporal } from '@js-temporal/polyfill';
 import { getYearWeek } from '../year-week.js';
 import PgClient from '../pg-client.js';
@@ -84,8 +83,53 @@ async function enableFromCli(command, user, options) {
   captureErrors();
 }
 
+/**
+ * @method cleanup
+ * @description Clean up old commands and user entries from the reporting database. 
+ * Deletes commands older than the specified number of weeks.  If an option is 
+ * not specified, it will not be cleaned up.
+ * 
+ * @param {Object} opts 
+ * @param {number} opts.commands - Number of weeks to keep commands. Deletes commands older than this.
+ * @param {number} opts.users - Number of weeks to keep user cache entries. Deletes entries older than this.
+ * @param {PgClient} opts.pgClient - Optional PgClient instance to use for database operations. If not provided, a new instance will be created.
+ * 
+ * @returns {Promise<void>}
+ */
+async function cleanup(opts={}) {
+  let pgClient = opts.pgClient || config.postgres.client;
+  let closeClient = false;
+  
+  if( !pgClient ) {
+    pgClient = new PgClient();
+    await pgClient.connect();
+    closeClient = true;
+  }
+
+  let result = {};
+
+  if( opts.commands ) {
+    console.log('Cleaning up old commands more than', opts.commands, 'weeks old...');
+    let resp = await pgClient.query(`SELECT * FROM ${pgClient.schema}.cleanup_old_commands(${opts.commands})`);
+    result = Object.assign(result, resp.rows[0]);
+  }
+
+  if( opts.users ) {
+    console.log('Cleaning up old user cache more than', opts.users, 'weeks old...');
+    let resp = await pgClient.query(`SELECT * FROM ${pgClient.schema}.cleanup_old_users(${opts.users})`);
+    result = Object.assign(result, resp.rows[0]);
+  }
+
+  if( closeClient ) {
+    await pgClient.end();
+  }
+
+  return result;
+}
+
 
 export {
+  cleanup,
   enableFromCli,
   captureErrors,
   updateEsIndex,
