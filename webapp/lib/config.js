@@ -88,6 +88,13 @@ const config = {
       etlUsersJob : env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',
       gcs_etl_users_job : env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
     }
+  },
+
+  keycloakMiv : {
+    clientId : env.KEYCLOAK_MIV_CLIENT_ID || '',
+    clientSecret : env.KEYCLOAK_MIV_CLIENT_SECRET || '',
+    baseUrl : env.KEYCLOAK_MIV_BASE_URL || 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv',
+    scopes : env.KEYCLOAK_MIV_SCOPES || 'roles openid profile email',
   }
 
 }

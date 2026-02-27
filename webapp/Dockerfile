@@ -20,4 +20,7 @@ COPY webapp/lib ./lib
 COPY webapp/models ./models
 COPY webapp/spa ./spa
 
+# Copy harvest for keycloak/elements access
+COPY harvest/lib ./harvest/lib
+
 RUN cd spa && npm run dist

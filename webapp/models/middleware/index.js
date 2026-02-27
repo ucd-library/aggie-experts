@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const template = require('../base/template/name.json');
 const config = require('../../lib/config');
+const keycloak = require('../../lib/keycloak');
 
 let AdminClient=null;
 
@@ -225,12 +226,12 @@ async function convertIds(req, res, next) {
 
 async function validate_admin_client(req, res, next) {
   if (! AdminClient) {
-    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    const KcAdminClient = (await import('@keycloak/keycloak-admin-client')).default;
     const oidcbaseURL = config.oidc.baseUrl;
     const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
 
     if (match) {
-      AdminClient = new ExpertsKcAdminClient(
+      AdminClient = new KcAdminClient(
         {
           baseUrl: match[1],
           realmName: match[2]
@@ -245,7 +246,7 @@ async function validate_admin_client(req, res, next) {
 
 async function validate_miv_client(req, res, next) {
   if (! MIVJWKSClient) {
-    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
+    // const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
     const oidcbaseURL = config.oidc.baseUrl;
     const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
 

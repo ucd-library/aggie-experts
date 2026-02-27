@@ -16,6 +16,7 @@
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",
     "@google-cloud/secret-manager": "^6.1.1",
+    "@keycloak/keycloak-admin-client": "^26.5.4",
     "@ucd-lib/cork-app-load": "^0.3.2",
     "@ucd-lib/experts-api": "file:harvest/lib/elements-client.js",
     "@ucd-lib/logger": "^0.0.7",
@@ -37,6 +38,7 @@
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "md5": "^2.3.0",
+    "nanoid": "^5.1.6",
     "node-fetch": "^2.7.0",
     "os": "^0.1.2",
     "path": "^0.12.7",
