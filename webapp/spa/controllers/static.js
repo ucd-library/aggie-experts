@@ -55,7 +55,7 @@ module.exports = async (app) => {
           const esResult = await esClient.get(
             {
               ...{
-                index: 'experts',
+                index: 'experts-current',
                 id: user.expertId,
                 _source: false
               }
