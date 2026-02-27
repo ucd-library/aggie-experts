@@ -4,4 +4,6 @@ load_from:
   #     host: dagster-code-server
   #     port: 4000
   #     location_name: "dagster-code-server"
-  - python_file: /opt/harvest/defs.py
+  - python_file:
+      relative_path: /opt/harvest/dagster/defs.py
+      working_directory: /opt/harvest/dagster
