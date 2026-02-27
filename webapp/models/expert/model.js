@@ -568,7 +568,7 @@ class ExpertModel extends BaseModel {
       throw new Error(`Unable to find CDL user id for ${expertId}`);
     }
     if (! this.elementsClient ) {
-      const { ElementsClient } = await import('@ucd-lib/experts-api');
+      const ElementsClient = (await import('../../harvest/lib/elements-client.js')).default;
       this.ElementsClient = ElementsClient;
     }
     let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,args);
@@ -580,7 +580,6 @@ class ExpertModel extends BaseModel {
    * @method update
    * @description Update Elasticsearch with the given data.
    */
-
   async update(transformed) {
     const root_node= this.get_expected_model_node(transformed);
     // If a doc exists, update this node only, otherwise create a new doc.
@@ -809,7 +808,7 @@ class GrantRole {
     //   node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
     // }
 
-    await this.expertModel.update_graph_node(expertId,node);
+    await this.expertModel.update_graph_node(expertId,node);    
 
     if (config.experts.cdl.grant_role.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
