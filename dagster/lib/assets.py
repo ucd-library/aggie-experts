@@ -222,7 +222,7 @@ def load_user(context: AssetExecutionContext, config: LoadUserConfig) -> None:
 def exec_weekly_etl(context: AssetExecutionContext, config: NotifyConfig) -> None:
     """Start the full weekly ETL process for all users."""
     cmd = ["experts", "harvest", "dagster", "run-extract-users-job"]
-    if config.notify == "true":
+    if config.notify == "true" or context.dagster_run.tags.get("notify") == "true":
         cmd += ["--notify", "true"]
     cmd += ["--continue-etl", "true"]
 
