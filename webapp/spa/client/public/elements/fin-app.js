@@ -448,8 +448,6 @@ export default class FinApp extends Mixin(LitElement)
     let esIndexes = await indexedDb.getElasticsearchIndexes();
     this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.displayName || '';
     this.hideEsIndexPreviewing = !this.currentElasticIndex;
-
-    console.log('TODO preview es index clicked', this.currentElasticIndex);
   }
 
   /**

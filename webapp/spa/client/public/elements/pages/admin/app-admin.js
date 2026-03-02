@@ -94,8 +94,6 @@ export default class AppAdmin extends Mixin(LitElement)
     
     let res = await this.SchemaModel.getIndexes();
     
-    console.log('res from getIndexes', res.body);
-
     let indexes = [];
     for( let indexName in (res.body || {}) ) {
       let indexYYYYMM = indexName.replace(/^(experts|grants|works)-/, '');
@@ -137,7 +135,6 @@ export default class AppAdmin extends Mixin(LitElement)
   }
 
   _onSwitchIndexDropdownChange(e) {
-    console.log('_onSwitchIndexDropdownChange', e.detail.value);
     this.toSwitchIndex = e.detail.value;
   }
 
