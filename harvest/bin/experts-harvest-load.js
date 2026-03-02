@@ -5,6 +5,7 @@ import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
 import { enableFromCli, updateEsIndex } from '../lib/reporting/index.js';
 import { getIndexDocumentCount } from '../lib/load/elastic-search/index.js';
+import wrapUserDomain from '../lib/user-domain.js';
 
 const program = new Command();
 const env = process.env;
@@ -16,9 +17,7 @@ program.name('load')
   .addOption(new Option('--alias <alias>', 'ElasticSearch alias').default('stage').choices(['current', 'stage', 'all']))
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .action(async (userId, options) => {
-    if( !userId.match(/@/ ) ) {
-      userId += '@ucdavis.edu';
-    }
+    userId = wrapUserDomain(userId);
 
     if( options.reportingJobId || options.reporting ) {
       await enableFromCli('experts-harvest-load', userId, options);
@@ -28,12 +27,11 @@ program.name('load')
     logger.info('updated indexes', {indexes});
 
     if( config.reporting.enabled ) {
-      for( let alias in indexes ) {
-        let index = indexes[alias];
-        let count = await getIndexDocumentCount(index);
-        await updateEsIndex(alias, index, count);
-      }
-
+      // for( let alias in indexes ) {
+      //   let index = indexes[alias];
+      //   let count = await getIndexDocumentCount(index);
+      //   await updateEsIndex(alias, index, count);
+      // }
        await config.postgres.client.end();
     }
 

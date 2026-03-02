@@ -30,7 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_command_latest_weekly_attempt ON command (latest_
 CREATE TABLE IF NOT EXISTS error (
   error_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id),
+  command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
   message TEXT NOT NULL,
   stack TEXT
 );
@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_error_command_id ON error (command_id);
 CREATE TABLE IF NOT EXISTS user_scholarly_output_load_stats (
   user_load_stats_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id),
+  command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
   user_id VARCHAR(255) NOT NULL,
   type VARCHAR(50) NOT NULL CHECK (type IN ('works', 'grants')),
   visibility VARCHAR(20) NOT NULL CHECK (visibility IN ('public', 'private')),
@@ -55,8 +55,10 @@ CREATE TABLE IF NOT EXISTS "user" (
   first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_iam TIMESTAMP,
-  iam_name_www_flag BOOLEAN,
-  cdl_is_public BOOLEAN
+  is_public BOOLEAN DEFAULT FALSE,
+  cdl_privacy JSONB,
+  odr_privacy JSONB,
+  es_stage_inserted_at TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS year_week (
@@ -168,18 +170,29 @@ WHERE p_date >= week_start AND p_date <= week_end;
 $$;
 
 CREATE OR REPLACE VIEW this_week_user_state_count AS
+WITH state AS (
+  SELECT
+    user_id,
+    year_week,
+    CASE
+      WHEN BOOL_OR(state = 'error') THEN 'error'
+      WHEN BOOL_AND(state = 'ok') THEN 'ok'
+      WHEN BOOL_AND(state = 'no_attempt') THEN 'no_attempt'
+      ELSE 'unknown'
+    END AS state
+  FROM user_command_weekly_stats
+  WHERE year_week = (SELECT year_week FROM get_year_week())
+  GROUP BY user_id, year_week
+)
 SELECT
-  user_id,
-  year_week,
+  state.*,
   CASE
-    WHEN BOOL_OR(state = 'error') THEN 'error'
-    WHEN BOOL_AND(state = 'ok') THEN 'ok'
-    WHEN BOOL_AND(state = 'no_attempt') THEN 'no_attempt'
-    ELSE 'unknown'
-  END AS state
-FROM user_command_weekly_stats
-WHERE year_week = (SELECT year_week FROM get_year_week())
-GROUP BY user_id, year_week;
+    WHEN u.es_stage_inserted_at IS NULL THEN 'removed'
+    WHEN (SELECT year_week FROM get_year_week()) = (SELECT year_week FROM get_year_week(u.es_stage_inserted_at::DATE)) THEN 'inserted'
+    ELSE 'not_inserted'
+  END AS es_stage_status
+FROM state
+LEFT JOIN "user" u ON state.user_id = u.email;
 
 SELECT
   user_id,
@@ -302,3 +315,52 @@ SELECT
   change
 FROM user_scholarly_output_weekly_changes
 WHERE year_week = (SELECT year_week FROM get_year_week());
+
+CREATE OR REPLACE VIEW user_left_this_week AS
+WITH last_year_week AS (
+  SELECT year_week FROM get_year_week((NOW() - INTERVAL '7 days')::DATE)
+)
+SELECT
+  u.email AS user_id,
+  u.last_seen_cdl,
+  u.last_seen_iam
+FROM "user" u
+WHERE 
+  (select year_week from last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_cdl::DATE)) OR
+  (SELECT year_week FROM last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_iam::DATE));
+
+CREATE OR REPLACE VIEW this_week_harvest_errors AS
+SELECT
+  c.user_id,
+  c.command,
+  (c.timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/Los_Angeles') AS timestamp
+FROM command c
+JOIN error e ON c.command_id = e.command_id
+WHERE c.latest_weekly_attempt = TRUE
+  AND c.year_week = (SELECT year_week FROM get_year_week());
+
+CREATE OR REPLACE FUNCTION cleanup_old_commands(p_weeks_to_keep INTEGER DEFAULT 8) 
+RETURNS INTEGER AS $$
+DECLARE
+  cutoff_date DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
+  deleted_command_count INTEGER;
+BEGIN
+  DELETE FROM etl_reporting.command
+  WHERE timestamp::DATE < cutoff_date;
+  GET DIAGNOSTICS deleted_command_count = ROW_COUNT;
+  RETURN deleted_command_count;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION cleanup_old_users(p_weeks_to_keep INTEGER DEFAULT 24) 
+RETURNS INTEGER AS $$
+DECLARE
+  cutoff_date DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
+  deleted_user_count INTEGER;
+BEGIN
+  DELETE FROM etl_reporting."user"
+  WHERE last_seen_cdl < cutoff_date;
+  GET DIAGNOSTICS deleted_user_count = ROW_COUNT;
+  RETURN deleted_user_count;
+END;
+$$ LANGUAGE plpgsql;

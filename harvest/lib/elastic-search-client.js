@@ -1,6 +1,5 @@
 import {Client} from '@elastic/elasticsearch';
 import config from './config.js';
-import logger from './logger.js';
 
 let client;
 

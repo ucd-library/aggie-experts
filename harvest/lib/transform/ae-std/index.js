@@ -1,15 +1,13 @@
-import cache from '../cache.js';
-import logger from '../logger.js';
-import config from '../config.js';
+import cache from '../../cache.js';
+import logger from '../../logger.js';
+import config from '../../config.js';
+import wrapUserDomain from '../../user-domain.js';
 import path from 'path';
-import fs from 'fs';
 
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
-import {runFromFiles as jsonLdToPerson} from './person.js';
-import {runFromFiles as personToWebapp} from './elastic-search/index.js';
-import {runFromFiles as toRelationshipsJsonLd} from './to-relationships-jsonld.js';
-import wrapUserDomain from '../user-domain.js';
+import {jsonLdToPerson} from './person.js';
+import {toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
 async function srcToAeStd(options={}) {
   options.user = wrapUserDomain(options.user);
@@ -48,7 +46,6 @@ async function srcToAeStd(options={}) {
     if( path.extname(file.filename) === '.json' ) {
       logger.info(`Transform CDL rel path: ${file.filepath}`);
       let resp = await jsonAtomToJsonLd(file.filepath);
-      cdlJsonLdFiles.push(resp.jsonldFile);
       cdlRelJsonLdFiles.push(resp.jsonldFile);
     }
   }
@@ -78,20 +75,53 @@ async function srcToAeStd(options={}) {
   expertData['first-name'] = iamFirst || user.firstName;
 
   // Transform in std AE Person data
-  let result = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
+  let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
-  await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
+  let { grants, works } = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
+  
+  let metadata = {
+    expertId,
+    isPublic,
+    odrPrivacy,
+    cdlPrivacy,
+    privacyAttributes,
+    grants: grants.map(g => ({ 
+      relationshipUri: g.relationshipUri, 
+      uri: g.grantUri, 
+      privacy: g.privacy 
+    })),
+    works: works.map(w => ({ 
+      relationshipUri: w.relationshipUri, 
+      uri: w.workUri, 
+      privacy: w.privacy 
+    })),
+  }
+
+  if( noPPSAssociations === true ) {
+    metadata.iamExtractIssues = metadata.iamExtractIssues || {};
+    metadata.iamExtractIssues.noPPSAssociations = true;
+  }
+
+  await cache.writeUserAsset(
+    options.user,
+    'metadata.json',
+    JSON.stringify(metadata, null, 2)
+  );
+
+  if( metadata.isPublic === false ) {
+    await cache.writeUserAsset(
+      options.user,
+      'PRIVATE',
+      ''
+    );
+  } else if( await cache.existsUserAsset(options.user, 'PRIVATE') ) {
+    await cache.deleteUserAsset(options.user, 'PRIVATE');
+  }
+ 
+  return metadata;
 }
 
-async function aeStdToWebapp(options={}) {
-  options.user = wrapUserDomain(options.user);
-
-  logger.info('Clearing existing webapp transformed data for user:', options.user);
-  await cache.deleteUserAsset(options.user, config.cache.aeWebappDir, { isDirectory: true });
-
-  // Transform in webapp format
-  await personToWebapp(options.user);
+export {
+  srcToAeStd
 }
-
-export { srcToAeStd, aeStdToWebapp };

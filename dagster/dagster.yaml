@@ -62,7 +62,7 @@ run_monitoring:
   enabled: true
   start_timeout_seconds: 300
   cancel_timeout_seconds: 300
-  max_runtime_seconds: 600   # optional; prevents “hung in STARTED forever”
+  max_runtime_seconds: 900   # optional; prevents “hung in STARTED forever”
   poll_interval_seconds: 120
 
 retention:
@@ -75,6 +75,7 @@ retention:
   # event_logs:
   #   purge_after_days: 90
 
-# run_retries:
-#   enabled: true
+run_retries:
+  enabled: true
+  max_retries: 1
 #   max_retries: 2

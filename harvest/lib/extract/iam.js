@@ -63,7 +63,7 @@ export class IAM {
    * @returns {json} - The JSON profile, with @context added.
    * @throws {Error} - Throws an error if the person is not found.
    **/
-  async profile(expert, opts) {
+  async profile(expert, opts={}) {
     let key = await this.getKey();
     let url = `${this.url}/people/profile/search?key=${key}`;
 
@@ -83,29 +83,11 @@ export class IAM {
         throw new Error('Invalid expert');
       }
       id = expert;
-      expert = expert.replace(/^mailto:/, '').replace(/@ucdavis.edu$/, '');
+      expert = expert.replace(/^mailto:/, '').replace(new RegExp(config.userDomain+'$'), '');
       url = encodeURI(`${url}&userId=${expert}`);
     }
 
-    let expertEmail = opts.cacheKey;
-
     const jsonldfn = path.join(config.cache.iamDir, config.cache.iamUserFilename);
-
-    // if( opts.noCache !== true ) {
-    //   if( !opts.force && await cache.existsUserAsset(expertEmail, jsonldfn) ) {
-    //     logger.info(`Skipping fetch IAM API as it is already cached at ${jsonldfn}`);
-
-    //     const json = JSON.parse(await cache.readUserAsset(expertEmail, jsonldfn));
-    //     let stats = await cache.getFileStats(cache.getPath(expertEmail, jsonldfn));
-    //     stats.noOp = true; // no operation, already exists
-
-    //     return {
-    //       writeResp: stats,
-    //       jsonldfn,
-    //       json
-    //     };
-    //   }
-    // }
 
     // Mask the key in the URL for logging
     const maskedUrl = url.replace(/([?&]key=)[^&]+/, '$1********');
@@ -125,10 +107,16 @@ export class IAM {
     }
 
     if( !res.responseData || !res.responseData.results || res.responseData.results.length === 0 ) {
-      throw new Error(`✘ profile(${id}) - no results found`);
+      logger.warn(`No IAM profile found for expert: ${id}`, JSON.stringify(res || {}));
+      return {
+        notFound : true
+      }
     }
 
-    let writeResp = await cache.writeUserAsset('iam-extract', expertEmail, jsonldfn, res);
+    let writeResp;
+    if( opts.cacheKey ) {
+      writeResp = await cache.writeUserAsset(opts.cacheKey, jsonldfn, res);
+    }
 
     return {
       writeResp,

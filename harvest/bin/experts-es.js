@@ -1,9 +1,19 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes, createIndex, deleteIndex, setAlias, getState, deleteSearchScript, loadSearchScript } from '../lib/load/elastic-search/index.js';
+import { ensureCurrentIndexes, 
+  createIndex, 
+  deleteIndex, 
+  setAlias, 
+  getState, 
+  ensureSearchScript, 
+  getUsersCurrentScholarlyWorks 
+} from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import path from 'path';
-import { readFile } from 'fs/promises';
+import fs from 'fs';
+import { Temporal } from '@js-temporal/polyfill';
+import { getTodaysDate } from '../lib/year-week.js';
+
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
@@ -28,7 +38,7 @@ program
   .action(async (opts={}) => {
     let date;
     if( opts.date ) {
-      date = new Date(opts.date);
+      date = Temporal.PlainDate.from(opts.date);
     } else if( opts.yearWeek ) {
       date = opts.yearWeek;
     } else {
@@ -54,7 +64,7 @@ program
   .action(async (opts={}) => {
     let date;
     if( opts.date ) {
-      date = new Date(opts.date);
+      date = Temporal.PlainDate.from(opts.date);
     } else if( opts.yearWeek ) {
       date = opts.yearWeek;
     } else {
@@ -77,11 +87,11 @@ program
   .action(async (alias, opts={}) => {
     let date;
     if( opts.date ) {
-      date = new Date(opts.date);
+      date = Temporal.PlainDate.from(opts.date);
     } else if( opts.yearWeek ) {
       date = opts.yearWeek;
     } else if( opts.current ) {
-      date = new Date();
+      date = getTodaysDate();
     } else {
       logger.error('You must provide either a date or a week and year for the index');
       process.exit(1);
@@ -113,30 +123,28 @@ program
   .command('load-search-template')
   .description('Load search template script into Elasticsearch')
   .option('-t, --template <name>', 'Template name to load (default: complete)', 'complete')
+  .option('--replace', 'Replace existing template if it exists')
   .action(async (opts={}) => {
-    let templateName = opts.template;
-    
     try {
-      let templatePath = path.join(__dirname, '../../webapp/models/search/template', `${templateName}.js`);
-      let fileContent = await readFile(templatePath, 'utf8');
-      
-      // parse commonJS file
-      let templateMatch = fileContent.match(/template\s*=\s*({[\s\S]*?});[\s\S]*module\.exports/);
-      if (!templateMatch) {
-        throw new Error(`Could not parse template from ${templateName}.js`);
-      }
-      
-      let template = eval(`(${templateMatch[1]})`);
-      if (!template || !template.id || !template.script) {
-        throw new Error(`Invalid template structure: missing id or script property`);
-      }
-      
-      await deleteSearchScript(template.id);
-      await loadSearchScript(template.id, template.script);
-      
-      logger.info(`Successfully loaded search template: ${template.id}`);
+      await ensureSearchScript(opts);
     } catch (error) {
-      logger.error(`Error loading search template ${templateName}:`, error.message);
+      logger.error(`Error loading search template ${opts.template}:`, error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('get-users-scholarly-works')
+  .description('Get scholarly works for a specific user')
+  .argument('type', 'Type of scholarly works to fetch (work or grant)')
+  .argument('<user-id>', 'User ID to fetch scholarly works for')
+  .option('--alias <alias>', 'ElasticSearch alias to query (default: stage)', 'stage')
+  .action(async (type, userId, opts={}) => {
+    try {
+      let workIds = await getUsersCurrentScholarlyWorks(userId, type, opts.alias);
+      console.log(workIds.join('\n'));
+    } catch (error) {
+      logger.error(`Error fetching scholarly works for user ${userId}:`, error.message);
       process.exit(1);
     }
   });
