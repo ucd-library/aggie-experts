@@ -369,6 +369,10 @@
               }
             }
           },
+          "issued": {
+            "type": "date",
+            "format": "yyyy-MM-dd||yyyy-MM||yyyy"
+          },
           "name": {
             "type": "text",
             "analyzer": "default"
