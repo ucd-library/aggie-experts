@@ -447,7 +447,16 @@ class Utils {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
     if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
-    if( atType ) searchQuery += `&${encodeURIComponent('@type')}=${atType}`;
+
+    // If no @type filter is provided, default to all result types.
+    // This matches the production app behavior where params['@type'] includes
+    // expert, grant, and work (instead of the API defaulting to expert-only).
+    if( atType ) {
+      searchQuery += `&${encodeURIComponent('@type')}=${atType}`;
+    } else {
+      searchQuery += `&${encodeURIComponent('@type')}=expert,grant,work`;
+    }
+
     if( status ) searchQuery += `&status=${status}`;
     if( type ) searchQuery += `&type=${type}`;
     if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
