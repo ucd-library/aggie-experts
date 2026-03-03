@@ -1,5 +1,5 @@
-const config = require('./config.js');
-const logger = require('./logger.js');
+const config = require('../../commons/config.js.js');
+const logger = require('../../commons/logger.js.js');
 const fs = require('fs-extra');
 const path = require('path');
 const YAML = require('yaml');

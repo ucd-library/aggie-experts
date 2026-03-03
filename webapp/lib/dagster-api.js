@@ -1,4 +1,4 @@
-const config = require('./config');
+const config = require('../../commons/config.js');
 const yaml = require('yaml');
 
 class DagsterAPI {

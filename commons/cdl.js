@@ -10,14 +10,11 @@
 import fetch from 'node-fetch';
 import path from 'path';
 
-import logger from '../logger.js';
+import logger from '../harvest/lib/logger.js';
 import GoogleSecret from '../google-secret.js';
-import config from '../config.js'
-import cache from '../cache.js';
-import xmlToJson from './xml-to-json.js';
-
-
-const gs = new GoogleSecret();
+import config from './config.js'
+import cache from '../harvest/lib/cache.js';
+import xmlToJson from '../harvest/lib/extract/xml-to-json.js';
 
 /** Exports a class
 * @class
@@ -40,7 +37,7 @@ export class CdlClient {
 
     this.url = config.cdl[this.env].url;
     this.authname = config.cdl[this.env].authname;
-    this.secretpath = config.cdl[this.env].secretpath;
+    this.secretName = config.cdl[this.env].secretName;
     this.auth = null;
 
     this.experts = [];
@@ -63,7 +60,7 @@ export class CdlClient {
       throw new Error('No service account file provided.');
     }
 
-    let secretResp = await gs.getSecret(this.secretpath);
+    let secretResp = await GoogleSecret.getSecret(this.secretName);
     let secretJson = JSON.parse(secretResp);
     for (const entry of secretJson) {
       if (entry['@id'] == this.authname) {

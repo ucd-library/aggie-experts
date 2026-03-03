@@ -1,7 +1,7 @@
 import { Temporal } from '@js-temporal/polyfill';
 import config from './config.js';
 
-const TZ = config.timezone;
+const TZ = config.timezone || 'America/Los_Angeles';
 
 /**
  * @method getTodaysDate

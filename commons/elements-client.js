@@ -1,4 +1,5 @@
 import GoogleSecrets from './google-secret.js';
+import config from './config.js';
 import FormData from 'form-data';
 import { JSDOM } from 'jsdom';
 import fetchCookie from 'fetch-cookie';
@@ -10,24 +11,7 @@ import AbortController from 'abort-controller';
 // but for now, the webapp will use this file for cdl updates
 
 export default class ElementsClient {
-  static config = {
-      cdl: {
-        qa: {
-          "@id": "qa-oapolicy",
-          host: 'https://qa-oapolicy.universityofcalifornia.edu',
-          api : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-          authname : 'qa-oapolicy',
-          secretpath : 'projects/325574696734/secrets/cdl-elements-json'
-        },
-        prod: {
-          "@id": "oapolicy",
-          host: 'https://oapolicy.universityofcalifornia.edu',
-          api: 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
-          authname : 'oapolicy',
-          secretpath : 'projects/325574696734/secrets/cdl-elements-json'
-        }
-      }
-  };
+
 
   static impersonators =
     {
@@ -36,7 +20,7 @@ export default class ElementsClient {
     };
 
   static info(instance) {
-    return ElementsClient.config.cdl[instance];
+    return config.cdl[instance];
   }
 
   static async impersonate(userId,args) {
@@ -124,9 +108,8 @@ export class Impersonator {
   }
 
   async secret() {
-    if ( ! this.cdl.secret) {
-      const gs = new GoogleSecrets();
-      let secrets = JSON.parse(await gs.getSecret(this.cdl.secretpath));
+    if ( !this.cdl.secret ) {
+      let secrets = JSON.parse(await GoogleSecrets.getSecret(this.cdl.secretName));
       secrets.forEach(s => {
         if (s["@id"] === this.cdl["@id"]) {
           this.cdl.secret = s;

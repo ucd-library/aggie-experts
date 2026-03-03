@@ -1,6 +1,6 @@
 const express = require('express');
 // const {keycloak} = require('@ucd-lib/fin-service-utils');
-const config = require('./config');
+const config = require('../../commons/config.js');
 const path = require('path');
 const keycloak = require('../lib/keycloak.js');
 

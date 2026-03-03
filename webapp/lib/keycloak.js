@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
-const config = require('./config.js');
-const logger = require('./logger.js');
+const config = require('../../commons/config.js.js');
+const logger = require('../../commons/logger.js.js');
 const clone = require('clone');
 
 class KeycloakUtils {
@@ -64,21 +64,21 @@ class KeycloakUtils {
       body = JSON.stringify(body, null, 2);
     }
     throw new Error('Failed to get service account token: '
-      +config.keycloakMiv.clientId
+      +config.oidc.clientId
       +'. '+resp.status+' '+body);
   }
 
   async loginServiceAccount() {
-    let apiResp = await fetch(config.keycloakMiv.baseUrl+'/protocol/openid-connect/token', {
+    let apiResp = await fetch(config.oidc.baseUrl+'/protocol/openid-connect/token', {
       method: 'POST',
       headers:{
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
         grant_type : 'client_credentials',
-        client_id : config.keycloakMiv.clientId,
-        client_secret : config.keycloakMiv.clientSecret,
-        scope : config.keycloakMiv.scopes
+        client_id : config.oidc.clientId,
+        client_secret : config.oidc.clientSecret,
+        scope : config.oidc.scopes
       })
     });
 

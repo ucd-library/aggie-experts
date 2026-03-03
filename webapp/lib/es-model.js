@@ -1,6 +1,6 @@
 const es = require('./es-client.js');
-const config = require('./config.js');
-const logger = require('./logger.js');
+const config = require('../../commons/config.js.js');
+const logger = require('../../commons/logger.js.js');
 
 /**
  * @class EsDataModel

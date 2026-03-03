@@ -4,10 +4,10 @@
    rakunkel@ucdavis.edu */
 
 import { Command } from '../lib/experts-commander.js';
-import { GoogleSecret } from '@ucd-lib/experts-api';
 import Client from 'ssh2-sftp-client';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
+import GoogleSecret from '../commons/google-secret.js';
 
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';
@@ -15,7 +15,6 @@ import { dirname } from 'path';
 import { exit } from 'process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const gs = new GoogleSecret();
 
 const program = new Command();
 program
@@ -31,7 +30,7 @@ program
   .option('-r, --remote <remote>', 'Remote file path on the Symplectic server')
   .option('-n, --new <new>', 'GCS (XML) file generation', 0)
   .option('-p, --prev <prev>', 'GCS (XML) file generation', 1)
-  .option('-sp, --secretpath <secretpath>', 'Secret Manager secret path', 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password')
+  .option('-sn, --secret-name <secret-name>', 'Secret Manager secret path', 'Symplectic-Elements-FTP-ucdavis-password')
   .option_fuseki()
   .option_log()
   .parse(process.argv);
@@ -131,15 +130,15 @@ log.info(__dirname + '/experts-grant-feed-delta.js', params3);
 const result3 = spawnSync('node', [__dirname + '/experts-grant-feed-delta.js', ...params3], { encoding: 'utf8' });
 log.info('Output 3:', result3.stdout);
 if (result3.status !== 0) {
-  console.error('Error executing experts-grant-feed-delta.js:', result2.stderr);
-  process.exit(result2.status);
+  console.error('Error executing experts-grant-feed-delta.js:', result3.stderr);
+  process.exit(result3.status);
 }
 log.info('Exit code 3:', result3.status);
 
 // Perform the SFTP upload
 if (opt.upload) {
   // Retrieve the SFTP password from GCS Secret Manager
-  ftpConfig.password = await gs.getSecret(opt.secretpath);
+  ftpConfig.password = await GoogleSecret.getSecret(opt.secretName);
   const grantFile = opt.output + '/delta/' + opt.prefix + 'grants_metadata.csv';
   const linkFile = opt.output + '/delta/' + opt.prefix + 'grants_links.csv';
   const personFile = opt.output + '/delta/' + opt.prefix + 'grants_persons.csv';
