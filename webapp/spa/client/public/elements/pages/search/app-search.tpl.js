@@ -5,6 +5,8 @@ import { sharedStyles } from '../../styles/shared-styles';
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 import formsCss from '@ucd-lib/theme-sass/2_base_class/_forms.css';
 
+import '@ucd-lib/theme-elements/ucdlib/ucdlib-range-slider/ucdlib-range-slider.js';
+
 export function render() {
 return html`
   <style>
@@ -89,11 +91,15 @@ return html`
       align-items: flex-start;
       gap: 1.1875rem;
       flex-grow: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .search-container .search-content > * {
       width: 100%;
       box-sizing: border-box;
+      min-width: 0;
     }
 
     .search-container .search-content .search-tips-link {
@@ -143,9 +149,18 @@ return html`
       margin-top: 0;
     }
 
-    .search-container .date-filter-heading h4 {
-      margin-top: 2.38rem;
+    .search-container .date-filter-heading {
       margin-bottom: 1.78rem;
+    }
+
+    .search-container .date-filter-heading h4 {
+      margin-top: 0;
+      margin-bottom: .5rem;
+    }
+    
+    .search-container .date-filter-heading span {
+      color: #666; 
+      font-size: .92rem;
     }
 
     .results-count {
@@ -342,6 +357,7 @@ return html`
     .results-filtered-to {
       display: flex;
       align-items: center;
+      gap: 0.875rem;
       color: var(--color-aggie-blue);
       font-size: 1.3rem;
       font-style: italic;
@@ -394,6 +410,22 @@ return html`
       font-weight: 400;
     }
 
+    /* constrain the range slider so it never grows past the refine column */
+    .search-container .refine-search .slider-container {
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 18.5rem;
+      max-width: 18.5rem;
+      padding: 0 .75rem;
+      overflow: hidden;
+    }
+
+    .search-container .refine-search .slider-container ucdlib-range-slider {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+    }
   </style>
 
   <div class="search-header">
@@ -445,15 +477,24 @@ return html`
         </label>
       </div>
 
+      <div class="range-filter-container">
+        <hr class="search-seperator">
+
+        <div class="date-filter-heading">
+          <h4>Date (${this.rangeFilterTypes})</h4>
+          <span ?hidden="${!this.rangeFilterTypes.includes('Grants')}">Grants are shown across their active years</span>
+        </div>
+        <div class="slider-container">
+          <ucdlib-range-slider
+            @range-slider-change="${this._onRangeSliderChange}"
+            .data="${this.dateRangeData}"
+            .showUnknown="${true}">
+          </ucdlib-range-slider>
+        </div>
+      </div>      
+
       <hr class="search-seperator">
       <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
-
-      <!-- <div class="date-filter-heading">
-        <h4>Date (Works, Grants)</h4>
-      </div>
-      <date-range-filter></date-range-filter> -->
-
-      <!-- <range-slider-with-histogram></range-slider-with-histogram> -->
 
     </div>
     <div class="search-content">
@@ -468,7 +509,7 @@ return html`
       </app-search-box>
 
       <div class="refine-search-mobile ${this.refineSearchCollapsed ? '' : 'open'}">
-        <div class="refine-search-dropdown ${this.refineSearchCollapsed ? '' : 'open'}" @click=${() => this.refineSearchCollapsed = !this.refineSearchCollapsed}>
+        <div class="refine-search-dropdown ${this.refineSearchCollapsed ? '' : 'open'}" @click=${this._toggleRefineSearch}>
           <span class="refine-search-label">Refine Results</span>
           <span class="refine-search-arrow down" ?hidden="${this.refineSearchCollapsed}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z"/></svg></span>
           <span class="refine-search-arrow right" ?hidden="${!this.refineSearchCollapsed}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z"/></svg></span>
@@ -507,15 +548,38 @@ return html`
             </label>
           </div>
 
+          <div class="range-filter-container">
+            <hr class="search-seperator">
+
+            <div class="date-filter-heading">
+              <h4>Date (${this.rangeFilterTypes})</h4>
+              <span ?hidden="${!this.rangeFilterTypes.includes('Grants')}">Grants are shown across their active years</span>
+            </div>
+            <div class="slider-container">
+              <ucdlib-range-slider
+                @range-slider-change="${this._onRangeSliderChange}"
+                .data="${this.dateRangeData}"
+                .showUnknown="${true}">
+              </ucdlib-range-slider>
+            </div>
+          </div>
+
           <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
         </div>
       </div>
 
-      <div class="results-filtered-to" ?hidden="${!this.filterByExpert}">
-        <span>Experts:</span>
-        <p>
+      <div class="results-filtered-to" ?hidden="${!this.filterByExpert && !this.filterByDate}">
+        <p ?hidden="${!this.filterByExpert}">
           <button class="btn btn--round" @click="${this._removeExpertFilter}">
             ${this.filterByExpertName}
+            <div class="close">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+            </div>
+          </button>
+        </p>
+        <p ?hidden="${!this.filterByDate}">
+          <button class="btn btn--round" @click="${this._removeDateFilter}">
+            ${this.filterByDateLabel}
             <div class="close">
               <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
             </div>
@@ -526,7 +590,7 @@ return html`
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>
         <div class="download">
-          <button class="btn btn--invert" ?disabled="${!this.resultsSelected}" @click="${this._downloadClicked}">Download</button>
+          <button class="btn btn--invert" style="width: fit-content;" ?disabled="${!this.resultsSelected}" @click="${this._downloadClicked}">Download</button>
         </div>
       </div>
 

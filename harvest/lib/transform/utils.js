@@ -27,6 +27,14 @@ const WORKS_TYPE_MAP = {
   // #("thesis-dissertation" false ucdlib:Work "thesis" "dissertation")
 };
 
+const SHORT_TYPES = {
+  WORKS : ['Work', 'Article', 'Publication'],
+  GRANTS : ['Grant'],
+  ROLES : ['ResearcherRole', 'GrantRole', 'Authorship'],
+  EXPERT : ['Expert', 'Person', 'FacultyMember']
+}
+SHORT_TYPES.SCHOLARLY_WORK_TYPES = [...SHORT_TYPES.WORKS, ...SHORT_TYPES.GRANTS];
+
 const SCHEMA_URI_TYPE_MAP = {
     "book": "http://schema.org/Book",
     "chapter": "http://schema.org/Chapter",
@@ -239,7 +247,7 @@ function getBestFieldValuesFromRecords(fieldName, records, scorer = computeRecor
     }
   }
 
-  const values = [];
+  let values = [];
   for (const { matching } of bestRecords) {
     for (const f of matching) {
       if (f['api:text']) {
@@ -257,7 +265,9 @@ function getBestFieldValuesFromRecords(fieldName, records, scorer = computeRecor
     }
   }
 
-  return [...new Set(values)];
+  // hack.  we are getting some string fields with objects which break jsonld @value spec.
+  values = [...new Set(values)].filter(v => typeof v === 'string');
+  return values;
 }
 
 function getFieldObject(fields, fieldName) {
@@ -307,10 +317,84 @@ function extractAsArray(obj, path) {
   return ensureArray(result);
 }
 
+/**
+ * @function getGraphAsItems
+ * @description Utility function to extract items from a JSON-LD graph structure, 
+ * handling cases where the input may be an array, an object with a @graph property, or a single object.
+ * 
+ * @param {*} obj 
+ * 
+ * @returns {Array} - Always returns an array
+ */
+function getGraphAsItems(obj={}) {
+  if( Array.isArray(obj) ) return obj;
+
+  let graph = obj['@graph'];
+  if( Array.isArray(graph) ) return graph;
+
+  return [obj];
+}
+
+/**
+ * @method asArray
+ * @description Utility function to ensure a value is always returned as an array.
+ * 
+ * @param {*} value - The value to normalize to an array
+ * 
+ * @returns {Array} - Always returns an array
+ */
+function asArray(value) {
+  if (value === null || value === undefined) {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
+/**
+ * @method getNodeByType
+ * @description Utility function to find a node of a given type in a 
+ * JSON-LD graph structure.
+ * 
+ * @param {Object|Array} graph - The JSON-LD graph or array of nodes
+ * @param {string|Array} types - The type(s) to match
+ * @param {Object} opts - Options for matching
+ * @param {boolean} opts.match - If true, performs partial match on type strings
+ * @returns {Object|null} - The first matching node or null if none found
+ */
+function getNodeByType(graph, types, opts={}) {
+  graph = getGraphAsItems(graph);
+  types = asArray(types);
+  
+  for( let node of graph ) {
+    if( !node['@type'] ) continue;
+
+    const nodeTypes = asArray(node['@type']);
+
+    if( opts.match ) {
+      for( let matchType of types ) {
+        for( let type of nodeTypes ) {
+          if( type.includes(matchType) ) {
+            return node;
+          }
+        }
+      }
+    } else {
+      if( nodeTypes.some(t => types.includes(t)) ) {
+        return node;
+      }
+    }
+  }
+
+  return null;
+}
+
 export {
+  asArray,
+  getNodeByType,
   sortJsonArrayByIdAndKeys,
   sortJsonRecursively,
   getFieldValue,
+  getGraphAsItems,
   getBestFieldValueFromRecords,
   getBestFieldValuesFromRecords, // multiple values from same best
   getFieldObject,
@@ -318,6 +402,7 @@ export {
   ensureArray,
   extractAsArray,
   computeRecordScore,
+  SHORT_TYPES,
   WORKS_SOURCE_ORDER,
   WORKS_TYPE_MAP,
   SCHEMA_URI_TYPE_MAP,

@@ -33,7 +33,6 @@ export default class AppExpert extends Mixin(LitElement)
       citations : { type : Array },
       citationsDisplayed : { type : Array },
       featuredCitations : { type : Array },
-      // showFeaturedCitations : { type : Boolean },
       grants : { type : Array },
       grantsActiveDisplayed : { type : Array },
       grantsCompletedDisplayed : { type : Array },
@@ -105,21 +104,16 @@ export default class AppExpert extends Mixin(LitElement)
     let modified = e.modifiedWorks || e.modifiedGrants;
     if( expertId === this.expertId && !modified ) return;
 
-    let clearCache = false;
-    if( e.modifiedGrants || e.modifiedWorks ) {
-      clearCache = true;
-      this.AppStateModel.set({ modifiedGrants : false, modifiedWorks : false });
-    }
     this._reset();
 
     if( (this.expertEditing === expertId && expertId.length > 0) || APP_CONFIG.user?.expertId === expertId ) this.canEdit = true;
     if( !this.isAdmin && APP_CONFIG.user?.expertId !== expertId) this.canEdit = false;
 
     try {
-      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favouriteWorksFirst : true }), clearCache);
+      let expert = await this.ExpertModel.get(expertId, '', utils.getExpertApiOptions({ favouriteWorksFirst : true }), this.canEdit);
       if( expert.state === 'error' || (!this.isAdmin && !this.isVisible) ) throw new Error();
 
-      this._onExpertUpdate(expert, modified);
+      this._onExpertUpdate(expert, this.canEdit);
     } catch (error) {
       this.logger.warn('expert ' + expertId + ' not found, throwing 404');
 
@@ -263,7 +257,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
     this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
 
-    this._updateProfileLastUpdated();
+    // this._updateProfileLastUpdated();
   }
 
   /**
@@ -288,7 +282,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.citations = [];
     this.citationsDisplayed = [];
     this.featuredCitations = [];
-    // this.showFeaturedCitations = true;
     this.grants = [];
     this.grantsActiveDisplayed = [];
     this.grantsCompletedDisplayed = [];
@@ -380,7 +373,7 @@ export default class AppExpert extends Mixin(LitElement)
         return bYear - aYear;
       });
 
-      featuredCitations = featuredCitations.slice(0, 5);
+      // featuredCitations = featuredCitations.slice(0, 10);
 
       if( !isDownload ) citationResults = citationResults.filter(c => !featuredCitations.includes(c));
       citationResults.sort((a, b) => {
@@ -706,71 +699,19 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
-   * @method _refreshProfile
-   * @description update expert profile from elements
+   * @method _addNewWorkClicked
+   * @description show modal with link to add work
    */
-  async _refreshProfile(e) {
+  _addNewWorkClicked(e) {
     e.preventDefault();
-
-    // TODO pull cas+@ucdavis.edu from the auth
-    let partitionName = 'todo@ucdavis.edu';
-    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
-
-    // loop to check status of run
-    let runId = res.body?.data?.launchRun?.run?.runId || '';
-    if( runId ) {
-      this.lastLastUpdated = this.lastUpdated;
-      this.lastUpdated = 'Updating...';
-      this._startProfileSyncInterval(runId);
-    }
-  }
-
-  _startProfileSyncInterval(runId) {
-    if( this._profileSyncIntervalId ) {
-      clearInterval(this._profileSyncIntervalId);
-    }
-
-    this.refreshingProfileData = true;
-    this._profileSyncIntervalId = setInterval(async () => {
-      try {
-        let res = await this.DagsterModel.getLastRunForId(runId);
-        let status = res.body?.data?.runOrError?.status;
-
-        if (status === 'FAILED' || status === 'SUCCESS') {
-          clearInterval(this._profileSyncIntervalId);
-          this._profileSyncIntervalId = null;
-          this.refreshingProfileData = false;
-
-          if( status === 'SUCCESS' ) {
-            this._updateProfileLastUpdated();
-          } else {
-            this.lastUpdated = this.lastLastUpdated || '';
-            logger.warn('Profile update dagster job run failed', { runId });
-          }
-        }
-      } catch (err) {
-        logger.warn('Error checking profile status in dagster job run', err);
-      }
-
-    }, 5000);
-  }
-
-  async _updateProfileLastUpdated() {
-    // TODO pull cas+@ucdavis.edu from the auth
-    let email = this.expert?.contactInfo?.hasEmail || '';
-    if( Array.isArray(email) ) email = email[0];
-    if( email.startsWith('mailto:') ) email = email.replace('mailto:', '');
-    if( !email ) return;
-
-    let partitionName = email;
-    let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
-
-    let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
-        .filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED')
-        .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
-
-    if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
-    else this.lastUpdated = '';
+    this.modalTitle = 'Add New Work';
+    this.modalContent = `<p>New works are added, claimed or rejected via the <strong>UC Publication Management System.</strong></p><p>You will be redirected to this system.</p>`;
+    this.showModal = true;
+    this.hideCancel = false;
+    this.hideSave = true;
+    this.hideOK = true;
+    this.hideOaPolicyLink = false;
+    this.errorMode = false;
   }
 
   /**
@@ -1010,16 +951,6 @@ export default class AppExpert extends Mixin(LitElement)
   //   this.hideOK = false;
   //   this.hideOaPolicyLink = true;
   //   this.errorMode = false;
-  // }
-
-  /**
-   * @method _onFeaturedCitationsToggle
-   * @description toggle featured citations
-   * @param {Object} e click|keyup event
-   */
-  // _onFeaturedCitationsToggle(e) {
-  //   this.showFeaturedCitations = !this.showFeaturedCitations;
-  //   this._loadCitations();
   // }
 
   _hideEditExpertControls() {

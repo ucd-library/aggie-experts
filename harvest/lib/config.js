@@ -22,6 +22,10 @@ if( fs.existsSync(userConfigFile) ) {
 
 const config = {
 
+  timezone : env.EXPERTS_HARVEST_TIMEZONE || 'America/Los_Angeles',
+
+  userDomain : env.EXPERTS_USER_DOMAIN || '@ucdavis.edu',
+
   userConfig : {
     rootDir : userConfigDir,
     configFile : userConfigFile,
@@ -54,7 +58,6 @@ const config = {
 
   cache : {
     poolDbConnection : env.EXPERTS_CACHE_POOL_DB_CONNECTION || false,
-    rootDir : env.EXPERTS_CACHE_ROOT_DIR || path.join(process.cwd(), 'ae-harvest-cache'),
     cdlDir : env.EXPERTS_CDL_CACHE_DIR || 'cdl',
     iamDir : env.EXPERTS_IAM_CACHE_DIR || 'iam',
     aeStdFormatDir : env.EXPERTS_AE_STD_FORMAT_CACHE_DIR || 'ae-std',
@@ -216,6 +219,7 @@ const config = {
   dagster : {
     host : env.DAGSTER_HOST || 'http://dagster-ui:3000/dagster',
     graphqlPath : env.DAGSTER_GRAPHQL_PATH || '/graphql',
+    databaseName : env.DAGSTER_DATABASE_NAME || 'dagster',
     repositoryLocationName : env.DAGSTER_REPOSITORY_LOCATION_NAME || 'defs.py',
     repositoryName : env.DAGSTER_REPOSITORY_NAME || '__repository__',
     partitions : {

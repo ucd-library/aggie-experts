@@ -1,8 +1,12 @@
 import { Command } from 'commander';
 import CdlClient from '../lib/extract/cdl.js';
-import DagsterAPI from '../lib/dagster-api.js';
+import DagsterAPI from '../lib/dagster/api.js';
+import logger from '../lib/logger.js';
+import PgClient from '../lib/pg-client.js';
 import config from '../lib/config.js';
-import { getWeek } from 'date-fns';
+import { getYearWeek } from '../lib/year-week.js';
+import cache from '../lib/cache.js';
+import path from 'path';
 const program = new Command();
 
 const GROUP_IDS = ['dev', 'sandbox', 'experts'];
@@ -19,6 +23,21 @@ program
     const client = new CdlClient();
     const dagster = new DagsterAPI();
     const users = await client.getGroupList(groupId);
+
+    // report users we see
+    let pgClient;
+    try {
+      pgClient = new PgClient();
+      await pgClient.connect();
+      for( let user of users.users ) {
+        await pgClient.insertCdlUser(user);
+      }
+    } catch (error) {
+      logger.error('Error reporting users to database', { error: error.message });
+    } finally {
+      await pgClient.end();
+    }
+
     await dagster.createDynamicPartitions(config.dagster.partitions.user, users.users);
 
     // things seem to hang after this point... so force exit
@@ -31,10 +50,7 @@ program
   .option('--year-week <year-week>', 'Year-week to add partitions for (format: YYYY-WW).  Defaults to current week.', null)
   .action(async (opts) => {
     if( !opts.yearWeek ) {
-      const date = new Date();
-      let week = getWeek(date)+'';
-      if( week.length === 1 ) week = '0'+week;
-      opts.yearWeek = date.getFullYear()+'-'+week;
+      opts.yearWeek = getYearWeek();
     }
 
     const client = new CdlClient();
@@ -64,6 +80,7 @@ program
   .option('--notify', 'Whether to send notifications for the backfill')
   .option('--continue-etl', 'Whether to continue to the ETL process after extraction')
   .option('--skip <count>', 'Number of users to skip from the start of the list')
+  .option('--retries <count>', 'Number of times to retry failed steps', '2')
   .action(async (opts) => {
     const dagster = new DagsterAPI();
 
@@ -72,26 +89,38 @@ program
     
     console.log(`Starting backfill for job ${jobName} with ${steps.length} steps...`);
 
-    // TODO: should we just read this from the database??
-    const client = new CdlClient();
-    const users = await client.getGroupList(opts.groupId);
+    // // TODO: should we just read this from the database??
+    // const client = new CdlClient();
+    // const users = await client.getGroupList(opts.groupId);
+
+    let userListPath = path.join(cache.getPath(), `users-list-${opts.groupId}.json`);
+    let users = await cache.read(userListPath);
+    users = JSON.parse(users).users;
 
     if( opts.skip ) {
       const skipCount = parseInt(opts.skip, 10);
       if( isNaN(skipCount) || skipCount < 0 ) {
         throw new Error('Invalid skip count specified: '+opts.skip);
       }
-      users.users = users.users.slice(skipCount);
+      users = users.slice(skipCount);
     }
 
-    console.log(JSON.stringify(
-      await dagster.startBackfill(jobName, steps, users.users, {
-        'cdl_group_id': opts.groupId,
-        'notify': opts.notify ? 'true' : 'false',
-        'continue_etl': opts.continueEtl ? 'true' : 'false'
-      }), 
-      null, 2
-    ));
+    console.log(`Found ${users.length} users for group ${opts.groupId} at ${userListPath}. Starting backfill with these users as dynamic partitions...`);
+
+    let resp = await dagster.startBackfill(jobName, steps, users, {
+      'cdl_group_id': opts.groupId,
+      'notify': opts.notify ? 'true' : 'false',
+      'continue_etl': opts.continueEtl ? 'true' : 'false',
+      'dagster/max_retries' : opts.retries
+    });
+
+
+    if( resp?.data?.launchPartitionBackfill?.__typename != 'LaunchBackfillSuccess' ) {
+      console.error('Failed to start backfill', JSON.stringify(resp, null, 2));
+      throw new Error('Failed to start backfill: '+jobName);
+    }
+
+    console.log(`Backfill started successfully with ID: ${resp.data.launchPartitionBackfill.backfillId}`);
 
     // things seem to hang after this point... so force exit
     process.exit();
@@ -100,20 +129,18 @@ program
 program
   .command('run-transform-load-users-job')
   .description('Trigger the transform-load-users Dagster job')
-  .option('--tags <tags>', 'Comma-separated list of tags to apply to the backfill', null)
+  .option('--notify', 'Whether to send notifications for the backfill')
+  .option('--retries <count>', 'Number of times to retry failed steps', '2')
   .option('--partition-keys <keys>', 'Comma-separated list of partition keys to process.  Use "." for stdin', null)
   .action(async (opts) => {
     const dagster = new DagsterAPI();
 
     const jobName = 'transform_load_users_job';
     const steps = ['transform_user_webapp', 'load_user'];
-    let tags = opts.tags ? opts.tags.split(',').map(t => t.trim()) : [];
-    let t = {};
-    for( let tag of tags ) {
-      const [k,v] = tag.split('=').map(s => s.trim());
-      t[k] = v;
-    }
-    tags = t;
+    let tags = {
+      'notify': opts.notify ? 'true' : 'false',
+      'dagster/max_retries' : opts.retries
+    };
     
     let partitionKeys = [];
     if( opts.partitionKeys ) {

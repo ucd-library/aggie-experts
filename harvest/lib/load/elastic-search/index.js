@@ -1,13 +1,16 @@
 import path from 'path';
 import fs from 'fs/promises';
-import { getWeek } from 'date-fns';
+import { existsSync } from 'fs';
+import { getYearWeek, getTodaysDate } from '../../year-week.js';
+import { Temporal } from '@js-temporal/polyfill';
 import getEsClient from '../../elastic-search-client.js';
 import config from '../../config.js';
 import logger from '../../logger.js';
-import crypto from 'crypto';
 import cache from '../../cache.js';
+import { getNodeByType, SHORT_TYPES } from '../../transform/utils.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const SEARCH_TEMPLATE_DIR = path.join(__dirname, '../../../../webapp/models/search/template');
 
 /**
  * @function insert
@@ -31,16 +34,47 @@ async function insert(index, id, body) {
   });
 }
 
+async function deleteDocument(index, id) {
+  const esClient = await getEsClient();
+
+  try {
+    return await esClient.delete({
+      index: index,
+      id: id
+    });
+  } catch (error) {
+    if (error.statusCode === 404) {
+      logger.info(`Document not found for delete: index=${index}, id=${id}`);
+      return error?.meta?.body;
+    }
+    throw error;
+  }
+}
+
+async function getMetadata(index, id) {
+  const esClient = await getEsClient();
+  try {
+    const resp = await esClient.get({
+      index: index,
+      id: id,
+      _source: ['_metadata']
+    });
+    if( resp._source?._metadata ) {
+      return {
+        metadata: resp._source._metadata,
+        index: resp._index
+      }
+    }
+  } catch (error) {}
+  return null;
+}
+
 /**
  * @function loadFiles
  * @description Load JSON files into Elasticsearch
  * @param {Array} files array of file paths to load
  */
 async function loadFiles(files, alias) {
-  if( !Array.isArray(files) ) {
-    throw new Error('Files must be an array of file paths');
-  }
-
   if( !Array.isArray(alias) ) {
     alias = [alias];
   }
@@ -48,28 +82,21 @@ async function loadFiles(files, alias) {
   let indexes = {};
 
   for (const file of files) {
-    let filename = path.parse(file).base;
-    let parts = filename.split('.');
-    // console.log({filename, parts});
-    if( parts[0] !== 'webapp' ) {
-      logger.info(`Skipping non-webapp file: ${filename}`);
-      continue;
-    }
 
     let index = '';
-    if( parts[1] === 'expert' ) index = config.elasticsearch.indexes.experts;
-    else if( parts[1] === 'work' ) index = config.elasticsearch.indexes.works;
-    else if( parts[1] === 'grant' ) index = config.elasticsearch.indexes.grants;
+    if( file.type === 'expert' ) index = config.elasticsearch.indexes.experts;
+    else if( file.type === 'work' ) index = config.elasticsearch.indexes.works;
+    else if( file.type === 'grant' ) index = config.elasticsearch.indexes.grants;
 
     if( !index ) {
-      logger.info(`Skipping index file: ${filename}`);
+      logger.info(`Skipping index file: ${file.path} with unknown type: ${file.type}`);
       continue;
     }
 
-    let {json, sha256, md5, lastModified} = await loadFile(file);
+    let {json, sha256, md5, lastModified} = await loadFile(file.path);
     let id = json['@id'] || json.id || json._id;
     json._metadata = {
-      file,
+      file: file.path,
       sha256,
       md5,
       lastModified
@@ -77,7 +104,17 @@ async function loadFiles(files, alias) {
 
     for( let a of alias ) {
       let aliasIndex = `${index}-${a}`;
-      logger.info(`Loading file=${file} into index=${aliasIndex} with id=${id}`);
+
+      let metadataResp = await getMetadata(aliasIndex, id);
+      if( metadataResp && metadataResp.metadata.sha256 === sha256 ) {
+        logger.info(`Skipping file=${file.path} for alias=${aliasIndex}, index=${metadataResp.index} with id=${id} - no changes detected`);
+        if( !indexes[aliasIndex] ) {
+          indexes[aliasIndex] = metadataResp.index;
+        }
+        continue;
+      }
+
+      logger.info(`Loading file=${file.path} into index=${aliasIndex} with id=${id}`);
       let resp = await insert(aliasIndex, id, json);
       if( !indexes[aliasIndex] ) {
         indexes[aliasIndex] = resp._index;
@@ -103,8 +140,6 @@ async function loadFile(file) {
   const metadata = await cache.getFileStats(file);
   const sha256 = metadata.digests.sha256;
   const md5 = metadata.digests.md5;
-  // const sha256 = crypto.createHash('sha256').update(content).digest('hex');
-  // const md5 = crypto.createHash('md5').update(content).digest('hex');
   const lastModified = metadata.modified;
   const json = JSON.parse(content);
   return {json, sha256, md5, lastModified};
@@ -112,7 +147,7 @@ async function loadFile(file) {
 
 /**
  * @function ensureCurrentIndexes
- * @description Ensure that the current and stage indexes exist in Elasticsearch
+ * @description Ensure that the current index exists and that current and stage aliases are set
  * 
  * @returns {Promise}
  */
@@ -120,11 +155,11 @@ async function ensureCurrentIndexes() {
   let indexes = getCurrentIndexes();
 
   for (let baseName in indexes) {
-    let { currentIndex, stageIndex,  currentAlias, stageAlias } = indexes[baseName];
+    let { currentIndex,  currentAlias, stageAlias } = indexes[baseName];
     await createIndex(baseName, currentIndex);
-    await createIndex(baseName, stageIndex);
+    // await createIndex(baseName, stageIndex);
     await ensureAlias(currentIndex, currentAlias);
-    await ensureAlias(stageIndex, stageAlias);
+    await ensureAlias(currentIndex, stageAlias);
   }
 
   return indexes;
@@ -173,6 +208,15 @@ async function setAlias(index, date, alias) {
   await esClient.indices.putAlias({ index: index, name: alias });
 }
 
+/**
+ * @function ensureAlias
+ * @description Ensure that an alias exists for a given index. 
+ * If the alias already exists, do nothing.
+ * 
+ * @param {String} index 
+ * @param {String} alias 
+ * @returns {Promise}
+ */
 async function ensureAlias(index, alias) {
   const esClient = await getEsClient();
 
@@ -247,21 +291,21 @@ async function deleteIndex(index, date) {
  * @returns {Object} - An object containing the current and stage indexes
  */
 function getCurrentIndexes() {
-  let current = new Date();
-  let stage = new Date(current.getTime() + 7 * 24 * 60 * 60 * 1000); // one week from now
+  let current = getTodaysDate();
+  // let stage = new Date(current.getTime() + 7 * 24 * 60 * 60 * 1000); // one week from now
 
   let indexes = {};
 
   for( let baseIndexName in config.elasticsearch.indexes ) {
     let index = config.elasticsearch.indexes[baseIndexName];
     let currentIndex = getIndexNameForDate(index, current);
-    let stageIndex = getIndexNameForDate(index, stage);
+    // let stageIndex = getIndexNameForDate(index, stage);
     indexes[baseIndexName] = {
       currentAlias: `${index}-${config.elasticsearch.aliases.current}`,
       stageAlias: `${index}-${config.elasticsearch.aliases.stage}`,
       base: index,
-      currentIndex,
-      stageIndex
+      currentIndex
+      // stageIndex
     }
   }
 
@@ -288,13 +332,12 @@ function getIndexNameForDate(index, date) {
     if( parts.length !== 2  ) {
       throw new Error('Date string must be in the format "year-week", e.g., "2023-37"');
     }
-    year = parseInt(parts[0], 10);
-    weekNumber = parseInt(parts[1], 10);
-  } else if( date instanceof Date ) {
-    weekNumber = getWeek(date, { weekStartsOn: 1 });
-    year = date.getFullYear();
+    year = parts[0];
+    weekNumber = parts[1];
+  } else if( date instanceof Temporal.PlainDate ) {
+    [year, weekNumber] = getYearWeek({date}).split('-');
   } else {
-    throw new Error('Date must be a string or Date object');
+    throw new Error('Date must be a string or Temporal.PlainDate object');
   }
 
   return `${index}-${year}-${weekNumber}`;
@@ -332,6 +375,35 @@ async function getIndexDocumentCount(index) {
   return resp.count;
 }
 
+async function ensureSearchScript(opts={}) {
+  let templateName = opts.template || 'complete';
+  let templatePath = path.resolve(SEARCH_TEMPLATE_DIR, `${templateName}.js`);
+  if( !existsSync(templatePath) ) {
+    throw new Error(`Template file not found: ${templatePath}`);
+  }
+  logger.info(`Loading search template from ${templatePath}...`);
+
+  let template = (await import(templatePath)).default;
+
+  // let template = eval(`(${templateMatch[1]})`);
+  if (!template || !template.id || !template.script) {
+    throw new Error(`Invalid template structure: missing id or script property`);
+  }
+
+  if( !opts.replace ) {
+    let exists = await searchTemplateExists(template.id);
+    if( exists ) {
+      logger.info(`Search template with id ${template.id} already exists. Use replace flag to overwrite.`);
+      return;
+    }
+  }
+  
+  await deleteSearchScript(template.id);
+  await loadSearchScript(template.id, template.script);
+
+  logger.info(`Successfully loaded search template: ${template.id}`);
+}
+
 /**
  * @function deleteSearchScript
  * @description Delete a stored script from Elasticsearch
@@ -352,6 +424,19 @@ async function deleteSearchScript(scriptId) {
     } else {
       throw error;
     }
+  }
+}
+
+async function searchTemplateExists(templateId) {
+  const esClient = await getEsClient();
+  try {
+    await esClient.getScript({ id: templateId });
+    return true;
+  } catch (error) {
+    if (error.statusCode === 404) {
+      return false;
+    }
+    throw error;
   }
 }
 
@@ -377,7 +462,37 @@ async function loadSearchScript(scriptId, scriptBody) {
   logger.info(`Successfully loaded search script: ${scriptId}`);
 }
 
+async function getUsersCurrentScholarlyWorks(expertId, type, alias='stage') {
+  const esClient = await getEsClient();
+  const index = type+'s-'+config.elasticsearch.aliases[alias];
+  const resp = await esClient.search({
+    index,
+    body: {
+        "query": {
+        "nested": {
+          "path": "@graph",
+          "query": {
+            "term": {
+              "@graph.@id": expertId
+            }
+          }
+        }
+      },
+      _source: ["@graph.@id", "@graph.type", "@graph.@type"] // Only return the @id field
+    },
+    size: 10000 // adjust as needed, consider using scroll API for large datasets
+  });
+
+  return resp.hits.hits
+    .map(hit => hit._source['@graph'])
+    .flat()
+    .filter(node => node['@id'])
+    .filter(node => getNodeByType(node, SHORT_TYPES.SCHOLARLY_WORK_TYPES) )
+    .map(node => node['@id']);
+}
+
 export {
+  deleteDocument,
   loadFiles,
   getIndexDocumentCount,
   createIndex,
@@ -387,6 +502,9 @@ export {
   getCurrentIndexes,
   getIndexNameForDate,
   getState,
+  ensureSearchScript,
   deleteSearchScript,
-  loadSearchScript
+  loadSearchScript,
+  searchTemplateExists,
+  getUsersCurrentScholarlyWorks
 }

@@ -299,8 +299,8 @@ return html`
     </div>
 
     <div class="main-content">
-      <div 
-        class="return-to-profile" 
+      <div
+        class="return-to-profile"
         @click="${this._returnToProfile}"
         @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._returnToProfile(e); }}
         tabindex="0"
@@ -348,10 +348,10 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon 
-                    ?hidden="${!grant.isVisible}" 
-                    icon="ucdlib-experts:fa-eye" 
-                    @click=${this._hideGrant} 
+                  <ucdlib-icon
+                    ?hidden="${!grant.isVisible}"
+                    icon="ucdlib-experts:fa-eye"
+                    @click=${this._hideGrant}
                     @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideGrant(e); }}
                     tabindex="0"
                     role="button"
@@ -359,10 +359,10 @@ return html`
                     data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
-                  <ucdlib-icon 
-                    ?hidden="${grant.isVisible}" 
-                    icon="ucdlib-experts:fa-eye-slash" 
-                    @click=${this._showGrant} 
+                  <ucdlib-icon
+                    ?hidden="${grant.isVisible}"
+                    icon="ucdlib-experts:fa-eye-slash"
+                    @click=${this._showGrant}
                     @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showGrant(e); }}
                     tabindex="0"
                     role="button"
@@ -377,8 +377,7 @@ return html`
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">•</span>
-                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
+                ${grant.awardedBy ? html`<span class="dot">•</span><span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>` : ''}
               </div>
             </div>
             <div class="select-checkbox">
@@ -396,10 +395,10 @@ return html`
             <div class="hide-delete-btn-group">
               <span style="position: relative;">
                 <span class="tooltip hide-grant" data-text="Hide grant">
-                  <ucdlib-icon 
-                    ?hidden="${!grant.isVisible}" 
-                    icon="ucdlib-experts:fa-eye" 
-                    @click=${this._hideGrant} 
+                  <ucdlib-icon
+                    ?hidden="${!grant.isVisible}"
+                    icon="ucdlib-experts:fa-eye"
+                    @click=${this._hideGrant}
                     @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideGrant(e); }}
                     tabindex="0"
                     role="button"
@@ -407,10 +406,10 @@ return html`
                     data-id="${grant.relationshipId}"></ucdlib-icon>
                 </span>
                 <span class="tooltip show-grant" data-text="Show grant">
-                  <ucdlib-icon 
-                    ?hidden="${grant.isVisible}" 
-                    icon="ucdlib-experts:fa-eye-slash" 
-                    @click=${this._showGrant} 
+                  <ucdlib-icon
+                    ?hidden="${grant.isVisible}"
+                    icon="ucdlib-experts:fa-eye-slash"
+                    @click=${this._showGrant}
                     @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showGrant(e); }}
                     tabindex="0"
                     role="button"
@@ -425,8 +424,7 @@ return html`
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">•</span>
-                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
+                ${grant.awardedBy ? html`<span class="dot">•</span><span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>` : ''}
               </div>
             </div>
             <div class="select-checkbox">
@@ -447,6 +445,6 @@ return html`
 
       </div>
     </div>
-
   </div>
+  <app-toast-popup></app-toast-popup>
 `;}

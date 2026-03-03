@@ -3,11 +3,54 @@ import { exec } from 'child_process';
 import config from '../lib/config.js';
 import fs from 'fs';
 import path from 'path';
+import { cleanup } from '../lib/reporting/index.js';
 
 const DEFAULT_FILE = 'etl_reporting.dump';
 const SCHEMA = 'etl_reporting';
 
 const program = new Command();
+
+program
+  .command('clean')
+  .description('clean the reporting database')
+  .option('-u, --users <number>', 'number of weeks to keep in the database', parseInt)
+  .option('-c, --commands <number>', 'number of weeks to keep in the database', parseInt)
+  .option('--yes', 'Skip confirmation prompt')
+  .action(async (options) => {
+    if (!options.users && !options.commands) {
+      console.error('Please specify at least one of --users or --commands with the number of weeks to keep.');
+      return;
+    }
+
+    if( options.users ) {
+      console.log(`This will delete user cache entries older than ${options.users} weeks.`);
+    }
+    if( options.commands ) {
+      console.log(`This will delete command entries older than ${options.commands} weeks.`);
+    }
+
+    if (!options.yes) {
+      const readline = (await import('readline')).createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+
+      const answer = await new Promise((resolve) => {
+        readline.question('\nAre you sure you want to clean the reporting database? This will permanently delete data. (yes/no) ', (ans) => {
+          readline.close();
+          resolve(ans);
+        });
+      });
+
+      if (answer.toLowerCase() !== 'yes') {
+        console.log('Aborting cleanup.');
+        return;
+      }
+    }
+
+    let resp = await cleanup({users: options.users, commands: options.commands});
+    console.log('Cleanup response:', resp);
+  });
 
 program
   .command('dump')

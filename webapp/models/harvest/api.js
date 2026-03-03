@@ -7,7 +7,11 @@ const dagsterAPI = new DagsterAPI();
 
 // Endpoint to trigger a Dagster job for a specific partition
 router.post('/run-job-partition', json_only,
-  //user_can_edit,
+
+  // TODO need to tighten this up so only allow experts to run for their own email partition
+  // and for admins to run for any partition
+  user_can_edit,
+
   async (req, res, next) => {
   try {
     const { jobName, partitionName, runConfig } = req.body;

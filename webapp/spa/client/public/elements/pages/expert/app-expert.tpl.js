@@ -6,6 +6,8 @@ import { sharedStyles } from '../../styles/shared-styles';
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 import headingsCss from "@ucd-lib/theme-sass/2_base_class/_headings.css";
 
+import '../../components/share-button.js';
+
 import utils from '../../../lib/utils';
 
 export function render() {
@@ -75,6 +77,7 @@ return html`
     }
 
     .hero-main h1 .tooltip:hover ucdlib-icon,
+    .edit-availability:hover ucdlib-icon,
     .hero-main .experts span.hide-expert:hover ucdlib-icon,
     .hero-main .experts span.show-expert:hover ucdlib-icon,
     .hero-main .experts span.delete-expert:hover ucdlib-icon,
@@ -348,11 +351,13 @@ return html`
       text-decoration: none;
     }
 
-    .tooltip {
+    .tooltip,
+    share-button {
       cursor: pointer;
     }
 
-    .tooltip:hover:before {
+    .tooltip:hover:before,
+    share-button:hover:before {
       content: attr(data-text);
       position: absolute;
       bottom: 35px;
@@ -371,7 +376,8 @@ return html`
       transition: .2s opacity ease-out;
     }
 
-    .tooltip:hover:after {
+    .tooltip:hover:after,
+    share-button:hover:after {
       content: "";
       position: absolute;
       bottom: 25px;
@@ -384,8 +390,26 @@ return html`
       transition: .2s opacity ease-out;
     }
 
-    .tooltip:hover:before, .tooltip:hover:after {
+    share-button:hover:before {
+      content: "Share";
+    }
+
+    .tooltip:hover:before,
+    .tooltip:hover:after,
+    share-button:hover:before,
+    share-button:hover:after {
       opacity: 1;
+    }
+
+    share-button:hover:before {
+      width: 50px;
+      bottom: 40px;
+      right: -25px;
+    }
+
+    share-button:hover:after {
+      bottom: 30px;
+      right: 5px;
     }
 
     .tooltip.edit-name:hover:before {
@@ -747,6 +771,28 @@ return html`
       }
     }
 
+    .no-works button.btn.add-work {
+      font-size: .85rem;
+      margin: .85rem 0;
+    }
+
+    .no-works button.btn.add-work::before {
+      padding: 0 .4rem;
+      opacity: 1;
+      transform: initial;
+      transition: initial;
+
+      content: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20448%20512%22%3E%3C!--!Font%20Awesome%20Free%206.5.1%20by%20%40fontawesome%20-%20https%3A%2F%2Ffontawesome.com%20License%20-%20https%3A%2F%2Ffontawesome.com%2Flicense%2Ffree%20Copyright%202024%20Fonticons%2C%20Inc.--%3E%3Cpath%20d%3D%22M416%20208H272V64c0-17.7-14.3-32-32-32h-32c-17.7%200-32%2014.3-32%2032v144H32c-17.7%200-32%2014.3-32%2032v32c0%2017.7%2014.3%2032%2032%2032h144v144c0%2017.7%2014.3%2032%2032%2032h32c17.7%200%2032-14.3%2032-32V304h144c17.7%200%2032-14.3%2032-32v-32c0-17.7-14.3-32-32-32z%22%20fill%3D%22%23FFBF00%22%2F%3E%3C%2Fsvg%3E");
+    }
+
+    .no-works button.btn.add-work:hover {
+      padding-right: 1.5em;
+      padding-left: 0.75em;
+    }
+
+    .no-works p {
+      margin: 0;
+    }
   </style>
 
   <div class="content">
@@ -850,14 +896,17 @@ return html`
     </div>
 
     <div class="main-content">
+      <!--
       <div class="refresh-profile" ?hidden="${!this.canEdit || !this.expertEditing}">
         <button class="btn--invert" @click="${this._refreshProfile}" ?disabled="${this.refreshingProfileData}"><span>Refresh Profile Data</span></button>
         <span class="last-updated-label" ?hidden="${!this.lastUpdated}">Last Updated: ${this.lastUpdated}</span>
       </div>
+      -->
 
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
+        <share-button></share-button>
       </div>
       <hr class="about-me separator">
 
@@ -1032,11 +1081,11 @@ return html`
         </div>
       </div>
 
-      <div class="grants-abbreviated" ?hidden="${this.totalGrants === 0 && (!this.canEdit || this.totalGrants === 0)}">
+      <div class="grants-abbreviated" ?hidden="${(!this.totalGrants && !this.hiddenGrants) || (!this.canEdit && !this.totalGrants)}">
         <div class="grants-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="file-invoice-dollar" icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
-            <h2>${this.totalGrants} Grants</h2>
+            <h2>${this.totalGrants ? this.totalGrants + ' ' : ''}Grant${this.totalGrants === 1 ? '' : 's'}</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
             <span ?hidden="${!this.canEdit}" style="position: relative;">
@@ -1066,10 +1115,13 @@ return html`
           </div>
         </div>
         <span class="hidden-grants-label" ?hidden="${this.hiddenGrants === 0 || !this.canEdit}">
-          ${this.hiddenGrants} additional grant${this.hiddenGrants === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+          ${this.hiddenGrants} grant${this.hiddenGrants === 1 ? ' is' : 's are'} hidden. You can manage them in edit mode.
         </span>
 
         <hr class="separator">
+
+        <p style="margin: 0;" ?hidden="${this.totalGrants !== 0 || this.hiddenGrants === 0 || !this.canEdit}">No public grants to display</p>
+
         ${this.grantsActiveDisplayed.map(
           (grant, index) => html`
             <h3 class="heading--highlight" style="margin: 1.19rem 0;"><span ?hidden="${index > 0}">Active</span></h3>
@@ -1079,8 +1131,7 @@ return html`
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">•</span>
-                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
+                ${grant.awardedBy ? html`<span class="dot">•</span><span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>` : ''}
               </div>
             </div>
             <br>
@@ -1095,8 +1146,7 @@ return html`
                 <span style="min-width: fit-content;">${grant.start} - ${grant.end}</span>
                 <span class="dot">•</span>
                 <span style="min-width: fit-content;">${grant.role}</span>
-                <span class="dot">•</span>
-                <span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>
+                ${grant.awardedBy ? html`<span class="dot">•</span><span style="min-width: fit-content;">Awarded by ${grant.awardedBy}</span>` : ''}
               </div>
             </div>
             <br>
@@ -1115,14 +1165,14 @@ return html`
         </div>
       </div>
 
-      <div class="works-abbreviated" ?hidden="${this.totalCitations === 0 && (!this.canEdit || this.totalCitations === 0)}">
+      <div class="works-abbreviated" ?hidden="${this.totalCitations === 0 && !this.canEdit}">
         <div class="works-heading">
           <div style="display: flex; align-items: center;">
             <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
-            <h2>${this.totalCitations} Works</h2>
+            <h2>${this.totalCitations > 0 ? this.totalCitations + ' ' : ''}Work${this.totalCitations === 1 ? '' : 's'}</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
-            <span ?hidden="${!this.canEdit}" style="position: relative;">
+            <span ?hidden="${!this.canEdit || (this.totalCitations === 0 && this.hiddenCitations === 0)}" style="position: relative;">
               <span class="tooltip edit-works" data-text="Edit works">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
@@ -1135,7 +1185,7 @@ return html`
               </span>
             </span>
 
-            <span ?hidden="${!this.canEdit}" style="position: relative;">
+            <span ?hidden="${!this.canEdit || this.totalCitations === 0}" style="position: relative;">
               <span class="tooltip download-all-works" data-text="Download all works">
                 <ucdlib-icon icon="ucdlib-experts:fa-cloud-arrow-down"
                   @click=${this._downloadWorks}
@@ -1149,32 +1199,18 @@ return html`
           </div>
         </div>
         <span class="hidden-works-label" ?hidden="${this.hiddenCitations === 0 || !this.canEdit}">
-          ${this.hiddenCitations} additional work${this.hiddenCitations === 1 ? ' is' : 's are'} hidden and may be accessed via editing mode
+          ${this.hiddenCitations} work${this.hiddenCitations === 1 ? ' is' : 's are'} hidden. You can manage them in edit mode.
         </span>
 
         <hr class="separator">
 
+        <p style="margin: 0;" ?hidden="${this.totalCitations !== 0 || this.hiddenCitations === 0 || !this.canEdit}">No public works to display</p>
+        <div class="no-works" ?hidden="${this.totalCitations !== 0 || this.hiddenCitations !== 0 || !this.canEdit}">
+          <p>No works to display</p>
+          <button class="btn btn--round btn--alt2 add-work" @click="${this._addNewWorkClicked}">Add New Work</button>
+        </div>
+
           <div class="featured-works" ?hidden="${!this.featuredCitations.length}">
-            <!-- <div class="featured-works-toggle">
-              <div class="featured-works-header">
-                <h3 class="heading--highlight">Highlights</h3>
-                <div class="toggle-switch" ?hidden="${this._hideEditExpertControls()}">
-                  <input
-                    type="checkbox"
-                    id="toggle"
-                    ?checked="${this.showFeaturedCitations}"
-                    @change="${this._onFeaturedCitationsToggle}">
-                  <label for="toggle" class="toggle-button"></label>
-                </div>
-              </div>
-              <div class="instructions-label" ?hidden="${this.showFeaturedCitations || this._hideEditExpertControls()}">
-                <p>
-                  Enable this feature to show "Favorite" works at the top of your profile's Works list. Works may
-                  be added or removed by selecting the heart icon in the Works editing view.
-                </p>
-              </div>
-            </div> -->
-            <!-- <div ?hidden="${!this.showFeaturedCitations}" class="featured-works-list"> -->
             <h3 class="heading--highlight" style="margin: 1.19rem 0;">Highlights</h3>
             ${this.featuredCitations.map(
               (cite) => html`
@@ -1188,9 +1224,8 @@ return html`
                     ${unsafeHTML(utils.formatCitation(cite))}
                   </div>
                 </div>
-              `)}
-            </div>
-          <!-- </div> -->
+            `)}
+          </div>
 
           ${this.citationsDisplayed.map(
           (cite) => html`

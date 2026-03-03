@@ -14,8 +14,7 @@ import logger from '../logger.js';
 import GoogleSecret from '../google-secret.js';
 import config from '../config.js'
 import cache from '../cache.js';
-import xmlToJson from '../transform/xml-to-json.js';
-import fs from 'fs';
+import xmlToJson from './xml-to-json.js';
 
 
 const gs = new GoogleSecret();
@@ -121,22 +120,6 @@ export class CdlClient {
 
     let jsonFile = path.join(config.cache.cdlDir, `${name}/${name}_${count.toString().padStart(3, '0')}.json`);
 
-    // if( options.noCache !== true ) {
-    //   if( !force && await cache.existsUserAsset(options.cacheName, jsonFile) ) {
-    //     logger.info(`Skipping fetch ${name}:${count} as it is already cached at ${jsonFile}`);
-
-    //     const json = JSON.parse(await cache.readUserAsset(options.cacheName, jsonFile));
-    //     let stats = await cache.getFileStats(cache.getPath(options.cacheName, jsonFile));
-    //     stats.noOp = true; // no operation, already exists
-
-    //     return {
-    //       writeResp: stats,
-    //       jsonFile,
-    //       json
-    //     };
-    //   }
-    // }
-
     await this.getAuth();
 
     const controller = new AbortController();
@@ -179,7 +162,15 @@ export class CdlClient {
     // filter authors data
     json = this.updateAuthors(json);
 
-    const writeResp = await cache.writeUserAsset('cdl-'+name+'-extract', options.cacheName, jsonFile, json);
+    let writeResp = null;
+    if( options.name === 'groups' ) {
+      writeResp = await cache.write(
+        path.join(cache.getPath(), options.cacheName), 
+        json
+      );
+    } else {
+      writeResp = await cache.writeUserAsset(options.cacheName, jsonFile, json);
+    }
 
     return {
       writeResp,
@@ -282,6 +273,7 @@ export class CdlClient {
         entries = entries.concat(json.feed.entry);
         for (let entry of entries) {
           entry = entry['api:object'];
+          // console.log(`Found user "${entry['username']}" in group ${group}`);
           users.push(entry['username']);
         }
       }
@@ -298,7 +290,11 @@ export class CdlClient {
       }
     }
 
-    let cachePath = await cache.writeUserAsset('cdl-group-extract', 'group-' + group, 'users.json', {groupId: group, groupName, users});
+    let cachePath = await cache.write(
+      path.join(cache.getPath(), `users-list-${groupName}.json`), 
+      {groupId: group, groupName, users}
+    );
+
     return {
       groupId: group,
       groupName,
@@ -335,7 +331,14 @@ export class CdlClient {
         count,
         force: options.force
       });
+
+      if( json?.feed?.entry === undefined && count === 0 ) {
+        // if there are no entries on the first page, the user doesn't exist
+        throw new Error(`User ${user} not found in CDL elements`); 
+      }
+
       writeResps.push(writeResp);
+
 
       // add the entries to the results array
       if (json?.feed?.entry && json.feed.entry ) {
@@ -355,33 +358,7 @@ export class CdlClient {
       nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
 
-    // check to delete any cached files that are not in the feed
-    await this.cleanupCache('user', user, writeResps);
-
     return writeResps;
-  }
-
-  async cleanupCache(type, user, writeResps) {
-    let dir = cache.getPath(user, ['cdl', type]);
-    let {files} = await cache.readdir(dir);
-    let toRemove = [];
-    for (let file of files) {
-      if (!writeResps.find(resp => resp.assetPath === file.filepath)) {
-        toRemove.push(file);
-      }
-    }
-
-    logger.info(`Removing ${toRemove.length} files from ${dir} that are not in the feed`, {files: toRemove});
-
-    for (let file of toRemove) {
-      try {
-        // fs.unlinkSync(file);
-        await cache.delete(file.filepath);
-        logger.info(`Removed file ${file.filepath}`);
-      } catch (e) {
-        logger.error(`Error removing file ${file.filepath}: ${e.message}`);
-      }
-    }
   }
 
 
@@ -421,8 +398,6 @@ export class CdlClient {
       nextPage = this.nextPage(json?.feed?.['api:pagination']);
     }
 
-    // check to delete any cached files that are not in the feed
-    await this.cleanupCache('rel', user, writeResps);
 
     return writeResps;
   }

@@ -1,9 +1,11 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes } from '../lib/load/elastic-search/index.js';
+import { ensureCurrentIndexes, ensureSearchScript } from '../lib/load/elastic-search/index.js';
 import logger from '../lib/logger.js';
 import config from '../lib/config.js';
 import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
+import {init as dgInit} from '../lib/dagster/init.js';
+import { initYearWeek } from '../lib/reporting/index.js';
 
 const program = new Command();
 const env = process.env;
@@ -22,16 +24,30 @@ program
       errors.push(`Error initializing ElasticSearch indexes: ${error.message}`);
     }
 
+    try {
+      await ensureSearchScript();
+    } catch (error) {
+      errors.push(`Error loading ElasticSearch search template: ${error.message}`);
+    }
+
     const pgClient = new PgClient();
     try {
       logger.info('Initializing PostgreSQL schema for aggie experts...');
       await pgClient.connect();
       await pgClient.queryFromFile(config.postgres.schemaFile);
+      await initYearWeek(pgClient);
       logger.info('PostgreSQL schema initialized successfully.');
     } catch (error) {
-      errors.push(`Error initializing PostgreSQL schema: ${error.message}`);
+      throw error;
+      // errors.push(`Error initializing PostgreSQL schema: ${error.message}`);
     } finally {
-      pgClient.end();
+      await pgClient.end();
+    }
+
+    try {
+      await dgInit();
+    } catch (error) {
+      errors.push(`Error initializing Dagster database schema: ${error.message}`);
     }
 
     try {

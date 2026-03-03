@@ -3,7 +3,7 @@
     "name":"webapp",
     "title":"Webapp",
     "subtitle":"Aggie Experts",
-    "url":"http://localhost:3000",
+    "url":"${AE_URL}",
     "color":"brand-secondary-70",
     "icon":"fas fa-browser",
     "public" :true

@@ -1,6 +1,7 @@
 //Import keycloak-admin-client
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import GoogleSecret from '../google-secret.js';
+import logger from '../logger.js';
 import config from '../config.js';
 import { customAlphabet } from 'nanoid';
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -165,6 +166,7 @@ export default class ExpertsKcAdminClient {
       const expertId = this.mintExpertId();
       profile.attributes ||= {};
       profile.attributes.expertId = expertId;
+      logger.info(`Creating new Keycloak user with email ${email} and expertId ${expertId}`);
       const userId = await this.kcadmin.users.create(profile);
       let user = await this.verifyExpertId(userId,expertId);
       return user;
@@ -174,12 +176,17 @@ export default class ExpertsKcAdminClient {
   }
 
   /**
-   * Find a user by IDP email
-   * @param {Object} idp - The IDP object
-   * @param {string} idp.email - The email of the user
+   * @method findByEmail
+   * @description Find a user by IDP email. If the user email is found in keycloak
+   * but the user does not have an expertId, this function will mint a new expertId 
+   * and patch the user. 
+   * 
+   * @param {string} email - The email of the user
+   * @param {Object} attributes - Attributes to use if a patch is required
+   * 
    * @returns {Promise} - A promise that resolves with the user object
    */
-  async findByEmail(email) {
+  async findByEmail(email, attributes={}) {
     await this.authenticate();
 
     //get the users from keycloak
@@ -192,8 +199,26 @@ export default class ExpertsKcAdminClient {
       throw new Error(`No keycloak user found with email: ${email}`);
     }
 
-    if (users[0].attributes['expertId'] === undefined) {
-      throw new Error(`Keycloak user with email ${email} does not have an expertId`);
+    if( users[0]?.attributes?.expertId === undefined ) {
+      // throw new Error(`Keycloak user with email ${email} does not have an expertId`);
+      logger.warn(`Keycloak user with email ${email} does not have an expertId, minting a new one`);
+      const user = users[0];
+
+      if( !user.attributes ) user.attributes = {};
+      for( let [key, value] of Object.entries(attributes) ) {
+        user.attributes[key] = value;
+      }
+      user.attributes.expertId = this.mintExpertId();
+      
+      await this.kcadmin.users.update(
+        {id: user.id},
+        {
+          email: user.email,
+          attributes: user.attributes,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      );
     }
 
     return users[0];
@@ -209,20 +234,21 @@ export default class ExpertsKcAdminClient {
   async getOrCreateExpert(email, username, profile) {
     let user;
     try {
-      user = await this.findByEmail(email);
+      user = await this.findByEmail(email, profile.attributes);
     } catch (error) {
       if( error.response?.status >= 400 ) {
         throw new Error(`Could not access Keycloak to find user with email: ${email}. Status = ${error.response.status}, Message = ${error.response.statusText}`, );
       } else if (username && profile) {
         user = await this.createNewExpert(email, username, profile);
       } else {
-        throw new Error(`No user found with email: ${email} and no creation parameters`);
+        throw error;
       }
     }
     return user;
   }
 
   async createNewExpert(email, username, profile) {
+    logger.info(`Creating new Keycloak expert for email: ${email}, username: ${username}`);
     const new_user = {
       email: email,
       username: email,
@@ -241,7 +267,7 @@ export default class ExpertsKcAdminClient {
       }
     });
 
-    user = await this.createExpert(email, new_user);
+    let user = await this.createExpert(email, new_user);
     return user;
   }
 }

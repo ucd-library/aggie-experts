@@ -1,22 +1,25 @@
 import path from 'path';
 import config from './config.js';
-import { reportFileWrite } from './reporting/index.js';
+// import { reportFileWrite } from './reporting/index.js';
 import CaskFS from '/opt/caskfs/src/index.js';
-import { getWeek, startOfYear, nextSaturday, isSaturday } from 'date-fns';
+import { getYearWeek } from './year-week.js';
 import os from 'os';
 
 class FsCache {
 
   constructor() {
-    this.rootDir = config.cache.rootDir;
     this.pgClient = null;
-    // this.gcs = new GcsCache();
 
     this.roots = {
       weekly: '/weekly',
       archive: '/archive'
     }
     this.validRoots = Object.values(this.roots);
+
+    this.userRoot = 'user';
+    this.idLookupRoot = '/id-map';
+
+    this.scholarlyWorkType = ['work', 'grant'];
 
     let requestor = os.userInfo().username;
     if( !requestor || requestor === 'root' ) {
@@ -25,10 +28,13 @@ class FsCache {
     this.caskRequestor = requestor;
 
     this.caskFs = new CaskFS({
-      rootDir: this.rootDir,
-      postgres: config.cache.postgres,
-      dbPool : config.cache.poolDbConnection,
-    })
+      postgres: config.postgres,
+      dbPool : config.cache.poolDbConnection
+    });
+
+    this.findRelatedExpertsCache = new Map();
+    this.readFileCache = new Map();
+    this.existsCache = new Map();
   }
 
   async init() {
@@ -39,76 +45,30 @@ class FsCache {
   }
 
   /**
-   * @method getYearWeek
-   * @description Get the year-week string (format: YYYY-WW) for a given date.  Weeks start on Saturday.
-   * Prior to the first Saturday of the year is considered week 52/53 of the previous year.
-   * 
-   * Note: this math is a pain.  Always use this method to get year-week instead of trying to calculate it yourself.
-   * 
-   * @param {Object} date Date object, defaults to current date
+   * @method getPath
+   * @description Get the full file path for a user asset given the user ID and asset path
+   *
    * @param {Object} opts options object
-   * @param {Boolean} opts.allValues if true, will return 'all' for year-week instead of calculating it
+   * @param {String} opts.root root directory to use, either 'weekly' or 'archive', defaults to 'archive'
+   * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    * 
-   * @returns {String} year-week string in format YYYY-WW
+   * @returns {String} full file path for the user asset
    */
-  getYearWeek(date, opts={}) {
-    if( !date ) date = new Date();
-
-    // for prior year calculations, we need to set the original date
-    if( !opts.date ) opts.date = date;
-
-    // find first Saturday of the year
-    let yearOffset = new Date(date.getFullYear(), 0, 1, 0, 0, 0).getDay();
-    let firstSat = null
-
-    // if Jan 1 is a Saturday, week 1 starts that day
-    if( yearOffset === 6 ) {
-      firstSat = new Date(date.getFullYear(), 0, 1, 0, 0, 0);
-
-    // otherwise, week 1 starts the first Saturday on or after Jan 1
-    } else {
-      firstSat = new Date(date.getFullYear(), 0, (6-yearOffset)+1, 0, 0, 0);
-
-      // date is in week 52/53 of previous year
-      if( date < firstSat ) {
-        const prevYearDate = new Date(date.getFullYear()-1, 11, 31, 0, 0, 0);
-        return this.getYearWeek(prevYearDate, opts);
-      }
+  getPath(opts={}) {
+    if( !opts.root ) opts.root = this.roots.weekly;
+    if( !this.validRoots.includes(opts.root) ) {
+      throw new Error(`Invalid root specified: ${opts.root}`);
     }
 
-    // calculate week number, starting with week 1 on first Saturday
-    let week = 1, weekStart, weekEnd;
-    while( week <= 53 ) {
-      weekStart = new Date(firstSat);
-      weekStart.setDate(firstSat.getDate() + ((week-1)*7));
-      weekEnd = new Date(firstSat);
-      weekEnd.setDate(firstSat.getDate() + ((week)*7) - 1);
-
-      if( date >= weekStart && date <= weekEnd ) {
-        break;
-      }
-      week++;
+    if( opts.root === this.roots.archive ) {
+      return opts.root;
     }
 
-    const year = date.getFullYear();
-
-    // pad week with leading zero if needed
-    if( (week+'').length === 1 ) week = '0'+week;
-
-    if( opts.allValues ) {
-      return {
-        yearWeek : year+'-'+week,
-        weekStart,
-        weekEnd,
-        date: opts.date
-      }
-    }
-
-    return year+'-'+week;
+    return path.join(opts.root, getYearWeek({date: opts.date}));
   }
 
   /**
-   * @method getPath
+   * @method getUserPath
    * @description Get the full file path for a user asset given the user ID and asset path
    *
    * @param {String} userId expert user ID
@@ -119,20 +79,23 @@ class FsCache {
    * 
    * @returns {String} full file path for the user asset
    */
-  getPath(userId, assetKey, opts={}) {
-    if( typeof assetKey === 'object' && Array.isArray(assetKey) ) {
+  getUserPath(userId, assetKey, opts={}) {
+    let rootPath = this.getPath(opts);
+    if( Array.isArray(assetKey) ) {
       assetKey = path.join(...assetKey);
     }
-    if( !opts.root ) opts.root = this.roots.weekly;
-    if( !this.validRoots.includes(opts.root) ) {
-      throw new Error(`Invalid root specified: ${opts.root}`);
-    }
+    return path.join(rootPath, this.userRoot, userId, assetKey);
+  }
 
-    if( opts.root === this.roots.archive ) {
-      return path.join(opts.root, userId, assetKey);
+  getScholarlyWorkPath(type, assetKey, opts={}) {
+    if( !this.scholarlyWorkType.includes(type) ) {
+      throw new Error(`Invalid scholarly work type specified: ${type}`);
     }
-
-    return path.join(opts.root, this.getYearWeek(opts.date), userId, assetKey);
+    let rootPath = this.getPath(opts);
+    if( Array.isArray(assetKey) ) {
+      return path.join(rootPath, type, ...assetKey);
+    }
+    return path.join(rootPath, type, assetKey);
   }
 
   /**
@@ -144,10 +107,18 @@ class FsCache {
    * @returns {Boolean} true if the file exists, false otherwise
    */
   exists(assetPath) {
-    return this.caskFs.exists({
+    if( this.existsCache.has(assetPath) ) {
+      return this.existsCache.get(assetPath);
+    }
+
+    const result = this.caskFs.exists({
       filePath: assetPath,
       requestor: this.caskRequestor
     });
+
+    this.existsCache.set(assetPath, result);
+
+    return result;
   }
 
   /**
@@ -163,7 +134,7 @@ class FsCache {
    * @returns {Boolean} true if the asset exists, false otherwise
    */
   existsUserAsset(userId, assetKey, opts={}) {
-    const assetPath = this.getPath(userId, assetKey, opts);
+    const assetPath = this.getUserPath(userId, assetKey, opts);
     return this.exists(assetPath);
   }
 
@@ -171,13 +142,40 @@ class FsCache {
    * @method readdir
    * @description Read the contents of a directory in the cache
    * @param {String} dir full path to the directory
+   * @param {Boolean} allFiles if true, will return all files in the directory, otherwise will limit to default limit
    * @returns {Promise<Object>} an object directory listing with 'file' and 'directory' arrays
    */
-  readdir(dir) {
-    return this.caskFs.ls({
-      directory: dir,
-      requestor: this.caskRequestor
-    });
+  async readdir(dir, allFiles=false) {
+    if( allFiles ) {
+      // loop through 500 file increments to get all files
+      let allResults = { files: [], directories: [] };
+      let limit = 500;
+      let offset = 0;
+      let filesFetched = 0;
+      let totalCount = 0;
+ 
+      do {
+        let res = await this.caskFs.ls({
+          directory: dir,
+          limit,
+          offset,
+          requestor: this.caskRequestor
+        });
+        allResults.files.push(...res.files);
+        allResults.directories.push(...res.directories);
+        filesFetched += res.files.length;
+        totalCount = res.totalCount || 0;
+        offset += limit;
+      } while ( filesFetched < totalCount );
+
+      return allResults;
+
+    } else {
+      return await this.caskFs.ls({
+        directory: dir,
+        requestor: this.caskRequestor
+      });
+    }
   }
 
   /**
@@ -192,8 +190,26 @@ class FsCache {
    * @returns {Promise<String>} the content of the user asset file
    */
   async readUserAsset(userId, assetKey, opts={}) {
-    const assetPath = this.getPath(userId, assetKey, opts);
+    const assetPath = this.getUserPath(userId, assetKey, opts);
     return this.read(assetPath);
+  }
+
+  async readScholarlyAsset(type, assetKey, opts={}) {
+    const assetPath = this.getScholarlyWorkPath(type, assetKey, opts);
+    return this.read(assetPath);
+  }
+
+  writeUserIdLookup(email, expertId) {
+    let filePath = path.join(this.idLookupRoot, expertId);
+    return this.write(filePath, email);
+  }
+
+  async getUserIdLookup(expertId) {
+    let filePath = path.join(this.idLookupRoot, expertId);
+    if( !await this.exists(filePath) ) {
+      return null;
+    }
+    return this.read(filePath);
   }
 
   /**
@@ -208,17 +224,25 @@ class FsCache {
     if (! await this.exists(assetPath)) {
       throw new Error(`Asset not found: ${assetPath}`);
     }
-    return this.caskFs.read({
+
+    if( this.readFileCache.has(assetPath) ) {
+      return this.readFileCache.get(assetPath);
+    }
+
+    const content = await this.caskFs.read({
       filePath: assetPath,
       requestor: this.caskRequestor
     }, {encoding: 'utf8'});
+
+    this.readFileCache.set(assetPath, content);
+
+    return content;
   }
 
   /**
    * @method writeUserAsset
    * @description Write a user asset to the cache.  See `write` method for details.
    *
-   * @param {String} step the step of the process (e.g., 'extract', 'transform')
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
    * @param {Object|String} data the data to write, can be an object or a string
@@ -228,9 +252,14 @@ class FsCache {
    * 
    * @returns {Promise<Object>} an object containing the asset path, local cache write status, hash, and last modified date
    */
-  async writeUserAsset(step, userId, assetKey, data, opts={}) {
-    const assetPath = this.getPath(userId, assetKey, opts);
-    return this.write(step, assetPath, data);
+  async writeUserAsset(userId, assetKey, data, opts={}) {
+    const assetPath = this.getUserPath(userId, assetKey, opts);
+    return this.write(assetPath, data);
+  }
+
+  async writeScholarlyAsset(type, assetKey, data, opts={}) {
+    const assetPath = this.getScholarlyWorkPath(type, assetKey, opts);
+    return this.write(assetPath, data);
   }
 
   /**
@@ -239,29 +268,23 @@ class FsCache {
    * It checks if the file already exists and compares hashes to avoid unnecessary writes to both local and cloud storage.  Any
    * directories in the path will be created if they do not exist.
    *
-   * @param {String} step the step of the process (e.g., 'extract', 'transform')
    * @param {String} assetPath full path to the asset file
    * @param {Object|String} data the data to write, can be an object or a string
    *
    * @returns {Promise<Object>} an object containing the asset path, local cache write status, hash, and last modified date
    */
-  async write(step, assetPath, data) {
+  async write(assetPath, data) {
     if (typeof data === 'object') {
       data = JSON.stringify(data, null, 2);
     }
 
-    // let localCacheWrite = true, newHash, existingHash;
-    // if (fs.existsSync(assetPath)) {
-    //   existingHash = await this.hashFile(assetPath);
-    //   newHash = crypto.createHash('sha256').update(data).digest('hex');
-    //   if (existingHash === newHash) {
-    //     localCacheWrite = false;
-    //   }
-    // }
-
-    // if (localCacheWrite === true) {
-    //   await fs.writeFile(assetPath, data);
-    // }
+    // clear read cache for this asset if it exists
+    if( this.readFileCache.has(assetPath) ) {
+      this.readFileCache.delete(assetPath);
+    }
+    if( this.existsCache.has(assetPath) ) {
+      this.existsCache.delete(assetPath);
+    }
 
     let resp = await this.caskFs.write({
       filePath: assetPath,
@@ -269,24 +292,12 @@ class FsCache {
       replace: true,
       requestor: this.caskRequestor
     });
+    
+    if( resp.hasError() ) {
+      throw resp.getError();
+    }
+
     resp = resp.data;
-
-    // const stats = await fs.stat(assetPath);
-    // let lastModified = stats.mtime.toISOString();
-
-    // new file or file changed, report the write
-    // if( !newHash ) {
-    //   newHash = await this.hashFile(assetPath);
-    // }
-
-    await reportFileWrite({
-      file_path: assetPath,
-      step: step,
-      last_modified: resp.file.modified,
-      file_hash: resp.file.digests[resp.primaryDigest],
-      last_file_hash: resp.replacedFile?.digests?.[resp.primaryDigest] || null,
-      local_cache_write: resp.copied ? true : false
-    });
 
     return {
       assetPath,
@@ -321,13 +332,14 @@ class FsCache {
    * @param {Object} opts options object
    * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
+   * @param {Boolean} opts.isDirectory if true, will delete a directory instead of a file
+   * @param {Boolean} opts.softDelete if true, will perform a soft delete by deleting entry but not hash file on disk
    * 
    * @returns {Promise<void>}
    */
   async deleteUserAsset(userId, assetKey, opts={}) {
-    const assetPath = this.getPath(userId, assetKey, opts);
-    return this.delete(assetPath);
-    // await this.deleteFromGcs(assetPath);
+    const assetPath = this.getUserPath(userId, assetKey, opts);
+    return this.delete(assetPath, opts);
   }
 
   /**
@@ -335,16 +347,81 @@ class FsCache {
    * @description Delete a file from the cache
    *
    * @param {String} assetPath full path to the asset file
+   * @param {Object} opts options object
+   * @param {Boolean} opts.isDirectory if true, will delete a directory instead of a file
+   * @param {Boolean} opts.softDelete if true, will perform a soft delete by deleting entry but not hash file on disk
    *
    * @returns {Promise<void>}
    */
-  async delete(assetPath) {
-    if (await this.exists(assetPath)) {
-      await this.caskFs.delete({
-        filePath: assetPath,
-        requestor: this.caskRequestor
+  async delete(assetPath, opts={}) {
+    if ( opts.isDirectory ) {
+      await this.caskFs.deleteDirectory({
+        directory: assetPath,
+        requestor: this.caskRequestor,
+        softDelete: opts.softDelete || false
       });
+      return;
     }
+
+    await this.caskFs.deleteFile({
+      filePath: assetPath,
+      requestor: this.caskRequestor,
+      softDelete: opts.softDelete || false
+    });
+  }
+
+  /**
+   * @method findRelatedExperts
+   * @description Find related experts for a given subject by querying the RDF data in the cache.  
+   * This method uses an in-memory cache to avoid redundant queries for the same subject and partition keys.
+   * 
+   * @param {String} subject 
+   * @param {Object} opts options object
+   * @param {Array} opts.partitionKeys array of partition keys
+   * @param {Boolean} opts.limit if true, will limit the number of results returned (default: false)
+   * 
+   * @returns {Promise<Object>} RDF response object containing related files from cask
+   */
+  async findRelatedExperts(subject, opts={}) {
+    if( !opts.partitionKeys ) {
+      opts.partitionKeys = [];
+    }
+    if( !Array.isArray(opts.partitionKeys) ) {
+      opts.partitionKeys = [opts.partitionKeys];
+    }
+
+    const partitionKeys = opts.partitionKeys;
+    let query = { subject, partitionKeys };
+    const limit = opts.limit || false;
+    if( limit ) {
+      query.limit = limit;
+    }
+
+    const cacheKey = `${subject}|${partitionKeys.join('|')}|${limit}`;
+    if (this.findRelatedExpertsCache.has(cacheKey)) {
+      return this.findRelatedExpertsCache.get(cacheKey);
+    }
+
+    const rdfResp = await this.caskFs.rdf.find(query);
+    this.findRelatedExpertsCache.set(cacheKey, rdfResp);
+
+    return rdfResp;
+  }
+
+  async getExpertAeStdRelations(username, opts={}) {
+    let metadata = await this.readUserAsset(username, 'metadata.json', {date: opts.date});
+    metadata = JSON.parse(metadata);
+
+    const works = metadata.works.map(work => 
+      this.getUserPath(username, ['ae-std', 'rel', work.relationshipUri+'.jsonld'], {date: opts.date})
+    );
+    const grants = metadata.grants.map(grant => 
+      this.getUserPath(username, ['ae-std', 'rel', grant.relationshipUri+'.jsonld'], {date: opts.date})
+    );
+    let files = [...works, ...grants];
+
+
+    return files;
   }
 
   close() {

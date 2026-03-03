@@ -12,30 +12,7 @@ const works = new WorkModel();
 
 // const {config} = require('@ucd-lib/fin-service-utils');
 
-const { /*openapi,*/ public_or_is_user } = require('../middleware/index.js')
-
-// function search_valid_path(options={}) {
-//   const def = {
-//     "description": "Search of experts and grants",
-//     "parameters": [],
-//   };
-
-//   (options.parameters || []).forEach((param) => {
-//     def.parameters.push(openapi.parameters(param));
-//   });
-
-//   delete options.parameters;
-
-//   return openapi.validPath({...def, ...options});
-// }
-
-// function search_valid_path_error(err, req, res, next) {
-//   return res.status(err.status).json({
-//     error: err.message,
-//     validation: err.validationErrors,
-//     schema: err.validationSchema
-//   })
-// }
+const { openapi, public_or_is_user, valid_path, valid_path_error } = require('../middleware/index.js')
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
@@ -44,18 +21,18 @@ const { /*openapi,*/ public_or_is_user } = require('../middleware/index.js')
 router.get(
   '/',
   public_or_is_user,
-  // search_valid_path(
-  //   {
-  //     description: "Returns matching search results, including the number of matching works and grants",
-  //     parameters: ['p', 'page', 'size',
-  //                  '@type', 'type', 'status','availability','expert'],
-  //     responses: {
-  //       "200": openapi.response('Search'),
-  //       "400": openapi.response('Invalid_request')
-  //     }
-  //   }
-  // ),
-  // search_valid_path_error,
+  valid_path(
+    {
+      description: "Returns matching search results, including the number of matching works and grants",
+      parameters: ['p', 'page', 'size',
+                   '@type', 'type', 'status','availability','expert','dateFrom','dateTo'],
+      responses: {
+        "200": openapi.response('Search'),
+        "400": openapi.response('Invalid_request')
+      }
+    }
+  ),
+  valid_path_error,
   async (req, res) => {
     const params = {
       "@type":['expert'], //,'grant','work'],
@@ -87,6 +64,21 @@ router.get(
     if (req?.query.type) {
       params.type = req.query.type.split(',');
     }
+    if (req?.query.dateFrom) {
+      if (/^\d{4}$/.test(req.query.dateFrom)) {
+        params.dateFrom = `${req.query.dateFrom}-01-01`;
+      } else {
+        return res.status(400).json({ error: 'Invalid dateFrom year format. Must be a 4-digit year.' });
+      }
+    }
+    if (req?.query.dateTo) {
+      if (/^\d{4}$/.test(req.query.dateTo)) {
+        params.dateTo = `${req.query.dateTo}-12-31`;
+      } else {
+        return res.status(400).json({ error: 'Invalid dateTo year format. Must be a 4-digit year.' });
+      }
+    }
+    params.hasDate = !!(params.dateFrom || params.dateTo);
     if ( ! params.q ) {
       res.status(400).json({ error: 'Missing required query parameter "q"' });
     }
@@ -96,13 +88,20 @@ router.get(
       grant: grants.readIndexAlias,
       work: works.readIndexAlias,
     };
-    for (const t of params["@type"]) {
-      const indexAlias = typeToIndex[t];
-      if (!indexAlias) {
-        return res.status(400).json({ error: 'Invalid type' });
+    // Validate @type values but always search all indices (post_filter will handle @type filtering)
+    if (params["@type"]) {
+      for (const t of params["@type"]) {
+        if (!typeToIndex[t]) {
+          return res.status(400).json({ error: 'Invalid type' });
+        }
       }
-      params.index.push(indexAlias);
     }
+    // Always include all indices so aggregations see all document types
+    params.index.push(experts.readIndexAlias);
+    params.index.push(grants.readIndexAlias);
+    params.index.push(works.readIndexAlias);
+    // Remove duplicates
+    params.index = [...new Set(params.index)];
     opts = {
       id: complete.id,
       params
@@ -110,10 +109,19 @@ router.get(
     try {
       await experts.verify_template(complete);
       const find = await base.search(opts);
-      // Now remove type filters, research
+
+      // Capture type/status filters before deletion
+      const filteredType = req?.query.type ? req.query.type.split(',') : null;
+      const filteredStatus = req?.query.status ? req.query.status.split(',') : null;
+
+      // Now remove type filters and date filters for global aggregations
       delete params["@type"];
       delete params.status;
       delete params.type;
+      delete params.dateFrom;
+      delete params.dateTo;
+      delete params.hasDate;
+
       const global = await base.search(
         { id: complete.id,
           params: {
@@ -123,6 +131,51 @@ router.get(
           }
         });
       find.global_aggregations = global.aggregations;
+
+      // If type or status filters were applied, get year-by-year breakdown for that subfilter
+      if (filteredType || filteredStatus) {
+        const filteredParams = { ...opts.params };
+        delete filteredParams.dateFrom;
+        delete filteredParams.dateTo;
+        delete filteredParams.hasDate;
+        if (filteredType) filteredParams.type = filteredType;
+        if (filteredStatus) filteredParams.status = filteredStatus;
+
+        const filtered = await base.search({
+          id: complete.id,
+          params: {
+            ...filteredParams,
+            size: 0,
+            index: [experts.readIndexAlias,
+                    grants.readIndexAlias,
+                    works.readIndexAlias]
+          }
+        });
+
+        // Add filtered year aggregations with descriptive keys,
+        // zero-filling to the full global combined year range so min/max match full histogram
+        const globalCombined = global?.aggregations?.issued_years_combined || {};
+        const globalYearKeys = Object.keys(globalCombined);
+
+        const filteredCombined = filtered?.aggregations?.issued_years_combined || {};
+        const zeroFilled = (sourceMap) => {
+          if (!globalYearKeys.length) return sourceMap; // fallback if global is empty
+          const filled = {};
+          for (const y of globalYearKeys) {
+            const v = sourceMap?.[y];
+            filled[y] = (typeof v === 'number') ? v : 0;
+          }
+          return filled;
+        };
+
+        if (filteredType && filteredCombined) {
+          find.global_aggregations[`issued_years_type_${filteredType.join('_')}`] = zeroFilled(filteredCombined);
+        }
+        if (filteredStatus && filteredCombined) {
+          find.global_aggregations[`issued_years_status_${filteredStatus.join('_')}`] = zeroFilled(filteredCombined);
+        }
+      }
+
       res.send(find);
     } catch (err) {
       res.status(400).send('Invalid request');

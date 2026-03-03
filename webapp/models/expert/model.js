@@ -117,7 +117,6 @@ class ExpertModel extends BaseModel {
     }
     let seo={}
 
-    console.log(node)
     seo.name = node?.label;
     seo.identifier = node?.identifier
 
@@ -199,6 +198,7 @@ class ExpertModel extends BaseModel {
         size : -1,
         includeMisformatted : false,
         favouriteWorksFirst : true,
+        favouritesPlusFirstPageWorks : false,
         sort : [
           {
               "field": "issued",
@@ -278,6 +278,8 @@ class ExpertModel extends BaseModel {
     // to store totals of works/grants before filtering out any
     let totalWorks = works.length;
     let totalGrants = grants.length;
+
+    let favouriteWorks = [];
 
     let visibleWorks = works.filter(w => {
       if (!Array.isArray(w.relatedBy)) {
@@ -394,6 +396,16 @@ class ExpertModel extends BaseModel {
           });
         }
 
+        // to handle favourites in the ui on the edit works page vs expert profile page
+        // the first edit works page will show all favourites plus 25 works (including favourites if in that list)
+        // pages 2+ will show just 25 works in order (including favourites if in that list)
+        favouriteWorks = works.filter(w => {
+          return w.relatedBy && (Array.isArray(w.relatedBy)
+            ? w.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+            : w.relatedBy && w.relatedBy['ucdlib:favourite'] === true);
+        });
+
+
         if( options.works?.includeMisformatted ) {
           invalidWorks = [...(invalidTitle.citations || []), ...(invalidIssueDate.citations || [])];
           doc.invalidWorks = invalidWorks;
@@ -453,6 +465,10 @@ class ExpertModel extends BaseModel {
     // subset grants if requested
     if( options.grants?.page && options.grants?.size ) {
       grants = grants.slice((options.grants.page-1) * options.grants.size, options.grants.page * options.grants.size);
+    }
+
+    if( options.works?.favouritesPlusFirstPageWorks ) {
+      works = [...favouriteWorks, ...works];
     }
 
     // return total visible/hidden works/grants
@@ -570,7 +586,6 @@ class ExpertModel extends BaseModel {
     }
     if (! this.elementsClient ) {
       const { ElementsClient } = await import('@ucd-lib/experts-api');
-      // console.log('elementsClient',ElementsClient);
       this.ElementsClient = ElementsClient;
     }
     let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,args);
@@ -625,11 +640,8 @@ class ExpertModel extends BaseModel {
       throw new Error('Invalid patch, visible is required');
     }
 
-    // Immediate Update Elasticsearch document
-    const expertModel = await this.get_model('expert');
-
     try {
-      expert = await expertModel.client_get(expertId);
+      expert = await this.client_get(expertId);
     } catch(e) {
       e.message = `expert "@id"=${expertId} not found`;
       e.status=500;
@@ -638,38 +650,13 @@ class ExpertModel extends BaseModel {
     if (patch.visible != null) {
       expert['is-visible'] = patch.visible;
     }
-    // Just update the existing document
+
+    // update Elasticsearch
     await this.client.index({
       index : this.writeIndexAlias,
       id : expert['@id'],
       document: expert
     });
-
-    // Update FCREPO
-    let options = {
-      path: expertId,
-      content: `
-        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-        PREFIX expert: <http://experts.ucdavis.edu/${expertId}>
-        DELETE {
-          ${patch.visible != null ? `expert: ucdlib:is-visible ?v .`:''}
-        }
-        INSERT {
-          ${patch.visible != null ?`expert: ucdlib:is-visible ${patch.visible} .`:''}
-        } WHERE {
-          expert: ucdlib:is-visible ?v .
-        }
-      `
-    };
-
-    const api_resp = await finApi.patch(options);
-
-    if (api_resp.last.statusCode != 204) {
-      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`expert.patch(${expertId})`);
-      const error=new Error(`Failed fcrepo patch to ${expertId}:${api_resp.last.body}`);
-      error.status=500;
-      throw error;
-    }
   }
 
   /**
@@ -694,13 +681,6 @@ class ExpertModel extends BaseModel {
       {id:expertId,
        index:this.writeIndexAlias
       });
-
-    await finApi.delete(
-      {
-        path: expertId,
-        permanent: true
-      }
-    );
 
     if (config.experts.cdl.expert.propagate) {
       const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
@@ -728,52 +708,42 @@ class ExpertModel extends BaseModel {
       expert = await this.client_get(expertId);
     } catch(e) {
       logger.info(`expert @id ${expertId} not found`);
-      return 404
-    };
-
-    var patch=`PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-        PREFIX hasAvail: <ark:/87287/d7mh2m/keyword/c-ucd-avail/>
-        PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-delete {
-    ?expert ucdlib:hasAvailability ?cur.
-    ?cur skos:prefLabel ?curLabel.
-    ?cur skos:inScheme ?curScheme.
-    ?cur a skos:Concept.
-    ?cur ucdlib:availabilityOf ?expert.
-}
-where {
-  ?expert ucdlib:hasAvailability ?cur.
-  OPTIONAL {
-    ?cur skos:prefLabel ?curLabel.
-  }
-  OPTIONAL {
-    ?cur skos:inScheme ?curScheme.
-  }
-};`;
-
-    if (data.currentLabels.length > 0) {
-      patch+=`
-insert {
-  ?expert ucdlib:hasAvailability ?add.
-  ?add a skos:Concept;
-    skos:inScheme hasAvail: ;
-    skos:prefLabel ?addLabel;
-    .
-    ?add ucdlib:availabilityOf ?expert.
-}
-where {
-  ?expert a ucdlib:Expert.
-  values ?addLabel {  ${data.currentLabels.map(label => `"${label}"`).join(' ')} }
-  bind(uri(concat(str(hasAvail:),encode_for_uri(?addLabel))) as ?add)
-};`;
+      return 404;
     }
-    // update fcrepo
-    let options = {
-      path: expertId,
-      content: patch
-    };
 
-    const api_resp = await finApi.patch(options);
+    if( expert.hasAvailability ) delete expert.hasAvailability;
+    expert['@graph'].forEach(n => { 
+      if( n['@id'] === expertId && n.hasAvailability ) {
+        delete n.hasAvailability;
+      }
+    });
+
+    // build availability nodes
+    if (data.currentLabels.length > 0) {
+      const hasAvailability = data.currentLabels.map(label => ({
+        "@id": `ark:/87287/d7mh2m/keyword/c-ucd-avail/${encodeURIComponent(label)}`,
+        "@type": "Concept",
+        "prefLabel": label,
+        "skos:inScheme": {
+          "@id": "ark:/87287/d7mh2m/keyword/c-ucd-avail/"
+        },
+        "availabilityOf": expertId
+      }));
+
+      expert['hasAvailability'] = hasAvailability;
+      expert['@graph'].forEach(n => { 
+        if( n['@id'] === expertId ) {
+          n.hasAvailability = hasAvailability;
+        }
+      });
+    }
+
+    // update Elasticsearch
+    await this.client.index({
+      index: this.writeIndexAlias,
+      id: expert['@id'],
+      document: expert
+    });
 
     // update cdl
     if (config.experts.cdl.expert.propagate) {
@@ -787,7 +757,6 @@ where {
       logger.info({cdl_response:null},`CDL propagate changes ${config.experts.cdl.expert.propagate}`);
     }
   }
-
 }
 
 class GrantRole {
@@ -841,41 +810,24 @@ class GrantRole {
       e.status=500;
       throw e;
     };
+
+    let roleIndex = node.relatedBy.findIndex(r => r['@id'] === id);
+    if (roleIndex === -1) {
+      throw {
+        status: 500,
+        message: `Role ${id} not found in grant relatedBy array`
+      };
+    }
+
     if (patch.visible != null) {
-      node['relatedBy']['is-visible'] = patch.visible;
+      node['relatedBy'][roleIndex]['is-visible'] = patch.visible;
     }
-    if (patch.favourite != null) {
-      node['relatedBy'].favourite = patch.favourite;
-    }
+    // if (patch.favourite != null) {
+    //   node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
+    // }
+
     await this.expertModel.update_graph_node(expertId,node);
 
-    // Update FCREPO
-
-    let options = {
-      path: expertId + '/' + id,
-      content: `
-        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-        DELETE {
-          ${patch.visible != null ? `<${id}> ucdlib:is-visible ?v .`:''}
-          ${patch.favourite !=null ?`<${id}> ucdlib:favourite ?fav .`:''}
-        }
-        INSERT {
-          ${patch.visible != null ?`<${id}> ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`<${id}> ucdlib:favourite ${patch.favourite} .`:''}
-        } WHERE {
-          ${patch.visible != null ? `OPTIONAL { <${id}> ucdlib:is-visible ?v } .`:''}
-          ${patch.favourite != null ? `OPTIONAL { <${id}> ucdlib:favourite ?fav } .`:''}
-        }
-      `
-    };
-    const api_resp = await finApi.patch(options);
-
-    if (api_resp.last.statusCode != 204) {
-      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`grant_role.patch for ${expertId}`);
-      const error=new Error(`Failed fcrepo patch to ${id}:${api_resp.last.body}`);
-      error.status=500;
-      throw error;
-    }
     if (config.experts.cdl.grant_role.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
       if (patch.visible != null) {
@@ -935,40 +887,24 @@ class Authorship {
       console.error(e.message);
       return 404
     };
+
+    let roleIndex = node.relatedBy.findIndex(r => r['@id'] === rid);
+    if (roleIndex === -1) {
+      throw {
+        status: 500,
+        message: `Role ${rid} not found in work relatedBy array`
+      };
+    }
+
     if (patch.visible != null) {
-      node['relatedBy']['is-visible'] = patch.visible;
+      node['relatedBy'][roleIndex]['is-visible'] = patch.visible;
     }
     if (patch.favourite != null) {
-      node['relatedBy'].favourite = patch.favourite;
+      node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
     }
+
     //already a snippet node = workModel.snippet(have_part.Work.node);
     await this.expertModel.update_graph_node(expertId,node);
-
-    // Update FCREPO
-    let options = {
-      path: expertId + '/' + id,
-      content: `
-        PREFIX ucdlib: <http://schema.library.ucdavis.edu/schema#>
-        DELETE {
-          ${patch.visible != null ? `<${rid}> ucdlib:is-visible ?v .`:''}
-          ${patch.favourite != null ?`<${rid}> ucdlib:favourite ?f .`:''}
-        }
-        INSERT {
-          ${patch.visible != null ?`<${rid}> ucdlib:is-visible ${patch.visible} .`:''}
-          ${patch.favourite != null ?`<${rid}> ucdlib:favourite ${patch.favourite} .`:''}
-        } WHERE {
-          ${patch.visible != null ? `OPTIONAL { <${rid}> ucdlib:is-visible ?v } .`:''}
-          ${patch.favourite != null ? `OPTIONAL { <${rid}> ucdlib:favourite ?f } .`:''}
-        }
-      `
-    };
-    const api_resp = await finApi.patch(options);
-    if (api_resp.last.statusCode != 204) {
-      logger.error((({statusCode,body})=>({statusCode,body}))(api_resp.last),`authorship.patch for ${expertId}`);
-      const error=new Error(`Failed to update authorship ${id} for expert ${expertId}:${api_resp.last.body}`);
-      error.status=500;
-      throw error;
-    }
 
     if (config.experts.cdl.authorship.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
@@ -1013,14 +949,6 @@ class Authorship {
     objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
 
     await this.expertModel.delete_graph_node(expertId, node);
-
-    // Delete from FCREPO
-    let options = {
-      path: expertId + '/' + id,
-      permanent: true
-    };
-
-    await finApi.delete(options);
 
     if (config.experts.cdl.authorship.propagate) {
       let linkId=rid.replace("ark:/87287/d7mh2m/relationship/","");
