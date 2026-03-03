@@ -2,21 +2,28 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
 
-const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+let isBrowser = (typeof window !== 'undefined' && typeof window.document !== 'undefined');
+const nodeEnv = (typeof process !== 'undefined' && process?.env) ? process.env : {};
+const scriptDir = !isBrowser ? path.dirname(new URL(import.meta.url).pathname) : '';
 
-const env = process.env;
+let env = {};
+if( !isBrowser ) {
+  env = nodeEnv;
+} else {
+  env = window.__env__ || {};
+}
 
-const esHostname = process.env.ES_HOST || 'elasticsearch';
-const esPort = parseK8sPort(process.env.ES_PORT || 9200);
-const userConfigDir = env.EXPERTS_USER_CONFIG_DIR || path.join(os.homedir(), '.ae');
-const userConfigFile = path.join(userConfigDir, 'harvest.json');
+const esHostname = env.ES_HOST || 'elasticsearch';
+const esPort = parseK8sPort(env.ES_PORT || 9200);
+const userConfigDir = !isBrowser ? (env.EXPERTS_USER_CONFIG_DIR || path.join(os.homedir(), '.ae')) : null;
+const userConfigFile = !isBrowser ? path.join(userConfigDir, 'harvest.json') : null;
 
-if (!fs.existsSync(userConfigDir)) {
+if (!isBrowser && !fs.existsSync(userConfigDir)) {
   fs.mkdirSync(userConfigDir, { recursive: true });
 }
 
 let userConfigData = {};
-if( fs.existsSync(userConfigFile) ) {
+if( !isBrowser && fs.existsSync(userConfigFile) ) {
   userConfigData = JSON.parse(fs.readFileSync(userConfigFile));
 }
 
@@ -36,11 +43,13 @@ const config = {
     },
     set : (key, value) => {
       config.userConfig.data[key] = value;
-      fs.writeFileSync(config.userConfig.configFile, JSON.stringify(config.userConfig.data, null, 2));
+      if( !isBrowser && config.userConfig.configFile ) {
+        fs.writeFileSync(config.userConfig.configFile, JSON.stringify(config.userConfig.data, null, 2));
+      }
     },
 
     get serviceAccountFile() {
-      return this.get('serviceAccountFile', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      return this.get('serviceAccountFile', env.GOOGLE_APPLICATION_CREDENTIALS);
     },
     set serviceAccountFile(file) {
       this.set('serviceAccountFile', file);
@@ -49,7 +58,7 @@ const config = {
 
   reporting : {
     enabled : env.ETL_REPORTING_ENABLED || false,
-    jobId : env.ANDUIN_JOB_ID || 'user:' + os.userInfo().username,
+    jobId : env.ANDUIN_JOB_ID || (!isBrowser ? 'user:' + os.userInfo().username : 'browser'),
     userId : null,
     command : null,
     commandId : null,
@@ -88,8 +97,8 @@ const config = {
   elasticsearch : {
     host : esHostname,
     port : esPort,
-    username : process.env.ES_USERNAME || 'elastic',
-    password : process.env.ES_PASSWORD || 'elastic',
+    username : env.ES_USERNAME || 'elastic',
+    password : env.ES_PASSWORD || 'elastic',
     get connStr () {
       return `http://${this.host}:${this.port}`
     },
@@ -110,7 +119,7 @@ const config = {
     user : env.POSTGRES_USER || 'postgres',
     password : env.POSTGRES_PASSWORD || 'postgres',
     database : env.POSTGRES_DB || 'postgres',
-    schemaFile : path.resolve(scriptDir, './reporting/schema.sql'),
+    schemaFile : !isBrowser ? path.resolve(scriptDir, './reporting/schema.sql') : null,
   },
 
   keycloak : {
@@ -204,7 +213,7 @@ const config = {
   },
 
   vocab : {
-    ucopFile : path.resolve(scriptDir, '../vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld')
+    ucopFile : !isBrowser ? path.resolve(scriptDir, '../vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld') : null
   },
 
   logger : {
