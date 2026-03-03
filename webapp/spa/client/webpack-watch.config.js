@@ -1,6 +1,3 @@
-const path = require('path');
-const webpack = require('webpack');
-  
 let config = require('@ucd-lib/cork-app-build').watch({
     // root directory, all paths below will be relative to root
     root : __dirname,
@@ -19,15 +16,16 @@ let config = require('@ucd-lib/cork-app-build').watch({
   
   config.forEach(conf => {
     conf.output.publicPath = '/js/';
-    
-    // Replace harvest config.js with browser stub to avoid bundling Node.js dependencies
-    if( !conf.plugins ) conf.plugins = [];
-    conf.plugins.push(
-      new webpack.NormalModuleReplacementPlugin(
-        /harvest\/lib\/config\.js/,
-        path.resolve(__dirname, 'public/harvest-stubs/config.js')
-      )
-    );
+
+    // Ignore Node-only modules pulled in by harvest/lib/config.js when bundling for browser
+    if( !conf.resolve ) conf.resolve = {};
+    conf.resolve.fallback = {
+      ...(conf.resolve.fallback || {}),
+      path: false,
+      os: false,
+      fs: false,
+      'fs-extra': false
+    };
   });
 
   // optionaly you can run:
