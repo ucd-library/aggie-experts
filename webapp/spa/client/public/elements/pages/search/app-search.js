@@ -12,8 +12,6 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.
 import "../../components/search-box";
 import "../../components/search-result-row";
 import "../../components/category-filter-controller.js";
-// import '../../components/date-range-filter.js';
-// import '../../components/histogram.js';
 
 import utils from '../../../lib/utils';
 
@@ -40,12 +38,18 @@ export default class AppSearch extends Mixin(LitElement)
       status : { type : String },
       type : { type : String },
       showOpenTo : { type : Boolean },
+      rangeFilterTypes : { type : String },
       filterByExpert : { type : Boolean },
       filterByExpertId : { type : String },
       filterByExpertName : { type : String },
+      filterByDate : { type : Boolean },
+      filterByDateLabel : { type : String },
       globalAggregations : { type : Object },
       resultsSelected : { type : Boolean },
       allResultsSelected : { type : Boolean },
+      dateFrom : { type : String },
+      dateTo : { type : String },
+      dateRangeData : { type : Array },
     }
   }
 
@@ -72,17 +76,38 @@ export default class AppSearch extends Mixin(LitElement)
     this.status = '';
     this.type = '';
     this.showOpenTo = false;
+    this.rangeFilterTypes = 'Works, Grants';
     this.filterByExpert = false;
     this.filterByExpertId = '';
     this.filterByExpertName = '';
+    this.filterByDate = false;
+    this.filterByDateLabel = '';
     this.globalAggregations = {};
     this.filteringByGrants = false;
     this.filteringByWorks = false;
     this.resultsSelected = false;
     this.allResultsSelected = false;
     this.downloads = [];
+    this.dateFrom = '';
+    this.dateTo = '';
+    this.dateRangeData = [];
 
     this.render = render.bind(this);
+  }
+
+  connectedCallback() {
+    super.connectedCallback && super.connectedCallback();
+    this._boundWindowResize = this._onWindowResize.bind(this);
+    window.addEventListener('resize', this._boundWindowResize, { passive: true });
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('resize', this._boundWindowResize);
+    super.disconnectedCallback && super.disconnectedCallback();
+  }
+
+  async _onWindowResize() {
+    this._refreshRange();
   }
 
   firstUpdated() {
@@ -114,6 +139,36 @@ export default class AppSearch extends Mixin(LitElement)
 
     this._updateFilters();
     this._onSearch({ detail: this.searchTerm });
+  }
+
+  async _refreshRange(dataChanged=false) {
+    const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
+    for( const range of ranges ) {
+      // Some versions of ucdlib-range-slider don't expose refresh(); avoid crashing the whole page.
+      if( range && typeof range.refresh === 'function' ) {
+        range.refresh(dataChanged);
+      }
+    }
+
+    // override styles in mobile
+    const mobileSlider = this.shadowRoot.querySelector('.refine-search-mobile ucdlib-range-slider');
+    if( mobileSlider ) {
+      let fillLine = mobileSlider.shadowRoot.querySelector('#fillLine');
+      if( fillLine ) {
+        fillLine.style.borderTop = `5px solid #EBF3FA`;
+        fillLine.style.borderBottom = `5px solid #EBF3FA`;
+      }
+      let numberLine = mobileSlider.shadowRoot.querySelector('#numberLine');
+      if( numberLine ) {
+        numberLine.style.borderTop = `5px solid #EBF3FA`;
+        numberLine.style.borderBottom = `5px solid #EBF3FA`;
+      }
+
+      let minInput = mobileSlider.shadowRoot.querySelector('#minInput');
+      let maxInput = mobileSlider.shadowRoot.querySelector('#maxInput');
+      if( minInput ) minInput.style.backgroundColor = 'white';
+      if( maxInput ) maxInput.style.backgroundColor = 'white';
+    }    
   }
 
   _updateFilters() {
@@ -149,6 +204,14 @@ export default class AppSearch extends Mixin(LitElement)
       this.industProjects = query.availability?.includes('industry') ? true : false;
       this.mediaInterviews = query.availability?.includes('media') ? true : false;
 
+      this.dateFrom = query.dateFrom || '';
+      this.dateTo = query.dateTo || '';
+      if( this.dateFrom || this.dateTo ) {
+        this.filterByDate = true;
+        this.filterByDateLabel = (this.dateFrom || '') + ' - ' + (this.dateTo || '');
+        requestAnimationFrame(() => this._refreshRange());
+      }
+
       let page = this.AppStateModel.location?.path?.[1];
       if( page ) this.currentPage = page;
 
@@ -165,6 +228,10 @@ export default class AppSearch extends Mixin(LitElement)
       this.collabProjects = false;
       this.industProjects = false;
       this.mediaInterviews = false;
+      this.dateFrom = '';
+      this.dateTo = '';
+      this.filterByDate = false;
+      this.filterByDateLabel = '';
 
       // update search term
       this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
@@ -183,6 +250,9 @@ export default class AppSearch extends Mixin(LitElement)
 
     // hide/show filters depending on filter type, later will add date filters etc
     this.showOpenTo = this.atType === 'expert';
+    this.rangeFilterTypes = 'Works, Grants';
+    if( this.atType === 'work' ) this.rangeFilterTypes = 'Works';
+    else if( this.atType === 'grant' ) this.rangeFilterTypes = 'Grants';
   }
 
   /**
@@ -207,7 +277,6 @@ export default class AppSearch extends Mixin(LitElement)
    * @param {Object} e
    */
   _filterByGrants(e) {
-    // TODO eventually multiple experts could be supported, for now just one needed
     // filter by grants for this expert
     this.filterByExpertId = e.detail.id;
     this.filterByExpertName = e.detail.name;
@@ -276,6 +345,90 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   /**
+   * @method _removeDateFilter
+   * @description remove the date filter
+   */
+  _removeDateFilter(e) {
+    this.filterByDate = false;
+    this.filterByDateLabel = '';
+    this.dateFrom = '';
+    this.dateTo = '';
+    this._updateLocation();
+
+    let ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
+    for( const range of ranges ) {
+      range.reset();
+    }
+
+    this._refreshRange(true);
+  }
+
+  /**
+   * @method _onRangeSliderChange
+   * @description handle range slider change events
+   * @param {Object} e
+   */
+  _onRangeSliderChange(e) {
+    this.filterByDate = true;
+    this.dateFrom = e.detail.min;
+    this.dateTo = e.detail.max;
+    this.filterByDateLabel = e.detail.min + ' - ' + e.detail.max;
+    this._updateLocation();
+  }
+
+  /**
+   * @method _computeAggSignature
+   * @description compute the aggregation signature for the current search state
+   * @returns {String} JSON string of the aggregation signature
+   */
+  _computeAggSignature() {
+    const q = this.searchTerm || '';
+    const availability = {
+      collab: this.collabProjects,
+      community: this.commPartner,
+      industry: this.industProjects,
+      media: this.mediaInterviews
+    };
+    return JSON.stringify({
+      q,
+      availability,
+      atType: this.atType || '',
+      status: this.status || '',
+      type: this.type || '',
+      expert: this.filterByExpert ? this.filterByExpertId : ''
+    });
+  }
+
+  /**
+   * @method _buildHistogramDataFromAgg
+   * @description build histogram data from the aggregation results
+   * @param {Object} issuedYearsObj
+   */
+  _buildHistogramDataFromAgg(issuedYearsObj = {}) {
+    // keys are epoch ms; convert to year ints
+    const entries = Object.entries(issuedYearsObj)
+      .map(([k, v]) => [new Date(Number(k)).getUTCFullYear(), v])
+      .sort((a, b) => a[0] - b[0]);
+
+    if (!entries.length) return [];
+
+    const minY = entries[0][0];
+    const maxY = entries[entries.length - 1][0];
+    const map = new Map(entries); // year -> count
+
+    const data = [];
+    for (let y = minY; y <= maxY; y++) {
+      data.push({ stat: y, value: map.get(y) || 0 });
+    }
+    return data;
+  }
+
+  _toggleRefineSearch() {
+    this.refineSearchCollapsed = !this.refineSearchCollapsed;    
+    if( !this.refineSearchCollapsed ) this._refreshRange();
+  }
+
+  /**
    * @method _onSearch
    * @description called from the search box button is clicked or
    * the enter key is hit. search
@@ -313,7 +466,6 @@ export default class AppSearch extends Mixin(LitElement)
       this.downloads = [];
       this.paginationChange = false;
 
-      // TODO reset selected download boxes
       this._updateLocation();
     }
 
@@ -327,11 +479,15 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
           this.AppStateModel.location.query.type,
-          this.filterByExpertId
+          this.filterByExpertId,
+          this.dateFrom,
+          this.dateTo
         )
       ),
       true
     );
+
+    // Histogram refresh is handled in _onSearchUpdate after data/min/max are applied.
   }
 
   /**
@@ -352,7 +508,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) availability.push('industry');
     if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length;
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || this.dateFrom || this.dateTo;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
@@ -364,90 +520,304 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.status.length ) path += `&status=${this.status}`;
     if( this.type.length ) path += `&type=${this.type}`;
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
+    if( this.dateFrom ) path += `&dateFrom=${this.dateFrom}`;
+    if( this.dateTo ) path += `&dateTo=${this.dateTo}`;
 
     this.AppStateModel.setLocation(path);
   }
 
-  async _onSearchUpdate(e, fromSearchPage=false) {
-    if( e?.state !== 'loaded' || !fromSearchPage ) return;
+  parseUtcEpoch(val, isEnd=false) {
+    if (val === undefined || val === null || val === '') return null;
+    // Numeric year (from slider) or year string
+    if (typeof val === 'number' && Number.isFinite(val)) {
+      const y = Math.trunc(val);
+      return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
+    }
+    if (typeof val === 'string' && /^\d{4}$/.test(val)) {
+      const y = Number(val);
+      return isEnd ? Date.UTC(y, 11, 31) : Date.UTC(y, 0, 1);
+    }
+    // Full date string
+    const d = new Date(val);
+    const t = d.getTime();
+    return Number.isFinite(t) ? t : null;
+  }
 
-    if( this.filterByExpert && this.filterByExpertId && !this.filterByExpertName ) {
+  convertSearchAggregations(data) {
+    const result = {
+      type: {},
+      status: {},
+      '@type': {}
+    };
+
+    // The API returns aggregations that already reflect all active filters
+    // (including date filters), so we should always use them directly
+    if (data.aggregations) {
+      // Process @type aggregation (document type counts)
+      if (data.aggregations['@type']) {
+        result['@type'] = { ...data.aggregations['@type'] };
+      }
+
+      // Process type aggregation (work type counts)
+      if (data.aggregations.type) {
+        result.type = { ...data.aggregations.type };
+      }
+
+      // Process status aggregation
+      if (data.aggregations.status) {
+        result.status = { ...data.aggregations.status };
+      }
+    }
+
+    return result;
+  }
+
+  computeYearCounts(allYears = {}, years = {}, dedupe = false) {
+    const counts = {};
+
+    // Initialize all years with 0
+    for (const [year] of Object.entries(allYears)) {
+      counts[year] = 0;
+    }
+
+    if (!dedupe) {
+      for (const [year, yearData] of Object.entries(years)) {
+        const count = yearData?.unique || 0;
+        if (count) counts[year] = (counts[year] || 0) + count;
+      }
+      return counts;
+    }
+
+    // Deduped mode (for grants): count each id once, in the earliest year seen
+    const seenIds = new Set();
+    // Sort by all years, not just the ones in the years object
+    const sortedYears = Object.keys(allYears).sort((a, b) => Number(a) - Number(b));
+
+    for (const year of sortedYears) {
+      // Only process if this year exists in the years data
+      if (!years[year]) continue;
+      
+      const grants = years[year]?.grants || [];
+      for (const grant of grants) {
+        if (grant?.id && !seenIds.has(grant.id)) {
+          seenIds.add(grant.id);
+          counts[year] = (counts[year] || 0) + 1;
+        }
+      }
+    }
+
+    return counts;
+  }
+
+  computeYearCountsForSubfilter(allYears = {}, years = {}, dedupe = false, subfilterValue = '', applyDateFilter = true) {
+    const counts = {};
+
+    // Initialize all years with 0
+    for (const [year] of Object.entries(allYears)) {
+      counts[year] = 0;
+    }
+
+    const dateFromEpoch = applyDateFilter ? this.parseUtcEpoch(this.dateFrom, false) : null;
+    const dateToEpoch = applyDateFilter ? this.parseUtcEpoch(this.dateTo, true) : null;
+
+    if (!dedupe) {
+      for (const [year, yearData] of Object.entries(years)) {
+        const yearEpoch = Number(year);
+        if (Number.isFinite(yearEpoch)) {
+          if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
+          if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
+        }
+        const subfilterCounts = yearData?.status?.[subfilterValue] || yearData?.type?.[subfilterValue] || 0;
+        if (subfilterCounts) counts[year] = (counts[year] || 0) + subfilterCounts;
+      }
+      return counts;
+    }
+
+    // Deduped mode (for grants): count each id once, in the earliest year seen
+    const seenIds = new Set();
+    // Sort by all years, not just the ones in the years object
+    const sortedYears = Object.keys(allYears).sort((a, b) => Number(a) - Number(b));
+
+    for (const year of sortedYears) {
+      // Only process if this year exists in the years data
+      if (!years[year]) continue;
+      const yearEpoch = Number(year);
+      if (Number.isFinite(yearEpoch)) {
+        if (dateFromEpoch !== null && yearEpoch < dateFromEpoch) continue;
+        if (dateToEpoch !== null && yearEpoch > dateToEpoch) continue;
+      }
+      
+      const grants = years[year]?.grants || [];
+      for (const grant of grants) {
+        if (grant?.id && (grant.status === subfilterValue || grant.type === subfilterValue) && !seenIds.has(grant.id)) {
+          seenIds.add(grant.id);
+          counts[year] = (counts[year] || 0) + 1;
+        }
+      }
+    }
+
+    return counts;
+  }
+
+  _combineYearCounts(allYears={}, ...countMaps) {
+    const combined = {};
+    for (const map of countMaps) {
+      for (const [year, count] of Object.entries(map || {})) {
+        combined[year] = (combined[year] || 0) + count;
+      }
+    }
+
+    for (const [year, count] of Object.entries(allYears || {})) {
+      // if not already included from specific maps, add it
+        combined[year] = (combined[year] || 0) + count;
+    }
+    return combined;
+  }
+
+  async _onSearchUpdate(e, fromSearchPage=false) {
+    if (e?.state !== 'loaded' || !fromSearchPage) return;
+
+    if (this.filterByExpert && this.filterByExpertId && !this.filterByExpertName) {
       this.filterByExpertName = await this._getExpertNameById(this.filterByExpertId);
     }
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
+    this.globalAggregations = this.convertSearchAggregations(this.rawSearchData);
+    // ---- Date histogram/range slider ----
+    // Canonical payload shape:
+    //   payload.global_aggregations.years + payload.years_works/years_grants
+    const yearsWorksMap = this.rawSearchData.years_works || {};
+    const yearsGrantsMap = this.rawSearchData.years_grants || {};
 
-    this.globalAggregations = this.rawSearchData['global_aggregations'] || {};
+    // map of epochMs -> count used to ensure full min/max range is represented
+    const globalYearsAgg = this.rawSearchData?.global_aggregations?.years || {};
 
+    // Get all years across both works and grants for complete year range
+    const allYearsCombined = {
+      ...yearsWorksMap,
+      ...yearsGrantsMap
+    };
+
+    const issuedYearsWorks = this.computeYearCounts(allYearsCombined, yearsWorksMap, false);
+    // For histogram, keep per-year counts as returned (no cross-year dedupe)
+    const issuedYearsGrants = this.computeYearCounts(allYearsCombined, yearsGrantsMap, false);
+
+    // compute year counts for type/status subfilters
+    const issueYearsWorksSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, yearsWorksMap, false, this.type, false);
+    const issueYearsGrantsSubfilter = this.computeYearCountsForSubfilter(allYearsCombined, yearsGrantsMap, false, this.status, false);
+
+    // add missing years between min/max, so the histogram is continuous
+    const issuedYearsCombined = this._combineYearCounts(globalYearsAgg, issuedYearsWorks, issuedYearsGrants);
+
+    // histogram/slider: refresh ONLY when the “agg signature” changes (q, availability, type, status, expert)
+    const newSig = this._computeAggSignature(); // this must NOT include dateFrom/dateTo
+    if (newSig !== this.lastAggSignature) {
+
+      // if filtering All Results, use combined; if filtering by Works or Grants, use those specific aggs
+      let issuedYears = issuedYearsCombined;
+      if( this.atType === 'work' ) {
+        if( this.type ) issuedYears = issueYearsWorksSubfilter;
+        else issuedYears = issuedYearsWorks;
+      } else if( this.atType === 'grant' ) {
+        if( this.status ) issuedYears = issueYearsGrantsSubfilter;
+        else issuedYears = issuedYearsGrants;
+      }
+
+      this.dateRangeData = this._buildHistogramDataFromAgg(JSON.parse(JSON.stringify(issuedYears))); // [{stat: YYYY, value: count}, ...]
+
+      const ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
+      for (const range of ranges) {
+        if (range && Array.isArray(this.dateRangeData) && this.dateRangeData.length) {
+          // Initial selection: honor URL params if present, else full range
+          const absMin = this.dateRangeData[0].stat;
+          const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
+
+          const urlMin = this.dateFrom ? Number(this.dateFrom) : null;
+          const urlMax = this.dateTo ? Number(this.dateTo) : null;
+
+          const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
+          const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
+
+          await this._refreshRange(true);
+
+          range.initialMin = clampedMin;
+          range.initialMax = clampedMax;
+          range.min = clampedMin;
+          range.max = clampedMax;
+          range.data = this.dateRangeData;
+          range.hideHistogram = false;
+
+          if (this.filterByDate && (this.dateFrom || this.dateTo)) {
+            this.filterByDateLabel = `${clampedMin} - ${clampedMax}`;
+          }
+        }
+      }
+
+      this.lastAggSignature = newSig;
+    }
+
+    // results list mapping
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let resultType = '';
-      if( r['@type'] === 'Grant' || r['@type']?.includes?.('Grant') ) resultType = 'grant';
-      if( r['@type'] === 'Expert' || r['@type']?.includes?.('Expert') ) resultType = 'expert';
-      if( r['@type'] === 'Work' || r['@type']?.includes?.('Work') ) resultType = 'work';
+      if (r['@type'] === 'Grant' || r['@type']?.includes?.('Grant')) resultType = 'grant';
+      if (r['@type'] === 'Expert' || r['@type']?.includes?.('Expert')) resultType = 'expert';
+      if (r['@type'] === 'Work' || r['@type']?.includes?.('Work')) resultType = 'work';
 
       let id = r['@id'];
-      if( Array.isArray(r.name) ) r.name = r.name[0];
+      if (Array.isArray(r.name)) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
 
       let subtitle, numberOfWorks, numberOfGrants;
 
-      if( resultType === 'expert' ) {
+      if (resultType === 'expert') {
         subtitle = r.name?.split('§')?.pop()?.trim();
-        if( name === subtitle ) subtitle = '';
+        if (name === subtitle) subtitle = '';
         numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
         numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
 
-      } else if( resultType === 'grant' ) {
+      } else if (resultType === 'grant') {
         subtitle = ((r.name?.split('§') || [])[1] || '').trim();
-
         let [status, dateRange, pi] = subtitle.split('•');
         subtitle = 'Grant';
-        if( status ) subtitle += ' <span class="dot-separator">•</span>  ' + status.trim();
-        if( dateRange ) subtitle += ' <span class="dot-separator">•</span>  ' + dateRange.trim();
-        if( pi ) subtitle += ' <span class="dot-separator">•</span> PI:  ' + pi.trim();
-
+        if (status)    subtitle += ' <span class="dot-separator">•</span> ' + status.trim();
+        if (dateRange) subtitle += ' <span class="dot-separator">•</span> ' + dateRange.trim();
+        if (pi)        subtitle += ' <span class="dot-separator">•</span> PI: ' + pi.trim();
         id = 'grant/' + id;
-      } else if( resultType === 'work' ) {
-        subtitle = '';
-        // parse work type + date + authors from subtitle
-        // ie '“A Chinaman’s Chance” in Court: Asian Pacific Americans and Racial Rules of Evidence §  • article-journal • 2013-12-01 • Chin, G. § UC Irvine Law Review • 2327-4514 § '
-        let subtitleParts = ((r.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
-        if( subtitleParts.length ) {
-          let type = subtitleParts[0]?.trim() || '';
-          if( type ) subtitle += utils.getCitationType(type) + ' <span class="dot-separator">•</span> ';
 
-          let date = subtitleParts[1]?.trim() || '';
-          if( date ) {
-            let [ year, month, day ] = date.split?.('-');
+      } else if (resultType === 'work') {
+        subtitle = '';
+        const subtitleParts = ((r.name?.split('§') || [])[1] || '')?.split('•')?.slice?.(1) || [];
+        if (subtitleParts.length) {
+          const type = subtitleParts[0]?.trim() || '';
+          if (type) subtitle += utils.getCitationType(type) + ' <span class="dot-separator">•</span> ';
+          const date = subtitleParts[1]?.trim() || '';
+          if (date) {
+            const [year] = date.split?.('-');
             subtitle += utils.formatDate({ year }) + ' <span class="dot-separator">•</span> ';
           }
-
-          let authors = subtitleParts[2]?.trim() || '';
-          if( authors ) subtitle += authors;
+          const authors = subtitleParts[2]?.trim() || '';
+          if (authors) subtitle += authors;
         }
         id = 'work/' + id;
       }
 
       return {
         resultType,
-        position: index+1,
+        position: index + 1,
         id,
         name,
         subtitle,
         numberOfWorks,
         numberOfGrants,
         graph: r
-      }
+      };
     });
 
     this.totalResultsCount = e.payload.total;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
 
     this.requestUpdate();
-
-    requestAnimationFrame(() => {
-      this._clearSelectedSearchResults();
-    })
+    requestAnimationFrame(() => this._clearSelectedSearchResults());
   }
 
   /**
@@ -581,7 +951,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query['@type'],
           this.AppStateModel.location.query.status,
           this.AppStateModel.location.query.type,
-          this.filterByExpertId
+          this.filterByExpertId,
+          this.dateFrom,
+          this.dateTo
         )
       ),
       true
@@ -840,10 +1212,6 @@ export default class AppSearch extends Mixin(LitElement)
     this.downloads = [];
     this.paginationChange = false;
     this._uncheckDownloads();
-
-    if( !['grant', 'work'].includes(this.atType) && this.filterByExpert ) {
-      this._removeExpertFilter();
-    }
 
     this._updateLocation();
   }

@@ -129,8 +129,12 @@
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-
-        gtag('config', APP_CONFIG.gaId);
+        gtag('set', 'cookie_domain', 'experts.ucdavis.edu');
+        gtag('config', (APP_CONFIG.gaId), {
+          page_path: window.location.pathname,
+          page_location: window.location.href,
+          cookie_domain: 'experts.ucdavis.edu'
+        });
       }
     </script>
   </body>

@@ -6,6 +6,8 @@ import { sharedStyles } from '../../styles/shared-styles';
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 import headingsCss from "@ucd-lib/theme-sass/2_base_class/_headings.css";
 
+import '../../components/share-button.js';
+
 export function styles() {
   const elementStyles = css`
     ${unsafeCSS(sharedStyles)}
@@ -231,6 +233,46 @@ export function styles() {
     span.published-text {
       line-height: 1.2;
     }
+
+    share-button {
+      cursor: pointer;
+    }
+
+    share-button:hover:before {
+      content: "Share";
+      position: absolute;
+      width: 50px;
+      bottom: 40px;
+      right: -25px;
+      padding: 2px 10px;
+      border-radius: 7px;
+      background: #000;
+      color: #fff;
+      text-align: center;
+      font-size: .8rem;
+      font-weight: bold;
+
+      opacity: 0;
+      transition: .2s opacity ease-out;
+    }
+
+    share-button:hover:after {
+      content: "";
+      position: absolute;
+      bottom: 30px;
+      right: 5px;
+
+      border: 5px solid #000;
+      border-color: black transparent transparent transparent;
+
+      opacity: 0;
+      transition: .2s opacity ease-out;
+    }
+
+    share-button:hover:before,
+    share-button:hover:after {
+      opacity: 1;
+    }
   `;
 
   return [elementStyles];
@@ -258,6 +300,7 @@ return html`
       <div class="works">
         <ucdlib-icon class="open-book" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
         <h2>About the <span class="about-work-type">${this.workType}</span></h2>
+        <share-button></share-button>
       </div>
       <hr class="about seperator">
 
@@ -266,7 +309,7 @@ return html`
 
         <div class="link-row" ?hidden="${!this.ucLink}">
           <a href="${this.ucLink}">
-            <ucdlib-icon icon="ucdlib-experts:get-at-uc"></ucdlib-icon> Get it at UC        
+            <ucdlib-icon icon="ucdlib-experts:get-at-uc"></ucdlib-icon> Get it at UC
           </a>
         </div>
         <div class="link-row" ?hidden="${!this.publisherLink}">

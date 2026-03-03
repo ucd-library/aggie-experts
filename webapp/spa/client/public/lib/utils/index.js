@@ -281,6 +281,7 @@ class Utils {
         includeWorksMisformatted : false,
         includeGrantsMisformatted : false,
         favouriteWorksFirst : false,
+        favouritesPlusFirstPageWorks : false,
         worksPage : 1,
         worksSize : 10,
         worksSort : [
@@ -333,7 +334,8 @@ class Utils {
         exclude : defaults.worksExclude,
         includeMisformatted : defaults.includeWorksMisformatted,
         sort : defaults.worksSort,
-        favouriteWorksFirst : defaults.favouriteWorksFirst
+        favouriteWorksFirst : defaults.favouriteWorksFirst,
+        favouritesPlusFirstPageWorks : defaults.favouritesPlusFirstPageWorks
       }
     };
   }
@@ -438,15 +440,28 @@ class Utils {
    * @param {String} status status of search, ie 'active', 'completed'. if none set, returns all results
    * @param {String} type citation type, ie 'book', 'journal'
    * @param {String} expertId expertId to filter grants/works to
+   * @param {String} dateFrom start for date filtering
+   * @param {String} dateTo end for date filtering
    */
-  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId) {
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, dateFrom, dateTo) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
     if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
-    if( atType ) searchQuery += `&${encodeURIComponent('@type')}=${atType}`;
+
+    // If no @type filter is provided, default to all result types.
+    // This matches the production app behavior where params['@type'] includes
+    // expert, grant, and work (instead of the API defaulting to expert-only).
+    if( atType ) {
+      searchQuery += `&${encodeURIComponent('@type')}=${atType}`;
+    } else {
+      searchQuery += `&${encodeURIComponent('@type')}=expert,grant,work`;
+    }
+
     if( status ) searchQuery += `&status=${status}`;
     if( type ) searchQuery += `&type=${type}`;
     if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
+    if( dateFrom ) searchQuery += `&dateFrom=${dateFrom}`;
+    if( dateTo ) searchQuery += `&dateTo=${dateTo}`;
 
     return searchQuery;
   }

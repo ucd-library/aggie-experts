@@ -1,11 +1,11 @@
 import { html } from 'lit';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 import { sharedStyles } from '../../styles/shared-styles';
 
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 
-import utils from '../../../lib/utils';
+import '../../components/edit-work-result-row.js';
+
 
 export function render() {
 return html`
@@ -58,6 +58,7 @@ return html`
       display: flex;
       align-items: center;
       cursor: pointer;
+      padding-bottom: 2.38rem;
     }
 
     .return-to-profile ucdlib-icon {
@@ -82,26 +83,6 @@ return html`
       color: var(--color-black-60);
     }
 
-    .csl-bib-body, .csl-entry {
-      display: inline;
-      line-height: var(--lh-html);
-    }
-
-    .main-content .work {
-      max-width: calc(90vw - 100px);
-    }
-
-    .main-content .work h5 {
-      color: black;
-      margin: 0 0 0.5rem 0;
-      font-size: 1.2rem;
-      line-height: 1.3;
-    }
-
-    .work-details .dot {
-      padding: 0 0.25rem;
-    }
-
     ucd-theme-pagination {
       padding-top: 1.5rem;
     }
@@ -121,13 +102,19 @@ return html`
       font-size: 1rem;
     }
 
-    .work-seperator {
+    .work-seperator,
+    .max-highlights-warning {
       display: block;
       height: 1px;
       border: 0;
       border-top: 1px solid var(--color-aggie-blue-40);
       padding: 0;
       margin: 1.19rem 0;
+    }
+
+    .max-highlights-warning {
+      border-top: 1px solid var(--color-aggie-gold, #FFBF00);
+      margin: 0;
     }
 
     input[type="checkbox"] {
@@ -145,8 +132,7 @@ return html`
 
     .select-all {
       display: inline-block;
-      float: right;
-      padding-top: 1rem;
+      padding-top: 0;
     }
 
     .select-checkbox {
@@ -167,26 +153,6 @@ return html`
       bottom: .2rem;
     }
 
-    .hide-delete-btn-group {
-      display: flex;
-      align-items: flex-start;
-      padding-top: .25rem;
-    }
-
-    .hide-delete-btn-group ucdlib-icon {
-      fill: var(--color-aggie-blue-80);
-      width: 15px;
-      height: 15px;
-      min-width: 17px;
-      min-height: 17px;
-      padding-right: .89rem;
-      cursor: pointer;
-    }
-
-    .hide-delete-btn-group ucdlib-icon:hover {
-      fill: var(--color-aggie-gold);
-    }
-
     h2 {
       margin: 1.19rem 0;
     }
@@ -194,54 +160,6 @@ return html`
     h2.first {
       margin-top: 0;
       padding-top: 1.19rem;
-    }
-
-    .tooltip {
-      cursor: pointer;
-    }
-
-    .tooltip:before {
-      content: attr(data-text);
-      position: absolute;
-      bottom: 27px;
-      right: -27px;
-
-      width: 90px;
-      padding: 2px 10px;
-      border-radius: 7px;
-      background: #000;
-      color: #fff;
-      text-align: center;
-      font-size: .8rem;
-      font-weight: bold;
-
-      opacity: 0;
-      transition: .2s opacity ease-out;
-    }
-
-    .tooltip:after {
-      content: "";
-      position: absolute;
-      bottom: 17px;
-      right: 23px;
-
-      border: 5px solid #000;
-      border-color: black transparent transparent transparent;
-
-      opacity: 0;
-      transition: .2s opacity ease-out;
-    }
-
-    .tooltip:hover:before, .tooltip:hover:after {
-      opacity: 1;
-    }
-
-    .tooltip.reject-work:before {
-      right: -25px;
-    }
-
-    .tooltip.reject-work:after {
-      right: 21px;
     }
 
     @media (max-width: 992px) {
@@ -254,19 +172,6 @@ return html`
       .hero-main {
         background-size: auto 100%;
       }
-    }
-
-    .not-visible h5,
-    .not-visible .work-details {
-      font-style: italic;
-    }
-
-    .main-content .not-visible .work h5 {
-      color: var(--ucd-black-60, #7F7F7F);
-    }
-
-    .not-visible .work-details {
-      color: var(--ucd-black-50, #999);
     }
 
     .hero-main button.btn.add-work {
@@ -288,25 +193,97 @@ return html`
       padding-left: 0.75em;
     }
 
-    .works-results > div {
-      flex-shrink: 1;
-      word-wrap: break-word;
-    }
-
-    .works-results .work h5 {
-      color: var(--ucd-blue-80, #13639E);
-      cursor: pointer;
-    }
-
-    .works-results .work h5 a {
-      text-decoration: none;
-    }
-
     /* styles for collapsed dropdown */
     .custom-collapse {
       --collapse-background-color: #FFFBED;
       --collapse-border-color: #FFBF00;
       padding: 1.19rem 0;
+    }
+
+    .works-results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .highlights-instructions {
+      color: var(--ucd-black-70, #4C4C4C);
+      font-size: 1rem;
+      font-style: italic;
+      font-weight: 400;
+      line-height: 1.625rem;
+      margin: 0;
+    }
+
+    @media (max-width: 778px) {
+      .highlights-instructions {
+        max-width: 60vw;
+      }
+    }
+
+    .highlights-results .no-works {
+      color: var(--black, #000);
+      font-size: 1rem;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 1.6625rem;
+    }
+
+    .max-highlights-warning-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+      background-color: var(--color-aggie-gold-20, #FFF9E6);
+    }
+
+    .max-highlights-warning-row ucdlib-icon {
+      width: 50px;
+      height: 50px;
+      fill: var(--color-aggie-gold);
+      margin: 0 0.5rem;
+    }
+
+    .max-highlights-warning-row .highlights-instructions {
+      color: var(--black, #000);
+      font-size: 1rem;
+      font-style: italic;
+      font-weight: 700;
+      line-height: 1.625rem;
+      margin-right: .5rem;
+    }
+
+    .show-all-highlights-toggle {
+      cursor: pointer;
+    }
+
+    .show-all-highlights-toggle .expand,
+    .show-all-highlights-toggle .collapse {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: var(--color-aggie-blue-80, #13639E);
+      font-style: normal;
+      font-weight: 600;
+      line-height: normal;
+      font-size: 0.875rem;
+    }
+
+    /* wrappers for animated expand/collapse */
+    .row-wrapper {
+      transition: height 600ms cubic-bezier(.2,.9,.2,1), opacity 300ms ease;
+      will-change: height, opacity;
+    }
+    .row-wrapper.collapsed {
+      height: 0 !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .row-wrapper:not(.collapsed) {
+      opacity: 1;
     }
 
   </style>
@@ -355,7 +332,7 @@ return html`
             (work, index) => html`
               <div style="display: flex; justify-content: space-between; margin: ${index === 0 ? '0' : '1.19rem'} 0 ${index+1 === this.worksWithErrors.length ? '0' : '1.19rem'};">
                 <div class="work">
-                  <h5 data-id=${work['@id']}>${work.issued.split('-')?.[0]}
+                  <h5 data-id=${work['@id']}>${work.issued?.split('-')?.[0]}
                     <span style="padding: 0 0.25rem;"
                     class="dot">•</span> ${work.title}</h5>
                   <p style="margin-bottom: 0;">Error: Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>
@@ -368,95 +345,90 @@ return html`
         </ucd-theme-collapse>
       </div>
 
-      <div style="display: flex; flex-direction: row-reverse;">
+      <div class="works-results-header">
+        <div>
+          <h2 ?hidden="${this.currentPage > 1}">Highlights (${this.featuredCitations.length})</h2>
+        </div>
         <button class="btn btn--invert" @click="${this._downloadClicked}">Download</button>
       </div>
-
-      <div class="works-results" style="padding-bottom: 2.5rem;">
+      <div class="works-results-header">
+        <div>
+          <p ?hidden="${this.currentPage > 1}" class="highlights-instructions">Click the heart icon beside a work to add or remove it from your profile Highlights.</p>
+        </div>
         <div class="select-all">
           <label for="select-all">Select All</label>
           <input type="checkbox" id="select-all" name="select-all" value="select-all" ?checked="${this.allSelected}" @click="${this._selectAllChecked}">
         </div>
+      </div>
 
+      <div class="highlights-results" ?hidden="${this.currentPage > 1}">
+        ${this.featuredCitations.map(
+          (cite, index) => html`
+            ${index === this.maxFeaturedCitationsIndex ? html`
+              <hr class="max-highlights-warning" ?hidden="${!this.showingAllHighlights && index > 4}">
+              <div class="max-highlights-warning-row" ?hidden="${!this.showingAllHighlights && index > 4}">
+                <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
+                <p class="highlights-instructions">
+                  A maximum of 10 highlights will appear on your profile. These additional highlights will remain in your full
+                  works list but will not be shown in the Highlights section:
+                </p>
+              </div>
+              <hr class="max-highlights-warning" ?hidden="${!this.showingAllHighlights && index > 4}">
+            ` : html`<hr class="work-seperator" ?hidden="${!this.showingAllHighlights && index > 4}" style="margin-top: ${index === 0 ? '0' : '1.19rem'};">`}
+
+            <div class="row-wrapper ${!this.showingAllHighlights && index > 4 ? 'collapsed' : ''}" data-index="${index}">
+              <edit-work-result-row
+                .cite="${cite}"
+                .index="${index}"
+                .showYear="${true}"
+                @deselect-favourite="${this._deselectFavourite}"
+                @mark-favourite="${this._markFavourite}"
+                @hide-work="${this._hideWork}"
+                @show-work="${this._showWork}"
+                @reject-work="${this._rejectWork}"
+                @select-checked="${this._selectChecked}">
+              </edit-work-result-row>
+            </div>
+          `
+          )}
+
+        <hr class="work-seperator" ?hidden="${this.featuredCitations.length <= 5}">
+        <div class="show-all-highlights-toggle" ?hidden="${this.featuredCitations.length <= 5}">
+          <div class="expand"
+            ?hidden="${this.showingAllHighlights}"
+            @click="${this._toggleShowAllHighlights}">
+            <span>Show All Highlights</span>
+            <ucdlib-icon icon="ucdlib-experts:fa-chevron-down"></ucdlib-icon>
+          </div>
+          <div class="collapse"
+            ?hidden="${!this.showingAllHighlights}"
+            @click="${this._toggleShowAllHighlights}">
+            <span>Show Fewer Highlights</span>
+            <ucdlib-icon icon="ucdlib-experts:fa-chevron-up"></ucdlib-icon>
+          </div>
+        </div>
+
+        <hr class="work-seperator" style="margin-bottom: 0.62rem;" ?hidden="${this.featuredCitations.length > 0}">
+        <p class="no-works" ?hidden="${this.featuredCitations.length > 0}">No works highlighted</p>
+
+      </div>
+
+      <h2 ?hidden="${this.currentPage > 1}" style="margin-top: 2.38rem;">All Works</h2>
+      <div class="works-results" style="padding-bottom: 2.5rem;">
         ${this.citationsDisplayed.map(
         (cite, index) => html`
-          <h2 class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h2>
+          <h4 style="margin-top: 1rem;" class="${index === 0 || index % this.resultsPerPage === 0 ? 'first' : ''}">${cite.issued?.[0]}</h4>
           <hr class="work-seperator">
-          <div style="display: flex; justify-content: space-between; margin: 1.19rem 0;" class="${!cite['is-visible'] ? 'not-visible' : ''}">
-            <div class="hide-delete-btn-group">
-              <span style="position: relative;">
-                <span class="tooltip deselect-favourite" data-text="Deselect as favourite">
-                  <ucdlib-icon
-                    ?hidden="${!cite.favourite}"
-                    icon="ucdlib-experts:fa-solid-heart"
-                    @click=${this._deselectFavourite}
-                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._deselectFavourite(e); }}
-                    tabindex="0"
-                    role="button"
-                    aria-label="Deselect as Favourite"
-                    data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
-                </span>
-                <span class="tooltip mark-favourite" data-text="Mark as Favourite">
-                  <ucdlib-icon
-                    ?hidden="${cite.favourite}"
-                    icon="ucdlib-experts:fa-regular-heart"
-                    @click=${this._markFavourite}
-                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._markFavourite(e); }}
-                    tabindex="0"
-                    role="button"
-                    aria-label="Mark as Favourite"
-                    data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
-                </span>
-              </span>
-              <span style="position: relative;">
-                <span class="tooltip hide-work" data-text="Hide work">
-                  <ucdlib-icon
-                    ?hidden="${!cite['is-visible']}"
-                    icon="ucdlib-experts:fa-eye"
-                    @click=${this._hideWork}
-                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideWork(e); }}
-                    tabindex="0"
-                    role="button"
-                    aria-label="Hide work"
-                    data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
-                </span>
-                <span class="tooltip show-work" data-text="Show work">
-                  <ucdlib-icon
-                    ?hidden="${cite['is-visible']}"
-                    icon="ucdlib-experts:fa-eye-slash"
-                    @click=${this._showWork}
-                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showWork(e); }}
-                    tabindex="0"
-                    role="button"
-                    aria-label="Show work"
-                    data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
-                </span>
-              </span>
-              <span style="position: relative;">
-                <span class="tooltip reject-work" data-text="Reject work">
-                  <ucdlib-icon
-                    icon="ucdlib-experts:fa-trash"
-                    @click=${this._rejectWork}
-                    @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._rejectWork(e); }}
-                    tabindex="0"
-                    role="button"
-                    aria-label="Reject work"
-                    data-id="${cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
-                </span>
-              </span>
-            </div>
-            <div class="work">
-              <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
-              <div class="work-details">
-                <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
-                <span class="dot">•</span>
-                ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
-              </div>
-            </div>
-            <div class="select-checkbox">
-              <input type="checkbox" data-id="${cite['@id']}" id="select-${index}" name="select-${index}" value="select-${index}" @click="${this._selectChecked}">
-            </div>
-          </div>
+          <edit-work-result-row
+            .cite="${cite}"
+            .index="${index}"
+            @deselect-favourite="${this._deselectFavourite}"
+            @mark-favourite="${this._markFavourite}"
+            @hide-work="${this._hideWork}"
+            @show-work="${this._showWork}"
+            @reject-work="${this._rejectWork}"
+            @select-checked="${this._selectChecked}">
+          </edit-work-result-row>
         `
         )}
 
@@ -473,4 +445,6 @@ return html`
     </div>
 
   </div>
+
+<app-toast-popup></app-toast-popup>
 `;}
