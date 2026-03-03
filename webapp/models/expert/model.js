@@ -198,6 +198,7 @@ class ExpertModel extends BaseModel {
         size : -1,
         includeMisformatted : false,
         favouriteWorksFirst : true,
+        favouritesPlusFirstPageWorks : false,
         sort : [
           {
               "field": "issued",
@@ -277,6 +278,8 @@ class ExpertModel extends BaseModel {
     // to store totals of works/grants before filtering out any
     let totalWorks = works.length;
     let totalGrants = grants.length;
+
+    let favouriteWorks = [];
 
     let visibleWorks = works.filter(w => {
       if (!Array.isArray(w.relatedBy)) {
@@ -393,6 +396,16 @@ class ExpertModel extends BaseModel {
           });
         }
 
+        // to handle favourites in the ui on the edit works page vs expert profile page
+        // the first edit works page will show all favourites plus 25 works (including favourites if in that list)
+        // pages 2+ will show just 25 works in order (including favourites if in that list)
+        favouriteWorks = works.filter(w => {
+          return w.relatedBy && (Array.isArray(w.relatedBy)
+            ? w.relatedBy.some(rel => rel['ucdlib:favourite'] === true)
+            : w.relatedBy && w.relatedBy['ucdlib:favourite'] === true);
+        });
+
+
         if( options.works?.includeMisformatted ) {
           invalidWorks = [...(invalidTitle.citations || []), ...(invalidIssueDate.citations || [])];
           doc.invalidWorks = invalidWorks;
@@ -452,6 +465,10 @@ class ExpertModel extends BaseModel {
     // subset grants if requested
     if( options.grants?.page && options.grants?.size ) {
       grants = grants.slice((options.grants.page-1) * options.grants.size, options.grants.page * options.grants.size);
+    }
+
+    if( options.works?.favouritesPlusFirstPageWorks ) {
+      works = [...favouriteWorks, ...works];
     }
 
     // return total visible/hidden works/grants

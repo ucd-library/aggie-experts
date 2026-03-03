@@ -75,6 +75,18 @@
           "normalizer" : "identifier",
           "ignore_above": 128
         },
+        "author" : {
+          "properties" : {
+            "family" : {
+              "type" : "text",
+              "analyzer" : "default"
+            },
+            "given" : {
+              "type" : "text",
+              "analyzer" : "default"
+            }
+          }
+        },
         "contactInfo" : {
           "properties" : {
             "hasEmail": {
@@ -219,14 +231,22 @@
           "type" : "text",
           "analyzer" : "default"
         },
+        "issued" : {
+          "type" : "date",
+          "format" : "yyyy-MM-dd||yyyy-MM||yyyy"
+        },
         "relatedBy" : {
           "properties" : {
             "is-visible" : {
               "type" : "boolean"
+            },
+            "name" : {
+              "type" : "text",
+              "analyzer" : "default"
             }
           }
         }
-       }
+      }
     },
     "roles": {
       "type": "keyword"

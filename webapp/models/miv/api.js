@@ -5,7 +5,7 @@ const utils = require('../utils.js')
 const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
 
-const { /*openapi,*/ validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware/index.js')
+const { openapi, validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware/index.js')
 
 router.get(
   '/user',
@@ -25,10 +25,11 @@ router.get(
   }
 );
 
-// function miv_valid_path(options = {}) {
-//   const def = {
-//     "description": "A JSON array an expert's grants",
-//   };
+function miv_valid_path(options = {}) {
+  const def = {
+    "description": "A JSON array an expert's grants",
+    "parameters": [],
+  };
 
 //   (options.parameters || []).forEach((param) => {
 //     def.parameters.push(openapi.parameters(param));
@@ -36,8 +37,15 @@ router.get(
 
 //   delete options.parameters;
 
-//   return openapi.validPath({ ...def, ...options });
-// }
+  return openapi.validPath({ ...def, ...options });
+}
+
+function generateGrantFormattedDate() {
+  const now = new Date();
+  const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  const localDate = new Date(now.getTime() - tzOffsetMs);
+  return localDate.toISOString().split('T')[0];
+}
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
@@ -45,25 +53,26 @@ router.get(
 
 const path = require('path');
 
-// router.get('/', (req, res) => {
-//   // Send the pre-made swagger.json file
-//   // res.sendFile(path.join(__dirname, 'swagger.json'));
-//   res.redirect('/api/miv/openapi.json');
-// });
+router.get('/', (req, res) => {
+  // Send the pre-made swagger.json file
+  // res.sendFile(path.join(__dirname, 'swagger.json'));
+  res.redirect('/api/miv/openapi.json');
+});
 
 
 router.get(
   '/grants',
-  // miv_valid_path(
-  //   {
-  //     description: "Returns a JSON array of an expert's grants",
-  //     responses: {
-  //       "200": openapi.response('Successful_operation'),
-  //       "400": openapi.response('Invalid_ID_supplied'),
-  //       "404": openapi.response('Expert_not_found')
-  //     }
-  //   }
-  // ),
+  miv_valid_path(
+    {
+      description: "Returns a JSON array of an expert's grants. One of 'email', 'ucdPersonUUID', or 'iamId' must be provided to identify the expert. The 'until' date defaults to today if not provided.",
+      parameters: ['since', 'until', 'email', 'ucdPersonUUID', 'iamId'],
+      responses: {
+        "200": openapi.response('Successful_operation'),
+        "400": openapi.response('Invalid_ID_supplied'),
+        "404": openapi.response('Expert_not_found')
+      }
+    }
+  ),
   validate_miv_client,
   has_access('miv'),
   validate_admin_client,
@@ -71,6 +80,10 @@ router.get(
   async (req, res) => {
     const params = {};
     req.query.expert = `expert/${req.query.expertId}`;
+
+    // default to today unless an until date is provided to filter results
+    if( !req.query.until ) req.query.until = generateGrantFormattedDate();    
+    
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
@@ -119,6 +132,10 @@ router.get(
               }
             });
           }
+
+          // trim to just the name
+          hit.name = (hit.name || '').split('§')?.[0]?.trim() || hit.name;
+
           grants.push({
             '@id': hit['@id'],
             title: hit.name,
@@ -150,6 +167,10 @@ router.get(
   async (req, res) => {
     const params = {};
     req.expert = `expert/${req.query.expertId}`;
+    
+    // default to today unless an until date is provided to filter results
+    if( !req.query.until ) req.query.until = generateGrantFormattedDate();
+    
     for (const key in template.script.params) {
       if (req.query[key]) {
         params[key] = req.query[key];
@@ -167,8 +188,12 @@ router.get(
       await expert.verify_template(template);
       const find = await expert.search(opts);
       let grants = [];
-      for (const hit of find.hits[0]._inner_hits) {
-        grants.push(hit);
+      if (find?.hits && find.hits[0] && Array.isArray(find.hits[0]._inner_hits)) {
+        for (const hit of find.hits[0]._inner_hits) {
+          // trim to just the name
+          hit.name = (hit.name || '').split('§')?.[0]?.trim() || hit.name;
+          grants.push(hit);
+        }
       }
       res.send(grants);
     } catch (err) {
@@ -179,5 +204,55 @@ router.get(
     }
   }
 );
+
+// OpenAPI JSON for this router (temporary manual doc; Express 5 breaks auto-generation)
+router.get('/openapi.json', (req, res) => {
+  res.json({
+    openapi: '3.0.3',
+    info: openapi?.definition?.info || {
+      title: 'MIV',
+      version: '0.0.0',
+      description: 'MIV API'
+    },
+    servers: openapi?.definition?.servers || [{ url: '/api/miv' }],
+    components: openapi?.definition?.components || {},
+    paths: {
+      '/api/miv/user': {
+        get: {
+          description: 'Return expertId for a user identified via email/ucdPersonUUID/iamId (requires MIV access)',
+          parameters: [
+            { name: 'email', in: 'query', required: false, schema: { type: 'string' } },
+            { name: 'ucdPersonUUID', in: 'query', required: false, schema: { type: 'string' } },
+            { name: 'iamId', in: 'query', required: false, schema: { type: 'string' } }
+          ],
+          responses: {
+            '200': { description: 'OK' },
+            '400': { description: 'Bad request' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Forbidden' }
+          }
+        }
+      },
+      '/api/miv/grants': {
+        get: {
+          description: "Return a JSON array of an expert's grants.",
+          parameters: [
+            { name: 'since', in: 'query', required: false, schema: { type: 'string', format: 'date' } },
+            { name: 'until', in: 'query', required: false, schema: { type: 'string', format: 'date' } },
+            { name: 'email', in: 'query', required: false, schema: { type: 'string' } },
+            { name: 'ucdPersonUUID', in: 'query', required: false, schema: { type: 'string' } },
+            { name: 'iamId', in: 'query', required: false, schema: { type: 'string' } }
+          ],
+          responses: {
+            '200': { description: 'OK' },
+            '400': { description: 'Bad request' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Forbidden' }
+          }
+        }
+      }
+    }
+  });
+});
 
 module.exports = router;
