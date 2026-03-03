@@ -4,8 +4,6 @@ const keycloak = require('../../lib/keycloak');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const template = require('../base/template/name.json');
-const config = require('../../lib/config');
-const keycloak = require('../../lib/keycloak');
 
 let AdminClient=null;
 
