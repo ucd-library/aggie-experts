@@ -9,7 +9,7 @@ const ExpertModel = require('./model.js');
 const model = new ExpertModel();
 
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
-const { /*openapi,*/ json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
+const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
 
 function subselect(req, res, next) {
   try {
@@ -30,12 +30,93 @@ function subselect(req, res, next) {
   }
 }
 
-// router.get('/', (req, res) => {
-//   res.redirect('/api/expert/openapi.json');
-// });
+// OpenAPI JSON for this router
+router.get('/openapi.json', (req, res) => {
+  // NOTE: Under Express 5, @wesleytodd/openapi's generateDocument() expects
+  // to be invoked as middleware (it relies on internal binding/state).
+  // For now, serve a minimal, stable OpenAPI document.
+  res.json({
+    openapi: '3.0.3',
+    info: openapi?.definition?.info || {
+      title: 'Experts',
+      version: '0.0.0',
+      description: 'Experts API'
+    },
+    servers: openapi?.definition?.servers || [{ url: '/api/expert' }],
+    components: openapi?.definition?.components || {},
+    paths: {
+      '/api/expert/browse': {
+        get: {
+          description: 'Browse experts (A-Z) or by letter using query param p',
+          parameters: [
+            { name: 'p', in: 'query', required: false, schema: { type: 'string' } },
+            { name: 'page', in: 'query', required: false, schema: { type: 'integer' } },
+            { name: 'size', in: 'query', required: false, schema: { type: 'integer' } }
+          ],
+          responses: { '200': { description: 'OK' } }
+        }
+      },
+      '/api/expert/{expertId}': {
+        get: {
+          description: 'Get expert graph data by expertId',
+          parameters: [
+            { name: 'expertId', in: 'path', required: true, schema: { type: 'string' } },
+            { name: 'include', in: 'query', required: false, schema: { type: 'string' } },
+            { name: 'all', in: 'query', required: false, schema: { type: 'boolean' } }
+          ],
+          responses: { '200': { description: 'OK' }, '404': { description: 'Not Found' } }
+        },
+        post: {
+          description: 'Get expert by expertId with optional subselect options in body',
+          parameters: [
+            { name: 'expertId', in: 'path', required: true, schema: { type: 'string' } }
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              'application/json': {
+                schema: { type: 'object' }
+              }
+            }
+          },
+          responses: { '200': { description: 'OK' }, '404': { description: 'Not Found' } }
+        },
+        patch: {
+          description: 'Patch an expert (admin/owner only)',
+          parameters: [
+            { name: 'expertId', in: 'path', required: true, schema: { type: 'string' } }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { type: 'object' }
+              }
+            }
+          },
+          responses: { '204': { description: 'No Content' } }
+        },
+        delete: {
+          description: 'Delete an expert (admin/owner only)',
+          parameters: [
+            { name: 'expertId', in: 'path', required: true, schema: { type: 'string' } }
+          ],
+          responses: { '204': { description: 'No Content' } }
+        }
+      }
+    }
+  });
+});
+
+router.get('/', (req, res) => {
+  res.redirect('/api/expert/openapi.json');
+});
 
 // This will serve the generated json document(s)
 // (as well as the swagger-ui if configured)
+// NOTE: Disabled for now. Under Express 5 this middleware crashes with:
+//   TypeError: Cannot read properties of undefined (reading 'fast_slash')
+// in @wesleytodd/openapi/lib/generate-doc.js
 // router.use(openapi);
 
 browse_endpoint(router,model);

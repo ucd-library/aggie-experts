@@ -20,12 +20,9 @@ Start-up the Fuseki service only if neccesary.
 
 Bash into the fuseki service.
 
-`$ docker compose exec fuseki /harvest-entrypoint.sh bash`
+`$ docker compose exec fuseki bash`
 
 This brings you to a bash shell on the fuseki container.
-
-You should see a prompt similar to:
-`ucd.process@4cdbbe11f9ef:~$`
 
 Run the experts grant-feed-process
 
