@@ -1,5 +1,5 @@
 import { searchTemplate } from './lib/elasticsearch/index.js';
-import logger from './lib/logger.js';
+import { logger, logReqMiddleware, createLogger } from './lib/logger.js';
 import GoogleSecret from './lib/google-secret.js';
 import config from './lib/config.js';
 import { getYearWeek, getTodaysDate } from './lib/year-week.js';
@@ -12,6 +12,8 @@ export {
   ElementsClient,
   searchTemplate,
   logger,
+  logReqMiddleware,
+  createLogger,
   GoogleSecret,
   config,
   getYearWeek,

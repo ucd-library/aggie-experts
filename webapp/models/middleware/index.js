@@ -8,20 +8,19 @@ const {
   ExpertsKcAdminClient,
 } = require('@ucd-lib/experts-commons');
 
-let AdminClient = new ExpertsKcAdminClient();
-AdminClient.authenticate()
-  .catch(e => {
-    console.error('Error authenticating Keycloak Admin Client', e);
-    // hummm...
-    // process.exit(1); 
-  });
+let AdminClient, MIVJWKSClient;
 
-let MIVJWKSClient = await jwksClient({
-  cache: true,
-  rateLimit: true,
-  jwksRequestsPerMinute: 10,
-  jwksUri: `${match[1]}/realms/aggie-experts-miv/protocol/openid-connect/certs`
-});
+async function initAuth() {
+  AdminClient = new ExpertsKcAdminClient();
+  await AdminClient.authenticate();
+
+  MIVJWKSClient = jwksClient({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 10,
+    jwksUri: `${config.oidc.host}/realms/${config.oidc.clients.miv.realm}/protocol/openid-connect/certs`
+  });
+}
 
 
 async function item_endpoint(router, model, subselect = (req, res, next) => next()) {
@@ -166,9 +165,6 @@ function browse_endpoint(router,model) {
   );
 }
 
-module.exports = browse_endpoint;
-
-
 async function fetchExpertId (req, res, next) {
   if (req.query.email || req.query.ucdPersonUUID || req.query.iamId) {
     const token = await keycloak.getServiceAccountToken();
@@ -200,8 +196,6 @@ async function fetchExpertId (req, res, next) {
     return res.status(404).send({error: `No expert found`});
   }
 }
-
-
 
 async function convertIds(req, res, next) {
   const id_array = req.params.ids.replace('ids=', '').split(',');
@@ -1121,6 +1115,7 @@ openapi.response(
 
 // export this middleware functions
 module.exports = {
+  initAuth,
   browse_endpoint,
   convertIds,
   fetchExpertId,

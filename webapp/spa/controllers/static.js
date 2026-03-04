@@ -2,7 +2,8 @@ const path = require('path');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('../../lib/es-client.js');
-const logger = require('../../lib/logger.js');
+const {logger} = require('@ucd-lib/experts-commons');
+
 
 // for seo
 let experts = require('../../models/expert/index.js');

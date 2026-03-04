@@ -1,6 +1,5 @@
 // Can use this to get the fin configuration
-const logger = require('../../lib/logger.js');
-const config = require('../../lib/config.js');
+const {logger} = require('@ucd-lib/experts-commons');
 
 const BaseModel = require('../base/model.js');
 /**

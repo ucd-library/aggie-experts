@@ -1,7 +1,8 @@
 {
   "name": "@ucd-lib/experts-commons",
   "version": "0.0.1",
-  "main": "cdl.js",
+  "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

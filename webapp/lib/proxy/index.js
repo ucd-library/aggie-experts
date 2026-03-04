@@ -1,10 +1,9 @@
-const { config, logger } = require('@ucd-lib/experts-commons');
+const { config, logger, logReqMiddleware } = require('@ucd-lib/experts-commons');
 const express = require('express');
 // const bodyParser = require('body-parser');
 const cors = require('cors');
 const auth = require('./oidc.js');
 const httpProxy = require('http-proxy');
-const {logReqMiddleware} = require('@ucd-lib/logger');
 const keycloak = require('../keycloak.js');
 const cookieParser = require('cookie-parser');
 

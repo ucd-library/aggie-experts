@@ -1,8 +1,8 @@
 FROM node:20.19.4
 
 # Set the working directory
-WORKDIR /app
-RUN mkdir -p /app
+WORKDIR /opt/webapp
+RUN mkdir -p /opt/webapp
 
 # Copy package.json and package-lock.json
 COPY webapp/package.json webapp/package-lock.json ./

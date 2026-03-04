@@ -1,6 +1,6 @@
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import config from './config.js';
-import logger from './logger.js';
+import { logger } from './logger.js';
 
 class GoogleSecret {
 

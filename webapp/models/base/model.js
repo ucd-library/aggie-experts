@@ -1,7 +1,7 @@
 // Can use this to get the fin configuration
 const EsDataModel = require('../../lib/es-model.js');
-const logger = require('../../lib/logger.js');
-const config = require('../../lib/config.js');
+const {logger, config} = require('@ucd-lib/experts-commons');
+
 // const models = require('../../lib/models.js');
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');

@@ -1,8 +1,8 @@
 const { auth } = require('express-openid-connect');
-const { config, logger } = require('@ucd-lib/experts-commons');
+const { config, GoogleSecret } = require('@ucd-lib/experts-commons');
 const keycloak = require('../keycloak.js');
 
-function init(app) {
+async function init(app) {
 
   // always set long hashes as secret:
   // openssl rand -base64 512 | tr -d '\n'
@@ -36,12 +36,13 @@ function init(app) {
     res.redirect('/');
   });
 
+  await GoogleSecret.loadKeycloakSecrets();
   app.use(auth({
     authRequired: false,
-    issuerBaseURL: config.oidc.baseUrl,
-    baseURL: config.url,
-    clientID: config.oidc.clientId,
-    clientSecret: config.oidc.secret,
+    issuerBaseURL: config.oidc.host+'/realms/'+config.oidc.clients.webapp.realm,
+    baseURL: config.oidc.host,
+    clientID: config.oidc.clients.webapp.clientId,
+    clientSecret: config.oidc.clients.webapp.secret,
     secret : config.jwt.secret,
     routes : {
       callback : '/auth/callback',

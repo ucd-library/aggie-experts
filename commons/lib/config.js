@@ -46,7 +46,7 @@ const config = {
   },
 
   models : {
-    rootDir : env.AE_MODEL_ROOT || '/app/models'
+    rootDir : env.AE_MODEL_ROOT || '/opt/webapp/models'
   },
 
   client : {
@@ -58,7 +58,7 @@ const config = {
     port : env.AE_API_PORT || 3000
   },
 
-  proxy : {
+  webappProxy : {
     port : env.AE_GATEWAY_PORT || 3000,
     timeout : env.AE_GATEWAY_TIMEOUT || 1000 * 60 * 5,
     proxyTimeout : env.AE_GATEWAY_PROXY_TIMEOUT || 1000 * 60 * 5

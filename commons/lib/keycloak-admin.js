@@ -1,7 +1,7 @@
 //Import keycloak-admin-client
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import GoogleSecret from './google-secret.js';
-import logger from './logger.js';
+import { logger } from './logger.js';
 import config from './config.js';
 import { customAlphabet } from 'nanoid';
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -25,6 +25,13 @@ export default class ExpertsKcAdminClient {
 
   async _authenticate() {
     await GoogleSecret.loadKeycloakSecrets();
+
+    logger.debug(
+      'Initializing Keycloak Admin Client with:', 
+      {baseUrl: config.oidc.host, 
+      realmName: config.oidc.clients.admin.realm, 
+      clientId: config.oidc.clients.admin.clientId
+    });
 
     this.kcadmin = new KcAdminClient({
         baseUrl: config.oidc.host,
