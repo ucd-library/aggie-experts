@@ -29,7 +29,6 @@ RUN cd /opt/harvest && \
 
 COPY harvest/bin /opt/harvest/bin
 COPY harvest/lib /opt/harvest/lib
-COPY harvest/vocabularies /opt/harvest/vocabularies
 
 # Common web app and harvest code
 RUN mkdir -p /opt/commons
