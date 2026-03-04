@@ -1,10 +1,9 @@
 import fs from 'fs-extra';
 import path from 'path';
 import jsonld from 'jsonld';
-import logger from '../../logger.js';
-import config from '../../config.js';
+import { logger, config } from '@ucd-lib/experts-commons';
 import cache from '../../cache.js';
-import { getYearWeek } from '../../year-week.js';
+import { getYearWeek } from '@ucd-lib/experts-commons';
 
 import {
   sortJsonRecursively, 

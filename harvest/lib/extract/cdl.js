@@ -10,14 +10,9 @@
 import fetch from 'node-fetch';
 import path from 'path';
 
-import logger from '../logger.js';
-import GoogleSecret from '../google-secret.js';
-import config from '../config.js'
+import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
 import xmlToJson from './xml-to-json.js';
-
-
-const gs = new GoogleSecret();
 
 /** Exports a class
 * @class
@@ -40,7 +35,7 @@ export class CdlClient {
 
     this.url = config.cdl[this.env].url;
     this.authname = config.cdl[this.env].authname;
-    this.secretpath = config.cdl[this.env].secretpath;
+    this.secretName = config.cdl[this.env].secretName;
     this.auth = null;
 
     this.experts = [];
@@ -59,11 +54,11 @@ export class CdlClient {
       return this.auth;
     }
 
-    if( !config.userConfig.serviceAccountFile ) {
+    if( !config.google.applicationCredentials ) {
       throw new Error('No service account file provided.');
     }
 
-    let secretResp = await gs.getSecret(this.secretpath);
+    let secretResp = await GoogleSecret.getSecret(this.secretName);
     let secretJson = JSON.parse(secretResp);
     for (const entry of secretJson) {
       if (entry['@id'] == this.authname) {

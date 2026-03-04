@@ -31,8 +31,13 @@ COPY harvest/bin /opt/harvest/bin
 COPY harvest/lib /opt/harvest/lib
 COPY harvest/vocabularies /opt/harvest/vocabularies
 
-# Copy the search template for init scripts
-COPY webapp/models/search/template /opt/webapp/models/search/template
+# Common web app and harvest code
+RUN mkdir -p /opt/commons
+COPY commons/package.json /opt/commons/package.json
+COPY commons/package-lock.json /opt/commons/package-lock.json
+RUN cd /opt/commons && npm install --omit=dev
+COPY commons/lib /opt/commons/lib
+COPY commons/index.js /opt/commons/index.js
 
 COPY dagster/defs.py /opt/harvest/dagster/defs.py
 COPY dagster/lib /opt/harvest/dagster/lib

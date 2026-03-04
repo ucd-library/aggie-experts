@@ -1,6 +1,6 @@
-import config from '../config.js';
+import { config } from '@ucd-lib/experts-commons';
 import { Temporal } from '@js-temporal/polyfill';
-import { getYearWeek } from '../year-week.js';
+import { getYearWeek } from '@ucd-lib/experts-commons';
 import PgClient from '../pg-client.js';
 
 const WEEK_YEAR_START = 2026;

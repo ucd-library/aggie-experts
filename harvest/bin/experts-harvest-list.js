@@ -1,7 +1,9 @@
 import { Command } from 'commander';
 import CdlClient from '../lib/extract/cdl.js';
-import logger from '../lib/logger.js';
-import config from '../lib/config.js';
+import {
+  logger,
+  config
+} from '@ucd-lib/experts-commons';
 
 const program = new Command();
 const env = process.env;

@@ -1,7 +1,7 @@
 // Can use this to get the fin configuration
 const EsDataModel = require('../../lib/es-model.js');
-const logger = require('../../lib/logger.js');
-const config = require('../../lib/config.js');
+const {logger, config} = require('@ucd-lib/experts-commons');
+
 // const models = require('../../lib/models.js');
 const schema = require('./schema/minimal.json');
 const settings = require('./schema/settings.json');
@@ -505,7 +505,7 @@ class BaseModel extends EsDataModel {
   async search(opts) {
     const params = this.common_parms(opts.params);
 
-    const index = params.index || ['grants','experts'];
+    const index = params.index || ['grants-current','experts-current'];
     delete params.index;
     const options = {
       id: (opts.id)?opts.id:"default",

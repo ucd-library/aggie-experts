@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { exec } from 'child_process';
-import config from '../lib/config.js';
+import {config} from '@ucd-lib/experts-commons';
 import fs from 'fs';
 import path from 'path';
 import { cleanup } from '../lib/reporting/index.js';

@@ -1,10 +1,9 @@
 import path from 'path';
-import logger from '../../logger.js';
-import config from '../../config.js';
+import { logger, config } from '@ucd-lib/experts-commons';
 import cache from '../../cache.js';
 import {sortJsonRecursively, getGraphAsItems, asArray, SHORT_TYPES, getNodeByType} from '../utils.js';
 import { getExpertNode, createSimplifiedExpert } from './to-person-webapp.js';
-import { getYearWeek } from '../../year-week.js';
+import { getYearWeek } from '@ucd-lib/experts-commons';
 import jsonld from 'jsonld';
 import fs from 'fs';
 

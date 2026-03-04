@@ -12,7 +12,7 @@ const base = new BaseModel();
 // const {config, keycloak} = require('@ucd-lib/fin-service-utils');
 const md5 = require('md5');
 
-const { openapi, json_only, validate_admin_client, validate_miv_client, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
+const { openapi, json_only, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
 
 
 function siteFarmFormat(req, res, next) {
@@ -229,8 +229,6 @@ router.get(
   //   }
   // ),
   // sitefarm_valid_path_error,
-  validate_admin_client,
-  validate_miv_client,
   has_access('sitefarm'),
   convertIds, // convert submitted iamIds to expertIds
   async (req, res, next) => {

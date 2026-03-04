@@ -1,6 +1,6 @@
 import path from 'path';
 import os from 'os';
-import fs from 'fs-extra';
+import fs from 'fs';
 
 const scriptDir = path.dirname(new URL(import.meta.url).pathname);
 
@@ -26,25 +26,97 @@ const config = {
 
   userDomain : env.EXPERTS_USER_DOMAIN || '@ucdavis.edu',
 
-  userConfig : {
-    rootDir : userConfigDir,
-    configFile : userConfigFile,
-    data : userConfigData || {},  
+  url : env.AE_URL || 'http://localhost:3000',
 
-    get : (key, defaultValue=null) => {
-      return config.userConfig.data[key] || defaultValue;
-    },
-    set : (key, value) => {
-      config.userConfig.data[key] = value;
-      fs.writeFileSync(config.userConfig.configFile, JSON.stringify(config.userConfig.data, null, 2));
-    },
-
-    get serviceAccountFile() {
-      return this.get('serviceAccountFile', process.env.GOOGLE_APPLICATION_CREDENTIALS);
-    },
-    set serviceAccountFile(file) {
-      this.set('serviceAccountFile', file);
+  experts : {
+    version : '1.0.0',
+    is_public : ! (env.EXPERTS_IS_PUBLIC === "false"),
+    cdl: {
+      expert: {
+        propagate: (env.CDL_PROPAGATE_CHANGES === "true") || false,
+        instance: env.CDL_PROPAGATE_CHANGES_INSTANCE || "qa" },
+      grant_role: {
+        propagate: (env.CDL_PROPAGATE_CHANGES === "true") || false,
+        instance: env.CDL_PROPAGATE_CHANGES_INSTANCE || "qa" },
+      authorship: {
+        propagate: (env.CDL_PROPAGATE_CHANGES === "true") || false,
+        instance: env.CDL_PROPAGATE_CHANGES_INSTANCE || "qa"
+      }
     }
+  },
+
+  models : {
+    rootDir : env.AE_MODEL_ROOT || '/opt/webapp/models'
+  },
+
+  client : {
+    serviceHost : env.AE_CLIENT_SERVICE_NAME || 'http://spa:3000',
+  },
+
+  api : {
+    serviceHost : env.AE_API_SERVICE_NAME || 'http://api:3000',
+    port : env.AE_API_PORT || 3000
+  },
+
+  webappProxy : {
+    port : env.AE_GATEWAY_PORT || 3000,
+    timeout : env.AE_GATEWAY_TIMEOUT || 1000 * 60 * 5,
+    proxyTimeout : env.AE_GATEWAY_PROXY_TIMEOUT || 1000 * 60 * 5
+  },
+
+  jwt : {
+    jwksUri : env.JWT_JWKS_URI,
+    secret : env.JWT_SECRET,
+    issuer : env.JWT_ISSUER,
+    // expires in seconds
+    ttl : env.JWT_TTL ? parseInt(env.JWT_TTL) : (60 * 60 * 24 * 14),
+    cookieName : env.JWT_COOKIE_NAME || 'fin-jwt'
+  },
+
+  oidc : {
+    host : env.OIDC_HOST || 'https://auth.library.ucdavis.edu',
+
+    clients : {
+      webapp : {
+        realm : env.OIDC_WEBAPP_REALM || 'aggie-experts',
+        clientId : env.OIDC_WEBAPP_CLIENT_ID || 'anduin',
+      },
+      harvest : {
+        realm : env.OIDC_HARVEST_REALM || 'aggie-experts',
+        clientId : env.OIDC_HARVEST_CLIENT_ID || 'anduin',
+      },
+      admin : {
+        realm : env.OIDC_ADMIN_REALM || 'aggie-experts',
+        clientId : env.OIDC_ADMIN_CLIENT_ID || 'anduin',
+      },
+      miv : {
+        realm : env.OIDC_MIV_REALM || 'aggie-experts-miv',
+        clientId : env.OIDC_MIV_CLIENT_ID || 'miv',
+      },
+      sitefarm : {
+        realm : env.OIDC_SITEFARM_REALM || 'aggie-experts-miv',
+        clientId : env.OIDC_SITEFARM_CLIENT_ID || 'sitefarm',
+      }
+    },
+
+    roles : {
+      serviceAccountAccess : 'access',
+      admin : 'admin',
+    },
+
+    scopes : env.OIDC_SCOPES || 'roles openid profile email',
+    // service account login for path
+    serviceName : env.OIDC_SERVICE_NAME || 'keycloak-oidc',
+    roleIgnoreList : [
+      "default-roles-dams",
+      "uma_authorization",
+      "manage-account",
+      "manage-account-links",
+      "view-profile",
+      "offline_access"
+    ],
+    // default cache all tokens for 30 seconds before requesting verification again
+    tokenCacheTTL : env.OIDC_TOKEN_CACHE_TTL ? parseInt(env.OIDC_TOKEN_CACHE_TTL) : (1000*60*5)
   },
 
   reporting : {
@@ -113,8 +185,13 @@ const config = {
     schemaFile : path.resolve(scriptDir, './reporting/schema.sql'),
   },
 
-  keycloak : {
-    secretPath : 'projects/325574696734/secrets/service-account-harvester',
+  google : {
+    applicationCredentials : process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    projectId : process.env.GOOGLE_PROJECT_ID || 'aggie-experts',
+    cacheSecrets : process.env.CACHE_GOOGLE_SECRETS !== 'false',
+    secrets : {
+      keycloakSecrets : 'keycloak-client-secrets'
+    }
   },
 
   cdl : {
@@ -141,14 +218,14 @@ const config = {
     qa : {
       url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
       authname : 'qa-oapolicy',
-      secretpath : 'projects/325574696734/secrets/cdl-elements-json',
+      secretName : 'cdl-elements-json',
       timeout : 30000
     },
 
     prod: {
       url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
       authname : 'oapolicy',
-      secretpath : 'projects/325574696734/secrets/cdl-elements-json',
+      secretName : 'cdl-elements-json',
       group_by_name : {
         'dev': 1591,
         'sandbox': 1587,
@@ -192,23 +269,23 @@ const config = {
     dev: {
       url: 'https://iet-ws-stage.ucdavis.edu/api/iam',
       authname: 'iet-ws-stage',
-      secretpath: 'projects/325574696734/secrets/ucdid_auth',
+      secretName: 'ucdid_auth',
       timeout: 30000
     },
     prod: {
       url: 'https://iet-ws.ucdavis.edu/api/iam',
       authname: 'iet-ws',
-      secretpath: 'projects/325574696734/secrets/ucdid_auth',
+      secretName: 'ucdid_auth',
       timeout: 30000
     }
   },
 
   vocab : {
-    ucopFile : path.resolve(scriptDir, '../vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld')
+    ucopFile : path.resolve(scriptDir, 'vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld')
   },
 
   logger : {
-    name : 'harvest',
+    name : env.SERVICE_NAME || 'aggie-experts',
   },
 
   transform: {

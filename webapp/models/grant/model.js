@@ -1,4 +1,5 @@
-const logger = require('../../lib/logger.js');
+const {logger} = require('@ucd-lib/experts-commons');
+
 const BaseModel = require('../base/model.js');
 
 /**

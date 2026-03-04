@@ -1,6 +1,5 @@
 import cache from '../cache.js';
-import logger from '../logger.js';
-import config from '../config.js';
+import { logger, config } from '@ucd-lib/experts-commons';
 import { loadFiles as loadEs, getUsersCurrentScholarlyWorks, deleteDocument } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
 

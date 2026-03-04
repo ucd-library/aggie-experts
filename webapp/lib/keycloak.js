@@ -1,6 +1,5 @@
 const fetch = require('node-fetch');
-const config = require('./config.js');
-const logger = require('./logger.js');
+const { config, logger } = require('@ucd-lib/experts-commons');
 const clone = require('clone');
 
 class KeycloakUtils {
@@ -50,7 +49,7 @@ class KeycloakUtils {
       return this.finServiceAccountToken;
     }
 
-    let resp = await this.loginServiceAccount(config.serviceAccount.username, config.serviceAccount.secret);
+    let resp = await this.loginServiceAccount();
     if( resp.status === 200 ) {
       this.finServiceAccountToken = resp.body.access_token;
 
@@ -63,21 +62,21 @@ class KeycloakUtils {
     if( typeof body === 'object' ) {
       body = JSON.stringify(body, null, 2);
     }
-    throw new Error('Failed to get service account token: '+config.serviceAccount.username+'. '+resp.status+' '+body);
+    throw new Error('Failed to get service account token: '
+      +config.oidc.clientId
+      +'. '+resp.status+' '+body);
   }
 
-  async loginServiceAccount(username, secret) {
+  async loginServiceAccount() {
     let apiResp = await fetch(config.oidc.baseUrl+'/protocol/openid-connect/token', {
       method: 'POST',
       headers:{
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-        grant_type : 'password',
+        grant_type : 'client_credentials',
         client_id : config.oidc.clientId,
-        client_secret : config.oidc.secret,
-        username : username,
-        password : secret,
+        client_secret : config.oidc.clientSecret,
         scope : config.oidc.scopes
       })
     });

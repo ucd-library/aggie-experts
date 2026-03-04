@@ -1,5 +1,4 @@
-import {createLogger} from '@ucd-lib/logger';
-import config from './config.js';
+import {createLogger, logReqMiddleware} from '@ucd-lib/logger';
 
 const logger = createLogger({
   name : false,
@@ -8,4 +7,4 @@ const logger = createLogger({
   labelsProperties : []
 });
 
-export default logger;
+export { logger, logReqMiddleware, createLogger };

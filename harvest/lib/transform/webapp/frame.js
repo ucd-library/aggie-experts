@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import jsonld from 'jsonld';
-import config from '../../config.js';
+import { config } from '@ucd-lib/experts-commons';
 import {SHORT_TYPES, getNodeByType} from '../utils.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);

@@ -1,10 +1,11 @@
 import { Command, Option } from 'commander';
+import {
+  logger,
+  config
+} from '@ucd-lib/experts-commons';
 import load from '../lib/load/index.js';
-import config from '../lib/config.js';
-import logger from '../lib/logger.js';
 import cache from '../lib/cache.js';
-import { enableFromCli, updateEsIndex } from '../lib/reporting/index.js';
-import { getIndexDocumentCount } from '../lib/load/elastic-search/index.js';
+import { enableFromCli } from '../lib/reporting/index.js';
 import wrapUserDomain from '../lib/user-domain.js';
 
 const program = new Command();

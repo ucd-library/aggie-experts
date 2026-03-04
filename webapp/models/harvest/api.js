@@ -1,7 +1,8 @@
 const router = require('express').Router();
 const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js');
 const DagsterAPI = require('../../lib/dagster-api.js');
-const logger = require('../../lib/logger.js');
+const {logger} = require('@ucd-lib/experts-commons');
+
 
 const dagsterAPI = new DagsterAPI();
 

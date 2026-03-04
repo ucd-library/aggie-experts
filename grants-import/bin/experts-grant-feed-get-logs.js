@@ -4,8 +4,8 @@
    rakunkel@ucdavis.edu */
 
 import { Command } from '../lib/experts-commander.js';
-import { GoogleSecret } from '@ucd-lib/experts-api';
 import { Storage } from '@google-cloud/storage';
+import { GoogleSecret } from '@ucd-lib/experts-commons';
 import fs from 'fs';
 import path from 'path';
 import Client from 'ssh2-sftp-client';
@@ -15,7 +15,6 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const gs = new GoogleSecret();
 
 
 const program = new Command();
@@ -26,10 +25,10 @@ program
   .requiredOption('-o, --output <output>', 'Local output file path')
   .option('-h, --host <host>', 'SFTP server hostname', 'ftp.use.symplectic.org')
   .option('-u, --username <username>', 'SFTP username', 'ucdavis')
-  .option('-sp, --secretpath <secretpath>', 'Secret Manager secret path', 'projects/325574696734/secrets/Symplectic-Elements-FTP-ucdavis-password')
-  .option('-ssp, --slacksecretpath <slacksecretpath>', 'Secret Manager Slack secret path', 'projects/325574696734/secrets/ae-grant-slack-webhook-url')
+  .option('-sn, --secret-name <secretpath>', 'Secret Manager secret path', 'Symplectic-Elements-FTP-ucdavis-password')
+  .option('-ssn, --slack-secret-name <slacksecretpath>', 'Secret Manager Slack secret path', 'ae-grant-slack-webhook-url')
   .option('-do, --offset <offset>', 'Offset(days) to the most recent directory', 0)
-  .option('-ln, --logName <logName>', 'Log name to retreive', 'UCDavis_Grants_Feed_logs')
+  .option('-ln, --log-name <logName>', 'Log name to retreive', 'UCDavis_Grants_Feed_logs')
   .option_log()
   .parse(process.argv);
 
@@ -179,8 +178,8 @@ if (!fs.existsSync(opt.output + '/' + opt.prefix + opt.logName)) {
 const remoteFolderPath = '/PROD/Logs/' + opt.logName; // UCDavis_Grants_Feed_logs;
 const localFolderPath = opt.output + '/' + opt.prefix + opt.logName;
 
-ftpConfig.password = await gs.getSecret(opt.secretpath);
-const slackWebhookUrl = await gs.getSecret(opt.slacksecretpath);
+ftpConfig.password = await GoogleSecret.getSecret(opt.secretName);
+const slackWebhookUrl = await GoogleSecret.getSecret(opt.slackSecretName);
 
 await downloadFilesFromMostRecentDirectory(remoteFolderPath, localFolderPath, opt.offset);
 await uploadEmptyCSVToSymplectic();

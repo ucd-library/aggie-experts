@@ -26,7 +26,8 @@
       }
     },
     "webapp" : {
-      "contextPath" : "./webapp"
+      "contextPath" : ".",
+      "dockerfile" : "./webapp/Dockerfile"
     },
     "elastic-search" : {
       "contextPath" : "./elastic-search",

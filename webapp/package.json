@@ -16,7 +16,7 @@
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",
     "@ucd-lib/cork-app-load": "^0.3.2",
-    "@ucd-lib/logger": "^0.0.7",
+    "@ucd-lib/experts-commons": "file:../commons",
     "@ucd-lib/spa-router-middleware": "^0.2.4",
     "@wesleytodd/openapi": "^1.0.0",
     "body-parser": "^2.2.0",
@@ -24,7 +24,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-openid-connect": "^2.19.2",
-    "fs-extra": "^11.3.1",
+    "fs-extra": "^11.3.3",
     "http-proxy": "^1.18.1",
     "jsonld": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -33,12 +33,10 @@
     "node-fetch": "^2.7.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
-    "yaml": "^2.8.1",
-    "yamljs": "^0.3.0"
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@ucd-lib/cork-app-build": "^0.5.0",
-    "patch-package": "^8.0.0",
     "webpack": "^5.101.2",
     "webpack-cli": "^6.0.1"
   }

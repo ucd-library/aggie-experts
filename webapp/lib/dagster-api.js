@@ -1,4 +1,4 @@
-const config = require('./config');
+const { config } = require('@ucd-lib/experts-commons');
 const yaml = require('yaml');
 
 class DagsterAPI {

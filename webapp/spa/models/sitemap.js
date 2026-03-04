@@ -14,8 +14,8 @@ class SitemapModel {
   middleware(app) {
     let sitemap = '';
 
-    if( config.server.url.match('https://experts.ucdavis.edu') ) {
-      sitemap = `Sitemap: ${config.server.url}/sitemap.xml`;
+    if( config.url.match('https://experts.ucdavis.edu') ) {
+      sitemap = `Sitemap: ${config.url}/sitemap.xml`;
     }
 
     app.get(/^\/sitemap.*/, (req, res) => this._onRequest(req, res));
@@ -71,7 +71,7 @@ class SitemapModel {
     let hits = result.hits.hits || [];
     let sent = hits.length;
     hits.forEach(result => resp.write(`<sitemap>
-        <loc>${config.server.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
+        <loc>${config.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
     </sitemap>`));
     if (typeof resp.flush === 'function') resp.flush();
 
@@ -84,7 +84,7 @@ class SitemapModel {
       hits = result.hits.hits || [];
       sent = hits.length;
       hits.forEach(result => resp.write(`<sitemap>
-          <loc>${config.server.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
+          <loc>${config.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
       </sitemap>`));
       if (typeof resp.flush === 'function') resp.flush();
     }
@@ -157,7 +157,7 @@ class SitemapModel {
     // for now we're just doing sitemaps for experts, might expand later
     if( resultType === 'expert' ) {
       resp.write(`<url>
-          <loc>${config.server.url}/${resultType}/${id.replace('expert/', '')}</loc>
+          <loc>${config.url}/${resultType}/${id.replace('expert/', '')}</loc>
           <changefreq>weekly</changefreq>
           <priority>.5</priority>
       </url>\n`);

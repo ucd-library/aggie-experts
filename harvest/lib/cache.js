@@ -1,8 +1,9 @@
 import path from 'path';
-import config from './config.js';
-// import { reportFileWrite } from './reporting/index.js';
+import {
+  config,
+  getYearWeek
+} from '@ucd-lib/experts-commons';
 import CaskFS from '/opt/caskfs/src/index.js';
-import { getYearWeek } from './year-week.js';
 import os from 'os';
 
 class FsCache {

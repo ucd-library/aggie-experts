@@ -5,14 +5,12 @@ const utils = require('../utils.js')
 const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
 
-const { openapi, validate_admin_client, validate_miv_client, has_access, fetchExpertId } = require('../middleware/index.js')
+const { openapi, has_access, fetchExpertId } = require('../middleware/index.js')
 
 router.get(
   '/user',
-  validate_miv_client,
   has_access('miv'),
   // is_miv,
-  validate_admin_client,
   fetchExpertId,
   async (req, res) => {
     const expertId = req.query.expertId;
@@ -73,9 +71,7 @@ router.get(
       }
     }
   ),
-  validate_miv_client,
   has_access('miv'),
-  validate_admin_client,
   fetchExpertId,
   async (req, res) => {
     const params = {};

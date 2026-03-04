@@ -1,5 +1,4 @@
-import config from '../config.js';
-import logger from '../logger.js';
+import { config, logger } from '@ucd-lib/experts-commons';
 import fetch from 'node-fetch';
 
 class DagsterAPI {
