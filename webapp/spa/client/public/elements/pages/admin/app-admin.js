@@ -30,7 +30,8 @@ export default class AppAdmin extends Mixin(LitElement)
       modalTitle : { type : String },
       modalSaveText : { type : String },
       modalContent : { type : String },
-      toSwitchIndex : { type : String }
+      toSwitchIndex : { type : String },
+      manageDataAction : { type : String }
     }
   }
 
@@ -54,6 +55,7 @@ export default class AppAdmin extends Mixin(LitElement)
     this.modalSaveText = "Switch Index";
     this.modalContent = "<p>Changing the alias will update the index the public application is currently using. Are you sure you want to switch the current index alias to point to this new index?</p>";
     this.toSwitchIndex = '';
+    this.manageDataAction = 'preview';
 
     this.render = render.bind(this);
   }
@@ -87,6 +89,7 @@ export default class AppAdmin extends Mixin(LitElement)
     } 
 
     if( this.isAdmin ) await this._getAvailableElasticIndexes();
+    this._updateSlimSelectStyles();
   }
 
   async _getAvailableElasticIndexes() {
@@ -112,6 +115,11 @@ export default class AppAdmin extends Mixin(LitElement)
     }
 
     this.availableElasticIndexes = indexes;
+
+    console.log('TODO should break into { yyyy-mm, alias, dateRange, latest|public|etc }');
+    console.log('availableElasticIndexes', this.availableElasticIndexes);
+    console.log('indexes', indexes);
+
     this.uniqueElasticIndexes = [...new Set(indexes.map(i => i.displayName))];
   }
 
@@ -122,16 +130,54 @@ export default class AppAdmin extends Mixin(LitElement)
       i.previewEsIndex = i.displayName === indexDisplayName && !i.displayName.includes('current');
     });
 
-    await indexedDb.setElasticsearchIndexes(this.availableElasticIndexes);
+    console.log('TODO add banner in fin-app, also indexedb')
+
+    // await indexedDb.setElasticsearchIndexes(this.availableElasticIndexes);
 
     // send to fin-app
-    this.dispatchEvent(
-      new CustomEvent('preview-es-index', {
-        detail : {
-          savedIndex : indexDisplayName
+    // this.dispatchEvent(
+    //   new CustomEvent('preview-es-index', {
+    //     detail : {
+    //       savedIndex : indexDisplayName
+    //     }
+    //   })
+    // );
+  }
+
+  async _updateSlimSelectStyles() {
+    // hack to update styles
+    // the collapsed state should have 2 rows of text
+    // and disabled options should be greyed out/disabled
+    let slimSelects = this.shadowRoot.querySelectorAll('.manage-content ucd-theme-slim-select');
+    for (let s of slimSelects) {
+      await s.updateComplete;
+
+      let collapsedDisplay = s.shadowRoot.querySelector('.ss-main .ss-single-selected .placeholder span');
+      if( collapsedDisplay ) collapsedDisplay.style.gap = '.4rem';      
+
+      let options = s.shadowRoot.querySelectorAll('.ss-option');
+      options.forEach(o => {
+        if( o.classList.contains('ss-disabled') ) {
+          let spans = o.querySelectorAll('span');
+          spans.forEach(s => {
+            s.style.color = 'inherit';
+            s.style.backgroundColor = 'inherit';
+          });
+
+          o.style.cursor = 'not-allowed';
+          o.style.color = '#dedede';
+          o.style.backgroundColor = '#fff';
         }
-      })
-    );
+      });
+
+      let ssMain = s.shadowRoot.querySelector('.ss-main');
+      if( ssMain ) {
+        ssMain.style.cssText = 'height: 4rem !important;';
+
+        let singleSelected = ssMain.querySelector('.ss-single-selected');
+        if( singleSelected ) singleSelected.style.cssText = 'height: 4rem !important;';
+      }
+    }
   }
 
   _onSwitchIndexDropdownChange(e) {
