@@ -3,8 +3,10 @@ import { srcToAeStd } from '../lib/transform/ae-std/index.js';
 import { generateScholarlyWork, generateBaseScholarlyWork, getScholarlyWorkType } from '../lib/transform/webapp/scholary-work.js';
 import { generateExpert, generateBaseExpert, generateSimplifiedExpert } from '../lib/transform/webapp/expert.js';
 import { getNodeByType, SHORT_TYPES } from '../lib/transform/utils.js';
-import config from '../lib/config.js';
-import logger from '../lib/logger.js';
+import {
+  logger,
+  config
+} from '@ucd-lib/experts-commons';
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 import wrapUserDomain from '../lib/user-domain.js';

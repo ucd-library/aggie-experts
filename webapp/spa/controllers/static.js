@@ -1,9 +1,9 @@
 const path = require('path');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
-// const esClient = require('@ucd-lib/fin-service-utils').esClient;
 const esClient = require('../../lib/es-client.js');
-const logger = require('../../lib/logger.js');
+const {logger} = require('@ucd-lib/experts-commons');
+
 
 // for seo
 let experts = require('../../models/expert/index.js');
@@ -55,7 +55,7 @@ module.exports = async (app) => {
           const esResult = await esClient.get(
             {
               ...{
-                index: 'experts',
+                index: 'experts-current',
                 id: user.expertId,
                 _source: false
               }

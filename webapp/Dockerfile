@@ -1,8 +1,8 @@
 FROM node:20.19.4
 
 # Set the working directory
-WORKDIR /app
-RUN mkdir -p /app
+WORKDIR /opt/webapp
+RUN mkdir -p /opt/webapp
 
 # Copy package.json and package-lock.json
 COPY webapp/package.json webapp/package-lock.json ./
@@ -20,7 +20,12 @@ COPY webapp/lib ./lib
 COPY webapp/models ./models
 COPY webapp/spa ./spa
 
-# Copy harvest for keycloak/elements access
-COPY harvest/lib ./harvest/lib
+# Common web app and harvest code
+RUN mkdir -p /opt/commons
+COPY commons/package.json /opt/commons/package.json
+COPY commons/package-lock.json /opt/commons/package-lock.json
+RUN cd /opt/commons && npm install --omit=dev
+COPY commons/lib /opt/commons/lib
+COPY commons/index.js /opt/commons/index.js
 
 RUN cd spa && npm run dist

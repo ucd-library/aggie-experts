@@ -1,11 +1,9 @@
-const config = require('../config.js');
-const logger = require('../logger.js');
+const { config, logger, logReqMiddleware } = require('@ucd-lib/experts-commons');
 const express = require('express');
 // const bodyParser = require('body-parser');
 const cors = require('cors');
 const auth = require('./oidc.js');
 const httpProxy = require('http-proxy');
-const {logReqMiddleware} = require('@ucd-lib/logger');
 const keycloak = require('../keycloak.js');
 const cookieParser = require('cookie-parser');
 
@@ -24,8 +22,8 @@ app.use(logReqMiddleware(logger, {
 // setup proxy
 let proxy = httpProxy.createProxyServer({
   ignorePath : false,
-  timeout: config.proxy.timeout,
-  proxyTimeout: config.proxy.proxyTimeout,
+  timeout: config.webappProxy.timeout,
+  proxyTimeout: config.webappProxy.proxyTimeout,
 });
 proxy.on('error', e => {
   logger.error('http-proxy error', e.message, e.stack);
@@ -49,6 +47,6 @@ app.use((req, res) => {
   });
 });
 
-app.listen(config.proxy.port, () => {
-  logger.info(`Proxy server listening on port ${config.proxy.port}`);
+app.listen(config.webappProxy.port, () => {
+  logger.info(`Proxy server listening on port ${config.webappProxy.port}`);
 });

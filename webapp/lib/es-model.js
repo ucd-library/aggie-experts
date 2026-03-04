@@ -1,6 +1,5 @@
 const es = require('./es-client.js');
-const config = require('./config.js');
-const logger = require('./logger.js');
+const { config, logger } = require('@ucd-lib/experts-commons');
 
 /**
  * @class EsDataModel

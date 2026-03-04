@@ -2,8 +2,7 @@ import jsonpath from 'jsonpath';
 import fs from 'fs';
 import md5 from 'md5';
 import cache from '../../cache.js';
-import config from '../../config.js';
-import logger from '../../logger.js';
+import { config, logger } from '@ucd-lib/experts-commons';
 import path from 'path';
 
 import {getNodeByType, sortJsonArrayByIdAndKeys, SHORT_TYPES, asArray} from '../utils.js';

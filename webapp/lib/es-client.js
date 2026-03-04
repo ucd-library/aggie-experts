@@ -1,7 +1,7 @@
 // global connection to elastic search client
 
 const { Client } = require('@elastic/elasticsearch')
-const config = require('./config.js');
+const { config } = require('@ucd-lib/experts-commons');
 
 var client = new Client({
   node: config.elasticsearch?.connStr,

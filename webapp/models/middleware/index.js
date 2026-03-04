@@ -1,13 +1,26 @@
 const OpenAPI = require('@wesleytodd/openapi')
-const config = require('../../lib/config');
 const keycloak = require('../../lib/keycloak');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const template = require('../base/template/name.json');
+const {
+  config,
+  ExpertsKcAdminClient,
+} = require('@ucd-lib/experts-commons');
 
-let AdminClient=null;
+let AdminClient, MIVJWKSClient;
 
-let MIVJWKSClient=null;
+async function initAuth() {
+  AdminClient = new ExpertsKcAdminClient();
+  await AdminClient.authenticate();
+
+  MIVJWKSClient = jwksClient({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 10,
+    jwksUri: `${config.oidc.host}/realms/${config.oidc.clients.miv.realm}/protocol/openid-connect/certs`
+  });
+}
 
 
 async function item_endpoint(router, model, subselect = (req, res, next) => next()) {
@@ -169,9 +182,6 @@ function browse_endpoint(router,model) {
   );
 }
 
-module.exports = browse_endpoint;
-
-
 async function fetchExpertId (req, res, next) {
   if (req.query.email || req.query.ucdPersonUUID || req.query.iamId) {
     const token = await keycloak.getServiceAccountToken();
@@ -204,13 +214,11 @@ async function fetchExpertId (req, res, next) {
   }
 }
 
-
-
 async function convertIds(req, res, next) {
   const id_array = req.params.ids.replace('ids=', '').split(',');
 
-  const token = await keycloak.getServiceAccountToken();
-  AdminClient.accessToken = token
+  // const token = await keycloak.getServiceAccountToken();
+  // AdminClient.accessToken = token
 
   let user;
 
@@ -220,10 +228,24 @@ async function convertIds(req, res, next) {
     try {
       //Split the id into the type and the id
       let idParts = theId.split(':');
-      user = await AdminClient.findOneByAttribute(`${idParts[0]}:${idParts[1]}`);
+      console.log(`${idParts[0]}:${idParts[1]}`)
+      // user = await AdminClient.findByAttribute(`${idParts[0]}:${idParts[1]}`);
+      const q_req = await this.kcadmin.users.makeRequest(
+        {
+          method: 'GET',
+          payloadKey: "q"
+        }
+      );
+      const users = await q_req(
+        {
+            q: `${idParts[0]}:${idParts[1]}`
+        }
+      );
+
+      console.log(users)
     }
     catch (err) {
-      // console.error(err);
+      console.error(`Error fetching user with ${theId}`, err);
     }
 
     if (user && user?.attributes?.expertId) {
@@ -236,45 +258,6 @@ async function convertIds(req, res, next) {
   return next();
 }
 
-async function validate_admin_client(req, res, next) {
-  if (! AdminClient) {
-    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
-    const oidcbaseURL = config.oidc.baseUrl;
-    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
-
-    if (match) {
-      AdminClient = new ExpertsKcAdminClient(
-        {
-          baseUrl: match[1],
-          realmName: match[2]
-        }
-      );
-    } else {
-      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
-    }
-  }
-  next();
-}
-
-async function validate_miv_client(req, res, next) {
-  if (! MIVJWKSClient) {
-    const { ExpertsKcAdminClient } = await import('@ucd-lib/experts-api');
-    const oidcbaseURL = config.oidc.baseUrl;
-    const match = oidcbaseURL.match(/^(https?:\/\/[^\/]+)\/realms\/([^\/]+)/);
-
-    if (match) {
-      MIVJWKSClient = await jwksClient({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 10,
-        jwksUri: `${match[1]}/realms/aggie-experts-miv/protocol/openid-connect/certs`
-      });
-    } else {
-      throw new Error(`Invalid oidc.baseURL ${oidcbaseURL}`);
-    }
-  }
-  next();
-}
 
 function has_access(client) {
 
@@ -291,8 +274,9 @@ function has_access(client) {
         // Verify the token's signature using the public key
         const verifiedToken = jwt.verify(token, key.getPublicKey(), { algorithms: ['RS256'] });
 
-        // Validate issuer
-        if (verifiedToken.iss !== 'https://auth.library.ucdavis.edu/realms/aggie-experts-miv') {
+        // Validate issuer.
+        // Only accept tokens from the expected Keycloak realm for this client
+        if (verifiedToken.iss !== config.oidc.host + '/realms/' + config.oidc[client]?.realm) {
           return res.status(401).json({ error: 'Invalid token issuer' });
         }
 
@@ -308,7 +292,7 @@ function has_access(client) {
 
         // Custom authorization logic
         // Implement your own logic here based on token claims
-        if (! verifiedToken?.resource_access?.[client]?.roles?.includes('access')) {
+        if (! verifiedToken?.resource_access?.[client]?.roles?.includes(oidc.roles.serviceAccountAccess) ) {
           return res.status(403).json({ error: 'No Access Role' });
         }
         return next();
@@ -318,7 +302,8 @@ function has_access(client) {
         return res.status(403).json({ error: 'Internal server error' });
       }
     } else {
-      if (req.user?.resource_access?.['aggie-experts'].roles?.includes('admin') || req.user?.resource_access?.['aggie-experts'].roles?.includes(client)) {
+      if (req.user?.resource_access?.['aggie-experts'].roles?.includes(oidc.roles.admin) || 
+          req.user?.resource_access?.['aggie-experts'].roles?.includes(client)) {
         return next();
       }
     }
@@ -1015,7 +1000,7 @@ const openapi = OpenAPI(
     },
     servers: [
       {
-        url: `${config.server.url}/api/expert`
+        url: `${config.url}/api/expert`
       }
     ],
     tags: [
@@ -1147,6 +1132,7 @@ openapi.response(
 
 // export this middleware functions
 module.exports = {
+  initAuth,
   browse_endpoint,
   convertIds,
   fetchExpertId,
@@ -1157,8 +1143,6 @@ module.exports = {
   openapi,
   schema_error,
   user_can_edit,
-  validate_admin_client,
-  validate_miv_client,
   valid_path,
   valid_path_error
 };

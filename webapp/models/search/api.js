@@ -4,7 +4,7 @@ const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const WorkModel = require('../work/model.js');
 // const utils = require('../utils.js')
-const complete = require('./template/complete.js');
+const {searchTemplate} = require('@ucd-lib/experts-commons');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
@@ -105,12 +105,12 @@ router.get(
     // Remove duplicates
     params.index = [...new Set(params.index)];
     opts = {
-      id: complete.id,
+      id: searchTemplate.id,
       params
     };
 
     try {
-      await experts.verify_template(complete);
+      await experts.verify_template(searchTemplate);
       const find = await base.search(opts);
 
       // Capture type/status filters before deletion
@@ -126,7 +126,7 @@ router.get(
       delete params.hasDate;
 
       const global = await base.search(
-        { id: complete.id,
+        { id: searchTemplate.id,
           params: {
             ...opts.params,
             size: 0,
@@ -145,7 +145,7 @@ router.get(
         if (filteredStatus) filteredParams.status = filteredStatus;
 
         const filtered = await base.search({
-          id: complete.id,
+          id: searchTemplate.id,
           params: {
             ...filteredParams,
             size: 0,

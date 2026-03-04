@@ -1,10 +1,9 @@
 import { Command } from 'commander';
-import { getYearWeek } from '../lib/year-week.js';
+import { getYearWeek } from '@ucd-lib/experts-commons';
 import { Temporal } from '@js-temporal/polyfill';
 const program = new Command();
 
 program
-  .command('config', 'manage configuration settings')
   .command('dagster', 'manage Dagster')
   .command('delete-exception', 'set or remove a delete exception for a user')
   .command('extract', 'extract data from CDL, IAM, and Keycloak')

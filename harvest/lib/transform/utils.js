@@ -1,5 +1,5 @@
 import jsonpath from 'jsonpath';
-import config from '../config.js';
+import { config } from '@ucd-lib/experts-commons';
 
 const WORKS_SOURCE_ORDER = [
   'verified-manual', 'repec', 'dimensions', 'pubmed', 'scopus', 'wos', 'wos-lite',

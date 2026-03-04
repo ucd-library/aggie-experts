@@ -1,6 +1,6 @@
 import { Client } from 'pg'
 import fs from 'fs/promises';
-import config from './config.js';
+import { config } from '@ucd-lib/experts-commons';
 
 class PgClient {
   constructor(_config, schema=null) {

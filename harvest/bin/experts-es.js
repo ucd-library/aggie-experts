@@ -7,13 +7,13 @@ import { ensureCurrentIndexes,
   ensureSearchScript, 
   getUsersCurrentScholarlyWorks 
 } from '../lib/load/elastic-search/index.js';
-import logger from '../lib/logger.js';
-import config from '../lib/config.js';
+import {
+  logger,
+  config,
+  getTodaysDate
+} from '@ucd-lib/experts-commons';
 import path from 'path';
-import fs from 'fs';
 import { Temporal } from '@js-temporal/polyfill';
-import { getTodaysDate } from '../lib/year-week.js';
-
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 

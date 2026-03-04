@@ -5,7 +5,6 @@
 
 import fs from 'fs';
 import { Command } from '../lib/experts-commander.js';
-import { GoogleSecret } from '@ucd-lib/experts-api';
 import { Storage } from '@google-cloud/storage';
 import parser from 'xml2json';
 import { parse } from 'csv-parse/sync';

@@ -8,13 +8,10 @@
 'use strict';
 
 import fetch from 'node-fetch';
-import logger from '../logger.js';
-import GoogleSecret from '../google-secret.js';
-import config from '../config.js';
+import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
 import path from 'path';
 
-const gs = new GoogleSecret();
 
 /** Exports a class
 * @class
@@ -34,7 +31,7 @@ export class IAM {
     let env = opt.env || config.iam.env;
     this.url = config.iam[env].url;
     this.authname = config.iam[env].authname;
-    this.secretpath = config.iam[env].secretpath;
+    this.secretName = config.iam[env].secretName;
     this.key = null;
   }
 
@@ -46,7 +43,7 @@ export class IAM {
     if (this.key) {
       return this.key;
     }
-    let secretResp = await gs.getSecret(this.secretpath);
+    let secretResp = await GoogleSecret.getSecret(this.secretName);
     let secretJson = JSON.parse(secretResp);
     for (const entry of secretJson) {
       if (entry['@id'] == this.authname) {

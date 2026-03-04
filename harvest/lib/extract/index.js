@@ -1,9 +1,7 @@
 import CdlClient from './cdl.js';
 import IamClient from './iam.js';
-import ExpertsKcAdminClient from './keycloak.js';
 import cache from '../cache.js';
-import logger from '../logger.js';
-import config from '../config.js';
+import { logger, config, ExpertsKcAdminClient } from '@ucd-lib/experts-commons';
 import wrapUserDomain from '../user-domain.js';
 
 const cdlClient = new CdlClient();
