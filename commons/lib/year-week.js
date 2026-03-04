@@ -14,6 +14,23 @@ function getTodaysDate() {
 }
 
 /**
+ * @function isPlainDate
+ * @description Check if a given date is a Temporal.PlainDate.  This is 
+ * necessary because the polyfill doesn't properly test instanceof if 
+ * imported across multiple package.json boundaries.
+ * 
+ * @param {Object} date 
+
+ * @returns {Boolean}
+ */
+function isPlainDate(date) {
+  if( date instanceof Temporal.PlainDate ) return true;
+  // hack for polyfill, which doesn't properly set instanceof
+  if( typeof date === 'object' && date.contructor.name === 'PlainDate' ) return true;
+  return false;
+}
+
+/**
  * @function getYearWeek
  * @description Get the year-week string (format: YYYY-WW) for a given date.  Weeks start on Saturday.
  * Prior to the first Saturday of the year is considered week 52/53 of the previous year.
@@ -105,5 +122,6 @@ function getYearWeek(opts={}) {
 
 export {
   getYearWeek,
-  getTodaysDate
+  getTodaysDate,
+  isPlainDate
 }

@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
-import { getYearWeek, getTodaysDate } from '@ucd-lib/experts-commons';
+import { getYearWeek, getTodaysDate, isPlainDate } from '@ucd-lib/experts-commons';
 import { Temporal } from '@js-temporal/polyfill';
 import getEsClient from '../../elastic-search-client.js';
 import { config, logger } from '@ucd-lib/experts-commons';
@@ -171,14 +171,16 @@ async function ensureCurrentIndexes() {
  * @param {String} index index base name to point the alias to 
  * @param {Date|String} date Date object or string in the format "weekNumber-year" (e.g., "37-2023") to suffix the index name
  * @param {String} alias alias name to set
+ * @param {String} version optional version string to suffix the index name.  If not provided, defaults to the current build version.
+ * 
  * @returns {Promise}
  */
-async function setAlias(index, date, alias) {
+async function setAlias(index, date, alias, version) {
   if( !alias.startsWith(index+'-') ) {
     alias = `${index}-${alias}`;
   }
 
-  index = getIndexNameForDate(index, date);
+  index = getIndexNameForDate(index, date, version);
   logger.info(`Setting alias ${alias} to point to index ${index}`);
   const esClient = await getEsClient();
 
@@ -319,28 +321,69 @@ function getCurrentIndexes() {
  * @param {Date|String} date - The date for which to get the index name. Can be a Date object or a string in the format "weekNumber-year" (e.g., "37-2023").
  * @returns {String} - The formatted index name
  */
-function getIndexNameForDate(index, date) {
+function getIndexNameForDate(index, date, version) {
   let weekNumber, year;
+
   if( typeof date === 'string' ) {
     let parts = date.split('-');
 
-    if( parts.length === 3 ) {
+    if( parts.length > 3 ) {
       parts.shift(); // assum index name was provided as part of the string
     }
 
-    if( parts.length !== 2  ) {
+    if( parts.length < 2 ) {
       throw new Error('Date string must be in the format "year-week", e.g., "2023-37"');
     }
-    year = parts[0];
-    weekNumber = parts[1];
-  } else if( date instanceof Temporal.PlainDate ) {
+    year = parts.shift();
+    weekNumber = parts.shift();
+  } else if( isPlainDate(date) ) {
     [year, weekNumber] = getYearWeek({date}).split('-');
   } else {
     throw new Error('Date must be a string or Temporal.PlainDate object');
   }
 
-  return `${index}-${year}-${weekNumber}`;
+  let parts = [index, year, weekNumber];
+
+  if( version === undefined || version === null ) {
+    version = getBuildVersion();
+  }
+
+  if( version ) {
+    parts.push(version);
+  }
+
+  return parts.join('-');
 }
+
+/**
+ * @function copyIndex
+ * 
+ * @description Copy an Elasticsearch index to a new index.  This is useful for reindexing with a new schema, 
+ * or copying data from stage to current indexes.
+ * 
+ * @param {String} sourceIndex 
+ * @param {String} destIndex
+ * @param {Object} opts 
+ * @param {Boolean} opts.waitForCompletion - If true, will wait for the reindex operation to complete before returning.  Defaults to false, which will return immediately after starting the reindex operation.
+ * @param {Boolean} opts.refresh - If true, will refresh the destination index after the reindex operation is complete to make the new documents searchable immediately.  Defaults to true.
+ * 
+ */
+async function copyIndex(sourceIndex, destIndex, opts={}) {
+  const esClient = await getEsClient();
+  await esClient.reindex({
+    body: {
+      source: {
+        index: sourceIndex
+      },
+      dest: {
+        index: destIndex
+      }
+    },
+    wait_for_completion: opts.waitForCompletion || false,
+    refresh: opts.refresh || true
+  });
+}
+
 
 /**
  * @function getState
@@ -490,12 +533,19 @@ async function getUsersCurrentScholarlyWorks(expertId, type, alias='stage') {
     .map(node => node['@id']);
 }
 
+function getBuildVersion() {
+  let build = config.buildInfo.harvest || config.buildInfo.webapp || {};
+  return build.tag || build.branch || 'unknown';
+}
+
 export {
   deleteDocument,
   loadFiles,
   getIndexDocumentCount,
   createIndex,
   deleteIndex,
+  copyIndex,
+  getBuildVersion,
   ensureCurrentIndexes,
   setAlias,
   getCurrentIndexes,

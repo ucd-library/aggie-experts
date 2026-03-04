@@ -2,15 +2,19 @@ import { Command } from 'commander';
 import { ensureCurrentIndexes, 
   createIndex, 
   deleteIndex, 
+  copyIndex,
   setAlias, 
   getState, 
-  ensureSearchScript, 
+  getBuildVersion,
+  ensureSearchScript,
+  getIndexNameForDate,
   getUsersCurrentScholarlyWorks 
 } from '../lib/load/elastic-search/index.js';
 import {
   logger,
   config,
-  getTodaysDate
+  getTodaysDate,
+  getYearWeek
 } from '@ucd-lib/experts-commons';
 import path from 'path';
 import { Temporal } from '@js-temporal/polyfill';
@@ -28,6 +32,81 @@ program
     logger.info('Ensuring current ElasticSearch indexes for aggie experts...');
     let indexes = await ensureCurrentIndexes();
     logger.info('ElasticSearch indexes ensured successfully.', indexes);
+  });
+
+program
+  .command('copy')
+  .description('copy ElasticSearch indexes for aggie experts.  This will happen async in the background by elasticsearch')
+  .option('--types <types>', 'Comma-separated list of index types to copy (e.g., works,grants). If not provided, all types will be copied.')
+  .option('--source-week <year-week>', 'YYYY-MM format. Week number for the source index (1-52). If not provided, defaults to the current week.')
+  .option('--source-version <version>', 'Version string for the source index. If not provided, defaults to the current build version.')
+  .option('--target-week <year-week>', 'YYYY-MM format. Week number for the target index (1-52). If not provided, defaults to the current week.')
+  .option('--target-version <version>', 'Version string for the target index. If not provided, defaults to the current build version.')
+  .option('--wait', 'Wait for each copy operation to complete before exiting')
+  .option('--yes', 'Automatically confirm the copy operation without prompting')
+  .action(async (opts={}) => {
+    if( opts.types ) {
+      opts.types = opts.types.split(',').map( t => t.trim() );
+    } else {
+      opts.types = Object.keys(config.elasticsearch.indexes);
+    }
+
+    if( !opts.sourceWeek ) {
+      opts.sourceWeek = getYearWeek();
+    }
+
+    if( !opts.targetWeek ) {
+      opts.targetWeek = getYearWeek();
+    }
+    
+    if( opts.sourceVersion === undefined ) {
+      opts.sourceVersion = getBuildVersion();
+    }
+
+    if( opts.targetVersion === undefined ) {
+      opts.targetVersion = getBuildVersion();
+    }
+
+    let cmds = opts.types.map( type => {
+      return {
+        source: getIndexNameForDate(type, opts.sourceWeek, opts.sourceVersion),
+        target: getIndexNameForDate(type, opts.targetWeek, opts.targetVersion)
+      }
+    });
+
+    logger.info('The following index copy operations will be performed:');
+    cmds.forEach( cmd => {
+      if( cmd.source === cmd.target ) {
+        throw new Error(`Source and target index names are the same (${cmd.source}). Please specify different source and target week/version to avoid copying an index onto itself.`);
+      }
+      logger.info(`Copy index ${cmd.source} to ${cmd.target}`);
+    });
+
+    if( !opts.yes ) {
+      const readline = await import('readline');
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+
+      const answer = await new Promise(resolve => {
+        rl.question('Do you want to proceed with the copy operation? (yes/no) ', resolve);
+      });
+
+      rl.close();
+
+      if( answer.toLowerCase() !== 'yes' ) {
+        logger.info('Copy operation cancelled by user.');
+        process.exit(0);
+      }
+    }
+
+    for( let cmd of cmds ) {
+      logger.info(`Starting copy of index ${cmd.source} to ${cmd.target}...`);
+      await copyIndex(cmd.source, cmd.target, { waitForCompletion: opts.wait });
+      logger.info(`Copy of index ${cmd.source} to ${cmd.target} initiated successfully.`);
+    }
+
   });
 
 program
@@ -84,6 +163,7 @@ program
   .option('-w, --year-week <year-week>', 'YYYY-MM format. Week number for the index (1-52)')
   .option('-d, --date <date>', 'Date for the index (format: iso)')
   .option('-c, --current', 'Set the current week')
+  .option('-v, --version <version>', 'Version string for the index. If not provided, defaults to the current build version.')
   .action(async (alias, opts={}) => {
     let date;
     if( opts.date ) {
@@ -99,7 +179,7 @@ program
 
     for( let baseName in config.elasticsearch.indexes ) {
       baseName = config.elasticsearch.indexes[baseName];
-      await setAlias(baseName, date, alias);
+      await setAlias(baseName, date, alias, opts.version);
     }
   });
 
