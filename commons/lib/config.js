@@ -8,16 +8,15 @@ const env = process.env;
 
 const esHostname = process.env.ES_HOST || 'elasticsearch';
 const esPort = parseK8sPort(process.env.ES_PORT || 9200);
-const userConfigDir = env.EXPERTS_USER_CONFIG_DIR || path.join(os.homedir(), '.ae');
-const userConfigFile = path.join(userConfigDir, 'harvest.json');
 
-if (!fs.existsSync(userConfigDir)) {
-  fs.mkdirSync(userConfigDir, { recursive: true });
-}
-
-let userConfigData = {};
-if( fs.existsSync(userConfigFile) ) {
-  userConfigData = JSON.parse(fs.readFileSync(userConfigFile));
+const BUILD_INFO_PATH = env.BUILD_INFO_PATH || '/cork-build-info';
+const buildInfo = {};
+if( fs.existsSync(BUILD_INFO_PATH) ) {
+  let files = fs.readdirSync(BUILD_INFO_PATH);
+  for( let file of files ) {
+    let content = fs.readFileSync(path.resolve(BUILD_INFO_PATH, file), 'utf-8');
+    buildInfo[file.replace('.json', '')] = JSON.parse(content);
+  }
 }
 
 const config = {
@@ -27,6 +26,8 @@ const config = {
   userDomain : env.EXPERTS_USER_DOMAIN || '@ucdavis.edu',
 
   url : env.AE_URL || 'http://localhost:3000',
+
+  buildInfo,
 
   experts : {
     version : '1.0.0',
@@ -171,8 +172,8 @@ const config = {
       grants : env.ES_INDEX_GRANTS || 'grants'
     },
     aliases : {
-      current : 'current',
-      stage : 'stage'
+      current : 'public',
+      stage : 'latest'
     }
   },
 
