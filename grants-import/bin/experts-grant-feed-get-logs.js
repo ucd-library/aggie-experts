@@ -5,7 +5,7 @@
 
 import { Command } from '../lib/experts-commander.js';
 import { Storage } from '@google-cloud/storage';
-import GoogleSecret from '../commons/google-secret.js';
+import { GoogleSecret } from '@ucd-lib/experts-commons';
 import fs from 'fs';
 import path from 'path';
 import Client from 'ssh2-sftp-client';

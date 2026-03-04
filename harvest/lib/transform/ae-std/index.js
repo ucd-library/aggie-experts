@@ -1,6 +1,5 @@
 import cache from '../../cache.js';
-import logger from '../../logger.js';
-import config from '../../config.js';
+import { logger, config } from '@ucd-lib/experts-commons';
 import wrapUserDomain from '../../user-domain.js';
 import path from 'path';
 

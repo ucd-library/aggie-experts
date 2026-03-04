@@ -1,6 +1,5 @@
 const fetch = require('node-fetch');
-const config = require('../../commons/config.js.js');
-const logger = require('../../commons/logger.js.js');
+const { config, logger } = require('@ucd-lib/experts-commons');
 const clone = require('clone');
 
 class KeycloakUtils {

@@ -5,8 +5,9 @@ import logger from './logger.js';
 class GoogleSecret {
 
   constructor() {
+    logger.debug('Initializing Google Secret Manager client with credentials from', config.google.applicationCredentials);
     this.client = new SecretManagerServiceClient({
-      keyFilename: config.userConfig.serviceAccountFile
+      keyFilename: config.google.applicationCredentials
     });
 
     this.cache = new Map();
@@ -41,15 +42,15 @@ class GoogleSecret {
   async getSecret(name, opts={}) {
     let version = opts.version || 'latest';
     let cacheKey = `${name}/${version}`;
+    name = `projects/${config.google.projectId}/secrets/${name}`;
+
 
     if( config.google.cacheSecrets && this.cache.has(cacheKey) ) {
+      logger.debug(`Cache hit for secret: ${name}`);
       return this.cache.get(cacheKey);
     }
 
-    const [secret] = await this.client.getSecret({
-      name: `projects/${config.google.projectId}/secrets/${name}`,
-    });
-
+    logger.debug(`Accessing secret: ${name} from Google Secret Manager`);
     let value = await this.accessSecretVersion(name, version);
 
     if ( config.google.cacheSecrets ) {

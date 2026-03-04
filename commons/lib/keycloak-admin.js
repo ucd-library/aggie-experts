@@ -1,10 +1,9 @@
 //Import keycloak-admin-client
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import GoogleSecret from './google-secret.js';
-import logger from '../harvest/lib/logger.js';
+import logger from './logger.js';
 import config from './config.js';
 import { customAlphabet } from 'nanoid';
-import { use } from 'react';
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const nanoid = customAlphabet(alphabet, 8);
 
@@ -29,14 +28,13 @@ export default class ExpertsKcAdminClient {
 
     this.kcadmin = new KcAdminClient({
         baseUrl: config.oidc.host,
-        realmName: config.oidc.admin.realm
+        realmName: config.oidc.clients.admin.realm
     })
     try {
       await this.kcadmin.auth({
         grantType: 'client_credentials',
-        clientId: config.oidc.admin.clientId,
-        clientSecret: config.oidc.admin.clientSecret,
-        scope: config.oidc.scopes
+        clientId: config.oidc.clients.admin.clientId,
+        clientSecret: config.oidc.clients.admin.secret,
       });
     } catch (e) {
       logger.error('Error getting keycloak authorized', e);
@@ -276,23 +274,25 @@ export default class ExpertsKcAdminClient {
     let {serviceName, username, password, realm} = opts;
     let url;
 
-    if( !serviceName || !(username && password && realm) ) {
+    if( !serviceName && !(username && password && realm) ) {
       throw new Error('serviceName, username, password, and realm are required to generate a service account token');
     }
-    
+
     if( serviceName ) {
-      if( !config.oidc.realms[serviceName] ) {
-        throw new Error(`Service ${serviceName} not found in config.oidc.realms`);
+      if( !config.oidc.clients[serviceName] ) {
+        throw new Error(`Service ${serviceName} not found in config.oidc.clients`);
       }
-      let service = config.oidc.realms[serviceName];
+      let service = config.oidc.clients[serviceName];
 
       await GoogleSecret.loadKeycloakSecrets();
       realm = service.realm;
       username = service.clientId;
-      password = service.clientSecret;
+      password = service.secret;
     }
 
     url = `${config.oidc.host}/realms/${realm}/protocol/openid-connect/token`;
+
+    logger.debug(`Requesting service account token from Keycloak at ${url} for client ${username}`);
 
     let apiResp = await fetch(url, {
       method: 'POST',

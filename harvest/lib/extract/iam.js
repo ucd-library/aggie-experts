@@ -8,9 +8,7 @@
 'use strict';
 
 import fetch from 'node-fetch';
-import logger from '../logger.js';
-import GoogleSecret from '../../../commons/google-secret.js';
-import config from '../config.js';
+import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
 import path from 'path';
 

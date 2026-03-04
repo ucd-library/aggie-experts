@@ -4,9 +4,9 @@ const bodyParser = require('body-parser');
 // Express 5 + the mixed swagger/openapi approaches in this repo make the generated
 // doc misleading (empty paths/components). We'll serve a simple index instead.
 // const swaggerJSDoc = require('swagger-jsdoc');
-const logger = require('../../commons/logger.js.js');
+const { logger } = require('@ucd-lib/experts-commons');
 const models = require('./models.js');
-const config = require('../../commons/config.js');
+const { config } = require('@ucd-lib/experts-commons');
 const keycloak = require('./keycloak.js');
 
 const app = express();

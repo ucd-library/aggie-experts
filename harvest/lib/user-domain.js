@@ -1,4 +1,4 @@
-import config from './config.js';
+import { config } from '@ucd-lib/experts-commons';
 
 function wrapUserDomain(user) {
   if( !user ) throw new Error('User object is required');

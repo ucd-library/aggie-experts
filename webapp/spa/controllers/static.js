@@ -1,7 +1,6 @@
 const path = require('path');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
-// const esClient = require('@ucd-lib/fin-service-utils').esClient;
 const esClient = require('../../lib/es-client.js');
 const logger = require('../../lib/logger.js');
 

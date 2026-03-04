@@ -12,7 +12,6 @@ import AbortController from 'abort-controller';
 
 export default class ElementsClient {
 
-
   static impersonators =
     {
       qa:{},
@@ -98,7 +97,7 @@ export class Impersonator {
         error.message += await resp.text();
       }
       if (resp.status === 408) {
-        error.status=504;
+        error.status = 504;
       } else {
         error.status = 502;
       }

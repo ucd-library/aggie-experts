@@ -1,6 +1,5 @@
 import path from 'path';
-import logger from '../../logger.js';
-import config from '../../config.js';
+import { logger, config } from '@ucd-lib/experts-commons';
 import cache from '../../cache.js';
 import {sortJsonRecursively} from '../utils.js';
 import { getExpertNode, createSimplifiedExpert } from './to-person-webapp.js';

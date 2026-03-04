@@ -1,12 +1,12 @@
 const OpenAPI = require('@wesleytodd/openapi')
-const config = require('../../lib/config');
 const keycloak = require('../../lib/keycloak');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const template = require('../base/template/name.json');
-const config = require('../../../commons/config.js').default;
-const { ExpertsKcAdminClient } = require('../../../commons/keycloak-admin.js');
-
+const {
+  config,
+  ExpertsKcAdminClient,
+} = require('@ucd-lib/experts-commons');
 
 let AdminClient = new ExpertsKcAdminClient();
 AdminClient.authenticate()
@@ -234,7 +234,7 @@ async function convertIds(req, res, next) {
       console.log(users)
     }
     catch (err) {
-      console.error(err);
+      console.error(`Error fetching user with ${theId}`, err);
     }
 
     if (user && user?.attributes?.expertId) {

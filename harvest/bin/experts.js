@@ -19,12 +19,6 @@ program
     process.env.EXPERTS_VERBOSE = 1;
   })
 
-// program
-//   .option('--fin <fin>', 'fin server', 'http://localhost:3000/')
-//   .hook('preSubcommand', (command, sub_command) => {
-//     process.env.EXPERTS_FIN = command.opts().fin;
-//   })
-
 program
   .command('auth', 'run various authentication tasks')
   .command('es', 'run various ElasticSearch tasks')

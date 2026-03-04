@@ -22,34 +22,21 @@
   "license": "MIT",
   "dependencies": {
     "@elastic/elasticsearch": "^8.18.2",
-    "@google-cloud/secret-manager": "^6.1.0",
     "@google-cloud/storage": "^7.7.0",
     "@js-temporal/polyfill": "^0.5.1",
-    "@keycloak/keycloak-admin-client": "^26.3.1",
-    "@ucd-lib/logger": "^0.0.7",
-    "bunyan": "^1.8.15",
+    "@ucd-lib/experts-commons": "file:../commons",
     "commander": "^10.0.0",
-    "componentsjs": "^5.5.1",
     "csv-parse": "^5.6.0",
     "csv-parser": "^3.0.0",
     "csv-stringify": "^6.5.1",
     "csvtojson": "^2.0.10",
-    "dotenv": "^16.0.3",
-    "form-data": "^4.0.5",
     "fs-extra": "^11.1.1",
-    "https": "^1.0.0",
     "jsonld": "^8.1.1",
     "jsonpath": "^1.1.1",
     "md5": "^2.3.0",
-    "nanoid": "^5.1.5",
-    "node-expat": "^2.3.18",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
     "ssh2-sftp-client": "^9.1.0",
     "xml2json": "^0.12.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2",
-    "webpack": "^5.75.0"
   }
 }

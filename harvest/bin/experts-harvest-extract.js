@@ -1,8 +1,10 @@
 import { Command } from 'commander';
 import extract from '../lib/extract/index.js';
-import logger from '../lib/logger.js';
-import config from '../lib/config.js';
-import ExpertsKcAdminClient from '../lib/extract/keycloak.js';
+import {
+  logger,
+  config,
+  ExpertsKcAdminClient
+} from '@ucd-lib/experts-commons';
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 import IAM from '../lib/extract/iam.js';

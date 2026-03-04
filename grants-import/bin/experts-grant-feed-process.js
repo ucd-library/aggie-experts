@@ -7,7 +7,7 @@ import { Command } from '../lib/experts-commander.js';
 import Client from 'ssh2-sftp-client';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
-import GoogleSecret from '../commons/google-secret.js';
+import { GoogleSecret } from '@ucd-lib/experts-commons';
 
 // Trick for getting __dirname in ES6 modules
 import { fileURLToPath } from 'url';

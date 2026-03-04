@@ -1,5 +1,5 @@
 import cache from '../cache.js';
-import logger from '../logger.js';
+import { logger } from '@ucd-lib/experts-commons';
 import parser from 'xml2json';
 import fs from 'fs-extra';
 

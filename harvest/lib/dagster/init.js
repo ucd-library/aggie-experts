@@ -1,8 +1,8 @@
 import PgClient from "../pg-client.js";
-import config from "../config.js";
+import { config } from '@ucd-lib/experts-commons';
 import { fileURLToPath } from "url";
 import path from "path";
-import logger from "../logger.js";
+import { logger } from '@ucd-lib/experts-commons';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

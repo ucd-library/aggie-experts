@@ -1,6 +1,6 @@
 import path from 'path';
 import os from 'os';
-import fs from 'fs-extra';
+import fs from 'fs';
 
 const scriptDir = path.dirname(new URL(import.meta.url).pathname);
 
@@ -74,7 +74,7 @@ const config = {
   },
 
   oidc : {
-    host : env.OIDC_HOST || 'http://auth.library.ucdavis.edu',
+    host : env.OIDC_HOST || 'https://auth.library.ucdavis.edu',
 
     clients : {
       webapp : {
@@ -281,7 +281,7 @@ const config = {
   },
 
   vocab : {
-    ucopFile : path.resolve(scriptDir, '../vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld')
+    ucopFile : path.resolve(scriptDir, 'vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld')
   },
 
   logger : {

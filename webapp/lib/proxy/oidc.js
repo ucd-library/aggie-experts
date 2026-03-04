@@ -1,6 +1,5 @@
 const { auth } = require('express-openid-connect');
-const config = require('.../../commons/config.js.js');
-const logger = require('.../../commons/logger.js.js');
+const { config, logger } = require('@ucd-lib/experts-commons');
 const keycloak = require('../keycloak.js');
 
 function init(app) {

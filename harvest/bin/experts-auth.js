@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import ExpertsKcAdminClient from '../../commons/keycloak-admin';
+import { ExpertsKcAdminClient } from '@ucd-lib/experts-commons';
 
 const program = new Command();
 
@@ -10,8 +10,8 @@ program
   .action(async (opts={}) => {
     const kcAdminClient = new ExpertsKcAdminClient();
     try {
-      const token = await kcAdminClient.getToken({serviceName: opts.serviceName});
-      console.log(token);
+      const {body} = await kcAdminClient.generateServiceAccountToken({serviceName: opts.serviceName});
+      console.log(body.access_token);
     } catch (error) {
       console.error('Error getting token:', error);
       process.exit(1);

@@ -1,5 +1,4 @@
-const config = require('../../commons/config.js.js');
-const logger = require('../../commons/logger.js.js');
+const { config, logger } = require('@ucd-lib/experts-commons');
 const fs = require('fs-extra');
 const path = require('path');
 const YAML = require('yaml');

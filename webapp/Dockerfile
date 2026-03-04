@@ -21,6 +21,11 @@ COPY webapp/models ./models
 COPY webapp/spa ./spa
 
 # Common web app and harvest code
-COPY commons /opt/commons
+RUN mkdir -p /opt/commons
+COPY commons/package.json /opt/commons/package.json
+COPY commons/package-lock.json /opt/commons/package-lock.json
+RUN cd /opt/commons && npm install --omit=dev
+COPY commons/lib /opt/commons/lib
+COPY commons/index.js /opt/commons/index.js
 
 RUN cd spa && npm run dist

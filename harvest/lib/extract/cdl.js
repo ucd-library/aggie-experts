@@ -10,11 +10,9 @@
 import fetch from 'node-fetch';
 import path from 'path';
 
-import logger from '../harvest/lib/logger.js';
-import GoogleSecret from '../google-secret.js';
-import config from './config.js'
-import cache from '../harvest/lib/cache.js';
-import xmlToJson from '../harvest/lib/extract/xml-to-json.js';
+import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
+import cache from '../cache.js';
+import xmlToJson from './xml-to-json.js';
 
 /** Exports a class
 * @class
@@ -56,7 +54,7 @@ export class CdlClient {
       return this.auth;
     }
 
-    if( !config.userConfig.serviceAccountFile ) {
+    if( !config.google.applicationCredentials ) {
       throw new Error('No service account file provided.');
     }
 

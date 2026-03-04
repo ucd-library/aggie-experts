@@ -2,8 +2,7 @@ import jsonpath from 'jsonpath';
 import path from 'path';
 
 import cache from '../../cache.js';
-import logger from '../../logger.js';
-import config from '../../config.js';
+import { logger, config } from '@ucd-lib/experts-commons';
 
 import {transformWorks} from './works.js';
 import {transformGrants} from './grants.js';

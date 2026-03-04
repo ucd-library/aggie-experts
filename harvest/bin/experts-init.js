@@ -1,7 +1,9 @@
 import { Command } from 'commander';
 import { ensureCurrentIndexes, ensureSearchScript } from '../lib/load/elastic-search/index.js';
-import logger from '../lib/logger.js';
-import config from '../lib/config.js';
+import {
+  logger,
+  config
+} from '@ucd-lib/experts-commons';
 import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
 import {init as dgInit} from '../lib/dagster/init.js';
