@@ -321,4 +321,44 @@ export default class ExpertsKcAdminClient {
       status : apiResp.status
     }
   }
+
+  async validateToken(token, opts={}) {
+    // split apart the token and decode the header to get the realm
+    let parts = token.split('.');
+    if( parts.length !== 3 ) {
+      throw new Error('Invalid token format');
+    }
+
+    let header = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+
+    let realm = header?.iss?.split('/realms/')?.[1];
+    if( !realm ) {
+      throw new Error('Invalid token header, missing realm in kid');
+    }
+
+    let url = `${config.oidc.host}/realms/${realm}/protocol/openid-connect/token/introspect`;
+
+    logger.debug(`Validating token with Keycloak at ${url}`);
+
+    await GoogleSecret.loadKeycloakSecrets();
+
+    let apiResp = await fetch(url, {
+      method: 'POST',
+      headers:{
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${config.oidc.clients.admin.clientId}:${config.oidc.clients.admin.secret}`).toString('base64')}`
+      },
+      body: new URLSearchParams({
+        token: token,
+        token_type_hint: 'access_token'
+      })
+    });
+
+    let json = await apiResp.json();
+
+    return {
+      body : json,
+      status : apiResp.status
+    }
+  }
 }

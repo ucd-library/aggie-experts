@@ -40,11 +40,11 @@ def init_databases(context) -> None:
     tags={"dagster/priority": "3"}
 )
 def ensure_current_index(context) -> None:
-    """Ensure current week index in ElasticSearch.  Set stage to this week."""
+    """Ensure current week index in ElasticSearch.  Set latest alias to this week."""
     cmd = ["experts", "es", "ensure"]
     exec(cmd)
 
-    cmd = ["experts", "es", "set-alias", "stage", "--current"]
+    cmd = ["experts", "es", "set-alias", "latest", "--current"]
     exec(cmd)
     return None
 

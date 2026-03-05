@@ -1,15 +1,17 @@
 import path from 'path';
 import fs from 'fs/promises';
-import { existsSync } from 'fs';
-import { getYearWeek, getTodaysDate, isPlainDate } from '@ucd-lib/experts-commons';
-import { Temporal } from '@js-temporal/polyfill';
+import { 
+  getYearWeek, 
+  getTodaysDate, 
+  isPlainDate, 
+  searchTemplate 
+} from '@ucd-lib/experts-commons';
 import getEsClient from '../../elastic-search-client.js';
 import { config, logger } from '@ucd-lib/experts-commons';
 import cache from '../../cache.js';
 import { getNodeByType, SHORT_TYPES } from '../../transform/utils.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
-const SEARCH_TEMPLATE_DIR = path.join(__dirname, '../../../../webapp/models/search/template');
 
 /**
  * @function insert
@@ -418,14 +420,7 @@ async function getIndexDocumentCount(index) {
 }
 
 async function ensureSearchScript(opts={}) {
-  let templateName = opts.template || 'complete';
-  let templatePath = path.resolve(SEARCH_TEMPLATE_DIR, `${templateName}.js`);
-  if( !existsSync(templatePath) ) {
-    throw new Error(`Template file not found: ${templatePath}`);
-  }
-  logger.info(`Loading search template from ${templatePath}...`);
-
-  let template = (await import(templatePath)).default;
+  let template = searchTemplate;
 
   // let template = eval(`(${templateMatch[1]})`);
   if (!template || !template.id || !template.script) {

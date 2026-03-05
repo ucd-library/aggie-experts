@@ -190,7 +190,7 @@ const config = {
     user : env.POSTGRES_USER || 'postgres',
     password : env.POSTGRES_PASSWORD || 'postgres',
     database : env.POSTGRES_DB || 'postgres',
-    schemaFile : !isBrowser ? path.resolve(scriptDir, './reporting/schema.sql') : null,
+    schemaFile : path.resolve(scriptDir, '../../harvest/lib/reporting/schema.sql'),
   },
 
   google : {
