@@ -26,7 +26,10 @@ function getTodaysDate() {
 function isPlainDate(date) {
   if( date instanceof Temporal.PlainDate ) return true;
   // hack for polyfill, which doesn't properly set instanceof
-  if( typeof date === 'object' && date.contructor.name === 'PlainDate' ) return true;
+  if( typeof date === 'object' ) {
+    if( date?.constructor?.name === 'PlainDate' ) return true;
+    if( date?.[Symbol.toStringTag] === 'Temporal.PlainDate' ) return true;
+  }
   return false;
 }
 
@@ -49,7 +52,7 @@ function getYearWeek(opts={}) {
   if( !opts.orgDate ) opts.orgDate = opts.date;
 
   // IMPORTANT, Don't hand us a JS Date object
-  if( !(opts.date instanceof Temporal.PlainDate) ) {
+  if( !isPlainDate(opts.date) ) {
     throw new Error('Date must be a Temporal.PlainDate');
   }
 

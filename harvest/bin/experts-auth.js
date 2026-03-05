@@ -18,4 +18,44 @@ program
     }
   });
 
+program
+  .command('validate')
+  .argument('<token>', 'Access token to validate. Use "." to read from stdin')
+  .description('Validate an access token')
+  .action(async (token, opts={}) => {
+    const kcAdminClient = new ExpertsKcAdminClient();
+
+    if( token === '.' ) {
+      token = await new Promise((resolve, reject) => {
+        let input = '';
+        process.stdin.on('data', chunk => input += chunk);
+        process.stdin.on('end', () => resolve(input.trim()));
+        process.stdin.on('error', err => reject(err));
+      });
+    }
+
+    try {
+      const {body, status} = await kcAdminClient.validateToken(token);
+      if( status === 200 ) {
+        console.log({
+          valid : true,
+          status : status,
+          expires : new Date(body.exp * 1000).toISOString(),
+          token : body
+        });
+      } else {
+        console.log({
+          valid : false,
+          status, 
+          body
+        });
+      }
+      
+      
+    } catch (error) {
+      console.error('Error validating token:', error);
+      process.exit(1);
+    }
+  });
+
 program.parse(process.argv);
