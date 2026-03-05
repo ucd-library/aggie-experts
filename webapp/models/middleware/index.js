@@ -166,10 +166,6 @@ function browse_endpoint(router,model) {
 }
 
 async function fetchExpertId (req, res, next) {
-  if (req.query.email || req.query.ucdPersonUUID || req.query.iamId) {
-    const token = await keycloak.getServiceAccountToken();
-    AdminClient.accessToken = token
-  }
   let user;
   try {
     if (req.query.email) {
@@ -190,7 +186,7 @@ async function fetchExpertId (req, res, next) {
 
   if (user && user?.attributes?.expertId) {
     const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
-    req.query.expertId = expertId;
+    req.expertId = expertId;
     return next();
   } else {
     return res.status(404).send({error: `No expert found`});
@@ -198,46 +194,23 @@ async function fetchExpertId (req, res, next) {
 }
 
 async function convertIds(req, res, next) {
-  const id_array = req.params.ids.replace('ids=', '').split(',');
+  const ids = req.params.ids.replace('ids=', '').split(',');
 
-  // const token = await keycloak.getServiceAccountToken();
-  // AdminClient.accessToken = token
-
-  let user;
-
-  let experts = [];
   // for each id, get the expertId
-  for (const theId of id_array) {
+  let experts = [];
+  for( const id of ids ) {
     try {
-      //Split the id into the type and the id
-      let idParts = theId.split(':');
-      console.log(`${idParts[0]}:${idParts[1]}`)
-      // user = await AdminClient.findByAttribute(`${idParts[0]}:${idParts[1]}`);
-      const q_req = await this.kcadmin.users.makeRequest(
-        {
-          method: 'GET',
-          payloadKey: "q"
-        }
-      );
-      const users = await q_req(
-        {
-            q: `${idParts[0]}:${idParts[1]}`
-        }
-      );
-
-      console.log(users)
+      const matchedUser = await AdminClient.findOneByAttribute(id);      
+      if( matchedUser && matchedUser?.attributes?.expertId ) {
+        const expertId = Array.isArray(matchedUser.attributes.expertId) ? matchedUser.attributes.expertId[0] : matchedUser.attributes.expertId;
+        experts.push(`expert/${expertId}`);
+      }
+    } catch (err) {
+      console.error(`Error fetching user with ${id}`, err);
     }
-    catch (err) {
-      console.error(`Error fetching user with ${theId}`, err);
-    }
-
-    if (user && user?.attributes?.expertId) {
-      const expertId = Array.isArray(user.attributes.expertId) ? user.attributes.expertId[0] : user.attributes.expertId;
-      experts.push(`expert/${expertId}`);
-    }
-    req.query.expert=experts.join(',');
   }
-  console.log(`convertIds: ${req.query.expert}`);
+
+  req.expertIds = experts;
   return next();
 }
 
@@ -259,7 +232,7 @@ function has_access(client) {
 
         // Validate issuer.
         // Only accept tokens from the expected Keycloak realm for this client
-        if (verifiedToken.iss !== config.oidc.host + '/realms/' + config.oidc[client]?.realm) {
+        if (verifiedToken.iss !== config.oidc.host + '/realms/' + config.oidc.clients[client]?.realm) {
           return res.status(401).json({ error: 'Invalid token issuer' });
         }
 
@@ -275,7 +248,7 @@ function has_access(client) {
 
         // Custom authorization logic
         // Implement your own logic here based on token claims
-        if (! verifiedToken?.resource_access?.[client]?.roles?.includes(oidc.roles.serviceAccountAccess) ) {
+        if (! verifiedToken?.resource_access?.[client]?.roles?.includes(config.oidc.roles.serviceAccountAccess) ) {
           return res.status(403).json({ error: 'No Access Role' });
         }
         return next();
@@ -285,7 +258,7 @@ function has_access(client) {
         return res.status(403).json({ error: 'Internal server error' });
       }
     } else {
-      if (req.user?.resource_access?.['aggie-experts'].roles?.includes(oidc.roles.admin) || 
+      if (req.user?.resource_access?.['aggie-experts'].roles?.includes(config.oidc.roles.admin) || 
           req.user?.resource_access?.['aggie-experts'].roles?.includes(client)) {
         return next();
       }
