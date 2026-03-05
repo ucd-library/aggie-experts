@@ -178,6 +178,7 @@ const config = {
       works : env.ES_INDEX_WORKS || 'works',
       grants : env.ES_INDEX_GRANTS || 'grants'
     },
+    // make sure updates here match dagsters lib/configs.py:LoadUserConfig & SetAliasConfig
     aliases : {
       current : 'public',
       stage : 'latest'

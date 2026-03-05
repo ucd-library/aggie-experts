@@ -2,8 +2,7 @@ const path = require('path');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('../../lib/es-client.js');
-const {logger} = require('@ucd-lib/experts-commons');
-
+const { config : commonsConfig, logger } = require('@ucd-lib/experts-commons');
 
 // for seo
 let experts = require('../../models/expert/index.js');
@@ -55,7 +54,7 @@ module.exports = async (app) => {
           const esResult = await esClient.get(
             {
               ...{
-                index: 'experts-current',
+                index: 'experts-'+commonsConfig.elasticsearch.aliases.current,
                 id: user.expertId,
                 _source: false
               }
@@ -78,7 +77,8 @@ module.exports = async (app) => {
         env : config.client.env,
         enableGA4Stats : config.client.enableGA4Stats,
         gaId : config.client.gaId,
-        logger : config.client.logger
+        logger : config.client.logger,
+        esAliases : commonsConfig.elasticsearch.aliases,
       });
     },
 

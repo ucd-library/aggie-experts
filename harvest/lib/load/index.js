@@ -3,7 +3,9 @@ import { logger, config } from '@ucd-lib/experts-commons';
 import { loadFiles as loadEs, getUsersCurrentScholarlyWorks, deleteDocument } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
 
-async function run(user, alias='stage') {
+async function run(user, alias) {
+  if( !alias ) alias = config.elasticsearch.aliases.stage;
+
   // check which aliases to write to.  ALL means both stage & current
   if( alias === 'all' ) {
     alias = [config.elasticsearch.aliases.stage, config.elasticsearch.aliases.current];
