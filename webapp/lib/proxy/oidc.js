@@ -7,25 +7,25 @@ async function init(app) {
   // always set long hashes as secret:
   // openssl rand -base64 512 | tr -d '\n'
   // add policy to expire secret after one year.
-  app.post('/auth/'+config.oidc.serviceName+'/service-account/token', async (req, res) => {
-    let loginResp = await keycloak.loginServiceAccount(
-      req.body.username, req.body.secret
-    );
+  // app.post('/auth/'+config.oidc.serviceName+'/service-account/token', async (req, res) => {
+  //   let loginResp = await keycloak.loginServiceAccount(
+  //     req.body.username, req.body.secret
+  //   );
 
-    // strip id_token, don't have 3rd party users bother with this.
-    if( loginResp.status === 200 ) {
-      if( loginResp.body.id_token ) {
-        delete loginResp.body.id_token;
-      }
-      if( loginResp.body.refresh_token ) {
-        delete loginResp.body.refresh_token;
-      }
-    }
+  //   // strip id_token, don't have 3rd party users bother with this.
+  //   if( loginResp.status === 200 ) {
+  //     if( loginResp.body.id_token ) {
+  //       delete loginResp.body.id_token;
+  //     }
+  //     if( loginResp.body.refresh_token ) {
+  //       delete loginResp.body.refresh_token;
+  //     }
+  //   }
 
-    res
-      .status(loginResp.status)
-      .json(loginResp.body);
-  });
+  //   res
+  //     .status(loginResp.status)
+  //     .json(loginResp.body);
+  // });
 
   app.get('/auth/postLogoutRedirect', (req, res) => {
     res.clearCookie(config.jwt.cookieName, {
@@ -37,10 +37,11 @@ async function init(app) {
   });
 
   await GoogleSecret.loadKeycloakSecrets();
+
   app.use(auth({
     authRequired: false,
     issuerBaseURL: config.oidc.host+'/realms/'+config.oidc.clients.webapp.realm,
-    baseURL: config.oidc.host,
+    baseURL: config.url,
     clientID: config.oidc.clients.webapp.clientId,
     clientSecret: config.oidc.clients.webapp.secret,
     secret : config.jwt.secret,

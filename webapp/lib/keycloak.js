@@ -68,7 +68,7 @@ class KeycloakUtils {
   }
 
   async loginServiceAccount() {
-    let apiResp = await fetch(config.oidc.baseUrl+'/protocol/openid-connect/token', {
+    let apiResp = await fetch(config.oidc.host+'/realms/'+config.oidc.clients.webapp.realm+'/protocol/openid-connect/token', {
       method: 'POST',
       headers:{
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -146,7 +146,7 @@ class KeycloakUtils {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-    let request = fetch(config.oidc.baseUrl+'/protocol/openid-connect/userinfo', {
+    let request = fetch(config.oidc.host+'/realms/'+config.oidc.clients.webapp.realm+'/protocol/openid-connect/userinfo', {
       signal: controller.signal,
       headers : {
         authorization : 'Bearer '+token
