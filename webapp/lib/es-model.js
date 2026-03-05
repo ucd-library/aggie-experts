@@ -12,8 +12,8 @@ class EsDataModel {
 
     this.UPDATE_RETRY_COUNT = 10;
 
-    this.readIndexAlias = modelName+'s-stage';
-    this.writeIndexAlias = modelName+'s-stage';
+    this.readIndexAlias = modelName+'s-'+config.elasticsearch.aliases.current;
+    this.writeIndexAlias = modelName+'s-'+config.elasticsearch.aliases.current;
 
     this.client = es;
   }
