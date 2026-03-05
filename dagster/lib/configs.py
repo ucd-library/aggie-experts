@@ -14,10 +14,9 @@ from pydantic import Field
 class FetchUserListConfig(Config):
     group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # Default value for group ID
 
-
+# Make sure this matches /commons/lib/config.js:elasticsearch.aliases
 class LoadUserConfig(Config):
-    alias: Literal['stage', 'current', 'all'] = 'stage'  # Default alias/index for loading
-
+    alias: Literal['public', 'latest', 'all'] = 'latest'  # Default alias/index for loading
 
 class YearWeekConfig(Config):
     year_week: str = Field(..., description="Year-week for CaskFS purge in format YYYY-WW")
@@ -36,10 +35,11 @@ class NotifyConfig(Config):
         description="Optional slack notification message"
     )
 
+# Make sure this matches /commons/lib/config.js:elasticsearch.aliases
 
 class SetAliasConfig(Config):
     year_week: str = Field(..., description="Year-week for CaskFS purge in format YYYY-WW")
-    alias: Literal['stage', 'current']
+    alias: Literal['latest', 'public'] 
 
 
 class ReloadSearchTemplateConfig(Config):

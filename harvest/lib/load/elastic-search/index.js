@@ -499,9 +499,10 @@ async function loadSearchScript(scriptId, scriptBody) {
   logger.info(`Successfully loaded search script: ${scriptId}`);
 }
 
-async function getUsersCurrentScholarlyWorks(expertId, type, alias='stage') {
+async function getUsersCurrentScholarlyWorks(expertId, type, alias) {
+  if( !alias ) alias = config.elasticsearch.aliases.stage;
   const esClient = await getEsClient();
-  const index = type+'s-'+config.elasticsearch.aliases[alias];
+  const index = type+'s-'+alias;
   const resp = await esClient.search({
     index,
     body: {

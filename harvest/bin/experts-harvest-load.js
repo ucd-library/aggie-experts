@@ -15,7 +15,9 @@ program.name('load')
   .description('load data for aggie experts into database(s)')
   .argument('<user-id>', 'User id to extract')
   .option('--reporting', 'Enable reporting for this load')
-  .addOption(new Option('--alias <alias>', 'ElasticSearch alias').default('stage').choices(['current', 'stage', 'all']))
+  .addOption(new Option('--alias <alias>', 'ElasticSearch alias')
+    .default(config.elasticsearch.aliases.stage)
+    .choices([config.elasticsearch.aliases.current, config.elasticsearch.aliases.stage, 'all']))
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .action(async (userId, options) => {
     userId = wrapUserDomain(userId);
