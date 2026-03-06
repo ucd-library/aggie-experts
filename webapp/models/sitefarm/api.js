@@ -230,7 +230,7 @@ router.get(
   // ),
   // sitefarm_valid_path_error,
   has_access('sitefarm'),
-  convertIds, // convert submitted iamIds to expertIds
+  convertIds,
   async (req, res, next) => {
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
@@ -252,9 +252,10 @@ router.get(
       "expert": []
     };
 
-    if (req?.query.expert) {
-      params.expert = req.query.expert.split(',');
+    if( Array.isArray(req.expertIds) && req.expertIds.length ) {
+      params.expert = req.expertIds;
     }
+
     let opts = {
       "id": "modified-date",
       "params": params

@@ -13,7 +13,7 @@ router.get(
   // is_miv,
   fetchExpertId,
   async (req, res) => {
-    const expertId = req.query.expertId;
+    const expertId = req.expertId;
     try {
       res.send(expertId);
     } catch (err) {
@@ -75,10 +75,9 @@ router.get(
   fetchExpertId,
   async (req, res) => {
     const params = {};
-    req.query.expert = `expert/${req.query.expertId}`;
 
     // default to today unless an until date is provided to filter results
-    if( !req.query.until ) req.query.until = generateGrantFormattedDate();    
+    const until = req.query.until || generateGrantFormattedDate();
     
     for (const key in template.script.params) {
       if (req.query[key]) {
@@ -87,16 +86,21 @@ router.get(
         params[key] = template.script.params[key];
       }
     }
-    params.expert = req.query.expert;
+    
+    // Override with actual expert ID (Express 5: can't mutate req.query)
+    params.expert = `expert/${req.expertId}`;
+    params.until = until;
 
     opts = {
       id: template.id,
       params
     };
+
     try {
       await expert.verify_template(template);
       const find = await expert.search(opts);
       //jq '.hits[0]["_inner_hits"][0]| {"@id","title":.name,"end_date":.dateTimeInterval.end.dateTime,"start_date":.dateTimeInterval.start.dateTime,"grant_amount":.totalAwardAmount,"sponsor_id":.sponsorAwardId,"sponsor_name":.assignedBy.name,"type":.["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"].name,"role_label":(.relatedBy[] | select(.inheres_in) | .["@type"])}' new.json
+
       let grants = [];
       if (find?.hits[0]) {
         for (const hit of find.hits[0]._inner_hits) {
@@ -158,14 +162,13 @@ router.get(
 
 router.get(
   '/raw_grants',
-  // is_miv,
+  has_access('miv'),
   fetchExpertId,
   async (req, res) => {
     const params = {};
-    req.expert = `expert/${req.query.expertId}`;
     
     // default to today unless an until date is provided to filter results
-    if( !req.query.until ) req.query.until = generateGrantFormattedDate();
+    const until = req.query.until || generateGrantFormattedDate();
     
     for (const key in template.script.params) {
       if (req.query[key]) {
@@ -174,7 +177,10 @@ router.get(
         params[key] = template.script.params[key];
       }
     }
-    params.expert = `expert/${req.query.expertId}`;
+    
+    // Override with actual expert ID (Express 5: can't mutate req.query)
+    params.expert = `expert/${req.expertId}`;
+    params.until = until;
 
     opts = {
       id: template.id,
