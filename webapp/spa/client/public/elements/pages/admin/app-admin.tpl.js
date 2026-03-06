@@ -276,14 +276,14 @@ return html`
               ${this.uniqueElasticIndexes.map(
                 (index) => html`
                   <option
-                    .value=${index}
-                    ?selected=${this.currentElasticIndex === index || (!this.currentElasticIndex && index.includes('current'))}>
+                    .value=${index.indexDisplayName}
+                    ?selected=${this.currentElasticIndex === index.indexDisplayName}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
-                        ${index}<span style="font-weight: 400; margin-left: .5rem;">(Latest)</span>
+                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">(${index.displayLabels})</span>
                       </span>
                       <span style="color: #4C4C4C; font-size: .875rem; font-style: italic; font-weight: 400; margin-left: .5rem; margin-top: .09rem;">
-                        Feb 2 - 9
+                        ${index.dateRange}
                       </span>
                     </span>
                   </option>
@@ -331,7 +331,7 @@ return html`
       </ul>
       ${this.uniqueElasticIndexes.length === 0 ? html`<p>Loading...</p>` : html`
           <ul class="list--arrow">
-            ${this.uniqueElasticIndexes.map(index => html`<li>${index}</li>`)}
+            ${this.uniqueElasticIndexes.map(index => html`<li>${index.indexDisplayName} (${index.displayLabels}) - ${index.dateRange}</li>`)}
           </ul>
         `}
 
@@ -358,9 +358,9 @@ return html`
               ${this.uniqueElasticIndexes.map(
                 (index) => html`
                   <option
-                    .value=${index}
-                    ?selected=${this.currentElasticIndex === index || (!this.currentElasticIndex && index.includes('current'))}>
-                    ${index}
+                    .value=${index.indexDisplayName}
+                    ?selected=${this.currentElasticIndex === index.indexDisplayName}>
+                    ${index.indexDisplayName}
                   </option>
                 `
               )}
@@ -376,9 +376,9 @@ return html`
               ${this.uniqueElasticIndexes.map(
                 (index) => html`
                   <option
-                    .value=${index}
-                    ?disabled=${index.includes('current')}>
-                    ${index}
+                    .value=${index.indexDisplayName}
+                    ?disabled=${index.displayLabels.toLowerCase().includes('public')}>
+                    ${index.indexDisplayName}
                   </option>
                 `
               )}

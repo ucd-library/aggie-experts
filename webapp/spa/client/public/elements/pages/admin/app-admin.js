@@ -6,7 +6,7 @@ import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import '@ucd-lib/theme-elements/brand/ucd-theme-list-accordion/ucd-theme-list-accordion.js'
 
-import { getYearWeek, getTodaysDate } from '/opt/commons/lib/year-week.js';
+import { getYearWeek, getTodaysDate, parseYearWeek } from '/opt/commons/lib/year-week.js';
 
 import '../../components/modal-overlay.js';
 
@@ -96,38 +96,67 @@ export default class AppAdmin extends Mixin(LitElement)
     if( !this.isAdmin ) return;
     
     let res = await this.SchemaModel.getIndexes();
-    
+
     let indexes = [];
     for( let indexName in (res.body || {}) ) {
-      let indexYYYYMM = indexName.replace(/^(experts|grants|works)-/, '');
-      let aliasName = (res.body || {})[indexName]?.aliases?.[0];
+      let indexDisplayName = indexName.replace(/^(experts|grants|works)-/, ''); // 2026-09-dc-admin-page
+      let indexYYYYMM = indexDisplayName.split('-')?.[0] + '-' + indexDisplayName.split('-')?.[1]; // 2026-09
+      let aliasName = (res.body || {})[indexName]?.aliases?.[0]; // experts-public, experts-latest, etc
 
-      let displayName = indexYYYYMM;
-      if( aliasName ) displayName += ' (' + aliasName.split('-')?.[1] + ')';
-      if( aliasName?.includes('current') ) displayName += ' [Selected]';
-      if( !aliasName ) aliasName = '(No alias)';
+      // (Latest, Previewing, Public)
+      let displayLabels = '';
+      let current = APP_CONFIG.esAliases.current;
+      let stage = APP_CONFIG.esAliases.stage;
+      if( aliasName?.includes(current) ) displayLabels += current.charAt(0).toUpperCase() + current.slice(1);
+      if( aliasName?.includes(stage) ) displayLabels += stage.charAt(0).toUpperCase() + stage.slice(1);
+
+  
+      // TODO check if previewing index
+
+
+      // subtext of dropdown, ie Feb 2 - 9, or Feb 28 - Mar 3
+      let yearWeek = parseYearWeek(indexYYYYMM, { allValues : true });
+      let dateRange = this._formatWeekRange(
+        yearWeek.weekStart,
+        yearWeek.weekEnd
+      );
 
       indexes.push({
         indexName,
+        indexYYYYMM,
+        indexDisplayName,
         aliasName,
-        displayName
+        displayLabels,
+        dateRange
       });
     }
 
     this.availableElasticIndexes = indexes;
+    this.uniqueElasticIndexes = this._dedupeIndexesIgnoringAlias(indexes);
+  }
 
-    console.log('TODO should break into { yyyy-mm, alias, dateRange, latest|public|etc }');
-    console.log('availableElasticIndexes', this.availableElasticIndexes);
-    console.log('indexes', indexes);
+  _dedupeIndexesIgnoringAlias(indexes=[]) {
+    const unique = new Map();
 
-    this.uniqueElasticIndexes = [...new Set(indexes.map(i => i.displayName))];
+    for( let index of indexes ) {
+      const key = JSON.stringify({
+        indexYYYYMM: index.indexYYYYMM,
+        indexDisplayName: index.indexDisplayName,
+        displayLabels: index.displayLabels,
+        dateRange: index.dateRange
+      });
+
+      if( !unique.has(key) ) unique.set(key, index);
+    }
+
+    return Array.from(unique.values());
   }
 
   async _onPreviewIndexChange(e) {
     let indexDisplayName = e.detail.value;
 
     this.availableElasticIndexes.forEach(i => {
-      i.previewEsIndex = i.displayName === indexDisplayName && !i.displayName.includes('current');
+      i.previewEsIndex = i.indexDisplayName === indexDisplayName && !i.displayLabels.toLowerCase().includes('public');
     });
 
     console.log('TODO add banner in fin-app, also indexedb')
@@ -180,6 +209,28 @@ export default class AppAdmin extends Mixin(LitElement)
     }
   }
 
+  _formatWeekRange(weekStart, weekEnd, locale = 'en-US') {
+    let monthDayOptions = {
+      month: 'short',
+      day: 'numeric'
+    };
+
+    let dayOnlyOptions = {
+      day: 'numeric'
+    };
+
+    let sameMonthAndYear =
+      weekStart.year === weekEnd.year &&
+      weekStart.month === weekEnd.month;
+
+    let startText = weekStart.toLocaleString(locale, monthDayOptions);
+    let endText = sameMonthAndYear
+      ? weekEnd.toLocaleString(locale, dayOnlyOptions)
+      : weekEnd.toLocaleString(locale, monthDayOptions);
+
+    return `${startText} - ${endText}`;
+  }
+
   _onSwitchIndexDropdownChange(e) {
     this.toSwitchIndex = e.detail.value;
   }
@@ -198,7 +249,7 @@ export default class AppAdmin extends Mixin(LitElement)
   async _onSaveIndexSwitch() {
     this.showModal = false;
     
-    let indexesToSwitch = this.availableElasticIndexes.filter(a => a.displayName === this.toSwitchIndex).map(a => {
+    let indexesToSwitch = this.availableElasticIndexes.filter(a => a.indexDisplayName === this.toSwitchIndex).map(a => {
         return {
             indexName: a.indexName,
             aliasName: a.indexName.split('-')?.[0]+'-current'
@@ -215,7 +266,7 @@ export default class AppAdmin extends Mixin(LitElement)
   }
 
   async _onDeleteIndex() {
-    let indexesToDelete = this.availableElasticIndexes.filter(a => a.displayName === this.toSwitchIndex).map(a => a.indexName);
+    let indexesToDelete = this.availableElasticIndexes.filter(a => a.indexDisplayName === this.toSwitchIndex).map(a => a.indexName);
 
     await this.SchemaModel.deleteIndex(indexesToDelete);
 

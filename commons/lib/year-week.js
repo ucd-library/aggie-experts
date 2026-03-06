@@ -123,8 +123,75 @@ function getYearWeek(opts={}) {
   return year+'-'+week;
 }
 
+/**
+ * @function parseYearWeek
+ * @description Inverse of getYearWeek().  Takes a year-week string (format: YYYY-WW)
+ * and returns the computed week metadata object using the same Saturday-based week logic.
+ *
+ * @param {String} yearWeek year-week string in format YYYY-WW
+ * @param {Object} opts options object
+ * @param {Boolean} opts.asString if true, weekStart/weekEnd/date are returned as ISO strings
+ *
+ * @returns {Object} object with yearWeek, weekStart, weekEnd, and date
+ */
+function parseYearWeek(yearWeek, opts={}) {
+  if( typeof yearWeek !== 'string' ) {
+    throw new Error('yearWeek must be a string in format YYYY-WW');
+  }
+
+  const parsed = yearWeek.match(/^(\d{4})-(\d{2})$/);
+  if( !parsed ) {
+    throw new Error('Invalid yearWeek format. Expected YYYY-WW');
+  }
+
+  const year = Number(parsed[1]);
+  const week = Number(parsed[2]);
+  if( week < 1 || week > 53 ) {
+    throw new Error('Invalid week value. Week must be between 01 and 53');
+  }
+
+  // find first Saturday for the provided year using the same logic as getYearWeek
+  const yearOffset = new Temporal.PlainDate(year, 1, 1).dayOfWeek;
+  let firstSat = null;
+
+  if( yearOffset === 6 ) {
+    firstSat = new Temporal.PlainDate(year, 1, 1);
+  } else if( yearOffset === 7 ) {
+    firstSat = new Temporal.PlainDate(year, 1, 7);
+  } else {
+    firstSat = new Temporal.PlainDate(year, 1, 7-yearOffset);
+  }
+
+  const weekStart = Temporal.PlainDate.from(firstSat).add({ days: (week-1)*7 });
+  const weekEnd = Temporal.PlainDate.from(firstSat).add({ days: (week*7) - 1 });
+
+  // Validate that the requested week actually exists for this year under our week rules.
+  // Some years have only 52 weeks by this scheme.
+  const computed = getYearWeek({ date: weekStart, orgDate: weekStart, allValues: true });
+  if( computed.yearWeek !== yearWeek ) {
+    throw new Error(`Invalid yearWeek value for configured week rules: ${yearWeek}`);
+  }
+
+  if( opts.asString ) {
+    return {
+      yearWeek,
+      weekStart: weekStart.toString(),
+      weekEnd: weekEnd.toString(),
+      date: weekStart.toString()
+    };
+  }
+
+  return {
+    yearWeek,
+    weekStart,
+    weekEnd,
+    date: weekStart
+  };
+}
+
 export {
   getYearWeek,
   getTodaysDate,
-  isPlainDate
+  isPlainDate,
+  parseYearWeek
 }
