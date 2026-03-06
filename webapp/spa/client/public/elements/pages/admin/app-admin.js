@@ -19,19 +19,28 @@ export default class AppAdmin extends Mixin(LitElement)
     return {
       isLoggedIn : { type : Boolean },
       availableElasticIndexes : { type : Array },
+      uniqueElasticIndexes : { type : Array },
       currentElasticIndex : { type : String },
       isAdmin : { type : Boolean },
-      currentDate : { type : String },
-      yearWeek : { type : String },
-      dateRangeStart : { type : String },
-      dateRangeEnd : { type : String },
-      uniqueElasticIndexes : { type : Array },
+      // currentDate : { type : String },
+      // yearWeek : { type : String },
+      // dateRangeStart : { type : String },
+      // dateRangeEnd : { type : String },
       showModal : { type : Boolean },
       modalTitle : { type : String },
       modalSaveText : { type : String },
       modalContent : { type : String },
       toSwitchIndex : { type : String },
-      manageDataAction : { type : String }
+      manageDataAction : { type : String },
+      dataVersionFailed : { type : Boolean },
+      dataVersionPending : { type : Boolean },
+      dataVersionSuccess : { type : Boolean },
+      publicIndexName : { type : String },
+      publicIndexDateRange : { type : String },
+      latestIndexName : { type : String },
+      latestIndexDateRange : { type : String },
+      dataMismatch : { type : Boolean },
+      mismatchedIndexes : { type : Array }
     }
   }
 
@@ -45,10 +54,10 @@ export default class AppAdmin extends Mixin(LitElement)
     this.currentElasticIndex = '';
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
 
-    this.currentDate = '';
-    this.yearWeek = '';
-    this.dateRangeStart = '';
-    this.dateRangeEnd = '';
+    // this.currentDate = '';
+    // this.yearWeek = '';
+    // this.dateRangeStart = '';
+    // this.dateRangeEnd = '';
 
     this.showModal = false;
     this.modalTitle = "Switch Index Alias";
@@ -56,6 +65,17 @@ export default class AppAdmin extends Mixin(LitElement)
     this.modalContent = "<p>Changing the alias will update the index the public application is currently using. Are you sure you want to switch the current index alias to point to this new index?</p>";
     this.toSwitchIndex = '';
     this.manageDataAction = 'preview';
+    this.dataVersionFailed = false;
+    this.dataVersionPending = false;
+    this.dataVersionSuccess = false;
+
+    this.publicIndexName = '';
+    this.publicIndexDateRange = '';
+    this.latestIndexName = '';
+    this.latestIndexDateRange = '';
+
+    this.dataMismatch = false;
+    this.mismatchedIndexes = [];
 
     this.render = render.bind(this);
   }
@@ -73,13 +93,13 @@ export default class AppAdmin extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'admin' ) return;
     
-    let yearWeek = getYearWeek({ allValues : true });
-    let todaysDate = getTodaysDate();
+    // let yearWeek = getYearWeek({ allValues : true });
+    // let todaysDate = getTodaysDate();
 
-    this.dateRangeStart = yearWeek.weekStart.toLocaleString();
-    this.dateRangeEnd = yearWeek.weekEnd.toLocaleString();
-    this.currentDate = todaysDate.toLocaleString();
-    this.yearWeek = yearWeek.yearWeek;
+    // this.dateRangeStart = yearWeek.weekStart.toLocaleString();
+    // this.dateRangeEnd = yearWeek.weekEnd.toLocaleString();
+    // this.currentDate = todaysDate.toLocaleString();
+    // this.yearWeek = yearWeek.yearWeek;
 
     if( !(APP_CONFIG.user?.roles || []).includes('admin') ) {
       this.dispatchEvent(
@@ -88,7 +108,10 @@ export default class AppAdmin extends Mixin(LitElement)
       return;
     } 
 
-    if( this.isAdmin ) await this._getAvailableElasticIndexes();
+    if( this.isAdmin ) {
+      await this._getAvailableElasticIndexes();
+      this._updateVersionStats();
+    }
     this._updateSlimSelectStyles();
   }
 
@@ -101,7 +124,7 @@ export default class AppAdmin extends Mixin(LitElement)
     for( let indexName in (res.body || {}) ) {
       let indexDisplayName = indexName.replace(/^(experts|grants|works)-/, ''); // 2026-09-dc-admin-page
       let indexYYYYMM = indexDisplayName.split('-')?.[0] + '-' + indexDisplayName.split('-')?.[1]; // 2026-09
-      let aliasName = (res.body || {})[indexName]?.aliases?.[0]; // experts-public, experts-latest, etc
+      let aliasName = (res.body || {})[indexName]?.aliases?.[0] || ''; // experts-public, experts-latest, etc
 
       // (Latest, Previewing, Public)
       let displayLabels = '';
@@ -120,6 +143,12 @@ export default class AppAdmin extends Mixin(LitElement)
         yearWeek.weekStart,
         yearWeek.weekEnd
       );
+      let dateRangeFull = this._formatWeekRange
+      (
+        yearWeek.weekStart,
+        yearWeek.weekEnd,
+        true
+      );
 
       indexes.push({
         indexName,
@@ -127,12 +156,46 @@ export default class AppAdmin extends Mixin(LitElement)
         indexDisplayName,
         aliasName,
         displayLabels,
-        dateRange
+        dateRange,
+        dateRangeFull
       });
     }
 
     this.availableElasticIndexes = indexes;
-    this.uniqueElasticIndexes = this._dedupeIndexesIgnoringAlias(indexes);
+    this.uniqueElasticIndexes = this._dedupeIndexesIgnoringAlias(indexes)
+      .sort((a, b) => {
+        // sort by date
+        if( a.indexYYYYMM > b.indexYYYYMM ) return 1;
+        if( a.indexYYYYMM < b.indexYYYYMM ) return -1;
+      });
+    console.log('availableElasticIndexes', this.availableElasticIndexes);
+    console.log('uniqueElasticIndexes', this.uniqueElasticIndexes);
+  }
+
+  _updateVersionStats() {
+    // update the public/latest info, and show errors if there are mismatches or pending versions
+    let publicIndex = this.availableElasticIndexes.find(i => i.aliasName.includes(APP_CONFIG.esAliases.current));
+    let latestIndex = this.availableElasticIndexes.find(i => i.aliasName.includes(APP_CONFIG.esAliases.stage));
+
+    this.publicIndexName = publicIndex?.indexDisplayName || '';
+    this.publicIndexDateRange = publicIndex?.dateRangeFull || '';
+    this.latestIndexName = latestIndex?.indexDisplayName || '';
+    this.latestIndexDateRange = latestIndex?.dateRangeFull || '';
+
+    this.dataVersionPending = this.publicIndexName !== this.latestIndexName;
+
+    // TODO other statuses and mismatch stuff
+
+    // this.dataVersionFailed = !!(latestIndex && publicIndex && latestIndex.indexName !== publicIndex.indexName && !latestIndex.displayLabels.toLowerCase().includes('public'));
+    // this.dataVersionSuccess = !!(latestIndex && publicIndex && latestIndex.indexName === publicIndex.indexName);
+    // this.dataMismatch = !!(latestIndex && publicIndex && latestIndex.indexName !== publicIndex.indexName);
+    // this.mismatchedIndexes = [{
+    //   indexName: latestIndex?.indexName,
+    //   aliasName: latestIndex?.aliasName
+    // }, {
+    //   indexName: publicIndex?.indexName,
+    //   aliasName: publicIndex?.aliasName
+    // }];
   }
 
   _dedupeIndexesIgnoringAlias(indexes=[]) {
@@ -209,9 +272,10 @@ export default class AppAdmin extends Mixin(LitElement)
     }
   }
 
-  _formatWeekRange(weekStart, weekEnd, locale = 'en-US') {
+  _formatWeekRange(weekStart, weekEnd, useFullMonth = false) {
+    let locale = 'en-US';
     let monthDayOptions = {
-      month: 'short',
+      month: useFullMonth ? 'long' : 'short',
       day: 'numeric'
     };
 
@@ -228,7 +292,7 @@ export default class AppAdmin extends Mixin(LitElement)
       ? weekEnd.toLocaleString(locale, dayOnlyOptions)
       : weekEnd.toLocaleString(locale, monthDayOptions);
 
-    return `${startText} - ${endText}`;
+    return `${startText} – ${endText}`;
   }
 
   _onSwitchIndexDropdownChange(e) {

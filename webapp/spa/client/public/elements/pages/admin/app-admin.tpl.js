@@ -199,17 +199,17 @@ return html`
 <div class="admin container top">
   <div class="section">    
 
-    <div class="admin-status-banner failed">
+    <div class="admin-status-banner failed" ?hidden="${!this.dataVersionFailed}">
       <ucdlib-icon icon="ucdlib-experts:fa-ban"></ucdlib-icon>
       <p>Latest data version ingest failed</p>
     </div>
 
-    <div class="admin-status-banner pending">
+    <div class="admin-status-banner pending" ?hidden="${!this.dataVersionPending}">
       <ucdlib-icon icon="ucdlib-experts:fa-hourglass-half"></ucdlib-icon>
       <p>New data version ready for review</p>
     </div>
 
-    <div class="admin-status-banner success">
+    <div class="admin-status-banner success" ?hidden="${!this.dataVersionSuccess}">
       <ucdlib-icon icon="ucdlib-experts:fa-check-circle"></ucdlib-icon>
       <p>Latest data version is live on the public site</p>
     </div>
@@ -217,24 +217,23 @@ return html`
     <div class="l-2col">
       <div class="l-first">
         <h3>Public Version</h3>
-        <h5 class="index-name">YYYY-MM</h5>
-        <p class="index-date-range">Febbbbb 2 - 8, 2026</p>
+        <h5 class="index-name">${this.publicIndexName}</h5>
+        <p class="index-date-range">${this.publicIndexDateRange}</p>
       
       </div>
       <div class="l-second">
 
         <h3>Latest Version</h3>
-        <h5 class="index-name">YYYY-MM</h5>
-        <p class="index-date-range">Febbbbb 2 - 8, 2026</p>
+        <h5 class="index-name">${this.latestIndexName}</h5>
+        <p class="index-date-range">${this.latestIndexDateRange}</p>
 
-        <div class="data-mismatch-warning">
-          <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
-          
+        <div class="data-mismatch-warning" ?hidden="${!this.dataMismatch}">
+          <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>          
           <div>
             <strong>Data mismatch detected</strong>
-            <p class="data-mismatch-index">experts-2026-42 (alias: experts-latest)</p>
-            <p class="data-mismatch-index">grants-2026-42 (alias: grants-latest)</p>
-            <p class="data-mismatch-index">works-2026-42 (alias: works-latest)</p>  
+            ${this.mismatchedIndexes.map(index => html`
+              <p class="data-mismatch-index">${index.indexName} (alias: ${index.aliasName})</p>
+            `)}
           </div>
         </div>
       </div>
@@ -277,10 +276,11 @@ return html`
                 (index) => html`
                   <option
                     .value=${index.indexDisplayName}
-                    ?selected=${this.currentElasticIndex === index.indexDisplayName}>
+                    ?selected=${this.currentElasticIndex === index.indexDisplayName}
+                    ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current)}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
-                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">(${index.displayLabels})</span>
+                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels ? ` (${index.displayLabels})` : ''}</span>
                       </span>
                       <span style="color: #4C4C4C; font-size: .875rem; font-style: italic; font-weight: 400; margin-left: .5rem; margin-top: .09rem;">
                         ${index.dateRange}
@@ -292,111 +292,75 @@ return html`
             </select>
           </ucd-theme-slim-select>
 
-            
           <button
             ?disabled=${this.toSwitchIndex}
             class="btn btn--primary btn--lg" 
             style="margin-top: 2.38rem;" 
-            @click="${this._onPreviewIndexChange}">Preview Locally</button>
-
-
-
+            @click="${this._onPreviewIndex}">Preview Locally</button>
         </div>
         <div ?hidden="${this.manageDataAction !== 'publish'}">
-          TODO publish stuff
+          <ucd-theme-slim-select @change="${this._updateSlimSelectStyles}">
+            <select>
+               <option><span style="margin-left: .5rem;">Select data version</span></option>
+              ${this.uniqueElasticIndexes.map(
+                (index) => html`
+                  <option
+                    .value=${index.indexDisplayName}
+                    ?selected=${this.currentElasticIndex === index.indexDisplayName}
+                    ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current)}>
+                    <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
+                      <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
+                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels ? ` (${index.displayLabels})` : ''}</span>
+                      </span>
+                      <span style="color: #4C4C4C; font-size: .875rem; font-style: italic; font-weight: 400; margin-left: .5rem; margin-top: .09rem;">
+                        ${index.dateRange}
+                      </span>
+                    </span>
+                  </option>
+                `
+              )}
+            </select>
+          </ucd-theme-slim-select>
+
+          <button
+            ?disabled=${this.toSwitchIndex}
+            class="btn btn--primary btn--lg" 
+            style="margin-top: 2.38rem;" 
+            @click="${this._onPublishIndex}">Publish to Public</button>
         </div>
         <div ?hidden="${this.manageDataAction !== 'delete'}">
-          TODO delete stuff
+          <ucd-theme-slim-select @change="${this._updateSlimSelectStyles}">
+            <select>
+               <option><span style="margin-left: .5rem;">Select data version</span></option>
+              ${this.uniqueElasticIndexes.map(
+                (index) => html`
+                  <option
+                    .value=${index.indexDisplayName}
+                    ?selected=${this.currentElasticIndex === index.indexDisplayName}
+                    ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current) || index.aliasName.includes(APP_CONFIG.esAliases.stage)}>
+                    <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
+                      <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
+                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels ? ` (${index.displayLabels})` : ''}</span>
+                      </span>
+                      <span style="color: #4C4C4C; font-size: .875rem; font-style: italic; font-weight: 400; margin-left: .5rem; margin-top: .09rem;">
+                        ${index.dateRange}
+                      </span>
+                    </span>
+                  </option>
+                `
+              )}
+            </select>
+          </ucd-theme-slim-select>
+
+          <button
+            ?disabled=${this.toSwitchIndex}
+            class="btn btn--primary btn--lg" 
+            style="margin-top: 2.38rem; background-color: #C10230; color: white;" 
+            @click="${this._onDeleteIndex}">Delete Version</button>
         </div>
       </div>
 
-
-
-
     </div>
-
-
-
-
-
-    <br><br><br><br><br><br><br><br><br><br>
-    // old
-
-    <h3>Current Week</h3>
-    <div>
-      <ul style="list-style-type: none; padding-left: 0;">
-        <li><strong>Date:</strong> ${this.currentDate}</li>
-        <li><strong>Year-Week Pattern:</strong> ${this.yearWeek}</li>
-        <li><strong>Current Date Range:</strong> ${this.dateRangeStart} to ${this.dateRangeEnd}</li>
-      </ul>
-      ${this.uniqueElasticIndexes.length === 0 ? html`<p>Loading...</p>` : html`
-          <ul class="list--arrow">
-            ${this.uniqueElasticIndexes.map(index => html`<li>${index.indexDisplayName} (${index.displayLabels}) - ${index.dateRange}</li>`)}
-          </ul>
-        `}
-
-        
-        ${this.availableElasticIndexes.length === 0 ? html`<p>Loading...</p>` : html`
-          <ul class="list--arrow">
-            ${this.availableElasticIndexes.map(i => html`<li>${i.indexName} (alias: ${i.aliasName})</li>`)}
-          </ul>
-        `}
-
-        <button
-            ?disabled=${!this.toSwitchIndex}
-            class="btn btn--primary" 
-            style="margin-top: 1rem; background-color: #C10230; color: white;" 
-          @click="${this._onDeleteIndex}">Delete Index</button>
-
-
-
-                  <div class="preview-index-panel">
-          <h3>Preview Index</h3>
-          <ucd-theme-slim-select @change="${this._onPreviewIndexChange}">
-            <select>
-               <option></option>
-              ${this.uniqueElasticIndexes.map(
-                (index) => html`
-                  <option
-                    .value=${index.indexDisplayName}
-                    ?selected=${this.currentElasticIndex === index.indexDisplayName}>
-                    ${index.indexDisplayName}
-                  </option>
-                `
-              )}
-            </select>
-          </ucd-theme-slim-select>
-        </div>
-
-        <div class="switch-index-panel">
-          <h3 style="margin-top: 5rem;">Switch Current/Active Index</h3>
-          <ucd-theme-slim-select @change="${this._onSwitchIndexDropdownChange}">
-            <select>
-               <option></option>
-              ${this.uniqueElasticIndexes.map(
-                (index) => html`
-                  <option
-                    .value=${index.indexDisplayName}
-                    ?disabled=${index.displayLabels.toLowerCase().includes('public')}>
-                    ${index.indexDisplayName}
-                  </option>
-                `
-              )}
-            </select>
-          </ucd-theme-slim-select>
-          <button
-            ?disabled=${!this.toSwitchIndex}
-            class="btn btn--primary" 
-            style="margin-top: 1rem;" 
-            @click="${this._onSwitchIndex}">Switch Index</button>
-
-          
-            
-
-        </div>
-    </div>
-
-    <br><hr><br>
 
     <app-modal-overlay
       ?hidden="${!this.showModal}"
