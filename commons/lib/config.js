@@ -188,7 +188,7 @@ const config = {
   },
 
   google : {
-    applicationCredentials : process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    applicationCredentials : process.env.GOOGLE_APPLICATION_CREDENTIALS || '/etc/aggie-experts/service-account.json',
     projectId : process.env.GOOGLE_PROJECT_ID || 'aggie-experts',
     cacheSecrets : process.env.CACHE_GOOGLE_SECRETS !== 'false',
     secrets : {
