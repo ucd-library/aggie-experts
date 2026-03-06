@@ -102,7 +102,10 @@ def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_js
         if no_json_parse:
             return last_line
 
-        return json.loads(last_line)
+        try:
+            return json.loads(last_line)
+        except json.JSONDecodeError:
+            return {"error": "failed to decode last line of cli stdout as json response"}
     finally:
         atexit.unregister(cleanup_handler)
         if process.stdout:
