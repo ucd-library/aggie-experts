@@ -251,11 +251,23 @@ export class CdlClient {
     Array.isArray(pages) || (pages = [pages]);
 
     // Prefer the cursor-based paging link Elements provides.
+    // Some responses may include BOTH 'continue-from' and 'next'.
+    // Make the priority deterministic: pick 'continue-from' if present, otherwise fall back to 'next'.
     let href = null;
+
     for (let link of pages) {
-      if (link.position === 'continue-from' || link.position === 'next') {
+      if (link.position === 'continue-from') {
         href = link.href;
         break;
+      }
+    }
+
+    if (!href) {
+      for (let link of pages) {
+        if (link.position === 'next') {
+          href = link.href;
+          break;
+        }
       }
     }
 

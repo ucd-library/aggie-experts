@@ -506,7 +506,9 @@ function run(expertId, profile, cdl, ucopVocab) {
   const userGraphsForKeywords = cdlUserGraphs; // already gated
   function extractAllLabelsKeywords(userGraphObj) {
     const out = [];
-    const obj = userGraphObj && userGraphObj['api:object'];
+    // v5.5 cached shape: {"api:object": {...}}
+    // v6.13 shape: the graph entry IS the object
+    const obj = userGraphObj && (userGraphObj['api:object'] || userGraphObj);
     if (!obj) return out;
     const allLabels = obj['api:all-labels'];
     if (!allLabels) return out;
