@@ -238,9 +238,17 @@ export class CdlClient {
 
   /**
    * @method nextPage
-   * @description Get the next page from the pagination object
+   * @description Get the next page from the pagination object.
+   *
+   * Elements sometimes returns cursor-style paging links (position='continue-from')
+   * and/or traditional next links (position='next'). This helper prefers the
+   * cursor-based link when present.
+   *
    * @param {Object} pagination - The pagination object from the feed.
-   * @returns {string|null} - Returns the URL of the next page or null if there is no next page.
+   * @param {Set<string>} [seen] - A set of previously-returned page hrefs used to detect
+   *   and prevent pagination loops (eg repeated continue-from links).
+   * @returns {string|null} - Returns the URL of the next page, or null if there is no
+   *   next page or if a pagination loop is detected.
    */
   nextPage(pagination, seen=new Set()) {
     if (!pagination || !pagination["api:page"]) {
@@ -290,10 +298,21 @@ export class CdlClient {
    * @param {Object} json
    */
   updateAuthors(json) {
-    const objects = getElementsObjects(json);
-    if (objects.length) {
-      objects.forEach(obj => {
-        let records = obj?.['api:relationship']?.['api:related']?.['api:object']?.['api:records']?.['api:record'] || [];
+    // We want to trim author payloads on publication records.
+    // Relationship endpoints differ by version:
+    // - v5.5: relationship node is returned as the api:object
+    // - v6.13: relationship node is returned under api:relationship (api:object is empty)
+    // Use getElementsRelationships for relationship endpoints, and fall back to objects for others.
+    let nodes = getElementsRelationships(json);
+    if (!nodes || nodes.length === 0) {
+      nodes = getElementsObjects(json);
+    }
+
+    if (nodes.length) {
+      nodes.forEach(obj => {
+        // Publication records live under the related object of a relationship.
+        // (Works for v5.5 relationship objects and v6.13 api:relationship objects.)
+        let records = obj?.['api:related']?.['api:object']?.['api:records']?.['api:record'] || [];
         Array.isArray(records) || (records = [records]);
 
         records.forEach((record) => {

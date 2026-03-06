@@ -35,6 +35,29 @@ const SHORT_TYPES = {
 }
 SHORT_TYPES.SCHOLARLY_WORK_TYPES = [...SHORT_TYPES.WORKS, ...SHORT_TYPES.GRANTS];
 
+/**
+ * Normalize Elements relationship visibility across API versions.
+ *
+ * Elements v5.5 provides `api:is-visible` (string/boolean).
+ * Elements v6.13 removed `api:is-visible`; derive visibility from
+ * `api:effective-privacy-level` (Public => visible).
+ *
+ * @param {Object} relationship Elements relationship object
+ * @returns {boolean} normalized visibility
+ */
+function normalizeElementsIsVisible(relationship = {}) {
+  const effectivePrivacyLevel = relationship?.['api:effective-privacy-level'];
+
+  let isVisible = relationship?.['api:is-visible'];
+  if (typeof isVisible === 'undefined' || isVisible === null) {
+    isVisible = (effectivePrivacyLevel === 'Public');
+  }
+  if (typeof isVisible === 'string') {
+    isVisible = isVisible.toLowerCase() === 'true';
+  }
+  return !!isVisible;
+}
+
 const SCHEMA_URI_TYPE_MAP = {
     "book": "http://schema.org/Book",
     "chapter": "http://schema.org/Chapter",
@@ -406,4 +429,5 @@ export {
   WORKS_SOURCE_ORDER,
   WORKS_TYPE_MAP,
   SCHEMA_URI_TYPE_MAP,
+  normalizeElementsIsVisible,
 };
