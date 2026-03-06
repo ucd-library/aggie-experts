@@ -505,7 +505,11 @@ class BaseModel extends EsDataModel {
   async search(opts) {
     const params = this.common_parms(opts.params);
 
-    const index = params.index || ['grants-current','experts-current'];
+    const index = params.index || [
+      'grants-'+config.elasticsearch.aliases.current,
+      'experts-'+config.elasticsearch.aliases.current,
+      'works-'+config.elasticsearch.aliases.current
+    ];
     delete params.index;
     const options = {
       id: (opts.id)?opts.id:"default",
