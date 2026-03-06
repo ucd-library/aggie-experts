@@ -13,12 +13,12 @@ if( !isBrowser ) {
   env = window.__env__ || {};
 }
 
-const esHostname = process.env.ES_HOST || 'elasticsearch';
-const esPort = parseK8sPort(process.env.ES_PORT || 9200);
+const esHostname = env.ES_HOST || 'elasticsearch';
+const esPort = parseK8sPort(env.ES_PORT || 9200);
 
 const BUILD_INFO_PATH = env.BUILD_INFO_PATH || '/cork-build-info';
 const buildInfo = {};
-if( fs.existsSync(BUILD_INFO_PATH) ) {
+if( !isBrowser && fs.existsSync(BUILD_INFO_PATH) ) {
   let files = fs.readdirSync(BUILD_INFO_PATH);
   for( let file of files ) {
     let content = fs.readFileSync(path.resolve(BUILD_INFO_PATH, file), 'utf-8');
@@ -191,13 +191,13 @@ const config = {
     user : env.POSTGRES_USER || 'postgres',
     password : env.POSTGRES_PASSWORD || 'postgres',
     database : env.POSTGRES_DB || 'postgres',
-    schemaFile : path.resolve(scriptDir, '../../harvest/lib/reporting/schema.sql'),
+    schemaFile : !isBrowser ? path.resolve(scriptDir, '../../harvest/lib/reporting/schema.sql') : null,
   },
 
   google : {
-    applicationCredentials : process.env.GOOGLE_APPLICATION_CREDENTIALS || '/etc/aggie-experts/service-account.json',
-    projectId : process.env.GOOGLE_PROJECT_ID || 'aggie-experts',
-    cacheSecrets : process.env.CACHE_GOOGLE_SECRETS !== 'false',
+    applicationCredentials : env.GOOGLE_APPLICATION_CREDENTIALS || '/etc/aggie-experts/service-account.json',
+    projectId : env.GOOGLE_PROJECT_ID || 'aggie-experts',
+    cacheSecrets : env.CACHE_GOOGLE_SECRETS !== 'false',
     secrets : {
       keycloakSecrets : 'keycloak-client-secrets'
     }
@@ -290,7 +290,7 @@ const config = {
   },
 
   vocab : {
-    ucopFile : path.resolve(scriptDir, 'vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld')
+    ucopFile : !isBrowser ? path.resolve(scriptDir, 'vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld') : null
   },
 
   logger : {
