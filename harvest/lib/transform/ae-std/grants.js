@@ -485,11 +485,24 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
   finalName = updateNameCasing(finalName);
 
   const effectivePrivacyLevel = grantRelationship["api:effective-privacy-level"];
+
+  // Elements API v6.13 removed api:is-visible on relationships.
+  // Derive visibility from effective privacy level (Public => visible),
+  // with fallback to legacy flags for v5.5.
+  let isVisible = grantRelationship["api:is-visible"];
+  if (typeof isVisible === 'undefined' || isVisible === null) {
+    isVisible = (effectivePrivacyLevel === 'Public');
+  }
+  if (typeof isVisible === 'string') {
+    isVisible = isVisible.toLowerCase() === 'true';
+  }
+  isVisible = !!isVisible;
+
   let privacy = {
-    'is-visible': grantRelationship["api:is-visible"],
+    'is-visible': isVisible,
     'privacy-level': grantRelationship["api:privacy-level"],
     'effective-privacy-level': effectivePrivacyLevel,
-    value : effectivePrivacyLevel === 'Public'
+    value : isVisible
   }
   
 

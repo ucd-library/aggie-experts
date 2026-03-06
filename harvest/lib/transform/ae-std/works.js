@@ -568,11 +568,24 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   let privacyLevel = workRelationship["api:privacy-level"];
   let effectivePrivacyLevel = workRelationship["api:effective-privacy-level"];
+
+  // Elements API v6.13 removed api:is-visible on relationships.
+  // Derive visibility from effective privacy level (Public => visible),
+  // with fallback to legacy flags for v5.5.
+  let isVisible = workRelationship["api:is-visible"];
+  if (typeof isVisible === "undefined" || isVisible === null) {
+    isVisible = (effectivePrivacyLevel === 'Public');
+  }
+  if (typeof isVisible === "string") {
+    isVisible = isVisible.toLowerCase() === "true";
+  }
+  isVisible = !!isVisible;
+
   let privacy = {
-    'is-visible': workRelationship["api:is-visible"],
+    'is-visible': isVisible,
     'privacy-level': privacyLevel,
     'effective-privacy-level': effectivePrivacyLevel,
-    value : effectivePrivacyLevel === 'Public'
+    value : isVisible
   }
 
   // JM: this doesn't seem to match the response type.  If this breaks things, blame me.

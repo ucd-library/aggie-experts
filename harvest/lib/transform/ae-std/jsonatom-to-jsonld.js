@@ -17,7 +17,28 @@ async function jsonAtomToJsonLd(jsonAtomFile) {
 
   let atom = JSON.parse(await cache.read(jsonAtomFile));
   let graph = Object.assign({}, config.cdl.context);
-  graph['@graph'] = atom.feed.entry || [];
+
+  // Accept both Elements envelopes and object containers:
+  // - v5.5: feed.entry[].api:object
+  // - v6.13 users/publications/etc: api:response/api:result-list/api:result[].api:object
+  // - v6.13 relationships: api:response/api:result-list/api:result[].api:relationship
+  let objects = [];
+
+  if (atom?.feed?.entry !== undefined) {
+    let entries = atom.feed.entry || [];
+    if (!Array.isArray(entries)) entries = [entries];
+    objects = entries.map(e => e?.['api:object']).filter(Boolean);
+  } else {
+    let results = atom?.['api:response']?.['api:result-list']?.['api:result'] || [];
+    if (!Array.isArray(results)) results = [results];
+
+    // Prefer api:object when present; fall back to api:relationship for relationship endpoints
+    objects = results
+      .map(r => r?.['api:object'] || r?.['api:relationship'])
+      .filter(Boolean);
+  }
+
+  graph['@graph'] = objects;
 
   await cache.write(jsonldFile, graph);
 

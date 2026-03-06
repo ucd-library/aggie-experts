@@ -124,7 +124,7 @@ Primary runtime config: [`harvest/lib/config.js`](../harvest/lib/config.js).
 ### Source systems
 
 - CDL Symplectic Elements API (prod):
-  - `https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5`
+  - `https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13`
 - IAM API (prod):
   - `https://iet-ws.ucdavis.edu/api/iam`
 
