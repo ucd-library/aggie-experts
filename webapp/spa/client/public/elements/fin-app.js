@@ -446,7 +446,7 @@ export default class FinApp extends Mixin(LitElement)
     if( !(APP_CONFIG.user?.roles || []).includes('admin') ) return;
   
     let esIndexes = await indexedDb.getElasticsearchIndexes();
-    this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.displayName || '';
+    this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.indexDisplayName || '';
     this.hideEsIndexPreviewing = !this.currentElasticIndex;
   }
 
@@ -469,7 +469,7 @@ export default class FinApp extends Mixin(LitElement)
   async _checkPreviewingEsIndex() {
     let esIndexes = await indexedDb.getElasticsearchIndexes();
     if( esIndexes && (APP_CONFIG.user?.roles || []).includes('admin')) {
-      this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.displayName || '';
+      this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.indexDisplayName || '';
       this.hideEsIndexPreviewing = false;
     } else {
       this.currentElasticIndex = '';

@@ -22,8 +22,7 @@ export function styles() {
 export function render() {
 return html`
   <style>
-    .edit-expert-btn,
-    .preview-es-index-btn {
+    .edit-expert-btn {
       margin-left: 1.19rem;
       border-radius: 1.45em;
       display: inline-flex;
@@ -49,15 +48,13 @@ return html`
       background-color: white;
     }
 
-    .edit-expert-btn:hover ucdlib-icon,
-    .preview-es-index-btn:hover ucdlib-icon {
+    .edit-expert-btn:hover ucdlib-icon {
       fill: white;
       background-color: #ffbf00;
       border-radius: 50%;
     }
 
-    .edit-expert-btn ucdlib-icon,
-    .preview-es-index-btn ucdlib-icon {
+    .edit-expert-btn ucdlib-icon {
       margin-left: 0.62rem;
       height: 15px;
       width: 15px;
@@ -65,21 +62,15 @@ return html`
       min-height: 15px;
       fill: #ffbf00;
       padding: 3px;
-      display: inline-flex;
     }
 
-    .pill-container {
+    .edit-expert-container {
       position: absolute;
-      top: 4rem;
+      top: 5rem;
       right: 1rem;
     }
 
-    .preview-es-index-container {
-      padding-top: 1rem;
-    }
-
-    .edit-expert-container.collapse,
-    .preview-es-index-container.collapse {
+    .edit-expert-container.collapse {
       background-color: white;
       width: 100%;
       right: 0;
@@ -90,8 +81,7 @@ return html`
       padding-right: 0.5rem;
     }
 
-    .main-content.editing.collapse,
-    .main-content.previewing-es-index.collapse {
+    .main-content.editing.collapse {
       padding-top: 3rem;
     }
 
@@ -162,6 +152,30 @@ return html`
       height: 100%;
     }
 
+    .preview-es-index-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem .7rem;
+      background-color: var(--color-arboretum);
+      color: var(--ucd-blue-100, #022851);
+    }
+
+    .preview-es-index-container[hidden] {
+      display: none;
+    }
+
+    .preview-es-index-container .preview-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+    }
+
+    .preview-es-index-container a {
+      font-size: 0.875rem;
+    }
+
     </style>
   <!--
     Required for AppStateModel
@@ -203,23 +217,23 @@ return html`
 
   </ucd-theme-header>
 
-  <div class="pill-container">
-    <div ?hidden="${this.hideEdit}" class="edit-expert-container">
-      <button @click="${this._cancelEditExpertClick}" class="edit-expert-btn">
-        ${this.expertNameEditing}
-        <div id="close">
-          <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
-        </div>
-      </button>
+  <div ?hidden="${this.hideEdit}" class="edit-expert-container">
+    <button @click="${this._cancelEditExpertClick}" class="edit-expert-btn">
+      ${this.expertNameEditing}
+      <div id="close">
+        <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+      </div>
+    </button>
+  </div>
+    
+  <div ?hidden="${this.hideEsIndexPreviewing}" class="preview-es-index-container">
+    <div class="preview-info">
+      <ucdlib-icon icon="ucdlib-experts:fa-flask"></ucdlib-icon>
+      <span>Previewing data version ${this.currentElasticIndex} in this browser</span>    
     </div>
-    <div ?hidden="${this.hideEsIndexPreviewing}" class="preview-es-index-container">
-      <button @click="${this._cancelEsIndexPreviewClick}" class="preview-es-index-btn">
-        ${this.currentElasticIndex}
-        <div id="close">
-          <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
-        </div>
-      </button>
-    </div>
+    <a href="" @click="${this._cancelEsIndexPreviewClick}">
+      End Preview
+    </a>
   </div>
 
   <div class="main-content">

@@ -22,10 +22,6 @@ export default class AppAdmin extends Mixin(LitElement)
       uniqueElasticIndexes : { type : Array },
       currentElasticIndex : { type : String },
       isAdmin : { type : Boolean },
-      // currentDate : { type : String },
-      // yearWeek : { type : String },
-      // dateRangeStart : { type : String },
-      // dateRangeEnd : { type : String },
       showModal : { type : Boolean },
       modalTitle : { type : String },
       modalSaveText : { type : String },
@@ -40,7 +36,8 @@ export default class AppAdmin extends Mixin(LitElement)
       latestIndexName : { type : String },
       latestIndexDateRange : { type : String },
       dataMismatch : { type : Boolean },
-      mismatchedIndexes : { type : Array }
+      mismatchedIndexes : { type : Array },
+      currentPreviewIndex : { type : String }
     }
   }
 
@@ -53,11 +50,6 @@ export default class AppAdmin extends Mixin(LitElement)
     this.uniqueElasticIndexes = [];
     this.currentElasticIndex = '';
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
-
-    // this.currentDate = '';
-    // this.yearWeek = '';
-    // this.dateRangeStart = '';
-    // this.dateRangeEnd = '';
 
     this.showModal = false;
     this.modalTitle = "Switch Index Alias";
@@ -77,6 +69,8 @@ export default class AppAdmin extends Mixin(LitElement)
     this.dataMismatch = false;
     this.mismatchedIndexes = [];
 
+    this.currentPreviewIndex = '';
+
     this.render = render.bind(this);
   }
 
@@ -93,14 +87,6 @@ export default class AppAdmin extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'admin' ) return;
     
-    // let yearWeek = getYearWeek({ allValues : true });
-    // let todaysDate = getTodaysDate();
-
-    // this.dateRangeStart = yearWeek.weekStart.toLocaleString();
-    // this.dateRangeEnd = yearWeek.weekEnd.toLocaleString();
-    // this.currentDate = todaysDate.toLocaleString();
-    // this.yearWeek = yearWeek.yearWeek;
-
     if( !(APP_CONFIG.user?.roles || []).includes('admin') ) {
       this.dispatchEvent(
         new CustomEvent("show-404", {})
@@ -143,8 +129,7 @@ export default class AppAdmin extends Mixin(LitElement)
         yearWeek.weekStart,
         yearWeek.weekEnd
       );
-      let dateRangeFull = this._formatWeekRange
-      (
+      let dateRangeFull = this._formatWeekRange(
         yearWeek.weekStart,
         yearWeek.weekEnd,
         true
@@ -167,9 +152,8 @@ export default class AppAdmin extends Mixin(LitElement)
         // sort by date
         if( a.indexYYYYMM > b.indexYYYYMM ) return 1;
         if( a.indexYYYYMM < b.indexYYYYMM ) return -1;
-      });
-    console.log('availableElasticIndexes', this.availableElasticIndexes);
-    console.log('uniqueElasticIndexes', this.uniqueElasticIndexes);
+      }
+    );
   }
 
   _updateVersionStats() {
@@ -215,25 +199,26 @@ export default class AppAdmin extends Mixin(LitElement)
     return Array.from(unique.values());
   }
 
-  async _onPreviewIndexChange(e) {
-    let indexDisplayName = e.detail.value;
+  async _onPreviewIndexDropdownChange(e) {
+    this.currentPreviewIndex = e.detail.value === 'Select data version' ? '' : e.detail.value;
+    await this._updateSlimSelectStyles();
+  }
 
+  async _onPreviewIndex(e) {
     this.availableElasticIndexes.forEach(i => {
-      i.previewEsIndex = i.indexDisplayName === indexDisplayName && !i.displayLabels.toLowerCase().includes('public');
+      i.previewEsIndex = i.indexDisplayName === this.currentPreviewIndex && !i.displayLabels.toLowerCase().includes(APP_CONFIG.esAliases.current);
     });
 
-    console.log('TODO add banner in fin-app, also indexedb')
-
-    // await indexedDb.setElasticsearchIndexes(this.availableElasticIndexes);
+    await indexedDb.setElasticsearchIndexes(this.availableElasticIndexes);
 
     // send to fin-app
-    // this.dispatchEvent(
-    //   new CustomEvent('preview-es-index', {
-    //     detail : {
-    //       savedIndex : indexDisplayName
-    //     }
-    //   })
-    // );
+    this.dispatchEvent(
+      new CustomEvent('preview-es-index', {
+        detail : {
+          savedIndex : this.currentPreviewIndex
+        }
+      })
+    );
   }
 
   async _updateSlimSelectStyles() {

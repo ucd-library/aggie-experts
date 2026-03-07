@@ -269,14 +269,13 @@ return html`
 
       <div class="manage-content">
         <div ?hidden="${this.manageDataAction !== 'preview'}">
-          <ucd-theme-slim-select @change="${this._updateSlimSelectStyles}">
+          <ucd-theme-slim-select @change="${this._onPreviewIndexDropdownChange}" data-type="preview">
             <select>
                <option><span style="margin-left: .5rem;">Select data version</span></option>
               ${this.uniqueElasticIndexes.map(
                 (index) => html`
                   <option
                     .value=${index.indexDisplayName}
-                    ?selected=${this.currentElasticIndex === index.indexDisplayName}
                     ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current)}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
@@ -293,7 +292,7 @@ return html`
           </ucd-theme-slim-select>
 
           <button
-            ?disabled=${this.toSwitchIndex}
+            ?disabled=${!this.currentPreviewIndex}
             class="btn btn--primary btn--lg" 
             style="margin-top: 2.38rem;" 
             @click="${this._onPreviewIndex}">Preview Locally</button>
