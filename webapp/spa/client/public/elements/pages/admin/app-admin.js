@@ -38,7 +38,8 @@ export default class AppAdmin extends Mixin(LitElement)
       latestIndexDateRange : { type : String },
       dataMismatch : { type : Boolean },
       mismatchedIndexes : { type : Array },
-      currentPreviewIndex : { type : String }
+      currentPreviewIndex : { type : String },
+      invalidSelectionMessage : { type : String }
     }
   }
 
@@ -72,6 +73,7 @@ export default class AppAdmin extends Mixin(LitElement)
     this.mismatchedIndexes = [];
 
     this.currentPreviewIndex = '';
+    this.invalidSelectionMessage = '';
 
     this.render = render.bind(this);
   }
@@ -107,24 +109,25 @@ export default class AppAdmin extends Mixin(LitElement)
     if( !this.isAdmin ) return;
     
     let res = await this.SchemaModel.getIndexes();
+    let esIndexes = await indexedDb.getElasticsearchIndexes();
+    let previewingIndex = esIndexes?.filter(i => i.previewEsIndex)?.[0] || {};
 
     let indexes = [];
+
     for( let indexName in (res.body || {}) ) {
       let indexDisplayName = indexName.replace(/^(experts|grants|works)-/, ''); // 2026-09-dc-admin-page
       let indexYYYYMM = indexDisplayName.split('-')?.[0] + '-' + indexDisplayName.split('-')?.[1]; // 2026-09
-      let aliasName = (res.body || {})[indexName]?.aliases?.[0] || ''; // experts-public, experts-latest, etc
+      let aliases = (res.body || {})[indexName]?.aliases || []; // experts-public, experts-latest, etc
 
       // (Latest, Previewing, Public)
       let displayLabels = [];
       let current = APP_CONFIG.esAliases.current;
       let stage = APP_CONFIG.esAliases.stage;
-      if( aliasName?.includes(current) ) displayLabels.push(current.charAt(0).toUpperCase() + current.slice(1));
-      if( aliasName?.includes(stage) ) displayLabels.push(stage.charAt(0).toUpperCase() + stage.slice(1));
-
-  
-      // TODO check if previewing index
-
-
+      if( aliases?.find(a => a.includes(current)) ) displayLabels.push(current.charAt(0).toUpperCase() + current.slice(1));
+      if( aliases?.find(a => a.includes(stage)) ) displayLabels.push(stage.charAt(0).toUpperCase() + stage.slice(1));
+      if( previewingIndex.indexDisplayName === indexDisplayName ) this.currentPreviewIndex = indexDisplayName;
+      
+      
       // subtext of dropdown, ie Feb 2 - 9, or Feb 28 - Mar 3
       let yearWeek = parseYearWeek(indexYYYYMM, { allValues : true });
       let dateRange = this._formatWeekRange(
@@ -141,7 +144,7 @@ export default class AppAdmin extends Mixin(LitElement)
         indexName,
         indexYYYYMM,
         indexDisplayName,
-        aliasName,
+        aliases,
         displayLabels,
         dateRange,
         dateRangeFull
@@ -158,12 +161,14 @@ export default class AppAdmin extends Mixin(LitElement)
     );
 
     await this._updatePreviewingState();
+    await this._updateSlimSelectStyles();
+    this._handleInvalidSelection();
   }
 
   _updateVersionStats() {
     // update the public/latest info, and show errors if there are mismatches or pending versions
-    let publicIndex = this.availableElasticIndexes.find(i => i.aliasName.includes(APP_CONFIG.esAliases.current));
-    let latestIndex = this.availableElasticIndexes.find(i => i.aliasName.includes(APP_CONFIG.esAliases.stage));
+    let publicIndex = this.availableElasticIndexes.find(i => i.aliases?.find(a => a.includes(APP_CONFIG.esAliases.current)));
+    let latestIndex = this.availableElasticIndexes.find(i => i.aliases?.find(a => a.includes(APP_CONFIG.esAliases.stage)));
 
     this.publicIndexName = publicIndex?.indexDisplayName || '';
     this.publicIndexDateRange = publicIndex?.dateRangeFull || '';
@@ -171,18 +176,18 @@ export default class AppAdmin extends Mixin(LitElement)
     this.latestIndexDateRange = latestIndex?.dateRangeFull || '';
 
     this.dataVersionPending = this.publicIndexName !== this.latestIndexName;
+    this.dataVersionSuccess = this.publicIndexName === this.latestIndexName;
 
     // TODO other statuses and mismatch stuff
-
     // this.dataVersionFailed = !!(latestIndex && publicIndex && latestIndex.indexName !== publicIndex.indexName && !latestIndex.displayLabels.toLowerCase().includes('public'));
     // this.dataVersionSuccess = !!(latestIndex && publicIndex && latestIndex.indexName === publicIndex.indexName);
     // this.dataMismatch = !!(latestIndex && publicIndex && latestIndex.indexName !== publicIndex.indexName);
     // this.mismatchedIndexes = [{
     //   indexName: latestIndex?.indexName,
-    //   aliasName: latestIndex?.aliasName
+    //   aliases: latestIndex?.aliases
     // }, {
     //   indexName: publicIndex?.indexName,
-    //   aliasName: publicIndex?.aliasName
+    //   aliases: publicIndex?.aliases
     // }];
   }
 
@@ -203,24 +208,62 @@ export default class AppAdmin extends Mixin(LitElement)
     return Array.from(unique.values());
   }
 
+  _onManageDataActionChange(action='') {
+    this.manageDataAction = action;
+    this._handleInvalidSelection();
+  }
+
+  _handleInvalidSelection() {
+    this.invalidSelectionMessage = '';
+
+    let alreadyPreviewingMessage = 'This version is already being previewed in this browser.';
+    // let alreadyLatestDataMessage = 'This version is already the latest data and does not need preview.';
+    let liveOnProdMessage = 'This version is already live on the public site.';
+    let cannotDeleteLiveDataMessage = 'This version is live on the public site and cannot be deleted.';
+
+    let selectedIndex;
+    if( this.manageDataAction === 'preview' ) {
+      selectedIndex = this.uniqueElasticIndexes.find(i => i.indexDisplayName === this.currentPreviewIndex);
+      
+      // check if version already previewing
+      if( selectedIndex?.displayLabels?.includes('Previewing') ) {
+        this.invalidSelectionMessage = alreadyPreviewingMessage;
+      } else if( selectedIndex?.aliases?.find(a => a.includes(APP_CONFIG.esAliases.current)) ) {
+        this.invalidSelectionMessage = liveOnProdMessage;
+      }
+    } else if( this.manageDataAction === 'publish' ) {
+      selectedIndex = this.uniqueElasticIndexes.find(i => i.indexDisplayName === this.toPublishIndex)
+
+      // check if version already live on prod
+      if( selectedIndex?.aliases?.find(a => a.includes(APP_CONFIG.esAliases.current)) ) {
+        this.invalidSelectionMessage = liveOnProdMessage;
+      }
+    } else if( this.manageDataAction === 'delete' ) {
+      selectedIndex = this.uniqueElasticIndexes.find(i => i.indexDisplayName === this.toDeleteIndex)
+
+      // check if version live on prod and cannot be deleted
+      if( selectedIndex?.aliases?.find(a => a.includes(APP_CONFIG.esAliases.current)) ) {
+        this.invalidSelectionMessage = cannotDeleteLiveDataMessage;
+      }
+    }   
+
+    this.requestUpdate();
+  }
+
   async _onPreviewIndexDropdownChange(e) {
     this.currentPreviewIndex = e.detail.value === 'Select data version' ? '' : e.detail.value;
-    await this.requestUpdate();  
     await this._updateSlimSelectStyles();
+    this._handleInvalidSelection();
   }
 
   async _onPreviewIndex(e) {
     await this._updatePreviewingState();
 
-    await indexedDb.setElasticsearchIndexes(this.availableElasticIndexes);
-
-
     // TODO fix preview index
-    // 1- refresh when previewing isn't updating the dropdown with the `Previewing` label
-    // 2- when previewing an index without an alias (like a previous week), 
+    // when previewing an index without an alias (like a previous week), 
     //    the api responds with data from the wrong index, like the preview is ignored
 
-
+    await indexedDb.setElasticsearchIndexes(this.availableElasticIndexes);
 
     // send to fin-app
     this.dispatchEvent(
@@ -231,15 +274,11 @@ export default class AppAdmin extends Mixin(LitElement)
       })
     );
 
-    await this.requestUpdate();  
     await this._updateSlimSelectStyles();
+    this._handleInvalidSelection();
   }
 
   async _updatePreviewingState() {
-    let res = await indexedDb.getElasticsearchIndexes();
-    // TODO need to fix, should pull saved preview index from indexedDb,
-    //    but doesn't appear to work on page refresh
-
     let current = APP_CONFIG.esAliases.current;
     current = current.charAt(0).toUpperCase() + current.slice(1);
 
@@ -252,6 +291,7 @@ export default class AppAdmin extends Mixin(LitElement)
   async _onPublishIndexDropdownChange(e) {
     this.toPublishIndex = e.detail.value === 'Select data version' ? '' : e.detail.value;
     await this._updateSlimSelectStyles();
+    this._handleInvalidSelection();
   }
 
   _onPublishIndex() {
@@ -262,8 +302,34 @@ export default class AppAdmin extends Mixin(LitElement)
       <p>This change is immediate and visible to users.</p>
     `;
 
+    if( this.toPublishIndex < this.latestIndexName ) {
+      this.modalContent += `
+        <p style="color: #C10230;">
+          This version is older than the latest data and may be out of date.
+        </p>
+      `;
+    }
+
     this.showModal = true;
     this.modalSaveText = 'Publish';
+  }
+
+  async _onDeleteIndexDropdownChange(e) {
+    this.toDeleteIndex = e.detail.value === 'Select data version' ? '' : e.detail.value;
+    await this._updateSlimSelectStyles();
+    this._handleInvalidSelection();
+  }
+
+  async _onDeleteIndex() {
+    this.modalContent = `
+      <p>
+        Permanently delete <strong>${this.toDeleteIndex}</strong>.
+      </p>
+      <p style="color: #C10230;">Deleted data cannot be restored.</p>
+    `;
+
+    this.showModal = true;
+    this.modalSaveText = 'Delete';
   }
 
   async _onModalSave() {
@@ -285,38 +351,21 @@ export default class AppAdmin extends Mixin(LitElement)
       await this._getAvailableElasticIndexes();
     }
 
-
-    // TODO 
-    // 1- clear selected preview index in fin-app
-    // 2- update stats section and banners
-    // 3- update dropdowns
-    // 4- also badness with display labels and disabled options when 
-    //   previewing and then going to publish dropdown
-    // 
-
-
     this._clearCache();
     await this._getAvailableElasticIndexes();
-  }
 
-  async _onDeleteIndexDropdownChange(e) {
-    this.toDeleteIndex = e.detail.value === 'Select data version' ? '' : e.detail.value;
-    await this._updateSlimSelectStyles();
-  }
-
-  async _onDeleteIndex() {
-    this.modalContent = `
-      <p>
-        Permanently delete <strong>${this.toDeleteIndex}</strong>.
-      </p>
-      <p style="color: #C10230;">Deleted data cannot be restored.</p>
-    `;
-
-    this.showModal = true;
-    this.modalSaveText = 'Delete';
+    if( this.manageDataAction === 'publish' ) {
+      this.currentPreviewIndex = '';
+      this._updatePreviewingState();
+      this.dispatchEvent(
+        new CustomEvent('cancel-preview-es-index', {})
+      );
+    }
   }
 
   async _updateSlimSelectStyles() {
+    await this.requestUpdate();
+
     // hack to update styles
     // the collapsed state should have 2 rows of text
     // and disabled options should be greyed out/disabled

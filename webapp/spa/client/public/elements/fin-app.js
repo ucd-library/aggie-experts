@@ -467,12 +467,6 @@ export default class FinApp extends Mixin(LitElement)
   }
 
   async _checkPreviewingEsIndex() {
-
-    // TODO this should be fixed
-    // refresh page, the currentElasticIndex is lost, 
-    //   but it correctly still shows preview banner
-
-
     let esIndexes = await indexedDb.getElasticsearchIndexes();
     if( esIndexes && (APP_CONFIG.user?.roles || []).includes('admin')) {
       this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.indexDisplayName || '';

@@ -281,6 +281,7 @@ return html`
       <app-admin id="admin" 
         @show-404="${(e) => this.page = '404'}"
         @preview-es-index="${this._previewEsIndexClick}" 
+        @cancel-preview-es-index="${this._cancelEsIndexPreviewClick}"
         .currentElasticIndex="${this.currentElasticIndex}"></app-admin>
     </ucdlib-pages>
 

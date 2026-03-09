@@ -232,7 +232,7 @@ return html`
           <div>
             <strong>Data mismatch detected</strong>
             ${this.mismatchedIndexes.map(index => html`
-              <p class="data-mismatch-index">${index.indexName} (alias: ${index.aliasName})</p>
+              <p class="data-mismatch-index">${index.indexName} (alias: ${index.displayLabels.join(', ')})</p>
             `)}
           </div>
         </div>
@@ -247,21 +247,21 @@ return html`
       <div class="toggle-controls">
         <button class="btn btn--round" 
           ?active="${this.manageDataAction === 'preview'}"
-          @click="${(e) => this.manageDataAction = 'preview'}">
+          @click="${(e) => this._onManageDataActionChange('preview')}">
           <ucdlib-icon icon="ucdlib-experts:fa-flask"></ucdlib-icon>
           <span>Preview</span>
         </button>
 
         <button class="btn btn--round" 
           ?active="${this.manageDataAction === 'publish'}"
-          @click="${(e) => this.manageDataAction = 'publish'}">
+          @click="${(e) => this._onManageDataActionChange('publish')}">
           <ucdlib-icon icon="ucdlib-experts:fa-rocket"></ucdlib-icon>
           <span>Publish</span>
         </button>
 
         <button class="btn btn--round" 
           ?active="${this.manageDataAction === 'delete'}"
-          @click="${(e) => this.manageDataAction = 'delete'}">
+          @click="${(e) => this._onManageDataActionChange('delete')}">
           <ucdlib-icon icon="ucdlib-experts:fa-trash"></ucdlib-icon>
           <span>Delete</span>
         </button>
@@ -277,7 +277,7 @@ return html`
                   <option
                     .value=${index.indexDisplayName}
                     ?selected=${this.currentPreviewIndex === index.indexDisplayName}
-                    ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current)}>
+                    .is-public=${index.aliases?.find(a => a.includes(APP_CONFIG.esAliases.current))}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
                         ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels?.length ? ` (${index.displayLabels.map(label => `${label}`).join(', ')})` : ''}</span>
@@ -292,8 +292,10 @@ return html`
             </select>
           </ucd-theme-slim-select>
 
+          <p style="margin-top: 2.38rem; margin-bottom: 0;" ?hidden="${!this.invalidSelectionMessage}">${this.invalidSelectionMessage}</p>
+
           <button
-            ?disabled=${!this.currentPreviewIndex}
+            ?disabled=${!this.currentPreviewIndex || this.invalidSelectionMessage.length}
             class="btn btn--primary btn--lg" 
             style="margin-top: 2.38rem;" 
             @click="${this._onPreviewIndex}">Preview Locally</button>
@@ -306,8 +308,8 @@ return html`
                 (index) => html`
                   <option
                     .value=${index.indexDisplayName}
-                    ?selected=${this.currentElasticIndex === index.indexDisplayName}
-                    ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current)}>
+                    ?selected=${this.toPublishIndex === index.indexDisplayName}
+                    .is-public=${index.aliases?.find(a => a.includes(APP_CONFIG.esAliases.current))}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
                         ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels?.length ? ` (${index.displayLabels?.join(', ')})` : ''}</span>
@@ -322,8 +324,10 @@ return html`
             </select>
           </ucd-theme-slim-select>
 
+          <p style="margin-top: 2.38rem; margin-bottom: 0;" ?hidden="${!this.invalidSelectionMessage}">${this.invalidSelectionMessage}</p>
+
           <button
-            ?disabled=${!this.toPublishIndex}
+            ?disabled=${!this.toPublishIndex || this.invalidSelectionMessage.length}
             class="btn btn--primary btn--lg" 
             style="margin-top: 2.38rem;" 
             @click="${this._onPublishIndex}">Publish to Public</button>
@@ -336,8 +340,9 @@ return html`
                 (index) => html`
                   <option
                     .value=${index.indexDisplayName}
-                    ?selected=${this.currentElasticIndex === index.indexDisplayName}
-                    ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current) || index.aliasName.includes(APP_CONFIG.esAliases.stage)}>
+                    ?selected=${this.toDeleteIndex === index.indexDisplayName}
+                    .is-public=${index.aliases?.find(a => a.includes(APP_CONFIG.esAliases.current))}
+                    .is-latest=${index.aliases?.find(a => a.includes(APP_CONFIG.esAliases.stage))}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
                         ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels?.length ? ` (${index.displayLabels?.join(', ')})` : ''}</span>
@@ -352,8 +357,10 @@ return html`
             </select>
           </ucd-theme-slim-select>
 
+          <p style="margin-top: 2.38rem; margin-bottom: 0;" ?hidden="${!this.invalidSelectionMessage}">${this.invalidSelectionMessage}</p>
+
           <button
-            ?disabled=${!this.toDeleteIndex}
+            ?disabled=${!this.toDeleteIndex || this.invalidSelectionMessage.length}
             class="btn btn--primary btn--lg" 
             style="margin-top: 2.38rem; background-color: #C10230; color: white;" 
             @click="${this._onDeleteIndex}">Delete Version</button>
