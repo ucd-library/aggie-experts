@@ -26,7 +26,8 @@ export default class AppAdmin extends Mixin(LitElement)
       modalTitle : { type : String },
       modalSaveText : { type : String },
       modalContent : { type : String },
-      toSwitchIndex : { type : String },
+      toPublishIndex : { type : String },
+      toDeleteIndex : { type : String },
       manageDataAction : { type : String },
       dataVersionFailed : { type : Boolean },
       dataVersionPending : { type : Boolean },
@@ -52,10 +53,11 @@ export default class AppAdmin extends Mixin(LitElement)
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
 
     this.showModal = false;
-    this.modalTitle = "Switch Index Alias";
-    this.modalSaveText = "Switch Index";
-    this.modalContent = "<p>Changing the alias will update the index the public application is currently using. Are you sure you want to switch the current index alias to point to this new index?</p>";
-    this.toSwitchIndex = '';
+    this.modalTitle = "Publish to Public Site";
+    this.modalSaveText = "Publish";
+    this.modalContent = "<p>Public site will switch from <> to <>.</p>";
+    this.toPublishIndex = '';
+    this.toDeleteIndex = '';
     this.manageDataAction = 'preview';
     this.dataVersionFailed = false;
     this.dataVersionPending = false;
@@ -113,11 +115,11 @@ export default class AppAdmin extends Mixin(LitElement)
       let aliasName = (res.body || {})[indexName]?.aliases?.[0] || ''; // experts-public, experts-latest, etc
 
       // (Latest, Previewing, Public)
-      let displayLabels = '';
+      let displayLabels = [];
       let current = APP_CONFIG.esAliases.current;
       let stage = APP_CONFIG.esAliases.stage;
-      if( aliasName?.includes(current) ) displayLabels += current.charAt(0).toUpperCase() + current.slice(1);
-      if( aliasName?.includes(stage) ) displayLabels += stage.charAt(0).toUpperCase() + stage.slice(1);
+      if( aliasName?.includes(current) ) displayLabels.push(current.charAt(0).toUpperCase() + current.slice(1));
+      if( aliasName?.includes(stage) ) displayLabels.push(stage.charAt(0).toUpperCase() + stage.slice(1));
 
   
       // TODO check if previewing index
@@ -154,6 +156,8 @@ export default class AppAdmin extends Mixin(LitElement)
         if( a.indexYYYYMM < b.indexYYYYMM ) return -1;
       }
     );
+
+    await this._updatePreviewingState();
   }
 
   _updateVersionStats() {
@@ -201,15 +205,22 @@ export default class AppAdmin extends Mixin(LitElement)
 
   async _onPreviewIndexDropdownChange(e) {
     this.currentPreviewIndex = e.detail.value === 'Select data version' ? '' : e.detail.value;
+    await this.requestUpdate();  
     await this._updateSlimSelectStyles();
   }
 
   async _onPreviewIndex(e) {
-    this.availableElasticIndexes.forEach(i => {
-      i.previewEsIndex = i.indexDisplayName === this.currentPreviewIndex && !i.displayLabels.toLowerCase().includes(APP_CONFIG.esAliases.current);
-    });
+    await this._updatePreviewingState();
 
     await indexedDb.setElasticsearchIndexes(this.availableElasticIndexes);
+
+
+    // TODO fix preview index
+    // 1- refresh when previewing isn't updating the dropdown with the `Previewing` label
+    // 2- when previewing an index without an alias (like a previous week), 
+    //    the api responds with data from the wrong index, like the preview is ignored
+
+
 
     // send to fin-app
     this.dispatchEvent(
@@ -219,6 +230,90 @@ export default class AppAdmin extends Mixin(LitElement)
         }
       })
     );
+
+    await this.requestUpdate();  
+    await this._updateSlimSelectStyles();
+  }
+
+  async _updatePreviewingState() {
+    let res = await indexedDb.getElasticsearchIndexes();
+    // TODO need to fix, should pull saved preview index from indexedDb,
+    //    but doesn't appear to work on page refresh
+
+    let current = APP_CONFIG.esAliases.current;
+    current = current.charAt(0).toUpperCase() + current.slice(1);
+
+    this.availableElasticIndexes.forEach(i => {
+      i.previewEsIndex = i.indexDisplayName === this.currentPreviewIndex && !i.displayLabels.includes(current);
+      if( i.previewEsIndex ) i.displayLabels.push('Previewing');
+    });
+  }
+
+  async _onPublishIndexDropdownChange(e) {
+    this.toPublishIndex = e.detail.value === 'Select data version' ? '' : e.detail.value;
+    await this._updateSlimSelectStyles();
+  }
+
+  _onPublishIndex() {
+    this.modalContent = `
+      <p>
+        Public site will switch from <strong>${this.publicIndexName}</strong> to <strong>${this.toPublishIndex}</strong>.
+      </p>
+      <p>This change is immediate and visible to users.</p>
+    `;
+
+    this.showModal = true;
+    this.modalSaveText = 'Publish';
+  }
+
+  async _onModalSave() {
+    this.showModal = false;
+
+    if( this.manageDataAction === 'publish' ) {
+      let indexesToSwitch = this.availableElasticIndexes.filter(a => a.indexDisplayName === this.toPublishIndex).map(a => {
+          return {
+              indexName: a.indexName,
+              aliasName: a.indexName.split('-')?.[0]+'-'+APP_CONFIG.esAliases.current
+          }
+      });
+
+      await this.SchemaModel.setAlias(indexesToSwitch);
+
+    } else if( this.manageDataAction === 'delete' ) {
+      let indexesToDelete = this.availableElasticIndexes.filter(a => a.indexDisplayName === this.toPublishIndex).map(a => a.indexName);
+      await this.SchemaModel.deleteIndex(indexesToDelete);
+      await this._getAvailableElasticIndexes();
+    }
+
+
+    // TODO 
+    // 1- clear selected preview index in fin-app
+    // 2- update stats section and banners
+    // 3- update dropdowns
+    // 4- also badness with display labels and disabled options when 
+    //   previewing and then going to publish dropdown
+    // 
+
+
+    this._clearCache();
+    await this._getAvailableElasticIndexes();
+  }
+
+  async _onDeleteIndexDropdownChange(e) {
+    this.toDeleteIndex = e.detail.value === 'Select data version' ? '' : e.detail.value;
+    await this._updateSlimSelectStyles();
+  }
+
+  async _onDeleteIndex() {
+    this.modalContent = `
+      <p>
+        Permanently delete <strong>${this.toDeleteIndex}</strong>.
+      </p>
+      <p style="color: #C10230;">Deleted data cannot be restored.</p>
+    `;
+
+    this.showModal = true;
+    this.modalSaveText = 'Delete';
   }
 
   async _updateSlimSelectStyles() {
@@ -278,48 +373,6 @@ export default class AppAdmin extends Mixin(LitElement)
       : weekEnd.toLocaleString(locale, monthDayOptions);
 
     return `${startText} – ${endText}`;
-  }
-
-  _onSwitchIndexDropdownChange(e) {
-    this.toSwitchIndex = e.detail.value;
-  }
-
-  _onSwitchIndex() {
-    this.modalContent = `
-      <p>
-        Changing the alias will update the index the public application is currently using. 
-        Are you sure you want to switch the current index alias to point to 
-        <strong>${this.toSwitchIndex}</strong>?</p>
-    `;
-
-    this.showModal = true;
-  }
-
-  async _onSaveIndexSwitch() {
-    this.showModal = false;
-    
-    let indexesToSwitch = this.availableElasticIndexes.filter(a => a.indexDisplayName === this.toSwitchIndex).map(a => {
-        return {
-            indexName: a.indexName,
-            aliasName: a.indexName.split('-')?.[0]+'-current'
-        }
-    });
-
-    await this.SchemaModel.setAlias(indexesToSwitch);
-
-    this._clearCache();
-
-    // TODO clear selected preview index in fin-app
-
-    await this._getAvailableElasticIndexes();
-  }
-
-  async _onDeleteIndex() {
-    let indexesToDelete = this.availableElasticIndexes.filter(a => a.indexDisplayName === this.toSwitchIndex).map(a => a.indexName);
-
-    await this.SchemaModel.deleteIndex(indexesToDelete);
-
-    await this._getAvailableElasticIndexes();
   }
 
   _clearCache() {    

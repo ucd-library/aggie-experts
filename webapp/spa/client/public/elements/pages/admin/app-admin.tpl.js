@@ -269,17 +269,18 @@ return html`
 
       <div class="manage-content">
         <div ?hidden="${this.manageDataAction !== 'preview'}">
-          <ucd-theme-slim-select @change="${this._onPreviewIndexDropdownChange}" data-type="preview">
+          <ucd-theme-slim-select @change="${this._onPreviewIndexDropdownChange}">
             <select>
                <option><span style="margin-left: .5rem;">Select data version</span></option>
               ${this.uniqueElasticIndexes.map(
                 (index) => html`
                   <option
                     .value=${index.indexDisplayName}
+                    ?selected=${this.currentPreviewIndex === index.indexDisplayName}
                     ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current)}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
-                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels ? ` (${index.displayLabels})` : ''}</span>
+                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels?.length ? ` (${index.displayLabels.map(label => `${label}`).join(', ')})` : ''}</span>
                       </span>
                       <span style="color: #4C4C4C; font-size: .875rem; font-style: italic; font-weight: 400; margin-left: .5rem; margin-top: .09rem;">
                         ${index.dateRange}
@@ -298,7 +299,7 @@ return html`
             @click="${this._onPreviewIndex}">Preview Locally</button>
         </div>
         <div ?hidden="${this.manageDataAction !== 'publish'}">
-          <ucd-theme-slim-select @change="${this._updateSlimSelectStyles}">
+          <ucd-theme-slim-select @change="${this._onPublishIndexDropdownChange}">
             <select>
                <option><span style="margin-left: .5rem;">Select data version</span></option>
               ${this.uniqueElasticIndexes.map(
@@ -309,7 +310,7 @@ return html`
                     ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current)}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
-                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels ? ` (${index.displayLabels})` : ''}</span>
+                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels?.length ? ` (${index.displayLabels?.join(', ')})` : ''}</span>
                       </span>
                       <span style="color: #4C4C4C; font-size: .875rem; font-style: italic; font-weight: 400; margin-left: .5rem; margin-top: .09rem;">
                         ${index.dateRange}
@@ -322,13 +323,13 @@ return html`
           </ucd-theme-slim-select>
 
           <button
-            ?disabled=${this.toSwitchIndex}
+            ?disabled=${!this.toPublishIndex}
             class="btn btn--primary btn--lg" 
             style="margin-top: 2.38rem;" 
             @click="${this._onPublishIndex}">Publish to Public</button>
         </div>
         <div ?hidden="${this.manageDataAction !== 'delete'}">
-          <ucd-theme-slim-select @change="${this._updateSlimSelectStyles}">
+          <ucd-theme-slim-select @change="${this._onDeleteIndexDropdownChange}">
             <select>
                <option><span style="margin-left: .5rem;">Select data version</span></option>
               ${this.uniqueElasticIndexes.map(
@@ -339,7 +340,7 @@ return html`
                     ?disabled=${index.aliasName.includes(APP_CONFIG.esAliases.current) || index.aliasName.includes(APP_CONFIG.esAliases.stage)}>
                     <span style="display: flex; align-items: center; flex-direction: column; align-items: flex-start;">
                       <span style="color: #13639E; font-size: 1rem; font-style: normal; font-weight: 700; margin-left: .5rem;">
-                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels ? ` (${index.displayLabels})` : ''}</span>
+                        ${index.indexDisplayName}<span style="font-weight: 400; margin-left: .5rem;">${index.displayLabels?.length ? ` (${index.displayLabels?.join(', ')})` : ''}</span>
                       </span>
                       <span style="color: #4C4C4C; font-size: .875rem; font-style: italic; font-weight: 400; margin-left: .5rem; margin-top: .09rem;">
                         ${index.dateRange}
@@ -352,7 +353,7 @@ return html`
           </ucd-theme-slim-select>
 
           <button
-            ?disabled=${this.toSwitchIndex}
+            ?disabled=${!this.toDeleteIndex}
             class="btn btn--primary btn--lg" 
             style="margin-top: 2.38rem; background-color: #C10230; color: white;" 
             @click="${this._onDeleteIndex}">Delete Version</button>
@@ -370,8 +371,9 @@ return html`
       .hideSave="${false}"
       .hideOK="${true}"
       .hideOaPolicyLink="${true}"
+      .saveText="${this.modalSaveText}"
       @cancel=${(e) => this.showModal = false}
-      @save=${this._onSaveIndexSwitch}>
+      @save=${this._onModalSave}>
     </app-modal-overlay>
   
   </div>
