@@ -8,6 +8,7 @@ import { ensureCurrentIndexes,
   getBuildVersion,
   ensureSearchScript,
   getIndexNameForDate,
+  ensurePipeline,
   getUsersCurrentScholarlyWorks 
 } from '../lib/load/elastic-search/index.js';
 import {
@@ -209,6 +210,21 @@ program
       await ensureSearchScript(opts);
     } catch (error) {
       logger.error(`Error loading search template ${opts.template}:`, error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('load-pipeline')
+  .description('Load ingest pipeline script into Elasticsearch')
+  .option('-p, --pipeline <name>', 'Pipeline name to load (default: aggie-experts-pipeline)', 'aggie-experts-pipeline')
+  .option('--replace', 'Replace existing pipeline if it exists')
+  .action(async (opts={}) => {
+    try {
+      await ensurePipeline(opts);
+    } catch (error) {
+      logger.error(`Error loading ingest pipeline ${opts.pipeline}:`, error.message);
+      console.log(error.stack);
       process.exit(1);
     }
   });

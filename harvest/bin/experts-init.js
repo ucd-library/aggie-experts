@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes, ensureSearchScript } from '../lib/load/elastic-search/index.js';
+import { ensureCurrentIndexes, ensureSearchScript, ensurePipeline } from '../lib/load/elastic-search/index.js';
 import {
   logger,
   config
@@ -27,9 +27,15 @@ program
     }
 
     try {
-      await ensureSearchScript();
+      await ensureSearchScript('complete');
     } catch (error) {
       errors.push(`Error loading ElasticSearch search template: ${error.message}`);
+    }
+
+    try {
+      await ensurePipeline('aggie-experts-pipeline');
+    } catch (error) {
+      errors.push(`Error loading ingest pipeline: ${error.message}`);
     }
 
     const pgClient = new PgClient();

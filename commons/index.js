@@ -1,4 +1,4 @@
-import { searchTemplate } from './lib/elasticsearch/index.js';
+import { searchTemplate, injestPipeline } from './lib/elasticsearch/index.js';
 import { logger, logReqMiddleware, createLogger } from './lib/logger.js';
 import GoogleSecret from './lib/google-secret.js';
 import config from './lib/config.js';
@@ -11,6 +11,7 @@ export {
   ExpertsKcAdminClient,
   ElementsClient,
   searchTemplate,
+  injestPipeline,
   logger,
   logReqMiddleware,
   createLogger,
