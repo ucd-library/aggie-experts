@@ -38,7 +38,9 @@ async function srcToAeStd(options={}) {
 
   if( !await cache.exists(cdlRelPath) ) {
     logger.warn(`CDL rel path does not exist: ${cdlRelPath}`);
-    return;
+    return {
+      isPublic: false
+    };
   }
 
   let cdlRelJsonLdFiles = [];

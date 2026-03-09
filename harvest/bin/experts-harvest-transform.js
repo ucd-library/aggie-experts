@@ -60,7 +60,7 @@ program
     if( options.reporting || options.reportingJobId ) {
       await config.postgres.client.setUserPrivacy(
         userId,
-        metadata.isPublic,
+        metadata.isPublic || false,
         metadata.cdlPrivacy || null,
         metadata.odrPrivacy || null
       );

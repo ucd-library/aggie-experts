@@ -1,5 +1,5 @@
 import jsonpath from 'jsonpath';
-import { formatDate, getFieldValue, getFieldObject } from '../utils.js';
+import { formatDate, getFieldValue, getFieldObject, normalizeElementsIsVisible } from '../utils.js';
 
 const ROLE_TYPES = {
   PI: 'http://vivoweb.org/ontology/core#PrincipalInvestigatorRole',
@@ -485,11 +485,13 @@ function createUserRole(grantRelationship, relationshipUri, expertUri, grantUri,
   finalName = updateNameCasing(finalName);
 
   const effectivePrivacyLevel = grantRelationship["api:effective-privacy-level"];
+  const isVisible = normalizeElementsIsVisible(grantRelationship);
+
   let privacy = {
-    'is-visible': grantRelationship["api:is-visible"],
+    'is-visible': isVisible,
     'privacy-level': grantRelationship["api:privacy-level"],
     'effective-privacy-level': effectivePrivacyLevel,
-    value : effectivePrivacyLevel === 'Public'
+    value : isVisible
   }
   
 

@@ -225,14 +225,14 @@ const config = {
     },
 
     qa : {
-      url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+      url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13',
       authname : 'qa-oapolicy',
       secretName : 'cdl-elements-json',
       timeout : 30000
     },
 
     prod: {
-      url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5',
+      url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13',
       authname : 'oapolicy',
       secretName : 'cdl-elements-json',
       group_by_name : {

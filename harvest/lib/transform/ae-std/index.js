@@ -34,11 +34,6 @@ async function srcToAeStd(options={}) {
   // Transform CDL rel data
   let cdlRelPath = cache.getUserPath(options.user, [config.cache.cdlDir, 'rel']);
 
-  if( !await cache.exists(cdlRelPath) ) {
-    logger.warn(`CDL rel path does not exist: ${cdlRelPath}`);
-    return;
-  }
-
   let cdlRelJsonLdFiles = [];
   var {files} = await cache.readdir(cdlRelPath, true);
   for( let file of files ) {
@@ -77,7 +72,14 @@ async function srcToAeStd(options={}) {
   let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
-  let { grants, works } = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
+  let grants = [], works = [];
+  if( !await cache.exists(cdlRelPath) ) {
+    logger.warn(`CDL rel path does not exist: ${cdlRelPath}`);
+  } else {
+    let relResp = await toRelationshipsJsonLd(cdlRelJsonLdFiles, expertId, expertData, options);
+    grants = relResp.grants;
+    works = relResp.works;
+  }
   
   let metadata = {
     expertId,

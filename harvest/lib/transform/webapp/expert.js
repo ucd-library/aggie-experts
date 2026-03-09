@@ -16,6 +16,12 @@ import { generateBaseScholarlyWork } from './scholary-work.js';
 async function generateBaseExpert(username, opts={}) {
   logger.info(`Running AE webapp base expert transformation for user: ${username}`);
 
+  let aeStdPersonPath = cache.getUserPath(username, 'ae-std/person.jsonld');
+  if( !await cache.exists(aeStdPersonPath) ) {
+    logger.warn(`No ae-std person.jsonld found for user ${username} at path ${aeStdPersonPath}`);
+    return null;
+  }
+
   // Read the main expert graph
   const aeStdPerson = await cache.readUserAsset(username, 'ae-std/person.jsonld');
   

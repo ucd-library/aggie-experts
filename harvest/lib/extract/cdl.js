@@ -14,6 +14,52 @@ import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
 import xmlToJson from './xml-to-json.js';
 
+/**
+ * Elements can return different XML envelopes depending on schema version.
+ *
+ * - v5.5: Atom <feed> with feed.entry and feed['api:pagination']
+ * - v6.13: <api:response> with api:result-list/api:result and api:pagination
+ *
+ * These helpers provide a uniform way to read entries/objects and pagination
+ * without rewriting/mutating the original JSON structure.
+ */
+function getElementsPagination(json) {
+  return json?.feed?.['api:pagination'] || json?.['api:response']?.['api:pagination'] || null;
+}
+
+function getElementsObjects(json) {
+  // v5.5 Atom
+  if (json?.feed?.entry !== undefined) {
+    let entries = json.feed.entry || [];
+    if (!Array.isArray(entries)) entries = [entries];
+    return entries.map(e => e?.['api:object']).filter(Boolean);
+  }
+
+  // v6.13 api:response
+  let results = json?.['api:response']?.['api:result-list']?.['api:result'] || [];
+  if (!Array.isArray(results)) results = [results];
+  return results.map(r => r?.['api:object']).filter(Boolean);
+}
+
+function getElementsRelationships(json) {
+  // v5.5 Atom: relationship is the api:object
+  if (json?.feed?.entry !== undefined) {
+    return getElementsObjects(json);
+  }
+
+  // v6.13 api:response: relationships are nested under api:relationship
+  let results = json?.['api:response']?.['api:result-list']?.['api:result'] || [];
+  if (!Array.isArray(results)) results = [results];
+  return results.map(r => r?.['api:relationship']).filter(Boolean);
+}
+
+function getElementsResultsCount(json) {
+  const pagination = getElementsPagination(json);
+  const rc = pagination?.['results-count'];
+  const n = (typeof rc === 'string' || typeof rc === 'number') ? Number(rc) : null;
+  return Number.isFinite(n) ? n : null;
+}
+
 /** Exports a class
 * @class
 * @classdesc Aggie Experts Client API provide methods to import and access Aggie Experts data.
@@ -152,10 +198,26 @@ export class CdlClient {
     let xml = await resp.text();
 
     let json = await xmlToJson(xml);
-    delete json?.feed?.updated; // remove updated field from feed, always breaks the cache
+
+    // v6.13 responses do not include Atom's feed.updated; keep cache-stability logic
+    // but apply it only if present.
+    delete json?.feed?.updated;
 
     // filter authors data
     json = this.updateAuthors(json);
+
+    // Allow callers to skip writing useless terminal pages (eg v6.13 results-count=0 with continue-from)
+    if (typeof options.skipWriteIfEmpty === 'function') {
+      const skip = await options.skipWriteIfEmpty(json);
+      if (skip) {
+        return {
+          writeResp: null,
+          jsonFile,
+          json,
+          skippedWrite: true
+        };
+      }
+    }
 
     let writeResp = null;
     if( options.name === 'groups' ) {
@@ -176,23 +238,57 @@ export class CdlClient {
 
   /**
    * @method nextPage
-   * @description Get the next page from the pagination object
+   * @description Get the next page from the pagination object.
+   *
+   * Elements sometimes returns cursor-style paging links (position='continue-from')
+   * and/or traditional next links (position='next'). This helper prefers the
+   * cursor-based link when present.
+   *
    * @param {Object} pagination - The pagination object from the feed.
-   * @returns {string|null} - Returns the URL of the next page or null if there is no next page.
+   * @param {Set<string>} [seen] - A set of previously-returned page hrefs used to detect
+   *   and prevent pagination loops (eg repeated continue-from links).
+   * @returns {string|null} - Returns the URL of the next page, or null if there is no
+   *   next page or if a pagination loop is detected.
    */
-  nextPage(pagination) {
+  nextPage(pagination, seen=new Set()) {
     if (!pagination || !pagination["api:page"]) {
       return null;
     }
 
     let pages = pagination["api:page"];
     Array.isArray(pages) || (pages = [pages]);
+
+    // Prefer the cursor-based paging link Elements provides.
+    // Some responses may include BOTH 'continue-from' and 'next'.
+    // Make the priority deterministic: pick 'continue-from' if present, otherwise fall back to 'next'.
+    let href = null;
+
     for (let link of pages) {
-      if (link.position === 'next') {
-        return link.href;
+      if (link.position === 'continue-from') {
+        href = link.href;
+        break;
       }
     }
-    return null;
+
+    if (!href) {
+      for (let link of pages) {
+        if (link.position === 'next') {
+          href = link.href;
+          break;
+        }
+      }
+    }
+
+    if (!href) return null;
+
+    // Guard against loops (server returning same continue-from repeatedly)
+    if (seen.has(href)) {
+      logger.warn(`Pagination loop detected; stopping at ${href}`);
+      return null;
+    }
+    seen.add(href);
+
+    return href;
   }
 
   /**
@@ -202,12 +298,21 @@ export class CdlClient {
    * @param {Object} json
    */
   updateAuthors(json) {
-    let entries = json?.feed?.entry;
-    if( entries ) {
-      if( !Array.isArray(entries) ) entries = [entries];
+    // We want to trim author payloads on publication records.
+    // Relationship endpoints differ by version:
+    // - v5.5: relationship node is returned as the api:object
+    // - v6.13: relationship node is returned under api:relationship (api:object is empty)
+    // Use getElementsRelationships for relationship endpoints, and fall back to objects for others.
+    let nodes = getElementsRelationships(json);
+    if (!nodes || nodes.length === 0) {
+      nodes = getElementsObjects(json);
+    }
 
-      entries.forEach(entry => {
-        let records = entry?.['api:relationship']?.['api:related']?.['api:object']?.['api:records']?.['api:record'] || [];
+    if (nodes.length) {
+      nodes.forEach(obj => {
+        // Publication records live under the related object of a relationship.
+        // (Works for v5.5 relationship objects and v6.13 api:relationship objects.)
+        let records = obj?.['api:related']?.['api:object']?.['api:records']?.['api:record'] || [];
         Array.isArray(records) || (records = [records]);
 
         records.forEach((record) => {
@@ -255,8 +360,8 @@ export class CdlClient {
     let nextPage = `${this.url}/users?detail=ref&per-page=1000&groups=${group}`;
 
     let count = 0;
+    const seenPages = new Set();
     while (nextPage) {
-      let entries = [];
       const { json } = await this.fetch(nextPage, {
         cacheName: 'group-' + group,
         name:'groups',
@@ -264,17 +369,13 @@ export class CdlClient {
         force: options.force || false
       });
 
-      if (json?.feed?.entry) {
-        entries = entries.concat(json.feed.entry);
-        for (let entry of entries) {
-          entry = entry['api:object'];
-          // console.log(`Found user "${entry['username']}" in group ${group}`);
-          users.push(entry['username']);
-        }
+      const objects = getElementsObjects(json);
+      for (const obj of objects) {
+        users.push(obj['username']);
       }
 
       count++;
-      nextPage = this.nextPage(json?.feed?.['api:pagination']);
+      nextPage = this.nextPage(getElementsPagination(json), seenPages);
     }
 
     let groupName = '';
@@ -317,40 +418,45 @@ export class CdlClient {
 
     let count = 0;
     let writeResps = [];
+    const seenPages = new Set();
 
     while (nextPage) {
-
-      const { json, writeResp } = await this.fetch(nextPage, {
+      const { json, writeResp, skippedWrite } = await this.fetch(nextPage, {
         name: 'user',
         cacheName : user,
         count,
-        force: options.force
+        force: options.force,
+        // prevent creation of trailing useless user_00N.json pages
+        skipWriteIfEmpty: (j) => {
+          const rc = getElementsResultsCount(j);
+          if (rc === 0) return true;
+          const objs = getElementsObjects(j);
+          return Array.isArray(objs) && objs.length === 0;
+        }
       });
 
-      if( json?.feed?.entry === undefined && count === 0 ) {
-        // if there are no entries on the first page, the user doesn't exist
-        throw new Error(`User ${user} not found in CDL elements`); 
+      const objects = getElementsObjects(json);
+      if (objects.length === 0 && count === 0) {
+        throw new Error(`User ${user} not found in CDL elements`);
       }
 
-      writeResps.push(writeResp);
-
-
-      // add the entries to the results array
-      if (json?.feed?.entry && json.feed.entry ) {
-        if( !Array.isArray(json.feed.entry) ) {
-          json.feed.entry = [json.feed.entry];
-        }
-
-        // Save CDL ID to this
-        if( !this.userId[user] ) {
-          this.userId[user] = json.feed.entry[0]['api:object'].id;
-        }
-      } else {
-        logger.warn(`No entries found for ${user}`);
+      if (writeResp && !skippedWrite) {
+        writeResps.push(writeResp);
       }
 
-      count++
-      nextPage = this.nextPage(json?.feed?.['api:pagination']);
+      // Save CDL ID to this
+      if (!this.userId[user] && objects[0]?.id) {
+        this.userId[user] = objects[0].id;
+      }
+
+      count++;
+      nextPage = this.nextPage(getElementsPagination(json), seenPages);
+
+      // Extra safety: if server says there are 0 results, stop paging.
+      const resultsCount = getElementsResultsCount(json);
+      if (resultsCount === 0) {
+        break;
+      }
     }
 
     return writeResps;
@@ -378,19 +484,38 @@ export class CdlClient {
     let nextPage = `${this.url}/users/${cdlId}/relationships?detail=full`
     let count = 0;
     let writeResps = [];
+    const seenPages = new Set();
 
     while (nextPage) {
 
-      const { json, writeResp } = await this.fetch(nextPage, {
+      const { json, writeResp, skippedWrite } = await this.fetch(nextPage, {
         name: 'rel',
         cacheName : user,
         force: options.force,
-        count
+        count,
+        // prevent creation of trailing useless rel_00N.json pages
+        skipWriteIfEmpty: (j) => getElementsResultsCount(j) === 0
       });
-      writeResps.push(writeResp);
 
-      count++
-      nextPage = this.nextPage(json?.feed?.['api:pagination']);
+      if (writeResp && !skippedWrite) {
+        writeResps.push(writeResp);
+      }
+
+      count++;
+      nextPage = this.nextPage(getElementsPagination(json), seenPages);
+
+      // IMPORTANT: v6.13 relationship results are under api:relationship, not api:object.
+      // Do not use getElementsObjects(json).length to decide pagination.
+      const resultsCount = getElementsResultsCount(json);
+      if (resultsCount === 0) {
+        break;
+      }
+
+      // Additional safety: if no relationships are actually present, stop.
+      const rels = getElementsRelationships(json);
+      if (rels.length === 0) {
+        break;
+      }
     }
 
 

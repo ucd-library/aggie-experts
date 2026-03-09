@@ -7,7 +7,8 @@ import {
   extractAsArray,
   WORKS_SOURCE_ORDER,
   WORKS_TYPE_MAP,
-  SCHEMA_URI_TYPE_MAP
+  SCHEMA_URI_TYPE_MAP,
+  normalizeElementsIsVisible
 } from '../utils.js';
 
 function transformWorks(works, expertId, elementsUserId, inputGraph) {
@@ -568,11 +569,14 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
 
   let privacyLevel = workRelationship["api:privacy-level"];
   let effectivePrivacyLevel = workRelationship["api:effective-privacy-level"];
+
+  const isVisible = normalizeElementsIsVisible(workRelationship);
+
   let privacy = {
-    'is-visible': workRelationship["api:is-visible"],
+    'is-visible': isVisible,
     'privacy-level': privacyLevel,
     'effective-privacy-level': effectivePrivacyLevel,
-    value : effectivePrivacyLevel === 'Public'
+    value : isVisible
   }
 
   // JM: this doesn't seem to match the response type.  If this breaks things, blame me.
@@ -621,7 +625,7 @@ function transformWork(workRelationship, relationshipId, expertId, elementsUserI
     ];
   }
 
-  result.push(authorship);``
+  result.push(authorship);
 
   return {privacy, workUri: publicationUri, relationshipUri, graph: result};
 }

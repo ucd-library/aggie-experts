@@ -93,7 +93,11 @@ async function init() {
         sitefarm: '/api/sitefarm/openapi.json',
         miv: '/api/miv/openapi.json'
       },
-      apis: names.map(n => `/api/${n}`)
+      apis: names.map(n => `/api/${n}`),
+      contact: {
+      name: 'Online Strategy - UC Davis Library',
+      url: 'https://library.ucdavis.edu/online-strategy/',
+      }
     };
 
     res.json(docs);

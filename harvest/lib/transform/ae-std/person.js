@@ -162,12 +162,17 @@ function run(expertId, profile, cdl, ucopVocab) {
   //   const cat = obj['api:category'] || obj['category'];
   //   return cat === 'user' && obj['api:is-public'] === 'true' && obj['api:is-login-allowed'] === 'true';
   // });
-  const cdlUserGraphs = asArray(cdl['@graph'])
+  const cdlUserGraphs = asArray(cdl['@graph']);
   const cdlUserGraph = cdlUserGraphs[0];
-  const cdlUsername = cdlUserGraph && cdlUserGraph['api:object'] && 
-    (cdlUserGraph['api:object']['api:username'] || cdlUserGraph['api:object']['username']);
+
+  // v5.5 jsonatom-to-jsonld: each @graph entry is the api:object
+  // v6.13 jsonatom-to-jsonld: each @graph entry is the api:object (users/publications)
+  // but older cached data and some paths may still wrap as { api:object: {...} }.
+  const cdlObj = (cdlUserGraph && (cdlUserGraph['api:object'] || cdlUserGraph)) || {};
+
+  const cdlUsername = cdlObj && (cdlObj['api:username'] || cdlObj['username']);
   const joinedUserId = cdlUsername && /@ucdavis\.edu$/i.test(cdlUsername)
-    ? cdlUsername.replace(/@ucdavis\.edu$/i,'')
+    ? cdlUsername.replace(/@ucdavis\.edu$/i, '')
     : null;
 
   // Keeping old gating logic around for now.  Just sending a good old WARN
@@ -183,10 +188,15 @@ function run(expertId, profile, cdl, ucopVocab) {
   }
 
   // CDL user object fields sourced from gated user graph only
-  const cdlObj = (cdlUserGraph && cdlUserGraph['api:object']) || {};
-  const cdlIsPublic = cdlObj['api:is-public'] === 'true';
-  const cdlPrivacyLevel = cdlObj['api:privacy-level'];
-  const cdlIsLoginAllowed = cdlObj['api:is-login-allowed'] === 'true';
+  // (normalised to direct object above)
+  // Elements v6.13 removed api:is-public; derive public-ness from privacy-level.
+  // Keep a legacy fallback when api:is-public exists (v5.5).
+  const cdlPrivacyLevel = cdlObj['api:privacy-level'] || cdlObj['privacy-level'];
+  const legacyIsPublic = cdlObj['api:is-public'];
+  const cdlIsPublic = (legacyIsPublic !== undefined)
+    ? (legacyIsPublic === 'true' || legacyIsPublic === true)
+    : (cdlPrivacyLevel === 'Public');
+  const cdlIsLoginAllowed = cdlObj['api:is-login-allowed'] === 'true' || cdlObj['api:is-login-allowed'] === true;
   const cdlCategory = cdlObj['category'];
   const cdlUserFirstName = cdlObj['api:first-name'] || cdlObj['first-name'];
   const cdlUserLastName  = cdlObj['api:last-name']  || cdlObj['last-name'];
@@ -205,7 +215,8 @@ function run(expertId, profile, cdl, ucopVocab) {
 
   // Overview / research-interests / teaching-summary only from this gated user graph
   // (native fields under records/record/native/field with privacy public already pre-filtered upstream)
-  const nativeFields = jsonpath.query(cdlUserGraph, '$["api:object"]["api:records"]["api:record"]["api:native"]["api:field"]') || [];
+  // NOTE: v6.13 normalization makes each @graph entry the direct api:object, so query against cdlObj.
+  const nativeFields = jsonpath.query(cdlObj, '$["api:records"]["api:record"]["api:native"]["api:field"]') || [];
   const flattenNative = Array.isArray(nativeFields) ? nativeFields.flatMap(f => Array.isArray(f) ? f : [f]) : [];
   function extractFieldText(name) {
     const node = flattenNative.find(f => f && f.name === name);
@@ -231,7 +242,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     })
 
   // Identifier associations inside gated user graph
-  const assocNodes = jsonpath.query(cdlUserGraph, '$["api:object"]["api:user-identifier-associations"]["api:user-identifier-association"]') || [];
+  const assocNodes = jsonpath.query(cdlObj, '$["api:user-identifier-associations"]["api:user-identifier-association"]') || [];
   const assocArray = Array.isArray(assocNodes) ? assocNodes.flatMap(a => Array.isArray(a) ? a : [a]) : [];
   function findAssoc(scheme) {
     const node = assocArray.find(a => a && a.scheme === scheme);
@@ -495,7 +506,9 @@ function run(expertId, profile, cdl, ucopVocab) {
   const userGraphsForKeywords = cdlUserGraphs; // already gated
   function extractAllLabelsKeywords(userGraphObj) {
     const out = [];
-    const obj = userGraphObj && userGraphObj['api:object'];
+    // v5.5 cached shape: {"api:object": {...}}
+    // v6.13 shape: the graph entry IS the object
+    const obj = userGraphObj && (userGraphObj['api:object'] || userGraphObj);
     if (!obj) return out;
     const allLabels = obj['api:all-labels'];
     if (!allLabels) return out;

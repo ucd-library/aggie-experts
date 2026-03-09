@@ -79,13 +79,18 @@ async function saveRelationshipFiles(relationships, options) {
 
 
 function parseRelationshipTypes(rel) {
+  // v5.5 jsonld: relationship objects are nested under api:relationship
+  // v6.13 jsonld: @graph entries are the relationship objects themselves
   let allRelationships = jsonpath.query(rel, '$..["api:relationship"]');
+  if (!allRelationships || allRelationships.length === 0) {
+    allRelationships = rel && rel['@graph'] ? (Array.isArray(rel['@graph']) ? rel['@graph'] : [rel['@graph']]) : [];
+  }
 
   let works = allRelationships.filter(r =>
-    r.type === "publication-user-authorship" &&
+    r && r.type === "publication-user-authorship" &&
     r['api:related']?.['api:object']?.type !== "other"
   );
-  let grants = allRelationships.filter(r => r.type && (r.type.startsWith("user-grant") || r.type.startsWith('grant-user')));
+  let grants = allRelationships.filter(r => r && r.type && (r.type.startsWith("user-grant") || r.type.startsWith('grant-user')));
 
   return { works, grants };
 }
