@@ -22,7 +22,7 @@ class BrowseByService extends BaseService {
     let esIndexes = await indexedDb.getElasticsearchIndexes();
     let matchedAlias;
     if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
-      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type))?.aliasName;
+      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type))?.aliases?.[0];
       if( matchedAlias && isAdmin ) {
         ido.previewEsIndex = matchedAlias;
         qs.previewEsIndex = matchedAlias;
@@ -56,7 +56,7 @@ class BrowseByService extends BaseService {
     let esIndexes = await indexedDb.getElasticsearchIndexes();
     let matchedAlias;
     if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
-      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type))?.aliasName;
+      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type))?.aliases?.[0];
       ido.previewEsIndex = matchedAlias;
     }
 

@@ -99,9 +99,9 @@ router.get(
       }
     }
     // Always include all indices so aggregations see all document types
-    params.index.push(experts.readIndexAlias);
-    params.index.push(grants.readIndexAlias);
-    params.index.push(works.readIndexAlias);
+    params.index.push(typeToIndex.expert);
+    params.index.push(typeToIndex.grant);
+    params.index.push(typeToIndex.work);
     // Remove duplicates
     params.index = [...new Set(params.index)];
     opts = {
@@ -149,9 +149,9 @@ router.get(
           params: {
             ...filteredParams,
             size: 0,
-            index: [experts.readIndexAlias,
-                    grants.readIndexAlias,
-                    works.readIndexAlias]
+            index: [typeToIndex.expert,
+                    typeToIndex.grant,
+                    typeToIndex.work]
           }
         });
 
