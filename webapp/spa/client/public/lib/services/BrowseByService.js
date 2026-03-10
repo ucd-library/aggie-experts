@@ -63,11 +63,7 @@ class BrowseByService extends BaseService {
       let indexInfo = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type));
       matchedAlias = indexInfo?.aliases?.[0];
       indexName = indexInfo?.indexName;
-      
-      ido.previewEsIndex = matchedAlias || indexName;
     }
-
-    let id = payloadUtils.getKey(ido); 
 
     type = type.substring(0, 1).toUpperCase() + type.substring(1);
     let storeKey = 'by'+type+'sLastInitial';
@@ -75,8 +71,10 @@ class BrowseByService extends BaseService {
     let qs = { page, size, p : lastInitial.toUpperCase() };
     if( ( matchedAlias || indexName ) && isAdmin ) {
       qs.previewEsIndex = matchedAlias || indexName;
+      ido.previewEsIndex = matchedAlias || indexName;
     }
 
+    let id = payloadUtils.getKey(ido); 
     await this.request({
       url : `${this.baseUrl}/${type.toLowerCase()}/browse`,
       qs,
