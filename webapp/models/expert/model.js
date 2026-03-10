@@ -1,5 +1,5 @@
 // Can use this to get the fin configuration
-const {logger, config} = require('@ucd-lib/experts-commons');
+const {logger, config, ElementsClient } = require('@ucd-lib/experts-commons');
 
 const BaseModel = require('../base/model.js');
 const validate = require('../validate.js');
@@ -585,7 +585,6 @@ class ExpertModel extends BaseModel {
       throw new Error(`Unable to find CDL user id for ${expertId}`);
     }
     if (! this.elementsClient ) {
-      const ElementsClient = (await import('../../harvest/lib/elements-client.js')).default;
       this.ElementsClient = ElementsClient;
     }
     let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,args);
@@ -903,7 +902,11 @@ class Authorship {
     }
 
     //already a snippet node = workModel.snippet(have_part.Work.node);
-    await this.expertModel.update_graph_node(expertId,node);
+
+    
+    // loop over config config.elasticsearch.aliases
+    console.log('TODO update all aliases (public+latest) and call update_graph_node() with new node data', { expertId, node });
+    await this.expertModel.update_graph_node(expertId, node);
 
     if (config.experts.cdl.authorship.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);

@@ -686,22 +686,23 @@ class BaseModel extends EsDataModel {
    * @param {String} document_id
    * @param {Object} node_to_update
    * @param {Boolean} is_visible : true if the node is visible, Delete node if false
+   * @param {String} alias : optional alias to update, defaults to writeIndexAlias
    *
    * @returns {Promise} : Elasticsearch response Promise
    */
-  async update_graph_node(document_id, node_to_update ) {
-      return this.client.update({
-        index: this.writeIndexAlias,
-        id : document_id,
-        retry_on_conflict : this.UPDATE_RETRY_COUNT,
-        // refresh : 'wait_for',
-        script : {
-          source : `
-   ctx._source['@graph'].removeIf((Map item) -> { item['@id'] == params.node['@id'] });
-   ctx._source['@graph'].add(params.node);`,
-          params : {node: node_to_update}
-        }
-      });
+  async update_graph_node(document_id, node_to_update, alias) {
+    return this.client.update({
+      index: alias || this.writeIndexAlias,
+      id : document_id,
+      retry_on_conflict : this.UPDATE_RETRY_COUNT,
+      // refresh : 'wait_for',
+      script : {
+        source : `
+  ctx._source['@graph'].removeIf((Map item) -> { item['@id'] == params.node['@id'] });
+  ctx._source['@graph'].add(params.node);`,
+        params : {node: node_to_update}
+      }
+    });
   }
 
   /**
