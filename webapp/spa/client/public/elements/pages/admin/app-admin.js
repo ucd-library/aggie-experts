@@ -346,7 +346,8 @@ export default class AppAdmin extends Mixin(LitElement)
       await this.SchemaModel.setAlias(indexesToSwitch);
 
     } else if( this.manageDataAction === 'delete' ) {
-      let indexesToDelete = this.availableElasticIndexes.filter(a => a.indexDisplayName === this.toPublishIndex).map(a => a.indexName);
+      let indexesToDelete = this.availableElasticIndexes.filter(a => a.indexDisplayName === this.toDeleteIndex).map(a => a.indexName);
+      this.toDeleteIndex = '';
       await this.SchemaModel.deleteIndex(indexesToDelete);
       await this._getAvailableElasticIndexes();
     }
