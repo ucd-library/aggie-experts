@@ -108,6 +108,37 @@ class PgClient {
     return this.query(query, [command_id, user_id, type, visibility, count]);
   }
 
+  insertValidationIssue(opts) {
+    const {
+      command_id,
+      user_id,
+      entity_type,
+      entity_id,
+      issue_type,
+      field,
+      message,
+      data
+    } = opts;
+
+    const query = `
+      INSERT INTO ${this.schema}.validation_issue
+        (command_id, user_id, entity_type, entity_id, issue_type, field, message, data)
+      VALUES
+        ($1, $2, $3, $4, $5, $6, $7, $8)
+    `;
+
+    return this.query(query, [
+      command_id,
+      user_id,
+      entity_type,
+      entity_id,
+      issue_type,
+      field || null,
+      message || null,
+      data ? JSON.stringify(data) : null
+    ]);
+  }
+
   insertCdlUser(email) {
     const query = `
       INSERT INTO ${this.schema}.user (email)
