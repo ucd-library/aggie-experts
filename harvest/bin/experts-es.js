@@ -1,21 +1,12 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes, 
-  createIndex, 
-  deleteIndex, 
-  copyIndex,
-  setAlias, 
-  getState, 
-  getBuildVersion,
-  ensureSearchScript,
-  getIndexNameForDate,
-  getUsersCurrentScholarlyWorks 
-} from '../lib/load/elastic-search/index.js';
 import {
   logger,
   config,
   getTodaysDate,
-  getYearWeek
+  getYearWeek,
+  Elasticsearch
 } from '@ucd-lib/experts-commons';
+import { getUsersCurrentScholarlyWorks } from '../lib/load/elastic-search/index.js';
 import path from 'path';
 import { Temporal } from '@js-temporal/polyfill';
 
@@ -30,7 +21,7 @@ program
   .description('Ensure current ElasticSearch indexes and aliases for aggie experts')
   .action(async (opts={}) => {
     logger.info('Ensuring current ElasticSearch indexes for aggie experts...');
-    let indexes = await ensureCurrentIndexes();
+    let indexes = await Elasticsearch.ensureCurrentIndexes();
     logger.info('ElasticSearch indexes ensured successfully.', indexes);
   });
 
@@ -60,17 +51,17 @@ program
     }
     
     if( opts.sourceVersion === undefined ) {
-      opts.sourceVersion = getBuildVersion();
+      opts.sourceVersion = config.getBuildVersion();
     }
 
     if( opts.targetVersion === undefined ) {
-      opts.targetVersion = getBuildVersion();
+      opts.targetVersion = config.getBuildVersion();
     }
 
     let cmds = opts.types.map( type => {
       return {
-        source: getIndexNameForDate(type, opts.sourceWeek, opts.sourceVersion),
-        target: getIndexNameForDate(type, opts.targetWeek, opts.targetVersion)
+        source: Elasticsearch.getIndexNameForDate(type, opts.sourceWeek, opts.sourceVersion),
+        target: Elasticsearch.getIndexNameForDate(type, opts.targetWeek, opts.targetVersion)
       }
     });
 
@@ -103,7 +94,7 @@ program
 
     for( let cmd of cmds ) {
       logger.info(`Starting copy of index ${cmd.source} to ${cmd.target}...`);
-      await copyIndex(cmd.source, cmd.target, { waitForCompletion: opts.wait });
+      await Elasticsearch.copyIndex(cmd.source, cmd.target, { waitForCompletion: opts.wait });
       logger.info(`Copy of index ${cmd.source} to ${cmd.target} initiated successfully.`);
     }
 
@@ -128,7 +119,7 @@ program
     for( let baseName in config.elasticsearch.indexes ) {
       baseName = config.elasticsearch.indexes[baseName];
       try {
-        await createIndex(baseName, date);
+        await Elasticsearch.createIndex(baseName, date);
       } catch (error) {
         logger.error(`Error creating index for ${baseName} with date:`, date, error);
       }
@@ -153,7 +144,7 @@ program
 
     for( let baseName in config.elasticsearch.indexes ) {
       baseName = config.elasticsearch.indexes[baseName];
-      await deleteIndex(baseName, date);
+      await Elasticsearch.deleteIndex(baseName, date);
     }
   });
 
@@ -179,7 +170,7 @@ program
 
     for( let baseName in config.elasticsearch.indexes ) {
       baseName = config.elasticsearch.indexes[baseName];
-      await setAlias(baseName, date, alias, opts.version);
+      await Elasticsearch.setAlias(baseName, date, alias, opts.version);
     }
   });
 
@@ -188,7 +179,7 @@ program
   .description('Show the current state of indexes and aliases for aggie experts')
   .option('--verbose', 'Show detailed state information')
   .action(async (opts={}) => {
-    let state = await getState();
+    let state = await Elasticsearch.getState();
     
     if( !opts.verbose ) {
       state.indexes = state.indexes.map( idx => ({ index: idx.index, docs : idx['docs.count'] }) );
@@ -206,7 +197,7 @@ program
   .option('--replace', 'Replace existing template if it exists')
   .action(async (opts={}) => {
     try {
-      await ensureSearchScript(opts);
+      await Elasticsearch.ensureSearchScript(opts);
     } catch (error) {
       logger.error(`Error loading search template ${opts.template}:`, error.message);
       process.exit(1);
@@ -214,11 +205,26 @@ program
   });
 
 program
+  .command('load-pipeline')
+  .description('Load ingest pipeline script into Elasticsearch')
+  .option('-p, --pipeline <name>', 'Pipeline name to load (default: aggie-experts-pipeline)', 'aggie-experts-pipeline')
+  .option('--replace', 'Replace existing pipeline if it exists')
+  .action(async (opts={}) => {
+    try {
+      await Elasticsearch.ensurePipeline(opts);
+    } catch (error) {
+      logger.error(`Error loading ingest pipeline ${opts.pipeline}:`, error.message);
+      console.log(error.stack);
+      process.exit(1);
+    }
+  });
+
+program
   .command('get-users-scholarly-works')
   .description('Get scholarly works for a specific user')
-  .argument('type', 'Type of scholarly works to fetch (work or grant)')
+  .argument('<type>', 'Type of scholarly works to fetch (work or grant)')
   .argument('<user-id>', 'User ID to fetch scholarly works for')
-  .option('--alias <alias>', 'ElasticSearch alias to query (default: stage)', 'stage')
+  .option('--alias <alias>', 'ElasticSearch alias to query. public or latest (default: public)', 'public')
   .action(async (type, userId, opts={}) => {
     try {
       let workIds = await getUsersCurrentScholarlyWorks(userId, type, opts.alias);

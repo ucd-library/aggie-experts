@@ -154,7 +154,7 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
     END AS state
   FROM user_command_stats ucs;
 
-CREATE OR REPLACE FUNCTION etl_reporting.get_year_week(p_date DATE DEFAULT CURRENT_DATE)
+CREATE OR REPLACE FUNCTION etl_reporting.get_year_week(p_date DATE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/Los_Angeles')::DATE)
 RETURNS TABLE(
   year_week TEXT,
   week_start DATE,

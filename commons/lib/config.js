@@ -36,6 +36,11 @@ const config = {
 
   buildInfo,
 
+  getBuildVersion() {
+    let build = this.buildInfo.harvest || this.buildInfo.webapp || {};
+    return build.tag || build.branch || 'unknown';
+  },
+
   experts : {
     version : '1.0.0',
     is_public : ! (env.EXPERTS_IS_PUBLIC === "false"),
