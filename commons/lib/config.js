@@ -15,7 +15,11 @@ if( fs.existsSync(BUILD_INFO_PATH) ) {
   let files = fs.readdirSync(BUILD_INFO_PATH);
   for( let file of files ) {
     let content = fs.readFileSync(path.resolve(BUILD_INFO_PATH, file), 'utf-8');
-    buildInfo[file.replace('.json', '')] = JSON.parse(content);
+    try {
+      buildInfo[file.replace('.json', '')] = JSON.parse(content);
+    } catch (error) {
+      console.warn(`Error parsing build info file ${file}: ${error.message}`);
+    }
   }
 }
 
