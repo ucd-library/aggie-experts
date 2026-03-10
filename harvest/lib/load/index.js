@@ -18,6 +18,7 @@ async function run(user, alias) {
   // Insert load statistics on scholarly output into database if reporting is enabled
   if (config.reporting.enabled && config.postgres.client) {
     await reportScholarlyOutputLoadStats(user, metadata);
+    await reportValidationIssues(user, metadata);
   }
 
   if( metadata.isPublic === false ) {
@@ -119,6 +120,95 @@ async function reportScholarlyOutputLoadStats(user, metadata) {
     });
   }
   logger.info(`Recorded load statistics for user: ${user}`, { workStats, grantStats });
+}
+
+function _asArray(val) {
+  if( val === undefined || val === null ) return [];
+  return Array.isArray(val) ? val : [val];
+}
+
+/**
+ * @description Persist field-level validation issues for works/grants into Postgres.
+ * This is intentionally lightweight (no dependency on webapp Citation utils).
+ */
+async function reportValidationIssues(user, metadata={}) {
+  const pg = config.postgres?.client;
+  if( !config.reporting.enabled || !pg ) return;
+
+  const commandId = config.reporting.commandId;
+  const issues = [];
+
+  for( const work of _asArray(metadata.works) ) {
+    const entityId = work?.uri || work?.id || work?.['@id'];
+    if( !entityId ) continue;
+
+    const title = work?.title;
+    const issued = work?.issued;
+
+    if( typeof title !== 'string' || !title.trim() ) {
+      issues.push({
+        entity_type: 'work',
+        entity_id: entityId,
+        issue_type: 'invalid_type',
+        field: 'title',
+        message: 'Invalid work title, expected non-empty string',
+        data: { title }
+      });
+    }
+
+    if( typeof issued !== 'string' || !issued.trim() ) {
+      issues.push({
+        entity_type: 'work',
+        entity_id: entityId,
+        issue_type: 'invalid_type',
+        field: 'issued',
+        message: 'Invalid work issued, expected non-empty string',
+        data: { issued }
+      });
+    }
+  }
+
+  for( const grant of _asArray(metadata.grants) ) {
+    const entityId = grant?.uri || grant?.id || grant?.['@id'];
+    if( !entityId ) continue;
+
+    const name = grant?.name;
+    const endDate = grant?.dateTimeInterval?.end?.dateTime;
+
+    if( typeof name !== 'string' || !name.trim() ) {
+      issues.push({
+        entity_type: 'grant',
+        entity_id: entityId,
+        issue_type: 'invalid_type',
+        field: 'name',
+        message: 'Invalid grant name, expected non-empty string',
+        data: { name }
+      });
+    }
+
+    if( endDate !== undefined && (typeof endDate !== 'string' || isNaN(new Date(endDate).valueOf())) ) {
+      issues.push({
+        entity_type: 'grant',
+        entity_id: entityId,
+        issue_type: 'invalid_value',
+        field: 'dateTimeInterval.end.dateTime',
+        message: 'Invalid grant end date, expected ISO date string parseable by Date()',
+        data: { endDate }
+      });
+    }
+  }
+
+  if( !issues.length ) return;
+
+  for( const issue of issues ) {
+    await pg.insertValidationIssue({
+      command_id: commandId,
+      user_id: user,
+      ...issue
+    });
+  }
+
+  logger.info(`Recorded validation issues for user: ${user}`, { count: issues.length });
 }
 
 async function purgeUser(expertId, alias='stage') {

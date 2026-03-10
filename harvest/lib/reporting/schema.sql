@@ -50,6 +50,23 @@ CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_user_id ON user_
 CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_type ON user_scholarly_output_load_stats (type);
 CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_visibility ON user_scholarly_output_load_stats (visibility);
 
+CREATE TABLE IF NOT EXISTS validation_issue (
+  issue_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
+  user_id VARCHAR(255) NOT NULL,
+  entity_type VARCHAR(20) NOT NULL CHECK (entity_type IN ('work','grant')),
+  entity_id TEXT NOT NULL,
+  issue_type VARCHAR(50) NOT NULL,
+  field VARCHAR(100),
+  message TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_validation_issue_command_id ON validation_issue (command_id);
+CREATE INDEX IF NOT EXISTS idx_validation_issue_user_id ON validation_issue (user_id);
+CREATE INDEX IF NOT EXISTS idx_validation_issue_entity ON validation_issue (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_validation_issue_issue_type ON validation_issue (issue_type);
+
 CREATE TABLE IF NOT EXISTS "user" (
   email VARCHAR(255) PRIMARY KEY,
   first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
