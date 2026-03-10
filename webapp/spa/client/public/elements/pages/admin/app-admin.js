@@ -6,7 +6,7 @@ import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import '@ucd-lib/theme-elements/brand/ucd-theme-list-accordion/ucd-theme-list-accordion.js'
 
-import { getYearWeek, getTodaysDate, parseYearWeek } from '/opt/commons/lib/year-week.js';
+import { parseYearWeek } from '/opt/commons/lib/year-week.js';
 
 import '../../components/modal-overlay.js';
 
