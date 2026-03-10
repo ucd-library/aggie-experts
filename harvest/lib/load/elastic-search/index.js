@@ -1,20 +1,14 @@
-import path from 'path';
-import fs from 'fs/promises';
 import { 
-  getYearWeek, 
-  getTodaysDate, 
-  isPlainDate, 
-  searchTemplate 
+  config, 
+  logger, 
+  Elasticsearch 
 } from '@ucd-lib/experts-commons';
-import getEsClient from '../../elastic-search-client.js';
-import { config, logger } from '@ucd-lib/experts-commons';
 import cache from '../../cache.js';
 import { getNodeByType, SHORT_TYPES } from '../../transform/utils.js';
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 async function getMetadata(index, id) {
-  const esClient = await getEsClient();
+  const esClient = await Elasticsearch.initClient();
   try {
     const resp = await esClient.get({
       index: index,
@@ -77,7 +71,7 @@ async function loadFiles(files, alias) {
       }
 
       logger.info(`Loading file=${file.path} into index=${aliasIndex} with id=${id}`);
-      let resp = await insert(aliasIndex, id, json);
+      let resp = await Elasticsearch.insert(aliasIndex, id, json);
       if( !indexes[aliasIndex] ) {
         indexes[aliasIndex] = resp._index;
       }
@@ -109,7 +103,7 @@ async function loadFile(file) {
 
 async function getUsersCurrentScholarlyWorks(expertId, type, alias) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;
-  const esClient = await getEsClient();
+  const esClient = await Elasticsearch.initClient();
   const index = type+'s-'+alias;
   const resp = await esClient.search({
     index,
@@ -137,13 +131,7 @@ async function getUsersCurrentScholarlyWorks(expertId, type, alias) {
     .map(node => node['@id']);
 }
 
-function getBuildVersion() {
-  let build = config.buildInfo.harvest || config.buildInfo.webapp || {};
-  return build.tag || build.branch || 'unknown';
-}
-
 export {
   loadFiles,
-  getBuildVersion,
   getUsersCurrentScholarlyWorks
 }
