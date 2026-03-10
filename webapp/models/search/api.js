@@ -106,7 +106,7 @@ router.get(
     params.index = [...new Set(params.index)];
 
     let searchTemplate = Elasticsearch.searchTemplates['complete'];
-    opts = {
+    let opts = {
       id: searchTemplate.id,
       params
     };
