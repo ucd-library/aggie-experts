@@ -21,7 +21,7 @@ export default class UcdlibSiteFooter extends Mixin(LitElement)
 
   static get properties() {
     return {
-      lastUpdate: {type: String, attribute: "last-update"}
+      lastUpdate : { type : String, attribute: "last-update" }
     };
   }
 
@@ -64,6 +64,95 @@ export default class UcdlibSiteFooter extends Mixin(LitElement)
       </div>
 
     `;
+  }
+
+  _renderBuildInfo() {
+    if( APP_CONFIG?.user?.roles?.includes('admin') ) {
+      const rawBuildInfo = APP_CONFIG?.buildInfo;
+      let entries = [];
+
+      if( Array.isArray(rawBuildInfo) ) {
+        entries = rawBuildInfo
+          .filter(item => item && typeof item === 'object')
+          .map((item, i) => [item.service || item.key || item.name || `app-${i+1}`, item]);
+      } else if( rawBuildInfo && typeof rawBuildInfo === 'object' ) {
+        entries = Object.entries(rawBuildInfo)
+          .filter(([, value]) => value && typeof value === 'object');
+      }
+
+      if( !entries.length ) {
+        return html``;
+      }
+
+      return html`
+        <div class="build-info-grid">
+          ${entries.map(([service, data]) => {
+            const repoUrl = data.httpRemote || data.remote;
+            return html`
+              <div class="build-info-column">
+                <div><b>Service</b>: ${service}</div>
+                <div>
+                  <b>Repository</b>:
+                  ${repoUrl ? html`<a href="${repoUrl}" target="_blank" rel="noopener noreferrer">${data.name || repoUrl}</a>` : (data.name || '')}
+                </div>
+                <div><b>Last Commit Time</b>: ${data.date ? new Date(data.date).toLocaleString() : ''}</div>
+                ${data.branch && data.branch !== 'HEAD' ? html`
+                  <div>
+                    <b>Branch</b>:
+                    ${repoUrl ? html`<a href="${repoUrl}/tree/${data.branch}" target="_blank" rel="noopener noreferrer">${data.branch}</a>` : data.branch}
+                  </div>
+                ` : html``}
+                ${data.tag ? html`
+                  <div>
+                    <b>Tag</b>:
+                    ${repoUrl ? html`<a href="${repoUrl}/tree/${data.tag}" target="_blank" rel="noopener noreferrer">${data.tag}</a>` : data.tag}
+                  </div>
+                ` : html``}
+                <div>
+                  <b>Commit</b>:
+                  ${data.commit && repoUrl ? html`<a href="${repoUrl}/commit/${data.commit}" target="_blank" rel="noopener noreferrer">${data.commit}</a>` : (data.commit || '')}
+                </div>
+                <div><b>Image</b>: ${data.imageTag || ''}</div>
+              </div>
+            `;
+          })}
+        </div>
+      `;
+      // for( let buildName in APP_CONFIG.buildInfo ) {
+      //   let data = APP_CONFIG.buildInfo[buildName];
+      //   let info = [
+      //     {label: 'Repository', value: html`<a href="${data.remote}" target="_blank">${data.name}</a>`},
+      //     {label: 'Last Commit Time', value: new Date(data.date).toLocaleString()},
+      //   ];
+      //   if( data.branch && data.branch != 'HEAD' ) {
+      //     info.push({label: 'Branch', value: html`<a href="${data.remote}/tree/${data.branch}" target="_blank">${data.branch}</a>`});
+      //   }
+      //   if( data.tag ) {
+      //     info.push({label: 'Tag', value: html`<a href="${data.remote}/tree/${data.tag}" target="_blank">${data.tag}</a>`});
+      //   }
+      //   info.push({label: 'Commit', value: html`<a href="${data.remote}/commit/${data.commit}" target="_blank">${data.commit}</a>`});
+      //   info.push({label: 'Image', value: data.imageTag});      
+
+      //   this.buildInfo.push(info);
+      // }
+      // <div class="build-info">
+      //   ${this.buildInfo.map(
+      //     info => html`
+      //       <div>
+      //         ${info.map(
+      //           item => html`
+      //             <div>
+      //               <b>${item.label}</b>: ${item.value}
+      //             </div>
+      //           `
+      //         )}
+      //       </div>
+      //     `
+      //   )}
+      // </div>
+    } else { 
+      return html``
+    }
   }
 
   /**
