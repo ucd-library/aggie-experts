@@ -1,6 +1,6 @@
 import cache from '../cache.js';
-import { logger, config } from '@ucd-lib/experts-commons';
-import { loadFiles as loadEs, getUsersCurrentScholarlyWorks, deleteDocument } from './elastic-search/index.js';
+import { logger, config, Elasticsearch } from '@ucd-lib/experts-commons';
+import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
 
 async function run(user, alias) {
@@ -130,7 +130,7 @@ async function purgeUser(expertId, alias='stage') {
 
   for( let a of alias ) {
     // Delete document associated with the user
-    let deleteResp = await deleteDocument('experts-'+a, 'expert/'+expertId);
+    let deleteResp = await Elasticsearch.deleteDocument('experts-'+a, 'expert/'+expertId);
     logger.info('Delete response for expert document:', {deleteResp});
 
     // get current works
