@@ -13,8 +13,27 @@ let config = require('@ucd-lib/cork-app-build').watch({
   });
 
   if( !Array.isArray(config) ) config = [config];
+  
   config.forEach(conf => {
     conf.output.publicPath = '/js/';
+
+    // Ignore Node-only modules pulled in by harvest/lib/config.js when bundling for browser
+    if( !conf.resolve ) conf.resolve = {};
+    conf.resolve.alias = {
+      ...(conf.resolve.alias || {}),
+      'fs-extra': false,
+      'graceful-fs': false
+    };
+    conf.resolve.fallback = {
+      ...(conf.resolve.fallback || {}),
+      path: false,
+      os: false,
+      fs: false,
+      assert: false,
+      util: false,
+      stream: false,
+      constants: false
+    };
   });
 
   // optionaly you can run:

@@ -134,7 +134,7 @@ export default function render() {
       }
     </style>
 
-
+    ${!this.visible ? '' : html`
     <div class="container${this.errorMode ? ' error-mode' : ''}">
       <div class="overlay">
         <div class="header-section">
@@ -154,5 +154,6 @@ export default function render() {
         </div>
       </div>
     </div>
+    `}
   `;
 }

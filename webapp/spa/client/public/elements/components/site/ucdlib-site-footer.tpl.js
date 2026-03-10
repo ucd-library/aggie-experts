@@ -141,6 +141,30 @@ export function styles() {
       text-align: center;
     }
 
+    .build-info {
+      margin-top: 1rem;
+    }
+
+    .build-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .build-info-column {
+      padding: 1rem;
+      border-radius: 4px;
+    }
+
+    .build-info-column > div {
+      margin-bottom: 0.35rem;
+      word-break: break-word;
+    }
+
+    .build-info-column > div:last-child {
+      margin-bottom: 0;
+    }
+
     @media (max-width: 992px) {
       #section-columns {
         display: flex;
@@ -205,6 +229,9 @@ export function render() {
         </div>
       </div>
       <div class="section-campus-info">${this._renderCampusInfo()}</div>
+
+      ${this._renderBuildInfo()}
+
     </div>
   `;
 }

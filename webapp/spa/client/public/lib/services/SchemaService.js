@@ -1,0 +1,63 @@
+const {BaseService} = require('@ucd-lib/cork-app-utils');
+const SchemaStore = require('../stores/SchemaStore.js');
+const payloadUtils = require('../payload.js').default;
+
+class SchemaService extends BaseService {
+
+  constructor() {
+    super();
+    this.store = SchemaStore;
+    this.baseUrl = '/api/schema';
+  }
+
+  async getIndexes() {
+    return this.request({
+      url : `${this.baseUrl}/es/indexes`,
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async setAlias(indexesToSwitch) {
+    return this.request({
+      url : `${this.baseUrl}/es/indexes`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "indexesToSwitch" : indexesToSwitch
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async deleteIndex(indexesToDelete) {
+    return this.request({
+      url : `${this.baseUrl}/es/indexes`,
+      fetchOptions : {
+        method : 'DELETE',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          "indexesToDelete" : indexesToDelete
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+}
+
+module.exports = new SchemaService();

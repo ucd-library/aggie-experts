@@ -35,15 +35,17 @@ router.get(
   valid_path_error,
   async (req, res) => {
     const params = {
-      "@type":['expert'], //,'grant','work'],
-      "q": "",
-      "size": 10,
-      "page": 1,
-      index: []
+      "@type" : ['expert', 'grant', 'work'],
+      "q" : "",
+      "size" : 10,
+      "page" : 1,
+      index : []
     };
+
     ["p","inner_hits_size","size","page","q"].forEach((key) => {
       if (req.query[key]) { params[key] = req.query[key]; }
     });
+
     // if the user is not logged in, we need to set the default
     if (params.size > 100) {
       res.status(400).json({ error: 'Size exceeds limit' });
@@ -83,10 +85,10 @@ router.get(
       res.status(400).json({ error: 'Missing required query parameter "q"' });
     }
 
-    const typeToIndex = {
-      expert: experts.readIndexAlias,
-      grant: grants.readIndexAlias,
-      work: works.readIndexAlias,
+    let typeToIndex = {
+      expert: req.query['previewEsIndexExperts'] || experts.readIndexAlias,
+      grant: req.query['previewEsIndexGrants'] || grants.readIndexAlias,
+      work: req.query['previewEsIndexWorks'] || works.readIndexAlias,
     };
     // Validate @type values but always search all indices (post_filter will handle @type filtering)
     if (params["@type"]) {
@@ -97,17 +99,18 @@ router.get(
       }
     }
     // Always include all indices so aggregations see all document types
-    params.index.push(experts.readIndexAlias);
-    params.index.push(grants.readIndexAlias);
-    params.index.push(works.readIndexAlias);
+    params.index.push(typeToIndex.expert);
+    params.index.push(typeToIndex.grant);
+    params.index.push(typeToIndex.work);
     // Remove duplicates
     params.index = [...new Set(params.index)];
 
     let searchTemplate = Elasticsearch.searchTemplates['complete'];
-    opts = {
+    let opts = {
       id: searchTemplate.id,
       params
     };
+
     try {
       await experts.verify_template(searchTemplate);
       const find = await base.search(opts);
@@ -148,9 +151,9 @@ router.get(
           params: {
             ...filteredParams,
             size: 0,
-            index: [experts.readIndexAlias,
-                    grants.readIndexAlias,
-                    works.readIndexAlias]
+            index: [typeToIndex.expert,
+                    typeToIndex.grant,
+                    typeToIndex.work]
           }
         });
 

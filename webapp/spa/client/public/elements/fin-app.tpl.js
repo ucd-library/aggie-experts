@@ -152,6 +152,30 @@ return html`
       height: 100%;
     }
 
+    .preview-es-index-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem .7rem;
+      background-color: var(--color-arboretum);
+      color: var(--ucd-blue-100, #022851);
+    }
+
+    .preview-es-index-container[hidden] {
+      display: none;
+    }
+
+    .preview-es-index-container .preview-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+    }
+
+    .preview-es-index-container a {
+      font-size: 0.875rem;
+    }
+
     </style>
   <!--
     Required for AppStateModel
@@ -201,6 +225,16 @@ return html`
       </div>
     </button>
   </div>
+    
+  <div ?hidden="${this.hideEsIndexPreviewing}" class="preview-es-index-container">
+    <div class="preview-info">
+      <ucdlib-icon icon="ucdlib-experts:fa-flask"></ucdlib-icon>
+      <span>Previewing data version ${this.currentElasticIndex} in this browser</span>    
+    </div>
+    <a href="" @click="${this._cancelEsIndexPreviewClick}">
+      End Preview
+    </a>
+  </div>
 
   <div class="main-content">
     <ucdlib-pages
@@ -244,6 +278,11 @@ return html`
       <app-faq id="faq"></app-faq>
       <app-tou id="termsofuse"></app-tou>
       <app-search-tips id="search-tips"></app-search-tips>
+      <app-admin id="admin" 
+        @show-404="${(e) => this.page = '404'}"
+        @preview-es-index="${this._previewEsIndexClick}" 
+        @cancel-preview-es-index="${this._cancelEsIndexPreviewClick}"
+        .currentElasticIndex="${this.currentElasticIndex}"></app-admin>
     </ucdlib-pages>
 
     <app-404 id="404" ?hidden="${this.page !== '404'}"></app-404>
