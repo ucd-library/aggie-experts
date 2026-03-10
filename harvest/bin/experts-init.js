@@ -1,8 +1,8 @@
 import { Command } from 'commander';
-import { ensureCurrentIndexes, ensureSearchScript } from '../lib/load/elastic-search/index.js';
 import {
   logger,
-  config
+  config,
+  Elasticsearch
 } from '@ucd-lib/experts-commons';
 import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
@@ -20,16 +20,22 @@ program
 
     try {
       logger.info('Ensuring current ElasticSearch indexes for aggie experts...');
-      let indexes = await ensureCurrentIndexes();
+      let indexes = await Elasticsearch.ensureCurrentIndexes();
       logger.info('ElasticSearch indexes ensured successfully.', indexes);
     } catch (error) {
       errors.push(`Error initializing ElasticSearch indexes: ${error.message}`);
     }
 
     try {
-      await ensureSearchScript();
+      await Elasticsearch.ensureSearchScript({template: 'complete'});
     } catch (error) {
       errors.push(`Error loading ElasticSearch search template: ${error.message}`);
+    }
+
+    try {
+      await Elasticsearch.ensurePipeline({pipeline: 'aggie-experts-pipeline'});
+    } catch (error) {
+      errors.push(`Error loading ingest pipeline: ${error.message}`);
     }
 
     const pgClient = new PgClient();

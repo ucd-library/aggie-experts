@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs-extra';
 import { fileURLToPath } from 'url';
+import { config } from '@ucd-lib/experts-commons';
 
 const program = new Command();
 const __filename = fileURLToPath(import.meta.url);
@@ -25,6 +26,17 @@ program
   .command('harvest', 'run various harvest ETL tasks')  
   .command('init', 'initialize aggie experts database components')
 
+program 
+  .command('build-version')
+  .description('Print the current container build (from build metadata, not package.json)')
+  .option('-v, --verbose', 'verbose output')
+  .action((opts) => {
+    if( opts.verbose ) {
+      console.log(config.buildInfo);
+      return;
+    }
+    console.log(config.getBuildVersion());
+  });
 
 
 program.parse(process.argv);

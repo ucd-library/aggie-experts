@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@elastic/elasticsearch": "^8.19.1",
     "@google-cloud/secret-manager": "^6.1.1",
     "@js-temporal/polyfill": "^0.5.1",
     "@keycloak/keycloak-admin-client": "^26.5.2",
