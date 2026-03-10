@@ -58,7 +58,7 @@ router.route(
 
                 if( alreadySet ) {
                     console.log(`Alias ${alias} is already set to index ${index}, no changes made.`);
-                    return;
+                    continue;
                 }
 
                 console.log(`Adding alias ${alias} to index ${index}`);
