@@ -85,7 +85,8 @@ export default class UcdlibSiteFooter extends Mixin(LitElement)
       }
 
       return html`
-        <div class="build-info-grid">
+        <div class="build-info">
+          <div class="build-info-grid">
           ${entries.map(([service, data]) => {
             const repoUrl = data.httpRemote || data.remote;
             return html`
@@ -116,6 +117,7 @@ export default class UcdlibSiteFooter extends Mixin(LitElement)
               </div>
             `;
           })}
+          </div>
         </div>
       `;
       // for( let buildName in APP_CONFIG.buildInfo ) {

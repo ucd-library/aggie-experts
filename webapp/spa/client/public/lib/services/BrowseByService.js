@@ -20,12 +20,16 @@ class BrowseByService extends BaseService {
     // if an admin and cache is saved for previewing an es index, use that
     let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
     let esIndexes = await indexedDb.getElasticsearchIndexes();
-    let matchedAlias;
+    let matchedAlias, indexName;
+
     if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
-      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type))?.aliases?.[0];
-      if( matchedAlias && isAdmin ) {
-        ido.previewEsIndex = matchedAlias;
-        qs.previewEsIndex = matchedAlias;
+      let indexInfo = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type));
+      matchedAlias = indexInfo?.aliases?.[0];
+      indexName = indexInfo?.indexName;
+      
+      if( ( matchedAlias || indexName ) && isAdmin ) {
+        ido.previewEsIndex = matchedAlias || indexName;
+        qs.previewEsIndex = matchedAlias || indexName;
       }
     }
 
@@ -54,10 +58,13 @@ class BrowseByService extends BaseService {
     // if an admin and cache is saved for previewing an es index, use that
     let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
     let esIndexes = await indexedDb.getElasticsearchIndexes();
-    let matchedAlias;
+    let matchedAlias, indexName;
     if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
-      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type))?.aliases?.[0];
-      ido.previewEsIndex = matchedAlias;
+      let indexInfo = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type));
+      matchedAlias = indexInfo?.aliases?.[0];
+      indexName = indexInfo?.indexName;
+      
+      ido.previewEsIndex = matchedAlias || indexName;
     }
 
     let id = payloadUtils.getKey(ido); 
@@ -66,8 +73,10 @@ class BrowseByService extends BaseService {
     let storeKey = 'by'+type+'sLastInitial';
 
     let qs = { page, size, p : lastInitial.toUpperCase() };
-    if( matchedAlias && isAdmin ) qs.previewEsIndex = matchedAlias;
-    
+    if( ( matchedAlias || indexName ) && isAdmin ) {
+      qs.previewEsIndex = matchedAlias || indexName;
+    }
+
     await this.request({
       url : `${this.baseUrl}/${type.toLowerCase()}/browse`,
       qs,

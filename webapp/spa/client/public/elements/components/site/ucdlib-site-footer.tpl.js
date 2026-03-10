@@ -230,9 +230,7 @@ export function render() {
       </div>
       <div class="section-campus-info">${this._renderCampusInfo()}</div>
 
-      <div class="build-info">
-        ${this._renderBuildInfo()}
-      </div>
+      ${this._renderBuildInfo()}
 
     </div>
   `;

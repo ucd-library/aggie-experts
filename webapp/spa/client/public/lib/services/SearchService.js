@@ -19,9 +19,10 @@ class SearchService extends BaseService {
     let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
     let esIndexes = await indexedDb.getElasticsearchIndexes();
     if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
-      let previewEsIndexExperts = esIndexes.find(i => i.previewEsIndex && i.aliases.find(a => a.startsWith('expert')))?.aliases?.[0];
-      let previewEsIndexGrants = esIndexes.find(i => i.previewEsIndex && i.aliases.find(a => a.startsWith('grant')))?.aliases?.[0];
-      let previewEsIndexWorks = esIndexes.find(i => i.previewEsIndex && i.aliases.find(a => a.startsWith('work')))?.aliases?.[0];
+      let previewIndexInfo = esIndexes.filter(i => i.previewEsIndex);
+      let previewEsIndexExperts = previewIndexInfo.find(i => i.indexName?.startsWith('expert'))?.indexName;
+      let previewEsIndexGrants = previewIndexInfo.find(i => i.indexName?.startsWith('grant'))?.indexName;
+      let previewEsIndexWorks = previewIndexInfo.find(i => i.indexName?.startsWith('work'))?.indexName;
       if( previewEsIndexExperts && isAdmin ) searchQuery += `&previewEsIndexExperts=${previewEsIndexExperts}`;
       if( previewEsIndexGrants && isAdmin ) searchQuery += `&previewEsIndexGrants=${previewEsIndexGrants}`;
       if( previewEsIndexWorks && isAdmin ) searchQuery += `&previewEsIndexWorks=${previewEsIndexWorks}`;

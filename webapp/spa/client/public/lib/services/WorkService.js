@@ -20,12 +20,14 @@ class WorkService extends BaseService {
     // if an admin and cache is saved for previewing an es index, use that
     let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
     let esIndexes = await indexedDb.getElasticsearchIndexes();
-    let matchedAlias;
+    let matchedAlias, indexName;
     if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
-      matchedAlias = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith('work'))?.aliases?.[0];
-      if( matchedAlias && isAdmin ) {
-        qs.previewEsIndex = matchedAlias;
-        ido.previewEsIndex = matchedAlias;
+      let indexInfo = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith('work'));
+      matchedAlias = indexInfo?.aliases?.[0];
+      indexName = indexInfo?.indexName;
+      if( ( matchedAlias || indexName ) && isAdmin ) {
+        qs.previewEsIndex = matchedAlias || indexName;
+        ido.previewEsIndex = matchedAlias || indexName;
       }
     }
 
