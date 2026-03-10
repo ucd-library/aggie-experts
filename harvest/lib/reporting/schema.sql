@@ -58,8 +58,25 @@ CREATE TABLE IF NOT EXISTS "user" (
   is_public BOOLEAN DEFAULT FALSE,
   cdl_privacy JSONB,
   odr_privacy JSONB,
-  es_stage_inserted_at TIMESTAMP
+  es_stage_inserted_at TIMESTAMP,
+  first_es_insert TIMESTAMP DEFAULT NULL
 );
+
+CREATE OR REPLACE FUNCTION set_user_first_es_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.first_es_insert IS NULL
+    AND NEW.es_stage_inserted_at IS NOT NULL THEN
+    NEW.first_es_insert := NEW.es_stage_inserted_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_set_user_first_es_insert
+BEFORE UPDATE ON "user"
+FOR EACH ROW
+EXECUTE FUNCTION set_user_first_es_insert();
 
 CREATE TABLE IF NOT EXISTS year_week (
   year_week VARCHAR(10) PRIMARY KEY,
