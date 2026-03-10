@@ -79,7 +79,7 @@ module.exports = async (app) => {
         gaId : config.client.gaId,
         logger : config.client.logger,
         esAliases : commonsConfig.elasticsearch.aliases,
-        buildVersion : commonsConfig.getBuildVersion()
+        buildInfo : commonsConfig.buildInfo
       });
     },
 
