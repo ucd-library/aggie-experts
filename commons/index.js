@@ -5,7 +5,6 @@ import config from './lib/config.js';
 import { getYearWeek, getTodaysDate, isPlainDate } from './lib/year-week.js';
 import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
-import searchTemplate from './lib/elasticsearch/search-templates/complete.js';
 
 
 export {
@@ -20,6 +19,5 @@ export {
   config,
   getYearWeek,
   getTodaysDate,
-  isPlainDate,
-  searchTemplate
+  isPlainDate
 };

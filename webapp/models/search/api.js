@@ -4,7 +4,7 @@ const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const WorkModel = require('../work/model.js');
 // const utils = require('../utils.js')
-const {searchTemplate} = require('@ucd-lib/experts-commons');
+const {Elasticsearch} = require('@ucd-lib/experts-commons');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
@@ -102,6 +102,8 @@ router.get(
     params.index.push(works.readIndexAlias);
     // Remove duplicates
     params.index = [...new Set(params.index)];
+
+    let searchTemplate = Elasticsearch.searchTemplates['complete'];
     opts = {
       id: searchTemplate.id,
       params
