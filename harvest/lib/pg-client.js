@@ -116,15 +116,14 @@ class PgClient {
       entity_id,
       issue_type,
       field,
-      message,
-      data
+      message
     } = opts;
 
     const query = `
       INSERT INTO ${this.schema}.validation_issue
-        (command_id, user_id, entity_type, entity_id, issue_type, field, message, data)
+        (command_id, user_id, entity_type, entity_id, issue_type, field, message)
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8)
+        ($1, $2, $3, $4, $5, $6, $7)
     `;
 
     return this.query(query, [
@@ -134,8 +133,7 @@ class PgClient {
       entity_id,
       issue_type,
       field || null,
-      message || null,
-      data ? JSON.stringify(data) : null
+      message || null
     ]);
   }
 

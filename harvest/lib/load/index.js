@@ -169,8 +169,7 @@ async function reportValidationIssues(user, metadata={}) {
         entity_id: entityId,
         issue_type: 'invalid_type',
         field: 'title',
-        message: 'Invalid work title, expected non-empty string',
-        data: { title }
+        message: 'Invalid work title, expected non-empty string'
       });
     }
 
@@ -180,8 +179,7 @@ async function reportValidationIssues(user, metadata={}) {
         entity_id: entityId,
         issue_type: 'invalid_type',
         field: 'issued',
-        message: 'Invalid work issued, expected non-empty string',
-        data: { issued }
+        message: 'Invalid work issued, expected non-empty string'
       });
     }
 
@@ -192,8 +190,7 @@ async function reportValidationIssues(user, metadata={}) {
         entity_id: entityId,
         issue_type: 'invalid_type',
         field: 'issue',
-        message: 'Invalid work issue, expected string when present',
-        data: { issue }
+        message: 'Invalid work issue, expected string when present'
       });
     }
   }
@@ -212,8 +209,7 @@ async function reportValidationIssues(user, metadata={}) {
         entity_id: entityId,
         issue_type: 'invalid_type',
         field: 'name',
-        message: 'Invalid grant name, expected non-empty string',
-        data: { name }
+        message: 'Invalid grant name, expected non-empty string'
       });
     }
 
@@ -223,8 +219,7 @@ async function reportValidationIssues(user, metadata={}) {
         entity_id: entityId,
         issue_type: 'invalid_value',
         field: 'dateTimeInterval.end.dateTime',
-        message: 'Invalid grant end date, expected ISO date string parseable by Date()',
-        data: { endDate }
+        message: 'Invalid grant end date, expected ISO date string parseable by Date()'
       });
     }
   }
