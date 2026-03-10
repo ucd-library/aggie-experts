@@ -475,7 +475,7 @@ export default class FinApp extends Mixin(LitElement)
     let esIndexes = await indexedDb.getElasticsearchIndexes();
     if( esIndexes && (APP_CONFIG.user?.roles || []).includes('admin')) {
       this.currentElasticIndex = esIndexes.filter(i => i.previewEsIndex)?.[0]?.indexDisplayName || '';
-      this.hideEsIndexPreviewing = false;
+      this.hideEsIndexPreviewing = !this.currentElasticIndex;
     } else {
       this.currentElasticIndex = '';
       this.hideEsIndexPreviewing = true;
