@@ -663,12 +663,13 @@ class BaseModel extends EsDataModel {
    * @description delete one node of the @graph of a document. The document must exist.
    * @param {String} document_id
    * @param {Object} node : node to delete, uses node["@id"] for deletion
+   * @param {String} alias : optional alias to update, defaults to writeIndexAlias
    *
    * @returns {Promise} : Elasticsearch response Promise
    */
-  async delete_graph_node(document_id, node_to_delete) {
+  async delete_graph_node(document_id, node_to_delete, alias) {
     return this.client.update({
-      index: this.writeIndexAlias,
+      index: alias || this.writeIndexAlias,
       id : document_id,
       retry_on_conflict : this.UPDATE_RETRY_COUNT,
       // refresh : 'wait_for',

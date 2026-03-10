@@ -649,9 +649,14 @@ class ExpertModel extends BaseModel {
       expert['is-visible'] = patch.visible;
     }
 
-    // update Elasticsearch
+    // update both public/latest aliases to keep them in sync
     await this.client.index({
-      index : this.writeIndexAlias,
+      index : 'experts-'+config.elasticsearch.aliases.stage,  
+      id : expert['@id'],
+      document: expert
+    });
+    await this.client.index({
+      index : 'experts-'+config.elasticsearch.aliases.current,  
       id : expert['@id'],
       document: expert
     });
@@ -675,10 +680,15 @@ class ExpertModel extends BaseModel {
       return 404
     };
 
-    await this.client.delete(
-      {id:expertId,
-       index:this.writeIndexAlias
-      });
+    // update both public/latest aliases to keep them in sync
+    await this.client.delete({
+      id : expertId,
+      index : 'experts-'+config.elasticsearch.aliases.stage
+    }); 
+    await this.client.delete({
+      id : expertId,
+      index : 'experts-'+config.elasticsearch.aliases.current
+    }); 
 
     if (config.experts.cdl.expert.propagate) {
       const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
@@ -736,9 +746,14 @@ class ExpertModel extends BaseModel {
       });
     }
 
-    // update Elasticsearch
+    // update both public/latest aliases to keep them in sync
     await this.client.index({
-      index: this.writeIndexAlias,
+      index: 'experts-'+config.elasticsearch.aliases.stage,
+      id: expert['@id'],
+      document: expert
+    });
+    await this.client.index({
+      index: 'experts-'+config.elasticsearch.aliases.current,
       id: expert['@id'],
       document: expert
     });
@@ -824,7 +839,9 @@ class GrantRole {
     //   node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
     // }
 
-    await this.expertModel.update_graph_node(expertId,node);    
+    // update both public/latest to keep them in sync
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);  
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);    
 
     if (config.experts.cdl.grant_role.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
@@ -902,11 +919,10 @@ class Authorship {
     }
 
     //already a snippet node = workModel.snippet(have_part.Work.node);
-
     
-    // loop over config config.elasticsearch.aliases
-    console.log('TODO update all aliases (public+latest) and call update_graph_node() with new node data', { expertId, node });
-    await this.expertModel.update_graph_node(expertId, node);
+    // update both public/latest to keep them in sync
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);    
 
     if (config.experts.cdl.authorship.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
@@ -950,7 +966,9 @@ class Authorship {
     node = this.expertModel.get_node_by_related_id(expert, rid);
     objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
 
-    await this.expertModel.delete_graph_node(expertId, node);
+    // update both public/latest to keep them in sync
+    await this.expertModel.delete_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
+    await this.expertModel.delete_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);
 
     if (config.experts.cdl.authorship.propagate) {
       let linkId=rid.replace("ark:/87287/d7mh2m/relationship/","");
