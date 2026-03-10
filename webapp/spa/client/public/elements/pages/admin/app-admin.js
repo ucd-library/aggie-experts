@@ -168,7 +168,22 @@ export default class AppAdmin extends Mixin(LitElement)
   _updateVersionStats() {
     // update the public/latest info, and show errors if there are mismatches or pending versions
     let publicIndex = this.availableElasticIndexes.find(i => i.aliases?.find(a => a.includes(APP_CONFIG.esAliases.current)));
-    let latestIndex = this.availableElasticIndexes.find(i => i.aliases?.find(a => a.includes(APP_CONFIG.esAliases.stage)));
+    let latestIndexes = this.availableElasticIndexes.filter(i => i.aliases?.find(a => a.includes(APP_CONFIG.esAliases.stage)));
+
+    let latestIndex = latestIndexes?.[0]; // default to first, but if mismatch, pull the latest yyyymm
+
+    // if latestIndexes has `indexYYYYMM` that doesn't match, need to show this.dataMismatch
+    this.mismatchedIndexes = [];
+    this.dataMismatch = new Set(latestIndexes.map(i => i.indexYYYYMM)).size > 1;
+    if( this.dataMismatch ) {
+      this.mismatchedIndexes = latestIndexes;
+      latestIndex = latestIndexes.sort((a, b) => {
+        // sort by date
+        if( a.indexYYYYMM > b.indexYYYYMM ) return -1;
+        if( a.indexYYYYMM < b.indexYYYYMM ) return 1;
+        return 0;
+      })?.[0];
+    }
 
     this.publicIndexName = publicIndex?.indexDisplayName || '';
     this.publicIndexDateRange = publicIndex?.dateRangeFull || '';
@@ -178,17 +193,8 @@ export default class AppAdmin extends Mixin(LitElement)
     this.dataVersionPending = this.publicIndexName !== this.latestIndexName;
     this.dataVersionSuccess = this.publicIndexName === this.latestIndexName;
 
-    // TODO other statuses and mismatch stuff
+    // TODO other statuses and mismatch stuff, but this is 5.x release, to show 'data ingest failed' style messages
     // this.dataVersionFailed = !!(latestIndex && publicIndex && latestIndex.indexName !== publicIndex.indexName && !latestIndex.displayLabels.toLowerCase().includes('public'));
-    // this.dataVersionSuccess = !!(latestIndex && publicIndex && latestIndex.indexName === publicIndex.indexName);
-    // this.dataMismatch = !!(latestIndex && publicIndex && latestIndex.indexName !== publicIndex.indexName);
-    // this.mismatchedIndexes = [{
-    //   indexName: latestIndex?.indexName,
-    //   aliases: latestIndex?.aliases
-    // }, {
-    //   indexName: publicIndex?.indexName,
-    //   aliases: publicIndex?.aliases
-    // }];
   }
 
   _dedupeIndexesIgnoringAlias(indexes=[]) {
@@ -259,10 +265,6 @@ export default class AppAdmin extends Mixin(LitElement)
   async _onPreviewIndex(e) {
     await this._updatePreviewingState();
 
-    // TODO fix preview index
-    // when previewing an index without an alias (like a previous week), 
-    //    the api responds with data from the wrong index, like the preview is ignored
-
     await indexedDb.setElasticsearchIndexes(this.availableElasticIndexes);
 
     // send to fin-app
@@ -284,6 +286,7 @@ export default class AppAdmin extends Mixin(LitElement)
 
     this.availableElasticIndexes.forEach(i => {
       i.previewEsIndex = i.indexDisplayName === this.currentPreviewIndex && !i.displayLabels.includes(current);
+      if( !i.previewEsIndex && i.displayLabels.includes('Previewing') ) i.displayLabels = i.displayLabels.filter(l => l !== 'Previewing');
       if( i.previewEsIndex ) i.displayLabels.push('Previewing');
     });
   }
