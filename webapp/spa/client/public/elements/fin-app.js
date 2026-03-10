@@ -309,6 +309,11 @@ export default class FinApp extends Mixin(LitElement)
       this.allLinks = this.allLinks.filter(link => link.type !== 'profile');
     }
 
+    // remove admin link for non admin users
+    if( !(APP_CONFIG.user?.roles || []).includes('admin') ) {
+      this.allLinks = this.allLinks.filter(link => link.type !== 'admin');
+    }
+
     // update logged in status
     if( APP_CONFIG.user.loggedIn ) {
       this.quickLinks = this.allLinks.filter(link => link.type !== 'login');
