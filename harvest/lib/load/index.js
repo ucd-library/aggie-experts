@@ -127,23 +127,41 @@ function _asArray(val) {
   return Array.isArray(val) ? val : [val];
 }
 
+function _hasType(node, type) {
+  const t = _asArray(node?.['@type']);
+  return t.includes(type);
+}
+
 /**
  * @description Persist field-level validation issues for works/grants into Postgres.
- * This is intentionally lightweight (no dependency on webapp Citation utils).
+ * Source of truth for field validation is the webapp expert.jsonld output
  */
 async function reportValidationIssues(user, metadata={}) {
   const pg = config.postgres?.client;
   if( !config.reporting.enabled || !pg ) return;
 
   const commandId = config.reporting.commandId;
+
+  // expert.jsonld is generated in transform and should exist before load.
+  // If it doesn't, we avoid writing noisy false positives.
+  let expertDoc;
+  try {
+    expertDoc = JSON.parse(await cache.readUserAsset(user, 'webapp/expert.jsonld'));
+  } catch (e) {
+    logger.warn(`Unable to read webapp/expert.jsonld for validation issue reporting for user ${user}. Skipping.`, { error: e.message });
+    return;
+  }
+
+  const graph = _asArray(expertDoc['@graph']);
   const issues = [];
 
-  for( const work of _asArray(metadata.works) ) {
-    const entityId = work?.uri || work?.id || work?.['@id'];
+  // Works
+  for( const node of graph.filter(n => _hasType(n, 'Work')) ) {
+    const entityId = node?.['@id'];
     if( !entityId ) continue;
 
-    const title = work?.title;
-    const issued = work?.issued;
+    const title = node?.title;
+    const issued = node?.issued;
 
     if( typeof title !== 'string' || !title.trim() ) {
       issues.push({
@@ -166,14 +184,27 @@ async function reportValidationIssues(user, metadata={}) {
         data: { issued }
       });
     }
+
+    const issue = node?.issue;
+    if( issue !== undefined && typeof issue !== 'string' ) {
+      issues.push({
+        entity_type: 'work',
+        entity_id: entityId,
+        issue_type: 'invalid_type',
+        field: 'issue',
+        message: 'Invalid work issue, expected string when present',
+        data: { issue }
+      });
+    }
   }
 
-  for( const grant of _asArray(metadata.grants) ) {
-    const entityId = grant?.uri || grant?.id || grant?.['@id'];
+  // Grants
+  for( const node of graph.filter(n => _hasType(n, 'Grant')) ) {
+    const entityId = node?.['@id'];
     if( !entityId ) continue;
 
-    const name = grant?.name;
-    const endDate = grant?.dateTimeInterval?.end?.dateTime;
+    const name = node?.name;
+    const endDate = node?.dateTimeInterval?.end?.dateTime;
 
     if( typeof name !== 'string' || !name.trim() ) {
       issues.push({
