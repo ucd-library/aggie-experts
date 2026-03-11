@@ -44,6 +44,7 @@ program
       await pgClient.connect();
       await pgClient.queryFromFile(config.postgres.schemaFile);
       await initYearWeek(pgClient);
+      await pgClient.setWebappHost();
       logger.info('PostgreSQL schema initialized successfully.');
     } catch (error) {
       throw error;
