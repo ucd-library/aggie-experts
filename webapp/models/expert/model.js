@@ -841,7 +841,11 @@ class GrantRole {
 
     // update both public/latest to keep them in sync
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);  
-    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);    
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);   
+    
+    // also update grants
+    await this.expertModel.update_graph_node(node['@id'], node, 'grants-'+config.elasticsearch.aliases.stage);
+    await this.expertModel.update_graph_node(node['@id'], node, 'grants-'+config.elasticsearch.aliases.current);
 
     if (config.experts.cdl.grant_role.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
@@ -922,7 +926,11 @@ class Authorship {
     
     // update both public/latest to keep them in sync
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
-    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);    
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);
+
+    // also update works
+    await this.expertModel.update_graph_node(node['@id'], node, 'works-'+config.elasticsearch.aliases.stage);
+    await this.expertModel.update_graph_node(node['@id'], node, 'works-'+config.elasticsearch.aliases.current);
 
     if (config.experts.cdl.authorship.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);

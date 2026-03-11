@@ -139,6 +139,10 @@ export function styles() {
       margin-top: 2.38rem;
     }
 
+    .main-content .published {
+      margin-bottom: 2.38rem;
+    }
+
     .main-content .works {
       display: flex;
       align-items: center;
@@ -177,7 +181,6 @@ export function styles() {
 
     .authors-section {
       padding-bottom: 3rem;
-      padding-top: 2.38rem;
     }
 
     .authors-section .authors-group {
