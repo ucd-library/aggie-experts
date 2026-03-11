@@ -2,6 +2,11 @@ create schema if not exists etl_reporting;
 -- Set the search path to the etl_reporting schema
 set search_path = 'etl_reporting';
 
+CREATE TABLE IF NOT EXISTS config (
+  key VARCHAR(255) PRIMARY KEY,
+  value TEXT
+);
+
 CREATE TABLE IF NOT EXISTS elastic_search_index (
   alias_name VARCHAR(255) PRIMARY KEY,
   index_name VARCHAR(255),
@@ -69,6 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_validation_issue_issue_type ON validation_issue (
 
 CREATE TABLE IF NOT EXISTS "user" (
   email VARCHAR(255) PRIMARY KEY,
+  expert_id VARCHAR(16) UNIQUE,
   first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_iam TIMESTAMP,
