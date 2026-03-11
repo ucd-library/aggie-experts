@@ -18,6 +18,8 @@ WORKDIR /opt/caskfs
 COPY --from=caskfs /opt/caskfs/package.json package.json
 RUN npm install --omit=dev
 COPY --from=caskfs /opt/caskfs/src src
+RUN mkdir -p /cork-build-info
+COPY --from=caskfs /cork-build-info/caskfs.json /cork-build-info/caskfs.json
 
 RUN mkdir -p /opt/harvest
 WORKDIR /opt/harvest

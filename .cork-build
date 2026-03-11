@@ -21,7 +21,8 @@
       "contextPath" : "./anduin-gateway",
       "options" : {
         "build-arg" : [
-          "ANDUIN_AUTH_GATEWAY_IMAGE=${project-anduin.auth-gateway}"
+          "ANDUIN_AUTH_GATEWAY_IMAGE=${project-anduin.auth-gateway}",
+          "CASKFS_IMAGE=${caskfs.caskfs}"
         ]
       }
     },
