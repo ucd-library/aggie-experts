@@ -137,6 +137,24 @@ class PgClient {
     ]);
   }
 
+  setWebappHost() {
+    const query = `
+      INSERT INTO ${this.schema}.config (key, value)
+      VALUES ('webapp_host', $1)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    `;
+    return this.query(query, [config.url]);
+  }
+
+  ensureUserExpertId(email, expertId) {
+    const query = `
+      UPDATE ${this.schema}.user
+      SET expert_id = $2
+      WHERE email = $1
+    `;
+    return this.query(query, [email, expertId]);
+  }
+
   insertCdlUser(email) {
     const query = `
       INSERT INTO ${this.schema}.user (email)

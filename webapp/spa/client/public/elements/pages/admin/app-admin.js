@@ -154,9 +154,9 @@ export default class AppAdmin extends Mixin(LitElement)
     this.availableElasticIndexes = indexes;
     this.uniqueElasticIndexes = this._dedupeIndexesIgnoringAlias(indexes)
       .sort((a, b) => {
-        // sort by date
-        if( a.indexYYYYMM > b.indexYYYYMM ) return 1;
-        if( a.indexYYYYMM < b.indexYYYYMM ) return -1;
+        // sort by date desc
+        if( a.indexYYYYMM > b.indexYYYYMM ) return -1;
+        if( a.indexYYYYMM < b.indexYYYYMM ) return 1;
       }
     );
 
