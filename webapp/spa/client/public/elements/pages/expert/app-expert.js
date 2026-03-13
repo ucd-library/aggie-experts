@@ -257,7 +257,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
     this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
 
-    // this._updateProfileLastUpdated();
+    this._updateProfileLastUpdated();
   }
 
   /**
@@ -932,26 +932,99 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _refreshProfile
+   * @description update expert profile from elements
+   */
+  async _refreshProfile(e) {
+    e.preventDefault();
+
+    let partitionName = APP_CONFIG.user.email;
+
+    if( !partitionName ) return;
+
+    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+
+    // TODO fix, 
+    // (1) if dagster job fails, it keeps retriggering
+    // (2) disable refresh button until completes or fails
+    debugger;
+
+    // loop to check status of run
+    let runId = res.body?.data?.launchRun?.run?.runId || '';
+    if( runId ) {
+      this.lastLastUpdated = this.lastUpdated;
+      this.lastUpdated = 'Updating...';
+      this._startProfileSyncInterval(runId);
+    }
+  }
+
+  _startProfileSyncInterval(runId) {
+    if( this._profileSyncIntervalId ) {
+      clearInterval(this._profileSyncIntervalId);
+    }
+
+    this.refreshingProfileData = true;
+    this._profileSyncIntervalId = setInterval(async () => {
+      try {
+        let res = await this.DagsterModel.getLastRunForId(runId);
+        let status = res.body?.data?.runOrError?.status;
+
+        console.log('status: ', status);
+
+        if (status === 'FAILURE' || status === 'SUCCESS') {
+          clearInterval(this._profileSyncIntervalId);
+          this._profileSyncIntervalId = null;
+          this.refreshingProfileData = false;
+
+          if( status === 'SUCCESS' ) {
+            this._updateProfileLastUpdated();
+          } else {
+            this.lastUpdated = this.lastLastUpdated || '';
+            logger.warn('Profile update dagster job run failed', { runId });
+          }
+        }
+      } catch (err) {
+        logger.warn('Error checking profile status in dagster job run', err);
+      }
+
+    }, 5000);
+  }
+
+  async _updateProfileLastUpdated() {
+    let partitionName = APP_CONFIG.user.email;
+    let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+
+    let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
+        .filter(r => r.status !== 'FAILURE' && r.status !== 'CANCELED')
+        .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
+
+    if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
+    else this.lastUpdated = '';
+  }
+
+  /**
    * @method _refreshProfileClicked
    * @description refresh expert profile
    */
-  // _refreshProfileClicked(e) {
-  //   e.preventDefault();
+  _refreshProfileClicked(e) {
+    e.preventDefault();
 
-  //   // TODO verify this user is who they say they are (logged in user)
+    debugger;
+    // TODO verify this user is who they say they are (logged in user)
 
-  //   // TODO trigger api call to refresh profile
+    // TODO trigger api call to refresh profile
+    // this.DagsterModel.runJobPartition(?,?);
 
-  //   this.modalTitle = 'Your Profile is Updating';
-  //   this.modalSaveText = '';
-  //   this.modalContent = `<p>The latest data is currently being retrieved for your profile. You will receive an email confirmation when the process is complete.</p>`;
-  //   this.showModal = true;
-  //   this.hideCancel = true;
-  //   this.hideSave = true;
-  //   this.hideOK = false;
-  //   this.hideOaPolicyLink = true;
-  //   this.errorMode = false;
-  // }
+    this.modalTitle = 'Your Profile is Updating';
+    this.modalSaveText = '';
+    this.modalContent = `<p>The latest data is currently being retrieved for your profile. You will receive an email confirmation when the process is complete.</p>`;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = false;
+  }
 
   _hideEditExpertControls() {
     return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;

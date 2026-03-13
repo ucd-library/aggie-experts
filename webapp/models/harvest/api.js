@@ -8,11 +8,7 @@ const dagsterAPI = new DagsterAPI();
 
 // Endpoint to trigger a Dagster job for a specific partition
 router.post('/run-job-partition', json_only,
-
-  // TODO need to tighten this up so only allow experts to run for their own email partition
-  // and for admins to run for any partition
   user_can_edit,
-
   async (req, res, next) => {
   try {
     const { jobName, partitionName, runConfig } = req.body;
@@ -29,7 +25,7 @@ router.post('/run-job-partition', json_only,
 });
 
 router.get('/run/:runId',
-  //user_can_edit,
+  user_can_edit,
   async (req, res, next) => {
   try {
     const { runId } = req.params;
@@ -47,7 +43,7 @@ router.get('/run/:runId',
 
 // Endpoint to get last N runs for a specific partition
 router.post('/last-runs-for-partition',
-  // user_can_edit,
+  user_can_edit,
   async (req, res, next) => {
   try {
     const { jobName, partition, limit = 3 } = req.body;
