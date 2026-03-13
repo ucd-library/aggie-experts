@@ -234,6 +234,7 @@ const config = {
     },
 
     qa : {
+      host : 'https://qa-oapolicy.universityofcalifornia.edu',
       url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13',
       authname : 'qa-oapolicy',
       secretName : 'cdl-elements-json',
@@ -241,6 +242,7 @@ const config = {
     },
 
     prod: {
+      host : 'https://oapolicy.universityofcalifornia.edu',
       url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13',
       authname : 'oapolicy',
       secretName : 'cdl-elements-json',

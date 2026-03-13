@@ -1,5 +1,5 @@
 // Can use this to get the fin configuration
-const {logger, config} = require('@ucd-lib/experts-commons');
+const {logger, config, ElementsClient } = require('@ucd-lib/experts-commons');
 
 const BaseModel = require('../base/model.js');
 const validate = require('../validate.js');
@@ -585,7 +585,6 @@ class ExpertModel extends BaseModel {
       throw new Error(`Unable to find CDL user id for ${expertId}`);
     }
     if (! this.elementsClient ) {
-      const ElementsClient = (await import('../../harvest/lib/elements-client.js')).default;
       this.ElementsClient = ElementsClient;
     }
     let cdl_user = await this.ElementsClient.impersonate(cdl_user_id,args);
@@ -650,9 +649,14 @@ class ExpertModel extends BaseModel {
       expert['is-visible'] = patch.visible;
     }
 
-    // update Elasticsearch
+    // update both public/latest aliases to keep them in sync
     await this.client.index({
-      index : this.writeIndexAlias,
+      index : 'experts-'+config.elasticsearch.aliases.stage,  
+      id : expert['@id'],
+      document: expert
+    });
+    await this.client.index({
+      index : 'experts-'+config.elasticsearch.aliases.current,  
       id : expert['@id'],
       document: expert
     });
@@ -676,10 +680,15 @@ class ExpertModel extends BaseModel {
       return 404
     };
 
-    await this.client.delete(
-      {id:expertId,
-       index:this.writeIndexAlias
-      });
+    // update both public/latest aliases to keep them in sync
+    await this.client.delete({
+      id : expertId,
+      index : 'experts-'+config.elasticsearch.aliases.stage
+    }); 
+    await this.client.delete({
+      id : expertId,
+      index : 'experts-'+config.elasticsearch.aliases.current
+    }); 
 
     if (config.experts.cdl.expert.propagate) {
       const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
@@ -737,9 +746,14 @@ class ExpertModel extends BaseModel {
       });
     }
 
-    // update Elasticsearch
+    // update both public/latest aliases to keep them in sync
     await this.client.index({
-      index: this.writeIndexAlias,
+      index: 'experts-'+config.elasticsearch.aliases.stage,
+      id: expert['@id'],
+      document: expert
+    });
+    await this.client.index({
+      index: 'experts-'+config.elasticsearch.aliases.current,
       id: expert['@id'],
       document: expert
     });
@@ -825,7 +839,13 @@ class GrantRole {
     //   node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
     // }
 
-    await this.expertModel.update_graph_node(expertId,node);    
+    // update both public/latest to keep them in sync
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);  
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);   
+    
+    // also update grants
+    await this.expertModel.update_graph_node(node['@id'], node, 'grants-'+config.elasticsearch.aliases.stage);
+    await this.expertModel.update_graph_node(node['@id'], node, 'grants-'+config.elasticsearch.aliases.current);
 
     if (config.experts.cdl.grant_role.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
@@ -903,7 +923,14 @@ class Authorship {
     }
 
     //already a snippet node = workModel.snippet(have_part.Work.node);
-    await this.expertModel.update_graph_node(expertId,node);
+    
+    // update both public/latest to keep them in sync
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
+    await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);
+
+    // also update works
+    await this.expertModel.update_graph_node(node['@id'], node, 'works-'+config.elasticsearch.aliases.stage);
+    await this.expertModel.update_graph_node(node['@id'], node, 'works-'+config.elasticsearch.aliases.current);
 
     if (config.experts.cdl.authorship.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
@@ -947,7 +974,9 @@ class Authorship {
     node = this.expertModel.get_node_by_related_id(expert, rid);
     objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
 
-    await this.expertModel.delete_graph_node(expertId, node);
+    // update both public/latest to keep them in sync
+    await this.expertModel.delete_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
+    await this.expertModel.delete_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);
 
     if (config.experts.cdl.authorship.propagate) {
       let linkId=rid.replace("ark:/87287/d7mh2m/relationship/","");

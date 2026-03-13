@@ -57,6 +57,29 @@ export class Impersonator {
 
     this.instance = args.instance || 'prod';
     this.cdl = ElementsClient.info(this.instance);
+    this.apiUrl = this.cdl?.url;
+    this.webUrl = this.cdl?.host;
+
+    // Impersonation/login endpoints are on the web host, not the secure API path.
+    if( !this.webUrl && this.apiUrl ) {
+      try {
+        const parsedApiUrl = new URL(this.apiUrl);
+
+        // CDL interactive login/impersonation pages are served from the web host,
+        // while the API typically lives under /elements-secure-api on port 8002.
+        if( parsedApiUrl.pathname.includes('/elements-secure-api/') ) {
+          this.webUrl = `${parsedApiUrl.protocol}//${parsedApiUrl.hostname}`;
+        } else {
+          this.webUrl = parsedApiUrl.origin;
+        }
+      } catch (e) {
+      }
+    }
+
+    if( !this.webUrl ) {
+      throw new Error(`Missing CDL web host/url for instance: ${this.instance}`);
+    }
+
     this.cookie_jar=new fetchCookie.toughCookie.CookieJar();
     this.fetch = fetchCookie(nodeFetch, this.cookie_jar);
     this.userId=userId;
@@ -65,7 +88,7 @@ export class Impersonator {
   }
 
   async fetchWithTimeout(url, options={}) {
-    const { timeout = 8000 } = options;
+    const { timeout = this.cdl?.timeout || 8000 } = options;
     const controller = options.abort_controller || new AbortController();
     delete options.abort_controller;
     const id = setTimeout(() => controller.abort(), timeout);
@@ -88,19 +111,17 @@ export class Impersonator {
     }
 
     if (resp.status !== 204 && resp.status !== 200) {
-      let error = new Error(`CDL change propagation Error(${resp.status}):`);
-      let json=''
-      try  {
-        json=await resp.json();
-        error.message += JSON.stringify(json);
-      } catch (e) {
-        error.message += await resp.text();
+      const error = new Error(`CDL change propagation Error(${resp.status}):`);
+      const bodyText = await resp.text();
+
+      try {
+        const parsed = JSON.parse(bodyText);
+        error.message += JSON.stringify(parsed);
+      } catch {
+        error.message += bodyText;
       }
-      if (resp.status === 408) {
-        error.status = 504;
-      } else {
-        error.status = 502;
-      }
+
+      error.status = resp.status === 408 ? 504 : 502;
       throw error;
     }
     return resp;
@@ -109,8 +130,9 @@ export class Impersonator {
   async secret() {
     if ( !this.cdl.secret ) {
       let secrets = JSON.parse(await GoogleSecrets.getSecret(this.cdl.secretName));
+
       secrets.forEach(s => {
-        if (s["@id"] === this.cdl["@id"]) {
+        if( s["@id"] === this.cdl.authname ) {
           this.cdl.secret = s;
         }
       });
@@ -152,7 +174,7 @@ export class Impersonator {
     }
 
     // setup login cookies and session
-    let resp = await this.fetchWithTimeout(this.cdl.host);
+    let resp = await this.fetchWithTimeout(this.webUrl);
     // get return url
     let returnUrl = new URL(
       new URL(resp.url).searchParams.get('return')
@@ -191,16 +213,29 @@ export class Impersonator {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
-    dom = new JSDOM(await resp.text());
+    const loginSubmitHtml = await resp.text();
+    dom = new JSDOM(loginSubmitHtml);
 
     // finish saml request
     let samlOrigin = new URL(resp.url).origin;
     let form = dom.window.document.querySelector('form');
+
+    if( !form ) {
+      throw new Error('IdP login did not return a SAML form (possible credential or IdP challenge failure)');
+    }
+
     let samlUrl = form.getAttribute('action');
-    let samlMethod = form.getAttribute('method').toUpperCase() || 'POST';
+    let samlMethod = (form.getAttribute('method') || 'POST').toUpperCase();
     formData = new URLSearchParams();
-    Array.from(form.querySelectorAll('input'))
+    const samlInputs = Array.from(form.querySelectorAll('input'));
+    samlInputs
       .forEach(input => formData.append(input.getAttribute('name'), input.getAttribute('value')));
+
+    const hasSamlResponse = samlInputs.some(input => input.getAttribute('name') === 'SAMLResponse');
+
+    if( !hasSamlResponse ) {
+      throw new Error('IdP login did not produce SAMLResponse (credentials may be rejected or additional challenge required)');
+    }
 
     if( !samlUrl.match(/^http(s)?:\/\//) ) {
       samlUrl = samlOrigin + samlUrl;
@@ -213,6 +248,7 @@ export class Impersonator {
       method : samlMethod,
       body: formData.toString(),
       abort_controller: controller,
+      timeout: this.cdl?.timeout || 30000,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -226,7 +262,7 @@ export class Impersonator {
 
   async impersonate() {
     // Get the impersonation token's via cookie
-    let resp = await this.fetchWithTimeout(`${this.cdl.host}/impersonate.html?ii=false`);
+    let resp = await this.fetchWithTimeout(`${this.webUrl}/impersonate.html?ii=false`);
     let csrfToken;
     try {
       let text=await resp.text();
@@ -244,7 +280,7 @@ export class Impersonator {
 
     const controller = new AbortController();
 
-    resp = await this.fetchWithTimeout(`${this.cdl.host}/impersonate.html`, {
+    resp = await this.fetchWithTimeout(`${this.webUrl}/impersonate.html`, {
       method: 'POST',
       body: formData,
       abort_controller: controller,
@@ -262,7 +298,7 @@ export class Impersonator {
       throw new Error('Not impersonating any userId');
     }
 
-    let resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html?uid=${this.userId}&em=true`);
+    let resp = await this.fetchWithTimeout(`${this.webUrl}/userprofile.html?uid=${this.userId}&em=true`);
     let html = await resp.text();
     // remove error causing script
     html=html.replace('<script>jQuery.noConflict();</script>', '');
@@ -283,7 +319,7 @@ export class Impersonator {
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html`, {
+    resp = await this.fetchWithTimeout(`${this.webUrl}/userprofile.html`, {
       timeout: 20000,
       method: 'POST',
       body: formData,
@@ -316,8 +352,7 @@ export class Impersonator {
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    console.log('formData', formData);
-    let resp = await this.fetchWithTimeout(`${this.cdl.host}/userprofile.html`, {
+    let resp = await this.fetchWithTimeout(`${this.webUrl}/userprofile.html`, {
       method: 'POST',
       body: formData,
       timeout: 20000,
@@ -399,7 +434,7 @@ export class Impersonator {
     let headers = formData.getHeaders();
     headers['accept'] = 'application/json';
 
-    let resp = await this.fetchWithTimeout(`${this.cdl.host}/listobjects.html`, {
+    let resp = await this.fetchWithTimeout(`${this.webUrl}/listobjects.html`, {
       method: 'POST',
       body: formData,
       headers
