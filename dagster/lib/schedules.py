@@ -85,7 +85,6 @@ weekly_elt_schedule_dev = dg.ScheduleDefinition(
             },
             "exec_weekly_etl": {
                 "config": {
-                    "pull-cdl": "experts",
                     "notify": "true"
                 }
             }
