@@ -1107,6 +1107,8 @@ export default class AppSearch extends Mixin(LitElement)
         let workType = utils.getCitationType(match.type) || '';
         let title = match.title || '';
 
+        if( !Array.isArray(match.author) ) match.author = [match.author];
+
         // {separate contributors by ";"; if more than 10 contributors, use et.a;.)
         let authors;
         if( match.author && match.author.length > 10 ) {
