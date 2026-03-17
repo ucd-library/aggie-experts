@@ -5,9 +5,12 @@ import config from './lib/config.js';
 import { getYearWeek, getTodaysDate, isPlainDate, parseYearWeek } from './lib/year-week.js';
 import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
-
+import PgClient from './lib/pg-client.js';
+import ai from './lib/ai/index.js';
 
 export {
+  ai,
+  PgClient,
   ExpertsKcAdminClient,
   ElementsClient,
   Elasticsearch,

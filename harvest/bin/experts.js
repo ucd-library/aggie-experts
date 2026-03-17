@@ -21,6 +21,7 @@ program
   })
 
 program
+  .command('ai', 'run various AI tasks')
   .command('auth', 'run various authentication tasks')
   .command('es', 'run various ElasticSearch tasks')
   .command('harvest', 'run various harvest ETL tasks')  

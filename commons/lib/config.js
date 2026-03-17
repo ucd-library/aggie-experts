@@ -328,6 +328,11 @@ const config = {
       etlUsersJob : env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',
       gcs_etl_users_job : env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
     }
+  },
+
+  llm : {
+    host : env.LLM_HOST || 'http://localhost:11434',
+    model : env.LLM_MODEL || 'llama3.1:latest'
   }
 }
 

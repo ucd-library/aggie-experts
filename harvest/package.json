@@ -30,13 +30,12 @@
     "csv-parser": "^3.0.0",
     "csv-stringify": "^6.5.1",
     "csvtojson": "^2.0.10",
+    "fast-xml-parser": "^4.5.0",
     "fs-extra": "^11.1.1",
     "jsonld": "^8.1.1",
     "jsonpath": "^1.1.1",
     "md5": "^2.3.0",
     "node-fetch": "^3.3.2",
-    "pg": "^8.16.3",
-    "ssh2-sftp-client": "^9.1.0",
-    "fast-xml-parser": "^4.5.0"
+    "ssh2-sftp-client": "^9.1.0"
   }
 }
