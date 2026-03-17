@@ -134,11 +134,18 @@ export default class AppSearch extends Mixin(LitElement)
    *
    * @return {Object} e
    */
-  _onAppStateUpdate(e) {
+  async _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
+    let resetSearch = false;
+    if( e.resetSearch ) {
+      resetSearch = true;
+      this.AppStateModel.set({ resetSearch: false });
+
+    }
+
     this._updateFilters();
-    this._onSearch({ detail: this.searchTerm });
+    this._onSearch({ detail: this.searchTerm }, resetSearch);
   }
 
   async _refreshRange(dataChanged=false) {
@@ -482,7 +489,8 @@ export default class AppSearch extends Mixin(LitElement)
           this.filterByExpertId,
           this.dateFrom,
           this.dateTo
-        )
+        ), 
+        resetPage // ignore cache
       ),
       true
     );

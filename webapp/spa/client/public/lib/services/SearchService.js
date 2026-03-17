@@ -12,7 +12,7 @@ class SearchService extends BaseService {
     this.baseUrl = '/api/search';
   }
 
-  async search(searchQuery) {
+  async search(searchQuery, ignoreCache=false) {
     let ido = {};
     
     // if an admin and cache is saved for previewing an es index, use that
@@ -39,7 +39,7 @@ class SearchService extends BaseService {
 
     await this.request({
       url : `${this.baseUrl}?${searchQuery}`,
-      checkCached : () => this.store.data.bySearchQuery.get(id),
+      checkCached : () => ignoreCache ? null : this.store.data.bySearchQuery.get(id),
       onUpdate : resp => this.store.set(
         payloadUtils.generate(ido, resp),
         this.store.data.bySearchQuery
