@@ -137,11 +137,16 @@ export default class AppSearch extends Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
+    if( this.resettingSearch ) {
+      this.resettingSearch = false;
+      return;
+    }
+
     let resetSearch = false;
     if( e.resetSearch ) {
       resetSearch = true;
+      this.resettingSearch = true;
       this.AppStateModel.set({ resetSearch: false });
-
     }
 
     this._updateFilters();
