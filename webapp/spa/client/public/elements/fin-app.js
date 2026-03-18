@@ -390,8 +390,8 @@ export default class FinApp extends Mixin(LitElement)
   _onSearch(e) {
     this.searchTerm = e.detail.searchTerm?.trim();
     if( this.searchTerm ) {
-      this.AppStateModel.setLocation('/search/'+encodeURIComponent(this.searchTerm));
       this.AppStateModel.set({ resetSearch: true });
+      this.AppStateModel.setLocation('/search/'+encodeURIComponent(this.searchTerm));
       this.searchTerm = '';
     }
 
