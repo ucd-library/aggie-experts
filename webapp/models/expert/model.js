@@ -118,7 +118,25 @@ class ExpertModel extends BaseModel {
     let seo={}
 
     seo.name = node?.label;
-    seo.identifier = node?.identifier
+    seo.identifier = node?.identifier;
+
+    let description = [];
+    if( node.overview ) description.push(node.overview);
+    if( node.researchInterests ) description.push(node.researchInterests);
+    if( description.length ) seo.description = description.join(' ');
+
+    let knowsAbout = [];
+    if( node.hasResearchArea && !Array.isArray(node.hasResearchArea) ) node.hasResearchArea = [node.hasResearchArea];
+    if( node.hasResearchArea ) {
+      knowsAbout = node.hasResearchArea.map(r => {
+        return {
+          '@id' : r['@id'],
+          'name' : r['prefLabel'],
+          '@type' : r['@type']
+        }
+      });
+    }
+    if( knowsAbout.length ) seo.knowsAbout = knowsAbout;
 
     if (node.contactInfo) {
       if (!Array.isArray(node.contactInfo)) {
