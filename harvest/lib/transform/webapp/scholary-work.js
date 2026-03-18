@@ -299,10 +299,12 @@ function generateGrantName(grantNode) {
  * @returns {string} the formatted work name
  */
 function generateWorkName(workNode) {
-  const title = workNode.title || '';
-  const status = workNode.status || '';
-  const type = workNode.type || '';
-  const issued = workNode.issued || '';
+  // The ui is expecting a name in the format of "title § status • type • issued • author string § ...",
+  // so default to truthy values for the joinValues below
+  const title = workNode.title || ' ';
+  const status = workNode.status || ' ';
+  const type = workNode.type || ' ';
+  const issued = workNode.issued || ' ';
 
   // only append values that exist
   function joinValues(values, joiner = ' ') {
