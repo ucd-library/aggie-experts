@@ -10,6 +10,7 @@ const crypto = require('crypto');
 let experts = require('../../models/expert/index.js');
 let works = require('../../models/work/index.js');
 let grants = require('../../models/grant/index.js');
+const getFaqJsonLd = require('../models/faq-jsonld.js');
 
 let jsBundleHash = '';
 
@@ -98,10 +99,12 @@ module.exports = async (app) => {
       let workRegex = /^\/work\/.+\/publication\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
       let grantRegex = /^\/grant\/.+\/grant\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
       let expertRegex = /^\/expert\/[^.]+$/;
+      let faqRegex = /^\/faq(?!\.[a-zA-Z]+)$/;
 
       let isWork = req.originalUrl.match(workRegex);
       let isGrant = req.originalUrl.match(grantRegex)
       let isExpert = req.originalUrl.match(expertRegex);
+      let isFaq = req.originalUrl.match(faqRegex);
 
       try {
         if( isWork ) {
@@ -118,6 +121,8 @@ module.exports = async (app) => {
 
           // might have to see if too much info (might remove vcard stuff, maybe modify types)
           jsonld = await experts.model.seo(expertId);
+        } else if( isFaq ) {
+          jsonld = getFaqJsonLd();
         }
       } catch(e) {
         // ignore and let client handle 404 if needed
