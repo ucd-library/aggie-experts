@@ -411,8 +411,7 @@
             "properties": {
               "family": {
                 "type": "text",
-                "analyzer": "default",
-                "similarity": "boolean"
+                "analyzer": "default" 
               },
               "given": {
                 "type": "text",
