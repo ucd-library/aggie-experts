@@ -944,11 +944,8 @@ export default class AppExpert extends Mixin(LitElement)
 
     let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
 
-    // TODO fix, 
-    // (1) if dagster job fails, it keeps retriggering
-    // (2) disable refresh button until completes or fails
-    debugger;
-
+    this.refreshingProfileData = true;
+    
     // loop to check status of run
     let runId = res.body?.data?.launchRun?.run?.runId || '';
     if( runId ) {
@@ -969,8 +966,6 @@ export default class AppExpert extends Mixin(LitElement)
         let res = await this.DagsterModel.getLastRunForId(runId);
         let status = res.body?.data?.runOrError?.status;
 
-        console.log('status: ', status);
-
         if (status === 'FAILURE' || status === 'SUCCESS') {
           clearInterval(this._profileSyncIntervalId);
           this._profileSyncIntervalId = null;
@@ -978,9 +973,15 @@ export default class AppExpert extends Mixin(LitElement)
 
           if( status === 'SUCCESS' ) {
             this._updateProfileLastUpdated();
+            this.refreshingProfileData = false;
+
+            // refresh ui
+            this.ExpertModel.store.data.byId.purge();
+            window.location.reload();
           } else {
             this.lastUpdated = this.lastLastUpdated || '';
             logger.warn('Profile update dagster job run failed', { runId });
+            this.refreshingProfileData = false;
           }
         }
       } catch (err) {

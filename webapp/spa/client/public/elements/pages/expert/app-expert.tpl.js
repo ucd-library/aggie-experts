@@ -609,6 +609,23 @@ return html`
       font-size: 1rem;
     }
 
+    .btn--invert:disabled,
+    .btn--invert[disabled] {
+      cursor: default;
+      pointer-events: none;
+      transition: none;
+      color: var(--other-h3-gray, #666);
+    }
+
+    .btn--invert:disabled:hover,
+    .btn--invert[disabled]:hover,
+    .btn--invert:disabled:before,
+    .btn--invert[disabled]:before {
+      animation: none;
+      transition: none;
+      transform: none;
+    }
+
     .hidden-grants-label,
     .hidden-works-label {
       color: var(--other-h3-gray, #666);
