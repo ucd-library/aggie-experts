@@ -948,9 +948,8 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( !partitionName ) return;
 
-    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
-
     this.refreshingProfileData = true;
+    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
     
     // loop to check status of run
     let runId = res.body?.data?.launchRun?.run?.runId || '';
@@ -986,12 +985,12 @@ export default class AppExpert extends Mixin(LitElement)
             window.location.reload();
           } else {
             this.lastUpdated = this.lastLastUpdated || '';
-            logger.warn('Profile update dagster job run failed', { runId });
+            this.logger.warn('Profile update dagster job run failed', { runId });
             this.refreshingProfileData = false;
           }
         }
       } catch (err) {
-        logger.warn('Error checking profile status in dagster job run', err);
+        this.logger.warn('Error checking profile status in dagster job run', err);
       }
 
     }, 5000);
