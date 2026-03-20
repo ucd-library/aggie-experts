@@ -18,7 +18,7 @@ class DagsterService extends BaseService {
         headers : {
           'Content-Type' : 'application/json'
         },
-        body : JSON.stringify({ partitionName, jobName })
+        body : JSON.stringify({ partition: partitionName, jobName })
       },
       checkCached : () => null,
       onLoading : null,
