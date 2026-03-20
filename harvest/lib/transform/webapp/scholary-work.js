@@ -1,6 +1,6 @@
 import cache from '../../cache.js';
 import { logger } from '@ucd-lib/experts-commons';
-import {frame, simplifiedExpert} from './frame.js';
+import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.js';
 import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js';
 import { getYearWeek } from '@ucd-lib/experts-commons';
 import { getRelates } from './relates.js';
@@ -101,6 +101,9 @@ async function generateScholarlyWork(subject, opts={}) {
 
   graph = graph.toRdfGraph();
   graph = promoteAttributesToRoot(baseWork, graph, swType);
+
+  // Flatten all relatedBy.relates to arrays of strings to match ES schema
+  flattenScholarlyWorksRelatedBy(graph);
 
   let caskPath;
   if( opts.write ) {

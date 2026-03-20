@@ -200,6 +200,22 @@ function getBestPaginationValues(records) {
 }
 
 function getUserRank(records, elementsUserId, positionGroups) {
+  const matchesElementsUserLink = (link) => {
+    if (!link || !elementsUserId) return false;
+
+    const idStr = String(elementsUserId);
+
+    const candidates = [];
+    if (link.id !== undefined) candidates.push(String(link.id));
+    if (link.href) candidates.push(String(link.href));
+
+    // Some payloads use nested objects (e.g. { target: { id }, ... } or { api:related: { id } })
+    if (link.target && link.target.id !== undefined) candidates.push(String(link.target.id));
+    if (link['api:related'] && link['api:related'].id !== undefined) candidates.push(String(link['api:related'].id));
+
+    return candidates.some(v => v === idStr || v.includes(`/users/${idStr}`) || v.includes(idStr));
+  };
+
   // build scored list with scores (ignore non-finite)
   const scoredWithMeta = records
     .map((r, idx) => ({ r, score: computeRecordScore(r), idx }))
@@ -230,11 +246,8 @@ function getUserRank(records, elementsUserId, positionGroups) {
         let links = person?.['api:links']?.['api:link'];
         if (!links) continue;
         if (!Array.isArray(links)) links = [links];
-        if (links.some(link => link && (
-          link.id === elementsUserId ||
-          String(link.id) === String(elementsUserId) ||
-          (link.href && String(link.href).includes(String(elementsUserId)))
-        ))) {
+
+        if (links.some(matchesElementsUserLink)) {
           matchingIndices.push(pIdx);
         }
       }
@@ -258,11 +271,8 @@ function getUserRank(records, elementsUserId, positionGroups) {
         let links = person?.['api:links']?.['api:link'];
         if (!links) continue;
         if (!Array.isArray(links)) links = [links];
-        if (links.some(link => link && (
-          link.id === elementsUserId ||
-          String(link.id) === String(elementsUserId) ||
-          (link.href && String(link.href).includes(String(elementsUserId)))
-        ))) {
+
+        if (links.some(matchesElementsUserLink)) {
           userRank = pos + 1;
           break;
         }

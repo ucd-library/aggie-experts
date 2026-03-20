@@ -407,10 +407,30 @@
             "type": "text",
             "analyzer": "default"
           },
+          "author": {
+            "properties": {
+              "family": {
+                "type": "text",
+                "analyzer": "default" 
+              },
+              "given": {
+                "type": "text",
+                "analyzer": "default"
+              }
+            }
+          },
           "relatedBy" : {
             "properties" : {
               "is-visible" : {
                 "type" : "boolean"
+              },
+              "name": {
+                "type": "text",
+                "analyzer": "default"
+              },
+              "relates": {
+                "type": "keyword",
+                "normalizer": "identifier"
               }
             }
           }

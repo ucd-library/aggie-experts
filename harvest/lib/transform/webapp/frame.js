@@ -22,13 +22,14 @@ const frameFile = JSON.parse(fs.readFileSync(framePath, 'utf8'));
  * @param {*} document the compacted document containing works, grants, and expert nodes
  */
 function flattenScholarlyWorksRelatedBy(document) {
-  // Find the expert node
+  if (!document || !Array.isArray(document["@graph"])) return;
+
+  // Find the expert node (may be absent in standalone work/grant docs)
   const expertNode = document["@graph"].find(
     n => n && (n["@type"] === "Expert" || (Array.isArray(n["@type"]) && n["@type"].includes("Expert")))
   );
-  if (!expertNode) return;
 
-  const expertIdStr = expertNode['@id'];
+  const expertIdStr = expertNode ? expertNode['@id'] : null;
 
   const flattenRelatesHelper = (arr) => {
     if (!arr) return [];
@@ -73,7 +74,7 @@ function flattenScholarlyWorksRelatedBy(document) {
         // For works: guarantee presence of both work and expert IDs
         if (isWork) {
           if (!ids.has(node['@id'])) ids.add(node['@id']);
-          if (!ids.has(expertIdStr)) ids.add(expertIdStr);
+          if (expertIdStr && !ids.has(expertIdStr)) ids.add(expertIdStr);
         }
         // For grants: just use the flattened IDs as-is
         
@@ -85,7 +86,7 @@ function flattenScholarlyWorksRelatedBy(document) {
       // For works: guarantee presence of both work and expert IDs
       if (isWork) {
         if (!ids.has(node['@id'])) ids.add(node['@id']);
-        if (!ids.has(expertIdStr)) ids.add(expertIdStr);
+        if (expertIdStr && !ids.has(expertIdStr)) ids.add(expertIdStr);
       }
       
       node.relatedBy.relates = Array.from(ids);
@@ -525,4 +526,5 @@ export {
   simplifiedExpert,
   frameExpert,
   frame,
+  flattenScholarlyWorksRelatedBy,
 }
