@@ -328,6 +328,52 @@ function user_can_edit(req, res, next) {
   return res.status(403).send('Not Authorized');
 }
 
+/**
+ * Middleware to authorize Dagster partition operations.
+ * 
+ * Users can only run/query their own partition (matching their email).
+ * Partition is accepted from body, query, or params.
+ * 
+ * @param {Object} options
+ * @param {string} options.userEmailField - The field name in req.user that contains the user's email/partition (default: 'email')
+ * @param {boolean} options.requirePartition - If false, skip partition-required and match checks (default: true)
+ * @returns {Function} Express middleware function
+ */
+function dagster_can_run_partition(options = {}) {
+  const {
+    userEmailField = 'email',
+    requirePartition = true
+  } = options;
+
+  return async (req, res, next) => {
+    if( !req.user ) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if( requirePartition === false ) {
+      return next();
+    }
+
+    let userPartition = req.user?.[userEmailField];
+    if( !userPartition ) {
+      return res.status(401).json({ error: 'User email not found in token' });
+    }
+
+    let requestedPartition = req.body?.partition || req.query?.partition || req.params?.partition;
+    if( !requestedPartition ) {
+      return res.status(400).json({ error: 'partition is required' });
+    }
+
+    if( requestedPartition !== userPartition ) {
+      return res.status(403).json({ 
+        error: `User can only access their own partition. Requested: ${requestedPartition}, User partition: ${userPartition}` 
+      });
+    }
+
+    return next();
+  };
+}
+
 function schema_error(err, req, res, next) {
   res.status(err.status).json({
     error: err.message,
@@ -1108,6 +1154,7 @@ module.exports = {
   initAuth,
   browse_endpoint,
   convertIds,
+  dagster_can_run_partition,
   fetchExpertId,
   has_access,
   public_or_is_user,

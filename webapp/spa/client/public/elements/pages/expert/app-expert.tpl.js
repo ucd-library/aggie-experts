@@ -609,6 +609,23 @@ return html`
       font-size: 1rem;
     }
 
+    .btn--invert:disabled,
+    .btn--invert[disabled] {
+      cursor: default;
+      pointer-events: none;
+      transition: none;
+      color: var(--other-h3-gray, #666);
+    }
+
+    .btn--invert:disabled:hover,
+    .btn--invert[disabled]:hover,
+    .btn--invert:disabled:before,
+    .btn--invert[disabled]:before {
+      animation: none;
+      transition: none;
+      transform: none;
+    }
+
     .hidden-grants-label,
     .hidden-works-label {
       color: var(--other-h3-gray, #666);
@@ -896,12 +913,10 @@ return html`
     </div>
 
     <div class="main-content">
-      <!--
-      <div class="refresh-profile" ?hidden="${!this.canEdit || !this.expertEditing}">
+      <div class="refresh-profile" ?hidden="${!this.canEdit || (APP_CONFIG.user.expertId !== this.expertId)}">
         <button class="btn--invert" @click="${this._refreshProfile}" ?disabled="${this.refreshingProfileData}"><span>Refresh Profile Data</span></button>
         <span class="last-updated-label" ?hidden="${!this.lastUpdated}">Last Updated: ${this.lastUpdated}</span>
       </div>
-      -->
 
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>

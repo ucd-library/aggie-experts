@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { openapi, json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js');
+const { openapi, json_only, dagster_can_run_partition, public_or_is_user } = require('../middleware/index.js');
 const DagsterAPI = require('../../lib/dagster-api.js');
 const {logger} = require('@ucd-lib/experts-commons');
 
@@ -8,19 +8,15 @@ const dagsterAPI = new DagsterAPI();
 
 // Endpoint to trigger a Dagster job for a specific partition
 router.post('/run-job-partition', json_only,
-
-  // TODO need to tighten this up so only allow experts to run for their own email partition
-  // and for admins to run for any partition
-  user_can_edit,
-
+  dagster_can_run_partition(),
   async (req, res, next) => {
   try {
-    const { jobName, partitionName, runConfig } = req.body;
-    if (!jobName || !partitionName) {
-      return res.status(400).json({ error: 'jobName and partitionName are required' });
+    const { jobName, partition, runConfig } = req.body;
+    if (!jobName || !partition) {
+      return res.status(400).json({ error: 'jobName and partition are required' });
     }
 
-    const result = await dagsterAPI.runJobPartition(jobName, partitionName, runConfig);
+    const result = await dagsterAPI.runJobPartition(jobName, partition, runConfig);
     res.json(result);
   } catch (error) {
     logger.error('Error running Dagster job partition', error);
@@ -29,14 +25,15 @@ router.post('/run-job-partition', json_only,
 });
 
 router.get('/run/:runId',
-  //user_can_edit,
+  dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
     const { runId } = req.params;
+    
     if (!runId) {
       return res.status(400).json({ error: 'runId is required' });
     }
-
+    
     const result = await dagsterAPI.getRunStatus(runId);
     res.json(result);
   } catch (error) {
@@ -47,7 +44,7 @@ router.get('/run/:runId',
 
 // Endpoint to get last N runs for a specific partition
 router.post('/last-runs-for-partition',
-  // user_can_edit,
+  dagster_can_run_partition(),
   async (req, res, next) => {
   try {
     const { jobName, partition, limit = 3 } = req.body;
