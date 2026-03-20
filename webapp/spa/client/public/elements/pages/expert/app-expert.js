@@ -257,7 +257,13 @@ export default class AppExpert extends Mixin(LitElement)
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
     this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
 
-    this._updateProfileLastUpdated();
+    if (APP_CONFIG.user?.loggedIn && APP_CONFIG.user.expertId === this.expertId) {
+      try {
+        await this._updateProfileLastUpdated();
+      } catch (e) {
+        // ignore errors from profile last-updated refresh for this view
+      }
+    }
   }
 
   /**
