@@ -1003,30 +1003,6 @@ export default class AppExpert extends Mixin(LitElement)
     else this.lastUpdated = '';
   }
 
-  /**
-   * @method _refreshProfileClicked
-   * @description refresh expert profile
-   */
-  _refreshProfileClicked(e) {
-    e.preventDefault();
-
-    debugger;
-    // TODO verify this user is who they say they are (logged in user)
-
-    // TODO trigger api call to refresh profile
-    // this.DagsterModel.runJobPartition(?,?);
-
-    this.modalTitle = 'Your Profile is Updating';
-    this.modalSaveText = '';
-    this.modalContent = `<p>The latest data is currently being retrieved for your profile. You will receive an email confirmation when the process is complete.</p>`;
-    this.showModal = true;
-    this.hideCancel = true;
-    this.hideSave = true;
-    this.hideOK = false;
-    this.hideOaPolicyLink = true;
-    this.errorMode = false;
-  }
-
   _hideEditExpertControls() {
     return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;
   }
