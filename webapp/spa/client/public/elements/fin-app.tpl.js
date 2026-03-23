@@ -189,9 +189,9 @@ return html`
     prevent-fixed>
 
     <ucd-theme-primary-nav @click="${this._onNavClick}">
-      <a href="/browse/expert">Experts</a>
-      <a href="/browse/grant">Grants</a>
-      <a href="/browse/work">Works</a>
+      <a href="/browse/expert/a">Experts</a>
+      <a href="/browse/grant/a">Grants</a>
+      <a href="/browse/work/a">Works</a>
     </ucd-theme-primary-nav>
 
     <ucd-theme-search-popup>

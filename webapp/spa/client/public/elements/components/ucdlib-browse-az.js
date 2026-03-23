@@ -133,7 +133,10 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       this.selectedLetter = this.alpha[0]?.value;
     }
 
-    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}${this.selectedPage ? '/' + this.selectedPage : ''}`);
+    const targetPath = `/browse/${this.browseType}/${this.selectedLetter}${this.selectedPage ? '/' + this.selectedPage : ''}`;
+    if( this.AppStateModel.location.pathname !== targetPath ) {
+      this.AppStateModel.setLocation(targetPath);
+    }
     this.requestUpdate();
   }
 
