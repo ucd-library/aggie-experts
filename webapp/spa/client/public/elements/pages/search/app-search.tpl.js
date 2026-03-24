@@ -153,6 +153,10 @@ return html`
       margin-bottom: 1.78rem;
     }
 
+    .search-container .date-filter-heading.hidden-slider {
+      margin-bottom: 0;
+    }
+
     .search-container .date-filter-heading h4 {
       margin-top: 0;
       margin-bottom: .5rem;
@@ -161,6 +165,17 @@ return html`
     .search-container .date-filter-heading span {
       color: #666; 
       font-size: .92rem;
+    }
+
+    .search-container .search-year {
+      size: 1rem;
+      font-weight: 400;
+      color: black;
+      padding-top: 1rem;
+    }
+
+    .range-filter-container {
+      width: 100%;
     }
 
     .results-count {
@@ -426,6 +441,12 @@ return html`
       width: 100%;
       max-width: 100%;
     }
+
+    .invisible {
+      visibility: hidden;
+      height: 0;
+      overflow: hidden;
+    }
   </style>
 
   <div class="search-header">
@@ -477,14 +498,15 @@ return html`
         </label>
       </div>
 
-      <div class="range-filter-container">
+      <div class="range-filter-container ${!this.displayedResults.length ? 'invisible' : ''}">
         <hr class="search-seperator">
 
-        <div class="date-filter-heading">
+        <div class="date-filter-heading ${this.dateRangeData.length === 1 ? 'hidden-slider' : ''}">
           <h4>Date (${this.rangeFilterTypes})</h4>
-          <span ?hidden="${!this.rangeFilterTypes.includes('Grants')}">Grants are shown across their active years</span>
+          <span ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
+          <div class="search-year" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
         </div>
-        <div class="slider-container">
+        <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
           <ucdlib-range-slider
             @range-slider-change="${this._onRangeSliderChange}"
             .data="${this.dateRangeData}"
@@ -548,14 +570,15 @@ return html`
             </label>
           </div>
 
-          <div class="range-filter-container">
+          <div class="range-filter-container ${!this.displayedResults.length ? 'invisible' : ''}">
             <hr class="search-seperator">
 
-            <div class="date-filter-heading">
+            <div class="date-filter-heading ${this.dateRangeData.length === 1 ? 'hidden-slider' : ''}">
               <h4>Date (${this.rangeFilterTypes})</h4>
-              <span ?hidden="${!this.rangeFilterTypes.includes('Grants')}">Grants are shown across their active years</span>
+              <span ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
+              <div class="search-year" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
             </div>
-            <div class="slider-container">
+            <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
               <ucdlib-range-slider
                 @range-slider-change="${this._onRangeSliderChange}"
                 .data="${this.dateRangeData}"
