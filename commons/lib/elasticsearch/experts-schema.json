@@ -70,6 +70,11 @@
           "pattern": "^(.{1,128}).*",
           "replacement": "$1"
         },
+        "leading_punctuation_filter": {
+          "type": "pattern_replace",
+          "pattern": "^[\\p{P}\\p{S}]+",
+          "replacement": ""
+        },
         "first_letter_filter": {
           "type": "pattern_replace",
           "pattern": "^(.).*",
@@ -123,6 +128,7 @@
           "char_filter": [
             "leading_space_filter",
             "article_filter",
+            "leading_punctuation_filter",
             "first_letter_filter",
             "non_letter_filter"
           ],
@@ -133,6 +139,7 @@
           "char_filter": [
             "leading_space_filter",
             "article_filter",
+            "leading_punctuation_filter",
             "truncate_filter"
           ],
           "filter": ["lowercase", "asciifolding"]
