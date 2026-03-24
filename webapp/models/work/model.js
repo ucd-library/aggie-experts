@@ -1,5 +1,6 @@
 // Can use this to get the fin configuration
 const {logger} = require('@ucd-lib/experts-commons');
+const Citation = require('../../spa/client/public/lib/utils/citation.js');
 
 const BaseModel = require('../base/model.js');
 /**
@@ -208,6 +209,14 @@ class WorkModel extends BaseModel {
       root_node["is-visible"]=true;
     } else{
       root_node["is-visible"]=false;
+    }
+
+    // Works with a non-string title (e.g. an array) are misformatted data,
+    // almost always due to an error in the source data from cdl.
+    // Force is-visible=false so they are excluded from search results.
+    if (Citation.validateTitle([root_node]).citations.length) {
+      root_node["is-visible"] = false;
+      logger.warn(`Work.update() ${root_node['@id']} has invalid title — marking is-visible=false`);
     }
     const doc = this.promote_node_to_doc(root_node);
     await this.update_or_create_main_node_doc(doc);
