@@ -147,7 +147,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
    * @param {String} pagePrefix to prepend to the id for links
    * @param {String} resultType type of result to build, defaults to 'expert'
    */
-  _buildResults(hits=[], total=0, pagePrefix='', resultType='expert') {
+  async _buildResults(hits=[], total=0, pagePrefix='', resultType='expert') {
     // parse hits
     this.displayedResults = hits.map((r, index) => {
       let id = r['@id'];
@@ -195,6 +195,12 @@ export default class AppBrowseBy extends Mixin(LitElement)
 
     this.totalResultsCount = total;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
+
+    await this.updateComplete;
+    this.dispatchEvent(new CustomEvent('browse-results-rendered', {
+      bubbles: true,
+      composed: true
+    }));
   }
 
   /**
