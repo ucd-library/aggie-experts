@@ -892,6 +892,126 @@ class Authorship {
     this.expertModel = expertModel;
   }
 
+  async patchWorkDocument(workId, patch, rid, expertId, expertDoc) {
+    const workAliases = [
+      'works-' + config.elasticsearch.aliases.stage,
+      'works-' + config.elasticsearch.aliases.current
+    ];
+
+    for (const index of workAliases) {
+      let workDocResp;
+      try {
+        workDocResp = await this.expertModel.client.get({
+          index,
+          id: workId,
+          _source: true
+        });
+      } catch (e) {
+        logger.info({workId, index, error: e.message}, 'authorship.patch work document not found');
+        continue;
+      }
+
+      // update work doc relatedBy 
+      const workDoc = workDocResp?._source;
+      if (!workDoc || !Array.isArray(workDoc['@graph'])) continue;
+
+      const rootNode = workDoc['@graph'].find(n => n && n['@id'] === workDoc['@id']);
+      if (!rootNode) continue;
+
+      if (!Array.isArray(rootNode.relatedBy)) {
+        rootNode.relatedBy = rootNode.relatedBy ? [rootNode.relatedBy] : [];
+      }
+
+      const rootRoleIndex = rootNode.relatedBy.findIndex(r => r?.['@id'] === rid);
+      if (rootRoleIndex === -1) continue;
+
+      if (patch.visible != null) {
+        rootNode.relatedBy[rootRoleIndex]['is-visible'] = patch.visible;
+      }
+      if (patch.favourite != null) {
+        rootNode.relatedBy[rootRoleIndex]['ucdlib:favourite'] = patch.favourite;
+      }
+
+      const visibleExpertIds = new Set();
+      for (const rel of rootNode.relatedBy) {
+        if (rel?.['is-visible'] !== true) continue;
+        const relates = Array.isArray(rel.relates) ? rel.relates : [rel.relates];
+        for (const relId of relates) {
+          if (typeof relId === 'string' && relId.startsWith('expert/')) {
+            visibleExpertIds.add(relId);
+          }
+        }
+      }
+
+      const nextGraph = [];
+      const expertNodesById = new Map();
+
+      // add/remove expert from graph based on visiblity
+      for (const gNode of workDoc['@graph']) {
+        if (!gNode || !gNode['@id']) continue;
+        if (gNode['@id'] === workDoc['@id']) {
+          nextGraph.push(rootNode);
+          continue;
+        }
+
+        const types = Array.isArray(gNode['@type']) ? gNode['@type'] : (gNode['@type'] ? [gNode['@type']] : []);
+        const isExpertNode =
+          gNode['@id'].startsWith('expert/') ||
+          types.includes('Expert') ||
+          types.includes('Person');
+
+        if (!isExpertNode) {
+          nextGraph.push(gNode);
+          continue;
+        }
+
+        expertNodesById.set(gNode['@id'], gNode);
+        if (visibleExpertIds.has(gNode['@id'])) {
+          nextGraph.push(gNode); // keep visible experts
+        }
+        // else: drop hidden experts from graph
+      }
+
+      // Ensure every visible expert has a node (add missing)
+      const expertAlias = index.includes(config.elasticsearch.aliases.stage)
+        ? 'experts-' + config.elasticsearch.aliases.stage
+        : 'experts-' + config.elasticsearch.aliases.current;
+
+      for (const visibleExpertId of visibleExpertIds) {
+        if (expertNodesById.has(visibleExpertId)) continue;
+
+        if (visibleExpertId === expertId && expertDoc) {
+          const actorRoot = this.expertModel.get_expected_model_node(expertDoc);
+          nextGraph.push(this.expertModel.snippet(actorRoot));
+          continue;
+        }
+
+        try {
+          const exResp = await this.expertModel.client.get({
+            index: expertAlias,
+            id: visibleExpertId,
+            _source: true
+          });
+          const exRoot = this.expertModel.get_expected_model_node(exResp._source);
+          nextGraph.push(this.expertModel.snippet(exRoot));
+        } catch (e) {
+          logger.info({workId, index, visibleExpertId, error: e.message}, 'authorship.patch missing expert node source');
+        }
+      }
+
+      workDoc['@graph'] = nextGraph;
+      workDoc['is-visible'] = rootNode.relatedBy.some(rel => rel?.['is-visible'] === true);
+
+      await this.expertModel.client.index({
+        index,
+        id: workDoc['@id'],
+        document: workDoc,
+        if_seq_no: workDocResp._seq_no,
+        if_primary_term: workDocResp._primary_term
+      });
+    }
+  }
+
   /**
    * @method patch
    * @description Patch an authorship file.
@@ -946,9 +1066,8 @@ class Authorship {
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);
 
-    // also update works
-    await this.expertModel.update_graph_node(node['@id'], node, 'works-'+config.elasticsearch.aliases.stage);
-    await this.expertModel.update_graph_node(node['@id'], node, 'works-'+config.elasticsearch.aliases.current);
+    // dry-run patch work graph documents and log what would be updated
+    await this.patchWorkDocument(node['@id'], patch, rid, expertId, expert);
 
     if (config.experts.cdl.authorship.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.authorship);
@@ -995,6 +1114,8 @@ class Authorship {
     // update both public/latest to keep them in sync
     await this.expertModel.delete_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
     await this.expertModel.delete_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);
+
+    await this.patchWorkDocument(node['@id'], {visible: false}, rid, expertId, expert);
 
     if (config.experts.cdl.authorship.propagate) {
       let linkId=rid.replace("ark:/87287/d7mh2m/relationship/","");
