@@ -892,6 +892,47 @@ class Authorship {
     this.expertModel = expertModel;
   }
 
+  _relationHasExpert(relation, expertId) {
+    const relates = Array.isArray(relation?.relates) ? relation.relates : [relation?.relates];
+    return relates.includes(expertId);
+  }
+
+  _findRelatedByRoleIndex(relatedBy = [], rid, expertId) {
+    let roleIndex = relatedBy.findIndex(r => r?.['@id'] === rid && this._relationHasExpert(r, expertId));
+    if (roleIndex === -1) {
+      roleIndex = relatedBy.findIndex(r => r?.['@id'] === rid);
+    }
+    if (roleIndex === -1) {
+      roleIndex = relatedBy.findIndex(r => this._relationHasExpert(r, expertId));
+    }
+    return roleIndex;
+  }
+
+  _mutateRoleForActor(role, patch, expertId) {
+    if (!role) {
+      return;
+    }
+
+    if (!Array.isArray(role.relates)) {
+      role.relates = role.relates ? [role.relates] : [];
+    }
+
+    const nonExpertRelates = role.relates.filter(rel => {
+      return !(typeof rel === 'string' && rel.startsWith('expert/'));
+    });
+
+    // Keep this role actor-scoped to avoid cross-expert side effects and duplicates.
+    role.relates = [...nonExpertRelates, expertId];
+
+    if (patch.visible != null) {
+      role['is-visible'] = patch.visible === true;
+    }
+
+    if (patch.favourite != null) {
+      role['ucdlib:favourite'] = patch.favourite;
+    }
+  }
+
   async patchWorkDocument(workId, patch, rid, expertId, expertDoc) {
     const workAliases = [
       'works-' + config.elasticsearch.aliases.stage,
@@ -922,15 +963,32 @@ class Authorship {
         rootNode.relatedBy = rootNode.relatedBy ? [rootNode.relatedBy] : [];
       }
 
-      const rootRoleIndex = rootNode.relatedBy.findIndex(r => r?.['@id'] === rid);
-      if (rootRoleIndex === -1) continue;
+      const rootRoleIndex = this._findRelatedByRoleIndex(rootNode.relatedBy, rid, expertId);
+      if (rootRoleIndex === -1) {
+        logger.info({workId, index, rid, expertId}, 'authorship.patchWorkDocument no matching relatedBy role');
+        continue;
+      }
 
-      if (patch.visible != null) {
-        rootNode.relatedBy[rootRoleIndex]['is-visible'] = patch.visible;
-      }
-      if (patch.favourite != null) {
-        rootNode.relatedBy[rootRoleIndex]['ucdlib:favourite'] = patch.favourite;
-      }
+      const rootRole = rootNode.relatedBy[rootRoleIndex];
+
+      logger.info({
+        workId,
+        index,
+        rid,
+        expertId,
+        selectedRoleId: rootRole['@id'],
+        selectedRoleBefore: JSON.parse(JSON.stringify(rootRole))
+      }, 'authorship.patchWorkDocument selected root role');
+
+      this._mutateRoleForActor(rootRole, patch, expertId);
+
+      logger.info({
+        workId,
+        index,
+        rid,
+        expertId,
+        selectedRoleAfter: rootRole
+      }, 'authorship.patchWorkDocument role after patch mutation');
 
       const visibleExpertIds = new Set();
       for (const rel of rootNode.relatedBy) {
@@ -981,8 +1039,8 @@ class Authorship {
         if (expertNodesById.has(visibleExpertId)) continue;
 
         if (visibleExpertId === expertId && expertDoc) {
-          const actorRoot = this.expertModel.get_expected_model_node(expertDoc);
-          nextGraph.push(this.expertModel.snippet(actorRoot));
+          const expertRoot = this.expertModel.get_expected_model_node(expertDoc);
+          nextGraph.push(this.expertModel.snippet(expertRoot));
           continue;
         }
 
@@ -1002,13 +1060,65 @@ class Authorship {
       workDoc['@graph'] = nextGraph;
       workDoc['is-visible'] = rootNode.relatedBy.some(rel => rel?.['is-visible'] === true);
 
-      await this.expertModel.client.index({
+      logger.info({
+        workId,
         index,
-        id: workDoc['@id'],
-        document: workDoc,
-        if_seq_no: workDocResp._seq_no,
-        if_primary_term: workDocResp._primary_term
-      });
+        expertId,
+        visibleExpertIds: Array.from(visibleExpertIds),
+        graphExpertIds: workDoc['@graph']
+          .filter(n => typeof n?.['@id'] === 'string' && n['@id'].startsWith('expert/'))
+          .map(n => n['@id']),
+        workIsVisible: workDoc['is-visible']
+      }, 'authorship.patchWorkDocument computed dry-run work projection');
+
+      try {
+        const indexResp = await this.expertModel.client.index({
+          index,
+          id: workDoc['@id'],
+          document: workDoc,
+          if_seq_no: workDocResp._seq_no,
+          if_primary_term: workDocResp._primary_term,
+          refresh: 'wait_for'
+        });
+
+        logger.info({
+          workId,
+          index,
+          result: indexResp?.result,
+          version: indexResp?._version,
+          seqNo: indexResp?._seq_no,
+          primaryTerm: indexResp?._primary_term,
+          expectedWorkIsVisible: workDoc['is-visible'],
+          expectedGraphExpertIds: workDoc['@graph']
+            .filter(n => typeof n?.['@id'] === 'string' && n['@id'].startsWith('expert/'))
+            .map(n => n['@id'])
+        }, 'authorship.patchWorkDocument write success');
+
+        const verifyResp = await this.expertModel.client.get({
+          index,
+          id: workDoc['@id'],
+          _source: true
+        });
+        const verifyDoc = verifyResp?._source || {};
+        const verifyGraph = Array.isArray(verifyDoc['@graph']) ? verifyDoc['@graph'] : [];
+
+        logger.info({
+          workId,
+          index,
+          persistedWorkIsVisible: verifyDoc['is-visible'],
+          persistedGraphExpertIds: verifyGraph
+            .filter(n => typeof n?.['@id'] === 'string' && n['@id'].startsWith('expert/'))
+            .map(n => n['@id'])
+        }, 'authorship.patchWorkDocument post-write verify');
+      } catch (e) {
+        logger.error({
+          workId,
+          index,
+          error: e.message,
+          meta: e.meta?.body || e.meta || null,
+          expectedWorkIsVisible: workDoc['is-visible']
+        }, 'authorship.patchWorkDocument write failed');
+      }
     }
   }
 
@@ -1045,7 +1155,11 @@ class Authorship {
       return 404
     };
 
-    let roleIndex = node.relatedBy.findIndex(r => r['@id'] === rid);
+    if (!Array.isArray(node.relatedBy)) {
+      node.relatedBy = node.relatedBy ? [node.relatedBy] : [];
+    }
+
+    let roleIndex = this._findRelatedByRoleIndex(node.relatedBy, rid, expertId);
     if (roleIndex === -1) {
       throw {
         status: 500,
@@ -1053,15 +1167,20 @@ class Authorship {
       };
     }
 
-    if (patch.visible != null) {
-      node['relatedBy'][roleIndex]['is-visible'] = patch.visible;
-    }
-    if (patch.favourite != null) {
-      node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
-    }
+    const selectedRoleBefore = JSON.parse(JSON.stringify(node['relatedBy'][roleIndex]));
+    this._mutateRoleForActor(node['relatedBy'][roleIndex], patch, expertId);
 
     //already a snippet node = workModel.snippet(have_part.Work.node);
     
+    logger.info({
+      expertId,
+      rid,
+      patch,
+      selectedRoleBefore,
+      selectedRoleAfter: node['relatedBy'][roleIndex],
+      updatedExpertWorkNode: node
+    }, 'authorship.patch dry-run expert node update');
+
     // update both public/latest to keep them in sync
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);
@@ -1110,6 +1229,13 @@ class Authorship {
     expert = await this.expertModel.client_get(expertId);
     node = this.expertModel.get_node_by_related_id(expert, rid);
     objectId = node['@id'].replace("ark:/87287/d7mh2m/publication/","");
+
+    logger.info({
+      expertId,
+      rid,
+      workId: node['@id'],
+      expertWorkNodeToDelete: node
+    }, 'authorship.delete dry-run expert node delete');
 
     // update both public/latest to keep them in sync
     await this.expertModel.delete_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
