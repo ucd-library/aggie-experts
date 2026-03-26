@@ -228,16 +228,24 @@ function promoteAttributesToRoot(workNode, graph, type) {
       throw new Error(`Unknown type ${type} in promoteAttributesToRoot`);
   }
 
+  // Works with a non-string title (e.g. an array) are misformatted source data.
+  // Mark them hidden so they are excluded from search results and the public UI.
+  const hasValidTitle = type !== 'work' || typeof workNode.title === 'string';
+  if (!hasValidTitle) {
+    logger.warn(`promoteAttributesToRoot: work ${workNode['@id']} has invalid title (${JSON.stringify(workNode.title)}) — marking is-visible=false`);
+  }
+
   let root = {
     "@context": workNode["@context"],
     "@graph": getGraphAsItems(graph),
-    "is-visible": true,
+    "is-visible": hasValidTitle,
     "roles": ["public"],
     "name": name,
   };
 
-  // promote select properties to the root 
+  // promote select properties to the root (skip is-visible; we set it above based on title validity)
   PROMPT_ROOT_PROPS.forEach(prop => {
+    if( prop === 'is-visible' ) return;
     if( workNode[prop] !== undefined ) {
       root[prop] = workNode[prop];
     }
