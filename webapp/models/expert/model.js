@@ -892,20 +892,42 @@ class Authorship {
     this.expertModel = expertModel;
   }
 
+  _getRelatesId(rel) {
+    if (typeof rel === 'string') {
+      return rel;
+    }
+    if (rel && typeof rel === 'object' && typeof rel['@id'] === 'string') {
+      return rel['@id'];
+    }
+    return null;
+  }
+
+  _normalizeRelates(relates) {
+    const list = Array.isArray(relates) ? relates : [relates];
+    const result = [];
+    const seen = new Set();
+
+    for (const rel of list) {
+      const id = this._getRelatesId(rel);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      result.push(id);
+    }
+
+    return result;
+  }
+
   _relationHasExpert(relation, expertId) {
-    const relates = Array.isArray(relation?.relates) ? relation.relates : [relation?.relates];
+    const relates = this._normalizeRelates(relation?.relates);
     return relates.includes(expertId);
   }
 
   _findRelatedByRoleIndex(relatedBy = [], rid, expertId) {
-    let roleIndex = relatedBy.findIndex(r => r?.['@id'] === rid && this._relationHasExpert(r, expertId));
-    if (roleIndex === -1) {
-      roleIndex = relatedBy.findIndex(r => r?.['@id'] === rid);
+    if (!rid) {
+      return -1;
     }
-    if (roleIndex === -1) {
-      roleIndex = relatedBy.findIndex(r => this._relationHasExpert(r, expertId));
-    }
-    return roleIndex;
+
+    return relatedBy.findIndex(r => r?.['@id'] === rid);
   }
 
   _mutateRoleForActor(role, patch, expertId) {
@@ -913,13 +935,8 @@ class Authorship {
       return;
     }
 
-    if (!Array.isArray(role.relates)) {
-      role.relates = role.relates ? [role.relates] : [];
-    }
-
-    const nonExpertRelates = role.relates.filter(rel => {
-      return !(typeof rel === 'string' && rel.startsWith('expert/'));
-    });
+    const relates = this._normalizeRelates(role.relates);
+    const nonExpertRelates = relates.filter(rel => !rel.startsWith('expert/'));
 
     // Keep this role actor-scoped to avoid cross-expert side effects and duplicates.
     role.relates = [...nonExpertRelates, expertId];
@@ -930,6 +947,21 @@ class Authorship {
 
     if (patch.favourite != null) {
       role['ucdlib:favourite'] = patch.favourite;
+    }
+  }
+
+  _removeActorFromRole(role, expertId) {
+    if (!role) {
+      return;
+    }
+
+    const relates = this._normalizeRelates(role.relates);
+    role.relates = relates.filter(rel => rel !== expertId);
+
+    // If a malformed role no longer relates to any expert, keep it hidden.
+    const hasAnyExpert = role.relates.some(rel => typeof rel === 'string' && rel.startsWith('expert/'));
+    if (!hasAnyExpert) {
+      role['is-visible'] = false;
     }
   }
 
@@ -982,6 +1014,12 @@ class Authorship {
 
       this._mutateRoleForActor(rootRole, patch, expertId);
 
+      // Enforce one-role-per-actor by removing this actor from all non-target roles.
+      rootNode.relatedBy.forEach((rel, idx) => {
+        if (idx === rootRoleIndex) return;
+        this._removeActorFromRole(rel, expertId);
+      });
+
       logger.info({
         workId,
         index,
@@ -993,7 +1031,7 @@ class Authorship {
       const visibleExpertIds = new Set();
       for (const rel of rootNode.relatedBy) {
         if (rel?.['is-visible'] !== true) continue;
-        const relates = Array.isArray(rel.relates) ? rel.relates : [rel.relates];
+        const relates = this._normalizeRelates(rel.relates);
         for (const relId of relates) {
           if (typeof relId === 'string' && relId.startsWith('expert/')) {
             visibleExpertIds.add(relId);
@@ -1169,6 +1207,13 @@ class Authorship {
 
     const selectedRoleBefore = JSON.parse(JSON.stringify(node['relatedBy'][roleIndex]));
     this._mutateRoleForActor(node['relatedBy'][roleIndex], patch, expertId);
+
+    // Keep expert docs actor-scoped for embedded work visibility.
+    node.relatedBy = [node.relatedBy[roleIndex]];
+
+    if (patch.visible != null) {
+      node['is-visible'] = patch.visible === true;
+    }
 
     //already a snippet node = workModel.snippet(have_part.Work.node);
     
