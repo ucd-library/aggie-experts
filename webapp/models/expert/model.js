@@ -950,6 +950,21 @@ class Authorship {
     }
   }
 
+  _removeActorFromRole(role, expertId) {
+    if (!role) {
+      return;
+    }
+
+    const relates = this._normalizeRelates(role.relates);
+    role.relates = relates.filter(rel => rel !== expertId);
+
+    // If a malformed role no longer relates to any expert, keep it hidden.
+    const hasAnyExpert = role.relates.some(rel => typeof rel === 'string' && rel.startsWith('expert/'));
+    if (!hasAnyExpert) {
+      role['is-visible'] = false;
+    }
+  }
+
   async patchWorkDocument(workId, patch, rid, expertId, expertDoc) {
     const workAliases = [
       'works-' + config.elasticsearch.aliases.stage,
@@ -998,6 +1013,12 @@ class Authorship {
       }, 'authorship.patchWorkDocument selected root role');
 
       this._mutateRoleForActor(rootRole, patch, expertId);
+
+      // Enforce one-role-per-actor by removing this actor from all non-target roles.
+      rootNode.relatedBy.forEach((rel, idx) => {
+        if (idx === rootRoleIndex) return;
+        this._removeActorFromRole(rel, expertId);
+      });
 
       logger.info({
         workId,
@@ -1186,6 +1207,12 @@ class Authorship {
 
     const selectedRoleBefore = JSON.parse(JSON.stringify(node['relatedBy'][roleIndex]));
     this._mutateRoleForActor(node['relatedBy'][roleIndex], patch, expertId);
+
+    // Enforce one-role-per-actor within the expert doc node as well.
+    node.relatedBy.forEach((rel, idx) => {
+      if (idx === roleIndex) return;
+      this._removeActorFromRole(rel, expertId);
+    });
 
     //already a snippet node = workModel.snippet(have_part.Work.node);
     
