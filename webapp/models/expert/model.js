@@ -1208,11 +1208,12 @@ class Authorship {
     const selectedRoleBefore = JSON.parse(JSON.stringify(node['relatedBy'][roleIndex]));
     this._mutateRoleForActor(node['relatedBy'][roleIndex], patch, expertId);
 
-    // Enforce one-role-per-actor within the expert doc node as well.
-    node.relatedBy.forEach((rel, idx) => {
-      if (idx === roleIndex) return;
-      this._removeActorFromRole(rel, expertId);
-    });
+    // Keep expert docs actor-scoped for embedded work visibility.
+    node.relatedBy = [node.relatedBy[roleIndex]];
+
+    if (patch.visible != null) {
+      node['is-visible'] = patch.visible === true;
+    }
 
     //already a snippet node = workModel.snippet(have_part.Work.node);
     
