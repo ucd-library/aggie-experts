@@ -76,9 +76,11 @@ function flattenScholarlyWorksRelatedBy(document) {
           if (!ids.has(node['@id'])) ids.add(node['@id']);
           if (expertIdStr && !ids.has(expertIdStr)) ids.add(expertIdStr);
         }
+
         // For grants: just use the flattened IDs as-is
-        
-        role.relates = Array.from(ids);
+        if( isGrant ) {
+          role.relates = Array.from(ids);
+        }
       });
     } else if (node.relatedBy && node.relatedBy.relates !== undefined) {
       const ids = new Set(flattenRelatesHelper(node.relatedBy.relates));

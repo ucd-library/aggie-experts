@@ -199,7 +199,7 @@ return html`
             tabindex="0"
             role="button"
             aria-label="Remove from Highlights"
-            data-id="${this.cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
+            data-id="${this._getCitationRelationshipId()}"></ucdlib-icon>
         </span>
         <span class="tooltip mark-favourite" data-text="Add to Highlights" ?hidden="${this.cite.favourite}">
           <ucdlib-icon
@@ -210,7 +210,7 @@ return html`
             tabindex="0"
             role="button"
             aria-label="Add to Highlights"
-            data-id="${this.cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
+            data-id="${this._getCitationRelationshipId()}"></ucdlib-icon>
         </span>
       </span>
       <span style="position: relative;">
@@ -223,7 +223,7 @@ return html`
             tabindex="0"
             role="button"
             aria-label="Hide work"
-            data-id="${this.cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
+            data-id="${this._getCitationRelationshipId()}"></ucdlib-icon>
         </span>
         <span class="tooltip show-work" data-text="Show work">
           <ucdlib-icon
@@ -234,7 +234,7 @@ return html`
             tabindex="0"
             role="button"
             aria-label="Show work"
-            data-id="${this.cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
+            data-id="${this._getCitationRelationshipId()}"></ucdlib-icon>
         </span>
       </span>
       <span style="position: relative;">
@@ -246,7 +246,7 @@ return html`
             tabindex="0"
             role="button"
             aria-label="Reject work"
-            data-id="${this.cite.relatedBy?.[0]?.['@id']}"></ucdlib-icon>
+            data-id="${this._getCitationRelationshipId()}"></ucdlib-icon>
         </span>
       </span>
     </div>

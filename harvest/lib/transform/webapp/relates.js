@@ -31,6 +31,7 @@ async function getRelates(subject, opts={}) {
   const partitionKeys = ['year-week-'+getYearWeek(opts.date), 'ae-std'];
   let graph = new Graph();
   const rdfResp = await cache.findRelatedExperts(subject, {partitionKeys});
+  rdfResp.results.sort((a, b) => b.modified.getTime() - a.modified.getTime());
 
   let workNode = null;
   let workRelatedBy = new Graph();
