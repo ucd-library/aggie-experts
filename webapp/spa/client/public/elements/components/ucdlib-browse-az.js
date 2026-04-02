@@ -31,7 +31,6 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     this.render = render.bind(this);
 
     this.alpha = [
-        {display: '#', value: '1', exists: true},
         {display: 'A', value: 'a', exists: true},
         {display: 'B', value: 'b', exists: true},
         {display: 'C', value: 'c', exists: true},
@@ -57,7 +56,8 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
         {display: 'W', value: 'w', exists: true},
         {display: 'X', value: 'x', exists: true},
         {display: 'Y', value: 'y', exists: true},
-        {display: 'Z', value: 'z', exists: true}
+        {display: 'Z', value: 'z', exists: true},
+        {display: '#', value: '1', exists: true}
     ];
 
     this.selectedLetter = '';
