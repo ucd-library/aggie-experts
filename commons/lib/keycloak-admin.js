@@ -42,6 +42,7 @@ export default class ExpertsKcAdminClient {
     }
 
     try {
+      logger.info('Authenticating Keycloak Admin Client');
       await this.kcadmin.auth({
         grantType: 'client_credentials',
         clientId: config.oidc.clients.admin.clientId,
