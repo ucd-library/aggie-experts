@@ -26,7 +26,7 @@ export default class ExpertsKcAdminClient {
   async _authenticate() {
     await GoogleSecret.loadKeycloakSecrets();
 
-    logger.debug(
+    logger.info(
       'Initializing Keycloak Admin Client with:', 
       {baseUrl: config.oidc.host, 
       realmName: config.oidc.clients.admin.realm, 
