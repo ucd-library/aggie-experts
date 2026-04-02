@@ -110,12 +110,24 @@ function siteFarmFormat(req, res, next) {
       });
     }
 
-    // ensure ucdlib:favourite always returns true/false (won't exist if not previously set)
+    // keep only relations for this expert, and normalize favourite flag
     (newDoc['publications'] || []).forEach((node) => {
-      (node.relatedBy || []).forEach((rel) => {
-        if( !rel['ucdlib:favourite'] ) {
+      node.relatedBy = (node.relatedBy || []).filter((rel) => {
+        let relates = rel?.relates;
+        if( !Array.isArray(relates) ) {
+          relates = typeof relates === 'string' ? [relates] : [];
+        }
+
+        const isExpertRelationship = relates.includes(newDoc['@id']);
+        if( !isExpertRelationship ) {
+          return false;
+        }
+
+        if( typeof rel['ucdlib:favourite'] !== 'boolean' ) {
           rel['ucdlib:favourite'] = false;
         }
+
+        return true;
       });
     });
 
