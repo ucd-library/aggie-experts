@@ -250,12 +250,12 @@ def purge_user_cask_files(context: AssetExecutionContext, config: YearWeekConfig
     exec(["cask", "rm", "-d", f"/weekly/{year_week}/{user_id}"])
     return None
 
-
 @dg.asset(
     code_version=CODE_VERSION,
     group_name="cleanup",
     tags={
-        "dagster/max_runtime": str(60 * 60 * 2)  # 2 hour max runtime
+        "dagster/retries": "1",
+        "dagster/max_runtime": str(60 * 60 * 4)  # 4 hour max runtime
     }
 )
 def purge_year_week_cask_files(context: AssetExecutionContext, config: PurgeYearWeekConfig) -> None:
