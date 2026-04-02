@@ -358,6 +358,7 @@ export default class AppExpert extends Mixin(LitElement)
     citations = citations.map(c => {
       let citation = { ...c };
       citation.title = Array.isArray(citation.title) ? citation.title.join(' | ') : citation.title;
+      citation.author = Array.isArray(citation.author) ? citation.author : [citation.author];
       return citation;
     });
 
