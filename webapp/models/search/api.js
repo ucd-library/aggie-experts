@@ -4,7 +4,7 @@ const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const WorkModel = require('../work/model.js');
 // const utils = require('../utils.js')
-const {Elasticsearch} = require('@ucd-lib/experts-commons');
+const {Elasticsearch, Ollama, config} = require('@ucd-lib/experts-commons');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
@@ -85,6 +85,46 @@ router.get(
       res.status(400).json({ error: 'Missing required query parameter "q"' });
     }
 
+    // Generate embedding for KNN hybrid search. Non-fatal: if Ollama is unavailable
+    // the search falls back to BM25 only. The vector is passed as opts.knn directly
+    // to BaseModel.search (not through the Mustache template) to avoid the 1MB
+    // Mustache script result size limit.
+    let knn = null;
+    try {
+      const ollama = new Ollama();
+      const embedResp = await ollama.embed({ model: config.llm.embedModel, input: params.q });
+      let vector = embedResp.embeddings[0];
+      if (config.llm.embedDimension && vector.length > config.llm.embedDimension) {
+        vector = vector.slice(0, config.llm.embedDimension);
+      }
+      const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
+      if (magnitude > 0) vector = vector.map(v => v / magnitude);
+
+      const filterMust = [
+        { term: { 'is-visible': true } },
+        { terms: { '@type': params['@type'] || ['expert', 'grant', 'work'] } }
+      ];
+      if (params.status) filterMust.push({ terms: { status: params.status } });
+      if (params.type)   filterMust.push({ terms: { type: params.type } });
+
+      knn = {
+        field: 'embedding',
+        query_vector: vector,
+        k: 100,
+        num_candidates: 200,
+        boost: 100.0,
+        // Only apply KNN boost to results with at least this dot-product similarity
+        // (0.0–1.0 for L2-normalized vectors). Candidates below this threshold are
+        // excluded from KNN scoring entirely and fall back to BM25 alone.
+        similarity: 0.5,
+        filter: { bool: { must: filterMust } }
+      };
+    } catch(embedErr) {
+      console.warn('Search embedding generation failed, falling back to BM25 only:', embedErr.message);
+    }
+
+    console.log('Search parameters:', params); // Debug log of search parameters
+
     let typeToIndex = {
       expert: req.query['previewEsIndexExperts'] || experts.readIndexAlias,
       grant: req.query['previewEsIndexGrants'] || grants.readIndexAlias,
@@ -108,7 +148,8 @@ router.get(
     let searchTemplate = Elasticsearch.searchTemplates['complete'];
     let opts = {
       id: searchTemplate.id,
-      params
+      params,
+      knn
     };
 
     try {
@@ -129,6 +170,7 @@ router.get(
 
       const global = await base.search(
         { id: searchTemplate.id,
+          knn,
           params: {
             ...opts.params,
             size: 0,
@@ -148,6 +190,7 @@ router.get(
 
         const filtered = await base.search({
           id: searchTemplate.id,
+          knn,
           params: {
             ...filteredParams,
             size: 0,

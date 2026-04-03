@@ -14,5 +14,6 @@ xpack.watcher.enabled: false
 
 discovery.type: single-node
 cluster.routing.allocation.disk.threshold_enabled: false
-cluster.routing.allocation.disk.watermark.flood_stage: 98%
+# Disabling for now
+# cluster.routing.allocation.disk.watermark.flood_stage: 98%
 path.repo: ["/usr/share/elasticsearch/backups"]

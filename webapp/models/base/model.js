@@ -550,8 +550,24 @@ class BaseModel extends EsDataModel {
       index,
       params
     }
-    
+
     try {
+      // When a knn block is provided, render the template first then inject knn
+      // alongside the query before executing — this avoids passing the embedding
+      // vector through Mustache which has a 1MB script result size limit.
+      if (opts.knn) {
+        const rendered = await this.client.renderSearchTemplate({
+          id: options.id,
+          params: options.params
+        });
+        const raw = rendered?.body ?? rendered;
+        const body = raw?.template_output ?? raw;
+        body.knn = opts.knn;
+        const res = await this.client.search({ index: options.index, body });
+        const resBody = res?.body ?? res;
+        return this.compact_search_results(resBody, params);
+      }
+
       const res = await this.client.searchTemplate({
         index: options.index,
         body: { id: options.id, params: options.params }

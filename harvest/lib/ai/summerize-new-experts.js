@@ -1,9 +1,9 @@
-import Ollama from '../ollama.js';
-import PgClient from '../pg-client.js';
-import { getEsClient } from '../elasticsearch/index.js';
-import { getYearWeek } from '../year-week.js';
-import config from '../config.js';
-import { logger } from '../logger.js';
+import Ollama from '@ucd-lib/experts-commons/lib/ollama.js';
+import PgClient from '@ucd-lib/experts-commons/lib/pg-client.js';
+import { getEsClient } from '@ucd-lib/experts-commons/lib/elasticsearch/index.js';
+import { getYearWeek } from '@ucd-lib/experts-commons/lib/year-week.js';
+import config from '@ucd-lib/experts-commons/lib/config.js';
+import { logger } from '@ucd-lib/experts-commons/lib/logger.js';
 
 function getTargetYearWeek(opts={}) {
   if( opts.yearWeek ) return opts.yearWeek;

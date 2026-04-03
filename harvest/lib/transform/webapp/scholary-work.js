@@ -1,10 +1,10 @@
 import cache from '../../cache.js';
-import { logger } from '@ucd-lib/experts-commons';
+import { logger, config, getYearWeek } from '@ucd-lib/experts-commons';
 import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.js';
 import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js';
-import { getYearWeek } from '@ucd-lib/experts-commons';
 import { getRelates } from './relates.js';
 import { Graph } from './graph.js';
+import { embedWork, embedGrant } from '../../ai/embed.js';
 import path from 'path';
 
 const TYPES = [
@@ -105,12 +105,21 @@ async function generateScholarlyWork(subject, opts={}) {
   // Flatten all relatedBy.relates to arrays of strings to match ES schema
   flattenScholarlyWorksRelatedBy(graph);
 
+  // Attach normalized embedding vector for KNN search
+  try {
+    const embedFn = swType === 'grant' ? embedGrant : embedWork;
+    const embedResult = await embedFn(subject, { yearWeek: getYearWeek(), normalize: true, maxLength: config.llm.embedDimension });
+    if (embedResult?.embedding) graph.embedding = embedResult.embedding;
+  } catch(embedErr) {
+    logger.warn(`Could not generate embedding for ${swType} ${subject}: ${embedErr.message}`);
+  }
+
   let caskPath;
   if( opts.write ) {
     caskPath = await cache.writeScholarlyAsset(
       swType,
       path.join('ae-webapp', subject+'.json'),
-      JSON.stringify(graph, null, 2)
+      stringifyWithCompactEmbedding(graph)
     );
     caskPath = caskPath.assetPath;
   }
@@ -358,6 +367,20 @@ function generateWorkName(workNode) {
   ], ' § ');
 }
 
+
+/**
+ * @function stringifyWithCompactEmbedding
+ * @description Pretty-print a JSON object with indentation, but collapse the
+ * top-level `embedding` array to a single line by pre-stringifying it so it
+ * appears as a compact JSON string value rather than an expanded array.
+ * Callers reading the file back must JSON.parse the embedding field.
+ * @param {Object} obj - object to serialize
+ * @returns {String} formatted JSON string
+ */
+function stringifyWithCompactEmbedding(obj) {
+  if (!obj.embedding) return JSON.stringify(obj, null, 2);
+  return JSON.stringify({ ...obj, embedding: JSON.stringify(obj.embedding) }, null, 2);
+}
 
 export {
   generateBaseScholarlyWork,

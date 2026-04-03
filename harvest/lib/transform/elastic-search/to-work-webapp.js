@@ -3,7 +3,6 @@ import { logger, config } from '@ucd-lib/experts-commons';
 import cache from '../../cache.js';
 import {sortJsonRecursively, getGraphAsItems, asArray, SHORT_TYPES, getNodeByType} from '../utils.js';
 import { getExpertNode, createSimplifiedExpert } from './to-person-webapp.js';
-import { getYearWeek } from '@ucd-lib/experts-commons';
 import jsonld from 'jsonld';
 import fs from 'fs';
 
@@ -58,6 +57,7 @@ async function generateWorkFiles(expertId, expertsGraphDocument, utils = {}) {
     try {
       // Extract the work ID for filename (remove ark:/ prefix and replace slashes)
       const workId = workNode["@id"];
+      console.log(`Processing work: ${workId}`);
       const fileId = workId.replace(/^ark:\/87287\/d7mh2m\/publication\//, '');
 
       // Create the work document structure

@@ -4,6 +4,7 @@ import { Graph } from './graph.js';
 import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.js';
 import {asArray, getNodeByType, SHORT_TYPES} from '../utils.js';
 import { generateBaseScholarlyWork } from './scholary-work.js';
+import { computeExpertCentroid } from '../../ai/embed.js';
 
 /**
  * @method generateBaseExpert
@@ -114,7 +115,7 @@ async function generateExpert(username, opts={}) {
     let workNode = await generateBaseScholarlyWork(workUri, {date: opts.date});
     graph.addNode(workNode);
   }
-  
+
   graph = graph.toRdfGraph();
   graph = promoteAttributesToRoot(expertNode, graph['@graph']);
 
@@ -123,11 +124,24 @@ async function generateExpert(username, opts={}) {
   // not call flattenScholarlyWorksRelatedBy on individual extracted nodes.
   flattenScholarlyWorksRelatedBy(graph);
 
+  // Compute centroid embedding across all works/grants now that their embeddings are cached.
+  // NOTE: computeExpertCentroid reads cached embeddings from cask — it does not call the LLM.
+  // Work/grant embeddings must already exist (written by generateScholarlyWork) before this runs.
+  try {
+    const centroid = await computeExpertCentroid(workUris);
+    if (centroid) graph.embedding = centroid;
+  } catch(embedErr) {
+    logger.warn(`Could not compute centroid embedding for expert ${username}: ${embedErr.message}`);
+  }
+
   if( opts.write ) {
+    const json = graph.embedding
+      ? JSON.stringify({ ...graph, embedding: JSON.stringify(graph.embedding) }, null, 2)
+      : JSON.stringify(graph, null, 2);
     await cache.writeUserAsset(
       username,
       'webapp/expert.jsonld',
-      JSON.stringify(graph, null, 2)
+      json
     );
   }
 

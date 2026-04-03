@@ -331,8 +331,11 @@ const config = {
   },
 
   llm : {
-    host : env.LLM_HOST || 'http://localhost:11434',
-    model : env.LLM_MODEL || 'llama3.1:latest'
+    host : env.LLM_HOST || 'https://samwise.library.ucdavis.edu/ollama',
+    apiKey : env.LLM_API_KEY || null,
+    model : env.LLM_MODEL || 'llama3.1:latest',
+    embedModel : env.LLM_EMBED_MODEL || 'qwen3-embedding:latest',
+    embedDimension : parseInt(env.LLM_EMBED_DIMENSION || '1024')
   }
 }
 

@@ -173,7 +173,11 @@ class ElasticsearchWrapper {
     logger.info(`Initializing Elasticsearch schema for index: ${indexName}`);
 
     await this.initClient();
-    const schema = JSON.parse(await fs.readFile(path.join(__dirname, 'experts-schema.json'), 'utf8'));
+    // Substitute __EMBED_DIMENSION__ so the dense_vector dims value matches the
+    // configured embedding model output size (env: LLM_EMBED_DIMENSION, default 1024)
+    let schemaText = await fs.readFile(path.join(__dirname, 'experts-schema.json'), 'utf8');
+    schemaText = schemaText.replace(/__EMBED_DIMENSION__/g, String(config.llm.embedDimension));
+    const schema = JSON.parse(schemaText);
 
     const indexExists = await this.client.indices.exists({ 
       index: indexName

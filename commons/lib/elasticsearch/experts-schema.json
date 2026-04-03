@@ -443,7 +443,13 @@
           }
         }
       },
-      "roles": { "type": "keyword" }
+      "roles": { "type": "keyword" },
+      "embedding": {
+        "type": "dense_vector",
+        "dims": __EMBED_DIMENSION__,
+        "index": true,
+        "similarity": "dot_product"
+      }
     }
   }
 }

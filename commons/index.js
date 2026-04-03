@@ -6,10 +6,10 @@ import { getYearWeek, getTodaysDate, isPlainDate, parseYearWeek } from './lib/ye
 import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
 import PgClient from './lib/pg-client.js';
-import ai from './lib/ai/index.js';
+import Ollama from './lib/ollama.js';
 
 export {
-  ai,
+  Ollama,
   PgClient,
   ExpertsKcAdminClient,
   ElementsClient,

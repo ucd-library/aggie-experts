@@ -98,6 +98,7 @@ async function loadFile(file) {
   const md5 = metadata.digests.md5;
   const lastModified = metadata.modified;
   const json = JSON.parse(content);
+  if (typeof json.embedding === 'string') json.embedding = JSON.parse(json.embedding);
   return {json, sha256, md5, lastModified};
 }
 
