@@ -87,7 +87,8 @@ class Utils {
   }
 
   formatCitation(cite) {
-    return cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>';
+    // remove '(n.d.).' and '(N.d.).', including with trailing spaces
+    return cite.apa?.replace(/\([nN]\.d\.\)\.\s*/g, '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>';
   }
 
   /**
