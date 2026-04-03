@@ -149,7 +149,7 @@ export default class AppGrant extends Mixin(LitElement)
     let contributors = (grantGraph.relatedBy || []);
     if( !Array.isArray(contributors) ) contributors = [contributors];
 
-    otherContributors = contributors.filter(c => !c['inheres_in']);
+    otherContributors = contributors.filter(c => !c['inheres_in'] && !c['ae-roleof-suppress']);
 
     // helper to find the relatedBy entry for a contributor, tolerant to shapes
     const _findMatchingRelated = (contributor) => {
@@ -237,8 +237,19 @@ export default class AppGrant extends Mixin(LitElement)
       let relates = contributor['relates'];
       if( !Array.isArray(relates) ) relates = [relates];
 
-      let personArk = contributor['@id']?.replace('roleof_', '') || '';
-      let name = relates.filter(r => r['@id'] === personArk)?.[0]?.name || '';
+      // The person fragment id is the relates entry that isn't the grant itself
+      let personArk = relates.find(r => {
+        const id = typeof r === 'string' ? r : r?.['@id'];
+        return id && id !== this.grantId && !id.endsWith(this.grantId.split('/').pop());
+      });
+      if( typeof personArk !== 'string' ) personArk = personArk?.['@id'] || '';
+
+      // Extract name from the contributor's own name field (e.g. "PI: Ustin, Susan L")
+      // relates entries are plain strings so we can't look up a name from them
+      let rawContribName = contributor['name'] || '';
+      if( Array.isArray(rawContribName) ) rawContribName = rawContribName[0] || '';
+      // Strip role prefix like "PI: " or "COPI: "
+      let name = rawContribName.replace(/^[^:]+:\s*/, '');
 
       if( type.includes('PrincipalInvestigatorRole') ) {
         this.pis.push({

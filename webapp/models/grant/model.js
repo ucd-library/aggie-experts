@@ -195,15 +195,22 @@ class GrantModel extends BaseModel {
     {
       let matched=false
       if (! role.inheres_in && role?.relates) {
-        role.relates.forEach(r => {
-          if (r.hasName) {
-            nameMatches(r.hasName).forEach((nm) => {
-              if (name_match[nm]) {
-                matched=true;
-              }
-            })
-          }
-        });
+        // If the harvest pipeline already flagged this #roleof_ node as redundant
+        // (because an inheres_in AE expert covers the same person+role), skip it.
+        if (role['ae-roleof-suppress']) {
+          matched = true;
+        }
+        if (!matched) {
+          role.relates.forEach(r => {
+            if (r.hasName) {
+              nameMatches(r.hasName).forEach((nm) => {
+                if (name_match[nm]) {
+                  matched=true;
+                }
+              })
+            }
+          });
+        }
         if ( ! matched ) {
           new_related.push(role)
         }
