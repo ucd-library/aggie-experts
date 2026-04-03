@@ -17,11 +17,12 @@ class SearchModel extends BaseModel {
    * @description search elastic search
    *
    * @param {String} searchQuery search url
+   * @param {Boolean} ignoreCache whether to ignore cached results
    *
    * @returns {Promise} resolves to expert
    */
-  async search(searchQuery) {
-    return this.service.search(searchQuery);
+  async search(searchQuery, ignoreCache=false) {
+    return this.service.search(searchQuery, ignoreCache);
   }
 
 }

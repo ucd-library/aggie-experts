@@ -1,6 +1,6 @@
 import cache from '../../cache.js';
 import { logger } from '@ucd-lib/experts-commons';
-import {frame, simplifiedExpert} from './frame.js';
+import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.js';
 import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js';
 import { getYearWeek } from '@ucd-lib/experts-commons';
 import { getRelates } from './relates.js';
@@ -101,6 +101,9 @@ async function generateScholarlyWork(subject, opts={}) {
 
   graph = graph.toRdfGraph();
   graph = promoteAttributesToRoot(baseWork, graph, swType);
+
+  // Flatten all relatedBy.relates to arrays of strings to match ES schema
+  flattenScholarlyWorksRelatedBy(graph);
 
   let caskPath;
   if( opts.write ) {
@@ -225,16 +228,24 @@ function promoteAttributesToRoot(workNode, graph, type) {
       throw new Error(`Unknown type ${type} in promoteAttributesToRoot`);
   }
 
+  // Works with a non-string title (e.g. an array) are misformatted source data.
+  // Mark them hidden so they are excluded from search results and the public UI.
+  const hasValidTitle = type !== 'work' || typeof workNode.title === 'string';
+  if (!hasValidTitle) {
+    logger.warn(`promoteAttributesToRoot: work ${workNode['@id']} has invalid title (${JSON.stringify(workNode.title)}) — marking is-visible=false`);
+  }
+
   let root = {
     "@context": workNode["@context"],
     "@graph": getGraphAsItems(graph),
-    "is-visible": true,
+    "is-visible": hasValidTitle,
     "roles": ["public"],
     "name": name,
   };
 
-  // promote select properties to the root 
+  // promote select properties to the root (skip is-visible; we set it above based on title validity)
   PROMPT_ROOT_PROPS.forEach(prop => {
+    if( prop === 'is-visible' ) return;
     if( workNode[prop] !== undefined ) {
       root[prop] = workNode[prop];
     }
@@ -299,10 +310,12 @@ function generateGrantName(grantNode) {
  * @returns {string} the formatted work name
  */
 function generateWorkName(workNode) {
-  const title = workNode.title || '';
-  const status = workNode.status || '';
-  const type = workNode.type || '';
-  const issued = workNode.issued || '';
+  // The ui is expecting a name in the format of "title § status • type • issued • author string § ...",
+  // so default to truthy values for the joinValues below
+  const title = workNode.title || ' ';
+  const status = workNode.status || ' ';
+  const type = workNode.type || ' ';
+  const issued = workNode.issued || ' ';
 
   // only append values that exist
   function joinValues(values, joiner = ' ') {

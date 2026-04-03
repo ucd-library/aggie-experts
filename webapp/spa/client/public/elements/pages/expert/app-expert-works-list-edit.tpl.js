@@ -380,6 +380,7 @@ return html`
               <edit-work-result-row
                 .cite="${cite}"
                 .index="${index}"
+                .expertId="${this.expertId}"
                 .showYear="${true}"
                 @deselect-favourite="${this._deselectFavourite}"
                 @mark-favourite="${this._markFavourite}"
@@ -422,6 +423,7 @@ return html`
           <edit-work-result-row
             .cite="${cite}"
             .index="${index}"
+            .expertId="${this.expertId}"
             @deselect-favourite="${this._deselectFavourite}"
             @mark-favourite="${this._markFavourite}"
             @hide-work="${this._hideWork}"

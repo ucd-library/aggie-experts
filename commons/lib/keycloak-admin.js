@@ -19,30 +19,42 @@ export default class ExpertsKcAdminClient {
     }
     this.authenticating = this._authenticate();
     await this.authenticating;
-    delete this.authenticating;
+    this.authenticating = null;
     this.authenticated = true;
   }
 
   async _authenticate() {
     await GoogleSecret.loadKeycloakSecrets();
 
-    logger.debug(
+    logger.info(
       'Initializing Keycloak Admin Client with:', 
       {baseUrl: config.oidc.host, 
       realmName: config.oidc.clients.admin.realm, 
       clientId: config.oidc.clients.admin.clientId
     });
 
-    this.kcadmin = new KcAdminClient({
-        baseUrl: config.oidc.host,
-        realmName: config.oidc.clients.admin.realm
-    })
+    if( !this.kcadmin ) {
+      logger.debug('Creating new Keycloak Admin Client instance');
+      this.kcadmin = new KcAdminClient({
+          baseUrl: config.oidc.host,
+          realmName: config.oidc.clients.admin.realm
+      })
+    }
+
     try {
+      logger.info('Authenticating Keycloak Admin Client');
       await this.kcadmin.auth({
         grantType: 'client_credentials',
         clientId: config.oidc.clients.admin.clientId,
         clientSecret: config.oidc.clients.admin.secret,
       });
+
+      if (this._refreshTimer) clearInterval(this._refreshTimer);
+      this._refreshTimer = setInterval(() => {
+        this.authenticated = false;
+        this.authenticating = null;
+      }, 23 * 60 * 60 * 1000);
+
     } catch (e) {
       logger.error('Error getting keycloak authorized', e);
       process.exit(1);

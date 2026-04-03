@@ -291,6 +291,27 @@ class BaseModel extends EsDataModel {
       const in_hits = hit?.inner_hits?.['@graph']?.hits?.hits;
       if (Array.isArray(in_hits) && in_hits.length) {
         source._inner_hits = in_hits.map(h => h._source);
+
+        // keep relatedBy as a root-level property
+        if( !source.relatedBy ) {
+          const grantNode = source._inner_hits.find(node => {
+            const nodeType = node?.['@type'];
+            if( Array.isArray(nodeType) ) return nodeType.includes('Grant');
+            return nodeType === 'Grant';
+          });
+
+          if( grantNode?.relatedBy ) source.relatedBy = grantNode.relatedBy;
+        }
+
+        // keep issue/volume as root-level properties for work hits
+        const workNode = source._inner_hits.find(node => {
+          const nodeType = node?.['@type'];
+          if( Array.isArray(nodeType) ) return nodeType.includes('Work');
+          return nodeType === 'Work';
+        });
+
+        if( !source.issue && workNode?.issue ) source.issue = workNode.issue;
+        if( !source.volume && workNode?.volume ) source.volume = workNode.volume;
       }
       hits.push(source);
     }

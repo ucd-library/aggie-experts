@@ -64,6 +64,7 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     this.selectedPage = '';
     this.browseType = '';
     this.sort = this.defaultSort;
+    this.hasExplicitLetter = false;
 
     // this.parseLocation();
   }
@@ -74,7 +75,9 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
 
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'browse' ) return;
-    if( e.location.path.length < 3 ) {
+    this.hasExplicitLetter = e.location.path.length >= 3;
+
+    if( !this.hasExplicitLetter ) {
       this.selectedLetter = '';
     } else {
       this.selectedLetter = e.location.path[2]?.toLowerCase();
@@ -133,7 +136,16 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       this.selectedLetter = this.alpha[0]?.value;
     }
 
-    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}${this.selectedPage ? '/' + this.selectedPage : ''}`);
+    const targetPath = `/browse/${this.browseType}/${this.selectedLetter}${this.selectedPage ? '/' + this.selectedPage : ''}`;
+    if( this.AppStateModel.location.pathname !== targetPath ) {
+      // if route didn't specify a letter, normalize URL without adding a history entry (so back button works)
+      if( !this.hasExplicitLetter ) {
+        this.AppStateModel._replaceHistoryState(targetPath);
+        this.AppStateModel._onLocationChange();
+      } else {
+        this.AppStateModel.setLocation(targetPath);
+      }
+    }
     this.requestUpdate();
   }
 

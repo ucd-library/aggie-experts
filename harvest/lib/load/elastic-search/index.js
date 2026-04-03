@@ -104,7 +104,8 @@ async function loadFile(file) {
 async function getUsersCurrentScholarlyWorks(expertId, type, alias) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;
   const esClient = await Elasticsearch.initClient();
-  const index = type+'s-'+alias;
+  const aliases = Array.isArray(alias) ? alias : [alias];
+  const index = aliases.map(a => `${type}s-${a}`).join(',');
   const resp = await esClient.search({
     index,
     body: {

@@ -1,7 +1,7 @@
 import cache from '../../cache.js';
 import { logger, config } from '@ucd-lib/experts-commons';
 import { Graph } from './graph.js';
-import {frame, simplifiedExpert} from './frame.js';
+import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.js';
 import {asArray, getNodeByType, SHORT_TYPES} from '../utils.js';
 import { generateBaseScholarlyWork } from './scholary-work.js';
 
@@ -117,6 +117,11 @@ async function generateExpert(username, opts={}) {
   
   graph = graph.toRdfGraph();
   graph = promoteAttributesToRoot(expertNode, graph['@graph']);
+
+  // Flatten all relatedBy.relates fields to arrays of strings (not objects)
+  // This must happen after graph assembly since generateBaseScholarlyWork does
+  // not call flattenScholarlyWorksRelatedBy on individual extracted nodes.
+  flattenScholarlyWorksRelatedBy(graph);
 
   if( opts.write ) {
     await cache.writeUserAsset(

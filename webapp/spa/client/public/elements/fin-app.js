@@ -61,7 +61,8 @@ export default class FinApp extends Mixin(LitElement)
     this.hideEdit = !utils.getCookie('editingExpertId');
     this.loading = false;
     this.searchTerm = '';
-    this.lastPageTops = {};
+    this.lastRouteTops = {};
+    this.currentRouteKey = '';
     this.allLinks = [
       { type: 'profile', text: 'Profile', href: '/'+this.expertId },
       { type: 'faq', text: 'Help', href: '/faq' },
@@ -168,9 +169,13 @@ export default class FinApp extends Mixin(LitElement)
     let route = e.location.path[0] === 'expert' ? 'expert' : (e.location.page || 'home');
     if( !APP_CONFIG.appRoutes.includes(route) ) page = '404';
 
-    if( this.page === page ) return;
+    const nextRouteKey = this._getRouteKey(e.location);
 
-    this.lastPageTops[this.page] = window.scrollY;
+    if( this.page === page && this.currentRouteKey === nextRouteKey ) return;
+
+    if( this.currentRouteKey ) {
+      this.lastRouteTops[this.currentRouteKey] = window.scrollY;
+    }
 
     if ( !this.loadedPages[page] ) {
       this.page = 'loading';
@@ -183,7 +188,9 @@ export default class FinApp extends Mixin(LitElement)
     // this.page = page;
     this.pathInfo = e.location.pathname.split('/media')[0];
 
-    await this._updateScrollPosition(page);
+    await this._updateScrollPosition(page, nextRouteKey);
+
+    this.currentRouteKey = nextRouteKey;
 
     this.firstAppStateUpdate = false;
     this.backButtonPressed = false;
@@ -193,12 +200,31 @@ export default class FinApp extends Mixin(LitElement)
     this._checkPreviewingEsIndex();
   }
 
-  async _updateScrollPosition(page=this.page) {
+  _getRouteKey(location={}) {
+    return location.pathname || '/';
+  }
+
+  async _waitForBrowseResultsRendered(selectedPage) {
+    if( !selectedPage ) return;
+
+    await new Promise(resolve => {
+      const timeout = setTimeout(resolve, 1000);
+      const onRendered = () => {
+        clearTimeout(timeout);
+        selectedPage.removeEventListener('browse-results-rendered', onRendered);
+        resolve();
+      };
+
+      selectedPage.addEventListener('browse-results-rendered', onRendered, { once: true });
+    });
+  }
+
+  async _updateScrollPosition(page=this.page, routeKey=this.currentRouteKey) {
     let selectedPage = this.shadowRoot.querySelector('ucdlib-pages')?.querySelector('#'+page);
     if( page === 'browse' ) selectedPage = selectedPage.querySelector('app-browse-by');
 
     // wait for content and child components to render
-    await selectedPage.updateComplete;
+    await selectedPage?.updateComplete;
     let childComponents = selectedPage.shadowRoot?.querySelectorAll('*');
     if( childComponents ) {
       await Promise.all(Array.from(childComponents).map(async (child) => {
@@ -208,24 +234,13 @@ export default class FinApp extends Mixin(LitElement)
       }));
     }
 
-    if( page === 'browse' ) {
-      let resultsComponent = selectedPage.shadowRoot?.querySelectorAll('div.browse-results');
-      if( resultsComponent ) {
-        await resultsComponent.updateComplete;
-        await Promise.all(Array.from(resultsComponent).map(async (child) => {
-          if( child.updateComplete ) {
-            await child.updateComplete;
-          }
-        }));
-      }
+    if( page === 'browse' && this.backButtonPressed ) {
+      const browsePage = this.shadowRoot.querySelector('ucdlib-pages')?.querySelector('#browse');
+      await this._waitForBrowseResultsRendered(browsePage);
     }
 
-    // scroll to previous position when nav back
-    if( !this.backButtonPressed ) { // || ['work', 'grant', 'expert'].includes(page)) {
-      window.scrollTo(0, 0);
-    } else {
-      window.scrollTo(0, this.lastPageTops[page]);
-    }
+    const restoreTop = this.backButtonPressed ? (this.lastRouteTops[routeKey] || 0) : 0;
+    window.scrollTo(0, restoreTop);
   }
 
   /**
@@ -241,7 +256,8 @@ export default class FinApp extends Mixin(LitElement)
    * @description reset scroll to top of page and reset the saved page top for selected page
    */
   _resetScroll(e) {
-    this.lastPageTops[this.page] = 0;
+    const routeKey = this.currentRouteKey || this._getRouteKey(this.AppStateModel.location || {});
+    if( routeKey ) this.lastRouteTops[routeKey] = 0;
     window.scrollTo(0, 0);
   }
 

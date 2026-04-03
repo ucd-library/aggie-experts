@@ -1,19 +1,26 @@
 const path = require('path');
+const fs = require('fs');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('../../lib/es-client.js');
 const { config : commonsConfig, logger } = require('@ucd-lib/experts-commons');
+const crypto = require('crypto');
 
 // for seo
 let experts = require('../../models/expert/index.js');
 let works = require('../../models/work/index.js');
 let grants = require('../../models/grant/index.js');
+const getFaqJsonLd = require('../models/faq-jsonld.js');
+
+let jsBundleHash = '';
 
 module.exports = async (app) => {
 
   // path to your spa assets dir
   let assetsDir = path.join(__dirname, '..', 'client', config.client.assets);
   logger.info('SPA assets directory', assetsDir);
+
+  loadJsBundleHash(assetsDir);
 
   /**
    * Setup SPA app routes
@@ -79,7 +86,8 @@ module.exports = async (app) => {
         gaId : config.client.gaId,
         logger : config.client.logger,
         esAliases : commonsConfig.elasticsearch.aliases,
-        buildInfo : commonsConfig.buildInfo
+        buildInfo : commonsConfig.buildInfo,
+        jsBundleHash,
       });
     },
 
@@ -91,10 +99,12 @@ module.exports = async (app) => {
       let workRegex = /^\/work\/.+\/publication\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
       let grantRegex = /^\/grant\/.+\/grant\/[a-zA-Z0-9-]+(?!\.[a-zA-Z]+)$/;
       let expertRegex = /^\/expert\/[^.]+$/;
+      let faqRegex = /^\/faq(?!\.[a-zA-Z]+)$/;
 
       let isWork = req.originalUrl.match(workRegex);
       let isGrant = req.originalUrl.match(grantRegex)
       let isExpert = req.originalUrl.match(expertRegex);
+      let isFaq = req.originalUrl.match(faqRegex);
 
       try {
         if( isWork ) {
@@ -111,13 +121,38 @@ module.exports = async (app) => {
 
           // might have to see if too much info (might remove vcard stuff, maybe modify types)
           jsonld = await experts.model.seo(expertId);
+        } else if( isFaq ) {
+          jsonld = getFaqJsonLd();
         }
       } catch(e) {
         // ignore and let client handle 404 if needed
       }
 
-      return next({title: 'Aggie Experts', gaId: config.client.gaId, jsonld});
+      return next({title: 'Aggie Experts', gaId: config.client.gaId, jsonld, jsBundleHash});
     }
   });
+
+  function loadJsBundleHash(assetsDir) {
+    let env = config.client.env.CLIENT_ENV;
+    let hashFile = path.join(assetsDir, 'js', 'bundle.js');
+    let fileExists = fs.existsSync(hashFile);
+
+    if( env === 'production' && !fileExists ) {
+      logger.error('JS bundle file not found for production environment. Expected at: '+hashFile);
+    } else if( fileExists ) {
+      const fileBuffer = fs.readFileSync(hashFile);      
+      jsBundleHash = crypto.createHash('sha256')
+        .update(fileBuffer)
+        .digest('hex')
+        .toString().substring(0, 8);
+      logger.info('Loaded js bundle hash: '+jsBundleHash);
+
+    } else {
+      logger.warn('JS bundle file not found. Will retry in 5 seconds. Expected at: '+hashFile);
+      setTimeout(() => {
+        loadJsBundleHash(assetsDir);
+      }, 5000);
+    }
+  }
 
 }

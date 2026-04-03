@@ -11,20 +11,77 @@ import {transformGrants} from './grants.js';
 import { sortJsonRecursively } from '../utils.js';
 
 function extractElementsUserId(rel) {
-  // Find the node in @graph with an id matching /users/<digits>/relationships
-  let nodes = rel['@graph'] || [];
-  if( nodes && !Array.isArray(nodes) ) nodes = [nodes];
-  for (const node of nodes) {
-    if (typeof node.id === 'string') {
-      const match = node.id.match(/\/users\/(\d+)\/relationships/);
-      if (match) return match[1];
+  // Elements relationship exports can vary by version/serializer.
+  // We want the numeric Elements user id (the one used in links like .../users/<id>)
+  // so downstream code can infer authorship rank.
+
+  const nodesRaw = rel?.['@graph'] || [];
+  const nodes = Array.isArray(nodesRaw) ? nodesRaw : [nodesRaw];
+
+  const toStringsDeep = (v, seen = new WeakSet()) => {
+    if (v === null || v === undefined) return [];
+
+    // Scalars
+    if (typeof v === 'string') return [v];
+    if (typeof v === 'number') return [String(v)];
+    if (typeof v === 'boolean') return [String(v)];
+
+    // Arrays
+    if (Array.isArray(v)) return v.flatMap(x => toStringsDeep(x, seen));
+
+    // Objects
+    if (typeof v !== 'object') return [];
+    if (seen.has(v)) return [];
+    seen.add(v);
+
+    const out = [];
+
+    // JSON-LD scalar wrappers like {"@value": "..."}
+    if (typeof v['@value'] === 'string' || typeof v['@value'] === 'number') {
+      out.push(String(v['@value']));
     }
+
+    // Common id-ish fields
+    if (typeof v.id === 'string' || typeof v.id === 'number') out.push(String(v.id));
+    if (typeof v['@id'] === 'string') out.push(String(v['@id']));
+    if (typeof v.href === 'string') out.push(String(v.href));
+
+    // Common Elements containers
+    if (v['api:links']?.['api:link']) out.push(...toStringsDeep(v['api:links']['api:link'], seen));
+    if (v['api:related']) out.push(...toStringsDeep(v['api:related'], seen));
+    if (v['api:object']) out.push(...toStringsDeep(v['api:object'], seen));
+
+    // Recurse all properties (covers unknown serializer shapes)
+    for (const key of Object.keys(v)) {
+      out.push(...toStringsDeep(v[key], seen));
+    }
+
+    return out;
+  };
+
+  // Only scan @graph
+  const strings = nodes.flatMap(n => toStringsDeep(n));
+
+  // Prefer explicit ".../users/<id>/relationships" (most unambiguous)
+  for (const s of strings) {
+    const match = String(s).match(/\/users\/(\d+)\/relationships\b/);
+    if (match) return match[1];
   }
+
+  // Fallback: any .../users/<id> URL
+  for (const s of strings) {
+    const match = String(s).match(/\/users\/(\d+)\b/);
+    if (match) return match[1];
+  }
+
   return null;
 }
 
 async function run(rel, expertId, expertData, options = {}) {
   let elementsUserId = extractElementsUserId(rel);
+  if (elementsUserId === null || elementsUserId === undefined) {
+    console.warn(`Extracted Elements user id: ${elementsUserId} from relationship file for expertId: ${expertId}`);
+  }
   let {
     works,
     grants

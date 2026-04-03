@@ -134,11 +134,23 @@ export default class AppSearch extends Mixin(LitElement)
    *
    * @return {Object} e
    */
-  _onAppStateUpdate(e) {
+  async _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
+    if( this.resettingSearch ) {
+      this.resettingSearch = false;
+      return;
+    }
+
+    let resetSearch = false;
+    if( e.resetSearch ) {
+      resetSearch = true;
+      this.resettingSearch = true;
+      this.AppStateModel.set({ resetSearch: false });
+    }
+
     this._updateFilters();
-    this._onSearch({ detail: this.searchTerm });
+    this._onSearch({ detail: this.searchTerm }, resetSearch);
   }
 
   async _refreshRange(dataChanged=false) {
@@ -482,7 +494,8 @@ export default class AppSearch extends Mixin(LitElement)
           this.filterByExpertId,
           this.dateFrom,
           this.dateTo
-        )
+        ), 
+        resetPage // ignore cache
       ),
       true
     );
@@ -1106,6 +1119,8 @@ export default class AppSearch extends Mixin(LitElement)
         // Type of Work | Title | Authors {separate contributors by ";"; if more than 10 contributors, use et.a;.)| Year | Journal OR Book | Volume | Issue | Pages | DOI or URL | Abstract
         let workType = utils.getCitationType(match.type) || '';
         let title = match.title || '';
+
+        if( !Array.isArray(match.author) ) match.author = [match.author];
 
         // {separate contributors by ";"; if more than 10 contributors, use et.a;.)
         let authors;

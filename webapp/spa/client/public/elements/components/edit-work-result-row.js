@@ -28,6 +28,10 @@ export default class EditWorkResultRow extends Mixin(LitElement)
     this.showYear = false;
   }
 
+  _getCitationRelationshipId() {
+    return this.cite?.relatedBy?.find(r => r?.relates?.includes(this.expertId))?.['@id'];
+  }
+
    _emitEvent(eventName) {
     return (e) => {
       const event = new CustomEvent(eventName, {
