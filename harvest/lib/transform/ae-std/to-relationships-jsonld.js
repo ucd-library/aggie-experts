@@ -78,9 +78,13 @@ function extractElementsUserId(rel) {
 }
 
 async function run(rel, expertId, expertData, options = {}) {
-  let elementsUserId = extractElementsUserId(rel);
-  if (elementsUserId === null || elementsUserId === undefined) {
-    console.warn(`Extracted Elements user id: ${elementsUserId} from relationship file for expertId: ${expertId}`);
+  // Prefer the Elements user ID extracted from the CDL user file (authoritative).
+  // Falling back to scanning the relationship file is unreliable because the file
+  // embeds full work records including user links for *every* author, so the first
+  // match found may belong to a co-author rather than the expert being processed.
+  let elementsUserId = expertData?.['elements-user-id'] || extractElementsUserId(rel);
+  if (!elementsUserId) {
+    console.warn(`Could not determine Elements user id for expertId: ${expertId}`);
   }
   let {
     works,
