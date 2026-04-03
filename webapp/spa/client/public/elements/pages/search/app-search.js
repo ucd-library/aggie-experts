@@ -382,6 +382,7 @@ export default class AppSearch extends Mixin(LitElement)
    */
   _onRangeSliderChange(e) {
     this.filterByDate = true;
+    this.currentPage = 1;
     this.dateFrom = e.detail.min;
     this.dateTo = e.detail.max;
     this.filterByDateLabel = e.detail.min + ' - ' + e.detail.max;
