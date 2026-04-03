@@ -543,6 +543,9 @@ function createRoleRecord(personId, roleType, roleLabel, formattedName, grantUri
     "http://schema.org/name": [
       { "@value": `${roleLabel}: ${formattedName}` }
     ],
+    // Flag this as a non-AE person role so the webapp pipeline can suppress it
+    // when a proper inheres_in-linked role for the same type already exists
+    "http://schema.library.ucdavis.edu/schema#ae-roleof": [{ "@value": "true" }],
     [ONTOLOGY.RELATES]: [
       { "@id": grantUri },
       { "@id": `${grantUri}#${personId}` }
@@ -814,6 +817,7 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   const processedPeople = new Set();
   const createdRoles = [];
   const peopleRecords = [];
+  let piIsCurrentExpert = false;
 
   const normalizeFirstCore = s => (s||'').toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g,'');
   const stripMiddleInitial = s => (s||'').replace(/\s+[A-Za-z]$/,'');
@@ -918,6 +922,11 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
         peopleRecords.push(roleRecord);
         createdRoles.push({ '@id': roleRecord['@id'] });
       }
+      // When the PI is the current expert (and no separate PI role was emitted),
+      // skip the person/vcard fragment guarantee below. The expert's own inheres_in
+      // userRole is the authoritative record; emitting a fragment node here creates
+      // a disconnected #roleof_ duplicate in the webapp.
+      if (isCurrentExpertStrict && !emitPiRole) piIsCurrentExpert = true;
     }
   }
 
@@ -960,8 +969,9 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
     }
   });
 
-  // Guarantee PI person & vcard exist even if role suppressed
-  if (piTextValue && formattedPiName) {
+  // Guarantee PI person & vcard exist even if role suppressed,
+  // but only when the PI is not the current expert (piIsCurrentExpert set above in that case).
+  if (piTextValue && formattedPiName && !piIsCurrentExpert) {
     const parts = formattedPiName.split(', ');
     if (parts.length >= 2) {
       const piLastCheck = parts[0];

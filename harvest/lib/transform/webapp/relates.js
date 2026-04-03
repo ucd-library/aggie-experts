@@ -78,6 +78,12 @@ async function getRelates(subject, opts={}) {
     workNode[RELATED_BY] = Array.from(workRelatedBy.nodes.values());
   }
 
+  // For grant graphs: suppress #roleof_ nodes (non-AE person roles) when a proper
+  // inheres_in-linked role of the same type already exists in the assembled graph.
+  // This prevents duplicate contributors when an AE expert is also listed in the
+  // grant's raw c-pi / c-co-pis fields under a slightly different name form.
+  _suppressRedundantRoleofNodes(graph);
+
   return graph;
 }
 
@@ -118,6 +124,91 @@ function _parseRelatesNode(subject, node) {
   outNode['http://vivoweb.org/ontology/core#relates'] = relatesArr;
   
   return outNode;
+}
+
+/**
+ * @method _suppressRedundantRoleofNodes
+ * @description After assembling the merged grant graph, flag any #roleof_ node
+ * (marked with ae-roleof) whose role type is already covered by a proper
+ * inheres_in-linked role node in the graph. The flag allows the webapp to skip
+ * rendering the duplicate without removing the node from the graph (which may
+ * be needed for other purposes, e.g. works author linking).
+ *
+ * @param {Graph} graph the assembled graph to mutate
+ */
+function _suppressRedundantRoleofNodes(graph) {
+  const AE_ROLEOF_FLAG = 'http://schema.library.ucdavis.edu/schema#ae-roleof';
+  const AE_ROLEOF_SUPPRESS = 'http://schema.library.ucdavis.edu/schema#ae-roleof-suppress';
+  const INHERES_IN = 'http://purl.obolibrary.org/obo/RO_0000052';
+  const NAME_PROP = 'http://schema.org/name';
+
+  // Normalize a name for comparison: lowercase, remove middle initials/names,
+  // remove punctuation, collapse whitespace.  This lets "Bishop, Matthew A"
+  // match "Bishop, Matthew" and vice-versa.
+  function normalizeName(raw) {
+    if (!raw) return '';
+    // Strip a role prefix like "PI: " or "COPI: "
+    let n = String(raw).replace(/^[^:]+:\s*/, '');
+    // Remove anything in parentheses
+    n = n.replace(/\(.*?\)/g, '');
+    // Split on comma: "Last, First Middle" → keep Last + First word only
+    const parts = n.split(',');
+    if (parts.length >= 2) {
+      const last = parts[0].trim().toLowerCase().replace(/[^a-z]/g, '');
+      // Take only the first word of the given-name portion to drop middle names/initials
+      const given = (parts[1].trim().split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z]/g, '');
+      return `${last},${given}`;
+    }
+    return n.toLowerCase().replace(/[^a-z,]/g, '');
+  }
+
+  function getNodeName(node) {
+    const nameProp = node[NAME_PROP];
+    if (!nameProp) return '';
+    const first = Array.isArray(nameProp) ? nameProp[0] : nameProp;
+    const raw = (typeof first === 'object' && first !== null) ? (first['@value'] || '') : String(first || '');
+    return normalizeName(raw);
+  }
+
+  // Returns all normalized names from a node (for #roleof_ nodes that may have multiple)
+  function getNodeNames(node) {
+    const nameProp = node[NAME_PROP];
+    if (!nameProp) return [];
+    const items = Array.isArray(nameProp) ? nameProp : [nameProp];
+    return items
+      .map(v => (typeof v === 'object' && v !== null) ? (v['@value'] || '') : String(v || ''))
+      .map(normalizeName)
+      .filter(Boolean);
+  }
+
+  // Build a set of (normalizedRoleType, normalizedName) pairs already covered
+  // by proper inheres_in-linked AE expert role nodes.
+  const coveredPairs = new Set();
+  for (const node of graph.nodes.values()) {
+    if (!node[INHERES_IN] || node[AE_ROLEOF_FLAG]) continue;
+    const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+    const name = getNodeName(node);
+    if (!name) continue;
+    types.forEach(t => t && coveredPairs.add(`${t}|${name}`));
+  }
+
+  if (coveredPairs.size === 0) return;
+
+  // Flag a #roleof_ node only when AT LEAST ONE of its role types is matched
+  // by an AE expert with the same (type, normalized-name) pair. If Bishop is an
+  // AE PI, suppress his #roleof_ node even if that node also carries a CoPI type.
+  // A #roleof_ node can have multiple names (one per role prefix); check all of them.
+  for (const node of graph.nodes.values()) {
+    if (!node[AE_ROLEOF_FLAG]) continue;
+    const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+    const names = getNodeNames(node);
+    if (!names.length) continue;
+    // Suppress when any (type, name) combination is already covered by an AE expert
+    const anyCovered = types.some(t => t && names.some(n => coveredPairs.has(`${t}|${n}`)));
+    if (anyCovered) {
+      node[AE_ROLEOF_SUPPRESS] = true;
+    }
+  }
 }
 
 export {
