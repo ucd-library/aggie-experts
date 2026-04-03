@@ -68,6 +68,21 @@ async function srcToAeStd(options={}) {
   expertData['last-name'] = iamPreferredLname || user.lastName;
   expertData['first-name'] = iamFirst || user.firstName;
 
+  // Extract the Elements user ID from the CDL user file
+  try {
+    const cdlUserFiles = cdlJsonLdFiles.filter(f => f.includes('/user/'));
+    for (const f of cdlUserFiles) {
+      const cdlUser = JSON.parse(await cache.read(f));
+      const userNode = (cdlUser['@graph'] || []).find(n => n && n.id && n.category === 'user');
+      if (userNode && userNode.id) {
+        expertData['elements-user-id'] = String(userNode.id);
+        break;
+      }
+    }
+  } catch (e) {
+    logger.warn(`Could not extract Elements user ID from CDL user file for ${options.user}: ${e.message}`);
+  }
+
   // Transform in std AE Person data
   let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
