@@ -11,6 +11,10 @@ network.host: 0.0.0.0
 # # xpack.monitoring.enabled: false
 xpack.security.enabled: false
 xpack.watcher.enabled: false
+xpack.ml.enabled: false
+ingest.geoip.downloader.enabled: false
+xpack.monitoring.collection.enabled: false 
+xpack.profiling.enabled: false
 
 discovery.type: single-node
 cluster.routing.allocation.disk.threshold_enabled: false

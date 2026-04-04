@@ -123,8 +123,6 @@ router.get(
       console.warn('Search embedding generation failed, falling back to BM25 only:', embedErr.message);
     }
 
-    console.log('Search parameters:', params); // Debug log of search parameters
-
     let typeToIndex = {
       expert: req.query['previewEsIndexExperts'] || experts.readIndexAlias,
       grant: req.query['previewEsIndexGrants'] || grants.readIndexAlias,

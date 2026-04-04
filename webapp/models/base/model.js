@@ -254,22 +254,22 @@ class BaseModel extends EsDataModel {
    * @description Adds template to elastic search if it doesn't exist
    */
   async verify_template(template) {
-    if (!Array.isArray(template)) {
-      template = [template];
-    }
-    for (let t of template) {
-      try {
-        logger.info(`checking template ${t.id}`);
-        let result = await this.client.getScript({id:t.id});
-      } catch (err) {
-        try {
-          logger.info(`adding template ${t.id}`);
-          const result=await this.client.putScript(t);
-        } catch (err) {
-          throw new Error(`verify_template: ${err}`);
-        }
-      }
-    }
+    // if (!Array.isArray(template)) {
+    //   template = [template];
+    // }
+    // for (let t of template) {
+    //   try {
+    //     logger.info(`checking template ${t.id}`);
+    //     let result = await this.client.getScript({id:t.id});
+    //   } catch (err) {
+    //     try {
+    //       logger.info(`adding template ${t.id}`);
+    //       const result=await this.client.putScript(t);
+    //     } catch (err) {
+    //       throw new Error(`verify_template: ${err}`);
+    //     }
+    //   }
+    // }
     return true;
   }
 
@@ -552,6 +552,8 @@ class BaseModel extends EsDataModel {
     }
 
     try {
+      console.log(`search: knn=${!!opts.knn} size=${params.size} index=${options.index}`);
+
       // When a knn block is provided, render the template first then inject knn
       // alongside the query before executing — this avoids passing the embedding
       // vector through Mustache which has a 1MB script result size limit.
@@ -560,11 +562,30 @@ class BaseModel extends EsDataModel {
           id: options.id,
           params: options.params
         });
+        // renderSearchTemplate may return { template_output: {...} } or the body directly
         const raw = rendered?.body ?? rendered;
         const body = raw?.template_output ?? raw;
         body.knn = opts.knn;
+        // // min_score is calibrated for BM25-only scoring; drop it in hybrid mode since
+        // // knn.similarity already gates quality on the vector side.
+        // delete body.min_score;
+        // // post_filter is incompatible with knn and silently returns 0 hits.
+        // // Inline its must clauses directly into the existing query filter so the
+        // // query structure (and nested function_score scoring) is not disturbed.
+        // if (body.post_filter) {
+        //   const pfMust = body.post_filter?.bool?.must;
+        //   if (pfMust && body.query?.bool?.filter?.bool?.must) {
+        //     body.query.bool.filter.bool.must.push(...pfMust);
+        //   }
+        //   delete body.post_filter;
+        // }
+        console.log(opts.knn);
         const res = await this.client.search({ index: options.index, body });
         const resBody = res?.body ?? res;
+
+        // delete body.knn.query_vector; // remove vector from logs
+        console.log(resBody);
+
         return this.compact_search_results(resBody, params);
       }
 
@@ -573,6 +594,7 @@ class BaseModel extends EsDataModel {
         body: { id: options.id, params: options.params }
       });
       const body = res?.body ?? res;
+      console.log(`bm25 search result: total=${body?.hits?.total?.value}`);
       return this.compact_search_results(body, params);
     } catch (err) {
       console.error('searchTemplate error:', err?.meta?.body || err);
