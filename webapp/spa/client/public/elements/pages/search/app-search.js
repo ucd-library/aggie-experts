@@ -1091,6 +1091,8 @@ export default class AppSearch extends Mixin(LitElement)
 
         let pisCoPis = ''; // List of PIs and coPIs {separate contributors by ";"}
         let otherContributors = ''; // Other Known Contributors {separate contributors by ";"}
+        const seenPisCoPis = new Set();
+        const seenOtherContributors = new Set();
 
         contributors.forEach(c => {
           let role = utils.getGrantRole(c)?.role || '';
@@ -1098,10 +1100,20 @@ export default class AppSearch extends Mixin(LitElement)
           if( Array.isArray(name) ) name = name[0];
           name = name.replace(/\s*CoPI:\s*/gi, '');
           name = name.replace(/\s*PI:\s*/gi, '');
+          name = name.trim();
+          const normalizedName = name.toLowerCase();
+          if( !normalizedName ) return;
+
           if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
-            pisCoPis += name + '; ';
+            if( !seenPisCoPis.has(normalizedName) ) {
+              seenPisCoPis.add(normalizedName);
+              pisCoPis += name + '; ';
+            }
           } else {
-            otherContributors += name + '; ';
+            if( !seenOtherContributors.has(normalizedName) ) {
+              seenOtherContributors.add(normalizedName);
+              otherContributors += name + '; ';
+            }
           }
         });
 
