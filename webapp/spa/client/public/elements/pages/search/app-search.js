@@ -1045,7 +1045,16 @@ export default class AppSearch extends Mixin(LitElement)
     let works = [], grants = [], experts = [];
     let numFiles = 0;
 
-    (this.downloads || []).forEach(download => {
+    const csvCell = (value) => {
+        let s = value == null ? '' : String(value);
+        s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        return '"' + s.replace(/"/g, '""') + '"';
+    };
+
+    const csvRow = (values) => values.map(csvCell).join(',');
+
+    (this.downloads || []).forEach((download, index) => {
+      console.log('i', index, 'download', download);
       let resultType = download.resultType;
       let match = download.graph;
       if( !match ) return;
@@ -1059,13 +1068,13 @@ export default class AppSearch extends Mixin(LitElement)
         let numberOfGrants = (match['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
         let urls = (match.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
 
-        experts.push(
-          '"' + name + '",' +
-          '"' + landingPage + '",' +
-          '"' + numberOfWorks + '",' +
-          '"' + numberOfGrants + '",' +
-          '"' + urls + '",'
-        );
+        experts.push(csvRow([
+            name,
+            landingPage,
+            numberOfWorks,
+            numberOfGrants,
+            urls
+        ]));
 
       } else if( resultType === 'grant' ) {
         // grants.csv:
@@ -1117,16 +1126,16 @@ export default class AppSearch extends Mixin(LitElement)
           }
         });
 
-        grants.push(
-          '"' + title + '",' +
-          '"' + fundingAgency + '",' +
-          '"' + grantId + '",' +
-          '"' + startDate + '",' +
-          '"' + endDate + '",' +
-          '"' + typeOfGrant + '",' +
-          '"' + pisCoPis + '",' +
-          '"' + otherContributors + '",'
-        );
+        grants.push(csvRow([
+            title,
+            fundingAgency,
+            grantId,
+            startDate,
+            endDate,
+            typeOfGrant,
+            pisCoPis,
+            otherContributors
+        ]));
       } else if( resultType === 'work' ) {
         // works.csv:
         // Type of Work | Title | Authors {separate contributors by ";"; if more than 10 contributors, use et.a;.)| Year | Journal OR Book | Volume | Issue | Pages | DOI or URL | Abstract
@@ -1145,8 +1154,10 @@ export default class AppSearch extends Mixin(LitElement)
         }
 
         if( Array.isArray(match.issued) ) match.issued = match.issued[0];
+        if( !match.issued ) match.issued = '';
         let [ year, month, day ] = match.issued?.split?.('-');
-        let yearFormatted = utils.formatDate({ year });
+        let yearFormatted = '';
+        if( year ) yearFormatted = utils.formatDate({ year });
         if( Array.isArray(match['container-title']) ) match['container-title'] = match['container-title'][0];
         let journalBook = match['container-title'] || '';
         let volume = match.volume || '';
@@ -1155,18 +1166,18 @@ export default class AppSearch extends Mixin(LitElement)
         let publisherLink = match.DOI ? `https://doi.org/${match.DOI}` : '';
         let abstract = match.abstract || '';
 
-        works.push(
-          '"' + workType + '",' +
-          '"' + title + '",' +
-          '"' + authors + '",' +
-          '"' + yearFormatted + '",' +
-          '"' + journalBook + '",' +
-          '"' + volume + '",' +
-          '"' + issue + '",' +
-          '"' + page + '",' +
-          '"' + publisherLink + '",' +
-          '"' + abstract + '",'
-        );
+        works.push(csvRow([
+            workType,
+            title,
+            authors,
+            yearFormatted,
+            journalBook,
+            volume,
+            issue,
+            page,
+            publisherLink,
+            abstract
+        ]));
       }
     });
 
