@@ -241,7 +241,9 @@
           "filter": {
             "bool": {
               "must": [
-                { "term": { "@type": "work" } }
+                { "term": { "@type": "work" } },
+                { "exists": { "field": "is-visible" } },
+                { "term": { "is-visible": true } }
                 {{#expert}}
                 ,{
                   "nested": {
@@ -330,7 +332,9 @@
           "filter": {
             "bool": {
               "must": [
-                { "term": { "@type": "grant" } }
+                { "term": { "@type": "grant" } },
+                { "exists": { "field": "is-visible" } },
+                { "term": { "is-visible": true } }
                 {{#expert}}
                 ,{
                   "nested": {
@@ -435,7 +439,9 @@
           "filter": {
             "bool": {
               "must": [
-                { "term": { "@graph.@type": "Grant" } }
+                { "term": { "@graph.@type": "Grant" } },
+                { "exists": { "field": "is-visible" } },
+                { "term": { "is-visible": true } }
                 {{#hasDate}}
                 ,{
                   "bool": {
