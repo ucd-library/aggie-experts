@@ -280,15 +280,23 @@
                           }
                         }
                         {{#q}}
-                        ,{ "simple_query_string": { "query": "{{q}}", "fields": [
-                          "@graph.@id^10","@graph.relates^2","@graph.DOI^10","@graph.abstract^5",
-                          "@graph.contactInfo.hasEmail^10","@graph.contactInfo.hasName.family^20",
-                          "@graph.contactInfo.hasName.given^5","@graph.contactInfo.hasName.middle^5",
-                          "@graph.contactInfo.hasTitle.name^5","@graph.contactInfo.hasURL.name^5",
-                          "@graph.contactInfo.hasOrganizationalUnit.name^5","@graph.name^10",
-                          "@graph.orcidId^10","@graph.overview^5","@graph.identifier^10","@graph.container-title^5",
-                          "@graph.publisher^5","@graph.title^10","@graph.author.family^10","@graph.author.given^5",
-                          "@graph.relatedBy.relates.name^5"], "default_operator": "and" } }
+                        ,{
+                          "function_score": {
+                            "query": {
+                              "simple_query_string": { "query": "{{q}}", "fields": [
+                                "@graph.@id^10","@graph.relates^2","@graph.DOI^10","@graph.abstract^5",
+                                "@graph.contactInfo.hasEmail^10","@graph.contactInfo.hasName.family^20",
+                                "@graph.contactInfo.hasName.given^5","@graph.contactInfo.hasName.middle^5",
+                                "@graph.contactInfo.hasTitle.name^5","@graph.contactInfo.hasURL.name^5",
+                                "@graph.contactInfo.hasOrganizationalUnit.name^5","@graph.name^10",
+                                "@graph.orcidId^10","@graph.overview^5","@graph.identifier^10","@graph.container-title^5",
+                                "@graph.publisher^5","@graph.title^10","@graph.author.family^10","@graph.author.given^5",
+                                "@graph.relatedBy.relates.name^5"], "default_operator": "and" }
+                            },
+                            "min_score": {{min_nested_score}}{{^min_nested_score}}10.0{{/min_nested_score}},
+                            "boost_mode": "replace"
+                          }
+                        }
                         {{/q}}
                       ]
                     }
@@ -360,15 +368,23 @@
                           }
                         }
                         {{#q}}
-                        ,{ "simple_query_string": { "query": "{{q}}", "fields": [
-                          "@graph.@id^10","@graph.relates^2","@graph.DOI^10","@graph.abstract^5",
-                          "@graph.contactInfo.hasEmail^10","@graph.contactInfo.hasName.family^20",
-                          "@graph.contactInfo.hasName.given^5","@graph.contactInfo.hasName.middle^5",
-                          "@graph.contactInfo.hasTitle.name^5","@graph.contactInfo.hasURL.name^5",
-                          "@graph.contactInfo.hasOrganizationalUnit.name^5","@graph.name^10",
-                          "@graph.orcidId^10","@graph.overview^5","@graph.identifier^10","@graph.container-title^5",
-                          "@graph.publisher^5","@graph.title^10","@graph.author.family^10","@graph.author.given^5",
-                          "@graph.relatedBy.relates.name^5"], "default_operator": "and" } }
+                        ,{
+                          "function_score": {
+                            "query": {
+                              "simple_query_string": { "query": "{{q}}", "fields": [
+                                "@graph.@id^10","@graph.relates^2","@graph.DOI^10","@graph.abstract^5",
+                                "@graph.contactInfo.hasEmail^10","@graph.contactInfo.hasName.family^20",
+                                "@graph.contactInfo.hasName.given^5","@graph.contactInfo.hasName.middle^5",
+                                "@graph.contactInfo.hasTitle.name^5","@graph.contactInfo.hasURL.name^5",
+                                "@graph.contactInfo.hasOrganizationalUnit.name^5","@graph.name^10",
+                                "@graph.orcidId^10","@graph.overview^5","@graph.identifier^10","@graph.container-title^5",
+                                "@graph.publisher^5","@graph.title^10","@graph.author.family^10","@graph.author.given^5",
+                                "@graph.relatedBy.relates.name^5"], "default_operator": "and" }
+                            },
+                            "min_score": {{min_nested_score}}{{^min_nested_score}}10.0{{/min_nested_score}},
+                            "boost_mode": "replace"
+                          }
+                        }
                         {{/q}}
                       ]
                     }

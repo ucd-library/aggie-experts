@@ -498,7 +498,7 @@ return html`
         </label>
       </div>
 
-      <div class="range-filter-container ${!this.displayedResults.length ? 'invisible' : ''}">
+      <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
         <hr class="search-seperator">
 
         <div class="date-filter-heading ${this.dateRangeData.length === 1 ? 'hidden-slider' : ''}">
@@ -570,7 +570,7 @@ return html`
             </label>
           </div>
 
-          <div class="range-filter-container ${!this.displayedResults.length ? 'invisible' : ''}">
+          <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
             <hr class="search-seperator">
 
             <div class="date-filter-heading ${this.dateRangeData.length === 1 ? 'hidden-slider' : ''}">
