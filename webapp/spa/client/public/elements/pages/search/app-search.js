@@ -1053,8 +1053,7 @@ export default class AppSearch extends Mixin(LitElement)
 
     const csvRow = (values) => values.map(csvCell).join(',');
 
-    (this.downloads || []).forEach((download, index) => {
-      console.log('i', index, 'download', download);
+    (this.downloads || []).forEach(download => {
       let resultType = download.resultType;
       let match = download.graph;
       if( !match ) return;
