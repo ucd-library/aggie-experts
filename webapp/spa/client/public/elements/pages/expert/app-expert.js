@@ -596,8 +596,9 @@ export default class AppExpert extends Mixin(LitElement)
         }
         this.logger.info('expert deleted', { expertId : this.expertId });
 
-        // redirect to home page
-        this.AppStateModel.setLocation('/');
+        // logout/redirect to home page after deleting expert
+        // this.AppStateModel.setLocation('/auth/logout');
+        window.location.replace('/auth/logout');
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
         let modelContent = `

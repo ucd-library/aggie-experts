@@ -698,15 +698,56 @@ class ExpertModel extends BaseModel {
       return 404
     };
 
-    // update both public/latest aliases to keep them in sync
-    await this.client.delete({
-      id : expertId,
-      index : 'experts-'+config.elasticsearch.aliases.stage
-    }); 
-    await this.client.delete({
-      id : expertId,
-      index : 'experts-'+config.elasticsearch.aliases.current
-    }); 
+    // update both public/latest aliases to keep them in sync    
+    try {
+      await this.client.delete({
+        id : expertId,
+        index : 'experts-'+config.elasticsearch.aliases.stage
+      }); 
+
+      // if state/current point to the same index, could fail in second delete
+      await this.client.delete({
+        id : expertId,
+        index : 'experts-'+config.elasticsearch.aliases.current
+      });
+    } catch (e) {
+      logger.warn({
+        expertId,
+        index: 'experts-'+config.elasticsearch.aliases.current,
+        error: e.message
+      }, 'expert.delete second alias delete failed; continuing');
+    }
+
+    // also update any visible works/grants for this expert
+    let visibleWorks = [];
+    let visibleGrants = [];
+    for( let node of expert['@graph'] ) {
+      if( node['@type'].includes('Work') ) {
+        let related = node.relatedBy?.find(r => r?.relates?.includes(expertId) && r['is-visible']);
+        if( related && related['@id'] ) {
+          visibleWorks.push({
+            id: node['@id'],
+            relationshipId: related['@id']
+          });
+        }
+      } else if( node['@type'].includes('Grant') ) {
+        let related = node.relatedBy?.find(r => r?.relates?.includes(expertId) && r['is-visible']);
+        if( related && related['@id']) {
+          visibleGrants.push({
+            id: node['@id'],
+            relationshipId: related['@id']
+          });
+        }
+      }
+    }
+
+    for( let work of visibleWorks ) {
+      await this.Authorship().patchWorkDocument(work.id, {visible: false}, work.relationshipId, expertId, expert);
+    }
+
+    for( let grant of visibleGrants ) {
+      await this.grantRole().patchGrantDocument(grant.id, {visible: false}, grant.relationshipId, expertId, expert);
+    }    
 
     if (config.experts.cdl.expert.propagate) {
       const cdl_user = await this._impersonate_cdl_user(expert,config.experts.cdl.expert);
@@ -793,6 +834,62 @@ class ExpertModel extends BaseModel {
 class GrantRole {
   constructor(expertModel) {
     this.expertModel = expertModel;
+  }
+
+  async patchGrantDocument(grantId, patch, rid, expertId) {
+    const grantAliases = [
+      'grants-' + config.elasticsearch.aliases.stage,
+      'grants-' + config.elasticsearch.aliases.current
+    ];
+
+    for (const index of grantAliases) {
+      let grantDocResp;
+      try {
+        grantDocResp = await this.expertModel.client.get({
+          index,
+          id: grantId,
+          _source: true
+        });
+      } catch (e) {
+        logger.info({grantId, index, error: e.message}, 'expert.patchGrantDocument grant document not found');
+        continue;
+      }
+
+      const grantDoc = grantDocResp?._source;
+      if (!grantDoc || !Array.isArray(grantDoc['@graph'])) continue;
+
+      const rootNode = grantDoc['@graph'].find(n => n && n['@id'] === grantDoc['@id']);
+      if (!rootNode) continue;
+
+      if (!Array.isArray(rootNode.relatedBy)) {
+        rootNode.relatedBy = rootNode.relatedBy ? [rootNode.relatedBy] : [];
+      }
+
+      const roleIndex = rootNode.relatedBy.findIndex(rel => {
+        if (rid && rel?.['@id'] === rid) return true;
+        return rel?.inheres_in === expertId;
+      });
+
+      if (roleIndex === -1) {
+        logger.info({grantId, index, rid, expertId}, 'expert.patchGrantDocument no matching relatedBy role');
+        continue;
+      }
+
+      if (patch.visible != null) {
+        rootNode.relatedBy[roleIndex]['is-visible'] = patch.visible === true;
+      }
+
+      grantDoc['is-visible'] = rootNode.relatedBy.some(rel => rel?.['is-visible'] === true);
+
+      await this.expertModel.client.index({
+        index,
+        id: grantDoc['@id'],
+        document: grantDoc,
+        if_seq_no: grantDocResp._seq_no,
+        if_primary_term: grantDocResp._primary_term,
+        refresh: 'wait_for'
+      });
+    }
   }
 
   /**
@@ -1230,7 +1327,6 @@ class Authorship {
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);
 
-    // dry-run patch work graph documents and log what would be updated
     await this.patchWorkDocument(node['@id'], patch, rid, expertId, expert);
 
     if (config.experts.cdl.authorship.propagate) {
