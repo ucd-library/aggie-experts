@@ -5,6 +5,7 @@ import config from './lib/config.js';
 import { getYearWeek, getTodaysDate, isPlainDate, parseYearWeek } from './lib/year-week.js';
 import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
+import xmlToJson from './lib/xml-to-json.js';
 
 
 export {
@@ -20,5 +21,6 @@ export {
   getYearWeek,
   getTodaysDate,
   isPlainDate,
-  parseYearWeek
+  parseYearWeek,
+  xmlToJson
 };
