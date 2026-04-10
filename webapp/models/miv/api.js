@@ -102,6 +102,7 @@ router.get(
       //jq '.hits[0]["_inner_hits"][0]| {"@id","title":.name,"end_date":.dateTimeInterval.end.dateTime,"start_date":.dateTimeInterval.start.dateTime,"grant_amount":.totalAwardAmount,"sponsor_id":.sponsorAwardId,"sponsor_name":.assignedBy.name,"type":.["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"].name,"role_label":(.relatedBy[] | select(.inheres_in) | .["@type"])}' new.json
 
       let grants = [];
+      let expertId = find?.hits?.[0]?.['@id'] || '';
       if (find?.hits[0]) {
         for (const hit of find.hits[0]._inner_hits) {
           // Util function to ensure an array
@@ -111,11 +112,13 @@ router.get(
             }
             return value;
           }
+
           // create a people array
           let people = [];
           if (hit.relatedBy) {
             hit.relatedBy.forEach((x) => {
-              if (!x.inheres_in) {
+              // filter to only other experts
+              if( ( !x.inheres_in || x.inheres_in !== expertId ) && !x['ae-roleof-suppress'] ) {
                 let name = x.name || '';
                 if( Array.isArray(name) ) name = name[0] || '';
                 name = name.replace(/\b(?:COPI|PI):\s*/gi, '').trim();
@@ -137,6 +140,8 @@ router.get(
             });
           }
 
+          let role_label = hit.relatedBy?.find(x => x.inheres_in === expertId && x.relates.includes(expertId))?.['@type'] || '';
+
           // trim to just the name
           hit.name = (hit.name || '').split('§')?.[0]?.trim() || hit.name;
 
@@ -149,7 +154,7 @@ router.get(
             sponsor_id: hit.sponsorAwardId,
             sponsor_name: hit.assignedBy.name,
             type: hit['@type'],
-            role_label: hit.relatedBy.find(x => x.inheres_in)['@type'],
+            role_label,
             contributors: people
           });
         }
