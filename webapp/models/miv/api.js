@@ -116,16 +116,20 @@ router.get(
           if (hit.relatedBy) {
             hit.relatedBy.forEach((x) => {
               if (!x.inheres_in) {
+                let name = x.name || '';
+                if( Array.isArray(name) ) name = name[0] || '';
+                name = name.replace(/\b(?:COPI|PI):\s*/gi, '').trim();
+
                 if (ensureArray(x['@type']).includes('PrincipalInvestigatorRole')) {
                   people.push({
                     '@id': x['@id'],
-                    name: x.relates[0].name,
+                    name,
                     role: 'PrincipalInvestigatorRole'
                   });
                 } else if (ensureArray(x['@type']).includes('CoPrincipalInvestigatorRole')) {
                   people.push({
                     '@id': x['@id'],
-                    name: x.relates[0].name,
+                    name,
                     role: 'CoPrincipalInvestigatorRole'
                   });
                 }
