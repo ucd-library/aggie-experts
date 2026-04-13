@@ -75,6 +75,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.isVisible = true;
     this.manageGrantsLabel = 'Manage My Grants';
     this.grantsWithErrors = [];
+    this.updatingVisibility = false;
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -159,6 +160,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( e.state !== 'loaded' ) return;
     if( this.AppStateModel.location.page !== 'grants-edit' ) return;
     if( e.id.includes('/grants-download') ) return;
+    if( this.updatingVisibility ) return;
 
 
     this.expertId = e.expertId;
@@ -393,6 +395,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   async _showGrant(e) {
     this.grantId = e.currentTarget.dataset.id;
     this.dispatchEvent(new CustomEvent("loading", {}));
+    this.updatingVisibility = true;
     let updated = true;
     try {
       let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
@@ -444,6 +447,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         });
       }
       this.logger.error('failed to set grant to be visible', { grantId : this.grantId, expertId : this.expertId });
+      this.updatingVisibility = false;
       return;
     }
 
@@ -460,6 +464,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( updated && this.hiddenGrants >= 0 ) this.hiddenGrants -= 1;
     if( updated ) this.modifiedGrants = true;
     this._updateManageGrantsLabel();
+    this.updatingVisibility = false;
 
     this.requestUpdate();
   }
@@ -478,6 +483,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     let updated = true;
 
     if( action === 'hide' ) {
+      this.updatingVisibility = true;
       try {
         let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
         setTimeout(() => {
@@ -541,6 +547,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       if( updated ) this.hiddenGrants += 1;
       if( updated ) this.modifiedGrants = true;
       this._updateManageGrantsLabel();
+      this.updatingVisibility = false;
 
       this.requestUpdate();
     }
