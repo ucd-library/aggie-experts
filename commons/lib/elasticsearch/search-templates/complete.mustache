@@ -62,6 +62,23 @@
                 ],
                 "minimum_should_match": 1
               }
+            },
+            {
+              "bool": {
+                "should": [
+                  { "bool": { "must_not": [ { "term": { "@type": "work" } } ] } },
+                  {
+                    "bool": {
+                      "must": [ { "term": { "@type": "work" } } ],
+                      "must_not": [
+                        { "term": { "invalid-title": true } },
+                        { "term": { "invalid-issued": true } }
+                      ]
+                    }
+                  }
+                ],
+                "minimum_should_match": 1
+              }
             }
           ]
         }
@@ -139,6 +156,7 @@
                               "must": [
                                 { "term": { "@graph.@type": "Work" } },
                                 { "exists": { "field": "@graph.issued" } }
+                                ,{ "bool": { "must_not": [ { "term": { "@graph.invalid-title": true } }, { "term": { "@graph.invalid-issued": true } } ] } }
                                 {{#dateFrom}}{{#dateTo}}
                                 ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}", "lte": "{{dateTo}}" } } }
                                 {{/dateTo}}{{/dateFrom}}
@@ -244,6 +262,7 @@
                 { "term": { "@type": "work" } },
                 { "exists": { "field": "is-visible" } },
                 { "term": { "is-visible": true } }
+                ,{ "bool": { "must_not": [ { "term": { "invalid-title": true } }, { "term": { "invalid-issued": true } } ] } }
                 {{#expert}}
                 ,{
                   "nested": {
@@ -272,6 +291,7 @@
                       "must": [
                         { "term": { "@graph.@type": "Work" } },
                         { "exists": { "field": "@graph.issued" } },
+                        { "bool": { "must_not": [ { "term": { "@graph.invalid-title": true } }, { "term": { "@graph.invalid-issued": true } } ] } },
                         {
                           "bool": {
                             "should": [
