@@ -254,7 +254,7 @@ def purge_user_cask_files(context: AssetExecutionContext, config: YearWeekConfig
     code_version=CODE_VERSION,
     group_name="cleanup",
     tags={
-        "dagster/retries": "1",
+        "dagster/retries": "0",
         "dagster/max_runtime": str(60 * 60 * 4)  # 4 hour max runtime
     }
 )
