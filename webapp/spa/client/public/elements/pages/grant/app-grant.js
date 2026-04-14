@@ -102,10 +102,12 @@ export default class AppGrant extends Mixin(LitElement)
 
     this.completed = false;
 
+    let isHidden = !e.payload['is-visible'];
+
     // Invisible grants still have resolvable landing pages. When the grant visibility has been changed, the expected behavior is:
     // 1. If there are no public relationships, the grant landing page should return a 404 for all users, including the owner of the grant
     let hasPublicRelationships = (grantGraph?.relatedBy || []).some(r => (r['inheres_in'] && r['is-visible']) || r['@id'].includes('#roleof_'));
-    if( !hasPublicRelationships ) {
+    if( isHidden || !hasPublicRelationships ) {
       this.dispatchEvent(
         new CustomEvent("show-404", {})
       );

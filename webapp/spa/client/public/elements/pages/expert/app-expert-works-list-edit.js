@@ -292,7 +292,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     if( all || isDownload ) return citationResults;
 
-    this.citationsDisplayed = citationResults;
+    this.citationsDisplayed = citationResults.slice(0, this.resultsPerPage);
     this.featuredCitations = featuredCitations;
 
     // hack to hide inner content of collapsed rows on first load, to remove extra white space

@@ -86,7 +86,12 @@ function siteFarmFormat(req, res, next) {
       }
       // If the node is a Work, copy it to the publications array
       else if (doc["@graph"][j]["@type"].includes("Work")) {
-        newDoc["publications"].push(doc["@graph"][j]);
+        let work = doc["@graph"][j];
+        // Normalize author to always be an array
+        if (work.author !== undefined && !Array.isArray(work.author)) {
+          work.author = [work.author];
+        }
+        newDoc["publications"].push(work);
       }
     }
 

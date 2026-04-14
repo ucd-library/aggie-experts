@@ -837,6 +837,20 @@ class GrantRole {
   }
 
   async patchGrantDocument(grantId, patch, rid, expertId) {
+    const getRelatesExpertIds = rel => {
+      const relates = Array.isArray(rel?.relates) ? rel.relates : [rel?.relates];
+      const ids = [];
+
+      for (const r of relates) {
+        const id = typeof r === 'string' ? r : r?.['@id'];
+        if (typeof id === 'string' && id.startsWith('expert/')) {
+          ids.push(id);
+        }
+      }
+
+      return ids;
+    };
+
     const grantAliases = [
       'grants-' + config.elasticsearch.aliases.stage,
       'grants-' + config.elasticsearch.aliases.current
@@ -877,6 +891,95 @@ class GrantRole {
 
       if (patch.visible != null) {
         rootNode.relatedBy[roleIndex]['is-visible'] = patch.visible === true;
+
+        // keep expert snippet nodes in sync with root relatedBy visibility
+        const expertVisibility = new Map();
+        for (const rel of rootNode.relatedBy) {
+          const expertIds = new Set(getRelatesExpertIds(rel));
+          if (typeof rel?.inheres_in === 'string' && rel.inheres_in.startsWith('expert/')) {
+            expertIds.add(rel.inheres_in);
+          }
+
+          for (const id of expertIds) {
+            const currentlyVisible = expertVisibility.get(id) === true;
+            const roleVisible = rel?.['is-visible'] === true;
+            expertVisibility.set(id, currentlyVisible || roleVisible);
+          }
+        }
+
+        for (const graphNode of grantDoc['@graph']) {
+          const graphNodeId = graphNode?.['@id'];
+          if (graphNodeId === grantDoc['@id']) continue;
+          if (typeof graphNodeId !== 'string' || !graphNodeId.startsWith('expert/')) continue;
+          graphNode['is-visible'] = expertVisibility.get(graphNodeId) === true;
+        }
+
+        // keep any related expert docs in sync for this grant role visibility
+        const relatedExpertIds = new Set();
+        for (const rel of rootNode.relatedBy) {
+          const expertIds = new Set(getRelatesExpertIds(rel));
+          if (typeof rel?.inheres_in === 'string' && rel.inheres_in.startsWith('expert/')) {
+            expertIds.add(rel.inheres_in);
+          }
+
+          for (const relExpertId of expertIds) {
+            if (relExpertId !== expertId) {
+              relatedExpertIds.add(relExpertId);
+            }
+          }
+        }
+
+        const expertIndex = index.includes(config.elasticsearch.aliases.stage)
+          ? 'experts-' + config.elasticsearch.aliases.stage
+          : 'experts-' + config.elasticsearch.aliases.current;
+
+        for (const relatedExpertId of relatedExpertIds) {
+          let relatedExpertResp;
+          try {
+            relatedExpertResp = await this.expertModel.client.get({
+              index: expertIndex,
+              id: relatedExpertId,
+              _source: true
+            });
+          } catch (e) {
+            logger.info({grantId, index: expertIndex, relatedExpertId, error: e.message}, 'expert.patchGrantDocument related expert not found');
+            continue;
+          }
+
+          const relatedExpertDoc = relatedExpertResp?._source;
+          if (!relatedExpertDoc || !Array.isArray(relatedExpertDoc['@graph'])) continue;
+
+          const relatedGrantNode = relatedExpertDoc['@graph'].find(n => n && n['@id'] === grantDoc['@id']);
+          if (!relatedGrantNode) continue;
+
+          if (!Array.isArray(relatedGrantNode.relatedBy)) {
+            relatedGrantNode.relatedBy = relatedGrantNode.relatedBy ? [relatedGrantNode.relatedBy] : [];
+          }
+
+          // Keep embedded grant nodes actor-scoped in expert docs to avoid cross-expert leakage in search.
+          const actorRoleIndex = relatedGrantNode.relatedBy.findIndex(rel => {
+            const roleExpertIds = new Set(getRelatesExpertIds(rel));
+            if (typeof rel?.inheres_in === 'string' && rel.inheres_in.startsWith('expert/')) {
+              roleExpertIds.add(rel.inheres_in);
+            }
+            return roleExpertIds.has(relatedExpertId);
+          });
+
+          if (actorRoleIndex === -1) continue;
+
+          const actorRole = relatedGrantNode.relatedBy[actorRoleIndex];
+          relatedGrantNode.relatedBy = [actorRole];
+          relatedGrantNode['is-visible'] = actorRole?.['is-visible'] === true;
+
+          await this.expertModel.client.index({
+            index: expertIndex,
+            id: relatedExpertDoc['@id'],
+            document: relatedExpertDoc,
+            if_seq_no: relatedExpertResp._seq_no,
+            if_primary_term: relatedExpertResp._primary_term,
+            refresh: 'wait_for'
+          });
+        }
       }
 
       grantDoc['is-visible'] = rootNode.relatedBy.some(rel => rel?.['is-visible'] === true);
@@ -949,6 +1052,8 @@ class GrantRole {
 
     if (patch.visible != null) {
       node['relatedBy'][roleIndex]['is-visible'] = patch.visible;
+      node.relatedBy = [node.relatedBy[roleIndex]];
+      node['is-visible'] = patch.visible === true;
     }
     // if (patch.favourite != null) {
     //   node['relatedBy'][roleIndex]['ucdlib:favourite'] = patch.favourite;
@@ -958,9 +1063,7 @@ class GrantRole {
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.stage);  
     await this.expertModel.update_graph_node(expertId, node, 'experts-'+config.elasticsearch.aliases.current);   
     
-    // also update grants
-    await this.expertModel.update_graph_node(node['@id'], node, 'grants-'+config.elasticsearch.aliases.stage);
-    await this.expertModel.update_graph_node(node['@id'], node, 'grants-'+config.elasticsearch.aliases.current);
+    await this.patchGrantDocument(node['@id'], patch, id, expertId);
 
     if (config.experts.cdl.grant_role.propagate) {
       const cdl_user = await this.expertModel._impersonate_cdl_user(expert,config.experts.cdl.grant_role);
