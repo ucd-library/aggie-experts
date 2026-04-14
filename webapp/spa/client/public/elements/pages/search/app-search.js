@@ -1102,6 +1102,29 @@ export default class AppSearch extends Mixin(LitElement)
         const seenPisCoPis = new Set();
         const seenOtherContributors = new Set();
 
+        // normalize to "last, first"
+        const getNormalizedContributor = (rawName) => {
+          if( !rawName || typeof rawName !== 'string' ) return '';
+
+          let cleaned = rawName
+            .replace(/\s*CoPI:\s*/gi, '')
+            .replace(/\s*PI:\s*/gi, '')
+            .trim();
+          if( !cleaned ) return '';
+
+          const parts = cleaned.split(',');
+          if( parts.length < 2 ) {
+            // fallback for names without comma format.
+            return cleaned.toLowerCase().replace(/\s+/g, ' ');
+          }
+
+          const last = (parts.shift() || '').trim().toLowerCase();
+          const givenAndMiddle = parts.join(',').trim();
+          const first = (givenAndMiddle.split(/\s+/)[0] || '').trim().toLowerCase();
+
+          return `${last}, ${first}`;
+        };
+
         contributors.forEach(c => {
           let role = utils.getGrantRole(c)?.role || '';
           let name = c.name || '';
@@ -1109,7 +1132,7 @@ export default class AppSearch extends Mixin(LitElement)
           name = name.replace(/\s*CoPI:\s*/gi, '');
           name = name.replace(/\s*PI:\s*/gi, '');
           name = name.trim();
-          const normalizedName = name.toLowerCase();
+          const normalizedName = getNormalizedContributor(name);
           if( !normalizedName ) return;
 
           if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
