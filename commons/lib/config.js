@@ -191,7 +191,10 @@ const config = {
     aliases : {
       current : 'public',
       stage : 'latest'
-    }
+    },
+    // 'template' uses the stored Mustache script via searchTemplate API
+    // 'imperative' uses the programmatic buildQuery in complete-imperative.js
+    searchImplementation : env.ES_SEARCH_IMPLEMENTATION || 'template'
   },
 
   postgres : {
@@ -332,6 +335,7 @@ const config = {
 
   llm : {
     host : env.LLM_HOST || 'https://samwise.library.ucdavis.edu/ollama',
+    // host : env.LLM_HOST || 'http://cyberdyne02.library.ucdavis.edu:11434',
     apiKey : env.LLM_API_KEY || null,
     model : env.LLM_MODEL || 'llama3.1:latest',
     embedModel : env.LLM_EMBED_MODEL || 'qwen3-embedding:latest',

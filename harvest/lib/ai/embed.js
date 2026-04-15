@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { logger, config, getYearWeek } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
+import { log } from 'console';
 
 // Work JSON-LD predicates (citationstyles / schema.library.ucdavis.edu ae-std format)
 const WORK_TYPE   = 'http://schema.library.ucdavis.edu/schema#Work';
@@ -332,7 +333,9 @@ async function embedWork(ark, opts={}) {
   const graph = Array.isArray(parsed) ? parsed : (parsed['@graph'] || [parsed]);
 
   const embedText = buildWorkEmbedText(graph);
+  let t = Date.now();
   const result = await embedDocument(ark, embedText, opts);
+  logger.info(`Embedding generation took ${(Date.now() - t) / 1000}s for ark=${ark}`);
   return { ...result, yearWeek };
 }
 

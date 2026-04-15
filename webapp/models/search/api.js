@@ -143,9 +143,13 @@ router.get(
     // Remove duplicates
     params.index = [...new Set(params.index)];
 
-    let searchTemplate = Elasticsearch.searchTemplates['complete'];
+    const templateKey = config.elasticsearch.searchImplementation === 'imperative'
+      ? 'complete-imperative'
+      : 'complete';
+    let searchTemplate = Elasticsearch.searchTemplates[templateKey];
     let opts = {
       id: searchTemplate.id,
+      buildQuery: searchTemplate.buildQuery,
       params,
       knn
     };

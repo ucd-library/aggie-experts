@@ -533,8 +533,17 @@ class BaseModel extends EsDataModel {
 
   /**
    * @method search
-   * @description ES search using a template
-   * @returns {Object} ES results
+   * @description ES search using either a stored Mustache template or an
+   * imperative buildQuery function. When opts.buildQuery is provided the query
+   * body is built locally and sent via client.search(); otherwise the stored
+   * Mustache template is invoked via client.searchTemplate().
+   * @param {Object} opts search options
+   * @param {String} opts.id template id used when opts.buildQuery is absent
+   * @param {Function} [opts.buildQuery] imperative query builder; when present
+   *   overrides the template-based path
+   * @param {Object} opts.params search parameters passed to template or buildQuery
+   * @param {Object} [opts.knn] optional KNN block injected into the final body
+   * @returns {Object} compact search results
    */
   async search(opts) {
     const params = this.common_parms(opts.params);
@@ -552,12 +561,23 @@ class BaseModel extends EsDataModel {
     }
 
     try {
-      console.log(`search: knn=${!!opts.knn} size=${params.size} index=${options.index}`);
+      console.log(`search: imperative=${!!opts.buildQuery} knn=${!!opts.knn} size=${params.size} index=${options.index}`);
+
+      // Imperative mode: build the query body locally then run client.search()
+      if (opts.buildQuery) {
+        const body = opts.buildQuery(options.params);
+        if (opts.knn) body.knn = opts.knn;
+        const res = await this.client.search({ index: options.index, body });
+        const resBody = res?.body ?? res;
+        console.log(`imperative search result: total=${resBody?.hits?.total?.value}`);
+        return this.compact_search_results(resBody, params);
+      }
 
       // When a knn block is provided, render the template first then inject knn
       // alongside the query before executing — this avoids passing the embedding
       // vector through Mustache which has a 1MB script result size limit.
       if (opts.knn) {
+        console.log(options.params);
         const rendered = await this.client.renderSearchTemplate({
           id: options.id,
           params: options.params
@@ -566,26 +586,10 @@ class BaseModel extends EsDataModel {
         const raw = rendered?.body ?? rendered;
         const body = raw?.template_output ?? raw;
         body.knn = opts.knn;
-        // // min_score is calibrated for BM25-only scoring; drop it in hybrid mode since
-        // // knn.similarity already gates quality on the vector side.
-        // delete body.min_score;
-        // // post_filter is incompatible with knn and silently returns 0 hits.
-        // // Inline its must clauses directly into the existing query filter so the
-        // // query structure (and nested function_score scoring) is not disturbed.
-        // if (body.post_filter) {
-        //   const pfMust = body.post_filter?.bool?.must;
-        //   if (pfMust && body.query?.bool?.filter?.bool?.must) {
-        //     body.query.bool.filter.bool.must.push(...pfMust);
-        //   }
-        //   delete body.post_filter;
-        // }
         console.log(opts.knn);
         const res = await this.client.search({ index: options.index, body });
         const resBody = res?.body ?? res;
-
-        // delete body.knn.query_vector; // remove vector from logs
         console.log(resBody);
-
         return this.compact_search_results(resBody, params);
       }
 

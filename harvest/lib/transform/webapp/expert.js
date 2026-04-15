@@ -2,6 +2,7 @@ import cache from '../../cache.js';
 import { logger, config } from '@ucd-lib/experts-commons';
 import { Graph } from './graph.js';
 import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.js';
+import { addSearchFieldsToGraph } from './search-fields.js';
 import {asArray, getNodeByType, SHORT_TYPES} from '../utils.js';
 import { generateBaseScholarlyWork } from './scholary-work.js';
 import { computeExpertCentroid } from '../../ai/embed.js';
@@ -123,6 +124,9 @@ async function generateExpert(username, opts={}) {
   // This must happen after graph assembly since generateBaseScholarlyWork does
   // not call flattenScholarlyWorksRelatedBy on individual extracted nodes.
   flattenScholarlyWorksRelatedBy(graph);
+
+  // Add denormalized combined search fields used by the imperative search implementation
+  addSearchFieldsToGraph(graph);
 
   // Compute centroid embedding across all works/grants now that their embeddings are cached.
   // NOTE: computeExpertCentroid reads cached embeddings from cask — it does not call the LLM.

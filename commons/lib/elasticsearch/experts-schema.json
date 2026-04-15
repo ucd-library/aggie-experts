@@ -440,6 +440,22 @@
                 "normalizer": "identifier"
               }
             }
+          },
+          "search_name": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "search_title": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "search_identifiers": {
+            "type": "text",
+            "analyzer": "default"
+          },
+          "search_description": {
+            "type": "text",
+            "analyzer": "default"
           }
         }
       },

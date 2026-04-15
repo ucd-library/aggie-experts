@@ -1,6 +1,7 @@
 import cache from '../../cache.js';
 import { logger, config, getYearWeek } from '@ucd-lib/experts-commons';
 import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.js';
+import { addSearchFieldsToGraph } from './search-fields.js';
 import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js';
 import { getRelates } from './relates.js';
 import { Graph } from './graph.js';
@@ -104,6 +105,9 @@ async function generateScholarlyWork(subject, opts={}) {
 
   // Flatten all relatedBy.relates to arrays of strings to match ES schema
   flattenScholarlyWorksRelatedBy(graph);
+
+  // Add denormalized combined search fields used by the imperative search implementation
+  addSearchFieldsToGraph(graph);
 
   // Attach normalized embedding vector for KNN search
   try {
