@@ -5,6 +5,25 @@ import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.j
 import {asArray, getNodeByType, SHORT_TYPES} from '../utils.js';
 import { generateBaseScholarlyWork } from './scholary-work.js';
 
+function annotateWorkValidationFlags(node) {
+  if (!node || !node['@type']) return node;
+  const types = asArray(node['@type']);
+  const isWork = types.some(t =>
+    t.includes('Work') ||
+    t.includes('ScholarlyArticle') ||
+    t.includes('Article') ||
+    t.includes('Publication')
+  );
+  if (!isWork) return node;
+
+  node['invalid-title'] = Array.isArray(node.title)
+    ? node.title.length > 1
+    : typeof node.title !== 'string';
+  node['invalid-issued'] = typeof node.issued !== 'string';
+
+  return node;
+}
+
 /**
  * @method generateBaseExpert
  * @description Generates the based compacted expert data for the webapp transformation.
@@ -112,6 +131,7 @@ async function generateExpert(username, opts={}) {
 
   for( let workUri of workUris ) {
     let workNode = await generateBaseScholarlyWork(workUri, {date: opts.date});
+    annotateWorkValidationFlags(workNode);
     graph.addNode(workNode);
   }
   

@@ -147,6 +147,23 @@
                         "minimum_should_match": 1
                       }
                     }
+                    ,{
+                      "bool": {
+                        "should": [
+                          { "bool": { "must_not": [ { "term": { "@graph.@type": "Work" } } ] } },
+                          {
+                            "bool": {
+                              "must": [ { "term": { "@graph.@type": "Work" } } ],
+                              "must_not": [
+                                { "term": { "@graph.invalid-title": true } },
+                                { "term": { "@graph.invalid-issued": true } }
+                              ]
+                            }
+                          }
+                        ],
+                        "minimum_should_match": 1
+                      }
+                    }
                     {{#hasDate}}
                     ,{
                       "bool": {
