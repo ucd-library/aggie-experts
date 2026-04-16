@@ -6,6 +6,7 @@ import { addSearchFieldsToGraph } from './search-fields.js';
 import {asArray, getNodeByType, SHORT_TYPES} from '../utils.js';
 import { generateBaseScholarlyWork } from './scholary-work.js';
 import { computeExpertCentroid, postProcessVector } from '../../ai/embed.js';
+import { buildExpertSearchDoc } from './search-doc.js';
 
 /**
  * @method generateBaseExpert
@@ -165,6 +166,17 @@ async function generateExpert(username, opts={}) {
       'webapp/expert.jsonld',
       json
     );
+
+    // Write flat search doc for the ae-search index
+    try {
+      const searchDoc = buildExpertSearchDoc(graph, expertNode);
+      const searchJson = searchDoc.embedding
+        ? JSON.stringify({ ...searchDoc, embedding: JSON.stringify(searchDoc.embedding) }, null, 2)
+        : JSON.stringify(searchDoc, null, 2);
+      await cache.writeUserAsset(username, 'webapp/expert.search.jsonld', searchJson);
+    } catch(searchDocErr) {
+      logger.warn(`Could not write expert search doc for ${username}: ${searchDocErr.message}`);
+    }
   }
 
 

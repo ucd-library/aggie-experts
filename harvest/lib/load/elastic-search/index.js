@@ -43,6 +43,7 @@ async function loadFiles(files, alias) {
     if( file.type === 'expert' ) index = config.elasticsearch.indexes.experts;
     else if( file.type === 'work' ) index = config.elasticsearch.indexes.works;
     else if( file.type === 'grant' ) index = config.elasticsearch.indexes.grants;
+    else if( file.type === 'search' ) index = config.elasticsearch.indexes.search;
 
     if( !index ) {
       logger.info(`Skipping index file: ${file.path} with unknown type: ${file.type}`);

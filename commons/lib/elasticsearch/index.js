@@ -156,11 +156,13 @@ class ElasticsearchWrapper {
 
   /**
    * @function createIndex
-   * @description Create an Elasticsearch index with the appropriate schema
-   * 
-   * @param {String} baseName base name of the index (e.g., 'experts', 'works') 
-   * @param {Date|String} date Date object or string in the format "weekNumber-year" (e.g., "37-2023") to suffix the index name 
-   * 
+   * @description Create an Elasticsearch index with the appropriate schema.
+   * The schema file is selected based on the baseName: the ae-search index uses
+   * ae-search-schema.json while all other indexes use experts-schema.json.
+   *
+   * @param {String} baseName config key for the index (e.g., 'experts', 'works', 'search')
+   * @param {Date|String} date Date object or string in the format "year-week" (e.g., "2026-15") to suffix the index name
+   *
    * @returns {Promise}
    */
   async createIndex(baseName, date) {
@@ -169,13 +171,18 @@ class ElasticsearchWrapper {
       throw new Error(`Unknown base index name: ${baseName}. Known indexes: ${indexNames.join(', ')}`);
     }
 
-    const indexName = this.getIndexNameForDate(baseName, date);
+    // Use the config value (e.g. 'ae-search') not the config key (e.g. 'search') as the index prefix
+    const indexBase = config.elasticsearch.indexes[baseName];
+    const indexName = this.getIndexNameForDate(indexBase, date);
     logger.info(`Initializing Elasticsearch schema for index: ${indexName}`);
 
     await this.initClient();
+
+    // Pick schema file based on which index we are creating
+    const schemaFile = baseName === 'search' ? 'ae-search-schema.json' : 'experts-schema.json';
     // Substitute __EMBED_DIMENSION__ so the dense_vector dims value matches the
     // configured embedding model output size (env: LLM_EMBED_DIMENSION, default 1024)
-    let schemaText = await fs.readFile(path.join(__dirname, 'experts-schema.json'), 'utf8');
+    let schemaText = await fs.readFile(path.join(__dirname, schemaFile), 'utf8');
     schemaText = schemaText.replace(/__EMBED_DIMENSION__/g, String(config.llm.embedDimension));
     const schema = JSON.parse(schemaText);
 

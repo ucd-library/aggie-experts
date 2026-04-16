@@ -185,7 +185,8 @@ const config = {
     indexes : {
       experts : env.ES_INDEX_EXPERTS || 'experts',
       works : env.ES_INDEX_WORKS || 'works',
-      grants : env.ES_INDEX_GRANTS || 'grants'
+      grants : env.ES_INDEX_GRANTS || 'grants',
+      search : env.ES_INDEX_SEARCH || 'search'
     },
     // make sure updates here match dagsters lib/configs.py:LoadUserConfig & SetAliasConfig
     aliases : {

@@ -3,20 +3,251 @@ const BaseModel = require('../base/model.js');
 const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const WorkModel = require('../work/model.js');
-// const utils = require('../utils.js')
 const {Elasticsearch, Ollama, config} = require('@ucd-lib/experts-commons');
+
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
 const works = new WorkModel();
 
-// const {config} = require('@ucd-lib/fin-service-utils');
+const { openapi, public_or_is_user, valid_path, valid_path_error } = require('../middleware/index.js');
 
-const { openapi, public_or_is_user, valid_path, valid_path_error } = require('../middleware/index.js')
+/**
+ * @function buildBm25Query
+ * @description Build the BM25 multi-match clause for the flat ae-search index.
+ * @param {string} q user query string
+ * @returns {Object} Elasticsearch query clause
+ */
+function buildBm25Query(q) {
+  return {
+    multi_match: {
+      query: q,
+      fields: [
+        'name^20', 'search_name^20',
+        'title^10', 'search_title^10', 'search_identifiers^10',
+        'abstract^5', 'overview^5', 'search_description^5'
+      ],
+      type: 'best_fields'
+    }
+  };
+}
 
-// This will serve the generated json document(s)
-// (as well as the swagger-ui if configured)
-// router.use(openapi);
+/**
+ * @function buildAeSearchAggs
+ * @description Build the aggregation block for the ae-search index query.
+ * Produces type counts, year histograms for works and grants, and facet counts.
+ * @returns {Object} Elasticsearch aggs object
+ */
+function buildAeSearchAggs() {
+  return {
+    type_counts: {
+      terms: { field: '@type', size: 10 }
+    },
+    works_years: {
+      filter: { term: { '@type': 'work' } },
+      aggs: {
+        years: {
+          date_histogram: {
+            field: 'issued',
+            calendar_interval: 'year',
+            format: 'epoch_millis',
+            min_doc_count: 1
+          }
+        }
+      }
+    },
+    grants_years: {
+      filter: { term: { '@type': 'grant' } },
+      aggs: {
+        years: {
+          date_histogram: {
+            field: 'dateTimeInterval.start.dateTime',
+            calendar_interval: 'year',
+            format: 'epoch_millis',
+            min_doc_count: 1
+          }
+        }
+      }
+    },
+    availability_counts: {
+      filter: { term: { '@type': 'expert' } },
+      aggs: {
+        counts: { terms: { field: 'hasAvailability.prefLabel', size: 20 } }
+      }
+    },
+    status_counts: {
+      filter: { terms: { '@type': ['work', 'grant'] } },
+      aggs: {
+        counts: { terms: { field: 'status', size: 20 } }
+      }
+    },
+    work_type_counts: {
+      filter: { term: { '@type': 'work' } },
+      aggs: {
+        counts: { terms: { field: 'type', size: 20 } }
+      }
+    }
+  };
+}
+
+/**
+ * @function buildDatePostFilter
+ * @description Build a date-range post_filter clause that applies to works (issued)
+ * and grants (dateTimeInterval) independently within a single should.
+ * @param {string} [dateFrom] ISO date string for range start
+ * @param {string} [dateTo] ISO date string for range end
+ * @returns {Object} Elasticsearch bool clause
+ */
+function buildDatePostFilter(dateFrom, dateTo) {
+  const dateRange = {};
+  if (dateFrom) dateRange.gte = dateFrom;
+  if (dateTo) dateRange.lte = dateTo;
+
+  return {
+    bool: {
+      should: [
+        {
+          bool: {
+            must: [
+              { term: { '@type': 'work' } },
+              { range: { issued: dateRange } }
+            ]
+          }
+        },
+        {
+          bool: {
+            must: [
+              { term: { '@type': 'grant' } },
+              {
+                bool: {
+                  should: [
+                    { range: { 'dateTimeInterval.start.dateTime': dateRange } },
+                    { range: { 'dateTimeInterval.end.dateTime': dateRange } }
+                  ],
+                  minimum_should_match: 1
+                }
+              }
+            ]
+          }
+        },
+        // Experts are not date-filtered — keep them visible regardless
+        { term: { '@type': 'expert' } }
+      ],
+      minimum_should_match: 1
+    }
+  };
+}
+
+/**
+ * @function buildAeSearchBody
+ * @description Build the full Elasticsearch request body for the ae-search index.
+ * Includes BM25 query, optional KNN, post_filter for type/status/date facets,
+ * and aggregations. Only @id and @type are returned in _source since full documents
+ * are retrieved via mget from the dedicated indices.
+ *
+ * @param {Object} params parsed search parameters
+ * @param {Array|Object|null} knn KNN clause(s) or null
+ * @param {boolean} [globalMode=false] when true, omit post_filter so aggs see all types
+ * @returns {Object} Elasticsearch request body
+ */
+function buildAeSearchBody(params, knn, globalMode = false) {
+  const size = globalMode ? 0 : (parseInt(params.size) || 10);
+  const page = globalMode ? 1 : (parseInt(params.page) || 1);
+
+  const body = {
+    size,
+    from: (page - 1) * size,
+    _source: ['@id', '@type'],
+    track_total_hits: true,
+    query: {
+      bool: {
+        must: [buildBm25Query(params.q)],
+        filter: [{ term: { 'is-visible': true } }]
+      },
+    },
+    min_score : 100.0,
+    aggs: buildAeSearchAggs()
+  };
+
+  if (knn) body.knn = knn;
+
+  if (!globalMode) {
+    const postMust = [];
+    if (params['@type']?.length) postMust.push({ terms: { '@type': params['@type'] } });
+    if (params.status?.length) postMust.push({ terms: { status: params.status } });
+    if (params.type?.length) postMust.push({ terms: { type: params.type } });
+    if (params.dateFrom || params.dateTo) {
+      postMust.push(buildDatePostFilter(params.dateFrom, params.dateTo));
+    }
+    if (postMust.length) body.post_filter = { bool: { must: postMust } };
+  }
+
+  return body;
+}
+
+/**
+ * @function processAeSearchAggs
+ * @description Convert ae-search aggregation results to the format the webapp frontend expects.
+ * Produces issued_years_combined, issued_years_works, issued_years_grants, grants_total,
+ * and a facets object with @type, status, type, and hasAvailability counts.
+ *
+ * @param {Object} aggs raw Elasticsearch aggregations object
+ * @returns {Object} processed aggregations
+ */
+function processAeSearchAggs(aggs) {
+  if (!aggs) return {};
+
+  const result = {};
+
+  // Year histograms
+  const worksBuckets = aggs.works_years?.years?.buckets ?? [];
+  const grantsBuckets = aggs.grants_years?.years?.buckets ?? [];
+
+  const combined = {};
+  const worksYears = {};
+  const grantsYears = {};
+
+  for (const b of worksBuckets) {
+    const key = String(b.key);
+    const count = b.doc_count || 0;
+    combined[key] = (combined[key] || 0) + count;
+    worksYears[key] = count;
+  }
+  for (const b of grantsBuckets) {
+    const key = String(b.key);
+    const count = b.doc_count || 0;
+    combined[key] = (combined[key] || 0) + count;
+    grantsYears[key] = count;
+  }
+
+  result.issued_years_combined = combined;
+  result.issued_years_works = worksYears;
+  result.issued_years_grants = grantsYears;
+  result.grants_total = grantsBuckets.reduce((sum, b) => sum + (b.doc_count || 0), 0);
+
+  // Facets
+  const facets = {};
+
+  if (aggs.type_counts?.buckets) {
+    facets['@type'] = {};
+    for (const b of aggs.type_counts.buckets) facets['@type'][b.key] = b.doc_count;
+  }
+  if (aggs.status_counts?.counts?.buckets) {
+    facets.status = {};
+    for (const b of aggs.status_counts.counts.buckets) facets.status[b.key] = b.doc_count;
+  }
+  if (aggs.work_type_counts?.counts?.buckets) {
+    facets.type = {};
+    for (const b of aggs.work_type_counts.counts.buckets) facets.type[b.key] = b.doc_count;
+  }
+  if (aggs.availability_counts?.counts?.buckets) {
+    facets.hasAvailability = {};
+    for (const b of aggs.availability_counts.counts.buckets) facets.hasAvailability[b.key] = b.doc_count;
+  }
+
+  result.facets = facets;
+  return result;
+}
 
 router.get(
   '/',
@@ -38,34 +269,25 @@ router.get(
       "@type" : ['expert', 'grant', 'work'],
       "q" : "",
       "size" : 10,
-      "page" : 1,
-      index : []
+      "page" : 1
     };
 
-    ["p","inner_hits_size","size","page","q"].forEach((key) => {
-      if (req.query[key]) { params[key] = req.query[key]; }
+    ["inner_hits_size", "size", "page", "q"].forEach(key => {
+      if (req.query[key]) params[key] = req.query[key];
     });
 
-    // if the user is not logged in, we need to set the default
+    if (req.query.debug_scores === 'true') params.debug_scores = true;
+
     if (params.size > 100) {
-      res.status(400).json({ error: 'Size exceeds limit' });
+      return res.status(400).json({ error: 'Size exceeds limit' });
     }
 
-    if (req?.query.availability) {
-      params.availability = req.query.availability.split(',');
-    }
-    if (req?.query.expert) {
-      params.expert = req.query.expert.split(',');
-    }
-    if (req?.query.status) {
-      params.status = req.query.status.split(',');
-    }
-    if (req?.query["@type"]) {
-      params["@type"] = req.query["@type"].split(',');
-    }
-    if (req?.query.type) {
-      params.type = req.query.type.split(',');
-    }
+    if (req?.query.availability) params.availability = req.query.availability.split(',');
+    if (req?.query.expert) params.expert = req.query.expert.split(',');
+    if (req?.query.status) params.status = req.query.status.split(',');
+    if (req?.query["@type"]) params["@type"] = req.query["@type"].split(',');
+    if (req?.query.type) params.type = req.query.type.split(',');
+
     if (req?.query.dateFrom) {
       if (/^\d{4}$/.test(req.query.dateFrom)) {
         params.dateFrom = `${req.query.dateFrom}-01-01`;
@@ -80,15 +302,27 @@ router.get(
         return res.status(400).json({ error: 'Invalid dateTo year format. Must be a 4-digit year.' });
       }
     }
-    params.hasDate = !!(params.dateFrom || params.dateTo);
-    if ( ! params.q ) {
-      res.status(400).json({ error: 'Missing required query parameter "q"' });
+
+    if (!params.q) {
+      return res.status(400).json({ error: 'Missing required query parameter "q"' });
     }
 
-    // Generate embedding for KNN hybrid search. Non-fatal: if Ollama is unavailable
-    // the search falls back to BM25 only. The vector is passed as opts.knn directly
-    // to BaseModel.search (not through the Mustache template) to avoid the 1MB
-    // Mustache script result size limit.
+    // Validate @type values
+    const validTypes = { expert: true, work: true, grant: true };
+    for (const t of params['@type']) {
+      if (!validTypes[t]) return res.status(400).json({ error: 'Invalid type' });
+    }
+
+    // Index alias to use (preview overrides for testing)
+    const aliasName = config.elasticsearch.aliases.current;
+    const searchIndex = `${config.elasticsearch.indexes.search}-${aliasName}`;
+    const typeToIndex = {
+      expert: req.query['previewEsIndexExperts'] || `${config.elasticsearch.indexes.experts}-${aliasName}`,
+      work:   req.query['previewEsIndexWorks']   || `${config.elasticsearch.indexes.works}-${aliasName}`,
+      grant:  req.query['previewEsIndexGrants']  || `${config.elasticsearch.indexes.grants}-${aliasName}`
+    };
+
+    // Build KNN clauses for ae-search (expert centroid boosted higher than works/grants)
     let knn = null;
     try {
       const ollama = new Ollama();
@@ -100,67 +334,31 @@ router.get(
       const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
       if (magnitude > 0) vector = vector.map(v => v / magnitude);
 
-      const requestedTypes = params['@type'] || ['expert', 'grant', 'work'];
-
-      // Base filter applied to every KNN clause (visibility + optional facet filters)
-      const baseFilterMust = [{ term: { 'is-visible': true } }];
-      if (params.status) baseFilterMust.push({ terms: { status: params.status } });
-      if (params.type)   baseFilterMust.push({ terms: { type: params.type } });
-
-      // Common KNN settings shared across clauses
+      const requestedTypes = params['@type'];
       const baseKnn = {
         field: 'embedding',
         query_vector: vector,
         k: 100,
         num_candidates: 200,
-        // Only apply KNN boost to results with at least this dot-product similarity
-        // (0.0–1.0 for L2-normalized vectors). Candidates below this threshold are
-        // excluded from KNN scoring entirely and fall back to BM25 alone.
-        similarity: 0.5,
+        similarity: 0.5
       };
 
-      // Build one KNN clause per type group with separate boost values so that
-      // expert documents are scored 10x higher than works/grants in vector search.
-      // ES 8.x accepts knn as an array of independent clauses.
       const knnClauses = [];
 
       if (requestedTypes.includes('expert')) {
-        // Root-level centroid KNN — scores expert documents by their aggregate research vector
         knnClauses.push({
           ...baseKnn,
           boost: 1000.0,
-          filter: { bool: { must: [...baseFilterMust, { term: { '@type': 'expert' } }] } }
-        });
-
-        // Nested KNN on individual work/grant embeddings stored in @graph nodes.
-        // Returns inner_hits (knn_graph_hits) so the webapp can report matched work/grant counts.
-        // Scored separately from the centroid so cross-disciplinary experts with a diffuse
-        // centroid can still surface when specific works match the query.
-        knnClauses.push({
-          field: '@graph.embedding',
-          query_vector: vector,
-          k: 100,
-          num_candidates: 200,
-          boost: 500.0,
-          similarity: 0.5,
-          filter: { bool: { must: [{ term: { 'is-visible': true } }, { term: { '@type': 'expert' } }] } },
-          inner_hits: {
-            name: 'knn_graph_hits',
-            size: 500,
-            _source: [
-              '@graph.@id', '@graph.@type', '@graph.name',
-              '@graph.volume', '@graph.issue', '@graph.relatedBy'
-            ]
-          }
+          filter: { bool: { must: [{ term: { 'is-visible': true } }, { term: { '@type': 'expert' } }] } }
         });
       }
 
       const otherTypes = requestedTypes.filter(t => t !== 'expert');
-      if (otherTypes.length > 0) {
+      if (otherTypes.length) {
         knnClauses.push({
           ...baseKnn,
           boost: 100.0,
-          filter: { bool: { must: [...baseFilterMust, { terms: { '@type': otherTypes } }] } }
+          filter: { bool: { must: [{ term: { 'is-visible': true } }, { terms: { '@type': otherTypes } }] } }
         });
       }
 
@@ -169,111 +367,155 @@ router.get(
       console.warn('Search embedding generation failed, falling back to BM25 only:', embedErr.message);
     }
 
-    let typeToIndex = {
-      expert: req.query['previewEsIndexExperts'] || experts.readIndexAlias,
-      grant: req.query['previewEsIndexGrants'] || grants.readIndexAlias,
-      work: req.query['previewEsIndexWorks'] || works.readIndexAlias,
-    };
-    // Validate @type values but always search all indices (post_filter will handle @type filtering)
-    if (params["@type"]) {
-      for (const t of params["@type"]) {
-        if (!typeToIndex[t]) {
-          return res.status(400).json({ error: 'Invalid type' });
-        }
-      }
-    }
-    // Always include all indices so aggregations see all document types
-    params.index.push(typeToIndex.expert);
-    params.index.push(typeToIndex.grant);
-    params.index.push(typeToIndex.work);
-    // Remove duplicates
-    params.index = [...new Set(params.index)];
-
-    const templateKey = config.elasticsearch.searchImplementation === 'imperative'
-      ? 'complete-imperative'
-      : 'complete';
-    let searchTemplate = Elasticsearch.searchTemplates[templateKey];
-    let opts = {
-      id: searchTemplate.id,
-      buildQuery: searchTemplate.buildQuery,
-      params,
-      knn
-    };
-
     try {
-      await experts.verify_template(searchTemplate);
-      const find = await base.search(opts);
+      const esClient = await Elasticsearch.initClient();
 
-      // Capture type/status filters before deletion
-      const filteredType = req?.query.type ? req.query.type.split(',') : null;
-      const filteredStatus = req?.query.status ? req.query.status.split(',') : null;
+      // Main search on ae-search index; BM25-only parallel query for score debugging
+      const searchBody = buildAeSearchBody(params, knn);
+      const globalBody = buildAeSearchBody(params, knn, true);
+      const bm25Body = params.debug_scores ? buildAeSearchBody(params, null) : null;
 
-      // Now remove type filters and date filters for global aggregations
-      delete params["@type"];
-      delete params.status;
-      delete params.type;
-      delete params.dateFrom;
-      delete params.dateTo;
-      delete params.hasDate;
+      const [searchResp, globalResp, bm25Resp] = await Promise.all([
+        esClient.search({ index: searchIndex, body: searchBody }),
+        esClient.search({ index: searchIndex, body: globalBody }),
+        bm25Body ? esClient.search({ index: searchIndex, body: bm25Body }) : Promise.resolve(null)
+      ]);
 
-      const global = await base.search(
-        { id: searchTemplate.id,
-          knn,
-          params: {
-            ...opts.params,
-            size: 0,
-            index: Object.values(typeToIndex)
-          }
-        });
-      find.global_aggregations = global.aggregations;
+      const searchResult = searchResp?.body ?? searchResp;
+      const searchHits = searchResult?.hits?.hits ?? [];
+      const total = searchResult?.hits?.total?.value ?? 0;
+      const globalResult = globalResp?.body ?? globalResp;
 
-      // If type or status filters were applied, get year-by-year breakdown for that subfilter
-      if (filteredType || filteredStatus) {
-        const filteredParams = { ...opts.params };
-        delete filteredParams.dateFrom;
-        delete filteredParams.dateTo;
-        delete filteredParams.hasDate;
-        if (filteredType) filteredParams.type = filteredType;
-        if (filteredStatus) filteredParams.status = filteredStatus;
+      // Capture combined (BM25+KNN) scores from search hits
+      const scoreMap = new Map();
+      for (const hit of searchHits) {
+        const id = hit._source?.['@id'];
+        if (id) scoreMap.set(id, { combined: hit._score });
+      }
 
-        const filtered = await base.search({
-          id: searchTemplate.id,
-          knn,
-          params: {
-            ...filteredParams,
-            size: 0,
-            index: [typeToIndex.expert,
-                    typeToIndex.grant,
-                    typeToIndex.work]
-          }
-        });
-
-        // Add filtered year aggregations with descriptive keys,
-        // zero-filling to the full global combined year range so min/max match full histogram
-        const globalCombined = global?.aggregations?.issued_years_combined || {};
-        const globalYearKeys = Object.keys(globalCombined);
-
-        const filteredCombined = filtered?.aggregations?.issued_years_combined || {};
-        const zeroFilled = (sourceMap) => {
-          if (!globalYearKeys.length) return sourceMap; // fallback if global is empty
-          const filled = {};
-          for (const y of globalYearKeys) {
-            const v = sourceMap?.[y];
-            filled[y] = (typeof v === 'number') ? v : 0;
-          }
-          return filled;
-        };
-
-        if (filteredType && filteredCombined) {
-          find.global_aggregations[`issued_years_type_${filteredType.join('_')}`] = zeroFilled(filteredCombined);
-        }
-        if (filteredStatus && filteredCombined) {
-          find.global_aggregations[`issued_years_status_${filteredStatus.join('_')}`] = zeroFilled(filteredCombined);
+      // Capture BM25-only scores if debug mode is on
+      if (bm25Resp) {
+        const bm25Result = bm25Resp?.body ?? bm25Resp;
+        for (const hit of (bm25Result?.hits?.hits ?? [])) {
+          const id = hit._source?.['@id'];
+          if (!id) continue;
+          const entry = scoreMap.get(id) || {};
+          entry.bm25 = hit._score;
+          scoreMap.set(id, entry);
         }
       }
 
-      res.send(find);
-    } catch (err) {
+      // Group hits by type for mget routing, preserving rank order
+      const hitOrder = [];
+      const byType = { expert: [], work: [], grant: [] };
+      for (const hit of searchHits) {
+        const id = hit._source?.['@id'];
+        const type = hit._source?.['@type'];
+        if (id && byType[type]) {
+          byType[type].push(id);
+          hitOrder.push({ id, type });
+        }
+      }
+
+      // mget full documents from dedicated indices in parallel
+      const [expertDocs, workDocs, grantDocs] = await Promise.all([
+        base.mget({ index: typeToIndex.expert, ids: byType.expert }),
+        base.mget({ index: typeToIndex.work,   ids: byType.work }),
+        base.mget({ index: typeToIndex.grant,  ids: byType.grant })
+      ]);
+
+      // Build id -> doc map for rank-order reassembly
+      const docMap = new Map();
+      for (const doc of [...expertDocs, ...workDocs, ...grantDocs]) {
+        if (doc['@id']) docMap.set(doc['@id'], doc);
+      }
+
+      // Reassemble hits in original search rank order, stripping embedding vectors
+      const hits = [];
+      for (const { id } of hitOrder) {
+        const doc = docMap.get(id);
+        if (!doc) continue;
+        delete doc.embedding;
+        if( doc['@graph'] ) {
+          doc['@graph'].forEach(node => delete node.embedding);
+        }
+        hits.push(doc);
+      }
+
+      // Work/grant match counts per expert (single aggregation query, BM25 only)
+      const expertIds = byType.expert;
+      if (expertIds.length) {
+        const countResp = await esClient.search({
+          index: searchIndex,
+          body: {
+            size: 0,
+            query: {
+              bool: {
+                must: [buildBm25Query(params.q)],
+                filter: [
+                  { term: { 'is-visible': true } },
+                  { terms: { '@type': ['work', 'grant'] } },
+                  { terms: { expert_ids: expertIds } }
+                ]
+              }
+            },
+            aggs: {
+              work_counts: {
+                filter: { term: { '@type': 'work' } },
+                aggs: { by_expert: { terms: { field: 'expert_ids', size: 500 } } }
+              },
+              grant_counts: {
+                filter: { term: { '@type': 'grant' } },
+                aggs: { by_expert: { terms: { field: 'expert_ids', size: 500 } } }
+              }
+            }
+          }
+        });
+
+        const countBody = countResp?.body ?? countResp;
+        const countByExpert = {};
+
+        for (const b of countBody?.aggregations?.work_counts?.by_expert?.buckets ?? []) {
+          if (!countByExpert[b.key]) countByExpert[b.key] = {};
+          countByExpert[b.key].works = b.doc_count;
+        }
+        for (const b of countBody?.aggregations?.grant_counts?.by_expert?.buckets ?? []) {
+          if (!countByExpert[b.key]) countByExpert[b.key] = {};
+          countByExpert[b.key].grants = b.doc_count;
+        }
+
+        // Attach counts to expert documents in hits
+        for (const doc of hits) {
+          const counts = countByExpert[doc['@id']];
+          if (counts) {
+            doc._work_count = counts.works || 0;
+            doc._grant_count = counts.grants || 0;
+          }
+        }
+      }
+
+      const response = {
+        params,
+        total,
+        hits,
+        aggregations: processAeSearchAggs(searchResult?.aggregations),
+        global_aggregations: processAeSearchAggs(globalResult?.aggregations)
+      };
+
+      if (params.debug_scores) {
+        // scores keyed by @id: { combined: BM25+KNN score, bm25: BM25-only score, knn_contribution: diff }
+        const scores = {};
+        for (const [id, s] of scoreMap) {
+          const bm25 = s.bm25 ?? 0;
+          scores[id] = { combined: s.combined, bm25, knn_contribution: s.combined - bm25 };
+        }
+        response.scores = scores;
+      }
+
+      res.send(response);
+
+    } catch(err) {
+      console.error('ae-search error:', err?.meta?.body || err);
       res.status(400).send('Invalid request');
     }
   });

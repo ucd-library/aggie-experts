@@ -6,6 +6,7 @@ import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js'
 import { getRelates } from './relates.js';
 import { Graph } from './graph.js';
 import { embedWork, embedGrant } from '../../ai/embed.js';
+import { buildScholarlyWorkSearchDoc } from './search-doc.js';
 import path from 'path';
 
 const TYPES = [
@@ -126,6 +127,18 @@ async function generateScholarlyWork(subject, opts={}) {
       stringifyWithCompactEmbedding(graph)
     );
     caskPath = caskPath.assetPath;
+
+    // Write flat search doc for the ae-search index
+    try {
+      const searchDoc = buildScholarlyWorkSearchDoc(graph, baseWork, swType);
+      await cache.writeScholarlyAsset(
+        swType,
+        path.join(config.cache.aeWebappDir, subject+'.search.json'),
+        stringifyWithCompactEmbedding(searchDoc)
+      );
+    } catch(searchDocErr) {
+      logger.warn(`Could not write ${swType} search doc for ${subject}: ${searchDocErr.message}`);
+    }
   }
 
   return { filepath: caskPath, json: graph };

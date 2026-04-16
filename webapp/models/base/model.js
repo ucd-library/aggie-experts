@@ -622,6 +622,25 @@ class BaseModel extends EsDataModel {
     }
   }
 
+  /**
+   * @method mget
+   * @description Fetch multiple documents by ID from a single index.
+   * Documents not found are silently omitted from the returned array.
+   * @param {Object} opts
+   * @param {string} opts.index Elasticsearch index name
+   * @param {Array<string>} opts.ids document IDs to fetch
+   * @returns {Promise<Array<Object>>} array of _source objects in the same order as ids, omitting misses
+   */
+  async mget(opts) {
+    const { index, ids } = opts;
+    if (!ids || !ids.length) return [];
+    const res = await this.client.mget({ index, body: { ids } });
+    const body = res?.body ?? res;
+    return (body?.docs ?? [])
+      .filter(d => d.found)
+      .map(d => d._source);
+  }
+
   async msearch(opts) {
     if( !opts.index ) {
       opts.index = this.readIndexAlias;

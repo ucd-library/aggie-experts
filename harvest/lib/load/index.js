@@ -271,26 +271,39 @@ async function purgeUser(expertId, alias='stage') {
 async function getPublicScholarlyWorkFiles(user) {
   const list = JSON.parse(await cache.readUserAsset(user, 'metadata.json'));
 
+  const publicWorks = list.works.filter(work => work.privacy.value === true);
+  const publicGrants = list.grants.filter(grant => grant.privacy.value === true);
+
   let results = [
     {
       type: 'expert',
       path: cache.getUserPath(user, ['webapp', 'expert.jsonld'])
     },
-    ...list.works.filter(work => work.privacy.value === true).map(work => {
-      return {
-        type: 'work',
-        uri: work.uri,
-        path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.json`)
-      }
-    }),
-    ...list.grants.filter(grant => grant.privacy.value === true).map(grant => {
-      return {
-        type: 'grant',
-        uri: grant.uri,
-        path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grant.uri}.json`)
-      }
-    })
-  ]
+    {
+      type: 'search',
+      path: cache.getUserPath(user, ['webapp', 'expert.search.jsonld'])
+    },
+    ...publicWorks.map(work => ({
+      type: 'work',
+      uri: work.uri,
+      path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.json`)
+    })),
+    ...publicWorks.map(work => ({
+      type: 'search',
+      uri: work.uri,
+      path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.search.json`)
+    })),
+    ...publicGrants.map(grant => ({
+      type: 'grant',
+      uri: grant.uri,
+      path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grant.uri}.json`)
+    })),
+    ...publicGrants.map(grant => ({
+      type: 'search',
+      uri: grant.uri,
+      path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grant.uri}.search.json`)
+    }))
+  ];
 
   return results;
 }
