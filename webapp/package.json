@@ -15,6 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",
+    "@js-temporal/polyfill": "^0.5.1",
     "@ucd-lib/cork-app-load": "^0.3.2",
     "@ucd-lib/experts-commons": "file:../commons",
     "@ucd-lib/spa-router-middleware": "^0.2.4",

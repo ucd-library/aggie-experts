@@ -5,7 +5,7 @@ import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.j
 import { addSearchFieldsToGraph } from './search-fields.js';
 import {asArray, getNodeByType, SHORT_TYPES} from '../utils.js';
 import { generateBaseScholarlyWork } from './scholary-work.js';
-import { computeExpertCentroid } from '../../ai/embed.js';
+import { computeExpertCentroid, postProcessVector } from '../../ai/embed.js';
 
 /**
  * @method generateBaseExpert
@@ -136,6 +136,24 @@ async function generateExpert(username, opts={}) {
     if (centroid) graph.embedding = centroid;
   } catch(embedErr) {
     logger.warn(`Could not compute centroid embedding for expert ${username}: ${embedErr.message}`);
+  }
+
+  // Attach individual embeddings to each work/grant @graph node so that nested KNN
+  // can match specific works/grants within an expert document and report counts.
+  // The cache stores the raw full-dimensional vector; we apply the same clip+normalize
+  // used for root-level embeddings before attaching to the nested node.
+  for (const workUri of workUris) {
+    const embedPath = `/embed/${workUri}/embed.json`;
+    try {
+      if (!await cache.exists(embedPath)) continue;
+      const data = JSON.parse(await cache.read(embedPath));
+      if (!data?.embedding?.length) continue;
+      const embedding = postProcessVector(data.embedding, { normalize: true, maxLength: config.llm.embedDimension });
+      const node = graph['@graph'].find(n => n['@id'] === workUri);
+      if (node) node.embedding = embedding;
+    } catch(embedErr) {
+      logger.warn(`Could not attach embedding for ${workUri} in expert ${username}: ${embedErr.message}`);
+    }
   }
 
   if( opts.write ) {

@@ -100,25 +100,71 @@ router.get(
       const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
       if (magnitude > 0) vector = vector.map(v => v / magnitude);
 
-      const filterMust = [
-        { term: { 'is-visible': true } },
-        { terms: { '@type': params['@type'] || ['expert', 'grant', 'work'] } }
-      ];
-      if (params.status) filterMust.push({ terms: { status: params.status } });
-      if (params.type)   filterMust.push({ terms: { type: params.type } });
+      const requestedTypes = params['@type'] || ['expert', 'grant', 'work'];
 
-      knn = {
+      // Base filter applied to every KNN clause (visibility + optional facet filters)
+      const baseFilterMust = [{ term: { 'is-visible': true } }];
+      if (params.status) baseFilterMust.push({ terms: { status: params.status } });
+      if (params.type)   baseFilterMust.push({ terms: { type: params.type } });
+
+      // Common KNN settings shared across clauses
+      const baseKnn = {
         field: 'embedding',
         query_vector: vector,
         k: 100,
         num_candidates: 200,
-        boost: 100.0,
         // Only apply KNN boost to results with at least this dot-product similarity
         // (0.0–1.0 for L2-normalized vectors). Candidates below this threshold are
         // excluded from KNN scoring entirely and fall back to BM25 alone.
         similarity: 0.5,
-        filter: { bool: { must: filterMust } }
       };
+
+      // Build one KNN clause per type group with separate boost values so that
+      // expert documents are scored 10x higher than works/grants in vector search.
+      // ES 8.x accepts knn as an array of independent clauses.
+      const knnClauses = [];
+
+      if (requestedTypes.includes('expert')) {
+        // Root-level centroid KNN — scores expert documents by their aggregate research vector
+        knnClauses.push({
+          ...baseKnn,
+          boost: 1000.0,
+          filter: { bool: { must: [...baseFilterMust, { term: { '@type': 'expert' } }] } }
+        });
+
+        // Nested KNN on individual work/grant embeddings stored in @graph nodes.
+        // Returns inner_hits (knn_graph_hits) so the webapp can report matched work/grant counts.
+        // Scored separately from the centroid so cross-disciplinary experts with a diffuse
+        // centroid can still surface when specific works match the query.
+        knnClauses.push({
+          field: '@graph.embedding',
+          query_vector: vector,
+          k: 100,
+          num_candidates: 200,
+          boost: 500.0,
+          similarity: 0.5,
+          filter: { bool: { must: [{ term: { 'is-visible': true } }, { term: { '@type': 'expert' } }] } },
+          inner_hits: {
+            name: 'knn_graph_hits',
+            size: 500,
+            _source: [
+              '@graph.@id', '@graph.@type', '@graph.name',
+              '@graph.volume', '@graph.issue', '@graph.relatedBy'
+            ]
+          }
+        });
+      }
+
+      const otherTypes = requestedTypes.filter(t => t !== 'expert');
+      if (otherTypes.length > 0) {
+        knnClauses.push({
+          ...baseKnn,
+          boost: 100.0,
+          filter: { bool: { must: [...baseFilterMust, { terms: { '@type': otherTypes } }] } }
+        });
+      }
+
+      knn = knnClauses.length === 1 ? knnClauses[0] : knnClauses;
     } catch(embedErr) {
       console.warn('Search embedding generation failed, falling back to BM25 only:', embedErr.message);
     }

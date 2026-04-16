@@ -456,6 +456,12 @@
           "search_description": {
             "type": "text",
             "analyzer": "default"
+          },
+          "embedding": {
+            "type": "dense_vector",
+            "dims": __EMBED_DIMENSION__,
+            "index": true,
+            "similarity": "dot_product"
           }
         }
       },

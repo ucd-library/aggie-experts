@@ -127,7 +127,7 @@ function buildNodeSearchFields(node) {
   return {
     search_name: join(name),
     search_title: join(title),
-    search_identifiers: join(identifiers),
+    search_identifiers: identifiers.length ? identifiers : undefined,
     search_description: join(description)
   };
 }

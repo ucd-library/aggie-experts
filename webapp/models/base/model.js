@@ -288,9 +288,26 @@ class BaseModel extends EsDataModel {
     const hits = [];
     for (const hit of results?.hits?.hits ?? []) {
       const source = hit._source || {};
-      const in_hits = hit?.inner_hits?.['@graph']?.hits?.hits;
-      if (Array.isArray(in_hits) && in_hits.length) {
-        source._inner_hits = in_hits.map(h => h._source);
+
+      // BM25 nested inner_hits (from the nested must/function_score query)
+      const bm25Hits = hit?.inner_hits?.['@graph']?.hits?.hits ?? [];
+      // KNN nested inner_hits (from the @graph.embedding knn clause)
+      const knnHits  = hit?.inner_hits?.['knn_graph_hits']?.hits?.hits ?? [];
+
+      // Merge both hit sets, deduplicating by @id. BM25 hits take precedence on conflict
+      // since they carry BM25 relevance scores in addition to vector scores.
+      const mergedMap = new Map();
+      for (const h of bm25Hits) {
+        const id = h._source?.['@id'];
+        if (id) mergedMap.set(id, h._source);
+      }
+      for (const h of knnHits) {
+        const id = h._source?.['@id'];
+        if (id && !mergedMap.has(id)) mergedMap.set(id, h._source);
+      }
+
+      if (mergedMap.size) {
+        source._inner_hits = Array.from(mergedMap.values());
 
         // keep relatedBy as a root-level property
         if( !source.relatedBy ) {
@@ -577,7 +594,6 @@ class BaseModel extends EsDataModel {
       // alongside the query before executing — this avoids passing the embedding
       // vector through Mustache which has a 1MB script result size limit.
       if (opts.knn) {
-        console.log(options.params);
         const rendered = await this.client.renderSearchTemplate({
           id: options.id,
           params: options.params
@@ -586,10 +602,10 @@ class BaseModel extends EsDataModel {
         const raw = rendered?.body ?? rendered;
         const body = raw?.template_output ?? raw;
         body.knn = opts.knn;
-        console.log(opts.knn);
+
         const res = await this.client.search({ index: options.index, body });
         const resBody = res?.body ?? res;
-        console.log(resBody);
+
         return this.compact_search_results(resBody, params);
       }
 
