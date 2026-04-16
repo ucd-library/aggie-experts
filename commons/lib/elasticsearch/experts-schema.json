@@ -213,6 +213,8 @@
       "modified-date": { "type": "date" },
       "@id": { "type": "keyword" },
       "is-visible": { "type": "boolean" },
+      "invalid-title": { "type": "boolean" },
+      "invalid-issued": { "type": "boolean" },
       "hasAvailability": {
         "properties": {
           "prefLabel": {
