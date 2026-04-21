@@ -232,9 +232,8 @@ function promoteAttributesToRoot(workNode, graph, type) {
 
   const invalidTitle = type === 'work' && (Array.isArray(workNode.title) ? workNode.title.length > 1 : typeof workNode.title !== 'string');
   const invalidIssued = type === 'work' && typeof workNode.issued !== 'string';
-  const hasValidTitle = !invalidTitle;
-  if (invalidTitle) {
-    logger.warn(`promoteAttributesToRoot: work ${workNode['@id']} has invalid title (${JSON.stringify(workNode.title)}) — marking is-visible=false`);
+  if( invalidTitle || invalidIssued ) {
+    logger.warn(`promoteAttributesToRoot: work ${workNode['@id']} has invalid title or issued date (${JSON.stringify(workNode.title)}, ${JSON.stringify(workNode.issued)}) — marking is-visible=false`);
   }
 
   workNode['invalid-title'] = invalidTitle;
@@ -243,7 +242,7 @@ function promoteAttributesToRoot(workNode, graph, type) {
   let root = {
     "@context": workNode["@context"],
     "@graph": getGraphAsItems(graph),
-    "is-visible": hasValidTitle,
+    "is-visible": !(invalidTitle || invalidIssued),
     "roles": ["public"],
     "name": name,
   };
