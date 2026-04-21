@@ -281,7 +281,7 @@ def purge_year_week_cask_files(context: AssetExecutionContext, config: PurgeYear
 def purge_dagster_runs(context: AssetExecutionContext) -> None:
     """Purge runs more than 8 weeks old."""
     exec(
-        ["python", "/opt/dagster/dagster_home/dagster_cleanup.py", "--weeks", "8", "--dry-run", "--yes"],
+        ["python", "/opt/dagster/dagster_home/dagster_cleanup.py", "--weeks", "8", "--yes"],
         no_json_parse=True
     )
     return None
