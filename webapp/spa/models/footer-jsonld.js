@@ -14,6 +14,11 @@ function getFooterJsonLd() {
     hasPart: [
       {
         '@type': 'SiteNavigationElement',
+        name: 'Frequently Asked Questions',
+        url: 'https://experts.ucdavis.edu/faq'
+      },
+      {
+        '@type': 'SiteNavigationElement',
         name: 'Questions or Comments?',
         url: 'https://www.ucdavis.edu/contact'
       },
@@ -26,6 +31,11 @@ function getFooterJsonLd() {
         '@type': 'SiteNavigationElement',
         name: 'University of California',
         url: 'https://www.universityofcalifornia.edu/'
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        name: 'Terms of Use',
+        url: 'https://experts.ucdavis.edu/termsofuse'
       }
     ]
   };
@@ -43,7 +53,15 @@ function getFooterJsonLd() {
       addressRegion: 'CA',
       postalCode: '95616',
       addressCountry: 'US'
-    }
+    },
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        email: 'experts@ucdavis.edu',
+        availableLanguage: ['en']
+      }
+    ]
   };
 
   const publisher = {
@@ -73,16 +91,7 @@ function getFooterJsonLd() {
       addressRegion: 'CA',
       postalCode: '95616',
       addressCountry: 'US'
-    },
-    contactPoint: [
-      {
-        '@type': 'ContactPoint',
-        contactType: 'customer support',
-        email: 'experts@ucdavis.edu',
-        availableLanguage: ['en']
-      }
-
-    ]
+    }
   };
 
   const jsonLd = {
