@@ -40,7 +40,10 @@ extract_users_job = dg.define_asset_job(
     name="extract_users_job",
     description="Job to run extract a user and first transform Aggie Experts Standard Transform.",
     selection=dg.AssetSelection.assets(extract_user, transform_user_standard),
-    tags={"dagster/priority": "-1"}
+    tags={
+        "dagster/priority": "-1",
+        "dagster/max_runtime": str(30 * 60)  # 30 minute max runtime
+    }
 )
 
 transform_load_users_job = dg.define_asset_job(
