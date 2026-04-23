@@ -23,9 +23,9 @@ function buildBm25Query(q) {
     multi_match: {
       query: q,
       fields: [
-        'name^20', 'search_name^20',
-        'title^10', 'search_title^10', 'search_identifiers^10',
-        'abstract^5', 'overview^5', 'search_description^5'
+        'name^20',
+        'title^2',
+        'abstract'
       ],
       type: 'best_fields'
     }
@@ -165,7 +165,7 @@ function buildAeSearchBody(params, knn, globalMode = false) {
         filter: [{ term: { 'is-visible': true } }]
       },
     },
-    min_score : 100.0,
+    // min_score : 100.0,
     aggs: buildAeSearchAggs()
   };
 
@@ -174,11 +174,13 @@ function buildAeSearchBody(params, knn, globalMode = false) {
   if (!globalMode) {
     const postMust = [];
     if (params['@type']?.length) postMust.push({ terms: { '@type': params['@type'] } });
+    if (params.expert?.length) postMust.push({ terms: { 'expert_ids': params.expert } });
     if (params.status?.length) postMust.push({ terms: { status: params.status } });
     if (params.type?.length) postMust.push({ terms: { type: params.type } });
     if (params.dateFrom || params.dateTo) {
       postMust.push(buildDatePostFilter(params.dateFrom, params.dateTo));
     }
+    console.log('Post-filter clauses:', JSON.stringify(postMust, null, 2));
     if (postMust.length) body.post_filter = { bool: { must: postMust } };
   }
 
@@ -335,30 +337,54 @@ router.get(
       if (magnitude > 0) vector = vector.map(v => v / magnitude);
 
       const requestedTypes = params['@type'];
+      const requestedExpert = params.expert ? params.expert[0] : null; // Only support single expert filter for KNN routing for now
       const baseKnn = {
         field: 'embedding',
         query_vector: vector,
-        k: 100,
-        num_candidates: 200,
-        similarity: 0.5
+        k: 200,
+        num_candidates: 300,
+        similarity: 0.6
       };
 
       const knnClauses = [];
+      
 
       if (requestedTypes.includes('expert')) {
         knnClauses.push({
           ...baseKnn,
-          boost: 1000.0,
-          filter: { bool: { must: [{ term: { 'is-visible': true } }, { term: { '@type': 'expert' } }] } }
+          boost: 600.0,
+          similarity: 0.4,
+          filter: { bool: { must: [
+            { term: { 'is-visible': true } }, 
+            { term: { '@type': 'expert' } }
+          ].concat(requestedExpert ? [{ term: { '@graph.@id': requestedExpert } }] : [])  
+          } }
         });
       }
 
-      const otherTypes = requestedTypes.filter(t => t !== 'expert');
+      if (requestedTypes.includes('work')) {
+        knnClauses.push({
+          ...baseKnn,
+          boost: 200.0,
+          similarity: 0.1,
+          filter: { bool: { must: [
+            { term: { 'is-visible': true } }, 
+            { term: { '@type': 'work' } }]
+
+          } }
+        });
+      }
+
+      const otherTypes = requestedTypes.filter(t => t !== 'expert' && t !== 'work');
       if (otherTypes.length) {
         knnClauses.push({
           ...baseKnn,
           boost: 100.0,
-          filter: { bool: { must: [{ term: { 'is-visible': true } }, { terms: { '@type': otherTypes } }] } }
+          filter: { bool: { must: [
+            { term: { 'is-visible': true } }, 
+            { terms: { '@type': otherTypes } }
+          ].concat(requestedExpert ? [{ term: { '@graph.@id': requestedExpert } }] : [])  
+          } }
         });
       }
 
@@ -372,13 +398,17 @@ router.get(
 
       // Main search on ae-search index; BM25-only parallel query for score debugging
       const searchBody = buildAeSearchBody(params, knn);
+      if( params.debug_scores ) {
+        searchBody.explain = true; // Ensure scores are tracked for debugging
+      }
+
       const globalBody = buildAeSearchBody(params, knn, true);
-      const bm25Body = params.debug_scores ? buildAeSearchBody(params, null) : null;
+      // const bm25Body = params.debug_scores ? buildAeSearchBody(params, null) : null;
 
       const [searchResp, globalResp, bm25Resp] = await Promise.all([
         esClient.search({ index: searchIndex, body: searchBody }),
-        esClient.search({ index: searchIndex, body: globalBody }),
-        bm25Body ? esClient.search({ index: searchIndex, body: bm25Body }) : Promise.resolve(null)
+        esClient.search({ index: searchIndex, body: globalBody })
+        // bm25Body ? esClient.search({ index: searchIndex, body: bm25Body }) : Promise.resolve(null)
       ]);
 
       const searchResult = searchResp?.body ?? searchResp;
@@ -387,23 +417,23 @@ router.get(
       const globalResult = globalResp?.body ?? globalResp;
 
       // Capture combined (BM25+KNN) scores from search hits
-      const scoreMap = new Map();
-      for (const hit of searchHits) {
-        const id = hit._source?.['@id'];
-        if (id) scoreMap.set(id, { combined: hit._score });
-      }
+      // const scoreMap = new Map();
+      // for (const hit of searchHits) {
+      //   const id = hit._source?.['@id'];
+      //   if (id) scoreMap.set(id, { combined: hit._score });
+      // }
 
       // Capture BM25-only scores if debug mode is on
-      if (bm25Resp) {
-        const bm25Result = bm25Resp?.body ?? bm25Resp;
-        for (const hit of (bm25Result?.hits?.hits ?? [])) {
-          const id = hit._source?.['@id'];
-          if (!id) continue;
-          const entry = scoreMap.get(id) || {};
-          entry.bm25 = hit._score;
-          scoreMap.set(id, entry);
-        }
-      }
+      // if (bm25Resp) {
+      //   const bm25Result = bm25Resp?.body ?? bm25Resp;
+      //   for (const hit of (bm25Result?.hits?.hits ?? [])) {
+      //     const id = hit._source?.['@id'];
+      //     if (!id) continue;
+      //     const entry = scoreMap.get(id) || {};
+      //     entry.bm25 = hit._score;
+      //     scoreMap.set(id, entry);
+      //   }
+      // }
 
       // Group hits by type for mget routing, preserving rank order
       const hitOrder = [];
@@ -504,11 +534,21 @@ router.get(
 
       if (params.debug_scores) {
         // scores keyed by @id: { combined: BM25+KNN score, bm25: BM25-only score, knn_contribution: diff }
-        const scores = {};
-        for (const [id, s] of scoreMap) {
-          const bm25 = s.bm25 ?? 0;
-          scores[id] = { combined: s.combined, bm25, knn_contribution: s.combined - bm25 };
+        // const scores = {};
+        // for (const [id, s] of scoreMap) {
+        //   const bm25 = s.bm25 ?? 0;
+        //   scores[id] = { combined: s.combined, bm25, knn_contribution: s.combined - bm25 };
+        // }
+        let scores = {};
+        for (const hit of searchHits) {
+          const id = hit._source?.['@id'];
+          if (!id) continue;
+          scores[id] = { score: hit._score, explanation: hit._explanation };
         }
+
+        delete response.aggregations; // Remove aggs from main response to reduce payload, since they don't have scores
+        delete response.global_aggregations; // Remove global aggs as well for same reason
+        delete response.hits;
         response.scores = scores;
       }
 
