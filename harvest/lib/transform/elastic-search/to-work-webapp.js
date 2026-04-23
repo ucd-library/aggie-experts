@@ -142,6 +142,13 @@ function createWorkDocument(workNode, framedDocument, expertId) {
     }
   }
 
+  // validation to remove from search aggregations and flag for manage works page
+  let invalidTitle = false;
+  if( Array.isArray(workNode.title) && workNode.title.length > 1 ) invalidTitle = true;
+  
+  let invalidIssued = false;
+  if( typeof workNode.issued !== 'string' ) invalidIssued = true;
+
   return {
     "@context": framedDocument["@context"],
     "@graph": graph,
@@ -154,6 +161,8 @@ function createWorkDocument(workNode, framedDocument, expertId) {
     "author": workNode.author,
     "container-title": workNode["container-title"],
     "is-visible": true,
+    "invalid-title": invalidTitle,
+    "invalid-issued": invalidIssued,
     "issued": workNode.issued,
     // "modified-date": workNode["modified-date"] || new Date().toISOString(), // removed to match old output
     "name": generateWorkName(workNode),

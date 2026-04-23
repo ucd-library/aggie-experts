@@ -104,7 +104,7 @@ export default class AppWork extends Mixin(LitElement)
     let workGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.workId)?.[0] || {};
     if( !workGraph ) return;
 
-    if( !workGraph.relatedBy.find(r => r['is-visible']) ) {
+    if( !workGraph.relatedBy.find(r => r['is-visible']) || e.payload['invalid-title'] || e.payload['invalid-issued'] ) {
       this.dispatchEvent(
         new CustomEvent("show-404", {})
       );
