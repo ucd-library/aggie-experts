@@ -5,6 +5,7 @@ import {render} from "./app-expert-works-list.tpl.js";
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import '@ucd-lib/theme-elements/ucdlib/ucdlib-md/ucdlib-md.js';
 import '../../utils/app-icons.js';
 
 import Citation from '../../../lib/utils/citation.js';

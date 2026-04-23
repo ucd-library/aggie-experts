@@ -224,6 +224,27 @@ async function reportValidationIssues(user, metadata={}) {
     }
   }
 
+  // Expert-level visibility flags
+  const expertId = metadata.expertId;
+  const odrNameWwwFlag = metadata.odrPrivacy?.nameWwwFlag;
+  if (odrNameWwwFlag == null) {
+    issues.push({
+      entity_type: 'expert',
+      entity_id: expertId,
+      issue_type: 'missing_value',
+      field: 'odrPrivacy.nameWwwFlag',
+      message: 'IAM nameWwwFlag is absent; expert treated as visible by default'
+    });
+  } else if (odrNameWwwFlag !== 'Y' && odrNameWwwFlag !== 'N') {
+    issues.push({
+      entity_type: 'expert',
+      entity_id: expertId,
+      issue_type: 'invalid_value',
+      field: 'odrPrivacy.nameWwwFlag',
+      message: `Unexpected IAM nameWwwFlag value: "${odrNameWwwFlag}"`
+    });
+  }
+
   if( !issues.length ) return;
 
   for( const issue of issues ) {
