@@ -45,6 +45,32 @@ function collapseSingleItemPrimitiveArrays(jsonText) {
 }
 
 /**
+ * @method annotateWorkValidationFlags
+ * @description Ensure work nodes carry invalid-title / invalid-issued flags in experts docs.
+ * @param {Array} graph compacted @graph array
+ */
+function annotateWorkValidationFlags(graph) {
+  if (!Array.isArray(graph)) return;
+
+  for (const node of graph) {
+    if (!node || !node['@type']) continue;
+    const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+    const isWork = types.some(t =>
+      t.includes('Work') ||
+      t.includes('ScholarlyArticle') ||
+      t.includes('Article') ||
+      t.includes('Publication')
+    );
+    if (!isWork) continue;
+
+    node['invalid-title'] = Array.isArray(node.title)
+      ? node.title.length > 1
+      : typeof node.title !== 'string';
+    node['invalid-issued'] = typeof node.issued !== 'string';
+  }
+}
+
+/**
  * @method findRelatedExperts
  * @description Given a publication or grant subject URI, finds all related expert IDs
  * by searching relationship files in the cache that reference the publication.
@@ -241,6 +267,8 @@ async function frame(expertId, graph) {
 
     compacted["@graph"] = [...expertNodes, ...workNodes, ...grantNodes, ...otherNodes];
   }
+
+  annotateWorkValidationFlags(compacted["@graph"]);
 
   // Ensure the document root @id matches canonical expert/<id> form
   const rootIdShort = expertId;

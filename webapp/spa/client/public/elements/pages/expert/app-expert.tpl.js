@@ -944,7 +944,7 @@ return html`
         <div class="no-display-data">No data to display</div>
       </div>
       <div class="introduction" ?hidden="${!this.introduction && !this.researchInterests}">
-        <h3 class="heading--highlight">Introduction
+        <h3 class="heading--highlight" ?hidden="${!this.introduction && !this.canEdit}">Introduction
           <span ?hidden="${!this.canEdit}" style="position: relative;">
             <span class="tooltip edit-about-me" data-text="Edit Introduction">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
@@ -964,7 +964,8 @@ return html`
         </ucdlib-md>
 
         <div class="research-interests" ?hidden="${!this.researchInterests || (this.truncateResearchInterests && this.researchInterests.substr(0, 500 - this.introduction.length) <= 75)}">
-          <h5>Research Interests</h5>
+          <h3 class="heading--highlight" ?hidden="${this.introduction}">Research Interests</h3>  
+          <h5 ?hidden="${!this.introduction}">Research Interests</h5>
           <ucdlib-md>
             <ucdlib-md-content>
               ${this.truncateResearchInterests ? this.researchInterests.substr(0, 500 - this.introduction.length) + '...' : this.researchInterests}

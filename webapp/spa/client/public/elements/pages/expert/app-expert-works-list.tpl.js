@@ -4,6 +4,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { sharedStyles } from '../../styles/shared-styles';
 
 import utils from '../../../lib/utils';
+import { markdownInline } from '../../../lib/utils/markdown.js';
 
 export function render() {
 return html`
@@ -152,11 +153,11 @@ return html`
         <div class="work-item" style="display: flex;">
           <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-book-open"></ucdlib-icon>
           <div class="work">
-            <h5><a href="/work/${cite['@id']}">${unsafeHTML(cite.title || cite['container-title'])}</a></h5>
+            <h5><a href="/work/${cite['@id']}">${unsafeHTML(markdownInline(cite.title || cite['container-title']))}</a></h5>
             <div class="work-details">
               <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
               <span class="dot">•</span>
-              ${unsafeHTML(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
+              ${unsafeHTML(markdownInline(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>'))}
             </div>
           </div>
         </div>

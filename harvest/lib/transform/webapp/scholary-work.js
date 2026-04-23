@@ -36,7 +36,9 @@ const PROMPT_ROOT_PROPS = [
   "modified-date",
   "sponsorAwardId",
   "status",
-  "totalAwardAmount"
+  "totalAwardAmount",
+  "invalid-title",
+  "invalid-issued"
 ];
 
 /**
@@ -228,17 +230,19 @@ function promoteAttributesToRoot(workNode, graph, type) {
       throw new Error(`Unknown type ${type} in promoteAttributesToRoot`);
   }
 
-  // Works with a non-string title (e.g. an array) are misformatted source data.
-  // Mark them hidden so they are excluded from search results and the public UI.
-  const hasValidTitle = type !== 'work' || typeof workNode.title === 'string';
-  if (!hasValidTitle) {
-    logger.warn(`promoteAttributesToRoot: work ${workNode['@id']} has invalid title (${JSON.stringify(workNode.title)}) — marking is-visible=false`);
+  const invalidTitle = type === 'work' && (Array.isArray(workNode.title) ? workNode.title.length > 1 : typeof workNode.title !== 'string');
+  const invalidIssued = type === 'work' && typeof workNode.issued !== 'string';
+  if( invalidTitle || invalidIssued ) {
+    logger.warn(`promoteAttributesToRoot: work ${workNode['@id']} has invalid title or issued date (${JSON.stringify(workNode.title)}, ${JSON.stringify(workNode.issued)}) — marking is-visible=false`);
   }
+
+  workNode['invalid-title'] = invalidTitle;
+  workNode['invalid-issued'] = invalidIssued;
 
   let root = {
     "@context": workNode["@context"],
     "@graph": getGraphAsItems(graph),
-    "is-visible": hasValidTitle,
+    "is-visible": !(invalidTitle || invalidIssued),
     "roles": ["public"],
     "name": name,
   };

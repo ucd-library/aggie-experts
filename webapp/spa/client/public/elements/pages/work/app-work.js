@@ -5,6 +5,7 @@ import {render, styles} from "./app-work.tpl.js";
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import '@ucd-lib/theme-elements/ucdlib/ucdlib-md/ucdlib-md.js';
 import '../../components/contributor-row.js';
 import '../../utils/app-icons.js';
 
@@ -104,7 +105,7 @@ export default class AppWork extends Mixin(LitElement)
     let workGraph = (e.payload['@graph'] || []).filter(g => g['@id'] === this.workId)?.[0] || {};
     if( !workGraph ) return;
 
-    if( !workGraph.relatedBy.find(r => r['is-visible']) ) {
+    if( !workGraph.relatedBy.find(r => r['is-visible']) || e.payload['invalid-title'] || e.payload['invalid-issued'] ) {
       this.dispatchEvent(
         new CustomEvent("show-404", {})
       );

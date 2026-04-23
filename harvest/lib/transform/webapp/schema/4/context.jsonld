@@ -164,6 +164,8 @@
     "inheres_in":{"@id":"obo:RO_0000052","@type":"@id"},
     "is-open-access":{"@id":"ucdlib:is-open-access"},
     "is-visible":{"@id":"ucdlib:is-visible"},
+    "invalid-title":{"@id":"ucdlib:invalid-title"},
+    "invalid-issued":{"@id":"ucdlib:invalid-issued"},
     "ae-roleof":{"@id":"ucdlib:ae-roleof"},
     "ae-roleof-suppress":{"@id":"ucdlib:ae-roleof-suppress"},
     "ISBN": {"@id":"cite:ISBN"},

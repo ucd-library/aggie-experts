@@ -7,6 +7,7 @@ import {render, styles} from "./app-grant.tpl.js";
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
+import '@ucd-lib/theme-elements/ucdlib/ucdlib-md/ucdlib-md.js';
 import '../../components/contributor-row.js';
 import '../../utils/app-icons.js';
 

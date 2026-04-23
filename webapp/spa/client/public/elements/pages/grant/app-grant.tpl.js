@@ -1,6 +1,8 @@
 import { html, css, unsafeCSS } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 import { sharedStyles } from '../../styles/shared-styles';
+import { markdownInline } from '../../../lib/utils/markdown.js';
 
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 import headingsCss from "@ucd-lib/theme-sass/2_base_class/_headings.css";
@@ -274,7 +276,7 @@ return html`
           <ucdlib-icon icon="ucdlib-experts:fa-file-invoice-dollar"></ucdlib-icon>
           <span>GRANT</span>
         </div>
-        <h1>${this.grantName}</h1>
+        <h1>${unsafeHTML(markdownInline(this.grantName))}</h1>
         <h3 class="heading--highlight">${this.startDate} – ${this.endDate}</h3>
         <span class="status${!this.completed ? ' active' : ''}">${this.completed ? 'Complete' : 'Active'}</span>
       </div>
@@ -290,22 +292,24 @@ return html`
 
       <div ?hidden="${!this.awardedBy}" class="awarded-by">
         <h3 class="heading--highlight">Awarded by</h3>
-        <p>${this.awardedBy}</p>
+        <p>${unsafeHTML(markdownInline(this.awardedBy))}</p>
       </div>
 
       <div ?hidden="${!this.grantNumber}" class="grant-number">
         <h3 class="heading--highlight">Grant Number</h3>
-        <p>${this.grantNumber}</p>
+        <p>${unsafeHTML(markdownInline(this.grantNumber))}</p>
       </div>
 
       <div ?hidden="${!this.grantAdmin || true}" class="grant-admin">
         <h3 class="heading--highlight">Grant Admin</h3>
-        <p>${this.grantAdmin}</p>
+        <p>${unsafeHTML(markdownInline(this.grantAdmin))}</p>
       </div>
 
       <div ?hidden="${!this.purpose}" class="purpose">
         <h3 class="heading--highlight">Purpose</h3>
-        <p>${this.purpose}</p>
+        <ucdlib-md>
+          <ucdlib-md-content>${this.purpose}</ucdlib-md-content>
+        </ucdlib-md>
       </div>
 
       <div class="contributors-section" ?hidden="${!this.showContributorsSection}">
