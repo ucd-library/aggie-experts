@@ -420,7 +420,8 @@
             "properties": {
               "family": {
                 "type": "text",
-                "analyzer": "default" 
+                "analyzer": "default",
+                "similarity": "boolean"
               },
               "given": {
                 "type": "text",
