@@ -59,8 +59,8 @@ flowchart LR
 
 - **[CaskFS](https://github.com/ucd-library/caskfs)** — Content-addressed file storage with
   a built-in RDF/linked-data layer. Stores all intermediate harvest artifacts
-  (raw CDL data, AE standard JSON-LD, Elasticsearch-ready JSON-LD), backed by Google Cloud
-  Storage.
+  (raw CDL data, AE standard JSON-LD, Elasticsearch-ready JSON-LD) on a shared persistent
+  disk volume.
 
 - **[Elasticsearch](https://github.com/elastic/elasticsearch)** — Aggie Experts creates
   [expert, work, and grant JSON-LD document](doc/digital-objects.md) indexes to support
@@ -82,6 +82,24 @@ flowchart LR
 
 - **[MyInfoVault](https://academicaffairs.ucdavis.edu/myinfovault)** — UCD academics can
   import their publications from Aggie Experts, reducing duplicate entry.
+
+## ETL Reporting and Dashboards
+
+Each weekly harvest writes run statistics, command outcomes, and scholarly output counts to
+a PostgreSQL reporting schema. These are surfaced in an Apache Superset dashboard accessible
+through the Anduin auth gateway at `/superset`.
+
+The dashboard is the primary tool for understanding week-to-week changes in the harvest:
+which users had errors, who joined or left the expert group, how publication and grant counts
+shifted, and whether error rates are trending up or down. The
+[reporting schema views](doc/reporting-schema-erd.md) — such as
+`user_scholarly_output_weekly_changes`, `user_left_this_week`, and
+`this_week_harvest_errors` — power these comparisons across weeks and are queryable
+directly in Superset for ad-hoc investigation.
+
+See [Reporting Database ERD](doc/reporting-schema-erd.md) and the
+[Dagster Harvest Workflow — Reporting](doc/dagster-harvest-workflow.md#reporting-schema-and-views)
+for schema details.
 
 ## Development and Operation How To's
 

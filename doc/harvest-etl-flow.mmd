@@ -23,7 +23,7 @@ flowchart TD
         LOAD["load_user\nWrite JSON-LD documents to Elasticsearch\nlatest alias (stage → public on promotion)"]
     end
 
-    subgraph CASK ["CaskFS — Artifact Store (GCS-backed)"]
+    subgraph CASK ["CaskFS — Artifact Store"]
         C1["/weekly/{year-week}/user/{id}/cdl/\nRaw CDL data"]
         C2["/weekly/{year-week}/user/{id}/iam/\nIAM profile"]
         C3["/weekly/{year-week}/user/{id}/ae-std/\nAE standard JSON-LD"]

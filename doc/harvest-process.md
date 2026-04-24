@@ -30,7 +30,7 @@ UC Davis IAM API    ──┘         │
                                 └──► Elasticsearch (public index)
 
 Dagster (in Anduin) orchestrates all steps via a Celery + RabbitMQ task queue.
-CaskFS stores every intermediate artifact, content-addressed and GCS-backed.
+CaskFS stores every intermediate artifact, content-addressed on a persistent disk volume.
 ```
 
 Diagram: [aggie-experts-overview.mmd](aggie-experts-overview.mmd) |
@@ -54,7 +54,7 @@ via the [Grant Feed Process](grant-feed.md) before harvest.
 [CaskFS](https://github.com/ucd-library/caskfs) is a content-addressed file store with
 a built-in RDF/linked-data layer. It replaces the local `cache/` directory and Fuseki
 triple store used in earlier versions. All harvest artifacts are written to CaskFS and
-shared between Dagster Celery workers via a persistent volume (backed by GCS in production).
+shared between Dagster Celery workers via a persistent disk volume (NFS or local cluster storage).
 
 ### Path structure
 
@@ -76,9 +76,14 @@ The `year-week` segment (e.g. `2026-17`) is a CaskFS partition key — it scopes
 so the transform step can resolve cross-user linked-data relationships within the current
 week's harvest without scanning the entire store.
 
-CaskFS's content-addressing means unchanged files are not re-uploaded. When a researcher's
-CDL data has not changed since the prior week, the extract step detects the matching hash
-and skips the upload, making the weekly ETL efficient even at scale.
+CaskFS's CAS layer means that data which hasn't changed week-to-week is only written to
+disk once, even though it is represented under each week's directory path. The extract and
+transform steps always run and write their output paths — deduplication is transparent at
+the storage level. The only application-level hash check is in the load step: before
+indexing a document into Elasticsearch, the loader checks whether the same hash already
+exists in that week's index and skips the write if so. This only provides a benefit within
+a single week — either a single-user realtime refresh or an admin-triggered full reindex
+within the same week's index.
 
 ### RDF queries in the transform step
 

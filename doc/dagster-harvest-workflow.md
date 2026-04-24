@@ -6,7 +6,8 @@ This document describes the Dagster-based ETL pipeline in Aggie Experts v5, incl
 - Node.js CLI orchestration for extract, transform, and load
 - CaskFS artifact storage paths
 - Data sources and endpoints
-- ETL reporting
+- Realtime harvest API (webapp)
+- ETL reporting schema and views
 
 Dagster runs inside the [project-anduin](https://github.com/ucd-library/project-anduin)
 platform. See [Anduin Integration](anduin-integration.md) for the platform topology and
@@ -19,7 +20,8 @@ platform. See [Anduin Integration](anduin-integration.md) for the platform topol
 - [Node.js CLI orchestration (extract, transform, load)](#nodejs-cli-orchestration-extract-transform-load)
 - [CaskFS artifact paths](#caskfs-artifact-paths)
 - [Data sources and endpoints](#data-sources-and-endpoints)
-- [Reporting: APIs and views](#reporting-apis-and-views)
+- [Realtime harvest API (webapp)](#realtime-harvest-api-webapp)
+- [Reporting: schema and views](#reporting-schema-and-views)
 - [Operational notes](#operational-notes)
 - [Related docs](#related-docs)
 
@@ -230,8 +232,9 @@ CaskFS auto-path partition key.
 | `/id-map/{expertId}` | `extract_user` | ID resolution utilities |
 
 Old year-week directories are purged by the weekly `cleanup` job (default: older than
-5 weeks). CaskFS's content-addressing means unchanged files cost nothing to re-process
-— the hash check avoids re-uploading data that hasn't changed since the prior week.
+5 weeks). CaskFS's CAS layer means data that hasn't changed week-to-week is stored on
+disk only once, even though it appears under each week's directory path — deduplication
+is transparent at the storage level, not a skip-the-step optimization.
 
 See [CaskFS docs](https://github.com/ucd-library/caskfs) for the storage and RDF API.
 
@@ -263,17 +266,17 @@ Primary runtime config: [`commons/lib/config.js`](../commons/lib/config.js).
 - **RabbitMQ** (Celery broker):
   - `pyamqp://guest:guest@rabbitmq:5672//`
 
-## Reporting: APIs and views
+## Realtime harvest API (webapp)
 
-### Reporting API endpoints (webapp)
+Implemented in [`webapp/models/harvest/api.js`](../webapp/models/harvest/api.js) and
+consumed by the SPA's `DagsterService`. These endpoints allow a user to trigger an
+on-demand harvest of their own profile from the webapp UI:
 
-Implemented in [`webapp/models/harvest/api.js`](../webapp/models/harvest/api.js):
+- `POST /api/harvest/run-job-partition` — launch a Dagster `etl_users_job` run for the requesting user's partition.
+- `GET /api/harvest/run/:runId` — poll run status/details.
+- `POST /api/harvest/last-runs-for-partition` — get recent run history for the user's partition.
 
-- `POST /api/harvest/run-job-partition` — launch a Dagster run for a specific partition.
-- `GET /api/harvest/run/:runId` — get run status/details.
-- `POST /api/harvest/last-runs-for-partition` — get recent run history for a partition.
-
-### Reporting schema and SQL views
+## Reporting: schema and views
 
 Schema initialized from [`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql)
 (`etl_reporting` schema). Visualized in Superset via the Anduin platform.

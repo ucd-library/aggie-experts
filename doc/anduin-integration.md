@@ -104,10 +104,9 @@ CaskFS stores all harvest artifacts. Key environment variables set in the
 | `CASKFS_WEBAPP_PORT` | `3000` | CaskFS HTTP server port |
 | `CASKFS_LOG_LEVEL` | `warn` (dev) | Log verbosity |
 
-In production the CaskFS volume is backed by GCS
-(`EXPERTS_CACHE_BUCKET_NAME=experts-harvest-prod`). The harvest CLI sets auto-path
-partition rules so that CaskFS automatically assigns `year-week`, `user`, and
-`transform-type` partition keys based on file path patterns.
+The CaskFS volume (`/opt/cache`) is a persistent disk mount (NFS or local cluster storage).
+The harvest CLI sets auto-path partition rules so that CaskFS automatically assigns
+`year-week`, `user`, and `transform-type` partition keys based on file path patterns.
 
 See the [CaskFS auto-path docs](https://github.com/ucd-library/caskfs/blob/main/docs/auto-path.md)
 and [CaskFS RBAC docs](https://github.com/ucd-library/caskfs/blob/main/docs/rbac.md).

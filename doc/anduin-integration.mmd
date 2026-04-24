@@ -21,7 +21,7 @@ flowchart TD
 
     subgraph Shared ["Shared Infrastructure"]
         PG[("PostgreSQL\nDagster metadata\nETL reporting schema")]
-        VOL[("CaskFS Volume\n/opt/cache\nGCS bucket: experts-harvest")]
+        VOL[("CaskFS Volume\n/opt/cache\n(persistent disk / NFS)")]
         SA["GCP Service Account\n/etc/aggie-experts/service-account.json"]
     end
 
