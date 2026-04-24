@@ -51,7 +51,7 @@ flowchart LR
   Aggie Experts pulls researcher profiles, publications, and grants from CDL using the
   [Symplectic API](https://support.symplectic.co.uk/support/solutions/folders/6000177986).
 
-- **Aggie Experts Harvest Platform** — The ETL and harvest infrastructure, powered by
+- **[Aggie Experts Harvest Platform](doc/anduin-integration.md)** — The ETL and harvest infrastructure, powered by
   [project-anduin](https://github.com/ucd-library/project-anduin). Hosts Dagster (workflow
   orchestration), [CaskFS](https://github.com/ucd-library/caskfs) (artifact storage), Apache
   Superset (ETL reporting dashboards), and a Keycloak OIDC auth gateway. Celery workers
@@ -80,7 +80,7 @@ flowchart LR
 - **[SiteFarm](https://sitefarm.ucdavis.edu/)** — Campus department websites can enhance
   faculty pages by embedding profiles and publications from Aggie Experts.
 
-- **[MyInfoVault](https://academicaffairs.ucdavis.edu/myinfovault)** — UCD academics can
+- **[MyInfoVault](https://academicaffairs.ucdavis.edu/myinfovault)** ([integration notes](doc/miv-token-notes.md)) — UCD academics can
   import their publications from Aggie Experts, reducing duplicate entry.
 
 ## ETL Reporting and Dashboards
@@ -103,9 +103,6 @@ for schema details.
 
 ## Development and Operation How To's
 
-- [Docker Images and Deployment](doc/docker-deployment.md)
-- [Deployment repo](https://github.com/ucd-library/aggie-experts-deployment) — GitOps repo
-  for dev (Kubernetes) and prod (Docker Compose) environments
 - Process Descriptions
   - [Harvest Process](doc/harvest-process.md) — how data flows from CDL/IAM through CaskFS to Elasticsearch
   - [Anduin Integration](doc/anduin-integration.md) — ETL platform topology, auth, and custom gateway
@@ -117,6 +114,8 @@ for schema details.
   - [FIN Data Models](https://github.com/ucd-library/fin/tree/main/docs/data-models)
 - Data Standards and Ontologies
   - [Digital Objects](doc/digital-objects.md)
+- [Docker Images and Deployment](doc/docker-deployment.md)
+  - [Deployment repo](https://github.com/ucd-library/aggie-experts-deployment) — GitOps repo for dev (Kubernetes) and prod (Docker Compose) environments
 - Platform Docs
   - [project-anduin](https://github.com/ucd-library/project-anduin)
   - [CaskFS](https://github.com/ucd-library/caskfs)
