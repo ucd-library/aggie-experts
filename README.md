@@ -13,7 +13,7 @@ flowchart LR
         AE_ENT["Aggie Enterprise\ngrant data"]
     end
 
-    subgraph Anduin ["project-anduin — ETL Platform"]
+    subgraph Anduin ["Aggie Experts Harvest Platform (powered by Anduin)"]
         GW["Auth Gateway\nKeycloak OIDC"]
         DAG["Dagster\norchestration"]
         WORKERS["Celery Workers"]
@@ -37,7 +37,8 @@ flowchart LR
     DAG --> WORKERS
     WORKERS <-->|"harvest artifacts"| CASK
     WORKERS -->|"load"| ES
-    GW --> DAG & CASK & SUP & WEBAPP
+    WORKERS -->|"reporting"| SUP
+    GW --> DAG & CASK & WEBAPP
     WEBAPP --> ES
     WEBAPP -->|"APIs"| SF & MIV
 ```
@@ -50,10 +51,11 @@ flowchart LR
   Aggie Experts pulls researcher profiles, publications, and grants from CDL using the
   [Symplectic API](https://support.symplectic.co.uk/support/solutions/folders/6000177986).
 
-- **[project-anduin](https://github.com/ucd-library/project-anduin)** — The ETL platform
-  hosting Dagster (workflow orchestration), CaskFS (artifact storage), Apache Superset
-  (dashboards), and a Keycloak OIDC auth gateway. All harvest infrastructure runs inside
-  Anduin.
+- **Aggie Experts Harvest Platform** — The ETL and harvest infrastructure, powered by
+  [project-anduin](https://github.com/ucd-library/project-anduin). Hosts Dagster (workflow
+  orchestration), [CaskFS](https://github.com/ucd-library/caskfs) (artifact storage), Apache
+  Superset (ETL reporting dashboards), and a Keycloak OIDC auth gateway. Celery workers
+  execute the harvest and write reporting data directly to Superset's backing database.
 
 - **[CaskFS](https://github.com/ucd-library/caskfs)** — Content-addressed file storage with
   a built-in RDF/linked-data layer. Stores all intermediate harvest artifacts
