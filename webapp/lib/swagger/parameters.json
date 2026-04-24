@@ -1,0 +1,31 @@
+{
+    "expertId": {
+        "name": "expertId",
+        "in": "path",
+        "required": true,
+        "schema": {
+            "type": "string",
+            "format": "nano(\\d{8})",
+            "description": "The unique identifier for the expert"
+        }
+    },
+    "size": {
+        "in": "query",
+        "name": "size",
+        "description": "The number of results to return per page, defaults to 25",
+        "required": false,
+        "schema": {
+            "type": "integer",
+            "default": 25
+        }
+    },
+    "sitefarmId": {
+        "name": "ids",
+        "in": "path",
+        "required": true,
+        "schema": {
+            "type": "string"
+        },
+        "description": "A comma separated list of expert IDs. Ids are in the format of '{idType}:{Id}'. For example 'expertId:12345'"
+    }
+}

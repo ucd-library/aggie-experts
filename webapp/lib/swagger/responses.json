@@ -1,0 +1,30 @@
+{
+	"Expert": {
+		"description": "The expert",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Expert"
+				}
+			}
+		}
+	},
+	"Expert_not_found": {
+		"description": "Expert not found"
+	},
+	"Expert_deleted": {
+		"description": "Expert deleted"
+	},
+	"No_content": {
+		"description": "No Content"
+	},
+	"Invalid_request": {
+		"description": "Invalid request"
+	},
+	"Successful_operation": {
+		"description": "Successful operation"
+	},
+	"Invalid_ID_supplied": {
+		"description": "Invalid ID supplied"
+	}
+}

@@ -1,0 +1,22 @@
+{
+  "paths": {
+    "/api/expert/{expertId}": {
+      "get": {
+        "description": "Get an expert by id",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/expertId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Expert"
+          },
+          "404": {
+            "$ref": "#/components/responses/Expert_not_found"
+          }
+        }
+      }
+    }
+  }
+}
