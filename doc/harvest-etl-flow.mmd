@@ -1,0 +1,55 @@
+---
+title: Aggie Experts v5 — Harvest ETL Flow
+---
+flowchart TD
+    CDL["CDL Symplectic API"]
+    IAM["UC Davis IAM API"]
+
+    subgraph SCHED ["Weekly Schedule — Saturday 01:00 AM (prod) / Sunday (dev)"]
+        INIT["ensure_current_index\nCreate new Elasticsearch week index\nSet latest alias"]
+        FETCH["fetch_user_list_from_cdl\nFetch CDL group member list\nCreate Dagster user partitions"]
+        EXEC["exec_weekly_etl\nLaunch extract_users_job backfill\nvia Dagster GraphQL API"]
+    end
+
+    subgraph P1 ["Phase 1 — extract_users_job (per user, Celery workers)"]
+        EXT["extract_user\nFetch user XML + profile from CDL\nFetch profile from IAM\nKeycloak lookup fallback"]
+        STD["transform_user_standard\nTransform to AE standard JSON-LD\nVIVO ontology format\nRDF graph links via CaskFS"]
+    end
+
+    SENSOR["etl_notify_and_continue sensor\nMonitors phase 1 backfill\nWrites status to PostgreSQL\nOptional Slack notification\nTriggers phase 2 on completion"]
+
+    subgraph P2 ["Phase 2 — transform_load_users_job (per user, Celery workers)"]
+        WEB["transform_user_webapp\nTransform to Elasticsearch-ready JSON-LD\nResolves cross-user RDF relationships\nvia CaskFS linked-data layer"]
+        LOAD["load_user\nWrite JSON-LD documents to Elasticsearch\nlatest alias (stage → public on promotion)"]
+    end
+
+    subgraph CASK ["CaskFS — Artifact Store (GCS-backed)"]
+        C1["/weekly/{year-week}/user/{id}/cdl/\nRaw CDL data"]
+        C2["/weekly/{year-week}/user/{id}/iam/\nIAM profile"]
+        C3["/weekly/{year-week}/user/{id}/ae-std/\nAE standard JSON-LD"]
+        C4["/weekly/{year-week}/user/{id}/ae-webapp/\nES-ready JSON-LD"]
+        C5["/id-map/\nEmail → expert ID lookup"]
+    end
+
+    subgraph CLEANUP ["Cleanup Job — Saturday 17:00 (prod) / Sunday (dev)"]
+        CL1["purge_year_week_cask_files\nDelete CaskFS data older than 5 weeks"]
+        CL2["purge_dagster_runs\nDelete Dagster runs older than 8 weeks"]
+        CL3["purge_reporting_db\nPurge commands older than 8 weeks\nPurge inactive users older than 6 months"]
+    end
+
+    ES[("Elasticsearch\nlatest alias")]
+    PG[("PostgreSQL\nETL reporting")]
+
+    INIT --> FETCH --> EXEC --> P1
+    CDL -->|"user · works · grants XML"| EXT
+    IAM -->|"profile data"| EXT
+    EXT -->|"write"| C1 & C2 & C5
+    STD -->|"read"| C1 & C2
+    STD -->|"write"| C3
+    P1 --> SENSOR --> P2
+    WEB -->|"read"| C3
+    WEB -->|"write"| C4
+    LOAD -->|"read"| C4
+    LOAD -->|"index documents"| ES
+    LOAD -->|"run stats"| PG
+    SENSOR -->|"status"| PG
