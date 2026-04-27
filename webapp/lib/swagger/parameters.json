@@ -1,4 +1,12 @@
 {
+    "id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+            "type": "string"
+        }
+    },
     "expertId": {
         "name": "expertId",
         "in": "path",
@@ -27,5 +35,225 @@
             "type": "string"
         },
         "description": "A comma separated list of expert IDs. Ids are in the format of '{idType}:{Id}'. For example 'expertId:12345'"
+    },
+    "expert": {
+        "in": "query",
+        "name": "expert",
+        "description": "Comma-separated search filter on experts",
+        "required": false,
+        "schema": {
+            "type": "array"
+        },
+        "style": "simple",
+        "explode": false
+    },
+    "email": {
+        "in": "query",
+        "name": "email",
+        "description": "Filter grants by email",
+        "required": false,
+        "schema": {
+            "type": "string"
+        }
+    },
+    "ucdPersonUUID": {
+        "in": "query",
+        "name": "ucdPersonUUID",
+        "description": "Filter grants by UCD Person UUID",
+        "required": false,
+        "schema": {
+            "type": "string"
+        }
+    },
+    "iamId": {
+        "in": "query",
+        "name": "iamId",
+        "description": "Filter grants by IAM ID",
+        "required": false,
+        "schema": {
+            "type": "string"
+        }
+    },
+    "since": {
+        "in": "query",
+        "name": "since",
+        "description": "Filter grants starting from this date (inclusive).",
+        "required": false,
+        "schema": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$",
+            "example": "2010-01-01"
+        }
+    },
+    "until": {
+        "in": "query",
+        "name": "until",
+        "description": "Filter grants up to this date (inclusive). Defaults to today if not provided.",
+        "required": false,
+        "schema": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$",
+            "example": "2030-12-31"
+        }
+    },
+    "relationshipId": {
+        "name": "relationshipId",
+        "in": "path",
+        "required": true,
+        "schema": {
+            "type": "string",
+            "format": "urlencoded",
+            "description": "A unique identifier for an expert relationship"
+        }
+    },
+    "p": {
+        "in": "query",
+        "name": "p",
+        "description": "The letter the experts last name starts with",
+        "required": false,
+        "schema": {
+            "type": "string"
+        }
+    },
+    "page": {
+        "in": "query",
+        "name": "page",
+        "description": "The pagination of results to return, defaults to 1",
+        "required": false,
+        "schema": {
+            "type": "integer"
+        }
+    },
+    "q": {
+        "in": "query",
+        "name": "q",
+        "description": "Text query to search for",
+        "required": false,
+        "schema": {
+            "type": "string"
+        }
+    },
+    "status": {
+        "in": "query",
+        "name": "status",
+        "description": "Comma-separated search filter on grant status",
+        "required": false,
+        "schema": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["completed", "active"]
+            }
+        },
+        "style": "simple",
+        "explode": false
+    },
+    "type": {
+        "in": "query",
+        "name": "type",
+        "description": "Comma-separated list of citation-types to return. From https://github.com/Juris-M/schema/blob/master/csl-types.rnc",
+        "required": false,
+        "schema": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "article",
+                    "article-journal",
+                    "article-magazine",
+                    "article-newspaper",
+                    "bill",
+                    "book",
+                    "broadcast",
+                    "chapter",
+                    "dataset",
+                    "entry",
+                    "entry-dictionary",
+                    "entry-encyclopedia",
+                    "figure",
+                    "graphic",
+                    "interview",
+                    "legal_case",
+                    "legislation",
+                    "manuscript",
+                    "map",
+                    "motion_picture",
+                    "musical_score",
+                    "pamphlet",
+                    "paper-conference",
+                    "patent",
+                    "personal_communication",
+                    "post",
+                    "post-weblog",
+                    "report",
+                    "review",
+                    "review-book",
+                    "song",
+                    "speech",
+                    "thesis",
+                    "treaty",
+                    "webpage"
+                ]
+            }
+        },
+        "style": "simple",
+        "explode": false
+    },
+    "availability": {
+        "in": "query",
+        "name": "availability",
+        "description": "Comma-separated search filter on expert availability types",
+        "required": false,
+        "schema": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["community partnerships", "collaborative projects", "industry Projects", "media enquiries"]
+            }
+        },
+        "style": "simple",
+        "explode": false
+    },
+    "@type": {
+        "in": "query",
+        "name": "@type",
+        "description": "Comma-separated list of item @types to return.",
+        "required": false,
+        "schema": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["expert", "grant", "work"],
+                "default": "expert,grant,work"
+            }
+        },
+        "style": "simple",
+        "explode": false
+    },
+    "dateFrom": {
+        "in": "query",
+        "name": "dateFrom",
+        "description": "Filter results starting from this date (inclusive). A 4-digit year (YYYY) will automatically expand to the first day of that year (YYYY-01-01).",
+        "required": false,
+        "schema": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^[0-9]{4}(-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?$",
+            "example": "2017-01-01"
+        }
+    },
+    "dateTo": {
+        "in": "query",
+        "name": "dateTo",
+        "description": "Filter results up to this date (inclusive). A 4-digit year (YYYY) will automatically expand to the last day of that year (YYYY-12-31).",
+        "required": false,
+        "schema": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^[0-9]{4}(-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))?$",
+            "example": "2023-12-31"
+        }
     }
 }

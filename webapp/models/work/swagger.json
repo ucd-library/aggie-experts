@@ -1,0 +1,46 @@
+{
+  "paths": {
+    "/api/work/search": {
+      "get": {
+        "description": "Returns matching search results for works.",
+        "parameters": [
+          { "$ref": "#/components/parameters/q" },
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Search" },
+          "400": { "$ref": "#/components/responses/Invalid_request" }
+        }
+      }
+    },
+    "/api/work/browse": {
+      "get": {
+        "description": "Returns works A - Z, or if sending query param p={letter}, will return results with that letter",
+        "parameters": [
+          { "$ref": "#/components/parameters/p" },
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Browse" },
+          "400": { "$ref": "#/components/responses/Invalid_request" }
+        }
+      }
+    },
+    "/api/work/{id}": {
+      "get": {
+        "description": "Get a work by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/id" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/work" },
+          "400": { "$ref": "#/components/responses/missing_id" },
+          "403": { "$ref": "#/components/responses/forbidden" },
+          "404": { "$ref": "#/components/responses/not_found" }
+        }
+      }
+    }
+  }
+}

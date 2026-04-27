@@ -31,7 +31,7 @@ const swaggerDefinition = {
   },
   "servers": [
     {
-      "url": "http://experts.ucdavis.edu/api/sitefarm"
+      "url": "http://experts.ucdavis.edu/api"
     }
   ],
   "tags": [
@@ -61,12 +61,18 @@ async function init() {
     try {
       if( swagger?.paths ) {
         if( !Array.isArray(swagger.paths) ) {
-          console.log('adding paths for', name, Object.keys(swagger.paths));
+          logger.info('adding paths for', name, Object.keys(swagger.paths));
           swagger.paths = Object.entries(swagger.paths).map(([key, value]) => ({ path : key, docs : value }));
         }
         swagger.paths.forEach(doc => {
-          console.log('adding paths for', name, Object.keys(doc.docs));
-          swaggerDefinition.paths[`/api/${doc.path.replace(/\/?api\/?/g, '')}`] = doc.docs;
+          logger.info('adding paths for', name, Object.keys(doc.docs));
+          let docs = Object.fromEntries(
+            Object.entries(doc.docs).map(([method, operation]) => {
+              if( !operation ) return [method, operation];
+              return [method, {...operation, tags: ['expert']}];
+            })
+          );
+          swaggerDefinition.paths[`/api/${doc.path.replace(/\/?api\/?/g, '')}`] = docs;
         });
       }
       apis.push('api/'+name);

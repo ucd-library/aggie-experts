@@ -18,5 +18,59 @@
 				}
 			}
 		}
+	},
+	"Expert_post": {
+		"content": {
+			"application/json": {
+				"schema": {
+					"type": "object",
+					"properties": {
+						"is-visible": { "type": "boolean" },
+						"expert": { "type": "object", "properties": { "include": { "type": "boolean" } } },
+						"grants": {
+							"type": "object",
+							"properties": {
+								"include": { "type": "boolean" },
+								"page": { "type": "integer" },
+								"size": { "type": "integer" },
+								"exclude": { "type": "array", "items": { "type": "string" } },
+								"includeMisformatted": { "type": "boolean" },
+								"sort": {
+									"type": "array",
+									"items": { "type": "object", "properties": { "field": { "type": "string" }, "sort": { "type": "string" }, "type": { "type": "string" } } }
+								}
+							}
+						},
+						"works": {
+							"type": "object",
+							"properties": {
+								"include": { "type": "boolean" },
+								"page": { "type": "integer" },
+								"size": { "type": "integer" },
+								"exclude": { "type": "array", "items": { "type": "string" } },
+								"includeMisformatted": { "type": "boolean" },
+								"sort": {
+									"type": "array",
+									"items": { "type": "object", "properties": { "field": { "type": "string" }, "sort": { "type": "string" }, "type": { "type": "string" } } }
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"Expert_patch": {
+		"content": {
+			"application/json": {
+				"schema": {
+					"type": "object",
+					"properties": {
+						"@id": { "type": "string" },
+						"visible": { "type": "boolean" }
+					}
+				}
+			}
+		}
 	}
 }

@@ -1,4 +1,66 @@
 {
+	"not_found": {
+		"description": "Resource not found"
+	},
+	"missing_id": {
+		"description": "Request needs id"
+	},
+	"forbidden": {
+		"description": "Request is forbidden"
+	},
+	"Relationship": {
+		"description": "The relationship",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Relationship"
+				}
+			}
+		}
+	},
+	"Relationship_not_found": {
+		"description": "Relationship not found"
+	},
+	"Browse": {
+		"description": "The list of experts",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Browse"
+				}
+			}
+		}
+	},
+	"Search": {
+		"description": "The list of search results",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Search"
+				}
+			}
+		}
+	},
+	"work": {
+		"description": "work",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/work"
+				}
+			}
+		}
+	},
+	"grant": {
+		"description": "grant",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/grant"
+				}
+			}
+		}
+	},
 	"Expert": {
 		"description": "The expert",
 		"content": {
