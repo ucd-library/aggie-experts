@@ -4,6 +4,7 @@
       "get": {
         "description": "Returns matching search results, including the number of matching works and grants",
         "parameters": [
+          { "$ref": "#/components/parameters/q" },
           { "$ref": "#/components/parameters/p" },
           { "$ref": "#/components/parameters/page" },
           { "$ref": "#/components/parameters/size" },

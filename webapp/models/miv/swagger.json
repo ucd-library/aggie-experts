@@ -1,8 +1,35 @@
 {
   "paths": {
+    "/api/miv/user": {
+      "get": {
+        "description": "Returns the expertId for the currently authenticated MIV user",
+        "parameters": [],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Successful_operation" },
+          "404": { "$ref": "#/components/responses/Expert_not_found" }
+        }
+      }
+    },
     "/api/miv/grants": {
       "get": {
         "description": "Returns a JSON array of an expert's grants. One of 'email', 'ucdPersonUUID', or 'iamId' must be provided to identify the expert. The 'until' date defaults to today if not provided.",
+        "parameters": [
+          { "$ref": "#/components/parameters/since" },
+          { "$ref": "#/components/parameters/until" },
+          { "$ref": "#/components/parameters/email" },
+          { "$ref": "#/components/parameters/ucdPersonUUID" },
+          { "$ref": "#/components/parameters/iamId" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Successful_operation" },
+          "400": { "$ref": "#/components/responses/Invalid_ID_supplied" },
+          "404": { "$ref": "#/components/responses/Expert_not_found" }
+        }
+      }
+    },
+    "/api/miv/raw_grants": {
+      "get": {
+        "description": "Returns the raw Elasticsearch grant documents for an expert. One of 'email', 'ucdPersonUUID', or 'iamId' must be provided. The 'until' date defaults to today if not provided.",
         "parameters": [
           { "$ref": "#/components/parameters/since" },
           { "$ref": "#/components/parameters/until" },

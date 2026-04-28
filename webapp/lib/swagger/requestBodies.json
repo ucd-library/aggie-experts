@@ -60,6 +60,21 @@
 			}
 		}
 	},
+	"Expert_availability_patch": {
+		"content": {
+			"application/json": {
+				"schema": {
+					"type": "object",
+					"properties": {
+						"availability": {
+							"type": "string",
+							"description": "The availability status of the expert"
+						}
+					}
+				}
+			}
+		}
+	},
 	"Expert_patch": {
 		"content": {
 			"application/json": {

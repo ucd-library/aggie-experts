@@ -232,6 +232,43 @@
         "style": "simple",
         "explode": false
     },
+    "inner_hit_size": {
+        "in": "query",
+        "name": "inner_hit_size",
+        "description": "The number of inner hits (works per expert) to return",
+        "required": false,
+        "schema": {
+            "type": "integer"
+        }
+    },
+    "include": {
+        "in": "query",
+        "name": "include",
+        "description": "Pass 'hidden' to include non-visible entries (requires owner or admin)",
+        "required": false,
+        "schema": {
+            "type": "string",
+            "enum": ["hidden"]
+        }
+    },
+    "all": {
+        "in": "query",
+        "name": "all",
+        "description": "Return all grants and works without pagination (requires owner or admin)",
+        "required": false,
+        "schema": {
+            "type": "boolean"
+        }
+    },
+    "previewEsIndex": {
+        "in": "query",
+        "name": "previewEsIndex",
+        "description": "Override the Elasticsearch index used for this request",
+        "required": false,
+        "schema": {
+            "type": "string"
+        }
+    },
     "dateFrom": {
         "in": "query",
         "name": "dateFrom",

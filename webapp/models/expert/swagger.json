@@ -14,6 +14,19 @@
         }
       }
     },
+    "/api/expert/{expertId}/availability": {
+      "patch": {
+        "description": "Update an expert's availability by expert id",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" }
+        ],
+        "requestBody": { "$ref": "#/components/requestBodies/Expert_availability_patch" },
+        "responses": {
+          "204": { "$ref": "#/components/responses/No_content" },
+          "404": { "$ref": "#/components/responses/Expert_not_found" }
+        }
+      }
+    },
     "/api/expert/{expertId}/{relationshipId}": {
       "patch": {
         "description": "Update an expert relationship by id",
@@ -43,7 +56,10 @@
       "get": {
         "description": "Get an expert by id",
         "parameters": [
-          { "$ref": "#/components/parameters/expertId" }
+          { "$ref": "#/components/parameters/expertId" },
+          { "$ref": "#/components/parameters/include" },
+          { "$ref": "#/components/parameters/all" },
+          { "$ref": "#/components/parameters/previewEsIndex" }
         ],
         "responses": {
           "200": { "$ref": "#/components/responses/Expert" },

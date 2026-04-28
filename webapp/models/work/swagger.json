@@ -5,8 +5,10 @@
         "description": "Returns matching search results for works.",
         "parameters": [
           { "$ref": "#/components/parameters/q" },
+          { "$ref": "#/components/parameters/p" },
           { "$ref": "#/components/parameters/page" },
-          { "$ref": "#/components/parameters/size" }
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/inner_hit_size" }
         ],
         "responses": {
           "200": { "$ref": "#/components/responses/Search" },
