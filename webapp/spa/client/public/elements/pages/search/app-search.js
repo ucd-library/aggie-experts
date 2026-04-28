@@ -1159,7 +1159,7 @@ export default class AppSearch extends Mixin(LitElement)
           if( normalized.nameParts.length ) seenSet.add(`np:${normalized.nameParts.join('|')}`);
         };
 
-        contributors.forEach(c => {
+        contributors.filter(c => !c['ae-roleof-suppress']).forEach(c => {
           let role = utils.getGrantRole(c)?.role || '';
           let name = c.name || '';
           if( Array.isArray(name) ) name = name[0];
