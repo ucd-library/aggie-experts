@@ -21,10 +21,10 @@
           { "$ref": "#/components/parameters/id" }
         ],
         "responses": {
-          "200": { "$ref": "#/components/responses/grant" },
-          "400": { "$ref": "#/components/responses/missing_id" },
-          "403": { "$ref": "#/components/responses/forbidden" },
-          "404": { "$ref": "#/components/responses/not_found" }
+          "200": { "$ref": "#/components/responses/Grant" },
+          "400": { "$ref": "#/components/responses/Missing_id" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Not_found" }
         }
       }
     }

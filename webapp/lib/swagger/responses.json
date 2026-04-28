@@ -1,11 +1,11 @@
 {
-	"not_found": {
+	"Not_found": {
 		"description": "Resource not found"
 	},
-	"missing_id": {
+	"Missing_id": {
 		"description": "Request needs id"
 	},
-	"forbidden": {
+	"Forbidden": {
 		"description": "Request is forbidden"
 	},
 	"Relationship": {
@@ -41,7 +41,7 @@
 			}
 		}
 	},
-	"work": {
+	"Work": {
 		"description": "work",
 		"content": {
 			"application/json": {
@@ -51,7 +51,7 @@
 			}
 		}
 	},
-	"grant": {
+	"Grant": {
 		"description": "grant",
 		"content": {
 			"application/json": {
