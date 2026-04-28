@@ -157,7 +157,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.truncateIntroduction = this.introduction.length > 500;
     this.truncateResearchInterests = this.introduction.length + this.researchInterests.length > 500;
 
-    this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true).map(c => {
+    this.roles = graphRoot.contactInfo?.filter(c => c['isPreferred'] === true && c.hasTitle && c.hasOrganizationalUnit).map(c => {
 
       let emails = [];
       if( c.hasEmail && Array.isArray(c.hasEmail) ) {
