@@ -8,7 +8,7 @@
           { "$ref": "#/components/parameters/p" },
           { "$ref": "#/components/parameters/page" },
           { "$ref": "#/components/parameters/size" },
-          { "$ref": "#/components/parameters/@type" },
+          { "$ref": "#/components/parameters/atType" },
           { "$ref": "#/components/parameters/type" },
           { "$ref": "#/components/parameters/status" },
           { "$ref": "#/components/parameters/availability" },

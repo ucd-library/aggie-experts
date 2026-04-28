@@ -42,7 +42,10 @@
         "description": "Comma-separated search filter on experts",
         "required": false,
         "schema": {
-            "type": "array"
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
         },
         "style": "simple",
         "explode": false
@@ -216,17 +219,17 @@
         "style": "simple",
         "explode": false
     },
-    "@type": {
+    "atType": {
         "in": "query",
         "name": "@type",
         "description": "Comma-separated list of item @types to return.",
         "required": false,
         "schema": {
             "type": "array",
+            "default": ["expert", "grant", "work"],
             "items": {
                 "type": "string",
-                "enum": ["expert", "grant", "work"],
-                "default": "expert,grant,work"
+                "enum": ["expert", "grant", "work"]
             }
         },
         "style": "simple",
