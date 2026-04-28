@@ -1102,63 +1102,6 @@ export default class AppSearch extends Mixin(LitElement)
         const seenPisCoPis = new Set();
         const seenOtherContributors = new Set();
 
-        // normalize contributors to "last, first" and full token part matches
-        const getNormalizedContributor = (rawName) => {
-          if( !rawName || typeof rawName !== 'string' ) {
-            return { lastFirst: '', nameParts: [] };
-          }
-
-          let cleaned = rawName
-            .replace(/\s*CoPI:\s*/gi, '')
-            .replace(/\s*PI:\s*/gi, '')
-            .trim();
-          if( !cleaned ) {
-            return { lastFirst: '', nameParts: [] };
-          }
-
-          const nameParts = cleaned
-            .toLowerCase()
-            .split(/[\s,]+/)
-            .map(part => part.trim())
-            .filter(part => part.length > 1)
-            .sort();
-
-          const parts = cleaned.split(',');
-          if( parts.length < 2 ) {
-            return {
-              lastFirst: cleaned.toLowerCase().replace(/\s+/g, ' '),
-              nameParts
-            };
-          }
-
-          const last = (parts.shift() || '').trim().toLowerCase();
-          const givenAndMiddle = parts.join(',').trim();
-          const first = (givenAndMiddle.split(/\s+/)[0] || '').trim().toLowerCase();
-
-          return {
-            lastFirst: `${last}, ${first}`,
-            nameParts
-          };
-        };
-
-        const hasSeenContributor = (seenSet, normalized) => {
-          if( !normalized.lastFirst && !normalized.nameParts.length ) return true;
-
-          // lastFirst match catches middle initial variants
-          if( normalized.lastFirst && seenSet.has(`lf:${normalized.lastFirst}`) ) return true;
-
-          // nameParts match catches swapped token ordering
-          const partsKey = normalized.nameParts.join('|');
-          if( partsKey && seenSet.has(`np:${partsKey}`) ) return true;
-
-          return false;
-        };
-
-        const markSeenContributor = (seenSet, normalized) => {
-          if( normalized.lastFirst ) seenSet.add(`lf:${normalized.lastFirst}`);
-          if( normalized.nameParts.length ) seenSet.add(`np:${normalized.nameParts.join('|')}`);
-        };
-
         contributors.filter(c => !c['ae-roleof-suppress']).forEach(c => {
           let role = utils.getGrantRole(c)?.role || '';
           let name = c.name || '';
@@ -1166,17 +1109,17 @@ export default class AppSearch extends Mixin(LitElement)
           name = name.replace(/\s*CoPI:\s*/gi, '');
           name = name.replace(/\s*PI:\s*/gi, '');
           name = name.trim();
-          const normalizedName = getNormalizedContributor(name);
+          const normalizedName = utils.getNormalizedContributor(name);
           if( !normalizedName.lastFirst && !normalizedName.nameParts.length ) return;
 
           if( role === 'Principal Investigator' || role === 'Co-Principal Investigator' ) {
-            if( !hasSeenContributor(seenPisCoPis, normalizedName) ) {
-              markSeenContributor(seenPisCoPis, normalizedName);
+            if( !utils.hasSeenContributor(seenPisCoPis, normalizedName) ) {
+              utils.markSeenContributor(seenPisCoPis, normalizedName);
               pisCoPis += name + '; ';
             }
           } else {
-            if( !hasSeenContributor(seenOtherContributors, normalizedName) ) {
-              markSeenContributor(seenOtherContributors, normalizedName);
+            if( !utils.hasSeenContributor(seenOtherContributors, normalizedName) ) {
+              utils.markSeenContributor(seenOtherContributors, normalizedName);
               otherContributors += name + '; ';
             }
           }

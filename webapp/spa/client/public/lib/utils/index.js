@@ -182,7 +182,7 @@ class Utils {
             isExpert = true;
           }
         });
-        if( !isExpert ) otherRelationships.push(r);
+        if( !isExpert && !r['ae-roleof-suppress'] ) otherRelationships.push(r);
       });
 
       if( filterHidden && !expertsRelationships.some(r => r['is-visible']) ) {
@@ -193,24 +193,31 @@ class Utils {
       g.isVisible = expertsRelationships.some(r => r['is-visible']);
       // g.relationshipId = expertsRelationship['@id'];
 
-      // determine pi/copi in otherRelationships
-      let contributors = otherRelationships.map(r => {
+      // determine pi/copi in otherRelationships, normalize and dedupe names
+      const contributors = [];
+      const seenContributors = new Set();
+      otherRelationships.forEach((r) => {
         let { role: contributorRole } = this.getGrantRole(r);
         if( !['Principal Investigator', 'Co-Principal Investigator'].includes(contributorRole) ) return;
 
         let contributorName = r.name || '';
-        if( contributorName && contributorRole ) {
-          if( Array.isArray(contributorName) ) contributorName = contributorName[0];
-          contributorName = contributorName.replace(/\s*CoPI:\s*/gi, '');
-          contributorName = contributorName.replace(/\s*PI:\s*/gi, '');
-          return {
-            name: contributorName,
-            role: contributorRole,
-          };
-        }
+        if( Array.isArray(contributorName) ) contributorName = contributorName[0] || '';
+        contributorName = contributorName.replace(/\s*CoPI:\s*/gi, '');
+        contributorName = contributorName.replace(/\s*PI:\s*/gi, '');
+        contributorName = contributorName.trim();
+
+        const normalizedName = this.getNormalizedContributor(contributorName);
+        if( !normalizedName.lastFirst && !normalizedName.nameParts.length ) return;
+        if( this.hasSeenContributor(seenContributors, normalizedName) ) return;
+
+        this.markSeenContributor(seenContributors, normalizedName);
+        contributors.push({
+          name: contributorName,
+          role: contributorRole,
+        });
       });
 
-      g.contributors = contributors.filter(c => c); // remove undefined
+      g.contributors = contributors;
 
       // determine role/type using expertsRelationship
       ({ role: g.role, relationshipId: g.relationshipId } = this.getGrantRole(expertsRelationships));
@@ -241,6 +248,68 @@ class Utils {
     parsedGrants = parsedGrants.filter(g => g); // remove undefined
     // parsedGrants.sort((a,b) => new Date(b.dateTimeInterval?.end?.dateTime) - new Date(a.dateTimeInterval?.end?.dateTime) || a.name.localeCompare(b.name));
     return parsedGrants;
+  }
+
+  /**
+   * @method getNormalizedContributor
+   * @description given a contributor name, return an object with normalized name formats for matching contributors across grants with varying name formats
+   *
+   * @param {String} rawName contributor name to normalize, typically from grant relationships
+   */
+  getNormalizedContributor(rawName) {
+    if( !rawName || typeof rawName !== 'string' ) {
+      return { lastFirst: '', nameParts: [] };
+    }
+
+    let cleaned = rawName
+      .replace(/\s*CoPI:\s*/gi, '')
+      .replace(/\s*PI:\s*/gi, '')
+      .trim();
+    if( !cleaned ) {
+      return { lastFirst: '', nameParts: [] };
+    }
+
+    const nameParts = cleaned
+      .toLowerCase()
+      .split(/[\s,]+/)
+      .map(part => part.trim())
+      .filter(part => part.length > 1)
+      .sort();
+
+    const parts = cleaned.split(',');
+    if( parts.length < 2 ) {
+      return {
+        lastFirst: cleaned.toLowerCase().replace(/\s+/g, ' '),
+        nameParts
+      };
+    }
+
+    const last = (parts.shift() || '').trim().toLowerCase();
+    const givenAndMiddle = parts.join(',').trim();
+    const first = (givenAndMiddle.split(/\s+/)[0] || '').trim().toLowerCase();
+
+    return {
+      lastFirst: `${last}, ${first}`,
+      nameParts
+    };
+  }
+
+  hasSeenContributor(seenSet, normalized) {
+    if( !normalized.lastFirst && !normalized.nameParts.length ) return true;
+
+    // lastFirst match catches middle initial variants
+    if( normalized.lastFirst && seenSet.has(`lf:${normalized.lastFirst}`) ) return true;
+
+    // nameParts match catches swapped token ordering
+    const partsKey = normalized.nameParts.join('|');
+    if( partsKey && seenSet.has(`np:${partsKey}`) ) return true;
+
+    return false;
+  }
+
+  markSeenContributor(seenSet, normalized) {
+    if( normalized.lastFirst ) seenSet.add(`lf:${normalized.lastFirst}`);
+    if( normalized.nameParts.length ) seenSet.add(`np:${normalized.nameParts.join('|')}`);
   }
 
   /**
