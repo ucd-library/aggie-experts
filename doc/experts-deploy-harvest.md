@@ -1,266 +1,237 @@
-# Deploy a new AggieExperts Instance
+# Aggie Experts Deployment
 
-The typical method used to update Aggie Experts is to; create a new docker
-constellation setup as stage, harvest new data, import the data, test the new
-service, deploy that a the new server, and stop the previous version.
+Aggie Experts v5 is deployed via a dedicated GitOps repository:
+[aggie-experts-deployment](https://github.com/ucd-library/aggie-experts-deployment).
+Images are built with
+[cork-kube](https://github.com/ucd-library/cork-kube) and published to Google Artifact
+Registry. There are two environments:
 
-## Create a new AggieExperts constellation
+| Environment | Platform | Host | Notes |
+|---|---|---|---|
+| **dev** | Kubernetes (microk8s) | `libk8s` cluster, `aggie-experts-dev` namespace | Updated first for validation |
+| **prod** | Docker Compose | `experts-anduin.library.ucdavis.edu` | Managed by systemd |
 
-We toggle our production instance between blue|gold.experts.library.ucdavis.edu.
-If production is runnning on gold, then we'll create the stage version on blue.
-The instances are all maintained in
-`file://blue|gold.experts.library.ucdavis.edu/etc/aggie-experts`.
+The ETL/harvest runs automatically on a weekly schedule via Dagster. Operators interact
+with it through the Anduin auth gateway at port 4000.
 
-There will likely be multiple versions of the codebase already on the server:
+## Navigation
 
-```bash
-cd /etc/aggie-experts;
-ls -l
-```
+- [Building and tagging images](#building-and-tagging-images)
+- [Updating a deployment](#updating-a-deployment)
+  - [Dev (Kubernetes)](#dev-kubernetes)
+  - [Production (Docker Compose)](#production-docker-compose)
+- [Running the ETL](#running-the-etl)
+  - [Weekly automatic schedule](#weekly-automatic-schedule)
+  - [Triggering an ETL run manually](#triggering-an-etl-run-manually)
+  - [Realtime single-user refresh](#realtime-single-user-refresh)
+  - [Promoting a staged index to production](#promoting-a-staged-index-to-production)
+- [Local development](#local-development)
+- [Related docs](#related-docs)
 
-There is no specific requirement on how the instances are named, but we use the
-format `${MAJOR}-${deploynumber}`.  Where `${MAJOR}` is the major release of
-AggieExperts, and `${deploynumber}` is the number of times this `${MAJOR}`
-instance has been deployed.  `{$MAJOR}` is used, because you should be able to
-update to any new revision of Aggie Experts without needed to update the data.
-`${deploynumber}` helps keep track of the more recent versions being used.
+## Building and tagging images
 
-Under normal circumstances, there shouldn't be any docker containers running.
-If you see any via `docker ps`, then you need to investigate what is currently
-active on the system.  However, see the *Harvest new data* section below for an
-important exception.
-
-We create our new instance by cloning the aggie-experts project into a new
-directory.  Let's imagine we are launching a new instance based on version 4.0.2
-of AggieExperts:
-
-``` bash
-cd /etc/aggie-experts
-MAJOR=4  # imagine there was already a 4-0, so we are creating 4-1
-git clone --branch=4.0.2  https://github.com/ucd-library/aggie-experts.git 4-1
-```
-
-Note, in practice, I usually just clone the default `dev` branch, and then go in
-and `git checkout 4.0.2`, since it's more natural.
-
-Next, we simply need to have create a setup for running on stage.
-
-``` bash
-cd /etc/aggie-experts/4-1
-bin/aggie-experts --no-gcs --no-test --env=stage setup
-```
-
-*Note: it's unclear now whether going forward aggie-experts will initialize from
- Google Cloud Storage (gcs) or not.  The newest version of fin causes some
- issues using this reliably, and honestly, I'm not sure I see the utility.  For
- this example we are using `--no-gcs`, which prevents the GCS container from
- even being added to the constellation.*
-
-*Note: one thing `--no-test` does is verify we are running on either blue or
- gold. However this requires a proper ~resolv.conf~ file that is sometimes
- changed on us, so If the test fails there, then I setup anyway*
-
-This sets the proper images, downloads the required secrets, and creates a
-`docker-compose.yaml` file that is ready to deploy.  The `docker-compose.yaml` has
-all the default parameters, so you shouldn't need a `.env` file, unless you are
-doing something out of the ordinary.
-
-## Harvest New Data
-
-Now we are ready to harvest new data. For this we need to run a harvest process
-on the ~fuseki~ container.  Right now, the ~fuseki~ container is *only* used for
-harvesting new data.  In addition to the documentation below, a
-[Screencast](https://drive.google.com/file/d/1Cyh7jxfiFdXu_wSHGAZ440YZJ9Um6IQ-/view)
-of the process is also available.
-
-Above, we mentioned there is an exception to the rule that no other containers
-are running on our server.  Occasionally, you may want to harvest new data on a
-`blue|gold` server, while you are still running a different instance of Aggie
-Experts.  There is no problem doing this, and if you *only* start the `fuseki`
-instance, then you don't have to worry about sharing any ports either.  In this
-example, we'll start fuseki only
-
-``` bash
-dc up -d fuseki
-```
-
-*Note: this following step is run by hand, and still requires a certain amount
- of monitoring.  This is mostly due to the fact that running docker containers
- on the Library's VM cluster can sometimes be problematic, and not allocate the
- memory the container expects.  This will cause fuseki's Java to crash, and
- kills the container as well.*
-
-I typically use `byobu` so that I can open multiple terminals on the system, but
-I can also disconnect.  This is important because importing the data can take
-quite awhile.
-
-``` bash
-byobu
-```
-
-Next, we want to run a bash instance on fuseki.
-
-``` bash
-docker compose exec fuseki bash
-```
-
-This brings you to a bash shell on the fuseki container, where you should see a
-prompt similiar to: `root@04871390ecd4:/var/lib/fuseki#`
-
-Now, let's fetch all the experts.
+Images are built with Google Cloud Build via `cork-kube build gcb`. The available build
+versions and their dependency pins (CaskFS, project-anduin, Postgres) are defined in the
+[cork-build-registry](https://github.com/ucd-library/cork-build-registry).
 
 ```bash
-experts cdl --log=info --groups=experts
+# Tag a release in aggie-experts
+git tag 5.0.1
+git push origin 5.0.1
+
+# Build (GCB triggers on tag, or trigger manually)
+cork-kube build gcb -p aggie-experts -v 5.0.1
 ```
 
-This starts the harvest in the foreground and logs to the console as it works.
-The information includes downloading XML data from CDL, creating a new database,
-running SPARQL commands on the database, and finalizing the expert.  As it runs,
-it fills up the `cache` directory with: the files downloaded, the SPARQL
-commands run, and the fcrepo representation of the expert.
+Published images:
 
-You can open another byobu terminal to monitor the cache being built by the
-harvest.
-
-``` bash
-docker compose exec fuseki bash
-ls cache/     # will list expert directories
-ls cache/ | wc -l # count of experts harvested to monitor progress.
+```
+us-west1-docker.pkg.dev/aggie-experts/pub/harvest:<version>
+us-west1-docker.pkg.dev/aggie-experts/pub/webapp:<version>
+us-west1-docker.pkg.dev/aggie-experts/pub/ae-postgres:<version>
+us-west1-docker.pkg.dev/aggie-experts/pub/elastic-search:<version>
+us-west1-docker.pkg.dev/aggie-experts/pub/anduin-gateway:<version>
 ```
 
-Now, you can log out, and the harvest will still be running. Later you can ssh
-back into the server and restart byobu to continue.
+## Updating a deployment
 
-As discussed above, while running a long import, your fuseki container my
-crash.  You can look at the docker logs to see why the container crashed.  In
-addition, after restarting and bashing back into the system.  You can see the
-application log to see when the application failed.
+All deployment changes are made in the
+[aggie-experts-deployment](https://github.com/ucd-library/aggie-experts-deployment) repo.
 
-You can restart the process where you left off with the `--skip-existing`
-flag. This will *not* reprocess any experts currently in the cache.
-
-``` bash
-docker compose exec fuseki bash
-rm -rf databases/*  # If fuseki fails in a bad spot, the last user might have corrupted data.
-rm configuration/*  # If fuseki fails in a bad spot, the last user might have corrupted data.
-experts cdl --log=info --skip-existing --groups=experts
-```
-
-## Import the data
-
-Once you have a cache of data ready, we can import that into the new instance.
-At this point it *is* important that no other conflicting containers are running
-on the computer.  *PRO NOTE: you can also do this using ???_PORT variables in the .env file*
-
-Startup the complete instance:
+### Dev (Kubernetes)
 
 ```bash
-docker compose up -d
+cd aggie-experts-deployment
+./cmds/update-deployment.sh dev 5.0.1
 ```
 
-This should *not* start the gateway until all initialization steps are complete. Check
-the docker logs to ensure that the entire instance started properly; pay particular
-attention to the `init` container.
+This resolves dependency versions (CaskFS, Anduin, Postgres) from the cork-build-registry,
+patches the kustomize image tags for the `aggie-experts-dev` namespace, and commits and
+pushes the changes.
 
-Now you can import the data:
+Apply to the cluster:
 
 ```bash
-dc exec fuseki experts_import
+cork-kube apply -e dev
 ```
 
-You can monitor progress through the `/fin/admin` section of your new
-`stage.experts.library.ucdavis.edu`
-
-## Update the Summary Spreadsheet
-
-To monitor changes in the experts, grants and works on the app, an internal Aggie Experts 
-Summary spreadsheet is updated with the imported data. To do so, first download the data 
-onto a csv using:
+Or apply a specific service group only:
 
 ```bash
-bin/count-experts --host=https://stage.experts.library.ucdavis.edu
+cork-kube apply -e dev -g anduin
+cork-kube apply -e dev -g webapp
 ```
 
-This command will save the csv at `~/aggie-experts/log/YYYYMMDD` by default. Next, import 
-the csv to the Aggie Experts Summary spreadsheet. One way to do this is to go to File > Import, 
-then use the Upload tab on the right; select `Insert new sheet(s)` from the `Import location` 
-dropdown on the `Import file` dialogue box.
-
-Rename the sheet with the download date, formatted as YYYYMMDD. Now, update the formula in 
-cell A2 on the `combined` sheet to include this newest data, replacing the oldest data in
-the formula. Next, copy all of column A on the `combined` sheet and `Paste special > Values only` 
-into column A on the `delta` sheet, replacing the experts column on that sheet. Finally, update
-the sheet names in cells D2, E2, and F2 of the `delta` sheet to include the newest data, ordering
-them to have newer data on the left.
-
-You should now be able to sort the data as desired. (Note: sorting will only work properly
-if the experts column was pasted in the delta using `Paste special > Values only`; a 
-normal paste will not allow for proper sorting.)
-
-
-## Test the server
-
-Once you see that all the data has been processed by fin, invite your
-collaborators to test the system now running at
-`stage.experts.library.ucdavis.edu`. 
-
-If bugs are encountered, for example UI bugs, then once those bugs are fixed, tag the new
-version, register the new version in the `cork-build-registry`, and build new images using
-the `cork-kube build` command. You can use `git pull` on your directory, `git checkout 4.0.3` 
-or whatever the newly built images are. Run 
+### Production (Docker Compose)
 
 ```bash
-bin/aggie-experts --no-gcs --no-test --env=stage setup
+cd aggie-experts-deployment
+./cmds/update-deployment.sh prod 5.0.1
 ```
 
-Then `dc pull`, followed by `dc up -d` to create new containers based on the 
-new images (that have changed). The data stays the same.
+This patches `compose/prod/compose.yaml` with the new image tags, then commits and pushes.
 
-## Deploy to production
-
-Once acceptance testing is complete, you promote this instance to the new version.
-
-``` bash
-cd /etc/aggie-experts/4-1
-bin/aggie-experts --no-gcs --no-test --env=prod setup
-dc pull; dc down; dc up -d
-```
-
-And you can now test it's working.  At this point both blue and gold are both
-running a production system, and being balanced by the router.  You can test
-by removing your cookies from your browser at `https://experts.ucdavis.edu` and reloading until you see your new version come up.  If everything looks good,  then you can stop the previous version.  Let's assume that's on gold. then:
+**Option 1 — Deploy remotely** (from your workstation):
 
 ```bash
-ssh gold.experts.library.ucdavis.edu
-cd /etc/aggie-experts/4-0  # or whatever the running version is
-dc stop
+./compose/prod/remote-update-cluster.sh webapp
+./compose/prod/remote-update-cluster.sh anduin
 ```
 
-I usually just stop these so they can be started quickly if we need to revert.
+This SSHes to `experts-anduin.library.ucdavis.edu` and runs `update-cluster.sh` there.
 
-## Clean-up: Deleting old instances
-
-Currently, weekly snapshots of Aggie Experts are created, resulting in a number of defunct ones lying about in `file://[blue|gold].experts.library.ucdavis.edu/etc/aggie-experts`. Previous versions are useful to go back in time, and map harvesting in particular, which can be done without bringing up the whole system.
-
-Typically, 3 or 4 previous versions are kept. Removing an older version takes hours, consequently:
-  - remove instances while that machine [blue|gold] is still serving stage; deleting the old versions can slow down disk access (elasticsearch) on the server
-  - don't remove an instance while you are harvesting for another; both tasks are disk intensive
-  - use `byobu` or similar to avoid interruption
-
-The process is
-  ```bash
-  ver=3-2
-  cd /etc/aggie-experts/$ver
-  dc down -v
-  cd ..
-  rm -rf $ver
-  ``` 
-
-If the deletion process does get interrupted, docker can appear slow, with no good indication of what's going on. Rather than restarting the docker daemon, which won't solve the problem, monitor that the deletion is still happening in the background, and wait for it to end. The problem is always fcrepo, and it's millions of files. Track the deletion of a volume like this:
+**Option 2 — Deploy on-host** (SSH to the server first):
 
 ```bash
-ver=3-2
-sudo ls /var/lib/docker/volumes/${ver}_fedora-data/_data/ocfl-root/ | wc -l
+ssh experts-anduin.library.ucdavis.edu
+cd /opt/aggie-experts-deployment
+git pull
+./compose/prod/update-cluster.sh webapp   # zero-downtime rolling restart
+./compose/prod/update-cluster.sh anduin   # ETL stack restart
+./compose/prod/update-cluster.sh all      # full restart (brief downtime)
 ```
 
-This lists the file roots in fcrepo's filestore, which is stored in a tree. If the deletion is still going on, you will see this number slowly decrease. If you do see that, then just monitor and wait for that to complete. Sometimes, depending on how you got into trouble, you may have to rerun `dc down -v` but it'll go fast after fcrepo is gone.
+The `webapp` group (Express gateway, Lit SPA, REST API) can be restarted with no downtime.
+The `anduin` group (Dagster, CaskFS, Superset, gateway) involves a brief ETL interruption
+but does not affect the public webapp. Use `all` only when shared infrastructure (postgres,
+elasticsearch) needs to be restarted.
+
+### Deployment pattern
+
+Always update **dev first**, validate, then update **prod**:
+
+```
+update-deployment.sh dev 5.0.1  →  validate on anduin-dev.experts.library.ucdavis.edu
+update-deployment.sh prod 5.0.1 →  deploy to experts-anduin.library.ucdavis.edu
+```
+
+Commit messages in the deployment repo follow the pattern:
+```
+Updated prod to version 5.0.1 (CaskFS: 0.1.1, Anduin: 0.1.2, Postgres: 16)
+```
+
+## Running the ETL
+
+### Weekly automatic schedule
+
+The ETL runs automatically every week via Dagster schedules:
+
+| Schedule | Cron | Environment |
+|---|---|---|
+| `weekly_elt_schedule_prod` | Saturday 01:00 AM PT | production (`group_id=experts`) |
+| `weekly_elt_schedule_dev` | Sunday 01:00 AM PT | dev |
+| `cleanup_schedule_prod` | Saturday 17:00 PM PT | production |
+| `cleanup_schedule_dev` | Sunday 17:00 PM PT | dev |
+
+Monitor progress in the Dagster UI at `https://experts-anduin.library.ucdavis.edu/dagster`
+(requires `execute` or `admin` role in Keycloak).
+
+ETL summary dashboards are in Superset at
+`https://experts-anduin.library.ucdavis.edu/superset`.
+
+### Triggering an ETL run manually
+
+To run a full ETL manually, trigger `start_weekly_etl_job` from the Dagster UI:
+
+1. Open `https://experts-anduin.library.ucdavis.edu/dagster`.
+2. Navigate to **Jobs → start_weekly_etl_job**.
+3. Click **Materialize all** (or **Launch run**).
+4. Set `group_id` to `experts` (full list) or a sandbox group ID for testing.
+
+Alternatively, from inside the harvest container:
+
+```bash
+experts harvest dagster run-extract-users-job \
+  --group-id experts \
+  --notify true \
+  --continue-etl true
+```
+
+`--continue-etl true` causes the `etl_notify_and_continue` sensor to automatically
+trigger phase 2 once phase 1 completes.
+
+### Realtime single-user refresh
+
+To re-harvest a single researcher (e.g. after a profile update):
+
+1. In the Dagster UI, go to **Jobs → etl_users_job**.
+2. Select the target user partition.
+3. Click **Launch run**.
+
+Or from the webapp admin panel (if enabled for your role).
+
+### Promoting a staged index to production
+
+After a weekly ETL, the new data lands in the `latest` Elasticsearch alias. To promote
+it to the `public` alias (visible to the webapp):
+
+1. Validate data on the staging-facing app.
+2. In the Dagster UI, run the **`set_alias`** asset with:
+   - `alias`: `public`
+   - `year_week`: the current year-week (e.g. `2026-17`)
+
+Or from the command line inside the harvest container:
+
+```bash
+experts es set-alias public --year-week 2026-17
+```
+
+## Local development
+
+Clone the deployment repo and follow the quick-start:
+
+```bash
+git clone https://github.com/ucd-library/aggie-experts-deployment
+cd aggie-experts-deployment
+
+# First run: fetch secrets and build images
+./cmds/init.sh
+./cmds/build-local-dev.sh
+
+# Start the stack
+./cmds/up.sh local-dev
+```
+
+Services available locally:
+
+| Service | URL |
+|---|---|
+| Anduin gateway (Dagster, CaskFS, Superset) | `http://localhost:4000` |
+| Aggie Experts webapp | `http://localhost:8080` |
+
+The local dev compose uses volume-mounted source from the aggie-experts repo, so code
+changes are reflected without rebuilding images.
+
+See the [aggie-experts-deployment README](https://github.com/ucd-library/aggie-experts-deployment)
+for full local dev setup details.
+
+## Related docs
+
+- [aggie-experts-deployment repo](https://github.com/ucd-library/aggie-experts-deployment)
+- [cork-kube](https://github.com/ucd-library/cork-kube) — build and deployment tooling
+- [project-anduin](https://github.com/ucd-library/project-anduin) — ETL platform
+- [CaskFS](https://github.com/ucd-library/caskfs) — artifact store
+- [Harvest Process](harvest-process.md)
+- [Dagster Harvest Workflow](dagster-harvest-workflow.md)
+- [Anduin Integration](anduin-integration.md)
+- [Docker Images and Deployment](docker-deployment.md)

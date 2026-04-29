@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS validation_issue (
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
   user_id VARCHAR(255) NOT NULL,
-  entity_type VARCHAR(20) NOT NULL CHECK (entity_type IN ('work','grant')),
+  entity_type VARCHAR(20) NOT NULL CHECK (entity_type IN ('work','grant','expert')),
   entity_id TEXT NOT NULL,
   issue_type VARCHAR(50) NOT NULL,
   field VARCHAR(100),
