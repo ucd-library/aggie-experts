@@ -14,21 +14,9 @@
         }
       }
     },
-    "/api/expert/{expertId}/availability": {
-      "patch": {
-        "description": "Update an expert's availability by expert id",
-        "parameters": [
-          { "$ref": "#/components/parameters/expertId" }
-        ],
-        "requestBody": { "$ref": "#/components/requestBodies/Expert_availability_patch" },
-        "responses": {
-          "204": { "$ref": "#/components/responses/No_content" },
-          "404": { "$ref": "#/components/responses/Expert_not_found" }
-        }
-      }
-    },
     "/api/expert/{expertId}/{relationshipId}": {
       "patch": {
+        "x-private": true,
         "description": "Update an expert relationship by id",
         "parameters": [
           { "$ref": "#/components/parameters/expertId" },
@@ -41,6 +29,7 @@
         }
       },
       "delete": {
+        "x-private": true,
         "description": "Delete an expert relationship by id",
         "parameters": [
           { "$ref": "#/components/parameters/expertId" },
@@ -49,6 +38,20 @@
         "responses": {
           "204": { "$ref": "#/components/responses/No_content" },
           "404": { "$ref": "#/components/responses/Relationship_not_found" }
+        }
+      }
+    },
+    "/api/expert/{expertId}/availability": {
+      "patch": {
+        "x-private": true,
+        "description": "Update an expert's availability by expert id",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" }
+        ],
+        "requestBody": { "$ref": "#/components/requestBodies/Expert_availability_patch" },
+        "responses": {
+          "204": { "$ref": "#/components/responses/No_content" },
+          "404": { "$ref": "#/components/responses/Expert_not_found" }
         }
       }
     },
@@ -80,7 +83,8 @@
         }
       },
       "patch": {
-        "description": "Update an experts visibility by expert id",
+        "x-private": true,
+        "description": "Update an expert's visibility by expert id",
         "parameters": [
           { "$ref": "#/components/parameters/expertId" }
         ],
@@ -90,6 +94,7 @@
         }
       },
       "delete": {
+        "x-private": true,
         "description": "Delete an expert by id",
         "parameters": [
           { "$ref": "#/components/parameters/expertId" }

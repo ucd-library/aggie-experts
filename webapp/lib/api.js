@@ -92,12 +92,70 @@ async function init() {
   const swaggerSpec = swaggerJSDoc(options);
 
   app.get('/', (req, res) => {
-    res.json(swaggerSpec);
+    const spec = req.user ? swaggerSpec : filterPrivateOps(swaggerSpec);
+    res.json(spec);
   });
 
   await initAuth();
 
   return app;
+}
+
+const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
+
+function collectRefs(obj, refs = new Set()) {
+  if (!obj || typeof obj !== 'object') return refs;
+  if (Array.isArray(obj)) {
+    obj.forEach(item => collectRefs(item, refs));
+    return refs;
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === '$ref' && typeof value === 'string') {
+      refs.add(value);
+    } else {
+      collectRefs(value, refs);
+    }
+  }
+  return refs;
+}
+
+function filterPrivateOps(spec) {
+  const clone = JSON.parse(JSON.stringify(spec));
+
+  for (const [path, pathItem] of Object.entries(clone.paths || {})) {
+    for (const method of HTTP_METHODS) {
+      if (pathItem[method]?.['x-private']) {
+        delete pathItem[method];
+      }
+    }
+    const hasOps = HTTP_METHODS.some(m => pathItem[m]);
+    if (!hasOps) {
+      delete clone.paths[path];
+    }
+  }
+
+  // collect refs from paths → prune parameters, responses, requestBodies
+  const pathRefs = collectRefs(clone.paths);
+  const firstPassTypes = ['parameters', 'responses', 'requestBodies'];
+  for (const type of firstPassTypes) {
+    if (!clone.components?.[type]) continue;
+    for (const key of Object.keys(clone.components[type])) {
+      if (!pathRefs.has(`#/components/${type}/${key}`)) {
+        delete clone.components[type][key];
+      }
+    }
+  }
+
+  const componentRefs = collectRefs(clone.components);
+  if (clone.components?.schemas) {
+    for (const key of Object.keys(clone.components.schemas)) {
+      if (!componentRefs.has(`#/components/schemas/${key}`)) {
+        delete clone.components.schemas[key];
+      }
+    }
+  }
+
+  return clone;
 }
 
 init().then(app => {
