@@ -100,9 +100,52 @@ Engineering
 
 *Data fields:* sunset of research areas
 
-**May 2024** Campus-wide pre-release of Aggie Experts to Senate Faculty
+**May 2024** Campus-wide pre-release of Aggie Experts to Senate Faculty (v1.0.0)
 
-**September 2024** Campus-wide pre-release of Aggie Experts to Federation Faculty
+**September 2024** Campus-wide pre-release of Aggie Experts to Federation Faculty (v2.0.0)
+
+*Functionalities:* grant index and grant landing pages; availability keyword search;
+API subselect for smaller client payloads
+
+**December 2024** Major architecture release (v3.0.0)
+
+*Functionalities:* grant visibility controls; improved search and pagination; bug fixes
+from broad faculty feedback
+
+**February 2025** Works browseable and searchable (v3.2.0)
+
+*Functionalities:* works added to browse and search pages alongside experts and grants;
+full-text search across publications
+
+**April 2025** Public launch (v4.0.0)
+
+*Functionalities:* robots.txt and sitemap for search engine indexing; SEO metadata on
+expert, work, and grant pages; Fin 2.11 infrastructure upgrade
+
+**Summer 2025** Favorites and highlighted works (v4.5.x)
+
+*Functionalities:* researchers and admins can mark works as favorites/highlighted;
+highlighted works surface prominently on expert profiles and in the SiteFarm API;
+propagation of favorites to CDL Elements
+
+**October 2025** Share and discover (v4.6.0)
+
+*Functionalities:* share buttons on expert, work, and grant landing pages
+
+**November 2025** Timeline date filter (v4.7.0)
+
+*Functionalities:* date range slider on search results page to filter works and grants
+by year; results totals update dynamically with timeline filter
+
+**April 2026** Harvest platform migration to Anduin and CaskFS (v5.0.0)
+
+*Infrastructure:* replaced FIN/Fedora LDP and local Fuseki with
+[project-anduin](https://github.com/ucd-library/project-anduin) (Dagster + CaskFS +
+Superset + Auth Gateway); content-addressed artifact storage via
+[CaskFS](https://github.com/ucd-library/caskfs); distributed Celery workers for
+parallel per-user ETL; automated weekly scheduling with Superset reporting dashboards;
+GitOps deployment via
+[aggie-experts-deployment](https://github.com/ucd-library/aggie-experts-deployment)
 
 
 

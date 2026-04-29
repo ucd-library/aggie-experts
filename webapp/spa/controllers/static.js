@@ -11,6 +11,7 @@ let experts = require('../../models/expert/index.js');
 let works = require('../../models/work/index.js');
 let grants = require('../../models/grant/index.js');
 const getFaqJsonLd = require('../models/faq-jsonld.js');
+const getFooterJsonLd = require('../models/footer-jsonld.js');
 
 let jsBundleHash = '';
 
@@ -92,7 +93,7 @@ module.exports = async (app) => {
     },
 
     template : async (req, res, next) => {
-      let jsonld = '';
+      let pageJsonLd = '';
       let urlParts = req.originalUrl.split('/').filter(p => p ? true : false);
 
       let workId, grantId, expertId;
@@ -109,28 +110,73 @@ module.exports = async (app) => {
       try {
         if( isWork ) {
           workId = urlParts.slice(1).join('/').split('?')[0];
-          // might remove everything but work/grant, like no relationships
-          jsonld = await works.model.seo(workId);
+          pageJsonLd = await works.model.seo(workId);
         } else if( isGrant ) {
           grantId = urlParts.slice(1).join('/').split('?')[0];
-
-          // might remove everything but work/grant, like no relationships
-          jsonld = await grants.model.seo(grantId);
+          pageJsonLd = await grants.model.seo(grantId);
         } else if( isExpert ) {
           expertId = 'expert/' + urlParts[1].split('?')[0];
-
-          // might have to see if too much info (might remove vcard stuff, maybe modify types)
-          jsonld = await experts.model.seo(expertId);
+          pageJsonLd = await experts.model.seo(expertId);
         } else if( isFaq ) {
-          jsonld = getFaqJsonLd();
+          pageJsonLd = getFaqJsonLd();
         }
       } catch(e) {
         // ignore and let client handle 404 if needed
       }
 
+      const footerJsonLd = getFooterJsonLd();
+      const jsonld = mergeJsonLd([footerJsonLd, pageJsonLd]);
+
       return next({title: 'Aggie Experts', gaId: config.client.gaId, jsonld, jsBundleHash});
     }
   });
+
+  function mergeJsonLd(jsonLdSources=[]) {
+    const graph = [];
+    const dedupeSet = new Set();
+
+    jsonLdSources
+      .filter(Boolean)
+      .forEach(source => {
+        const nodes = getJsonLdNodes(source);
+
+        nodes.forEach(node => {
+          const dedupeKey = getJsonLdNodeKey(node);
+          if( dedupeSet.has(dedupeKey) ) return;
+
+          dedupeSet.add(dedupeKey);
+          graph.push(node);
+        });
+      });
+
+    if( !graph.length ) return '';
+
+    return JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': graph
+    }).replace(/</g, '\\u003c');
+  }
+
+  function getJsonLdNodes(source) {
+    try {
+      const value = typeof source === 'string' ? JSON.parse(source) : source;
+      if( !value || typeof value !== 'object' ) return [];
+
+      if( Array.isArray(value['@graph']) ) return value['@graph'];
+      if( value['@type'] ) return [value];
+
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function getJsonLdNodeKey(node) {
+    if( node?.['@id'] ) return `id:${node['@id']}`;
+    if( node?.['@type'] ) return `type:${node['@type']}:${JSON.stringify(node)}`;
+
+    return `node:${JSON.stringify(node)}`;
+  }
 
   function loadJsBundleHash(assetsDir) {
     let env = config.client.env.CLIENT_ENV;

@@ -325,7 +325,9 @@ return html`
 
       <div ?hidden="${!this.abstract}" class="abstract">
         <h3 class="heading--highlight">Abstract</h3>
-        <p>${this.abstract}</p>
+        <ucdlib-md>
+          <ucdlib-md-content>${this.abstract}</ucdlib-md-content>
+        </ucdlib-md>
       </div>
 
       <div ?hidden="${!this.showPublished}" class="published">
