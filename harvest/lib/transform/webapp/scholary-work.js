@@ -93,8 +93,8 @@ async function generateScholarlyWork(subject, opts={}) {
   graph.addNode(baseWork);
   
   // get the experts related to the work and add to the graph
-  const experts = await _getScholarlyWorkExperts(baseWork, opts);
-  graph.addNodes(experts);
+  const { nodes: expertNodes, organizations } = await _getScholarlyWorkExperts(baseWork, opts);
+  graph.addNodes(expertNodes);
 
   let swType = getScholarlyWorkType(baseWork['@type']);
   if( !swType ) {
@@ -113,7 +113,7 @@ async function generateScholarlyWork(subject, opts={}) {
   // Attach normalized embedding vector for KNN search
   try {
     const embedFn = swType === 'grant' ? embedGrant : embedWork;
-    const embedResult = await embedFn(subject, { yearWeek: getYearWeek(), normalize: true, maxLength: config.llm.embedDimension });
+    const embedResult = await embedFn(subject, { yearWeek: getYearWeek(), normalize: true, maxLength: config.llm.embedDimension, organizations });
     if (embedResult?.embedding) graph.embedding = embedResult.embedding;
   } catch(embedErr) {
     logger.warn(`Could not generate embedding for ${swType} ${subject}: ${embedErr.message}`);
@@ -159,6 +159,9 @@ function getScholarlyWorkType(nodeTypes) {
 }
 
 
+const VCARD_ORG_TYPE  = 'http://www.w3.org/2006/vcard/ns#Organization';
+const VCARD_ORG_TITLE = 'http://www.w3.org/2006/vcard/ns#title';
+
 async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
   let experts = new Set();
 
@@ -174,13 +177,14 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
         }
       });
     });
-  
+
   // filter to the experts id pattern
   experts = Array.from(experts).filter(id => id.startsWith('expert/'));
 
   const partitionKeys = ['year-week-'+getYearWeek(opts.date), 'ae-std'];
-  const results = [];
-  
+  const nodes = [];
+  const organizationSet = new Set();
+
   for( let expertId of experts ) {
     // first try the cache id map lookup
     let filepath = '';
@@ -215,8 +219,21 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
       continue;
     }
 
-    let person = JSON.parse(await cache.read(filepath));
-    person = await frame(person);
+    const rawPerson = JSON.parse(await cache.read(filepath));
+
+    // collect vcard Organization names from raw JSON-LD before framing drops them
+    const rawGraph = Array.isArray(rawPerson) ? rawPerson : (rawPerson['@graph'] || [rawPerson]);
+    for( const node of rawGraph ) {
+      const types = Array.isArray(node['@type']) ? node['@type'] : (node['@type'] ? [node['@type']] : []);
+      if( types.includes(VCARD_ORG_TYPE) ) {
+        const titles = node[VCARD_ORG_TITLE] || [];
+        for( const t of (Array.isArray(titles) ? titles : [titles]) ) {
+          if( t['@value'] ) organizationSet.add(t['@value']);
+        }
+      }
+    }
+
+    let person = await frame(rawPerson);
     person = getNodeByType(person, SHORT_TYPES.EXPERT, {match: true});
 
     if( !person ) {
@@ -224,10 +241,10 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
       continue;
     }
 
-    results.push(simplifiedExpert(person));
+    nodes.push(simplifiedExpert(person));
   }
 
-  return results;
+  return { nodes, organizations: Array.from(organizationSet) };
 }
 
 /**

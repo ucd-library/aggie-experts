@@ -95,6 +95,27 @@ export default function render() {
         width: 1rem;
       }
 
+      .search-result-scores {
+        padding-left: 36.406px;
+        font-size: .82rem;
+        font-family: monospace;
+        color: #555;
+        margin-top: 0.3rem;
+        background: #f5f5f5;
+        border-left: 3px solid #ccc;
+        padding: 0.25rem 0.5rem 0.25rem 36.406px;
+      }
+
+      .search-result-scores .score-item {
+        margin-right: 1.5rem;
+      }
+
+      .search-result-scores .score-label {
+        font-weight: bold;
+        color: #333;
+        margin-right: 0.25rem;
+      }
+
     </style>
 
     <div class="search-result">
@@ -115,6 +136,11 @@ export default function render() {
           <span ?hidden="${this.result.numberOfGrants === 0}"><a href="" @click="${this._filterByGrants}">${this.result.numberOfGrants} grant${this.result.numberOfGrants > 1 ? 's' : ''}</a></span>
           <span class="dot-separator" ?hidden="${this.result.numberOfGrants === 0 || this.result.numberOfWorks === 0}">.</span>
           <span ?hidden="${this.result.numberOfWorks === 0}"><a href="" @click="${this._filterByWorks}">${this.result.numberOfWorks} work${this.result.numberOfWorks > 1 ? 's' : ''}</a></span>
+      </div>
+      <div class="search-result-scores" ?hidden="${!this.result.scores}">
+        <span class="score-item"><span class="score-label">combined:</span>${this.result.scores?.combined?.toFixed(4)}</span>
+        <span class="score-item"><span class="score-label">bm25:</span>${this.result.scores?.bm25?.toFixed(4)}</span>
+        <span class="score-item"><span class="score-label">knn:</span>${this.result.scores?.knn?.toFixed(4)}</span>
       </div>
     </div>
   `;

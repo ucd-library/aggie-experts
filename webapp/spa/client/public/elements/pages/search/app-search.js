@@ -50,6 +50,7 @@ export default class AppSearch extends Mixin(LitElement)
       dateFrom : { type : String },
       dateTo : { type : String },
       dateRangeData : { type : Array },
+      debugScores : { type : Boolean },
     }
   }
 
@@ -91,6 +92,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.dateFrom = '';
     this.dateTo = '';
     this.dateRangeData = [];
+    this.debugScores = true;
 
     this.render = render.bind(this);
   }
@@ -218,6 +220,8 @@ export default class AppSearch extends Mixin(LitElement)
 
       this.dateFrom = query.dateFrom || '';
       this.dateTo = query.dateTo || '';
+      this.debugScores = query.debug_scores === 'true';
+
       if( this.dateFrom || this.dateTo ) {
         this.filterByDate = true;
         this.filterByDateLabel = (this.dateFrom || '') + ' - ' + (this.dateTo || '');
@@ -493,8 +497,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query.type,
           this.filterByExpertId,
           this.dateFrom,
-          this.dateTo
-        ), 
+          this.dateTo,
+          this.debugScores
+        ),
         resetPage // ignore cache
       ),
       true
@@ -770,12 +775,14 @@ export default class AppSearch extends Mixin(LitElement)
     }
 
     // results list mapping
+    const scoresByRawId = e.payload?.scores || {};
     this.displayedResults = (e.payload?.hits || []).map((r, index) => {
       let resultType = '';
       if (r['@type'] === 'Grant' || r['@type']?.includes?.('Grant')) resultType = 'grant';
       if (r['@type'] === 'Expert' || r['@type']?.includes?.('Expert')) resultType = 'expert';
       if (r['@type'] === 'Work' || r['@type']?.includes?.('Work')) resultType = 'work';
 
+      const rawId = r['@id'];
       let id = r['@id'];
       if (Array.isArray(r.name)) r.name = r.name[0];
       let name = r.name?.split('§')?.shift()?.trim();
@@ -822,6 +829,7 @@ export default class AppSearch extends Mixin(LitElement)
         subtitle,
         numberOfWorks,
         numberOfGrants,
+        scores: scoresByRawId[rawId] || null,
         graph: r
       };
     });

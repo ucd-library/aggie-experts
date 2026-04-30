@@ -165,7 +165,7 @@ function buildAeSearchBody(params, knn, globalMode = false) {
         filter: [{ term: { 'is-visible': true } }]
       },
     },
-    // min_score : 100.0,
+    min_score : 100.0,
     aggs: buildAeSearchAggs()
   };
 
@@ -180,7 +180,7 @@ function buildAeSearchBody(params, knn, globalMode = false) {
     if (params.dateFrom || params.dateTo) {
       postMust.push(buildDatePostFilter(params.dateFrom, params.dateTo));
     }
-    console.log('Post-filter clauses:', JSON.stringify(postMust, null, 2));
+
     if (postMust.length) body.post_filter = { bool: { must: postMust } };
   }
 
@@ -342,7 +342,7 @@ router.get(
         field: 'embedding',
         query_vector: vector,
         k: 200,
-        num_candidates: 300,
+        num_candidates: 200,
         similarity: 0.6
       };
 
@@ -353,7 +353,7 @@ router.get(
         knnClauses.push({
           ...baseKnn,
           boost: 600.0,
-          similarity: 0.4,
+          similarity: 0.5,
           filter: { bool: { must: [
             { term: { 'is-visible': true } }, 
             { term: { '@type': 'expert' } }
@@ -366,7 +366,7 @@ router.get(
         knnClauses.push({
           ...baseKnn,
           boost: 200.0,
-          similarity: 0.1,
+          similarity: 0.5,
           filter: { bool: { must: [
             { term: { 'is-visible': true } }, 
             { term: { '@type': 'work' } }]
@@ -403,12 +403,14 @@ router.get(
       }
 
       const globalBody = buildAeSearchBody(params, knn, true);
+      const bm25Body = null;
       // const bm25Body = params.debug_scores ? buildAeSearchBody(params, null) : null;
+      // console.log(bm25Body);
 
       const [searchResp, globalResp, bm25Resp] = await Promise.all([
         esClient.search({ index: searchIndex, body: searchBody }),
-        esClient.search({ index: searchIndex, body: globalBody })
-        // bm25Body ? esClient.search({ index: searchIndex, body: bm25Body }) : Promise.resolve(null)
+        esClient.search({ index: searchIndex, body: globalBody }),
+        bm25Body ? esClient.search({ index: searchIndex, body: bm25Body }) : Promise.resolve(null)
       ]);
 
       const searchResult = searchResp?.body ?? searchResp;
@@ -416,24 +418,34 @@ router.get(
       const total = searchResult?.hits?.total?.value ?? 0;
       const globalResult = globalResp?.body ?? globalResp;
 
-      // Capture combined (BM25+KNN) scores from search hits
-      // const scoreMap = new Map();
-      // for (const hit of searchHits) {
-      //   const id = hit._source?.['@id'];
-      //   if (id) scoreMap.set(id, { combined: hit._score });
-      // }
+      const scoreMap = new Map();
+      if (params.debug_scores) {
+        for (const hit of searchHits) {
+          const id = hit._source?.['@id'];
+          
+          let details = hit._explanation.details;
+          let bm25 = details.find(i => i.description == 'sum of:')
+          if( bm25 ) bm25 = bm25.value;
+          let knn = details.find(i => i.description == 'within top k documents');
+          if( knn ) knn = knn.value;
 
-      // Capture BM25-only scores if debug mode is on
-      // if (bm25Resp) {
-      //   const bm25Result = bm25Resp?.body ?? bm25Resp;
-      //   for (const hit of (bm25Result?.hits?.hits ?? [])) {
-      //     const id = hit._source?.['@id'];
-      //     if (!id) continue;
-      //     const entry = scoreMap.get(id) || {};
-      //     entry.bm25 = hit._score;
-      //     scoreMap.set(id, entry);
-      //   }
-      // }
+          if (id) scoreMap.set(id, { combined: hit._score, bm25, knn});
+        }
+
+
+        // if (bm25Resp) {
+        //   const bm25Result = bm25Resp?.body ?? bm25Resp;
+        //   console.log(JSON.stringify(bm25Result));
+        //   for (const hit of (bm25Result?.hits?.hits ?? [])) {
+        //     const id = hit._source?.['@id'];
+        //     if (!id) continue;
+        //     const entry = scoreMap.get(id) || {};
+        //     entry.bm25 = hit._score;
+        //     console.log(entry);
+        //     scoreMap.set(id, entry);
+        //   }
+        // }
+      }
 
       // Group hits by type for mget routing, preserving rank order
       const hitOrder = [];
@@ -467,7 +479,13 @@ router.get(
         if (!doc) continue;
         delete doc.embedding;
         if( doc['@graph'] ) {
-          doc['@graph'].forEach(node => delete node.embedding);
+          delete doc['@graph'];
+          // doc['@graph'].forEach(node => delete node.embedding);
+        }
+        if( scoreMap.has(doc['@id']) ) {
+          const s = scoreMap.get(doc['@id']);
+          const bm25 = s.bm25 ?? 0;
+          doc.scores = s;
         }
         hits.push(doc);
       }
@@ -533,22 +551,11 @@ router.get(
       };
 
       if (params.debug_scores) {
-        // scores keyed by @id: { combined: BM25+KNN score, bm25: BM25-only score, knn_contribution: diff }
-        // const scores = {};
-        // for (const [id, s] of scoreMap) {
-        //   const bm25 = s.bm25 ?? 0;
-        //   scores[id] = { combined: s.combined, bm25, knn_contribution: s.combined - bm25 };
-        // }
-        let scores = {};
-        for (const hit of searchHits) {
-          const id = hit._source?.['@id'];
-          if (!id) continue;
-          scores[id] = { score: hit._score, explanation: hit._explanation };
+        const scores = {};
+        for (const [id, s] of scoreMap) {
+          // const bm25 = s.bm25 ?? 0;
+          scores[id] = s;
         }
-
-        delete response.aggregations; // Remove aggs from main response to reduce payload, since they don't have scores
-        delete response.global_aggregations; // Remove global aggs as well for same reason
-        delete response.hits;
         response.scores = scores;
       }
 

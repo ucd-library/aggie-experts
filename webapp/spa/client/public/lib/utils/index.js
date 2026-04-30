@@ -443,7 +443,7 @@ class Utils {
    * @param {String} dateFrom start for date filtering
    * @param {String} dateTo end for date filtering
    */
-  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, dateFrom, dateTo) {
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, dateFrom, dateTo, debugScores=false) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
     if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
@@ -462,6 +462,7 @@ class Utils {
     if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
     if( dateFrom ) searchQuery += `&dateFrom=${dateFrom}`;
     if( dateTo ) searchQuery += `&dateTo=${dateTo}`;
+    if( debugScores ) searchQuery += `&debug_scores=true`;
 
     return searchQuery;
   }

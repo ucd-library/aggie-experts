@@ -3,6 +3,11 @@ import path from 'path';
 import { logger, config, getYearWeek } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
 import { log } from 'console';
+import { expandOrgAcronyms } from './org-acronyms.js';
+
+// vCard organization predicates
+const VCARD_ORG_TYPE  = 'http://www.w3.org/2006/vcard/ns#Organization';
+const VCARD_ORG_TITLE = 'http://www.w3.org/2006/vcard/ns#title';
 
 // Work JSON-LD predicates (citationstyles / schema.library.ucdavis.edu ae-std format)
 const WORK_TYPE   = 'http://schema.library.ucdavis.edu/schema#Work';
@@ -118,9 +123,11 @@ function postProcessVector(vector, opts={}) {
  * Extracts title, authors, journal, publisher, date, type, and abstract from the
  * ae-std JSON-LD graph (full predicate URIs).
  * @param {Array} graph - array of JSON-LD node objects from ae-std format
+ * @param {Object} opts options object
+ * @param {Array<String>} opts.organizations - contributor organization names to include
  * @returns {String} formatted text to feed into the embedding model
  */
-function buildWorkEmbedText(graph) {
+function buildWorkEmbedText(graph, opts={}) {
   const workNode = graph.find(node => {
     const types = node['@type'] || [];
     return (Array.isArray(types) ? types : [types]).includes(WORK_TYPE);
@@ -159,6 +166,9 @@ function buildWorkEmbedText(graph) {
   const abstracts = getValues(workNode, ABSTRACT);
   if (abstracts.length) parts.push('Abstract: ' + abstracts.join(' '));
 
+  const orgs = opts.organizations;
+  if (Array.isArray(orgs) && orgs.length) parts.push('Organization: ' + orgs.map(expandOrgAcronyms).join(', '));
+
   return parts.join('\n');
 }
 
@@ -168,9 +178,11 @@ function buildWorkEmbedText(graph) {
  * Extracts name, funder, award ID, date interval, and total award amount from the
  * ae-std JSON-LD graph (VIVO ontology / schema.library.ucdavis.edu predicates).
  * @param {Array} graph - array of JSON-LD node objects from ae-std format
+ * @param {Object} opts options object
+ * @param {Array<String>} opts.organizations - contributor organization names to include
  * @returns {String} formatted text to feed into the embedding model
  */
-function buildGrantEmbedText(graph) {
+function buildGrantEmbedText(graph, opts={}) {
   const grantNode = graph.find(node => {
     const types = node['@type'] || [];
     return (Array.isArray(types) ? types : [types]).some(t =>
@@ -224,6 +236,9 @@ function buildGrantEmbedText(graph) {
 
   const amounts = getValues(grantNode, GRANT_TOTAL_AWARD_AMOUNT);
   if (amounts.length) parts.push('Total Award Amount: ' + amounts[0]);
+
+  const orgs = opts.organizations;
+  if (Array.isArray(orgs) && orgs.length) parts.push('Organization: ' + orgs.map(expandOrgAcronyms).join(', '));
 
   return parts.join('\n');
 }
@@ -332,7 +347,7 @@ async function embedWork(ark, opts={}) {
   const parsed = JSON.parse(await cache.read(filePath));
   const graph = Array.isArray(parsed) ? parsed : (parsed['@graph'] || [parsed]);
 
-  const embedText = buildWorkEmbedText(graph);
+  const embedText = buildWorkEmbedText(graph, opts);
   let t = Date.now();
   const result = await embedDocument(ark, embedText, opts);
   logger.info(`Embedding generation took ${(Date.now() - t) / 1000}s for ark=${ark}`);
@@ -372,7 +387,7 @@ async function embedGrant(ark, opts={}) {
   const parsed = JSON.parse(await cache.read(filePath));
   const graph = Array.isArray(parsed) ? parsed : (parsed['@graph'] || [parsed]);
 
-  const embedText = buildGrantEmbedText(graph);
+  const embedText = buildGrantEmbedText(graph, opts);
   const result = await embedDocument(ark, embedText, opts);
   return { ...result, yearWeek };
 }
