@@ -40,39 +40,62 @@ class SitemapModel {
       // no expert provided, set the root sitemapindex for all experts
       if( !expert ) {
         // return res.send(await this.getExperts());
-        return await this.getExperts(res);
+        return await this.getExperts(req, res);
       }
 
       expert = expert.replace(/^-/,'');
 
       // send express response, we are going to stream out the xml result
-      this.getExpert(expert, res);
+      this.getExpert(expert, req, res);
     } catch(e) {
       res.write('\nERROR: ' + (e.message || JSON.stringify(e)));
       res.end();
     }
   }
 
+  _getBaseUrl(req) {
+    const forwardedProto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+    const proto = forwardedProto || req.protocol || 'http';
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+
+    if( host ) {
+      return `${proto}://${host}`;
+    }
+
+    return config.url;
+  }
+
   /**
    * @method getExperts
    *
    */
-  async getExperts(resp) {
+  async getExperts(req, resp) {
     let chunkSize = 1000;
     let time = '30s';
-    let result = await experts.esSearch({
-      from : 0,
-      size: chunkSize
-    }, {scroll: time, _source_includes: ['@id']});
+    const baseUrl = this._getBaseUrl(req);
+    let result = await experts.client.search({
+      index: experts.readIndexAlias,
+      scroll: time,
+      _source_includes: ['@id'],
+      body: {
+        from : 0,
+        size: chunkSize,
+        query: {
+          term: {'is-visible': true}
+        }
+      }
+    });
 
     resp.write(`<?xml version="1.0" encoding="UTF-8"?>
-    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`);
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`);
 
     let hits = result.hits.hits || [];
     let sent = hits.length;
-    hits.forEach(result => resp.write(`<sitemap>
-        <loc>${config.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
-    </sitemap>`));
+    hits.forEach(result => resp.write(`<url>
+      <loc>${baseUrl}/expert/${result._id.replace(/^expert\//,'')}</loc>
+      <changefreq>weekly</changefreq>
+      <priority>.5</priority>
+    </url>`));
     if (typeof resp.flush === 'function') resp.flush();
 
     while( chunkSize === sent ) {
@@ -83,14 +106,16 @@ class SitemapModel {
 
       hits = result.hits.hits || [];
       sent = hits.length;
-      hits.forEach(result => resp.write(`<sitemap>
-          <loc>${config.url}/sitemap-${result._id.replace('/expert/','')}.xml</loc>
-      </sitemap>`));
+        hits.forEach(result => resp.write(`<url>
+          <loc>${baseUrl}/expert/${result._id.replace(/^expert\//,'')}</loc>
+          <changefreq>weekly</changefreq>
+          <priority>.5</priority>
+        </url>`));
       if (typeof resp.flush === 'function') resp.flush();
     }
 
     // finish our sitemap xml and end response
-    resp.write('</sitemapindex>');
+    resp.write('</urlset>');
     resp.end();
   }
 
@@ -102,23 +127,31 @@ class SitemapModel {
    *
    * @returns {Promise} resolves to xml string
    */
-  async getExpert(id, resp) {
+  async getExpert(id, req, resp) {
+    const baseUrl = this._getBaseUrl(req);
+
     // set xml header
     resp.write(`<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`);
+
+    const expertId = id.startsWith('expert/') ? id : `expert/${id}`;
 
     // create our es query
     let query = {
         bool: {
             filter: [
-                {term: {'@id': `${id}`}}
+          {term: {'@id': `${expertId}`}},
+          {term: {'is-visible': true}}
             ]
         }
     };
 
-    let result = await experts.esSearch({
-        _source : ['name'],
+    let result = await experts.client.search({
+      index: experts.readIndexAlias,
+      body : {
+        _source : ['@graph'],
         query : query
+      }
     });
     result.hits.hits.forEach(result => {
         // loop expert @graph and link to each work/grant
@@ -157,7 +190,7 @@ class SitemapModel {
     // for now we're just doing sitemaps for experts, might expand later
     if( resultType === 'expert' ) {
       resp.write(`<url>
-          <loc>${config.url}/${resultType}/${id.replace('expert/', '')}</loc>
+          <loc>${baseUrl}/${resultType}/${id.replace('expert/', '')}</loc>
           <changefreq>weekly</changefreq>
           <priority>.5</priority>
       </url>\n`);
