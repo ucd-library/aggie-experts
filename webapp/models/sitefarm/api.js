@@ -68,6 +68,7 @@ function siteFarmFormat(req, res, next) {
       } );
 
     let newDoc = {};
+    let expertNode = doc["@graph"].find(node => node["@type"].includes("Expert")) || {};
 
     newDoc["@id"] = doc["@id"];
     newDoc["publications"] = [];
@@ -75,7 +76,7 @@ function siteFarmFormat(req, res, next) {
     newDoc["contactInfo"].hasURL = []; // initialize to empty array
     // We need to dig down for the preferred contactInfo website list
     // We will grab the first website that is not preferred and has a rank of 20 indicating it is a website list
-    let websites = doc["@graph"][0].contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
+    let websites = expertNode.contactInfo?.filter(c => (!c['isPreferred'] || c['isPreferred'] === false) && c['rank'] === 20 && c.hasURL);
 
     // ... but also grab all preferred contactInfo details
     for (let j = 0; j < doc["@graph"].length; j++) {
@@ -96,10 +97,12 @@ function siteFarmFormat(req, res, next) {
     }
 
     // Copy other Expert properties to the new document
-    newDoc["orcidId"] = doc["@graph"][i].orcidId;
-    newDoc["overview"] = doc["@graph"][i].overview;
-    newDoc["researcherId"] = doc["@graph"][i].researcherId;
-    newDoc["scopusId"] = doc["@graph"][i].scopusId;
+    newDoc["orcidId"] = expertNode.orcidId;
+    newDoc["researcherId"] = expertNode.researcherId;
+    newDoc["scopusId"] = expertNode.scopusId;
+    let overview = expertNode.overview || '';
+    let researchInterests = expertNode.researchInterests || '';
+    newDoc["overview"] = overview + (overview && researchInterests ? ' ' : '') + researchInterests;
 
     // Include the website list we filtered for above
     newDoc["contactInfo"].hasURL = websites.length > 0 && websites[0].hasURL ? websites[0].hasURL : null;
