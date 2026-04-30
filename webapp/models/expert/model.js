@@ -95,7 +95,15 @@ class ExpertModel extends BaseModel {
           node['@type'] = [node['@type']];
         }
         if (node['@type'].includes('Person')) {
-          seo["@graph"].push(this.to_seo(node));
+          let personSeo = this.to_seo(node) || {};
+          personSeo['@type'] = personSeo['@type'] || 'Person';
+          if (!personSeo['@id'] && (node['@id'] || node.identifier)) {
+            personSeo['@id'] = node['@id'] || node.identifier;
+          }
+          if (!personSeo.url && (node.url || node.hasURL || node['@id'])) {
+            personSeo.url = node.url || node.hasURL || node['@id'];
+          }
+          seo["@graph"].push(personSeo);
         }
         if (node['@type'].includes('Work')) {
           seo["@graph"].push(workModel.to_seo(node));
