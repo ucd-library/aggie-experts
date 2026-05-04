@@ -3,6 +3,7 @@ const router = require('express').Router();
 const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
 const template = require('./template/miv_grants.json');
+const { Pool } = require('pg');
 const expert = new ExpertModel();
 
 const { openapi, has_access, fetchExpertId } = require('../middleware/index.js')
@@ -50,6 +51,197 @@ function generateGrantFormattedDate() {
 // router.use(openapi);
 
 const path = require('path');
+
+// TODO move config/model stuff out of this api file, just rough poc start
+
+let mivPgPool;
+
+function getMivPgSchema() {
+  return process.env.MIV_PG_SCHEMA || process.env.MIV_POSTGRES_SCHEMA || 'miv';
+}
+
+function assertSchema(schema) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(schema)) {
+    throw new Error(`Invalid postgres schema name: ${schema}`);
+  }
+}
+
+function getMivPgPool() {
+  if (mivPgPool) return mivPgPool;
+
+  mivPgPool = new Pool({
+    host: process.env.MIV_POSTGRES_HOST || process.env.POSTGRES_HOST || 'postgres',
+    port: process.env.MIV_POSTGRES_PORT || process.env.POSTGRES_PORT || 5432,
+    user: process.env.MIV_POSTGRES_USER || process.env.POSTGRES_USER || 'postgres',
+    password: process.env.MIV_POSTGRES_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres',
+    database: process.env.MIV_POSTGRES_DB || process.env.POSTGRES_DB || 'postgres'
+  });
+
+  return mivPgPool;
+}
+
+function cleanContributorName(name='') {
+  if (Array.isArray(name)) name = name[0] || '';
+  return String(name || '').replace(/\b(?:COPI|PI):\s*/gi, '').trim();
+}
+
+function isPiRole(roleType='') {
+  return roleType === 'PrincipalInvestigatorRole' || roleType === 'CoPrincipalInvestigatorRole';
+}
+
+function normalizeGrantRoleTypes(roleType) {
+  const out = new Set();
+
+  if (Array.isArray(roleType)) {
+    roleType.filter(Boolean).forEach(t => out.add(t));
+  } else if (roleType) {
+    out.add(roleType);
+  }
+
+  out.add('GrantRole');
+  return Array.from(out);
+}
+
+function formatDateToString(date) {
+  if (!date) return null;
+  if (typeof date === 'string') {
+    return date.split('T')[0];
+  }
+  if (date instanceof Date) {
+    return date.toISOString().split('T')[0];
+  }
+  return date;
+}
+
+function cloneJson(value) {
+  if (value === null || value === undefined) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeRawGrantDates(grant={}) {
+  if (grant?.dateTimeInterval?.start) {
+    grant.dateTimeInterval.start.dateTime = formatDateToString(grant.dateTimeInterval.start.dateTime);
+  }
+
+  if (grant?.dateTimeInterval?.end) {
+    grant.dateTimeInterval.end.dateTime = formatDateToString(grant.dateTimeInterval.end.dateTime);
+  }
+
+  return grant;
+}
+
+function buildRawGrantFallback(grant, roles) {
+  return normalizeRawGrantDates({
+    '@id': grant.grant_id,
+    identifier: [grant.grant_id],
+    name: grant.title,
+    dateTimeInterval: {
+      '@id': `${grant.grant_id}#interval`,
+      start: {
+        '@id': `${grant.grant_id}#start_date`,
+        dateTime: formatDateToString(grant.start_date),
+        dateTimePrecision: 'vivo:yearMonthDayPrecision'
+      },
+      end: {
+        '@id': `${grant.grant_id}#end_date`,
+        dateTime: formatDateToString(grant.end_date),
+        dateTimePrecision: 'vivo:yearMonthDayPrecision'
+      }
+    },
+    totalAwardAmount: grant.total_award_amount,
+    sponsorAwardId: grant.sponsor_id,
+    assignedBy: {
+      '@id': `${grant.grant_id}#funder`,
+      '@type': 'FundingOrganization',
+      name: grant.sponsor_name
+    },
+    '@type': grant.grant_types || [],
+    status: grant.status,
+    relatedBy: roles.map(role => ({
+      '@id': role.role_id,
+      '@type': normalizeGrantRoleTypes(role.role_type),
+      inheres_in: role.expert_id,
+      relates: [role.expert_id, grant.grant_id].filter(Boolean),
+      name: role.role_name,
+      'is-visible': role.is_visible,
+      'ae-roleof-suppress': role.is_suppressed
+    }))
+  });
+}
+
+function buildRawGrantResponse(grant, roles) {
+  if (grant?.raw_payload && typeof grant.raw_payload === 'object') {
+    const payload = normalizeRawGrantDates(cloneJson(grant.raw_payload));
+    payload.name = (payload.name || '').split('§')?.[0]?.trim() || payload.name;
+    return payload;
+  }
+
+  return buildRawGrantFallback(grant, roles);
+}
+
+async function fetchMivPostgresGrants(expertId, since, until) {
+  const schema = getMivPgSchema();
+  assertSchema(schema);
+  const pool = getMivPgPool();
+
+  const grantsResp = await pool.query(
+    `WITH my_roles AS (
+      SELECT grant_id, role_type
+      FROM ${schema}.grant_role
+      WHERE expert_id = $1
+        AND is_suppressed = false
+    )
+    SELECT
+      g.grant_id,
+      g.title,
+      g.end_date,
+      g.start_date,
+      g.total_award_amount,
+      g.status,
+      g.raw_payload,
+      g.sponsor_id,
+      g.sponsor_name,
+      g.grant_types,
+      array_agg(DISTINCT mr.role_type) AS role_label
+    FROM ${schema}."grant" g
+    JOIN my_roles mr ON mr.grant_id = g.grant_id
+    WHERE ($2::date IS NULL OR COALESCE(g.end_date, g.start_date, $3::date) >= $2::date)
+      AND ($3::date IS NULL OR COALESCE(g.start_date, g.end_date, $2::date) <= $3::date)
+    GROUP BY g.grant_id, g.title, g.end_date, g.start_date, g.total_award_amount, g.status, g.raw_payload, g.sponsor_id, g.sponsor_name, g.grant_types
+    ORDER BY g.start_date DESC NULLS LAST, g.grant_id`,
+    [expertId, since || null, until || null]
+  );
+
+  const grantIds = grantsResp.rows.map(row => row.grant_id);
+  if (!grantIds.length) {
+    return { grants: [], rolesByGrant: new Map() };
+  }
+
+  const rolesResp = await pool.query(
+    `SELECT
+      gr.grant_id,
+      gr.role_id,
+      gr.expert_id,
+      gr.role_type,
+      gr.role_name,
+      gr.is_visible,
+      gr.is_suppressed,
+      e.display_name
+    FROM ${schema}.grant_role gr
+    LEFT JOIN ${schema}.expert e ON e.expert_id = gr.expert_id
+    WHERE gr.grant_id = ANY($1::text[])
+    ORDER BY gr.grant_id, gr.role_id`,
+    [grantIds]
+  );
+
+  const rolesByGrant = new Map();
+  for (const row of rolesResp.rows) {
+    if (!rolesByGrant.has(row.grant_id)) rolesByGrant.set(row.grant_id, []);
+    rolesByGrant.get(row.grant_id).push(row);
+  }
+
+  return { grants: grantsResp.rows, rolesByGrant };
+}
 
 router.get('/', (req, res) => {
   // Send the pre-made swagger.json file
@@ -212,6 +404,82 @@ router.get(
       console.error(err);
       res.status(400).send(err);
       // res.status(400).send('Invalid request - no likey');
+    }
+  }
+);
+
+router.get(
+  '/grants_pg',
+  has_access('miv'),
+  fetchExpertId,
+  async (req, res) => {
+    const since = req.query.since || null;
+    const until = req.query.until || generateGrantFormattedDate();
+    const expertId = `expert/${req.expertId}`;
+
+    try {
+      const { grants, rolesByGrant } = await fetchMivPostgresGrants(expertId, since, until);
+
+      const out = grants.map(grant => {
+        const roles = rolesByGrant.get(grant.grant_id) || [];
+        const contributors = roles
+          .filter(role => role.expert_id !== expertId)
+          .filter(role => role.is_suppressed !== true)
+          .filter(role => isPiRole(role.role_type))
+          .map(role => ({
+            '@id': role.role_id,
+            name: cleanContributorName(role.display_name || role.role_name),
+            role: role.role_type
+          }));
+
+        const roleLabel = Array.from(
+          new Set(
+            (grant.role_label || [])
+              .flatMap(normalizeGrantRoleTypes)
+              .filter(Boolean)
+          )
+        );
+
+        return {
+          '@id': grant.grant_id,
+          title: (grant.title || '').split('§')?.[0]?.trim() || grant.title,
+          end_date: formatDateToString(grant.end_date),
+          start_date: formatDateToString(grant.start_date),
+          grant_amount: grant.total_award_amount,
+          sponsor_id: grant.sponsor_id,
+          sponsor_name: grant.sponsor_name,
+          type: grant.grant_types || [],
+          role_label: roleLabel,
+          contributors
+        };
+      });
+
+      res.send({ '@graph': out });
+    } catch (err) {
+      console.error(err);
+      res.status(400).send(err);
+    }
+  }
+);
+
+router.get(
+  '/raw_grants_pg',
+  has_access('miv'),
+  fetchExpertId,
+  async (req, res) => {
+    const since = req.query.since || null;
+    const until = req.query.until || generateGrantFormattedDate();
+    const expertId = `expert/${req.expertId}`;
+
+    try {
+      const { grants, rolesByGrant } = await fetchMivPostgresGrants(expertId, since, until);
+
+      const out = grants.map(grant => buildRawGrantResponse(grant, rolesByGrant.get(grant.grant_id) || []));
+
+      res.send(out);
+    } catch (err) {
+      console.error(err);
+      res.status(400).send(err);
     }
   }
 );

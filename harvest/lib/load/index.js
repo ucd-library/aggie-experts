@@ -2,6 +2,7 @@ import cache from '../cache.js';
 import { logger, config, Elasticsearch } from '@ucd-lib/experts-commons';
 import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
+import { loadMivPostgres, purgeMivPostgresExpert } from './miv-postgres/index.js';
 
 async function run(user, alias) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;
@@ -25,6 +26,7 @@ async function run(user, alias) {
     logger.warn(`User ${user} is marked as not public, skipping load.`);
 
     await purgeUser(metadata.expertId, alias);
+    await purgeMivPostgresExpert('expert/'+metadata.expertId);
 
     if (config.reporting.enabled && config.postgres.client && 
         alias.includes(config.elasticsearch.aliases.stage) ) {
@@ -66,6 +68,13 @@ async function run(user, alias) {
       }
     }
   }
+
+  // load MIV projection into postgres from transformed public expert/grant files
+  await loadMivPostgres({
+    user,
+    metadata,
+    files
+  });
 
   // load files into elastic search
   let indexes = await loadEs(files, alias);

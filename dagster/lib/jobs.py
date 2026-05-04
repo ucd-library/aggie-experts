@@ -9,6 +9,7 @@ from .assets import (
     transform_user_webapp,
     load_user,
     init_databases,
+    init_miv_database,
     fetch_user_list_from_cdl,
     ensure_current_index,
     exec_weekly_etl,
@@ -64,4 +65,11 @@ cleanup_job = dg.define_asset_job(
         "dagster/priority": "-1",
         "dagster/max_runtime": str(60 * 60 * 2)  # 2 hour max runtime
     }
+)
+
+miv_init_job = dg.define_asset_job(
+    name="miv_init_job",
+    description="Initialize dedicated MIV PostgreSQL schema.",
+    selection=dg.AssetSelection.assets(init_miv_database),
+    tags={"dagster/priority": "3"}
 )
