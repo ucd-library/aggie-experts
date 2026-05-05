@@ -23,9 +23,9 @@ function buildBm25Query(q) {
     multi_match: {
       query: q,
       fields: [
-        'name^20',
+        'name^5',
         'title^2',
-        'abstract'
+        'abstract^2'
       ],
       type: 'best_fields'
     }
@@ -165,7 +165,7 @@ function buildAeSearchBody(params, knn, globalMode = false) {
         filter: [{ term: { 'is-visible': true } }]
       },
     },
-    min_score : 100.0,
+    min_score : 50.0,
     aggs: buildAeSearchAggs()
   };
 
@@ -342,7 +342,7 @@ router.get(
         field: 'embedding',
         query_vector: vector,
         k: 200,
-        num_candidates: 200,
+        num_candidates: 400,
         similarity: 0.6
       };
 
@@ -353,7 +353,7 @@ router.get(
         knnClauses.push({
           ...baseKnn,
           boost: 600.0,
-          similarity: 0.5,
+          similarity: 0.45,
           filter: { bool: { must: [
             { term: { 'is-visible': true } }, 
             { term: { '@type': 'expert' } }
