@@ -10,29 +10,11 @@ const experts = new ExpertModel();
 const grants = new GrantModel();
 const works = new WorkModel();
 
-// const {config} = require('@ucd-lib/fin-service-utils');
-
-const { openapi, public_or_is_user, valid_path, valid_path_error } = require('../middleware/index.js')
-
-// This will serve the generated json document(s)
-// (as well as the swagger-ui if configured)
-// router.use(openapi);
+const { public_or_is_user } = require('../middleware/index.js')
 
 router.get(
   '/',
   public_or_is_user,
-  valid_path(
-    {
-      description: "Returns matching search results, including the number of matching works and grants",
-      parameters: ['p', 'page', 'size',
-                   '@type', 'type', 'status','availability','expert','dateFrom','dateTo'],
-      responses: {
-        "200": openapi.response('Search'),
-        "400": openapi.response('Invalid_request')
-      }
-    }
-  ),
-  valid_path_error,
   async (req, res) => {
     const params = {
       "@type" : ['expert', 'grant', 'work'],
