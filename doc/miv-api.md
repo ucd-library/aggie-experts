@@ -279,27 +279,6 @@ curl -H "Authorization: Bearer <token>" \
 
 ---
 
-### 4. GET `/openapi.json`
-
-Returns the OpenAPI 3.0.3 specification for the MIV and other Experts API endpoints.
-
-**Authentication:** Not required
-
-**Response:**
-Full OpenAPI specification document including:
-- API metadata (title, version, description, contact, license)
-- Component definitions (parameters, schemas, security schemes, responses)
-- Path definitions for all endpoints
-- Server information
-- Tag definitions
-
-**Example:**
-```bash
-curl http://localhost:3000/api/miv/openapi.json | jq .
-```
-
----
-
 ## Error Handling
 
 ### 400 Bad Request
