@@ -798,7 +798,7 @@ class BaseModel extends EsDataModel {
     } else {
       esModel = require('../expert/model.js');
     }
-    return esModel;
+    return new esModel();
     // return esModel;
 //     const method=model+'Model';
 //     if (!(method in this)) {

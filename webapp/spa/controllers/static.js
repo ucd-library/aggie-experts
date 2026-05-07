@@ -118,7 +118,7 @@ module.exports = async (app) => {
           expertId = 'expert/' + urlParts[1].split('?')[0];
           pageJsonLd = await experts.model.seo(expertId);
         } else if( isFaq ) {
-          pageJsonLd = getFaqJsonLd();
+          pageJsonLd = await getFaqJsonLd();
         }
       } catch(e) {
         // ignore and let client handle 404 if needed

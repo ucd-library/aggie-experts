@@ -1,0 +1,32 @@
+{
+  "paths": {
+    "/api/grant/browse": {
+      "get": {
+        "description": "Returns grants A - Z, or if sending query param p={letter}, will return results with that letter",
+        "parameters": [
+          { "$ref": "#/components/parameters/p" },
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Browse" },
+          "400": { "$ref": "#/components/responses/Invalid_request" }
+        }
+      }
+    },
+    "/api/grant/{id}": {
+      "get": {
+        "description": "Get a grant by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/id" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Grant" },
+          "400": { "$ref": "#/components/responses/Missing_id" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Not_found" }
+        }
+      }
+    }
+  }
+}
