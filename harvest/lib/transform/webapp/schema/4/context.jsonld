@@ -167,7 +167,6 @@
     "invalid-title":{"@id":"ucdlib:invalid-title"},
     "invalid-issued":{"@id":"ucdlib:invalid-issued"},
     "ae-roleof":{"@id":"ucdlib:ae-roleof"},
-    "ae-roleof-suppress":{"@id":"ucdlib:ae-roleof-suppress"},
     "ISBN": {"@id":"cite:ISBN"},
     "ISSN":{"@id":"cite:ISSN"},
     "issue":{"@id":"cite:issue"},
