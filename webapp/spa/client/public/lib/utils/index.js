@@ -182,7 +182,9 @@ class Utils {
             isExpert = true;
           }
         });
-        if( !isExpert && !r['ae-roleof-suppress'] ) otherRelationships.push(r);
+        // Skip dangling {@id} stubs left over from harvest-time #roleof_ drops
+        // — they have no @type and shouldn't render as contributors.
+        if( !isExpert && r['@type'] ) otherRelationships.push(r);
       });
 
       if( filterHidden && !expertsRelationships.some(r => r['is-visible']) ) {

@@ -118,7 +118,9 @@ router.get(
           if (hit.relatedBy) {
             hit.relatedBy.forEach((x) => {
               // filter to only other experts
-              if( ( !x.inheres_in || x.inheres_in !== expertId ) && !x['ae-roleof-suppress'] ) {
+              // Require @type to skip dangling {@id} stubs left over from
+              // harvest-time #roleof_ drops.
+              if( ( !x.inheres_in || x.inheres_in !== expertId ) && x['@type'] ) {
                 let name = x.name || '';
                 if( Array.isArray(name) ) name = name[0] || '';
                 name = name.replace(/\b(?:COPI|PI):\s*/gi, '').trim();
