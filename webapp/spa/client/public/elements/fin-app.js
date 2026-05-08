@@ -40,7 +40,8 @@ export default class FinApp extends Mixin(LitElement)
       quickLinksTitle: { type : String },
       quickLinks : { type : Array },
       currentElasticIndex : { type : String },
-      hideEsIndexPreviewing : { type : Boolean }
+      hideEsIndexPreviewing : { type : Boolean },
+      hideDagsterHealth : { type : Boolean },
     }
   }
 
@@ -76,6 +77,7 @@ export default class FinApp extends Mixin(LitElement)
     this.quickLinks = [];
     this.currentElasticIndex = '';
     this.hideEsIndexPreviewing = true;
+    this.hideDagsterHealth = true;
 
     this.render = render.bind(this);
     this._init404();
@@ -496,6 +498,11 @@ export default class FinApp extends Mixin(LitElement)
       this.currentElasticIndex = '';
       this.hideEsIndexPreviewing = true;
     }
+  }
+
+  _onDagsterHealthIssue(e) {
+    let healthIssue = e.detail?.healthIssue || false;
+    this.hideDagsterHealth = !healthIssue;
   }
 
 }

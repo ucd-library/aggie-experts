@@ -60,6 +60,22 @@ class DagsterService extends BaseService {
     });
   }
 
+  async getHealth() {
+    return this.request({
+      url : `${this.baseUrl}/health`,
+      fetchOptions : {
+        method : 'GET',
+        headers : {
+          'Content-Type' : 'application/json'
+        }
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+  
 }
 
 module.exports = new DagsterService();
