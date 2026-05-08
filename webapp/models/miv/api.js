@@ -54,6 +54,14 @@ router.get(
     params.expert = `expert/${req.expertId}`;
     params.until = until;
 
+    if( req.query['previewEsIndex'] ) {
+      params.index = [
+        'grants-'+req.query['previewEsIndex'],
+        'experts-'+req.query['previewEsIndex'],
+        'works-'+req.query['previewEsIndex']
+      ]
+    }
+    
     opts = {
       id: template.id,
       params
@@ -153,6 +161,14 @@ router.get(
     // Override with actual expert ID (Express 5: can't mutate req.query)
     params.expert = `expert/${req.expertId}`;
     params.until = until;
+
+    if( req.query['previewEsIndex'] ) {
+      params.index = [
+        'grants-'+req.query['previewEsIndex'],
+        'experts-'+req.query['previewEsIndex'],
+        'works-'+req.query['previewEsIndex']
+      ]
+    }
 
     opts = {
       id: template.id,
