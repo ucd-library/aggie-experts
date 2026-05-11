@@ -256,7 +256,7 @@ return html`
     </a>
   </div>
 
-  <div ?hidden="${this.hideDagsterHealth}" class="dagster-health-container">
+  <div ?hidden="${this.hideDagsterHealth || this.page !== 'expert'}" class="dagster-health-container">
     <div class="preview-info">
       <ucdlib-icon icon="ucdlib-experts:fa-flask"></ucdlib-icon>
       <span>Backend health service for admin updates is degraded. Updates to visibility are disabled.</span>

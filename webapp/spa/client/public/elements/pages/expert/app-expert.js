@@ -95,6 +95,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( e.location.page !== 'expert' ) {
       clearInterval(this._profileSyncIntervalId);
+      clearTimeout(this._dagsterHealthIntervalId);
       this._profileSyncIntervalId = null;
       this.refreshingProfileData = false;
       return;
@@ -955,7 +956,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     this._dagsterHealthIntervalId = setInterval(async () => {
       await this._checkDagsterHealth();
-    }, 5000);
+    }, 10000);
   }
 
   async _checkDagsterHealth() {
