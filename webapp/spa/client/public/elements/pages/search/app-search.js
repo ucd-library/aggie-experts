@@ -1102,7 +1102,8 @@ export default class AppSearch extends Mixin(LitElement)
         const seenPisCoPis = new Set();
         const seenOtherContributors = new Set();
 
-        contributors.filter(c => !c['ae-roleof-suppress']).forEach(c => {
+        // Skip dangling {@id} stubs (no @type) left over from harvest-time #roleof_ drops.
+        contributors.filter(c => c['@type']).forEach(c => {
           let role = utils.getGrantRole(c)?.role || '';
           let name = c.name || '';
           if( Array.isArray(name) ) name = name[0];

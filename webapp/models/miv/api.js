@@ -246,6 +246,14 @@ router.get(
     params.expert = `expert/${req.expertId}`;
     params.until = until;
 
+    if( req.query['previewEsIndex'] ) {
+      params.index = [
+        'grants-'+req.query['previewEsIndex'],
+        'experts-'+req.query['previewEsIndex'],
+        'works-'+req.query['previewEsIndex']
+      ]
+    }
+    
     opts = {
       id: template.id,
       params
@@ -273,7 +281,9 @@ router.get(
           if (hit.relatedBy) {
             hit.relatedBy.forEach((x) => {
               // filter to only other experts
-              if( ( !x.inheres_in || x.inheres_in !== expertId ) && !x['ae-roleof-suppress'] ) {
+              // Require @type to skip dangling {@id} stubs left over from
+              // harvest-time #roleof_ drops.
+              if( ( !x.inheres_in || x.inheres_in !== expertId ) && x['@type'] ) {
                 let name = x.name || '';
                 if( Array.isArray(name) ) name = name[0] || '';
                 name = name.replace(/\b(?:COPI|PI):\s*/gi, '').trim();
@@ -345,6 +355,14 @@ router.get(
     // Override with actual expert ID (Express 5: can't mutate req.query)
     params.expert = `expert/${req.expertId}`;
     params.until = until;
+
+    if( req.query['previewEsIndex'] ) {
+      params.index = [
+        'grants-'+req.query['previewEsIndex'],
+        'experts-'+req.query['previewEsIndex'],
+        'works-'+req.query['previewEsIndex']
+      ]
+    }
 
     opts = {
       id: template.id,

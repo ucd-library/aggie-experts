@@ -171,6 +171,14 @@ router.get(
       params.expert = req.expertIds;
     }
 
+    if( req.query['previewEsIndex'] ) {
+      params.index = [
+        'grants-'+req.query['previewEsIndex'],
+        'experts-'+req.query['previewEsIndex'],
+        'works-'+req.query['previewEsIndex']
+      ]
+    }
+
     let opts = {
       "id": "modified-date",
       "params": params
