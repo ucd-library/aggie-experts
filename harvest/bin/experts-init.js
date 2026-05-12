@@ -40,6 +40,7 @@ program
 
     const pgClient = new PgClient();
     try {
+      logger.info(`Connecting to Postgres host: ${config.postgres.host}`);
       logger.info('Initializing PostgreSQL schema for aggie experts...');
       await pgClient.connect();
       await pgClient.queryFromFile(config.postgres.schemaFile);

@@ -281,11 +281,11 @@ async function replaceGrantRoles(client, schema, grantId, roles) {
   }
 }
 
-export function isMivPostgresLoadEnabled() {
+function isMivPostgresLoadEnabled() {
   return toBool(process.env.MIV_POSTGRES_LOAD_ENABLED || process.env.MIV_PG_LOAD_ENABLED, false);
 }
 
-export async function loadMivPostgres({ user, metadata={}, files=[] }) {
+async function loadMivPostgres({ user, metadata={}, files=[] }) {
   if (!isMivPostgresLoadEnabled()) return;
 
   const schema = getSchemaName();
@@ -330,7 +330,7 @@ export async function loadMivPostgres({ user, metadata={}, files=[] }) {
   }
 }
 
-export async function purgeMivPostgresExpert(expertId) {
+async function purgeMivPostgresExpert(expertId) {
   if (!isMivPostgresLoadEnabled() || !expertId) return;
 
   const schema = getSchemaName();
