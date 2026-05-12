@@ -199,11 +199,11 @@ const config = {
   },
 
   postgres : {
-    host : env.POSTGRES_HOST || 'postgres',
-    port : parseK8sPort(env.POSTGRES_PORT || 5432),
-    user : env.POSTGRES_USER || 'postgres',
-    password : env.POSTGRES_PASSWORD || 'postgres',
-    database : env.POSTGRES_DB || 'postgres',
+    host : env.POSTGRES_CLIENT_HOST || env.POSTGRES_HOST || 'postgres',
+    port : parseK8sPort(env.POSTGRES_CLIENT_PORT || env.POSTGRES_PORT || 5432),
+    user : env.POSTGRES_CLIENT_USER || env.POSTGRES_USER || 'postgres',
+    password : env.POSTGRES_CLIENT_PASSWORD || env.POSTGRES_PASSWORD || 'postgres',
+    database : env.POSTGRES_CLIENT_DB || env.POSTGRES_DB || 'postgres',
     schemaFile : !isBrowser ? path.resolve(scriptDir, '../../harvest/lib/reporting/schema.sql') : null,
   },
 

@@ -36,17 +36,6 @@ def init_databases(context) -> None:
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="init"
-)
-def init_miv_database(context) -> None:
-    """Initialize dedicated MIV PostgreSQL schema."""
-    cmd = ["experts", "miv-init"]
-    exec(cmd)
-    return None
-
-
-@dg.asset(
-    code_version=CODE_VERSION,
     group_name="elasticsearch",
     tags={"dagster/priority": "3"}
 )

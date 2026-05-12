@@ -2,7 +2,7 @@ import cache from '../cache.js';
 import { logger, config, Elasticsearch } from '@ucd-lib/experts-commons';
 import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
-import { loadMivPostgres, purgeMivPostgresExpert } from './miv-postgres/index.js';
+import { loadMivPostgres, purgeMivPostgresExpert } from '../reporting/index.js';
 
 async function run(user, alias) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;

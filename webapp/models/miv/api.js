@@ -4,6 +4,7 @@ const ExpertModel = require('../expert/model.js');
 const utils = require('../utils.js')
 const template = require('./template/miv_grants.json');
 const { Pool } = require('pg');
+const { config } = require('@ucd-lib/experts-commons');
 const expert = new ExpertModel();
 
 const { has_access, fetchExpertId } = require('../middleware/index.js')
@@ -51,11 +52,11 @@ function getMivPgPool() {
   if (mivPgPool) return mivPgPool;
 
   mivPgPool = new Pool({
-    host: process.env.MIV_POSTGRES_HOST || process.env.POSTGRES_HOST || 'postgres',
-    port: process.env.MIV_POSTGRES_PORT || process.env.POSTGRES_PORT || 5432,
-    user: process.env.MIV_POSTGRES_USER || process.env.POSTGRES_USER || 'postgres',
-    password: process.env.MIV_POSTGRES_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres',
-    database: process.env.MIV_POSTGRES_DB || process.env.POSTGRES_DB || 'postgres'
+    host: config.postgres.host,
+    port: config.postgres.port,
+    user: config.postgres.user,
+    password: config.postgres.password,
+    database: config.postgres.database
   });
 
   return mivPgPool;

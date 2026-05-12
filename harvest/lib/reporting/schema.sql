@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_validation_issue_issue_type ON validation_issue (
 
 CREATE TABLE IF NOT EXISTS "user" (
   email VARCHAR(255) PRIMARY KEY,
-  expert_id VARCHAR(16) UNIQUE,
+  expert_id TEXT UNIQUE,
   first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_iam TIMESTAMP,
@@ -82,8 +82,27 @@ CREATE TABLE IF NOT EXISTS "user" (
   cdl_privacy JSONB,
   odr_privacy JSONB,
   es_stage_inserted_at TIMESTAMP,
-  first_es_insert TIMESTAMP DEFAULT NULL
+  first_es_insert TIMESTAMP DEFAULT NULL,
+  ucd_person_uuid TEXT UNIQUE,
+  iam_id TEXT UNIQUE,
+  display_name TEXT,
+  updated_at timestamptz not null default current_timestamp
 );
+
+ALTER TABLE IF EXISTS "user"
+  ALTER COLUMN expert_id TYPE TEXT;
+
+ALTER TABLE IF EXISTS "user"
+  ADD COLUMN IF NOT EXISTS ucd_person_uuid TEXT;
+
+ALTER TABLE IF EXISTS "user"
+  ADD COLUMN IF NOT EXISTS iam_id TEXT;
+
+ALTER TABLE IF EXISTS "user"
+  ADD COLUMN IF NOT EXISTS display_name TEXT;
+
+ALTER TABLE IF EXISTS "user"
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz not null default current_timestamp;
 
 CREATE OR REPLACE FUNCTION set_user_first_es_insert()
 RETURNS TRIGGER AS $$
@@ -404,3 +423,37 @@ BEGIN
   RETURN deleted_user_count;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE TABLE IF NOT EXISTS "grant" (
+  grant_id text primary key,
+  title text,
+  sponsor_id text,
+  sponsor_name text,
+  total_award_amount numeric,
+  start_date date,
+  end_date date,
+  status text,
+  raw_payload jsonb,
+  grant_types text[] not null default '{}',
+  updated_at timestamptz not null default current_timestamp
+);
+
+ALTER TABLE IF EXISTS "grant"
+  ADD COLUMN IF NOT EXISTS raw_payload jsonb;
+
+CREATE TABLE IF NOT EXISTS grant_role (
+  role_id text primary key,
+  grant_id text not null references "grant"(grant_id) on delete cascade,
+  expert_id text references "user"(expert_id) on delete set null,
+  role_type text not null,
+  role_name text,
+  is_visible boolean not null default false,
+  is_suppressed boolean not null default false,
+  updated_at timestamptz not null default current_timestamp
+);
+
+CREATE INDEX IF NOT EXISTS idx_grant_start_date ON "grant"(start_date);
+CREATE INDEX IF NOT EXISTS idx_grant_end_date ON "grant"(end_date);
+CREATE INDEX IF NOT EXISTS idx_grant_role_grant_id ON grant_role(grant_id);
+CREATE INDEX IF NOT EXISTS idx_grant_role_expert_id ON grant_role(expert_id);
+CREATE INDEX IF NOT EXISTS idx_grant_role_type ON grant_role(role_type);
