@@ -252,11 +252,11 @@ async function upsertGrant(client, schema, row) {
 }
 
 async function replaceGrantRoles(client, schema, grantId, roles) {
-  await client.query(`DELETE FROM ${schema}.grant_role WHERE grant_id = $1`, [grantId]);
+  await client.query(`DELETE FROM ${schema}.expert_grant_role WHERE grant_id = $1`, [grantId]);
 
   for (const role of roles) {
     await client.query(
-      `INSERT INTO ${schema}.grant_role
+      `INSERT INTO ${schema}.expert_grant_role
         (role_id, grant_id, expert_id, role_type, role_name, is_visible, is_suppressed, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
        ON CONFLICT (role_id)
@@ -344,12 +344,12 @@ async function purgeMivPostgresExpert(expertId) {
   try {
     await pgClient.query('BEGIN');
 
-    await pgClient.query(`DELETE FROM ${schema}.grant_role WHERE expert_id = $1`, [normalizedExpertId]);
+    await pgClient.query(`DELETE FROM ${schema}.expert_grant_role WHERE expert_id = $1`, [normalizedExpertId]);
 
     await pgClient.query(
       `DELETE FROM ${schema}."grant" g
        WHERE NOT EXISTS (
-         SELECT 1 FROM ${schema}.grant_role gr WHERE gr.grant_id = g.grant_id
+         SELECT 1 FROM ${schema}.expert_grant_role gr WHERE gr.grant_id = g.grant_id
        )`
     );
 

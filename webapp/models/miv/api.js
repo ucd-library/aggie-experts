@@ -38,10 +38,6 @@ const path = require('path');
 
 let mivPgPool;
 
-function getMivPgSchema() {
-  return process.env.MIV_PG_SCHEMA || process.env.MIV_POSTGRES_SCHEMA || 'miv';
-}
-
 function assertSchema(schema) {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(schema)) {
     throw new Error(`Invalid postgres schema name: ${schema}`);
@@ -162,14 +158,14 @@ function buildRawGrantResponse(grant, roles) {
 }
 
 async function fetchMivPostgresGrants(expertId, since, until) {
-  const schema = getMivPgSchema();
+  const schema = 'etl_reporting';
   assertSchema(schema);
   const pool = getMivPgPool();
 
   const grantsResp = await pool.query(
     `WITH my_roles AS (
       SELECT grant_id, role_type
-      FROM ${schema}.grant_role
+      FROM ${schema}.expert_grant_role
       WHERE expert_id = $1
         AND is_suppressed = false
     )
@@ -208,9 +204,9 @@ async function fetchMivPostgresGrants(expertId, since, until) {
       gr.role_name,
       gr.is_visible,
       gr.is_suppressed,
-      e.display_name
-    FROM ${schema}.grant_role gr
-    LEFT JOIN ${schema}.expert e ON e.expert_id = gr.expert_id
+      u.display_name
+    FROM ${schema}.expert_grant_role gr
+    LEFT JOIN ${schema}."user" u ON u.expert_id = gr.expert_id
     WHERE gr.grant_id = ANY($1::text[])
     ORDER BY gr.grant_id, gr.role_id`,
     [grantIds]

@@ -423,7 +423,7 @@ CREATE TABLE IF NOT EXISTS "grant" (
   updated_at timestamptz not null default current_timestamp
 );
 
-CREATE TABLE IF NOT EXISTS grant_role (
+CREATE TABLE IF NOT EXISTS expert_grant_role (
   role_id text primary key,
   grant_id text not null references "grant"(grant_id) on delete cascade,
   expert_id text references "user"(expert_id) on delete set null,
@@ -436,6 +436,6 @@ CREATE TABLE IF NOT EXISTS grant_role (
 
 CREATE INDEX IF NOT EXISTS idx_grant_start_date ON "grant"(start_date);
 CREATE INDEX IF NOT EXISTS idx_grant_end_date ON "grant"(end_date);
-CREATE INDEX IF NOT EXISTS idx_grant_role_grant_id ON grant_role(grant_id);
-CREATE INDEX IF NOT EXISTS idx_grant_role_expert_id ON grant_role(expert_id);
-CREATE INDEX IF NOT EXISTS idx_grant_role_type ON grant_role(role_type);
+CREATE INDEX IF NOT EXISTS idx_expert_grant_role_grant_id ON expert_grant_role(grant_id);
+CREATE INDEX IF NOT EXISTS idx_expert_grant_role_expert_id ON expert_grant_role(expert_id);
+CREATE INDEX IF NOT EXISTS idx_expert_grant_role_type ON expert_grant_role(role_type);
