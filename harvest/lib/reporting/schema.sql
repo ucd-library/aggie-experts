@@ -89,21 +89,6 @@ CREATE TABLE IF NOT EXISTS "user" (
   updated_at timestamptz not null default current_timestamp
 );
 
-ALTER TABLE IF EXISTS "user"
-  ALTER COLUMN expert_id TYPE TEXT;
-
-ALTER TABLE IF EXISTS "user"
-  ADD COLUMN IF NOT EXISTS ucd_person_uuid TEXT;
-
-ALTER TABLE IF EXISTS "user"
-  ADD COLUMN IF NOT EXISTS iam_id TEXT;
-
-ALTER TABLE IF EXISTS "user"
-  ADD COLUMN IF NOT EXISTS display_name TEXT;
-
-ALTER TABLE IF EXISTS "user"
-  ADD COLUMN IF NOT EXISTS updated_at timestamptz not null default current_timestamp;
-
 CREATE OR REPLACE FUNCTION set_user_first_es_insert()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -437,9 +422,6 @@ CREATE TABLE IF NOT EXISTS "grant" (
   grant_types text[] not null default '{}',
   updated_at timestamptz not null default current_timestamp
 );
-
-ALTER TABLE IF EXISTS "grant"
-  ADD COLUMN IF NOT EXISTS raw_payload jsonb;
 
 CREATE TABLE IF NOT EXISTS grant_role (
   role_id text primary key,

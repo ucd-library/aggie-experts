@@ -23,8 +23,7 @@ program
 program
   .command('auth', 'run various authentication tasks')
   .command('es', 'run various ElasticSearch tasks')
-  .command('harvest', 'run various harvest ETL tasks')  
-  .command('miv-init', 'initialize miv postgres schema')
+  .command('harvest', 'run various harvest ETL tasks')
   .command('init', 'initialize aggie experts database components')
 
 program 
