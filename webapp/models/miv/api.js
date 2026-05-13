@@ -64,7 +64,8 @@ function cleanContributorName(name='') {
 }
 
 function isPiRole(roleType='') {
-  return roleType === 'PrincipalInvestigatorRole' || roleType === 'CoPrincipalInvestigatorRole';
+  return roleType === 'http://vivoweb.org/ontology/core#PrincipalInvestigatorRole' ||
+         roleType === 'http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole';
 }
 
 function normalizeGrantRoleTypes(roleType) {
@@ -137,10 +138,9 @@ function buildRawGrantFallback(grant, roles) {
     status: grant.status,
     relatedBy: roles.map(role => ({
       '@id': role.role_id,
-      '@type': normalizeGrantRoleTypes(role.role_type),
+      '@type': normalizeGrantRoleTypes(role.role_type_uri),
       inheres_in: role.expert_id,
       relates: [role.expert_id, grant.grant_id].filter(Boolean),
-      name: role.role_name,
       'is-visible': role.is_visible
     }))
   });
@@ -160,12 +160,15 @@ async function fetchMivPostgresGrants(expertId, since, until) {
   const schema = 'etl_reporting';
   assertSchema(schema);
   const pool = getMivPgPool();
+  const normalizedExpertId = String(expertId || '').replace(/^expert\//, '');
+  const expertIdCandidates = [normalizedExpertId, `expert/${normalizedExpertId}`];
 
   const grantsResp = await pool.query(
     `WITH my_roles AS (
-      SELECT grant_id, role_type
-      FROM ${schema}.expert_grant_role
-      WHERE expert_id = $1
+      SELECT egr.grant_id, rt.uri AS role_type_uri
+      FROM ${schema}.expert_grant_role egr
+      JOIN ${schema}.role_type rt ON rt.role_type_id = egr.role_type_id
+      WHERE egr.expert_id = ANY($1::text[])
     )
     SELECT
       g.grant_id,
@@ -177,16 +180,18 @@ async function fetchMivPostgresGrants(expertId, since, until) {
       g.raw_payload,
       g.sponsor_id,
       g.sponsor_name,
-      g.grant_types,
-      array_agg(DISTINCT mr.role_type) AS role_label
+      ARRAY(SELECT gt.uri FROM ${schema}.grant_type gt WHERE gt.grant_type_id = ANY(g.grant_type_ids)) AS grant_types,
+      array_agg(DISTINCT mr.role_type_uri) AS role_label
     FROM ${schema}."grant" g
     JOIN my_roles mr ON mr.grant_id = g.grant_id
     WHERE ($2::date IS NULL OR COALESCE(g.end_date, g.start_date, $3::date) >= $2::date)
       AND ($3::date IS NULL OR COALESCE(g.start_date, g.end_date, $2::date) <= $3::date)
-    GROUP BY g.grant_id, g.title, g.end_date, g.start_date, g.total_award_amount, g.status, g.raw_payload, g.sponsor_id, g.sponsor_name, g.grant_types
+    GROUP BY g.grant_id, g.title, g.end_date, g.start_date, g.total_award_amount, g.status, g.raw_payload, g.sponsor_id, g.sponsor_name, g.grant_type_ids
     ORDER BY g.start_date DESC NULLS LAST, g.grant_id`,
-    [expertId, since || null, until || null]
+    [expertIdCandidates, since || null, until || null]
   );
+
+  console.log('Fetched grants:', grantsResp.rowCount, JSON.stringify(grantsResp.rows, null, 2));
 
   const grantIds = grantsResp.rows.map(row => row.grant_id);
   if (!grantIds.length) {
@@ -198,16 +203,18 @@ async function fetchMivPostgresGrants(expertId, since, until) {
       gr.grant_id,
       gr.role_id,
       gr.expert_id,
-      gr.role_type,
-      gr.role_name,
+      rt.uri AS role_type_uri,
       gr.is_visible,
       u.display_name
     FROM ${schema}.expert_grant_role gr
+    JOIN ${schema}.role_type rt ON rt.role_type_id = gr.role_type_id
     LEFT JOIN ${schema}."user" u ON u.expert_id = gr.expert_id
     WHERE gr.grant_id = ANY($1::text[])
     ORDER BY gr.grant_id, gr.role_id`,
     [grantIds]
   );
+
+  console.log('Fetched roles:', rolesResp.rowCount, JSON.stringify(rolesResp.rows, null, 2));
 
   const rolesByGrant = new Map();
   for (const row of rolesResp.rows) {
@@ -390,7 +397,7 @@ router.get(
   async (req, res) => {
     const since = req.query.since || null;
     const until = req.query.until || generateGrantFormattedDate();
-    const expertId = `expert/${req.expertId}`;
+    const expertId = String(req.expertId || '').trim();
 
     try {
       const { grants, rolesByGrant } = await fetchMivPostgresGrants(expertId, since, until);
@@ -398,8 +405,8 @@ router.get(
       const out = grants.map(grant => {
         const roles = rolesByGrant.get(grant.grant_id) || [];
         const contributors = roles
-          .filter(role => role.expert_id !== expertId)
-          .filter(role => isPiRole(role.role_type))
+          .filter(role => role.expert_id !== expertId && role.expert_id !== `expert/${expertId}`)
+          .filter(role => isPiRole(role.role_type_uri))
           .map(role => ({
             '@id': role.role_id,
             name: cleanContributorName(role.display_name || role.role_name),
@@ -443,7 +450,7 @@ router.get(
   async (req, res) => {
     const since = req.query.since || null;
     const until = req.query.until || generateGrantFormattedDate();
-    const expertId = `expert/${req.expertId}`;
+    const expertId = String(req.expertId || '').trim();
 
     try {
       const { grants, rolesByGrant } = await fetchMivPostgresGrants(expertId, since, until);

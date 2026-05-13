@@ -175,7 +175,7 @@ function buildGrantRecord(grantDoc={}) {
     end_date: toDateOrNull(grantNode?.dateTimeInterval?.end?.dateTime),
     status: grantNode.status || null,
     raw_payload: grantNode,
-    grant_types: asArray(grantNode['@type']).filter(t => typeof t === 'string')
+    grant_type_uris: asArray(grantNode['@type']).filter(t => typeof t === 'string')
   };
 }
 
@@ -192,13 +192,12 @@ function buildGrantRoles(grantDoc={}) {
         role_id: roleId,
         grant_id: grantNode['@id'],
         expert_id: normalizeExpertId(getExpertIdFromRole(role)),
-        role_type: pickRoleType(role),
-        role_name: role?.name || null,
+        role_type_uri: pickRoleType(role),
         is_visible: role?.['is-visible'] === true
       };
     })
     .filter(Boolean)
-    .filter(role => role.grant_id && role.role_type);
+    .filter(role => role.grant_id && role.role_type_uri);
 }
 
 async function upsertUser(client, schema, row) {
@@ -220,8 +219,10 @@ async function upsertUser(client, schema, row) {
 async function upsertGrant(client, schema, row) {
   await client.query(
     `INSERT INTO ${schema}."grant"
-      (grant_id, title, sponsor_id, sponsor_name, total_award_amount, start_date, end_date, status, raw_payload, grant_types, last_seen_cdl)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+      (grant_id, title, sponsor_id, sponsor_name, total_award_amount, start_date, end_date, status, raw_payload, grant_type_ids, last_seen_cdl)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+       ARRAY(SELECT grant_type_id FROM ${schema}.grant_type WHERE uri = ANY($10::text[])),
+       CURRENT_TIMESTAMP)
      ON CONFLICT (grant_id)
      DO UPDATE SET
       title = EXCLUDED.title,
@@ -232,7 +233,7 @@ async function upsertGrant(client, schema, row) {
       end_date = EXCLUDED.end_date,
       status = EXCLUDED.status,
       raw_payload = EXCLUDED.raw_payload,
-      grant_types = EXCLUDED.grant_types,
+      grant_type_ids = EXCLUDED.grant_type_ids,
       last_seen_cdl = CURRENT_TIMESTAMP`,
     [
       row.grant_id,
@@ -244,7 +245,7 @@ async function upsertGrant(client, schema, row) {
       row.end_date,
       row.status,
       row.raw_payload,
-      row.grant_types
+      row.grant_type_uris
     ]
   );
 }
@@ -255,22 +256,20 @@ async function replaceGrantRoles(client, schema, grantId, roles) {
   for (const role of roles) {
     await client.query(
       `INSERT INTO ${schema}.expert_grant_role
-        (role_id, grant_id, expert_id, role_type, role_name, is_visible, last_seen_cdl)
-       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+        (role_id, grant_id, expert_id, role_type_id, is_visible, last_seen_cdl)
+       VALUES ($1, $2, $3, (SELECT role_type_id FROM ${schema}.role_type WHERE uri = $4), $5, CURRENT_TIMESTAMP)
        ON CONFLICT (role_id)
        DO UPDATE SET
         grant_id = EXCLUDED.grant_id,
         expert_id = EXCLUDED.expert_id,
-        role_type = EXCLUDED.role_type,
-        role_name = EXCLUDED.role_name,
+        role_type_id = EXCLUDED.role_type_id,
         is_visible = EXCLUDED.is_visible,
         last_seen_cdl = CURRENT_TIMESTAMP`,
       [
         role.role_id,
         role.grant_id,
         role.expert_id,
-        role.role_type,
-        role.role_name,
+        role.role_type_uri,
         role.is_visible
       ]
     );

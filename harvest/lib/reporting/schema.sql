@@ -418,16 +418,45 @@ CREATE TABLE IF NOT EXISTS "grant" (
   end_date date,
   status text,
   raw_payload jsonb,
-  grant_types text[] not null default '{}',
+  grant_type_ids INTEGER[] not null default '{}',
   last_seen_cdl timestamptz not null default current_timestamp
 );
+-- TODO do we need year-week for grants?
+
+CREATE TABLE IF NOT EXISTS role_type (
+  role_type_id SERIAL PRIMARY KEY,
+  uri TEXT NOT NULL UNIQUE,
+  label TEXT NOT NULL
+);
+INSERT INTO role_type (uri, label) VALUES
+  ('http://vivoweb.org/ontology/core#PrincipalInvestigatorRole',   'PrincipalInvestigatorRole'),
+  ('http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole', 'CoPrincipalInvestigatorRole'),
+  ('http://vivoweb.org/ontology/core#ResearcherRole',              'ResearcherRole'),
+  ('http://vivoweb.org/ontology/core#LeaderRole',                  'LeaderRole'),
+  ('http://schema.library.ucdavis.edu/schema#GrantRole',           'GrantRole')
+ON CONFLICT (uri) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS grant_type (
+  grant_type_id SERIAL PRIMARY KEY,
+  uri TEXT NOT NULL UNIQUE,
+  label TEXT NOT NULL
+);
+INSERT INTO grant_type (uri, label) VALUES
+  ('http://vivoweb.org/ontology/core#Grant',                         'Grant'),
+  ('http://schema.library.ucdavis.edu/schema#Grant_AcademicSupport', 'Grant_AcademicSupport'),
+  ('http://schema.library.ucdavis.edu/schema#Grant_Default',         'Grant_Default'),
+  ('http://schema.library.ucdavis.edu/schema#Grant_Instruction',     'Grant_Instruction'),
+  ('http://schema.library.ucdavis.edu/schema#Grant_Research',        'Grant_Research'),
+  ('http://schema.library.ucdavis.edu/schema#Grant_Service',         'Grant_Service'),
+  ('http://schema.library.ucdavis.edu/schema#Grant_Scholarship',     'Grant_Scholarship'),
+  ('http://schema.library.ucdavis.edu/schema#Grant_StudentService',  'Grant_StudentService')
+ON CONFLICT (uri) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS expert_grant_role (
   role_id text primary key,
   grant_id text not null references "grant"(grant_id) on delete cascade,
   expert_id VARCHAR(16) references "user"(expert_id) on delete set null,
-  role_type text not null,
-  role_name text,
+  role_type_id INTEGER not null references role_type(role_type_id),
   is_visible boolean not null default false,
   last_seen_cdl timestamptz not null default current_timestamp
 );
@@ -436,4 +465,4 @@ CREATE INDEX IF NOT EXISTS idx_grant_start_date ON "grant"(start_date);
 CREATE INDEX IF NOT EXISTS idx_grant_end_date ON "grant"(end_date);
 CREATE INDEX IF NOT EXISTS idx_expert_grant_role_grant_id ON expert_grant_role(grant_id);
 CREATE INDEX IF NOT EXISTS idx_expert_grant_role_expert_id ON expert_grant_role(expert_id);
-CREATE INDEX IF NOT EXISTS idx_expert_grant_role_type ON expert_grant_role(role_type);
+CREATE INDEX IF NOT EXISTS idx_expert_grant_role_type ON expert_grant_role(role_type_id);
