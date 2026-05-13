@@ -46,6 +46,14 @@ class ReloadSearchTemplateConfig(Config):
     template: str = Field('complete', description="Search template name to load into Elasticsearch")
 
 
+class PurgeStaleUserPartitionsConfig(Config):
+    group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # CDL group to diff against
+    force: bool = Field(
+        default=False,
+        description="If False (default), runs a dry-run that only logs which partitions would be deleted. Set True to actually delete them."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Partition definitions
 # ---------------------------------------------------------------------------

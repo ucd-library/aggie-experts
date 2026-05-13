@@ -52,6 +52,41 @@ class DagsterAPI {
     return obj;
   }
 
+  async getDynamicPartitions(partitionsDefName) {
+    if( !partitionsDefName ) throw new Error('partitionsDefName is required');
+
+    const query = `query GetDynamicPartitions(
+      $repositorySelector: RepositorySelector!,
+      $partitionsDefName: String!
+    ) {
+      dynamicPartitionsOrError(
+        repositorySelector: $repositorySelector,
+        partitionsDefName: $partitionsDefName
+      ) {
+        __typename
+        ... on DynamicPartitions {
+          partitionKeys
+        }
+        ... on PythonError {
+          message
+        }
+      }
+    }`;
+
+    const resp = await this.graphqlQuery(query, this.wrapDefaults({
+      partitionsDefName
+    }, true));
+
+    const result = resp?.data?.dynamicPartitionsOrError;
+    if( !result ) {
+      throw new Error('No dynamicPartitionsOrError in response: '+JSON.stringify(resp));
+    }
+    if( result.__typename === 'PythonError' ) {
+      throw new Error('Dagster error fetching dynamic partitions: '+result.message);
+    }
+    return result.partitionKeys || [];
+  }
+
   async deleteDynamicPartitions(partitionsDefName, partitionKeys) {
     if( !partitionsDefName ) throw new Error('partitionsDefName is required');
     if( !partitionKeys || !Array.isArray(partitionKeys) || partitionKeys.length === 0 ) {
