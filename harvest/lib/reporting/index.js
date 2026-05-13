@@ -157,8 +157,7 @@ function buildUserRecord({ user, metadata={}, expertDoc={} }) {
     expert_id: expertId,
     ucd_person_uuid: metadata?.ucdPersonUUID || null,
     iam_id: metadata?.iamId || null,
-    display_name: expertNode?.name || expertNode?.contactInfo?.name || null,
-    updated_at: new Date()
+    display_name: expertNode?.name || expertNode?.contactInfo?.name || null
   };
 }
 
@@ -195,8 +194,7 @@ function buildGrantRoles(grantDoc={}) {
         expert_id: normalizeExpertId(getExpertIdFromRole(role)),
         role_type: pickRoleType(role),
         role_name: role?.name || null,
-        is_visible: role?.['is-visible'] === true,
-        is_suppressed: role?.['ae-roleof-suppress'] === true
+        is_visible: role?.['is-visible'] === true
       };
     })
     .filter(Boolean)
@@ -206,7 +204,7 @@ function buildGrantRoles(grantDoc={}) {
 async function upsertUser(client, schema, row) {
   await client.query(
     `INSERT INTO ${schema}."user"
-      (email, expert_id, ucd_person_uuid, iam_id, display_name, updated_at)
+      (email, expert_id, ucd_person_uuid, iam_id, display_name, last_seen_cdl)
      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
      ON CONFLICT (email)
      DO UPDATE SET
@@ -214,7 +212,7 @@ async function upsertUser(client, schema, row) {
       ucd_person_uuid = EXCLUDED.ucd_person_uuid,
       iam_id = EXCLUDED.iam_id,
       display_name = EXCLUDED.display_name,
-      updated_at = CURRENT_TIMESTAMP`,
+      last_seen_cdl = CURRENT_TIMESTAMP`,
     [row.email, row.expert_id, row.ucd_person_uuid, row.iam_id, row.display_name]
   );
 }
@@ -222,7 +220,7 @@ async function upsertUser(client, schema, row) {
 async function upsertGrant(client, schema, row) {
   await client.query(
     `INSERT INTO ${schema}."grant"
-      (grant_id, title, sponsor_id, sponsor_name, total_award_amount, start_date, end_date, status, raw_payload, grant_types, updated_at)
+      (grant_id, title, sponsor_id, sponsor_name, total_award_amount, start_date, end_date, status, raw_payload, grant_types, last_seen_cdl)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
      ON CONFLICT (grant_id)
      DO UPDATE SET
@@ -235,7 +233,7 @@ async function upsertGrant(client, schema, row) {
       status = EXCLUDED.status,
       raw_payload = EXCLUDED.raw_payload,
       grant_types = EXCLUDED.grant_types,
-      updated_at = CURRENT_TIMESTAMP`,
+      last_seen_cdl = CURRENT_TIMESTAMP`,
     [
       row.grant_id,
       row.title,
@@ -257,8 +255,8 @@ async function replaceGrantRoles(client, schema, grantId, roles) {
   for (const role of roles) {
     await client.query(
       `INSERT INTO ${schema}.expert_grant_role
-        (role_id, grant_id, expert_id, role_type, role_name, is_visible, is_suppressed, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+        (role_id, grant_id, expert_id, role_type, role_name, is_visible, last_seen_cdl)
+       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
        ON CONFLICT (role_id)
        DO UPDATE SET
         grant_id = EXCLUDED.grant_id,
@@ -266,16 +264,14 @@ async function replaceGrantRoles(client, schema, grantId, roles) {
         role_type = EXCLUDED.role_type,
         role_name = EXCLUDED.role_name,
         is_visible = EXCLUDED.is_visible,
-        is_suppressed = EXCLUDED.is_suppressed,
-        updated_at = CURRENT_TIMESTAMP`,
+        last_seen_cdl = CURRENT_TIMESTAMP`,
       [
         role.role_id,
         role.grant_id,
         role.expert_id,
         role.role_type,
         role.role_name,
-        role.is_visible,
-        role.is_suppressed
+        role.is_visible
       ]
     );
   }
@@ -359,7 +355,7 @@ async function purgeMivPostgresExpert(expertId) {
            ucd_person_uuid = NULL,
            iam_id = NULL,
            display_name = NULL,
-           updated_at = CURRENT_TIMESTAMP
+           last_seen_cdl = CURRENT_TIMESTAMP
        WHERE expert_id = $1`,
       [normalizedExpertId]
     );

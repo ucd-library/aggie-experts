@@ -85,8 +85,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   first_es_insert TIMESTAMP DEFAULT NULL,
   ucd_person_uuid TEXT UNIQUE,
   iam_id TEXT UNIQUE,
-  display_name TEXT,
-  updated_at timestamptz not null default current_timestamp
+  display_name TEXT
 );
 
 CREATE OR REPLACE FUNCTION set_user_first_es_insert()
@@ -420,7 +419,7 @@ CREATE TABLE IF NOT EXISTS "grant" (
   status text,
   raw_payload jsonb,
   grant_types text[] not null default '{}',
-  updated_at timestamptz not null default current_timestamp
+  last_seen_cdl timestamptz not null default current_timestamp
 );
 
 CREATE TABLE IF NOT EXISTS expert_grant_role (
@@ -430,8 +429,7 @@ CREATE TABLE IF NOT EXISTS expert_grant_role (
   role_type text not null,
   role_name text,
   is_visible boolean not null default false,
-  is_suppressed boolean not null default false,
-  updated_at timestamptz not null default current_timestamp
+  last_seen_cdl timestamptz not null default current_timestamp
 );
 
 CREATE INDEX IF NOT EXISTS idx_grant_start_date ON "grant"(start_date);

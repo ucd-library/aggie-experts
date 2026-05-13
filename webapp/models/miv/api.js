@@ -141,8 +141,7 @@ function buildRawGrantFallback(grant, roles) {
       inheres_in: role.expert_id,
       relates: [role.expert_id, grant.grant_id].filter(Boolean),
       name: role.role_name,
-      'is-visible': role.is_visible,
-      'ae-roleof-suppress': role.is_suppressed
+      'is-visible': role.is_visible
     }))
   });
 }
@@ -167,7 +166,6 @@ async function fetchMivPostgresGrants(expertId, since, until) {
       SELECT grant_id, role_type
       FROM ${schema}.expert_grant_role
       WHERE expert_id = $1
-        AND is_suppressed = false
     )
     SELECT
       g.grant_id,
@@ -203,7 +201,6 @@ async function fetchMivPostgresGrants(expertId, since, until) {
       gr.role_type,
       gr.role_name,
       gr.is_visible,
-      gr.is_suppressed,
       u.display_name
     FROM ${schema}.expert_grant_role gr
     LEFT JOIN ${schema}."user" u ON u.expert_id = gr.expert_id
@@ -402,7 +399,6 @@ router.get(
         const roles = rolesByGrant.get(grant.grant_id) || [];
         const contributors = roles
           .filter(role => role.expert_id !== expertId)
-          .filter(role => role.is_suppressed !== true)
           .filter(role => isPiRole(role.role_type))
           .map(role => ({
             '@id': role.role_id,
