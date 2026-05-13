@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_validation_issue_issue_type ON validation_issue (
 
 CREATE TABLE IF NOT EXISTS "user" (
   email VARCHAR(255) PRIMARY KEY,
-  expert_id TEXT UNIQUE,
+  expert_id VARCHAR(16) UNIQUE,
   first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_iam TIMESTAMP,
@@ -425,7 +425,7 @@ CREATE TABLE IF NOT EXISTS "grant" (
 CREATE TABLE IF NOT EXISTS expert_grant_role (
   role_id text primary key,
   grant_id text not null references "grant"(grant_id) on delete cascade,
-  expert_id text references "user"(expert_id) on delete set null,
+  expert_id VARCHAR(16) references "user"(expert_id) on delete set null,
   role_type text not null,
   role_name text,
   is_visible boolean not null default false,

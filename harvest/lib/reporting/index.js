@@ -277,12 +277,7 @@ async function replaceGrantRoles(client, schema, grantId, roles) {
   }
 }
 
-function isMivPostgresLoadEnabled() {
-  return toBool(process.env.MIV_POSTGRES_LOAD_ENABLED || process.env.MIV_PG_LOAD_ENABLED, false);
-}
-
 async function loadMivPostgres({ user, metadata={}, files=[] }) {
-  if (!isMivPostgresLoadEnabled()) return;
 
   const schema = getSchemaName();
   assertSchemaName(schema);
@@ -327,7 +322,7 @@ async function loadMivPostgres({ user, metadata={}, files=[] }) {
 }
 
 async function purgeMivPostgresExpert(expertId) {
-  if (!isMivPostgresLoadEnabled() || !expertId) return;
+  if (!expertId) return;
 
   const schema = getSchemaName();
   assertSchemaName(schema);
@@ -462,6 +457,5 @@ export {
   updateEsIndex,
   initYearWeek,
   loadMivPostgres,
-  purgeMivPostgresExpert,
-  isMivPostgresLoadEnabled
+  purgeMivPostgresExpert
 }
