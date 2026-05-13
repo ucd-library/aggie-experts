@@ -17,7 +17,16 @@ cleanup_schedule_prod = dg.ScheduleDefinition(
     cron_schedule="0 17 * * 6",  # Every Saturday at 5:00 PM
     job=cleanup_job,
     execution_timezone="America/Los_Angeles",
-    run_config={},
+    run_config={
+        "ops": {
+            "purge_stale_user_partitions": {
+                "config": {
+                    "group_id": "experts",
+                    "force": True
+                }
+            }
+        }
+    },
     tags={
         "env": "prod"
     },
@@ -29,7 +38,16 @@ cleanup_schedule_dev = dg.ScheduleDefinition(
     cron_schedule="0 17 * * 0",  # Every Sunday at 5:00 PM
     job=cleanup_job,
     execution_timezone="America/Los_Angeles",
-    run_config={},
+    run_config={
+        "ops": {
+            "purge_stale_user_partitions": {
+                "config": {
+                    "group_id": "experts",
+                    "force": True
+                }
+            }
+        }
+    },
     tags={
         "env": "dev"
     },

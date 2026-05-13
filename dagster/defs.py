@@ -35,6 +35,7 @@ from lib.assets import (
     purge_year_week_cask_files,
     purge_dagster_runs,
     purge_reporting_db,
+    purge_stale_user_partitions,
 )
 from lib.jobs import (
     etl_users_job,
@@ -59,6 +60,7 @@ defs = dg.Definitions(
         ensure_current_index, set_alias, reload_search_template,
         create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl,
         purge_user_cask_files, purge_year_week_cask_files, purge_dagster_runs, purge_reporting_db,
+        purge_stale_user_partitions,
     ],
     sensors=[etl_notify_and_continue],
     resources={},
