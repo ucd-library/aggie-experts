@@ -226,9 +226,9 @@ class EsDataModel {
 
   async setRoles(body, roles) {
     if( !roles ) {
-      roles = [config.finac.agents.public];
-    } else if( !roles.includes(config.finac.agents.public) ) {
-      roles.push(config.finac.agents.public);
+      roles = ['public'];
+    } else if( !roles.includes('public') ) {
+      roles.push('public');
     }
 
     if( !body.query ) body.query = {};

@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const express = require('express');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('../../lib/es-client.js');
@@ -19,7 +20,11 @@ module.exports = async (app) => {
 
   // path to your spa assets dir
   let assetsDir = path.join(__dirname, '..', 'client', config.client.assets);
+  let staticAssetsDir = path.join(__dirname, '..', 'client', 'static-assets');
   logger.info('SPA assets directory', assetsDir);
+  logger.info('SPA static assets directory', staticAssetsDir);
+
+  app.use('/static-assets', express.static(staticAssetsDir));
 
   loadJsBundleHash(assetsDir);
 
@@ -81,6 +86,8 @@ module.exports = async (app) => {
       next({
         user,
         appRoutes : config.client.appRoutes,
+        faqUseGcs : config.client.faqUseGcs,
+        faqMarkdownUrl : config.client.faqMarkdownUrl,
         dagster : config.client.dagster,
         env : config.client.env,
         enableGA4Stats : config.client.enableGA4Stats,
@@ -118,7 +125,7 @@ module.exports = async (app) => {
           expertId = 'expert/' + urlParts[1].split('?')[0];
           pageJsonLd = await experts.model.seo(expertId);
         } else if( isFaq ) {
-          pageJsonLd = getFaqJsonLd();
+          pageJsonLd = await getFaqJsonLd();
         }
       } catch(e) {
         // ignore and let client handle 404 if needed

@@ -191,6 +191,10 @@ const config = {
     aliases : {
       current : 'public',
       stage : 'latest'
+    },
+    fields : {
+      exclude: [],
+      excludeCompact: []
     }
   },
 

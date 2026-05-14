@@ -145,29 +145,7 @@ class GrantModel extends BaseModel {
       }
     }
 
-    function nameMatches(name) {
-      const name_match={}
-      let last=name.family.toLowerCase().replace(/[^a-z]/g,'');
-      if (name.given && name.given.length) {
-        let first=name.given.toLowerCase().replace(/[^a-z]/g,'');
-        name_match[`${last}_${first}`]=true;
-        name_match[`${last}_${first[0]}`]=true;
-        if (name.middle && name.middle.length) {
-          let middle=name.middle.toLowerCase().replace(/[^a-z]/g,'');
-          name_match[`${last}_${first[0]}${middle[0]}`]=true;
-        }
-      } else if (name.middle && name.middle.length) {
-        let middle=name.middle.toLowerCase().replace(/[^a-z]/g,'');
-        name_match[`${last}_${middle[0]}`]=true;
-      } else {
-        name_match[last]=true;
-      }
-      return Object.keys(name_match);
-    }
-
     const expertModel = await this.get_model('expert');
-    // get all name matches
-    const name_match = {}
     const experts={};
     // Make sure some expert wants it visible
     for (var expert_id in visible_inheres_in) {
@@ -175,9 +153,6 @@ class GrantModel extends BaseModel {
       expert=expertModel.get_expected_model_node(expert);
       experts[expert_id]=expert;
       if (expert?.hasName) {
-        nameMatches(expert?.hasName).forEach((n) => {
-          name_match[n]=expert_id;
-        });
         // Add a label to the role
         let role=visible_inheres_in[expert_id];
         for ( var j in role.relates ) {
@@ -193,27 +168,23 @@ class GrantModel extends BaseModel {
     for (const role of
          Array.isArray(root_node.relatedBy)?root_node.relatedBy:[root_node.relatedBy])
     {
-      let matched=false
+      // Skip dangling {@id} stubs. These are leftover @id references in
+      // relatedBy whose underlying role node was dropped upstream (typically
+      // by harvest/lib/transform/webapp/relates.js _dropRedundantRoleofNodes)
+      // but whose reference jsonld framing didn't strip. They have no
+      // @type/inheres_in/relates, so neither branch below would do anything
+      // useful with them — the else branch in particular would call
+      // update_graph_node(undefined, ...) and log a noisy XX> error.
+      if (!role || (!role['@type'] && !role.inheres_in && !role.relates)) {
+        continue;
+      }
+
       if (! role.inheres_in && role?.relates) {
-        // If the harvest pipeline already flagged this #roleof_ node as redundant
-        // (because an inheres_in AE expert covers the same person+role), skip it.
-        if (role['ae-roleof-suppress']) {
-          matched = true;
-        }
-        if (!matched) {
-          role.relates.forEach(r => {
-            if (r.hasName) {
-              nameMatches(r.hasName).forEach((nm) => {
-                if (name_match[nm]) {
-                  matched=true;
-                }
-              })
-            }
-          });
-        }
-        if ( ! matched ) {
-          new_related.push(role)
-        }
+        // Non-AE-expert person role (#roleof_). Redundant ones (where an AE
+        // expert covers the same person+role) are dropped upstream in
+        // harvest/lib/transform/webapp/relates.js, so anything that reaches
+        // here is genuine and should be rendered.
+        new_related.push(role)
       } else {
         try {
           await expertModel.update_graph_node(role.inheres_in, this.snippet(root_node));
