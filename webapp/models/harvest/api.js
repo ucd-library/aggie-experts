@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { openapi, json_only, dagster_can_run_partition, public_or_is_user } = require('../middleware/index.js');
 const DagsterAPI = require('../../lib/dagster-api.js');
-const {logger} = require('@ucd-lib/experts-commons');
+const {config, logger} = require('@ucd-lib/experts-commons');
 
 
 const dagsterAPI = new DagsterAPI();
@@ -59,5 +59,103 @@ router.post('/last-runs-for-partition',
     res.status(500).json({ error: error.message });
   }
 });
+
+router.get('/health',
+  public_or_is_user,
+  async (req, res) => {
+    const daemonHeartbeatStaleMs = 60 * 1000;
+
+    const startedAt = Date.now();
+    const now = Date.now();
+
+    try {
+      // check dagster ui health
+      const uiResp = await fetch(`${config.dagster.host}/server_info`);
+      if( !uiResp.ok ) {
+        throw new Error(`Dagster UI probe failed: ${uiResp.status} ${uiResp.statusText}`);
+      }
+
+      const query = `
+        query DagsterServiceHealth {
+          instance {
+            daemonHealth {
+              allDaemonStatuses {
+                daemonType
+                healthy
+                required
+                lastHeartbeatTime
+                lastHeartbeatErrors {
+                  message
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const gqlResp = await dagsterAPI.graphqlQuery(
+        'DagsterServiceHealth',
+        query,
+        {}
+      );
+
+      // check deamon health
+      const daemonStatuses =
+        gqlResp?.data?.instance?.daemonHealth?.allDaemonStatuses || [];
+
+      const requiredUnhealthy = daemonStatuses.filter(s => {
+        if (!s.required) return false;
+        if (!s.healthy) return true;
+        if (s.lastHeartbeatTime) {
+          const ageMs = now - s.lastHeartbeatTime * 1000;
+          if (ageMs > daemonHeartbeatStaleMs) return true;
+        }
+        return false;
+      });
+
+      // build response
+      const reasons = requiredUnhealthy.map(s => {
+        const ageMs = s.lastHeartbeatTime
+          ? now - s.lastHeartbeatTime * 1000
+          : null;
+        return {
+          daemonType: s.daemonType,
+          reason: ageMs !== null && ageMs > daemonHeartbeatStaleMs && s.healthy
+            ? `heartbeat stale (${Math.round(ageMs / 1000)}s ago)`
+            : 'required daemon unhealthy',
+          errors: (s.lastHeartbeatErrors || []).map(e => e.message)
+        };
+      });
+
+      const status = reasons.length ? 'degraded' : 'healthy';
+
+      return res.status(status === 'healthy' ? 200 : 503).json({
+        status,
+        service: 'dagster',
+        checkedAt: new Date().toISOString(),
+        latencyMs: Date.now() - startedAt,
+        reasons,
+        details: {
+          requiredDaemonCount: daemonStatuses.filter(s => s.required).length,
+          unhealthyRequiredDaemonCount: requiredUnhealthy.length,
+          uiReachable: true
+        }
+      });
+    } catch (error) {
+      logger.error('Error fetching Dagster health', error);
+
+      return res.status(503).json({
+        status: 'down',
+        service: 'dagster',
+        checkedAt: new Date().toISOString(),
+        latencyMs: Date.now() - startedAt,
+        reasons: [{
+          reason: 'dagster graphql request failed',
+          message: error.message
+        }]
+      });
+    }
+  }
+);
 
 module.exports = router;

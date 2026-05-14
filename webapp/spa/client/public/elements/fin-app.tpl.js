@@ -176,6 +176,30 @@ return html`
       font-size: 0.875rem;
     }
 
+    .dagster-health-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem .7rem;
+      background-color: #ffdc00;
+      color: #022851;
+    }
+
+    .dagster-health-container a {
+      color: #022851;
+    }
+
+    .dagster-health-container[hidden] {
+      display: none;
+    }
+
+    .dagster-health-container .preview-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+    }
+
     </style>
   <!--
     Required for AppStateModel
@@ -236,6 +260,13 @@ return html`
     </a>
   </div>
 
+  <div ?hidden="${this.hideDagsterHealth || this.page !== 'expert'}" class="dagster-health-container">
+    <div class="preview-info">
+      <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
+      <span>Profile editing is temporarily unavailable. For urgent changes, <a href="mailto:experts@ucdavis.edu"rel="noopener">contact us</a>.</span>
+    </div>
+  </div>
+
   <div class="main-content">
     <ucdlib-pages
       selected="${this.page}"
@@ -248,6 +279,7 @@ return html`
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
         @cancel-edit-expert="${this._editExpertClick}"
+        @dagster-health-issue="${this._onDagsterHealthIssue}" 
         id="expert"
         @show-404="${(e) => this.page = '404'}"
         @reset-scroll="${this._resetScroll}">

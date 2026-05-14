@@ -50,6 +50,16 @@ class DagsterModel extends BaseModel {
     return await this.service.getLastRunForPartition(jobName, partitionName);
   }
 
+  /**
+   * @method getHealth
+   * @description get health of dagster instance
+   *
+   * @returns {Promise} resolves to record
+  */
+  async getHealth() {
+    return await this.service.getHealth();
+  }
+
 }
 
 module.exports = new DagsterModel();

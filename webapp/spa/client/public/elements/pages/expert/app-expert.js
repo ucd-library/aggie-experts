@@ -95,6 +95,7 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( e.location.page !== 'expert' ) {
       clearInterval(this._profileSyncIntervalId);
+      clearTimeout(this._dagsterHealthIntervalId);
       this._profileSyncIntervalId = null;
       this.refreshingProfileData = false;
       return;
@@ -257,13 +258,16 @@ export default class AppExpert extends Mixin(LitElement)
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
     this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
 
-    // if (APP_CONFIG.user?.loggedIn && APP_CONFIG.user.expertId === this.expertId) {
-    //   try {
-    //     await this._updateProfileLastUpdated();
-    //   } catch (e) {
-    //     // ignore errors from profile last-updated refresh for this view
-    //   }
-    // }
+    if( APP_CONFIG.user?.loggedIn && (APP_CONFIG.user.expertId === this.expertId || this.isAdmin) ) {
+      await this._checkDagsterHealthLoop();
+
+      // TODO bring back refresh profile
+      // try {
+      //   await this._updateProfileLastUpdated();
+      // } catch (e) {
+      //   // ignore errors from profile last-updated refresh for this view
+      // }
+    }
   }
 
   /**
@@ -937,6 +941,53 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideEdit = APP_CONFIG.user?.expertId === this.expertId;
 
     if( APP_CONFIG.user?.expertId !== this.expertId ) this.canEdit = false;
+  }
+
+  /**
+   * @method _checkDagsterHealthLoop
+   * @description loop to check health of dagster, disable admin controls if dagster is not healthy
+   */
+  async _checkDagsterHealthLoop() {
+    if( this._dagsterHealthIntervalId ) {
+      clearInterval(this._dagsterHealthIntervalId);
+    }
+
+    await this._checkDagsterHealth();
+
+    this._dagsterHealthIntervalId = setInterval(async () => {
+      await this._checkDagsterHealth();
+    }, 10000);
+  }
+
+  async _checkDagsterHealth() {
+    try {
+      let res = await this.DagsterModel.getHealth();
+
+      let status = res?.body?.status || '';
+      if( status !== 'healthy' ) {
+        this.dagsterHealthy = false;
+        this.dispatchEvent(
+          new CustomEvent('dagster-health-issue', {
+            detail : {
+              healthIssue : true
+            }
+          })
+        );
+        console.log('Dagster is not healthy, todo disable controls and show banner in fin-app');
+      } else {
+        this.dagsterHealthy = true;
+        this.dispatchEvent(
+          new CustomEvent('dagster-health-issue', {
+            detail : {
+              healthIssue : false
+            }
+          })
+        );
+        console.log('Dagster is healthy');
+      }
+    } catch (err) {
+      this.logger.warn('Error checking dagster health', err);
+    }
   }
 
   /**
