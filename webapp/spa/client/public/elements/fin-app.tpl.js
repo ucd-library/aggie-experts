@@ -181,8 +181,12 @@ return html`
       align-items: center;
       justify-content: space-between;
       padding: 1rem .7rem;
-      background-color: var(--color-strawberry, #F93549);
-      color: white;
+      background-color: #ffdc00;
+      color: #022851;
+    }
+
+    .dagster-health-container a {
+      color: #022851;
     }
 
     .dagster-health-container[hidden] {
@@ -258,8 +262,8 @@ return html`
 
   <div ?hidden="${this.hideDagsterHealth || this.page !== 'expert'}" class="dagster-health-container">
     <div class="preview-info">
-      <ucdlib-icon icon="ucdlib-experts:fa-flask"></ucdlib-icon>
-      <span>Backend health service for admin updates is degraded. Updates to visibility are disabled.</span>
+      <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
+      <span>Profile editing is temporarily unavailable. For urgent changes, <a href="mailto:experts@ucdavis.edu"rel="noopener">contact us</a>.</span>
     </div>
   </div>
 
