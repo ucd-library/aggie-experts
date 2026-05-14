@@ -12,11 +12,11 @@ Alainna Wrigley (California Digital Library), Mahjabeen Yucekul (California Digi
 Tessa Hill (Professor, Earth and Planetary Sciences), Jiayi Young (Associate Professor, Design, College of Letters & Sciences), Anuurad Erdembileg (Assistant Dean, School of Medicine), Matt Bishop (Professor, College of Engineering),  Michael Lazzara (Professor, Spanish & Portugese, College of Letters and Science, Associate Vice-Provost, Academic Affairs, Global Affairs)
 
 ### Former Board Members:
-Ricardo Castro (Associate Dean, College of Engineering),Michael Rios (College of Agricultural and Environmental Science, Vice-Provost, Public Scholarship and Engagement),
+Ricardo Castro (Associate Dean, College of Engineering), Michael Rios (College of Agricultural and Environmental Science, Vice-Provost, Public Scholarship and Engagement),
 
 ### Former contributors
 ### Development:
-Quinn Hart(Manager of Digital Applications, Library, Technology lead on the Aggie Experts project), Roger Kunkel (Senior Developer, Library), Jeff Tyzzer (Data Integration Architect, Library)
+Quinn Hart (Manager of Digital Applications, Library, Technology lead on the Aggie Experts project), Roger Kunkel (Senior Developer, Library), Jeff Tyzzer (Data Integration Architect, Library)
 ### Custom Support:
 Claudia Whitfield, Michael Colby
 ### Other: 
