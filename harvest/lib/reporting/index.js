@@ -217,6 +217,17 @@ async function upsertUser(client, schema, row) {
 }
 
 async function upsertGrant(client, schema, row) {
+  for (const grantTypeUri of row.grant_type_uris) {
+    if (grantTypeUri) {
+      await client.query(
+        `INSERT INTO ${schema}.grant_type (uri, label)
+         VALUES ($1, $1)
+         ON CONFLICT (uri) DO NOTHING`,
+        [grantTypeUri]
+      );
+    }
+  }
+
   await client.query(
     `INSERT INTO ${schema}."grant"
       (grant_id, title, sponsor_id, sponsor_name, total_award_amount, start_date, end_date, status, raw_payload, grant_type_ids, last_seen_cdl)
@@ -253,6 +264,19 @@ async function upsertGrant(client, schema, row) {
 async function replaceGrantRoles(client, schema, grantId, roles) {
   await client.query(`DELETE FROM ${schema}.expert_grant_role WHERE grant_id = $1`, [grantId]);
 
+  // ensure all role types exist in the role_type table
+  for (const role of roles) {
+    if (role.role_type_uri) {
+      await client.query(
+        `INSERT INTO ${schema}.role_type (uri, label)
+         VALUES ($1, $1)
+         ON CONFLICT (uri) DO NOTHING`,
+        [role.role_type_uri]
+      );
+    }
+  }
+
+  // insert expert_grant_roles
   for (const role of roles) {
     await client.query(
       `INSERT INTO ${schema}.expert_grant_role
