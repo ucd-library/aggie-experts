@@ -70,10 +70,11 @@ async function run(user, alias) {
   }
 
   // load MIV projection into postgres from transformed public expert/grant files
+  const mivFiles = getMivPostgresFiles(user, files);
   await loadMivPostgres({
     user,
     metadata,
-    files
+    files: mivFiles
   });
 
   // load files into elastic search
@@ -317,12 +318,33 @@ async function getPublicScholarlyWorkFiles(user) {
       return {
         type: 'grant',
         uri: grant.uri,
+        relationshipUri: grant.relationshipUri,
         path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grant.uri}.json`)
       }
     })
   ]
 
   return results;
+}
+
+function getMivPostgresFiles(user, files=[]) {
+  return files
+    .filter(file => file.type === 'expert' || file.type === 'grant')
+    .map(file => {
+      if (file.type !== 'grant') {
+        return file;
+      }
+
+      // get grant relationship file
+      if (file.relationshipUri) {
+        return {
+          ...file,
+          path: cache.getUserPath(user, ['ae-std', 'rel', file.relationshipUri+'.jsonld'])
+        };
+      }
+
+      return file;
+    });
 }
 
 export default run;

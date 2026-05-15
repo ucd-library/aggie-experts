@@ -60,6 +60,13 @@ function hasType(node, type) {
   return asArray(node?.['@type']).includes(type);
 }
 
+function toShortType(type) {
+  if (typeof type !== 'string') return type;
+  if (type.includes('#')) return type.split('#').pop();
+  if (type.includes('/')) return type.split('/').pop();
+  return type;
+}
+
 function normalizeExpertId(value) {
   if (typeof value !== 'string') return null;
 
@@ -300,6 +307,100 @@ async function replaceGrantRoles(client, schema, grantId, roles) {
   }
 }
 
+/**
+ * @function normalizeAeStdGrantDoc
+ * @description Converts an ae-std expanded JSON-LD array (from ae-std/rel/*.jsonld) into
+ * the compacted `{ '@graph': [grantNode] }` shape that buildGrantRecord / buildGrantRoles
+ * expect, resolving all internal $id references along the way.
+ *
+ * If the input is already an object (e.g. a webapp-format grant doc from a regenerated
+ * disassociated work), it is returned unchanged so the caller can handle both formats.
+ */
+function normalizeAeStdGrantDoc(aeStdData) {
+  if( !Array.isArray(aeStdData) ) return aeStdData;
+
+  // lookup map for resolving @id references
+  const nodeMap = {};
+  for( const node of aeStdData ) {
+    if( node?.['@id'] ) nodeMap[node['@id']] = node;
+  }
+
+  // get grant node
+  const GRANT_URI = 'http://vivoweb.org/ontology/core#Grant';
+  const grantNode = aeStdData.find(n =>
+    asArray(n['@type']).includes(GRANT_URI)
+  );
+  if( !grantNode ) return null;
+
+  const getFirstValue = (node, uri) => {
+    const first = asArray(node?.[uri])[0];
+    return first?.['@value'] ?? first?.['@id'] ?? undefined;
+  };
+
+  // get assignedBy (funder node)
+  const assignedById = asArray(grantNode['http://vivoweb.org/ontology/core#assignedBy'])[0]?.['@id'];
+  const assignedByNode = assignedById ? nodeMap[assignedById] : null;
+  const assignedBy = assignedByNode
+    ? { '@id': assignedByNode['@id'], name: getFirstValue(assignedByNode, 'http://schema.org/name') }
+    : undefined;
+
+  // get dateTimeInterval -> start / end date nodes
+  const intervalId = asArray(grantNode['http://vivoweb.org/ontology/core#dateTimeInterval'])[0]?.['@id'];
+  const intervalNode = intervalId ? nodeMap[intervalId] : null;
+  let dateTimeInterval;
+  if( intervalNode ) {
+    const startId = asArray(intervalNode['http://vivoweb.org/ontology/core#start'])[0]?.['@id'];
+    const endId   = asArray(intervalNode['http://vivoweb.org/ontology/core#end'])[0]?.['@id'];
+    const startNode = startId ? nodeMap[startId] : null;
+    const endNode   = endId   ? nodeMap[endId]   : null;
+    dateTimeInterval = {
+      start: startNode ? { dateTime: getFirstValue(startNode, 'http://vivoweb.org/ontology/core#dateTime') } : undefined,
+      end:   endNode   ? { dateTime: getFirstValue(endNode,   'http://vivoweb.org/ontology/core#dateTime') } : undefined
+    };
+  }
+
+  // get relatedBy role refs (some may be inline objects, some just { @id } refs)
+  const BASE_URL = 'http://experts.ucdavis.edu/';
+  const stripBase = id => (typeof id === 'string' && id.startsWith(BASE_URL)) ? id.slice(BASE_URL.length) : id;
+
+  const relatedBy = asArray(grantNode['http://vivoweb.org/ontology/core#relatedBy']).map(ref => {
+    // inline role objects have keys beyond just @id; pure refs have only @id
+    const roleNode = (Object.keys(ref).length > 1) ? ref : nodeMap[ref['@id']];
+    if( !roleNode ) return { '@id': ref['@id'] };
+
+    const relates = asArray(roleNode['http://vivoweb.org/ontology/core#relates'])
+      .map(r => stripBase(r['@id'] || r))
+      .filter(Boolean);
+
+    const isVisibleRaw = asArray(roleNode['http://schema.library.ucdavis.edu/schema#is-visible'])[0]?.['@value'];
+    const isVisible = isVisibleRaw === 'true' || isVisibleRaw === true;
+
+    return {
+      '@id': roleNode['@id'],
+      '@type': asArray(roleNode['@type']).map(toShortType),
+      relates,
+      'is-visible': isVisible
+    };
+  });
+
+  const rawTypes = asArray(grantNode['@type']);
+  const shortTypes = rawTypes.map(toShortType);
+
+  return {
+    '@graph': [{
+      '@id':              grantNode['@id'],
+      '@type':            Array.from(new Set([...shortTypes, ...rawTypes])),
+      name:               getFirstValue(grantNode, 'http://schema.org/name'),
+      sponsorAwardId:     getFirstValue(grantNode, 'http://vivoweb.org/ontology/core#sponsorAwardId'),
+      totalAwardAmount:   getFirstValue(grantNode, 'http://vivoweb.org/ontology/core#totalAwardAmount'),
+      status:             getFirstValue(grantNode, 'http://citationstyles.org/schema/status'),
+      assignedBy,
+      dateTimeInterval,
+      relatedBy
+    }]
+  };
+}
+
 async function loadMivPostgres({ user, metadata={}, files=[] }) {
 
   const schema = getSchemaName();
@@ -324,8 +425,14 @@ async function loadMivPostgres({ user, metadata={}, files=[] }) {
     await upsertUser(pgClient, schema, userRecord);
 
     for (const file of grantFiles) {
-      const grantDoc = await readJson(file.path);
+      let grantDoc = await readJson(file.path);
       if (!grantDoc) continue;
+
+      // ae-std files are JSON arrays; normalize to the compacted shape buildGrantRecord expects
+      if (Array.isArray(grantDoc)) {
+        grantDoc = normalizeAeStdGrantDoc(grantDoc);
+        if (!grantDoc) continue;
+      }
 
       const grantRecord = buildGrantRecord(grantDoc);
       if (!grantRecord?.grant_id) continue;
