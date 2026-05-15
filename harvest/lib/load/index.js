@@ -2,7 +2,12 @@ import cache from '../cache.js';
 import { logger, config, Elasticsearch } from '@ucd-lib/experts-commons';
 import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
-import { loadMivPostgres, purgeMivPostgresExpert } from '../reporting/index.js';
+import {
+  loadMivPostgres,
+  purgeMivPostgresExpert,
+  loadSitefarmPostgres,
+  purgeSitefarmPostgresExpert
+} from '../reporting/index.js';
 
 async function run(user, alias) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;
@@ -27,6 +32,7 @@ async function run(user, alias) {
 
     await purgeUser(metadata.expertId, alias);
     await purgeMivPostgresExpert('expert/'+metadata.expertId);
+    await purgeSitefarmPostgresExpert('expert/'+metadata.expertId);
 
     if (config.reporting.enabled && config.postgres.client && 
         alias.includes(config.elasticsearch.aliases.stage) ) {
@@ -75,6 +81,15 @@ async function run(user, alias) {
     user,
     metadata,
     files: mivFiles
+  });
+
+  // load Sitefarm projection (expert profile + works) into postgres from ae-std docs.
+  // Runs after loadMivPostgres so the "user" row exists for the profile overlay.
+  const sitefarmFiles = getSitefarmPostgresFiles(user, files);
+  await loadSitefarmPostgres({
+    user,
+    metadata,
+    files: sitefarmFiles
   });
 
   // load files into elastic search
@@ -311,6 +326,9 @@ async function getPublicScholarlyWorkFiles(user) {
       return {
         type: 'work',
         uri: work.uri,
+        // relationshipUri is needed by getSitefarmPostgresFiles to resolve the
+        // corresponding ae-std/rel/{relationshipUri}.jsonld file.
+        relationshipUri: work.relationshipUri,
         path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.json`)
       }
     }),
@@ -345,6 +363,36 @@ function getMivPostgresFiles(user, files=[]) {
 
       return file;
     });
+}
+
+/**
+ * Build the file list consumed by loadSitefarmPostgres:
+ *   - one personAeStd entry pointing at ae-std/person.jsonld
+ *   - zero or more work entries pointing at ae-std/rel/{relationshipUri}.jsonld
+ *
+ * The expert profile is sourced from ae-std (not the ae-webapp expert.jsonld)
+ * so the sitefarm postgres API path is decoupled from the elasticsearch
+ * projection.
+ */
+function getSitefarmPostgresFiles(user, files=[]) {
+  const result = [{
+    type: 'personAeStd',
+    path: cache.getUserPath(user, ['ae-std', 'person.jsonld'])
+  }];
+
+  for (const file of files) {
+    if (file.type !== 'work') continue;
+    if (!file.relationshipUri) continue;
+
+    result.push({
+      type: 'work',
+      uri: file.uri,
+      relationshipUri: file.relationshipUri,
+      path: cache.getUserPath(user, ['ae-std', 'rel', file.relationshipUri+'.jsonld'])
+    });
+  }
+
+  return result;
 }
 
 export default run;

@@ -466,3 +466,80 @@ CREATE INDEX IF NOT EXISTS idx_grant_end_date ON "grant"(end_date);
 CREATE INDEX IF NOT EXISTS idx_expert_grant_role_grant_id ON expert_grant_role(grant_id);
 CREATE INDEX IF NOT EXISTS idx_expert_grant_role_expert_id ON expert_grant_role(expert_id);
 CREATE INDEX IF NOT EXISTS idx_expert_grant_role_type ON expert_grant_role(role_type_id);
+
+-- ============================================================================
+-- Sitefarm projection: works + expert profile fields
+-- ----------------------------------------------------------------------------
+-- Extend "user" with expert profile fields needed by the sitefarm API
+-- ============================================================================
+ALTER TABLE "user"
+  ADD COLUMN IF NOT EXISTS orcid_id           TEXT,
+  ADD COLUMN IF NOT EXISTS researcher_id      TEXT,
+  ADD COLUMN IF NOT EXISTS scopus_id          TEXT,
+  ADD COLUMN IF NOT EXISTS overview           TEXT,
+  ADD COLUMN IF NOT EXISTS research_interests TEXT,
+  ADD COLUMN IF NOT EXISTS contact_info       JSONB,
+  ADD COLUMN IF NOT EXISTS expert_raw_payload JSONB;
+
+-- Seed role_type with the additional work-related roles. role_type is shared
+-- between grants and works so a single lookup serves both.
+INSERT INTO role_type (uri, label) VALUES
+  ('http://vivoweb.org/ontology/core#Authorship',    'Authorship'),
+  ('http://vivoweb.org/ontology/core#Editorship',    'Editorship'),
+  ('http://schema.library.ucdavis.edu/schema#WorkRole', 'WorkRole')
+ON CONFLICT (uri) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS work_type (
+  work_type_id SERIAL PRIMARY KEY,
+  uri          TEXT NOT NULL UNIQUE,
+  label        TEXT NOT NULL
+);
+
+INSERT INTO work_type (uri, label) VALUES
+  ('http://purl.org/ontology/bibo/AcademicArticle', 'AcademicArticle'),
+  ('http://purl.org/ontology/bibo/Article',         'Article'),
+  ('http://purl.org/ontology/bibo/Book',            'Book'),
+  ('http://purl.org/ontology/bibo/Chapter',         'Chapter'),
+  ('http://purl.org/ontology/bibo/Conference',      'Conference'),
+  ('http://purl.org/ontology/bibo/Document',        'Document'),
+  ('http://purl.org/ontology/bibo/Manuscript',      'Manuscript'),
+  ('http://purl.org/ontology/bibo/Thesis',          'Thesis'),
+  ('http://vivoweb.org/ontology/core#ConferencePaper', 'ConferencePaper'),
+  ('http://vivoweb.org/ontology/core#Editorship',      'Editorship'),
+  ('http://vivoweb.org/ontology/core#Authorship',      'Authorship'),
+  ('http://schema.library.ucdavis.edu/schema#Work',    'Work')
+ON CONFLICT (uri) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS "work" (
+  work_id         TEXT PRIMARY KEY,
+  title           TEXT,
+  issued          TEXT,            -- exact value from source ("2023", "2023-04", "2023-04-15")
+  issued_date     DATE,            -- normalized for sorting; partial values padded to first-of-period
+  container_title TEXT,
+  volume          TEXT,
+  page            TEXT,
+  doi             TEXT,
+  abstract        TEXT,
+  status          TEXT,
+  raw_payload     JSONB,           -- full ae-std work node, used for lossless reconstruction
+  work_type_ids   INTEGER[] NOT NULL DEFAULT '{}',
+  last_seen_cdl   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS expert_work_role (
+  role_id       TEXT PRIMARY KEY,
+  work_id       TEXT NOT NULL REFERENCES "work"(work_id) ON DELETE CASCADE,
+  expert_id     VARCHAR(16) REFERENCES "user"(expert_id) ON DELETE SET NULL,
+  role_type_id  INTEGER REFERENCES role_type(role_type_id),
+  is_visible    BOOLEAN NOT NULL DEFAULT FALSE,
+  is_favourite  BOOLEAN NOT NULL DEFAULT FALSE,
+  author_rank   INTEGER,           -- expert's position in the author list; NULL if not an author
+  raw_payload   JSONB,             -- full relatedBy node to faithfully rebuild API responses
+  last_seen_cdl TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_work_issued_date ON "work"(issued_date);
+CREATE INDEX IF NOT EXISTS idx_expert_work_role_work_id ON expert_work_role(work_id);
+CREATE INDEX IF NOT EXISTS idx_expert_work_role_expert_id ON expert_work_role(expert_id);
+CREATE INDEX IF NOT EXISTS idx_expert_work_role_type ON expert_work_role(role_type_id);
+CREATE INDEX IF NOT EXISTS idx_expert_work_role_expert_visible ON expert_work_role(expert_id, is_visible);
