@@ -230,18 +230,26 @@ router.get(
           )
         );
 
-        return {
+        const row = {
           '@id': grant.grant_id,
           title: (grant.title || '').split('§')?.[0]?.trim() || grant.title,
           end_date: formatDateToString(grant.end_date),
           start_date: formatDateToString(grant.start_date),
           grant_amount: grant.total_award_amount,
-          sponsor_id: grant.sponsor_id,
-          sponsor_name: grant.sponsor_name,
           type: grant.grant_types || [],
           role_label: roleLabel,
           contributors
         };
+
+        if (grant.sponsor_id !== null && grant.sponsor_id !== undefined && grant.sponsor_id !== '') {
+          row.sponsor_id = grant.sponsor_id;
+        }
+
+        if (grant.sponsor_name !== null && grant.sponsor_name !== undefined && grant.sponsor_name !== '') {
+          row.sponsor_name = grant.sponsor_name;
+        }
+
+        return row;
       });
 
       res.send({ '@graph': out });

@@ -67,6 +67,12 @@ function toShortType(type) {
   return type;
 }
 
+function toShortPrecision(precision) {
+  if (typeof precision !== 'string') return precision;
+  if (precision.startsWith('http://vivoweb.org/ontology/core#')) return 'vivo:' + precision.split('#').pop();
+  return precision;
+}
+
 function normalizeExpertId(value) {
   if (typeof value !== 'string') return null;
 
@@ -341,7 +347,11 @@ function normalizeAeStdGrantDoc(aeStdData) {
   const assignedById = asArray(grantNode['http://vivoweb.org/ontology/core#assignedBy'])[0]?.['@id'];
   const assignedByNode = assignedById ? nodeMap[assignedById] : null;
   const assignedBy = assignedByNode
-    ? { '@id': assignedByNode['@id'], name: getFirstValue(assignedByNode, 'http://schema.org/name') }
+    ? {
+        '@id': assignedByNode['@id'],
+        '@type': toShortType(asArray(assignedByNode['@type'])[0]),
+        name: getFirstValue(assignedByNode, 'http://schema.org/name')
+      }
     : undefined;
 
   // get dateTimeInterval -> start / end date nodes
@@ -354,8 +364,17 @@ function normalizeAeStdGrantDoc(aeStdData) {
     const startNode = startId ? nodeMap[startId] : null;
     const endNode   = endId   ? nodeMap[endId]   : null;
     dateTimeInterval = {
-      start: startNode ? { dateTime: getFirstValue(startNode, 'http://vivoweb.org/ontology/core#dateTime') } : undefined,
-      end:   endNode   ? { dateTime: getFirstValue(endNode,   'http://vivoweb.org/ontology/core#dateTime') } : undefined
+      '@id': intervalNode['@id'],
+      start: startNode ? {
+        '@id': startNode['@id'],
+        dateTime: getFirstValue(startNode, 'http://vivoweb.org/ontology/core#dateTime'),
+        dateTimePrecision: toShortPrecision(getFirstValue(startNode, 'http://vivoweb.org/ontology/core#dateTimePrecision'))
+      } : undefined,
+      end: endNode ? {
+        '@id': endNode['@id'],
+        dateTime: getFirstValue(endNode, 'http://vivoweb.org/ontology/core#dateTime'),
+        dateTimePrecision: toShortPrecision(getFirstValue(endNode, 'http://vivoweb.org/ontology/core#dateTimePrecision'))
+      } : undefined
     };
   }
 
@@ -368,6 +387,11 @@ function normalizeAeStdGrantDoc(aeStdData) {
     const roleNode = (Object.keys(ref).length > 1) ? ref : nodeMap[ref['@id']];
     if( !roleNode ) return { '@id': ref['@id'] };
 
+    const roleName = getFirstValue(roleNode, 'http://schema.org/name');
+
+    const inheresInId = asArray(roleNode['http://purl.obolibrary.org/obo/RO_0000052'])[0]?.['@id'];
+    const inheresIn = inheresInId ? stripBase(inheresInId) : undefined;
+
     const relates = asArray(roleNode['http://vivoweb.org/ontology/core#relates'])
       .map(r => stripBase(r['@id'] || r))
       .filter(Boolean);
@@ -378,18 +402,32 @@ function normalizeAeStdGrantDoc(aeStdData) {
     return {
       '@id': roleNode['@id'],
       '@type': asArray(roleNode['@type']).map(toShortType),
+      name: roleName,
+      inheres_in: inheresIn,
       relates,
       'is-visible': isVisible
     };
   });
 
+  const rawIdentifiers = asArray(grantNode['http://schema.org/identifier']);
+  const identifier = Array.from(new Set(rawIdentifiers
+    .map(item => item?.['@id'] ?? item?.['@value'] ?? item)
+    .filter(value => typeof value === 'string' && value.trim())
+    .map(value => value.trim())));
+
   const rawTypes = asArray(grantNode['@type']);
   const shortTypes = rawTypes.map(toShortType);
+  const normalizedTypes = Array.from(new Set(shortTypes.filter(Boolean))).sort((a, b) => {
+    if (a === 'Grant') return 1;
+    if (b === 'Grant') return -1;
+    return 0;
+  });
 
   return {
     '@graph': [{
       '@id':              grantNode['@id'],
-      '@type':            Array.from(new Set([...shortTypes, ...rawTypes])),
+      '@type':            normalizedTypes,
+      identifier,
       name:               getFirstValue(grantNode, 'http://schema.org/name'),
       sponsorAwardId:     getFirstValue(grantNode, 'http://vivoweb.org/ontology/core#sponsorAwardId'),
       totalAwardAmount:   getFirstValue(grantNode, 'http://vivoweb.org/ontology/core#totalAwardAmount'),
@@ -402,7 +440,6 @@ function normalizeAeStdGrantDoc(aeStdData) {
 }
 
 async function loadMivPostgres({ user, metadata={}, files=[] }) {
-
   const schema = getSchemaName();
   assertSchemaName(schema);
 
