@@ -527,7 +527,11 @@ async function patchGrantRoleVisibility({ expertModel, grantId, patch, rid, expe
 				if (actorRoleIndex === -1) continue;
 
 				const actorRole = relatedGrantNode.relatedBy[actorRoleIndex];
-				relatedGrantNode.relatedBy = [actorRole];
+				relatedGrantNode.relatedBy.forEach(rel => {
+					if (rel === actorRole) {
+						rel['is-visible'] = actorRole?.['is-visible'] === true;
+					}
+				});
 				relatedGrantNode['is-visible'] = actorRole?.['is-visible'] === true;
 
 				await expertModel.client.index({
@@ -583,7 +587,6 @@ async function patchGrantEsVisibility({ expertModel, patch, expertId, logger, co
 
 	if (patch.visible != null) {
 		node.relatedBy[roleIndex]['is-visible'] = patch.visible;
-		node.relatedBy = [node.relatedBy[roleIndex]];
 		node['is-visible'] = patch.visible === true;
 	}
 
@@ -884,9 +887,6 @@ async function patchWorkEsVisibility({ expertModel, patch, expertId, logger, con
 
 	const selectedRoleBefore = JSON.parse(JSON.stringify(node.relatedBy[roleIndex]));
 	mutateRoleForActor(node.relatedBy[roleIndex], patch, expertId);
-
-	// Keep expert docs actor-scoped for embedded work visibility.
-	node.relatedBy = [node.relatedBy[roleIndex]];
 
 	if (patch.visible != null) {
 		node['is-visible'] = patch.visible === true;
