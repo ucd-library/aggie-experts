@@ -204,7 +204,7 @@ async function impersonateCdlUser(expert, args) {
 	return ElementsClient.impersonate(cdlUserId, args);
 }
 
-export async function patchExpertVisibility({ expertModel, patch, expertId, logger, config }) {
+export async function patchExpertEsVisibility({ expertModel, patch, expertId, logger, config }) {
 	let expert;
 
 	logger.info(patch, `expert.patch(${expertId})`);
@@ -233,6 +233,26 @@ export async function patchExpertVisibility({ expertModel, patch, expertId, logg
 		id: expert['@id'],
 		document: expert
 	});
+}
+
+export async function patchExpertCdlVisibility({ expertModel, patch, expertId, logger, config }) {
+	let expert;
+
+	try {
+		expert = await getExpertDocument(expertModel, expertId, config);
+	} catch (e) {
+		e.message = `expert "@id"=${expertId} not found`;
+		e.status = 500;
+		throw e;
+	}
+
+	const cdlUser = await impersonateCdlUser(expert, config.experts.cdl.expert);
+	const resp = await cdlUser.updateUserPrivacyLevel({ privacy: patch.visible ? 'public' : 'internal' });
+	logger.info({ cdl_response: resp }, `CDL expert visibility update`);
+}
+
+export async function patchExpertVisibility({ expertModel, patch, expertId, logger, config }) {
+	return patchExpertEsVisibility({ expertModel, patch, expertId, logger, config });
 }
 
 export async function deleteExpert({ expertModel, expertId, logger, config }) {
@@ -534,40 +554,19 @@ export async function patchGrantRoleVisibility({ expertModel, grantId, patch, ri
 	}
 }
 
-export async function patchGrantVisibility({ expertModel, patch, expertId, logger, config }) {
+export async function patchGrantEsVisibility({ expertModel, patch, expertId, logger, config }) {
 	const id = patch['@id'];
 	let expert;
 	let node;
-	let resp;
 
 	logger.info({ expert: expertId, patch }, `expert.grantRole.patch(${expertId})`);
 	if (patch.visible == null && patch.favourite == null) {
 		return 400;
 	}
 
-	// Immediate Update Elasticsearch document
 	try {
 		expert = await getExpertDocument(expertModel, expertId, config);
 		node = getNodeByRelatedId(expert, id);
-
-		if (!patch.objectId) {
-			// loop through node.identifiers and find the one that matches 'ark:/87287/d7mh2m/grant/'
-			if (typeof node?.identifier === 'string') {
-				node.identifier = [node.identifier];
-			}
-			for (let i = 0; i < node?.identifier?.length; i++) {
-				if (node.identifier[i].startsWith('ark:/87287/d7mh2m/')) {
-					patch.objectId = node.identifier[i].replace('ark:/87287/d7mh2m/', '');
-					break;
-				}
-			}
-			if (!patch.objectId) {
-				throw {
-					status: 500,
-					message: `CDL identifier not found in expert ${expertId}`
-				};
-			}
-		}
 	} catch (e) {
 		e.message = `relatedBy[${id}] not found in expert ${expertId}: ${e.message}`;
 		e.status = 500;
@@ -601,22 +600,62 @@ export async function patchGrantVisibility({ expertModel, patch, expertId, logge
 		logger,
 		config
 	});
+}
 
+export async function patchGrantCdlVisibility({ expertModel, patch, expertId, logger, config }) {
+	const id = patch['@id'];
+	let expert;
+	let node;
+	let resp;
+
+	try {
+		expert = await getExpertDocument(expertModel, expertId, config);
+		node = getNodeByRelatedId(expert, id);
+
+		if (!patch.objectId) {
+			if (typeof node?.identifier === 'string') {
+				node.identifier = [node.identifier];
+			}
+			for (let i = 0; i < node?.identifier?.length; i++) {
+				if (node.identifier[i].startsWith('ark:/87287/d7mh2m/')) {
+					patch.objectId = node.identifier[i].replace('ark:/87287/d7mh2m/', '');
+					break;
+				}
+			}
+			if (!patch.objectId) {
+				throw {
+					status: 500,
+					message: `CDL identifier not found in expert ${expertId}`
+				};
+			}
+		}
+	} catch (e) {
+		e.message = `relatedBy[${id}] not found in expert ${expertId}: ${e.message}`;
+		e.status = e.status || 500;
+		throw e;
+	}
+
+	const cdl_user = await impersonateCdlUser(expert, config.experts.cdl.grant_role);
+
+	if (patch.visible != null) {
+		resp = await cdl_user.setLinkPrivacy({
+			objectId: patch.objectId,
+			categoryId: 2,
+			privacy: patch.visible ? 'public' : 'internal'
+		});
+		logger.info({ cdl_response: resp }, `CDL propagate privacy ${config.experts.cdl.grant_role.propagate}`);
+	}
+	if (patch.favourite != null) {
+		patch.categoryId = 2;
+		resp = await cdl_user.setFavourite(patch);
+		logger.info({ cdl_response: resp }, `CDL propagate favourite ${config.experts.cdl.grant_role.propagate}`);
+	}
+}
+
+export async function patchGrantVisibility({ expertModel, patch, expertId, logger, config }) {
+	await patchGrantEsVisibility({ expertModel, patch, expertId, logger, config });
 	if (config.experts.cdl.grant_role.propagate) {
-		const cdl_user = await impersonateCdlUser(expert, config.experts.cdl.grant_role);
-		if (patch.visible != null) {
-			resp = await cdl_user.setLinkPrivacy({
-				objectId: patch.objectId,
-				categoryId: 2,
-				privacy: patch.visible ? 'public' : 'internal'
-			});
-			logger.info({ cdl_response: resp }, `CDL propagate privacy ${config.experts.cdl.grant_role.propagate}`);
-		}
-		if (patch.favourite != null) {
-			patch.categoryId = 2;
-			resp = await cdl_user.setFavourite(patch);
-			logger.info({ cdl_response: resp }, `CDL propagate favourite ${config.experts.cdl.grant_role.propagate}`);
-		}
+		await patchGrantCdlVisibility({ expertModel, patch, expertId, logger, config });
 	} else {
 		logger.info({ cdl_response: null }, `CDL propagate changes ${config.experts.cdl.grant_role.propagate}`);
 	}
@@ -817,10 +856,9 @@ export async function patchWorkDocumentVisibility({ expertModel, workId, patch, 
 	}
 }
 
-export async function patchWorkVisibility({ expertModel, patch, expertId, logger, config }) {
+export async function patchWorkEsVisibility({ expertModel, patch, expertId, logger, config }) {
 	const id = patch['@id'];
 	let expert;
-	let resp;
 
 	logger.info({ patch }, `authorship.patch ${expertId}:`);
 	// This patch adds a relationship field back in, while we decide the best method
@@ -888,24 +926,49 @@ export async function patchWorkVisibility({ expertModel, patch, expertId, logger
 		logger,
 		config
 	});
+}
 
-	if (config.experts.cdl.authorship.propagate) {
-		const cdl_user = await impersonateCdlUser(expert, config.experts.cdl.authorship);
+export async function patchWorkCdlVisibility({ expertModel, patch, expertId, logger, config }) {
+	const id = patch['@id'];
+	const rid = id.replace('ark:/87287/d7mh2m/', 'ark:/87287/d7mh2m/relationship/');
+	let expert;
+	let node;
+	let resp;
 
-		if (patch.visible != null) {
-			logger.info('CDL propagate visibility', patch.visible);
-			resp = await cdl_user.setLinkPrivacy({
-				objectId: patch.objectId,
-				categoryId: 1,
-				privacy: patch.visible ? 'public' : 'internal'
-			});
-		} else if (patch.favourite != null) {
-			logger.info('CDL propagate favourite', patch.favourite);
-			patch.categoryId = 1;
-			resp = await cdl_user.setFavourite(patch);
+	try {
+		expert = await getExpertDocument(expertModel, expertId, config);
+		node = getNodeByRelatedId(expert, rid);
+		if (patch.objectId == null) {
+			patch.objectId = node['@id'].replace('ark:/87287/d7mh2m/publication/', '');
 		}
+	} catch (e) {
+		console.error(e.message);
+		return 404;
+	}
 
-		logger.info({ cdl_response: resp }, `CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
+	const cdl_user = await impersonateCdlUser(expert, config.experts.cdl.authorship);
+
+	if (patch.visible != null) {
+		logger.info('CDL propagate visibility', patch.visible);
+		resp = await cdl_user.setLinkPrivacy({
+			objectId: patch.objectId,
+			categoryId: 1,
+			privacy: patch.visible ? 'public' : 'internal'
+		});
+	}
+	if (patch.favourite != null) {
+		logger.info('CDL propagate favourite', patch.favourite);
+		patch.categoryId = 1;
+		resp = await cdl_user.setFavourite(patch);
+	}
+
+	logger.info({ cdl_response: resp }, `CDL work visibility update`);
+}
+
+export async function patchWorkVisibility({ expertModel, patch, expertId, logger, config }) {
+	await patchWorkEsVisibility({ expertModel, patch, expertId, logger, config });
+	if (config.experts.cdl.authorship.propagate) {
+		await patchWorkCdlVisibility({ expertModel, patch, expertId, logger, config });
 	} else {
 		logger.info({ cdl_response: null }, `XCDL propagate changes ${config.experts.cdl.authorship.propagate}`);
 	}

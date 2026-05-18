@@ -7,10 +7,16 @@ import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
 import {
   patchExpertVisibility,
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
   deleteExpert,
   patchExpertAvailability,
   patchGrantVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
   patchWorkVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
   deleteAuthorship
 } from './lib/profile-updates.js';
 
@@ -30,9 +36,15 @@ export {
   isPlainDate,
   parseYearWeek,
   patchExpertVisibility,
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
   deleteExpert,
   patchExpertAvailability,
   patchGrantVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
   patchWorkVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
   deleteAuthorship
 };
