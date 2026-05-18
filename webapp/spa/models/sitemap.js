@@ -158,10 +158,10 @@ class SitemapModel {
         let graph = result._source['@graph'] || [];
 
         // for now we're just doing sitemaps for experts, might expand later
-        this._writeResult(resp, graph[0]);
+        this._writeResult(resp, graph[0], baseUrl);
 
         // graph.forEach(g => {
-        //     this._writeResult(resp, g);
+        //     this._writeResult(resp, g, baseUrl);
         // });
 
     });
@@ -177,8 +177,9 @@ class SitemapModel {
    *
    * @param {Object} resp express response
    * @param {Object} result elasticsearch record result
+   * @param {String} baseUrl the base URL for the sitemap
    */
-  _writeResult(resp, result) {
+  _writeResult(resp, result, baseUrl) {
     let id = result['@id'] || result._id;
     let resultType = 'expert';
     if( result['@type'] === 'Work' || result['@type'].includes('Work') ) {
