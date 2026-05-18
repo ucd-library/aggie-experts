@@ -204,7 +204,7 @@ async function impersonateCdlUser(expert, args) {
 	return ElementsClient.impersonate(cdlUserId, args);
 }
 
-export async function patchExpertEsVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchExpertEsVisibility({ expertModel, patch, expertId, logger, config }) {
 	let expert;
 
 	logger.info(patch, `expert.patch(${expertId})`);
@@ -235,7 +235,7 @@ export async function patchExpertEsVisibility({ expertModel, patch, expertId, lo
 	});
 }
 
-export async function patchExpertCdlVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchExpertCdlVisibility({ expertModel, patch, expertId, logger, config }) {
 	let expert;
 
 	try {
@@ -251,11 +251,11 @@ export async function patchExpertCdlVisibility({ expertModel, patch, expertId, l
 	logger.info({ cdl_response: resp }, `CDL expert visibility update`);
 }
 
-export async function patchExpertVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchExpertVisibility({ expertModel, patch, expertId, logger, config }) {
 	return patchExpertEsVisibility({ expertModel, patch, expertId, logger, config });
 }
 
-export async function deleteExpert({ expertModel, expertId, logger, config }) {
+async function deleteExpert({ expertModel, expertId, logger, config }) {
 	logger.info(`expert.delete(${expertId})`);
 
 	// Delete Elasticsearch document
@@ -347,7 +347,7 @@ export async function deleteExpert({ expertModel, expertId, logger, config }) {
 	}
 }
 
-export async function patchExpertAvailability({ expertModel, data, expertId, logger, config }) {
+async function patchExpertAvailability({ expertModel, data, expertId, logger, config }) {
 	let expert;
 
 	try {
@@ -409,7 +409,7 @@ export async function patchExpertAvailability({ expertModel, data, expertId, log
 	}
 }
 
-export async function patchGrantRoleVisibility({ expertModel, grantId, patch, rid, expertId, logger, config }) {
+async function patchGrantRoleVisibility({ expertModel, grantId, patch, rid, expertId, logger, config }) {
 	const grantAliases = [
 		'grants-' + config.elasticsearch.aliases.stage,
 		'grants-' + config.elasticsearch.aliases.current
@@ -554,7 +554,7 @@ export async function patchGrantRoleVisibility({ expertModel, grantId, patch, ri
 	}
 }
 
-export async function patchGrantEsVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchGrantEsVisibility({ expertModel, patch, expertId, logger, config }) {
 	const id = patch['@id'];
 	let expert;
 	let node;
@@ -602,7 +602,7 @@ export async function patchGrantEsVisibility({ expertModel, patch, expertId, log
 	});
 }
 
-export async function patchGrantCdlVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchGrantCdlVisibility({ expertModel, patch, expertId, logger, config }) {
 	const id = patch['@id'];
 	let expert;
 	let node;
@@ -652,7 +652,7 @@ export async function patchGrantCdlVisibility({ expertModel, patch, expertId, lo
 	}
 }
 
-export async function patchGrantVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchGrantVisibility({ expertModel, patch, expertId, logger, config }) {
 	await patchGrantEsVisibility({ expertModel, patch, expertId, logger, config });
 	if (config.experts.cdl.grant_role.propagate) {
 		await patchGrantCdlVisibility({ expertModel, patch, expertId, logger, config });
@@ -661,7 +661,7 @@ export async function patchGrantVisibility({ expertModel, patch, expertId, logge
 	}
 }
 
-export async function patchWorkDocumentVisibility({ expertModel, workId, patch, rid, expertId, expertDoc, logger, config }) {
+async function patchWorkDocumentVisibility({ expertModel, workId, patch, rid, expertId, expertDoc, logger, config }) {
 	const workAliases = [
 		'works-' + config.elasticsearch.aliases.stage,
 		'works-' + config.elasticsearch.aliases.current
@@ -794,17 +794,6 @@ export async function patchWorkDocumentVisibility({ expertModel, workId, patch, 
 		workDoc['@graph'] = nextGraph;
 		workDoc['is-visible'] = rootNode.relatedBy.some(rel => rel?.['is-visible'] === true);
 
-		logger.info({
-			workId,
-			index,
-			expertId,
-			visibleExpertIds: Array.from(visibleExpertIds),
-			graphExpertIds: workDoc['@graph']
-				.filter(n => typeof n?.['@id'] === 'string' && n['@id'].startsWith('expert/'))
-				.map(n => n['@id']),
-			workIsVisible: workDoc['is-visible']
-		}, 'authorship.patchWorkDocument computed dry-run work projection');
-
 		try {
 			const indexResp = await expertModel.client.index({
 				index,
@@ -856,7 +845,7 @@ export async function patchWorkDocumentVisibility({ expertModel, workId, patch, 
 	}
 }
 
-export async function patchWorkEsVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchWorkEsVisibility({ expertModel, patch, expertId, logger, config }) {
 	const id = patch['@id'];
 	let expert;
 
@@ -903,15 +892,6 @@ export async function patchWorkEsVisibility({ expertModel, patch, expertId, logg
 		node['is-visible'] = patch.visible === true;
 	}
 
-	logger.info({
-		expertId,
-		rid,
-		patch,
-		selectedRoleBefore,
-		selectedRoleAfter: node.relatedBy[roleIndex],
-		updatedExpertWorkNode: node
-	}, 'authorship.patch dry-run expert node update');
-
 	// update both public/latest to keep them in sync
 	await updateGraphNode(expertModel, expertId, node, 'experts-' + config.elasticsearch.aliases.stage);
 	await updateGraphNode(expertModel, expertId, node, 'experts-' + config.elasticsearch.aliases.current);
@@ -928,7 +908,7 @@ export async function patchWorkEsVisibility({ expertModel, patch, expertId, logg
 	});
 }
 
-export async function patchWorkCdlVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchWorkCdlVisibility({ expertModel, patch, expertId, logger, config }) {
 	const id = patch['@id'];
 	const rid = id.replace('ark:/87287/d7mh2m/', 'ark:/87287/d7mh2m/relationship/');
 	let expert;
@@ -965,7 +945,7 @@ export async function patchWorkCdlVisibility({ expertModel, patch, expertId, log
 	logger.info({ cdl_response: resp }, `CDL work visibility update`);
 }
 
-export async function patchWorkVisibility({ expertModel, patch, expertId, logger, config }) {
+async function patchWorkVisibility({ expertModel, patch, expertId, logger, config }) {
 	await patchWorkEsVisibility({ expertModel, patch, expertId, logger, config });
 	if (config.experts.cdl.authorship.propagate) {
 		await patchWorkCdlVisibility({ expertModel, patch, expertId, logger, config });
@@ -974,7 +954,7 @@ export async function patchWorkVisibility({ expertModel, patch, expertId, logger
 	}
 }
 
-export async function deleteAuthorship({ expertModel, id, expertId, logger, config }) {
+async function deleteAuthorship({ expertModel, id, expertId, logger, config }) {
 	logger.info(`Deleting ${id}`);
 
 	let node;
@@ -987,13 +967,6 @@ export async function deleteAuthorship({ expertModel, id, expertId, logger, conf
 	expert = await getExpertDocument(expertModel, expertId, config);
 	node = getNodeByRelatedId(expert, rid);
 	objectId = node['@id'].replace('ark:/87287/d7mh2m/publication/', '');
-
-	logger.info({
-		expertId,
-		rid,
-		workId: node['@id'],
-		expertWorkNodeToDelete: node
-	}, 'authorship.delete dry-run expert node delete');
 
 	// update both public/latest to keep them in sync
 	await deleteGraphNode(expertModel, expertId, node, 'experts-' + config.elasticsearch.aliases.stage);
@@ -1024,3 +997,20 @@ export async function deleteAuthorship({ expertModel, id, expertId, logger, conf
 		logger.info({ cdl: null }, `CDL propagate changes ${config.experts.cdl.authorship.propagate}`);
 	}
 }
+
+export {
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
+  patchExpertVisibility,
+  deleteExpert,
+  patchExpertAvailability,
+  patchGrantRoleVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
+  patchGrantVisibility,
+  patchWorkDocumentVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
+  patchWorkVisibility,
+  deleteAuthorship,
+};

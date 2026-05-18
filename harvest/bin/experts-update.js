@@ -9,6 +9,7 @@ import {
   patchGrantCdlVisibility,
   patchExpertEsVisibility,
   patchExpertCdlVisibility,
+  deleteExpert,
 } from '@ucd-lib/experts-commons';
 
 const program = new Command();
@@ -29,13 +30,13 @@ program
   .command('scholarly-record')
   .description('Update a work or grant record in Elasticsearch and/or CDL/Elements')
   .argument('<expert-id>', 'Expert ID (e.g. expert/abc123)')
-  .argument('<record-id>', 'Record ARK ID (work: ark:/87287/d7mh2m/publication/..., grant: ark:/87287/d7mh2m/relationship/...)')
+  .argument('<relationship-id>', 'Relationship ARK ID (e.g. ark:/87287/d7mh2m/...)')
   .option('--type <work|grant>', 'Record type', 'work')
   .option('--elasticsearch <yes|no>', 'Update Elasticsearch', 'yes')
   .option('--cdl <yes|no>', 'Propagate to CDL/Elements', 'yes')
   .option('--visibility <yes|no>', 'Set visibility')
   .option('--favorite <yes|no>', 'Set as favorite (works only)')
-  .action(async (expertId, recordId, opts) => {
+  .action(async (expertId, relationshipId, opts) => {
     const type = opts.type;
     if (type !== 'work' && type !== 'grant') {
       logger.error(`--type must be 'work' or 'grant', got: ${type}`);
@@ -56,7 +57,7 @@ program
       process.exit(1);
     }
 
-    const patch = { '@id': recordId };
+    const patch = { '@id': relationshipId };
     if (opts.visibility != null) patch.visible = parseYesNo(opts.visibility, 'visibility');
     if (opts.favorite != null) patch.favourite = parseYesNo(opts.favorite, 'favorite');
 
@@ -80,13 +81,33 @@ program
   .option('--elasticsearch <yes|no>', 'Update Elasticsearch', 'yes')
   .option('--cdl <yes|no>', 'Propagate to CDL/Elements', 'yes')
   .option('--visibility <yes|no>', 'Set visibility')
+  .option('--delete <yes|no>', 'Delete the expert record')
   .action(async (expertId, opts) => {
     const doEs = parseYesNo(opts.elasticsearch, 'elasticsearch');
     const doCdl = parseYesNo(opts.cdl, 'cdl');
+    const doDelete = opts.delete != null ? parseYesNo(opts.delete, 'delete') : false;
 
     if (!doEs && !doCdl) {
       logger.error('At least one of --elasticsearch or --cdl must be yes');
       process.exit(1);
+    }
+
+    if (doDelete && opts.visibility != null) {
+      logger.error('--delete and --visibility are mutually exclusive');
+      process.exit(1);
+    }
+
+    const expertModel = await buildExpertModel();
+
+    if (doDelete) {
+      const origPropagate = config.experts.cdl.expert.propagate;
+      config.experts.cdl.expert.propagate = doCdl;
+      try {
+        await deleteExpert({ expertModel, expertId, logger, config });
+      } finally {
+        config.experts.cdl.expert.propagate = origPropagate;
+      }
+      return;
     }
 
     if (opts.visibility == null) {
@@ -95,7 +116,6 @@ program
     }
 
     const patch = { visible: parseYesNo(opts.visibility, 'visibility') };
-    const expertModel = await buildExpertModel();
 
     if (doEs) await patchExpertEsVisibility({ expertModel, patch, expertId, logger, config });
     if (doCdl) await patchExpertCdlVisibility({ expertModel, patch, expertId, logger, config });
