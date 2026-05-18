@@ -73,11 +73,13 @@ class GrantModel extends BaseModel {
 
     let startDate = node?.dateTimeInterval?.start?.dateTime;
     let endDate = node?.dateTimeInterval?.end?.dateTime;
-    if( startDate ) {
-      seo.startDate = startDate;
-    }
-    if( endDate ) {
-      seo.endDate = endDate;
+    if( startDate || endDate ) {
+      seo.fundedItem = {
+        '@type': 'Event',
+        name: node?.name || ''
+      };
+      if( startDate ) seo.fundedItem.startDate = startDate;
+      if( endDate ) seo.fundedItem.endDate = endDate;
     }
 
     if( node.assignedBy ) {
