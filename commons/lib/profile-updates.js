@@ -347,7 +347,7 @@ async function deleteExpert({ expertModel, expertId, logger, config }) {
 	}
 }
 
-async function patchExpertAvailability({ expertModel, data, expertId, logger, config }) {
+async function patchExpertAvailabilityEs({ expertModel, data, expertId, logger, config }) {
 	let expert;
 
 	try {
@@ -395,15 +395,30 @@ async function patchExpertAvailability({ expertModel, data, expertId, logger, co
 		id: expert['@id'],
 		document: expert
 	});
+}
 
-	// update cdl
+async function patchExpertAvailabilityCdl({ expertModel, data, expertId, logger, config }) {
+	let expert;
+
+	try {
+		expert = await getExpertDocument(expertModel, expertId, config);
+	} catch (e) {
+		logger.info(`expert @id ${expertId} not found`);
+		return 404;
+	}
+
+	const cdlUser = await impersonateCdlUser(expert, config.experts.cdl.expert);
+	const resp = await cdlUser.updateUserAvailabilityLabels({
+		labelsToAddOrEdit: data.labelsToAddOrEdit,
+		labelsToRemove: data.labelsToRemove
+	});
+	logger.info({ cdl_response: resp }, `CDL expert availability update`);
+}
+
+async function patchExpertAvailability({ expertModel, data, expertId, logger, config }) {
+	await patchExpertAvailabilityEs({ expertModel, data, expertId, logger, config });
 	if (config.experts.cdl.expert.propagate) {
-		const cdlUser = await impersonateCdlUser(expert, config.experts.cdl.expert);
-		const resp = await cdlUser.updateUserAvailabilityLabels({
-			labelsToAddOrEdit: data.labelsToAddOrEdit,
-			labelsToRemove: data.labelsToRemove
-		});
-		logger.info({ cdl_response: resp }, `CDL propagate privacy ${config.experts.cdl.expert.propagate}`);
+		await patchExpertAvailabilityCdl({ expertModel, data, expertId, logger, config });
 	} else {
 		logger.info({ cdl_response: null }, `CDL propagate changes ${config.experts.cdl.expert.propagate}`);
 	}
@@ -1004,6 +1019,8 @@ export {
   patchExpertVisibility,
   deleteExpert,
   patchExpertAvailability,
+  patchExpertAvailabilityEs,
+  patchExpertAvailabilityCdl,
   patchGrantRoleVisibility,
   patchGrantEsVisibility,
   patchGrantCdlVisibility,

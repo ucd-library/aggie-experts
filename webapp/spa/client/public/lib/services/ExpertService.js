@@ -10,6 +10,7 @@ class ExpertService extends BaseService {
     this.store = ExpertStore;
 
     this.baseUrl = '/api';
+    this.adminUpdatesUrl = '/api/harvest/admin-updates';
   }
 
   async get(expertId, subpage, options={}, clearCache=false) {
@@ -58,15 +59,17 @@ class ExpertService extends BaseService {
 
   async updateCitationVisibility(id, citationId, visible) {
     return this.request({
-      url : `${this.baseUrl}/${id}/${encodeURIComponent(citationId)}`,
+      url : `${this.adminUpdatesUrl}/scholarly-record`,
       fetchOptions : {
-        method : 'PATCH',
+        method : 'POST',
         headers : {
           'Content-Type' : 'application/json'
         },
         body : JSON.stringify({
-          "@id" : citationId,
-          "visible" : visible
+          expertId : id,
+          relationshipId : citationId,
+          type : 'work',
+          visibility : visible ? 'yes' : 'no'
         })
       },
       checkCached : () => null,
@@ -78,9 +81,18 @@ class ExpertService extends BaseService {
 
   async rejectCitation(id, citationId) {
     return this.request({
-      url : `${this.baseUrl}/${id}/${encodeURIComponent(citationId)}`,
+      url : `${this.adminUpdatesUrl}/scholarly-record`,
       fetchOptions : {
-        method : 'DELETE'
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          expertId : id,
+          relationshipId : citationId,
+          type : 'work',
+          reject : 'yes'
+        })
       },
       checkCached : () => null,
       onLoading : null,
@@ -91,15 +103,17 @@ class ExpertService extends BaseService {
 
   async updateCitationFavourite(id, citationId, favourite) {
     return this.request({
-      url : `${this.baseUrl}/${id}/${encodeURIComponent(citationId)}`,
+      url : `${this.adminUpdatesUrl}/scholarly-record`,
       fetchOptions : {
-        method : 'PATCH',
+        method : 'POST',
         headers : {
           'Content-Type' : 'application/json'
         },
         body : JSON.stringify({
-          "@id" : citationId,
-          "favourite" : favourite
+          expertId : id,
+          relationshipId : citationId,
+          type : 'work',
+          favorite : favourite ? 'yes' : 'no'
         })
       },
       checkCached : () => null,
@@ -111,16 +125,17 @@ class ExpertService extends BaseService {
 
   async updateGrantVisibility(id, grantId, visible) {
     return this.request({
-      url : `${this.baseUrl}/${id}/${encodeURIComponent(grantId)}`,
+      url : `${this.adminUpdatesUrl}/scholarly-record`,
       fetchOptions : {
-        method : 'PATCH',
+        method : 'POST',
         headers : {
           'Content-Type' : 'application/json'
         },
         body : JSON.stringify({
-          "@id" : grantId,
-          "visible" : visible,
-          "grant" : true
+          expertId : id,
+          relationshipId : grantId,
+          type : 'grant',
+          visibility : visible ? 'yes' : 'no'
         })
       },
       checkCached : () => null,
@@ -132,15 +147,15 @@ class ExpertService extends BaseService {
 
   async updateExpertVisibility(id, visible) {
     return this.request({
-      url : `${this.baseUrl}/${id}`,
+      url : `${this.adminUpdatesUrl}/expert`,
       fetchOptions : {
-        method : 'PATCH',
+        method : 'POST',
         headers : {
           'Content-Type' : 'application/json'
         },
         body : JSON.stringify({
-          "@id" : id,
-          "visible" : visible
+          expertId : id,
+          visibility : visible ? 'yes' : 'no'
         })
       },
       checkCached : () => null,
@@ -152,14 +167,15 @@ class ExpertService extends BaseService {
 
   async deleteExpert(id) {
     return this.request({
-      url : `${this.baseUrl}/${id}`,
+      url : `${this.adminUpdatesUrl}/expert`,
       fetchOptions : {
-        method : 'DELETE',
+        method : 'POST',
         headers : {
           'Content-Type' : 'application/json'
         },
         body : JSON.stringify({
-          "@id" : id,
+          expertId : id,
+          delete : 'yes'
         })
       },
       checkCached : () => null,
@@ -171,13 +187,14 @@ class ExpertService extends BaseService {
 
   async updateExpertAvailability(id, labels={}) {
     return this.request({
-      url : `${this.baseUrl}/${id}/availability`,
+      url : `${this.adminUpdatesUrl}/expert-availability`,
       fetchOptions : {
-        method : 'PATCH',
+        method : 'POST',
         headers : {
           'Content-Type' : 'application/json'
         },
         body : JSON.stringify({
+          expertId : id,
           labelsToAddOrEdit : labels.labelsToAddOrEdit || [],
           labelsToRemove : labels.labelsToRemove || [],
           currentLabels : labels.currentLabels || []

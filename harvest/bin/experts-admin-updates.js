@@ -10,6 +10,9 @@ import {
   patchExpertEsVisibility,
   patchExpertCdlVisibility,
   deleteExpert,
+  deleteAuthorship,
+  patchExpertAvailabilityEs,
+  patchExpertAvailabilityCdl,
 } from '@ucd-lib/experts-commons';
 
 const program = new Command();
@@ -36,6 +39,7 @@ program
   .option('--cdl <yes|no>', 'Propagate to CDL/Elements', 'yes')
   .option('--visibility <yes|no>', 'Set visibility')
   .option('--favorite <yes|no>', 'Set as favorite (works only)')
+  .option('--reject <yes|no>', 'Reject/delete authorship (works only)')
   .action(async (expertId, relationshipId, opts) => {
     const type = opts.type;
     if (type !== 'work' && type !== 'grant') {
@@ -57,12 +61,36 @@ program
       process.exit(1);
     }
 
+    if (!isWork && opts.reject != null) {
+      logger.error('--reject is not applicable to grants');
+      process.exit(1);
+    }
+
+    const doReject = opts.reject != null ? parseYesNo(opts.reject, 'reject') : false;
+
+    if (doReject) {
+      if (opts.visibility != null || opts.favorite != null) {
+        logger.error('--reject is mutually exclusive with --visibility and --favorite');
+        process.exit(1);
+      }
+      const expertModel = await buildExpertModel();
+      const origPropagate = config.experts.cdl.authorship.propagate;
+      config.experts.cdl.authorship.propagate = doCdl;
+      try {
+        await deleteAuthorship({ expertModel, id: relationshipId, expertId, logger, config });
+      } finally {
+        config.experts.cdl.authorship.propagate = origPropagate;
+      }
+      logger.info(JSON.stringify({ status: 'ok', expertId, relationshipId, rejected: true }));
+      return;
+    }
+
     const patch = { '@id': relationshipId };
     if (opts.visibility != null) patch.visible = parseYesNo(opts.visibility, 'visibility');
     if (opts.favorite != null) patch.favourite = parseYesNo(opts.favorite, 'favorite');
 
     if (!('visible' in patch) && !('favourite' in patch)) {
-      logger.error('At least one of --visibility or --favorite must be provided');
+      logger.error('At least one of --visibility, --favorite, or --reject must be provided');
       process.exit(1);
     }
 
@@ -72,6 +100,8 @@ program
 
     if (doEs) await patchEs({ expertModel, patch, expertId, logger, config });
     if (doCdl) await patchCdl({ expertModel, patch, expertId, logger, config });
+
+    logger.info(JSON.stringify({ status: 'ok', expertId, relationshipId, type }));
   });
 
 program
@@ -107,6 +137,7 @@ program
       } finally {
         config.experts.cdl.expert.propagate = origPropagate;
       }
+      logger.info(JSON.stringify({ status: 'ok', expertId, deleted: true }));
       return;
     }
 
@@ -119,6 +150,45 @@ program
 
     if (doEs) await patchExpertEsVisibility({ expertModel, patch, expertId, logger, config });
     if (doCdl) await patchExpertCdlVisibility({ expertModel, patch, expertId, logger, config });
+
+    logger.info(JSON.stringify({ status: 'ok', expertId }));
+  });
+
+program
+  .command('expert-availability')
+  .description('Update expert availability labels in Elasticsearch and/or CDL/Elements')
+  .argument('<expert-id>', 'Expert ID (e.g. expert/abc123)')
+  .option('--elasticsearch <yes|no>', 'Update Elasticsearch', 'yes')
+  .option('--cdl <yes|no>', 'Propagate to CDL/Elements', 'yes')
+  .option('--labels-to-add <json>', 'JSON array of labels to add or edit', '[]')
+  .option('--labels-to-remove <json>', 'JSON array of labels to remove', '[]')
+  .option('--current-labels <json>', 'JSON array of current labels', '[]')
+  .action(async (expertId, opts) => {
+    const doEs = parseYesNo(opts.elasticsearch, 'elasticsearch');
+    const doCdl = parseYesNo(opts.cdl, 'cdl');
+
+    if (!doEs && !doCdl) {
+      logger.error('At least one of --elasticsearch or --cdl must be yes');
+      process.exit(1);
+    }
+
+    let labelsToAddOrEdit, labelsToRemove, currentLabels;
+    try {
+      labelsToAddOrEdit = JSON.parse(opts.labelsToAdd);
+      labelsToRemove = JSON.parse(opts.labelsToRemove);
+      currentLabels = JSON.parse(opts.currentLabels);
+    } catch (e) {
+      logger.error(`Failed to parse labels JSON: ${e.message}`);
+      process.exit(1);
+    }
+
+    const data = { labelsToAddOrEdit, labelsToRemove, currentLabels };
+    const expertModel = await buildExpertModel();
+
+    if (doEs) await patchExpertAvailabilityEs({ expertModel, data, expertId, logger, config });
+    if (doCdl) await patchExpertAvailabilityCdl({ expertModel, data, expertId, logger, config });
+
+    logger.info(JSON.stringify({ status: 'ok', expertId }));
   });
 
 program.parse(process.argv);

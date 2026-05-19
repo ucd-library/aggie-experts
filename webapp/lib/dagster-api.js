@@ -35,6 +35,121 @@ class DagsterAPI {
   }
 
 
+  launchRun(jobName, runConfig = {}) {
+    if (!jobName) throw new Error('jobName is required');
+
+    if (typeof runConfig === 'object') {
+      runConfig = yaml.stringify(runConfig);
+    }
+
+    const mutation = `
+      mutation LaunchRunMutation(
+        $repositoryLocationName: String!
+        $repositoryName: String!
+        $jobName: String!
+        $runConfigData: RunConfigData!
+      ) {
+        launchRun(
+          executionParams: {
+            selector: {
+              repositoryLocationName: $repositoryLocationName
+              repositoryName: $repositoryName
+              jobName: $jobName
+            }
+            runConfigData: $runConfigData
+          }
+        ) {
+          __typename
+          ... on LaunchRunSuccess {
+            run {
+              runId
+            }
+          }
+          ... on RunConfigValidationInvalid {
+            errors {
+              message
+              reason
+            }
+          }
+          ... on PythonError {
+            message
+          }
+        }
+      }
+    `;
+
+    return this.graphqlQuery(
+      'LaunchRunMutation',
+      mutation,
+      this.wrapDefaults({ jobName, runConfigData: runConfig })
+    );
+  }
+
+  runUpdateScholarlyRecord(expertId, relationshipId, opts = {}) {
+    if (!expertId) throw new Error('expertId is required');
+    if (!relationshipId) throw new Error('relationshipId is required');
+
+    const runConfig = {
+      ops: {
+        update_scholarly_record: {
+          config: {
+            expert_id: expertId,
+            relationship_id: relationshipId,
+            type: opts.type || 'work',
+            elasticsearch: opts.elasticsearch || 'yes',
+            cdl: opts.cdl || 'yes',
+            ...(opts.visibility && { visibility: opts.visibility }),
+            ...(opts.favorite && { favorite: opts.favorite }),
+            ...(opts.reject && { reject: opts.reject }),
+          },
+        },
+      },
+    };
+
+    return this.launchRun('update_scholarly_record_job', runConfig);
+  }
+
+  runUpdateExpert(expertId, opts = {}) {
+    if (!expertId) throw new Error('expertId is required');
+
+    const runConfig = {
+      ops: {
+        update_expert: {
+          config: {
+            expert_id: expertId,
+            elasticsearch: opts.elasticsearch || 'yes',
+            cdl: opts.cdl || 'yes',
+            ...(opts.visibility && { visibility: opts.visibility }),
+            ...(opts.delete && { delete: opts.delete }),
+          },
+        },
+      },
+    };
+
+    return this.launchRun('update_expert_job', runConfig);
+  }
+
+  runUpdateExpertAvailability(expertId, labels = {}, opts = {}) {
+    if (!expertId) throw new Error('expertId is required');
+
+    const runConfig = {
+      ops: {
+        update_expert_availability: {
+          config: {
+            expert_id: expertId,
+            elasticsearch: opts.elasticsearch || 'yes',
+            cdl: opts.cdl || 'yes',
+            labels_to_add: labels.labelsToAddOrEdit || [],
+            labels_to_remove: labels.labelsToRemove || [],
+            current_labels: labels.currentLabels || [],
+          },
+        },
+      },
+    };
+
+    return this.launchRun('update_expert_availability_job', runConfig);
+  }
+
   runJobPartition(jobName, partitionName, runConfig = {}) {
     if( !jobName ) throw new Error('jobName is required');
     if( !partitionName ) throw new Error('partitionName is required');

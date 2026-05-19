@@ -15,6 +15,9 @@ from .assets import (
     purge_dagster_runs,
     purge_reporting_db,
     purge_year_week_cask_files,
+    update_scholarly_record,
+    update_expert,
+    update_expert_availability,
 )
 
 
@@ -54,6 +57,24 @@ transform_load_users_job = dg.define_asset_job(
     description="Job to run the second Webapp Transform (requires all users) and load user after extraction.",
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user),
     tags={"dagster/priority": "-1"}
+)
+
+update_scholarly_record_job = dg.define_asset_job(
+    name="update_scholarly_record_job",
+    description="Update a work or grant record in Elasticsearch and/or CDL/Elements.",
+    selection=dg.AssetSelection.assets(update_scholarly_record),
+)
+
+update_expert_job = dg.define_asset_job(
+    name="update_expert_job",
+    description="Update or delete an expert record in Elasticsearch and/or CDL/Elements.",
+    selection=dg.AssetSelection.assets(update_expert),
+)
+
+update_expert_availability_job = dg.define_asset_job(
+    name="update_expert_availability_job",
+    description="Update expert availability labels in Elasticsearch and/or CDL/Elements.",
+    selection=dg.AssetSelection.assets(update_expert_availability),
 )
 
 cleanup_job = dg.define_asset_job(

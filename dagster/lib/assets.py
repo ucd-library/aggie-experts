@@ -15,6 +15,9 @@ from .configs import (
     NotifyConfig,
     SetAliasConfig,
     ReloadSearchTemplateConfig,
+    UpdateScholarlyRecordConfig,
+    UpdateExpertConfig,
+    UpdateExpertAvailabilityConfig,
 )
 from .utils import CODE_VERSION, exec
 
@@ -227,6 +230,91 @@ def exec_weekly_etl(context: AssetExecutionContext, config: NotifyConfig) -> Non
     cmd += ["--continue-etl", "true"]
 
     exec(cmd, no_json_parse=True)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Admin update assets
+# ---------------------------------------------------------------------------
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin_updates",
+)
+def update_scholarly_record(context: AssetExecutionContext, config: UpdateScholarlyRecordConfig) -> None:
+    """Update a work or grant record in Elasticsearch and/or CDL/Elements."""
+    cmd = [
+        "experts", "admin-updates", "scholarly-record",
+        config.expert_id, config.relationship_id,
+        "--type", config.type,
+        "--elasticsearch", config.elasticsearch,
+        "--cdl", config.cdl,
+    ]
+    if config.visibility is not None:
+        cmd += ["--visibility", config.visibility]
+    if config.favorite is not None:
+        cmd += ["--favorite", config.favorite]
+    if config.reject is not None:
+        cmd += ["--reject", config.reject]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "expert_id": config.expert_id,
+        "relationship_id": config.relationship_id,
+        "type": config.type,
+        "status": result.get("status"),
+    })
+    return None
+
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin_updates",
+)
+def update_expert(context: AssetExecutionContext, config: UpdateExpertConfig) -> None:
+    """Update or delete an expert record in Elasticsearch and/or CDL/Elements."""
+    cmd = [
+        "experts", "admin-updates", "expert",
+        config.expert_id,
+        "--elasticsearch", config.elasticsearch,
+        "--cdl", config.cdl,
+    ]
+    if config.visibility is not None:
+        cmd += ["--visibility", config.visibility]
+    if config.delete is not None:
+        cmd += ["--delete", config.delete]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "expert_id": config.expert_id,
+        "status": result.get("status"),
+        "deleted": result.get("deleted", False),
+    })
+    return None
+
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin_updates",
+)
+def update_expert_availability(context: AssetExecutionContext, config: UpdateExpertAvailabilityConfig) -> None:
+    """Update expert availability labels in Elasticsearch and/or CDL/Elements."""
+    import json
+    cmd = [
+        "experts", "admin-updates", "expert-availability",
+        config.expert_id,
+        "--elasticsearch", config.elasticsearch,
+        "--cdl", config.cdl,
+        "--labels-to-add", json.dumps(config.labels_to_add),
+        "--labels-to-remove", json.dumps(config.labels_to_remove),
+        "--current-labels", json.dumps(config.current_labels),
+    ]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "expert_id": config.expert_id,
+        "status": result.get("status"),
+    })
     return None
 
 
