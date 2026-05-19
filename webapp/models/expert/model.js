@@ -135,6 +135,7 @@ class ExpertModel extends BaseModel {
     }
     let seo={}
 
+    seo['@type'] = 'Person';
     seo.name = node?.label;
     seo.identifier = node?.identifier;
 
@@ -150,7 +151,7 @@ class ExpertModel extends BaseModel {
         return {
           '@id' : r['@id'],
           'name' : r['prefLabel'],
-          '@type' : r['@type']
+          '@type' : 'DefinedTerm'
         }
       });
     }
@@ -169,8 +170,18 @@ class ExpertModel extends BaseModel {
             seo.affiliation.push(c.hasOrganizationalUnit);
           }
           if (c.hasTitle) {
-          if (! seo.jobTitle ) { seo.jobTitle=[] }
-            seo.jobTitle.push(c.hasTitle);
+            const titles = Array.isArray(c.hasTitle) ? c.hasTitle : [c.hasTitle];
+            const titleValues = titles
+              .map(t => {
+                if (typeof t === 'string') return t;
+                return t?.name || t?.label || t?.['@value'] || null;
+              })
+              .filter(Boolean);
+
+            if (titleValues.length) {
+              if (!seo.jobTitle) seo.jobTitle = [];
+              seo.jobTitle.push(...titleValues);
+            }
           }
         }
       });
