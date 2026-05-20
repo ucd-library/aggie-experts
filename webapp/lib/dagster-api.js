@@ -106,7 +106,7 @@ class DagsterAPI {
       },
     };
 
-    return this.launchRun('update_scholarly_record_job', runConfig);
+    return this.launchRun('update_scholarly_record_job', JSON.stringify(runConfig));
   }
 
   runUpdateExpert(expertId, opts = {}) {
@@ -126,7 +126,7 @@ class DagsterAPI {
       },
     };
 
-    return this.launchRun('update_expert_job', runConfig);
+    return this.launchRun('update_expert_job', JSON.stringify(runConfig));
   }
 
   runUpdateExpertAvailability(expertId, labels = {}, opts = {}) {
@@ -147,7 +147,7 @@ class DagsterAPI {
       },
     };
 
-    return this.launchRun('update_expert_availability_job', runConfig);
+    return this.launchRun('update_expert_availability_job', JSON.stringify(runConfig));
   }
 
   runJobPartition(jobName, partitionName, runConfig = {}) {
