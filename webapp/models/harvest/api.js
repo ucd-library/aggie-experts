@@ -1,8 +1,7 @@
 const router = require('express').Router();
 const { openapi, json_only, dagster_can_run_partition, public_or_is_user } = require('../middleware/index.js');
 const DagsterAPI = require('../../lib/dagster-api.js');
-const {logger} = require('@ucd-lib/experts-commons');
-
+const {logger, config} = require('@ucd-lib/experts-commons');
 
 const dagsterAPI = new DagsterAPI();
 
@@ -66,7 +65,8 @@ router.post('/admin-updates/scholarly-record',
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
-    const { expertId, relationshipId, type, elasticsearch, cdl, visibility, favorite, reject } = req.body;
+    const { expertId, relationshipId, type, elasticsearch, visibility, favorite, reject } = req.body;
+    let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
     if (!expertId || !relationshipId) {
       return res.status(400).json({ error: 'expertId and relationshipId are required' });
     }
@@ -87,7 +87,8 @@ router.post('/admin-updates/expert',
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
-    const { expertId, elasticsearch, cdl, visibility, delete: del } = req.body;
+    const { expertId, elasticsearch, visibility, delete: del } = req.body;
+    let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
     if (!expertId) {
       return res.status(400).json({ error: 'expertId is required' });
     }
@@ -108,7 +109,8 @@ router.post('/admin-updates/expert-availability',
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
-    const { expertId, elasticsearch, cdl, labelsToAddOrEdit, labelsToRemove, currentLabels } = req.body;
+    const { expertId, elasticsearch, labelsToAddOrEdit, labelsToRemove, currentLabels } = req.body;
+    let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
     if (!expertId) {
       return res.status(400).json({ error: 'expertId is required' });
     }

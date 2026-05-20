@@ -902,6 +902,8 @@ async function patchWorkEsVisibility({ expertModel, patch, expertId, logger, con
 
 	const selectedRoleBefore = JSON.parse(JSON.stringify(node.relatedBy[roleIndex]));
 	mutateRoleForActor(node.relatedBy[roleIndex], patch, expertId);
+	
+	node.relatedBy = [node.relatedBy[roleIndex]];
 
 	if (patch.visible != null) {
 		node['is-visible'] = patch.visible === true;
