@@ -183,6 +183,9 @@ program
 
     const dagster = new DagsterAPI();
     const partitionsDefName = config.dagster.partitions.user;
+    // Any asset using the 'users' DynamicPartitionsDefinition will return the
+    // same set of partition keys; extract_user is the canonical one.
+    const refAsset = 'extract_user';
 
     // Get current users list. Prefer the CaskFS-cached list for the current
     // year-week (written by init-user-partitions at the start of the week);
@@ -205,8 +208,8 @@ program
     console.log(`Current user list (${source}) has ${cdlUsers.size} users.`);
 
     // Get current Dagster partitions.
-    const dagsterPartitions = await dagster.getDynamicPartitions(partitionsDefName);
-    console.log(`Dagster has ${dagsterPartitions.length} '${partitionsDefName}' partitions.`);
+    const dagsterPartitions = await dagster.getDynamicPartitionsForAsset(refAsset);
+    console.log(`Dagster has ${dagsterPartitions.length} '${partitionsDefName}' partitions (via asset '${refAsset}').`);
 
     // Diff: in Dagster but not in CDL.
     const stale = dagsterPartitions.filter(p => !cdlUsers.has(p));
