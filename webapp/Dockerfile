@@ -1,3 +1,5 @@
+ARG CASKFS_IMAGE
+FROM ${CASKFS_IMAGE} as caskfs
 FROM node:20.19.4
 
 # Set the working directory
@@ -29,3 +31,12 @@ COPY commons/lib /opt/commons/lib
 COPY commons/index.js /opt/commons/index.js
 
 RUN cd spa && npm run dist
+
+# caskfs — install deps so /opt/caskfs/node_modules exists when src is mounted
+RUN mkdir -p /opt/caskfs
+WORKDIR /opt/caskfs
+COPY --from=caskfs /opt/caskfs/package.json package.json
+RUN npm install --omit=dev
+COPY --from=caskfs /opt/caskfs/src src
+
+WORKDIR /opt/webapp

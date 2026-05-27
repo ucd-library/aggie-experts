@@ -86,8 +86,7 @@ module.exports = async (app) => {
       next({
         user,
         appRoutes : config.client.appRoutes,
-        faqUseGcs : config.client.faqUseGcs,
-        faqMarkdownUrl : config.client.faqMarkdownUrl,
+        faqUseCaskfs : config.client.faqUseCaskfs,
         dagster : config.client.dagster,
         env : config.client.env,
         enableGA4Stats : config.client.enableGA4Stats,
