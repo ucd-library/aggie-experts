@@ -85,19 +85,27 @@ class DagsterAPI {
     );
   }
 
-  runUpdateScholarlyRecord(expertId, relationshipId, opts = {}) {
-    if (!expertId) throw new Error('expertId is required');
-    if (!relationshipId) throw new Error('relationshipId is required');
-
-    const runConfig = {
+  /**
+   * Build an op config object for scholarly record operations, with explicit
+   * elasticsearch and cdl flags overriding whatever was in opts.
+   *
+   * @param {String} expertId
+   * @param {String} relationshipId
+   * @param {Object} opts
+   * @param {String} elasticsearch - 'yes' or 'no'
+   * @param {String} cdl - 'yes' or 'no'
+   * @returns {Object}
+   */
+  _scholarlyRecordRunConfig(expertId, relationshipId, opts, elasticsearch, cdl) {
+    return {
       ops: {
         update_scholarly_record: {
           config: {
             expert_id: expertId,
             relationship_id: relationshipId,
             type: opts.type || 'work',
-            elasticsearch: opts.elasticsearch || 'yes',
-            cdl: opts.cdl || 'yes',
+            elasticsearch,
+            cdl,
             ...(opts.visibility && { visibility: opts.visibility }),
             ...(opts.favorite && { favorite: opts.favorite }),
             ...(opts.reject && { reject: opts.reject }),
@@ -105,40 +113,116 @@ class DagsterAPI {
         },
       },
     };
-
-    return this.launchRun('update_scholarly_record_job', JSON.stringify(runConfig));
   }
 
-  runUpdateExpert(expertId, opts = {}) {
+  /**
+   * Launch ES and/or CDL Dagster jobs for a scholarly record update. When both
+   * targets are requested the two jobs run in parallel and their results are
+   * returned under separate keys so callers can track each run independently.
+   *
+   * @param {String} expertId
+   * @param {String} relationshipId
+   * @param {Object} opts
+   * @returns {Promise<{es: Object|null, cdl: Object|null}>}
+   */
+  async runUpdateScholarlyRecord(expertId, relationshipId, opts = {}) {
     if (!expertId) throw new Error('expertId is required');
+    if (!relationshipId) throw new Error('relationshipId is required');
 
-    const runConfig = {
+    const doEs = opts.elasticsearch !== 'no';
+    const doCdl = opts.cdl !== 'no';
+
+    const [es, cdl] = await Promise.all([
+      doEs
+        ? this.launchRun(
+            'update_scholarly_record_es_job',
+            JSON.stringify(this._scholarlyRecordRunConfig(expertId, relationshipId, opts, 'yes', 'no'))
+          )
+        : Promise.resolve(null),
+      doCdl
+        ? this.launchRun(
+            'update_scholarly_record_cdl_job',
+            JSON.stringify(this._scholarlyRecordRunConfig(expertId, relationshipId, opts, 'no', 'yes'))
+          )
+        : Promise.resolve(null),
+    ]);
+
+    return { es, cdl };
+  }
+
+  /**
+   * Build an op config object for expert operations.
+   *
+   * @param {String} expertId
+   * @param {Object} opts
+   * @param {String} elasticsearch - 'yes' or 'no'
+   * @param {String} cdl - 'yes' or 'no'
+   * @returns {Object}
+   */
+  _expertRunConfig(expertId, opts, elasticsearch, cdl) {
+    return {
       ops: {
         update_expert: {
           config: {
             expert_id: expertId,
-            elasticsearch: opts.elasticsearch || 'yes',
-            cdl: opts.cdl || 'yes',
+            elasticsearch,
+            cdl,
             ...(opts.visibility && { visibility: opts.visibility }),
             ...(opts.delete && { delete: opts.delete }),
           },
         },
       },
     };
-
-    return this.launchRun('update_expert_job', JSON.stringify(runConfig));
   }
 
-  runUpdateExpertAvailability(expertId, labels = {}, opts = {}) {
+  /**
+   * Launch ES and/or CDL Dagster jobs for an expert update or delete.
+   *
+   * @param {String} expertId
+   * @param {Object} opts
+   * @returns {Promise<{es: Object|null, cdl: Object|null}>}
+   */
+  async runUpdateExpert(expertId, opts = {}) {
     if (!expertId) throw new Error('expertId is required');
 
-    const runConfig = {
+    const doEs = opts.elasticsearch !== 'no';
+    const doCdl = opts.cdl !== 'no';
+
+    const [es, cdl] = await Promise.all([
+      doEs
+        ? this.launchRun(
+            'update_expert_es_job',
+            JSON.stringify(this._expertRunConfig(expertId, opts, 'yes', 'no'))
+          )
+        : Promise.resolve(null),
+      doCdl
+        ? this.launchRun(
+            'update_expert_cdl_job',
+            JSON.stringify(this._expertRunConfig(expertId, opts, 'no', 'yes'))
+          )
+        : Promise.resolve(null),
+    ]);
+
+    return { es, cdl };
+  }
+
+  /**
+   * Build an op config object for expert availability operations.
+   *
+   * @param {String} expertId
+   * @param {Object} labels
+   * @param {String} elasticsearch - 'yes' or 'no'
+   * @param {String} cdl - 'yes' or 'no'
+   * @returns {Object}
+   */
+  _expertAvailabilityRunConfig(expertId, labels, elasticsearch, cdl) {
+    return {
       ops: {
         update_expert_availability: {
           config: {
             expert_id: expertId,
-            elasticsearch: opts.elasticsearch || 'yes',
-            cdl: opts.cdl || 'yes',
+            elasticsearch,
+            cdl,
             labels_to_add: labels.labelsToAddOrEdit || [],
             labels_to_remove: labels.labelsToRemove || [],
             current_labels: labels.currentLabels || [],
@@ -146,8 +230,38 @@ class DagsterAPI {
         },
       },
     };
+  }
 
-    return this.launchRun('update_expert_availability_job', JSON.stringify(runConfig));
+  /**
+   * Launch ES and/or CDL Dagster jobs for an expert availability update.
+   *
+   * @param {String} expertId
+   * @param {Object} labels
+   * @param {Object} opts
+   * @returns {Promise<{es: Object|null, cdl: Object|null}>}
+   */
+  async runUpdateExpertAvailability(expertId, labels = {}, opts = {}) {
+    if (!expertId) throw new Error('expertId is required');
+
+    const doEs = opts.elasticsearch !== 'no';
+    const doCdl = opts.cdl !== 'no';
+
+    const [es, cdl] = await Promise.all([
+      doEs
+        ? this.launchRun(
+            'update_expert_availability_es_job',
+            JSON.stringify(this._expertAvailabilityRunConfig(expertId, labels, 'yes', 'no'))
+          )
+        : Promise.resolve(null),
+      doCdl
+        ? this.launchRun(
+            'update_expert_availability_cdl_job',
+            JSON.stringify(this._expertAvailabilityRunConfig(expertId, labels, 'no', 'yes'))
+          )
+        : Promise.resolve(null),
+    ]);
+
+    return { es, cdl };
   }
 
   runJobPartition(jobName, partitionName, runConfig = {}) {

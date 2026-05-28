@@ -44,7 +44,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
   constructor() {
     super();
-    this._injectModel('AppStateModel', 'ExpertModel');
+    this._injectModel('AppStateModel', 'ExpertModel', 'DagsterModel');
 
     this._reset();
 
@@ -398,7 +398,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.updatingVisibility = true;
     let updated = true;
     try {
-      let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, true);
+      let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, true);
       setTimeout(async () => {
         // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -499,7 +499,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     if( action === 'hide' ) {
       this.updatingVisibility = true;
       try {
-        let res = await this.ExpertModel.updateGrantVisibility(this.expertId, this.grantId, false);
+        let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, false);
         setTimeout(async () => {
           // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
           this.dispatchEvent(new CustomEvent("loaded", {}));

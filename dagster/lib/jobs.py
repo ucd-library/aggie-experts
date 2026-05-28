@@ -65,15 +65,51 @@ update_scholarly_record_job = dg.define_asset_job(
     selection=dg.AssetSelection.assets(update_scholarly_record),
 )
 
+update_scholarly_record_es_job = dg.define_asset_job(
+    name="update_scholarly_record_es_job",
+    description="Update a work or grant record in Elasticsearch only.",
+    selection=dg.AssetSelection.assets(update_scholarly_record),
+)
+
+update_scholarly_record_cdl_job = dg.define_asset_job(
+    name="update_scholarly_record_cdl_job",
+    description="Propagate a work or grant record update to CDL/Elements only.",
+    selection=dg.AssetSelection.assets(update_scholarly_record),
+)
+
 update_expert_job = dg.define_asset_job(
     name="update_expert_job",
     description="Update or delete an expert record in Elasticsearch and/or CDL/Elements.",
     selection=dg.AssetSelection.assets(update_expert),
 )
 
+update_expert_es_job = dg.define_asset_job(
+    name="update_expert_es_job",
+    description="Update or delete an expert record in Elasticsearch only.",
+    selection=dg.AssetSelection.assets(update_expert),
+)
+
+update_expert_cdl_job = dg.define_asset_job(
+    name="update_expert_cdl_job",
+    description="Propagate an expert record update to CDL/Elements only.",
+    selection=dg.AssetSelection.assets(update_expert),
+)
+
 update_expert_availability_job = dg.define_asset_job(
     name="update_expert_availability_job",
     description="Update expert availability labels in Elasticsearch and/or CDL/Elements.",
+    selection=dg.AssetSelection.assets(update_expert_availability),
+)
+
+update_expert_availability_es_job = dg.define_asset_job(
+    name="update_expert_availability_es_job",
+    description="Update expert availability labels in Elasticsearch only.",
+    selection=dg.AssetSelection.assets(update_expert_availability),
+)
+
+update_expert_availability_cdl_job = dg.define_asset_job(
+    name="update_expert_availability_cdl_job",
+    description="Propagate expert availability label updates to CDL/Elements only.",
     selection=dg.AssetSelection.assets(update_expert_availability),
 )
 

@@ -49,7 +49,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
   constructor() {
     super();
-    this._injectModel('AppStateModel', 'ExpertModel');
+    this._injectModel('AppStateModel', 'ExpertModel', 'DagsterModel');
 
     this._reset();
 
@@ -563,7 +563,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
-      let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
+      let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, true);
       setTimeout(async () => {
         // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -669,7 +669,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
-      let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, false);
+      let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, false);
       setTimeout(async () => {
         // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -779,7 +779,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
-      let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, true);
+      let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, true);
       setTimeout(async () => {
         // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -930,7 +930,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     if( action === 'hide' ) {
       try {
-        let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
+        let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, false);
         setTimeout(async () => {
           // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
           this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -1027,7 +1027,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return;
     } else if ( action === 'reject' ) {
       try {
-        let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
+        let res = await this.DagsterModel.rejectCitation(this.expertId, this.citationId);
         setTimeout(async () => {
           // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
           this.dispatchEvent(new CustomEvent("loaded", {}));
