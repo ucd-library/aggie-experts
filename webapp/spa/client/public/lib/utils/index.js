@@ -578,6 +578,79 @@ class Utils {
     });
   }
 
+  /**
+   * @method pollAdminUpdateJobs
+   * @description poll dagster job status for admin update jobs (ES and/or CDL) until they
+   * reach a terminal state. Logs progress to the console on each tick. When both jobs are
+   * complete the optional onComplete callback is invoked with the final statuses.
+   *
+   * @param {Object} res - BaseService response from a DagsterModel admin update call.
+   *   Expected shape: res.body = { es: { data: { launchRun: { run: { runId } } } },
+   *                                cdl: { data: { launchRun: { run: { runId } } } } }
+   * @param {Function} getRunStatus - async fn(runId) returning a BaseService response.
+   *   Expected shape: res.body = { data: { runOrError: { status } } }
+   * @param {Object} opts
+   * @param {String} opts.label - label used in console log messages
+   * @param {Number} opts.interval - polling interval in ms, default 5000
+   * @param {Function} opts.onComplete - callback invoked with { es: status, cdl: status }
+   *   once both jobs reach a terminal state
+   *
+   * @returns {Number|null} setInterval id, or null if no run IDs were found in the response
+   */
+  pollAdminUpdateJobs(res, getRunStatus, opts = {}) {
+    const label = opts.label || 'admin update';
+    const interval = opts.interval || 5000;
+    const terminalStates = ['SUCCESS', 'FAILURE', 'CANCELED'];
+
+    const esRunId = res?.body?.es?.data?.launchRun?.run?.runId;
+    const cdlRunId = res?.body?.cdl?.data?.launchRun?.run?.runId;
+
+    if (!esRunId && !cdlRunId) {
+      console.warn(`[dagster:${label}] no run IDs found in response`, res?.body);
+      return null;
+    }
+
+    const statuses = {
+      es: esRunId ? null : 'skipped',
+      cdl: cdlRunId ? null : 'skipped'
+    };
+
+    console.log(`[dagster:${label}] jobs launched - es runId: ${esRunId || 'n/a'}, cdl runId: ${cdlRunId || 'n/a'}`);
+
+    const intervalId = setInterval(async () => {
+      if (esRunId && !terminalStates.includes(statuses.es)) {
+        const esRes = await getRunStatus(esRunId);
+        const esStatus = esRes?.body?.data?.runOrError?.status;
+        if (esStatus && esStatus !== statuses.es) {
+          statuses.es = esStatus;
+          console.log(`[dagster:${label}] es job status: ${esStatus}`);
+        }
+      }
+
+      if (cdlRunId && !terminalStates.includes(statuses.cdl)) {
+        const cdlRes = await getRunStatus(cdlRunId);
+        const cdlStatus = cdlRes?.body?.data?.runOrError?.status;
+        if (cdlStatus && cdlStatus !== statuses.cdl) {
+          statuses.cdl = cdlStatus;
+          console.log(`[dagster:${label}] cdl job status: ${cdlStatus}`);
+        }
+      }
+
+      const esComplete = !esRunId || terminalStates.includes(statuses.es);
+      const cdlComplete = !cdlRunId || terminalStates.includes(statuses.cdl);
+
+      if (esComplete && cdlComplete) {
+        clearInterval(intervalId);
+        console.log(`[dagster:${label}] jobs complete - es: ${statuses.es || 'n/a'}, cdl: ${statuses.cdl || 'n/a'}`);
+        if (typeof opts.onComplete === 'function') {
+          opts.onComplete(statuses);
+        }
+      }
+    }, interval);
+
+    return intervalId;
+  }
+
 }
 
 module.exports = new Utils();

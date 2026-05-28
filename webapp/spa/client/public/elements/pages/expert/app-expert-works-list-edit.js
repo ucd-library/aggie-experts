@@ -564,6 +564,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, true);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work visibility (show)' });
       setTimeout(async () => {
         // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -670,6 +671,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, false);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work favourite (remove)' });
       setTimeout(async () => {
         // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -780,6 +782,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, true);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work favourite (add)' });
       setTimeout(async () => {
         // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -931,6 +934,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( action === 'hide' ) {
       try {
         let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, false);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work visibility (hide)' });
         setTimeout(async () => {
           // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
           this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -1028,6 +1032,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } else if ( action === 'reject' ) {
       try {
         let res = await this.DagsterModel.rejectCitation(this.expertId, this.citationId);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work reject' });
         setTimeout(async () => {
           // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
           this.dispatchEvent(new CustomEvent("loaded", {}));

@@ -399,6 +399,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     let updated = true;
     try {
       let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, true);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'grant visibility (show)' });
       setTimeout(async () => {
         // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -500,6 +501,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       this.updatingVisibility = true;
       try {
         let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, false);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'grant visibility (hide)' });
         setTimeout(async () => {
           // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
           this.dispatchEvent(new CustomEvent("loaded", {}));

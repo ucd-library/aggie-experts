@@ -543,6 +543,7 @@ export default class AppExpert extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.DagsterModel.updateExpertVisibility(this.expertId, false);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert visibility (hide)' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = false;
 
@@ -585,6 +586,7 @@ export default class AppExpert extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.DagsterModel.deleteExpert(this.expertId);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert delete' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         if( window.gtag ) {
@@ -656,6 +658,7 @@ export default class AppExpert extends Mixin(LitElement)
         let labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
 
         let res = await this.DagsterModel.updateExpertAvailability(this.expertId, labels);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert availability' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         if( window.gtag ) {
@@ -731,6 +734,7 @@ export default class AppExpert extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.DagsterModel.updateExpertVisibility(this.expertId, true);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert visibility (show)' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = true;
 
