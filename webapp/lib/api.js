@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const swaggerJSDoc = require('swagger-jsdoc');
-const { logger, config } = require('@ucd-lib/experts-commons');
+const { logger, config, SlackNotifier } = require('@ucd-lib/experts-commons');
 const { initAuth } = require('../models/middleware/index.js');
 const models = require('./models.js');
 const keycloak = require('./keycloak.js');
@@ -97,6 +97,12 @@ async function init() {
   });
 
   await initAuth();
+
+  if (process.env.SLACK_WEBHOOK_URL) {
+    await SlackNotifier.init(process.env.SLACK_WEBHOOK_URL);
+  } else {
+    logger.warn('SLACK_WEBHOOK_URL not set, Slack notifications disabled');
+  }
 
   return app;
 }
