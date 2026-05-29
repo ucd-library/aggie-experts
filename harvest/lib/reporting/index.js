@@ -94,8 +94,13 @@ function normalizeExpertId(value) {
   return trimmed;
 }
 
+// Schema for the API-shaped projection consumed by the webapp MIV and
+// sitefarm endpoints. Holds "user", role_type, grant/grant_type/expert_grant_role,
+// and work/work_type/expert_work_role. Distinct from etl_reporting (which
+// continues to hold ETL observability tables: command, error, year_week, etc.)
+// and is wrapped by PgClient.
 function getSchemaName() {
-  return 'etl_reporting';
+  return 'api';
 }
 
 function assertSchemaName(schema) {
@@ -488,6 +493,565 @@ async function loadMivPostgres({ user, metadata={}, files=[] }) {
   }
 }
 
+// ============================================================================
+// Sitefarm postgres projection: works + expert profile fields
+// ----------------------------------------------------------------------------
+// The sitefarm API serves an expert's modified-date, profile fields (orcid,
+// scopus, researcher, overview, research interests), contact info (preferred
+// block + websites list), and up to 5 most-recent works per expert.
+//
+// All of this is loaded from ae-std documents to keep the API decoupled from
+// elasticsearch:
+//   - expert profile fields  ← ae-std/person.jsonld
+//   - work nodes + roles     ← ae-std/rel/{relationshipUri}.jsonld
+// ============================================================================
+
+// Common JSON-LD URI constants used by the ae-std normalizers
+const URI = {
+  EXPERT_TYPE:        'http://schema.library.ucdavis.edu/schema#Expert',
+  WORK_TYPE:          'http://schema.library.ucdavis.edu/schema#Work',
+  WORK_BIBO:          'http://purl.org/ontology/bibo/',          // namespace prefix
+  IS_VISIBLE:         'http://schema.library.ucdavis.edu/schema#is-visible',
+  IS_PREFERRED:       'http://schema.library.ucdavis.edu/schema#isPreferred',
+  RESEARCH_INTERESTS: 'http://schema.library.ucdavis.edu/schema#researchInterests',
+  FAVOURITE:          'http://schema.library.ucdavis.edu/schema#favourite',
+  ORCID:              'http://vivoweb.org/ontology/core#orcidId',
+  SCOPUS:             'http://vivoweb.org/ontology/core#scopusId',
+  RESEARCHER:         'http://vivoweb.org/ontology/core#researcherId',
+  OVERVIEW:           'http://vivoweb.org/ontology/core#overview',
+  RANK:               'http://vivoweb.org/ontology/core#rank',
+  RELATES:            'http://vivoweb.org/ontology/core#relates',
+  RELATED_BY:         'http://vivoweb.org/ontology/core#relatedBy',
+  DATE_ISSUED:        'http://purl.org/dc/terms/issued',
+  CITATION_ISSUED:    'http://citationstyles.org/schema/issued',
+  SCHEMA_NAME:        'http://schema.org/name',
+  SCHEMA_IDENTIFIER:  'http://schema.org/identifier',
+  TITLE:              'http://purl.org/dc/terms/title',
+  ABSTRACT:           'http://purl.org/dc/terms/abstract',
+  DOI_BIBO:           'http://purl.org/ontology/bibo/doi',
+  VOLUME:             'http://purl.org/ontology/bibo/volume',
+  PAGES:              'http://purl.org/ontology/bibo/pages',
+  CONTAINER_TITLE:    'http://purl.org/ontology/bibo/shortTitle',
+  STATUS:             'http://citationstyles.org/schema/status',
+  VCARD_INDIVIDUAL:   'http://www.w3.org/2006/vcard/ns#Individual',
+  VCARD_HAS_URL:      'http://www.w3.org/2006/vcard/ns#hasURL',
+  VCARD_URL:          'http://www.w3.org/2006/vcard/ns#url',
+  VCARD_HAS_EMAIL:    'http://www.w3.org/2006/vcard/ns#hasEmail',
+  VCARD_HAS_NAME:     'http://www.w3.org/2006/vcard/ns#hasName'
+};
+
+function jsonldFirstValue(node, uri) {
+  const first = asArray(node?.[uri])[0];
+  if (first === undefined || first === null) return undefined;
+  return first['@value'] ?? first['@id'] ?? undefined;
+}
+
+function jsonldAllValues(node, uri) {
+  return asArray(node?.[uri])
+    .map(v => (v && typeof v === 'object') ? (v['@value'] ?? v['@id']) : v)
+    .filter(v => v !== undefined && v !== null);
+}
+
+function jsonldBool(node, uri, defaultValue=false) {
+  const raw = jsonldFirstValue(node, uri);
+  if (raw === undefined || raw === null) return defaultValue;
+  return raw === true || raw === 'true';
+}
+
+/**
+ * Pad a partial date string ("2023", "2023-04", "2023-04-15") to a full date
+ * suitable for storage in a DATE column. Returns null when input is missing
+ * or unparseable.
+ */
+function partialDateToFull(value) {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^\d{4}$/.test(trimmed))         return `${trimmed}-01-01`;
+  if (/^\d{4}-\d{2}$/.test(trimmed))   return `${trimmed}-01`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  // Try Date parse as a last resort (e.g. ISO timestamps)
+  const d = new Date(trimmed);
+  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  return null;
+}
+
+/**
+ * Normalize an ae-std person.jsonld payload (expanded JSON-LD array) into a
+ * flat object holding just the fields the sitefarm API exposes. Returns null
+ * when the document doesn't contain a recognizable Expert node.
+ */
+function normalizeAeStdPersonDoc(aeStdData) {
+  if (!Array.isArray(aeStdData)) return null;
+
+  const nodeMap = {};
+  for (const node of aeStdData) {
+    if (node?.['@id']) nodeMap[node['@id']] = node;
+  }
+
+  const expertNode = aeStdData.find(n => asArray(n['@type']).includes(URI.EXPERT_TYPE));
+  if (!expertNode) return null;
+
+  const orcidId      = jsonldFirstValue(expertNode, URI.ORCID) || null;
+  const researcherId = jsonldFirstValue(expertNode, URI.RESEARCHER) || null;
+  // scopusId may be multivalued — preserve the first for the dedicated column,
+  // full list lives in expert_raw_payload.
+  const scopusValues = jsonldAllValues(expertNode, URI.SCOPUS);
+  const scopusId     = scopusValues[0] || null;
+  const overview     = jsonldFirstValue(expertNode, URI.OVERVIEW) || null;
+  const researchInterests = jsonldFirstValue(expertNode, URI.RESEARCH_INTERESTS) || null;
+  const isVisible    = jsonldBool(expertNode, URI.IS_VISIBLE, false);
+
+  // Walk vcard:Individual nodes to assemble contactInfo. Sitefarm needs:
+  //   - the preferred entry (isPreferred=true), and
+  //   - the rank=20 (OAP) entry, which holds the website list via hasURL refs.
+  const vcards = aeStdData.filter(n => asArray(n['@type']).includes(URI.VCARD_INDIVIDUAL));
+
+  function resolveUrlNodes(vcardNode) {
+    const urlRefs = asArray(vcardNode?.[URI.VCARD_HAS_URL]);
+    return urlRefs.map(ref => {
+      const urlNode = (typeof ref === 'object' && ref['@id']) ? (nodeMap[ref['@id']] || ref) : null;
+      if (!urlNode) return null;
+      const url = jsonldFirstValue(urlNode, URI.VCARD_URL) || urlNode['@id'];
+      return url ? {
+        '@id': urlNode['@id'],
+        '@type': asArray(urlNode['@type']),
+        url
+      } : null;
+    }).filter(Boolean);
+  }
+
+  function vcardToContactBlock(vcardNode) {
+    if (!vcardNode) return null;
+    const block = {
+      '@id': vcardNode['@id'],
+      isPreferred: jsonldBool(vcardNode, URI.IS_PREFERRED, false),
+      rank: Number(jsonldFirstValue(vcardNode, URI.RANK)) || null,
+      name: jsonldFirstValue(vcardNode, URI.SCHEMA_NAME) || null
+    };
+    const email = jsonldFirstValue(vcardNode, URI.VCARD_HAS_EMAIL);
+    if (email) block.hasEmail = email;
+    const urls = resolveUrlNodes(vcardNode);
+    if (urls.length) block.hasURL = urls;
+    return block;
+  }
+
+  const preferred = vcards.find(v => jsonldBool(v, URI.IS_PREFERRED, false));
+  // rank=20 vcard is the OAP/CDL websites bucket per the person.js transform
+  const websitesVcard = vcards.find(v => Number(jsonldFirstValue(v, URI.RANK)) === 20);
+
+  const contactInfo = {};
+  if (preferred) Object.assign(contactInfo, vcardToContactBlock(preferred));
+  if (websitesVcard && websitesVcard !== preferred) {
+    const block = vcardToContactBlock(websitesVcard);
+    if (block?.hasURL) contactInfo.hasURL = block.hasURL;
+  }
+
+  return {
+    expert_id_uri: expertNode['@id'] || null,
+    orcid_id: orcidId,
+    researcher_id: researcherId,
+    scopus_id: scopusId,
+    overview,
+    research_interests: researchInterests,
+    contact_info: Object.keys(contactInfo).length ? contactInfo : null,
+    is_visible: isVisible,
+    expert_raw_payload: expertNode
+  };
+}
+
+/**
+ * Normalize an ae-std work relationship document (rel/*.jsonld). Returns the
+ * compacted `{ '@graph': [workNode] }` shape that buildWorkRecord/buildWorkRoles
+ * understand. The ae-std rel doc contains the Authorship (relationship) node,
+ * the work node it points to, and any inline author/role nodes.
+ */
+function normalizeAeStdWorkDoc(aeStdData) {
+  if (!Array.isArray(aeStdData)) return aeStdData;
+
+  const nodeMap = {};
+  for (const node of aeStdData) {
+    if (node?.['@id']) nodeMap[node['@id']] = node;
+  }
+
+  // Identify the work node. ae-std uses bibo/* and vivo:* work-ish types.
+  const isWorkType = (t) => {
+    if (typeof t !== 'string') return false;
+    return t === URI.WORK_TYPE
+        || t.startsWith(URI.WORK_BIBO)
+        || t === 'http://vivoweb.org/ontology/core#ConferencePaper';
+  };
+  const workNode = aeStdData.find(n => asArray(n['@type']).some(isWorkType));
+  if (!workNode) return null;
+
+  const BASE_URL = 'http://experts.ucdavis.edu/';
+  const stripBase = id => (typeof id === 'string' && id.startsWith(BASE_URL))
+    ? id.slice(BASE_URL.length)
+    : id;
+
+  // relatedBy: pull the authorship/role nodes. These may be inline objects on
+  // the work node, or referenced by @id.
+  const relatedBy = asArray(workNode[URI.RELATED_BY]).map(ref => {
+    const roleNode = (ref && Object.keys(ref).length > 1) ? ref : nodeMap[ref['@id']];
+    if (!roleNode) return { '@id': ref['@id'] };
+
+    const relates = asArray(roleNode[URI.RELATES])
+      .map(r => stripBase(r?.['@id'] || r))
+      .filter(Boolean);
+
+    return {
+      '@id': roleNode['@id'],
+      '@type': asArray(roleNode['@type']).map(toShortType),
+      relates,
+      'is-visible': jsonldBool(roleNode, URI.IS_VISIBLE, false),
+      'ucdlib:favourite': jsonldBool(roleNode, URI.FAVOURITE, false),
+      rank: Number(jsonldFirstValue(roleNode, URI.RANK)) || null
+    };
+  });
+
+  const rawTypes = asArray(workNode['@type']);
+  const shortTypes = rawTypes.map(toShortType);
+
+  const issued = jsonldFirstValue(workNode, URI.DATE_ISSUED)
+              ?? jsonldFirstValue(workNode, URI.CITATION_ISSUED)
+              ?? null;
+
+  return {
+    '@graph': [{
+      '@id':            workNode['@id'],
+      '@type':          Array.from(new Set([...shortTypes, ...rawTypes])),
+      title:            jsonldFirstValue(workNode, URI.TITLE) ?? null,
+      issued,
+      'container-title': jsonldFirstValue(workNode, URI.CONTAINER_TITLE) ?? null,
+      volume:           jsonldFirstValue(workNode, URI.VOLUME) ?? null,
+      page:             jsonldFirstValue(workNode, URI.PAGES) ?? null,
+      DOI:              jsonldFirstValue(workNode, URI.DOI_BIBO) ?? null,
+      abstract:         jsonldFirstValue(workNode, URI.ABSTRACT) ?? null,
+      status:           jsonldFirstValue(workNode, URI.STATUS) ?? null,
+      relatedBy
+    }]
+  };
+}
+
+function getWorkNode(workDoc={}) {
+  return asArray(workDoc['@graph']).find(node => {
+    const types = asArray(node?.['@type']);
+    return types.some(t => typeof t === 'string'
+      && (t === 'Work'
+          || t === URI.WORK_TYPE
+          || t.startsWith('Article')
+          || t.startsWith('Book')
+          || t.startsWith('Chapter')
+          || t === 'ConferencePaper'
+          || t.startsWith(URI.WORK_BIBO)));
+  }) || null;
+}
+
+function buildWorkRecord(workDoc={}) {
+  const workNode = getWorkNode(workDoc);
+  if (!workNode?.['@id']) return null;
+
+  const issuedRaw = workNode.issued || null;
+
+  return {
+    work_id:         workNode['@id'],
+    title:           workNode.title || workNode.name || null,
+    issued:          issuedRaw,
+    issued_date:     partialDateToFull(issuedRaw),
+    container_title: workNode['container-title'] || null,
+    volume:          workNode.volume || null,
+    page:            workNode.page || null,
+    doi:             workNode.DOI || workNode.doi || null,
+    abstract:        workNode.abstract || null,
+    status:          workNode.status || null,
+    raw_payload:     workNode,
+    work_type_uris:  asArray(workNode['@type']).filter(t => typeof t === 'string')
+  };
+}
+
+function buildWorkRoles(workDoc={}) {
+  const workNode = getWorkNode(workDoc);
+  if (!workNode) return [];
+
+  return asArray(workNode.relatedBy)
+    .map(role => {
+      const roleId = role?.['@id'];
+      if (!roleId) return null;
+
+      return {
+        role_id:       roleId,
+        work_id:       workNode['@id'],
+        expert_id:     normalizeExpertId(getExpertIdFromRole(role)),
+        role_type_uri: pickRoleType(role),
+        is_visible:    role?.['is-visible'] === true,
+        is_favourite:  role?.['ucdlib:favourite'] === true,
+        author_rank:   Number.isInteger(role?.rank) ? role.rank : null,
+        raw_payload:   role
+      };
+    })
+    .filter(Boolean)
+    .filter(role => role.work_id && role.role_id);
+}
+
+/**
+ * Build the expert profile record consumed by upsertUserProfile. Pulled from
+ * ae-std/person.jsonld so the postgres API path is decoupled from ae-webapp.
+ */
+function buildUserProfileRecord({ metadata={}, aeStdPersonDoc=null }) {
+  if (!aeStdPersonDoc) return null;
+  const normalized = normalizeAeStdPersonDoc(aeStdPersonDoc);
+  if (!normalized) return null;
+
+  const expertId = normalizeExpertId(normalized.expert_id_uri || metadata.expertId);
+  if (!expertId) return null;
+
+  return {
+    expert_id:          expertId,
+    orcid_id:           normalized.orcid_id,
+    researcher_id:      normalized.researcher_id,
+    scopus_id:          normalized.scopus_id,
+    overview:           normalized.overview,
+    research_interests: normalized.research_interests,
+    contact_info:       normalized.contact_info,
+    expert_raw_payload: normalized.expert_raw_payload
+  };
+}
+
+async function upsertUserProfile(client, schema, row) {
+  await client.query(
+    `UPDATE ${schema}."user"
+       SET orcid_id           = $2,
+           researcher_id      = $3,
+           scopus_id          = $4,
+           overview           = $5,
+           research_interests = $6,
+           contact_info       = $7,
+           expert_raw_payload = $8,
+           last_seen_cdl      = CURRENT_TIMESTAMP
+     WHERE expert_id = $1`,
+    [
+      row.expert_id,
+      row.orcid_id,
+      row.researcher_id,
+      row.scopus_id,
+      row.overview,
+      row.research_interests,
+      row.contact_info,
+      row.expert_raw_payload
+    ]
+  );
+}
+
+async function upsertWork(client, schema, row) {
+  for (const workTypeUri of row.work_type_uris) {
+    if (workTypeUri) {
+      await client.query(
+        `INSERT INTO ${schema}.work_type (uri, label)
+         VALUES ($1, $1)
+         ON CONFLICT (uri) DO NOTHING`,
+        [workTypeUri]
+      );
+    }
+  }
+
+  await client.query(
+    `INSERT INTO ${schema}."work"
+      (work_id, title, issued, issued_date, container_title, volume, page, doi,
+       abstract, status, raw_payload, work_type_ids, last_seen_cdl)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+       ARRAY(SELECT work_type_id FROM ${schema}.work_type WHERE uri = ANY($12::text[])),
+       CURRENT_TIMESTAMP)
+     ON CONFLICT (work_id)
+     DO UPDATE SET
+      title           = EXCLUDED.title,
+      issued          = EXCLUDED.issued,
+      issued_date     = EXCLUDED.issued_date,
+      container_title = EXCLUDED.container_title,
+      volume          = EXCLUDED.volume,
+      page            = EXCLUDED.page,
+      doi             = EXCLUDED.doi,
+      abstract        = EXCLUDED.abstract,
+      status          = EXCLUDED.status,
+      raw_payload     = EXCLUDED.raw_payload,
+      work_type_ids   = EXCLUDED.work_type_ids,
+      last_seen_cdl   = CURRENT_TIMESTAMP`,
+    [
+      row.work_id,
+      row.title,
+      row.issued,
+      row.issued_date,
+      row.container_title,
+      row.volume,
+      row.page,
+      row.doi,
+      row.abstract,
+      row.status,
+      row.raw_payload,
+      row.work_type_uris
+    ]
+  );
+}
+
+async function replaceWorkRoles(client, schema, workId, roles) {
+  await client.query(`DELETE FROM ${schema}.expert_work_role WHERE work_id = $1`, [workId]);
+
+  // ensure all role types exist in the shared role_type table
+  for (const role of roles) {
+    if (role.role_type_uri) {
+      await client.query(
+        `INSERT INTO ${schema}.role_type (uri, label)
+         VALUES ($1, $1)
+         ON CONFLICT (uri) DO NOTHING`,
+        [role.role_type_uri]
+      );
+    }
+  }
+
+  for (const role of roles) {
+    await client.query(
+      `INSERT INTO ${schema}.expert_work_role
+        (role_id, work_id, expert_id, role_type_id, is_visible, is_favourite,
+         author_rank, raw_payload, last_seen_cdl)
+       VALUES ($1, $2, $3,
+         (SELECT role_type_id FROM ${schema}.role_type WHERE uri = $4),
+         $5, $6, $7, $8, CURRENT_TIMESTAMP)
+       ON CONFLICT (role_id)
+       DO UPDATE SET
+        work_id       = EXCLUDED.work_id,
+        expert_id     = EXCLUDED.expert_id,
+        role_type_id  = EXCLUDED.role_type_id,
+        is_visible    = EXCLUDED.is_visible,
+        is_favourite  = EXCLUDED.is_favourite,
+        author_rank   = EXCLUDED.author_rank,
+        raw_payload   = EXCLUDED.raw_payload,
+        last_seen_cdl = CURRENT_TIMESTAMP`,
+      [
+        role.role_id,
+        role.work_id,
+        role.expert_id,
+        role.role_type_uri,
+        role.is_visible,
+        role.is_favourite,
+        role.author_rank,
+        role.raw_payload
+      ]
+    );
+  }
+}
+
+/**
+ * Load the sitefarm projection (expert profile + works) into postgres for a
+ * single user. Mirrors loadMivPostgres but reads expert fields from
+ * ae-std/person.jsonld and walks the work files passed in.
+ *
+ * Expects `files` to contain a `personAeStd` entry (path to ae-std/person.jsonld)
+ * and zero or more `work` entries (paths to ae-std/rel/{relationshipUri}.jsonld).
+ */
+async function loadSitefarmPostgres({ user, metadata={}, files=[] }) {
+  const schema = getSchemaName();
+  assertSchemaName(schema);
+
+  const pgClient = new PgClient();
+  const personFile = files.find(file => file.type === 'personAeStd');
+  const workFiles  = files.filter(file => file.type === 'work');
+
+  // The "user" row is upserted by loadMivPostgres before we run; we just
+  // overlay profile fields here. If the row doesn't exist yet, the UPDATE is
+  // a no-op and we'll catch the user on the next pass.
+  let userProfileRecord = null;
+  if (personFile?.path) {
+    const personDoc = await readJson(personFile.path);
+    userProfileRecord = buildUserProfileRecord({ metadata, aeStdPersonDoc: personDoc });
+  }
+
+  if (!userProfileRecord?.expert_id) {
+    logger.warn({ user }, 'Sitefarm postgres load: missing ae-std person doc or expert_id; skipping profile update');
+  }
+
+  try {
+    await pgClient.query('BEGIN');
+
+    if (userProfileRecord?.expert_id) {
+      await upsertUserProfile(pgClient, schema, userProfileRecord);
+    }
+
+    for (const file of workFiles) {
+      let workDoc = await readJson(file.path);
+      if (!workDoc) continue;
+
+      // ae-std rel files are JSON arrays; normalize first.
+      if (Array.isArray(workDoc)) {
+        workDoc = normalizeAeStdWorkDoc(workDoc);
+        if (!workDoc) continue;
+      }
+
+      const workRecord = buildWorkRecord(workDoc);
+      if (!workRecord?.work_id) continue;
+
+      await upsertWork(pgClient, schema, workRecord);
+      await replaceWorkRoles(pgClient, schema, workRecord.work_id, buildWorkRoles(workDoc));
+    }
+
+    await pgClient.query('COMMIT');
+    logger.info({ user, workCount: workFiles.length }, 'Sitefarm postgres load completed');
+  } catch (error) {
+    await pgClient.query('ROLLBACK');
+    throw error;
+  } finally {
+    await pgClient.end();
+  }
+}
+
+async function purgeSitefarmPostgresExpert(expertId) {
+  if (!expertId) return;
+
+  const schema = getSchemaName();
+  assertSchemaName(schema);
+
+  const pgClient = new PgClient();
+  const normalizedExpertId = normalizeExpertId(expertId);
+  if (!normalizedExpertId) return;
+
+  try {
+    await pgClient.query('BEGIN');
+
+    // remove this expert's roles, then orphaned works
+    await pgClient.query(`DELETE FROM ${schema}.expert_work_role WHERE expert_id = $1`, [normalizedExpertId]);
+    await pgClient.query(
+      `DELETE FROM ${schema}."work" w
+       WHERE NOT EXISTS (
+         SELECT 1 FROM ${schema}.expert_work_role wr WHERE wr.work_id = w.work_id
+       )`
+    );
+
+    // clear the sitefarm-specific profile columns; identity columns are
+    // managed by purgeMivPostgresExpert.
+    await pgClient.query(
+      `UPDATE ${schema}."user"
+         SET orcid_id           = NULL,
+             researcher_id      = NULL,
+             scopus_id          = NULL,
+             overview           = NULL,
+             research_interests = NULL,
+             contact_info       = NULL,
+             expert_raw_payload = NULL,
+             last_seen_cdl      = CURRENT_TIMESTAMP
+       WHERE expert_id = $1`,
+      [normalizedExpertId]
+    );
+
+    await pgClient.query('COMMIT');
+    logger.info({ expertId }, 'Sitefarm postgres expert purge completed');
+  } catch (error) {
+    await pgClient.query('ROLLBACK');
+    throw error;
+  } finally {
+    await pgClient.end();
+  }
+}
+
 async function purgeMivPostgresExpert(expertId) {
   if (!expertId) return;
 
@@ -624,5 +1188,7 @@ export {
   updateEsIndex,
   initYearWeek,
   loadMivPostgres,
-  purgeMivPostgresExpert
+  purgeMivPostgresExpert,
+  loadSitefarmPostgres,
+  purgeSitefarmPostgresExpert
 }
