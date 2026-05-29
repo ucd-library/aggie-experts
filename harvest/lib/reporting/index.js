@@ -94,8 +94,13 @@ function normalizeExpertId(value) {
   return trimmed;
 }
 
+// Schema for the API-shaped projection consumed by the webapp MIV and
+// sitefarm endpoints. Holds "user", role_type, grant/grant_type/expert_grant_role,
+// and work/work_type/expert_work_role. Distinct from etl_reporting (which
+// continues to hold ETL observability tables: command, error, year_week, etc.)
+// and is wrapped by PgClient.
 function getSchemaName() {
-  return 'etl_reporting';
+  return 'api';
 }
 
 function assertSchemaName(schema) {

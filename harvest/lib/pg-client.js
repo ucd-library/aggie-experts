@@ -3,8 +3,13 @@ import fs from 'fs/promises';
 import { config } from '@ucd-lib/experts-commons';
 
 class PgClient {
-  constructor(_config, schema=null) {
+  constructor(_config, schema=null, apiSchema=null) {
+    // schema    : ETL run observability tables (command, error, year_week, etc.)
+    // apiSchema : API-shaped projection tables, notably "user". The user table
+    //             was moved out of etl_reporting so the miv and sitefarm
+    //             postgres endpoints can read from a dedicated schema.
     this.schema = schema || 'etl_reporting';
+    this.apiSchema = apiSchema || 'api';
 
     if( !_config ) {
       _config = {
@@ -148,7 +153,7 @@ class PgClient {
 
   ensureUserExpertId(email, expertId) {
     const query = `
-      UPDATE ${this.schema}.user
+      UPDATE ${this.apiSchema}."user"
       SET expert_id = $2
       WHERE email = $1
     `;
@@ -157,7 +162,7 @@ class PgClient {
 
   insertCdlUser(email) {
     const query = `
-      INSERT INTO ${this.schema}.user (email)
+      INSERT INTO ${this.apiSchema}."user" (email)
       VALUES ($1)
       ON CONFLICT (email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP
     `;
@@ -166,7 +171,7 @@ class PgClient {
 
   iamUserFetched(email) {
     const query = `
-      UPDATE ${this.schema}.user
+      UPDATE ${this.apiSchema}."user"
       SET last_seen_iam = CURRENT_TIMESTAMP
       WHERE email = $1
     `;
@@ -175,7 +180,7 @@ class PgClient {
 
   setUserPrivacy(email, isPublic, cdlPrivacy, odrPrivacy) {
     const query = `
-      UPDATE ${this.schema}.user
+      UPDATE ${this.apiSchema}."user"
       SET is_public = $2, cdl_privacy = $3, odr_privacy = $4
       WHERE email = $1
     `;
@@ -187,7 +192,7 @@ class PgClient {
       timestamp = new Date();
     }
     const query = `
-      UPDATE ${this.schema}.user
+      UPDATE ${this.apiSchema}."user"
       SET es_stage_inserted_at = $2
       WHERE email = $1
     `;

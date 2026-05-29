@@ -211,7 +211,7 @@ const model = new ExpertModel();
 // ---------------------------------------------------------------------------
 // Postgres-backed sitefarm endpoint (coexists with the ES /experts route).
 //
-// Reads from etl_reporting tables populated by harvest/lib/reporting from
+// Reads from the api schema tables populated by harvest/lib/reporting from
 // ae-std documents — decouples the sitefarm API from the elasticsearch index
 // while keeping the existing /experts/:ids path untouched for now.
 // ---------------------------------------------------------------------------

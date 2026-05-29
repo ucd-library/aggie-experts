@@ -39,7 +39,7 @@ function ensureArray(value) {
 }
 
 /**
- * Query the etl_reporting tables for the sitefarm API response.
+ * Query the api schema tables for the sitefarm API response.
  *
  * @param {string[]} expertIds  - bare expert ids (without "expert/" prefix)
  * @param {string|null} modifiedSince - YYYY-MM-DD; filters experts whose
@@ -49,7 +49,7 @@ function ensureArray(value) {
  * The route handler shapes the final response.
  */
 async function fetchSitefarmPostgresExperts(expertIds, modifiedSince) {
-  const schema = 'etl_reporting';
+  const schema = 'api';
   assertSchema(schema);
 
   const pool = getSitefarmPgPool();

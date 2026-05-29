@@ -161,7 +161,7 @@ function buildRawGrantResponse(grant, roles) {
 }
 
 async function fetchMivPostgresGrants(expertId, since, until) {
-  const schema = 'etl_reporting';
+  const schema = 'api';
   assertSchema(schema);
   const pool = getMivPgPool();
   const normalizedExpertId = String(expertId || '').replace(/^expert\//, '');
