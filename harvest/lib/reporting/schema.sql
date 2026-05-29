@@ -1,5 +1,30 @@
-create schema if not exists etl_reporting;
--- Set the search path to the etl_reporting schema
+-- ============================================================================
+-- Schemas
+-- ----------------------------------------------------------------------------
+-- etl_reporting : ETL run observability (commands, errors, validation, weekly
+--                 state views, year-week dimension, ES index registry).
+-- api           : API-shaped projection consumed by the webapp's miv and
+--                 sitefarm endpoints. Holds shared identity (user, role_type)
+--                 plus per-API tables (grant/grant_type/expert_grant_role,
+--                 work/work_type/expert_work_role).
+-- ============================================================================
+CREATE SCHEMA IF NOT EXISTS etl_reporting;
+CREATE SCHEMA IF NOT EXISTS api;
+
+-- ----------------------------------------------------------------------------
+-- Migration: move tables that previously lived in etl_reporting into api.
+-- Safe to re-run; ALTER TABLE IF EXISTS is a no-op when the source table is
+-- absent (fresh deploy creates these tables directly in api below).
+-- ----------------------------------------------------------------------------
+ALTER TABLE    IF EXISTS etl_reporting."user"            SET SCHEMA api;
+ALTER TABLE    IF EXISTS etl_reporting.role_type         SET SCHEMA api;
+ALTER TABLE    IF EXISTS etl_reporting.grant_type        SET SCHEMA api;
+ALTER TABLE    IF EXISTS etl_reporting."grant"           SET SCHEMA api;
+ALTER TABLE    IF EXISTS etl_reporting.expert_grant_role SET SCHEMA api;
+ALTER FUNCTION IF EXISTS etl_reporting.set_user_first_es_insert() SET SCHEMA api;
+
+-- Set the search path to the etl_reporting schema for the reporting-only
+-- tables that follow. The api section near the bottom switches search_path.
 set search_path = 'etl_reporting';
 
 CREATE TABLE IF NOT EXISTS config (
@@ -72,37 +97,8 @@ CREATE INDEX IF NOT EXISTS idx_validation_issue_user_id ON validation_issue (use
 CREATE INDEX IF NOT EXISTS idx_validation_issue_entity ON validation_issue (entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_validation_issue_issue_type ON validation_issue (issue_type);
 
-CREATE TABLE IF NOT EXISTS "user" (
-  email VARCHAR(255) PRIMARY KEY,
-  expert_id VARCHAR(16) UNIQUE,
-  first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_seen_iam TIMESTAMP,
-  is_public BOOLEAN DEFAULT FALSE,
-  cdl_privacy JSONB,
-  odr_privacy JSONB,
-  es_stage_inserted_at TIMESTAMP,
-  first_es_insert TIMESTAMP DEFAULT NULL,
-  ucd_person_uuid TEXT UNIQUE,
-  iam_id TEXT UNIQUE,
-  display_name TEXT
-);
-
-CREATE OR REPLACE FUNCTION set_user_first_es_insert()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.first_es_insert IS NULL
-    AND NEW.es_stage_inserted_at IS NOT NULL THEN
-    NEW.first_es_insert := NEW.es_stage_inserted_at;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trg_set_user_first_es_insert
-BEFORE UPDATE ON "user"
-FOR EACH ROW
-EXECUTE FUNCTION set_user_first_es_insert();
+-- NB: the "user" table and its set_user_first_es_insert trigger now live in
+-- the api schema. See the api section near the bottom of this file.
 
 CREATE TABLE IF NOT EXISTS year_week (
   year_week VARCHAR(10) PRIMARY KEY,
@@ -166,7 +162,7 @@ JOIN  error e ON c.command_id = e.command_id;
 CREATE OR REPLACE VIEW user_command_weekly_stats AS
   WITH all_users as (
     SELECT email as user_id
-    FROM "user"
+    FROM api."user"
   ),
   user_command_stats AS (
     SELECT
@@ -235,7 +231,7 @@ SELECT
     ELSE 'not_inserted'
   END AS es_stage_status
 FROM state
-LEFT JOIN "user" u ON state.user_id = u.email;
+LEFT JOIN api."user" u ON state.user_id = u.email;
 
 SELECT
   user_id,
@@ -367,8 +363,8 @@ SELECT
   u.email AS user_id,
   u.last_seen_cdl,
   u.last_seen_iam
-FROM "user" u
-WHERE 
+FROM api."user" u
+WHERE
   (select year_week from last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_cdl::DATE)) OR
   (SELECT year_week FROM last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_iam::DATE));
 
@@ -401,13 +397,95 @@ DECLARE
   cutoff_date DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
   deleted_user_count INTEGER;
 BEGIN
-  DELETE FROM etl_reporting."user"
+  DELETE FROM api."user"
   WHERE last_seen_cdl < cutoff_date;
   GET DIAGNOSTICS deleted_user_count = ROW_COUNT;
   RETURN deleted_user_count;
 END;
 $$ LANGUAGE plpgsql;
 
+-- ============================================================================
+-- API schema: tables consumed by the webapp's miv and sitefarm endpoints.
+-- ----------------------------------------------------------------------------
+-- Everything below this point lives in the api schema, which is shared
+-- between MIV (grants) and SiteFarm (works) and holds the canonical user
+-- (expert identity) and role_type tables.
+-- ============================================================================
+SET search_path = 'api';
+
+-- ---- Expert identity --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS "user" (
+  email VARCHAR(255) PRIMARY KEY,
+  expert_id VARCHAR(16) UNIQUE,
+  first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_seen_iam TIMESTAMP,
+  is_public BOOLEAN DEFAULT FALSE,
+  cdl_privacy JSONB,
+  odr_privacy JSONB,
+  es_stage_inserted_at TIMESTAMP,
+  first_es_insert TIMESTAMP DEFAULT NULL,
+  ucd_person_uuid TEXT UNIQUE,
+  iam_id TEXT UNIQUE,
+  display_name TEXT,
+  -- sitefarm profile fields (loaded from ae-std/person.jsonld)
+  orcid_id           TEXT,
+  researcher_id      TEXT,
+  scopus_id          TEXT,
+  overview           TEXT,
+  research_interests TEXT,
+  contact_info       JSONB,
+  expert_raw_payload JSONB
+);
+
+-- The ALTER TABLE block guarantees that an existing user row (migrated from
+-- etl_reporting via the SET SCHEMA statements at the top of this file) gains
+-- the sitefarm profile columns when the schema is re-applied.
+ALTER TABLE "user"
+  ADD COLUMN IF NOT EXISTS orcid_id           TEXT,
+  ADD COLUMN IF NOT EXISTS researcher_id      TEXT,
+  ADD COLUMN IF NOT EXISTS scopus_id          TEXT,
+  ADD COLUMN IF NOT EXISTS overview           TEXT,
+  ADD COLUMN IF NOT EXISTS research_interests TEXT,
+  ADD COLUMN IF NOT EXISTS contact_info       JSONB,
+  ADD COLUMN IF NOT EXISTS expert_raw_payload JSONB;
+
+CREATE OR REPLACE FUNCTION set_user_first_es_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.first_es_insert IS NULL
+    AND NEW.es_stage_inserted_at IS NOT NULL THEN
+    NEW.first_es_insert := NEW.es_stage_inserted_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_set_user_first_es_insert
+BEFORE UPDATE ON "user"
+FOR EACH ROW
+EXECUTE FUNCTION set_user_first_es_insert();
+
+-- ---- Shared role lookup -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS role_type (
+  role_type_id SERIAL PRIMARY KEY,
+  uri TEXT NOT NULL UNIQUE,
+  label TEXT NOT NULL
+);
+INSERT INTO role_type (uri, label) VALUES
+  -- Grant roles
+  ('http://vivoweb.org/ontology/core#PrincipalInvestigatorRole',   'PrincipalInvestigatorRole'),
+  ('http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole', 'CoPrincipalInvestigatorRole'),
+  ('http://vivoweb.org/ontology/core#ResearcherRole',              'ResearcherRole'),
+  ('http://vivoweb.org/ontology/core#LeaderRole',                  'LeaderRole'),
+  ('http://schema.library.ucdavis.edu/schema#GrantRole',           'GrantRole'),
+  -- Work roles
+  ('http://vivoweb.org/ontology/core#Authorship',                  'Authorship'),
+  ('http://vivoweb.org/ontology/core#Editorship',                  'Editorship'),
+  ('http://schema.library.ucdavis.edu/schema#WorkRole',            'WorkRole')
+ON CONFLICT (uri) DO NOTHING;
+
+-- ---- MIV projection: grants -------------------------------------------------
 CREATE TABLE IF NOT EXISTS "grant" (
   grant_id text primary key,
   title text,
@@ -421,20 +499,6 @@ CREATE TABLE IF NOT EXISTS "grant" (
   grant_type_ids INTEGER[] not null default '{}',
   last_seen_cdl timestamptz not null default current_timestamp
 );
--- TODO do we need year-week for grants?
-
-CREATE TABLE IF NOT EXISTS role_type (
-  role_type_id SERIAL PRIMARY KEY,
-  uri TEXT NOT NULL UNIQUE,
-  label TEXT NOT NULL
-);
-INSERT INTO role_type (uri, label) VALUES
-  ('http://vivoweb.org/ontology/core#PrincipalInvestigatorRole',   'PrincipalInvestigatorRole'),
-  ('http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole', 'CoPrincipalInvestigatorRole'),
-  ('http://vivoweb.org/ontology/core#ResearcherRole',              'ResearcherRole'),
-  ('http://vivoweb.org/ontology/core#LeaderRole',                  'LeaderRole'),
-  ('http://schema.library.ucdavis.edu/schema#GrantRole',           'GrantRole')
-ON CONFLICT (uri) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS grant_type (
   grant_type_id SERIAL PRIMARY KEY,
@@ -467,28 +531,7 @@ CREATE INDEX IF NOT EXISTS idx_expert_grant_role_grant_id ON expert_grant_role(g
 CREATE INDEX IF NOT EXISTS idx_expert_grant_role_expert_id ON expert_grant_role(expert_id);
 CREATE INDEX IF NOT EXISTS idx_expert_grant_role_type ON expert_grant_role(role_type_id);
 
--- ============================================================================
--- Sitefarm projection: works + expert profile fields
--- ----------------------------------------------------------------------------
--- Extend "user" with expert profile fields needed by the sitefarm API
--- ============================================================================
-ALTER TABLE "user"
-  ADD COLUMN IF NOT EXISTS orcid_id           TEXT,
-  ADD COLUMN IF NOT EXISTS researcher_id      TEXT,
-  ADD COLUMN IF NOT EXISTS scopus_id          TEXT,
-  ADD COLUMN IF NOT EXISTS overview           TEXT,
-  ADD COLUMN IF NOT EXISTS research_interests TEXT,
-  ADD COLUMN IF NOT EXISTS contact_info       JSONB,
-  ADD COLUMN IF NOT EXISTS expert_raw_payload JSONB;
-
--- Seed role_type with the additional work-related roles. role_type is shared
--- between grants and works so a single lookup serves both.
-INSERT INTO role_type (uri, label) VALUES
-  ('http://vivoweb.org/ontology/core#Authorship',    'Authorship'),
-  ('http://vivoweb.org/ontology/core#Editorship',    'Editorship'),
-  ('http://schema.library.ucdavis.edu/schema#WorkRole', 'WorkRole')
-ON CONFLICT (uri) DO NOTHING;
-
+-- ---- SiteFarm projection: works ---------------------------------------------
 CREATE TABLE IF NOT EXISTS work_type (
   work_type_id SERIAL PRIMARY KEY,
   uri          TEXT NOT NULL UNIQUE,
@@ -496,14 +539,14 @@ CREATE TABLE IF NOT EXISTS work_type (
 );
 
 INSERT INTO work_type (uri, label) VALUES
-  ('http://purl.org/ontology/bibo/AcademicArticle', 'AcademicArticle'),
-  ('http://purl.org/ontology/bibo/Article',         'Article'),
-  ('http://purl.org/ontology/bibo/Book',            'Book'),
-  ('http://purl.org/ontology/bibo/Chapter',         'Chapter'),
-  ('http://purl.org/ontology/bibo/Conference',      'Conference'),
-  ('http://purl.org/ontology/bibo/Document',        'Document'),
-  ('http://purl.org/ontology/bibo/Manuscript',      'Manuscript'),
-  ('http://purl.org/ontology/bibo/Thesis',          'Thesis'),
+  ('http://purl.org/ontology/bibo/AcademicArticle',    'AcademicArticle'),
+  ('http://purl.org/ontology/bibo/Article',            'Article'),
+  ('http://purl.org/ontology/bibo/Book',               'Book'),
+  ('http://purl.org/ontology/bibo/Chapter',            'Chapter'),
+  ('http://purl.org/ontology/bibo/Conference',         'Conference'),
+  ('http://purl.org/ontology/bibo/Document',           'Document'),
+  ('http://purl.org/ontology/bibo/Manuscript',         'Manuscript'),
+  ('http://purl.org/ontology/bibo/Thesis',             'Thesis'),
   ('http://vivoweb.org/ontology/core#ConferencePaper', 'ConferencePaper'),
   ('http://vivoweb.org/ontology/core#Editorship',      'Editorship'),
   ('http://vivoweb.org/ontology/core#Authorship',      'Authorship'),
