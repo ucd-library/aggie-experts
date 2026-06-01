@@ -146,7 +146,7 @@ curl -H "Authorization: Bearer <token>" \
 
 ### 2. GET `/experts_pg/:ids`
 
-Returns the same response shape as `/experts/:ids`, but sourced from the Postgres `etl_reporting` projection rather than Elasticsearch. Provided so SiteFarm clients can be migrated off the Elasticsearch dependency.
+Returns the same response shape as `/experts/:ids`, but sourced from the Postgres `api` schema projection rather than Elasticsearch. Provided so SiteFarm clients can be migrated off the Elasticsearch dependency.
 
 **Authentication:** Required (SiteFarm access)
 
@@ -154,15 +154,15 @@ Returns the same response shape as `/experts/:ids`, but sourced from the Postgre
 - `ids` (string, required) — same as `/experts/:ids`.
 
 **Query Parameters:**
-- `modified_since` (string, optional) — only return experts whose `etl_reporting."user".last_seen_cdl` is on or after this date. Format: `YYYY-MM-DD`. When omitted, no time-based filter is applied.
+- `modified_since` (string, optional) — only return experts whose `api."user".last_seen_cdl` is on or after this date. Format: `YYYY-MM-DD`. When omitted, no time-based filter is applied.
 
 **Response:**
 
 Identical schema to `/experts/:ids`. Field-level differences worth knowing about:
 
-- `modified-date` is `etl_reporting."user".last_seen_cdl` rendered as an ISO timestamp. It bumps on every weekly load (analogous to the Elasticsearch ingest pipeline's `modified-date`).
-- `publications` are pulled from the `etl_reporting."work"` and `etl_reporting.expert_work_role` tables. The work `raw_payload` JSONB column stores the full ae-std work node, so the publication body is byte-equivalent to what Elasticsearch returned — minus any fields that depended on ES-side transforms.
-- `contactInfo` is reconstructed from the `etl_reporting."user".contact_info` JSONB column, which was populated from `ae-std/person.jsonld` at load time.
+- `modified-date` is `api."user".last_seen_cdl` rendered as an ISO timestamp. It bumps on every weekly load (analogous to the Elasticsearch ingest pipeline's `modified-date`).
+- `publications` are pulled from the `api."work"` and `api.expert_work_role` tables. The work `raw_payload` JSONB column stores the full ae-std work node, so the publication body is byte-equivalent to what Elasticsearch returned — minus any fields that depended on ES-side transforms.
+- `contactInfo` is reconstructed from the `api."user".contact_info` JSONB column, which was populated from `ae-std/person.jsonld` at load time.
 
 **Status Codes:**
 - `200` — Success (empty array if no requested ids match or pass `modified_since`)
@@ -183,7 +183,7 @@ curl -H "Authorization: Bearer <token>" \
 | Endpoint           | Expert profile fields      | Works                              | Modified-date                                |
 | ------------------ | -------------------------- | ---------------------------------- | -------------------------------------------- |
 | `/experts/:ids`    | `experts-*` ES index       | `works-*` ES index, filtered to 5  | ES ingest pipeline timestamp (`modified-date`) |
-| `/experts_pg/:ids` | `etl_reporting."user"`     | `etl_reporting."work"` + `expert_work_role` | `etl_reporting."user".last_seen_cdl`         |
+| `/experts_pg/:ids` | `api."user"`               | `api."work"` + `api.expert_work_role`       | `api."user".last_seen_cdl`                   |
 
 The Postgres path is populated by `harvest/lib/reporting/index.js` from ae-std documents:
 
