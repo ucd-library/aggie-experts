@@ -21,7 +21,14 @@ ALTER TABLE    IF EXISTS etl_reporting.role_type         SET SCHEMA api;
 ALTER TABLE    IF EXISTS etl_reporting.grant_type        SET SCHEMA api;
 ALTER TABLE    IF EXISTS etl_reporting."grant"           SET SCHEMA api;
 ALTER TABLE    IF EXISTS etl_reporting.expert_grant_role SET SCHEMA api;
-ALTER FUNCTION IF EXISTS etl_reporting.set_user_first_es_insert() SET SCHEMA api;
+DO $$
+BEGIN
+  ALTER FUNCTION etl_reporting.set_user_first_es_insert() SET SCHEMA api;
+EXCEPTION
+  WHEN undefined_function THEN
+    NULL;
+END
+$$;
 
 -- Set the search path to the etl_reporting schema for the reporting-only
 -- tables that follow. The api section near the bottom switches search_path.
@@ -158,11 +165,36 @@ FROM
   command c
 JOIN  error e ON c.command_id = e.command_id;
 
+CREATE OR REPLACE FUNCTION etl_reporting.get_api_users()
+RETURNS TABLE(
+  email VARCHAR(255),
+  es_stage_inserted_at TIMESTAMP,
+  last_seen_cdl TIMESTAMP,
+  last_seen_iam TIMESTAMP
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF to_regclass('api."user"') IS NULL THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY EXECUTE '
+    SELECT
+      u.email::VARCHAR(255),
+      u.es_stage_inserted_at::TIMESTAMP,
+      u.last_seen_cdl::TIMESTAMP,
+      u.last_seen_iam::TIMESTAMP
+    FROM api."user" u
+  ';
+END;
+$$;
+
 
 CREATE OR REPLACE VIEW user_command_weekly_stats AS
   WITH all_users as (
     SELECT email as user_id
-    FROM api."user"
+    FROM etl_reporting.get_api_users()
   ),
   user_command_stats AS (
     SELECT
@@ -231,7 +263,7 @@ SELECT
     ELSE 'not_inserted'
   END AS es_stage_status
 FROM state
-LEFT JOIN api."user" u ON state.user_id = u.email;
+LEFT JOIN etl_reporting.get_api_users() u ON state.user_id = u.email;
 
 SELECT
   user_id,
@@ -363,7 +395,7 @@ SELECT
   u.email AS user_id,
   u.last_seen_cdl,
   u.last_seen_iam
-FROM api."user" u
+FROM etl_reporting.get_api_users() u
 WHERE
   (select year_week from last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_cdl::DATE)) OR
   (SELECT year_week FROM last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_iam::DATE));
