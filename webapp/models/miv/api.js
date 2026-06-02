@@ -216,11 +216,17 @@ router.get(
         const contributors = roles
           .filter(role => role.expert_id !== normalizedExpertId)
           .filter(role => isPiRole(role.role_type_uri))
-          .map(role => ({
-            '@id': role.role_id,
-            name: getContributorName(grant, role),
-            role: role.role_type_uri
-          }));
+          .map(role => {
+            const name = String(getContributorName(grant, role) || '').trim();
+            if (!name) return null;
+
+            return {
+              '@id': role.role_id,
+              name,
+              role: role.role_type_uri
+            };
+          })
+          .filter(Boolean);
 
         const roleLabel = Array.from(
           new Set(
@@ -236,7 +242,7 @@ router.get(
           end_date: formatDateToString(grant.end_date),
           start_date: formatDateToString(grant.start_date),
           grant_amount: grant.total_award_amount,
-          type: grant.grant_types || [],
+          type: (grant.grant_types || []).length === 1 ? grant.grant_types[0] : (grant.grant_types || []),
           role_label: roleLabel,
           contributors
         };

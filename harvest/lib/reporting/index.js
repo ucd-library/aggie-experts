@@ -279,8 +279,13 @@ async function upsertGrant(client, schema, row) {
   );
 }
 
-async function replaceGrantRoles(client, schema, grantId, roles) {
-  await client.query(`DELETE FROM ${schema}.expert_grant_role WHERE grant_id = $1`, [grantId]);
+async function replaceGrantRoles(client, schema, grantId, roles, expertId) {
+  // Delete this expert's roles and any orphaned rows with no expert linkage (NULL
+  // expert_id), which come from old-style harvests before proper inheres_in mapping.
+  await client.query(
+    `DELETE FROM ${schema}.expert_grant_role WHERE grant_id = $1 AND (expert_id = $2 OR expert_id IS NULL)`,
+    [grantId, expertId]
+  );
 
   // ensure all role types exist in the role_type table
   for (const role of roles) {
@@ -480,7 +485,7 @@ async function loadMivPostgres({ user, metadata={}, files=[] }) {
       if (!grantRecord?.grant_id) continue;
 
       await upsertGrant(pgClient, schema, grantRecord);
-      await replaceGrantRoles(pgClient, schema, grantRecord.grant_id, buildGrantRoles(grantDoc));
+      await replaceGrantRoles(pgClient, schema, grantRecord.grant_id, buildGrantRoles(grantDoc), userRecord.expert_id);
     }
 
     await pgClient.query('COMMIT');

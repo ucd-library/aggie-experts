@@ -138,15 +138,19 @@ function buildRawGrantFallback(grant, roles) {
       '@type': 'FundingOrganization',
       name: grant.sponsor_name
     },
-    '@type': grant.grant_types || [],
+    '@type': (grant.grant_types || []).length === 1 ? grant.grant_types[0] : (grant.grant_types || []),
     status: grant.status,
-    relatedBy: roles.map(role => ({
-      '@id': role.role_id,
-      '@type': normalizeGrantRoleTypes(role.role_type_uri),
-      inheres_in: role.expert_id,
-      relates: [role.expert_id, grant.grant_id].filter(Boolean),
-      'is-visible': role.is_visible
-    }))
+    relatedBy: roles.map(role => {
+      const types = normalizeGrantRoleTypes(role.role_type_uri);
+      const entry = {
+        '@id': role.role_id,
+        '@type': types.length === 1 ? types[0] : types,
+        inheres_in: role.expert_id,
+        relates: [role.expert_id, grant.grant_id].filter(Boolean)
+      };
+      if (role.is_visible) entry['is-visible'] = true;
+      return entry;
+    })
   });
 }
 
@@ -154,6 +158,19 @@ function buildRawGrantResponse(grant, roles) {
   if (grant?.raw_payload && typeof grant.raw_payload === 'object') {
     const payload = normalizeRawGrantDates(cloneJson(grant.raw_payload));
     payload.name = (payload.name || '').split('§')?.[0]?.trim() || payload.name;
+    if (Array.isArray(payload['@type']) && payload['@type'].length === 1) {
+      payload['@type'] = payload['@type'][0];
+    }
+    if (Array.isArray(payload.relatedBy)) {
+      payload.relatedBy = payload.relatedBy.map(role => {
+        const out = { ...role };
+        if (!out['is-visible']) delete out['is-visible'];
+        if (Array.isArray(out['@type']) && out['@type'].length === 1) {
+          out['@type'] = out['@type'][0];
+        }
+        return out;
+      });
+    }
     return payload;
   }
 
