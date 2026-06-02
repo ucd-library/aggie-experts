@@ -506,15 +506,19 @@ async function loadMivPostgres({ user, metadata={}, files=[] }) {
 //   - work nodes + roles     ← ae-std/rel/{relationshipUri}.jsonld
 // ============================================================================
 
-// Common JSON-LD URI constants used by the ae-std normalizers
+// Common JSON-LD URI constants used by the ae-std normalizers. The publication
+// nodes emitted by harvest/lib/transform/ae-std/works.js use the citation-style
+// (csl) vocabulary — NOT bibo or dcterms — for almost every bibliographic
+// field. Mirror that here so the normalizer extracts everything cleanly.
 const URI = {
+  // Schema / aggie-experts custom
   EXPERT_TYPE:        'http://schema.library.ucdavis.edu/schema#Expert',
   WORK_TYPE:          'http://schema.library.ucdavis.edu/schema#Work',
-  WORK_BIBO:          'http://purl.org/ontology/bibo/',          // namespace prefix
   IS_VISIBLE:         'http://schema.library.ucdavis.edu/schema#is-visible',
   IS_PREFERRED:       'http://schema.library.ucdavis.edu/schema#isPreferred',
   RESEARCH_INTERESTS: 'http://schema.library.ucdavis.edu/schema#researchInterests',
   FAVOURITE:          'http://schema.library.ucdavis.edu/schema#favourite',
+  // VIVO
   ORCID:              'http://vivoweb.org/ontology/core#orcidId',
   SCOPUS:             'http://vivoweb.org/ontology/core#scopusId',
   RESEARCHER:         'http://vivoweb.org/ontology/core#researcherId',
@@ -522,23 +526,101 @@ const URI = {
   RANK:               'http://vivoweb.org/ontology/core#rank',
   RELATES:            'http://vivoweb.org/ontology/core#relates',
   RELATED_BY:         'http://vivoweb.org/ontology/core#relatedBy',
-  DATE_ISSUED:        'http://purl.org/dc/terms/issued',
-  CITATION_ISSUED:    'http://citationstyles.org/schema/issued',
+  // Citation Styles vocabulary (csl) — used for publication bibliographic fields
+  CSL_TITLE:          'http://citationstyles.org/schema/title',
+  CSL_ABSTRACT:       'http://citationstyles.org/schema/abstract',
+  CSL_DOI:            'http://citationstyles.org/schema/DOI',
+  CSL_VOLUME:         'http://citationstyles.org/schema/volume',
+  CSL_PAGE:           'http://citationstyles.org/schema/page',
+  CSL_ISSUE:          'http://citationstyles.org/schema/issue',
+  CSL_CONTAINER:      'http://citationstyles.org/schema/container-title',
+  CSL_PUBLISHER:      'http://citationstyles.org/schema/publisher',
+  CSL_STATUS:         'http://citationstyles.org/schema/status',
+  CSL_ISSUED:         'http://citationstyles.org/schema/issued',
+  CSL_AUTHOR:         'http://citationstyles.org/schema/author',
+  CSL_FAMILY:         'http://citationstyles.org/schema/family',
+  CSL_GIVEN:          'http://citationstyles.org/schema/given',
+  CSL_TYPE:           'http://citationstyles.org/schema/type',
+  CSL_DATE_AVAILABLE: 'http://citationstyles.org/schema/date-available',
+  CSL_ISBN:           'http://citationstyles.org/schema/ISBN',
+  CSL_ISSN:           'http://citationstyles.org/schema/ISSN',
+  CSL_EISSN:          'http://citationstyles.org/schema/eissn',
+  CSL_COLLECTION_NUM: 'http://citationstyles.org/schema/collection-number',
+  CSL_LANGUAGE:       'http://citationstyles.org/schema/language',
+  CSL_LICENSE:        'http://citationstyles.org/schema/license',
+  CSL_MEDIUM:         'http://citationstyles.org/schema/medium',
+  CSL_NOTE:           'http://citationstyles.org/schema/note',
+  CSL_URL:            'http://citationstyles.org/schema/url',
+  // Publication venue (vivo)
+  HAS_PUBLICATION_VENUE: 'http://vivoweb.org/ontology/core#hasPublicationVenue',
+  VIVO_ISSN:             'http://vivoweb.org/ontology/core#issn',
+  // schema.org / dcterms (still used for the Expert side)
   SCHEMA_NAME:        'http://schema.org/name',
   SCHEMA_IDENTIFIER:  'http://schema.org/identifier',
-  TITLE:              'http://purl.org/dc/terms/title',
-  ABSTRACT:           'http://purl.org/dc/terms/abstract',
-  DOI_BIBO:           'http://purl.org/ontology/bibo/doi',
-  VOLUME:             'http://purl.org/ontology/bibo/volume',
-  PAGES:              'http://purl.org/ontology/bibo/pages',
-  CONTAINER_TITLE:    'http://purl.org/ontology/bibo/shortTitle',
-  STATUS:             'http://citationstyles.org/schema/status',
+  // VCard
   VCARD_INDIVIDUAL:   'http://www.w3.org/2006/vcard/ns#Individual',
+  VCARD_NAME_TYPE:    'http://www.w3.org/2006/vcard/ns#Name',
+  VCARD_URL_TYPE:     'http://www.w3.org/2006/vcard/ns#URL',
+  VCARD_ORG_TYPE:     'http://www.w3.org/2006/vcard/ns#Organization',
+  VCARD_TITLE_TYPE:   'http://www.w3.org/2006/vcard/ns#Title',
   VCARD_HAS_URL:      'http://www.w3.org/2006/vcard/ns#hasURL',
   VCARD_URL:          'http://www.w3.org/2006/vcard/ns#url',
   VCARD_HAS_EMAIL:    'http://www.w3.org/2006/vcard/ns#hasEmail',
-  VCARD_HAS_NAME:     'http://www.w3.org/2006/vcard/ns#hasName'
+  VCARD_HAS_NAME:     'http://www.w3.org/2006/vcard/ns#hasName',
+  VCARD_HAS_ORG:      'http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit',
+  VCARD_HAS_TITLE:    'http://www.w3.org/2006/vcard/ns#hasTitle',
+  VCARD_FAMILY_NAME:  'http://www.w3.org/2006/vcard/ns#familyName',
+  VCARD_GIVEN_NAME:   'http://www.w3.org/2006/vcard/ns#givenName',
+  VCARD_MIDDLE_NAME:  'http://www.w3.org/2006/vcard/ns#middleName',
+  VCARD_PRONOUNS:     'http://www.w3.org/2006/vcard/ns#pronouns',
+  VCARD_TITLE:        'http://www.w3.org/2006/vcard/ns#title'
 };
+
+// Base URL that ae-std uses for expert/ relative IDs. The ES sitefarm path
+// returns these as short forms (e.g. "expert/abc123#vcard-oap-1-web-0"); we
+// need to do the same for parity.
+const AE_BASE_URL = 'http://experts.ucdavis.edu/';
+
+function stripAeBase(id) {
+  return (typeof id === 'string' && id.startsWith(AE_BASE_URL))
+    ? id.slice(AE_BASE_URL.length)
+    : id;
+}
+
+// JSON-LD context-driven type compaction is non-uniform in the ES sitefarm
+// output: types with named terms in the webapp context collapse to bare names
+// (Work, Authorship, Name, URL, Title, ScholarlyArticle, ...), but unmapped
+// types keep their namespace prefix (vcard:Organization, ucdlib:Authorship,
+// vcard:Individual). Hardcode the mapping to match what ES emits, since we're
+// not running the JSON-LD framing machinery ourselves.
+const TYPE_COMPACTION = {
+  // Vcard types
+  'http://www.w3.org/2006/vcard/ns#Name':           'Name',
+  'http://www.w3.org/2006/vcard/ns#URL':            'URL',
+  'http://www.w3.org/2006/vcard/ns#Title':          'Title',
+  'http://www.w3.org/2006/vcard/ns#Organization':   'vcard:Organization',
+  'http://www.w3.org/2006/vcard/ns#Individual':     'vcard:Individual',
+  // Work / publication types
+  'http://schema.library.ucdavis.edu/schema#Work':       'Work',
+  'http://schema.library.ucdavis.edu/schema#Authorship': 'ucdlib:Authorship',
+  'http://vivoweb.org/ontology/core#Authorship':         'Authorship',
+  'http://vivoweb.org/ontology/core#ConferencePaper':    'ConferencePaper',
+  'http://schema.org/Book':                              'Book',
+  'http://schema.org/Chapter':                           'Chapter',
+  'http://schema.org/ScholarlyArticle':                  'ScholarlyArticle',
+  // Grant types
+  'http://schema.library.ucdavis.edu/schema#GrantRole':                'GrantRole',
+  'http://vivoweb.org/ontology/core#PrincipalInvestigatorRole':        'PrincipalInvestigatorRole',
+  'http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole':      'CoPrincipalInvestigatorRole',
+  'http://vivoweb.org/ontology/core#ResearcherRole':                   'ResearcherRole',
+  'http://vivoweb.org/ontology/core#LeaderRole':                       'LeaderRole'
+};
+function compactType(t) {
+  if (typeof t !== 'string') return t;
+  return TYPE_COMPACTION[t] || toShortType(t);
+}
+// Backwards-compat shim — old name still used in a couple of places.
+const compactVcardType = compactType;
 
 function jsonldFirstValue(node, uri) {
   const first = asArray(node?.[uri])[0];
@@ -556,6 +638,41 @@ function jsonldBool(node, uri, defaultValue=false) {
   const raw = jsonldFirstValue(node, uri);
   if (raw === undefined || raw === null) return defaultValue;
   return raw === true || raw === 'true';
+}
+
+/**
+ * Mirror the JSON-LD framing/compaction default of single-valued arrays
+ * collapsing to scalars. Returns:
+ *   - null when no values
+ *   - the bare scalar when there's exactly one
+ *   - an array when there are multiple
+ *
+ * Used for csl:* fields that ae-std emits as arrays but ES emits as scalars
+ * when only one value is present (e.g. ISBN, container-title, collection-number).
+ */
+function jsonldCollapse(node, uri) {
+  const values = jsonldAllValues(node, uri);
+  if (!values.length) return null;
+  if (values.length === 1) return values[0];
+  return values;
+}
+
+/**
+ * Resolve a vivo:hasPublicationVenue reference to the compact {@id, issn, name}
+ * shape ES emits. Returns null when the ref doesn't point at a venue node.
+ */
+function resolveVenueRef(ref, nodeMap) {
+  const node = (ref && typeof ref === 'object' && Object.keys(ref).length > 1)
+    ? ref
+    : nodeMap[ref?.['@id']];
+  if (!node) return null;
+
+  const out = { '@id': stripAeBase(node['@id']) };
+  const issn = jsonldFirstValue(node, URI.VIVO_ISSN);
+  const name = jsonldFirstValue(node, URI.SCHEMA_NAME);
+  if (issn) out.issn = issn;
+  if (name) out.name = name;
+  return out;
 }
 
 /**
@@ -579,6 +696,87 @@ function partialDateToFull(value) {
 }
 
 /**
+ * Resolve a vcard:hasName reference to the compact { @id, @type, family,
+ * given, middle, pronouns } shape ES emits.
+ */
+function resolveVcardName(ref, nodeMap) {
+  const node = (ref && typeof ref === 'object' && Object.keys(ref).length > 1)
+    ? ref
+    : nodeMap[ref?.['@id']];
+  if (!node) return null;
+
+  const out = { '@id': node['@id'] };
+  const typeRaw = asArray(node['@type'])[0];
+  if (typeRaw) out['@type'] = compactVcardType(typeRaw);
+
+  const family   = jsonldFirstValue(node, URI.VCARD_FAMILY_NAME);
+  const given    = jsonldFirstValue(node, URI.VCARD_GIVEN_NAME);
+  const middle   = jsonldFirstValue(node, URI.VCARD_MIDDLE_NAME);
+  const pronouns = jsonldFirstValue(node, URI.VCARD_PRONOUNS);
+  if (family   != null) out.family   = family;
+  if (given    != null) out.given    = given;
+  if (middle   != null) out.middle   = middle;
+  if (pronouns != null) out.pronouns = pronouns;
+  return out;
+}
+
+/**
+ * Resolve a vcard:hasOrganizationalUnit or vcard:hasTitle reference to the
+ * compact { @id, @type, name } shape ES emits. Both Organization and Title
+ * nodes store their display text in `vcard:title`; we surface it as `name`.
+ */
+function resolveVcardOrgOrTitle(ref, nodeMap) {
+  const node = (ref && typeof ref === 'object' && Object.keys(ref).length > 1)
+    ? ref
+    : nodeMap[ref?.['@id']];
+  if (!node) return null;
+
+  const out = { '@id': node['@id'] };
+  const typeRaw = asArray(node['@type'])[0];
+  if (typeRaw) out['@type'] = compactVcardType(typeRaw);
+
+  const name = jsonldFirstValue(node, URI.VCARD_TITLE);
+  if (name != null) out.name = name;
+  return out;
+}
+
+/**
+ * Resolve a vcard:hasURL reference list to the compact
+ * [{ @id, @type, rank, url }] shape ES emits. URL @ids get the experts.ucdavis
+ * base stripped; @type collapses to short form ("URL").
+ */
+function resolveUrlNodes(vcardNode, nodeMap) {
+  return asArray(vcardNode?.[URI.VCARD_HAS_URL]).map(ref => {
+    const node = (ref && typeof ref === 'object' && Object.keys(ref).length > 1)
+      ? ref
+      : nodeMap[ref?.['@id']];
+    if (!node) return null;
+
+    const url = jsonldFirstValue(node, URI.VCARD_URL) || node['@id'];
+    if (!url) return null;
+
+    const types = asArray(node['@type'])
+      .map(compactVcardType)
+      .filter(Boolean);
+    // ES sometimes adds a URL_<api:type> sibling; drop those — only "URL" is
+    // emitted in the compacted ES response.
+    const shortTypes = types.filter(t => t === 'URL');
+
+    const out = {
+      '@id': stripAeBase(node['@id']),
+      '@type': shortTypes.length ? shortTypes : types
+    };
+
+    const rankRaw = jsonldFirstValue(node, URI.RANK);
+    const rankNum = Number(rankRaw);
+    if (Number.isFinite(rankNum)) out.rank = rankNum;
+
+    out.url = url;
+    return out;
+  }).filter(Boolean);
+}
+
+/**
  * Normalize an ae-std person.jsonld payload (expanded JSON-LD array) into a
  * flat object holding just the fields the sitefarm API exposes. Returns null
  * when the document doesn't contain a recognizable Expert node.
@@ -596,10 +794,9 @@ function normalizeAeStdPersonDoc(aeStdData) {
 
   const orcidId      = jsonldFirstValue(expertNode, URI.ORCID) || null;
   const researcherId = jsonldFirstValue(expertNode, URI.RESEARCHER) || null;
-  // scopusId may be multivalued — preserve the first for the dedicated column,
-  // full list lives in expert_raw_payload.
-  const scopusValues = jsonldAllValues(expertNode, URI.SCOPUS);
-  const scopusId     = scopusValues[0] || null;
+  // Experts may carry multiple scopus IDs; preserve the full list. The API
+  // response collapses single→scalar / multi→array to match ES output.
+  const scopusIds    = jsonldAllValues(expertNode, URI.SCOPUS);
   const overview     = jsonldFirstValue(expertNode, URI.OVERVIEW) || null;
   const researchInterests = jsonldFirstValue(expertNode, URI.RESEARCH_INTERESTS) || null;
   const isVisible    = jsonldBool(expertNode, URI.IS_VISIBLE, false);
@@ -609,32 +806,39 @@ function normalizeAeStdPersonDoc(aeStdData) {
   //   - the rank=20 (OAP) entry, which holds the website list via hasURL refs.
   const vcards = aeStdData.filter(n => asArray(n['@type']).includes(URI.VCARD_INDIVIDUAL));
 
-  function resolveUrlNodes(vcardNode) {
-    const urlRefs = asArray(vcardNode?.[URI.VCARD_HAS_URL]);
-    return urlRefs.map(ref => {
-      const urlNode = (typeof ref === 'object' && ref['@id']) ? (nodeMap[ref['@id']] || ref) : null;
-      if (!urlNode) return null;
-      const url = jsonldFirstValue(urlNode, URI.VCARD_URL) || urlNode['@id'];
-      return url ? {
-        '@id': urlNode['@id'],
-        '@type': asArray(urlNode['@type']),
-        url
-      } : null;
-    }).filter(Boolean);
-  }
-
   function vcardToContactBlock(vcardNode) {
     if (!vcardNode) return null;
-    const block = {
-      '@id': vcardNode['@id'],
-      isPreferred: jsonldBool(vcardNode, URI.IS_PREFERRED, false),
-      rank: Number(jsonldFirstValue(vcardNode, URI.RANK)) || null,
-      name: jsonldFirstValue(vcardNode, URI.SCHEMA_NAME) || null
-    };
+    const block = {};
+
+    // schema:name on the vcard is the formatted-display string ES emits at
+    // the top of contactInfo (e.g. "Bishop, Matthew § Professor, Computer Science")
+    const name = jsonldFirstValue(vcardNode, URI.SCHEMA_NAME);
+    if (name) block.name = name;
+
     const email = jsonldFirstValue(vcardNode, URI.VCARD_HAS_EMAIL);
     if (email) block.hasEmail = email;
-    const urls = resolveUrlNodes(vcardNode);
+
+    const nameRef = asArray(vcardNode[URI.VCARD_HAS_NAME])[0];
+    if (nameRef) {
+      const name = resolveVcardName(nameRef, nodeMap);
+      if (name) block.hasName = name;
+    }
+
+    const orgRef = asArray(vcardNode[URI.VCARD_HAS_ORG])[0];
+    if (orgRef) {
+      const org = resolveVcardOrgOrTitle(orgRef, nodeMap);
+      if (org) block.hasOrganizationalUnit = org;
+    }
+
+    const titleRef = asArray(vcardNode[URI.VCARD_HAS_TITLE])[0];
+    if (titleRef) {
+      const title = resolveVcardOrgOrTitle(titleRef, nodeMap);
+      if (title) block.hasTitle = title;
+    }
+
+    const urls = resolveUrlNodes(vcardNode, nodeMap);
     if (urls.length) block.hasURL = urls;
+
     return block;
   }
 
@@ -642,6 +846,9 @@ function normalizeAeStdPersonDoc(aeStdData) {
   // rank=20 vcard is the OAP/CDL websites bucket per the person.js transform
   const websitesVcard = vcards.find(v => Number(jsonldFirstValue(v, URI.RANK)) === 20);
 
+  // Assemble contactInfo from the preferred vcard, then layer the rank=20
+  // vcard's hasURL list on top (since the preferred vcard typically doesn't
+  // carry websites — those live in the OAP/CDL block).
   const contactInfo = {};
   if (preferred) Object.assign(contactInfo, vcardToContactBlock(preferred));
   if (websitesVcard && websitesVcard !== preferred) {
@@ -653,7 +860,7 @@ function normalizeAeStdPersonDoc(aeStdData) {
     expert_id_uri: expertNode['@id'] || null,
     orcid_id: orcidId,
     researcher_id: researcherId,
-    scopus_id: scopusId,
+    scopus_ids: scopusIds,
     overview,
     research_interests: researchInterests,
     contact_info: Object.keys(contactInfo).length ? contactInfo : null,
@@ -663,10 +870,44 @@ function normalizeAeStdPersonDoc(aeStdData) {
 }
 
 /**
+ * Resolve a single csl:author reference into the compact { @id, given, family,
+ * rank } object that the ES sitefarm path returns. Returns null when the ref
+ * doesn't point at a recognizable Author node.
+ */
+function resolveAuthorRef(ref, nodeMap) {
+  const authorNode = (ref && typeof ref === 'object' && Object.keys(ref).length > 1)
+    ? ref
+    : nodeMap[ref?.['@id']];
+  if (!authorNode) return null;
+
+  const out = { '@id': authorNode['@id'] };
+
+  const family = jsonldFirstValue(authorNode, URI.CSL_FAMILY);
+  const given  = jsonldFirstValue(authorNode, URI.CSL_GIVEN);
+  if (family != null) out.family = family;
+  if (given  != null) out.given  = given;
+
+  const rankRaw = jsonldFirstValue(authorNode, URI.RANK);
+  const rankNum = Number(rankRaw);
+  if (Number.isFinite(rankNum)) out.rank = rankNum;
+
+  return out;
+}
+
+/**
  * Normalize an ae-std work relationship document (rel/*.jsonld). Returns the
  * compacted `{ '@graph': [workNode] }` shape that buildWorkRecord/buildWorkRoles
- * understand. The ae-std rel doc contains the Authorship (relationship) node,
- * the work node it points to, and any inline author/role nodes.
+ * understand.
+ *
+ * The ae-std rel doc is a JSON-LD array containing:
+ *   - the publication node (csl:* bibliographic fields, csl:author refs, etc.)
+ *   - one author node per author position (csl:family, csl:given, vivo:rank)
+ *   - the Authorship relationship node (vivo:relates: [publicationUri, expertUri],
+ *     schema:is-visible, schema:favourite, vivo:rank)
+ *
+ * We compact this into the shape the webapp ES path returns: short-form types,
+ * author array with given/family/rank, and a relatedBy[] with each authorship
+ * node's metadata.
  */
 function normalizeAeStdWorkDoc(aeStdData) {
   if (!Array.isArray(aeStdData)) return aeStdData;
@@ -676,34 +917,25 @@ function normalizeAeStdWorkDoc(aeStdData) {
     if (node?.['@id']) nodeMap[node['@id']] = node;
   }
 
-  // Identify the work node. ae-std uses bibo/* and vivo:* work-ish types.
-  const isWorkType = (t) => {
-    if (typeof t !== 'string') return false;
-    return t === URI.WORK_TYPE
-        || t.startsWith(URI.WORK_BIBO)
-        || t === 'http://vivoweb.org/ontology/core#ConferencePaper';
-  };
-  const workNode = aeStdData.find(n => asArray(n['@type']).some(isWorkType));
+  // Identify the publication node by its custom Work type. The work also
+  // carries a schema.org type (Article/Book/Chapter/ConferencePaper/etc.),
+  // but the ucdlib Work type is the stable hook.
+  const workNode = aeStdData.find(n => asArray(n['@type']).includes(URI.WORK_TYPE));
   if (!workNode) return null;
 
-  const BASE_URL = 'http://experts.ucdavis.edu/';
-  const stripBase = id => (typeof id === 'string' && id.startsWith(BASE_URL))
-    ? id.slice(BASE_URL.length)
-    : id;
-
-  // relatedBy: pull the authorship/role nodes. These may be inline objects on
-  // the work node, or referenced by @id.
+  // relatedBy: pull each Authorship node. These may be inline objects on the
+  // work node, or referenced by @id and stored as separate array entries.
   const relatedBy = asArray(workNode[URI.RELATED_BY]).map(ref => {
-    const roleNode = (ref && Object.keys(ref).length > 1) ? ref : nodeMap[ref['@id']];
-    if (!roleNode) return { '@id': ref['@id'] };
+    const roleNode = (ref && Object.keys(ref).length > 1) ? ref : nodeMap[ref?.['@id']];
+    if (!roleNode) return { '@id': ref?.['@id'] };
 
     const relates = asArray(roleNode[URI.RELATES])
-      .map(r => stripBase(r?.['@id'] || r))
+      .map(r => stripAeBase(r?.['@id'] || r))
       .filter(Boolean);
 
     return {
       '@id': roleNode['@id'],
-      '@type': asArray(roleNode['@type']).map(toShortType),
+      '@type': asArray(roleNode['@type']).map(compactType),
       relates,
       'is-visible': jsonldBool(roleNode, URI.IS_VISIBLE, false),
       'ucdlib:favourite': jsonldBool(roleNode, URI.FAVOURITE, false),
@@ -711,41 +943,70 @@ function normalizeAeStdWorkDoc(aeStdData) {
     };
   });
 
-  const rawTypes = asArray(workNode['@type']);
-  const shortTypes = rawTypes.map(toShortType);
+  // author: resolve each csl:author ref to the {given, family, rank} object
+  // shape that consumers expect. Sort by rank so positions are deterministic.
+  const authors = asArray(workNode[URI.CSL_AUTHOR])
+    .map(ref => resolveAuthorRef(ref, nodeMap))
+    .filter(Boolean)
+    .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
 
-  const issued = jsonldFirstValue(workNode, URI.DATE_ISSUED)
-              ?? jsonldFirstValue(workNode, URI.CITATION_ISSUED)
-              ?? null;
+  // @type for raw_payload / API consumers: short forms only (matches ES).
+  // We preserve the original full URIs as a sibling key `_typeUris` so the
+  // upsertWork lookup can join against work_type.uri.
+  const rawTypeUris = asArray(workNode['@type']).filter(t => typeof t === 'string');
+  const shortTypes = Array.from(new Set(rawTypeUris.map(compactType).filter(Boolean)));
+
+  // hasPublicationVenue: separate node referenced from the publication.
+  // Single-valued — emit as a scalar object (not an array).
+  const venueRef = asArray(workNode[URI.HAS_PUBLICATION_VENUE])[0];
+  const venue = venueRef ? resolveVenueRef(venueRef, nodeMap) : null;
 
   return {
     '@graph': [{
-      '@id':            workNode['@id'],
-      '@type':          Array.from(new Set([...shortTypes, ...rawTypes])),
-      title:            jsonldFirstValue(workNode, URI.TITLE) ?? null,
-      issued,
-      'container-title': jsonldFirstValue(workNode, URI.CONTAINER_TITLE) ?? null,
-      volume:           jsonldFirstValue(workNode, URI.VOLUME) ?? null,
-      page:             jsonldFirstValue(workNode, URI.PAGES) ?? null,
-      DOI:              jsonldFirstValue(workNode, URI.DOI_BIBO) ?? null,
-      abstract:         jsonldFirstValue(workNode, URI.ABSTRACT) ?? null,
-      status:           jsonldFirstValue(workNode, URI.STATUS) ?? null,
+      '@id':                workNode['@id'],
+      '@type':              shortTypes,
+      title:                jsonldFirstValue(workNode, URI.CSL_TITLE) ?? null,
+      issued:               jsonldFirstValue(workNode, URI.CSL_ISSUED) ?? null,
+      'container-title':    jsonldCollapse(workNode, URI.CSL_CONTAINER),
+      volume:               jsonldFirstValue(workNode, URI.CSL_VOLUME) ?? null,
+      page:                 jsonldFirstValue(workNode, URI.CSL_PAGE) ?? null,
+      issue:                jsonldFirstValue(workNode, URI.CSL_ISSUE) ?? null,
+      publisher:            jsonldFirstValue(workNode, URI.CSL_PUBLISHER) ?? null,
+      DOI:                  jsonldFirstValue(workNode, URI.CSL_DOI) ?? null,
+      abstract:             jsonldFirstValue(workNode, URI.CSL_ABSTRACT) ?? null,
+      status:               jsonldFirstValue(workNode, URI.CSL_STATUS) ?? null,
+      type:                 jsonldFirstValue(workNode, URI.CSL_TYPE) ?? null,
+      // csl:date-available has no named term in the webapp JSON-LD context;
+      // ES emits it under the prefixed name "cite:date-available".
+      'cite:date-available': jsonldFirstValue(workNode, URI.CSL_DATE_AVAILABLE) ?? null,
+      // Other csl:* fields ae-std may emit. jsonldCollapse handles scalar vs
+      // array based on cardinality so we match ES's framed output.
+      ISBN:                 jsonldCollapse(workNode, URI.CSL_ISBN),
+      ISSN:                 jsonldCollapse(workNode, URI.CSL_ISSN),
+      eissn:                jsonldCollapse(workNode, URI.CSL_EISSN),
+      'collection-number':  jsonldCollapse(workNode, URI.CSL_COLLECTION_NUM),
+      language:             jsonldCollapse(workNode, URI.CSL_LANGUAGE),
+      license:              jsonldCollapse(workNode, URI.CSL_LICENSE),
+      medium:               jsonldCollapse(workNode, URI.CSL_MEDIUM),
+      note:                 jsonldCollapse(workNode, URI.CSL_NOTE),
+      url:                  jsonldCollapse(workNode, URI.CSL_URL),
+      hasPublicationVenue:  venue,
+      author:               authors.length ? authors : null,
       relatedBy
-    }]
+    }],
+    // Internal field — not part of the API response. buildWorkRecord pulls
+    // this out for the work_type FK lookup so the API @type can stay short.
+    _typeUris: rawTypeUris
   };
 }
 
+// Identify the work node in a compacted webapp-shape doc. After
+// normalizeAeStdWorkDoc runs, @type contains short forms — "Work" is always
+// present (ae-std works.js emits ucdlib:Work alongside the schema.org type).
 function getWorkNode(workDoc={}) {
   return asArray(workDoc['@graph']).find(node => {
     const types = asArray(node?.['@type']);
-    return types.some(t => typeof t === 'string'
-      && (t === 'Work'
-          || t === URI.WORK_TYPE
-          || t.startsWith('Article')
-          || t.startsWith('Book')
-          || t.startsWith('Chapter')
-          || t === 'ConferencePaper'
-          || t.startsWith(URI.WORK_BIBO)));
+    return types.includes('Work') || types.includes(URI.WORK_TYPE);
   }) || null;
 }
 
@@ -754,6 +1015,13 @@ function buildWorkRecord(workDoc={}) {
   if (!workNode?.['@id']) return null;
 
   const issuedRaw = workNode.issued || null;
+
+  // Prefer the normalizer-supplied _typeUris (full URIs) for the work_type
+  // lookup; fall back to whatever's in @type if absent (e.g. an already-
+  // webapp-shape doc that wasn't run through normalizeAeStdWorkDoc).
+  const typeUris = asArray(workDoc._typeUris).filter(t => typeof t === 'string').length
+    ? workDoc._typeUris
+    : asArray(workNode['@type']).filter(t => typeof t === 'string');
 
   return {
     work_id:         workNode['@id'],
@@ -767,7 +1035,7 @@ function buildWorkRecord(workDoc={}) {
     abstract:        workNode.abstract || null,
     status:          workNode.status || null,
     raw_payload:     workNode,
-    work_type_uris:  asArray(workNode['@type']).filter(t => typeof t === 'string')
+    work_type_uris:  typeUris
   };
 }
 
@@ -811,7 +1079,7 @@ function buildUserProfileRecord({ metadata={}, aeStdPersonDoc=null }) {
     expert_id:          expertId,
     orcid_id:           normalized.orcid_id,
     researcher_id:      normalized.researcher_id,
-    scopus_id:          normalized.scopus_id,
+    scopus_ids:         normalized.scopus_ids,
     overview:           normalized.overview,
     research_interests: normalized.research_interests,
     contact_info:       normalized.contact_info,
@@ -824,7 +1092,7 @@ async function upsertUserProfile(client, schema, row) {
     `UPDATE ${schema}."user"
        SET orcid_id           = $2,
            researcher_id      = $3,
-           scopus_id          = $4,
+           scopus_ids         = $4::text[],
            overview           = $5,
            research_interests = $6,
            contact_info       = $7,
@@ -835,7 +1103,7 @@ async function upsertUserProfile(client, schema, row) {
       row.expert_id,
       row.orcid_id,
       row.researcher_id,
-      row.scopus_id,
+      Array.isArray(row.scopus_ids) && row.scopus_ids.length ? row.scopus_ids : null,
       row.overview,
       row.research_interests,
       row.contact_info,
@@ -1032,7 +1300,7 @@ async function purgeSitefarmPostgresExpert(expertId) {
       `UPDATE ${schema}."user"
          SET orcid_id           = NULL,
              researcher_id      = NULL,
-             scopus_id          = NULL,
+             scopus_ids         = NULL,
              overview           = NULL,
              research_interests = NULL,
              contact_info       = NULL,

@@ -192,6 +192,49 @@ The Postgres path is populated by `harvest/lib/reporting/index.js` from ae-std d
 
 ---
 
+## Implementation notes (Postgres path)
+
+The PG path bypasses the JSON-LD framing/compaction machinery used by the
+elasticsearch path and instead normalizes the ae-std expanded form to the
+ES-shape directly. A few non-obvious rules to know about — these all live in
+`harvest/lib/reporting/index.js` and exist to keep the PG response byte-for-byte
+equivalent to what ES returns.
+
+**Type compaction is non-uniform** and driven by an explicit `TYPE_COMPACTION`
+table. The webapp JSON-LD context defines named terms for some types (which
+collapse to bare names: `Work`, `Authorship`, `Name`, `URL`, `Title`,
+`ScholarlyArticle`, …) but not others (which keep their namespace prefix:
+`vcard:Organization`, `vcard:Individual`, `ucdlib:Authorship`). The table
+hardcodes this mapping; add new entries as new types appear.
+
+**Most csl:\* publication fields compact to bare names** (`title`, `abstract`,
+`DOI`, `volume`, `page`, `issue`, `publisher`, `status`, `type`,
+`container-title`, `ISBN`, `ISSN`, `eissn`, `collection-number`, `language`,
+`license`, `medium`, `note`, `url`, `author`). A few don't have named terms
+and surface under the prefixed form — notably **`cite:date-available`**.
+
+**Single-value arrays collapse to scalars** at the response boundary. JSON-LD
+framing's default is to emit a scalar when a property has exactly one value
+and an array when it has more. `jsonldCollapse(node, uri)` mirrors this: it
+returns the bare value for one, an array for multiple, `null` for none. Applied
+to `container-title`, `ISBN`, `ISSN`, `scopusId`, etc.
+
+**`raw_payload` and `expert_raw_payload` columns hold the full ae-std node**
+(work or expert respectively) and serve as the source of truth for API
+responses. The structured columns (`title`, `issued`, `orcid_id`, …) exist for
+indexed lookups; the API itself reads `raw_payload` first and falls back to
+the structured columns only if the payload is missing or malformed. If you add
+a new field to the normalizer, it needs to land in both the structured column
+(for query support) and the raw_payload (for the API to surface it).
+
+**Expert URIs are returned in short form** (`expert/{id}`), not full
+(`http://experts.ucdavis.edu/expert/{id}`). VCard URL `@id`s likewise have the
+`http://experts.ucdavis.edu/` base stripped. The `stripAeBase` helper handles
+this; apply it whenever you emit an `@id` that the ae-std doc stores in full
+form.
+
+---
+
 ## Error Handling
 
 ### 400 Bad Request

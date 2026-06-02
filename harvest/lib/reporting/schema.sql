@@ -463,7 +463,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   -- sitefarm profile fields (loaded from ae-std/person.jsonld)
   orcid_id           TEXT,
   researcher_id      TEXT,
-  scopus_id          TEXT,
+  scopus_ids         TEXT[],   -- experts can have multiple scopus IDs
   overview           TEXT,
   research_interests TEXT,
   contact_info       JSONB,
@@ -472,15 +472,19 @@ CREATE TABLE IF NOT EXISTS "user" (
 
 -- The ALTER TABLE block guarantees that an existing user row (migrated from
 -- etl_reporting via the SET SCHEMA statements at the top of this file) gains
--- the sitefarm profile columns when the schema is re-applied.
+-- the sitefarm profile columns when the schema is re-applied. The
+-- DROP COLUMN clears out the old single-value scopus_id column from any
+-- environment that ran an earlier rev of this branch — safe because that
+-- column was never deployed and never loaded with data we need to keep.
 ALTER TABLE "user"
   ADD COLUMN IF NOT EXISTS orcid_id           TEXT,
   ADD COLUMN IF NOT EXISTS researcher_id      TEXT,
-  ADD COLUMN IF NOT EXISTS scopus_id          TEXT,
+  ADD COLUMN IF NOT EXISTS scopus_ids         TEXT[],
   ADD COLUMN IF NOT EXISTS overview           TEXT,
   ADD COLUMN IF NOT EXISTS research_interests TEXT,
   ADD COLUMN IF NOT EXISTS contact_info       JSONB,
-  ADD COLUMN IF NOT EXISTS expert_raw_payload JSONB;
+  ADD COLUMN IF NOT EXISTS expert_raw_payload JSONB,
+  DROP COLUMN IF EXISTS scopus_id;
 
 CREATE OR REPLACE FUNCTION set_user_first_es_insert()
 RETURNS TRIGGER AS $$
@@ -570,19 +574,14 @@ CREATE TABLE IF NOT EXISTS work_type (
   label        TEXT NOT NULL
 );
 
+-- Seed with the schema.org + ucdlib URIs that ae-std works.js actually emits
+-- (via SCHEMA_URI_TYPE_MAP in harvest/lib/transform/utils.js). Other CDL work
+-- types are filtered out upstream so they never appear here.
 INSERT INTO work_type (uri, label) VALUES
-  ('http://purl.org/ontology/bibo/AcademicArticle',    'AcademicArticle'),
-  ('http://purl.org/ontology/bibo/Article',            'Article'),
-  ('http://purl.org/ontology/bibo/Book',               'Book'),
-  ('http://purl.org/ontology/bibo/Chapter',            'Chapter'),
-  ('http://purl.org/ontology/bibo/Conference',         'Conference'),
-  ('http://purl.org/ontology/bibo/Document',           'Document'),
-  ('http://purl.org/ontology/bibo/Manuscript',         'Manuscript'),
-  ('http://purl.org/ontology/bibo/Thesis',             'Thesis'),
-  ('http://vivoweb.org/ontology/core#ConferencePaper', 'ConferencePaper'),
-  ('http://vivoweb.org/ontology/core#Editorship',      'Editorship'),
-  ('http://vivoweb.org/ontology/core#Authorship',      'Authorship'),
-  ('http://schema.library.ucdavis.edu/schema#Work',    'Work')
+  ('http://schema.org/Book',                        'Book'),
+  ('http://schema.org/Chapter',                     'Chapter'),
+  ('http://schema.org/ScholarlyArticle',            'ScholarlyArticle'),
+  ('http://schema.library.ucdavis.edu/schema#Work', 'Work')
 ON CONFLICT (uri) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS "work" (
