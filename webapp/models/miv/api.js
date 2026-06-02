@@ -278,7 +278,18 @@ router.get(
     try {
       const { grants, rolesByGrant } = await fetchMivPostgresGrants(expertId, since, until);
 
-      const out = grants.map(grant => buildRawGrantResponse(grant, rolesByGrant.get(grant.grant_id) || []));
+      const DEBUG_GRANT_ID = 'ark:/87287/d7gt0q/grant/K331B60-118605';
+      const out = grants.map(grant => {
+        const roles = rolesByGrant.get(grant.grant_id) || [];
+        if (grant.grant_id === DEBUG_GRANT_ID) {
+          console.log('[DEBUG raw_grants_pg] grant:', JSON.stringify({
+            grant_id: grant.grant_id,
+            raw_payload_relatedBy: grant.raw_payload?.relatedBy ?? null
+          }, null, 2));
+          console.log('[DEBUG raw_grants_pg] roles from expert_grant_role:', JSON.stringify(roles, null, 2));
+        }
+        return buildRawGrantResponse(grant, roles);
+      });
 
       res.send(out);
     } catch (err) {
