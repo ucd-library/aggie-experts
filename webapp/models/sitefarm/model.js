@@ -67,7 +67,7 @@ async function fetchSitefarmPostgresExperts(expertIds, modifiedSince) {
        u.display_name,
        u.orcid_id,
        u.researcher_id,
-       u.scopus_id,
+       u.scopus_ids,
        u.overview,
        u.research_interests,
        u.contact_info,
@@ -172,8 +172,9 @@ async function fetchSitefarmPostgresExperts(expertIds, modifiedSince) {
  */
 function buildSitefarmExpertResponse(expertId, bucket) {
   const { expert, works, rolesByWork } = bucket;
-  const expertUri = expert.expert_raw_payload?.['@id']
-    || `http://experts.ucdavis.edu/expert/${expert.expert_id}`;
+  // Use the short `expert/{id}` form — matches what the ES sitefarm path emits
+  // (the ae-std person.jsonld carries the full URI, but consumers expect short).
+  const expertUri = `expert/${expert.expert_id}`;
 
   // Contact info: bring back exactly the shape sitefarm consumed before.
   // contact_info JSONB already holds preferred block + hasURL list (built by
@@ -255,13 +256,21 @@ function buildSitefarmExpertResponse(expertId, bucket) {
   const overview = expert.overview || '';
   const researchInterests = expert.research_interests || '';
 
+  // Collapse single-value scopus_ids to a scalar (matches what ES emits via
+  // JSON-LD compaction); leave multi-value as an array.
+  const scopusIds = Array.isArray(expert.scopus_ids) ? expert.scopus_ids : [];
+  let scopusId;
+  if (scopusIds.length === 1) scopusId = scopusIds[0];
+  else if (scopusIds.length > 1) scopusId = scopusIds;
+  // else undefined → field omitted
+
   return {
     '@id': expertUri,
     publications,
     contactInfo,
     orcidId: expert.orcid_id || undefined,
     researcherId: expert.researcher_id || undefined,
-    scopusId: expert.scopus_id || undefined,
+    scopusId,
     overview: overview + (overview && researchInterests ? ' ' : '') + researchInterests,
     'modified-date': formatModifiedDate(expert.last_seen_cdl)
   };
