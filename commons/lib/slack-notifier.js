@@ -34,25 +34,26 @@ class SlackNotifier {
 
     try {
       const color = this._getColorForSeverity(severity);
+
+      let text = message;
+      if (context && typeof context === 'object') {
+        const contextLines = Object.entries(context)
+          .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`)
+          .join('\n');
+        text = text ? `${text}\n${contextLines}` : contextLines;
+      }
+
       const payload = {
-        text: `[${source.toUpperCase()}] ${title}`,
         attachments: [
           {
             color,
-            text: message,
+            title,
+            text,
             footer: source,
             ts: Math.floor(Date.now() / 1000),
           },
         ],
       };
-
-      if (context && typeof context === 'object') {
-        payload.attachments[0].fields = Object.entries(context).map(([key, value]) => ({
-          title: key.replace(/_/g, ' ').toUpperCase(),
-          value: String(value),
-          short: true,
-        }));
-      }
 
       const response = await fetch(webhookUrl, {
         method: 'POST',

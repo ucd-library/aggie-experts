@@ -149,7 +149,7 @@ def _notify_backfill_completion(context, backfill_id: str, statuses: list = None
         f"Job {job_name} {outcome}.\n"
         f"Status counts: {status_counts}\n"
         f"Backfill ID: {backfill_id}\n"
-        f"View Backfill Details on {harvest_url}"
+        f"<{harvest_url}|View Backfill Details on {harvest_url}>"
     )
 
     context.log.info(f"Backfill {backfill_id} {outcome}.")
