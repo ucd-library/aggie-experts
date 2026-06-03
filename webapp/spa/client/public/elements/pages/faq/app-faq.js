@@ -170,36 +170,30 @@ export default class AppFaq extends Mixin(LitElement)
   }
 
   async _fetchFaqMarkdown() {
-    const useGcs = APP_CONFIG?.faqUseGcs === true;
-    const markdownUrl = APP_CONFIG?.faqMarkdownUrl || 'https://storage.googleapis.com/aggie-experts-static-assets';
+    const useCaskfs = APP_CONFIG?.faqUseCaskfs === true;
+    let url = '';
+    let resp;
+    let faqRequestError = false;
 
-    if( !useGcs ) {
-      const localMarkdownUrl = '/static-assets/faq/faq.md';
-
-      try {
-        const resp = await fetch(localMarkdownUrl);
-        if( !resp.ok ) throw new Error(`Failed to fetch ${localMarkdownUrl}: ${resp.status}`);
-        this.imgPath = '/static-assets/faq/images/';
-        return await resp.text();
-      } catch(e) {
-        throw e;
+    if( useCaskfs ) {
+      this.logger.info('Fetching FAQ content from caskfs');
+      url = '/api/faq';
+      resp = await fetch(url);
+      if( !resp.ok ) {
+        faqRequestError = true;
+        this.logger.error('Failed to fetch FAQ content from caskfs, falling back to static assets', { status: resp.status, statusText: resp.statusText });
       }
     }
-
-    const fullUrl = markdownUrl.endsWith('/') ? markdownUrl + 'faq/faq.md' : markdownUrl + '/faq/faq.md';
-
-    try {
-      const resp = await fetch(fullUrl);
-      if( !resp.ok ) throw new Error(`Failed to fetch ${fullUrl}: ${resp.status}`);
-      const markdown = await resp.text();
-
-      const baseUrl = markdownUrl.endsWith('/') ? markdownUrl.slice(0, -1) : markdownUrl;
-      this.imgPath = baseUrl + '/faq/images/';
-      
-      return markdown;
-    } catch(e) {
-      throw e;
+    
+    if( !useCaskfs || faqRequestError ) {
+      this.logger.info('Fetching FAQ content from static assets');
+      url = '/static-assets/faq/faq.md';
+      resp = await fetch(url);
+      if( !resp.ok ) throw new Error(`Failed to fetch FAQ markdown: ${resp.status}`);    
     }
+
+    this.imgPath = (useCaskfs && !faqRequestError) ? '/api/faq/images/' : '/static-assets/faq/images/';
+    return resp.text();
   }
 
   async _loadFaqContent() {

@@ -28,7 +28,12 @@
     },
     "webapp" : {
       "contextPath" : ".",
-      "dockerfile" : "./webapp/Dockerfile"
+      "dockerfile" : "./webapp/Dockerfile",
+      "options" : {
+        "build-arg" : [
+          "CASKFS_IMAGE=${caskfs.caskfs}"
+        ]
+      }
     },
     "elastic-search" : {
       "contextPath" : "./elastic-search",
