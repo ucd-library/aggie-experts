@@ -4,12 +4,17 @@ The Aggie Experts harvest dashboard in Superset is the primary tool for understa
 what happened during a weekly ETL run and how it compares to prior weeks. It is available
 through the Anduin auth gateway at `/superset`.
 
-The underlying data lives in two PostgreSQL schemas defined by
-[`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql):
+The underlying data lives in two PostgreSQL schemas, each defined by its own
+schema file:
 
-- `etl_reporting` — ETL run observability (commands, errors, weekly state views)
 - `api` — API-shaped projection consumed by the webapp MIV and SiteFarm endpoints
-  (user identity, grants, works, and their role join tables)
+  (user identity, grants, works, and their role join tables).
+  Source: [`harvest/lib/api/schema.sql`](../harvest/lib/api/schema.sql).
+- `etl_reporting` — ETL run observability (commands, errors, weekly state views).
+  Source: [`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql).
+
+Both files are applied in order (api first, then reporting) by
+`experts init` — see `commons/lib/config.js` `postgres.schemaFiles`.
 
 The schema ERD is shown below.
 
@@ -131,7 +136,7 @@ were harvested successfully but may not render correctly in the webapp.
 
 **`api` (API projection)**
 
-- `api.user` — user registry with `first_seen_cdl`, `last_seen_cdl`, `last_seen_iam`, public/visibility flags, plus expert profile fields (`orcid_id`, `researcher_id`, `scopus_id`, `overview`, `research_interests`, `contact_info`, `expert_raw_payload`)
+- `api.user` — user registry with `first_seen_cdl`, `last_seen_cdl`, `last_seen_iam`, public/visibility flags, plus expert profile fields (`orcid_id`, `researcher_id`, `scopus_ids`, `overview`, `research_interests`, `contact_info`, `expert_raw_payload`)
 - `api.role_type` — shared role lookup table (PI/CoPI/Researcher/Authorship/Editorship/etc.)
 - `api.grant`, `api.grant_type`, `api.expert_grant_role` — MIV projection
 - `api.work`, `api.work_type`, `api.expert_work_role` — SiteFarm projection

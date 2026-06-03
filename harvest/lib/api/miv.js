@@ -252,7 +252,7 @@ export async function upsertGrant(client, schema, row) {
   );
 }
 
-async function replaceGrantRoles(client, schema, grantId, roles, expertId) {
+export async function replaceGrantRoles(client, schema, grantId, roles, expertId) {
   // Delete this expert's roles and any orphaned rows with no expert linkage (NULL
   // expert_id), which come from old-style harvests before proper inheres_in mapping.
   await client.query(

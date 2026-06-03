@@ -7,7 +7,7 @@ import {
   purgeMivPostgresExpert,
   loadSitefarmPostgres,
   purgeSitefarmPostgresExpert
-} from '../reporting/index.js';
+} from '../api/index.js';
 
 async function run(user, alias) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;

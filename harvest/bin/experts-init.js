@@ -43,7 +43,12 @@ program
       logger.info(`Connecting to Postgres host: ${config.postgres.host}`);
       logger.info('Initializing PostgreSQL schema for aggie experts...');
       await pgClient.connect();
-      await pgClient.queryFromFile(config.postgres.schemaFile);
+      // Run each schema file in order (api first, then reporting — see
+      // commons/lib/config.js for why).
+      for (const schemaFile of config.postgres.schemaFiles) {
+        logger.info(`Applying schema file: ${schemaFile}`);
+        await pgClient.queryFromFile(schemaFile);
+      }
       await initYearWeek(pgClient);
       await pgClient.setWebappHost();
       logger.info('PostgreSQL schema initialized successfully.');

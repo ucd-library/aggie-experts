@@ -185,10 +185,12 @@ curl -H "Authorization: Bearer <token>" \
 | `/experts/:ids`    | `experts-*` ES index       | `works-*` ES index, filtered to 5  | ES ingest pipeline timestamp (`modified-date`) |
 | `/experts_pg/:ids` | `api."user"`               | `api."work"` + `api.expert_work_role`       | `api."user".last_seen_cdl`                   |
 
-The Postgres path is populated by `harvest/lib/reporting/index.js` from ae-std documents:
+The Postgres path is populated by the loaders in `harvest/lib/api/` from ae-std documents:
 
-- Profile fields ← `ae-std/person.jsonld`
-- Work nodes + roles ← `ae-std/rel/{relationshipUri}.jsonld`
+- Profile fields ← `ae-std/person.jsonld` (via `api/user.js`)
+- Work nodes + roles ← `ae-std/rel/{relationshipUri}.jsonld` (via `api/sitefarm.js`)
+
+Shared JSON-LD helpers live in `harvest/lib/pg-jsonld.js`. The MIV grant loader (`api/miv.js`) sits alongside the SiteFarm loader in the same directory.
 
 ---
 
@@ -196,8 +198,9 @@ The Postgres path is populated by `harvest/lib/reporting/index.js` from ae-std d
 
 The PG path bypasses the JSON-LD framing/compaction machinery used by the
 elasticsearch path and instead normalizes the ae-std expanded form to the
-ES-shape directly. A few non-obvious rules to know about — these all live in
-`harvest/lib/reporting/index.js` and exist to keep the PG response byte-for-byte
+ES-shape directly. A few non-obvious rules to know about — these live in
+`harvest/lib/api/sitefarm.js` and the shared utilities under
+`harvest/lib/pg-jsonld.js`, and exist to keep the PG response byte-for-byte
 equivalent to what ES returns.
 
 **Type compaction is non-uniform** and driven by an explicit `TYPE_COMPACTION`

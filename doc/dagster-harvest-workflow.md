@@ -278,12 +278,15 @@ on-demand harvest of their own profile from the webapp UI:
 
 ## Reporting: schema and views
 
-Schema initialized from [`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql),
-which creates two PostgreSQL schemas:
+Two PostgreSQL schemas, each defined by its own file under `harvest/lib/`:
 
-- `etl_reporting` — ETL run observability (commands, errors, weekly state views)
 - `api` — API-shaped projection consumed by the webapp's MIV and SiteFarm
-  endpoints (user identity, grants, works, and their role join tables)
+  endpoints (user identity, grants, works, and their role join tables).
+  Source: [`harvest/lib/api/schema.sql`](../harvest/lib/api/schema.sql).
+- `etl_reporting` — ETL run observability (commands, errors, weekly state views).
+  Source: [`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql).
+
+`experts init` applies both files in order (api first, then reporting).
 
 Both are visualized in Superset via the Anduin platform.
 
