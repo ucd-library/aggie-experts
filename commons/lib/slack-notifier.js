@@ -1,41 +1,11 @@
 /**
  * Slack Notifier - Sends messages to Slack via incoming webhook.
+ * Reads the webhook URL from the SLACK_WEBHOOK_URL environment variable.
  */
 
 import { logger } from './logger.js';
-import GoogleSecret from './google-secret.js';
 
 class SlackNotifier {
-  constructor() {
-    this.webhookUrl = null;
-    this.initialized = false;
-  }
-
-  /**
-   * Initialize the notifier with either a webhook URL or a secret name.
-   * @param {string} webhookUrlOrSecretName - Direct webhook URL or Google Secret Manager secret name
-   * @param {object} opts - Options object
-   * @param {boolean} opts.isSecretName - If true, treat input as a secret name to resolve via Google Secret Manager
-   */
-  async init(webhookUrlOrSecretName, opts = {}) {
-    if (!webhookUrlOrSecretName) {
-      logger.warn('SlackNotifier: No webhook URL or secret name provided');
-      return;
-    }
-
-    try {
-      if (opts.isSecretName) {
-        this.webhookUrl = await GoogleSecret.getSecret(webhookUrlOrSecretName);
-        logger.info(`SlackNotifier initialized from secret: ${webhookUrlOrSecretName}`);
-      } else {
-        this.webhookUrl = webhookUrlOrSecretName;
-        logger.info('SlackNotifier initialized with direct webhook URL');
-      }
-      this.initialized = true;
-    } catch (err) {
-      logger.error(`SlackNotifier initialization failed: ${err.message}`);
-    }
-  }
 
   /**
    * Send a Slack notification.
@@ -56,8 +26,9 @@ class SlackNotifier {
       context = null,
     } = opts;
 
-    if (!this.initialized || !this.webhookUrl) {
-      logger.warn(`SlackNotifier not initialized, skipping notification: ${title}`);
+    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+    if (!webhookUrl) {
+      logger.warn(`SlackNotifier: SLACK_WEBHOOK_URL not set, skipping notification: ${title}`);
       return false;
     }
 
@@ -83,7 +54,7 @@ class SlackNotifier {
         }));
       }
 
-      const response = await fetch(this.webhookUrl, {
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

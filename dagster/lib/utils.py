@@ -10,7 +10,6 @@ import signal
 import atexit
 
 import dagster as dg
-import requests
 import psycopg2
 
 
@@ -114,33 +113,11 @@ def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_js
 
 
 # ---------------------------------------------------------------------------
-# Notification helpers (via gateway service)
+# Notification helpers
 # ---------------------------------------------------------------------------
 
-def send_notification(context, title: str, message: str, severity: str = "info", source: str = "dagster"):
-    """Send a notification via the gateway service internal endpoint."""
-    gateway_url = os.getenv('API_URL', 'http://localhost:3000')
-
-    try:
-        response = requests.post(
-            f"{gateway_url}/notifications/notify",
-            json={
-                "source": source,
-                "severity": severity,
-                "title": title,
-                "message": message,
-            },
-            timeout=5
-        )
-        response.raise_for_status()
-        return True
-    except Exception as e:
-        context.log.error(f"Error sending notification: {e}")
-        return False
-
-
 def _notify_backfill_completion(context, backfill_id: str, statuses: list = None, job_name: str = None):
-    """Mark a backfill as notified in the DB and send notification."""
+    """Mark a backfill as notified in the DB and send a Slack notification via the admin CLI."""
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT status, notified FROM {BACKFILL_STATUS_TABLE} WHERE backfill_id = %s;",
@@ -176,9 +153,10 @@ def _notify_backfill_completion(context, backfill_id: str, statuses: list = None
     )
 
     context.log.info(f"Backfill {backfill_id} {outcome}.")
-    send_notification(
-        context,
-        title=f"Job {job_name} {outcome}",
-        message=message,
-        severity="warning" if has_issues else "info",
+    exec(
+        ["admin", "notify",
+         "--title", f"Job {job_name} {outcome}",
+         "--message", message,
+         "--severity", "warning" if has_issues else "info"],
+        no_json_parse=True
     )
