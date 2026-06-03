@@ -1,131 +1,113 @@
 -- ============================================================================
--- Schemas
+-- etl_reporting schema
 -- ----------------------------------------------------------------------------
--- etl_reporting : ETL run observability (commands, errors, validation, weekly
---                 state views, year-week dimension, ES index registry).
--- api           : API-shaped projection consumed by the webapp's miv and
---                 sitefarm endpoints. Holds shared identity (user, role_type)
---                 plus per-API tables (grant/grant_type/expert_grant_role,
---                 work/work_type/expert_work_role).
+-- ETL run observability: commands, errors, validation issues, weekly state
+-- views, year-week dimension, ES index registry. Visualized in Superset via
+-- the Anduin platform.
+--
+-- The api schema (user, grant, work, etc. — consumed by the webapp endpoints)
+-- lives in harvest/lib/api/schema.sql. This file references api."user" via the
+-- get_api_users() function indirection so reporting views can be created
+-- even before the api schema exists.
+--
+-- Conventions:
+--   - All object references are schema-qualified (etl_reporting.<table>,
+--     api.<table>). No SET search_path; safer when running alongside other
+--     schema scripts.
+--   - All seed INSERTs use ON CONFLICT (...) DO NOTHING.
 -- ============================================================================
 CREATE SCHEMA IF NOT EXISTS etl_reporting;
-CREATE SCHEMA IF NOT EXISTS api;
 
--- ----------------------------------------------------------------------------
--- Migration: move tables that previously lived in etl_reporting into api.
--- Safe to re-run; ALTER TABLE IF EXISTS is a no-op when the source table is
--- absent (fresh deploy creates these tables directly in api below).
--- ----------------------------------------------------------------------------
-ALTER TABLE    IF EXISTS etl_reporting."user"            SET SCHEMA api;
-ALTER TABLE    IF EXISTS etl_reporting.role_type         SET SCHEMA api;
-ALTER TABLE    IF EXISTS etl_reporting.grant_type        SET SCHEMA api;
-ALTER TABLE    IF EXISTS etl_reporting."grant"           SET SCHEMA api;
-ALTER TABLE    IF EXISTS etl_reporting.expert_grant_role SET SCHEMA api;
-DO $$
-BEGIN
-  ALTER FUNCTION etl_reporting.set_user_first_es_insert() SET SCHEMA api;
-EXCEPTION
-  WHEN undefined_function THEN
-    NULL;
-END
-$$;
-
--- Set the search path to the etl_reporting schema for the reporting-only
--- tables that follow. The api section near the bottom switches search_path.
-set search_path = 'etl_reporting';
-
-CREATE TABLE IF NOT EXISTS config (
-  key VARCHAR(255) PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS etl_reporting.config (
+  key   VARCHAR(255) PRIMARY KEY,
   value TEXT
 );
 
-CREATE TABLE IF NOT EXISTS elastic_search_index (
-  alias_name VARCHAR(255) PRIMARY KEY,
-  index_name VARCHAR(255),
-  doc_count INTEGER,
+CREATE TABLE IF NOT EXISTS etl_reporting.elastic_search_index (
+  alias_name   VARCHAR(255) PRIMARY KEY,
+  index_name   VARCHAR(255),
+  doc_count    INTEGER,
   last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO elastic_search_index (alias_name) VALUES ('experts-stage'), ('works-stage'), ('grants-stage'), ('experts-current'), ('works-current'), ('grants-current')
+INSERT INTO etl_reporting.elastic_search_index (alias_name) VALUES
+  ('experts-stage'), ('works-stage'), ('grants-stage'),
+  ('experts-current'), ('works-current'), ('grants-current')
 ON CONFLICT (alias_name) DO NOTHING;
 
-CREATE TABLE IF NOT EXISTS command (
-  command_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  week_start DATE,
-  year_week VARCHAR(10) NOT NULL,
-  job_id VARCHAR(255),
-  command VARCHAR(255) NOT NULL,
-  user_id VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS etl_reporting.command (
+  command_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  week_start            DATE,
+  year_week             VARCHAR(10) NOT NULL,
+  job_id                VARCHAR(255),
+  command               VARCHAR(255) NOT NULL,
+  user_id               VARCHAR(255) NOT NULL,
   latest_weekly_attempt BOOLEAN DEFAULT FALSE,
-  options JSONB
+  options               JSONB
 );
-CREATE INDEX IF NOT EXISTS idx_command_week_year ON command (year_week, user_id);
-CREATE INDEX IF NOT EXISTS idx_command_command ON command (command, user_id);
-CREATE INDEX IF NOT EXISTS idx_command_year_week_latest ON command (user_id, command, year_week, latest_weekly_attempt);
-CREATE INDEX IF NOT EXISTS idx_command_latest_weekly_attempt ON command (latest_weekly_attempt);
+CREATE INDEX IF NOT EXISTS idx_command_week_year             ON etl_reporting.command (year_week, user_id);
+CREATE INDEX IF NOT EXISTS idx_command_command               ON etl_reporting.command (command, user_id);
+CREATE INDEX IF NOT EXISTS idx_command_year_week_latest      ON etl_reporting.command (user_id, command, year_week, latest_weekly_attempt);
+CREATE INDEX IF NOT EXISTS idx_command_latest_weekly_attempt ON etl_reporting.command (latest_weekly_attempt);
 
-CREATE TABLE IF NOT EXISTS error (
-  error_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
-  message TEXT NOT NULL,
-  stack TEXT
+CREATE TABLE IF NOT EXISTS etl_reporting.error (
+  error_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  command_id UUID NOT NULL REFERENCES etl_reporting.command(command_id) ON DELETE CASCADE,
+  message    TEXT NOT NULL,
+  stack      TEXT
 );
-CREATE INDEX IF NOT EXISTS idx_error_command_id ON error (command_id);
+CREATE INDEX IF NOT EXISTS idx_error_command_id ON etl_reporting.error (command_id);
 
-CREATE TABLE IF NOT EXISTS user_scholarly_output_load_stats (
+CREATE TABLE IF NOT EXISTS etl_reporting.user_scholarly_output_load_stats (
   user_load_stats_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
-  user_id VARCHAR(255) NOT NULL,
-  type VARCHAR(50) NOT NULL CHECK (type IN ('works', 'grants')),
-  visibility VARCHAR(20) NOT NULL CHECK (visibility IN ('public', 'private')),
-  count INTEGER NOT NULL DEFAULT 0
+  timestamp          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  command_id         UUID NOT NULL REFERENCES etl_reporting.command(command_id) ON DELETE CASCADE,
+  user_id            VARCHAR(255) NOT NULL,
+  type               VARCHAR(50) NOT NULL CHECK (type IN ('works', 'grants')),
+  visibility         VARCHAR(20) NOT NULL CHECK (visibility IN ('public', 'private')),
+  count              INTEGER NOT NULL DEFAULT 0
 );
-CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_command_id ON user_scholarly_output_load_stats (command_id);
-CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_user_id ON user_scholarly_output_load_stats (user_id);
-CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_type ON user_scholarly_output_load_stats (type);
-CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_visibility ON user_scholarly_output_load_stats (visibility);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_command_id ON etl_reporting.user_scholarly_output_load_stats (command_id);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_user_id    ON etl_reporting.user_scholarly_output_load_stats (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_type       ON etl_reporting.user_scholarly_output_load_stats (type);
+CREATE INDEX IF NOT EXISTS idx_user_scholarly_output_load_stats_visibility ON etl_reporting.user_scholarly_output_load_stats (visibility);
 
-CREATE TABLE IF NOT EXISTS validation_issue (
-  issue_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  command_id UUID NOT NULL REFERENCES command(command_id) ON DELETE CASCADE,
-  user_id VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS etl_reporting.validation_issue (
+  issue_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  command_id  UUID NOT NULL REFERENCES etl_reporting.command(command_id) ON DELETE CASCADE,
+  user_id     VARCHAR(255) NOT NULL,
   entity_type VARCHAR(20) NOT NULL CHECK (entity_type IN ('work','grant','expert')),
-  entity_id TEXT NOT NULL,
-  issue_type VARCHAR(50) NOT NULL,
-  field VARCHAR(100),
-  message TEXT
+  entity_id   TEXT NOT NULL,
+  issue_type  VARCHAR(50) NOT NULL,
+  field       VARCHAR(100),
+  message     TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_validation_issue_command_id ON etl_reporting.validation_issue (command_id);
+CREATE INDEX IF NOT EXISTS idx_validation_issue_user_id    ON etl_reporting.validation_issue (user_id);
+CREATE INDEX IF NOT EXISTS idx_validation_issue_entity     ON etl_reporting.validation_issue (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_validation_issue_issue_type ON etl_reporting.validation_issue (issue_type);
 
-CREATE INDEX IF NOT EXISTS idx_validation_issue_command_id ON validation_issue (command_id);
-CREATE INDEX IF NOT EXISTS idx_validation_issue_user_id ON validation_issue (user_id);
-CREATE INDEX IF NOT EXISTS idx_validation_issue_entity ON validation_issue (entity_type, entity_id);
-CREATE INDEX IF NOT EXISTS idx_validation_issue_issue_type ON validation_issue (issue_type);
-
--- NB: the "user" table and its set_user_first_es_insert trigger now live in
--- the api schema. See the api section near the bottom of this file.
-
-CREATE TABLE IF NOT EXISTS year_week (
-  year_week VARCHAR(10) PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS etl_reporting.year_week (
+  year_week  VARCHAR(10) PRIMARY KEY,
   week_start DATE NOT NULL,
-  week_end DATE NOT NULL
+  week_end   DATE NOT NULL
 );
 
-CREATE OR REPLACE FUNCTION insert_command(
-  p_year_week VARCHAR(10),
+CREATE OR REPLACE FUNCTION etl_reporting.insert_command(
+  p_year_week  VARCHAR(10),
   p_week_start DATE,
-  p_job_id VARCHAR(255),
-  p_command VARCHAR(255),
-  p_user_id VARCHAR(255),
-  p_options JSONB DEFAULT NULL
+  p_job_id     VARCHAR(255),
+  p_command    VARCHAR(255),
+  p_user_id    VARCHAR(255),
+  p_options    JSONB DEFAULT NULL
 )
 RETURNS UUID AS $$
 DECLARE
   new_command_id UUID;
 BEGIN
-  -- Set existing records for this user_id, year_week, and command to latest_weekly_attempt = false
+  -- Mark any existing latest_weekly_attempt rows for this user/command/week as not-latest.
   UPDATE etl_reporting.command
   SET latest_weekly_attempt = FALSE
   WHERE year_week = p_year_week
@@ -133,7 +115,7 @@ BEGIN
     AND user_id = p_user_id
     AND latest_weekly_attempt = TRUE;
 
-  -- Insert new command with latest_weekly_attempt = true
+  -- Insert the new attempt as the latest.
   INSERT INTO etl_reporting.command (year_week, week_start, job_id, command, user_id, latest_weekly_attempt, options)
   VALUES (p_year_week, p_week_start, p_job_id, p_command, p_user_id, TRUE, p_options)
   RETURNING command_id INTO new_command_id;
@@ -142,7 +124,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE VIEW command_error AS
+CREATE OR REPLACE VIEW etl_reporting.command_error AS
 SELECT
   c.command_id,
   c.timestamp AS command_timestamp,
@@ -152,7 +134,7 @@ SELECT
     '<a href="/dagster/runs/', c.job_id, '" target="_blank">',
     c.job_id,
     '</a>'
-  ) as job_link,
+  ) AS job_link,
   c.command,
   c.user_id,
   c.options,
@@ -161,16 +143,25 @@ SELECT
   e.timestamp AS error_timestamp,
   e.message,
   e.stack
-FROM
-  command c
-JOIN  error e ON c.command_id = e.command_id;
+FROM etl_reporting.command c
+JOIN etl_reporting.error e ON c.command_id = e.command_id;
 
+-- ----------------------------------------------------------------------------
+-- Indirection function for cross-schema reads of api."user".
+--
+-- Reporting views need to JOIN against api."user". A view created with a
+-- direct reference would fail at CREATE time if api."user" hadn't been
+-- created yet — and the order between the two schema scripts isn't guaranteed
+-- in all init paths. By wrapping the cross-schema read in a function that
+-- uses dynamic SQL + a runtime existence check, we defer the dependency
+-- until query time, by which point both schemas exist.
+-- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION etl_reporting.get_api_users()
 RETURNS TABLE(
-  email VARCHAR(255),
+  email                VARCHAR(255),
   es_stage_inserted_at TIMESTAMP,
-  last_seen_cdl TIMESTAMP,
-  last_seen_iam TIMESTAMP
+  last_seen_cdl        TIMESTAMP,
+  last_seen_iam        TIMESTAMP
 )
 LANGUAGE plpgsql
 AS $$
@@ -190,10 +181,9 @@ BEGIN
 END;
 $$;
 
-
-CREATE OR REPLACE VIEW user_command_weekly_stats AS
-  WITH all_users as (
-    SELECT email as user_id
+CREATE OR REPLACE VIEW etl_reporting.user_command_weekly_stats AS
+  WITH all_users AS (
+    SELECT email AS user_id
     FROM etl_reporting.get_api_users()
   ),
   user_command_stats AS (
@@ -201,17 +191,13 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
       c.user_id,
       c.year_week,
       c.command,
-      c.week_start as week_start,
-      c.command_id as command_id,
-      e.error_id as error_id
-    FROM
-      all_users all_u
-    LEFT JOIN
-      command c ON all_u.user_id = c.user_id 
-    LEFT JOIN
-      error e ON c.command_id = e.command_id
-    WHERE 
-      c.latest_weekly_attempt = TRUE
+      c.week_start AS week_start,
+      c.command_id AS command_id,
+      e.error_id   AS error_id
+    FROM all_users all_u
+    LEFT JOIN etl_reporting.command c ON all_u.user_id = c.user_id
+    LEFT JOIN etl_reporting.error   e ON c.command_id = e.command_id
+    WHERE c.latest_weekly_attempt = TRUE
   )
   SELECT
     ucs.user_id,
@@ -219,73 +205,65 @@ CREATE OR REPLACE VIEW user_command_weekly_stats AS
     ucs.year_week,
     ucs.week_start,
     CASE
-      WHEN ucs.error_id is NOT NULL THEN 'error'
-      WHEN ucs.command_id IS NULL THEN 'no_attempt'
+      WHEN ucs.error_id IS NOT NULL THEN 'error'
+      WHEN ucs.command_id IS NULL   THEN 'no_attempt'
       ELSE 'ok'
     END AS state
   FROM user_command_stats ucs;
 
 CREATE OR REPLACE FUNCTION etl_reporting.get_year_week(p_date DATE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/Los_Angeles')::DATE)
 RETURNS TABLE(
-  year_week TEXT,
+  year_week  TEXT,
   week_start DATE,
-  week_end DATE,
-  date DATE
+  week_end   DATE,
+  date       DATE
 )
 LANGUAGE sql
 IMMUTABLE AS $$
 SELECT
-  *, p_date as date
-FROM year_week
+  *, p_date AS date
+FROM etl_reporting.year_week
 WHERE p_date >= week_start AND p_date <= week_end;
 $$;
 
-CREATE OR REPLACE VIEW this_week_user_state_count AS
+CREATE OR REPLACE VIEW etl_reporting.this_week_user_state_count AS
 WITH state AS (
   SELECT
     user_id,
     year_week,
     CASE
-      WHEN BOOL_OR(state = 'error') THEN 'error'
-      WHEN BOOL_AND(state = 'ok') THEN 'ok'
+      WHEN BOOL_OR(state = 'error')      THEN 'error'
+      WHEN BOOL_AND(state = 'ok')        THEN 'ok'
       WHEN BOOL_AND(state = 'no_attempt') THEN 'no_attempt'
       ELSE 'unknown'
     END AS state
-  FROM user_command_weekly_stats
-  WHERE year_week = (SELECT year_week FROM get_year_week())
+  FROM etl_reporting.user_command_weekly_stats
+  WHERE year_week = (SELECT year_week FROM etl_reporting.get_year_week())
   GROUP BY user_id, year_week
 )
 SELECT
   state.*,
   CASE
     WHEN u.es_stage_inserted_at IS NULL THEN 'removed'
-    WHEN (SELECT year_week FROM get_year_week()) = (SELECT year_week FROM get_year_week(u.es_stage_inserted_at::DATE)) THEN 'inserted'
+    WHEN (SELECT year_week FROM etl_reporting.get_year_week()) = (SELECT year_week FROM etl_reporting.get_year_week(u.es_stage_inserted_at::DATE)) THEN 'inserted'
     ELSE 'not_inserted'
   END AS es_stage_status
 FROM state
 LEFT JOIN etl_reporting.get_api_users() u ON state.user_id = u.email;
 
-SELECT
-  user_id,
-  year_week,
-  ARRAY_AGG(state) AS states
-FROM user_command_weekly_stats
-WHERE year_week = (SELECT year_week FROM get_year_week())
-GROUP BY user_id, year_week;
-
-CREATE OR REPLACE VIEW user_command_weekly_state_changes AS
+CREATE OR REPLACE VIEW etl_reporting.user_command_weekly_state_changes AS
   WITH state AS (
     SELECT
       ucs.user_id,
       ucs.command,
       ucs.year_week,
       ucs.state,
-      (SELECT ucs2.state FROM user_command_weekly_stats ucs2
+      (SELECT ucs2.state FROM etl_reporting.user_command_weekly_stats ucs2
        WHERE ucs2.user_id = ucs.user_id
          AND ucs2.command = ucs.command
          AND ucs2.week_start = ucs.week_start - INTERVAL '7 days'
       ) AS prior_week_state
-      FROM user_command_weekly_stats ucs
+    FROM etl_reporting.user_command_weekly_stats ucs
   )
   SELECT
     user_id,
@@ -294,64 +272,23 @@ CREATE OR REPLACE VIEW user_command_weekly_state_changes AS
     state,
     CASE
       WHEN prior_week_state IS DISTINCT FROM state
-        THEN
-          'change:' ||
-          COALESCE(prior_week_state, 'null') ||
-          '-' ||
-          COALESCE(state, 'null')
-      ELSE
-        'no-change'
+        THEN 'change:' || COALESCE(prior_week_state, 'null') || '-' || COALESCE(state, 'null')
+      ELSE 'no-change'
     END AS state_change
   FROM state;
 
-CREATE OR REPLACE VIEW this_week_user_state_changes AS
+CREATE OR REPLACE VIEW etl_reporting.this_week_user_state_changes AS
 SELECT
   user_id,
   ARRAY_AGG(REGEXP_REPLACE(command, '^experts-harvest-', '')) AS commands,
   year_week,
   state,
   state_change
-FROM user_command_weekly_state_changes
-WHERE year_week = (SELECT year_week FROM get_year_week())
-GROUP BY
-  user_id, year_week, state, state_change;
+FROM etl_reporting.user_command_weekly_state_changes
+WHERE year_week = (SELECT year_week FROM etl_reporting.get_year_week())
+GROUP BY user_id, year_week, state, state_change;
 
-CREATE OR REPLACE FUNCTION cleanup_old_commands()
-RETURNS TABLE(
-  deleted_file_cache_count INTEGER,
-  deleted_error_count INTEGER,
-  deleted_command_count INTEGER
-) AS $$
-DECLARE
-  file_cache_deleted INTEGER;
-  error_deleted INTEGER;
-  command_deleted INTEGER;
-BEGIN
-  -- Delete file_cache records older than 3 months
-  DELETE FROM file_cache 
-  WHERE timestamp < CURRENT_TIMESTAMP - INTERVAL '3 months';
-  GET DIAGNOSTICS file_cache_deleted = ROW_COUNT;
-
-  -- Delete error records older than 3 months
-  DELETE FROM error 
-  WHERE timestamp < CURRENT_TIMESTAMP - INTERVAL '3 months';
-  GET DIAGNOSTICS error_deleted = ROW_COUNT;
-
-  -- Delete commands that have no associated file_cache or error records
-  DELETE FROM command 
-  WHERE command_id NOT IN (
-    SELECT DISTINCT command_id FROM file_cache
-    UNION
-    SELECT DISTINCT command_id FROM error
-  );
-  GET DIAGNOSTICS command_deleted = ROW_COUNT;
-
-  -- Return the counts
-  RETURN QUERY SELECT file_cache_deleted, error_deleted, command_deleted;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE VIEW user_scholarly_output_weekly_changes AS
+CREATE OR REPLACE VIEW etl_reporting.user_scholarly_output_weekly_changes AS
   WITH weekly_counts AS (
     SELECT
       s.user_id,
@@ -360,8 +297,8 @@ CREATE OR REPLACE VIEW user_scholarly_output_weekly_changes AS
       s.type,
       s.visibility,
       SUM(s.count) AS total_count
-    FROM user_scholarly_output_load_stats s
-    LEFT JOIN command c ON s.command_id = c.command_id
+    FROM etl_reporting.user_scholarly_output_load_stats s
+    LEFT JOIN etl_reporting.command c ON s.command_id = c.command_id
     WHERE c.latest_weekly_attempt = TRUE
     GROUP BY s.user_id, c.year_week, c.week_start, s.type, s.visibility
   )
@@ -373,23 +310,23 @@ CREATE OR REPLACE VIEW user_scholarly_output_weekly_changes AS
     COALESCE(wc.total_count, 0) - COALESCE(wc_prev.total_count, 0) AS change
   FROM weekly_counts wc
   LEFT JOIN weekly_counts wc_prev ON
-    wc.user_id = wc_prev.user_id AND
-    wc.type = wc_prev.type AND
+    wc.user_id   = wc_prev.user_id AND
+    wc.type      = wc_prev.type    AND
     wc.visibility = wc_prev.visibility AND
     wc.week_start = wc_prev.week_start + INTERVAL '7 days';
 
-CREATE OR REPLACE VIEW this_week_user_scholarly_output_changes AS
+CREATE OR REPLACE VIEW etl_reporting.this_week_user_scholarly_output_changes AS
 SELECT
   user_id,
   type,
   visibility,
   change
-FROM user_scholarly_output_weekly_changes
-WHERE year_week = (SELECT year_week FROM get_year_week());
+FROM etl_reporting.user_scholarly_output_weekly_changes
+WHERE year_week = (SELECT year_week FROM etl_reporting.get_year_week());
 
-CREATE OR REPLACE VIEW user_left_this_week AS
+CREATE OR REPLACE VIEW etl_reporting.user_left_this_week AS
 WITH last_year_week AS (
-  SELECT year_week FROM get_year_week((NOW() - INTERVAL '7 days')::DATE)
+  SELECT year_week FROM etl_reporting.get_year_week((NOW() - INTERVAL '7 days')::DATE)
 )
 SELECT
   u.email AS user_id,
@@ -397,23 +334,26 @@ SELECT
   u.last_seen_iam
 FROM etl_reporting.get_api_users() u
 WHERE
-  (select year_week from last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_cdl::DATE)) OR
-  (SELECT year_week FROM last_year_week) = (SELECT year_week FROM get_year_week(u.last_seen_iam::DATE));
+  (SELECT year_week FROM last_year_week) = (SELECT year_week FROM etl_reporting.get_year_week(u.last_seen_cdl::DATE)) OR
+  (SELECT year_week FROM last_year_week) = (SELECT year_week FROM etl_reporting.get_year_week(u.last_seen_iam::DATE));
 
-CREATE OR REPLACE VIEW this_week_harvest_errors AS
+CREATE OR REPLACE VIEW etl_reporting.this_week_harvest_errors AS
 SELECT
   c.user_id,
   c.command,
   (c.timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/Los_Angeles') AS timestamp
-FROM command c
-JOIN error e ON c.command_id = e.command_id
+FROM etl_reporting.command c
+JOIN etl_reporting.error e ON c.command_id = e.command_id
 WHERE c.latest_weekly_attempt = TRUE
-  AND c.year_week = (SELECT year_week FROM get_year_week());
+  AND c.year_week = (SELECT year_week FROM etl_reporting.get_year_week());
 
-CREATE OR REPLACE FUNCTION cleanup_old_commands(p_weeks_to_keep INTEGER DEFAULT 8) 
+-- ============================================================================
+-- Cleanup functions
+-- ============================================================================
+CREATE OR REPLACE FUNCTION etl_reporting.cleanup_old_commands(p_weeks_to_keep INTEGER DEFAULT 8)
 RETURNS INTEGER AS $$
 DECLARE
-  cutoff_date DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
+  cutoff_date           DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
   deleted_command_count INTEGER;
 BEGIN
   DELETE FROM etl_reporting.command
@@ -423,10 +363,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION cleanup_old_users(p_weeks_to_keep INTEGER DEFAULT 24) 
+CREATE OR REPLACE FUNCTION etl_reporting.cleanup_old_users(p_weeks_to_keep INTEGER DEFAULT 24)
 RETURNS INTEGER AS $$
 DECLARE
-  cutoff_date DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
+  cutoff_date        DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
   deleted_user_count INTEGER;
 BEGIN
   DELETE FROM api."user"
@@ -435,185 +375,3 @@ BEGIN
   RETURN deleted_user_count;
 END;
 $$ LANGUAGE plpgsql;
-
--- ============================================================================
--- API schema: tables consumed by the webapp's miv and sitefarm endpoints.
--- ----------------------------------------------------------------------------
--- Everything below this point lives in the api schema, which is shared
--- between MIV (grants) and SiteFarm (works) and holds the canonical user
--- (expert identity) and role_type tables.
--- ============================================================================
-SET search_path = 'api';
-
--- ---- Expert identity --------------------------------------------------------
-CREATE TABLE IF NOT EXISTS "user" (
-  email VARCHAR(255) PRIMARY KEY,
-  expert_id VARCHAR(16) UNIQUE,
-  first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_seen_iam TIMESTAMP,
-  is_public BOOLEAN DEFAULT FALSE,
-  cdl_privacy JSONB,
-  odr_privacy JSONB,
-  es_stage_inserted_at TIMESTAMP,
-  first_es_insert TIMESTAMP DEFAULT NULL,
-  ucd_person_uuid TEXT UNIQUE,
-  iam_id TEXT UNIQUE,
-  display_name TEXT,
-  -- sitefarm profile fields (loaded from ae-std/person.jsonld)
-  orcid_id           TEXT,
-  researcher_id      TEXT,
-  scopus_ids         TEXT[],   -- experts can have multiple scopus IDs
-  overview           TEXT,
-  research_interests TEXT,
-  contact_info       JSONB,
-  expert_raw_payload JSONB
-);
-
--- The ALTER TABLE block guarantees that an existing user row (migrated from
--- etl_reporting via the SET SCHEMA statements at the top of this file) gains
--- the sitefarm profile columns when the schema is re-applied. The
--- DROP COLUMN clears out the old single-value scopus_id column from any
--- environment that ran an earlier rev of this branch — safe because that
--- column was never deployed and never loaded with data we need to keep.
-ALTER TABLE "user"
-  ADD COLUMN IF NOT EXISTS orcid_id           TEXT,
-  ADD COLUMN IF NOT EXISTS researcher_id      TEXT,
-  ADD COLUMN IF NOT EXISTS scopus_ids         TEXT[],
-  ADD COLUMN IF NOT EXISTS overview           TEXT,
-  ADD COLUMN IF NOT EXISTS research_interests TEXT,
-  ADD COLUMN IF NOT EXISTS contact_info       JSONB,
-  ADD COLUMN IF NOT EXISTS expert_raw_payload JSONB,
-  DROP COLUMN IF EXISTS scopus_id;
-
-CREATE OR REPLACE FUNCTION set_user_first_es_insert()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.first_es_insert IS NULL
-    AND NEW.es_stage_inserted_at IS NOT NULL THEN
-    NEW.first_es_insert := NEW.es_stage_inserted_at;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trg_set_user_first_es_insert
-BEFORE UPDATE ON "user"
-FOR EACH ROW
-EXECUTE FUNCTION set_user_first_es_insert();
-
--- ---- Shared role lookup -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS role_type (
-  role_type_id SERIAL PRIMARY KEY,
-  uri TEXT NOT NULL UNIQUE,
-  label TEXT NOT NULL
-);
-INSERT INTO role_type (uri, label) VALUES
-  -- Grant roles
-  ('http://vivoweb.org/ontology/core#PrincipalInvestigatorRole',   'PrincipalInvestigatorRole'),
-  ('http://vivoweb.org/ontology/core#CoPrincipalInvestigatorRole', 'CoPrincipalInvestigatorRole'),
-  ('http://vivoweb.org/ontology/core#ResearcherRole',              'ResearcherRole'),
-  ('http://vivoweb.org/ontology/core#LeaderRole',                  'LeaderRole'),
-  ('http://schema.library.ucdavis.edu/schema#GrantRole',           'GrantRole'),
-  -- Work roles
-  ('http://vivoweb.org/ontology/core#Authorship',                  'Authorship'),
-  ('http://vivoweb.org/ontology/core#Editorship',                  'Editorship'),
-  ('http://schema.library.ucdavis.edu/schema#WorkRole',            'WorkRole')
-ON CONFLICT (uri) DO NOTHING;
-
--- ---- MIV projection: grants -------------------------------------------------
-CREATE TABLE IF NOT EXISTS "grant" (
-  grant_id text primary key,
-  title text,
-  sponsor_id text,
-  sponsor_name text,
-  total_award_amount numeric,
-  start_date date,
-  end_date date,
-  status text,
-  raw_payload jsonb,
-  grant_type_ids INTEGER[] not null default '{}',
-  last_seen_cdl timestamptz not null default current_timestamp
-);
-
-CREATE TABLE IF NOT EXISTS grant_type (
-  grant_type_id SERIAL PRIMARY KEY,
-  uri TEXT NOT NULL UNIQUE,
-  label TEXT NOT NULL
-);
-INSERT INTO grant_type (uri, label) VALUES
-  ('http://vivoweb.org/ontology/core#Grant',                         'Grant'),
-  ('http://schema.library.ucdavis.edu/schema#Grant_AcademicSupport', 'Grant_AcademicSupport'),
-  ('http://schema.library.ucdavis.edu/schema#Grant_Default',         'Grant_Default'),
-  ('http://schema.library.ucdavis.edu/schema#Grant_Instruction',     'Grant_Instruction'),
-  ('http://schema.library.ucdavis.edu/schema#Grant_Research',        'Grant_Research'),
-  ('http://schema.library.ucdavis.edu/schema#Grant_Service',         'Grant_Service'),
-  ('http://schema.library.ucdavis.edu/schema#Grant_Scholarship',     'Grant_Scholarship'),
-  ('http://schema.library.ucdavis.edu/schema#Grant_StudentService',  'Grant_StudentService')
-ON CONFLICT (uri) DO NOTHING;
-
-CREATE TABLE IF NOT EXISTS expert_grant_role (
-  role_id text primary key,
-  grant_id text not null references "grant"(grant_id) on delete cascade,
-  expert_id VARCHAR(16) references "user"(expert_id) on delete set null,
-  role_type_id INTEGER not null references role_type(role_type_id),
-  is_visible boolean not null default false,
-  last_seen_cdl timestamptz not null default current_timestamp
-);
-
-CREATE INDEX IF NOT EXISTS idx_grant_start_date ON "grant"(start_date);
-CREATE INDEX IF NOT EXISTS idx_grant_end_date ON "grant"(end_date);
-CREATE INDEX IF NOT EXISTS idx_expert_grant_role_grant_id ON expert_grant_role(grant_id);
-CREATE INDEX IF NOT EXISTS idx_expert_grant_role_expert_id ON expert_grant_role(expert_id);
-CREATE INDEX IF NOT EXISTS idx_expert_grant_role_type ON expert_grant_role(role_type_id);
-
--- ---- SiteFarm projection: works ---------------------------------------------
-CREATE TABLE IF NOT EXISTS work_type (
-  work_type_id SERIAL PRIMARY KEY,
-  uri          TEXT NOT NULL UNIQUE,
-  label        TEXT NOT NULL
-);
-
--- Seed with the schema.org + ucdlib URIs that ae-std works.js actually emits
--- (via SCHEMA_URI_TYPE_MAP in harvest/lib/transform/utils.js). Other CDL work
--- types are filtered out upstream so they never appear here.
-INSERT INTO work_type (uri, label) VALUES
-  ('http://schema.org/Book',                        'Book'),
-  ('http://schema.org/Chapter',                     'Chapter'),
-  ('http://schema.org/ScholarlyArticle',            'ScholarlyArticle'),
-  ('http://schema.library.ucdavis.edu/schema#Work', 'Work')
-ON CONFLICT (uri) DO NOTHING;
-
-CREATE TABLE IF NOT EXISTS "work" (
-  work_id         TEXT PRIMARY KEY,
-  title           TEXT,
-  issued          TEXT,            -- exact value from source ("2023", "2023-04", "2023-04-15")
-  issued_date     DATE,            -- normalized for sorting; partial values padded to first-of-period
-  container_title TEXT,
-  volume          TEXT,
-  page            TEXT,
-  doi             TEXT,
-  abstract        TEXT,
-  status          TEXT,
-  raw_payload     JSONB,           -- full ae-std work node, used for lossless reconstruction
-  work_type_ids   INTEGER[] NOT NULL DEFAULT '{}',
-  last_seen_cdl   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS expert_work_role (
-  role_id       TEXT PRIMARY KEY,
-  work_id       TEXT NOT NULL REFERENCES "work"(work_id) ON DELETE CASCADE,
-  expert_id     VARCHAR(16) REFERENCES "user"(expert_id) ON DELETE SET NULL,
-  role_type_id  INTEGER REFERENCES role_type(role_type_id),
-  is_visible    BOOLEAN NOT NULL DEFAULT FALSE,
-  is_favourite  BOOLEAN NOT NULL DEFAULT FALSE,
-  author_rank   INTEGER,           -- expert's position in the author list; NULL if not an author
-  raw_payload   JSONB,             -- full relatedBy node to faithfully rebuild API responses
-  last_seen_cdl TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_work_issued_date ON "work"(issued_date);
-CREATE INDEX IF NOT EXISTS idx_expert_work_role_work_id ON expert_work_role(work_id);
-CREATE INDEX IF NOT EXISTS idx_expert_work_role_expert_id ON expert_work_role(expert_id);
-CREATE INDEX IF NOT EXISTS idx_expert_work_role_type ON expert_work_role(role_type_id);
-CREATE INDEX IF NOT EXISTS idx_expert_work_role_expert_visible ON expert_work_role(expert_id, is_visible);
