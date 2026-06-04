@@ -46,7 +46,6 @@ from lib.jobs import (
     transform_load_users_job,
     start_weekly_etl_job,
     cleanup_job,
-    slack_notify_job,
 )
 from lib.sensors import etl_notify_and_continue
 from lib.schedules import (
@@ -57,7 +56,7 @@ from lib.schedules import (
 )
 
 defs = dg.Definitions(
-    jobs=[etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, cleanup_job, slack_notify_job],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, cleanup_job],
     assets=[
         extract_user, transform_user_webapp, transform_user_standard,
         load_user, init_databases, fetch_user_list_from_cdl,

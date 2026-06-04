@@ -15,7 +15,6 @@ from .assets import (
     purge_dagster_runs,
     purge_reporting_db,
     purge_year_week_cask_files,
-    send_slack_notification,
 )
 
 
@@ -55,12 +54,6 @@ transform_load_users_job = dg.define_asset_job(
     description="Job to run the second Webapp Transform (requires all users) and load user after extraction.",
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user),
     tags={"dagster/priority": "-1"}
-)
-
-slack_notify_job = dg.define_asset_job(
-    name="slack_notify_job",
-    description="Send a Slack notification with a configurable title, message, severity, and source.",
-    selection=dg.AssetSelection.assets(send_slack_notification),
 )
 
 cleanup_job = dg.define_asset_job(

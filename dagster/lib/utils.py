@@ -154,7 +154,7 @@ def _notify_backfill_completion(context, backfill_id: str, statuses: list = None
 
     context.log.info(f"Backfill {backfill_id} {outcome}.")
     exec(
-        ["admin", "notify",
+        ["experts", "admin", "notify",
          "--title", f"Job {job_name} {outcome}",
          "--message", message,
          "--severity", "warning" if has_issues else "info"],

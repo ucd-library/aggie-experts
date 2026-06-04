@@ -312,7 +312,7 @@ def purge_reporting_db(context: AssetExecutionContext) -> None:
 def send_slack_notification(context: AssetExecutionContext, config: SlackNotifyConfig) -> None:
     """Send a Slack notification via the admin CLI."""
     exec(
-        ["admin", "notify",
+        ["experts", "admin", "notify",
          "--title", config.title,
          "--message", config.message,
          "--severity", config.severity,
