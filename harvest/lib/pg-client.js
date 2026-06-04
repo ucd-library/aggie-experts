@@ -194,6 +194,21 @@ class PgClient {
     return this.query(query, [email, timestamp]);
   }
 
+  getUsersLapsedFromCdl() {
+    // Returns users whose last_seen_cdl fell in last week — they just dropped off CDL.
+    // Used by the post-ETL IAM check to see if these users are still in IAM.
+    const query = `
+      WITH last_year_week AS (
+        SELECT year_week FROM ${this.schema}.get_year_week((NOW() - INTERVAL '7 days')::DATE)
+      )
+      SELECT email, last_seen_cdl, last_seen_iam
+      FROM ${this.schema}."user"
+      WHERE (SELECT year_week FROM last_year_week)
+        = (SELECT year_week FROM ${this.schema}.get_year_week(last_seen_cdl::DATE))
+    `;
+    return this.query(query);
+  }
+
   insertYearWeek(yearWeek, weekStart, weekEnd) {
     const query = `
       INSERT INTO ${this.schema}.year_week (year_week, week_start, week_end)

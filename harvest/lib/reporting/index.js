@@ -1,4 +1,4 @@
-import { config } from '@ucd-lib/experts-commons';
+import { config, logger } from '@ucd-lib/experts-commons';
 import { Temporal } from '@js-temporal/polyfill';
 import { getYearWeek } from '@ucd-lib/experts-commons';
 import PgClient from '../pg-client.js';
@@ -128,8 +128,65 @@ async function cleanup(opts={}) {
 }
 
 
+/**
+ * @method checkIamForLapsedUsers
+ * @description Post-ETL step: for users whose last_seen_cdl was last week (they just dropped
+ * off CDL), query the IAM API to see if they are still present and update last_seen_iam
+ * accordingly. Users no longer found in IAM are left unchanged — their stale last_seen_iam
+ * accurately represents the last verified sighting.
+ *
+ * @param {Object} opts
+ * @param {PgClient} opts.pgClient - Optional PgClient. A new one is created if omitted.
+ * @returns {Promise<{checked: number, found: number, notFound: number, errors: number}>}
+ */
+async function checkIamForLapsedUsers(opts={}) {
+  const { default: IAM } = await import('../extract/iam.js');
+  const iamClient = new IAM();
+
+  let pgClient = opts.pgClient || config.postgres.client;
+  let closeClient = false;
+
+  if (!pgClient) {
+    pgClient = new PgClient();
+    await pgClient.connect();
+    closeClient = true;
+  }
+
+  const result = await pgClient.getUsersLapsedFromCdl();
+  const users = result.rows;
+
+  logger.info(`checkIamForLapsedUsers: checking ${users.length} users who lapsed from CDL last week`);
+
+  let checked = 0, found = 0, notFound = 0, errors = 0;
+
+  for (const user of users) {
+    try {
+      const iamResp = await iamClient.profile({ email: user.email });
+      checked++;
+      if (iamResp.notFound) {
+        notFound++;
+        logger.info(`checkIamForLapsedUsers: ${user.email} not found in IAM`);
+      } else {
+        found++;
+        await pgClient.iamUserFetched(user.email);
+        logger.info(`checkIamForLapsedUsers: ${user.email} still in IAM, updated last_seen_iam`);
+      }
+    } catch (err) {
+      errors++;
+      logger.error(`checkIamForLapsedUsers: error checking IAM for ${user.email}: ${err.message}`);
+    }
+  }
+
+  if (closeClient) await pgClient.end();
+
+  const summary = { checked, found, notFound, errors };
+  logger.info('checkIamForLapsedUsers complete', summary);
+  return summary;
+}
+
 export {
   cleanup,
+  checkIamForLapsedUsers,
   enableFromCli,
   captureErrors,
   updateEsIndex,

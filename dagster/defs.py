@@ -31,6 +31,7 @@ from lib.assets import (
     delete_indexes,
     get_current_es_state,
     exec_weekly_etl,
+    check_iam_lapsed_users,
     purge_user_cask_files,
     purge_year_week_cask_files,
     purge_dagster_runs,
@@ -41,6 +42,7 @@ from lib.jobs import (
     extract_users_job,
     transform_load_users_job,
     start_weekly_etl_job,
+    post_etl_job,
     cleanup_job,
 )
 from lib.sensors import etl_notify_and_continue
@@ -52,12 +54,13 @@ from lib.schedules import (
 )
 
 defs = dg.Definitions(
-    jobs=[etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, cleanup_job],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, post_etl_job, cleanup_job],
     assets=[
         extract_user, transform_user_webapp, transform_user_standard,
         load_user, init_databases, fetch_user_list_from_cdl,
         ensure_current_index, set_alias, reload_search_template,
         create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl,
+        check_iam_lapsed_users,
         purge_user_cask_files, purge_year_week_cask_files, purge_dagster_runs, purge_reporting_db,
     ],
     sensors=[etl_notify_and_continue],
