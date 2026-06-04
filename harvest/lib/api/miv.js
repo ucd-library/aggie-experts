@@ -5,396 +5,399 @@
  * role on, plus webapp/expert.jsonld for the user identity.
  *
  * Target tables (all in the `api` schema):
- *   - "user"             (identity columns only — managed via ./user.js)
+ *   - "user"             (identity columns only — managed via ApiUser)
  *   - "grant"            (grant master data)
  *   - grant_type         (lookup, seeded by schema.sql, auto-grown if needed)
  *   - role_type          (lookup, shared with works)
  *   - expert_grant_role  (junction)
- */
-
-import { logger } from '@ucd-lib/experts-commons';
-import PgClient from '../pg-client.js';
-import {
-  asArray,
-  hasType,
-  jsonldBool,
-  jsonldFirstValue,
-  toShortType,
-  toShortPrecision,
-  toNumberOrNull,
-  toDateOrNull,
-  trimGrantTitle,
-  normalizeExpertId,
-  getExpertIdFromRole,
-  pickRoleType,
-  readJson,
-  stripAeBase,
-  getApiSchemaName,
-  assertSchemaName,
-  URI
-} from '../pg-jsonld.js';
-import { buildUserRecord, upsertUser } from './user.js';
-
-// ----------------------------------------------------------------------------
-// Grant builders (read a compacted/webapp-shape grant doc)
-// ----------------------------------------------------------------------------
-
-function getGrantNode(grantDoc={}) {
-  return asArray(grantDoc['@graph']).find(node => hasType(node, 'Grant')) || null;
-}
-
-export function buildGrantRecord(grantDoc={}) {
-  const grantNode = getGrantNode(grantDoc);
-  if (!grantNode?.['@id']) return null;
-
-  return {
-    grant_id: grantNode['@id'],
-    title: trimGrantTitle(grantNode.name) || grantNode.name || grantNode.title || null,
-    sponsor_id: grantNode.sponsorAwardId || null,
-    sponsor_name: grantNode?.assignedBy?.name || null,
-    total_award_amount: toNumberOrNull(grantNode.totalAwardAmount),
-    start_date: toDateOrNull(grantNode?.dateTimeInterval?.start?.dateTime),
-    end_date: toDateOrNull(grantNode?.dateTimeInterval?.end?.dateTime),
-    status: grantNode.status || null,
-    raw_payload: grantNode,
-    grant_type_uris: asArray(grantNode['@type']).filter(t => typeof t === 'string')
-  };
-}
-
-export function buildGrantRoles(grantDoc={}) {
-  const grantNode = getGrantNode(grantDoc);
-  if (!grantNode) return [];
-
-  return asArray(grantNode.relatedBy)
-    .map(role => {
-      const roleId = role?.['@id'];
-      if (!roleId) return null;
-
-      return {
-        role_id: roleId,
-        grant_id: grantNode['@id'],
-        expert_id: normalizeExpertId(getExpertIdFromRole(role)),
-        role_type_uri: pickRoleType(role),
-        is_visible: role?.['is-visible'] === true
-      };
-    })
-    .filter(Boolean)
-    .filter(role => role.grant_id && role.role_type_uri);
-}
-
-// ----------------------------------------------------------------------------
-// ae-std → webapp-shape grant doc normalizer
-// ----------------------------------------------------------------------------
-
-/**
- * @function normalizeAeStdGrantDoc
- * @description Converts an ae-std expanded JSON-LD array (from
- * ae-std/rel/*.jsonld) into the compacted `{ '@graph': [grantNode] }` shape
- * that buildGrantRecord / buildGrantRoles expect, resolving all internal
- * @id references along the way.
  *
- * If the input is already an object (e.g. a webapp-format grant doc from a
- * regenerated disassociated work), it is returned unchanged so the caller can
- * handle both formats.
+ * Usage:
+ *   const miv = new MivApi();
+ *   await miv.load({ user, metadata, files });
+ *   await miv.purge(expertId);
  */
-export function normalizeAeStdGrantDoc(aeStdData) {
-  if (!Array.isArray(aeStdData)) return aeStdData;
 
-  // lookup map for resolving @id references
-  const nodeMap = {};
-  for (const node of aeStdData) {
-    if (node?.['@id']) nodeMap[node['@id']] = node;
+import { logger, getYearWeek } from '@ucd-lib/experts-commons';
+import PgClient from '../pg-client.js';
+import PgJsonld from '../pg-jsonld.js';
+import ApiUser from './user.js';
+
+class MivApi {
+  /**
+   * @param {Object} [opts]
+   * @param {string} [opts.schema='api']
+   */
+  constructor({ schema = PgJsonld.SCHEMA_NAME } = {}) {
+    PgJsonld.assertSchemaName(schema);
+    this.schema = schema;
+    this.user = new ApiUser({ schema });
   }
 
-  // get grant node
-  const grantNode = aeStdData.find(n => asArray(n['@type']).includes(URI.GRANT_TYPE));
-  if (!grantNode) return null;
+  // --------------------------------------------------------------------------
+  // Grant builders (read a compacted/webapp-shape grant doc)
+  // --------------------------------------------------------------------------
 
-  // get assignedBy (funder node)
-  const assignedById = asArray(grantNode[URI.ASSIGNED_BY])[0]?.['@id'];
-  const assignedByNode = assignedById ? nodeMap[assignedById] : null;
-  const assignedBy = assignedByNode
-    ? {
-        '@id': assignedByNode['@id'],
-        '@type': toShortType(asArray(assignedByNode['@type'])[0]),
-        name: jsonldFirstValue(assignedByNode, URI.SCHEMA_NAME)
-      }
-    : undefined;
-
-  // get dateTimeInterval -> start / end date nodes
-  const intervalId = asArray(grantNode[URI.DATE_TIME_INTERVAL])[0]?.['@id'];
-  const intervalNode = intervalId ? nodeMap[intervalId] : null;
-  let dateTimeInterval;
-  if (intervalNode) {
-    const startId = asArray(intervalNode[URI.DATE_TIME_START])[0]?.['@id'];
-    const endId   = asArray(intervalNode[URI.DATE_TIME_END])[0]?.['@id'];
-    const startNode = startId ? nodeMap[startId] : null;
-    const endNode   = endId   ? nodeMap[endId]   : null;
-    dateTimeInterval = {
-      '@id': intervalNode['@id'],
-      start: startNode ? {
-        '@id': startNode['@id'],
-        dateTime: jsonldFirstValue(startNode, URI.DATE_TIME),
-        dateTimePrecision: toShortPrecision(jsonldFirstValue(startNode, URI.DATE_TIME_PRECISION))
-      } : undefined,
-      end: endNode ? {
-        '@id': endNode['@id'],
-        dateTime: jsonldFirstValue(endNode, URI.DATE_TIME),
-        dateTimePrecision: toShortPrecision(jsonldFirstValue(endNode, URI.DATE_TIME_PRECISION))
-      } : undefined
-    };
+  _getGrantNode(grantDoc={}) {
+    return PgJsonld.asArray(grantDoc['@graph'])
+      .find(node => PgJsonld.hasType(node, 'Grant')) || null;
   }
 
-  // get relatedBy role refs (some may be inline objects, some just { @id } refs)
-  const relatedBy = asArray(grantNode[URI.RELATED_BY]).map(ref => {
-    // inline role objects have keys beyond just @id; pure refs have only @id
-    const roleNode = (Object.keys(ref).length > 1) ? ref : nodeMap[ref['@id']];
-    if (!roleNode) return { '@id': ref['@id'] };
-
-    const roleName = jsonldFirstValue(roleNode, URI.SCHEMA_NAME);
-    const inheresInId = asArray(roleNode[URI.RO_INHERES_IN])[0]?.['@id'];
-    const inheresIn = inheresInId ? stripAeBase(inheresInId) : undefined;
-
-    const relates = asArray(roleNode[URI.RELATES])
-      .map(r => stripAeBase(r['@id'] || r))
-      .filter(Boolean);
+  buildGrantRecord(grantDoc={}) {
+    const grantNode = this._getGrantNode(grantDoc);
+    if (!grantNode?.['@id']) return null;
 
     return {
-      '@id': roleNode['@id'],
-      '@type': asArray(roleNode['@type']).map(toShortType),
-      name: roleName,
-      inheres_in: inheresIn,
-      relates,
-      'is-visible': jsonldBool(roleNode, URI.IS_VISIBLE, false)
+      grant_id: grantNode['@id'],
+      title: PgJsonld.trimGrantTitle(grantNode.name) || grantNode.name || grantNode.title || null,
+      sponsor_id: grantNode.sponsorAwardId || null,
+      sponsor_name: grantNode?.assignedBy?.name || null,
+      total_award_amount: PgJsonld.toNumberOrNull(grantNode.totalAwardAmount),
+      start_date: PgJsonld.toDateOrNull(grantNode?.dateTimeInterval?.start?.dateTime),
+      end_date: PgJsonld.toDateOrNull(grantNode?.dateTimeInterval?.end?.dateTime),
+      status: grantNode.status || null,
+      raw_payload: grantNode,
+      grant_type_uris: PgJsonld.asArray(grantNode['@type']).filter(t => typeof t === 'string')
     };
-  });
-
-  const rawIdentifiers = asArray(grantNode[URI.SCHEMA_IDENTIFIER]);
-  const identifier = Array.from(new Set(rawIdentifiers
-    .map(item => item?.['@id'] ?? item?.['@value'] ?? item)
-    .filter(value => typeof value === 'string' && value.trim())
-    .map(value => value.trim())));
-
-  const rawTypes = asArray(grantNode['@type']);
-  const shortTypes = rawTypes.map(toShortType);
-  // Sort "Grant" to the end so the specific subtype (Grant_Research, …) wins
-  const normalizedTypes = Array.from(new Set(shortTypes.filter(Boolean))).sort((a, b) => {
-    if (a === 'Grant') return 1;
-    if (b === 'Grant') return -1;
-    return 0;
-  });
-
-  return {
-    '@graph': [{
-      '@id':            grantNode['@id'],
-      '@type':          normalizedTypes,
-      identifier,
-      name:             jsonldFirstValue(grantNode, URI.SCHEMA_NAME),
-      sponsorAwardId:   jsonldFirstValue(grantNode, URI.SPONSOR_AWARD_ID),
-      totalAwardAmount: jsonldFirstValue(grantNode, URI.TOTAL_AWARD_AMOUNT),
-      status:           jsonldFirstValue(grantNode, URI.CSL_STATUS),
-      assignedBy,
-      dateTimeInterval,
-      relatedBy
-    }]
-  };
-}
-
-// ----------------------------------------------------------------------------
-// Upserts
-// ----------------------------------------------------------------------------
-
-export async function upsertGrant(client, schema, row) {
-  // Seed any new grant types we haven't seen before. (Schema.sql also seeds a
-  // baseline set on initialization.)
-  for (const grantTypeUri of row.grant_type_uris) {
-    if (grantTypeUri) {
-      await client.query(
-        `INSERT INTO ${schema}.grant_type (uri, label)
-         VALUES ($1, $1)
-         ON CONFLICT (uri) DO NOTHING`,
-        [grantTypeUri]
-      );
-    }
   }
 
-  await client.query(
-    `INSERT INTO ${schema}."grant"
-      (grant_id, title, sponsor_id, sponsor_name, total_award_amount,
-       start_date, end_date, status, raw_payload, grant_type_ids, last_seen_cdl)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-       ARRAY(SELECT grant_type_id FROM ${schema}.grant_type WHERE uri = ANY($10::text[])),
-       CURRENT_TIMESTAMP)
-     ON CONFLICT (grant_id)
-     DO UPDATE SET
-      title              = EXCLUDED.title,
-      sponsor_id         = EXCLUDED.sponsor_id,
-      sponsor_name       = EXCLUDED.sponsor_name,
-      total_award_amount = EXCLUDED.total_award_amount,
-      start_date         = EXCLUDED.start_date,
-      end_date           = EXCLUDED.end_date,
-      status             = EXCLUDED.status,
-      raw_payload        = EXCLUDED.raw_payload,
-      grant_type_ids     = EXCLUDED.grant_type_ids,
-      last_seen_cdl      = CURRENT_TIMESTAMP`,
-    [
-      row.grant_id,
-      row.title,
-      row.sponsor_id,
-      row.sponsor_name,
-      row.total_award_amount,
-      row.start_date,
-      row.end_date,
-      row.status,
-      row.raw_payload,
-      row.grant_type_uris
-    ]
-  );
-}
+  buildGrantRoles(grantDoc={}) {
+    const grantNode = this._getGrantNode(grantDoc);
+    if (!grantNode) return [];
 
-export async function replaceGrantRoles(client, schema, grantId, roles, expertId) {
-  // Delete this expert's roles and any orphaned rows with no expert linkage (NULL
-  // expert_id), which come from old-style harvests before proper inheres_in mapping.
-  await client.query(
-    `DELETE FROM ${schema}.expert_grant_role WHERE grant_id = $1 AND (expert_id = $2 OR expert_id IS NULL)`,
-    [grantId, expertId]
-  );
+    return PgJsonld.asArray(grantNode.relatedBy)
+      .map(role => {
+        const roleId = role?.['@id'];
+        if (!roleId) return null;
 
-  // Seed any new role types we haven't seen before.
-  for (const role of roles) {
-    if (role.role_type_uri) {
-      await client.query(
-        `INSERT INTO ${schema}.role_type (uri, label)
-         VALUES ($1, $1)
-         ON CONFLICT (uri) DO NOTHING`,
-        [role.role_type_uri]
-      );
-    }
+        return {
+          role_id: roleId,
+          grant_id: grantNode['@id'],
+          expert_id: PgJsonld.normalizeExpertId(PgJsonld.getExpertIdFromRole(role)),
+          role_type_uri: PgJsonld.pickRoleType(role),
+          is_visible: role?.['is-visible'] === true
+        };
+      })
+      .filter(Boolean)
+      .filter(role => role.grant_id && role.role_type_uri);
   }
 
-  for (const role of roles) {
+  // --------------------------------------------------------------------------
+  // ae-std → webapp-shape grant doc normalizer
+  // --------------------------------------------------------------------------
+
+  /**
+   * Convert an ae-std expanded JSON-LD array (from ae-std/rel/*.jsonld) into
+   * the compacted `{ '@graph': [grantNode] }` shape that buildGrantRecord /
+   * buildGrantRoles expect, resolving all internal @id references along the way.
+   *
+   * If the input is already an object (e.g. a webapp-format grant doc from a
+   * regenerated disassociated work), it is returned unchanged so the caller
+   * can handle both formats.
+   */
+  normalizeAeStdGrantDoc(aeStdData) {
+    if (!Array.isArray(aeStdData)) return aeStdData;
+
+    const nodeMap = {};
+    for (const node of aeStdData) {
+      if (node?.['@id']) nodeMap[node['@id']] = node;
+    }
+
+    const grantNode = aeStdData.find(n =>
+      PgJsonld.asArray(n['@type']).includes(PgJsonld.URI.GRANT_TYPE)
+    );
+    if (!grantNode) return null;
+
+    // assignedBy (funder node)
+    const assignedById = PgJsonld.asArray(grantNode[PgJsonld.URI.ASSIGNED_BY])[0]?.['@id'];
+    const assignedByNode = assignedById ? nodeMap[assignedById] : null;
+    const assignedBy = assignedByNode
+      ? {
+          '@id': assignedByNode['@id'],
+          '@type': PgJsonld.toShortType(PgJsonld.asArray(assignedByNode['@type'])[0]),
+          name: PgJsonld.firstValue(assignedByNode, PgJsonld.URI.SCHEMA_NAME)
+        }
+      : undefined;
+
+    // dateTimeInterval -> start / end date nodes
+    const intervalId = PgJsonld.asArray(grantNode[PgJsonld.URI.DATE_TIME_INTERVAL])[0]?.['@id'];
+    const intervalNode = intervalId ? nodeMap[intervalId] : null;
+    let dateTimeInterval;
+    if (intervalNode) {
+      const startId = PgJsonld.asArray(intervalNode[PgJsonld.URI.DATE_TIME_START])[0]?.['@id'];
+      const endId   = PgJsonld.asArray(intervalNode[PgJsonld.URI.DATE_TIME_END])[0]?.['@id'];
+      const startNode = startId ? nodeMap[startId] : null;
+      const endNode   = endId   ? nodeMap[endId]   : null;
+      dateTimeInterval = {
+        '@id': intervalNode['@id'],
+        start: startNode ? {
+          '@id': startNode['@id'],
+          dateTime: PgJsonld.firstValue(startNode, PgJsonld.URI.DATE_TIME),
+          dateTimePrecision: PgJsonld.toShortPrecision(PgJsonld.firstValue(startNode, PgJsonld.URI.DATE_TIME_PRECISION))
+        } : undefined,
+        end: endNode ? {
+          '@id': endNode['@id'],
+          dateTime: PgJsonld.firstValue(endNode, PgJsonld.URI.DATE_TIME),
+          dateTimePrecision: PgJsonld.toShortPrecision(PgJsonld.firstValue(endNode, PgJsonld.URI.DATE_TIME_PRECISION))
+        } : undefined
+      };
+    }
+
+    // relatedBy role refs (some may be inline objects, some just { @id } refs)
+    const relatedBy = PgJsonld.asArray(grantNode[PgJsonld.URI.RELATED_BY]).map(ref => {
+      const roleNode = (Object.keys(ref).length > 1) ? ref : nodeMap[ref['@id']];
+      if (!roleNode) return { '@id': ref['@id'] };
+
+      const roleName = PgJsonld.firstValue(roleNode, PgJsonld.URI.SCHEMA_NAME);
+      const inheresInId = PgJsonld.asArray(roleNode[PgJsonld.URI.RO_INHERES_IN])[0]?.['@id'];
+      const inheresIn = inheresInId ? PgJsonld.stripAeBase(inheresInId) : undefined;
+
+      const relates = PgJsonld.asArray(roleNode[PgJsonld.URI.RELATES])
+        .map(r => PgJsonld.stripAeBase(r['@id'] || r))
+        .filter(Boolean);
+
+      return {
+        '@id': roleNode['@id'],
+        '@type': PgJsonld.asArray(roleNode['@type']).map(PgJsonld.toShortType),
+        name: roleName,
+        inheres_in: inheresIn,
+        relates,
+        'is-visible': PgJsonld.bool(roleNode, PgJsonld.URI.IS_VISIBLE, false)
+      };
+    });
+
+    const rawIdentifiers = PgJsonld.asArray(grantNode[PgJsonld.URI.SCHEMA_IDENTIFIER]);
+    const identifier = Array.from(new Set(rawIdentifiers
+      .map(item => item?.['@id'] ?? item?.['@value'] ?? item)
+      .filter(value => typeof value === 'string' && value.trim())
+      .map(value => value.trim())));
+
+    const rawTypes = PgJsonld.asArray(grantNode['@type']);
+    const shortTypes = rawTypes.map(PgJsonld.toShortType);
+    // Sort "Grant" to the end so the specific subtype (Grant_Research, …) wins
+    const normalizedTypes = Array.from(new Set(shortTypes.filter(Boolean))).sort((a, b) => {
+      if (a === 'Grant') return 1;
+      if (b === 'Grant') return -1;
+      return 0;
+    });
+
+    return {
+      '@graph': [{
+        '@id':            grantNode['@id'],
+        '@type':          normalizedTypes,
+        identifier,
+        name:             PgJsonld.firstValue(grantNode, PgJsonld.URI.SCHEMA_NAME),
+        sponsorAwardId:   PgJsonld.firstValue(grantNode, PgJsonld.URI.SPONSOR_AWARD_ID),
+        totalAwardAmount: PgJsonld.firstValue(grantNode, PgJsonld.URI.TOTAL_AWARD_AMOUNT),
+        status:           PgJsonld.firstValue(grantNode, PgJsonld.URI.CSL_STATUS),
+        assignedBy,
+        dateTimeInterval,
+        relatedBy
+      }]
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // Upserts
+  // --------------------------------------------------------------------------
+
+  async upsertGrant(client, row, yearWeek) {
+    // Seed any new grant types we haven't seen before.
+    for (const grantTypeUri of row.grant_type_uris) {
+      if (grantTypeUri) {
+        await client.query(
+          `INSERT INTO ${this.schema}.grant_type (uri, label)
+           VALUES ($1, $1)
+           ON CONFLICT (uri) DO NOTHING`,
+          [grantTypeUri]
+        );
+      }
+    }
+
     await client.query(
-      `INSERT INTO ${schema}.expert_grant_role
-        (role_id, grant_id, expert_id, role_type_id, is_visible, last_seen_cdl)
-       VALUES ($1, $2, $3,
-         (SELECT role_type_id FROM ${schema}.role_type WHERE uri = $4),
-         $5, CURRENT_TIMESTAMP)
-       ON CONFLICT (role_id)
+      `INSERT INTO ${this.schema}."grant"
+        (grant_id, title, sponsor_id, sponsor_name, total_award_amount,
+         start_date, end_date, status, raw_payload, grant_type_ids, year_week)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+         ARRAY(SELECT grant_type_id FROM ${this.schema}.grant_type WHERE uri = ANY($10::text[])),
+         $11)
+       ON CONFLICT (grant_id)
        DO UPDATE SET
-        grant_id      = EXCLUDED.grant_id,
-        expert_id     = EXCLUDED.expert_id,
-        role_type_id  = EXCLUDED.role_type_id,
-        is_visible    = EXCLUDED.is_visible,
-        last_seen_cdl = CURRENT_TIMESTAMP`,
+        title              = EXCLUDED.title,
+        sponsor_id         = EXCLUDED.sponsor_id,
+        sponsor_name       = EXCLUDED.sponsor_name,
+        total_award_amount = EXCLUDED.total_award_amount,
+        start_date         = EXCLUDED.start_date,
+        end_date           = EXCLUDED.end_date,
+        status             = EXCLUDED.status,
+        raw_payload        = EXCLUDED.raw_payload,
+        grant_type_ids     = EXCLUDED.grant_type_ids,
+        year_week          = EXCLUDED.year_week`,
       [
-        role.role_id,
-        role.grant_id,
-        role.expert_id,
-        role.role_type_uri,
-        role.is_visible
+        row.grant_id,
+        row.title,
+        row.sponsor_id,
+        row.sponsor_name,
+        row.total_award_amount,
+        row.start_date,
+        row.end_date,
+        row.status,
+        row.raw_payload,
+        row.grant_type_uris,
+        yearWeek
       ]
     );
   }
-}
 
-// ----------------------------------------------------------------------------
-// Public entry points
-// ----------------------------------------------------------------------------
+  async replaceGrantRoles(client, grantId, roles, expertId) {
+    // Delete this expert's roles and any orphaned rows with no expert linkage
+    // (NULL expert_id), which come from old-style harvests before proper
+    // inheres_in mapping.
+    await client.query(
+      `DELETE FROM ${this.schema}.expert_grant_role
+       WHERE grant_id = $1 AND (expert_id = $2 OR expert_id IS NULL)`,
+      [grantId, expertId]
+    );
 
-export async function loadMivPostgres({ user, metadata={}, files=[] }) {
-  const schema = getApiSchemaName();
-  assertSchemaName(schema);
-
-  const pgClient = new PgClient();
-  const expertFile = files.find(file => file.type === 'expert');
-  const grantFiles = files.filter(file => file.type === 'grant');
-
-  const expertDoc = await readJson(expertFile?.path);
-  const userRecord = buildUserRecord({ user, metadata, expertDoc });
-
-  if (!userRecord?.expert_id || !userRecord?.email) {
-    logger.warn({ user }, 'MIV postgres load skipped - missing user/expert identity');
-    await pgClient.end();
-    return;
-  }
-
-  try {
-    await pgClient.query('BEGIN');
-
-    await upsertUser(pgClient, schema, userRecord);
-
-    for (const file of grantFiles) {
-      let grantDoc = await readJson(file.path);
-      if (!grantDoc) continue;
-
-      // ae-std rel files are JSON arrays; normalize to the compacted shape
-      // buildGrantRecord expects.
-      if (Array.isArray(grantDoc)) {
-        grantDoc = normalizeAeStdGrantDoc(grantDoc);
-        if (!grantDoc) continue;
+    // Seed any new role types.
+    for (const role of roles) {
+      if (role.role_type_uri) {
+        await client.query(
+          `INSERT INTO ${this.schema}.role_type (uri, label)
+           VALUES ($1, $1)
+           ON CONFLICT (uri) DO NOTHING`,
+          [role.role_type_uri]
+        );
       }
-
-      const grantRecord = buildGrantRecord(grantDoc);
-      if (!grantRecord?.grant_id) continue;
-
-      await upsertGrant(pgClient, schema, grantRecord);
-      await replaceGrantRoles(pgClient, schema, grantRecord.grant_id, buildGrantRoles(grantDoc), userRecord.expert_id);
     }
 
-    await pgClient.query('COMMIT');
-    logger.info({ user, grantCount: grantFiles.length }, 'MIV postgres load completed');
-  } catch (error) {
-    await pgClient.query('ROLLBACK');
-    throw error;
-  } finally {
-    await pgClient.end();
+    for (const role of roles) {
+      await client.query(
+        `INSERT INTO ${this.schema}.expert_grant_role
+          (role_id, grant_id, expert_id, role_type_id, is_visible)
+         VALUES ($1, $2, $3,
+           (SELECT role_type_id FROM ${this.schema}.role_type WHERE uri = $4),
+           $5)
+         ON CONFLICT (role_id)
+         DO UPDATE SET
+          grant_id     = EXCLUDED.grant_id,
+          expert_id    = EXCLUDED.expert_id,
+          role_type_id = EXCLUDED.role_type_id,
+          is_visible   = EXCLUDED.is_visible`,
+        [
+          role.role_id,
+          role.grant_id,
+          role.expert_id,
+          role.role_type_uri,
+          role.is_visible
+        ]
+      );
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Public entry points
+  // --------------------------------------------------------------------------
+
+  /**
+   * Load the MIV projection (user identity + grants + roles) into postgres
+   * for a single user.
+   */
+  async load({ user, metadata={}, files=[] }) {
+    const pgClient = new PgClient();
+    const expertFile = files.find(file => file.type === 'expert');
+    const grantFiles = files.filter(file => file.type === 'grant');
+
+    const expertDoc = await PgJsonld.readJson(expertFile?.path);
+    const userRecord = this.user.buildUserRecord({ user, metadata, expertDoc });
+
+    if (!userRecord?.expert_id || !userRecord?.email) {
+      logger.warn({ user }, 'MIV postgres load skipped - missing user/expert identity');
+      await pgClient.end();
+      return;
+    }
+
+    const yearWeek = getYearWeek({allValues: true, asString: true}).yearWeek;
+
+    try {
+      await pgClient.query('BEGIN');
+
+      await this.user.upsertUser(pgClient, userRecord, yearWeek);
+
+      for (const file of grantFiles) {
+        let grantDoc = await PgJsonld.readJson(file.path);
+        if (!grantDoc) continue;
+
+        // ae-std rel files are JSON arrays; normalize first.
+        if (Array.isArray(grantDoc)) {
+          grantDoc = this.normalizeAeStdGrantDoc(grantDoc);
+          if (!grantDoc) continue;
+        }
+
+        const grantRecord = this.buildGrantRecord(grantDoc);
+        if (!grantRecord?.grant_id) continue;
+
+        await this.upsertGrant(pgClient, grantRecord, yearWeek);
+        await this.replaceGrantRoles(
+          pgClient,
+          grantRecord.grant_id,
+          this.buildGrantRoles(grantDoc),
+          userRecord.expert_id
+        );
+      }
+
+      await pgClient.query('COMMIT');
+      logger.info({ user, grantCount: grantFiles.length }, 'MIV postgres load completed');
+    } catch (error) {
+      await pgClient.query('ROLLBACK');
+      throw error;
+    } finally {
+      await pgClient.end();
+    }
+  }
+
+  async purge(expertId) {
+    if (!expertId) return;
+
+    const pgClient = new PgClient();
+    const normalizedExpertId = PgJsonld.normalizeExpertId(expertId);
+    if (!normalizedExpertId) return;
+
+    try {
+      await pgClient.query('BEGIN');
+
+      await pgClient.query(
+        `DELETE FROM ${this.schema}.expert_grant_role WHERE expert_id = $1`,
+        [normalizedExpertId]
+      );
+
+      // Remove orphaned grants (no more roles point at them)
+      await pgClient.query(
+        `DELETE FROM ${this.schema}."grant" g
+         WHERE NOT EXISTS (
+           SELECT 1 FROM ${this.schema}.expert_grant_role gr WHERE gr.grant_id = g.grant_id
+         )`
+      );
+
+      // Clear identity columns. Profile columns are managed by SitefarmApi.purge.
+      await pgClient.query(
+        `UPDATE ${this.schema}."user"
+         SET expert_id       = NULL,
+             ucd_person_uuid = NULL,
+             iam_id          = NULL,
+             display_name    = NULL
+         WHERE expert_id = $1`,
+        [normalizedExpertId]
+      );
+
+      await pgClient.query('COMMIT');
+      logger.info({ expertId }, 'MIV postgres expert purge completed');
+    } catch (error) {
+      await pgClient.query('ROLLBACK');
+      throw error;
+    } finally {
+      await pgClient.end();
+    }
   }
 }
 
-export async function purgeMivPostgresExpert(expertId) {
-  if (!expertId) return;
-
-  const schema = getApiSchemaName();
-  assertSchemaName(schema);
-
-  const pgClient = new PgClient();
-  const normalizedExpertId = normalizeExpertId(expertId);
-  if (!normalizedExpertId) return;
-
-  try {
-    await pgClient.query('BEGIN');
-
-    await pgClient.query(
-      `DELETE FROM ${schema}.expert_grant_role WHERE expert_id = $1`,
-      [normalizedExpertId]
-    );
-
-    // Remove orphaned grants (no more roles point at them)
-    await pgClient.query(
-      `DELETE FROM ${schema}."grant" g
-       WHERE NOT EXISTS (
-         SELECT 1 FROM ${schema}.expert_grant_role gr WHERE gr.grant_id = g.grant_id
-       )`
-    );
-
-    // Clear identity columns. Profile columns are managed by purgeSitefarmPostgresExpert.
-    await pgClient.query(
-      `UPDATE ${schema}."user"
-       SET expert_id       = NULL,
-           ucd_person_uuid = NULL,
-           iam_id          = NULL,
-           display_name    = NULL,
-           last_seen_cdl   = CURRENT_TIMESTAMP
-       WHERE expert_id = $1`,
-      [normalizedExpertId]
-    );
-
-    await pgClient.query('COMMIT');
-    logger.info({ expertId }, 'MIV postgres expert purge completed');
-  } catch (error) {
-    await pgClient.query('ROLLBACK');
-    throw error;
-  } finally {
-    await pgClient.end();
-  }
-}
+export default MivApi;

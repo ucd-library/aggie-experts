@@ -2,12 +2,13 @@ import cache from '../cache.js';
 import { logger, config, Elasticsearch } from '@ucd-lib/experts-commons';
 import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
-import {
-  loadMivPostgres,
-  purgeMivPostgresExpert,
-  loadSitefarmPostgres,
-  purgeSitefarmPostgresExpert
-} from '../api/index.js';
+import { MivApi, SitefarmApi } from '../api/index.js';
+
+// Module-level singletons. Both classes are stateless aside from the schema
+// name passed in the constructor, so a single instance is sufficient for the
+// life of the process.
+const mivApi = new MivApi();
+const sitefarmApi = new SitefarmApi();
 
 async function run(user, alias) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;
@@ -31,8 +32,8 @@ async function run(user, alias) {
     logger.warn(`User ${user} is marked as not public, skipping load.`);
 
     await purgeUser(metadata.expertId, alias);
-    await purgeMivPostgresExpert('expert/'+metadata.expertId);
-    await purgeSitefarmPostgresExpert('expert/'+metadata.expertId);
+    await mivApi.purge('expert/'+metadata.expertId);
+    await sitefarmApi.purge('expert/'+metadata.expertId);
 
     if (config.reporting.enabled && config.postgres.client && 
         alias.includes(config.elasticsearch.aliases.stage) ) {
@@ -77,16 +78,16 @@ async function run(user, alias) {
 
   // load MIV projection into postgres from transformed public expert/grant files
   const mivFiles = getMivPostgresFiles(user, files);
-  await loadMivPostgres({
+  await mivApi.load({
     user,
     metadata,
     files: mivFiles
   });
 
   // load Sitefarm projection (expert profile + works) into postgres from ae-std docs.
-  // Runs after loadMivPostgres so the "user" row exists for the profile overlay.
+  // Runs after mivApi.load so the "user" row exists for the profile overlay.
   const sitefarmFiles = getSitefarmPostgresFiles(user, files);
-  await loadSitefarmPostgres({
+  await sitefarmApi.load({
     user,
     metadata,
     files: sitefarmFiles
@@ -366,7 +367,7 @@ function getMivPostgresFiles(user, files=[]) {
 }
 
 /**
- * Build the file list consumed by loadSitefarmPostgres:
+ * Build the file list consumed by sitefarmApi.load():
  *   - one personAeStd entry pointing at ae-std/person.jsonld
  *   - zero or more work entries pointing at ae-std/rel/{relationshipUri}.jsonld
  *

@@ -2,49 +2,24 @@
  * Public facade for the API-shaped postgres projection used by the webapp
  * MIV and SiteFarm endpoints.
  *
- * Callers should import from here (not from miv.js / sitefarm.js / user.js
- * directly) so the internal module split can evolve without breaking imports.
+ * Each underlying module is a single class with a default export. The facade
+ * re-exports them under named imports so callers don't need to learn the
+ * internal module layout:
  *
- *   import { loadMivPostgres, loadSitefarmPostgres,
- *            purgeMivPostgresExpert, purgeSitefarmPostgresExpert
- *          } from '../api/index.js';
+ *   import { MivApi, SitefarmApi } from '../api/index.js';
  *
- * For tests or specialized callers, the builders/normalizers/upserts are
- * also re-exported.
+ *   const miv      = new MivApi();
+ *   const sitefarm = new SitefarmApi();
+ *
+ *   await miv.load({ user, metadata, files });
+ *   await sitefarm.load({ user, metadata, files });
+ *   await miv.purge(expertId);
+ *   await sitefarm.purge(expertId);
+ *
+ * ApiUser is re-exported for callers that need to write to the user table
+ * outside the MIV/SiteFarm load paths (e.g. one-off CLIs or tests).
  */
 
-// Public entry points used by harvest/lib/load/index.js
-export {
-  loadMivPostgres,
-  purgeMivPostgresExpert
-} from './miv.js';
-
-export {
-  loadSitefarmPostgres,
-  purgeSitefarmPostgresExpert
-} from './sitefarm.js';
-
-// Builders / normalizers / upserts — exported for tests + power users.
-export {
-  buildUserRecord,
-  upsertUser,
-  buildUserProfileRecord,
-  upsertUserProfile,
-  normalizeAeStdPersonDoc
-} from './user.js';
-
-export {
-  buildGrantRecord,
-  buildGrantRoles,
-  normalizeAeStdGrantDoc,
-  upsertGrant,
-  replaceGrantRoles
-} from './miv.js';
-
-export {
-  buildWorkRecord,
-  buildWorkRoles,
-  normalizeAeStdWorkDoc,
-  upsertWork,
-  replaceWorkRoles
-} from './sitefarm.js';
+export { default as MivApi } from './miv.js';
+export { default as SitefarmApi } from './sitefarm.js';
+export { default as ApiUser } from './user.js';

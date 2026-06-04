@@ -5,15 +5,16 @@
 -- views, year-week dimension, ES index registry. Visualized in Superset via
 -- the Anduin platform.
 --
--- The api schema (user, grant, work, etc. — consumed by the webapp endpoints)
--- lives in harvest/lib/api/schema.sql. This file references api."user" via the
--- get_api_users() function indirection so reporting views can be created
--- even before the api schema exists.
+-- The api schema (grants, works, expert profile — consumed by the webapp
+-- endpoints) lives in harvest/lib/api/schema.sql. It owns its own `user`
+-- table for identity/profile data. This schema owns a sibling `user` table
+-- that holds per-user ETL observability timestamps (first_seen_cdl,
+-- last_seen_cdl, last_seen_iam, es_stage_inserted_at, first_es_insert).
+-- The two tables are joined by email when reporting views need both.
 --
 -- Conventions:
---   - All object references are schema-qualified (etl_reporting.<table>,
---     api.<table>). No SET search_path; safer when running alongside other
---     schema scripts.
+--   - All object references are schema-qualified (etl_reporting.<table>).
+--     No SET search_path; safer when running alongside other schema scripts.
 --   - All seed INSERTs use ON CONFLICT (...) DO NOTHING.
 -- ============================================================================
 CREATE SCHEMA IF NOT EXISTS etl_reporting;
@@ -95,6 +96,41 @@ CREATE TABLE IF NOT EXISTS etl_reporting.year_week (
   week_end   DATE NOT NULL
 );
 
+-- ============================================================================
+-- etl_reporting.user — per-user ETL observability timestamps
+-- ----------------------------------------------------------------------------
+-- Sister table to api."user". Same primary key (email). Tracks when each user
+-- was seen in CDL/IAM, when they were inserted into elasticsearch staging,
+-- and the first such ES insertion (set by trigger so it sticks across reloads).
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS etl_reporting."user" (
+  email                VARCHAR(255) PRIMARY KEY,
+  first_seen_cdl       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_seen_cdl        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_seen_iam        TIMESTAMP,
+  es_stage_inserted_at TIMESTAMP,
+  first_es_insert      TIMESTAMP DEFAULT NULL
+);
+
+CREATE OR REPLACE FUNCTION etl_reporting.set_user_first_es_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.first_es_insert IS NULL
+    AND NEW.es_stage_inserted_at IS NOT NULL THEN
+    NEW.first_es_insert := NEW.es_stage_inserted_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_set_user_first_es_insert
+BEFORE UPDATE ON etl_reporting."user"
+FOR EACH ROW
+EXECUTE FUNCTION etl_reporting.set_user_first_es_insert();
+
+-- ============================================================================
+-- Command insertion helper
+-- ============================================================================
 CREATE OR REPLACE FUNCTION etl_reporting.insert_command(
   p_year_week  VARCHAR(10),
   p_week_start DATE,
@@ -124,6 +160,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ============================================================================
+-- Views
+-- ============================================================================
 CREATE OR REPLACE VIEW etl_reporting.command_error AS
 SELECT
   c.command_id,
@@ -146,45 +185,10 @@ SELECT
 FROM etl_reporting.command c
 JOIN etl_reporting.error e ON c.command_id = e.command_id;
 
--- ----------------------------------------------------------------------------
--- Indirection function for cross-schema reads of api."user".
---
--- Reporting views need to JOIN against api."user". A view created with a
--- direct reference would fail at CREATE time if api."user" hadn't been
--- created yet — and the order between the two schema scripts isn't guaranteed
--- in all init paths. By wrapping the cross-schema read in a function that
--- uses dynamic SQL + a runtime existence check, we defer the dependency
--- until query time, by which point both schemas exist.
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION etl_reporting.get_api_users()
-RETURNS TABLE(
-  email                VARCHAR(255),
-  es_stage_inserted_at TIMESTAMP,
-  last_seen_cdl        TIMESTAMP,
-  last_seen_iam        TIMESTAMP
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  IF to_regclass('api."user"') IS NULL THEN
-    RETURN;
-  END IF;
-
-  RETURN QUERY EXECUTE '
-    SELECT
-      u.email::VARCHAR(255),
-      u.es_stage_inserted_at::TIMESTAMP,
-      u.last_seen_cdl::TIMESTAMP,
-      u.last_seen_iam::TIMESTAMP
-    FROM api."user" u
-  ';
-END;
-$$;
-
 CREATE OR REPLACE VIEW etl_reporting.user_command_weekly_stats AS
   WITH all_users AS (
     SELECT email AS user_id
-    FROM etl_reporting.get_api_users()
+    FROM etl_reporting."user"
   ),
   user_command_stats AS (
     SELECT
@@ -249,7 +253,7 @@ SELECT
     ELSE 'not_inserted'
   END AS es_stage_status
 FROM state
-LEFT JOIN etl_reporting.get_api_users() u ON state.user_id = u.email;
+LEFT JOIN etl_reporting."user" u ON state.user_id = u.email;
 
 CREATE OR REPLACE VIEW etl_reporting.user_command_weekly_state_changes AS
   WITH state AS (
@@ -332,7 +336,7 @@ SELECT
   u.email AS user_id,
   u.last_seen_cdl,
   u.last_seen_iam
-FROM etl_reporting.get_api_users() u
+FROM etl_reporting."user" u
 WHERE
   (SELECT year_week FROM last_year_week) = (SELECT year_week FROM etl_reporting.get_year_week(u.last_seen_cdl::DATE)) OR
   (SELECT year_week FROM last_year_week) = (SELECT year_week FROM etl_reporting.get_year_week(u.last_seen_iam::DATE));
@@ -369,7 +373,7 @@ DECLARE
   cutoff_date        DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
   deleted_user_count INTEGER;
 BEGIN
-  DELETE FROM api."user"
+  DELETE FROM etl_reporting."user"
   WHERE last_seen_cdl < cutoff_date;
   GET DIAGNOSTICS deleted_user_count = ROW_COUNT;
   RETURN deleted_user_count;
