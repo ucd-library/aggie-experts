@@ -8,7 +8,7 @@ class DagsterService extends BaseService {
     this.store = DagsterStore;
 
     this.baseUrl = '/api/harvest';
-    this.adminUpdatesUrl = '/api/harvest/admin-updates';
+    this.adminUpdatesUrl = '/api/harvest/admin-update';
   }
 
   async runJobPartition(jobName, partitionName) {
@@ -191,7 +191,7 @@ class DagsterService extends BaseService {
 
   async updateExpertAvailability(id, labels={}) {
     return this.request({
-      url : `${this.adminUpdatesUrl}/expert-availability`,
+      url : `${this.adminUpdatesUrl}/availability`,
       fetchOptions : {
         method : 'POST',
         headers : {

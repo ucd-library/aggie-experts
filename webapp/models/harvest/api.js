@@ -60,7 +60,7 @@ router.post('/last-runs-for-partition',
 });
 
 // Endpoint to update a scholarly record (work or grant) via Dagster
-router.post('/admin-updates/scholarly-record', 
+router.post('/admin-update/scholarly-record', 
   json_only,
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
@@ -76,13 +76,13 @@ router.post('/admin-updates/scholarly-record',
     });
     res.json(result);
   } catch (error) {
-    logger.error('Error running admin-updates scholarly-record', error);
+    logger.error('Error running admin-update scholarly-record', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Endpoint to update or delete an expert record via Dagster
-router.post('/admin-updates/expert', 
+router.post('/admin-update/expert', 
   json_only,
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
@@ -98,13 +98,13 @@ router.post('/admin-updates/expert',
     });
     res.json(result);
   } catch (error) {
-    logger.error('Error running admin-updates expert', error);
+    logger.error('Error running admin-update expert', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Endpoint to update expert availability labels via Dagster
-router.post('/admin-updates/expert-availability',
+router.post('/admin-update/availability',
   json_only,
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
@@ -120,7 +120,7 @@ router.post('/admin-updates/expert-availability',
     }, { elasticsearch, cdl });
     res.json(result);
   } catch (error) {
-    logger.error('Error running admin-updates expert-availability', error);
+    logger.error('Error running admin-update availability', error);
     res.status(500).json({ error: error.message });
   }
 });

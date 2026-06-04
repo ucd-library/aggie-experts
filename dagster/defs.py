@@ -38,9 +38,12 @@ from lib.assets import (
     purge_year_week_cask_files,
     purge_dagster_runs,
     purge_reporting_db,
-    update_scholarly_record,
-    update_expert,
-    update_expert_availability,
+    update_scholarly_record_es,
+    update_scholarly_record_cdl,
+    update_expert_es,
+    update_expert_cdl,
+    update_expert_availability_es,
+    update_expert_availability_cdl,
     send_slack_notification,
 )
 from lib.jobs import (
@@ -50,14 +53,8 @@ from lib.jobs import (
     start_weekly_etl_job,
     cleanup_job,
     update_scholarly_record_job,
-    update_scholarly_record_es_job,
-    update_scholarly_record_cdl_job,
     update_expert_job,
-    update_expert_es_job,
-    update_expert_cdl_job,
     update_expert_availability_job,
-    update_expert_availability_es_job,
-    update_expert_availability_cdl_job,
 )
 from lib.sensors import etl_notify_and_continue
 from lib.schedules import (
@@ -70,9 +67,7 @@ from lib.schedules import (
 defs = dg.Definitions(
     jobs=[
         etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, cleanup_job,
-        update_scholarly_record_job, update_scholarly_record_es_job, update_scholarly_record_cdl_job,
-        update_expert_job, update_expert_es_job, update_expert_cdl_job,
-        update_expert_availability_job, update_expert_availability_es_job, update_expert_availability_cdl_job,
+        update_scholarly_record_job, update_expert_job, update_expert_availability_job,
     ],
     assets=[
         extract_user, transform_user_webapp, transform_user_standard,
@@ -80,7 +75,9 @@ defs = dg.Definitions(
         ensure_current_index, set_alias, reload_search_template,
         create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl,
         purge_user_cask_files, purge_year_week_cask_files, purge_dagster_runs, purge_reporting_db,
-        update_scholarly_record, update_expert, update_expert_availability,
+        update_scholarly_record_es, update_scholarly_record_cdl,
+        update_expert_es, update_expert_cdl,
+        update_expert_availability_es, update_expert_availability_cdl,
         send_slack_notification,
     ],
     sensors=[etl_notify_and_continue],

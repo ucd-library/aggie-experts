@@ -16,8 +16,11 @@ from .configs import (
     SetAliasConfig,
     ReloadSearchTemplateConfig,
     UpdateScholarlyRecordConfig,
+    UpdateScholarlyRecordCdlConfig,
     UpdateExpertConfig,
+    UpdateExpertCdlConfig,
     UpdateExpertAvailabilityConfig,
+    UpdateExpertAvailabilityCdlConfig,
     SlackNotifyConfig,
 )
 from .utils import CODE_VERSION, exec
@@ -242,14 +245,14 @@ def exec_weekly_etl(context: AssetExecutionContext, config: NotifyConfig) -> Non
     code_version=CODE_VERSION,
     group_name="admin_updates",
 )
-def update_scholarly_record(context: AssetExecutionContext, config: UpdateScholarlyRecordConfig) -> None:
-    """Update a work or grant record in Elasticsearch and/or CDL/Elements."""
+def update_scholarly_record_es(context: AssetExecutionContext, config: UpdateScholarlyRecordConfig) -> None:
+    """Update a work or grant record in Elasticsearch."""
     cmd = [
-        "experts", "admin-updates", "scholarly-record",
+        "experts", "admin", "update", "scholarly-record",
         config.expert_id, config.relationship_id,
         "--type", config.type,
-        "--elasticsearch", config.elasticsearch,
-        "--cdl", config.cdl,
+        "--elasticsearch", "yes",
+        "--cdl", "no",
     ]
     if config.visibility is not None:
         cmd += ["--visibility", config.visibility]
@@ -272,13 +275,48 @@ def update_scholarly_record(context: AssetExecutionContext, config: UpdateSchola
     code_version=CODE_VERSION,
     group_name="admin_updates",
 )
-def update_expert(context: AssetExecutionContext, config: UpdateExpertConfig) -> None:
-    """Update or delete an expert record in Elasticsearch and/or CDL/Elements."""
+def update_scholarly_record_cdl(context: AssetExecutionContext, config: UpdateScholarlyRecordCdlConfig) -> None:
+    """Propagate a work or grant record update to CDL/Elements."""
+    if not config.cdl_enabled:
+        context.log.info(f"Skipping CDL update for {config.expert_id} (CDL propagation disabled)")
+        context.add_output_metadata(metadata={"expert_id": config.expert_id, "status": "skipped"})
+        return None
+
     cmd = [
-        "experts", "admin-updates", "expert",
+        "experts", "admin", "update", "scholarly-record",
+        config.expert_id, config.relationship_id,
+        "--type", config.type,
+        "--elasticsearch", "no",
+        "--cdl", "yes",
+    ]
+    if config.visibility is not None:
+        cmd += ["--visibility", config.visibility]
+    if config.favorite is not None:
+        cmd += ["--favorite", config.favorite]
+    if config.reject is not None:
+        cmd += ["--reject", config.reject]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "expert_id": config.expert_id,
+        "relationship_id": config.relationship_id,
+        "type": config.type,
+        "status": result.get("status"),
+    })
+    return None
+
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin_updates",
+)
+def update_expert_es(context: AssetExecutionContext, config: UpdateExpertConfig) -> None:
+    """Update or delete an expert record in Elasticsearch."""
+    cmd = [
+        "experts", "admin", "update", "expert",
         config.expert_id,
-        "--elasticsearch", config.elasticsearch,
-        "--cdl", config.cdl,
+        "--elasticsearch", "yes",
+        "--cdl", "no",
     ]
     if config.visibility is not None:
         cmd += ["--visibility", config.visibility]
@@ -298,14 +336,75 @@ def update_expert(context: AssetExecutionContext, config: UpdateExpertConfig) ->
     code_version=CODE_VERSION,
     group_name="admin_updates",
 )
-def update_expert_availability(context: AssetExecutionContext, config: UpdateExpertAvailabilityConfig) -> None:
-    """Update expert availability labels in Elasticsearch and/or CDL/Elements."""
+def update_expert_cdl(context: AssetExecutionContext, config: UpdateExpertCdlConfig) -> None:
+    """Propagate an expert record update to CDL/Elements."""
+    if not config.cdl_enabled:
+        context.log.info(f"Skipping CDL update for {config.expert_id} (CDL propagation disabled)")
+        context.add_output_metadata(metadata={"expert_id": config.expert_id, "status": "skipped"})
+        return None
+
+    cmd = [
+        "experts", "admin", "update", "expert",
+        config.expert_id,
+        "--elasticsearch", "no",
+        "--cdl", "yes",
+    ]
+    if config.visibility is not None:
+        cmd += ["--visibility", config.visibility]
+    if config.delete is not None:
+        cmd += ["--delete", config.delete]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "expert_id": config.expert_id,
+        "status": result.get("status"),
+        "deleted": result.get("deleted", False),
+    })
+    return None
+
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin_updates",
+)
+def update_expert_availability_es(context: AssetExecutionContext, config: UpdateExpertAvailabilityConfig) -> None:
+    """Update expert availability labels in Elasticsearch."""
     import json
     cmd = [
-        "experts", "admin-updates", "expert-availability",
+        "experts", "admin", "update", "expert-availability",
         config.expert_id,
-        "--elasticsearch", config.elasticsearch,
-        "--cdl", config.cdl,
+        "--elasticsearch", "yes",
+        "--cdl", "no",
+        "--labels-to-add", json.dumps(config.labels_to_add),
+        "--labels-to-remove", json.dumps(config.labels_to_remove),
+        "--current-labels", json.dumps(config.current_labels),
+    ]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "expert_id": config.expert_id,
+        "status": result.get("status"),
+    })
+    return None
+
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin_updates",
+)
+def update_expert_availability_cdl(context: AssetExecutionContext, config: UpdateExpertAvailabilityCdlConfig) -> None:
+    """Propagate expert availability label updates to CDL/Elements."""
+    if not config.cdl_enabled:
+        context.log.info(f"Skipping CDL update for {config.expert_id} (CDL propagation disabled)")
+        context.add_output_metadata(metadata={"expert_id": config.expert_id, "status": "skipped"})
+        return None
+
+    import json
+    cmd = [
+        "experts", "admin", "update", "expert-availability",
+        config.expert_id,
+        "--elasticsearch", "no",
+        "--cdl", "yes",
         "--labels-to-add", json.dumps(config.labels_to_add),
         "--labels-to-remove", json.dumps(config.labels_to_remove),
         "--current-labels", json.dumps(config.current_labels),
