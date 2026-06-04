@@ -25,7 +25,7 @@ program
   .command('es', 'run various ElasticSearch tasks')
   .command('harvest', 'run various harvest ETL tasks')
   .command('init', 'initialize aggie experts database components')
-  .command('admin-updates', 'update expert, work, and grant records in Elasticsearch and/or CDL/Elements')
+  .command('admin', 'run various admin tasks')
 
 program 
   .command('build-version')

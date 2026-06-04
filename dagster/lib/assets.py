@@ -18,6 +18,7 @@ from .configs import (
     UpdateScholarlyRecordConfig,
     UpdateExpertConfig,
     UpdateExpertAvailabilityConfig,
+    SlackNotifyConfig,
 )
 from .utils import CODE_VERSION, exec
 
@@ -383,6 +384,27 @@ def purge_reporting_db(context: AssetExecutionContext) -> None:
     """Purge commands more than 8 weeks old.  Purge users not seen for 6 months."""
     exec(
         ["experts", "harvest", "reporting", "clean", "--commands", "8", "--users", "26", "--yes"],
+        no_json_parse=True
+    )
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Admin assets
+# ---------------------------------------------------------------------------
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin",
+)
+def send_slack_notification(context: AssetExecutionContext, config: SlackNotifyConfig) -> None:
+    """Send a Slack notification via the admin CLI."""
+    exec(
+        ["experts", "admin", "notify",
+         "--title", config.title,
+         "--message", config.message,
+         "--severity", config.severity,
+         "--source", config.source],
         no_json_parse=True
     )
     return None

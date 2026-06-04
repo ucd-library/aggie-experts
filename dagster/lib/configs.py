@@ -72,6 +72,11 @@ class UpdateExpertAvailabilityConfig(Config):
     labels_to_add: list[str] = Field(default_factory=list, description="Labels to add or edit")
     labels_to_remove: list[str] = Field(default_factory=list, description="Labels to remove")
     current_labels: list[str] = Field(default_factory=list, description="Current labels")
+class SlackNotifyConfig(Config):
+    title: str = Field(..., description="Message title")
+    message: str = Field('', description="Message body")
+    severity: str = Field('info', description="Severity level: info, warning, or error")
+    source: str = Field('dagster', description="Source label shown in the notification")
 
 
 # ---------------------------------------------------------------------------
