@@ -1,5 +1,6 @@
 """
-Shared utilities: database connection, constants, subprocess helpers, and Slack notification helpers.
+Shared utilities: database connection, constants, subprocess helpers, and notification helpers.
+Notifications are sent via the gateway service (commons library) to centralize Slack integration.
 """
 import os
 import sys
@@ -9,7 +10,6 @@ import signal
 import atexit
 
 import dagster as dg
-import requests
 import psycopg2
 
 
@@ -113,31 +113,11 @@ def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_js
 
 
 # ---------------------------------------------------------------------------
-# Slack / notification helpers
+# Notification helpers
 # ---------------------------------------------------------------------------
 
-def send_slack_notification(context, backfill_id: str, status: str, message: str):
-    """Send a Slack notification about backfill completion via webhook."""
-    webhook_url = os.getenv('SLACK_WEBHOOK_URL')
-    app_url = os.getenv('ANDUIN_APP_URL', 'http://localhost:4000')
-
-    if not webhook_url:
-        context.log.warning("Warning: SLACK_WEBHOOK_URL not set, skipping Slack notification")
-        return
-
-    try:
-        response = requests.post(
-            webhook_url,
-            json={"text": f"\n{message}\nBackfill ID: `{backfill_id}`\n<{app_url}/dagster/runs/b/{backfill_id}|View Backfill Details on {app_url}>"},
-            timeout=5
-        )
-        response.raise_for_status()
-    except Exception as e:
-        context.log.error(f"Error sending Slack notification: {e}")
-
-
 def _notify_backfill_completion(context, backfill_id: str, statuses: list = None, job_name: str = None):
-    """Mark a backfill as notified in the DB and send Slack message."""
+    """Mark a backfill as notified in the DB and send a Slack notification via the admin CLI."""
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT status, notified FROM {BACKFILL_STATUS_TABLE} WHERE backfill_id = %s;",
@@ -161,10 +141,22 @@ def _notify_backfill_completion(context, backfill_id: str, statuses: list = None
 
     # Compute counts per status
     status_counts = {s.value: statuses.count(s) for s in set(statuses)}
+    harvest_url = os.getenv('HARVEST_URL', 'http://localhost:4000')
+    has_issues = any(s != dg.DagsterRunStatus.SUCCESS for s in statuses)
 
-    if any(s != dg.DagsterRunStatus.SUCCESS for s in statuses):
-        context.log.info(f"Backfill {backfill_id} completed with issues.")
-        send_slack_notification(context, backfill_id, "failure", f"Job {job_name} completed *with issues.*\nStatus counts: {status_counts}")
-    else:
-        context.log.info(f"Backfill {backfill_id} completed successfully.")
-        send_slack_notification(context, backfill_id, "success", f"Job {job_name} completed *successfully.*\nStatus counts: {status_counts}")
+    outcome = "completed with issues" if has_issues else "completed successfully"
+    message = (
+        f"Job {job_name} {outcome}.\n"
+        f"Status counts: {status_counts}\n"
+        f"Backfill ID: {backfill_id}\n"
+        f"<{harvest_url}|View Backfill Details on {harvest_url}>"
+    )
+
+    context.log.info(f"Backfill {backfill_id} {outcome}.")
+    exec(
+        ["experts", "admin", "notify",
+         "--title", f"Job {job_name} {outcome}",
+         "--message", message,
+         "--severity", "warning" if has_issues else "info"],
+        no_json_parse=True
+    )

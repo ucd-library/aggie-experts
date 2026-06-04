@@ -23,8 +23,9 @@ program
 program
   .command('auth', 'run various authentication tasks')
   .command('es', 'run various ElasticSearch tasks')
-  .command('harvest', 'run various harvest ETL tasks')  
+  .command('harvest', 'run various harvest ETL tasks')
   .command('init', 'initialize aggie experts database components')
+  .command('admin', 'run various admin tasks')
 
 program 
   .command('build-version')
