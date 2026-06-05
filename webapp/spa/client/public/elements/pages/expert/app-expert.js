@@ -64,7 +64,8 @@ export default class AppExpert extends Mixin(LitElement)
       industProjects : { type : Boolean },
       mediaInterviews : { type : Boolean },
       lastUpdated : { type : String },
-      refreshingProfileData : { type : Boolean }
+      refreshingProfileData : { type : Boolean },
+      dagsterHealthy : { type : Boolean }
     }
   }
 
@@ -102,6 +103,18 @@ export default class AppExpert extends Mixin(LitElement)
     }
 
     let expertId = e.location.pathname.substr(1);
+
+    if( APP_CONFIG.user?.loggedIn && (APP_CONFIG.user.expertId === expertId || this.isAdmin) ) {
+      await this._checkDagsterHealthLoop();
+
+      // TODO bring back refresh profile
+      // try {
+      //   await this._updateProfileLastUpdated();
+      // } catch (e) {
+      //   // ignore errors from profile last-updated refresh for this view
+      // }
+    }
+
     let modified = e.modifiedWorks || e.modifiedGrants;
     if( expertId === this.expertId && !modified ) return;
 
@@ -122,6 +135,8 @@ export default class AppExpert extends Mixin(LitElement)
         new CustomEvent("show-404", {})
       );
     }
+
+       
   }
 
   /**
@@ -257,17 +272,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.industProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.industry);
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
     this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
-
-    if( APP_CONFIG.user?.loggedIn && (APP_CONFIG.user.expertId === this.expertId || this.isAdmin) ) {
-      await this._checkDagsterHealthLoop();
-
-      // TODO bring back refresh profile
-      // try {
-      //   await this._updateProfileLastUpdated();
-      // } catch (e) {
-      //   // ignore errors from profile last-updated refresh for this view
-      // }
-    }
   }
 
   /**
@@ -322,7 +326,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.mediaInterviews = false;
     this.lastUpdated = 'Mon XX, 20XX, X:XXpm';
     this.refreshingProfileData = false;
-
+    // this.dagsterHealthy = true;
     if( !this.expertEditing ) {
       this.expertEditing = '';
       this.hideEdit = (
@@ -968,6 +972,7 @@ export default class AppExpert extends Mixin(LitElement)
       let res = await this.DagsterModel.getHealth();
 
       let status = res?.body?.status || '';
+      debugger;
       if( status !== 'healthy' ) {
         this.dagsterHealthy = false;
         this.dispatchEvent(
@@ -977,7 +982,8 @@ export default class AppExpert extends Mixin(LitElement)
             }
           })
         );
-        console.log('Dagster is not healthy, todo disable controls and show banner in fin-app');
+        console.log('Dagster is not healthy, todo disable controls and show banner in fin-app', this.dagsterHealthy);
+        this.requestUpdate();
       } else {
         this.dagsterHealthy = true;
         this.dispatchEvent(
