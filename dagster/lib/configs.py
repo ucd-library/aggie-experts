@@ -3,7 +3,7 @@ Dagster config schemas and partition definitions shared across assets, jobs, and
 """
 from dagster import Config, MultiPartitionsDefinition
 import dagster as dg
-from typing import Literal
+from typing import Any, Literal
 from pydantic import Field
 
 
@@ -80,14 +80,14 @@ class UpdateExpertCdlConfig(Config):
 
 class UpdateExpertAvailabilityConfig(Config):
     expert_id: str = Field(..., description="Expert ID (e.g. expert/abc123)")
-    labels_to_add: list[str] = Field(default_factory=list, description="Labels to add or edit")
+    labels_to_add: list[Any] = Field(default_factory=list, description="Labels to add or edit (objects with value/percentage fields)")
     labels_to_remove: list[str] = Field(default_factory=list, description="Labels to remove")
     current_labels: list[str] = Field(default_factory=list, description="Current labels")
 
 
 class UpdateExpertAvailabilityCdlConfig(Config):
     expert_id: str = Field(..., description="Expert ID (e.g. expert/abc123)")
-    labels_to_add: list[str] = Field(default_factory=list, description="Labels to add or edit")
+    labels_to_add: list[Any] = Field(default_factory=list, description="Labels to add or edit (objects with value/percentage fields)")
     labels_to_remove: list[str] = Field(default_factory=list, description="Labels to remove")
     current_labels: list[str] = Field(default_factory=list, description="Current labels")
     cdl_enabled: bool = Field(True, description="Whether CDL propagation is enabled")

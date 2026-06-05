@@ -66,18 +66,21 @@ update_scholarly_record_job = dg.define_asset_job(
     name="update_scholarly_record_job",
     description="Update a work or grant record in Elasticsearch and CDL/Elements (two parallel steps).",
     selection=dg.AssetSelection.assets(update_scholarly_record_es, update_scholarly_record_cdl),
+    tags={"dagster/priority": "1"},
 )
 
 update_expert_job = dg.define_asset_job(
     name="update_expert_job",
     description="Update or delete an expert record in Elasticsearch and CDL/Elements (two parallel steps).",
     selection=dg.AssetSelection.assets(update_expert_es, update_expert_cdl),
+    tags={"dagster/priority": "1"},
 )
 
 update_expert_availability_job = dg.define_asset_job(
     name="update_expert_availability_job",
     description="Update expert availability labels in Elasticsearch and CDL/Elements (two parallel steps).",
     selection=dg.AssetSelection.assets(update_expert_availability_es, update_expert_availability_cdl),
+    tags={"dagster/priority": "1"},
 )
 
 cleanup_job = dg.define_asset_job(

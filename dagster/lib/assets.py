@@ -243,7 +243,7 @@ def exec_weekly_etl(context: AssetExecutionContext, config: NotifyConfig) -> Non
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="admin_updates",
+    group_name="admin",
 )
 def update_scholarly_record_es(context: AssetExecutionContext, config: UpdateScholarlyRecordConfig) -> None:
     """Update a work or grant record in Elasticsearch."""
@@ -273,7 +273,7 @@ def update_scholarly_record_es(context: AssetExecutionContext, config: UpdateSch
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="admin_updates",
+    group_name="admin",
 )
 def update_scholarly_record_cdl(context: AssetExecutionContext, config: UpdateScholarlyRecordCdlConfig) -> None:
     """Propagate a work or grant record update to CDL/Elements."""
@@ -308,7 +308,7 @@ def update_scholarly_record_cdl(context: AssetExecutionContext, config: UpdateSc
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="admin_updates",
+    group_name="admin",
 )
 def update_expert_es(context: AssetExecutionContext, config: UpdateExpertConfig) -> None:
     """Update or delete an expert record in Elasticsearch."""
@@ -334,7 +334,7 @@ def update_expert_es(context: AssetExecutionContext, config: UpdateExpertConfig)
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="admin_updates",
+    group_name="admin",
 )
 def update_expert_cdl(context: AssetExecutionContext, config: UpdateExpertCdlConfig) -> None:
     """Propagate an expert record update to CDL/Elements."""
@@ -365,13 +365,13 @@ def update_expert_cdl(context: AssetExecutionContext, config: UpdateExpertCdlCon
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="admin_updates",
+    group_name="admin",
 )
 def update_expert_availability_es(context: AssetExecutionContext, config: UpdateExpertAvailabilityConfig) -> None:
     """Update expert availability labels in Elasticsearch."""
     import json
     cmd = [
-        "experts", "admin", "update", "expert-availability",
+        "experts", "admin", "update", "availability",
         config.expert_id,
         "--elasticsearch", "yes",
         "--cdl", "no",
@@ -390,7 +390,7 @@ def update_expert_availability_es(context: AssetExecutionContext, config: Update
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="admin_updates",
+    group_name="admin",
 )
 def update_expert_availability_cdl(context: AssetExecutionContext, config: UpdateExpertAvailabilityCdlConfig) -> None:
     """Propagate expert availability label updates to CDL/Elements."""
@@ -401,7 +401,7 @@ def update_expert_availability_cdl(context: AssetExecutionContext, config: Updat
 
     import json
     cmd = [
-        "experts", "admin", "update", "expert-availability",
+        "experts", "admin", "update", "availability",
         config.expert_id,
         "--elasticsearch", "no",
         "--cdl", "yes",
