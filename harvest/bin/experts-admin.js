@@ -146,7 +146,7 @@ update
         config.experts.cdl.authorship.propagate = origPropagate;
       }
       logger.info(JSON.stringify({ status: 'ok', expertId, relationshipId, rejected: true }));
-      return;
+      process.exit(0);
     }
 
     const patch = { '@id': relationshipId };
@@ -166,6 +166,7 @@ update
     if (doCdl) await patchCdl({ expertModel, patch, expertId, logger, config });
 
     logger.info(JSON.stringify({ status: 'ok', expertId, relationshipId, type }));
+    process.exit(0);
   });
 
 update
@@ -202,7 +203,7 @@ update
         config.experts.cdl.expert.propagate = origPropagate;
       }
       logger.info(JSON.stringify({ status: 'ok', expertId, deleted: true }));
-      return;
+      process.exit(0);
     }
 
     if (opts.visibility == null) {
@@ -216,6 +217,7 @@ update
     if (doCdl) await patchExpertCdlVisibility({ expertModel, patch, expertId, logger, config });
 
     logger.info(JSON.stringify({ status: 'ok', expertId }));
+    process.exit(0);
   });
 
 update
@@ -253,6 +255,7 @@ update
     if (doCdl) await patchExpertAvailabilityCdl({ expertModel, data, expertId, logger, config });
 
     logger.info(JSON.stringify({ status: 'ok', expertId }));
+    process.exit(0);
   });
 
 program.addCommand(update);
