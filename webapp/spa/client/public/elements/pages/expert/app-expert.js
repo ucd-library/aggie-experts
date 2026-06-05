@@ -546,7 +546,8 @@ export default class AppExpert extends Mixin(LitElement)
     if( this.isAdmin && this.modalAction === 'hide-expert' ) {
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
-        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
+        let res = await this.DagsterModel.updateExpertVisibility(this.expertId, false);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert visibility (hide)' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = false;
 
@@ -588,7 +589,8 @@ export default class AppExpert extends Mixin(LitElement)
     } else if( this.modalAction === 'delete-expert' ) {
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
-        let res = await this.ExpertModel.deleteExpert(this.expertId);
+        let res = await this.DagsterModel.deleteExpert(this.expertId);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert delete' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         if( window.gtag ) {
@@ -659,7 +661,8 @@ export default class AppExpert extends Mixin(LitElement)
         };
         let labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
 
-        let res = await this.ExpertModel.updateExpertAvailability(this.expertId, labels);
+        let res = await this.DagsterModel.updateExpertAvailability(this.expertId, labels);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert availability' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         if( window.gtag ) {
@@ -734,7 +737,8 @@ export default class AppExpert extends Mixin(LitElement)
     if( this.isAdmin ) {
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
-        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
+        let res = await this.DagsterModel.updateExpertVisibility(this.expertId, true);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert visibility (show)' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = true;
 
@@ -994,72 +998,72 @@ export default class AppExpert extends Mixin(LitElement)
    * @method _refreshProfile
    * @description update expert profile from elements
    */
-  // async _refreshProfile(e) {
-  //   e.preventDefault();
+  async _refreshProfile(e) {
+    e.preventDefault();
 
-  //   let partitionName = APP_CONFIG.user.email;
+    let partitionName = APP_CONFIG.user.email;
 
-  //   if( !partitionName ) return;
+    if( !partitionName ) return;
 
-  //   this.refreshingProfileData = true;
-  //   let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+    this.refreshingProfileData = true;
+    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
     
-  //   // loop to check status of run
-  //   let runId = res.body?.data?.launchRun?.run?.runId || '';
-  //   if( runId ) {
-  //     this.lastLastUpdated = this.lastUpdated;
-  //     this.lastUpdated = 'Updating...';
-  //     this._startProfileSyncInterval(runId);
-  //   }
-  // }
+    // loop to check status of run
+    let runId = res.body?.data?.launchRun?.run?.runId || '';
+    if( runId ) {
+      this.lastLastUpdated = this.lastUpdated;
+      this.lastUpdated = 'Updating...';
+      this._startProfileSyncInterval(runId);
+    }
+  }
 
-  // _startProfileSyncInterval(runId) {
-  //   if( this._profileSyncIntervalId ) {
-  //     clearInterval(this._profileSyncIntervalId);
-  //   }
+  _startProfileSyncInterval(runId) {
+    if( this._profileSyncIntervalId ) {
+      clearInterval(this._profileSyncIntervalId);
+    }
 
-  //   this.refreshingProfileData = true;
-  //   this._profileSyncIntervalId = setInterval(async () => {
-  //     try {
-  //       let res = await this.DagsterModel.getLastRunForId(runId);
-  //       let status = res.body?.data?.runOrError?.status;
+    this.refreshingProfileData = true;
+    this._profileSyncIntervalId = setInterval(async () => {
+      try {
+        let res = await this.DagsterModel.getLastRunForId(runId);
+        let status = res.body?.data?.runOrError?.status;
 
-  //       if (status === 'FAILURE' || status === 'SUCCESS') {
-  //         clearInterval(this._profileSyncIntervalId);
-  //         this._profileSyncIntervalId = null;
-  //         this.refreshingProfileData = false;
+        if (status === 'FAILURE' || status === 'SUCCESS') {
+          clearInterval(this._profileSyncIntervalId);
+          this._profileSyncIntervalId = null;
+          this.refreshingProfileData = false;
 
-  //         if( status === 'SUCCESS' ) {
-  //           this._updateProfileLastUpdated();
-  //           this.refreshingProfileData = false;
+          if( status === 'SUCCESS' ) {
+            this._updateProfileLastUpdated();
+            this.refreshingProfileData = false;
 
-  //           // refresh ui
-  //           this.ExpertModel.store.data.byId.purge();
-  //           window.location.reload();
-  //         } else {
-  //           this.lastUpdated = this.lastLastUpdated || '';
-  //           this.logger.warn('Profile update dagster job run failed', { runId });
-  //           this.refreshingProfileData = false;
-  //         }
-  //       }
-  //     } catch (err) {
-  //       this.logger.warn('Error checking profile status in dagster job run', err);
-  //     }
+            // refresh ui
+            this.ExpertModel.store.data.byId.purge();
+            window.location.reload();
+          } else {
+            this.lastUpdated = this.lastLastUpdated || '';
+            this.logger.warn('Profile update dagster job run failed', { runId });
+            this.refreshingProfileData = false;
+          }
+        }
+      } catch (err) {
+        this.logger.warn('Error checking profile status in dagster job run', err);
+      }
 
-  //   }, 5000);
-  // }
+    }, 5000);
+  }
 
-  // async _updateProfileLastUpdated() {
-  //   let partitionName = APP_CONFIG.user.email;
-  //   let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+  async _updateProfileLastUpdated() {
+    let partitionName = APP_CONFIG.user.email;
+    let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
 
-  //   let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
-  //       .filter(r => r.status !== 'FAILURE' && r.status !== 'CANCELED')
-  //       .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
+    let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
+        .filter(r => r.status !== 'FAILURE' && r.status !== 'CANCELED')
+        .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
 
-  //   if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
-  //   else this.lastUpdated = '';
-  // }
+    if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
+    else this.lastUpdated = '';
+  }
 
   _hideEditExpertControls() {
     return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;

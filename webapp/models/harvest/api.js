@@ -1,8 +1,7 @@
 const router = require('express').Router();
 const { openapi, json_only, dagster_can_run_partition, public_or_is_user } = require('../middleware/index.js');
 const DagsterAPI = require('../../lib/dagster-api.js');
-const {config, logger} = require('@ucd-lib/experts-commons');
-
+const {logger, config} = require('@ucd-lib/experts-commons');
 
 const dagsterAPI = new DagsterAPI();
 
@@ -157,5 +156,71 @@ router.get('/health',
     }
   }
 );
+
+// Endpoint to update a scholarly record (work or grant) via Dagster
+router.post('/admin-update/scholarly-record', 
+  json_only,
+  dagster_can_run_partition({requirePartition: false}),
+  async (req, res, next) => {
+  try {
+    const { expertId, relationshipId, type, elasticsearch, visibility, favorite, reject } = req.body;
+    let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
+    if (!expertId || !relationshipId) {
+      return res.status(400).json({ error: 'expertId and relationshipId are required' });
+    }
+
+    const result = await dagsterAPI.runUpdateScholarlyRecord(expertId, relationshipId, {
+      type, elasticsearch, cdl, visibility, favorite, reject
+    });
+    res.json(result);
+  } catch (error) {
+    logger.error('Error running admin-update scholarly-record', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to update or delete an expert record via Dagster
+router.post('/admin-update/expert', 
+  json_only,
+  dagster_can_run_partition({requirePartition: false}),
+  async (req, res, next) => {
+  try {
+    const { expertId, elasticsearch, visibility, delete: del } = req.body;
+    let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
+    if (!expertId) {
+      return res.status(400).json({ error: 'expertId is required' });
+    }
+
+    const result = await dagsterAPI.runUpdateExpert(expertId, {
+      elasticsearch, cdl, visibility, delete: del
+    });
+    res.json(result);
+  } catch (error) {
+    logger.error('Error running admin-update expert', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to update expert availability labels via Dagster
+router.post('/admin-update/availability',
+  json_only,
+  dagster_can_run_partition({requirePartition: false}),
+  async (req, res, next) => {
+  try {
+    const { expertId, elasticsearch, labelsToAddOrEdit, labelsToRemove, currentLabels } = req.body;
+    let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
+    if (!expertId) {
+      return res.status(400).json({ error: 'expertId is required' });
+    }
+
+    const result = await dagsterAPI.runUpdateExpertAvailability(expertId, {
+      labelsToAddOrEdit, labelsToRemove, currentLabels
+    }, { elasticsearch, cdl });
+    res.json(result);
+  } catch (error) {
+    logger.error('Error running admin-update availability', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;

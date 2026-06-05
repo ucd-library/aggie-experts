@@ -35,6 +35,165 @@ class DagsterAPI {
   }
 
 
+  launchRun(jobName, runConfig = {}) {
+    if (!jobName) throw new Error('jobName is required');
+
+    if (typeof runConfig === 'object') {
+      runConfig = yaml.stringify(runConfig);
+    }
+
+    const mutation = `
+      mutation LaunchRunMutation(
+        $repositoryLocationName: String!
+        $repositoryName: String!
+        $jobName: String!
+        $runConfigData: RunConfigData!
+      ) {
+        launchRun(
+          executionParams: {
+            selector: {
+              repositoryLocationName: $repositoryLocationName
+              repositoryName: $repositoryName
+              jobName: $jobName
+            }
+            runConfigData: $runConfigData
+          }
+        ) {
+          __typename
+          ... on LaunchRunSuccess {
+            run {
+              runId
+            }
+          }
+          ... on RunConfigValidationInvalid {
+            errors {
+              message
+              reason
+            }
+          }
+          ... on PythonError {
+            message
+          }
+        }
+      }
+    `;
+
+    return this.graphqlQuery(
+      'LaunchRunMutation',
+      mutation,
+      this.wrapDefaults({ jobName, runConfigData: runConfig })
+    );
+  }
+
+  /**
+   * @method runUpdateScholarlyRecord
+   * @description Launch a single Dagster job that updates a work or grant record in
+   * both Elasticsearch (update_scholarly_record_es step) and CDL/Elements
+   * (update_scholarly_record_cdl step) in parallel.
+   *
+   * @param {String} expertId
+   * @param {String} relationshipId
+   * @param {Object} opts
+   * @param {String} opts.type - 'work' or 'grant'
+   * @param {String} opts.visibility - 'yes' or 'no'
+   * @param {String} opts.favorite - 'yes' or 'no'
+   * @param {String} opts.reject - 'yes' or 'no'
+   * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @returns {Promise<Object>} Dagster launchRun GraphQL response
+   */
+  async runUpdateScholarlyRecord(expertId, relationshipId, opts = {}) {
+    if (!expertId) throw new Error('expertId is required');
+    if (!relationshipId) throw new Error('relationshipId is required');
+
+    const cdlEnabled = opts.cdl !== 'no';
+    const sharedConfig = {
+      expert_id: expertId,
+      relationship_id: relationshipId,
+      type: opts.type || 'work',
+      ...(opts.visibility && { visibility: opts.visibility }),
+      ...(opts.favorite && { favorite: opts.favorite }),
+      ...(opts.reject && { reject: opts.reject }),
+    };
+
+    const runConfig = {
+      ops: {
+        update_scholarly_record_es: { config: sharedConfig },
+        update_scholarly_record_cdl: { config: { ...sharedConfig, cdl_enabled: cdlEnabled } },
+      },
+    };
+
+    return this.launchRun('update_scholarly_record_job', JSON.stringify(runConfig));
+  }
+
+  /**
+   * @method runUpdateExpert
+   * @description Launch a single Dagster job that updates or deletes an expert record in
+   * both Elasticsearch (update_expert_es step) and CDL/Elements (update_expert_cdl step)
+   * in parallel.
+   *
+   * @param {String} expertId
+   * @param {Object} opts
+   * @param {String} opts.visibility - 'yes' or 'no'
+   * @param {String} opts.delete - 'yes' or 'no'
+   * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @returns {Promise<Object>} Dagster launchRun GraphQL response
+   */
+  async runUpdateExpert(expertId, opts = {}) {
+    if (!expertId) throw new Error('expertId is required');
+
+    const cdlEnabled = opts.cdl !== 'no';
+    const sharedConfig = {
+      expert_id: expertId,
+      ...(opts.visibility && { visibility: opts.visibility }),
+      ...(opts.delete && { delete: opts.delete }),
+    };
+
+    const runConfig = {
+      ops: {
+        update_expert_es: { config: sharedConfig },
+        update_expert_cdl: { config: { ...sharedConfig, cdl_enabled: cdlEnabled } },
+      },
+    };
+
+    return this.launchRun('update_expert_job', JSON.stringify(runConfig));
+  }
+
+  /**
+   * @method runUpdateExpertAvailability
+   * @description Launch a single Dagster job that updates expert availability labels in
+   * both Elasticsearch (update_expert_availability_es step) and CDL/Elements
+   * (update_expert_availability_cdl step) in parallel.
+   *
+   * @param {String} expertId
+   * @param {Object} labels
+   * @param {Array} labels.labelsToAddOrEdit
+   * @param {Array} labels.labelsToRemove
+   * @param {Array} labels.currentLabels
+   * @param {Object} opts
+   * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @returns {Promise<Object>} Dagster launchRun GraphQL response
+   */
+  async runUpdateExpertAvailability(expertId, labels = {}, opts = {}) {
+    if (!expertId) throw new Error('expertId is required');
+
+    const cdlEnabled = opts.cdl !== 'no';
+    const sharedConfig = {
+      expert_id: expertId,
+      labels_to_add: labels.labelsToAddOrEdit || [],
+      labels_to_remove: labels.labelsToRemove || [],
+      current_labels: labels.currentLabels || [],
+    };
+
+    const runConfig = {
+      ops: {
+        update_expert_availability_es: { config: sharedConfig },
+        update_expert_availability_cdl: { config: { ...sharedConfig, cdl_enabled: cdlEnabled } },
+      },
+    };
+
+    return this.launchRun('update_expert_availability_job', JSON.stringify(runConfig));
+  }
+
   runJobPartition(jobName, partitionName, runConfig = {}) {
     if( !jobName ) throw new Error('jobName is required');
     if( !partitionName ) throw new Error('partitionName is required');
