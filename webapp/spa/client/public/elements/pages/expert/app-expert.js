@@ -77,6 +77,7 @@ export default class AppExpert extends Mixin(LitElement)
     this._reset();
 
     this._profileSyncIntervalId = null;
+    this._dagsterHealthIntervalId = null;
 
     this.render = render.bind(this);
   }
@@ -98,6 +99,7 @@ export default class AppExpert extends Mixin(LitElement)
       clearInterval(this._profileSyncIntervalId);
       clearTimeout(this._dagsterHealthIntervalId);
       this._profileSyncIntervalId = null;
+      this._dagsterHealthIntervalId = null;
       this.refreshingProfileData = false;
       return;
     }
@@ -107,12 +109,11 @@ export default class AppExpert extends Mixin(LitElement)
     if( APP_CONFIG.user?.loggedIn && (APP_CONFIG.user.expertId === expertId || this.isAdmin) ) {
       await this._checkDagsterHealthLoop();
 
-      // TODO bring back refresh profile
-      // try {
-      //   await this._updateProfileLastUpdated();
-      // } catch (e) {
-      //   // ignore errors from profile last-updated refresh for this view
-      // }
+      try {
+        await this._updateProfileLastUpdated();
+      } catch (e) {
+        // ignore errors from profile last-updated refresh for this view
+      }
     }
 
     let modified = e.modifiedWorks || e.modifiedGrants;
@@ -324,9 +325,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.commPartner = false;
     this.industProjects = false;
     this.mediaInterviews = false;
-    this.lastUpdated = 'Mon XX, 20XX, X:XXpm';
     this.refreshingProfileData = false;
-    // this.dagsterHealthy = true;
     if( !this.expertEditing ) {
       this.expertEditing = '';
       this.hideEdit = (
@@ -666,8 +665,36 @@ export default class AppExpert extends Mixin(LitElement)
         let labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
 
         let res = await this.DagsterModel.updateExpertAvailability(this.expertId, labels);
-        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert availability' });
-        this.dispatchEvent(new CustomEvent("loaded", {}));
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'expert availability',
+          onComplete: (status) => {
+            if( status !== 'SUCCESS' ) {
+              this.dispatchEvent(new CustomEvent("loaded", {}));
+              let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
+              this.modalTitle = 'Error: Update Failed';
+              this.modalSaveText = '';
+              this.modalContent = `
+                <p>
+                  <strong>Availability labels</strong> could not be updated. Please try again later or make your changes directly in the
+                  <a href="https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}" target="_blank">UC Publication Management System (opens in new tab).</a>
+                </p>
+              `;
+              this.showModal = true;
+              this.hideCancel = true;
+              this.hideSave = true;
+              this.hideOK = false;
+              this.hideOaPolicyLink = true;
+              this.errorMode = true;
+              return;
+            }
+            this.collabProjects = collabProjects;
+            this.commPartner = commPartner;
+            this.industProjects = industProjects;
+            this.mediaInterviews = mediaInterviews;
+            this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+          }
+        });
 
         if( window.gtag ) {
           gtag('event', 'expert_availability_change', {
@@ -676,12 +703,6 @@ export default class AppExpert extends Mixin(LitElement)
             'fatal': false
           });
         }
-
-        this.collabProjects = collabProjects;
-        this.commPartner = commPartner;
-        this.industProjects = industProjects;
-        this.mediaInterviews = mediaInterviews;
-        this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
 
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -972,7 +993,6 @@ export default class AppExpert extends Mixin(LitElement)
       let res = await this.DagsterModel.getHealth();
 
       let status = res?.body?.status || '';
-      debugger;
       if( status !== 'healthy' ) {
         this.dagsterHealthy = false;
         this.dispatchEvent(
@@ -1012,7 +1032,7 @@ export default class AppExpert extends Mixin(LitElement)
     if( !partitionName ) return;
 
     this.refreshingProfileData = true;
-    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName, { priority: 2 });
     
     // loop to check status of run
     let runId = res.body?.data?.launchRun?.run?.runId || '';

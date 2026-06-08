@@ -564,28 +564,40 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, true);
-      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work visibility (show)' });
-      setTimeout(async () => {
-        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-
-        let expert = await this.ExpertModel.get(
-          this.expertId,
-          `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-          utils.getExpertApiOptions({
-            includeGrants: false,
-            worksPage: this.currentPage,
-            worksSize: this.resultsPerPage,
-            includeHidden: true,
-            includeWorksMisformatted: true
-          }),
-          true // clear cache
-        );
-        this._onExpertUpdate(expert);
-
-        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-        if( toastPopup ) toastPopup.showPopup('Showing on Profile');
-      }, 5000);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'work visibility (show)',
+        onComplete: async (status) => {
+          if( status !== 'SUCCESS' ) {
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+            this.modalTitle = 'Error: Update Failed';
+            this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+            this.showModal = true;
+            this.hideCancel = true;
+            this.hideSave = true;
+            this.hideOK = false;
+            this.hideOaPolicyLink = true;
+            this.errorMode = true;
+            return;
+          }
+          let expert = await this.ExpertModel.get(
+            this.expertId,
+            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+            utils.getExpertApiOptions({
+              includeGrants: false,
+              worksPage: this.currentPage,
+              worksSize: this.resultsPerPage,
+              includeHidden: true,
+              includeWorksMisformatted: true
+            }),
+            true // clear cache
+          );
+          this._onExpertUpdate(expert);
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Showing on Profile');
+        }
+      });
 
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
@@ -671,28 +683,40 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, false);
-      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work favourite (remove)' });
-      setTimeout(async () => {
-        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-
-        let expert = await this.ExpertModel.get(
-          this.expertId,
-          `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-          utils.getExpertApiOptions({
-            includeGrants: false,
-            worksPage: this.currentPage,
-            worksSize: this.resultsPerPage,
-            includeHidden: true,
-            includeWorksMisformatted: true
-          }),
-          true // clear cache
-        );
-        this._onExpertUpdate(expert);
-
-        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-        if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
-      }, 5000);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'work favourite (remove)',
+        onComplete: async (status) => {
+          if( status !== 'SUCCESS' ) {
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+            this.modalTitle = 'Error: Update Failed';
+            this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+            this.showModal = true;
+            this.hideCancel = true;
+            this.hideSave = true;
+            this.hideOK = false;
+            this.hideOaPolicyLink = true;
+            this.errorMode = true;
+            return;
+          }
+          let expert = await this.ExpertModel.get(
+            this.expertId,
+            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+            utils.getExpertApiOptions({
+              includeGrants: false,
+              worksPage: this.currentPage,
+              worksSize: this.resultsPerPage,
+              includeHidden: true,
+              includeWorksMisformatted: true
+            }),
+            true // clear cache
+          );
+          this._onExpertUpdate(expert);
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
+        }
+      });
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -782,28 +806,40 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     try {
       let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, true);
-      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work favourite (add)' });
-      setTimeout(async () => {
-        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-
-        let expert = await this.ExpertModel.get(
-          this.expertId,
-          `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-          utils.getExpertApiOptions({
-            includeGrants: false,
-            worksPage: this.currentPage,
-            worksSize: this.resultsPerPage,
-            includeHidden: true,
-            includeWorksMisformatted: true
-          }),
-          true // clear cache
-        );
-        this._onExpertUpdate(expert);
-
-        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-        if( toastPopup ) toastPopup.showPopup('Added to Highlights');
-      }, 5000);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'work favourite (add)',
+        onComplete: async (status) => {
+          if( status !== 'SUCCESS' ) {
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+            this.modalTitle = 'Error: Update Failed';
+            this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+            this.showModal = true;
+            this.hideCancel = true;
+            this.hideSave = true;
+            this.hideOK = false;
+            this.hideOaPolicyLink = true;
+            this.errorMode = true;
+            return;
+          }
+          let expert = await this.ExpertModel.get(
+            this.expertId,
+            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+            utils.getExpertApiOptions({
+              includeGrants: false,
+              worksPage: this.currentPage,
+              worksSize: this.resultsPerPage,
+              includeHidden: true,
+              includeWorksMisformatted: true
+            }),
+            true // clear cache
+          );
+          this._onExpertUpdate(expert);
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Added to Highlights');
+        }
+      });
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -934,28 +970,40 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     if( action === 'hide' ) {
       try {
         let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, false);
-        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work visibility (hide)' });
-        setTimeout(async () => {
-          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-          this.dispatchEvent(new CustomEvent("loaded", {}));
-
-          let expert = await this.ExpertModel.get(
-            this.expertId,
-            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-            utils.getExpertApiOptions({
-              includeGrants: false,
-              worksPage: this.currentPage,
-              worksSize: this.resultsPerPage,
-              includeHidden: true,
-              includeWorksMisformatted: true
-            }),
-            true // clear cache
-          );
-          this._onExpertUpdate(expert);
-
-          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-          if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
-        }, 5000);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'work visibility (hide)',
+          onComplete: async (status) => {
+            if( status !== 'SUCCESS' ) {
+              this.dispatchEvent(new CustomEvent("loaded", {}));
+              let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+              this.modalTitle = 'Error: Update Failed';
+              this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+              this.showModal = true;
+              this.hideCancel = true;
+              this.hideSave = true;
+              this.hideOK = false;
+              this.hideOaPolicyLink = true;
+              this.errorMode = true;
+              return;
+            }
+            let expert = await this.ExpertModel.get(
+              this.expertId,
+              `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+              utils.getExpertApiOptions({
+                includeGrants: false,
+                worksPage: this.currentPage,
+                worksSize: this.resultsPerPage,
+                includeHidden: true,
+                includeWorksMisformatted: true
+              }),
+              true // clear cache
+            );
+            this._onExpertUpdate(expert);
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+            if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
+          }
+        });
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -1032,28 +1080,40 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } else if ( action === 'reject' ) {
       try {
         let res = await this.DagsterModel.rejectCitation(this.expertId, this.citationId);
-        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'work reject' });
-        setTimeout(async () => {
-          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-          this.dispatchEvent(new CustomEvent("loaded", {}));
-
-          let expert = await this.ExpertModel.get(
-            this.expertId,
-            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-            utils.getExpertApiOptions({
-              includeGrants: false,
-              worksPage: this.currentPage,
-              worksSize: this.resultsPerPage,
-              includeHidden: true,
-              includeWorksMisformatted: true
-            }),
-            true // clear cache
-          );
-          this._onExpertUpdate(expert);
-
-          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-          if( toastPopup ) toastPopup.showPopup('Removed from Profile');
-        }, 5000);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'work reject',
+          onComplete: async (status) => {
+            if( status !== 'SUCCESS' ) {
+              this.dispatchEvent(new CustomEvent("loaded", {}));
+              let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
+              this.modalTitle = 'Error: Update Failed';
+              this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
+              this.showModal = true;
+              this.hideCancel = true;
+              this.hideSave = true;
+              this.hideOK = false;
+              this.hideOaPolicyLink = true;
+              this.errorMode = true;
+              return;
+            }
+            let expert = await this.ExpertModel.get(
+              this.expertId,
+              `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+              utils.getExpertApiOptions({
+                includeGrants: false,
+                worksPage: this.currentPage,
+                worksSize: this.resultsPerPage,
+                includeHidden: true,
+                includeWorksMisformatted: true
+              }),
+              true // clear cache
+            );
+            this._onExpertUpdate(expert);
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+            if( toastPopup ) toastPopup.showPopup('Removed from Profile');
+          }
+        });
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {

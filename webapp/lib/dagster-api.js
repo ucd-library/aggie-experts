@@ -194,7 +194,21 @@ class DagsterAPI {
     return this.launchRun('update_expert_availability_job', JSON.stringify(runConfig));
   }
 
-  runJobPartition(jobName, partitionName, runConfig = {}) {
+  /**
+   * @method runJobPartition
+   * @description launch a partitioned Dagster job run
+   *
+   * @param {String} jobName dagster job name
+   * @param {String} partitionName dagster partition name (e.g. a user email)
+   * @param {Object} runConfig optional run config object
+   * @param {Object} opts
+   * @param {Number} opts.priority optional run-level priority override. when set this is
+   *   injected into executionMetadata.tags as dagster/priority, overriding the job's
+   *   default priority tag. use this to promote UI-triggered runs above bulk ETL runs
+   *   that share the same job definition.
+   * @returns {Promise}
+   */
+  runJobPartition(jobName, partitionName, runConfig = {}, opts = {}) {
     if( !jobName ) throw new Error('jobName is required');
     if( !partitionName ) throw new Error('partitionName is required');
 
@@ -210,6 +224,10 @@ class DagsterAPI {
       runConfig = yaml.stringify(runConfig);
     }
 
+    const priorityTag = opts.priority != null
+      ? `, {key:"dagster/priority", value: "${opts.priority}"}`
+      : '';
+
     const mutation = `
       mutation LaunchRunMutation(
         $repositoryLocationName: String!
@@ -224,6 +242,7 @@ class DagsterAPI {
               tags : [
                 {key:"dagster/partition_set", value: "${config.dagster.etlPartitionSet}"},
                 {key: "dagster/partition", value: $partitionName}
+                ${priorityTag}
               ]
             }
             selector: {

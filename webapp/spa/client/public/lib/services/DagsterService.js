@@ -11,7 +11,7 @@ class DagsterService extends BaseService {
     this.adminUpdatesUrl = '/api/harvest/admin-update';
   }
 
-  async runJobPartition(jobName, partitionName) {
+  async runJobPartition(jobName, partitionName, opts = {}) {
     return this.request({
       url : `${this.baseUrl}/run-job-partition`,
       fetchOptions : {
@@ -19,7 +19,11 @@ class DagsterService extends BaseService {
         headers : {
           'Content-Type' : 'application/json'
         },
-        body : JSON.stringify({ partition: partitionName, jobName })
+        body : JSON.stringify({
+          partition: partitionName,
+          jobName,
+          ...(opts.priority != null && { priority: opts.priority })
+        })
       },
       checkCached : () => null,
       onLoading : null,

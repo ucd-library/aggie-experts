@@ -21,8 +21,8 @@ class DagsterModel extends BaseModel {
    *
    * @returns {Promise} resolves to record
   */
-  async runJobPartition(jobName, partitionName) {
-    return await this.service.runJobPartition(jobName, partitionName);
+  async runJobPartition(jobName, partitionName, opts = {}) {
+    return await this.service.runJobPartition(jobName, partitionName, opts);
   }
 
   /**

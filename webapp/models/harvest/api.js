@@ -10,12 +10,12 @@ router.post('/run-job-partition', json_only,
   dagster_can_run_partition(),
   async (req, res, next) => {
   try {
-    const { jobName, partition, runConfig } = req.body;
+    const { jobName, partition, runConfig, priority } = req.body;
     if (!jobName || !partition) {
       return res.status(400).json({ error: 'jobName and partition are required' });
     }
 
-    const result = await dagsterAPI.runJobPartition(jobName, partition, runConfig);
+    const result = await dagsterAPI.runJobPartition(jobName, partition, runConfig, { priority });
     res.json(result);
   } catch (error) {
     logger.error('Error running Dagster job partition', error);

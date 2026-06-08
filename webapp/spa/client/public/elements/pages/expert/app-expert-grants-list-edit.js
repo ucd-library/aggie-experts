@@ -399,12 +399,23 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     let updated = true;
     try {
       let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, true);
-      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'grant visibility (show)' });
-      setTimeout(async () => {
-        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-
-        let expert = await this.ExpertModel.get(
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'grant visibility (show)',
+        onComplete: async (status) => {
+          if( status !== 'SUCCESS' ) {
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
+            this.modalTitle = 'Error: Update Failed';
+            this.modalContent = `<p><strong>${grantTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+            this.showModal = true;
+            this.hideCancel = true;
+            this.hideSave = true;
+            this.hideOK = false;
+            this.hideOaPolicyLink = true;
+            this.errorMode = true;
+            return;
+          }
+          let expert = await this.ExpertModel.get(
             this.expertId,
             `/5000?page=${this.currentPage}&size=${this.resultsPerPage}`,
             utils.getExpertApiOptions({
@@ -417,10 +428,11 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
             true // clear cache
           );
           this._onExpertUpdate(expert);
-
-        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-        if( toastPopup ) toastPopup.showPopup('Showing on Profile');
-      }, 5000);
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Showing on Profile');
+        }
+      });
 
       if( window.gtag ) {
         gtag('event', 'grant_is_visible', {
@@ -501,28 +513,40 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       this.updatingVisibility = true;
       try {
         let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, false);
-        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'grant visibility (hide)' });
-        setTimeout(async () => {
-          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-          this.dispatchEvent(new CustomEvent("loaded", {}));
-
-          let expert = await this.ExpertModel.get(
-            this.expertId,
-            `/grants-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-            utils.getExpertApiOptions({
-              includeWorks : false,
-              grantsPage : this.currentPage,
-              grantsSize : this.resultsPerPage,
-              includeHidden : true,
-              includeGrantsMisformatted : true
-            }),
-            true // clear cache
-          );
-          this._onExpertUpdate(expert);
-
-          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-          if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
-        }, 5000);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'grant visibility (hide)',
+          onComplete: async (status) => {
+            if( status !== 'SUCCESS' ) {
+              this.dispatchEvent(new CustomEvent("loaded", {}));
+              let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
+              this.modalTitle = 'Error: Update Failed';
+              this.modalContent = `<p><strong>${grantTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
+              this.showModal = true;
+              this.hideCancel = true;
+              this.hideSave = true;
+              this.hideOK = false;
+              this.hideOaPolicyLink = true;
+              this.errorMode = true;
+              return;
+            }
+            let expert = await this.ExpertModel.get(
+              this.expertId,
+              `/grants-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+              utils.getExpertApiOptions({
+                includeWorks : false,
+                grantsPage : this.currentPage,
+                grantsSize : this.resultsPerPage,
+                includeHidden : true,
+                includeGrantsMisformatted : true
+              }),
+              true // clear cache
+            );
+            this._onExpertUpdate(expert);
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+            if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
+          }
+        });
 
         if( window.gtag ) {
           gtag('event', 'grant_is_visible', {
