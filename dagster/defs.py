@@ -56,7 +56,7 @@ from lib.jobs import (
     update_expert_job,
     update_expert_availability_job,
 )
-from lib.sensors import etl_notify_and_continue
+from lib.sensors import etl_notify_and_continue, admin_update_failure_sensor
 from lib.schedules import (
     weekly_elt_schedule_prod,
     weekly_elt_schedule_dev,
@@ -80,7 +80,7 @@ defs = dg.Definitions(
         update_expert_availability_es, update_expert_availability_cdl,
         send_slack_notification,
     ],
-    sensors=[etl_notify_and_continue],
+    sensors=[etl_notify_and_continue, admin_update_failure_sensor],
     resources={},
     schedules=[
         weekly_elt_schedule_prod, weekly_elt_schedule_dev,
