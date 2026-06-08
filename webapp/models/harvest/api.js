@@ -62,10 +62,7 @@ router.post('/last-runs-for-partition',
 router.get('/health',
   public_or_is_user,
   async (req, res) => {
-    const daemonHeartbeatStaleMs = 60 * 1000;
-
     const startedAt = Date.now();
-    const now = Date.now();
 
     try {
       // check dagster ui health
@@ -102,29 +99,14 @@ router.get('/health',
       const daemonStatuses =
         gqlResp?.data?.instance?.daemonHealth?.allDaemonStatuses || [];
 
-      const requiredUnhealthy = daemonStatuses.filter(s => {
-        if (!s.required) return false;
-        if (!s.healthy) return true;
-        if (s.lastHeartbeatTime) {
-          const ageMs = now - s.lastHeartbeatTime * 1000;
-          if (ageMs > daemonHeartbeatStaleMs) return true;
-        }
-        return false;
-      });
+      const requiredUnhealthy = daemonStatuses.filter(s => s.required && !s.healthy);
 
       // build response
-      const reasons = requiredUnhealthy.map(s => {
-        const ageMs = s.lastHeartbeatTime
-          ? now - s.lastHeartbeatTime * 1000
-          : null;
-        return {
-          daemonType: s.daemonType,
-          reason: ageMs !== null && ageMs > daemonHeartbeatStaleMs && s.healthy
-            ? `heartbeat stale (${Math.round(ageMs / 1000)}s ago)`
-            : 'required daemon unhealthy',
-          errors: (s.lastHeartbeatErrors || []).map(e => e.message)
-        };
-      });
+      const reasons = requiredUnhealthy.map(s => ({
+        daemonType: s.daemonType,
+        reason: 'required daemon unhealthy',
+        errors: (s.lastHeartbeatErrors || []).map(e => e.message)
+      }));
 
       const status = reasons.length ? 'degraded' : 'healthy';
 
