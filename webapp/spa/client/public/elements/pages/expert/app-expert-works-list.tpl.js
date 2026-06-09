@@ -157,7 +157,7 @@ return html`
             <div class="work-details">
               <span style="min-width: fit-content;">${utils.getCitationType(cite.type)}</span>
               <span class="dot">•</span>
-              ${unsafeHTML(markdownInline(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>'))}
+              ${unsafeHTML(markdownInline(cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@ucdavis.edu">Aggie Experts administrator.</a>'))}
             </div>
           </div>
         </div>
