@@ -146,22 +146,13 @@ class PgClient {
     return this.query(query, [config.url]);
   }
 
-  ensureUserExpertId(email, expertId) {
+  upsertUser(expertId, email) {
     const query = `
-      UPDATE ${this.schema}.user
-      SET expert_id = $2
-      WHERE email = $1
+      INSERT INTO ${this.schema}.user (expert_id, email)
+      VALUES ($1, $2)
+      ON CONFLICT (expert_id, email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP
     `;
-    return this.query(query, [email, expertId]);
-  }
-
-  insertCdlUser(email) {
-    const query = `
-      INSERT INTO ${this.schema}.user (email)
-      VALUES ($1)
-      ON CONFLICT (email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP
-    `;
-    return this.query(query, [email]);
+    return this.query(query, [expertId, email]);
   }
 
   iamUserFetched(email) {

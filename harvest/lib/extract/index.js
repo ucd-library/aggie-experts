@@ -97,7 +97,7 @@ async function run(options={}) {
   await cache.writeUserAsset(options.user, config.cache.keycloakUserFilename, user);
   await cache.writeUserIdLookup(options.user, user.attributes.expertId[0]);
   if( config.reporting.enabled && config.postgres.client ) {
-    await config.postgres.client.ensureUserExpertId(options.user, user.attributes.expertId[0]);
+    await config.postgres.client.upsertUser(user.attributes.expertId[0], options.user);
   }
 
   // const cdlClient = new CdlClient();

@@ -72,9 +72,15 @@ CREATE INDEX IF NOT EXISTS idx_validation_issue_user_id ON validation_issue (use
 CREATE INDEX IF NOT EXISTS idx_validation_issue_entity ON validation_issue (entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_validation_issue_issue_type ON validation_issue (issue_type);
 
+-- NOTE: The primary key is a composite of (expert_id, email) to support users with multiple
+-- monikers (e.g. dual appointments at ucdavis.edu and berkeley.edu). Each (expert_id, email)
+-- pair is one row. Currently (2026/06), all downstream views join on email as user_id and operate
+-- at the moniker level. If a query is ever added that groups or aggregates by expert_id across 
+-- emails, beware of fan-out: a user with N monikers will produce N rows here and could be counted
+-- multiple times.
 CREATE TABLE IF NOT EXISTS "user" (
-  email VARCHAR(255) PRIMARY KEY,
-  expert_id VARCHAR(16) UNIQUE,
+  expert_id VARCHAR(16) NOT NULL,
+  email VARCHAR(255) NOT NULL,
   first_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_cdl TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_iam TIMESTAMP,
@@ -82,7 +88,8 @@ CREATE TABLE IF NOT EXISTS "user" (
   cdl_privacy JSONB,
   odr_privacy JSONB,
   es_stage_inserted_at TIMESTAMP,
-  first_es_insert TIMESTAMP DEFAULT NULL
+  first_es_insert TIMESTAMP DEFAULT NULL,
+  PRIMARY KEY (expert_id, email)
 );
 
 CREATE OR REPLACE FUNCTION set_user_first_es_insert()
