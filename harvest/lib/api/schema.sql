@@ -19,8 +19,8 @@ CREATE SCHEMA IF NOT EXISTS api;
 -- Expert identity
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS api."user" (
-  email              VARCHAR(255) PRIMARY KEY,
-  expert_id          VARCHAR(16) UNIQUE,
+  expert_id          VARCHAR(16) PRIMARY KEY,
+  email              VARCHAR(255) UNIQUE NOT NULL,
   is_public          BOOLEAN DEFAULT FALSE,
   cdl_privacy        JSONB,
   odr_privacy        JSONB,
