@@ -3,8 +3,18 @@ import fs from 'fs/promises';
 import { config } from '@ucd-lib/experts-commons';
 
 class PgClient {
-  constructor(_config, schema=null) {
+  constructor(_config, schema=null, apiSchema=null) {
+    // schema    : ETL observability tables (command, error, year_week,
+    //             validation_issue, elastic_search_index, AND etl_reporting."user"
+    //             which holds the per-user ETL timestamps).
+    // apiSchema : API-shaped projection tables, notably api."user" (identity +
+    //             profile fields consumed by the webapp endpoints), grant, work.
+    //
+    // The two "user" tables are sister records keyed by email — etl_reporting
+    // holds observability state, api holds identity/profile. insertCdlUser
+    // bootstraps both.
     this.schema = schema || 'etl_reporting';
+    this.apiSchema = apiSchema || 'api';
 
     if( !_config ) {
       _config = {
@@ -146,31 +156,56 @@ class PgClient {
     return this.query(query, [config.url]);
   }
 
-  upsertUser(expertId, email) {
-    const query = `
-      INSERT INTO ${this.schema}.user (expert_id, email)
-      VALUES ($1, $2)
-      ON CONFLICT (expert_id, email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP
-    `;
-    return this.query(query, [expertId, email]);
-  }
+  // ----- api.user methods (identity / profile / privacy) -----
 
-  iamUserFetched(email) {
+  ensureUserExpertId(email, expertId) {
     const query = `
-      UPDATE ${this.schema}.user
-      SET last_seen_iam = CURRENT_TIMESTAMP
+      UPDATE ${this.apiSchema}."user"
+      SET expert_id = $2
       WHERE email = $1
     `;
-    return this.query(query, [email]);
+    return this.query(query, [email, expertId]);
   }
 
   setUserPrivacy(email, isPublic, cdlPrivacy, odrPrivacy) {
     const query = `
-      UPDATE ${this.schema}.user
+      UPDATE ${this.apiSchema}."user"
       SET is_public = $2, cdl_privacy = $3, odr_privacy = $4
       WHERE email = $1
     `;
     return this.query(query, [email, isPublic, JSON.stringify(cdlPrivacy), JSON.stringify(odrPrivacy)]);
+  }
+
+  // ----- etl_reporting.user methods (ETL observability timestamps) -----
+  //
+  // insertCdlUser does double-duty: it bootstraps both the etl_reporting.user
+  // row (with last_seen_cdl) AND a placeholder row in api.user (so the
+  // subsequent ensureUserExpertId / setUserPrivacy UPDATEs have a row to hit).
+  // The api.user row only carries the email at this point — other identity
+  // and profile columns are filled in later by the extract/load phases.
+
+  async insertCdlUser(email) {
+    await this.query(
+      `INSERT INTO ${this.schema}."user" (email)
+       VALUES ($1)
+       ON CONFLICT (email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP`,
+      [email]
+    );
+    await this.query(
+      `INSERT INTO ${this.apiSchema}."user" (email)
+       VALUES ($1)
+       ON CONFLICT (email) DO NOTHING`,
+      [email]
+    );
+  }
+
+  iamUserFetched(email) {
+    const query = `
+      UPDATE ${this.schema}."user"
+      SET last_seen_iam = CURRENT_TIMESTAMP
+      WHERE email = $1
+    `;
+    return this.query(query, [email]);
   }
 
   setEsStageInsertedAt(email, timestamp) {
@@ -178,7 +213,7 @@ class PgClient {
       timestamp = new Date();
     }
     const query = `
-      UPDATE ${this.schema}.user
+      UPDATE ${this.schema}."user"
       SET es_stage_inserted_at = $2
       WHERE email = $1
     `;
