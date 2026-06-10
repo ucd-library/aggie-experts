@@ -1,6 +1,7 @@
 import { Elasticsearch, getEsClient } from './lib/elasticsearch/index.js';
 import { logger, logReqMiddleware, createLogger } from './lib/logger.js';
 import GoogleSecret from './lib/google-secret.js';
+import SlackNotifier from './lib/slack-notifier.js';
 import config from './lib/config.js';
 import { getYearWeek, getTodaysDate, isPlainDate, parseYearWeek } from './lib/year-week.js';
 import ElementsClient from './lib/elements-client.js';
@@ -16,6 +17,7 @@ export {
   logReqMiddleware,
   createLogger,
   GoogleSecret,
+  SlackNotifier,
   config,
   getYearWeek,
   getTodaysDate,

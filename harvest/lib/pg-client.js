@@ -3,8 +3,19 @@ import fs from 'fs/promises';
 import { config } from '@ucd-lib/experts-commons';
 
 class PgClient {
-  constructor(_config, schema=null) {
+  constructor(_config, schema=null, apiSchema=null) {
+    // schema    : ETL observability tables (command, error, year_week,
+    //             validation_issue, elastic_search_index, AND etl_reporting."user"
+    //             which holds per-moniker ETL timestamps; composite PK expert_id+email).
+    // apiSchema : API-shaped projection tables, notably api."user" (identity +
+    //             profile fields consumed by the webapp endpoints; PK expert_id),
+    //             grant, work.
+    //
+    // upsertUser() keeps both user tables in sync: etl_reporting.user gets one
+    // row per (expert_id, email) moniker; api.user gets one row per person with
+    // the email updated to the current active moniker.
     this.schema = schema || 'etl_reporting';
+    this.apiSchema = apiSchema || 'api';
 
     if( !_config ) {
       _config = {
@@ -146,40 +157,45 @@ class PgClient {
     return this.query(query, [config.url]);
   }
 
-  ensureUserExpertId(email, expertId) {
-    const query = `
-      UPDATE ${this.schema}.user
-      SET expert_id = $2
-      WHERE email = $1
-    `;
-    return this.query(query, [email, expertId]);
+  // ----- api.user + etl_reporting.user combined upsert -----
+
+  async upsertUser(expertId, email) {
+    // etl_reporting.user: composite PK (expert_id, email) — one row per moniker
+    await this.query(
+      `INSERT INTO ${this.schema}."user" (expert_id, email)
+       VALUES ($1, $2)
+       ON CONFLICT (expert_id, email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP`,
+      [expertId, email]
+    );
+    // api.user: expert_id PK — one row per person; update email if moniker changed
+    await this.query(
+      `INSERT INTO ${this.apiSchema}."user" (expert_id, email)
+       VALUES ($1, $2)
+       ON CONFLICT (expert_id) DO UPDATE SET email = EXCLUDED.email`,
+      [expertId, email]
+    );
   }
 
-  insertCdlUser(email) {
-    const query = `
-      INSERT INTO ${this.schema}.user (email)
-      VALUES ($1)
-      ON CONFLICT (email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP
-    `;
-    return this.query(query, [email]);
-  }
-
-  iamUserFetched(email) {
-    const query = `
-      UPDATE ${this.schema}.user
-      SET last_seen_iam = CURRENT_TIMESTAMP
-      WHERE email = $1
-    `;
-    return this.query(query, [email]);
-  }
+  // ----- api.user methods (identity / profile / privacy) -----
 
   setUserPrivacy(email, isPublic, cdlPrivacy, odrPrivacy) {
     const query = `
-      UPDATE ${this.schema}.user
+      UPDATE ${this.apiSchema}."user"
       SET is_public = $2, cdl_privacy = $3, odr_privacy = $4
       WHERE email = $1
     `;
     return this.query(query, [email, isPublic, JSON.stringify(cdlPrivacy), JSON.stringify(odrPrivacy)]);
+  }
+
+  // ----- etl_reporting.user methods (ETL observability timestamps) -----
+
+  iamUserFetched(email) {
+    const query = `
+      UPDATE ${this.schema}."user"
+      SET last_seen_iam = CURRENT_TIMESTAMP
+      WHERE email = $1
+    `;
+    return this.query(query, [email]);
   }
 
   setEsStageInsertedAt(email, timestamp) {
@@ -187,7 +203,7 @@ class PgClient {
       timestamp = new Date();
     }
     const query = `
-      UPDATE ${this.schema}.user
+      UPDATE ${this.schema}."user"
       SET es_stage_inserted_at = $2
       WHERE email = $1
     `;

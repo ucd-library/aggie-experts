@@ -46,6 +46,13 @@ class ReloadSearchTemplateConfig(Config):
     template: str = Field('complete', description="Search template name to load into Elasticsearch")
 
 
+class SlackNotifyConfig(Config):
+    title: str = Field(..., description="Message title")
+    message: str = Field('', description="Message body")
+    severity: str = Field('info', description="Severity level: info, warning, or error")
+    source: str = Field('dagster', description="Source label shown in the notification")
+
+
 # ---------------------------------------------------------------------------
 # Partition definitions
 # ---------------------------------------------------------------------------
