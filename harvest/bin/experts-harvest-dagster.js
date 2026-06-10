@@ -117,6 +117,7 @@ program
   .command('run-transform-load-users-job')
   .description('Trigger the transform-load-users Dagster job')
   .option('--notify', 'Whether to send notifications for the backfill')
+  .option('--continue-etl', 'Whether to continue to the post-ETL process after load')
   .option('--retries <count>', 'Number of times to retry failed steps', '2')
   .option('--partition-keys <keys>', 'Comma-separated list of partition keys to process.  Use "." for stdin', null)
   .action(async (opts) => {
@@ -126,6 +127,7 @@ program
     const steps = ['transform_user_webapp', 'load_user'];
     let tags = {
       'notify': opts.notify ? 'true' : 'false',
+      'continue_etl': opts.continueEtl ? 'true' : 'false',
       'dagster/max_retries' : opts.retries
     };
     
@@ -163,5 +165,23 @@ program
 //     const dagster = new DagsterAPI();
 //     console.log(await dagster.deleteDynamicPartitions(config.dagster.partitionName, [key]));
 //   });
+
+program
+  .command('run-post-etl-job')
+  .description('Launch the non-partitioned post_etl_job (IAM lapsed-user check)')
+  .action(async () => {
+    const dagster = new DagsterAPI();
+    const resp = await dagster.launchRun('post_etl_job');
+
+    if (resp?.data?.launchRun?.__typename !== 'LaunchRunSuccess') {
+      console.error('Failed to launch post_etl_job', JSON.stringify(resp, null, 2));
+      throw new Error('Failed to launch post_etl_job');
+    }
+
+    console.log(JSON.stringify({ runId: resp.data.launchRun.run.runId }));
+
+    // things seem to hang after this point... so force exit
+    process.exit();
+  });
 
 program.parse(process.argv);

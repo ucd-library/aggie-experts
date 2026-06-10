@@ -142,11 +142,20 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
                     cmd = ["experts", "harvest", "dagster", "run-transform-load-users-job"]
                     if notify == "true":
                         cmd += ["--notify", "true"]
+                    cmd += ["--continue-etl"]
                     cmd += ["--partition-keys", "."]
                     exec(cmd, stdin_data=stdin_data, no_json_parse=True)
                 except Exception as e:
                     context.log.error(f"Error triggering transform_load_users_job for backfill {backfill_id}: {e}")
                     raise e
                 context.log.info(f"Executed backfill via cli.")
+            elif continue_etl == "true" and job_name == "transform_load_users_job":
+                context.log.info(f"transform_load_users_job complete for backfill {backfill_id}. Triggering post_etl_job.")
+                try:
+                    exec(["experts", "harvest", "dagster", "run-post-etl-job"], no_json_parse=True)
+                except Exception as e:
+                    context.log.error(f"Error triggering post_etl_job for backfill {backfill_id}: {e}")
+                    raise e
+                context.log.info(f"Launched post_etl_job via cli.")
             else:
                 context.log.info(f"No not a extract_users_job or continue_etl is not true for backfill {backfill_id}, skipping triggering next job.")
