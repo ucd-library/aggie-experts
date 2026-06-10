@@ -213,14 +213,16 @@ class PgClient {
   getUsersLapsedFromCdl() {
     // Returns users whose last_seen_cdl fell in last week — they just dropped off CDL.
     // Used by the post-ETL IAM check to see if these users are still in IAM.
+    // DISTINCT ON (email) de-dupes in case a person has multiple rows due to an email change.
     const query = `
       WITH last_year_week AS (
         SELECT year_week FROM ${this.schema}.get_year_week((NOW() - INTERVAL '7 days')::DATE)
       )
-      SELECT email, last_seen_cdl, last_seen_iam
+      SELECT DISTINCT ON (email) email, last_seen_cdl, last_seen_iam
       FROM ${this.schema}."user"
       WHERE (SELECT year_week FROM last_year_week)
         = (SELECT year_week FROM ${this.schema}.get_year_week(last_seen_cdl::DATE))
+      ORDER BY email, last_seen_cdl DESC
     `;
     return this.query(query);
   }
