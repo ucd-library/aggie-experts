@@ -1,11 +1,12 @@
 import { Command } from 'commander';
 import CdlClient from '../lib/extract/cdl.js';
 import DagsterAPI from '../lib/dagster/api.js';
-import { 
+import {
   getYearWeek,
   logger,
   config
 } from '@ucd-lib/experts-commons';
+import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
 import path from 'path';
 const program = new Command();
