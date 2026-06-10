@@ -164,6 +164,39 @@ class DagsterAPI {
     }, true));
   }
 
+  launchRun(jobName, tags={}) {
+    let t = [];
+    for (let key in tags) {
+      t.push({ key, value: tags[key] });
+    }
+
+    const mutation = `mutation LaunchRun($executionParams: ExecutionParams!) {
+      launchRun(executionParams: $executionParams) {
+        __typename
+        ... on LaunchRunSuccess {
+          run { runId }
+        }
+        ... on InvalidSubsetError { message }
+        ... on RunConflict { message }
+        ... on PythonError { message stack }
+      }
+    }`;
+
+    const variables = {
+      executionParams: {
+        selector: {
+          repositoryLocationName: config.dagster.repositoryLocationName,
+          repositoryName: config.dagster.repositoryName,
+          jobName
+        },
+        runConfigData: {},
+        tags: t
+      }
+    };
+
+    return this.graphqlQuery(mutation, variables);
+  }
+
   startBackfill(jobName, steps, partitionKeys, tags={}) {
     if( !partitionKeys || !Array.isArray(partitionKeys) || partitionKeys.length === 0 ) {
       throw new Error('partitionKeys must be a non-empty array');

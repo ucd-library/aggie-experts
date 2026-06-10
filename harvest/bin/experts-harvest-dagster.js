@@ -6,7 +6,6 @@ import {
   logger,
   config
 } from '@ucd-lib/experts-commons';
-import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
 import path from 'path';
 const program = new Command();
@@ -25,20 +24,6 @@ program
     const client = new CdlClient();
     const dagster = new DagsterAPI();
     const users = await client.getGroupList(groupId);
-
-    // report users we see
-    let pgClient;
-    try {
-      pgClient = new PgClient();
-      await pgClient.connect();
-      for( let user of users.users ) {
-        await pgClient.insertCdlUser(user);
-      }
-    } catch (error) {
-      logger.error('Error reporting users to database', { error: error.message });
-    } finally {
-      await pgClient.end();
-    }
 
     await dagster.createDynamicPartitions(config.dagster.partitions.user, users.users);
 
@@ -132,6 +117,7 @@ program
   .command('run-transform-load-users-job')
   .description('Trigger the transform-load-users Dagster job')
   .option('--notify', 'Whether to send notifications for the backfill')
+  .option('--continue-etl', 'Whether to continue to the post-ETL process after load')
   .option('--retries <count>', 'Number of times to retry failed steps', '2')
   .option('--partition-keys <keys>', 'Comma-separated list of partition keys to process.  Use "." for stdin', null)
   .action(async (opts) => {
@@ -141,6 +127,7 @@ program
     const steps = ['transform_user_webapp', 'load_user'];
     let tags = {
       'notify': opts.notify ? 'true' : 'false',
+      'continue_etl': opts.continueEtl ? 'true' : 'false',
       'dagster/max_retries' : opts.retries
     };
     
@@ -276,6 +263,24 @@ program
         if( pgClient ) await pgClient.end();
       }
     }
+
+    // things seem to hang after this point... so force exit
+    process.exit();
+  });
+
+program
+  .command('run-post-etl-job')
+  .description('Launch the non-partitioned post_etl_job (IAM lapsed-user check)')
+  .action(async () => {
+    const dagster = new DagsterAPI();
+    const resp = await dagster.launchRun('post_etl_job');
+
+    if (resp?.data?.launchRun?.__typename !== 'LaunchRunSuccess') {
+      console.error('Failed to launch post_etl_job', JSON.stringify(resp, null, 2));
+      throw new Error('Failed to launch post_etl_job');
+    }
+
+    console.log(JSON.stringify({ runId: resp.data.launchRun.run.runId }));
 
     // things seem to hang after this point... so force exit
     process.exit();

@@ -320,7 +320,7 @@ return html`
                   <h5 data-id=${grant['@id']}>${grant.dateTimeInterval?.end?.dateTime?.split('-')?.[0]}
                     <span style="padding: 0 0.25rem;"
                     class="dot">•</span> ${grant.name}</h5>
-                  <p style="margin-bottom: 0;">Error: Cannot format grant. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>
+                  <p style="margin-bottom: 0;">Error: Cannot format grant. Contact your <a href="mailto:experts@ucdavis.edu">Aggie Experts administrator.</a></p>
                 </div>
               </div>
               <hr style="border-color: #CCE0F3;" ?hidden=${index+1 === this.grantsWithErrors.length}>

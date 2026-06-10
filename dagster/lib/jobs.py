@@ -12,6 +12,7 @@ from .assets import (
     fetch_user_list_from_cdl,
     ensure_current_index,
     exec_weekly_etl,
+    check_iam_lapsed_users,
     purge_dagster_runs,
     purge_reporting_db,
     purge_stale_user_partitions,
@@ -54,6 +55,13 @@ transform_load_users_job = dg.define_asset_job(
     name="transform_load_users_job",
     description="Job to run the second Webapp Transform (requires all users) and load user after extraction.",
     selection=dg.AssetSelection.assets(transform_user_webapp, load_user),
+    tags={"dagster/priority": "-1"}
+)
+
+post_etl_job = dg.define_asset_job(
+    name="post_etl_job",
+    description="Post-ETL job: check IAM for users who dropped off CDL last week and update last_seen_iam.",
+    selection=dg.AssetSelection.assets(check_iam_lapsed_users),
     tags={"dagster/priority": "-1"}
 )
 

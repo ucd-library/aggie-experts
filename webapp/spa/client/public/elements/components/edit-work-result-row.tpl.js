@@ -257,7 +257,7 @@ return html`
         <span ?hidden="${!this.showYear}" class="dot">•</span>
         <span style="min-width: fit-content;">${utils.getCitationType(this.cite.type)}</span>
         <span class="dot">•</span>
-        ${unsafeHTML(this.cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>')}
+        ${unsafeHTML(this.cite.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '') || 'Cannot format citation. Contact your <a href="mailto:experts@ucdavis.edu">Aggie Experts administrator.</a>')}
       </div>
     </div>
     <div class="select-checkbox">

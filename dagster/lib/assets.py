@@ -233,6 +233,22 @@ def exec_weekly_etl(context: AssetExecutionContext, config: NotifyConfig) -> Non
 
 
 # ---------------------------------------------------------------------------
+# Post-ETL assets
+# ---------------------------------------------------------------------------
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="etl"
+)
+def check_iam_lapsed_users(context: AssetExecutionContext) -> None:
+    """Post-ETL: for users who dropped off CDL last week, check IAM and update last_seen_iam if still found."""
+    result = exec(["experts", "harvest", "reporting", "check-iam-lapsed"])
+    if result:
+        context.add_output_metadata(metadata=result)
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Cleanup assets
 # ---------------------------------------------------------------------------
 
