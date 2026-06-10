@@ -11,6 +11,7 @@ const {
   fetchMivPostgresGrants,
   buildRawGrantResponse,
   getContributorName,
+  cleanContributorName,
   isPiRole,
   normalizeGrantRoleTypes,
   formatDateToString
@@ -213,20 +214,33 @@ router.get(
       const out = grants.map(grant => {
         const roles = rolesByGrant.get(grant.grant_id) || [];
 
-        const contributors = roles
-          .filter(role => role.expert_id !== normalizedExpertId)
+        const linkedRoleIds = new Set(
+          roles.filter(r => r.expert_id).map(r => r.role_id)
+        );
+
+        const linkedContributors = roles
+          .filter(role => role.expert_id && role.expert_id !== normalizedExpertId)
           .filter(role => isPiRole(role.role_type_uri))
           .map(role => {
             const name = String(getContributorName(grant, role) || '').trim();
             if (!name) return null;
-
-            return {
-              '@id': role.role_id,
-              name,
-              role: role.role_type_uri
-            };
+            return { '@id': role.role_id, name, role: role.role_type_uri };
           })
           .filter(Boolean);
+
+        const rawRelatedBy = Array.isArray(grant.raw_payload?.relatedBy) ? grant.raw_payload.relatedBy : [];
+        const rawContributors = rawRelatedBy
+          .filter(r => r['@id'] && !linkedRoleIds.has(r['@id']))
+          .filter(r => r.inheres_in !== `expert/${normalizedExpertId}`)
+          .filter(r => [].concat(r['@type'] || []).some(t => isPiRole(t)))
+          .map(r => {
+            const name = cleanContributorName(r.name);
+            if (!name) return null;
+            return { '@id': r['@id'], name, role: [].concat(r['@type'] || [])[0] };
+          })
+          .filter(Boolean);
+
+        const contributors = [...linkedContributors, ...rawContributors];
 
         const roleLabel = Array.from(
           new Set(
@@ -274,23 +288,11 @@ router.get(
     const since = req.query.since || null;
     const until = req.query.until || generateGrantFormattedDate();
     const expertId = String(req.expertId || '').trim();
+    const normalizedExpertId = expertId.replace(/^expert\//, '');
 
     try {
       const { grants, rolesByGrant } = await fetchMivPostgresGrants(expertId, since, until);
-
-      const DEBUG_GRANT_ID = 'ark:/87287/d7gt0q/grant/K331B60-118605';
-      const out = grants.map(grant => {
-        const roles = rolesByGrant.get(grant.grant_id) || [];
-        if (grant.grant_id === DEBUG_GRANT_ID) {
-          console.log('[DEBUG raw_grants_pg] grant:', JSON.stringify({
-            grant_id: grant.grant_id,
-            raw_payload_relatedBy: grant.raw_payload?.relatedBy ?? null
-          }, null, 2));
-          console.log('[DEBUG raw_grants_pg] roles from expert_grant_role:', JSON.stringify(roles, null, 2));
-        }
-        return buildRawGrantResponse(grant, roles);
-      });
-
+      const out = grants.map(grant => buildRawGrantResponse(grant, rolesByGrant.get(grant.grant_id) || [], normalizedExpertId));
       res.send(out);
     } catch (err) {
       console.error(err);

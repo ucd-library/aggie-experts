@@ -22,6 +22,44 @@ import PgClient from '../pg-client.js';
 import PgJsonld from '../pg-jsonld.js';
 import ApiUser from './user.js';
 
+const NAME_SUFFIX_RE = /^(jr|sr|ii|iii|iv)$/;
+/**
+ * Normalize a display name into one or more comparable forms.
+ * Expects "Lastname, Firstname [Middle] [Suffix]" format.
+ * Returns lowercase alpha-only variants like ["bishop,matthew"].
+ * For compound surnames also returns a core-token variant.
+ * @param {string} raw
+ * @returns {string[]}
+ */
+function normalizeNameVariants(raw) {
+  if (!raw) return [];
+  let n = String(raw).replace(/^[^:]+:\s*/, '');
+  n = n.replace(/\(.*?\)/g, '');
+  const parts = n.split(',');
+  if (parts.length >= 2) {
+    const lastRaw = parts[0].trim();
+    const givenRaw = parts[1].trim();
+    const last = lastRaw.toLowerCase().replace(/[^a-z]/g, '');
+    const given = (givenRaw.split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!last && !given) return [];
+    const variants = [`${last},${given}`];
+    const lastTokens = lastRaw.split(/\s+/).filter(Boolean);
+    if (lastTokens.length > 1) {
+      let coreLast = '';
+      for (let i = lastTokens.length - 1; i >= 0; i--) {
+        const t = lastTokens[i].toLowerCase().replace(/[^a-z]/g, '');
+        if (!t || NAME_SUFFIX_RE.test(t)) continue;
+        coreLast = t;
+        break;
+      }
+      if (coreLast && coreLast !== last) variants.push(`${coreLast},${given}`);
+    }
+    return variants;
+  }
+  const fallback = n.toLowerCase().replace(/[^a-z,]/g, '');
+  return fallback ? [fallback] : [];
+}
+
 class MivApi {
   /**
    * @param {Object} [opts]
@@ -74,11 +112,51 @@ class MivApi {
           grant_id: grantNode['@id'],
           expert_id: PgJsonld.normalizeExpertId(PgJsonld.getExpertIdFromRole(role)),
           role_type_uri: PgJsonld.pickRoleType(role),
-          is_visible: role?.['is-visible'] === true
+          is_visible: role?.['is-visible'] === true,
+          _name: role.name || null
         };
       })
       .filter(Boolean)
       .filter(role => role.grant_id && role.role_type_uri);
+  }
+
+  /**
+   * Build a map of normalized name variant → expert_id from the user table.
+   * Called once per load() invocation so name lookups are O(1) per role.
+   * @param {Object} client - pg client
+   * @returns {Promise<Map<string, string>>}
+   */
+  async buildUserNameMap(client) {
+    const result = await client.query(
+      `SELECT expert_id, display_name FROM ${this.schema}."user"
+       WHERE display_name IS NOT NULL AND expert_id IS NOT NULL`
+    );
+    const map = new Map();
+    for (const row of result.rows) {
+      for (const variant of normalizeNameVariants(row.display_name)) {
+        if (!map.has(variant)) map.set(variant, row.expert_id);
+      }
+    }
+    return map;
+  }
+
+  /**
+   * For roles with a null expert_id, attempt to resolve via name matching
+   * against the user table map built by buildUserNameMap().
+   * @param {Object[]} roles
+   * @param {Map<string, string>} userNameMap
+   * @returns {Object[]}
+   */
+  resolveRoleExpertIds(roles, userNameMap) {
+    if (!userNameMap?.size) return roles;
+    return roles.map(role => {
+      if (role.expert_id || !role._name) return role;
+      for (const variant of normalizeNameVariants(role._name)) {
+        const expertId = userNameMap.get(variant);
+        if (expertId) return { ...role, expert_id: expertId };
+      }
+      return role;
+    });
   }
 
   // --------------------------------------------------------------------------
@@ -323,6 +401,8 @@ class MivApi {
 
       await this.user.upsertUser(pgClient, userRecord, yearWeek);
 
+      const userNameMap = await this.buildUserNameMap(pgClient);
+
       for (const file of grantFiles) {
         let grantDoc = await PgJsonld.readJson(file.path);
         if (!grantDoc) continue;
@@ -336,13 +416,13 @@ class MivApi {
         const grantRecord = this.buildGrantRecord(grantDoc);
         if (!grantRecord?.grant_id) continue;
 
-        await this.upsertGrant(pgClient, grantRecord, yearWeek);
-        await this.replaceGrantRoles(
-          pgClient,
-          grantRecord.grant_id,
+        const roles = this.resolveRoleExpertIds(
           this.buildGrantRoles(grantDoc),
-          userRecord.expert_id
+          userNameMap
         );
+
+        await this.upsertGrant(pgClient, grantRecord, yearWeek);
+        await this.replaceGrantRoles(pgClient, grantRecord.grant_id, roles, userRecord.expert_id);
       }
 
       await pgClient.query('COMMIT');
