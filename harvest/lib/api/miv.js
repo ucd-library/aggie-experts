@@ -128,13 +128,15 @@ class MivApi {
    */
   async buildUserNameMap(client) {
     const result = await client.query(
-      `SELECT expert_id, display_name FROM ${this.schema}."user"
-       WHERE display_name IS NOT NULL AND expert_id IS NOT NULL`
+      `SELECT expert_id, expert_raw_payload FROM ${this.schema}."user"
+       WHERE expert_raw_payload IS NOT NULL AND expert_id IS NOT NULL`
     );
     const map = new Map();
     for (const row of result.rows) {
-      for (const variant of normalizeNameVariants(row.display_name)) {
-        if (!map.has(variant)) map.set(variant, row.expert_id);
+      const nameMatches = row.expert_raw_payload?.['http://schema.library.ucdavis.edu/schema#name_match'] || [];
+      for (const nm of nameMatches) {
+        const val = nm?.['@value'];
+        if (val && !map.has(val)) map.set(val, row.expert_id);
       }
     }
     return map;
@@ -143,6 +145,8 @@ class MivApi {
   /**
    * For roles with a null expert_id, attempt to resolve via name matching
    * against the user table map built by buildUserNameMap().
+   * Extracts the fragment from #roleof_* role IDs (e.g. "bishop_matthewa")
+   * and matches it against the pre-computed name_match values in expert_raw_payload.
    * @param {Object[]} roles
    * @param {Map<string, string>} userNameMap
    * @returns {Object[]}
@@ -150,9 +154,11 @@ class MivApi {
   resolveRoleExpertIds(roles, userNameMap) {
     if (!userNameMap?.size) return roles;
     return roles.map(role => {
-      if (role.expert_id || !role._name) return role;
-      for (const variant of normalizeNameVariants(role._name)) {
-        const expertId = userNameMap.get(variant);
+      if (role.expert_id) return role;
+      const match = String(role.role_id || '').match(/#roleof_(.+)$/i);
+      const fragment = match?.[1];
+      if (fragment) {
+        const expertId = userNameMap.get(fragment);
         if (expertId) return { ...role, expert_id: expertId };
       }
       return role;

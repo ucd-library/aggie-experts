@@ -172,13 +172,23 @@ function buildRawGrantResponse(grant, roles, expertId='') {
     // experts (e.g. Peisert) will be resolved and move into validRoles automatically.
     const validRoles = roles.filter(r => r.expert_id);
     const validRoleIds = new Set(validRoles.map(r => r.role_id));
+    // Get the queried expert's display name to exclude their unresolved stubs (#roleof_ entries
+    // without inheres_in that haven't been resolved by harvest yet)
+    const expertDisplayName = cleanContributorName(
+      roles.find(r => r.expert_id === expertId)?.display_name || ''
+    ).toLowerCase();
     const rawById = {};
     const nonExpertRawEntries = [];
     if (Array.isArray(payload.relatedBy)) {
       for (const r of payload.relatedBy) {
         if (!r['@id']) continue;
         rawById[r['@id']] = r;
-        if (!validRoleIds.has(r['@id'])) nonExpertRawEntries.push(r);
+        if (!validRoleIds.has(r['@id'])) {
+          const rName = cleanContributorName(r.name).toLowerCase();
+          if (!expertDisplayName || !rName || rName !== expertDisplayName) {
+            nonExpertRawEntries.push(r);
+          }
+        }
       }
     }
 

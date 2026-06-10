@@ -15,6 +15,8 @@ const {
   buildSitefarmExpertResponse
 } = require('./model.js');
 
+const usePg = process.env.SF_MIV_POSTGRES === 'true';
+
 function siteFarmFormat(req, res, next) {
   // This function will take the query return of expert data and format it for sitefarm
 
@@ -147,11 +149,7 @@ function siteFarmFormat(req, res, next) {
   next();
 }
 
-router.get(
-  '/experts/:ids',
-  has_access('sitefarm'),
-  convertIds,
-  async (req, res, next) => {
+async function expertsHandlerEs(req, res, next) {
     const expert_model = await model.get_model('expert');
     res.doc_array = [];
     var doc;
@@ -199,27 +197,11 @@ router.get(
       return res.status(500).json({ error: 'Error fetching expert data', details: error.message });
     }
     next();
-  },
-  siteFarmFormat,
-  (req, res) => {
-    res.status(200).json(res.doc_array);
-  }
-);
+}
 
 const model = new ExpertModel();
 
-// ---------------------------------------------------------------------------
-// Postgres-backed sitefarm endpoint (coexists with the ES /experts route).
-//
-// Reads from the api schema tables populated by harvest/lib/reporting from
-// ae-std documents — decouples the sitefarm API from the elasticsearch index
-// while keeping the existing /experts/:ids path untouched for now.
-// ---------------------------------------------------------------------------
-router.get(
-  '/experts_pg/:ids',
-  has_access('sitefarm'),
-  convertIds,
-  async (req, res) => {
+async function expertsHandlerPg(req, res) {
     // Validate modified_since (same rule as the ES path)
     if (req.query.modified_since) {
       const modifiedSinceDate = new Date(req.query.modified_since);
@@ -253,7 +235,9 @@ router.get(
       console.error(error);
       res.status(500).json({ error: 'Error fetching expert data', details: error.message });
     }
-  }
-);
+}
+
+router.get('/experts/:ids',    has_access('sitefarm'), convertIds, usePg ? expertsHandlerPg : [expertsHandlerEs, siteFarmFormat, (req, res) => res.status(200).json(res.doc_array)]);
+router.get('/experts_pg/:ids', has_access('sitefarm'), convertIds, expertsHandlerPg);
 
 module.exports = router;
