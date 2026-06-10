@@ -6,7 +6,6 @@ import {
   logger,
   config
 } from '@ucd-lib/experts-commons';
-import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
 import path from 'path';
 const program = new Command();
@@ -25,20 +24,6 @@ program
     const client = new CdlClient();
     const dagster = new DagsterAPI();
     const users = await client.getGroupList(groupId);
-
-    // report users we see
-    let pgClient;
-    try {
-      pgClient = new PgClient();
-      await pgClient.connect();
-      for( let user of users.users ) {
-        await pgClient.insertCdlUser(user);
-      }
-    } catch (error) {
-      logger.error('Error reporting users to database', { error: error.message });
-    } finally {
-      await pgClient.end();
-    }
 
     await dagster.createDynamicPartitions(config.dagster.partitions.user, users.users);
 

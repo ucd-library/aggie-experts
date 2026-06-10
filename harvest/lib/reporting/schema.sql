@@ -99,17 +99,30 @@ CREATE TABLE IF NOT EXISTS etl_reporting.year_week (
 -- ============================================================================
 -- etl_reporting.user — per-user ETL observability timestamps
 -- ----------------------------------------------------------------------------
--- Sister table to api."user". Same primary key (email). Tracks when each user
--- was seen in CDL/IAM, when they were inserted into elasticsearch staging,
--- and the first such ES insertion (set by trigger so it sticks across reloads).
+-- Tracks when each (expert_id, email) moniker was seen in CDL/IAM, when it
+-- was inserted into elasticsearch staging, and the first such ES insertion
+-- (set by trigger so it sticks across reloads).
+--
+-- The composite PK (expert_id, email) intentionally allows one row per
+-- moniker. Users with dual appointments (e.g. @ucdavis.edu and @berkeley.edu)
+-- will have two rows sharing the same expert_id. All downstream views join on
+-- email as user_id and operate at the moniker level. If a query is ever added
+-- that groups or aggregates by expert_id across emails, beware of fan-out: a
+-- user with N monikers will produce N rows here and could be counted multiple
+-- times.
+--
+-- Sister table to api."user", which holds identity/profile data and is keyed
+-- by expert_id (one row per person).
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS etl_reporting."user" (
-  email                VARCHAR(255) PRIMARY KEY,
+  expert_id            VARCHAR(16)  NOT NULL,
+  email                VARCHAR(255) NOT NULL,
   first_seen_cdl       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_cdl        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_seen_iam        TIMESTAMP,
   es_stage_inserted_at TIMESTAMP,
-  first_es_insert      TIMESTAMP DEFAULT NULL
+  first_es_insert      TIMESTAMP DEFAULT NULL,
+  PRIMARY KEY (expert_id, email)
 );
 
 CREATE OR REPLACE FUNCTION etl_reporting.set_user_first_es_insert()

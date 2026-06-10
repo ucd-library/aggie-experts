@@ -6,13 +6,14 @@ class PgClient {
   constructor(_config, schema=null, apiSchema=null) {
     // schema    : ETL observability tables (command, error, year_week,
     //             validation_issue, elastic_search_index, AND etl_reporting."user"
-    //             which holds the per-user ETL timestamps).
+    //             which holds per-moniker ETL timestamps; composite PK expert_id+email).
     // apiSchema : API-shaped projection tables, notably api."user" (identity +
-    //             profile fields consumed by the webapp endpoints), grant, work.
+    //             profile fields consumed by the webapp endpoints; PK expert_id),
+    //             grant, work.
     //
-    // The two "user" tables are sister records keyed by email — etl_reporting
-    // holds observability state, api holds identity/profile. insertCdlUser
-    // bootstraps both.
+    // upsertUser() keeps both user tables in sync: etl_reporting.user gets one
+    // row per (expert_id, email) moniker; api.user gets one row per person with
+    // the email updated to the current active moniker.
     this.schema = schema || 'etl_reporting';
     this.apiSchema = apiSchema || 'api';
 
@@ -156,16 +157,26 @@ class PgClient {
     return this.query(query, [config.url]);
   }
 
-  // ----- api.user methods (identity / profile / privacy) -----
+  // ----- api.user + etl_reporting.user combined upsert -----
 
-  ensureUserExpertId(email, expertId) {
-    const query = `
-      UPDATE ${this.apiSchema}."user"
-      SET expert_id = $2
-      WHERE email = $1
-    `;
-    return this.query(query, [email, expertId]);
+  async upsertUser(expertId, email) {
+    // etl_reporting.user: composite PK (expert_id, email) — one row per moniker
+    await this.query(
+      `INSERT INTO ${this.schema}."user" (expert_id, email)
+       VALUES ($1, $2)
+       ON CONFLICT (expert_id, email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP`,
+      [expertId, email]
+    );
+    // api.user: expert_id PK — one row per person; update email if moniker changed
+    await this.query(
+      `INSERT INTO ${this.apiSchema}."user" (expert_id, email)
+       VALUES ($1, $2)
+       ON CONFLICT (expert_id) DO UPDATE SET email = EXCLUDED.email`,
+      [expertId, email]
+    );
   }
+
+  // ----- api.user methods (identity / profile / privacy) -----
 
   setUserPrivacy(email, isPublic, cdlPrivacy, odrPrivacy) {
     const query = `
@@ -177,27 +188,6 @@ class PgClient {
   }
 
   // ----- etl_reporting.user methods (ETL observability timestamps) -----
-  //
-  // insertCdlUser does double-duty: it bootstraps both the etl_reporting.user
-  // row (with last_seen_cdl) AND a placeholder row in api.user (so the
-  // subsequent ensureUserExpertId / setUserPrivacy UPDATEs have a row to hit).
-  // The api.user row only carries the email at this point — other identity
-  // and profile columns are filled in later by the extract/load phases.
-
-  async insertCdlUser(email) {
-    await this.query(
-      `INSERT INTO ${this.schema}."user" (email)
-       VALUES ($1)
-       ON CONFLICT (email) DO UPDATE SET last_seen_cdl = CURRENT_TIMESTAMP`,
-      [email]
-    );
-    await this.query(
-      `INSERT INTO ${this.apiSchema}."user" (email)
-       VALUES ($1)
-       ON CONFLICT (email) DO NOTHING`,
-      [email]
-    );
-  }
 
   iamUserFetched(email) {
     const query = `
