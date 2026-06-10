@@ -53,6 +53,14 @@ class SlackNotifyConfig(Config):
     source: str = Field('dagster', description="Source label shown in the notification")
 
 
+class PurgeStaleUserPartitionsConfig(Config):
+    group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # CDL group to diff against
+    force: bool = Field(
+        default=False,
+        description="If False (default), runs a dry-run that only logs which partitions would be deleted. Set True to actually delete them."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Partition definitions
 # ---------------------------------------------------------------------------
