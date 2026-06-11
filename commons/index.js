@@ -6,6 +6,22 @@ import config from './lib/config.js';
 import { getYearWeek, getTodaysDate, isPlainDate, parseYearWeek } from './lib/year-week.js';
 import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
+import {
+  patchExpertVisibility,
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
+  deleteExpert,
+  patchExpertAvailability,
+  patchExpertAvailabilityEs,
+  patchExpertAvailabilityCdl,
+  patchGrantVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
+  patchWorkVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
+  deleteAuthorship
+} from './lib/profile-updates.js';
 
 
 export {
@@ -22,5 +38,19 @@ export {
   getYearWeek,
   getTodaysDate,
   isPlainDate,
-  parseYearWeek
+  parseYearWeek,
+  patchExpertVisibility,
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
+  deleteExpert,
+  patchExpertAvailability,
+  patchExpertAvailabilityEs,
+  patchExpertAvailabilityCdl,
+  patchGrantVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
+  patchWorkVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
+  deleteAuthorship
 };

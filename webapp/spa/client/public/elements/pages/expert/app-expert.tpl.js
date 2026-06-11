@@ -833,7 +833,7 @@ return html`
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT ${!this.isVisible ? '(HIDDEN)' : ''}</span>
           <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
-          <div ?hidden="${this._hideEditExpertControls()}" style="position: relative; display: flex;">
+          <div ?hidden="${this._hideEditExpertControls() || !this.dagsterHealthy}" style="position: relative; display: flex;">
             <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-eye"
@@ -853,7 +853,7 @@ return html`
                 aria-label="Show expert"></ucdlib-icon>
             </span>
           </div>
-          <div ?hidden="${this._hideEditExpertControls()}" style="position: relative; display: flex;">
+          <div ?hidden="${this._hideEditExpertControls() || !this.dagsterHealthy}" style="position: relative; display: flex;">
             <span class="tooltip delete-expert" data-text="Delete expert">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-trash"
@@ -876,7 +876,7 @@ return html`
 
         <div class="mobile-edit-availability" style="padding: 0 .3rem;" ?hidden="${this.hideAvailability && !this.expertEditing}">
           Open to:
-          <span ?hidden="${!this.canEdit}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem">
+          <span ?hidden="${!this.canEdit || !this.dagsterHealthy}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem">
             <span class="tooltip edit-availability" data-text="Edit availability">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
                 @click=${this._editAvailability}
@@ -897,7 +897,7 @@ return html`
           <span ?hidden="${!this.industProjects}">Industry Projects</span>
           <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">•</span>
           <span ?hidden="${!this.mediaInterviews}">Media Interviews</span>
-          <span class="desktop-edit-availability" ?hidden="${!this.canEdit}" style="position: relative; padding-left: 0">
+          <span class="desktop-edit-availability" ?hidden="${!this.canEdit || !this.dagsterHealthy}" style="position: relative; padding-left: 0">
             <span class="tooltip edit-availability" data-text="Edit availability">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
                 @click=${this._editAvailability}
@@ -913,13 +913,12 @@ return html`
     </div>
 
     <div class="main-content">
-      <!--
-      <div class="refresh-profile" ?hidden="${!this.canEdit || (APP_CONFIG.user.expertId !== this.expertId)}">
+      
+      <div class="refresh-profile" ?hidden="${!this.canEdit || (APP_CONFIG.user.expertId !== this.expertId) || !this.dagsterHealthy}">
         <button class="btn--invert" @click="${this._refreshProfile}" ?disabled="${this.refreshingProfileData}"><span>Refresh Profile Data</span></button>
         <span class="last-updated-label" ?hidden="${!this.lastUpdated}">Last Updated: ${this.lastUpdated}</span>
       </div>
-      -->
-
+      
       <div class="experts">
         <ucdlib-icon class="address-card" icon="ucdlib-experts:fa-address-card"></ucdlib-icon>
         <h2>About Me</h2>
@@ -1106,7 +1105,7 @@ return html`
             <h2>${this.totalGrants ? this.totalGrants + ' ' : ''}Grant${this.totalGrants === 1 ? '' : 's'}</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
-            <span ?hidden="${!this.canEdit}" style="position: relative;">
+            <span ?hidden="${!this.canEdit || !this.dagsterHealthy}" style="position: relative;">
               <span class="tooltip edit-grants" data-text="Edit grants">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
@@ -1190,7 +1189,7 @@ return html`
             <h2>${this.totalCitations > 0 ? this.totalCitations + ' ' : ''}Work${this.totalCitations === 1 ? '' : 's'}</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
-            <span ?hidden="${!this.canEdit || (this.totalCitations === 0 && this.hiddenCitations === 0)}" style="position: relative;">
+            <span ?hidden="${!this.canEdit || (this.totalCitations === 0 && this.hiddenCitations === 0) || !this.dagsterHealthy}" style="position: relative;">
               <span class="tooltip edit-works" data-text="Edit works">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"

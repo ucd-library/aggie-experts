@@ -578,6 +578,61 @@ class Utils {
     });
   }
 
+  /**
+   * @method pollAdminUpdateJobs
+   * @description poll dagster job status for an admin update job until it reaches a
+   * terminal state. Logs progress to the console on each tick. When the job is complete
+   * the optional onComplete callback is invoked with the final status.
+   *
+   * @param {Object} res - BaseService response from a DagsterModel admin update call.
+   *   Expected shape: res.body = { data: { launchRun: { run: { runId } } } }
+   * @param {Function} getRunStatus - async fn(runId) returning a BaseService response.
+   *   Expected shape: res.body = { data: { runOrError: { status } } }
+   * @param {Object} opts
+   * @param {String} opts.label - label used in console log messages
+   * @param {Number} opts.interval - polling interval in ms, default 5000
+   * @param {Function} opts.onComplete - callback invoked with the terminal status string
+   *   once the job reaches a terminal state
+   *
+   * @returns {Number|null} setInterval id, or null if no run ID was found in the response
+   */
+  pollAdminUpdateJobs(res, getRunStatus, opts = {}) {
+    const label = opts.label || 'admin update';
+    const interval = opts.interval || 5000;
+    const terminalStates = ['SUCCESS', 'FAILURE', 'CANCELED'];
+
+    const runId = res?.body?.data?.launchRun?.run?.runId;
+
+    if (!runId) {
+      console.warn(`[dagster:${label}] no run ID found in response`, res?.body);
+      return null;
+    }
+
+    console.log(`[dagster:${label}] job launched - runId: ${runId}`);
+
+    let lastStatus = null;
+
+    const intervalId = setInterval(async () => {
+      const statusRes = await getRunStatus(runId);
+      const status = statusRes?.body?.data?.runOrError?.status;
+
+      if (status && status !== lastStatus) {
+        lastStatus = status;
+        console.log(`[dagster:${label}] status: ${status}`);
+      }
+
+      if (terminalStates.includes(status)) {
+        clearInterval(intervalId);
+        console.log(`[dagster:${label}] job complete - status: ${status}`);
+        if (typeof opts.onComplete === 'function') {
+          opts.onComplete(status);
+        }
+      }
+    }, interval);
+
+    return intervalId;
+  }
+
 }
 
 module.exports = new Utils();

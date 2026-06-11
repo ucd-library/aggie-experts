@@ -48,6 +48,7 @@ const config = {
   experts : {
     version : '1.0.0',
     is_public : ! (env.EXPERTS_IS_PUBLIC === "false"),
+    propogateCdlChanges : env.CDL_PROPAGATE_CHANGES === "true",
     cdl: {
       expert: {
         propagate: (env.CDL_PROPAGATE_CHANGES === "true") || false,
