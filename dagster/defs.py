@@ -34,6 +34,7 @@ from lib.assets import (
     delete_indexes,
     get_current_es_state,
     exec_weekly_etl,
+    check_iam_lapsed_users,
     purge_user_cask_files,
     purge_year_week_cask_files,
     purge_dagster_runs,
@@ -45,12 +46,14 @@ from lib.assets import (
     update_expert_availability_es,
     update_expert_availability_cdl,
     send_slack_notification,
+    purge_stale_user_partitions,
 )
 from lib.jobs import (
     etl_users_job,
     extract_users_job,
     transform_load_users_job,
     start_weekly_etl_job,
+    post_etl_job,
     cleanup_job,
     update_scholarly_record_job,
     update_expert_job,
@@ -66,7 +69,7 @@ from lib.schedules import (
 
 defs = dg.Definitions(
     jobs=[
-        etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, cleanup_job,
+        etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, post_etl_job, cleanup_job,
         update_scholarly_record_job, update_expert_job, update_expert_availability_job,
     ],
     assets=[
@@ -74,11 +77,12 @@ defs = dg.Definitions(
         load_user, init_databases, fetch_user_list_from_cdl,
         ensure_current_index, set_alias, reload_search_template,
         create_indexes, delete_indexes, get_current_es_state, exec_weekly_etl,
+        check_iam_lapsed_users,
         purge_user_cask_files, purge_year_week_cask_files, purge_dagster_runs, purge_reporting_db,
         update_scholarly_record_es, update_scholarly_record_cdl,
         update_expert_es, update_expert_cdl,
         update_expert_availability_es, update_expert_availability_cdl,
-        send_slack_notification,
+        send_slack_notification, purge_stale_user_partitions,
     ],
     sensors=[etl_notify_and_continue, admin_update_failure_sensor],
     resources={},

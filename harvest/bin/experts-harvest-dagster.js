@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import CdlClient from '../lib/extract/cdl.js';
 import DagsterAPI from '../lib/dagster/api.js';
-import { 
+import {
   getYearWeek,
   logger,
   config
@@ -25,20 +25,6 @@ program
     const client = new CdlClient();
     const dagster = new DagsterAPI();
     const users = await client.getGroupList(groupId);
-
-    // report users we see
-    let pgClient;
-    try {
-      pgClient = new PgClient();
-      await pgClient.connect();
-      for( let user of users.users ) {
-        await pgClient.insertCdlUser(user);
-      }
-    } catch (error) {
-      logger.error('Error reporting users to database', { error: error.message });
-    } finally {
-      await pgClient.end();
-    }
 
     await dagster.createDynamicPartitions(config.dagster.partitions.user, users.users);
 
@@ -132,6 +118,7 @@ program
   .command('run-transform-load-users-job')
   .description('Trigger the transform-load-users Dagster job')
   .option('--notify', 'Whether to send notifications for the backfill')
+  .option('--continue-etl', 'Whether to continue to the post-ETL process after load')
   .option('--retries <count>', 'Number of times to retry failed steps', '2')
   .option('--partition-keys <keys>', 'Comma-separated list of partition keys to process.  Use "." for stdin', null)
   .action(async (opts) => {
@@ -141,6 +128,7 @@ program
     const steps = ['transform_user_webapp', 'load_user'];
     let tags = {
       'notify': opts.notify ? 'true' : 'false',
+      'continue_etl': opts.continueEtl ? 'true' : 'false',
       'dagster/max_retries' : opts.retries
     };
     
@@ -170,13 +158,133 @@ program
     process.exit();
   });
 
-// program
-//   .command('remove-partition')
-//   .argument('<key>', 'CDL group ID to remove users from')
-//   .description('Remove dynamic partitions in Dagster for each user in the specified CDL group')
-//   .action(async (key) => {
-//     const dagster = new DagsterAPI();
-//     console.log(await dagster.deleteDynamicPartitions(config.dagster.partitionName, [key]));
-//   });
+program
+  .command('remove-stale-user-partitions')
+  .argument('<group-id>', 'CDL group ID to diff against. Must be one of: '+GROUP_IDS.join(', '))
+  .description('Remove Dagster user partitions for users no longer in the CDL group. Defaults to dry-run; pass --yes to actually delete.')
+  .option('--yes', 'Actually delete the stale partitions. Without this flag, the command is a dry-run.', false)
+  .option('--reporting-job-id <job-id>', 'Dagster run ID to associate with reporting rows. Only recorded when --yes is also set.')
+  .action(async (groupId, opts) => {
+    if( !GROUP_IDS.includes(groupId) ) {
+      throw new Error(`Invalid group ID specified.  Must be one of: ${GROUP_IDS.join(', ')}`);
+    }
+
+    const dagster = new DagsterAPI();
+    const partitionsDefName = config.dagster.partitions.user;
+    // Any asset using the 'users' DynamicPartitionsDefinition will return the
+    // same set of partition keys; extract_user is the canonical one.
+    const refAsset = 'extract_user';
+
+    // Get current users list. Prefer the CaskFS-cached list for the current
+    // year-week (written by init-user-partitions at the start of the week);
+    // fall back to a live CDL fetch if it's missing.
+    const userListPath = path.join(cache.getPath(), `users-list-${groupId}.json`);
+    let currentUsers;
+    let source;
+    try {
+      const raw = await cache.read(userListPath);
+      currentUsers = JSON.parse(raw).users;
+      source = `CaskFS ${userListPath}`;
+    } catch (err) {
+      console.log(`No cached user list at ${userListPath} (${err.message}). Falling back to live CDL fetch.`);
+      const client = new CdlClient();
+      const cdl = await client.getGroupList(groupId);
+      currentUsers = cdl.users;
+      source = `live CDL group ${groupId}`;
+    }
+    const cdlUsers = new Set(currentUsers);
+    console.log(`Current user list (${source}) has ${cdlUsers.size} users.`);
+
+    // Get current Dagster partitions.
+    const dagsterPartitions = await dagster.getDynamicPartitionsForAsset(refAsset);
+    console.log(`Dagster has ${dagsterPartitions.length} '${partitionsDefName}' partitions (via asset '${refAsset}').`);
+
+    // Diff: in Dagster but not in CDL.
+    const stale = dagsterPartitions.filter(p => !cdlUsers.has(p));
+
+    if( stale.length === 0 ) {
+      console.log('No stale partitions found. Nothing to do.');
+      process.exit();
+    }
+
+    console.log(`Found ${stale.length} stale partition(s) (in Dagster, not in CDL group ${groupId}):`);
+    for( const key of stale ) {
+      console.log(`  - ${key}`);
+    }
+
+    if( !opts.yes ) {
+      console.log('\nDry-run mode. Re-run with --yes to actually delete these partitions.');
+      process.exit();
+    }
+
+    console.log(`\nDeleting ${stale.length} stale partition(s)...`);
+    const resp = await dagster.deleteDynamicPartitions(partitionsDefName, stale);
+    const result = resp?.data?.deleteDynamicPartitions;
+    if( !result ) {
+      console.error('Unexpected response from Dagster:', JSON.stringify(resp, null, 2));
+      throw new Error('Failed to delete stale partitions');
+    }
+    if( result.message ) {
+      console.error('Dagster error:', result.message);
+      throw new Error('Failed to delete stale partitions: '+result.message);
+    }
+    console.log(`Deleted ${stale.length} stale partition(s) from '${result.partitionsDefName}'.`);
+
+    // Record one reporting row per removed partition so the existing
+    // etl_reporting views and dashboards pick this up alongside other
+    // per-user commands. Only runs when --reporting-job-id is supplied
+    // (i.e. when invoked from the Dagster asset).
+    if( opts.reportingJobId ) {
+      const weekYearInfo = getYearWeek({allValues: true, asString: true});
+      const reportingOptions = {
+        reason: 'not_in_cdl_group',
+        group_id: groupId,
+        source,
+        partitions_def: partitionsDefName
+      };
+
+      let pgClient;
+      try {
+        pgClient = new PgClient();
+        await pgClient.connect();
+        for( const userId of stale ) {
+          await pgClient.insertCommand({
+            job_id: opts.reportingJobId,
+            year_week: weekYearInfo.yearWeek,
+            week_start: weekYearInfo.weekStart,
+            command: 'experts-harvest-remove-partition',
+            user_id: userId,
+            options: reportingOptions
+          });
+        }
+        console.log(`Recorded ${stale.length} 'experts-harvest-remove-partition' row(s) in etl_reporting.command.`);
+      } catch (error) {
+        logger.error('Error recording removed partitions to reporting db', { error: error.message });
+      } finally {
+        if( pgClient ) await pgClient.end();
+      }
+    }
+
+    // things seem to hang after this point... so force exit
+    process.exit();
+  });
+
+program
+  .command('run-post-etl-job')
+  .description('Launch the non-partitioned post_etl_job (IAM lapsed-user check)')
+  .action(async () => {
+    const dagster = new DagsterAPI();
+    const resp = await dagster.launchRun('post_etl_job');
+
+    if (resp?.data?.launchRun?.__typename !== 'LaunchRunSuccess') {
+      console.error('Failed to launch post_etl_job', JSON.stringify(resp, null, 2));
+      throw new Error('Failed to launch post_etl_job');
+    }
+
+    console.log(JSON.stringify({ runId: resp.data.launchRun.run.runId }));
+
+    // things seem to hang after this point... so force exit
+    process.exit();
+  });
 
 program.parse(process.argv);

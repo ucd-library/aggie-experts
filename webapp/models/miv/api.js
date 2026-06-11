@@ -6,6 +6,15 @@ const template = require('./template/miv_grants.json');
 const expert = new ExpertModel();
 
 const { has_access, fetchExpertId } = require('../middleware/index.js')
+const {
+  generateGrantFormattedDate,
+  fetchMivPostgresGrants,
+  buildRawGrantResponse,
+  getContributorName,
+  isPiRole,
+  normalizeGrantRoleTypes,
+  formatDateToString
+} = require('./model.js');
 
 router.get(
   '/user',
@@ -22,15 +31,6 @@ router.get(
     }
   }
 );
-
-function generateGrantFormattedDate() {
-  const now = new Date();
-  const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
-  const localDate = new Date(now.getTime() - tzOffsetMs);
-  return localDate.toISOString().split('T')[0];
-}
-
-const path = require('path');
 
 router.get(
   '/grants',
@@ -193,6 +193,108 @@ router.get(
       console.error(err);
       res.status(400).send(err);
       // res.status(400).send('Invalid request - no likey');
+    }
+  }
+);
+
+router.get(
+  '/grants_pg',
+  has_access('miv'),
+  fetchExpertId,
+  async (req, res) => {
+    const since = req.query.since || null;
+    const until = req.query.until || generateGrantFormattedDate();
+    const expertId = String(req.expertId || '').trim();
+    const normalizedExpertId = expertId.replace(/^expert\//, '');
+
+    try {
+      const { grants, rolesByGrant } = await fetchMivPostgresGrants(expertId, since, until);
+
+      const out = grants.map(grant => {
+        const roles = rolesByGrant.get(grant.grant_id) || [];
+
+        const contributors = roles
+          .filter(role => role.expert_id !== normalizedExpertId)
+          .filter(role => isPiRole(role.role_type_uri))
+          .map(role => {
+            const name = String(getContributorName(grant, role) || '').trim();
+            if (!name) return null;
+
+            return {
+              '@id': role.role_id,
+              name,
+              role: role.role_type_uri
+            };
+          })
+          .filter(Boolean);
+
+        const roleLabel = Array.from(
+          new Set(
+            (grant.role_label || [])
+              .flatMap(normalizeGrantRoleTypes)
+              .filter(Boolean)
+          )
+        );
+
+        const row = {
+          '@id': grant.grant_id,
+          title: (grant.title || '').split('§')?.[0]?.trim() || grant.title,
+          end_date: formatDateToString(grant.end_date),
+          start_date: formatDateToString(grant.start_date),
+          grant_amount: grant.total_award_amount,
+          type: (grant.grant_types || []).length === 1 ? grant.grant_types[0] : (grant.grant_types || []),
+          role_label: roleLabel,
+          contributors
+        };
+
+        if (grant.sponsor_id !== null && grant.sponsor_id !== undefined && grant.sponsor_id !== '') {
+          row.sponsor_id = grant.sponsor_id;
+        }
+
+        if (grant.sponsor_name !== null && grant.sponsor_name !== undefined && grant.sponsor_name !== '') {
+          row.sponsor_name = grant.sponsor_name;
+        }
+
+        return row;
+      });
+
+      res.send({ '@graph': out });
+    } catch (err) {
+      console.error(err);
+      res.status(400).send(err);
+    }
+  }
+);
+
+router.get(
+  '/raw_grants_pg',
+  has_access('miv'),
+  fetchExpertId,
+  async (req, res) => {
+    const since = req.query.since || null;
+    const until = req.query.until || generateGrantFormattedDate();
+    const expertId = String(req.expertId || '').trim();
+
+    try {
+      const { grants, rolesByGrant } = await fetchMivPostgresGrants(expertId, since, until);
+
+      const DEBUG_GRANT_ID = 'ark:/87287/d7gt0q/grant/K331B60-118605';
+      const out = grants.map(grant => {
+        const roles = rolesByGrant.get(grant.grant_id) || [];
+        if (grant.grant_id === DEBUG_GRANT_ID) {
+          console.log('[DEBUG raw_grants_pg] grant:', JSON.stringify({
+            grant_id: grant.grant_id,
+            raw_payload_relatedBy: grant.raw_payload?.relatedBy ?? null
+          }, null, 2));
+          console.log('[DEBUG raw_grants_pg] roles from expert_grant_role:', JSON.stringify(roles, null, 2));
+        }
+        return buildRawGrantResponse(grant, roles);
+      });
+
+      res.send(out);
+    } catch (err) {
+      console.error(err);
+      res.status(400).send(err);
     }
   }
 );

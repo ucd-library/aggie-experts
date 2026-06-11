@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { openapi, json_only, dagster_can_run_partition, public_or_is_user } = require('../middleware/index.js');
+const { json_only, dagster_can_run_partition, public_or_is_user } = require('../middleware/index.js');
 const DagsterAPI = require('../../lib/dagster-api.js');
 const {logger, config} = require('@ucd-lib/experts-commons');
 

@@ -351,7 +351,7 @@ return html`
             </li>
             <li>
               <a
-                href="mailto:experts@library.ucdavis.edu"
+                href="mailto:experts@ucdavis.edu"
                 rel="noopener"
                 >Contact Us</a>
             </li>

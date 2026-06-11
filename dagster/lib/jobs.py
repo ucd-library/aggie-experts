@@ -12,8 +12,10 @@ from .assets import (
     fetch_user_list_from_cdl,
     ensure_current_index,
     exec_weekly_etl,
+    check_iam_lapsed_users,
     purge_dagster_runs,
     purge_reporting_db,
+    purge_stale_user_partitions,
     purge_year_week_cask_files,
     update_scholarly_record_es,
     update_scholarly_record_cdl,
@@ -83,10 +85,22 @@ update_expert_availability_job = dg.define_asset_job(
     tags={"dagster/priority": "2"},
 )
 
+post_etl_job = dg.define_asset_job(
+    name="post_etl_job",
+    description="Post-ETL job: check IAM for users who dropped off CDL last week and update last_seen_iam.",
+    selection=dg.AssetSelection.assets(check_iam_lapsed_users),
+    tags={"dagster/priority": "-1"}
+)
+
 cleanup_job = dg.define_asset_job(
     name="cleanup",
-    description="Job to cleanup; old reporting data (commands 8 weeks, users 6 months), old CaskFS files (weekly harvest from 4 weeks ago), and old Dagster runs (older than 8 weeks).",
-    selection=dg.AssetSelection.assets(purge_dagster_runs, purge_reporting_db, purge_year_week_cask_files),
+    description="Job to cleanup; old reporting data (commands 8 weeks, users 6 months), old CaskFS files (weekly harvest from 4 weeks ago), old Dagster runs (older than 8 weeks), and stale user partitions (users no longer in the CDL group).",
+    selection=dg.AssetSelection.assets(
+        purge_dagster_runs,
+        purge_reporting_db,
+        purge_stale_user_partitions,
+        purge_year_week_cask_files,
+    ),
     tags={
         "dagster/priority": "-1",
         "dagster/max_runtime": str(60 * 60 * 2)  # 2 hour max runtime

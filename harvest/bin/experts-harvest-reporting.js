@@ -3,7 +3,7 @@ import { exec } from 'child_process';
 import {config} from '@ucd-lib/experts-commons';
 import fs from 'fs';
 import path from 'path';
-import { cleanup } from '../lib/reporting/index.js';
+import { cleanup, checkIamForLapsedUsers } from '../lib/reporting/index.js';
 
 const DEFAULT_FILE = 'etl_reporting.dump';
 const SCHEMA = 'etl_reporting';
@@ -133,5 +133,13 @@ function exec_wrapper(command) {
     });
   });
 }
+
+program
+  .command('check-iam-lapsed')
+  .description('For users who dropped off CDL last week, check IAM and update last_seen_iam if still found')
+  .action(async () => {
+    const result = await checkIamForLapsedUsers();
+    console.log(JSON.stringify(result));
+  });
 
 program.parse(process.argv);

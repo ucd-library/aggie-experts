@@ -10,6 +10,11 @@ const md5 = require('md5');
 
 const { json_only, has_access, fetchExpertId, convertIds } = require('../middleware/index.js')
 
+const {
+  fetchSitefarmPostgresExperts,
+  buildSitefarmExpertResponse
+} = require('./model.js');
+
 function siteFarmFormat(req, res, next) {
   // This function will take the query return of expert data and format it for sitefarm
 
@@ -202,5 +207,53 @@ router.get(
 );
 
 const model = new ExpertModel();
+
+// ---------------------------------------------------------------------------
+// Postgres-backed sitefarm endpoint (coexists with the ES /experts route).
+//
+// Reads from the api schema tables populated by harvest/lib/reporting from
+// ae-std documents — decouples the sitefarm API from the elasticsearch index
+// while keeping the existing /experts/:ids path untouched for now.
+// ---------------------------------------------------------------------------
+router.get(
+  '/experts_pg/:ids',
+  has_access('sitefarm'),
+  convertIds,
+  async (req, res) => {
+    // Validate modified_since (same rule as the ES path)
+    if (req.query.modified_since) {
+      const modifiedSinceDate = new Date(req.query.modified_since);
+      const [year, month, day] = req.query.modified_since.split('-').map(Number);
+      const isValidDate = modifiedSinceDate.getFullYear() === year
+        && modifiedSinceDate.getMonth() + 1 === month
+        && modifiedSinceDate.getDate() === day;
+      if (Number.isNaN(modifiedSinceDate.getTime()) || !isValidDate) {
+        return res.status(400).json({ error: 'Invalid modified_since date format' });
+      }
+    }
+
+    const modifiedSince = req.query.modified_since || null;
+    const expertIds = Array.isArray(req.expertIds) ? req.expertIds : [];
+
+    try {
+      const buckets = await fetchSitefarmPostgresExperts(expertIds, modifiedSince);
+
+      // Preserve the order callers passed in; skip any expert not returned by
+      // the query (filtered by modified_since or unknown id).
+      const response = [];
+      for (const requestedId of expertIds) {
+        const bare = String(requestedId || '').replace(/^expert\//, '');
+        const bucket = buckets.get(bare);
+        if (!bucket) continue;
+        response.push(buildSitefarmExpertResponse(bare, bucket));
+      }
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error fetching expert data', details: error.message });
+    }
+  }
+);
 
 module.exports = router;
