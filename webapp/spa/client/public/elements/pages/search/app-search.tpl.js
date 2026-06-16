@@ -178,6 +178,118 @@ return html`
       width: 100%;
     }
 
+    .collapsible-filter-heading {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 0.6rem 0;
+      user-select: none;
+      box-sizing: border-box;
+    }
+
+    .collapsible-filter-heading h4 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--ucd-blue-100, #022851);
+    }
+
+    .filter-collapse-arrow {
+      display: flex;
+      width: 20px;
+      height: 19px;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      color: var(--ucd-blue-80, #13639E);
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .filter-collapse-arrow svg {
+      fill: var(--ucd-blue-80, #13639E);
+    }
+
+    .affiliation-filter-contents {
+      width: 100%;
+      padding: 0.25rem 0 0.5rem;
+    }
+
+    .affiliation-search-wrapper {
+      display: flex;
+      padding: 0.35rem 0.75rem;
+      align-items: center;
+      gap: 10px;
+      width: calc(100% + 1.1875rem);
+      margin-right: -1.1875rem;
+      box-sizing: border-box;
+      background: var(--ucd-blue-30, #EBF3FA);
+      margin-bottom: 0.75rem;
+    }
+
+    .affiliation-search-wrapper svg {
+      flex-shrink: 0;
+      fill: var(--ucd-blue-60, #b0d0ed);
+      pointer-events: none;
+    }
+
+    .affiliation-search-input {
+      flex: 1 0 0;
+      background: transparent;
+      border: none;
+      font-family: "Proxima Nova", sans-serif;
+      font-size: 19px;
+      font-weight: 400;
+      line-height: 1.2;
+      color: var(--ucd-blue-80, #13639E);
+      outline: none;
+      padding: 0;
+    }
+
+    .affiliation-search-input::placeholder {
+      color: var(--ucd-blue-80, #13639E);
+    }
+
+    .affiliation-group-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #666;
+      margin: 0.75rem 0 0.4rem;
+    }
+
+    .affiliation-group-label::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px dotted #b0c4d8;
+    }
+
+    .affiliation-checkboxes {
+      display: flex;
+      flex-direction: column;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .affiliation-checkboxes label {
+      display: flex;
+      align-items: flex-start;
+      padding: 0.3rem 0;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .affiliation-checkboxes label input[type="checkbox"] {
+      margin-right: 0.5rem;
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+    }
+
     .results-count {
       flex: 1 0 0;
       color: var(--ucd-blue-100, #022851);
@@ -205,7 +317,8 @@ return html`
 
     .refine-search .search-seperator {
       width: 100%;
-      margin: 2.38rem 0;
+      margin: 0.75rem 0;
+      border-top: 1px dotted #b0c4d8;
     }
 
     .select-page-size {
@@ -498,22 +611,71 @@ return html`
         </label>
       </div>
 
+      <hr class="search-seperator">
+
+      <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
+        <h4>Affiliation</h4>
+        <span class="filter-collapse-arrow">
+          ${this.affiliationCollapsed
+            ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+            : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+          }
+        </span>
+      </div>
+      <div class="affiliation-filter-contents" ?hidden="${this.affiliationCollapsed}">
+        <div class="affiliation-search-wrapper">
+          <input
+            type="text"
+            class="affiliation-search-input"
+            placeholder="Search Affiliation"
+            .value="${this.affiliationSearch}"
+            @input="${this._onAffiliationSearch}">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="14" height="14">
+            <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/>
+          </svg>
+        </div>
+        <div class="affiliation-checkboxes">
+          ${(this.rawSearchData?.global_aggregations?.dept?.buckets || []).length
+            ? html`<div class="affiliation-group-label">Departments</div>` : ''}
+          ${(this.rawSearchData?.global_aggregations?.dept?.buckets || [])
+            .filter(b => !this.affiliationSearch || b.key?.toLowerCase().includes(this.affiliationSearch.toLowerCase()))
+            .map(b => html`
+              <label>
+                <input type="checkbox"
+                  .value="${b.key}"
+                  ?checked="${this.dept.includes(b.key)}"
+                  @change="${this._onDeptChange}">
+                ${b.key} (${b.doc_count})
+              </label>
+            `)
+          }
+        </div>
+      </div>
+
       <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
         <hr class="search-seperator">
 
-        <div class="date-filter-heading ${this.dateRangeData.length === 1 ? 'hidden-slider' : ''}">
-          <h4>Date (${this.rangeFilterTypes})</h4>
+        <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; }}">
+          <h4>Date</h4>
+          <span class="filter-collapse-arrow">
+            ${this.dateCollapsed
+              ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+              : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+            }
+          </span>
+        </div>
+        <div ?hidden="${this.dateCollapsed}">
           <span ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
-          <div class="search-year" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
+          <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
+          <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
+            <ucdlib-range-slider
+              @range-slider-change="${this._onRangeSliderChange}"
+              .data="${this.dateRangeData}"
+              .showUnknown="${true}">
+            </ucdlib-range-slider>
+          </div>
         </div>
-        <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
-          <ucdlib-range-slider
-            @range-slider-change="${this._onRangeSliderChange}"
-            .data="${this.dateRangeData}"
-            .showUnknown="${true}">
-          </ucdlib-range-slider>
-        </div>
-      </div>      
+      </div>
 
       <hr class="search-seperator">
       <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
@@ -574,7 +736,7 @@ return html`
             <hr class="search-seperator">
 
             <div class="date-filter-heading ${this.dateRangeData.length === 1 ? 'hidden-slider' : ''}">
-              <h4>Date (${this.rangeFilterTypes})</h4>
+              <h4>Date</h4>
               <span ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
               <div class="search-year" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
             </div>

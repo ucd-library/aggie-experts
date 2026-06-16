@@ -266,8 +266,8 @@
         ,{ "terms": { "type": {{#toJson}}type{{/toJson}} } }
         {{/type}}
       {{#dept}}
-      ,{ "exists": { "field": "hasOrganizationalUnit.@id" } }
-      ,{ "terms": { "hasOrganizationalUnit.@id": {{#toJson}}dept{{/toJson}} } }
+      ,{ "exists": { "field": "hasOrganizationalUnit.name.kw" } }
+      ,{ "terms": { "hasOrganizationalUnit.name.kw": {{#toJson}}dept{{/toJson}} } }
       {{/dept}}
       ]
     }
@@ -515,7 +515,7 @@
     "availability": { "terms": { "field": "hasAvailability.prefLabel", "size": 10 } },
     "status": { "terms": { "field": "status", "size": 10 } },
     "type": { "terms": { "field": "type", "size": 10 } },
-    "dept": { "terms": { "field": "hasOrganizationalUnit.@id", "size": 200 } }
+    "dept": { "terms": { "field": "hasOrganizationalUnit.name.kw", "size": 200 } }
   },
   "_source": [
     "@id","@type","name","contactInfo","hasOrganizationalUnit","title","issued","container-title","type","DOI",

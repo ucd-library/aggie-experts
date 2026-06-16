@@ -50,6 +50,10 @@ export default class AppSearch extends Mixin(LitElement)
       dateFrom : { type : String },
       dateTo : { type : String },
       dateRangeData : { type : Array },
+      dept : { type : Array },
+      affiliationCollapsed : { type : Boolean },
+      dateCollapsed : { type : Boolean },
+      affiliationSearch : { type : String },
     }
   }
 
@@ -91,6 +95,10 @@ export default class AppSearch extends Mixin(LitElement)
     this.dateFrom = '';
     this.dateTo = '';
     this.dateRangeData = [];
+    this.dept = [];
+    this.affiliationCollapsed = true;
+    this.dateCollapsed = true;
+    this.affiliationSearch = '';
 
     this.render = render.bind(this);
   }
@@ -216,6 +224,8 @@ export default class AppSearch extends Mixin(LitElement)
       this.industProjects = query.availability?.includes('industry') ? true : false;
       this.mediaInterviews = query.availability?.includes('media') ? true : false;
 
+      this.dept = query.dept ? query.dept.split(',') : [];
+
       this.dateFrom = query.dateFrom || '';
       this.dateTo = query.dateTo || '';
       if( this.dateFrom || this.dateTo ) {
@@ -244,6 +254,7 @@ export default class AppSearch extends Mixin(LitElement)
       this.dateTo = '';
       this.filterByDate = false;
       this.filterByDateLabel = '';
+      this.dept = [];
 
       // update search term
       this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
@@ -360,6 +371,21 @@ export default class AppSearch extends Mixin(LitElement)
    * @method _removeDateFilter
    * @description remove the date filter
    */
+  _onDeptChange(e) {
+    const id = e.currentTarget.value;
+    if( e.currentTarget.checked ) {
+      if( !this.dept.includes(id) ) this.dept = [...this.dept, id];
+    } else {
+      this.dept = this.dept.filter(d => d !== id);
+    }
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  _onAffiliationSearch(e) {
+    this.affiliationSearch = e.target.value;
+  }
+
   _removeDateFilter(e) {
     this.filterByDate = false;
     this.filterByDateLabel = '';
@@ -494,8 +520,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query.type,
           this.filterByExpertId,
           this.dateFrom,
-          this.dateTo
-        ), 
+          this.dateTo,
+          this.dept
+        ),
         resetPage // ignore cache
       ),
       true
@@ -522,7 +549,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) availability.push('industry');
     if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || this.dateFrom || this.dateTo;
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || this.dateFrom || this.dateTo || this.dept.length;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
@@ -536,6 +563,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
     if( this.dateFrom ) path += `&dateFrom=${this.dateFrom}`;
     if( this.dateTo ) path += `&dateTo=${this.dateTo}`;
+    if( this.dept.length ) path += `&dept=${this.dept.join(',')}`;
 
     this.AppStateModel.setLocation(path);
   }
@@ -967,7 +995,8 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query.type,
           this.filterByExpertId,
           this.dateFrom,
-          this.dateTo
+          this.dateTo,
+          this.dept
         )
       ),
       true
