@@ -36,6 +36,9 @@ router.get(
     if (req?.query.availability) {
       params.availability = req.query.availability.split(',');
     }
+    if (req?.query.dept) {
+      params.dept = req.query.dept.split(',');
+    }
     if (req?.query.expert) {
       params.expert = req.query.expert.split(',');
     }
