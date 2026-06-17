@@ -607,6 +607,43 @@ return html`
       /* transition: fill 0.3s ease-in-out; */
     }
 
+    .clear-all-filters {
+      color: var(--ucd-blue-80, #13639E) !important;
+      font-size: 16.62px;
+      font-weight: 400;
+      font-style: italic;
+      line-height: 26px;
+      text-decoration: underline;
+      cursor: pointer;
+      background: none !important;
+      border: none !important;
+      padding: 0;
+      white-space: nowrap;
+    }
+
+    .filter-active-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: 0.25rem 0 0.5rem;
+    }
+
+    .filter-active-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: black;
+      cursor: pointer;
+    }
+
+    .filter-active-item ucdlib-icon {
+      width: 10px;
+      height: 10px;
+      flex-shrink: 0;
+      color: var(--ucd-blue-80, #13639E);
+      fill: var(--ucd-blue-80, #13639E);
+    }
+
     .search-tips-tooltip {
       margin-top: 0;
       font-style: italic;
@@ -676,6 +713,16 @@ return html`
           }
         </span>
       </div>
+      ${this.affiliationCollapsed && this.dept?.length ? html`
+        <div class="filter-active-summary">
+          ${(this.dept || []).map(code => html`
+            <span class="filter-active-item" @click="${() => this._removeDeptFilter(code)}">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+              ${this._getDeptName(code)}
+            </span>
+          `)}
+        </div>
+      ` : ''}
       <div class="affiliation-filter-contents" ?hidden="${this.affiliationCollapsed}">
         <div class="affiliation-search-wrapper">
           <input
@@ -771,6 +818,14 @@ return html`
             Media Interviews
           </label>
         </div>
+        ${this.openToCollapsed ? html`
+          <div class="filter-active-summary">
+            ${this.collabProjects ? html`<span class="filter-active-item" @click="${() => { this.collabProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Collaborative Projects</span>` : ''}
+            ${this.commPartner ? html`<span class="filter-active-item" @click="${() => { this.commPartner = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Community Partnerships</span>` : ''}
+            ${this.industProjects ? html`<span class="filter-active-item" @click="${() => { this.industProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Industry Projects</span>` : ''}
+            ${this.mediaInterviews ? html`<span class="filter-active-item" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Media Interviews</span>` : ''}
+          </div>
+        ` : ''}
       </div>
 
       <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
@@ -785,6 +840,13 @@ return html`
             }
           </span>
         </div>
+        ${this.dateCollapsed && this.filterByDate ? html`
+          <div class="filter-active-summary">
+            <span class="filter-active-item" @click="${this._removeDateFilter}">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+            </span>
+          </div>
+        ` : ''}
         <div ?hidden="${this.dateCollapsed}">
           <span class="date-filter-hint" ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
           <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
@@ -967,7 +1029,7 @@ return html`
         </div>
       </div>
 
-      <div class="results-filtered-to" ?hidden="${!this.filterByExpert && !this.filterByDate && !this.dept?.length}">
+      <div class="results-filtered-to" ?hidden="${!this.filterByExpert && !this.filterByDate && !this.dept?.length && !this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews}">
         <p ?hidden="${!this.filterByExpert}">
           <button class="btn btn--round" @click="${this._removeExpertFilter}">
             ${this.filterByExpertName}
@@ -994,7 +1056,14 @@ return html`
             </button>
           </p>
         `)}
-
+        ${this.collabProjects ? html`<p><button class="btn btn--round" @click="${() => { this.collabProjects = false; this._updateLocation(); }}">Collaborative Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        ${this.commPartner ? html`<p><button class="btn btn--round" @click="${() => { this.commPartner = false; this._updateLocation(); }}">Community Partnerships<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        ${(() => {
+          const count = (this.filterByExpert?1:0) + (this.filterByDate?1:0) + (this.dept?.length||0) + (this.collabProjects?1:0) + (this.commPartner?1:0) + (this.industProjects?1:0) + (this.mediaInterviews?1:0);
+          return count >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : '';
+        })()}
       </div>
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>

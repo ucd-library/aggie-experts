@@ -404,18 +404,22 @@ export default class AppSearch extends Mixin(LitElement)
     this._updateLocation();
   }
 
-  _getDeptName(code) {
+  _getDept(code) {
     for( const cat of (this.orgLookup || []) ) {
       for( const sub of cat.subCategories ) {
         const dept = sub.depts.find(d => d.deptCode === code);
-        if( dept ) return dept.name;
+        if( dept ) return dept;
       }
     }
-    return code;
+    return null;
+  }
+
+  _getDeptName(code) {
+    return this._getDept(code)?.name || code;
   }
 
   _deptCodesToNames(codes) {
-    return codes.map(c => this._getDeptName(c));
+    return codes.map(c => this._getDept(c)?.officialName || c);
   }
 
   _toggleSubCategory(label) {
@@ -434,6 +438,22 @@ export default class AppSearch extends Mixin(LitElement)
 
   _onAffiliationSearch(e) {
     this.affiliationSearch = e.target.value;
+  }
+
+  _clearAllFilters() {
+    this.dept = [];
+    this.filterByExpert = false;
+    this.filterByExpertId = '';
+    this.filterByExpertName = '';
+    this.filterByDate = false;
+    this.filterByDateLabel = '';
+    this.dateFrom = '';
+    this.dateTo = '';
+    this.collabProjects = false;
+    this.commPartner = false;
+    this.industProjects = false;
+    this.mediaInterviews = false;
+    this._updateLocation();
   }
 
   _removeDateFilter(e) {
