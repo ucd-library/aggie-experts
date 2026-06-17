@@ -14,6 +14,7 @@ import "../../components/search-result-row";
 import "../../components/category-filter-controller.js";
 
 import utils from '../../../lib/utils';
+import { ORG_LOOKUP } from '../../../lib/org-lookup.js';
 
 export default class AppSearch extends Mixin(LitElement)
   .with(LitCorkUtils) {
@@ -53,7 +54,9 @@ export default class AppSearch extends Mixin(LitElement)
       dept : { type : Array },
       affiliationCollapsed : { type : Boolean },
       dateCollapsed : { type : Boolean },
+      openToCollapsed : { type : Boolean },
       affiliationSearch : { type : String },
+      expandedSubCategories : { type : Array },
     }
   }
 
@@ -98,7 +101,10 @@ export default class AppSearch extends Mixin(LitElement)
     this.dept = [];
     this.affiliationCollapsed = true;
     this.dateCollapsed = true;
+    this.openToCollapsed = true;
     this.affiliationSearch = '';
+    this.expandedSubCategories = [];
+    this.orgLookup = ORG_LOOKUP;
 
     this.render = render.bind(this);
   }
@@ -255,6 +261,7 @@ export default class AppSearch extends Mixin(LitElement)
       this.filterByDate = false;
       this.filterByDateLabel = '';
       this.dept = [];
+      this.expandedSubCategories = [];
 
       // update search term
       this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
@@ -372,13 +379,56 @@ export default class AppSearch extends Mixin(LitElement)
    * @description remove the date filter
    */
   _onDeptChange(e) {
-    const id = e.currentTarget.value;
+    const code = e.currentTarget.value;
     if( e.currentTarget.checked ) {
-      if( !this.dept.includes(id) ) this.dept = [...this.dept, id];
+      if( !this.dept.includes(code) ) this.dept = [...this.dept, code];
     } else {
-      this.dept = this.dept.filter(d => d !== id);
+      this.dept = this.dept.filter(d => d !== code);
     }
     this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  _onSubCategoryCheck(subDepts) {
+    const codes = subDepts.map(d => d.deptCode);
+    const checkedCount = codes.filter(c => this.dept.includes(c)).length;
+    const allChecked = checkedCount === codes.length;
+    if( !allChecked ) {
+      const merged = [...this.dept];
+      codes.forEach(c => { if( !merged.includes(c) ) merged.push(c); });
+      this.dept = merged;
+    } else {
+      this.dept = this.dept.filter(d => !codes.includes(d));
+    }
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  _getDeptName(code) {
+    for( const cat of (this.orgLookup || []) ) {
+      for( const sub of cat.subCategories ) {
+        const dept = sub.depts.find(d => d.deptCode === code);
+        if( dept ) return dept.name;
+      }
+    }
+    return code;
+  }
+
+  _deptCodesToNames(codes) {
+    return codes.map(c => this._getDeptName(c));
+  }
+
+  _toggleSubCategory(label) {
+    if( this.expandedSubCategories.includes(label) ) {
+      this.expandedSubCategories = this.expandedSubCategories.filter(l => l !== label);
+    } else {
+      this.expandedSubCategories = [...this.expandedSubCategories, label];
+    }
+  }
+
+  _removeDeptFilter(name) {
+    this.dept = this.dept.filter(d => d !== name);
+    if( !this.dept.length ) this.affiliationCollapsed = false;
     this._updateLocation();
   }
 
@@ -521,7 +571,7 @@ export default class AppSearch extends Mixin(LitElement)
           this.filterByExpertId,
           this.dateFrom,
           this.dateTo,
-          this.dept
+          this._deptCodesToNames(this.dept)
         ),
         resetPage // ignore cache
       ),
@@ -996,7 +1046,7 @@ export default class AppSearch extends Mixin(LitElement)
           this.filterByExpertId,
           this.dateFrom,
           this.dateTo,
-          this.dept
+          this._deptCodesToNames(this.dept)
         )
       ),
       true
