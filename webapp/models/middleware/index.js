@@ -92,6 +92,8 @@ function browse_endpoint(router,model) {
       if( req.query.status ) params.status = req.query.status.split(',').filter(Boolean);
       if( req.query.type ) params.type = req.query.type.split(',').filter(Boolean);
       if( req.query.availability ) params.availability = req.query.availability.split(',').filter(Boolean);
+      if( params.dateFrom && /^\d{4}$/.test(params.dateFrom) ) params.dateFrom = `${params.dateFrom}-01-01`;
+      if( params.dateTo && /^\d{4}$/.test(params.dateTo) ) params.dateTo = `${params.dateTo}-12-31`;
 
       if (req.query.counts === 'true') {
         // return global aggregations without letter or hits

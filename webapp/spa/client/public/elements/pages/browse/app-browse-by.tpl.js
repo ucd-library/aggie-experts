@@ -362,6 +362,11 @@ return html`
       margin-right: .5rem;
     }
 
+    input[type="checkbox"] {
+      height: 1rem;
+      width: 1rem;
+    }
+
     /* ---- date ---- */
     .range-filter-container {
       width: 100%;
@@ -727,12 +732,12 @@ return html`
         </div>
       ` : ''}
 
-      <!-- Date (Grants and Works only) -->
-      ${this.browseType !== 'expert' ? html`
+      <!-- Date filter -->
+      ${html`
         <div class="range-filter-container">
           <hr class="search-seperator">
-          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; }}">
-            <h4>Date ${this.browseType === 'grant' ? '(Grants)' : '(Works)'}</h4>
+          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) this._refreshRangeSlider(false); }}">
+            <h4>Date</h4>
             <span class="filter-collapse-arrow">
               ${this.dateCollapsed
                 ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
@@ -759,7 +764,7 @@ return html`
             </div>
           </div>
         </div>
-      ` : ''}
+      `}
 
     </div>
 

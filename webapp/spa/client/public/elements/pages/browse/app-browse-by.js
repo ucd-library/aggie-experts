@@ -69,6 +69,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this.dateFrom = '';
     this.dateTo = '';
     this.dateRangeData = [];
+    this._lastDateHistSig = '';
     this.affiliationCollapsed = true;
     this.dateCollapsed = true;
     this.openToCollapsed = true;
@@ -212,10 +213,33 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this._buildResults(e.payload?.hits, e.payload?.total, 'work/', 'work');
   }
 
-  _updateDateRangeData(aggs) {
+  async _updateDateRangeData(aggs) {
     if( !aggs ) { this.dateRangeData = []; return; }
 
-    // aggregations come as flat dicts: { epochMs: count }
+    // Only rebuild histogram data when non-date filters change.
+    // When only the date range changes, keep the existing histogram so the
+    // full range stays visible (greyed-out bars outside the selection).
+    const sig = JSON.stringify({
+      browseType: this.browseType,
+      letter: this.letter,
+      dept: this.dept,
+      status: this.status,
+      workType: this.workType,
+      collabProjects: this.collabProjects,
+      commPartner: this.commPartner,
+      industProjects: this.industProjects,
+      mediaInterviews: this.mediaInterviews,
+    });
+
+    if( sig === this._lastDateHistSig ) {
+      // Non-date filters unchanged — just sync slider handles to current selection
+      await this.updateComplete;
+      this._refreshRangeSlider(false);
+      return;
+    }
+    this._lastDateHistSig = sig;
+
+    // aggregations arrive as flat dicts: { epochMs: count } (transformed by compact_search_results)
     const aggToEntries = (agg) => {
       if( !agg || typeof agg !== 'object' ) return [];
       return Object.entries(agg).map(([k, count]) => ({ key: parseInt(k), doc_count: count }));
@@ -228,7 +252,12 @@ export default class AppBrowseBy extends Mixin(LitElement)
         yearMap.set(yr, (yearMap.get(yr) || 0) + b.doc_count);
       });
     } else if( this.browseType === 'grant' ) {
-      [...aggToEntries(aggs.grant_start), ...aggToEntries(aggs.grant_end)].forEach(b => {
+      aggToEntries(aggs.grant_years).forEach(b => {
+        const yr = new Date(b.key).getUTCFullYear();
+        yearMap.set(yr, (yearMap.get(yr) || 0) + b.doc_count);
+      });
+    } else if( this.browseType === 'expert' ) {
+      aggToEntries(aggs.expert_years).forEach(b => {
         const yr = new Date(b.key).getUTCFullYear();
         yearMap.set(yr, (yearMap.get(yr) || 0) + b.doc_count);
       });
@@ -244,6 +273,30 @@ export default class AppBrowseBy extends Mixin(LitElement)
       data.push({ stat: y, value: yearMap.get(y) || 0 });
     }
     this.dateRangeData = data;
+    await this.updateComplete;
+    this._refreshRangeSlider(true);
+  }
+
+  async _refreshRangeSlider(dataChanged=true) {
+    const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
+    if( !ranges?.length || !this.dateRangeData.length ) return;
+    const absMin = this.dateRangeData[0].stat;
+    const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
+    const urlMin = this.dateFrom ? Number(this.dateFrom) : null;
+    const urlMax = this.dateTo ? Number(this.dateTo) : null;
+    const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
+    const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
+    for( const range of ranges ) {
+      if( typeof range.refresh === 'function' ) range.refresh(dataChanged);
+      if( dataChanged ) {
+        range.initialMin = clampedMin;
+        range.initialMax = clampedMax;
+        range.data = this.dateRangeData;
+        range.hideHistogram = false;
+      }
+      range.min = clampedMin;
+      range.max = clampedMax;
+    }
   }
 
   async _buildResults(hits=[], total=0, pagePrefix='', resultType='expert') {
