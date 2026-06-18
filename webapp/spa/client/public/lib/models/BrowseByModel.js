@@ -18,8 +18,8 @@ class BrowseByModel extends BaseModel {
    *
    * @returns {Promise} resolves to experts results per letter (last name)
    */
-  async browseAZBy(type='expert') {
-    return this.service.browseAZBy(type);
+  async browseAZBy(type='expert', filters={}) {
+    return this.service.browseAZBy(type, filters);
   }
 
   /**
@@ -33,8 +33,12 @@ class BrowseByModel extends BaseModel {
    *
    * @returns {Promise} resolves to experts results
    */
-  async browseBy(type='expert', lastInitial, page=1, size=25) {
-    return this.service.browseBy(type, lastInitial, page, size);
+  async browseBy(type='expert', lastInitial, page=1, size=25, filters={}) {
+    return this.service.browseBy(type, lastInitial, page, size, filters);
+  }
+
+  async browseCounts(type='grant', filters={}) {
+    return this.service.browseCounts(type, filters);
   }
 
 }

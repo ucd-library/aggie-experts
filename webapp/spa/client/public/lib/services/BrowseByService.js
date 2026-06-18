@@ -12,10 +12,10 @@ class BrowseByService extends BaseService {
     this.baseUrl = '/api';
   }
 
-  async browseAZBy(type) {
+  async browseAZBy(type, filters={}) {
     let url = `${this.baseUrl}/${type}/browse`;
     let qs = {};
-    let ido = { browseAz: 'az' };
+    let ido = { browseAz: 'az', ...filters };
 
     // if an admin and cache is saved for previewing an es index, use that
     let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
@@ -32,6 +32,12 @@ class BrowseByService extends BaseService {
         qs.previewEsIndex = matchedAlias || indexName;
       }
     }
+
+    if( filters.dept?.length ) qs.dept = filters.dept.join(',');
+    if( filters.status?.length ) qs.status = filters.status.join(',');
+    if( filters.type?.length ) qs.type = filters.type.join(',');
+    if( filters.dateFrom ) qs.dateFrom = filters.dateFrom;
+    if( filters.dateTo ) qs.dateTo = filters.dateTo;
 
     type = type.substring(0, 1).toUpperCase() + type.substring(1);
 
@@ -52,8 +58,45 @@ class BrowseByService extends BaseService {
     return this.store.data[storeKey].get(id);
   }
 
-  async browseBy(type, lastInitial, page=1, size=25) {
-    let ido = {browseType: type, lastInitial, page, size};
+  async browseCounts(type, filters={}) {
+    let url = `${this.baseUrl}/${type}/browse`;
+    let qs = { counts: 'true' };
+    let ido = { browseCounts: type, ...filters };
+
+    let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
+    let esIndexes = await indexedDb.getElasticsearchIndexes();
+    if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
+      let indexInfo = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type));
+      let matchedAlias = indexInfo?.aliases?.[0];
+      let indexName = indexInfo?.indexName;
+      if( ( matchedAlias || indexName ) && isAdmin ) {
+        ido.previewEsIndex = matchedAlias || indexName;
+        qs.previewEsIndex = matchedAlias || indexName;
+      }
+    }
+
+    if( filters.dept?.length ) qs.dept = filters.dept.join(',');
+    if( filters.status?.length ) qs.status = filters.status.join(',');
+    if( filters.type?.length ) qs.type = filters.type.join(',');
+
+    type = type.substring(0, 1).toUpperCase() + type.substring(1);
+    let storeKey = 'by'+type+'sCounts';
+
+    let id = payloadUtils.getKey(ido);
+    await this.request({
+      url,
+      qs,
+      checkCached: () => this.store.data[storeKey].get(id),
+      onUpdate: resp => this.store.set(
+        payloadUtils.generate(ido, resp),
+        this.store.data[storeKey]
+      )
+    });
+    return this.store.data[storeKey].get(id);
+  }
+
+  async browseBy(type, lastInitial, page=1, size=25, filters={}) {
+    let ido = {browseType: type, lastInitial, page, size, ...filters};
 
     // if an admin and cache is saved for previewing an es index, use that
     let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
@@ -74,7 +117,14 @@ class BrowseByService extends BaseService {
       ido.previewEsIndex = matchedAlias || indexName;
     }
 
-    let id = payloadUtils.getKey(ido); 
+    if( filters.dept?.length ) qs.dept = filters.dept.join(',');
+    if( filters.status?.length ) qs.status = filters.status.join(',');
+    if( filters.type?.length ) qs.type = filters.type.join(',');
+    if( filters.dateFrom ) qs.dateFrom = filters.dateFrom;
+    if( filters.dateTo ) qs.dateTo = filters.dateTo;
+    if( filters.availability?.length ) qs.availability = filters.availability.join(',');
+
+    let id = payloadUtils.getKey(ido);
     await this.request({
       url : `${this.baseUrl}/${type.toLowerCase()}/browse`,
       qs,

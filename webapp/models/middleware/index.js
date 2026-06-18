@@ -1,7 +1,7 @@
 const keycloak = require('../../lib/keycloak');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-const template = require('../base/template/name.json');
+const template = require('../base/template/name.js');
 const {
   config,
   ExpertsKcAdminClient,
@@ -80,13 +80,32 @@ function browse_endpoint(router,model) {
         size: 25,
         index: model.readIndexAlias,
       };
-      ["size", "page", "p", "previewEsIndex"].forEach((key) => {
+      ["size", "page", "p", "previewEsIndex", "dateFrom", "dateTo"].forEach((key) => {
         if( key === 'previewEsIndex' && req.query[key] ) {
           params.index = req.query[key];
-        } else if( req.query[key] ) { 
-          params[key] = req.query[key]; 
+        } else if( req.query[key] ) {
+          params[key] = req.query[key];
         }
       });
+
+      if( req.query.dept ) params.dept = req.query.dept.split(',').filter(Boolean);
+      if( req.query.status ) params.status = req.query.status.split(',').filter(Boolean);
+      if( req.query.type ) params.type = req.query.type.split(',').filter(Boolean);
+      if( req.query.availability ) params.availability = req.query.availability.split(',').filter(Boolean);
+
+      if (req.query.counts === 'true') {
+        // return global aggregations without letter or hits
+        const opts = { id: "name", params: { ...params, size: 0 } };
+        delete opts.params.p;
+        try {
+          await model.verify_template(template);
+          const find = await model.search(opts);
+          res.send(find);
+        } catch (err) {
+          res.status(400).send('Invalid request');
+        }
+        return;
+      }
 
       if (params.p) {
         if (params.p === 'other') {
@@ -119,8 +138,8 @@ function browse_endpoint(router,model) {
              search_templates.push({
               id : "name",
               params : {
-                ...params, 
-                p:letter, 
+                ...params,
+                p:letter,
                 size:0
               }
             });
