@@ -9,10 +9,18 @@ import '../../components/ucdlib-browse-az.js';
 import '../../components/search-result-row.js';
 
 import utils from '../../../lib/utils/index.js';
-import { ORG_LOOKUP } from '../../../lib/org-lookup.js';
+import { AffiliationMixin } from '../AffiliationMixin.js';
 
-export default class AppBrowseBy extends Mixin(LitElement)
-  .with(LitCorkUtils) {
+// Fallback work-type list shown when aggregations are not yet loaded.
+const DEFAULT_WORK_TYPES = [
+  { key: 'book', label: 'Books' },
+  { key: 'chapter', label: 'Chapters' },
+  { key: 'paper-conference', label: 'Conference Papers' },
+  { key: 'article-journal', label: 'Journal Articles' },
+];
+
+export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
+  .with(LitCorkUtils)) {
 
   static get properties() {
     return {
@@ -50,7 +58,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
   }
 
   constructor() {
-    super();
+    super(); // AffiliationMixin constructor initialises this.orgLookup
     this.render = render.bind(this);
 
     this.browseType = '';
@@ -84,19 +92,6 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this.affiliationSearch = '';
     this.expandedSubCategories = [];
     this.categoryAggregations = {};
-    this.orgLookup = ORG_LOOKUP
-      .slice()
-      .sort((a, b) => a.label.localeCompare(b.label))
-      .map(cat => ({
-        ...cat,
-        subCategories: cat.subCategories
-          .slice()
-          .sort((a, b) => a.label.localeCompare(b.label))
-          .map(sub => ({
-            ...sub,
-            depts: sub.depts.slice().sort((a, b) => a.name.localeCompare(b.name))
-          }))
-      }));
 
     this._injectModel('AppStateModel', 'BrowseByModel');
   }
@@ -116,6 +111,13 @@ export default class AppBrowseBy extends Mixin(LitElement)
     });
   }
 
+  /**
+   * @method _onAppStateUpdate
+   * @description bound to AppStateModel app-state-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'browse' ) return;
 
@@ -164,6 +166,11 @@ export default class AppBrowseBy extends Mixin(LitElement)
     await this._fetchCategoryAggregations();
   }
 
+  /**
+   * @method _buildFilters
+   * @description build filter params object from current UI state
+   * @returns {Object} filter params for BrowseByModel
+   */
   _buildFilters() {
     const filters = {};
     if( this.dept?.length ) filters.dept = this._deptCodesToNames(this.dept);
@@ -182,6 +189,11 @@ export default class AppBrowseBy extends Mixin(LitElement)
     return filters;
   }
 
+  /**
+   * @method _fetchCategoryAggregations
+   * @description fetch unfiltered aggregation counts for the category filter rows
+   * @returns {Promise}
+   */
   async _fetchCategoryAggregations() {
     if( this.browseType !== 'grant' && this.browseType !== 'work' ) return;
     try {
@@ -194,6 +206,13 @@ export default class AppBrowseBy extends Mixin(LitElement)
     }
   }
 
+  /**
+   * @method _onBrowseExpertsUpdate
+   * @description bound to BrowseByModel browse-experts-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
   _onBrowseExpertsUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( !e.payload?.hits?.length ) {
@@ -207,6 +226,13 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this._buildResults(e.payload?.hits, e.payload?.total, '', 'expert');
   }
 
+  /**
+   * @method _onBrowseGrantsUpdate
+   * @description bound to BrowseByModel browse-grants-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
   _onBrowseGrantsUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( !e.payload?.hits?.length ) {
@@ -220,6 +246,13 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this._buildResults(e.payload?.hits, e.payload?.total, 'grant/', 'grant');
   }
 
+  /**
+   * @method _onBrowseWorksUpdate
+   * @description bound to BrowseByModel browse-works-update event
+   *
+   * @param {Object} e
+   * @returns {Promise}
+   */
   _onBrowseWorksUpdate(e) {
     if( e.state !== 'loaded' ) return;
     if( !e.payload?.hits?.length ) {
@@ -233,13 +266,13 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this._buildResults(e.payload?.hits, e.payload?.total, 'work/', 'work');
   }
 
-  async _updateDateRangeData(aggs) {
-    if( !aggs ) { this.dateRangeData = []; return; }
-
-    // Only rebuild histogram data when non-date filters change.
-    // When only the date range changes, keep the existing histogram so the
-    // full range stays visible (greyed-out bars outside the selection).
-    const sig = JSON.stringify({
+  /**
+   * @method _computeAggSignature
+   * @description compute the aggregation signature for the current browse state (excludes date range)
+   * @returns {String} JSON string identifying the current non-date filter state
+   */
+  _computeAggSignature() {
+    return JSON.stringify({
       browseType: this.browseType,
       letter: this.letter,
       dept: this.dept,
@@ -250,16 +283,15 @@ export default class AppBrowseBy extends Mixin(LitElement)
       industProjects: this.industProjects,
       mediaInterviews: this.mediaInterviews,
     });
+  }
 
-    if( sig === this._lastDateHistSig ) {
-      // Non-date filters unchanged — just sync slider handles to current selection
-      await this.updateComplete;
-      this._refreshRangeSlider(false);
-      return;
-    }
-    this._lastDateHistSig = sig;
-
-    // aggregations arrive as flat dicts: { epochMs: count } (transformed by compact_search_results)
+  /**
+   * @method _buildHistogramDataFromAgg
+   * @description build histogram data array from aggregation results
+   * @param {Object} aggs aggregations from the API response
+   * @returns {Array} array of {stat: year, value: count} objects
+   */
+  _buildHistogramDataFromAgg(aggs) {
     const aggToEntries = (agg) => {
       if( !agg || typeof agg !== 'object' ) return [];
       return Object.entries(agg).map(([k, count]) => ({ key: parseInt(k), doc_count: count }));
@@ -283,7 +315,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
       });
     }
 
-    if( !yearMap.size ) { this.dateRangeData = []; return; }
+    if( !yearMap.size ) return [];
 
     const sorted = Array.from(yearMap.entries()).sort((a, b) => a[0] - b[0]);
     const minY = sorted[0][0];
@@ -292,12 +324,45 @@ export default class AppBrowseBy extends Mixin(LitElement)
     for( let y = minY; y <= maxY; y++ ) {
       data.push({ stat: y, value: yearMap.get(y) || 0 });
     }
-    this.dateRangeData = data;
-    await this.updateComplete;
-    this._refreshRangeSlider(true);
+    return data;
   }
 
-  async _refreshRangeSlider(dataChanged=true) {
+  /**
+   * @method _updateDateRangeData
+   * @description update histogram data and range slider from API aggregations.
+   * Only rebuilds histogram data when non-date filters change; when only the date
+   * range changes the existing histogram is kept so the full range stays visible.
+   * @param {Object} aggs aggregations from the API response
+   * @returns {Promise}
+   */
+  async _updateDateRangeData(aggs) {
+    if( !aggs ) { this.dateRangeData = []; return; }
+
+    const sig = this._computeAggSignature();
+    if( sig === this._lastDateHistSig ) {
+      // Non-date filters unchanged — just sync slider handles to current selection
+      await this.updateComplete;
+      this._refreshRange(false);
+      return;
+    }
+    this._lastDateHistSig = sig;
+
+    const data = this._buildHistogramDataFromAgg(aggs);
+    if( !data.length ) { this.dateRangeData = []; return; }
+
+    this.dateRangeData = data;
+    await this.updateComplete;
+    this._refreshRange(true);
+  }
+
+  /**
+   * @method _refreshRange
+   * @description refresh the range slider(s). When dataChanged is true, pushes
+   * new histogram data and clamps min/max to the available range. When false,
+   * only syncs the handle positions to the current URL selection.
+   * @param {Boolean} dataChanged whether histogram data has changed
+   */
+  async _refreshRange(dataChanged=false) {
     const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
     if( !ranges?.length || !this.dateRangeData.length ) return;
     const absMin = this.dateRangeData[0].stat;
@@ -319,6 +384,15 @@ export default class AppBrowseBy extends Mixin(LitElement)
     }
   }
 
+  /**
+   * @method _buildResults
+   * @description build displayedResults from api response data
+   *
+   * @param {Array} hits api response data
+   * @param {Number} total total number of results
+   * @param {String} pagePrefix to prepend to the id for links
+   * @param {String} resultType type of result to build, defaults to 'expert'
+   */
   async _buildResults(hits=[], total=0, pagePrefix='', resultType='expert') {
     this.displayedResults = hits.map((r, index) => {
       let id = r['@id'];
@@ -372,6 +446,12 @@ export default class AppBrowseBy extends Mixin(LitElement)
     }));
   }
 
+  /**
+   * @method _onPaginationChange
+   * @description bound to click events of the pagination element
+   *
+   * @param {Object} e click|keyup event
+   */
   _onPaginationChange(e) {
     this.currentPage = e.detail.page;
 
@@ -390,6 +470,11 @@ export default class AppBrowseBy extends Mixin(LitElement)
     );
   }
 
+  /**
+   * @method _buildQueryString
+   * @description build a URL query string from current filter state
+   * @returns {String} query string without leading '?'
+   */
   _buildQueryString() {
     const params = [];
     if( this.dept?.length ) params.push(`dept=${this.dept.join(',')}`);
@@ -408,73 +493,33 @@ export default class AppBrowseBy extends Mixin(LitElement)
     return params.join('&');
   }
 
+  /**
+   * @method _updateLocation
+   * @description update the URL with the current browse type, letter, and filters
+   */
   _updateLocation() {
     const path = `/browse/${this.browseType}/${this.letter || 'a'}`;
     const qs = this._buildQueryString();
     this.AppStateModel.setLocation(path + (qs ? '?' + qs : ''));
   }
 
-  _onDeptChange(e) {
-    const code = e.currentTarget.value;
-    if( e.currentTarget.checked ) {
-      if( !this.dept.includes(code) ) this.dept = [...this.dept, code];
-    } else {
-      this.dept = this.dept.filter(d => d !== code);
-    }
-    this.currentPage = 1;
-    this._updateLocation();
-  }
-
-  _onSubCategoryCheck(subDepts) {
-    const codes = subDepts.map(d => d.deptCode);
-    const checkedCount = codes.filter(c => this.dept.includes(c)).length;
-    const allChecked = checkedCount === codes.length;
-    if( !allChecked ) {
-      const merged = [...this.dept];
-      codes.forEach(c => { if( !merged.includes(c) ) merged.push(c); });
-      this.dept = merged;
-    } else {
-      this.dept = this.dept.filter(d => !codes.includes(d));
-    }
-    this.currentPage = 1;
-    this._updateLocation();
-  }
-
-  _getDept(code) {
-    for( const cat of (this.orgLookup || []) ) {
-      for( const sub of cat.subCategories ) {
-        const dept = sub.depts.find(d => d.deptCode === code);
-        if( dept ) return dept;
-      }
-    }
-    return null;
-  }
-
-  _getDeptName(code) {
-    return this._getDept(code)?.name || code;
-  }
-
-  _deptCodesToNames(codes) {
-    return codes.map(c => this._getDept(c)?.officialName || c);
-  }
-
-  _toggleSubCategory(label) {
-    if( this.expandedSubCategories.includes(label) ) {
-      this.expandedSubCategories = this.expandedSubCategories.filter(l => l !== label);
-    } else {
-      this.expandedSubCategories = [...this.expandedSubCategories, label];
-    }
-  }
-
+  /**
+   * @method _removeDeptFilter
+   * @description remove a single department filter chip; collapses the affiliation
+   * section if no dept filters remain (mirrors app-search.js behaviour)
+   * @param {String} code dept code to remove
+   */
   _removeDeptFilter(code) {
     this.dept = this.dept.filter(d => d !== code);
+    if( !this.dept.length ) this.affiliationCollapsed = false;
     this._updateLocation();
   }
 
-  _onAffiliationSearch(e) {
-    this.affiliationSearch = e.target.value;
-  }
-
+  /**
+   * @method _renderFilterContents
+   * @description render the sidebar filter panel contents
+   * @returns {TemplateResult}
+   */
   _renderFilterContents() {
     return html`
       <!-- Categories (Grants and Works only) -->
@@ -620,7 +665,7 @@ export default class AppBrowseBy extends Mixin(LitElement)
       <!-- Date filter -->
       <div class="range-filter-container">
         <hr class="search-seperator">
-        <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) this._refreshRangeSlider(false); }}">
+        <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) this._refreshRange(false); }}">
           <h4>Date</h4>
           <span class="filter-collapse-arrow">
             ${this.dateCollapsed
@@ -651,6 +696,11 @@ export default class AppBrowseBy extends Mixin(LitElement)
     `;
   }
 
+  /**
+   * @method _onStatusChange
+   * @description handle grant status category filter changes
+   * @param {String} newStatus new status value, or '' to clear
+   */
   _onStatusChange(newStatus) {
     // clicking the already-active filter (or "All") clears the filter
     if( !newStatus || this.status === newStatus ) {
@@ -662,6 +712,11 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this._updateLocation();
   }
 
+  /**
+   * @method _onWorkTypeChange
+   * @description handle work type category filter changes
+   * @param {String} newType new work type value, or '' to clear
+   */
   _onWorkTypeChange(newType) {
     if( !newType || this.workType === newType ) {
       this.workType = '';
@@ -672,6 +727,10 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this._updateLocation();
   }
 
+  /**
+   * @method _toggleRefineSearch
+   * @description toggle the refine search (mobile filter) drawer
+   */
   _toggleRefineSearch() {
     this.refineSearchCollapsed = !this.refineSearchCollapsed;
     if( this.refineSearchCollapsed ) {
@@ -679,9 +738,14 @@ export default class AppBrowseBy extends Mixin(LitElement)
       this.mobileAffSub = null;
       this.mobileCategoryOpen = false;
     }
-    if( !this.refineSearchCollapsed ) this._refreshRangeSlider(false);
+    if( !this.refineSearchCollapsed ) this._refreshRange();
   }
 
+  /**
+   * @method _onRangeSliderChange
+   * @description handle range slider change events
+   * @param {Object} e custom event with detail.min and detail.max
+   */
   _onRangeSliderChange(e) {
     this.filterByDate = true;
     this.currentPage = 1;
@@ -691,6 +755,10 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this._updateLocation();
   }
 
+  /**
+   * @method _removeDateFilter
+   * @description remove the active date range filter
+   */
   _removeDateFilter() {
     this.filterByDate = false;
     this.filterByDateLabel = '';
@@ -701,23 +769,50 @@ export default class AppBrowseBy extends Mixin(LitElement)
     for( const range of ranges ) range.reset();
   }
 
+  /**
+   * @method _selectCollabProjects
+   * @description bound to change events of the collab projects checkbox
+   * @param {Object} e change event
+   */
   _selectCollabProjects(e) {
     this.collabProjects = e.target.checked;
     this._updateLocation();
   }
+
+  /**
+   * @method _selectCommPartner
+   * @description bound to change events of the community partnerships checkbox
+   * @param {Object} e change event
+   */
   _selectCommPartner(e) {
     this.commPartner = e.target.checked;
     this._updateLocation();
   }
+
+  /**
+   * @method _selectIndustProjects
+   * @description bound to change events of the industry projects checkbox
+   * @param {Object} e change event
+   */
   _selectIndustProjects(e) {
     this.industProjects = e.target.checked;
     this._updateLocation();
   }
+
+  /**
+   * @method _selectMediaInterviews
+   * @description bound to change events of the media interviews checkbox
+   * @param {Object} e change event
+   */
   _selectMediaInterviews(e) {
     this.mediaInterviews = e.target.checked;
     this._updateLocation();
   }
 
+  /**
+   * @method _clearAllFilters
+   * @description clear all active filters and reset the URL
+   */
   _clearAllFilters() {
     this.dept = [];
     this.status = '';
@@ -733,6 +828,11 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this._updateLocation();
   }
 
+  /**
+   * @method _getActiveFilterCount
+   * @description count the number of active filters for the filter badge
+   * @returns {Number}
+   */
   _getActiveFilterCount() {
     let count = 0;
     if( this.dept?.length ) count += this.dept.length;
@@ -744,6 +844,13 @@ export default class AppBrowseBy extends Mixin(LitElement)
     return count;
   }
 
+  /**
+   * @method _getCategoryCount
+   * @description return formatted count for a category aggregation bucket
+   * @param {String} key aggregation field name
+   * @param {String} value bucket value
+   * @returns {String} formatted count or empty string
+   */
   _getCategoryCount(key, value) {
     if( !this.categoryAggregations ) return '';
     const agg = this.categoryAggregations[key];
@@ -752,6 +859,11 @@ export default class AppBrowseBy extends Mixin(LitElement)
     return typeof count === 'number' ? count.toLocaleString() : '0';
   }
 
+  /**
+   * @method _getCategoryTotal
+   * @description return formatted total count across all category buckets
+   * @returns {String} formatted total or empty string
+   */
   _getCategoryTotal() {
     const agg = this.browseType === 'grant'
       ? this.categoryAggregations?.status
@@ -761,71 +873,79 @@ export default class AppBrowseBy extends Mixin(LitElement)
     return total ? total.toLocaleString() : '';
   }
 
+  /**
+   * @method _getWorkTypeRows
+   * @description render work-type category rows for the sidebar filter
+   * @returns {Array} array of TemplateResults
+   */
   _getWorkTypeRows() {
     const typeAgg = this.categoryAggregations?.type;
     if( !typeAgg || typeof typeAgg !== 'object' || !Object.keys(typeAgg).length ) {
-      const types = [
-        { key: 'book', label: 'Books' },
-        { key: 'chapter', label: 'Chapters' },
-        { key: 'paper-conference', label: 'Conference Papers' },
-        { key: 'article-journal', label: 'Journal Articles' },
-      ];
-      return types.map(t => html`
+      return DEFAULT_WORK_TYPES.map(t => html`
         <div class="category-row ${this.workType === t.key ? 'active' : ''}" @click="${() => this._onWorkTypeChange(t.key)}">
           <span class="category-label">${t.label}</span>
           <span class="category-count"></span>
         </div>
       `);
     }
-    const entries = Object.entries(typeAgg)
+    return Object.entries(typeAgg)
       .map(([key, count]) => ({ key, count }))
-      .sort((a, b) => utils.getCitationType(a.key).localeCompare(utils.getCitationType(b.key)));
-    return entries.map(({ key, count }) => html`
-      <div class="category-row ${this.workType === key ? 'active' : ''}" @click="${() => this._onWorkTypeChange(key)}">
-        <span class="category-label">${utils.getCitationType(key)}</span>
-        <span class="category-count">${count.toLocaleString()}</span>
-      </div>
-    `);
+      .sort((a, b) => utils.getCitationType(a.key).localeCompare(utils.getCitationType(b.key)))
+      .map(({ key, count }) => html`
+        <div class="category-row ${this.workType === key ? 'active' : ''}" @click="${() => this._onWorkTypeChange(key)}">
+          <span class="category-label">${utils.getCitationType(key)}</span>
+          <span class="category-count">${count.toLocaleString()}</span>
+        </div>
+      `);
   }
 
+  /**
+   * @method _getWorkTypeLabel
+   * @description return display label for a work type key
+   * @param {String} key work type key
+   * @returns {String}
+   */
   _getWorkTypeLabel(key) {
     return utils.getCitationType(key) || key;
   }
 
+  /**
+   * @method _getWorkTypeItems
+   * @description render work-type dropdown items for the mobile filter
+   * @returns {Array} array of TemplateResults
+   */
   _getWorkTypeItems() {
     const typeAgg = this.categoryAggregations?.type;
     if( !typeAgg || typeof typeAgg !== 'object' || !Object.keys(typeAgg).length ) {
-      const types = [
-        { key: 'book', label: 'Books' },
-        { key: 'chapter', label: 'Chapters' },
-        { key: 'paper-conference', label: 'Conference Papers' },
-        { key: 'article-journal', label: 'Journal Articles' },
-      ];
-      return types.map(t => html`<button class="category-dropdown-item ${this.workType === t.key ? 'active' : ''}" @click="${() => this._onMobileCategoryChange(t.key)}">${t.label}</button>`);
+      return DEFAULT_WORK_TYPES.map(t => html`<button class="category-dropdown-item ${this.workType === t.key ? 'active' : ''}" @click="${() => this._onMobileCategoryChange(t.key)}">${t.label}</button>`);
     }
-    const entries = Object.entries(typeAgg)
+    return Object.entries(typeAgg)
       .map(([key]) => ({ key, label: utils.getCitationType(key) }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-    return entries.map(({ key, label }) => html`<button class="category-dropdown-item ${this.workType === key ? 'active' : ''}" @click="${() => this._onMobileCategoryChange(key)}">${label}</button>`);
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map(({ key, label }) => html`<button class="category-dropdown-item ${this.workType === key ? 'active' : ''}" @click="${() => this._onMobileCategoryChange(key)}">${label}</button>`);
   }
 
+  /**
+   * @method _getWorkTypeOptions
+   * @description render work-type <option> elements for the mobile select
+   * @returns {Array} array of TemplateResults
+   */
   _getWorkTypeOptions() {
     const typeAgg = this.categoryAggregations?.type;
     if( !typeAgg || typeof typeAgg !== 'object' || !Object.keys(typeAgg).length ) {
-      const types = [
-        { key: 'book', label: 'Books' },
-        { key: 'chapter', label: 'Chapters' },
-        { key: 'paper-conference', label: 'Conference Papers' },
-        { key: 'article-journal', label: 'Journal Articles' },
-      ];
-      return types.map(t => html`<option value="${t.key}" ?selected="${this.workType === t.key}">${t.label}</option>`);
+      return DEFAULT_WORK_TYPES.map(t => html`<option value="${t.key}" ?selected="${this.workType === t.key}">${t.label}</option>`);
     }
-    const entries = Object.entries(typeAgg)
+    return Object.entries(typeAgg)
       .map(([key]) => ({ key, label: utils.getCitationType(key) }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-    return entries.map(({ key, label }) => html`<option value="${key}" ?selected="${this.workType === key}">${label}</option>`);
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map(({ key, label }) => html`<option value="${key}" ?selected="${this.workType === key}">${label}</option>`);
   }
 
+  /**
+   * @method _getMobileViewLabel
+   * @description return the label for the mobile "View N results" button
+   * @returns {String}
+   */
   _getMobileViewLabel() {
     const n = this.totalResultsCount != null ? this.totalResultsCount : '';
     if( this.browseType === 'expert' ) return `View ${n} expert${n === 1 ? '' : 's'}`;
@@ -844,6 +964,11 @@ export default class AppBrowseBy extends Mixin(LitElement)
     return `View ${n} results`;
   }
 
+  /**
+   * @method _getMobileCategoryLabel
+   * @description return the label for the mobile category dropdown trigger
+   * @returns {String}
+   */
   _getMobileCategoryLabel() {
     if( this.browseType === 'grant' ) {
       if( this.status === 'active' ) return 'Active';
@@ -857,19 +982,15 @@ export default class AppBrowseBy extends Mixin(LitElement)
     return '';
   }
 
+  /**
+   * @method _onMobileCategoryChange
+   * @description handle mobile category dropdown selection
+   * @param {String} val selected category value
+   */
   _onMobileCategoryChange(val) {
     this.mobileCategoryOpen = false;
     if( this.browseType === 'grant' ) this._onStatusChange(val);
     else if( this.browseType === 'work' ) this._onWorkTypeChange(val);
-  }
-
-  async _refreshRange(dataChanged=false) {
-    const ranges = this.shadowRoot?.querySelectorAll('ucdlib-range-slider');
-    for( const range of ranges ) {
-      if( range && typeof range.refresh === 'function' ) {
-        range.refresh(dataChanged);
-      }
-    }
   }
 
 }

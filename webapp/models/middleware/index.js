@@ -95,16 +95,16 @@ function browse_endpoint(router,model) {
       if( params.dateFrom && /^\d{4}$/.test(params.dateFrom) ) params.dateFrom = `${params.dateFrom}-01-01`;
       if( params.dateTo && /^\d{4}$/.test(params.dateTo) ) params.dateTo = `${params.dateTo}-12-31`;
 
-      if (req.query.counts === 'true') {
+      if( req.query.counts === 'true' ) {
         // return global aggregations without letter or hits
         const opts = { id: "name", params: { ...params, size: 0 } };
         delete opts.params.p;
         try {
           await model.verify_template(template);
           const find = await model.search(opts);
-          res.send(find);
+          res.json(find);
         } catch (err) {
-          res.status(400).send('Invalid request');
+          res.status(400).json('Invalid request');
         }
         return;
       }

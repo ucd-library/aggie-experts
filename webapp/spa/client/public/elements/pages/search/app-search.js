@@ -4,6 +4,8 @@ import {render} from "./app-search.tpl.js";
 // sets globals Mixin and EventInterface
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
+import { AffiliationMixin } from '../AffiliationMixin.js';
+
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
 
@@ -14,10 +16,9 @@ import "../../components/search-result-row";
 import "../../components/category-filter-controller.js";
 
 import utils from '../../../lib/utils';
-import { ORG_LOOKUP } from '../../../lib/org-lookup.js';
 
-export default class AppSearch extends Mixin(LitElement)
-  .with(LitCorkUtils) {
+export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
+  .with(LitCorkUtils)) {
 
   static get properties() {
     return {
@@ -108,19 +109,7 @@ export default class AppSearch extends Mixin(LitElement)
     this.expandedSubCategories = [];
     this.mobileSubDrawer = null;
     this.mobileAffSub = null;
-    this.orgLookup = ORG_LOOKUP
-      .slice()
-      .sort((a, b) => a.label.localeCompare(b.label))
-      .map(cat => ({
-        ...cat,
-        subCategories: cat.subCategories
-          .slice()
-          .sort((a, b) => a.label.localeCompare(b.label))
-          .map(sub => ({
-            ...sub,
-            depts: sub.depts.slice().sort((a, b) => a.name.localeCompare(b.name))
-          }))
-      }));
+    // this.orgLookup is initialised by AffiliationMixin
 
     this.render = render.bind(this);
   }
@@ -390,70 +379,13 @@ export default class AppSearch extends Mixin(LitElement)
     this._updateLocation();
   }
 
-  /**
-   * @method _removeDateFilter
-   * @description remove the date filter
-   */
-  _onDeptChange(e) {
-    const code = e.currentTarget.value;
-    if( e.currentTarget.checked ) {
-      if( !this.dept.includes(code) ) this.dept = [...this.dept, code];
-    } else {
-      this.dept = this.dept.filter(d => d !== code);
-    }
-    this.currentPage = 1;
-    this._updateLocation();
-  }
-
-  _onSubCategoryCheck(subDepts) {
-    const codes = subDepts.map(d => d.deptCode);
-    const checkedCount = codes.filter(c => this.dept.includes(c)).length;
-    const allChecked = checkedCount === codes.length;
-    if( !allChecked ) {
-      const merged = [...this.dept];
-      codes.forEach(c => { if( !merged.includes(c) ) merged.push(c); });
-      this.dept = merged;
-    } else {
-      this.dept = this.dept.filter(d => !codes.includes(d));
-    }
-    this.currentPage = 1;
-    this._updateLocation();
-  }
-
-  _getDept(code) {
-    for( const cat of (this.orgLookup || []) ) {
-      for( const sub of cat.subCategories ) {
-        const dept = sub.depts.find(d => d.deptCode === code);
-        if( dept ) return dept;
-      }
-    }
-    return null;
-  }
-
-  _getDeptName(code) {
-    return this._getDept(code)?.name || code;
-  }
-
-  _deptCodesToNames(codes) {
-    return codes.map(c => this._getDept(c)?.officialName || c);
-  }
-
-  _toggleSubCategory(label) {
-    if( this.expandedSubCategories.includes(label) ) {
-      this.expandedSubCategories = this.expandedSubCategories.filter(l => l !== label);
-    } else {
-      this.expandedSubCategories = [...this.expandedSubCategories, label];
-    }
-  }
+  // _onDeptChange, _onSubCategoryCheck, _getDept, _getDeptName, _deptCodesToNames,
+  // _toggleSubCategory, and _onAffiliationSearch are provided by AffiliationMixin.
 
   _removeDeptFilter(name) {
     this.dept = this.dept.filter(d => d !== name);
     if( !this.dept.length ) this.affiliationCollapsed = false;
     this._updateLocation();
-  }
-
-  _onAffiliationSearch(e) {
-    this.affiliationSearch = e.target.value;
   }
 
   _clearAllFilters() {
