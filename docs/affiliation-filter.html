@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Affiliation Filter — Aggie Experts</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #f8f8f6;
+  }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 2rem 5rem;
+  }
+
+  /* ---- header ---- */
+  .doc-header {
+    border-bottom: 3px solid #022851;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .doc-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #022851;
+    margin-bottom: 0.25rem;
+  }
+
+  .doc-header .subtitle {
+    font-size: 1rem;
+    color: #555;
+  }
+
+  /* ---- nav ---- */
+  .toc {
+    background: #fff;
+    border: 1px solid #dce8f4;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .toc h2 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #888;
+    margin-bottom: 0.75rem;
+  }
+
+  .toc ol {
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .toc a {
+    color: #13639E;
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+
+  .toc a:hover { text-decoration: underline; }
+
+  /* ---- sections ---- */
+  section {
+    margin-bottom: 3rem;
+  }
+
+  section h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #022851;
+    border-bottom: 1px solid #dce8f4;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  section h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #13639E;
+    margin: 1.5rem 0 0.6rem;
+  }
+
+  p { margin-bottom: 0.9rem; color: #333; }
+
+  ul, ol {
+    padding-left: 1.5rem;
+    margin-bottom: 0.9rem;
+    color: #333;
+  }
+
+  li { margin-bottom: 0.3rem; }
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.875rem;
+    background: #eef4fb;
+    color: #022851;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: #022851;
+    color: #d4e8f7;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+  }
+
+  /* ---- data structure diagram ---- */
+  .tree {
+    background: #fff;
+    border: 1px solid #dce8f4;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.875rem;
+    line-height: 1.8;
+  }
+
+  .tree .l0 { color: #022851; font-weight: 700; }
+  .tree .l1 { color: #13639E; padding-left: 1.5rem; }
+  .tree .l2 { color: #2a7ab3; padding-left: 3rem; }
+  .tree .l3 { color: #555; padding-left: 4.5rem; }
+  .tree .key { color: #c0392b; }
+  .tree .val { color: #27ae60; }
+  .tree .type { color: #888; font-style: italic; }
+
+  /* ---- sheet column table ---- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  th {
+    background: #022851;
+    color: #fff;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f5f9ff; }
+
+  /* ---- UI behavior cards ---- */
+  .context-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .context-grid { grid-template-columns: 1fr; }
+  }
+
+  .context-card {
+    background: #fff;
+    border: 1px solid #dce8f4;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+  }
+
+  .context-card .card-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 0.6rem;
+  }
+
+  .context-card.desktop .card-label { color: #13639E; }
+  .context-card.mobile .card-label { color: #8B6914; }
+
+  .context-card ul {
+    font-size: 0.9rem;
+    padding-left: 1.1rem;
+    margin: 0;
+  }
+
+  .context-card li { margin-bottom: 0.25rem; }
+
+  /* ---- flow steps ---- */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .flow-step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .flow-step .step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #022851;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.1rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .flow-step .step-body {
+    flex: 1;
+    padding-bottom: 1.25rem;
+    border-left: 2px solid #dce8f4;
+    padding-left: 1rem;
+    margin-left: -1rem;
+    padding-top: 0.1rem;
+  }
+
+  .flow-step:last-child .step-body {
+    border-left-color: transparent;
+  }
+
+  .flow-step .step-body strong {
+    display: block;
+    font-size: 0.95rem;
+    color: #022851;
+    margin-bottom: 0.2rem;
+  }
+
+  .flow-step .step-body p {
+    font-size: 0.9rem;
+    margin: 0;
+    color: #555;
+  }
+
+  /* ---- callout ---- */
+  .callout {
+    background: #eef4fb;
+    border-left: 4px solid #13639E;
+    border-radius: 0 6px 6px 0;
+    padding: 0.9rem 1.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: #333;
+  }
+
+  .callout strong { color: #022851; }
+
+  /* ---- file list ---- */
+  .file-list {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1rem;
+  }
+
+  .file-list li {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+    align-items: baseline;
+  }
+
+  .file-list li:last-child { border-bottom: none; }
+
+  .file-list .path {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    color: #022851;
+    flex-shrink: 0;
+    background: #eef4fb;
+    padding: 0.15em 0.5em;
+    border-radius: 4px;
+  }
+
+  .file-list .desc { color: #555; }
+
+  /* ---- badge ---- */
+  .badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  .badge-blue { background: #dce8f4; color: #022851; }
+  .badge-gold { background: #fff3cc; color: #6b4e00; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="doc-header">
+    <h1>Affiliation Filter</h1>
+    <p class="subtitle">Aggie Experts — feature documentation</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#data-source">Data source</a></li>
+      <li><a href="#data-structure">Data structure</a></li>
+      <li><a href="#ui-desktop">UI — desktop</a></li>
+      <li><a href="#ui-mobile">UI — mobile</a></li>
+      <li><a href="#updating">Updating the org lookup table</a></li>
+      <li><a href="#files">Key files</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1. Overview -->
+  <section id="overview">
+    <h2>1. Overview</h2>
+    <p>The Affiliation filter lets users narrow Search and Browse results by UC Davis organizational unit. Departments are organized in a three-level hierarchy: <strong>Category → Sub-category → Department</strong>.</p>
+    <p>The filter is available on both the Search page (filtering across all result types) and the Browse by Experts / Grants / Works pages (filtering the displayed roster). Behavior differs slightly between desktop and mobile, and between Search and Browse.</p>
+  </section>
+
+  <!-- 2. Data source -->
+  <section id="data-source">
+    <h2>2. Data source</h2>
+    <p>The organization hierarchy is maintained in a Google Sheet and compiled into a static JavaScript module consumed by the front-end bundle.</p>
+
+    <h3>Google Sheet</h3>
+    <p>URL stored in <code>config.google.orgLookupSheetUrl</code> (commons config), overridable via the <code>ORG_LOOKUP_SHEET_URL</code> environment variable.</p>
+    <p>Default: <code>https://docs.google.com/spreadsheets/d/1vTqlpEI9vyzeZG2TTTNNFFXgC7u7OqI5wkY47TOohZM/export?format=csv&gid=647977625</code></p>
+
+    <h3>Sheet column mapping</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Sheet column</th>
+          <th>Maps to</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>AE Filter Category</code></td><td>Top-level category <code>label</code></td><td>Rows with no value are skipped</td></tr>
+        <tr><td><code>AE Filter Sub Category</code></td><td>Sub-category <code>label</code></td><td>Rows with no value are skipped</td></tr>
+        <tr><td><code>Suggested Display Name</code></td><td><code>depts[].name</code></td><td>User-facing department name</td></tr>
+        <tr><td><code>Official Name</code></td><td><code>depts[].officialName</code></td><td>Used for matching against HR/ES data</td></tr>
+        <tr><td><code>Dept Code</code></td><td><code>depts[].deptCode</code></td><td>ES filter value sent to the API</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <strong>Order in the sheet does not matter.</strong> The CLI sorts all three levels alphabetically when writing the output file, so display order is determined by the front-end sort, not row order.
+    </div>
+  </section>
+
+  <!-- 3. Data structure -->
+  <section id="data-structure">
+    <h2>3. Data structure</h2>
+    <p>The compiled output is an ES module exporting <code>ORG_LOOKUP</code> — an array of category objects, each with nested sub-categories and departments.</p>
+
+    <div class="tree">
+      <div class="l0">ORG_LOOKUP  <span class="type">// Array</span></div>
+      <div class="l1">└─ { <span class="key">label</span>: <span class="val">"Colleges"</span> }  <span class="type">// category</span></div>
+      <div class="l2">└─ subCategories  <span class="type">// Array</span></div>
+      <div class="l2">   └─ { <span class="key">label</span>: <span class="val">"Agricultural and Environmental Sciences"</span> }</div>
+      <div class="l3">└─ depts  <span class="type">// Array</span></div>
+      <div class="l3">   └─ { <span class="key">name</span>: <span class="val">"Animal Science"</span>,</div>
+      <div class="l3">        <span class="key">officialName</span>: <span class="val">"ANIMAL SCIENCE"</span>,</div>
+      <div class="l3">        <span class="key">deptCode</span>: <span class="val">"30045"</span> }</div>
+    </div>
+
+    <p>The <code>deptCode</code> values are sent to Elasticsearch as filter terms. When a user selects a sub-category checkbox (desktop) or drills into a sub-category and checks departments (mobile), the corresponding codes are added to the active filter set stored in the URL query string as the <code>dept</code> parameter.</p>
+  </section>
+
+  <!-- 4. Desktop UI -->
+  <section id="ui-desktop">
+    <h2>4. UI — desktop</h2>
+    <p>On screens wider than 767 px the Affiliation filter renders in the left sidebar. Behavior is identical on Search and Browse.</p>
+
+    <div class="context-grid">
+      <div class="context-card desktop">
+        <div class="card-label">Search page</div>
+        <ul>
+          <li>Sidebar always visible alongside results</li>
+          <li>Affiliation section is collapsible (caret toggle)</li>
+          <li>Search box filters the department list in real time</li>
+          <li>Sub-category rows have an expand/collapse caret</li>
+          <li>Sub-category checkbox = select all depts in that sub-category (indeterminate when partial)</li>
+          <li>Department checkboxes select individual depts</li>
+          <li>Active chips shown in <code>.results-filtered-to</code> row above results</li>
+        </ul>
+      </div>
+      <div class="context-card desktop">
+        <div class="card-label">Browse pages</div>
+        <ul>
+          <li>Same sidebar layout as Search</li>
+          <li>Experts browse: Affiliation is the first (and only) filter group</li>
+          <li>Grants/Works browse: category selector (status / work type) appears above Affiliation in the sidebar</li>
+          <li>Selected dept codes are appended to the A–Z browse query</li>
+          <li>Active chips shown in <code>.results-filtered-to</code> row above the letter list</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Checkbox states</h3>
+    <p>Custom checkboxes (20 × 20 px) replace browser-native inputs to ensure consistent rendering. Three visual states are used:</p>
+    <ul>
+      <li><strong>Unchecked</strong> — white fill, <code>1px solid var(--ucd-blue-70)</code> border</li>
+      <li><strong>Checked</strong> — <code>var(--ucd-blue-70)</code> fill, white checkmark via <code>::after</code> pseudo-element</li>
+      <li><strong>Indeterminate</strong> — <code>var(--ucd-blue-70)</code> fill, white dash via <code>::after</code> pseudo-element; set programmatically on sub-category checkboxes when only some child depts are selected</li>
+    </ul>
+
+    <h3>Alphabetical ordering</h3>
+    <p>Categories, sub-categories, and departments are sorted alphabetically at construction time in the component constructor (using <code>localeCompare</code>), so display order is independent of the order in the source sheet.</p>
+  </section>
+
+  <!-- 5. Mobile UI -->
+  <section id="ui-mobile">
+    <h2>5. UI — mobile</h2>
+    <p>On screens 767 px wide and under the sidebar is hidden and replaced with a full-screen drawer system. The drawer is opened by tapping the <strong>Filter</strong> button.</p>
+
+    <h3>Search mobile</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Main drawer</strong>
+          <p>Tapping <em>Filter</em> opens a full-screen overlay. The header reads "Refine Results" (italic). Filter sections — Affiliation, Date, Experts Open To — appear as rows with right-pointing carets.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Affiliation sub-drawer</strong>
+          <p>Tapping <em>Affiliation</em> slides into a second full-screen view. A search box filters the list. Categories are rendered as group labels; sub-categories appear as tappable rows (no checkboxes at this level).</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Department sub-drawer</strong>
+          <p>Tapping a sub-category row opens a third view listing individual departments with checkboxes. Selecting a department immediately applies the filter.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Yellow "View N results" button</strong>
+          <p>Pinned at the bottom of every drawer level. Label updates dynamically: "View N results" (All Results), "View N experts", "View N grants", "View N active grants", "View N journal articles", etc. Tapping closes the drawer.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Browse mobile</h3>
+    <p>Browse mobile follows the same drawer pattern with two differences:</p>
+    <ul>
+      <li>The drawer title is <strong>Filter</strong> (not "Refine Results") and there are no category options inside the drawer.</li>
+      <li>For Grants and Works browse, a <strong>category dropdown</strong> appears to the left of the Filter button (outside the drawer). It shows the current selection (e.g. "All Grants", "Active", "Journal Articles") with a chevron. Selecting an option calls the appropriate change handler and closes the dropdown immediately.</li>
+      <li>Experts browse has no category dropdown — only the Filter button.</li>
+    </ul>
+
+    <h3>Active filter chips (mobile)</h3>
+    <p>Selected filters are shown as dismissible chips on the same row as the Filter button (and category dropdown if present). Each chip displays the filter label and an × that removes it. The chips wrap onto a second row if needed.</p>
+
+    <div class="callout">
+      <strong>State properties controlling mobile drawer navigation:</strong><br>
+      <code>mobileSubDrawer</code> — <code>null</code> | <code>'affiliation'</code> | <code>'openTo'</code> | <code>'date'</code><br>
+      <code>mobileAffSub</code> — <code>null</code> or the label of the currently open sub-category<br>
+      <code>mobileCategoryOpen</code> — boolean (Browse only, controls the category dropdown)
+    </div>
+  </section>
+
+  <!-- 6. Updating -->
+  <section id="updating">
+    <h2>6. Updating the org lookup table</h2>
+    <p>Run the <code>update-org-lookup</code> CLI command whenever the Google Sheet is changed. The command fetches the sheet as CSV, converts it to the nested JSON structure, and overwrites <code>org-lookup.js</code>.</p>
+
+    <h3>Running the command</h3>
+    <pre><code># From the harvest/ directory
+node bin/experts-admin.js update-org-lookup
+
+# Preview without writing
+node bin/experts-admin.js update-org-lookup --dry-run
+
+# Write to a custom path
+node bin/experts-admin.js update-org-lookup --output /path/to/org-lookup.js
+
+# Use a different sheet URL
+node bin/experts-admin.js update-org-lookup --url "https://docs.google.com/..."</code></pre>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Fetch</strong>
+          <p>Downloads the sheet as CSV via the public export URL (follows Google's redirect automatically).</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Parse</strong>
+          <p>Parses CSV rows using <code>csv-parse/sync</code> with column headers. Rows missing <code>AE Filter Category</code>, <code>AE Filter Sub Category</code>, <code>Suggested Display Name</code>, or <code>Dept Code</code> are silently skipped.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Convert</strong>
+          <p>Groups rows into the three-level hierarchy using <code>Map</code> objects keyed by category and sub-category labels. Insertion order is preserved from the sheet; the front-end sorts alphabetically at runtime.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Write</strong>
+          <p>Serializes the array as <code>export const ORG_LOOKUP = [...];</code> and writes it to the output path. The SPA must be rebuilt (<code>webpack</code>) for the change to take effect.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>After running the command, rebuild the SPA bundle:</strong><br>
+      <code>docker exec aggie-experts-spa-1 node_modules/.bin/webpack --config spa/client/webpack-watch.config.js</code>
+    </div>
+  </section>
+
+  <!-- 7. Key files -->
+  <section id="files">
+    <h2>7. Key files</h2>
+    <ul class="file-list">
+      <li>
+        <span class="path">webapp/spa/client/public/lib/org-lookup.js</span>
+        <span class="desc">Generated ES module — the compiled ORG_LOOKUP array. Do not edit by hand; regenerate with the CLI.</span>
+      </li>
+      <li>
+        <span class="path">commons/lib/config.js</span>
+        <span class="desc">Contains <code>config.google.orgLookupSheetUrl</code> — the Google Sheets CSV export URL.</span>
+      </li>
+      <li>
+        <span class="path">harvest/bin/experts-admin.js</span>
+        <span class="desc">CLI entry point. The <code>update-org-lookup</code> subcommand fetches and rebuilds <code>org-lookup.js</code>.</span>
+      </li>
+      <li>
+        <span class="path">webapp/spa/client/public/elements/pages/search/app-search.js</span>
+        <span class="desc">Search page component. Imports <code>ORG_LOOKUP</code>, sorts it in the constructor, manages <code>mobileSubDrawer</code> and <code>mobileAffSub</code> state, handles dept checkbox changes.</span>
+      </li>
+      <li>
+        <span class="path">webapp/spa/client/public/elements/pages/search/app-search.tpl.js</span>
+        <span class="desc">Search page template. Renders desktop sidebar affiliation tree and mobile sub-drawers.</span>
+      </li>
+      <li>
+        <span class="path">webapp/spa/client/public/elements/pages/browse/app-browse-by.js</span>
+        <span class="desc">Browse page component. Same ORG_LOOKUP import and drawer state, plus <code>mobileCategoryOpen</code> for the category dropdown.</span>
+      </li>
+      <li>
+        <span class="path">webapp/spa/client/public/elements/pages/browse/app-browse-by.tpl.js</span>
+        <span class="desc">Browse page template. Desktop sidebar, mobile category dropdown, and mobile filter drawer.</span>
+      </li>
+    </ul>
+  </section>
+
+</div>
+</body>
+</html>
