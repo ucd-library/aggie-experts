@@ -57,6 +57,8 @@ export default class AppSearch extends Mixin(LitElement)
       openToCollapsed : { type : Boolean },
       affiliationSearch : { type : String },
       expandedSubCategories : { type : Array },
+      mobileSubDrawer : { type : String },
+      mobileAffSub : { type : String },
     }
   }
 
@@ -104,7 +106,21 @@ export default class AppSearch extends Mixin(LitElement)
     this.openToCollapsed = true;
     this.affiliationSearch = '';
     this.expandedSubCategories = [];
-    this.orgLookup = ORG_LOOKUP;
+    this.mobileSubDrawer = null;
+    this.mobileAffSub = null;
+    this.orgLookup = ORG_LOOKUP
+      .slice()
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map(cat => ({
+        ...cat,
+        subCategories: cat.subCategories
+          .slice()
+          .sort((a, b) => a.label.localeCompare(b.label))
+          .map(sub => ({
+            ...sub,
+            depts: sub.depts.slice().sort((a, b) => a.name.localeCompare(b.name))
+          }))
+      }));
 
     this.render = render.bind(this);
   }
@@ -533,8 +549,41 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _toggleRefineSearch() {
-    this.refineSearchCollapsed = !this.refineSearchCollapsed;    
+    this.refineSearchCollapsed = !this.refineSearchCollapsed;
+    if( this.refineSearchCollapsed ) {
+      this.mobileSubDrawer = null;
+      this.mobileAffSub = null;
+    }
     if( !this.refineSearchCollapsed ) this._refreshRange();
+  }
+
+  _getActiveFilterCount() {
+    let count = 0;
+    if( this.dateFrom || this.dateTo ) count++;
+    if( this.atType ) count++;
+    if( this.status ) count++;
+    if( this.type ) count++;
+    if( this.filterByExpert ) count++;
+    if( this.collabProjects ) count++;
+    if( this.commPartner ) count++;
+    if( this.industProjects ) count++;
+    if( this.mediaInterviews ) count++;
+    if( this.dept?.length ) count += this.dept.length;
+    return count;
+  }
+
+  _getMobileViewLabel() {
+    const n = this.totalResultsCount != null ? this.totalResultsCount : '';
+    if( !this.atType ) return `View ${n} results`;
+    let typeLabel = '';
+    if( this.atType === 'expert' ) typeLabel = n === 1 ? 'expert' : 'experts';
+    else if( this.atType === 'grant' ) typeLabel = n === 1 ? 'grant' : 'grants';
+    else if( this.atType === 'work' ) {
+      if( this.type ) typeLabel = utils.getCitationType(this.type).toLowerCase();
+      else typeLabel = n === 1 ? 'work' : 'works';
+    } else typeLabel = this.atType;
+    if( this.status ) typeLabel = this.status.toLowerCase() + ' ' + typeLabel;
+    return `View ${n} ${typeLabel}`;
   }
 
   /**
@@ -1338,6 +1387,31 @@ export default class AppSearch extends Mixin(LitElement)
       link.click();
       document.body.removeChild(link);
     }
+  }
+
+  _removeCategoryFilter() {
+    this.atType = '';
+    this.type = '';
+    this.status = '';
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  _getCategoryChipLabel() {
+    if( !this.atType ) return '';
+    if( this.atType === 'expert' ) return 'Experts';
+    if( this.atType === 'grant' ) {
+      if( this.status ) return this.status.charAt(0).toUpperCase() + this.status.slice(1).toLowerCase() + ' Grants';
+      return 'Grants';
+    }
+    if( this.atType === 'work' ) {
+      if( this.type ) {
+        const label = utils.getCitationType(this.type);
+        return label.charAt(0).toUpperCase() + label.slice(1);
+      }
+      return 'Works';
+    }
+    return this.atType;
   }
 
   _onFilterChange(e) {

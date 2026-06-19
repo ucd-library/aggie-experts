@@ -42,6 +42,10 @@ export default class AppBrowseBy extends Mixin(LitElement)
       affiliationSearch : { type : String },
       expandedSubCategories : { type : Array },
       categoryAggregations : { type : Object },
+      refineSearchCollapsed : { type : Boolean },
+      mobileSubDrawer : { type : String },
+      mobileAffSub : { type : String },
+      mobileCategoryOpen : { type : Boolean },
     }
   }
 
@@ -70,13 +74,29 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this.dateTo = '';
     this.dateRangeData = [];
     this._lastDateHistSig = '';
+    this.refineSearchCollapsed = true;
+    this.mobileSubDrawer = null;
+    this.mobileAffSub = null;
+    this.mobileCategoryOpen = false;
     this.affiliationCollapsed = true;
     this.dateCollapsed = true;
     this.openToCollapsed = true;
     this.affiliationSearch = '';
     this.expandedSubCategories = [];
     this.categoryAggregations = {};
-    this.orgLookup = ORG_LOOKUP;
+    this.orgLookup = ORG_LOOKUP
+      .slice()
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map(cat => ({
+        ...cat,
+        subCategories: cat.subCategories
+          .slice()
+          .sort((a, b) => a.label.localeCompare(b.label))
+          .map(sub => ({
+            ...sub,
+            depts: sub.depts.slice().sort((a, b) => a.name.localeCompare(b.name))
+          }))
+      }));
 
     this._injectModel('AppStateModel', 'BrowseByModel');
   }
@@ -455,6 +475,182 @@ export default class AppBrowseBy extends Mixin(LitElement)
     this.affiliationSearch = e.target.value;
   }
 
+  _renderFilterContents() {
+    return html`
+      <!-- Categories (Grants and Works only) -->
+      ${this.browseType === 'grant' ? html`
+        <div class="browse-categories">
+          <h3>Categories</h3>
+          <div class="category-row ${!this.status ? 'active' : ''}" @click="${() => this._onStatusChange('')}">
+            <span class="category-label">All Grants</span>
+            <span class="category-count">${this._getCategoryTotal()}</span>
+          </div>
+          <div class="category-row ${this.status === 'active' ? 'active' : ''}" @click="${() => this._onStatusChange('active')}">
+            <span class="category-label">Active</span>
+            <span class="category-count">${this._getCategoryCount('status', 'active')}</span>
+          </div>
+          <div class="category-row ${this.status === 'completed' ? 'active' : ''}" @click="${() => this._onStatusChange('completed')}">
+            <span class="category-label">Completed</span>
+            <span class="category-count">${this._getCategoryCount('status', 'completed')}</span>
+          </div>
+        </div>
+        <hr class="search-seperator search-seperator--large-dots">
+      ` : ''}
+      ${this.browseType === 'work' ? html`
+        <div class="browse-categories">
+          <h3>Categories</h3>
+          <div class="category-row ${!this.workType ? 'active' : ''}" @click="${() => this._onWorkTypeChange('')}">
+            <span class="category-label">All Works</span>
+            <span class="category-count">${this._getCategoryTotal()}</span>
+          </div>
+          ${this._getWorkTypeRows()}
+        </div>
+        <hr class="search-seperator search-seperator--large-dots">
+      ` : ''}
+
+      <!-- Affiliation -->
+      <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
+        <h4>Affiliation</h4>
+        <span class="filter-collapse-arrow">
+          ${this.affiliationCollapsed
+            ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+            : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+          }
+        </span>
+      </div>
+      ${this.affiliationCollapsed && this.dept?.length ? html`
+        <div class="filter-active-summary">
+          ${(this.dept || []).map(code => html`
+            <span class="filter-active-item" @click="${() => this._removeDeptFilter(code)}">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+              ${this._getDeptName(code)}
+            </span>
+          `)}
+        </div>
+      ` : ''}
+      <div class="affiliation-filter-contents" ?hidden="${this.affiliationCollapsed}">
+        <div class="affiliation-search-wrapper">
+          <input type="text" class="affiliation-search-input" placeholder="Search Affiliation"
+            .value="${this.affiliationSearch}" @input="${this._onAffiliationSearch}">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="14" height="14">
+            <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/>
+          </svg>
+        </div>
+        <div class="affiliation-checkboxes">
+          ${(this.orgLookup || []).map(cat => {
+            const matchingSubs = cat.subCategories.map(sub => ({
+              ...sub,
+              depts: sub.depts.filter(d =>
+                !this.affiliationSearch ||
+                d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
+                sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
+              )
+            })).filter(sub => sub.depts.length);
+            if( !matchingSubs.length ) return '';
+            return html`
+              <div class="affiliation-group-label">${cat.label}</div>
+              ${matchingSubs.map(sub => {
+                const subCodes = sub.depts.map(d => d.deptCode);
+                const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
+                const allChecked = checkedCount === subCodes.length;
+                const someChecked = checkedCount > 0 && !allChecked;
+                const expanded = this.expandedSubCategories.includes(sub.label);
+                return html`
+                  <div class="affiliation-sub-row">
+                    <input type="checkbox" class="affiliation-sub-checkbox"
+                      .indeterminate="${someChecked}" .checked="${allChecked}"
+                      @change="${() => this._onSubCategoryCheck(sub.depts)}">
+                    <span class="affiliation-sub-label">${sub.label}</span>
+                    <span class="affiliation-sub-caret" @click="${() => this._toggleSubCategory(sub.label)}">
+                      ${expanded
+                        ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                        : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                      }
+                    </span>
+                  </div>
+                  ${expanded ? html`
+                    <div class="affiliation-dept-list">
+                      ${sub.depts.map(d => html`
+                        <label class="affiliation-dept-row">
+                          <input type="checkbox" .value="${d.deptCode}"
+                            .checked="${this.dept.includes(d.deptCode)}"
+                            @change="${this._onDeptChange}">
+                          ${d.name}
+                        </label>
+                      `)}
+                    </div>
+                  ` : ''}
+                `;
+              })}
+            `;
+          })}
+        </div>
+      </div>
+
+      <!-- Experts Open To (Experts only) -->
+      ${this.browseType === 'expert' ? html`
+        <div class="open-to-container">
+          <hr class="search-seperator">
+          <div class="collapsible-filter-heading" @click="${() => { this.openToCollapsed = !this.openToCollapsed; }}">
+            <h4>Experts Open To</h4>
+            <span class="filter-collapse-arrow">
+              ${this.openToCollapsed
+                ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+              }
+            </span>
+          </div>
+          <div class="open-to" ?hidden="${this.openToCollapsed}">
+            <label><input type="checkbox" id="b-collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}"> Collaborative Projects</label>
+            <label><input type="checkbox" id="b-comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}"> Community Partnerships</label>
+            <label><input type="checkbox" id="b-indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}"> Industry Projects</label>
+            <label><input type="checkbox" id="b-media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}"> Media Interviews</label>
+          </div>
+          ${this.openToCollapsed ? html`
+            <div class="filter-active-summary">
+              ${this.collabProjects ? html`<span class="filter-active-item" @click="${() => { this.collabProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Collaborative Projects</span>` : ''}
+              ${this.commPartner ? html`<span class="filter-active-item" @click="${() => { this.commPartner = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Community Partnerships</span>` : ''}
+              ${this.industProjects ? html`<span class="filter-active-item" @click="${() => { this.industProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Industry Projects</span>` : ''}
+              ${this.mediaInterviews ? html`<span class="filter-active-item" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Media Interviews</span>` : ''}
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      <!-- Date filter -->
+      <div class="range-filter-container">
+        <hr class="search-seperator">
+        <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) this._refreshRangeSlider(false); }}">
+          <h4>Date</h4>
+          <span class="filter-collapse-arrow">
+            ${this.dateCollapsed
+              ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+              : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+            }
+          </span>
+        </div>
+        ${this.dateCollapsed && this.filterByDate ? html`
+          <div class="filter-active-summary">
+            <span class="filter-active-item" @click="${this._removeDateFilter}">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+            </span>
+          </div>
+        ` : ''}
+        <div ?hidden="${this.dateCollapsed}">
+          ${this.browseType === 'grant' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Grants are shown across their active years</span>` : ''}
+          <div class="search-year" ?hidden="${this.dateRangeData.length !== 1}">${this.dateRangeData[0]?.stat}</div>
+          <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
+            <ucdlib-range-slider
+              @range-slider-change="${this._onRangeSliderChange}"
+              .data="${this.dateRangeData}"
+              .showUnknown="${true}">
+            </ucdlib-range-slider>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   _onStatusChange(newStatus) {
     // clicking the already-active filter (or "All") clears the filter
     if( !newStatus || this.status === newStatus ) {
@@ -474,6 +670,16 @@ export default class AppBrowseBy extends Mixin(LitElement)
     }
     this.currentPage = 1;
     this._updateLocation();
+  }
+
+  _toggleRefineSearch() {
+    this.refineSearchCollapsed = !this.refineSearchCollapsed;
+    if( this.refineSearchCollapsed ) {
+      this.mobileSubDrawer = null;
+      this.mobileAffSub = null;
+      this.mobileCategoryOpen = false;
+    }
+    if( !this.refineSearchCollapsed ) this._refreshRangeSlider(false);
   }
 
   _onRangeSliderChange(e) {
@@ -530,8 +736,6 @@ export default class AppBrowseBy extends Mixin(LitElement)
   _getActiveFilterCount() {
     let count = 0;
     if( this.dept?.length ) count += this.dept.length;
-    if( this.status ) count++;
-    if( this.workType ) count++;
     if( this.filterByDate ) count++;
     if( this.collabProjects ) count++;
     if( this.commPartner ) count++;
@@ -586,6 +790,77 @@ export default class AppBrowseBy extends Mixin(LitElement)
 
   _getWorkTypeLabel(key) {
     return utils.getCitationType(key) || key;
+  }
+
+  _getWorkTypeItems() {
+    const typeAgg = this.categoryAggregations?.type;
+    if( !typeAgg || typeof typeAgg !== 'object' || !Object.keys(typeAgg).length ) {
+      const types = [
+        { key: 'book', label: 'Books' },
+        { key: 'chapter', label: 'Chapters' },
+        { key: 'paper-conference', label: 'Conference Papers' },
+        { key: 'article-journal', label: 'Journal Articles' },
+      ];
+      return types.map(t => html`<button class="category-dropdown-item ${this.workType === t.key ? 'active' : ''}" @click="${() => this._onMobileCategoryChange(t.key)}">${t.label}</button>`);
+    }
+    const entries = Object.entries(typeAgg)
+      .map(([key]) => ({ key, label: utils.getCitationType(key) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return entries.map(({ key, label }) => html`<button class="category-dropdown-item ${this.workType === key ? 'active' : ''}" @click="${() => this._onMobileCategoryChange(key)}">${label}</button>`);
+  }
+
+  _getWorkTypeOptions() {
+    const typeAgg = this.categoryAggregations?.type;
+    if( !typeAgg || typeof typeAgg !== 'object' || !Object.keys(typeAgg).length ) {
+      const types = [
+        { key: 'book', label: 'Books' },
+        { key: 'chapter', label: 'Chapters' },
+        { key: 'paper-conference', label: 'Conference Papers' },
+        { key: 'article-journal', label: 'Journal Articles' },
+      ];
+      return types.map(t => html`<option value="${t.key}" ?selected="${this.workType === t.key}">${t.label}</option>`);
+    }
+    const entries = Object.entries(typeAgg)
+      .map(([key]) => ({ key, label: utils.getCitationType(key) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return entries.map(({ key, label }) => html`<option value="${key}" ?selected="${this.workType === key}">${label}</option>`);
+  }
+
+  _getMobileViewLabel() {
+    const n = this.totalResultsCount != null ? this.totalResultsCount : '';
+    if( this.browseType === 'expert' ) return `View ${n} expert${n === 1 ? '' : 's'}`;
+    if( this.browseType === 'grant' ) {
+      let label = this.status ? this.status.toLowerCase() + ' grant' : 'grant';
+      if( n !== 1 ) label += 's';
+      return `View ${n} ${label}`;
+    }
+    if( this.browseType === 'work' ) {
+      if( this.workType ) {
+        const label = utils.getCitationType(this.workType).toLowerCase();
+        return `View ${n} ${label}`;
+      }
+      return `View ${n} work${n === 1 ? '' : 's'}`;
+    }
+    return `View ${n} results`;
+  }
+
+  _getMobileCategoryLabel() {
+    if( this.browseType === 'grant' ) {
+      if( this.status === 'active' ) return 'Active';
+      if( this.status === 'completed' ) return 'Completed';
+      return 'All Grants';
+    }
+    if( this.browseType === 'work' ) {
+      if( this.workType ) return utils.getCitationType(this.workType);
+      return 'All Works';
+    }
+    return '';
+  }
+
+  _onMobileCategoryChange(val) {
+    this.mobileCategoryOpen = false;
+    if( this.browseType === 'grant' ) this._onStatusChange(val);
+    else if( this.browseType === 'work' ) this._onWorkTypeChange(val);
   }
 
   async _refreshRange(dataChanged=false) {

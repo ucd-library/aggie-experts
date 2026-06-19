@@ -38,6 +38,7 @@ export default function render() {
       .filter-result .label {
         padding-left: .56rem;
         font-weight: bold;
+        color: var(--ucd-blue-100, #022851);
       }
 
       .filter-result ucdlib-icon {
