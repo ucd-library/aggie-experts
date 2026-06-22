@@ -91,6 +91,20 @@ class UpdateExpertAvailabilityCdlConfig(Config):
     labels_to_remove: list[str] = Field(default_factory=list, description="Labels to remove")
     current_labels: list[str] = Field(default_factory=list, description="Current labels")
     cdl_enabled: bool = Field(True, description="Whether CDL propagation is enabled")
+class UpdateScholarlyRecordPgConfig(Config):
+    expert_id: str = Field(..., description="Expert ID (e.g. expert/abc123)")
+    relationship_id: str = Field(..., description="Relationship ARK ID (e.g. ark:/87287/d7mh2m/...)")
+    type: Literal['work', 'grant'] = Field('work', description="Record type")
+    visibility: str | None = Field(default=None, description="Set visibility (yes or no)")
+    favorite: str | None = Field(default=None, description="Set as favorite, works only (yes or no)")
+    reject: str | None = Field(default=None, description="Reject/delete authorship, works only (yes or no)")
+
+
+class UpdateExpertPgConfig(Config):
+    expert_id: str = Field(..., description="Expert ID (e.g. expert/abc123)")
+    visibility: str | None = Field(default=None, description="Set visibility (yes or no)")
+
+
 class SlackNotifyConfig(Config):
     title: str = Field(..., description="Message title")
     message: str = Field('', description="Message body")

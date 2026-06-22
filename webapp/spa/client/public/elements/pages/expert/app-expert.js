@@ -989,6 +989,12 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   async _checkDagsterHealth() {
+    if( APP_CONFIG.cdlServiceDown ) {
+      this.dagsterHealthy = false;
+      this.dispatchEvent(new CustomEvent('dagster-health-issue', { detail: { healthIssue: true } }));
+      return;
+    }
+
     try {
       let res = await this.DagsterModel.getHealth();
 

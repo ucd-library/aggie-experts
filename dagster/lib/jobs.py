@@ -19,8 +19,10 @@ from .assets import (
     purge_year_week_cask_files,
     update_scholarly_record_es,
     update_scholarly_record_cdl,
+    update_scholarly_record_postgres,
     update_expert_es,
     update_expert_cdl,
+    update_expert_postgres,
     update_expert_availability_es,
     update_expert_availability_cdl,
 )
@@ -66,15 +68,15 @@ transform_load_users_job = dg.define_asset_job(
 
 update_scholarly_record_job = dg.define_asset_job(
     name="update_scholarly_record_job",
-    description="Update a work or grant record in Elasticsearch and CDL/Elements (two parallel steps).",
-    selection=dg.AssetSelection.assets(update_scholarly_record_es, update_scholarly_record_cdl),
+    description="Update a work or grant record in Elasticsearch, CDL/Elements, and Postgres (three parallel steps).",
+    selection=dg.AssetSelection.assets(update_scholarly_record_es, update_scholarly_record_cdl, update_scholarly_record_postgres),
     tags={"dagster/priority": "2"},
 )
 
 update_expert_job = dg.define_asset_job(
     name="update_expert_job",
-    description="Update or delete an expert record in Elasticsearch and CDL/Elements (two parallel steps).",
-    selection=dg.AssetSelection.assets(update_expert_es, update_expert_cdl),
+    description="Update or delete an expert record in Elasticsearch, CDL/Elements, and Postgres (three parallel steps).",
+    selection=dg.AssetSelection.assets(update_expert_es, update_expert_cdl, update_expert_postgres),
     tags={"dagster/priority": "2"},
 )
 
@@ -84,6 +86,7 @@ update_expert_availability_job = dg.define_asset_job(
     selection=dg.AssetSelection.assets(update_expert_availability_es, update_expert_availability_cdl),
     tags={"dagster/priority": "2"},
 )
+
 
 post_etl_job = dg.define_asset_job(
     name="post_etl_job",

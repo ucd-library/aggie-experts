@@ -8,15 +8,19 @@ import {
   Elasticsearch,
   patchWorkEsVisibility,
   patchWorkCdlVisibility,
+  patchWorkPgVisibility,
   patchGrantEsVisibility,
   patchGrantCdlVisibility,
+  patchGrantPgVisibility,
   patchExpertEsVisibility,
   patchExpertCdlVisibility,
+  patchExpertPgVisibility,
   deleteExpert,
   deleteAuthorship,
   patchExpertAvailabilityEs,
   patchExpertAvailabilityCdl,
 } from '@ucd-lib/experts-commons';
+import PgClient from '../lib/pg-client.js';
 
 const program = new Command();
 
@@ -95,12 +99,13 @@ const update = new Command('update')
 
 update
   .command('scholarly-record')
-  .description('Update a work or grant record in Elasticsearch and/or CDL/Elements')
+  .description('Update a work or grant record in Elasticsearch, CDL/Elements, and/or Postgres')
   .argument('<expert-id>', 'Expert ID (e.g. expert/abc123)')
   .argument('<relationship-id>', 'Relationship ARK ID (e.g. ark:/87287/d7mh2m/...)')
   .option('--type <work|grant>', 'Record type', 'work')
   .option('--elasticsearch <yes|no>', 'Update Elasticsearch', 'yes')
   .option('--cdl <yes|no>', 'Propagate to CDL/Elements', 'yes')
+  .option('--postgres <yes|no>', 'Update Postgres', 'yes')
   .option('--visibility <yes|no>', 'Set visibility')
   .option('--favorite <yes|no>', 'Set as favorite (works only)')
   .option('--reject <yes|no>', 'Reject/delete authorship (works only)')
@@ -114,9 +119,10 @@ update
     const isWork = type === 'work';
     const doEs = parseYesNo(opts.elasticsearch, 'elasticsearch');
     const doCdl = parseYesNo(opts.cdl, 'cdl');
+    const doPg = parseYesNo(opts.postgres, 'postgres');
 
-    if (!doEs && !doCdl) {
-      logger.error('At least one of --elasticsearch or --cdl must be yes');
+    if (!doEs && !doCdl && !doPg) {
+      logger.error('At least one of --elasticsearch, --cdl, or --postgres must be yes');
       process.exit(1);
     }
 
@@ -145,6 +151,18 @@ update
       } finally {
         config.experts.cdl.authorship.propagate = origPropagate;
       }
+      if (doPg) {
+        const pgClient = new PgClient();
+        try {
+          const rid = relationshipId.replace('ark:/87287/d7mh2m/', 'ark:/87287/d7mh2m/relationship/');
+          await pgClient.query(
+            `DELETE FROM api.expert_work_role WHERE role_id = $1 AND expert_id = $2`,
+            [rid, expertId.replace('expert/', '')]
+          );
+        } finally {
+          await pgClient.end();
+        }
+      }
       logger.info(JSON.stringify({ status: 'ok', expertId, relationshipId, rejected: true }));
       process.exit(0);
     }
@@ -161,9 +179,18 @@ update
     const expertModel = await buildExpertModel();
     const patchEs = isWork ? patchWorkEsVisibility : patchGrantEsVisibility;
     const patchCdl = isWork ? patchWorkCdlVisibility : patchGrantCdlVisibility;
+    const patchPg = isWork ? patchWorkPgVisibility : patchGrantPgVisibility;
 
     if (doEs) await patchEs({ expertModel, patch, expertId, logger, config });
     if (doCdl) await patchCdl({ expertModel, patch, expertId, logger, config });
+    if (doPg) {
+      const pgClient = new PgClient();
+      try {
+        await patchPg({ pgClient, patch, expertId, logger });
+      } finally {
+        await pgClient.end();
+      }
+    }
 
     logger.info(JSON.stringify({ status: 'ok', expertId, relationshipId, type }));
     process.exit(0);
@@ -171,19 +198,21 @@ update
 
 update
   .command('expert')
-  .description('Update an expert record in Elasticsearch and/or CDL/Elements')
+  .description('Update an expert record in Elasticsearch, CDL/Elements, and/or Postgres')
   .argument('<expert-id>', 'Expert ID (e.g. expert/abc123)')
   .option('--elasticsearch <yes|no>', 'Update Elasticsearch', 'yes')
   .option('--cdl <yes|no>', 'Propagate to CDL/Elements', 'yes')
+  .option('--postgres <yes|no>', 'Update Postgres', 'yes')
   .option('--visibility <yes|no>', 'Set visibility')
   .option('--delete <yes|no>', 'Delete the expert record')
   .action(async (expertId, opts) => {
     const doEs = parseYesNo(opts.elasticsearch, 'elasticsearch');
     const doCdl = parseYesNo(opts.cdl, 'cdl');
+    const doPg = parseYesNo(opts.postgres, 'postgres');
     const doDelete = opts.delete != null ? parseYesNo(opts.delete, 'delete') : false;
 
-    if (!doEs && !doCdl) {
-      logger.error('At least one of --elasticsearch or --cdl must be yes');
+    if (!doEs && !doCdl && !doPg) {
+      logger.error('At least one of --elasticsearch, --cdl, or --postgres must be yes');
       process.exit(1);
     }
 
@@ -215,6 +244,14 @@ update
 
     if (doEs) await patchExpertEsVisibility({ expertModel, patch, expertId, logger, config });
     if (doCdl) await patchExpertCdlVisibility({ expertModel, patch, expertId, logger, config });
+    if (doPg) {
+      const pgClient = new PgClient();
+      try {
+        await patchExpertPgVisibility({ pgClient, patch, expertId, logger });
+      } finally {
+        await pgClient.end();
+      }
+    }
 
     logger.info(JSON.stringify({ status: 'ok', expertId }));
     process.exit(0);

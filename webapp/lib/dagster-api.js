@@ -119,6 +119,7 @@ class DagsterAPI {
       ops: {
         update_scholarly_record_es: { config: sharedConfig },
         update_scholarly_record_cdl: { config: { ...sharedConfig, cdl_enabled: cdlEnabled } },
+        update_scholarly_record_postgres: { config: sharedConfig },
       },
     };
 
@@ -152,6 +153,7 @@ class DagsterAPI {
       ops: {
         update_expert_es: { config: sharedConfig },
         update_expert_cdl: { config: { ...sharedConfig, cdl_enabled: cdlEnabled } },
+        update_expert_postgres: { config: sharedConfig },
       },
     };
 

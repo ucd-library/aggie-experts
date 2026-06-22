@@ -18,8 +18,10 @@ from .configs import (
     ReloadSearchTemplateConfig,
     UpdateScholarlyRecordConfig,
     UpdateScholarlyRecordCdlConfig,
+    UpdateScholarlyRecordPgConfig,
     UpdateExpertConfig,
     UpdateExpertCdlConfig,
+    UpdateExpertPgConfig,
     UpdateExpertAvailabilityConfig,
     UpdateExpertAvailabilityCdlConfig,
     SlackNotifyConfig,
@@ -360,6 +362,61 @@ def update_expert_cdl(context: AssetExecutionContext, config: UpdateExpertCdlCon
         "expert_id": config.expert_id,
         "status": result.get("status"),
         "deleted": result.get("deleted", False),
+    })
+    return None
+
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin",
+)
+def update_scholarly_record_postgres(context: AssetExecutionContext, config: UpdateScholarlyRecordPgConfig) -> None:
+    """Update a work or grant record visibility in Postgres."""
+    cmd = [
+        "experts", "admin", "update", "scholarly-record",
+        config.expert_id, config.relationship_id,
+        "--type", config.type,
+        "--elasticsearch", "no",
+        "--cdl", "no",
+        "--postgres", "yes",
+    ]
+    if config.visibility is not None:
+        cmd += ["--visibility", config.visibility]
+    if config.favorite is not None:
+        cmd += ["--favorite", config.favorite]
+    if config.reject is not None:
+        cmd += ["--reject", config.reject]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "expert_id": config.expert_id,
+        "relationship_id": config.relationship_id,
+        "type": config.type,
+        "status": result.get("status"),
+    })
+    return None
+
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin",
+)
+def update_expert_postgres(context: AssetExecutionContext, config: UpdateExpertPgConfig) -> None:
+    """Update expert visibility in Postgres."""
+    cmd = [
+        "experts", "admin", "update", "expert",
+        config.expert_id,
+        "--elasticsearch", "no",
+        "--cdl", "no",
+        "--postgres", "yes",
+    ]
+    if config.visibility is not None:
+        cmd += ["--visibility", config.visibility]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "expert_id": config.expert_id,
+        "status": result.get("status"),
     })
     return None
 

@@ -1015,10 +1015,116 @@ async function deleteAuthorship({ expertModel, id, expertId, logger, config }) {
 	}
 }
 
+/**
+ * @function normalizeExpertIdForPg
+ * @description Strip the 'expert/' prefix from an expert ID to match the VARCHAR(16) form stored in postgres.
+ *
+ * @param {string} expertId
+ * @returns {string}
+ */
+function normalizeExpertIdForPg(expertId) {
+	if (typeof expertId === 'string' && expertId.startsWith('expert/')) {
+		return expertId.slice('expert/'.length);
+	}
+	return expertId;
+}
+
+/**
+ * @function patchWorkPgVisibility
+ * @description Update is_visible and is_favourite for a work role in postgres.
+ *
+ * @param {Object} opts
+ * @param {Object} opts.pgClient - Connected PgClient instance
+ * @param {Object} opts.patch - Patch object with '@id' (role ARK), optional visible and favourite booleans
+ * @param {string} opts.expertId - Expert ID (e.g. 'expert/abc123')
+ * @param {Object} opts.logger
+ * @returns {Promise<void>}
+ */
+async function patchWorkPgVisibility({ pgClient, patch, expertId, logger }) {
+	const id = patch['@id'];
+	// works use the relationship/ form of the ARK as role_id in postgres
+	const roleId = id.replace('ark:/87287/d7mh2m/', 'ark:/87287/d7mh2m/relationship/');
+	const pgExpertId = normalizeExpertIdForPg(expertId);
+
+	logger.info({ roleId, expertId: pgExpertId, patch }, 'patchWorkPgVisibility');
+
+	const setClauses = [];
+	const params = [];
+
+	if (patch.visible != null) {
+		params.push(patch.visible === true);
+		setClauses.push(`is_visible = $${params.length}`);
+	}
+	if (patch.favourite != null) {
+		params.push(patch.favourite === true);
+		setClauses.push(`is_favourite = $${params.length}`);
+	}
+
+	if (setClauses.length === 0) return;
+
+	params.push(roleId);
+	params.push(pgExpertId);
+
+	await pgClient.query(
+		`UPDATE api.expert_work_role SET ${setClauses.join(', ')} WHERE role_id = $${params.length - 1} AND expert_id = $${params.length}`,
+		params
+	);
+}
+
+/**
+ * @function patchGrantPgVisibility
+ * @description Update is_visible for a grant role in postgres.
+ *
+ * @param {Object} opts
+ * @param {Object} opts.pgClient - Connected PgClient instance
+ * @param {Object} opts.patch - Patch object with '@id' (role ARK) and optional visible boolean
+ * @param {string} opts.expertId - Expert ID (e.g. 'expert/abc123')
+ * @param {Object} opts.logger
+ * @returns {Promise<void>}
+ */
+async function patchGrantPgVisibility({ pgClient, patch, expertId, logger }) {
+	const roleId = patch['@id'];
+	const pgExpertId = normalizeExpertIdForPg(expertId);
+
+	logger.info({ roleId, expertId: pgExpertId, patch }, 'patchGrantPgVisibility');
+
+	if (patch.visible == null) return;
+
+	await pgClient.query(
+		`UPDATE api.expert_grant_role SET is_visible = $1 WHERE role_id = $2 AND expert_id = $3`,
+		[patch.visible === true, roleId, pgExpertId]
+	);
+}
+
+/**
+ * @function patchExpertPgVisibility
+ * @description Update is_public for an expert in postgres.
+ *
+ * @param {Object} opts
+ * @param {Object} opts.pgClient - Connected PgClient instance
+ * @param {Object} opts.patch - Patch object with visible boolean
+ * @param {string} opts.expertId - Expert ID (e.g. 'expert/abc123')
+ * @param {Object} opts.logger
+ * @returns {Promise<void>}
+ */
+async function patchExpertPgVisibility({ pgClient, patch, expertId, logger }) {
+	const pgExpertId = normalizeExpertIdForPg(expertId);
+
+	logger.info({ expertId: pgExpertId, patch }, 'patchExpertPgVisibility');
+
+	if (patch.visible == null) return;
+
+	await pgClient.query(
+		`UPDATE api."user" SET is_public = $1 WHERE expert_id = $2`,
+		[patch.visible === true, pgExpertId]
+	);
+}
+
 export {
   patchExpertEsVisibility,
   patchExpertCdlVisibility,
   patchExpertVisibility,
+  patchExpertPgVisibility,
   deleteExpert,
   patchExpertAvailability,
   patchExpertAvailabilityEs,
@@ -1027,9 +1133,11 @@ export {
   patchGrantEsVisibility,
   patchGrantCdlVisibility,
   patchGrantVisibility,
+  patchGrantPgVisibility,
   patchWorkDocumentVisibility,
   patchWorkEsVisibility,
   patchWorkCdlVisibility,
   patchWorkVisibility,
+  patchWorkPgVisibility,
   deleteAuthorship,
 };

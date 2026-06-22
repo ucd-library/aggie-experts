@@ -10,6 +10,7 @@ import {
   patchExpertVisibility,
   patchExpertEsVisibility,
   patchExpertCdlVisibility,
+  patchExpertPgVisibility,
   deleteExpert,
   patchExpertAvailability,
   patchExpertAvailabilityEs,
@@ -17,9 +18,11 @@ import {
   patchGrantVisibility,
   patchGrantEsVisibility,
   patchGrantCdlVisibility,
+  patchGrantPgVisibility,
   patchWorkVisibility,
   patchWorkEsVisibility,
   patchWorkCdlVisibility,
+  patchWorkPgVisibility,
   deleteAuthorship
 } from './lib/profile-updates.js';
 
@@ -42,6 +45,7 @@ export {
   patchExpertVisibility,
   patchExpertEsVisibility,
   patchExpertCdlVisibility,
+  patchExpertPgVisibility,
   deleteExpert,
   patchExpertAvailability,
   patchExpertAvailabilityEs,
@@ -49,8 +53,10 @@ export {
   patchGrantVisibility,
   patchGrantEsVisibility,
   patchGrantCdlVisibility,
+  patchGrantPgVisibility,
   patchWorkVisibility,
   patchWorkEsVisibility,
   patchWorkCdlVisibility,
+  patchWorkPgVisibility,
   deleteAuthorship
 };
