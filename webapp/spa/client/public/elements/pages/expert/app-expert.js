@@ -1008,7 +1008,7 @@ export default class AppExpert extends Mixin(LitElement)
             }
           })
         );
-        console.log('Dagster is not healthy, todo disable controls and show banner in fin-app', this.dagsterHealthy);
+        this.logger.info('Dagster is not healthy, todo disable controls and show banner in fin-app', this.dagsterHealthy);
         this.requestUpdate();
       } else {
         this.dagsterHealthy = true;
@@ -1019,7 +1019,7 @@ export default class AppExpert extends Mixin(LitElement)
             }
           })
         );
-        console.log('Dagster is healthy');
+        this.logger.info('Dagster is healthy');
       }
     } catch (err) {
       this.logger.warn('Error checking dagster health', err);
