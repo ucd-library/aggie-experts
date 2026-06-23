@@ -254,10 +254,13 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     }
 
     // hack for checkboxes not updating consistently even with requestUpdate (mostly an issue with back/forward buttons)
-    this.shadowRoot.querySelector('#collab-projects').checked = this.collabProjects;
-    this.shadowRoot.querySelector('#comm-partner').checked = this.commPartner;
-    this.shadowRoot.querySelector('#indust-projects').checked = this.industProjects;
-    this.shadowRoot.querySelector('#media-interviews').checked = this.mediaInterviews;
+    const setChecked = (id, val) => {
+      this.shadowRoot.querySelectorAll(`#${id}, #m-${id}`).forEach(el => { el.checked = val; });
+    };
+    setChecked('collab-projects', this.collabProjects);
+    setChecked('comm-partner', this.commPartner);
+    setChecked('indust-projects', this.industProjects);
+    setChecked('media-interviews', this.mediaInterviews);
 
     // hide/show filters depending on filter type, later will add date filters etc
     this.showOpenTo = this.atType === 'expert';
@@ -464,9 +467,6 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
   _getActiveFilterCount() {
     let count = 0;
     if( this.dateFrom || this.dateTo ) count++;
-    if( this.atType ) count++;
-    if( this.status ) count++;
-    if( this.type ) count++;
     if( this.filterByExpert ) count++;
     if( this.collabProjects ) count++;
     if( this.commPartner ) count++;

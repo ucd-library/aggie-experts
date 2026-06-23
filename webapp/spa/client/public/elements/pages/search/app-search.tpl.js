@@ -812,6 +812,15 @@ return html`
 
       .mobile-filter-bar p {
         margin: 0;
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .mobile-filter-bar button {
+        white-space: normal;
+        word-break: break-word;
+        max-width: 100%;
       }
     }
   </style>
@@ -1025,7 +1034,6 @@ return html`
               Filter${this._getActiveFilterCount() > 0 ? ` (${this._getActiveFilterCount()})` : ''}
             </span>
           </div>
-          ${this.atType ? html`<p><button class="btn btn--round" @click="${this._removeCategoryFilter}">${this._getCategoryChipLabel()}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
           ${this.filterByExpert ? html`<p><button class="btn btn--round" @click="${this._removeExpertFilter}">${this.filterByExpertName}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
           ${this.filterByDate ? html`<p><button class="btn btn--round" @click="${this._removeDateFilter}">${this.filterByDateLabel}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
           ${this._getDeptPillGroups(this.dept || []).map(group => html`<p><button class="btn btn--round" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">${group.label}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>`)}
