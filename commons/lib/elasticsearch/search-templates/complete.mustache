@@ -80,6 +80,16 @@
                 "minimum_should_match": 1
               }
             }
+            {{#dept}}
+            ,{
+              "bool": {
+                "must": [
+                  { "exists": { "field": "hasOrganizationalUnit.name.kw" } },
+                  { "terms": { "hasOrganizationalUnit.name.kw": {{#toJson}}dept{{/toJson}} } }
+                ]
+              }
+            }
+            {{/dept}}
           ]
         }
       }
@@ -265,10 +275,6 @@
         ,{ "exists": { "field": "type" } }
         ,{ "terms": { "type": {{#toJson}}type{{/toJson}} } }
         {{/type}}
-      {{#dept}}
-      ,{ "exists": { "field": "hasOrganizationalUnit.name.kw" } }
-      ,{ "terms": { "hasOrganizationalUnit.name.kw": {{#toJson}}dept{{/toJson}} } }
-      {{/dept}}
       ]
     }
   },

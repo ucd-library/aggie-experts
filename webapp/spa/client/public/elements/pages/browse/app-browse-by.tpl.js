@@ -191,6 +191,7 @@ return html`
       padding: 0.6rem 0;
       user-select: none;
       box-sizing: border-box;
+      padding-right: 1rem;
     }
 
     .collapsible-filter-heading h4 {
@@ -224,7 +225,7 @@ return html`
 
     .affiliation-search-wrapper {
       display: flex;
-      padding: 0.5rem 0.75rem;
+      padding: 1rem;
       align-items: center;
       gap: 10px;
       width: 100%;
@@ -237,17 +238,15 @@ return html`
       flex-shrink: 0;
       fill: var(--ucd-blue-60, #b0d0ed);
       pointer-events: none;
-      width: 16px;
-      height: 16px;
+      width: 1.25rem;
+      height: 1.25rem;
     }
 
     .affiliation-search-input {
       flex: 1 0 0;
       background: transparent;
       border: none;
-      font-family: "Proxima Nova", sans-serif;
-      font-size: 19px;
-      font-weight: 400;
+      font-size: 1rem;
       line-height: 1.2;
       color: var(--ucd-blue-80, #13639E);
       outline: none;
@@ -262,7 +261,7 @@ return html`
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.75rem;
+      font-size: 1rem;
       font-weight: 700;
       color: #666;
       margin: 0.75rem 0 0.4rem;
@@ -278,10 +277,12 @@ return html`
       display: flex;
       flex-direction: column;
       gap: 0;
-      max-height: 280px;
-      overflow-y: auto;
+      max-height: 15rem;
+      overflow-y: scroll;
+      scrollbar-gutter: stable;
       scrollbar-color: var(--ucd-blue-80, #13639E) var(--ucd-blue-60, #b0d0ed);
       scrollbar-width: thin;
+      padding-right: 1rem;
     }
 
     .affiliation-checkboxes::-webkit-scrollbar {
@@ -324,7 +325,7 @@ return html`
     }
 
     .affiliation-sub-caret svg {
-      height: 14px;
+      height: 17px;
       width: auto;
     }
 
@@ -339,12 +340,12 @@ return html`
       display: flex;
       align-items: flex-start;
       line-height: 1.2;
-      padding: 0.5rem 0;
+      padding: 0.5rem 0 0.5rem 0.5rem;
       cursor: pointer;
+      gap: 0.5rem;
     }
 
     .affiliation-dept-row input[type="checkbox"] {
-      margin-right: .5rem;
       margin-top: 0.15rem;
       flex-shrink: 0;
       accent-color: var(--ucd-blue-70, #4B9CD3);
@@ -460,7 +461,7 @@ return html`
     .filter-active-item {
       display: flex;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0.5rem;
       color: black;
       cursor: pointer;
     }
@@ -663,7 +664,8 @@ return html`
 
       .refine-search-contents {
         flex: 1;
-        overflow-y: auto;
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
         padding: 1rem 1.25rem;
         background: white;
       }

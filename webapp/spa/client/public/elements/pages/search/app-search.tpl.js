@@ -189,6 +189,7 @@ return html`
       padding: 0.6rem 0;
       user-select: none;
       box-sizing: border-box;
+      padding-right: 1rem;
     }
 
     .collapsible-filter-heading h4 {
@@ -221,7 +222,7 @@ return html`
 
     .affiliation-search-wrapper {
       display: flex;
-      padding: 0.5rem 0.75rem;
+      padding: 1rem;
       align-items: center;
       gap: 10px;
       width: 100%;
@@ -240,9 +241,7 @@ return html`
       flex: 1 0 0;
       background: transparent;
       border: none;
-      font-family: "Proxima Nova", sans-serif;
-      font-size: 19px;
-      font-weight: 400;
+      font-size: 1rem;
       line-height: 1.2;
       color: var(--ucd-blue-80, #13639E);
       outline: none;
@@ -257,7 +256,7 @@ return html`
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.75rem;
+      font-size: 1rem;
       font-weight: 700;
       color: #666;
       margin: 0.75rem 0 0.4rem;
@@ -273,10 +272,11 @@ return html`
       display: flex;
       flex-direction: column;
       gap: 0;
-      max-height: 280px;
+      max-height: 15rem;
       overflow-y: auto;
       scrollbar-color: var(--ucd-blue-80, #13639E) var(--ucd-blue-60, #b0d0ed);
       scrollbar-width: thin;
+      padding-right: 1rem;
     }
 
     .affiliation-checkboxes::-webkit-scrollbar {
@@ -310,8 +310,15 @@ return html`
       flex: 1;
     }
 
-    .affiliation-sub-caret {
+    .affiliation-toggle {
       cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .affiliation-sub-caret {
       display: flex;
       align-items: center;
       padding: 0.2rem;
@@ -319,7 +326,7 @@ return html`
     }
 
     .affiliation-sub-caret svg {
-      height: 14px;
+      height: 17px;
       width: auto;
     }
 
@@ -329,8 +336,8 @@ return html`
     }
 
     .affiliation-search-wrapper svg {
-      width: 16px;
-      height: 16px;
+      width: 1.25rem;
+      height: 1.25rem;
     }
 
     .affiliation-dept-list {
@@ -344,12 +351,12 @@ return html`
       display: flex;
       align-items: flex-start;
       line-height: 1.2;
-      padding: 0.5rem 0;
+      padding: 0.5rem 0 0.5rem 0.5rem;
       cursor: pointer;
+      gap: 0.5rem;
     }
 
     .affiliation-dept-row input[type="checkbox"] {
-      margin-right: .5rem;
       margin-top: 0.15rem;
       flex-shrink: 0;
       accent-color: var(--ucd-blue-70, #4B9CD3);
@@ -696,7 +703,7 @@ return html`
       color: white;
       border-color: transparent;
       padding: 0.25rem 1rem;
-      font-size: 1.1rem;
+      font-size: 1rem;
       white-space: nowrap;
       max-width: 100%;
     }
@@ -747,7 +754,7 @@ return html`
     .filter-active-item {
       display: flex;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0.5rem;
       color: black;
       cursor: pointer;
     }
@@ -902,12 +909,14 @@ return html`
                       .indeterminate="${someChecked}"
                       .checked="${allChecked}"
                       @change="${() => this._onSubCategoryCheck(sub.depts)}">
-                    <span class="affiliation-sub-label">${sub.label}</span>
-                    <span class="affiliation-sub-caret" @click="${() => this._toggleSubCategory(sub.label)}">
-                      ${expanded
-                        ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                        : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                      }
+                    <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
+                      <span class="affiliation-sub-label">${sub.label}</span>
+                      <span class="affiliation-sub-caret">
+                        ${expanded
+                          ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                          : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                        }
+                      </span>
                     </span>
                   </div>
                   ${expanded ? html`
@@ -989,7 +998,8 @@ return html`
           </div>
         ` : ''}
         <div ?hidden="${this.dateCollapsed}">
-          <span class="date-filter-hint" ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
+          <span class="date-filter-hint" ?hidden="${this.atType !== 'grant' || this.dateRangeData.length < 2}">Grants are shown across their active years.</span>
+          <span class="date-filter-hint" ?hidden="${(this.atType !== 'expert' && this.atType !== '') || this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>
           <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
           <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
             <ucdlib-range-slider
@@ -1143,7 +1153,8 @@ return html`
               Back
             </button>
             <h4 style="margin-top:0">Date</h4>
-            <span class="date-filter-hint" ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
+            <span class="date-filter-hint" ?hidden="${this.atType !== 'grant' || this.dateRangeData.length < 2}">Grants are shown across their active years.</span>
+            <span class="date-filter-hint" ?hidden="${(this.atType !== 'expert' && this.atType !== '') || this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>
             <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
             <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
               <ucdlib-range-slider

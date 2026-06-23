@@ -682,7 +682,8 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
           </div>
         ` : ''}
         <div ?hidden="${this.dateCollapsed}">
-          ${this.browseType === 'grant' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Grants are shown across their active years</span>` : ''}
+          ${this.browseType === 'grant' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Grants are shown across their active years.</span>` : ''}
+          ${this.browseType === 'expert' || this.browseType === '' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>` : ''}          
           <div class="search-year" ?hidden="${this.dateRangeData.length !== 1}">${this.dateRangeData[0]?.stat}</div>
           <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
             <ucdlib-range-slider

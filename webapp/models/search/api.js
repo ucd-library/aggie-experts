@@ -104,10 +104,11 @@ router.get(
       const filteredType = req?.query.type ? req.query.type.split(',') : null;
       const filteredStatus = req?.query.status ? req.query.status.split(',') : null;
 
-      // Now remove type filters and date filters for global aggregations
+      // Now remove type/dept filters and date filters for global aggregations
       delete params["@type"];
       delete params.status;
       delete params.type;
+      delete params.dept;
       delete params.dateFrom;
       delete params.dateTo;
       delete params.hasDate;
