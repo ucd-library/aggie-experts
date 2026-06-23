@@ -546,7 +546,7 @@ return html`
         display: block;
       }
 
-      .refine-search-mobile.open {
+      .refine-search-panel {
         position: fixed;
         top: 0;
         left: 0;
@@ -557,11 +557,21 @@ return html`
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        border-right: 1.125rem solid var(--ucd-blue-80, #13639E);
+        border-right: 1.125rem solid rgba(19, 99, 158, 0.5);
         box-sizing: border-box;
+        transform: translateX(-100%);
+        opacity: 0.95;
+        pointer-events: none;
+        transition: transform 0.3s ease, opacity 0.3s ease;
       }
 
-      .refine-search-mobile.open .refine-search-dropdown {
+      .refine-search-panel.open {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .refine-search-panel .refine-search-dropdown {
         flex-shrink: 0;
         display: flex;
         width: 100%;
@@ -1026,29 +1036,29 @@ return html`
         search-term="${decodeURIComponent(this.searchTerm)}">
       </app-search-box>
 
-      <div class="refine-search-mobile ${this.refineSearchCollapsed ? '' : 'open'}">
-        ${this.refineSearchCollapsed ? html`
-          <div class="mobile-filter-bar">
-            <div class="refine-search-dropdown" @click=${this._toggleRefineSearch}>
-              <span class="refine-search-label">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M3.9 54.9C10.5 40.9 24.5 32 40 32l432 0c15.5 0 29.5 8.9 36.1 22.9s4.6 30.5-5.2 42.5L320 320.9 320 448c0 12.1-6.8 23.2-17.7 28.6s-23.8 4.3-33.5-3l-64-48c-8.1-6-12.8-15.5-12.8-25.6l0-79.1L9 97.3C-.7 85.4-2.8 68.8 3.9 54.9z"/></svg>
-                Filter${this._getActiveFilterCount() > 0 ? ` (${this._getActiveFilterCount()})` : ''}
-              </span>
-            </div>
-            ${this.atType ? html`<p><button class="btn btn--round" @click="${this._removeCategoryFilter}">${this._getCategoryChipLabel()}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${this.filterByExpert ? html`<p><button class="btn btn--round" @click="${this._removeExpertFilter}">${this.filterByExpertName}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${this.filterByDate ? html`<p><button class="btn btn--round" @click="${this._removeDateFilter}">${this.filterByDateLabel}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${(this.dept || []).map(code => html`<p><button class="btn btn--round" @click="${() => this._removeDeptFilter(code)}">${this._getDeptName(code)}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>`)}
-            ${this.collabProjects ? html`<p><button class="btn btn--round" @click="${() => { this.collabProjects = false; this._updateLocation(); }}">Collaborative Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${this.commPartner ? html`<p><button class="btn btn--round" @click="${() => { this.commPartner = false; this._updateLocation(); }}">Community Partnerships<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+      <div class="refine-search-mobile">
+        <div class="mobile-filter-bar">
+          <div class="refine-search-dropdown" @click=${this._toggleRefineSearch}>
+            <span class="refine-search-label">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M3.9 54.9C10.5 40.9 24.5 32 40 32l432 0c15.5 0 29.5 8.9 36.1 22.9s4.6 30.5-5.2 42.5L320 320.9 320 448c0 12.1-6.8 23.2-17.7 28.6s-23.8 4.3-33.5-3l-64-48c-8.1-6-12.8-15.5-12.8-25.6l0-79.1L9 97.3C-.7 85.4-2.8 68.8 3.9 54.9z"/></svg>
+              Filter${this._getActiveFilterCount() > 0 ? ` (${this._getActiveFilterCount()})` : ''}
+            </span>
           </div>
-        ` : html`<div class="refine-search-dropdown">
+          ${this.atType ? html`<p><button class="btn btn--round" @click="${this._removeCategoryFilter}">${this._getCategoryChipLabel()}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.filterByExpert ? html`<p><button class="btn btn--round" @click="${this._removeExpertFilter}">${this.filterByExpertName}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.filterByDate ? html`<p><button class="btn btn--round" @click="${this._removeDateFilter}">${this.filterByDateLabel}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${(this.dept || []).map(code => html`<p><button class="btn btn--round" @click="${() => this._removeDeptFilter(code)}">${this._getDeptName(code)}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>`)}
+          ${this.collabProjects ? html`<p><button class="btn btn--round" @click="${() => { this.collabProjects = false; this._updateLocation(); }}">Collaborative Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.commPartner ? html`<p><button class="btn btn--round" @click="${() => { this.commPartner = false; this._updateLocation(); }}">Community Partnerships<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        </div>
+
+        <div class="refine-search-panel ${this.refineSearchCollapsed ? '' : 'open'}">
+          <div class="refine-search-dropdown">
             <span class="refine-search-label" style="font-size:2.06938rem;font-style:italic;font-weight:700;color:var(--ucd-blue-100,#022851);">Refine Results</span>
-          </div>`
-        }
-        <div class="refine-search-contents" ?hidden="${this.refineSearchCollapsed}">
+          </div>
+          <div class="refine-search-contents">
 
           ${this.mobileSubDrawer === 'affiliation' ? html`
             ${this.mobileAffSub ? html`
@@ -1231,11 +1241,10 @@ return html`
             <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
           `}
         </div>
-        ${!this.refineSearchCollapsed ? html`
           <div class="mobile-view-btn-wrap">
             <button class="mobile-view-btn" @click="${this._toggleRefineSearch}">${this._getMobileViewLabel()}</button>
           </div>
-        ` : ''}
+        </div>
       </div>
 
       <div class="results-filtered-to" ?hidden="${!this.filterByExpert && !this.filterByDate && !this.dept?.length && !this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews}">

@@ -511,7 +511,10 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     if( this.atType === 'expert' ) typeLabel = n === 1 ? 'expert' : 'experts';
     else if( this.atType === 'grant' ) typeLabel = n === 1 ? 'grant' : 'grants';
     else if( this.atType === 'work' ) {
-      if( this.type ) typeLabel = utils.getCitationType(this.type).toLowerCase();
+      if( this.type ) {
+        typeLabel = utils.getCitationType(this.type).toLowerCase();
+        if( n !== 1 && typeLabel && !typeLabel.endsWith('s') ) typeLabel += 's';
+      }
       else typeLabel = n === 1 ? 'work' : 'works';
     } else typeLabel = this.atType;
     if( this.status ) typeLabel = this.status.toLowerCase() + ' ' + typeLabel;
