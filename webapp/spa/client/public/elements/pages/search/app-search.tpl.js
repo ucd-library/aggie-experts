@@ -854,10 +854,10 @@ return html`
       </div>
       ${this.affiliationCollapsed && this.dept?.length ? html`
         <div class="filter-active-summary">
-          ${(this.dept || []).map(code => html`
-            <span class="filter-active-item" @click="${() => this._removeDeptFilter(code)}">
+          ${this._getDeptPillGroups(this.dept).map(group => html`
+            <span class="filter-active-item" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">
               <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
-              ${this._getDeptName(code)}
+              ${group.label}
             </span>
           `)}
         </div>
@@ -972,7 +972,7 @@ return html`
       <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
         <hr class="search-seperator">
 
-        <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; }}">
+        <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
           <h4>Date</h4>
           <span class="filter-collapse-arrow">
             ${this.dateCollapsed
@@ -1028,11 +1028,15 @@ return html`
           ${this.atType ? html`<p><button class="btn btn--round" @click="${this._removeCategoryFilter}">${this._getCategoryChipLabel()}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
           ${this.filterByExpert ? html`<p><button class="btn btn--round" @click="${this._removeExpertFilter}">${this.filterByExpertName}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
           ${this.filterByDate ? html`<p><button class="btn btn--round" @click="${this._removeDateFilter}">${this.filterByDateLabel}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-          ${(this.dept || []).map(code => html`<p><button class="btn btn--round" @click="${() => this._removeDeptFilter(code)}">${this._getDeptName(code)}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>`)}
+          ${this._getDeptPillGroups(this.dept || []).map(group => html`<p><button class="btn btn--round" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">${group.label}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>`)}
           ${this.collabProjects ? html`<p><button class="btn btn--round" @click="${() => { this.collabProjects = false; this._updateLocation(); }}">Collaborative Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
           ${this.commPartner ? html`<p><button class="btn btn--round" @click="${() => { this.commPartner = false; this._updateLocation(); }}">Community Partnerships<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
           ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
           ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${(() => {
+            const count = (this.filterByExpert?1:0) + (this.filterByDate?1:0) + this._getDeptPillGroups(this.dept||[]).length + (this.collabProjects?1:0) + (this.commPartner?1:0) + (this.industProjects?1:0) + (this.mediaInterviews?1:0);
+            return count >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : '';
+          })()}
         </div>
 
         <div class="refine-search-panel ${this.refineSearchCollapsed ? '' : 'open'}">
@@ -1064,10 +1068,10 @@ return html`
             </div>
             ${this.affiliationCollapsed && this.dept?.length ? html`
               <div class="filter-active-summary">
-                ${(this.dept || []).map(code => html`
-                  <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this._removeDeptFilter(code); }}">
+                ${this._getDeptPillGroups(this.dept).map(group => html`
+                  <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">
                     <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
-                    ${this._getDeptName(code)}
+                    ${group.label}
                   </span>
                 `)}
               </div>
@@ -1181,7 +1185,7 @@ return html`
 
             <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
               <hr class="search-seperator">
-              <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; }}">
+              <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
                 <h4>Date</h4>
                 <span class="filter-collapse-arrow">
                   ${this.dateCollapsed
@@ -1237,10 +1241,10 @@ return html`
             </div>
           </button>
         </p>
-        ${(this.dept || []).map(code => html`
+        ${this._getDeptPillGroups(this.dept || []).map(group => html`
           <p>
-            <button class="btn btn--round" @click="${() => this._removeDeptFilter(code)}">
-              ${this._getDeptName(code)}
+            <button class="btn btn--round" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">
+              ${group.label}
               <div class="close">
                 <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
               </div>
@@ -1252,7 +1256,7 @@ return html`
         ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
         ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
         ${(() => {
-          const count = (this.filterByExpert?1:0) + (this.filterByDate?1:0) + (this.dept?.length||0) + (this.collabProjects?1:0) + (this.commPartner?1:0) + (this.industProjects?1:0) + (this.mediaInterviews?1:0);
+          const count = (this.filterByExpert?1:0) + (this.filterByDate?1:0) + this._getDeptPillGroups(this.dept||[]).length + (this.collabProjects?1:0) + (this.commPartner?1:0) + (this.industProjects?1:0) + (this.mediaInterviews?1:0);
           return count >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : '';
         })()}
       </div>

@@ -110,6 +110,27 @@ export const AffiliationMixin = (superClass) => class extends superClass {
   }
 
   /**
+   * @method _getDeptPillGroups
+   * @description returns one entry per sub-category that has at least one selected dept,
+   * with a label suffix of "(all)" or "(#)" for display as filter pills
+   * @param {Array} selectedCodes currently selected dept codes
+   * @returns {Array<{label: string, codes: string[]}>} pill groups
+   */
+  _getDeptPillGroups(selectedCodes) {
+    const groups = [];
+    for( const cat of (this.orgLookup || []) ) {
+      for( const sub of cat.subCategories ) {
+        const allCodes = sub.depts.map(d => d.deptCode);
+        const selected = allCodes.filter(c => selectedCodes.includes(c));
+        if( !selected.length ) continue;
+        const suffix = selected.length === allCodes.length ? '(all)' : `(${selected.length})`;
+        groups.push({ label: `${sub.label} ${suffix}`, codes: selected });
+      }
+    }
+    return groups;
+  }
+
+  /**
    * @method _onAffiliationSearch
    * @description handles affiliation search input events
    * @param {Object} e input event

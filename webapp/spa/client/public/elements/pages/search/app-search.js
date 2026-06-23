@@ -472,7 +472,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     if( this.commPartner ) count++;
     if( this.industProjects ) count++;
     if( this.mediaInterviews ) count++;
-    if( this.dept?.length ) count += this.dept.length;
+    if( this.dept?.length ) count += this._getDeptPillGroups(this.dept).length;
     return count;
   }
 
