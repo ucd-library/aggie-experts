@@ -58,8 +58,6 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       openToCollapsed : { type : Boolean },
       affiliationSearch : { type : String },
       expandedSubCategories : { type : Array },
-      mobileSubDrawer : { type : String },
-      mobileAffSub : { type : String },
     }
   }
 
@@ -107,8 +105,6 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     this.openToCollapsed = true;
     this.affiliationSearch = '';
     this.expandedSubCategories = [];
-    this.mobileSubDrawer = null;
-    this.mobileAffSub = null;
     // this.orgLookup is initialised by AffiliationMixin
 
     this.render = render.bind(this);
@@ -179,27 +175,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       if( range && typeof range.refresh === 'function' ) {
         range.refresh(dataChanged);
       }
-    }
-
-    // override styles in mobile
-    const mobileSlider = this.shadowRoot.querySelector('.refine-search-mobile ucdlib-range-slider');
-    if( mobileSlider ) {
-      let fillLine = mobileSlider.shadowRoot.querySelector('#fillLine');
-      if( fillLine ) {
-        fillLine.style.borderTop = `5px solid #EBF3FA`;
-        fillLine.style.borderBottom = `5px solid #EBF3FA`;
-      }
-      let numberLine = mobileSlider.shadowRoot.querySelector('#numberLine');
-      if( numberLine ) {
-        numberLine.style.borderTop = `5px solid #EBF3FA`;
-        numberLine.style.borderBottom = `5px solid #EBF3FA`;
-      }
-
-      let minInput = mobileSlider.shadowRoot.querySelector('#minInput');
-      let maxInput = mobileSlider.shadowRoot.querySelector('#maxInput');
-      if( minInput ) minInput.style.backgroundColor = 'white';
-      if( maxInput ) maxInput.style.backgroundColor = 'white';
-    }    
+    } 
   }
 
   _updateFilters() {
@@ -482,10 +458,6 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
 
   _toggleRefineSearch() {
     this.refineSearchCollapsed = !this.refineSearchCollapsed;
-    if( this.refineSearchCollapsed ) {
-      this.mobileSubDrawer = null;
-      this.mobileAffSub = null;
-    }
     if( !this.refineSearchCollapsed ) this._refreshRange();
   }
 

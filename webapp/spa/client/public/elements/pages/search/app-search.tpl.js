@@ -393,14 +393,15 @@ return html`
       border-top: 1px dotted #b0c4d8;
     }
 
-    .refine-search .search-seperator--large-dots {
+    .refine-search .search-seperator--large-dots,
+    .search-seperator--large-dots {
       border: none;
       height: 4px;
       background-image: radial-gradient(circle, var(--color-aggie-blue-60, #73ABDD) 2px, transparent 2px);
       background-size: 10px 4px;
       background-repeat: repeat-x;
       background-position: 0 center;
-      margin: 1rem 0;
+      margin: 2rem 0 1rem 0;
     }
 
     .select-page-size {
@@ -557,7 +558,7 @@ return html`
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        border-right: 1.125rem solid rgba(19, 99, 158, 0.5);
+        border-right: 1.5rem solid rgba(19, 99, 158, 0.5);
         box-sizing: border-box;
         transform: translateX(-100%);
         opacity: 0.95;
@@ -578,13 +579,12 @@ return html`
         box-sizing: border-box;
         padding: 1rem 1.25rem;
         background: white;
-        border-bottom: 1px solid #e5e5e5;
       }
 
       .refine-search-contents {
         flex: 1;
         overflow-y: auto;
-        padding: 1rem 1.25rem;
+        padding: 1rem 2rem 1rem 1.25rem;
         background: white;
       }
 
@@ -594,7 +594,7 @@ return html`
 
       .mobile-view-btn-wrap {
         flex-shrink: 0;
-        padding: 0 1rem 1rem;
+        padding: 1rem;
         background: white;
         box-sizing: border-box;
       }
@@ -662,25 +662,6 @@ return html`
       flex-shrink: 0;
     }
 
-    .mobile-sub-back {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--ucd-blue-80, #13639E);
-      cursor: pointer;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-      background: none;
-      border: none;
-      padding: 0;
-    }
-
-    .mobile-sub-back svg {
-      fill: currentColor;
-      height: 20px;
-      width: auto;
-      flex-shrink: 0;
-    }
 
     /* .refine-search-contents category-filter-controller {
       padding-bottom: 2rem;
@@ -1060,35 +1041,38 @@ return html`
           </div>
           <div class="refine-search-contents">
 
-          ${this.mobileSubDrawer === 'affiliation' ? html`
-            ${this.mobileAffSub ? html`
-              <!-- Sub-category dept list drawer -->
-              <button class="mobile-sub-back" @click="${() => { this.mobileAffSub = null; }}">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="6" height="10"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-                Back
-              </button>
-              <h4 style="margin-top:0">${this.mobileAffSub}</h4>
-              <div class="affiliation-dept-list">
-                ${(() => {
-                  const allDepts = (this.orgLookup || []).flatMap(cat => cat.subCategories).find(sub => sub.label === this.mobileAffSub)?.depts || [];
-                  return allDepts.map(d => html`
-                    <label class="affiliation-dept-row">
-                      <input type="checkbox"
-                        .value="${d.deptCode}"
-                        .checked="${this.dept.includes(d.deptCode)}"
-                        @change="${this._onDeptChange}">
-                      ${d.name}
-                    </label>
-                  `);
-                })()}
+            <category-filter-controller
+              @filter-change="${this._onFilterChange}"
+              @subfilter-change="${this._onSubFilterChange}"
+              .mobile="${true}"
+              .searchTerm="${this.searchTerm}"
+              .currentPage="${this.currentPage}"
+              .resultsPerPage="${this.resultsPerPage}"
+              .globalAggregations="${this.globalAggregations}">
+            </category-filter-controller>
+
+            <hr class="search-seperator search-seperator--large-dots">
+
+            <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
+              <h4>Affiliation</h4>
+              <span class="filter-collapse-arrow">
+                ${this.affiliationCollapsed
+                  ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                  : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                }
+              </span>
+            </div>
+            ${this.affiliationCollapsed && this.dept?.length ? html`
+              <div class="filter-active-summary">
+                ${(this.dept || []).map(code => html`
+                  <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this._removeDeptFilter(code); }}">
+                    <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+                    ${this._getDeptName(code)}
+                  </span>
+                `)}
               </div>
-            ` : html`
-              <!-- Affiliation sub-category list -->
-              <button class="mobile-sub-back" @click="${() => { this.mobileSubDrawer = null; }}">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="6" height="10"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-                Back
-              </button>
-              <h4 style="margin-top:0">Affiliation</h4>
+            ` : ''}
+            <div class="affiliation-filter-contents" ?hidden="${this.affiliationCollapsed}">
               <div class="affiliation-search-wrapper">
                 <input
                   type="text"
@@ -1118,101 +1102,74 @@ return html`
                       const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
                       const allChecked = checkedCount === subCodes.length;
                       const someChecked = checkedCount > 0 && !allChecked;
+                      const expanded = this.expandedSubCategories.includes(sub.label);
                       return html`
-                        <div class="affiliation-sub-row" style="cursor:pointer" @click="${() => { this.mobileAffSub = sub.label; }}">
-                          <span class="affiliation-sub-label">${sub.label}</span>
-                          <span class="affiliation-sub-caret">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
+                        <div class="affiliation-sub-row">
+                          <input type="checkbox"
+                            class="affiliation-sub-checkbox"
+                            .indeterminate="${someChecked}"
+                            .checked="${allChecked}"
+                            @change="${() => this._onSubCategoryCheck(sub.depts)}">
+                          <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
+                            <span class="affiliation-sub-label">${sub.label}</span>
+                            <span class="affiliation-sub-caret">
+                              ${expanded
+                                ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                                : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                              }
+                            </span>
                           </span>
                         </div>
+                        ${expanded ? html`
+                          <div class="affiliation-dept-list">
+                            ${sub.depts.map(d => html`
+                              <label class="affiliation-dept-row">
+                                <input type="checkbox"
+                                  .value="${d.deptCode}"
+                                  .checked="${this.dept.includes(d.deptCode)}"
+                                  @change="${this._onDeptChange}">
+                                ${d.name}
+                              </label>
+                            `)}
+                          </div>
+                        ` : ''}
                       `;
                     })}
                   `;
                 })}
               </div>
-            `}
-
-          ` : this.mobileSubDrawer === 'openTo' ? html`
-            <button class="mobile-sub-back" @click="${() => { this.mobileSubDrawer = null; }}">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="6" height="10"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-              Back
-            </button>
-            <h4 style="margin-top:0">Experts Open To</h4>
-            <div class="open-to">
-              <label>
-                <input type="checkbox" id="m-collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
-                Collaborative Projects
-              </label>
-              <label>
-                <input type="checkbox" id="m-comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}">
-                Community Partnerships
-              </label>
-              <label>
-                <input type="checkbox" id="m-indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}">
-                Industry Projects
-              </label>
-              <label>
-                <input type="checkbox" id="m-media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}">
-                Media Interviews
-              </label>
             </div>
 
-          ` : this.mobileSubDrawer === 'date' ? html`
-            <button class="mobile-sub-back" @click="${() => { this.mobileSubDrawer = null; }}">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="6" height="10"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-              Back
-            </button>
-            <h4 style="margin-top:0">Date</h4>
-            <span class="date-filter-hint" ?hidden="${this.atType !== 'grant' || this.dateRangeData.length < 2}">Grants are shown across their active years.</span>
-            <span class="date-filter-hint" ?hidden="${(this.atType !== 'expert' && this.atType !== '') || this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>
-            <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
-            <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
-              <ucdlib-range-slider
-                @range-slider-change="${this._onRangeSliderChange}"
-                .data="${this.dateRangeData}"
-                .showUnknown="${true}">
-              </ucdlib-range-slider>
-            </div>
-
-          ` : html`
-            <category-filter-controller
-              @filter-change="${this._onFilterChange}"
-              @subfilter-change="${this._onSubFilterChange}"
-              .mobile="${true}"
-              .searchTerm="${this.searchTerm}"
-              .currentPage="${this.currentPage}"
-              .resultsPerPage="${this.resultsPerPage}"
-              .globalAggregations="${this.globalAggregations}">
-            </category-filter-controller>
-
-            <hr class="search-seperator search-seperator--large-dots">
-
-            <div class="collapsible-filter-heading" @click="${() => { this.mobileSubDrawer = 'affiliation'; }}">
-              <h4>Affiliation</h4>
-              <span class="filter-collapse-arrow">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-              </span>
-            </div>
-            ${this.dept?.length ? html`
-              <div class="filter-active-summary">
-                ${(this.dept || []).map(code => html`
-                  <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this._removeDeptFilter(code); }}">
-                    <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
-                    ${this._getDeptName(code)}
-                  </span>
-                `)}
-              </div>
-            ` : ''}
-            <hr class="search-seperator">
-
-            <div ?hidden="${!this.showOpenTo}">
-              <div class="collapsible-filter-heading" @click="${() => { this.mobileSubDrawer = 'openTo'; }}">
+            <div class="open-to-container" ?hidden="${!this.showOpenTo}">
+              <hr class="search-seperator">
+              <div class="collapsible-filter-heading" @click="${() => { this.openToCollapsed = !this.openToCollapsed; }}">
                 <h4>Experts Open To</h4>
                 <span class="filter-collapse-arrow">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
+                  ${this.openToCollapsed
+                    ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                    : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                  }
                 </span>
               </div>
-              ${(this.collabProjects || this.commPartner || this.industProjects || this.mediaInterviews) ? html`
+              <div class="open-to" ?hidden="${this.openToCollapsed}">
+                <label>
+                  <input type="checkbox" id="m-collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
+                  Collaborative Projects
+                </label>
+                <label>
+                  <input type="checkbox" id="m-comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}">
+                  Community Partnerships
+                </label>
+                <label>
+                  <input type="checkbox" id="m-indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}">
+                  Industry Projects
+                </label>
+                <label>
+                  <input type="checkbox" id="m-media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}">
+                  Media Interviews
+                </label>
+              </div>
+              ${this.openToCollapsed ? html`
                 <div class="filter-active-summary">
                   ${this.collabProjects ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.collabProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Collaborative Projects</span>` : ''}
                   ${this.commPartner ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.commPartner = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Community Partnerships</span>` : ''}
@@ -1220,26 +1177,42 @@ return html`
                   ${this.mediaInterviews ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.mediaInterviews = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Media Interviews</span>` : ''}
                 </div>
               ` : ''}
-              <hr class="search-seperator">
             </div>
 
-            <div class="collapsible-filter-heading ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}" @click="${() => { this.mobileSubDrawer = 'date'; }}">
-              <h4>Date</h4>
-              <span class="filter-collapse-arrow">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-              </span>
-            </div>
-            ${this.filterByDate ? html`
-              <div class="filter-active-summary">
-                <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this._removeDateFilter(); }}">
-                  <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+            <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
+              <hr class="search-seperator">
+              <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; }}">
+                <h4>Date</h4>
+                <span class="filter-collapse-arrow">
+                  ${this.dateCollapsed
+                    ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                    : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                  }
                 </span>
               </div>
-            ` : ''}
-            <hr class="search-seperator">
+              ${this.dateCollapsed && this.filterByDate ? html`
+                <div class="filter-active-summary">
+                  <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this._removeDateFilter(); }}">
+                    <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+                  </span>
+                </div>
+              ` : ''}
+              <div ?hidden="${this.dateCollapsed}">
+                <span class="date-filter-hint" ?hidden="${this.atType !== 'grant' || this.dateRangeData.length < 2}">Grants are shown across their active years.</span>
+                <span class="date-filter-hint" ?hidden="${(this.atType !== 'expert' && this.atType !== '') || this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>
+                <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
+                <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
+                  <ucdlib-range-slider
+                    @range-slider-change="${this._onRangeSliderChange}"
+                    .data="${this.dateRangeData}"
+                    .showUnknown="${true}">
+                  </ucdlib-range-slider>
+                </div>
+              </div>
+            </div>
 
+            <hr class="search-seperator">
             <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
-          `}
         </div>
           <div class="mobile-view-btn-wrap">
             <button class="mobile-view-btn" @click="${this._toggleRefineSearch}">${this._getMobileViewLabel()}</button>
