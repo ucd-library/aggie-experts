@@ -211,7 +211,9 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       this.industProjects = query.availability?.includes('industry') ? true : false;
       this.mediaInterviews = query.availability?.includes('media') ? true : false;
 
-      this.dept = query.dept ? this._deserializeDept(query.dept) : [];
+      this.dept = (query.dept || query.deptCodesIncluded)
+        ? this._deserializeDept(query.dept || '', query.deptCodesIncluded || '', query.deptCodesExcluded || '')
+        : [];
 
       this.dateFrom = query.dateFrom || '';
       this.dateTo = query.dateTo || '';
@@ -589,7 +591,12 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
     if( this.dateFrom ) path += `&dateFrom=${this.dateFrom}`;
     if( this.dateTo ) path += `&dateTo=${this.dateTo}`;
-    if( this.dept.length ) path += `&dept=${this._serializeDept(this.dept)}`;
+    if( this.dept.length ) {
+      const { dept, deptCodesIncluded, deptCodesExcluded } = this._serializeDept(this.dept);
+      if( dept ) path += `&dept=${dept}`;
+      if( deptCodesIncluded ) path += `&deptCodesIncluded=${deptCodesIncluded}`;
+      if( deptCodesExcluded ) path += `&deptCodesExcluded=${deptCodesExcluded}`;
+    }
 
     this.AppStateModel.setLocation(path);
   }

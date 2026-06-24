@@ -89,9 +89,9 @@ export const AffiliationMixin = (superClass) => class extends superClass {
 
   /**
    * @method _serializeDept
-   * @description serialize selected dept codes to a compact URL parameter string
+   * @description serialize selected dept codes to compact URL param parts
    * @param {string[]} codes selected dept codes
-   * @returns {string} compact param value e.g. "AGR,BIO,deptCodes:24017"
+   * @returns {{ dept: string, deptCodesIncluded: string, deptCodesExcluded: string }}
    */
   _serializeDept(codes) {
     return serializeDeptParam(codes);
@@ -99,12 +99,14 @@ export const AffiliationMixin = (superClass) => class extends superClass {
 
   /**
    * @method _deserializeDept
-   * @description deserialize a compact URL dept param back to dept codes
-   * @param {string} param compact dept param value
+   * @description deserialize dept URL params back to a flat array of dept codes
+   * @param {string} dept sub-category keys param value
+   * @param {string} [deptCodesIncluded] codes to include directly
+   * @param {string} [deptCodesExcluded] codes to exclude from expanded keys
    * @returns {string[]} flat array of dept codes
    */
-  _deserializeDept(param) {
-    return deserializeDeptParam(param);
+  _deserializeDept(dept, deptCodesIncluded='', deptCodesExcluded='') {
+    return deserializeDeptParam(dept, deptCodesIncluded, deptCodesExcluded);
   }
 
   /**

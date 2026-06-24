@@ -36,8 +36,8 @@ router.get(
     if (req?.query.availability) {
       params.availability = req.query.availability.split(',');
     }
-    if (req?.query.dept) {
-      params.dept = expandDeptParam(req.query.dept);
+    if (req?.query.dept || req?.query.deptCodesIncluded || req?.query.deptCodesExcluded) {
+      params.dept = expandDeptParam(req.query.dept || '', req.query.deptCodesIncluded || '', req.query.deptCodesExcluded || '');
     }
     if (req?.query.expert) {
       params.expert = req.query.expert.split(',');

@@ -514,8 +514,9 @@ class Utils {
    * @param {String} expertId expertId to filter grants/works to
    * @param {String} dateFrom start for date filtering
    * @param {String} dateTo end for date filtering
+   * @param {{ dept: string, deptCodesIncluded: string, deptCodesExcluded: string }} [deptParams] serialized dept filter params
    */
-  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, dateFrom, dateTo, dept='') {
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, dateFrom, dateTo, deptParams={}) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
     if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
@@ -534,7 +535,9 @@ class Utils {
     if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
     if( dateFrom ) searchQuery += `&dateFrom=${dateFrom}`;
     if( dateTo ) searchQuery += `&dateTo=${dateTo}`;
-    if( dept ) searchQuery += `&dept=${encodeURIComponent(dept)}`;
+    if( deptParams?.dept ) searchQuery += `&dept=${encodeURIComponent(deptParams.dept)}`;
+    if( deptParams?.deptCodesIncluded ) searchQuery += `&deptCodesIncluded=${encodeURIComponent(deptParams.deptCodesIncluded)}`;
+    if( deptParams?.deptCodesExcluded ) searchQuery += `&deptCodesExcluded=${encodeURIComponent(deptParams.deptCodesExcluded)}`;
 
     return searchQuery;
   }

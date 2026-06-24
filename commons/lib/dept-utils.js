@@ -17,75 +17,95 @@ function buildKeyMap() {
 const KEY_MAP = buildKeyMap();
 
 /**
- * Serialize an array of dept codes to a compact URL parameter string.
- * Sub-categories where all depts are selected are represented by their key.
- * Any remaining individually-selected codes are appended as `deptCodes:c1,c2`.
+ * Serialize an array of selected dept codes into a compact multi-param object.
  *
- * Example output: `"AGR,BIO,deptCodes:24017,24020"`
+ * For each sub-category, whichever list is shorter (checked or unchecked) is stored:
+ *   - All selected   → key only in `dept`          e.g. dept=AGR
+ *   - Majority sel.  → key in `dept` + unchecked codes in `deptCodesExcluded`
+ *   - Minority sel.  → checked codes in `deptCodesIncluded`  (key absent from dept)
+ *   - None selected  → omitted entirely
  *
  * @param {string[]} selectedCodes - currently selected dept codes
- * @returns {string} compact dept param value
+ * @returns {{ dept: string, deptCodesIncluded: string, deptCodesExcluded: string }}
+ *   Each value is a comma-separated string; empty string means the param should be omitted.
  */
 export function serializeDeptParam(selectedCodes) {
-  const remaining = new Set(selectedCodes);
-  const parts = [];
+  const selected = new Set(selectedCodes);
+  const deptKeys = [];
+  const included = [];
+  const excluded = [];
 
   for( const cat of ORG_LOOKUP ) {
     for( const sub of cat.subCategories ) {
       if( !sub.key ) continue;
       const allCodes = sub.depts.map(d => d.deptCode);
-      if( allCodes.every(c => remaining.has(c)) ) {
-        parts.push(sub.key);
-        allCodes.forEach(c => remaining.delete(c));
+      const checkedCodes = allCodes.filter(c => selected.has(c));
+      const uncheckedCodes = allCodes.filter(c => !selected.has(c));
+
+      if( checkedCodes.length === 0 ) continue;
+
+      if( uncheckedCodes.length === 0 ) {
+        // all selected — just the key
+        deptKeys.push(sub.key);
+      } else if( uncheckedCodes.length <= checkedCodes.length ) {
+        // majority selected — key + excluded list is shorter
+        deptKeys.push(sub.key);
+        uncheckedCodes.forEach(c => excluded.push(c));
+      } else {
+        // minority selected — included list is shorter
+        checkedCodes.forEach(c => included.push(c));
       }
     }
   }
 
-  if( remaining.size ) {
-    parts.push(`deptCodes:${[...remaining].join(',')}`);
-  }
-
-  return parts.join(',');
+  return {
+    dept: deptKeys.join(','),
+    deptCodesIncluded: included.join(','),
+    deptCodesExcluded: excluded.join(','),
+  };
 }
 
 /**
- * Deserialize a compact dept param string back to an array of dept codes.
- * Expands sub-category keys to all their dept codes and appends any deptCodes.
+ * Deserialize dept URL params back to a flat array of dept codes.
  *
- * @param {string} param - compact dept param value from URL
+ * @param {string} dept - comma-separated sub-category keys (e.g. "AGR,BIO")
+ * @param {string} [deptCodesIncluded] - comma-separated codes to add directly
+ * @param {string} [deptCodesExcluded] - comma-separated codes to remove from expanded keys
  * @returns {string[]} flat array of dept codes
  */
-export function deserializeDeptParam(param) {
-  if( !param ) return [];
+export function deserializeDeptParam(dept, deptCodesIncluded='', deptCodesExcluded='') {
+  if( !dept && !deptCodesIncluded ) return [];
+
+  const excludeSet = new Set((deptCodesExcluded || '').split(',').filter(Boolean));
   const codes = [];
 
-  // deptCodes is always last — strip it off before splitting by comma
-  // so its own comma-separated values aren't mangled by the outer split
-  let keyPart = param;
-  const extraIdx = param.indexOf('deptCodes:');
-  if( extraIdx !== -1 ) {
-    param.slice(extraIdx + 'deptCodes:'.length).split(',').filter(Boolean).forEach(c => codes.push(c));
-    keyPart = param.slice(0, extraIdx).replace(/,$/, '');
-  }
-
-  for( const token of keyPart.split(',').filter(Boolean) ) {
+  for( const token of (dept || '').split(',').filter(Boolean) ) {
     if( KEY_MAP.has(token) ) {
-      KEY_MAP.get(token).forEach(d => codes.push(d.deptCode));
+      KEY_MAP.get(token)
+        .map(d => d.deptCode)
+        .filter(c => !excludeSet.has(c))
+        .forEach(c => codes.push(c));
     }
   }
+
+  (deptCodesIncluded || '').split(',').filter(Boolean).forEach(c => {
+    if( !codes.includes(c) ) codes.push(c);
+  });
 
   return codes;
 }
 
 /**
- * Expand a compact dept param string to the official department names used by
- * the Elasticsearch index. This is the API-side expansion.
+ * Expand dept URL params to the official department names used by the
+ * Elasticsearch index. This is the API-side expansion.
  *
- * @param {string} param - compact dept param value from URL
+ * @param {string} dept - compact dept param value from URL
+ * @param {string} [deptCodesIncluded] - codes to include directly
+ * @param {string} [deptCodesExcluded] - codes to exclude from expanded keys
  * @returns {string[]} array of official dept names (hasOrganizationalUnit.name.kw values)
  */
-export function expandDeptParam(param) {
-  const codes = deserializeDeptParam(param);
+export function expandDeptParam(dept, deptCodesIncluded='', deptCodesExcluded='') {
+  const codes = deserializeDeptParam(dept, deptCodesIncluded, deptCodesExcluded);
   return deptCodesToOfficialNames(codes);
 }
 

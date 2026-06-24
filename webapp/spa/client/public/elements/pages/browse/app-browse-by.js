@@ -125,7 +125,9 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     let resultsPerPage = e.location.path[4];
     let query = e.location.query || {};
 
-    this.dept = query.dept ? this._deserializeDept(query.dept) : [];
+    this.dept = (query.dept || query.deptCodesIncluded)
+      ? this._deserializeDept(query.dept || '', query.deptCodesIncluded || '', query.deptCodesExcluded || '')
+      : [];
     this.status = query.status || '';
     this.workType = query.type || '';
     this.collabProjects = query.availability?.includes('collab') || false;
@@ -474,7 +476,12 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    */
   _buildQueryString() {
     const params = [];
-    if( this.dept?.length ) params.push(`dept=${this._serializeDept(this.dept)}`);
+    if( this.dept?.length ) {
+      const { dept, deptCodesIncluded, deptCodesExcluded } = this._serializeDept(this.dept);
+      if( dept ) params.push(`dept=${dept}`);
+      if( deptCodesIncluded ) params.push(`deptCodesIncluded=${deptCodesIncluded}`);
+      if( deptCodesExcluded ) params.push(`deptCodesExcluded=${deptCodesExcluded}`);
+    }
     if( this.status ) params.push(`status=${this.status}`);
     if( this.workType ) params.push(`type=${this.workType}`);
     if( this.dateFrom ) params.push(`dateFrom=${this.dateFrom}`);
