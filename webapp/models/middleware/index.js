@@ -5,7 +5,6 @@ const template = require('../base/template/name.js');
 const {
   config,
   ExpertsKcAdminClient,
-  expandDeptParam,
 } = require('@ucd-lib/experts-commons');
 
 let AdminClient, MIVJWKSClient;
@@ -89,9 +88,7 @@ function browse_endpoint(router,model) {
         }
       });
 
-      if( req.query.dept || req.query.deptCodesIncluded || req.query.deptCodesExcluded ) {
-        params.dept = expandDeptParam(req.query.dept || '', req.query.deptCodesIncluded || '', req.query.deptCodesExcluded || '');
-      }
+      if( req.query.dept ) params.dept = req.query.dept.split(',').filter(Boolean);
       if( req.query.status ) params.status = req.query.status.split(',').filter(Boolean);
       if( req.query.type ) params.type = req.query.type.split(',').filter(Boolean);
       if( req.query.availability ) params.availability = req.query.availability.split(',').filter(Boolean);

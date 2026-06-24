@@ -604,6 +604,7 @@ return html`
         padding-left: 1rem;
         padding-right: 1rem;
         box-sizing: border-box;
+        font-size: 1rem;
       }
 
       .refine-search-mobile {
@@ -781,9 +782,14 @@ return html`
         color: var(--ucd-blue-100, #022851);
         background: white;
         border: none;
+        border-bottom: 1px solid var(--ucd-blue-30, #EBF3FA);
         text-align: left;
         cursor: pointer;
         box-sizing: border-box;
+      }
+
+      .category-dropdown-item:last-child {
+        border-bottom: none;
       }
 
       .category-dropdown-item:hover,
@@ -801,7 +807,7 @@ return html`
         display: flex;
       }
 
-      .results-filtered-to {
+      .mobile-chips {
         display: none;
       }
     }
@@ -900,9 +906,6 @@ return html`
       background-color: var(--color-aggie-blue-50);
     }
 
-    .refine-search-contents {
-      padding: 1rem;
-    }
   </style>
 
   <div class="browse-header">

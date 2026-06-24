@@ -161,7 +161,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       }
     }
 
-    // fetch category aggregations (counts for All/Active/etc.) using unfiltered query
+    // fetch category aggregations (counts for All/Active/etc.) scoped to active filters
     await this._fetchCategoryAggregations();
   }
 
@@ -190,13 +190,17 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
 
   /**
    * @method _fetchCategoryAggregations
-   * @description fetch unfiltered aggregation counts for the category filter rows
+   * @description fetch aggregation counts for the category filter rows, scoped to
+   * active dept/date filters but without status or type so all category buckets are returned
    * @returns {Promise}
    */
   async _fetchCategoryAggregations() {
     if( this.browseType !== 'grant' && this.browseType !== 'work' ) return;
     try {
-      const result = await this.BrowseByModel.browseCounts(this.browseType, {});
+      const filters = this._buildFilters();
+      delete filters.status;
+      delete filters.type;
+      const result = await this.BrowseByModel.browseCounts(this.browseType, filters);
       if( result?.state === 'loaded' ) {
         this.categoryAggregations = result.payload?.aggregations || {};
       }
@@ -897,7 +901,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       : this.categoryAggregations?.type;
     if( !agg || typeof agg !== 'object' ) return '';
     const total = Object.values(agg).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0);
-    return total ? total.toLocaleString() : '';
+    return total.toLocaleString();
   }
 
   /**
@@ -990,7 +994,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( this.browseType === 'work' ) {
       if( this.workType ) {
         const label = utils.getCitationType(this.workType).toLowerCase();
-        return `View ${n} ${label}`;
+        return `View ${n} ${label}${n === 1 ? '' : 's'}`;
       }
       return `View ${n} work${n === 1 ? '' : 's'}`;
     }

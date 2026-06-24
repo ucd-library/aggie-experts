@@ -79,6 +79,8 @@ class BrowseByService extends BaseService {
     if( filters.dept?.length ) qs.dept = filters.dept.join(',');
     if( filters.status?.length ) qs.status = filters.status.join(',');
     if( filters.type?.length ) qs.type = filters.type.join(',');
+    if( filters.dateFrom ) qs.dateFrom = filters.dateFrom;
+    if( filters.dateTo ) qs.dateTo = filters.dateTo;
 
     type = type.substring(0, 1).toUpperCase() + type.substring(1);
     let storeKey = 'by'+type+'sCounts';
