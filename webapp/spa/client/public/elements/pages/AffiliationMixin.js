@@ -1,4 +1,5 @@
-import { ORG_LOOKUP } from '../../lib/org-lookup.js';
+import { ORG_LOOKUP } from '@ucd-lib/experts-commons/lib/org-lookup.js';
+import { serializeDeptParam, deserializeDeptParam } from '@ucd-lib/experts-commons/lib/dept-utils.js';
 
 /**
  * @mixin AffiliationMixin
@@ -87,10 +88,30 @@ export const AffiliationMixin = (superClass) => class extends superClass {
   }
 
   /**
+   * @method _serializeDept
+   * @description serialize selected dept codes to a compact URL parameter string
+   * @param {string[]} codes selected dept codes
+   * @returns {string} compact param value e.g. "AGR,BIO,deptCodes:24017"
+   */
+  _serializeDept(codes) {
+    return serializeDeptParam(codes);
+  }
+
+  /**
+   * @method _deserializeDept
+   * @description deserialize a compact URL dept param back to dept codes
+   * @param {string} param compact dept param value
+   * @returns {string[]} flat array of dept codes
+   */
+  _deserializeDept(param) {
+    return deserializeDeptParam(param);
+  }
+
+  /**
    * @method _deptCodesToNames
-   * @description convert dept codes to official names for API filtering
-   * @param {Array} codes array of dept codes
-   * @returns {Array} array of official dept names
+   * @description convert dept codes to official names (kept for any display use)
+   * @param {string[]} codes array of dept codes
+   * @returns {string[]} array of official dept names
    */
   _deptCodesToNames(codes) {
     return codes.map(c => this._getDept(c)?.officialName || c);

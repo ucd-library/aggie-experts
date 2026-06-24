@@ -211,7 +211,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       this.industProjects = query.availability?.includes('industry') ? true : false;
       this.mediaInterviews = query.availability?.includes('media') ? true : false;
 
-      this.dept = query.dept ? query.dept.split(',') : [];
+      this.dept = query.dept ? this._deserializeDept(query.dept) : [];
 
       this.dateFrom = query.dateFrom || '';
       this.dateTo = query.dateTo || '';
@@ -547,7 +547,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
           this.filterByExpertId,
           this.dateFrom,
           this.dateTo,
-          this._deptCodesToNames(this.dept)
+          this._serializeDept(this.dept)
         ),
         resetPage // ignore cache
       ),
@@ -589,7 +589,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
     if( this.dateFrom ) path += `&dateFrom=${this.dateFrom}`;
     if( this.dateTo ) path += `&dateTo=${this.dateTo}`;
-    if( this.dept.length ) path += `&dept=${this.dept.join(',')}`;
+    if( this.dept.length ) path += `&dept=${this._serializeDept(this.dept)}`;
 
     this.AppStateModel.setLocation(path);
   }
@@ -1022,7 +1022,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
           this.filterByExpertId,
           this.dateFrom,
           this.dateTo,
-          this._deptCodesToNames(this.dept)
+          this._serializeDept(this.dept)
         )
       ),
       true

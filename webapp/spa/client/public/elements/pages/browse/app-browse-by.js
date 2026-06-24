@@ -51,8 +51,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       expandedSubCategories : { type : Array },
       categoryAggregations : { type : Object },
       refineSearchCollapsed : { type : Boolean },
-      mobileSubDrawer : { type : String },
-      mobileAffSub : { type : String },
       mobileCategoryOpen : { type : Boolean },
     }
   }
@@ -83,8 +81,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.dateRangeData = [];
     this._lastDateHistSig = '';
     this.refineSearchCollapsed = true;
-    this.mobileSubDrawer = null;
-    this.mobileAffSub = null;
     this.mobileCategoryOpen = false;
     this.affiliationCollapsed = true;
     this.dateCollapsed = true;
@@ -128,7 +124,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     let resultsPerPage = e.location.path[4];
     let query = e.location.query || {};
 
-    this.dept = query.dept ? query.dept.split(',').filter(Boolean) : [];
+    this.dept = query.dept ? this._deserializeDept(query.dept) : [];
     this.status = query.status || '';
     this.workType = query.type || '';
     this.collabProjects = query.availability?.includes('collab') || false;
@@ -477,7 +473,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    */
   _buildQueryString() {
     const params = [];
-    if( this.dept?.length ) params.push(`dept=${this.dept.join(',')}`);
+    if( this.dept?.length ) params.push(`dept=${this._serializeDept(this.dept)}`);
     if( this.status ) params.push(`status=${this.status}`);
     if( this.workType ) params.push(`type=${this.workType}`);
     if( this.dateFrom ) params.push(`dateFrom=${this.dateFrom}`);
@@ -565,10 +561,10 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       </div>
       ${this.affiliationCollapsed && this.dept?.length ? html`
         <div class="filter-active-summary">
-          ${(this.dept || []).map(code => html`
-            <span class="filter-active-item" @click="${() => this._removeDeptFilter(code)}">
+          ${this._getDeptPillGroups(this.dept).map(group => html`
+            <span class="filter-active-item" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">
               <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
-              ${this._getDeptName(code)}
+              ${group.label}
             </span>
           `)}
         </div>
@@ -605,12 +601,14 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
                     <input type="checkbox" class="affiliation-sub-checkbox"
                       .indeterminate="${someChecked}" .checked="${allChecked}"
                       @change="${() => this._onSubCategoryCheck(sub.depts)}">
-                    <span class="affiliation-sub-label">${sub.label}</span>
-                    <span class="affiliation-sub-caret" @click="${() => this._toggleSubCategory(sub.label)}">
-                      ${expanded
-                        ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                        : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                      }
+                    <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
+                      <span class="affiliation-sub-label">${sub.label}</span>
+                      <span class="affiliation-sub-caret">
+                        ${expanded
+                          ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                          : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                        }
+                      </span>
                     </span>
                   </div>
                   ${expanded ? html`
@@ -735,8 +733,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
   _toggleRefineSearch() {
     this.refineSearchCollapsed = !this.refineSearchCollapsed;
     if( this.refineSearchCollapsed ) {
-      this.mobileSubDrawer = null;
-      this.mobileAffSub = null;
       this.mobileCategoryOpen = false;
     }
     if( !this.refineSearchCollapsed ) this._refreshRange();
@@ -826,6 +822,15 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.filterByDateLabel = '';
     this.dateFrom = '';
     this.dateTo = '';
+
+    const setChecked = (id, val) => {
+      this.shadowRoot.querySelectorAll(`#${id}, #m-${id}`).forEach(el => { el.checked = val; });
+    };
+    setChecked('b-collab-projects', false);
+    setChecked('b-comm-partner', false);
+    setChecked('b-indust-projects', false);
+    setChecked('b-media-interviews', false);
+
     this._updateLocation();
   }
 
@@ -836,7 +841,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    */
   _getActiveFilterCount() {
     let count = 0;
-    if( this.dept?.length ) count += this.dept.length;
+    if( this.dept?.length ) count += this._getDeptPillGroups(this.dept).length;
     if( this.filterByDate ) count++;
     if( this.collabProjects ) count++;
     if( this.commPartner ) count++;

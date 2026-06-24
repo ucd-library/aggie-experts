@@ -4,7 +4,7 @@ const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const WorkModel = require('../work/model.js');
 // const utils = require('../utils.js')
-const {Elasticsearch} = require('@ucd-lib/experts-commons');
+const {Elasticsearch, expandDeptParam} = require('@ucd-lib/experts-commons');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
@@ -37,7 +37,7 @@ router.get(
       params.availability = req.query.availability.split(',');
     }
     if (req?.query.dept) {
-      params.dept = req.query.dept.split(',');
+      params.dept = expandDeptParam(req.query.dept);
     }
     if (req?.query.expert) {
       params.expert = req.query.expert.split(',');

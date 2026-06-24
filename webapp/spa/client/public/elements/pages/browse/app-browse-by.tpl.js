@@ -316,8 +316,15 @@ return html`
       flex: 1;
     }
 
-    .affiliation-sub-caret {
+    .affiliation-toggle {
       cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .affiliation-sub-caret {
       display: flex;
       align-items: center;
       padding: 0.2rem;
@@ -637,7 +644,7 @@ return html`
     }
 
     @media (max-width: 767px) {
-      .refine-search-mobile.open {
+      .refine-search-panel {
         position: fixed;
         top: 0;
         left: 0;
@@ -648,11 +655,21 @@ return html`
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        border-right: 1.125rem solid var(--ucd-blue-80, #13639E);
+        border-right: 1.5rem solid rgba(19, 99, 158, 0.5);
         box-sizing: border-box;
+        transform: translateX(-100%);
+        opacity: 0.95;
+        pointer-events: none;
+        transition: transform 0.3s ease, opacity 0.3s ease;
       }
 
-      .refine-search-mobile.open .refine-search-drawer-header {
+      .refine-search-panel.open {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .refine-search-panel .refine-search-drawer-header {
         flex-shrink: 0;
         display: flex;
         width: 100%;
@@ -664,9 +681,8 @@ return html`
 
       .refine-search-contents {
         flex: 1;
-        overflow-y: scroll;
-        scrollbar-gutter: stable;
-        padding: 1rem 1.25rem;
+        overflow-y: auto;
+        padding: 1rem 2rem 1rem 1.25rem;
         background: white;
       }
 
@@ -676,7 +692,7 @@ return html`
 
       .mobile-view-btn-wrap {
         flex-shrink: 0;
-        padding: 0 1rem 1rem;
+        padding: 1rem;
         background: white;
         box-sizing: border-box;
       }
@@ -697,26 +713,6 @@ return html`
 
       .mobile-view-btn:hover {
         background: #e6ac00;
-      }
-
-      .mobile-sub-back {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--ucd-blue-80, #13639E);
-        cursor: pointer;
-        font-size: 1rem;
-        margin-bottom: 1rem;
-        background: none;
-        border: none;
-        padding: 0;
-      }
-
-      .mobile-sub-back svg {
-        fill: currentColor;
-        height: 20px;
-        width: auto;
-        flex-shrink: 0;
       }
 
       .mobile-filter-bar {
@@ -740,6 +736,29 @@ return html`
 
       .mobile-chips p {
         margin: 0;
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .mobile-chips button {
+        white-space: normal;
+        word-break: break-word;
+        max-width: 100%;
+      }
+
+      .clear-all-filters {
+        color: var(--ucd-blue-80, #13639E) !important;
+        font-size: 16.62px;
+        font-weight: 400;
+        font-style: italic;
+        line-height: 26px;
+        text-decoration: underline;
+        cursor: pointer;
+        background: none !important;
+        border: none !important;
+        padding: 0;
+        white-space: nowrap;
       }
 
       .category-select-wrapper {
@@ -816,10 +835,6 @@ return html`
       .results-filtered-to {
         display: none;
       }
-    }
-
-    .refine-search-mobile.open {
-      background: white;
     }
 
     .refine-search-drawer-header {
@@ -946,176 +961,59 @@ return html`
     <div class="browse-content">
 
     <!-- ======= MOBILE FILTER DRAWER ======= -->
-    <div class="refine-search-mobile ${this.refineSearchCollapsed ? '' : 'open'}">
-      ${this.refineSearchCollapsed ? html`
-        <div class="mobile-filter-bar">
-          <div class="mobile-filter-bar-row">
-            ${(this.browseType === 'work' || this.browseType === 'grant') ? html`
-              <div class="category-select-wrapper">
-                <button class="category-select-btn" @click="${() => { this.mobileCategoryOpen = !this.mobileCategoryOpen; }}">
-                  <span>${this._getMobileCategoryLabel()}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z"/></svg>
-                </button>
-                ${this.mobileCategoryOpen ? html`
-                  <div class="category-dropdown-list">
-                    ${this.browseType === 'grant' ? html`
-                      <button class="category-dropdown-item ${!this.status ? 'active' : ''}" @click="${() => this._onMobileCategoryChange('')}">All Grants</button>
-                      <button class="category-dropdown-item ${this.status === 'active' ? 'active' : ''}" @click="${() => this._onMobileCategoryChange('active')}">Active</button>
-                      <button class="category-dropdown-item ${this.status === 'completed' ? 'active' : ''}" @click="${() => this._onMobileCategoryChange('completed')}">Completed</button>
-                    ` : html`
-                      <button class="category-dropdown-item ${!this.workType ? 'active' : ''}" @click="${() => this._onMobileCategoryChange('')}">All Works</button>
-                      ${this._getWorkTypeItems()}
-                    `}
-                  </div>
-                ` : ''}
-              </div>
-            ` : ''}
-            <div class="refine-search-dropdown" @click="${this._toggleRefineSearch}">
-              <span class="refine-search-label">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M3.9 54.9C10.5 40.9 24.5 32 40 32l432 0c15.5 0 29.5 8.9 36.1 22.9s4.6 30.5-5.2 42.5L320 320.9 320 448c0 12.1-6.8 23.2-17.7 28.6s-23.8 4.3-33.5-3l-64-48c-8.1-6-12.8-15.5-12.8-25.6l0-79.1L9 97.3C-.7 85.4-2.8 68.8 3.9 54.9z"/></svg>
-                Filter${this._getActiveFilterCount() > 0 ? ` (${this._getActiveFilterCount()})` : ''}
-              </span>
-            </div>
-          </div>
-          <div class="mobile-chips">
-            ${this.filterByDate ? html`<p><button class="btn btn--round" @click="${this._removeDateFilter}">${this.filterByDateLabel}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${(this.dept || []).map(code => html`<p><button class="btn btn--round" @click="${() => this._removeDeptFilter(code)}">${this._getDeptName(code)}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>`)}
-            ${this.collabProjects ? html`<p><button class="btn btn--round" @click="${() => { this.collabProjects = false; this._updateLocation(); }}">Collaborative Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${this.commPartner ? html`<p><button class="btn btn--round" @click="${() => { this.commPartner = false; this._updateLocation(); }}">Community Partnerships<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-            ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
-          </div>
-        </div>
-      ` : html`
-        <div class="refine-search-drawer-header">Filter</div>
-        <div class="refine-search-contents">
-          ${this.mobileSubDrawer === 'affiliation' ? html`
-            ${this.mobileAffSub ? html`
-              <button class="mobile-sub-back" @click="${() => { this.mobileAffSub = null; }}">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="6" height="10"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-                Back
+    <div class="refine-search-mobile">
+      <div class="mobile-filter-bar">
+        <div class="mobile-filter-bar-row">
+          ${(this.browseType === 'work' || this.browseType === 'grant') ? html`
+            <div class="category-select-wrapper">
+              <button class="category-select-btn" @click="${() => { this.mobileCategoryOpen = !this.mobileCategoryOpen; }}">
+                <span>${this._getMobileCategoryLabel()}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z"/></svg>
               </button>
-              <h4 style="margin-top:0">${this.mobileAffSub}</h4>
-              <div class="affiliation-dept-list">
-                ${(() => {
-                  const allDepts = (this.orgLookup || []).flatMap(cat => cat.subCategories).find(sub => sub.label === this.mobileAffSub)?.depts || [];
-                  return allDepts.map(d => html`
-                    <label class="affiliation-dept-row">
-                      <input type="checkbox" .value="${d.deptCode}" .checked="${this.dept.includes(d.deptCode)}" @change="${this._onDeptChange}">
-                      ${d.name}
-                    </label>
-                  `);
-                })()}
-              </div>
-            ` : html`
-              <button class="mobile-sub-back" @click="${() => { this.mobileSubDrawer = null; }}">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="6" height="10"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-                Back
-              </button>
-              <h4 style="margin-top:0">Affiliation</h4>
-              <div class="affiliation-search-wrapper">
-                <input type="text" class="affiliation-search-input" placeholder="Search Affiliation" .value="${this.affiliationSearch}" @input="${this._onAffiliationSearch}">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="14" height="14"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
-              </div>
-              <div class="affiliation-checkboxes">
-                ${(this.orgLookup || []).map(cat => {
-                  const matchingSubs = cat.subCategories.map(sub => ({
-                    ...sub,
-                    depts: sub.depts.filter(d =>
-                      !this.affiliationSearch ||
-                      d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
-                      sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
-                    )
-                  })).filter(sub => sub.depts.length);
-                  if( !matchingSubs.length ) return '';
-                  return html`
-                    <div class="affiliation-group-label">${cat.label}</div>
-                    ${matchingSubs.map(sub => html`
-                      <div class="affiliation-sub-row" style="cursor:pointer" @click="${() => { this.mobileAffSub = sub.label; }}">
-                        <span class="affiliation-sub-label">${sub.label}</span>
-                        <span class="affiliation-sub-caret">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-                        </span>
-                      </div>
-                    `)}
-                  `;
-                })}
-              </div>
-            `}
-          ` : this.mobileSubDrawer === 'openTo' ? html`
-            <button class="mobile-sub-back" @click="${() => { this.mobileSubDrawer = null; }}">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="6" height="10"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-              Back
-            </button>
-            <h4 style="margin-top:0">Experts Open To</h4>
-            <div class="open-to">
-              <label><input type="checkbox" id="m-collab-projects" ?checked="${this.collabProjects}" @change="${this._selectCollabProjects}">Collaborative Projects</label>
-              <label><input type="checkbox" id="m-comm-partner" ?checked="${this.commPartner}" @change="${this._selectCommPartner}">Community Partnerships</label>
-              <label><input type="checkbox" id="m-indust-projects" ?checked="${this.industProjects}" @change="${this._selectIndustProjects}">Industry Projects</label>
-              <label><input type="checkbox" id="m-media-interviews" ?checked="${this.mediaInterviews}" @change="${this._selectMediaInterviews}">Media Interviews</label>
-            </div>
-          ` : this.mobileSubDrawer === 'date' ? html`
-            <button class="mobile-sub-back" @click="${() => { this.mobileSubDrawer = null; }}">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="6" height="10"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>
-              Back
-            </button>
-            <h4 style="margin-top:0">Date</h4>
-            <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
-            <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
-              <ucdlib-range-slider @range-slider-change="${this._onRangeSliderChange}" .data="${this.dateRangeData}" .showUnknown="${true}"></ucdlib-range-slider>
-            </div>
-          ` : html`
-            <hr class="search-seperator search-seperator--large-dots" style="margin-top:0">
-
-            <div class="collapsible-filter-heading" @click="${() => { this.mobileSubDrawer = 'affiliation'; }}">
-              <h4>Affiliation</h4>
-              <span class="filter-collapse-arrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg></span>
-            </div>
-            ${this.dept?.length ? html`
-              <div class="filter-active-summary">
-                ${(this.dept || []).map(code => html`
-                  <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this._removeDeptFilter(code); }}">
-                    <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this._getDeptName(code)}
-                  </span>
-                `)}
-              </div>
-            ` : ''}
-            <hr class="search-seperator">
-
-            ${this.browseType === 'expert' ? html`
-              <div class="collapsible-filter-heading" @click="${() => { this.mobileSubDrawer = 'openTo'; }}">
-                <h4>Experts Open To</h4>
-                <span class="filter-collapse-arrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg></span>
-              </div>
-              ${(this.collabProjects || this.commPartner || this.industProjects || this.mediaInterviews) ? html`
-                <div class="filter-active-summary">
-                  ${this.collabProjects ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.collabProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Collaborative Projects</span>` : ''}
-                  ${this.commPartner ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.commPartner = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Community Partnerships</span>` : ''}
-                  ${this.industProjects ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.industProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Industry Projects</span>` : ''}
-                  ${this.mediaInterviews ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.mediaInterviews = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Media Interviews</span>` : ''}
+              ${this.mobileCategoryOpen ? html`
+                <div class="category-dropdown-list">
+                  ${this.browseType === 'grant' ? html`
+                    <button class="category-dropdown-item ${!this.status ? 'active' : ''}" @click="${() => this._onMobileCategoryChange('')}">All Grants</button>
+                    <button class="category-dropdown-item ${this.status === 'active' ? 'active' : ''}" @click="${() => this._onMobileCategoryChange('active')}">Active</button>
+                    <button class="category-dropdown-item ${this.status === 'completed' ? 'active' : ''}" @click="${() => this._onMobileCategoryChange('completed')}">Completed</button>
+                  ` : html`
+                    <button class="category-dropdown-item ${!this.workType ? 'active' : ''}" @click="${() => this._onMobileCategoryChange('')}">All Works</button>
+                    ${this._getWorkTypeItems()}
+                  `}
                 </div>
               ` : ''}
-              <hr class="search-seperator">
-            ` : ''}
-
-            <div class="collapsible-filter-heading" @click="${() => { this.mobileSubDrawer = 'date'; }}">
-              <h4>Date</h4>
-              <span class="filter-collapse-arrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg></span>
             </div>
-            ${this.filterByDate ? html`
-              <div class="filter-active-summary">
-                <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this._removeDateFilter(); }}">
-                  <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
-                </span>
-              </div>
-            ` : ''}
-            <hr class="search-seperator">
-          `}
+          ` : ''}
+          <div class="refine-search-dropdown" @click="${this._toggleRefineSearch}">
+            <span class="refine-search-label">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M3.9 54.9C10.5 40.9 24.5 32 40 32l432 0c15.5 0 29.5 8.9 36.1 22.9s4.6 30.5-5.2 42.5L320 320.9 320 448c0 12.1-6.8 23.2-17.7 28.6s-23.8 4.3-33.5-3l-64-48c-8.1-6-12.8-15.5-12.8-25.6l0-79.1L9 97.3C-.7 85.4-2.8 68.8 3.9 54.9z"/></svg>
+              Filter${this._getActiveFilterCount() > 0 ? ` (${this._getActiveFilterCount()})` : ''}
+            </span>
+          </div>
+        </div>
+        <div class="mobile-chips">
+          ${this.filterByDate ? html`<p><button class="btn btn--round" @click="${this._removeDateFilter}">${this.filterByDateLabel}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this._getDeptPillGroups(this.dept || []).map(group => html`<p><button class="btn btn--round" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">${group.label}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>`)}
+          ${this.collabProjects ? html`<p><button class="btn btn--round" @click="${() => { this.collabProjects = false; this._updateLocation(); }}">Collaborative Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.commPartner ? html`<p><button class="btn btn--round" @click="${() => { this.commPartner = false; this._updateLocation(); }}">Community Partnerships<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${(() => {
+            const count = (this.filterByDate?1:0) + this._getDeptPillGroups(this.dept||[]).length + (this.collabProjects?1:0) + (this.commPartner?1:0) + (this.industProjects?1:0) + (this.mediaInterviews?1:0);
+            return count >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : '';
+          })()}
+        </div>
+      </div>
+
+      <div class="refine-search-panel ${this.refineSearchCollapsed ? '' : 'open'}">
+        <div class="refine-search-drawer-header">Filter</div>
+        <div class="refine-search-contents">
+          ${this._renderFilterContents()}
         </div>
         <div class="mobile-view-btn-wrap">
           <button class="mobile-view-btn" @click="${this._toggleRefineSearch}">${this._getMobileViewLabel()}</button>
         </div>
-      `}
+      </div>
     </div>
 
       <div class="browse-results-heading">
@@ -1141,10 +1039,10 @@ return html`
               </button>
             </p>
           ` : ''}
-          ${(this.dept || []).map(code => html`
+          ${this._getDeptPillGroups(this.dept || []).map(group => html`
             <p>
-              <button class="btn btn--round" @click="${() => this._removeDeptFilter(code)}">
-                ${this._getDeptName(code)}
+              <button class="btn btn--round" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">
+                ${group.label}
                 <div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div>
               </button>
             </p>

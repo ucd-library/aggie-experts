@@ -4,6 +4,7 @@ export const ORG_LOOKUP = [
     "subCategories": [
       {
         "label": "University Offices and Programs",
+        "key": "UOP",
         "depts": [
           {
             "name": "Continuing and Professional Education",
@@ -31,7 +32,7 @@ export const ORG_LOOKUP = [
             "deptCode": "61003"
           },
           {
-            "name": "Vice Chancellor \u2013 Research",
+            "name": "Vice Chancellor – Research",
             "officialName": "VICE CHANCELLOR - RESEARCH",
             "deptCode": "61800"
           },
@@ -139,6 +140,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Interdisciplinary Research Units",
+        "key": "IRU",
         "depts": [
           {
             "name": "Coastal and Marine Sciences Institute",
@@ -254,6 +256,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "UC Agriculture and Natural Resources (ANR)",
+        "key": "ANR",
         "depts": [
           {
             "name": "CA Institute for Water Resources",
@@ -261,7 +264,7 @@ export const ORG_LOOKUP = [
             "deptCode": "303100"
           },
           {
-            "name": "ANR Cooperative Extension \u2013 UC Merced",
+            "name": "ANR Cooperative Extension – UC Merced",
             "officialName": "ANR CE SPECIALISTS UCM",
             "deptCode": "305200"
           },
@@ -276,7 +279,7 @@ export const ORG_LOOKUP = [
             "deptCode": "303401"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Fresno and Madera",
+            "name": "UC Cooperative Extension – Fresno and Madera",
             "officialName": "UCCE FRESNO MADERA MCP",
             "deptCode": "966095"
           },
@@ -321,12 +324,12 @@ export const ORG_LOOKUP = [
             "deptCode": "305100"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Central Sierra Nevada",
+            "name": "UC Cooperative Extension – Central Sierra Nevada",
             "officialName": "UCCE CENTRAL SIERRA NEVADA MCP",
             "deptCode": "966094"
           },
           {
-            "name": "ANR Cooperative Extension \u2013 UC Santa Cruz",
+            "name": "ANR Cooperative Extension – UC Santa Cruz",
             "officialName": "ANR CE SPECIALISTS UCSC",
             "deptCode": "305500"
           },
@@ -356,22 +359,22 @@ export const ORG_LOOKUP = [
             "deptCode": "306406"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Stanislaus County",
+            "name": "UC Cooperative Extension – Stanislaus County",
             "officialName": "UCCE STANISLAUS COUNTY",
             "deptCode": "966050"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Sutter and Yuba Counties",
+            "name": "UC Cooperative Extension – Sutter and Yuba Counties",
             "officialName": "UCCE SUTTER/YUBA COUNTIES",
             "deptCode": "966051"
           },
           {
-            "name": "ANR Cooperative Extension \u2013 UCLA",
+            "name": "ANR Cooperative Extension – UCLA",
             "officialName": "ANR CE SPECIALISTS UCLA",
             "deptCode": "305700"
           },
           {
-            "name": "UC Cooperative Extension \u2013 San Luis Obispo County",
+            "name": "UC Cooperative Extension – San Luis Obispo County",
             "officialName": "UCCE SAN LUIS OBISPO COUNTY",
             "deptCode": "966040"
           },
@@ -396,12 +399,12 @@ export const ORG_LOOKUP = [
             "deptCode": "305001"
           },
           {
-            "name": "ANR Cooperative Extension \u2013 UC Irvine",
+            "name": "ANR Cooperative Extension – UC Irvine",
             "officialName": "ANR CE SPECIALISTS UCI",
             "deptCode": "305400"
           },
           {
-            "name": "ANR Cooperative Extension \u2013 UC Santa Barbara",
+            "name": "ANR Cooperative Extension – UC Santa Barbara",
             "officialName": "ANR CE SPECIALISTS UCSB",
             "deptCode": "305600"
           },
@@ -436,42 +439,42 @@ export const ORG_LOOKUP = [
             "deptCode": "965059"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Kings County",
+            "name": "UC Cooperative Extension – Kings County",
             "officialName": "UCCE KINGS COUNTY",
             "deptCode": "966016"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Marin County",
+            "name": "UC Cooperative Extension – Marin County",
             "officialName": "UCCE MARIN COUNTY",
             "deptCode": "966021"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Orange County",
+            "name": "UC Cooperative Extension – Orange County",
             "officialName": "UCCE ORANGE COUNTY",
             "deptCode": "966030"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Nevada and Placer County",
+            "name": "UC Cooperative Extension – Nevada and Placer County",
             "officialName": "UCCE NEVADA_PLACER COUNTY",
             "deptCode": "966031"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Riverside County",
+            "name": "UC Cooperative Extension – Riverside County",
             "officialName": "UCCE RIVERSIDE COUNTY",
             "deptCode": "966033"
           },
           {
-            "name": "UC Cooperative Extension \u2013 San Diego County",
+            "name": "UC Cooperative Extension – San Diego County",
             "officialName": "UCCE SAN DIEGO COUNTY",
             "deptCode": "966037"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Tulare County",
+            "name": "UC Cooperative Extension – Tulare County",
             "officialName": "UCCE TULARE COUNTY",
             "deptCode": "966054"
           },
           {
-            "name": "UC Cooperative Extension \u2013 Capitol Corridor",
+            "name": "UC Cooperative Extension – Capitol Corridor",
             "officialName": "UCCE CAPITOL CORRIDOR MCP",
             "deptCode": "966093"
           },
@@ -541,8 +544,8 @@ export const ORG_LOOKUP = [
             "deptCode": "306213"
           },
           {
-            "name": "ANR Environmental\u00a0Toxicology",
-            "officialName": "ANR ENVIRONMENTAL\u00a0TOXICOLOGY",
+            "name": "ANR Environmental Toxicology",
+            "officialName": "ANR ENVIRONMENTAL TOXICOLOGY",
             "deptCode": "306214"
           },
           {
@@ -559,6 +562,7 @@ export const ORG_LOOKUP = [
     "subCategories": [
       {
         "label": "Agricultural and Environmental Sciences",
+        "key": "AGR",
         "depts": [
           {
             "name": "Agricultural and Environmental Sciences Dean's Office",
@@ -669,6 +673,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Biological Sciences",
+        "key": "BIO",
         "depts": [
           {
             "name": "UC Davis Genome Center",
@@ -719,6 +724,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Engineering",
+        "key": "ENG",
         "depts": [
           {
             "name": "Civil and Environmental Engineering",
@@ -769,6 +775,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Letters and Science",
+        "key": "LAS",
         "depts": [
           {
             "name": "Mathematics",
@@ -1019,6 +1026,7 @@ export const ORG_LOOKUP = [
     "subCategories": [
       {
         "label": "Education",
+        "key": "EDU",
         "depts": [
           {
             "name": "Education",
@@ -1029,6 +1037,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Business",
+        "key": "BUS",
         "depts": [
           {
             "name": "Graduate School of Management",
@@ -1039,6 +1048,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Law",
+        "key": "LAW",
         "depts": [
           {
             "name": "School of Law Dean's Office",
@@ -1059,6 +1069,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Medicine",
+        "key": "MED",
         "depts": [
           {
             "name": "Pediatrics",
@@ -1286,7 +1297,7 @@ export const ORG_LOOKUP = [
             "deptCode": "923010"
           },
           {
-            "name": "ENT \u2013 Speech",
+            "name": "ENT – Speech",
             "officialName": "ENT - SPEECH",
             "deptCode": "929787"
           }
@@ -1294,6 +1305,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Nursing",
+        "key": "NUR",
         "depts": [
           {
             "name": "School of Nursing",
@@ -1309,6 +1321,7 @@ export const ORG_LOOKUP = [
       },
       {
         "label": "Veterinary Medicine",
+        "key": "VET",
         "depts": [
           {
             "name": "Surgery and Radiological Science",
@@ -1356,7 +1369,7 @@ export const ORG_LOOKUP = [
             "deptCode": "72300"
           },
           {
-            "name": "Dean's Office \u2013 Clinical Services",
+            "name": "Dean's Office – Clinical Services",
             "officialName": "VM: DEANS OFFICE - CS",
             "deptCode": "72001"
           },
@@ -1381,7 +1394,7 @@ export const ORG_LOOKUP = [
             "deptCode": "72072"
           },
           {
-            "name": "Teaching and Research Center \u2013 Tulare",
+            "name": "Teaching and Research Center – Tulare",
             "officialName": "VM: TEACHING RES CTR - TULARE",
             "deptCode": "72080"
           },
