@@ -18,6 +18,8 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
         sort : { state : true },
         urlParams : { state : true },
         alpha : { type : Array },
+        azFilters : { type : Object },
+        azQueryString : { type : String },
     }
   }
 
@@ -63,6 +65,8 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     this.selectedLetter = '';
     this.selectedPage = '';
     this.browseType = '';
+    this.azFilters = {};
+    this.azQueryString = '';
     this.sort = this.defaultSort;
     this.hasExplicitLetter = false;
 
@@ -90,15 +94,36 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     }
 
     this.browseType = e.location.path[1];
-    if( this.browseType === 'expert' ) {
-      this._onBrowseExpertsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
-    } else if( this.browseType === 'grant' ) {
-      this._onBrowseGrantsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
-    } else if( this.browseType === 'work' ) {
-      this._onBrowseWorksAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
-    }
-
+    await this._fetchAZ();
     this.requestUpdate();
+  }
+
+  /**
+   * @method updated
+   * @description re-fetch AZ counts when azFilters property changes
+   * @param {Map} changedProps
+   */
+  async updated(changedProps) {
+    if( changedProps.has('azFilters') && changedProps.get('azFilters') !== undefined ) {
+      await this._fetchAZ();
+    }
+  }
+
+  /**
+   * @method _fetchAZ
+   * @description fetch per-letter counts using current browseType and azFilters
+   * @returns {Promise}
+   */
+  async _fetchAZ() {
+    if( !this.browseType ) return;
+    const filters = this.azFilters || {};
+    if( this.browseType === 'expert' ) {
+      this._onBrowseExpertsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType, filters));
+    } else if( this.browseType === 'grant' ) {
+      this._onBrowseGrantsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType, filters));
+    } else if( this.browseType === 'work' ) {
+      this._onBrowseWorksAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType, filters));
+    }
   }
 
   _onBrowseExpertsAzUpdate(e) {
@@ -160,7 +185,8 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     if( !v || v.value === this.selectedLetter || !v.exists ) return;
 
     this.selectedLetter = v.value;
-    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}`);
+    const qs = this.azQueryString ? '?' + this.azQueryString : '';
+    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}${qs}`);
   }
 
 }

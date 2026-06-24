@@ -74,7 +74,6 @@ return html`
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 1.1875rem;
       flex-grow: 1;
       min-width: 0;
     }
@@ -145,40 +144,9 @@ return html`
       margin: 0 0 0.75rem;
     }
 
-    .category-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.3rem 0.5rem;
+    category-filter-row {
       cursor: pointer;
-      border-radius: 3px;
-    }
-
-    .category-row:hover {
-      background: var(--ucd-blue-30, #EBF3FA);
-    }
-
-    .category-row.active {
-      background: var(--ucd-blue-80, #13639E);
-      color: white;
-    }
-
-    .category-row .category-label {
-      font-size: 1rem;
-      font-weight: 400;
-    }
-
-    .category-row.active .category-label {
-      color: white;
-    }
-
-    .category-row .category-count {
-      font-size: 0.9rem;
-      color: #666;
-    }
-
-    .category-row.active .category-count {
-      color: white;
+      display: block;
     }
 
     /* ---- collapsible filter headings ---- */
@@ -491,6 +459,7 @@ return html`
       font-size: 1.3rem;
       font-style: italic;
       font-weight: 700;
+      padding: .5rem 0 1rem;
     }
 
     .results-filtered-to p {
@@ -503,7 +472,7 @@ return html`
       color: white;
       border-color: transparent;
       padding: 0.25rem 1rem;
-      font-size: 1.1rem;
+      font-size: 1rem;
       white-space: nowrap;
       max-width: 100%;
     }
@@ -880,7 +849,7 @@ return html`
       color: white;
       border-color: transparent;
       padding: 0.25rem 1rem;
-      font-size: 1.1rem;
+      font-size: 1rem;
       white-space: nowrap;
       max-width: 100%;
     }
@@ -1017,10 +986,16 @@ return html`
     </div>
 
       <div class="browse-results-heading">
-        <ucdlib-browse-az></ucdlib-browse-az>
+        <ucdlib-browse-az .azFilters="${this._buildFilters()}" .azQueryString="${this._buildQueryString()}"></ucdlib-browse-az>
       </div>
 
-      <!-- Active filter chips -->
+      
+
+      <div class="browse-results">
+        <div class="browse-heading"></div>
+        <hr class="browse-seperator browse-seperator--${this.browseType}">
+
+        <!-- Active filter chips -->
       ${this._getActiveFilterCount() > 0 ? html`
         <div class="results-filtered-to">
           ${this.status ? html`
@@ -1062,10 +1037,6 @@ return html`
           ${this._getActiveFilterCount() >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : ''}
         </div>
       ` : ''}
-
-      <div class="browse-results">
-        <div class="browse-heading"></div>
-        <hr class="browse-seperator browse-seperator--${this.browseType}">
 
         <h3>${this.letter === '1' ? '#' : this.letter?.toUpperCase()}</h3>
 

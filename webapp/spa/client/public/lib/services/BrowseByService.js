@@ -38,6 +38,7 @@ class BrowseByService extends BaseService {
     if( filters.type?.length ) qs.type = filters.type.join(',');
     if( filters.dateFrom ) qs.dateFrom = filters.dateFrom;
     if( filters.dateTo ) qs.dateTo = filters.dateTo;
+    if( filters.availability?.length ) qs.availability = filters.availability.join(',');
 
     type = type.substring(0, 1).toUpperCase() + type.substring(1);
 

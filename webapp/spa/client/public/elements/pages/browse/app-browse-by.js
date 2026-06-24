@@ -7,6 +7,7 @@ import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 import "@ucd-lib/theme-elements/brand/ucd-theme-pagination/ucd-theme-pagination.js";
 import '../../components/ucdlib-browse-az.js';
 import '../../components/search-result-row.js';
+import '../../components/category-filter-row.js';
 
 import utils from '../../../lib/utils/index.js';
 import { AffiliationMixin } from '../AffiliationMixin.js';
@@ -522,28 +523,40 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       ${this.browseType === 'grant' ? html`
         <div class="browse-categories">
           <h3>Categories</h3>
-          <div class="category-row ${!this.status ? 'active' : ''}" @click="${() => this._onStatusChange('')}">
-            <span class="category-label">All Grants</span>
-            <span class="category-count">${this._getCategoryTotal()}</span>
-          </div>
-          <div class="category-row ${this.status === 'active' ? 'active' : ''}" @click="${() => this._onStatusChange('active')}">
-            <span class="category-label">Active</span>
-            <span class="category-count">${this._getCategoryCount('status', 'active')}</span>
-          </div>
-          <div class="category-row ${this.status === 'completed' ? 'active' : ''}" @click="${() => this._onStatusChange('completed')}">
-            <span class="category-label">Completed</span>
-            <span class="category-count">${this._getCategoryCount('status', 'completed')}</span>
-          </div>
+          <category-filter-row
+            icon="fa-file-invoice-dollar"
+            label="All Grants"
+            .count="${this._getCategoryTotal()}"
+            ?active="${!this.status}"
+            @click="${() => this._onStatusChange('')}">
+          </category-filter-row>
+          <category-filter-row
+            icon="fa-hourglass-half"
+            label="Active"
+            .count="${this._getCategoryCount('status', 'active')}"
+            ?active="${this.status === 'active'}"
+            @click="${() => this._onStatusChange('active')}">
+          </category-filter-row>
+          <category-filter-row
+            icon="fa-check-circle"
+            label="Completed"
+            .count="${this._getCategoryCount('status', 'completed')}"
+            ?active="${this.status === 'completed'}"
+            @click="${() => this._onStatusChange('completed')}">
+          </category-filter-row>
         </div>
         <hr class="search-seperator search-seperator--large-dots">
       ` : ''}
       ${this.browseType === 'work' ? html`
         <div class="browse-categories">
           <h3>Categories</h3>
-          <div class="category-row ${!this.workType ? 'active' : ''}" @click="${() => this._onWorkTypeChange('')}">
-            <span class="category-label">All Works</span>
-            <span class="category-count">${this._getCategoryTotal()}</span>
-          </div>
+          <category-filter-row
+            icon="fa-book-open"
+            label="All Works"
+            .count="${this._getCategoryTotal()}"
+            ?active="${!this.workType}"
+            @click="${() => this._onWorkTypeChange('')}">
+          </category-filter-row>
           ${this._getWorkTypeRows()}
         </div>
         <hr class="search-seperator search-seperator--large-dots">
@@ -659,39 +672,40 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
           ` : ''}
         </div>
       ` : ''}
-
-      <!-- Date filter -->
-      <div class="range-filter-container">
-        <hr class="search-seperator">
-        <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) this._refreshRange(false); }}">
-          <h4>Date</h4>
-          <span class="filter-collapse-arrow">
-            ${this.dateCollapsed
-              ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-              : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-            }
-          </span>
-        </div>
-        ${this.dateCollapsed && this.filterByDate ? html`
-          <div class="filter-active-summary">
-            <span class="filter-active-item" @click="${this._removeDateFilter}">
-              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+      ${this.browseType === 'work' || this.browseType === 'grant' ? html`
+        <!-- Date filter -->
+        <div class="range-filter-container">
+          <hr class="search-seperator">
+          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) this._refreshRange(false); }}">
+            <h4>Date</h4>
+            <span class="filter-collapse-arrow">
+              ${this.dateCollapsed
+                ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+              }
             </span>
           </div>
-        ` : ''}
-        <div ?hidden="${this.dateCollapsed}">
-          ${this.browseType === 'grant' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Grants are shown across their active years.</span>` : ''}
-          ${this.browseType === 'expert' || this.browseType === '' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>` : ''}          
-          <div class="search-year" ?hidden="${this.dateRangeData.length !== 1}">${this.dateRangeData[0]?.stat}</div>
-          <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
-            <ucdlib-range-slider
-              @range-slider-change="${this._onRangeSliderChange}"
-              .data="${this.dateRangeData}"
-              .showUnknown="${true}">
-            </ucdlib-range-slider>
+          ${this.dateCollapsed && this.filterByDate ? html`
+            <div class="filter-active-summary">
+              <span class="filter-active-item" @click="${this._removeDateFilter}">
+                <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+              </span>
+            </div>
+          ` : ''}
+          <div ?hidden="${this.dateCollapsed}">
+            ${this.browseType === 'grant' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Grants are shown across their active years.</span>` : ''}
+            ${this.browseType === 'expert' || this.browseType === '' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>` : ''}          
+            <div class="search-year" ?hidden="${this.dateRangeData.length !== 1}">${this.dateRangeData[0]?.stat}</div>
+            <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
+              <ucdlib-range-slider
+                @range-slider-change="${this._onRangeSliderChange}"
+                .data="${this.dateRangeData}"
+                .showUnknown="${true}">
+              </ucdlib-range-slider>
+            </div>
           </div>
         </div>
-      </div>
+      ` : ''}
     `;
   }
 
@@ -888,20 +902,26 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     const typeAgg = this.categoryAggregations?.type;
     if( !typeAgg || typeof typeAgg !== 'object' || !Object.keys(typeAgg).length ) {
       return DEFAULT_WORK_TYPES.map(t => html`
-        <div class="category-row ${this.workType === t.key ? 'active' : ''}" @click="${() => this._onWorkTypeChange(t.key)}">
-          <span class="category-label">${t.label}</span>
-          <span class="category-count"></span>
-        </div>
+        <category-filter-row
+          icon="fa-book-open"
+          label="${t.label}"
+          .count="${0}"
+          ?active="${this.workType === t.key}"
+          @click="${() => this._onWorkTypeChange(t.key)}">
+        </category-filter-row>
       `);
     }
     return Object.entries(typeAgg)
       .map(([key, count]) => ({ key, count }))
       .sort((a, b) => utils.getCitationType(a.key).localeCompare(utils.getCitationType(b.key)))
       .map(({ key, count }) => html`
-        <div class="category-row ${this.workType === key ? 'active' : ''}" @click="${() => this._onWorkTypeChange(key)}">
-          <span class="category-label">${utils.getCitationType(key)}</span>
-          <span class="category-count">${count.toLocaleString()}</span>
-        </div>
+        <category-filter-row
+          icon="fa-book-open"
+          label="${utils.getCitationType(key)}"
+          .count="${count}"
+          ?active="${this.workType === key}"
+          @click="${() => this._onWorkTypeChange(key)}">
+        </category-filter-row>
       `);
   }
 
