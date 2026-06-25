@@ -644,9 +644,18 @@ return html`
         display: flex;
         width: 100%;
         box-sizing: border-box;
-        padding: 1rem 1.25rem;
+        padding: 1rem 1.25rem 1rem;
         background: white;
-        border-bottom: 1px solid #e5e5e5;
+      }
+
+      .refine-search-drawer-dots {
+        flex-shrink: 0;
+        height: 4px;
+        background-image: radial-gradient(circle, var(--color-aggie-blue-60, #73ABDD) 2px, transparent 2px);
+        background-size: 10px 4px;
+        background-repeat: repeat-x;
+        background-position: 0 center;
+        margin: 0 1rem 0.5rem;
       }
 
       .refine-search-contents {
@@ -760,6 +769,11 @@ return html`
         margin-left: 0.5rem;
         width: 14px;
         height: 14px;
+        transition: transform 0.2s ease;
+      }
+
+      .category-select-btn.open svg {
+        transform: rotate(180deg);
       }
 
       .category-dropdown-list {
@@ -776,7 +790,7 @@ return html`
       .category-dropdown-item {
         display: block;
         width: 100%;
-        padding: 0.75rem 1rem;
+        padding: 1rem 1rem;
         font-size: 1.1875rem;
         font-weight: 400;
         color: var(--ucd-blue-100, #022851);
@@ -882,7 +896,6 @@ return html`
       background-color: var(--color-aggie-blue-80);
       color: white;
       border-color: transparent;
-      padding: 0.25rem 1rem;
       font-size: 1.1rem;
       white-space: nowrap;
       max-width: 100%;
@@ -938,7 +951,7 @@ return html`
         <div class="mobile-filter-bar-row">
           ${(this.browseType === 'work' || this.browseType === 'grant') ? html`
             <div class="category-select-wrapper">
-              <button class="category-select-btn" @click="${() => { this.mobileCategoryOpen = !this.mobileCategoryOpen; }}">
+              <button class="category-select-btn ${this.mobileCategoryOpen ? 'open' : ''}" @click="${() => { this.mobileCategoryOpen = !this.mobileCategoryOpen; }}">
                 <span>${this._getMobileCategoryLabel()}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z"/></svg>
               </button>
@@ -979,8 +992,9 @@ return html`
 
       <div class="refine-search-panel ${this.refineSearchCollapsed ? '' : 'open'}">
         <div class="refine-search-drawer-header">Filter</div>
+        <div class="refine-search-drawer-dots"></div>
         <div class="refine-search-contents">
-          ${this._renderFilterContents()}
+          ${this._renderFilterContents(true)}
         </div>
         <div class="mobile-view-btn-wrap">
           <button class="mobile-view-btn" @click="${this._toggleRefineSearch}">${this._getMobileViewLabel()}</button>
@@ -1001,22 +1015,6 @@ return html`
         <!-- Active filter chips -->
       ${this._getActiveFilterCount() > 0 ? html`
         <div class="results-filtered-to">
-          ${this.status ? html`
-            <p>
-              <button class="btn btn--round" @click="${() => this._onStatusChange(this.status)}">
-                ${this.status === 'active' ? 'Active' : 'Completed'}
-                <div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div>
-              </button>
-            </p>
-          ` : ''}
-          ${this.workType ? html`
-            <p>
-              <button class="btn btn--round" @click="${() => this._onWorkTypeChange(this.workType)}">
-                ${this._getWorkTypeLabel(this.workType)}
-                <div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div>
-              </button>
-            </p>
-          ` : ''}
           ${this._getDeptPillGroups(this.dept || []).map(group => html`
             <p>
               <button class="btn btn--round" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">

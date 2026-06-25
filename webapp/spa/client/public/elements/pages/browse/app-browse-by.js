@@ -526,12 +526,13 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
   /**
    * @method _renderFilterContents
    * @description render the sidebar filter panel contents
+   * @param {boolean} [hideCategories=false] omit the Categories section (used in mobile drawer)
    * @returns {TemplateResult}
    */
-  _renderFilterContents() {
+  _renderFilterContents(hideCategories=false) {
     return html`
       <!-- Categories (Grants and Works only) -->
-      ${this.browseType === 'grant' ? html`
+      ${!hideCategories && this.browseType === 'grant' ? html`
         <div class="browse-categories">
           <h3>Categories</h3>
           <category-filter-row
@@ -558,7 +559,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
         </div>
         <hr class="search-seperator search-seperator--large-dots">
       ` : ''}
-      ${this.browseType === 'work' ? html`
+      ${!hideCategories && this.browseType === 'work' ? html`
         <div class="browse-categories">
           <h3>Categories</h3>
           <category-filter-row
