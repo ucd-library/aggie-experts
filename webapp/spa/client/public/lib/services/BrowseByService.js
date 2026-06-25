@@ -98,6 +98,51 @@ class BrowseByService extends BaseService {
     return this.store.data[storeKey].get(id);
   }
 
+  /**
+   * @method browseHistogram
+   * @description fetch aggregations for the date histogram without a date filter,
+   * so the slider always covers the full year range. Uses a separate store key
+   * from browseBy so no browse-update events are emitted.
+   * @param {String} type browse type (expert, grant, work)
+   * @param {String} lastInitial letter to filter by
+   * @param {Object} filters active non-date filters (dept, status, type, availability)
+   * @returns {Promise}
+   */
+  async browseHistogram(type, lastInitial, filters={}) {
+    const typeCapital = type.substring(0, 1).toUpperCase() + type.substring(1);
+    const storeKey = 'by' + typeCapital + 'sHistogram';
+    const ido = { browseHistogram: type, lastInitial, ...filters };
+
+    let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
+    let esIndexes = await indexedDb.getElasticsearchIndexes();
+    if( esIndexes && esIndexes.filter(i => i.previewEsIndex).length > 0 ) {
+      let indexInfo = esIndexes.find(i => i.previewEsIndex && i.indexName.startsWith(type));
+      let matchedAlias = indexInfo?.aliases?.[0];
+      let indexName = indexInfo?.indexName;
+      if( ( matchedAlias || indexName ) && isAdmin ) {
+        ido.previewEsIndex = matchedAlias || indexName;
+      }
+    }
+
+    const qs = { page: 1, size: 0, p: lastInitial.toUpperCase() };
+    if( filters.dept?.length ) qs.dept = filters.dept.join(',');
+    if( filters.status?.length ) qs.status = filters.status.join(',');
+    if( filters.type?.length ) qs.type = filters.type.join(',');
+    if( filters.availability?.length ) qs.availability = filters.availability.join(',');
+
+    const id = payloadUtils.getKey(ido);
+    await this.request({
+      url: `${this.baseUrl}/${type}/browse`,
+      qs,
+      checkCached: () => this.store.data[storeKey].get(id),
+      onUpdate: resp => this.store.set(
+        payloadUtils.generate(ido, resp),
+        this.store.data[storeKey]
+      )
+    });
+    return this.store.data[storeKey].get(id);
+  }
+
   async browseBy(type, lastInitial, page=1, size=25, filters={}) {
     let ido = {browseType: type, lastInitial, page, size, ...filters};
 

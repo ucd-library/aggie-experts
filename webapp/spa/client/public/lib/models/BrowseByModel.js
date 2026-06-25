@@ -37,6 +37,19 @@ class BrowseByModel extends BaseModel {
     return this.service.browseBy(type, lastInitial, page, size, filters);
   }
 
+  /**
+   * @method browseHistogram
+   * @description fetch date histogram aggregations without a date filter so the
+   * range slider always shows the full available year range
+   * @param {String} type browse type (expert, grant, work)
+   * @param {String} lastInitial letter to filter by
+   * @param {Object} filters active non-date filters
+   * @returns {Promise}
+   */
+  async browseHistogram(type='work', lastInitial, filters={}) {
+    return this.service.browseHistogram(type, lastInitial, filters);
+  }
+
   async browseCounts(type='grant', filters={}) {
     return this.service.browseCounts(type, filters);
   }

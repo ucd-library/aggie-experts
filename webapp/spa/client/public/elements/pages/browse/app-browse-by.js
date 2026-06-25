@@ -332,10 +332,11 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
 
   /**
    * @method _updateDateRangeData
-   * @description update histogram data and range slider from API aggregations.
-   * Only rebuilds histogram data when non-date filters change; when only the date
-   * range changes the existing histogram is kept so the full range stays visible.
-   * @param {Object} aggs aggregations from the API response
+   * @description update histogram data and range slider. When non-date filters change,
+   * fetches a date-filter-free aggregation so the histogram always shows the full year
+   * range regardless of the active date selection. When only the date range changes,
+   * the existing histogram is kept and only the slider handles are repositioned.
+   * @param {Object} aggs aggregations from the API response (used only when sig unchanged)
    * @returns {Promise}
    */
   async _updateDateRangeData(aggs) {
@@ -350,7 +351,23 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     }
     this._lastDateHistSig = sig;
 
-    const data = this._buildHistogramDataFromAgg(aggs);
+    // Fetch aggregations without date params so the histogram always covers the full
+    // available year range, not just the years within the active date filter.
+    // Uses browseHistogram (separate store key) to avoid triggering browse update events.
+    let histAggs = aggs;
+    if( this.dateFrom || this.dateTo ) {
+      try {
+        const filters = this._buildFilters();
+        delete filters.dateFrom;
+        delete filters.dateTo;
+        const result = await this.BrowseByModel.browseHistogram(this.browseType, this.letter, filters);
+        if( result?.payload?.aggregations ) histAggs = result.payload.aggregations;
+      } catch(e) {
+        // fall back to the filtered aggs already in hand
+      }
+    }
+
+    const data = this._buildHistogramDataFromAgg(histAggs);
     if( !data.length ) { this.dateRangeData = []; return; }
 
     this.dateRangeData = data;
@@ -377,8 +394,8 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     for( const range of ranges ) {
       if( typeof range.refresh === 'function' ) range.refresh(dataChanged);
       if( dataChanged ) {
-        range.initialMin = clampedMin;
-        range.initialMax = clampedMax;
+        range.initialMin = absMin;
+        range.initialMax = absMax;
         range.data = this.dateRangeData;
         range.hideHistogram = false;
       }
