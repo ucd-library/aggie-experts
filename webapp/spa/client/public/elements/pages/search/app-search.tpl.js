@@ -978,38 +978,42 @@ return html`
         ` : ''}
       </div>
 
-      <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
-        <hr class="search-seperator">
+      ${this.displayedResults.length > 0 ? html`
+        <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
+          <hr class="search-seperator">
 
-        <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
-          <h4>Date</h4>
-          <span class="filter-collapse-arrow">
-            ${this.dateCollapsed
-              ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-              : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-            }
-          </span>
-        </div>
-        ${this.dateCollapsed && this.filterByDate ? html`
-          <div class="filter-active-summary">
-            <span class="filter-active-item" @click="${this._removeDateFilter}">
-              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
+            <h4>Date</h4>
+            <span class="filter-collapse-arrow">
+              ${this.dateCollapsed
+                ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+              }
             </span>
           </div>
-        ` : ''}
-        <div ?hidden="${this.dateCollapsed}">
-          <span class="date-filter-hint" ?hidden="${this.atType !== 'grant'}">Grants are shown across their active years.</span>
-          <span class="date-filter-hint" ?hidden="${this.atType !== 'expert' && this.atType !== ''}">Based on associated works and grants; grants are shown across their active years.</span>
-          <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
-          <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
-            <ucdlib-range-slider
-              @range-slider-change="${this._onRangeSliderChange}"
-              .data="${this.dateRangeData}"
-              .showUnknown="${true}">
-            </ucdlib-range-slider>
+          ${this.dateCollapsed && this.filterByDate ? html`
+            <div class="filter-active-summary">
+              <span class="filter-active-item" @click="${this._removeDateFilter}">
+                <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+              </span>
+            </div>
+          ` : ''}
+          <div ?hidden="${this.dateCollapsed}">
+            <span class="date-filter-hint" ?hidden="${this.atType !== 'grant'}">Grants are shown across their active years.</span>
+            <span class="date-filter-hint" ?hidden="${this.atType !== 'expert' && this.atType !== ''}">Based on associated works and grants; grants are shown across their active years.</span>
+            <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
+            <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
+              <ucdlib-range-slider
+                @range-slider-change="${this._onRangeSliderChange}"
+                .data="${this.dateRangeData}"
+                .initialMin="${this._computeSliderMin()}"
+                .initialMax="${this._computeSliderMax()}"
+                .showUnknown="${true}">
+              </ucdlib-range-slider>
+            </div>
           </div>
         </div>
-      </div>
+      ` : ''}
 
       <hr class="search-seperator">
       <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
@@ -1217,6 +1221,8 @@ return html`
                   <ucdlib-range-slider
                     @range-slider-change="${this._onRangeSliderChange}"
                     .data="${this.dateRangeData}"
+                    .initialMin="${this._computeSliderMin()}"
+                    .initialMax="${this._computeSliderMax()}"
                     .showUnknown="${true}">
                   </ucdlib-range-slider>
                 </div>

@@ -383,6 +383,12 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     this.industProjects = false;
     this.mediaInterviews = false;
     this._updateLocation();
+
+    let ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
+    for( const range of ranges ) {
+      range.reset();
+    }
+    this._refreshRange(true);
   }
 
   _removeDateFilter(e) {
@@ -435,6 +441,31 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       type: this.type || '',
       expert: this.filterByExpert ? this.filterByExpertId : ''
     });
+  }
+
+  /**
+  /**
+   * @method _computeSliderMin
+   * @description compute the initial min value for the range slider, clamped to dateRangeData bounds
+   * @returns {Number|undefined}
+   */
+  _computeSliderMin() {
+    if ( !this.dateRangeData?.length || !this.dateFrom ) return undefined;
+    const absMin = this.dateRangeData[0].stat;
+    const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
+    return Math.max(absMin, Math.min(Number(this.dateFrom), absMax));
+  }
+
+  /**
+   * @method _computeSliderMax
+   * @description compute the initial max value for the range slider, clamped to dateRangeData bounds
+   * @returns {Number|undefined}
+   */
+  _computeSliderMax() {
+    if ( !this.dateRangeData?.length || !this.dateTo ) return undefined;
+    const absMin = this.dateRangeData[0].stat;
+    const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
+    return Math.max(absMin, Math.min(Number(this.dateTo), absMax));
   }
 
   /**
@@ -890,6 +921,12 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
 
     this.totalResultsCount = e.payload.total;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
+
+    // if results dropped to 0, reset the sig so the histogram re-initializes
+    // when results return (the slider element is destroyed/recreated by the template conditional)
+    if ( !this.displayedResults.length ) {
+      this.lastAggSignature = '';
+    }
 
     this.requestUpdate();
     requestAnimationFrame(() => this._clearSelectedSearchResults());
