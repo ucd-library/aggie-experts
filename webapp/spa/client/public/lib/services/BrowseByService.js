@@ -59,10 +59,11 @@ class BrowseByService extends BaseService {
     return this.store.data[storeKey].get(id);
   }
 
-  async browseCounts(type, filters={}) {
+  async browseCounts(type, lastInitial, filters={}) {
     let url = `${this.baseUrl}/${type}/browse`;
     let qs = { counts: 'true' };
-    let ido = { browseCounts: type, ...filters };
+    if( lastInitial ) qs.p = lastInitial.toUpperCase();
+    let ido = { browseCounts: type, lastInitial, ...filters };
 
     let isAdmin = (APP_CONFIG.user?.roles || []).includes('admin') || false;
     let esIndexes = await indexedDb.getElasticsearchIndexes();
@@ -124,7 +125,7 @@ class BrowseByService extends BaseService {
       }
     }
 
-    const qs = { page: 1, size: 0, p: lastInitial.toUpperCase() };
+    const qs = { page: 1, size: 0, p: lastInitial ? lastInitial.toUpperCase() : 'all' };
     if( filters.dept?.length ) qs.dept = filters.dept.join(',');
     if( filters.status?.length ) qs.status = filters.status.join(',');
     if( filters.type?.length ) qs.type = filters.type.join(',');
@@ -159,7 +160,7 @@ class BrowseByService extends BaseService {
     type = type.substring(0, 1).toUpperCase() + type.substring(1);
     let storeKey = 'by'+type+'sLastInitial';
 
-    let qs = { page, size, p : lastInitial.toUpperCase() };
+    let qs = { page, size, p: lastInitial ? lastInitial.toUpperCase() : 'all' };
     if( ( matchedAlias || indexName ) && isAdmin ) {
       qs.previewEsIndex = matchedAlias || indexName;
       ido.previewEsIndex = matchedAlias || indexName;

@@ -50,8 +50,8 @@ class BrowseByModel extends BaseModel {
     return this.service.browseHistogram(type, lastInitial, filters);
   }
 
-  async browseCounts(type='grant', filters={}) {
-    return this.service.browseCounts(type, filters);
+  async browseCounts(type='grant', lastInitial, filters={}) {
+    return this.service.browseCounts(type, lastInitial, filters);
   }
 
 }

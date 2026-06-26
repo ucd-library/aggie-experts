@@ -1,3 +1,11 @@
+// Sort key: 0 for A-Z items, 1 for # items — used when sortNumericLast param is set.
+// name.first stores 'other' (not '1') for non-alpha names due to the starts_with normalizer's
+// non_letter_filter which replaces any non-letter first char with the literal string 'other'.
+const SORT_NUMERIC_LAST_SCRIPT = `
+  if (doc['name.first'].size() == 0) return 0;
+  return doc['name.first'].value == 'other' ? 1 : 0;
+`.replace(/\n\s*/g, ' ').trim();
+
 const GRANT_ACTIVE_YEAR_SCRIPT = `
   def src = params._source;
   def dti = null;
@@ -64,7 +72,12 @@ const source = `{
     }
   },
   "_source": ["@id","@type","is-visible","name"],
+  {{#sortNumericLast}}
+  "sort": [{"_script":{"type":"number","order":"asc","script":{"source":"${SORT_NUMERIC_LAST_SCRIPT}"}}},{"name.kw":{"mode":"max","order":"asc"}}],
+  {{/sortNumericLast}}
+  {{^sortNumericLast}}
   "sort": {"name.kw":{"mode":"max","order":"asc"}},
+  {{/sortNumericLast}}
   "from": "{{from}}{{^from}}0{{/from}}",
   "size": "{{size}}{{^size}}25{{/size}}",
   "runtime_mappings": {

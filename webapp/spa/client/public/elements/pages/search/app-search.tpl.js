@@ -998,8 +998,8 @@ return html`
           </div>
         ` : ''}
         <div ?hidden="${this.dateCollapsed}">
-          <span class="date-filter-hint" ?hidden="${this.atType !== 'grant' || this.dateRangeData.length < 2}">Grants are shown across their active years.</span>
-          <span class="date-filter-hint" ?hidden="${(this.atType !== 'expert' && this.atType !== '') || this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>
+          <span class="date-filter-hint" ?hidden="${this.atType !== 'grant'}">Grants are shown across their active years.</span>
+          <span class="date-filter-hint" ?hidden="${this.atType !== 'expert' && this.atType !== ''}">Based on associated works and grants; grants are shown across their active years.</span>
           <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
           <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
             <ucdlib-range-slider
@@ -1210,8 +1210,8 @@ return html`
                 </div>
               ` : ''}
               <div ?hidden="${this.dateCollapsed}">
-                <span class="date-filter-hint" ?hidden="${this.atType !== 'grant' || this.dateRangeData.length < 2}">Grants are shown across their active years.</span>
-                <span class="date-filter-hint" ?hidden="${(this.atType !== 'expert' && this.atType !== '') || this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>
+                <span class="date-filter-hint" ?hidden="${this.atType !== 'grant'}">Grants are shown across their active years.</span>
+                <span class="date-filter-hint" ?hidden="${this.atType !== 'expert' && this.atType !== ''}">Based on associated works and grants; grants are shown across their active years.</span>
                 <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
                 <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
                   <ucdlib-range-slider

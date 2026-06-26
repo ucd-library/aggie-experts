@@ -273,6 +273,7 @@ class BaseModel extends EsDataModel {
     return true;
   }
 
+
   /**
    * @method compact_search_results
    * @description Compact ES search results into simpler format

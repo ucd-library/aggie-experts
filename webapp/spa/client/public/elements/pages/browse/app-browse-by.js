@@ -119,11 +119,20 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( e.location.page !== 'browse' ) return;
 
     this.browseType = e.location.path[1];
-    this.letter = e.location.path[2];
+    this.letter = e.location.path[2] || '';
 
-    let page = e.location.path[3];
-    let resultsPerPage = e.location.path[4];
     let query = e.location.query || {};
+
+    // When a letter is selected, page/size live in the path. When showing all
+    // results (no letter), page lives in the query string to avoid ambiguity.
+    let page, resultsPerPage;
+    if( this.letter ) {
+      page = e.location.path[3];
+      resultsPerPage = e.location.path[4];
+    } else {
+      page = query.page;
+      resultsPerPage = query.size;
+    }
 
     this.dept = (query.dept || query.deptCodesIncluded)
       ? this._deserializeDept(query.dept || '', query.deptCodesIncluded || '', query.deptCodesExcluded || '')
@@ -144,24 +153,21 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       this.filterByDateLabel = '';
     }
 
+    this.currentPage = !isNaN(page) ? parseInt(page) : 1;
+    this.resultsPerPage = parseInt(resultsPerPage) ? parseInt(resultsPerPage) : 25;
+
     this.displayedResults = [];
 
-    if( this.letter ) {
-      this.currentPage = !isNaN(page) ? parseInt(page) : 1;
-      this.resultsPerPage = parseInt(resultsPerPage) ? resultsPerPage : 25;
+    const filters = this._buildFilters();
 
-      const filters = this._buildFilters();
-
-      if( this.browseType === 'expert' ) {
-        this._onBrowseExpertsUpdate(await this.BrowseByModel.browseBy('expert', this.letter, this.currentPage, this.resultsPerPage, filters));
-      } else if( this.browseType === 'grant' ) {
-        this._onBrowseGrantsUpdate(await this.BrowseByModel.browseBy('grant', this.letter, this.currentPage, this.resultsPerPage, filters));
-      } else if( this.browseType === 'work' ) {
-        this._onBrowseWorksUpdate(await this.BrowseByModel.browseBy('work', this.letter, this.currentPage, this.resultsPerPage, filters));
-      }
+    if( this.browseType === 'expert' ) {
+      this._onBrowseExpertsUpdate(await this.BrowseByModel.browseBy('expert', this.letter, this.currentPage, this.resultsPerPage, filters));
+    } else if( this.browseType === 'grant' ) {
+      this._onBrowseGrantsUpdate(await this.BrowseByModel.browseBy('grant', this.letter, this.currentPage, this.resultsPerPage, filters));
+    } else if( this.browseType === 'work' ) {
+      this._onBrowseWorksUpdate(await this.BrowseByModel.browseBy('work', this.letter, this.currentPage, this.resultsPerPage, filters));
     }
 
-    // fetch category aggregations (counts for All/Active/etc.) scoped to active filters
     await this._fetchCategoryAggregations();
   }
 
@@ -190,8 +196,9 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
 
   /**
    * @method _fetchCategoryAggregations
-   * @description fetch aggregation counts for the category filter rows, scoped to
-   * active dept/date filters but without status or type so all category buckets are returned
+   * @description fetch aggregation counts for the category filter rows, scoped to the
+   * current letter (if any) and active non-category filters, but without status or type
+   * so all category buckets are returned with accurate counts.
    * @returns {Promise}
    */
   async _fetchCategoryAggregations() {
@@ -200,7 +207,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       const filters = this._buildFilters();
       delete filters.status;
       delete filters.type;
-      const result = await this.BrowseByModel.browseCounts(this.browseType, filters);
+      const result = await this.BrowseByModel.browseCounts(this.browseType, this.letter || null, filters);
       if( result?.state === 'loaded' ) {
         this.categoryAggregations = result.payload?.aggregations || {};
       }
@@ -312,9 +319,15 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
         yearMap.set(yr, (yearMap.get(yr) || 0) + b.doc_count);
       });
     } else if( this.browseType === 'expert' ) {
+      // works: publication year per nested @graph.issued doc
       aggToEntries(aggs.expert_years).forEach(b => {
         const yr = new Date(b.key).getUTCFullYear();
         yearMap.set(yr, (yearMap.get(yr) || 0) + b.doc_count);
+      });
+      // grants
+      aggToEntries(aggs.grant_years).forEach(b => {
+        const yr = new Date(b.key).getUTCFullYear();
+        if( !yearMap.has(yr) ) yearMap.set(yr, b.doc_count);
       });
     }
 
@@ -448,11 +461,18 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
         }
       }
 
+      const letter = r.letter || (() => {
+        const sortable = name?.replace(/^(the|an?)\s+/i, '') || '';
+        const first = sortable[0]?.toLowerCase() || '';
+        return /^[a-z]$/.test(first) ? first : '1';
+      })();
+
       return {
         position: index+1,
         id: pagePrefix+id,
         name,
-        subtitle
+        subtitle,
+        letter
       }
     });
 
@@ -475,11 +495,20 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
   _onPaginationChange(e) {
     this.currentPage = e.detail.page;
 
-    let path = `/browse/${this.browseType}/${this.letter}`;
-    if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
-    if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
+    let path, qs;
+    if( this.letter ) {
+      path = `/browse/${this.browseType}/${this.letter}`;
+      if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
+      if( this.resultsPerPage > 25 ) path += `/${this.resultsPerPage}`;
+      qs = this._buildQueryString();
+    } else {
+      path = `/browse/${this.browseType}`;
+      const filters = this._buildQueryString();
+      const pageParam = this.currentPage > 1 ? `page=${this.currentPage}` : '';
+      const sizeParam = this.resultsPerPage > 25 ? `size=${this.resultsPerPage}` : '';
+      qs = [filters, pageParam, sizeParam].filter(Boolean).join('&');
+    }
 
-    const qs = this._buildQueryString();
     this.AppStateModel.setLocation(path + (qs ? '?' + qs : ''));
 
     this.dispatchEvent(
@@ -523,7 +552,9 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @description update the URL with the current browse type, letter, and filters
    */
   _updateLocation() {
-    const path = `/browse/${this.browseType}/${this.letter || 'a'}`;
+    const path = this.letter
+      ? `/browse/${this.browseType}/${this.letter}`
+      : `/browse/${this.browseType}`;
     const qs = this._buildQueryString();
     this.AppStateModel.setLocation(path + (qs ? '?' + qs : ''));
   }
@@ -538,6 +569,59 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.dept = this.dept.filter(d => d !== code);
     if( !this.dept.length ) this.affiliationCollapsed = false;
     this._updateLocation();
+  }
+
+  /**
+   * @method _renderResults
+   * @description render the result rows with letter-group headings. When a specific
+   * letter is selected only one heading is shown; when showing all results a heading
+   * is inserted each time the first initial changes.
+   * @returns {Array} array of TemplateResults
+   */
+  _renderResults() {
+    if( !this.displayedResults.length ) return [];
+
+    if( this.letter ) {
+      return [
+        html`<h3>${this.letter === '1' ? '#' : this.letter.toUpperCase()}</h3>`,
+        ...this.displayedResults.map(result => html`
+          <app-search-result-row
+            search-result="${result.position}"
+            .result=${result}
+            result-type="${this.browseType}"
+            hide-checkbox
+            hide-search-matches>
+          </app-search-result-row>
+          <hr class="search-seperator">
+        `)
+      ];
+    }
+
+    const ordered = [...this.displayedResults].sort((a, b) => {
+      if( a.letter === '1' && b.letter !== '1' ) return 1;
+      if( a.letter !== '1' && b.letter === '1' ) return -1;
+      return 0;
+    });
+
+    const fragments = [];
+    let currentLetter = null;
+    for( const result of ordered ) {
+      if( result.letter !== currentLetter ) {
+        currentLetter = result.letter;
+        fragments.push(html`<h3>${result.letter === '1' ? '#' : result.letter.toUpperCase()}</h3>`);
+      }
+      fragments.push(html`
+        <app-search-result-row
+          search-result="${result.position}"
+          .result=${result}
+          result-type="${this.browseType}"
+          hide-checkbox
+          hide-search-matches>
+        </app-search-result-row>
+        <hr class="search-seperator">
+      `);
+    }
+    return fragments;
   }
 
   /**
@@ -686,10 +770,10 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
             </span>
           </div>
           <div class="open-to" ?hidden="${this.openToCollapsed}">
-            <label><input type="checkbox" id="b-collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}"> Collaborative Projects</label>
-            <label><input type="checkbox" id="b-comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}"> Community Partnerships</label>
-            <label><input type="checkbox" id="b-indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}"> Industry Projects</label>
-            <label><input type="checkbox" id="b-media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}"> Media Interviews</label>
+            <label><input type="checkbox" id="b-collab-projects" .checked="${this.collabProjects}" @click="${this._selectCollabProjects}"> Collaborative Projects</label>
+            <label><input type="checkbox" id="b-comm-partner" .checked="${this.commPartner}" @click="${this._selectCommPartner}"> Community Partnerships</label>
+            <label><input type="checkbox" id="b-indust-projects" .checked="${this.industProjects}" @click="${this._selectIndustProjects}"> Industry Projects</label>
+            <label><input type="checkbox" id="b-media-interviews" .checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}"> Media Interviews</label>
           </div>
           ${this.openToCollapsed ? html`
             <div class="filter-active-summary">
@@ -701,7 +785,8 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
           ` : ''}
         </div>
       ` : ''}
-      ${this.browseType === 'work' || this.browseType === 'grant' ? html`
+
+      ${this.displayedResults.length > 0 ? html`
         <!-- Date filter -->
         <div class="range-filter-container">
           <hr class="search-seperator">
@@ -722,8 +807,8 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
             </div>
           ` : ''}
           <div ?hidden="${this.dateCollapsed}">
-            ${this.browseType === 'grant' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Grants are shown across their active years.</span>` : ''}
-            ${this.browseType === 'expert' || this.browseType === '' ? html`<span class="date-filter-hint" ?hidden="${this.dateRangeData.length < 2}">Based on associated works and grants; grants are shown across their active years.</span>` : ''}          
+            ${this.browseType === 'grant' ? html`<span class="date-filter-hint">Grants are shown across their active years.</span>` : ''}
+            ${this.browseType === 'expert' || this.browseType === '' ? html`<span class="date-filter-hint">Based on associated works and grants; grants are shown across their active years.</span>` : ''}          
             <div class="search-year" ?hidden="${this.dateRangeData.length !== 1}">${this.dateRangeData[0]?.stat}</div>
             <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
               <ucdlib-range-slider

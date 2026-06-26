@@ -153,24 +153,6 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       let matchedLetter = this.alpha.find(l => l.value.toUpperCase() === item.params?.p.toUpperCase());
       if( matchedLetter ) matchedLetter.exists = item.total > 0;
     });
-
-    // set letter to first letter with results
-    if( this.alpha.find(l => l.exists) && !this.selectedLetter ) {
-      this.selectedLetter = this.alpha.find(l => l.exists).value;
-    } else if( !this.selectedLetter ) {
-      this.selectedLetter = this.alpha[0]?.value;
-    }
-
-    const targetPath = `/browse/${this.browseType}/${this.selectedLetter}${this.selectedPage ? '/' + this.selectedPage : ''}`;
-    if( this.AppStateModel.location.pathname !== targetPath ) {
-      // if route didn't specify a letter, normalize URL without adding a history entry (so back button works)
-      if( !this.hasExplicitLetter ) {
-        this.AppStateModel._replaceHistoryState(targetPath);
-        this.AppStateModel._onLocationChange();
-      } else {
-        this.AppStateModel.setLocation(targetPath);
-      }
-    }
     this.requestUpdate();
   }
 

@@ -9,6 +9,22 @@ const {
 
 let AdminClient, MIVJWKSClient;
 
+/**
+ * @function browseLetterFromName
+ * @description Derive the browse letter for a name, mirroring the ES name.first
+ * field logic: strip leading articles then take the first character lowercased.
+ * Numeric/symbol names map to '1' (displayed as '#').
+ * @param {String|Array} name raw name value from the ES _source
+ * @returns {String} single lowercase letter or '1'
+ */
+function browseLetterFromName(name) {
+  const raw = (Array.isArray(name) ? name[0] : name) || '';
+  const title = raw.split('§')[0].trim();
+  const sortable = title.replace(/^(The|A|An)\s+/, '');
+  const first = sortable[0]?.toLowerCase() || '';
+  return /^[a-z]$/.test(first) ? first : '1';
+}
+
 async function initAuth() {
   AdminClient = new ExpertsKcAdminClient();
   await AdminClient.authenticate();
@@ -96,9 +112,12 @@ function browse_endpoint(router,model) {
       if( params.dateTo && /^\d{4}$/.test(params.dateTo) ) params.dateTo = `${params.dateTo}-12-31`;
 
       if( req.query.counts === 'true' ) {
-        // return global aggregations without letter or hits
+        // return aggregations without hits; optionally scoped to a letter (p param)
+        // but always without status/type so all category buckets are returned
         const opts = { id: "name", params: { ...params, size: 0 } };
-        delete opts.params.p;
+        delete opts.params.status;
+        delete opts.params.type;
+        if( opts.params.p === 'all' ) delete opts.params.p;
         try {
           await model.verify_template(template);
           const find = await model.search(opts);
@@ -109,7 +128,25 @@ function browse_endpoint(router,model) {
         return;
       }
 
-      if (params.p) {
+      if (params.p === 'all') {
+        // all-results mode: strip the letter param so the template uses match_all,
+        // then run a normal paginated search and annotate each hit with its letter.
+        // sortNumericLast pushes # items after A-Z via a script sort in ES so the
+        // ordering is correct across pages, not just within each page.
+        delete params.p;
+        params.sortNumericLast = true;
+        const opts = { id: "name", params };
+        try {
+          await model.verify_template(template);
+          const find = await model.search(opts);
+          if( Array.isArray(find?.hits) ) {
+            find.hits = find.hits.map(hit => ({ ...hit, letter: browseLetterFromName(hit.name) }));
+          }
+          res.send(find);
+        } catch (err) {
+          res.status(400).send('Invalid request');
+        }
+      } else if (params.p) {
         if (params.p === 'other') {
           params.p = '1';
         } else if (params.p.match(/^[a-zA-Z]/)) {

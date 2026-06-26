@@ -919,6 +919,14 @@ return html`
       background-color: var(--color-aggie-blue-50);
     }
 
+    .no-results {
+      flex: 1 0 0;
+      color: var(--ucd-blue-100, #022851);
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1.74625rem;
+      font-style: italic;
+    }
   </style>
 
   <div class="browse-header">
@@ -1039,20 +1047,9 @@ return html`
         </div>
       ` : ''}
 
-        <h3>${this.letter === '1' ? '#' : this.letter?.toUpperCase()}</h3>
-
-        ${this.displayedResults.map(
-          (result) => html`
-            <app-search-result-row
-              search-result="${result.position}"
-              .result=${result}
-              result-type="${this.browseType}"
-              hide-checkbox
-              hide-search-matches>
-            </app-search-result-row>
-            <hr class="search-seperator">
-          `
-        )}
+        ${this._renderResults()}
+        ${this.displayedResults.length === 0 ? html`<p class="no-results">0 results</p>          
+            ` : ''}
 
         <ucd-theme-pagination
           ?hidden="${this.paginationTotal < 2}"
