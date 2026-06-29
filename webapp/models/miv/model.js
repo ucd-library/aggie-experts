@@ -155,7 +155,7 @@ function buildRawGrantFallback(grant, roles) {
   });
 }
 
-function buildRawGrantResponse(grant, roles) {
+function buildRawGrantResponse(grant, roles, expertId='') {
   if (grant?.raw_payload && typeof grant.raw_payload === 'object') {
     const payload = normalizeRawGrantDates(cloneJson(grant.raw_payload));
     payload.name = (payload.name || '').split('§')?.[0]?.trim() || payload.name;
@@ -166,38 +166,67 @@ function buildRawGrantResponse(grant, roles) {
     // - valid roles = expert_grant_role rows with a non-null expert_id (authoritative set)
     // - keep raw_payload entries whose @id is in the valid set (preserves all original fields)
     // - for valid roles missing from raw_payload, build entries from scratch
-    // - drop raw_payload entries not in the valid set (stale orphans with no expert linkage)
+    // - preserve raw_payload entries not in the valid set — external contributors (#roleof_ stubs)
+    //   and other linked experts not in the queried expert's expert_grant_role rows
+    // Note: after harvest re-runs with resolveRoleExpertIds, previously-null stubs for known
+    // experts (e.g. Peisert) will be resolved and move into validRoles automatically.
     const validRoles = roles.filter(r => r.expert_id);
     const validRoleIds = new Set(validRoles.map(r => r.role_id));
+    // Get the queried expert's display name to exclude their unresolved stubs (#roleof_ entries
+    // without inheres_in that haven't been resolved by harvest yet)
+    const expertDisplayName = cleanContributorName(
+      roles.find(r => r.expert_id === expertId)?.display_name || ''
+    ).toLowerCase();
     const rawById = {};
+    const nonExpertRawEntries = [];
     if (Array.isArray(payload.relatedBy)) {
       for (const r of payload.relatedBy) {
-        if (r['@id']) rawById[r['@id']] = r;
+        if (!r['@id']) continue;
+        rawById[r['@id']] = r;
+        if (!validRoleIds.has(r['@id'])) {
+          const rName = cleanContributorName(r.name).toLowerCase();
+          if (!expertDisplayName || !rName || rName !== expertDisplayName) {
+            nonExpertRawEntries.push(r);
+          }
+        }
       }
     }
-    payload.relatedBy = validRoles.map(role => {
-      const raw = rawById[role.role_id];
-      if (raw) {
-        // Use the raw_payload entry as-is, just normalize is-visible and @type
-        const out = { ...raw };
+
+    payload.relatedBy = [
+      ...validRoles.map(role => {
+        const raw = rawById[role.role_id];
+        if (raw) {
+          // Use the raw_payload entry as-is, just normalize is-visible and @type
+          const out = { ...raw };
+          if (!out['is-visible']) delete out['is-visible'];
+          if (Array.isArray(out['@type']) && out['@type'].length === 1) {
+            out['@type'] = out['@type'][0];
+          }
+          return out;
+        }
+        // No matching raw_payload entry — build from expert_grant_role data.
+        // If this is the queried expert's role and there's exactly one null stub with a name,
+        // use that name (the stub is a duplicate of this linked role with the display name).
+        const types = normalizeGrantRoleTypes(role.role_type_uri);
+        const roleExpertId = `expert/${role.expert_id}`;
+        const entry = {
+          '@id': role.role_id,
+          '@type': types.length === 1 ? types[0] : types,
+          inheres_in: roleExpertId,
+          relates: [roleExpertId, grant.grant_id].filter(Boolean)
+        };
+        if (role.is_visible) entry['is-visible'] = true;
+        return entry;
+      }),
+      ...nonExpertRawEntries.map(r => {
+        const out = { ...r };
         if (!out['is-visible']) delete out['is-visible'];
         if (Array.isArray(out['@type']) && out['@type'].length === 1) {
           out['@type'] = out['@type'][0];
         }
         return out;
-      }
-      // No matching raw_payload entry — build from expert_grant_role data
-      const types = normalizeGrantRoleTypes(role.role_type_uri);
-      const expertId = `expert/${role.expert_id}`;
-      const entry = {
-        '@id': role.role_id,
-        '@type': types.length === 1 ? types[0] : types,
-        inheres_in: expertId,
-        relates: [expertId, grant.grant_id].filter(Boolean)
-      };
-      if (role.is_visible) entry['is-visible'] = true;
-      return entry;
-    });
+      })
+    ];
     return payload;
   }
 
