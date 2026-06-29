@@ -164,10 +164,17 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
   // }
 
   onAlphaInput(v) {
-    if( !v || v.value === this.selectedLetter || !v.exists ) return;
+    if( !v || !v.exists ) return;
+
+    const qs = this.azQueryString ? '?' + this.azQueryString : '';
+
+    if( v.value === this.selectedLetter ) {
+      this.selectedLetter = '';
+      this.AppStateModel.setLocation(`/browse/${this.browseType}${qs}`);
+      return;
+    }
 
     this.selectedLetter = v.value;
-    const qs = this.azQueryString ? '?' + this.azQueryString : '';
     this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}${qs}`);
   }
 
