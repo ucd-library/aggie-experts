@@ -1,13 +1,29 @@
 const keycloak = require('../../lib/keycloak');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-const template = require('../base/template/name.json');
+const template = require('../base/template/name.js');
 const {
   config,
   ExpertsKcAdminClient,
 } = require('@ucd-lib/experts-commons');
 
 let AdminClient, MIVJWKSClient;
+
+/**
+ * @function browseLetterFromName
+ * @description Derive the browse letter for a name, mirroring the ES name.first
+ * field logic: strip leading articles then take the first character lowercased.
+ * Numeric/symbol names map to '1' (displayed as '#').
+ * @param {String|Array} name raw name value from the ES _source
+ * @returns {String} single lowercase letter or '1'
+ */
+function browseLetterFromName(name) {
+  const raw = (Array.isArray(name) ? name[0] : name) || '';
+  const title = raw.split('§')[0].trim();
+  const sortable = title.replace(/^(The|A|An)\s+/, '');
+  const first = sortable[0]?.toLowerCase() || '';
+  return /^[a-z]$/.test(first) ? first : '1';
+}
 
 async function initAuth() {
   AdminClient = new ExpertsKcAdminClient();
@@ -80,15 +96,57 @@ function browse_endpoint(router,model) {
         size: 25,
         index: model.readIndexAlias,
       };
-      ["size", "page", "p", "previewEsIndex"].forEach((key) => {
+      ["size", "page", "p", "previewEsIndex", "dateFrom", "dateTo"].forEach((key) => {
         if( key === 'previewEsIndex' && req.query[key] ) {
           params.index = req.query[key];
-        } else if( req.query[key] ) { 
-          params[key] = req.query[key]; 
+        } else if( req.query[key] ) {
+          params[key] = req.query[key];
         }
       });
 
-      if (params.p) {
+      if( req.query.dept ) params.dept = req.query.dept.split(',').filter(Boolean);
+      if( req.query.status ) params.status = req.query.status.split(',').filter(Boolean);
+      if( req.query.type ) params.type = req.query.type.split(',').filter(Boolean);
+      if( req.query.availability ) params.availability = req.query.availability.split(',').filter(Boolean);
+      if( params.dateFrom && /^\d{4}$/.test(params.dateFrom) ) params.dateFrom = `${params.dateFrom}-01-01`;
+      if( params.dateTo && /^\d{4}$/.test(params.dateTo) ) params.dateTo = `${params.dateTo}-12-31`;
+
+      if( req.query.counts === 'true' ) {
+        // return aggregations without hits; optionally scoped to a letter (p param)
+        // but always without status/type so all category buckets are returned
+        const opts = { id: "name", params: { ...params, size: 0 } };
+        delete opts.params.status;
+        delete opts.params.type;
+        if( opts.params.p === 'all' ) delete opts.params.p;
+        try {
+          await model.verify_template(template);
+          const find = await model.search(opts);
+          res.json(find);
+        } catch (err) {
+          res.status(400).json('Invalid request');
+        }
+        return;
+      }
+
+      if (params.p === 'all') {
+        // all-results mode: strip the letter param so the template uses match_all,
+        // then run a normal paginated search and annotate each hit with its letter.
+        // sortNumericLast pushes # items after A-Z via a script sort in ES so the
+        // ordering is correct across pages, not just within each page.
+        delete params.p;
+        params.sortNumericLast = true;
+        const opts = { id: "name", params };
+        try {
+          await model.verify_template(template);
+          const find = await model.search(opts);
+          if( Array.isArray(find?.hits) ) {
+            find.hits = find.hits.map(hit => ({ ...hit, letter: browseLetterFromName(hit.name) }));
+          }
+          res.send(find);
+        } catch (err) {
+          res.status(400).send('Invalid request');
+        }
+      } else if (params.p) {
         if (params.p === 'other') {
           params.p = '1';
         } else if (params.p.match(/^[a-zA-Z]/)) {
@@ -119,8 +177,8 @@ function browse_endpoint(router,model) {
              search_templates.push({
               id : "name",
               params : {
-                ...params, 
-                p:letter, 
+                ...params,
+                p:letter,
                 size:0
               }
             });

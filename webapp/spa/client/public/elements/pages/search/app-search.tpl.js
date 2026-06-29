@@ -162,8 +162,9 @@ return html`
       margin-bottom: .5rem;
     }
     
-    .search-container .date-filter-heading span {
-      color: #666; 
+    .search-container .date-filter-heading span,
+    .date-filter-hint {
+      color: #666;
       font-size: .92rem;
     }
 
@@ -174,8 +175,191 @@ return html`
       padding-top: 1rem;
     }
 
-    .range-filter-container {
+    .range-filter-container,
+    .open-to-container {
       width: 100%;
+    }
+
+    .collapsible-filter-heading {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 0.6rem 0;
+      user-select: none;
+      box-sizing: border-box;
+      padding-right: 1rem;
+    }
+
+    .collapsible-filter-heading h4 {
+      margin: 0;
+      font-weight: 700;
+      color: var(--ucd-blue-100, #022851);
+    }
+
+    .filter-collapse-arrow {
+      display: flex;
+      width: 20px;
+      height: 19px;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      color: var(--ucd-blue-80, #13639E);
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .filter-collapse-arrow svg {
+      fill: var(--ucd-blue-80, #13639E);
+    }
+
+    .affiliation-filter-contents {
+      width: 100%;
+      padding: 0.25rem 0 0.5rem;
+    }
+
+    .affiliation-search-wrapper {
+      display: flex;
+      padding: 1rem;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--ucd-blue-30, #EBF3FA);
+      margin-bottom: 0.75rem;
+    }
+
+    .affiliation-search-wrapper svg {
+      flex-shrink: 0;
+      fill: var(--ucd-blue-60, #b0d0ed);
+      pointer-events: none;
+    }
+
+    .affiliation-search-input {
+      flex: 1 0 0;
+      background: transparent;
+      border: none;
+      font-size: 1rem;
+      line-height: 1.2;
+      color: var(--ucd-blue-80, #13639E);
+      outline: none;
+      padding: 0;
+    }
+
+    .affiliation-search-input::placeholder {
+      color: var(--ucd-blue-80, #13639E);
+    }
+
+    .affiliation-group-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #666;
+      margin: 0.75rem 0 0.4rem;
+    }
+
+    .affiliation-group-label::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px dotted #b0c4d8;
+    }
+
+    .affiliation-checkboxes {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-height: 15rem;
+      overflow-y: auto;
+      scrollbar-color: var(--ucd-blue-80, #13639E) var(--ucd-blue-60, #b0d0ed);
+      scrollbar-width: thin;
+      padding-right: 1rem;
+    }
+
+    .affiliation-checkboxes::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .affiliation-checkboxes::-webkit-scrollbar-track {
+      background: var(--ucd-blue-60, #b0d0ed);
+    }
+
+    .affiliation-checkboxes::-webkit-scrollbar-thumb {
+      background: var(--ucd-blue-80, #13639E);
+      border-radius: 3px;
+    }
+
+    .affiliation-sub-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      line-height: 1.2;
+      padding: 0.5rem 0;
+    }
+
+    .affiliation-sub-checkbox {
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+      accent-color: var(--ucd-blue-70, #4B9CD3);
+    }
+
+    .affiliation-sub-label {
+      flex: 1;
+    }
+
+    .affiliation-toggle {
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .affiliation-sub-caret {
+      display: flex;
+      align-items: center;
+      padding: 0.2rem;
+      flex-shrink: 0;
+    }
+
+    .affiliation-sub-caret svg {
+      height: 17px;
+      width: auto;
+    }
+
+    .filter-collapse-arrow svg {
+      height: 20px;
+      width: auto;
+    }
+
+    .affiliation-search-wrapper svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    .affiliation-dept-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding-left: 1.5rem;
+    }
+
+    .affiliation-dept-row {
+      display: flex;
+      align-items: flex-start;
+      line-height: 1.2;
+      padding: 0.5rem 0 0.5rem 0.5rem;
+      cursor: pointer;
+      gap: 0.5rem;
+    }
+
+    .affiliation-dept-row input[type="checkbox"] {
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+      accent-color: var(--ucd-blue-70, #4B9CD3);
     }
 
     .results-count {
@@ -205,7 +389,19 @@ return html`
 
     .refine-search .search-seperator {
       width: 100%;
-      margin: 2.38rem 0;
+      margin: 0.75rem 0;
+      border-top: 1px dotted #b0c4d8;
+    }
+
+    .refine-search .search-seperator--large-dots,
+    .search-seperator--large-dots {
+      border: none;
+      height: 4px;
+      background-image: radial-gradient(circle, var(--color-aggie-blue-60, #73ABDD) 2px, transparent 2px);
+      background-size: 10px 4px;
+      background-repeat: repeat-x;
+      background-position: 0 center;
+      margin: 2rem 0 1rem 0;
     }
 
     .select-page-size {
@@ -237,8 +433,46 @@ return html`
     }
 
     input[type="checkbox"] {
-      height: 1rem;
-      width: 1rem;
+      appearance: none;
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 1px solid var(--ucd-blue-70, #73ABDD);
+      background: var(--white, #FFF);
+      flex-shrink: 0;
+      cursor: pointer;
+      position: relative;
+    }
+
+    input[type="checkbox"]:checked {
+      background: var(--ucd-blue-70, #73ABDD);
+    }
+
+    input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 2px;
+      width: 6px;
+      height: 11px;
+      border: 2px solid white;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+
+    input[type="checkbox"]:indeterminate {
+      background: var(--ucd-blue-70, #73ABDD);
+    }
+
+    input[type="checkbox"]:indeterminate::after {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 8px;
+      width: 10px;
+      height: 2px;
+      background: white;
     }
 
     .pager__item a, .pager__item--static {
@@ -291,11 +525,6 @@ return html`
       display: none;
     }
 
-    .refine-search-mobile.open .search-tips-tooltip,
-    .refine-search-mobile.open .open-to-heading {
-      margin-top: 1.19rem;
-    }
-
     @media (max-width: 767px) {
       .search-header {
         justify-content: space-between;
@@ -318,6 +547,76 @@ return html`
         display: block;
       }
 
+      .refine-search-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9000;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-right: 1.5rem solid rgba(19, 99, 158, 0.5);
+        box-sizing: border-box;
+        transform: translateX(-100%);
+        opacity: 0.95;
+        pointer-events: none;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+      }
+
+      .refine-search-panel.open {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .refine-search-panel .refine-search-dropdown {
+        flex-shrink: 0;
+        display: flex;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 1rem 1.25rem;
+        background: white;
+      }
+
+      .refine-search-contents {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 2rem 1rem 1.25rem;
+        background: white;
+      }
+
+      .refine-search-contents .affiliation-checkboxes {
+        max-height: none;
+      }
+
+      .mobile-view-btn-wrap {
+        flex-shrink: 0;
+        padding: 1rem;
+        background: white;
+        box-sizing: border-box;
+      }
+
+      .mobile-view-btn {
+        display: block;
+        width: 100%;
+        padding: 1rem;
+        background: var(--ucd-gold, #FFBF00);
+        color: var(--ucd-blue, #022851);
+        font-size: 1.1875rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        box-sizing: border-box;
+      }
+
+      .mobile-view-btn:hover {
+        background: #e6ac00;
+      }
+
       .search-results-heading {
         display: block;
       }
@@ -330,40 +629,39 @@ return html`
     }
 
     .refine-search-dropdown {
-      display: flex;
-      padding: 0.625rem 1rem;
+      display: inline-flex;
+      padding: 9px 13px;
       align-items: center;
-      gap: 1rem;
-      justify-content: space-between;
-      align-self: stretch;
-      background: var(--ucd-blue-80, #13639E);
-      color: white;
+      gap: 10px;
+      background: var(--ucd-blue-40, #DBEAF7);
+      color: var(--ucd-blue, #022851);
+      cursor: pointer;
     }
 
-    /* .refine-search-dropdown.open {
-
-    } */
-
     .refine-search-dropdown svg {
-      fill: white;
+      fill: currentColor;
       height: 15px;
       width: 15px;
+      flex-shrink: 0;
     }
 
     .refine-search-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 1.1875rem;
       font-style: normal;
       font-weight: 700;
       line-height: 1.92125rem;
     }
 
-    .refine-search-mobile.open {
-      background: var(--ucd-blue-30, #EBF3FA);
+    .refine-search-label svg {
+      fill: currentColor;
+      height: 18px;
+      width: 18px;
+      flex-shrink: 0;
     }
 
-    .refine-search-contents {
-      padding: 1rem;
-    }
 
     /* .refine-search-contents category-filter-controller {
       padding-bottom: 2rem;
@@ -371,49 +669,93 @@ return html`
 
     .results-filtered-to {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 0.875rem;
+      gap: 0.5rem;
       color: var(--color-aggie-blue);
       font-size: 1.3rem;
       font-style: italic;
       font-weight: 700;
-      word-wrap: break-word;
     }
 
     .results-filtered-to span {
       padding-right: 0.5rem;
     }
 
-    .results-filtered-to p {
+    .results-filtered-to p,
+    .mobile-filter-bar p {
       margin: 0;
+      flex-shrink: 0;
     }
 
-    .results-filtered-to button {
+    .results-filtered-to button,
+    .mobile-filter-bar button {
       background-color: var(--color-aggie-blue-80);
       color: white;
       border-color: transparent;
       padding: 0.25rem 1rem;
-      font-size: 1.1rem;
+      font-size: 1rem;
+      white-space: nowrap;
+      max-width: 100%;
     }
 
-    .results-filtered-to button:hover {
+    .results-filtered-to button:hover,
+    .mobile-filter-bar button:hover {
       color: white;
     }
 
-    .results-filtered-to button .close {
+    .results-filtered-to button .close,
+    .mobile-filter-bar button .close {
       padding: 0 0 0 0.7rem;
     }
 
-    .results-filtered-to button .close ucdlib-icon {
+    .results-filtered-to button .close ucdlib-icon,
+    .mobile-filter-bar button .close ucdlib-icon {
       padding: 3px;
     }
 
-    .results-filtered-to button:hover .close ucdlib-icon {
+    .results-filtered-to button:hover .close ucdlib-icon,
+    .mobile-filter-bar button:hover .close ucdlib-icon {
       fill: var(--color-aggie-blue-80);
       border-radius: 50%;
       background-color: var(--color-aggie-blue-50);
-      /* transition: background-color 0.3s ease-in-out; */
-      /* transition: fill 0.3s ease-in-out; */
+    }
+
+    .clear-all-filters {
+      color: var(--ucd-blue-80, #13639E) !important;
+      font-size: 16.62px;
+      font-weight: 400;
+      font-style: italic;
+      line-height: 26px;
+      text-decoration: underline;
+      cursor: pointer;
+      background: none !important;
+      border: none !important;
+      padding: 0;
+      white-space: nowrap;
+    }
+
+    .filter-active-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: 0.25rem 0 0.5rem;
+    }
+
+    .filter-active-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: black;
+      cursor: pointer;
+    }
+
+    .filter-active-item ucdlib-icon {
+      width: 10px;
+      height: 10px;
+      flex-shrink: 0;
+      color: var(--ucd-blue-80, #13639E);
+      fill: var(--ucd-blue-80, #13639E);
     }
 
     .search-tips-tooltip {
@@ -447,6 +789,40 @@ return html`
       height: 0;
       overflow: hidden;
     }
+
+    .mobile-only {
+      display: none;
+    }
+
+    @media (max-width: 767px) {
+      .mobile-only {
+        display: flex;
+      }
+
+      .results-filtered-to {
+        display: none;
+      }
+
+      .mobile-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem 1.1rem;
+      }
+
+      .mobile-filter-bar p {
+        margin: 0;
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .mobile-filter-bar button {
+        white-space: normal;
+        word-break: break-word;
+        max-width: 100%;
+      }
+    }
   </style>
 
   <div class="search-header">
@@ -474,46 +850,170 @@ return html`
         .globalAggregations="${this.globalAggregations}">
       </category-filter-controller>
 
-      <hr class="search-seperator" ?hidden="${!this.showOpenTo}">
+      <hr class="search-seperator search-seperator--large-dots">
 
-      <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
-        <h4>Experts Open To</h4>
+      <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
+        <h4>Affiliation</h4>
+        <span class="filter-collapse-arrow">
+          ${this.affiliationCollapsed
+            ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+            : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+          }
+        </span>
       </div>
-      <div class="open-to" ?hidden="${!this.showOpenTo}">
-        <label>
-          <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
-          Collaborative Projects
-        </label>
-        <label>
-          <input type="checkbox" id="comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}">
-          Community Partnerships
-        </label>
-        <label>
-          <input type="checkbox" id="indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}">
-          Industry Projects
-        </label>
-        <label>
-          <input type="checkbox" id="media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}">
-          Media Interviews
-        </label>
+      ${this.affiliationCollapsed && this.dept?.length ? html`
+        <div class="filter-active-summary">
+          ${this._getDeptPillGroups(this.dept).map(group => html`
+            <span class="filter-active-item" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">
+              <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+              ${group.label}
+            </span>
+          `)}
+        </div>
+      ` : ''}
+      <div class="affiliation-filter-contents" ?hidden="${this.affiliationCollapsed}">
+        <div class="affiliation-search-wrapper">
+          <input
+            type="text"
+            class="affiliation-search-input"
+            placeholder="Search Affiliation"
+            .value="${this.affiliationSearch}"
+            @input="${this._onAffiliationSearch}">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="14" height="14">
+            <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/>
+          </svg>
+        </div>
+        <div class="affiliation-checkboxes">
+          ${(this.orgLookup || []).map(cat => {
+            const matchingSubs = cat.subCategories.map(sub => ({
+              ...sub,
+              depts: sub.depts.filter(d =>
+                !this.affiliationSearch ||
+                d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
+                sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
+              )
+            })).filter(sub => sub.depts.length);
+            if( !matchingSubs.length ) return '';
+            return html`
+              <div class="affiliation-group-label">${cat.label}</div>
+              ${matchingSubs.map(sub => {
+                const subCodes = sub.depts.map(d => d.deptCode);
+                const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
+                const allChecked = checkedCount === subCodes.length;
+                const someChecked = checkedCount > 0 && !allChecked;
+                const expanded = this.expandedSubCategories.includes(sub.label);
+                return html`
+                  <div class="affiliation-sub-row">
+                    <input type="checkbox"
+                      class="affiliation-sub-checkbox"
+                      .indeterminate="${someChecked}"
+                      .checked="${allChecked}"
+                      @change="${() => this._onSubCategoryCheck(sub.depts)}">
+                    <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
+                      <span class="affiliation-sub-label">${sub.label}</span>
+                      <span class="affiliation-sub-caret">
+                        ${expanded
+                          ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                          : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                        }
+                      </span>
+                    </span>
+                  </div>
+                  ${expanded ? html`
+                    <div class="affiliation-dept-list">
+                      ${sub.depts.map(d => html`
+                        <label class="affiliation-dept-row">
+                          <input type="checkbox"
+                            .value="${d.deptCode}"
+                            .checked="${this.dept.includes(d.deptCode)}"
+                            @change="${this._onDeptChange}">
+                          ${d.name}
+                        </label>
+                      `)}
+                    </div>
+                  ` : ''}
+                `;
+              })}
+            `;
+          })}
+        </div>
       </div>
 
-      <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
+      <div class="open-to-container" ?hidden="${!this.showOpenTo}">
         <hr class="search-seperator">
+        <div class="collapsible-filter-heading" @click="${() => { this.openToCollapsed = !this.openToCollapsed; }}">
+          <h4>Experts Open To</h4>
+          <span class="filter-collapse-arrow">
+            ${this.openToCollapsed
+              ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+              : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+            }
+          </span>
+        </div>
+        <div class="open-to" ?hidden="${this.openToCollapsed}">
+          <label>
+            <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
+            Collaborative Projects
+          </label>
+          <label>
+            <input type="checkbox" id="comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}">
+            Community Partnerships
+          </label>
+          <label>
+            <input type="checkbox" id="indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}">
+            Industry Projects
+          </label>
+          <label>
+            <input type="checkbox" id="media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}">
+            Media Interviews
+          </label>
+        </div>
+        ${this.openToCollapsed ? html`
+          <div class="filter-active-summary">
+            ${this.collabProjects ? html`<span class="filter-active-item" @click="${() => { this.collabProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Collaborative Projects</span>` : ''}
+            ${this.commPartner ? html`<span class="filter-active-item" @click="${() => { this.commPartner = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Community Partnerships</span>` : ''}
+            ${this.industProjects ? html`<span class="filter-active-item" @click="${() => { this.industProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Industry Projects</span>` : ''}
+            ${this.mediaInterviews ? html`<span class="filter-active-item" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Media Interviews</span>` : ''}
+          </div>
+        ` : ''}
+      </div>
 
-        <div class="date-filter-heading ${this.dateRangeData.length === 1 ? 'hidden-slider' : ''}">
-          <h4>Date (${this.rangeFilterTypes})</h4>
-          <span ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
-          <div class="search-year" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
+      ${this.displayedResults.length > 0 ? html`
+        <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
+          <hr class="search-seperator">
+
+          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
+            <h4>Date</h4>
+            <span class="filter-collapse-arrow">
+              ${this.dateCollapsed
+                ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+              }
+            </span>
+          </div>
+          ${this.dateCollapsed && this.filterByDate ? html`
+            <div class="filter-active-summary">
+              <span class="filter-active-item" @click="${this._removeDateFilter}">
+                <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+              </span>
+            </div>
+          ` : ''}
+          <div ?hidden="${this.dateCollapsed}">
+            <span class="date-filter-hint" ?hidden="${this.atType !== 'grant'}">Grants are shown across their active years.</span>
+            <span class="date-filter-hint" ?hidden="${this.atType !== 'expert' && this.atType !== ''}">Based on associated works and grants; grants are shown across their active years.</span>
+            <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
+            <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
+              <ucdlib-range-slider
+                @range-slider-change="${this._onRangeSliderChange}"
+                .data="${this.dateRangeData}"
+                .initialMin="${this._computeSliderMin()}"
+                .initialMax="${this._computeSliderMax()}"
+                .showUnknown="${true}">
+              </ucdlib-range-slider>
+            </div>
+          </div>
         </div>
-        <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
-          <ucdlib-range-slider
-            @range-slider-change="${this._onRangeSliderChange}"
-            .data="${this.dateRangeData}"
-            .showUnknown="${true}">
-          </ucdlib-range-slider>
-        </div>
-      </div>      
+      ` : ''}
 
       <hr class="search-seperator">
       <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
@@ -530,68 +1030,215 @@ return html`
         search-term="${decodeURIComponent(this.searchTerm)}">
       </app-search-box>
 
-      <div class="refine-search-mobile ${this.refineSearchCollapsed ? '' : 'open'}">
-        <div class="refine-search-dropdown ${this.refineSearchCollapsed ? '' : 'open'}" @click=${this._toggleRefineSearch}>
-          <span class="refine-search-label">Refine Results</span>
-          <span class="refine-search-arrow down" ?hidden="${this.refineSearchCollapsed}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z"/></svg></span>
-          <span class="refine-search-arrow right" ?hidden="${!this.refineSearchCollapsed}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z"/></svg></span>
+      <div class="refine-search-mobile">
+        <div class="mobile-filter-bar">
+          <div class="refine-search-dropdown" @click=${this._toggleRefineSearch}>
+            <span class="refine-search-label">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M3.9 54.9C10.5 40.9 24.5 32 40 32l432 0c15.5 0 29.5 8.9 36.1 22.9s4.6 30.5-5.2 42.5L320 320.9 320 448c0 12.1-6.8 23.2-17.7 28.6s-23.8 4.3-33.5-3l-64-48c-8.1-6-12.8-15.5-12.8-25.6l0-79.1L9 97.3C-.7 85.4-2.8 68.8 3.9 54.9z"/></svg>
+              Filter${this._getActiveFilterCount() > 0 ? ` (${this._getActiveFilterCount()})` : ''}
+            </span>
+          </div>
+          ${this.filterByExpert ? html`<p><button class="btn btn--round" @click="${this._removeExpertFilter}">${this.filterByExpertName}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.filterByDate ? html`<p><button class="btn btn--round" @click="${this._removeDateFilter}">${this.filterByDateLabel}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this._getDeptPillGroups(this.dept || []).map(group => html`<p><button class="btn btn--round" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">${group.label}<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>`)}
+          ${this.collabProjects ? html`<p><button class="btn btn--round" @click="${() => { this.collabProjects = false; this._updateLocation(); }}">Collaborative Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.commPartner ? html`<p><button class="btn btn--round" @click="${() => { this.commPartner = false; this._updateLocation(); }}">Community Partnerships<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+          ${(() => {
+            const count = (this.filterByExpert?1:0) + (this.filterByDate?1:0) + this._getDeptPillGroups(this.dept||[]).length + (this.collabProjects?1:0) + (this.commPartner?1:0) + (this.industProjects?1:0) + (this.mediaInterviews?1:0);
+            return count >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : '';
+          })()}
         </div>
-        <div class="refine-search-contents ${this.refineSearchCollapsed ? '' : 'open'}" ?hidden="${this.refineSearchCollapsed}">
 
-          <category-filter-controller
-            @filter-change="${this._onFilterChange}"
-            @subfilter-change="${this._onSubFilterChange}"
-            .mobile="${true}"
-            .searchTerm="${this.searchTerm}"
-            .currentPage="${this.currentPage}"
-            .resultsPerPage="${this.resultsPerPage}"
-            .globalAggregations="${this.globalAggregations}">
-          </category-filter-controller>
-
-          <div class="open-to-heading" ?hidden="${!this.showOpenTo}">
-            <h4>Experts Open To</h4>
+        <div class="refine-search-panel ${this.refineSearchCollapsed ? '' : 'open'}">
+          <div class="refine-search-dropdown">
+            <span class="refine-search-label" style="font-size:2.06938rem;font-style:italic;font-weight:700;color:var(--ucd-blue-100,#022851);">Refine Results</span>
           </div>
-          <div class="open-to" style="padding: 0" ?hidden="${!this.showOpenTo}">
-            <label>
-              <input type="checkbox" id="collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
-              Collaborative Projects
-            </label>
-            <label>
-              <input type="checkbox" id="comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}">
-              Community Partnerships
-            </label>
-            <label>
-              <input type="checkbox" id="indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}">
-              Industry Projects
-            </label>
-            <label>
-              <input type="checkbox" id="media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}">
-              Media Interviews
-            </label>
-          </div>
+          <div class="refine-search-contents">
 
-          <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
+            <category-filter-controller
+              @filter-change="${this._onFilterChange}"
+              @subfilter-change="${this._onSubFilterChange}"
+              .mobile="${true}"
+              .searchTerm="${this.searchTerm}"
+              .currentPage="${this.currentPage}"
+              .resultsPerPage="${this.resultsPerPage}"
+              .globalAggregations="${this.globalAggregations}">
+            </category-filter-controller>
+
+            <hr class="search-seperator search-seperator--large-dots">
+
+            <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
+              <h4>Affiliation</h4>
+              <span class="filter-collapse-arrow">
+                ${this.affiliationCollapsed
+                  ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                  : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                }
+              </span>
+            </div>
+            ${this.affiliationCollapsed && this.dept?.length ? html`
+              <div class="filter-active-summary">
+                ${this._getDeptPillGroups(this.dept).map(group => html`
+                  <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">
+                    <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+                    ${group.label}
+                  </span>
+                `)}
+              </div>
+            ` : ''}
+            <div class="affiliation-filter-contents" ?hidden="${this.affiliationCollapsed}">
+              <div class="affiliation-search-wrapper">
+                <input
+                  type="text"
+                  class="affiliation-search-input"
+                  placeholder="Search Affiliation"
+                  .value="${this.affiliationSearch}"
+                  @input="${this._onAffiliationSearch}">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="14" height="14">
+                  <path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/>
+                </svg>
+              </div>
+              <div class="affiliation-checkboxes">
+                ${(this.orgLookup || []).map(cat => {
+                  const matchingSubs = cat.subCategories.map(sub => ({
+                    ...sub,
+                    depts: sub.depts.filter(d =>
+                      !this.affiliationSearch ||
+                      d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
+                      sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
+                    )
+                  })).filter(sub => sub.depts.length);
+                  if( !matchingSubs.length ) return '';
+                  return html`
+                    <div class="affiliation-group-label">${cat.label}</div>
+                    ${matchingSubs.map(sub => {
+                      const subCodes = sub.depts.map(d => d.deptCode);
+                      const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
+                      const allChecked = checkedCount === subCodes.length;
+                      const someChecked = checkedCount > 0 && !allChecked;
+                      const expanded = this.expandedSubCategories.includes(sub.label);
+                      return html`
+                        <div class="affiliation-sub-row">
+                          <input type="checkbox"
+                            class="affiliation-sub-checkbox"
+                            .indeterminate="${someChecked}"
+                            .checked="${allChecked}"
+                            @change="${() => this._onSubCategoryCheck(sub.depts)}">
+                          <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
+                            <span class="affiliation-sub-label">${sub.label}</span>
+                            <span class="affiliation-sub-caret">
+                              ${expanded
+                                ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                                : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                              }
+                            </span>
+                          </span>
+                        </div>
+                        ${expanded ? html`
+                          <div class="affiliation-dept-list">
+                            ${sub.depts.map(d => html`
+                              <label class="affiliation-dept-row">
+                                <input type="checkbox"
+                                  .value="${d.deptCode}"
+                                  .checked="${this.dept.includes(d.deptCode)}"
+                                  @change="${this._onDeptChange}">
+                                ${d.name}
+                              </label>
+                            `)}
+                          </div>
+                        ` : ''}
+                      `;
+                    })}
+                  `;
+                })}
+              </div>
+            </div>
+
+            <div class="open-to-container" ?hidden="${!this.showOpenTo}">
+              <hr class="search-seperator">
+              <div class="collapsible-filter-heading" @click="${() => { this.openToCollapsed = !this.openToCollapsed; }}">
+                <h4>Experts Open To</h4>
+                <span class="filter-collapse-arrow">
+                  ${this.openToCollapsed
+                    ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                    : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                  }
+                </span>
+              </div>
+              <div class="open-to" ?hidden="${this.openToCollapsed}">
+                <label>
+                  <input type="checkbox" id="m-collab-projects" name="collab-projects" value="collab-projects" ?checked="${this.collabProjects}" @click="${this._selectCollabProjects}">
+                  Collaborative Projects
+                </label>
+                <label>
+                  <input type="checkbox" id="m-comm-partner" name="comm-partner" value="comm-partner" ?checked="${this.commPartner}" @click="${this._selectCommPartner}">
+                  Community Partnerships
+                </label>
+                <label>
+                  <input type="checkbox" id="m-indust-projects" name="indust-projects" value="indust-projects" ?checked="${this.industProjects}" @click="${this._selectIndustProjects}">
+                  Industry Projects
+                </label>
+                <label>
+                  <input type="checkbox" id="m-media-interviews" name="media-interviews" value="media-interviews" ?checked="${this.mediaInterviews}" @click="${this._selectMediaInterviews}">
+                  Media Interviews
+                </label>
+              </div>
+              ${this.openToCollapsed ? html`
+                <div class="filter-active-summary">
+                  ${this.collabProjects ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.collabProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Collaborative Projects</span>` : ''}
+                  ${this.commPartner ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.commPartner = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Community Partnerships</span>` : ''}
+                  ${this.industProjects ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.industProjects = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Industry Projects</span>` : ''}
+                  ${this.mediaInterviews ? html`<span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this.mediaInterviews = false; this._updateLocation(); }}"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>Media Interviews</span>` : ''}
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
+              <hr class="search-seperator">
+              <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
+                <h4>Date</h4>
+                <span class="filter-collapse-arrow">
+                  ${this.dateCollapsed
+                    ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="10" height="16"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                    : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="16" height="12"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
+                  }
+                </span>
+              </div>
+              ${this.dateCollapsed && this.filterByDate ? html`
+                <div class="filter-active-summary">
+                  <span class="filter-active-item" @click="${(e) => { e.stopPropagation(); this._removeDateFilter(); }}">
+                    <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>${this.filterByDateLabel}
+                  </span>
+                </div>
+              ` : ''}
+              <div ?hidden="${this.dateCollapsed}">
+                <span class="date-filter-hint" ?hidden="${this.atType !== 'grant'}">Grants are shown across their active years.</span>
+                <span class="date-filter-hint" ?hidden="${this.atType !== 'expert' && this.atType !== ''}">Based on associated works and grants; grants are shown across their active years.</span>
+                <div class="search-year ${this.dateRangeData.length === 1 ? '' : 'hidden-slider'}" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
+                <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
+                  <ucdlib-range-slider
+                    @range-slider-change="${this._onRangeSliderChange}"
+                    .data="${this.dateRangeData}"
+                    .initialMin="${this._computeSliderMin()}"
+                    .initialMax="${this._computeSliderMax()}"
+                    .showUnknown="${true}">
+                  </ucdlib-range-slider>
+                </div>
+              </div>
+            </div>
+
             <hr class="search-seperator">
-
-            <div class="date-filter-heading ${this.dateRangeData.length === 1 ? 'hidden-slider' : ''}">
-              <h4>Date (${this.rangeFilterTypes})</h4>
-              <span ?hidden="${!this.rangeFilterTypes.includes('Grants') || this.dateRangeData.length < 2}">Grants are shown across their active years</span>
-              <div class="search-year" ?hidden="${this.dateRangeData.length > 1}">${this.dateRangeData[0]?.stat}</div>
-            </div>
-            <div class="slider-container" ?hidden="${this.dateRangeData.length < 2}">
-              <ucdlib-range-slider
-                @range-slider-change="${this._onRangeSliderChange}"
-                .data="${this.dateRangeData}"
-                .showUnknown="${true}">
-              </ucdlib-range-slider>
-            </div>
+            <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
+        </div>
+          <div class="mobile-view-btn-wrap">
+            <button class="mobile-view-btn" @click="${this._toggleRefineSearch}">${this._getMobileViewLabel()}</button>
           </div>
-
-          <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
         </div>
       </div>
 
-      <div class="results-filtered-to" ?hidden="${!this.filterByExpert && !this.filterByDate}">
+      <div class="results-filtered-to" ?hidden="${!this.filterByExpert && !this.filterByDate && !this.dept?.length && !this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews}">
         <p ?hidden="${!this.filterByExpert}">
           <button class="btn btn--round" @click="${this._removeExpertFilter}">
             ${this.filterByExpertName}
@@ -608,7 +1255,24 @@ return html`
             </div>
           </button>
         </p>
-
+        ${this._getDeptPillGroups(this.dept || []).map(group => html`
+          <p>
+            <button class="btn btn--round" @click="${() => { this.dept = this.dept.filter(c => !group.codes.includes(c)); this._updateLocation(); }}">
+              ${group.label}
+              <div class="close">
+                <ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon>
+              </div>
+            </button>
+          </p>
+        `)}
+        ${this.collabProjects ? html`<p><button class="btn btn--round" @click="${() => { this.collabProjects = false; this._updateLocation(); }}">Collaborative Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        ${this.commPartner ? html`<p><button class="btn btn--round" @click="${() => { this.commPartner = false; this._updateLocation(); }}">Community Partnerships<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        ${this.industProjects ? html`<p><button class="btn btn--round" @click="${() => { this.industProjects = false; this._updateLocation(); }}">Industry Projects<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        ${this.mediaInterviews ? html`<p><button class="btn btn--round" @click="${() => { this.mediaInterviews = false; this._updateLocation(); }}">Media Interviews<div class="close"><ucdlib-icon icon="ucdlib-experts:fa-times"></ucdlib-icon></div></button></p>` : ''}
+        ${(() => {
+          const count = (this.filterByExpert?1:0) + (this.filterByDate?1:0) + this._getDeptPillGroups(this.dept||[]).length + (this.collabProjects?1:0) + (this.commPartner?1:0) + (this.industProjects?1:0) + (this.mediaInterviews?1:0);
+          return count >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : '';
+        })()}
       </div>
       <div class="search-results-heading">
         <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>

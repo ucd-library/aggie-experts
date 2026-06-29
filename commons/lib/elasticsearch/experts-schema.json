@@ -239,6 +239,26 @@
         "normalizer": "lowercase_ascii",
         "ignore_above": 128
       },
+      "hasOrganizationalUnit": {
+        "properties": {
+          "@id": {
+            "type": "keyword",
+            "normalizer": "identifier",
+            "ignore_above": 256
+          },
+          "name": {
+            "type": "text",
+            "analyzer": "default",
+            "fields": {
+              "kw": {
+                "type": "keyword",
+                "normalizer": "lowercase_ascii",
+                "ignore_above": 256
+              }
+            }
+          }
+        }
+      },
       "name": {
         "type": "text",
         "analyzer": "title",
