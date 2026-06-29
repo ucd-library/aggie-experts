@@ -221,7 +221,7 @@ const config = {
     secrets : {
       keycloakSecrets : 'keycloak-client-secrets'
     },
-    orgLookupSheetUrl : env.ORG_LOOKUP_SHEET_URL || 'https://docs.google.com/spreadsheets/d/1vTqlpEI9vyzeZG2TTTNNFFXgC7u7OqI5wkY47TOohZM/export?format=csv&gid=647977625',
+    orgLookupSheetUrl : env.ORG_LOOKUP_SHEET_URL || '',
   },
 
   cdl : {
