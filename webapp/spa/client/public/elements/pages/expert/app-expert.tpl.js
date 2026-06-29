@@ -810,6 +810,17 @@ return html`
     .no-works p {
       margin: 0;
     }
+
+    .dagster-disabled {
+      user-select: none;
+    }
+
+    .dagster-disabled ucdlib-icon,
+    .dagster-disabled button {
+      opacity: 0.5;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
   </style>
 
   <div class="content">
@@ -833,33 +844,33 @@ return html`
           <ucdlib-icon icon="ucdlib-experts:fa-user"></ucdlib-icon>
           <span>EXPERT ${!this.isVisible ? '(HIDDEN)' : ''}</span>
           <button ?hidden="${this.hideEdit || APP_CONFIG.user?.expertId === this.expertId}" @click="${this._editExpertClick}" class="edit-expert-btn">Edit User</button>
-          <div ?hidden="${this._hideEditExpertControls() || !this.dagsterHealthy}" style="position: relative; display: flex;">
-            <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="Hide expert">
+          <div ?hidden="${this._hideEditExpertControls()}" class="${!this.dagsterHealthy ? 'dagster-disabled' : ''}" style="position: relative; display: flex;" aria-disabled="${!this.dagsterHealthy}">
+            <span ?hidden="${!this.isVisible || !this.isAdmin}" class="tooltip hide-expert" data-text="${this.dagsterHealthy ? 'Hide expert' : 'Temporarily disabled'}">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-eye"
                 @click=${this._hideExpert}
                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._hideExpert(e); }}
-                tabindex="0"
+                tabindex="${this.dagsterHealthy ? '0' : '-1'}"
                 role="button"
                 aria-label="Hide expert"></ucdlib-icon>
             </span>
-            <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="Show expert">
+            <span ?hidden="${this.isVisible}" class="tooltip show-expert" data-text="${this.dagsterHealthy ? 'Show expert' : 'Temporarily disabled'}">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-eye-slash"
                 @click=${this._showExpert}
                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._showExpert(e); }}
-                tabindex="0"
+                tabindex="${this.dagsterHealthy ? '0' : '-1'}"
                 role="button"
                 aria-label="Show expert"></ucdlib-icon>
             </span>
           </div>
-          <div ?hidden="${this._hideEditExpertControls() || !this.dagsterHealthy}" style="position: relative; display: flex;">
-            <span class="tooltip delete-expert" data-text="Delete expert">
+          <div ?hidden="${this._hideEditExpertControls()}" class="${!this.dagsterHealthy ? 'dagster-disabled' : ''}" style="position: relative; display: flex;" aria-disabled="${!this.dagsterHealthy}">
+            <span class="tooltip delete-expert" data-text="${this.dagsterHealthy ? 'Delete expert' : 'Temporarily disabled'}">
               <ucdlib-icon
                 icon="ucdlib-experts:fa-trash"
                 @click=${this._deleteExpert}
                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._deleteExpert(e); }}
-                tabindex="0"
+                tabindex="${this.dagsterHealthy ? '0' : '-1'}"
                 role="button"
                 aria-label="Delete expert"></ucdlib-icon>
             </span>
@@ -876,12 +887,12 @@ return html`
 
         <div class="mobile-edit-availability" style="padding: 0 .3rem;" ?hidden="${this.hideAvailability && !this.expertEditing}">
           Open to:
-          <span ?hidden="${!this.canEdit || !this.dagsterHealthy}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem">
-            <span class="tooltip edit-availability" data-text="Edit availability">
+          <span ?hidden="${!this.canEdit}" class="${!this.dagsterHealthy ? 'dagster-disabled' : ''}" style="position: relative; padding-left: .3rem; padding-bottom: .3rem" aria-disabled="${!this.dagsterHealthy}">
+            <span class="tooltip edit-availability" data-text="${this.dagsterHealthy ? 'Edit availability' : 'Temporarily disabled'}">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
                 @click=${this._editAvailability}
                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editAvailability(e); }}
-                tabindex="0"
+                tabindex="${this.dagsterHealthy ? '0' : '-1'}"
                 role="button"
                 aria-label="Edit availability">
               </ucdlib-icon>
@@ -897,12 +908,12 @@ return html`
           <span ?hidden="${!this.industProjects}">Industry Projects</span>
           <span class="dot" ?hidden="${(!this.collabProjects && !this.commPartner && !this.industProjects) || !this.mediaInterviews}">•</span>
           <span ?hidden="${!this.mediaInterviews}">Media Interviews</span>
-          <span class="desktop-edit-availability" ?hidden="${!this.canEdit || !this.dagsterHealthy}" style="position: relative; padding-left: 0">
-            <span class="tooltip edit-availability" data-text="Edit availability">
+          <span class="desktop-edit-availability ${!this.dagsterHealthy ? 'dagster-disabled' : ''}" ?hidden="${!this.canEdit}" style="position: relative; padding-left: 0" aria-disabled="${!this.dagsterHealthy}">
+            <span class="tooltip edit-availability" data-text="${this.dagsterHealthy ? 'Edit availability' : 'Temporarily disabled'}">
               <ucdlib-icon icon="ucdlib-experts:fa-pen-to-square"
                 @click=${this._editAvailability}
                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editAvailability(e); }}
-                tabindex="0"
+                tabindex="${this.dagsterHealthy ? '0' : '-1'}"
                 role="button"
                 aria-label="Edit availability">
               </ucdlib-icon>
@@ -914,8 +925,10 @@ return html`
 
     <div class="main-content">
       
-      <div class="refresh-profile" ?hidden="${!this.canEdit || (APP_CONFIG.user.expertId !== this.expertId) || !this.dagsterHealthy}">
-        <button class="btn--invert" @click="${this._refreshProfile}" ?disabled="${this.refreshingProfileData}"><span>Refresh Profile Data</span></button>
+      <div class="refresh-profile" ?hidden="${!this.canEdit || (APP_CONFIG.user.expertId !== this.expertId)}">
+        <span class="${!this.dagsterHealthy ? 'tooltip' : ''}" data-text="Temporarily disabled" style="position: relative; display: inline-flex;">
+          <button class="btn--invert" @click="${this._refreshProfile}" ?disabled="${this.refreshingProfileData || !this.dagsterHealthy}"><span>Refresh Profile Data</span></button>
+        </span>
         <span class="last-updated-label" ?hidden="${!this.lastUpdated}">Last Updated: ${this.lastUpdated}</span>
       </div>
       
@@ -1105,13 +1118,13 @@ return html`
             <h2>${this.totalGrants ? this.totalGrants + ' ' : ''}Grant${this.totalGrants === 1 ? '' : 's'}</h2>
           </div>
           <div class="grants-edit-download" style="display: flex; align-items: center;">
-            <span ?hidden="${!this.canEdit || !this.dagsterHealthy}" style="position: relative;">
-              <span class="tooltip edit-grants" data-text="Edit grants">
+            <span ?hidden="${!this.canEdit}" class="${!this.dagsterHealthy ? 'dagster-disabled' : ''}" style="position: relative;" aria-disabled="${!this.dagsterHealthy}">
+              <span class="tooltip edit-grants" data-text="${this.dagsterHealthy ? 'Edit grants' : 'Temporarily disabled'}">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
                   @click=${this._editGrants}
                   @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editGrants(e); }}
-                  tabindex="0"
+                  tabindex="${this.dagsterHealthy ? '0' : '-1'}"
                   role="button"
                   aria-label="Edit grants">
                 </ucdlib-icon>
@@ -1189,13 +1202,13 @@ return html`
             <h2>${this.totalCitations > 0 ? this.totalCitations + ' ' : ''}Work${this.totalCitations === 1 ? '' : 's'}</h2>
           </div>
           <div class="works-edit-download" style="display: flex; align-items: center;">
-            <span ?hidden="${!this.canEdit || (this.totalCitations === 0 && this.hiddenCitations === 0) || !this.dagsterHealthy}" style="position: relative;">
-              <span class="tooltip edit-works" data-text="Edit works">
+            <span ?hidden="${!this.canEdit || (this.totalCitations === 0 && this.hiddenCitations === 0)}" class="${!this.dagsterHealthy ? 'dagster-disabled' : ''}" style="position: relative;" aria-disabled="${!this.dagsterHealthy}">
+              <span class="tooltip edit-works" data-text="${this.dagsterHealthy ? 'Edit works' : 'Temporarily disabled'}">
                 <ucdlib-icon style="margin-right: 1rem;"
                   icon="ucdlib-experts:fa-pen-to-square"
                   @click=${this._editWorks}
                   @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._editWorks(e); }}
-                  tabindex="0"
+                  tabindex="${this.dagsterHealthy ? '0' : '-1'}"
                   role="button"
                   aria-label="Edit works">
                 </ucdlib-icon>
