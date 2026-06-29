@@ -21,11 +21,7 @@ The filter is available on both the Search page (filtering across all result typ
 
 The organization hierarchy is maintained in a Google Sheet and compiled into a static JavaScript module consumed by the front-end bundle.
 
-**Google Sheet URL** is stored in `config.google.orgLookupSheetUrl` (commons config), overridable via the `ORG_LOOKUP_SHEET_URL` environment variable:
-
-```
-https://docs.google.com/spreadsheets/d/1vTqlpEI9vyzeZG2TTTNNFFXgC7u7OqI5wkY47TOohZM/export?format=csv&gid=647977625
-```
+**Google Sheet URL** is stored in `config.google.orgLookupSheetUrl` (commons config), set via the `ORG_LOOKUP_SHEET_URL` environment variable (required — no default is baked in).
 
 ### Sheet column mapping
 
