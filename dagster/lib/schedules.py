@@ -14,7 +14,7 @@ from .jobs import cleanup_job, start_weekly_etl_job
 cleanup_schedule_prod = dg.ScheduleDefinition(
     name="weekly_cleanup_schedule_prod",
     description="Kick off cleanup_job.",
-    cron_schedule="0 17 * * 6",  # Every Saturday at 5:00 PM
+    cron_schedule="0 22 * * 5",  # Every Friday at 10:00 PM
     job=cleanup_job,
     execution_timezone="America/Los_Angeles",
     run_config={
@@ -35,7 +35,7 @@ cleanup_schedule_prod = dg.ScheduleDefinition(
 cleanup_schedule_dev = dg.ScheduleDefinition(
     name="weekly_cleanup_schedule_dev",
     description="Kick off cleanup_job.",
-    cron_schedule="0 17 * * 0",  # Every Sunday at 5:00 PM
+    cron_schedule="0 22 * * 6",  # Every Saturday at 10:00 PM
     job=cleanup_job,
     execution_timezone="America/Los_Angeles",
     run_config={
