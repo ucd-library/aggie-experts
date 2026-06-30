@@ -581,7 +581,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           if( status !== 'SUCCESS' ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-            this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Show work on profile', 'visible-publication');
+            this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
             return;
           }
           let expert = await this.ExpertModel.get(
@@ -616,7 +616,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-      this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Show work on profile', 'visible-publication');
+      this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
@@ -678,7 +678,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           if( status !== 'SUCCESS' ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-            this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Remove from highlights', 'visible-publication');
+            this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.', 'visible-publication');
             return;
           }
           let expert = await this.ExpertModel.get(
@@ -713,7 +713,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-      this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Remove from highlights', 'visible-publication');
+      this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -779,7 +779,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           if( status !== 'SUCCESS' ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-            this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Add to highlights', 'visible-publication');
+            this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.', 'visible-publication');
             return;
           }
           let expert = await this.ExpertModel.get(
@@ -814,7 +814,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-      this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Add to highlights', 'visible-publication');
+      this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -921,7 +921,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             if( status !== 'SUCCESS' ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-              this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide work from profile', 'visible-publication');
+              this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
               return;
             }
             let expert = await this.ExpertModel.get(
@@ -956,7 +956,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
                 const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-        this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide work from profile', 'visible-publication');
+        this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -1009,7 +1009,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             if( status !== 'SUCCESS' ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-              this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Hide work from profile', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
+              this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected.', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
               return;
             }
             let expert = await this.ExpertModel.get(
@@ -1045,7 +1045,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
                 const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-        this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Hide work from profile', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
+        this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected.', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {

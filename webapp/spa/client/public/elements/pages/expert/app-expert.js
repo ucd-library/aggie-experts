@@ -571,7 +571,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.logger.info('expert hidden', { expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        this._showUpdateError('Expert visibility could not be updated.', '', 'Update availability settings');
+        this._showUpdateError('Expert visibility could not be updated.', '', 'Availability settings could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
@@ -603,7 +603,7 @@ export default class AppExpert extends Mixin(LitElement)
         window.location.replace('/auth/logout');
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        this._showUpdateError('Expert profile could not be updated.', '', 'Update availability settings');
+        this._showUpdateError('Expert profile could not be updated.', '', 'Availability settings could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_delete', {
@@ -650,7 +650,7 @@ export default class AppExpert extends Mixin(LitElement)
             if( status !== 'SUCCESS' ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
               let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
-              this._showUpdateError('Availability settings could not be updated.', '', 'Update availability settings', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
+              this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
               return;
             }
             this.collabProjects = collabProjects;
@@ -674,7 +674,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
-        this._showUpdateError('Availability settings could not be updated.', '', 'Update availability settings', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
+        this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
 
         if( window.gtag ) {
           gtag('event', 'expert_availability_change', {
@@ -768,7 +768,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.logger.info('expert visibility set to true', { expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        this._showUpdateError('Expert visibility could not be updated.', '', 'Update availability settings');
+        this._showUpdateError('Expert visibility could not be updated.', '', 'Availability settings could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
@@ -1080,7 +1080,7 @@ export default class AppExpert extends Mixin(LitElement)
 
   _cdlErrorModal(e) {
     e.preventDefault();
-    this._showUpdateError('This item could not be updated.', '', 'Hide work from profile');
+    this._showUpdateError('This item could not be updated.', '', 'Work visibility could not be updated.');
   }
 
 }

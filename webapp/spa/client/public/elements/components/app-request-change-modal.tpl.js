@@ -5,12 +5,12 @@ import buttonsCss from '@ucd-lib/theme-sass/2_base_class/_buttons.css';
 import layoutCss from '@ucd-lib/theme-sass/5_layout/_index.css';
 
 const CHANGE_TYPE_OPTIONS = [
-  'Hide work from profile',
-  'Show work on profile',
-  'Remove from highlights',
-  'Add to highlights',
-  'Update grant visibility',
-  'Update availability settings'
+  'Work visibility could not be updated.',
+  'Work could not be rejected.',
+  'Work could not be added to highlights.',
+  'Work could not be removed from highlights.',
+  'Grant visibility could not be updated.',
+  'Availability settings could not be updated.'
 ];
 
 export default function render() {

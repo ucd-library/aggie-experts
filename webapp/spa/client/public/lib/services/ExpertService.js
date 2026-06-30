@@ -70,7 +70,7 @@ class ExpertService extends BaseService {
    */
   async requestChange(opts={}) {
     return this.request({
-      url: `${this.baseUrl}/request-change`,
+      url: `${this.baseUrl}/expert/request-change`,
       fetchOptions: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

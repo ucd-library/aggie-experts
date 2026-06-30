@@ -416,7 +416,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           if( status !== 'SUCCESS' ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
-            this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Update grant visibility');
+            this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
             return;
           }
           let expert = await this.ExpertModel.get(
@@ -452,7 +452,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
       updated = false;
             const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
-      this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Update grant visibility');
+      this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
 
       if( window.gtag ) {
         gtag('event', 'grant_is_visible', {
@@ -508,7 +508,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
             if( status !== 'SUCCESS' ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
-              this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Update grant visibility');
+              this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
               return;
             }
             let expert = await this.ExpertModel.get(
@@ -544,7 +544,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         updated = false;
 
                 const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
-        this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Update grant visibility');
+        this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'grant_is_visible', {
