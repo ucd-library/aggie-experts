@@ -10,6 +10,7 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 import '../../components/app-toast-popup.js';
+import '../../components/app-request-change-modal.js';
 
 import utils from '../../../lib/utils';
 
@@ -38,7 +39,12 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       downloads : { type : Array },
       resultsPerPage : { type : Number },
       manageGrantsLabel : { type : String },
-      grantsWithErrors : { type : Array }
+      grantsWithErrors : { type : Array },
+      showRequestChangeModal : { type : Boolean },
+      requestChangeCitation : { type : String },
+      requestChangeCitationSubtext : { type : String },
+      requestChangeCitationLabel : { type : String },
+      requestChangeType : { type : String }
     }
   }
 
@@ -76,6 +82,11 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.manageGrantsLabel = 'Manage My Grants';
     this.grantsWithErrors = [];
     this.updatingVisibility = false;
+    this.showRequestChangeModal = false;
+    this.requestChangeCitation = '';
+    this.requestChangeCitationSubtext = '';
+    this.requestChangeCitationLabel = 'Grant';
+    this.requestChangeType = '';
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -404,15 +415,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         onComplete: async (status) => {
           if( status !== 'SUCCESS' ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
-            let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
-            this.modalTitle = 'Error: Update Failed';
-            this.modalContent = `<p><strong>${grantTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-            this.showModal = true;
-            this.hideCancel = true;
-            this.hideSave = true;
-            this.hideOK = false;
-            this.hideOaPolicyLink = true;
-            this.errorMode = true;
+                        const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
+            this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Update grant visibility');
             return;
           }
           let expert = await this.ExpertModel.get(
@@ -447,23 +451,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
       updated = false;
-      let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
-      let modelContent = `
-        <p>
-          <strong>${grantTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=" target="_blank">UC Publication Management System (opens in new tab).</a>
-        </p>
-        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-      `;
-
-      this.modalTitle = 'Error: Update Failed';
-      this.modalContent = modelContent;
-      this.showModal = true;
-      this.hideCancel = true;
-      this.hideSave = true;
-      this.hideOK = false;
-      this.hideOaPolicyLink = true;
-      this.errorMode = true;
+            const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
+      this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Update grant visibility');
 
       if( window.gtag ) {
         gtag('event', 'grant_is_visible', {
@@ -518,15 +507,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           onComplete: async (status) => {
             if( status !== 'SUCCESS' ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
-              let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
-              this.modalTitle = 'Error: Update Failed';
-              this.modalContent = `<p><strong>${grantTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-              this.showModal = true;
-              this.hideCancel = true;
-              this.hideSave = true;
-              this.hideOK = false;
-              this.hideOaPolicyLink = true;
-              this.errorMode = true;
+                            const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
+              this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Update grant visibility');
               return;
             }
             let expert = await this.ExpertModel.get(
@@ -561,23 +543,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
         updated = false;
 
-        let grantTitle = this.grants.filter(g => g.relationshipId === this.grantId)?.[0]?.name || '';
-        let modelContent = `
-          <p>
-            <strong>${grantTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>
-          <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-        `;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+                const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
+        this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Update grant visibility');
 
         if( window.gtag ) {
           gtag('event', 'grant_is_visible', {
@@ -605,6 +572,69 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
       this.requestUpdate();
     }
+  }
+
+  /**
+   * @method _getGrantCitationData
+   * @description build display title and metadata subtext for a grant.
+   *
+   * @param {String} id - relationshipId to look up in this.grants
+   * @returns {{ text: String, subtext: String }}
+   */
+  _getGrantCitationData(id) {
+    const g = this.grants.filter(g => g.relationshipId === id)?.[0];
+    const subParts = [
+      g?.start && g?.end ? `${g.start} - ${g.end}` : null,
+      g?.role || null,
+      g?.awardedBy ? `Awarded by ${g.awardedBy}` : null
+    ].filter(Boolean);
+    return {
+      text: g?.name || '',
+      subtext: subParts.join(' • ')
+    };
+  }
+
+  /**
+   * @method _showUpdateError
+   * @description show an error modal with a contact-us link.
+   * Stores citation context for the request-change modal.
+   *
+   * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Grant visibility could not be updated."
+   * @param {String} citationText - grant name stored for the request-change form
+   * @param {String} citationSubtext - secondary metadata line (dates, role, funder) for the request-change form
+   * @param {String} changeType - pre-selected value for the request-change dropdown
+   * @param {String} [oapolicyUrl] - link to the UC Publication Management System
+   */
+  _showUpdateError(errorMessage, citationText, citationSubtext, changeType, oapolicyUrl='https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=') {
+    this.requestChangeCitation = citationText;
+    this.requestChangeCitationSubtext = citationSubtext;
+    this.requestChangeCitationLabel = 'Grant';
+    this.requestChangeType = changeType;
+
+    this.modalTitle = 'Update Failed';
+    this.modalContent = `
+      <p>${errorMessage} Please try again later or make your changes directly in the
+        <a href="${oapolicyUrl}" target="_blank">UC Publication Management System (opens in new tab).</a>
+      </p>
+      <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips</a>.</p>
+      <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
+    `;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = true;
+  }
+
+  /**
+   * @method _onRequestChange
+   * @description handle request-change event from the error modal; close the error
+   * modal and open the request-change form with the stored context.
+   */
+  _onRequestChange() {
+    this.showModal = false;
+    this.showRequestChangeModal = true;
   }
 
   _updateManageGrantsLabel() {

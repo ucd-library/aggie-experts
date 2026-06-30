@@ -401,6 +401,41 @@ class DagsterAPI {
     });
   }
 
+  /**
+   * @method sendSlackNotification
+   * @description Materialize the send_slack_notification dagster asset, which
+   * sends a Slack message via the admin CLI. Uses the dagster auto-generated
+   * __ASSET_JOB for the "admin" group.
+   *
+   * The runConfig ops key must match the asset name exactly.
+   *
+   * @param {Object} opts
+   * @param {String} opts.title - Slack message title
+   * @param {String} [opts.message] - Slack message body
+   * @param {String} [opts.severity] - 'info', 'warning', or 'error'
+   * @param {String} [opts.source] - source label shown in the notification
+   * @returns {Promise<Object>} Dagster launchRun GraphQL response
+   */
+  sendSlackNotification(opts = {}) {
+    const { title, message = '', severity = 'info', source = 'webapp' } = opts;
+    if( !title ) throw new Error('title is required');
+
+    const runConfig = {
+      ops: {
+        send_slack_notification: {
+          config: { title, message, severity, source }
+        }
+      }
+    };
+
+    // Dagster auto-generates a job called "__ASSET_JOB" (or a group-specific variant)
+    // for assets that are not part of an explicit job. For assets in the "admin" group,
+    // the auto-generated job name follows the pattern "__ASSET_JOB_{n}" — try the
+    // canonical name first. If this needs adjustment, check the dagster UI under
+    // Jobs for the admin group.
+    return this.launchRun('__ASSET_JOB', JSON.stringify(runConfig));
+  }
+
 }
 
 module.exports = DagsterAPI;

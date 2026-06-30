@@ -8,6 +8,7 @@ import '@ucd-lib/theme-elements/ucdlib/ucdlib-md/ucdlib-md.js';
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
+import '../../components/app-request-change-modal.js';
 
 import Citation from '../../../lib/utils/citation.js';
 import utils from '../../../lib/utils';
@@ -52,6 +53,9 @@ export default class AppExpert extends Mixin(LitElement)
       hideOK : { type : Boolean },
       hideOaPolicyLink : { type : Boolean },
       errorMode : { type : Boolean },
+      showRequestChangeModal : { type : Boolean },
+      requestChangeCitation : { type : String },
+      requestChangeType : { type : String },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
       expertEditing : { type : String },
@@ -314,6 +318,9 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideOK = false;
     this.hideOaPolicyLink = false;
     this.errorMode = false;
+    this.showRequestChangeModal = false;
+    this.requestChangeCitation = '';
+    this.requestChangeType = '';
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
@@ -564,21 +571,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.logger.info('expert hidden', { expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `
-          <p>
-            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalSaveText = '';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+        this._showUpdateError('Expert visibility could not be updated.', '', 'Update availability settings');
 
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
@@ -610,21 +603,7 @@ export default class AppExpert extends Mixin(LitElement)
         window.location.replace('/auth/logout');
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `
-          <p>
-            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalSaveText = '';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+        this._showUpdateError('Expert profile could not be updated.', '', 'Update availability settings');
 
         if( window.gtag ) {
           gtag('event', 'expert_delete', {
@@ -671,20 +650,7 @@ export default class AppExpert extends Mixin(LitElement)
             if( status !== 'SUCCESS' ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
               let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
-              this.modalTitle = 'Error: Update Failed';
-              this.modalSaveText = '';
-              this.modalContent = `
-                <p>
-                  <strong>Availability labels</strong> could not be updated. Please try again later or make your changes directly in the
-                  <a href="https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}" target="_blank">UC Publication Management System (opens in new tab).</a>
-                </p>
-              `;
-              this.showModal = true;
-              this.hideCancel = true;
-              this.hideSave = true;
-              this.hideOK = false;
-              this.hideOaPolicyLink = true;
-              this.errorMode = true;
+              this._showUpdateError('Availability settings could not be updated.', '', 'Update availability settings', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
               return;
             }
             this.collabProjects = collabProjects;
@@ -708,22 +674,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
-        let modelContent = `
-          <p>
-            <strong>Availability labels</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>
-        `;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalSaveText = '';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+        this._showUpdateError('Availability settings could not be updated.', '', 'Update availability settings', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
 
         if( window.gtag ) {
           gtag('event', 'expert_availability_change', {
@@ -736,6 +687,46 @@ export default class AppExpert extends Mixin(LitElement)
     }
 
     this.modalAction = '';
+  }
+
+  /**
+   * @method _showUpdateError
+   * @description show an error modal with a contact-us link.
+   * Stores citation context for the request-change modal.
+   *
+   * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Availability settings could not be updated."
+   * @param {String} citationText - text stored for the request-change form (not shown in this modal)
+   * @param {String} changeType - pre-selected value for the request-change dropdown
+   * @param {String} [oapolicyUrl] - link to the UC Publication Management System
+   */
+  _showUpdateError(errorMessage, citationText, changeType, oapolicyUrl='https://oapolicy.universityofcalifornia.edu/') {
+    this.requestChangeCitation = citationText;
+    this.requestChangeType = changeType;
+
+    this.modalTitle = 'Update Failed';
+    this.modalSaveText = '';
+    this.modalContent = `
+      <p>${errorMessage} Please try again later or make your changes directly in the
+        <a href="${oapolicyUrl}" target="_blank">UC Publication Management System (opens in new tab).</a>
+      </p>
+      <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
+    `;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = true;
+  }
+
+  /**
+   * @method _onRequestChange
+   * @description handle request-change event from the error modal; close the error
+   * modal and open the request-change form.
+   */
+  _onRequestChange() {
+    this.showModal = false;
+    this.showRequestChangeModal = true;
   }
 
   /**
@@ -777,21 +768,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.logger.info('expert visibility set to true', { expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `
-          <p>
-            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalSaveText = '';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+        this._showUpdateError('Expert visibility could not be updated.', '', 'Update availability settings');
 
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
@@ -1103,20 +1080,7 @@ export default class AppExpert extends Mixin(LitElement)
 
   _cdlErrorModal(e) {
     e.preventDefault();
-
-    this.modalTitle = 'Error: Update Failed';
-    this.modalSaveText = '';
-    let rejectFailureMsg = `<p>Rejecting (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
-    let visibilityFailureMsgGrant = `<p>Changes to the visibility of (Title of Grant) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-    let visibilityFailureMsgWork = `<p>Changes to the visibility of (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-
-    this.modalContent = rejectFailureMsg;
-    this.showModal = true;
-    this.hideCancel = true;
-    this.hideSave = true;
-    this.hideOK = false;
-    this.hideOaPolicyLink = true;
-    this.errorMode = true;
+    this._showUpdateError('This item could not be updated.', '', 'Hide work from profile');
   }
 
 }

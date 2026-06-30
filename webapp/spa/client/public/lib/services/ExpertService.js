@@ -56,6 +56,30 @@ class ExpertService extends BaseService {
     return this.store.data.byId.get(id);
   }
 
+  /**
+   * @method requestChange
+   * @description Submit a profile change request, which triggers a Slack notification.
+   *
+   * @param {Object} opts
+   * @param {String} opts.name - Requester's display name
+   * @param {String} opts.email - Requester's email address
+   * @param {String} opts.citation - Citation or item text for context
+   * @param {String} opts.changeType - Short label for the type of change requested
+   * @param {String} [opts.notes] - Optional additional notes from the user
+   * @returns {Promise}
+   */
+  async requestChange(opts={}) {
+    return this.request({
+      url: `${this.baseUrl}/request-change`,
+      fetchOptions: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(opts)
+      },
+      onUpdate: resp => resp
+    });
+  }
+
 }
 
 module.exports = new ExpertService();

@@ -27,6 +27,17 @@ class ExpertModel extends BaseModel {
     return this.service.get(expertId, subpage, options, clearCache);
   }
 
+  /**
+   * @method requestChange
+   * @description Submit a profile change request, which triggers a Slack notification.
+   *
+   * @param {Object} opts - See ExpertService.requestChange for full options
+   * @returns {Promise}
+   */
+  async requestChange(opts={}) {
+    return this.service.requestChange(opts);
+  }
+
 }
 
 module.exports = new ExpertModel();

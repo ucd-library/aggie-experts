@@ -10,6 +10,7 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 import '../../components/app-toast-popup.js';
+import '../../components/app-request-change-modal.js';
 
 import Citation from '../../../lib/utils/citation.js';
 
@@ -43,7 +44,12 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       manageWorksLabel : { type : String },
       worksWithErrors : { type : Array },
       showingAllHighlights : { type : Boolean },
-      isAdmin : { type : Boolean }
+      isAdmin : { type : Boolean },
+      showRequestChangeModal : { type : Boolean },
+      requestChangeCitation : { type : String },
+      requestChangeCitationSubtext : { type : String },
+      requestChangeCitationLabel : { type : String },
+      requestChangeType : { type : String }
     }
   }
 
@@ -82,6 +88,11 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.manageWorksLabel = 'Manage My Works';
     this.worksWithErrors = [];
     this.showingAllHighlights = false;
+    this.showRequestChangeModal = false;
+    this.requestChangeCitation = '';
+    this.requestChangeCitationSubtext = '';
+    this.requestChangeCitationLabel = 'Work';
+    this.requestChangeType = '';
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -569,15 +580,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         onComplete: async (status) => {
           if( status !== 'SUCCESS' ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
-            let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-            this.modalTitle = 'Error: Update Failed';
-            this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-            this.showModal = true;
-            this.hideCancel = true;
-            this.hideSave = true;
-            this.hideOK = false;
-            this.hideOaPolicyLink = true;
-            this.errorMode = true;
+                        const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+            this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Show work on profile', 'visible-publication');
             return;
           }
           let expert = await this.ExpertModel.get(
@@ -611,23 +615,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-      let modelContent = `
-        <p>
-          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
-        </p>
-        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-      `;
-
-      this.modalTitle = 'Error: Update Failed';
-      this.modalContent = modelContent;
-      this.showModal = true;
-      this.hideCancel = true;
-      this.hideSave = true;
-      this.hideOK = false;
-      this.hideOaPolicyLink = true;
-      this.errorMode = true;
+            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+      this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Show work on profile', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
@@ -688,15 +677,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         onComplete: async (status) => {
           if( status !== 'SUCCESS' ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
-            let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-            this.modalTitle = 'Error: Update Failed';
-            this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-            this.showModal = true;
-            this.hideCancel = true;
-            this.hideSave = true;
-            this.hideOK = false;
-            this.hideOaPolicyLink = true;
-            this.errorMode = true;
+                        const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+            this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Remove from highlights', 'visible-publication');
             return;
           }
           let expert = await this.ExpertModel.get(
@@ -730,23 +712,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-      let modelContent = `
-        <p>
-          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
-        </p>
-        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-      `;
-
-      this.modalTitle = 'Error: Update Failed';
-      this.modalContent = modelContent;
-      this.showModal = true;
-      this.hideCancel = true;
-      this.hideSave = true;
-      this.hideOK = false;
-      this.hideOaPolicyLink = true;
-      this.errorMode = true;
+            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+      this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Remove from highlights', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -811,15 +778,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         onComplete: async (status) => {
           if( status !== 'SUCCESS' ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
-            let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-            this.modalTitle = 'Error: Update Failed';
-            this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-            this.showModal = true;
-            this.hideCancel = true;
-            this.hideSave = true;
-            this.hideOK = false;
-            this.hideOaPolicyLink = true;
-            this.errorMode = true;
+                        const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+            this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Add to highlights', 'visible-publication');
             return;
           }
           let expert = await this.ExpertModel.get(
@@ -853,23 +813,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-      let modelContent = `
-        <p>
-          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
-        </p>
-        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-      `;
-
-      this.modalTitle = 'Error: Update Failed';
-      this.modalContent = modelContent;
-      this.showModal = true;
-      this.hideCancel = true;
-      this.hideSave = true;
-      this.hideOK = false;
-      this.hideOaPolicyLink = true;
-      this.errorMode = true;
+            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+      this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Add to highlights', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -975,15 +920,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           onComplete: async (status) => {
             if( status !== 'SUCCESS' ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
-              let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-              this.modalTitle = 'Error: Update Failed';
-              this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-              this.showModal = true;
-              this.hideCancel = true;
-              this.hideSave = true;
-              this.hideOK = false;
-              this.hideOaPolicyLink = true;
-              this.errorMode = true;
+                            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+              this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide work from profile', 'visible-publication');
               return;
             }
             let expert = await this.ExpertModel.get(
@@ -1017,23 +955,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-        let modelContent = `
-          <p>
-            <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>
-          <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-        `;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+                const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+        this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide work from profile', 'visible-publication');
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -1085,15 +1008,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           onComplete: async (status) => {
             if( status !== 'SUCCESS' ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
-              let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-              this.modalTitle = 'Error: Update Failed';
-              this.modalContent = `<p><strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
-              this.showModal = true;
-              this.hideCancel = true;
-              this.hideSave = true;
-              this.hideOK = false;
-              this.hideOaPolicyLink = true;
-              this.errorMode = true;
+                            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+              this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Hide work from profile', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
               return;
             }
             let expert = await this.ExpertModel.get(
@@ -1128,23 +1044,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-        let modelContent = `
-          <p>
-            <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>
-          <p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>
-        `;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+                const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+        this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Hide work from profile', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {
@@ -1189,6 +1090,72 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideOK = true;
     this.hideOaPolicyLink = true;
     this.errorMode = false;
+  }
+
+  /**
+   * @method _getCitationData
+   * @description build display title and metadata subtext for a work citation.
+   *
+   * @param {String} id - relationship @id to look up in this.citations
+   * @returns {{ text: String, subtext: String }}
+   */
+  _getCitationData(id) {
+    const all = [...(this.citationsDisplayed || []), ...(this.featuredCitations || [])];
+    const c = all.find(c => c.relatedBy?.[0]?.['@id'] === id);
+    const year = Array.isArray(c?.originalIssued) ? c.originalIssued[0]
+      : (typeof c?.originalIssued === 'string' ? c.originalIssued.split('-')[0] : null);
+    return {
+      text: c?.title || c?.['container-title'] || '',
+      subtext: [
+        year,
+        utils.getCitationType(c?.type),
+        c?.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '')
+      ].filter(Boolean).join(' • ')
+    };
+  }
+
+  /**
+   * @method _showUpdateError
+   * @description show an error modal with a contact-us link.
+   * Stores citation context for the request-change modal.
+   *
+   * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Work visibility could not be updated."
+   * @param {String} citationText - work title stored for the request-change form
+   * @param {String} citationSubtext - secondary metadata line (year, type) for the request-change form
+   * @param {String} changeType - pre-selected value for the request-change dropdown
+   * @param {String} faqAnchor - hash fragment on /faq for troubleshooting link
+   * @param {String} [oapolicyUrl] - link to the UC Publication Management System
+   */
+  _showUpdateError(errorMessage, citationText, citationSubtext, changeType, faqAnchor, oapolicyUrl='https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true') {
+    this.requestChangeCitation = citationText;
+    this.requestChangeCitationSubtext = citationSubtext;
+    this.requestChangeCitationLabel = 'Work';
+    this.requestChangeType = changeType;
+
+    this.modalTitle = 'Update Failed';
+    this.modalContent = `
+      <p>${errorMessage} Please try again later or make your changes directly in the
+        <a href="${oapolicyUrl}" target="_blank">UC Publication Management System (opens in new tab).</a>
+      </p>
+      <p>For more help, see <a href="/faq#${faqAnchor}">troubleshooting tips</a>.</p>
+      <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
+    `;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = true;
+  }
+
+  /**
+   * @method _onRequestChange
+   * @description handle request-change event from the error modal; close the error
+   * modal and open the request-change form with the stored context.
+   */
+  _onRequestChange() {
+    this.showModal = false;
+    this.showRequestChangeModal = true;
   }
 
   _updateHeaderLabels() {

@@ -5,7 +5,10 @@ const ExpertModel = require('./model.js');
 const model = new ExpertModel();
 
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
-const { json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js')
+const { json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js');
+const { SlackNotifier, logger } = require('@ucd-lib/experts-commons');
+const DagsterAPI = require('../../lib/dagster-api.js');
+const dagsterAPI = new DagsterAPI();
 
 function subselect(req, res, next) {
   try {
@@ -27,6 +30,48 @@ function subselect(req, res, next) {
 }
 
 browse_endpoint(router,model);
+
+router.post('/request-change',
+  json_only,
+  async (req, res) => {
+    const { name, email, citation, changeType, notes } = req.body || {};
+    if( !changeType ) return res.status(400).json({ error: 'changeType is required' });
+
+    const title = `Profile Change Request — ${changeType}`;
+    const message = [
+      citation,
+      '',
+      `Requested by: ${name || 'Unknown'} <${email || 'Unknown'}>`,
+      notes ? `Notes: ${notes}` : null
+    ].filter(Boolean).join('\n');
+
+    const slackOpts = { title, message, severity: 'info', source: 'webapp' };
+
+    // Try dagster first; fall back to direct Slack webhook if unavailable
+    try {
+      const resp = await dagsterAPI.sendSlackNotification(slackOpts);
+      const result = resp?.data?.launchRun;
+      if( result?.__typename === 'LaunchRunSuccess' ) {
+        return res.status(200).json({ status: 'ok', via: 'dagster', runId: result.run.runId });
+      }
+      // Dagster returned but with a non-success type (config error, etc.) — fall through
+      logger.warn('request-change: dagster launchRun returned non-success, falling back to direct Slack', { result });
+    } catch(e) {
+      logger.warn('request-change: dagster unavailable, falling back to direct Slack', { error: e.message });
+    }
+
+    try {
+      const sent = await SlackNotifier.send(slackOpts);
+      if( !sent ) {
+        logger.warn('request-change: SlackNotifier returned false (webhook may not be configured)');
+      }
+      res.status(200).json({ status: 'ok', via: 'direct' });
+    } catch(e) {
+      logger.error('request-change: both dagster and direct Slack failed', { error: e.message });
+      res.status(500).json({ error: 'Failed to send notification' });
+    }
+  }
+);
 
 router.patch('/:expertId/availability',
   user_can_edit,

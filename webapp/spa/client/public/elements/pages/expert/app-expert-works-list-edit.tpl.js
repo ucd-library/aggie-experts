@@ -300,8 +300,19 @@ return html`
       .hideOaPolicyLink="${this.hideOaPolicyLink}"
       .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${this._modalSave}>
+      @save=${this._modalSave}
+      @request-change=${this._onRequestChange}>
     </app-modal-overlay>
+    <app-request-change-modal
+      .visible="${this.showRequestChangeModal}"
+      .userName="${this.expertName}"
+      .userEmail="${APP_CONFIG.user?.email || ''}"
+      .itemName="${this.requestChangeCitation}"
+      .itemSubtext="${this.requestChangeCitationSubtext}"
+      .itemLabel="${this.requestChangeCitationLabel}"
+      .changeType="${this.requestChangeType}"
+      @cancel=${(e) => this.showRequestChangeModal = false}>
+    </app-request-change-modal>
     <div class="hero-main site-frame">
       <div class="hero-text">
         <div class="works">

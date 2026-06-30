@@ -836,8 +836,17 @@ return html`
       .hideOaPolicyLink="${this.hideOaPolicyLink}"
       .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${this._onSave}>
+      @save=${this._onSave}
+      @request-change=${this._onRequestChange}>
     </app-modal-overlay>
+    <app-request-change-modal
+      .visible="${this.showRequestChangeModal}"
+      .userName="${this.expertName}"
+      .userEmail="${APP_CONFIG.user?.email || ''}"
+      .itemName="${this.requestChangeCitation}"
+      .changeType="${this.requestChangeType}"
+      @cancel=${(e) => this.showRequestChangeModal = false}>
+    </app-request-change-modal>
     <div class="hero-main site-frame">
       <div class="hero-text">
         <div class="experts">
