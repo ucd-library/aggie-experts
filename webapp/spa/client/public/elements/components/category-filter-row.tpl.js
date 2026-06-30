@@ -38,6 +38,7 @@ export default function render() {
       .filter-result .label {
         padding-left: .56rem;
         font-weight: bold;
+        color: var(--ucd-blue-100, #022851);
       }
 
       .filter-result ucdlib-icon {
@@ -73,17 +74,6 @@ export default function render() {
       .filter-result.subfilter .count {
         font-weight: normal;
         color: var(--color-aggie-blue-80);
-      }
-
-      @media (max-width: 767px) {
-        .filter-result.active svg,
-        .filter-result:hover svg {
-          display: none !important;
-        }
-
-        .filter-result.active {
-          background: var(--ucd-blue-100, #022851);
-        }
       }
     </style>
 

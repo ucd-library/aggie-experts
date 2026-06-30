@@ -4,7 +4,7 @@ const ExpertModel = require('../expert/model.js');
 const GrantModel = require('../grant/model.js');
 const WorkModel = require('../work/model.js');
 // const utils = require('../utils.js')
-const {Elasticsearch} = require('@ucd-lib/experts-commons');
+const {Elasticsearch, expandDeptParam} = require('@ucd-lib/experts-commons');
 const base = new BaseModel();
 const experts = new ExpertModel();
 const grants = new GrantModel();
@@ -35,6 +35,9 @@ router.get(
 
     if (req?.query.availability) {
       params.availability = req.query.availability.split(',');
+    }
+    if (req?.query.dept || req?.query.deptCodesIncluded || req?.query.deptCodesExcluded) {
+      params.dept = expandDeptParam(req.query.dept || '', req.query.deptCodesIncluded || '', req.query.deptCodesExcluded || '');
     }
     if (req?.query.expert) {
       params.expert = req.query.expert.split(',');
@@ -101,10 +104,11 @@ router.get(
       const filteredType = req?.query.type ? req.query.type.split(',') : null;
       const filteredStatus = req?.query.status ? req.query.status.split(',') : null;
 
-      // Now remove type filters and date filters for global aggregations
+      // Now remove type/dept filters and date filters for global aggregations
       delete params["@type"];
       delete params.status;
       delete params.type;
+      delete params.dept;
       delete params.dateFrom;
       delete params.dateTo;
       delete params.hasDate;

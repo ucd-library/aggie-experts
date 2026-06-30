@@ -17,7 +17,14 @@ const ID_ORDER = [
   'previewEsIndexExperts',
   'previewEsIndexGrants',
   'previewEsIndexWorks',
-  'browseAz'
+  'browseAz',
+  'dept',
+  'status',
+  'type',
+  'availability',
+  'dateFrom',
+  'dateTo',
+  'browseCounts'
 ];
 
 let inst = new PayloadUtils({

@@ -4,6 +4,8 @@ import {render} from "./app-search.tpl.js";
 // sets globals Mixin and EventInterface
 import {Mixin, LitCorkUtils} from "@ucd-lib/cork-app-utils";
 
+import { AffiliationMixin } from '../AffiliationMixin.js';
+
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
 
@@ -15,8 +17,8 @@ import "../../components/category-filter-controller.js";
 
 import utils from '../../../lib/utils';
 
-export default class AppSearch extends Mixin(LitElement)
-  .with(LitCorkUtils) {
+export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
+  .with(LitCorkUtils)) {
 
   static get properties() {
     return {
@@ -50,6 +52,12 @@ export default class AppSearch extends Mixin(LitElement)
       dateFrom : { type : String },
       dateTo : { type : String },
       dateRangeData : { type : Array },
+      dept : { type : Array },
+      affiliationCollapsed : { type : Boolean },
+      dateCollapsed : { type : Boolean },
+      openToCollapsed : { type : Boolean },
+      affiliationSearch : { type : String },
+      expandedSubCategories : { type : Array },
     }
   }
 
@@ -91,6 +99,13 @@ export default class AppSearch extends Mixin(LitElement)
     this.dateFrom = '';
     this.dateTo = '';
     this.dateRangeData = [];
+    this.dept = [];
+    this.affiliationCollapsed = true;
+    this.dateCollapsed = true;
+    this.openToCollapsed = true;
+    this.affiliationSearch = '';
+    this.expandedSubCategories = [];
+    // this.orgLookup is initialised by AffiliationMixin
 
     this.render = render.bind(this);
   }
@@ -160,27 +175,7 @@ export default class AppSearch extends Mixin(LitElement)
       if( range && typeof range.refresh === 'function' ) {
         range.refresh(dataChanged);
       }
-    }
-
-    // override styles in mobile
-    const mobileSlider = this.shadowRoot.querySelector('.refine-search-mobile ucdlib-range-slider');
-    if( mobileSlider ) {
-      let fillLine = mobileSlider.shadowRoot.querySelector('#fillLine');
-      if( fillLine ) {
-        fillLine.style.borderTop = `5px solid #EBF3FA`;
-        fillLine.style.borderBottom = `5px solid #EBF3FA`;
-      }
-      let numberLine = mobileSlider.shadowRoot.querySelector('#numberLine');
-      if( numberLine ) {
-        numberLine.style.borderTop = `5px solid #EBF3FA`;
-        numberLine.style.borderBottom = `5px solid #EBF3FA`;
-      }
-
-      let minInput = mobileSlider.shadowRoot.querySelector('#minInput');
-      let maxInput = mobileSlider.shadowRoot.querySelector('#maxInput');
-      if( minInput ) minInput.style.backgroundColor = 'white';
-      if( maxInput ) maxInput.style.backgroundColor = 'white';
-    }    
+    } 
   }
 
   _updateFilters() {
@@ -216,6 +211,10 @@ export default class AppSearch extends Mixin(LitElement)
       this.industProjects = query.availability?.includes('industry') ? true : false;
       this.mediaInterviews = query.availability?.includes('media') ? true : false;
 
+      this.dept = (query.dept || query.deptCodesIncluded)
+        ? this._deserializeDept(query.dept || '', query.deptCodesIncluded || '', query.deptCodesExcluded || '')
+        : [];
+
       this.dateFrom = query.dateFrom || '';
       this.dateTo = query.dateTo || '';
       if( this.dateFrom || this.dateTo ) {
@@ -244,6 +243,8 @@ export default class AppSearch extends Mixin(LitElement)
       this.dateTo = '';
       this.filterByDate = false;
       this.filterByDateLabel = '';
+      this.dept = [];
+      this.expandedSubCategories = [];
 
       // update search term
       this.searchTerm = decodeURI(this.AppStateModel.location.path?.[1]);
@@ -255,10 +256,13 @@ export default class AppSearch extends Mixin(LitElement)
     }
 
     // hack for checkboxes not updating consistently even with requestUpdate (mostly an issue with back/forward buttons)
-    this.shadowRoot.querySelector('#collab-projects').checked = this.collabProjects;
-    this.shadowRoot.querySelector('#comm-partner').checked = this.commPartner;
-    this.shadowRoot.querySelector('#indust-projects').checked = this.industProjects;
-    this.shadowRoot.querySelector('#media-interviews').checked = this.mediaInterviews;
+    const setChecked = (id, val) => {
+      this.shadowRoot.querySelectorAll(`#${id}, #m-${id}`).forEach(el => { el.checked = val; });
+    };
+    setChecked('collab-projects', this.collabProjects);
+    setChecked('comm-partner', this.commPartner);
+    setChecked('indust-projects', this.industProjects);
+    setChecked('media-interviews', this.mediaInterviews);
 
     // hide/show filters depending on filter type, later will add date filters etc
     this.showOpenTo = this.atType === 'expert';
@@ -356,10 +360,37 @@ export default class AppSearch extends Mixin(LitElement)
     this._updateLocation();
   }
 
-  /**
-   * @method _removeDateFilter
-   * @description remove the date filter
-   */
+  // _onDeptChange, _onSubCategoryCheck, _getDept, _getDeptName, _deptCodesToNames,
+  // _toggleSubCategory, and _onAffiliationSearch are provided by AffiliationMixin.
+
+  _removeDeptFilter(name) {
+    this.dept = this.dept.filter(d => d !== name);
+    if( !this.dept.length ) this.affiliationCollapsed = false;
+    this._updateLocation();
+  }
+
+  _clearAllFilters() {
+    this.dept = [];
+    this.filterByExpert = false;
+    this.filterByExpertId = '';
+    this.filterByExpertName = '';
+    this.filterByDate = false;
+    this.filterByDateLabel = '';
+    this.dateFrom = '';
+    this.dateTo = '';
+    this.collabProjects = false;
+    this.commPartner = false;
+    this.industProjects = false;
+    this.mediaInterviews = false;
+    this._updateLocation();
+
+    let ranges = this.shadowRoot.querySelectorAll('ucdlib-range-slider');
+    for( const range of ranges ) {
+      range.reset();
+    }
+    this._refreshRange(true);
+  }
+
   _removeDateFilter(e) {
     this.filterByDate = false;
     this.filterByDateLabel = '';
@@ -413,6 +444,31 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   /**
+  /**
+   * @method _computeSliderMin
+   * @description compute the initial min value for the range slider, clamped to dateRangeData bounds
+   * @returns {Number|undefined}
+   */
+  _computeSliderMin() {
+    if ( !this.dateRangeData?.length || !this.dateFrom ) return undefined;
+    const absMin = this.dateRangeData[0].stat;
+    const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
+    return Math.max(absMin, Math.min(Number(this.dateFrom), absMax));
+  }
+
+  /**
+   * @method _computeSliderMax
+   * @description compute the initial max value for the range slider, clamped to dateRangeData bounds
+   * @returns {Number|undefined}
+   */
+  _computeSliderMax() {
+    if ( !this.dateRangeData?.length || !this.dateTo ) return undefined;
+    const absMin = this.dateRangeData[0].stat;
+    const absMax = this.dateRangeData[this.dateRangeData.length - 1].stat;
+    return Math.max(absMin, Math.min(Number(this.dateTo), absMax));
+  }
+
+  /**
    * @method _buildHistogramDataFromAgg
    * @description build histogram data from the aggregation results
    * @param {Object} issuedYearsObj
@@ -437,8 +493,37 @@ export default class AppSearch extends Mixin(LitElement)
   }
 
   _toggleRefineSearch() {
-    this.refineSearchCollapsed = !this.refineSearchCollapsed;    
+    this.refineSearchCollapsed = !this.refineSearchCollapsed;
     if( !this.refineSearchCollapsed ) this._refreshRange();
+  }
+
+  _getActiveFilterCount() {
+    let count = 0;
+    if( this.dateFrom || this.dateTo ) count++;
+    if( this.filterByExpert ) count++;
+    if( this.collabProjects ) count++;
+    if( this.commPartner ) count++;
+    if( this.industProjects ) count++;
+    if( this.mediaInterviews ) count++;
+    if( this.dept?.length ) count += this._getDeptPillGroups(this.dept).length;
+    return count;
+  }
+
+  _getMobileViewLabel() {
+    const n = this.totalResultsCount != null ? this.totalResultsCount : '';
+    if( !this.atType ) return `View ${n} results`;
+    let typeLabel = '';
+    if( this.atType === 'expert' ) typeLabel = n === 1 ? 'expert' : 'experts';
+    else if( this.atType === 'grant' ) typeLabel = n === 1 ? 'grant' : 'grants';
+    else if( this.atType === 'work' ) {
+      if( this.type ) {
+        typeLabel = utils.getCitationType(this.type).toLowerCase();
+        if( n !== 1 && typeLabel && !typeLabel.endsWith('s') ) typeLabel += 's';
+      }
+      else typeLabel = n === 1 ? 'work' : 'works';
+    } else typeLabel = this.atType;
+    if( this.status ) typeLabel = this.status.toLowerCase() + ' ' + typeLabel;
+    return `View ${n} ${typeLabel}`;
   }
 
   /**
@@ -494,8 +579,9 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query.type,
           this.filterByExpertId,
           this.dateFrom,
-          this.dateTo
-        ), 
+          this.dateTo,
+          this._serializeDept(this.dept)
+        ),
         resetPage // ignore cache
       ),
       true
@@ -522,7 +608,7 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.industProjects ) availability.push('industry');
     if( this.mediaInterviews ) availability.push('media');
 
-    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || this.dateFrom || this.dateTo;
+    let hasQueryParams = availability.length || this.atType.length || this.filterByExpert || this.status.length || this.dateFrom || this.dateTo || this.dept.length;
 
     let path = hasQueryParams ? '/search' : `/search/${encodeURIComponent(this.searchTerm)}`;
     if( this.currentPage > 1 || this.resultsPerPage > 25 ) path += `/${this.currentPage}`;
@@ -536,6 +622,12 @@ export default class AppSearch extends Mixin(LitElement)
     if( this.filterByExpert ) path += `&expert=${this.filterByExpertId}`;
     if( this.dateFrom ) path += `&dateFrom=${this.dateFrom}`;
     if( this.dateTo ) path += `&dateTo=${this.dateTo}`;
+    if( this.dept.length ) {
+      const { dept, deptCodesIncluded, deptCodesExcluded } = this._serializeDept(this.dept);
+      if( dept ) path += `&dept=${dept}`;
+      if( deptCodesIncluded ) path += `&deptCodesIncluded=${deptCodesIncluded}`;
+      if( deptCodesExcluded ) path += `&deptCodesExcluded=${deptCodesExcluded}`;
+    }
 
     this.AppStateModel.setLocation(path);
   }
@@ -830,6 +922,12 @@ export default class AppSearch extends Mixin(LitElement)
     this.totalResultsCount = e.payload.total;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
 
+    // if results dropped to 0, reset the sig so the histogram re-initializes
+    // when results return (the slider element is destroyed/recreated by the template conditional)
+    if ( !this.displayedResults.length ) {
+      this.lastAggSignature = '';
+    }
+
     this.requestUpdate();
     requestAnimationFrame(() => this._clearSelectedSearchResults());
   }
@@ -967,7 +1065,8 @@ export default class AppSearch extends Mixin(LitElement)
           this.AppStateModel.location.query.type,
           this.filterByExpertId,
           this.dateFrom,
-          this.dateTo
+          this.dateTo,
+          this._serializeDept(this.dept)
         )
       ),
       true
@@ -1239,6 +1338,31 @@ export default class AppSearch extends Mixin(LitElement)
       link.click();
       document.body.removeChild(link);
     }
+  }
+
+  _removeCategoryFilter() {
+    this.atType = '';
+    this.type = '';
+    this.status = '';
+    this.currentPage = 1;
+    this._updateLocation();
+  }
+
+  _getCategoryChipLabel() {
+    if( !this.atType ) return '';
+    if( this.atType === 'expert' ) return 'Experts';
+    if( this.atType === 'grant' ) {
+      if( this.status ) return this.status.charAt(0).toUpperCase() + this.status.slice(1).toLowerCase() + ' Grants';
+      return 'Grants';
+    }
+    if( this.atType === 'work' ) {
+      if( this.type ) {
+        const label = utils.getCitationType(this.type);
+        return label.charAt(0).toUpperCase() + label.slice(1);
+      }
+      return 'Works';
+    }
+    return this.atType;
   }
 
   _onFilterChange(e) {

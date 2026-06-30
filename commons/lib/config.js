@@ -221,7 +221,8 @@ const config = {
     cacheSecrets : env.CACHE_GOOGLE_SECRETS !== 'false',
     secrets : {
       keycloakSecrets : 'keycloak-client-secrets'
-    }
+    },
+    orgLookupSheetUrl : env.ORG_LOOKUP_SHEET_URL || '',
   },
 
   cdl : {
