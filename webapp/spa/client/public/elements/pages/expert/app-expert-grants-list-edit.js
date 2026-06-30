@@ -44,7 +44,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       requestChangeCitation : { type : String },
       requestChangeCitationSubtext : { type : String },
       requestChangeCitationLabel : { type : String },
-      requestChangeType : { type : String }
+      requestChangeType : { type : String },
+      failedUpdates : { type : Array }
     }
   }
 
@@ -87,6 +88,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.requestChangeCitationSubtext = '';
     this.requestChangeCitationLabel = 'Grant';
     this.requestChangeType = '';
+    this.failedUpdates = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -180,6 +182,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
+
+    this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'grant');
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     // this.totalGrants = grants.length;
@@ -412,8 +416,10 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, true);
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'grant visibility (show)',
-        onComplete: async (status) => {
-          if( status !== 'SUCCESS' ) {
+        onComplete: async (status, stepStats) => {
+          utils.trackFailedUpdate(this.expertId, { type: 'grant', name: this._getGrantCitationData(this.grantId).text, action: 'show-grant', stepStats });
+          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'grant');
+          if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
             this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
@@ -504,8 +510,10 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, false);
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'grant visibility (hide)',
-          onComplete: async (status) => {
-            if( status !== 'SUCCESS' ) {
+          onComplete: async (status, stepStats) => {
+            utils.trackFailedUpdate(this.expertId, { type: 'grant', name: this._getGrantCitationData(this.grantId).text, action: 'hide-grant', stepStats });
+          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'grant');
+            if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
               this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
@@ -634,6 +642,34 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    */
   _onRequestChange() {
     this.showModal = false;
+    this.showRequestChangeModal = true;
+  }
+
+  /**
+   * @method _dismissFailedUpdate
+   * @description dismiss a failed-update entry and refresh the displayed list.
+   *
+   * @param {Object} entry - failed update entry with type, name, action
+   */
+  _dismissFailedUpdate(entry) {
+    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
+    this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'grant');
+  }
+
+  /**
+   * @method _onInlineBannerHelp
+   * @description open the request-change modal pre-filled from a failed-update entry.
+   *
+   * @param {Object} entry - failed update entry
+   */
+  _onInlineBannerHelp(entry) {
+    const g = (this.grants || []).find(g => g.name === entry.name);
+    const relId = g?.relationshipId;
+    const { text, subtext } = relId ? this._getGrantCitationData(relId) : { text: entry.name, subtext: '' };
+    this.requestChangeCitation = text;
+    this.requestChangeCitationSubtext = subtext;
+    this.requestChangeCitationLabel = 'Grant';
+    this.requestChangeType = utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action;
     this.showRequestChangeModal = true;
   }
 

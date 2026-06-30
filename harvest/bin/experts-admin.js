@@ -5,7 +5,6 @@ import path from 'path';
 import fs from 'fs-extra';
 import { fileURLToPath } from 'url';
 import { parse } from 'csv-parse/sync';
-import { config } from '@ucd-lib/experts-commons';
 import SlackNotifier from '@ucd-lib/experts-commons/lib/slack-notifier.js';
 import {
   logger,

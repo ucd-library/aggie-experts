@@ -7,6 +7,7 @@ import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 import headingsCss from "@ucd-lib/theme-sass/2_base_class/_headings.css";
 
 import '../../components/share-button.js';
+import '../../components/app-status-banner.js';
 
 import utils from '../../../lib/utils';
 
@@ -821,6 +822,20 @@ return html`
       pointer-events: none;
       cursor: not-allowed;
     }
+
+    .failed-update-banners {
+      width: 53.5rem;
+      margin: 1rem auto 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    @media (max-width: 992px) {
+      .failed-update-banners {
+          width: 90%;
+      }
+    }
   </style>
 
   <div class="content">
@@ -931,6 +946,56 @@ return html`
         </div>
       </div>
     </div>
+
+    ${(() => {
+      const worksItems = (this.failedUpdates || []).filter(u => u.type === 'work');
+      const grantsItems = (this.failedUpdates || []).filter(u => u.type === 'grant');
+      const availItems = (this.failedUpdates || []).filter(u => u.type === 'availability');
+      if( !worksItems.length && !grantsItems.length && !availItems.length ) return '';
+      const toListItems = entries => entries.map(u => ({
+        label: u.name,
+        subtext: utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action
+      }));
+      return html`
+        <div class="failed-update-banners">
+          ${worksItems.length ? html`
+            <app-status-banner
+              type="error"
+              icon="ucdlib-experts:fa-exclamation-triangle"
+              title-label="Works"
+              title-href="/${this.expertId}/works-edit"
+              title-suffix="failed to save:"
+              .items="${toListItems(worksItems)}"
+              dismissible
+              @dismiss=${() => worksItems.forEach(e => this._dismissFailedUpdate(e))}>
+            </app-status-banner>
+          ` : ''}
+          ${grantsItems.length ? html`
+            <app-status-banner
+              type="error"
+              icon="ucdlib-experts:fa-exclamation-triangle"
+              title-label="Grants"
+              title-href="/${this.expertId}/grants-edit"
+              title-suffix="failed to save:"
+              .items="${toListItems(grantsItems)}"
+              dismissible
+              @dismiss=${() => grantsItems.forEach(e => this._dismissFailedUpdate(e))}>
+            </app-status-banner>
+          ` : ''}
+          ${availItems.length ? html`
+            <app-status-banner
+              type="error"
+              icon="ucdlib-experts:fa-exclamation-triangle"
+              title-label="Availability"
+              title-suffix="failed to save:"
+              .items="${toListItems(availItems)}"
+              dismissible
+              @dismiss=${() => availItems.forEach(e => this._dismissFailedUpdate(e))}>
+            </app-status-banner>
+          ` : ''}
+        </div>
+      `;
+    })()}
 
     <div class="main-content">
       

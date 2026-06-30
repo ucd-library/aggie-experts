@@ -69,7 +69,8 @@ export default class AppExpert extends Mixin(LitElement)
       mediaInterviews : { type : Boolean },
       lastUpdated : { type : String },
       refreshingProfileData : { type : Boolean },
-      dagsterHealthy : { type : Boolean }
+      dagsterHealthy : { type : Boolean },
+      failedUpdates : { type : Array }
     }
   }
 
@@ -161,6 +162,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('editingExpertId') === this.expertId;
+    this.failedUpdates = utils.getFailedUpdates(this.expertId);
 
     this.isVisible = this.expert['is-visible'];
 
@@ -333,6 +335,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.industProjects = false;
     this.mediaInterviews = false;
     this.refreshingProfileData = false;
+    this.failedUpdates = [];
     if( !this.expertEditing ) {
       this.expertEditing = '';
       this.hideEdit = (
@@ -646,8 +649,9 @@ export default class AppExpert extends Mixin(LitElement)
         let res = await this.DagsterModel.updateExpertAvailability(this.expertId, labels);
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'expert availability',
-          onComplete: (status) => {
-            if( status !== 'SUCCESS' ) {
+          onComplete: (status, stepStats) => {
+            utils.trackFailedUpdate(this.expertId, { type: 'availability', name: '', action: 'update-availability', stepStats });
+            if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
               let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
               this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
@@ -727,6 +731,17 @@ export default class AppExpert extends Mixin(LitElement)
   _onRequestChange() {
     this.showModal = false;
     this.showRequestChangeModal = true;
+  }
+
+  /**
+   * @method _dismissFailedUpdate
+   * @description dismiss a failed-update banner entry for this expert and refresh the list.
+   *
+   * @param {Object} entry - the failed update entry to dismiss (must have type, name, action)
+   */
+  _dismissFailedUpdate(entry) {
+    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
+    this.failedUpdates = utils.getFailedUpdates(this.expertId);
   }
 
   /**

@@ -583,6 +583,142 @@ class Utils {
   }
 
   /**
+   * localStorage key used by the failed-update tracking methods.
+   */
+  FAILED_UPDATE_STORAGE_KEY = 'ae-failed-updates';
+
+  /**
+   * Success labels for CDL-only failures (blue banner): action succeeded in ES but not CDL.
+   * Keyed by action slug.
+   */
+  FAILED_UPDATE_SUCCESS_LABELS = {
+    'hide-work':           'Work hidden',
+    'show-work':           'Work set to visible',
+    'add-highlight':       'Work added to highlights',
+    'remove-highlight':    'Work removed from highlights',
+    'hide-grant':          'Grant hidden',
+    'show-grant':          'Grant set to visible',
+    'update-availability': 'Availability updated'
+  };
+
+  /**
+   * Short action descriptions without type prefix, used as list item subtext
+   * on the app-expert page where the item name provides type context.
+   * Keyed by action slug.
+   */
+  FAILED_UPDATE_SHORT_LABELS = {
+    'hide-work':           'could not be hidden.',
+    'show-work':           'could not be set to visible.',
+    'add-highlight':       'could not be added to highlights.',
+    'remove-highlight':    'could not be removed from highlights.',
+    'hide-grant':          'could not be hidden.',
+    'show-grant':          'could not be set to visible.',
+    'update-availability': 'could not be updated.'
+  };
+
+  /**
+   * Error labels for ES failures (red banner).
+   * Keyed by action slug.
+   */
+  FAILED_UPDATE_ERROR_LABELS = {
+    'hide-work':           'Work could not be hidden',
+    'show-work':           'Work could not be set to visible',
+    'add-highlight':       'Work could not be added to highlights',
+    'remove-highlight':    'Work could not be removed from highlights',
+    'hide-grant':          'Grant could not be hidden',
+    'show-grant':          'Grant could not be set to visible',
+    'update-availability': 'Availability could not be updated'
+  };
+
+  /**
+   * @method trackFailedUpdate
+   * @description persist a failed dagster update step to localStorage so that a
+   * dismissible banner can be shown later. Tracks CDL and ES failures separately.
+   * No-ops when neither step type failed.
+   *
+   * @param {String} expertId
+   * @param {Object} opts
+   * @param {String} opts.type - 'work' | 'grant' | 'availability'
+   * @param {String} opts.name - display name of the item (work title, grant name, etc.)
+   * @param {String} opts.action - action slug from FAILED_UPDATE_ACTIONS
+   * @param {Array} opts.stepStats - stepStats array from the dagster run response
+   */
+  trackFailedUpdate(expertId, opts = {}) {
+    const { type, name = '', action, stepStats = [] } = opts;
+    const cdlFailed = stepStats.some(s => s.stepKey?.endsWith('_cdl') && s.status === 'FAILURE');
+    const esFailed  = stepStats.some(s => s.stepKey?.endsWith('_es')  && s.status === 'FAILURE');
+    if( !cdlFailed && !esFailed ) return;
+    console.warn(`[failed-update] expertId=${expertId} type=${type} action=${action} name="${name}" cdlFailed=${cdlFailed} esFailed=${esFailed}`);
+
+    const updates = this.getFailedUpdates();
+    const idx = updates.findIndex(u =>
+      u.expertId === expertId && u.type === type && u.name === name && u.action === action
+    );
+    const entry = { expertId, type, name, action, cdlFailed, esFailed, timestamp: Date.now() };
+    if( idx >= 0 ) {
+      updates[idx] = entry;
+    } else {
+      updates.push(entry);
+    }
+    try {
+      localStorage.setItem(this.FAILED_UPDATE_STORAGE_KEY, JSON.stringify(updates));
+    } catch(e) {}
+  }
+
+  /**
+   * @method getFailedUpdates
+   * @description return all tracked failed updates, optionally filtered by expertId.
+   *
+   * @param {String} [expertId]
+   * @returns {Array}
+   */
+  getFailedUpdates(expertId) {
+    try {
+      const raw = localStorage.getItem(this.FAILED_UPDATE_STORAGE_KEY);
+      const all = raw ? JSON.parse(raw) : [];
+      return expertId ? all.filter(u => u.expertId === expertId) : all;
+    } catch(e) {
+      return [];
+    }
+  }
+
+  /**
+   * @method dismissFailedUpdate
+   * @description remove a tracked failed update entry from localStorage.
+   *
+   * @param {String} expertId
+   * @param {Object} opts
+   * @param {String} opts.type
+   * @param {String} opts.name
+   * @param {String} opts.action
+   */
+  dismissFailedUpdate(expertId, opts = {}) {
+    const updates = this.getFailedUpdates().filter(u => {
+      if( u.expertId !== expertId ) return true;
+      if( opts.type   && u.type   !== opts.type   ) return true;
+      if( opts.name   && u.name   !== opts.name   ) return true;
+      if( opts.action && u.action !== opts.action ) return true;
+      return false;
+    });
+    try {
+      localStorage.setItem(this.FAILED_UPDATE_STORAGE_KEY, JSON.stringify(updates));
+    } catch(e) {}
+  }
+
+  /**
+   * @method hasCdlStepFailed
+   * @description check whether any CDL step in a dagster run's stepStats failed.
+   * Only CDL failures warrant showing the "Update Failed" contact-us modal — ES/Postgres
+   * failures are transient and do not require user action.
+   *
+   * @param {Array} stepStats - array of stepStat objects from the dagster run response
+   * @returns {Boolean}
+   */
+  hasCdlStepFailed(stepStats = []) {
+    return stepStats.some(s => s.stepKey?.endsWith('_cdl') && s.status === 'FAILURE');
+  }
+
+  /**
    * @method pollAdminUpdateJobs
    * @description poll dagster job status for an admin update job until it reaches a
    * terminal state. Logs progress to the console on each tick. When the job is complete
@@ -618,7 +754,8 @@ class Utils {
 
     const intervalId = setInterval(async () => {
       const statusRes = await getRunStatus(runId);
-      const status = statusRes?.body?.data?.runOrError?.status;
+      const runOrError = statusRes?.body?.data?.runOrError;
+      const status = runOrError?.status;
 
       if (status && status !== lastStatus) {
         lastStatus = status;
@@ -629,7 +766,7 @@ class Utils {
         clearInterval(intervalId);
         console.log(`[dagster:${label}] job complete - status: ${status}`);
         if (typeof opts.onComplete === 'function') {
-          opts.onComplete(status);
+          opts.onComplete(status, runOrError?.stepStats || []);
         }
       }
     }, interval);

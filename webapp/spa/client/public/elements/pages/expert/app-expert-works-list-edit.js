@@ -49,7 +49,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       requestChangeCitation : { type : String },
       requestChangeCitationSubtext : { type : String },
       requestChangeCitationLabel : { type : String },
-      requestChangeType : { type : String }
+      requestChangeType : { type : String },
+      failedUpdates : { type : Array }
     }
   }
 
@@ -93,6 +94,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.requestChangeCitationSubtext = '';
     this.requestChangeCitationLabel = 'Work';
     this.requestChangeType = '';
+    this.failedUpdates = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -195,6 +197,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this._updateHeaderLabels();
 
     this.worksWithErrors = this.expert.invalidWorks || [];
+    this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
     if( this.worksWithErrors.length ) this.logger.error('works with errors', { expertId : this.expertId, worksWithErrors : this.worksWithErrors });
 
     this.worksWithErrors.forEach(work => {
@@ -577,8 +580,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, true);
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work visibility (show)',
-        onComplete: async (status) => {
-          if( status !== 'SUCCESS' ) {
+        onComplete: async (status, stepStats) => {
+          utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'show-work', stepStats });
+          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+          if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
             this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
@@ -674,8 +679,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, false);
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work favourite (remove)',
-        onComplete: async (status) => {
-          if( status !== 'SUCCESS' ) {
+        onComplete: async (status, stepStats) => {
+          utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'remove-highlight', stepStats });
+          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+          if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
             this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.', 'visible-publication');
@@ -775,8 +782,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, true);
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work favourite (add)',
-        onComplete: async (status) => {
-          if( status !== 'SUCCESS' ) {
+        onComplete: async (status, stepStats) => {
+          utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'add-highlight', stepStats });
+          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+          if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
             this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.', 'visible-publication');
@@ -917,8 +926,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, false);
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'work visibility (hide)',
-          onComplete: async (status) => {
-            if( status !== 'SUCCESS' ) {
+          onComplete: async (status, stepStats) => {
+            utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
+          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+            if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
               this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
@@ -1005,8 +1016,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         let res = await this.DagsterModel.rejectCitation(this.expertId, this.citationId);
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'work reject',
-          onComplete: async (status) => {
-            if( status !== 'SUCCESS' ) {
+          onComplete: async (status, stepStats) => {
+            utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
+          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+            if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
               this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected.', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
@@ -1155,6 +1168,35 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    */
   _onRequestChange() {
     this.showModal = false;
+    this.showRequestChangeModal = true;
+  }
+
+  /**
+   * @method _dismissFailedUpdate
+   * @description dismiss a failed-update entry and refresh the displayed list.
+   *
+   * @param {Object} entry - failed update entry with type, name, action
+   */
+  _dismissFailedUpdate(entry) {
+    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
+    this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+  }
+
+  /**
+   * @method _onInlineBannerHelp
+   * @description open the request-change modal pre-filled from a failed-update entry.
+   *
+   * @param {Object} entry - failed update entry
+   */
+  _onInlineBannerHelp(entry) {
+    const all = [...(this.citationsDisplayed || []), ...(this.featuredCitations || [])];
+    const c = all.find(c => (c.title || c['container-title']) === entry.name);
+    const relId = c?.relatedBy?.[0]?.['@id'];
+    const { text, subtext } = relId ? this._getCitationData(relId) : { text: entry.name, subtext: '' };
+    this.requestChangeCitation = text;
+    this.requestChangeCitationSubtext = subtext;
+    this.requestChangeCitationLabel = 'Work';
+    this.requestChangeType = utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action;
     this.showRequestChangeModal = true;
   }
 
