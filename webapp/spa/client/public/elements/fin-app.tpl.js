@@ -1,6 +1,7 @@
 import { html, css } from 'lit';
 
 import { sharedStyles } from './styles/shared-styles';
+import './components/app-request-change-modal.js';
 
 export function styles() {
   const elementStyles = css`
@@ -263,9 +264,18 @@ return html`
   <div ?hidden="${this.hideDagsterHealth || this.page !== 'expert'}" class="dagster-health-container">
     <div class="preview-info">
       <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
-      <span>Profile editing is temporarily unavailable. For urgent changes, <a href="mailto:experts@ucdavis.edu"rel="noopener">contact us</a>.</span>
+      <span>Profile editing is temporarily unavailable. For urgent changes, <a href="#" @click="${this._onDagsterDownContactUs}">contact us</a>.</span>
     </div>
   </div>
+
+  <app-request-change-modal
+    ?hidden="${!this.showDagsterDownModal}"
+    .visible="${this.showDagsterDownModal}"
+    .dagsterDown="${true}"
+    .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
+    .userEmail="${APP_CONFIG.user?.email || ''}"
+    @cancel="${() => this.showDagsterDownModal = false}">
+  </app-request-change-modal>
 
   <div class="main-content">
     <ucdlib-pages

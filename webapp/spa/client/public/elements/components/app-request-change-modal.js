@@ -13,12 +13,15 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
   static get properties() {
     return {
       visible: { type: Boolean },
+      dagsterDown: { type: Boolean },
       userName: { type: String },
       userEmail: { type: String },
       itemName: { type: String },
       itemSubtext: { type: String },
       itemLabel: { type: String },
       changeType: { type: String },
+      searchQuery: { type: String },
+      searchLabel: { type: String },
       additionalNotes: { type: String },
       submitting: { type: Boolean },
       submitted: { type: Boolean },
@@ -32,12 +35,15 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.render = render.bind(this);
 
     this.visible = false;
+    this.dagsterDown = false;
     this.userName = '';
     this.userEmail = '';
     this.itemName = '';
     this.itemSubtext = '';
     this.itemLabel = 'Item';
     this.changeType = '';
+    this.searchQuery = '';
+    this.searchLabel = '';
     this.additionalNotes = '';
     this.submitting = false;
     this.submitted = false;
@@ -50,6 +56,8 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
    */
   _onCancel() {
     this.additionalNotes = '';
+    this.searchQuery = '';
+    this.searchLabel = '';
     this.submitted = false;
     this.submitError = false;
     this.dispatchEvent(new CustomEvent('cancel', {}));
@@ -67,12 +75,29 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
 
   /**
    * @method _onChangeTypeInput
-   * @description allow user to alter the pre-selected change type
+   * @description update changeType and derive the search label for dagster-down mode
    *
    * @param {Event} e
    */
   _onChangeTypeInput(e) {
     this.changeType = e.target.value;
+    if( this.dagsterDown ) {
+      const v = this.changeType.toLowerCase();
+      if( v.includes('work') ) this.searchLabel = 'Which work?';
+      else if( v.includes('grant') ) this.searchLabel = 'Which grant?';
+      else this.searchLabel = '';
+      this.searchQuery = '';
+    }
+  }
+
+  /**
+   * @method _onSearchInput
+   * @description keep searchQuery in sync with the item search field
+   *
+   * @param {Event} e
+   */
+  _onSearchInput(e) {
+    this.searchQuery = e.target.value;
   }
 
   /**
@@ -84,9 +109,9 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.submitError = false;
 
     try {
-      const citation = this.itemSubtext
-        ? `${this.itemName}\n${this.itemSubtext}`
-        : this.itemName;
+      const citation = this.dagsterDown
+        ? this.searchQuery || ''
+        : (this.itemSubtext ? `${this.itemName}\n${this.itemSubtext}` : this.itemName);
       await this.ExpertModel.requestChange({
         name: this.userName,
         email: this.userEmail,

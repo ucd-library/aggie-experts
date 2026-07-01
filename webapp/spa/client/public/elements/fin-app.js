@@ -42,6 +42,7 @@ export default class FinApp extends Mixin(LitElement)
       currentElasticIndex : { type : String },
       hideEsIndexPreviewing : { type : Boolean },
       hideDagsterHealth : { type : Boolean },
+      showDagsterDownModal : { type : Boolean },
     }
   }
 
@@ -78,6 +79,7 @@ export default class FinApp extends Mixin(LitElement)
     this.currentElasticIndex = '';
     this.hideEsIndexPreviewing = true;
     this.hideDagsterHealth = true;
+    this.showDagsterDownModal = false;
 
     this.render = render.bind(this);
     this._init404();
@@ -503,6 +505,17 @@ export default class FinApp extends Mixin(LitElement)
   _onDagsterHealthIssue(e) {
     let healthIssue = e.detail?.healthIssue || false;
     this.hideDagsterHealth = !healthIssue;
+  }
+
+  /**
+   * @method _onDagsterDownContactUs
+   * @description open the dagster-down request-change modal when "contact us" is clicked
+   *
+   * @param {Event} e
+   */
+  _onDagsterDownContactUs(e) {
+    e.preventDefault();
+    this.showDagsterDownModal = true;
   }
 
 }

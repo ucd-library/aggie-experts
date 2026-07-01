@@ -13,6 +13,16 @@ const CHANGE_TYPE_OPTIONS = [
   'Availability settings could not be updated.'
 ];
 
+const DAGSTER_DOWN_CHANGE_TYPE_OPTIONS = [
+  'Hide a work from my profile',
+  'Show a work on my profile',
+  'Hide a grant from my profile',
+  'Show a grant on my profile',
+  'Update my availability settings',
+  'Hide or remove my profile',
+  'Other'
+];
+
 export default function render() {
   return html`
     <style>
@@ -85,6 +95,24 @@ export default function render() {
         fill: var(--color-aggie-gold);
       }
 
+      .header-section .success-icon {
+        fill: #2ecc71;
+        width: 1.5rem;
+        height: 1.5rem;
+        flex-shrink: 0;
+        cursor: default;
+      }
+
+      .header-section .success-icon:hover {
+        fill: #2ecc71;
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
       .body-section {
         padding-top: 1rem;
       }
@@ -143,7 +171,7 @@ export default function render() {
         padding-right: 2rem;
       }
 
-      select, textarea {
+      select, textarea, input[type="text"] {
         width: 100%;
         padding: 0.5rem;
         border: 1px solid var(--color-black-40);
@@ -153,7 +181,7 @@ export default function render() {
         box-sizing: border-box;
       }
 
-      textarea::placeholder {
+      textarea::placeholder, input[type="text"]::placeholder {
         font-size: 0.9rem;
         font-family: inherit;
         color: var(--color-black-60);
@@ -204,20 +232,31 @@ export default function render() {
     <div class="container">
       <div class="overlay">
         <div class="header-section">
-          <h4>Request a Profile Change</h4>
+          <div class="header-title">
+            ${this.submitted ? html`<ucdlib-icon class="success-icon" icon="ucdlib-experts:fa-check-circle"></ucdlib-icon>` : ''}
+            <h4>${this.submitted ? 'Request submitted' : 'Request a Profile Change'}</h4>
+          </div>
           <ucdlib-icon icon="ucdlib-experts:fa-xmark" @click="${this._onCancel}"></ucdlib-icon>
         </div>
 
         ${this.submitted ? html`
           <div class="body-section">
-            <p class="success-msg">Your request has been submitted. The team will follow up with you at ${this.userEmail}.</p>
+            ${this.dagsterDown ? html`
+              <p>The Aggie Experts team has been notified and will make this change when the service is restored.</p>
+            ` : html`
+              <p><strong>Your change is now live on your Aggie Experts profile.</strong></p>
+              <p>The team has been notified and will update the source data when the service is restored.</p>
+            `}
           </div>
           <div class="footer-section">
-            <button class="btn btn--primary" @click="${this._onCancel}">Close</button>
+            <button class="btn btn--primary" @click="${this._onCancel}">OK</button>
           </div>
         ` : html`
           <div class="body-section">
-            <p>Your change couldn't be saved to the source data. Submit this form to update your profile now — the team will fix the source data when the service is restored.</p>
+            <p>${this.dagsterDown
+              ? 'Submit this form for urgent profile changes. The Aggie Experts team will process your request as soon as the service is restored.'
+              : "Your change couldn't be saved to the source data. Submit this form to update your profile now — the team will fix the source data when the service is restored."
+            }</p>
 
             <div class="l-2col">
               <div class="field l-first">
@@ -242,11 +281,23 @@ export default function render() {
             <div class="field">
               <label>What do you need changed? <span class="required">*</span></label>
               <select .value="${this.changeType}" @change="${this._onChangeTypeInput}">
-                ${CHANGE_TYPE_OPTIONS.map(opt => html`
+                <option value="" ?selected="${!this.changeType}" disabled>Select a change type</option>
+                ${(this.dagsterDown ? DAGSTER_DOWN_CHANGE_TYPE_OPTIONS : CHANGE_TYPE_OPTIONS).map(opt => html`
                   <option value="${opt}" ?selected="${this.changeType === opt}">${opt}</option>
                 `)}
               </select>
             </div>
+
+            ${this.dagsterDown && this.searchLabel ? html`
+              <div class="field">
+                <label>${this.searchLabel} <span class="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder="${this.searchLabel === 'Which work?' ? 'Work name' : 'Grant name'}"
+                  .value="${this.searchQuery}"
+                  @input="${this._onSearchInput}">
+              </div>
+            ` : ''}
 
             <div class="field">
               <label>Additional notes <span class="optional">(optional)</span></label>

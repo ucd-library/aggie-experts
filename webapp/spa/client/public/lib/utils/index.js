@@ -650,16 +650,11 @@ class Utils {
     if( !cdlFailed && !esFailed ) return;
     console.warn(`[failed-update] expertId=${expertId} type=${type} action=${action} name="${name}" cdlFailed=${cdlFailed} esFailed=${esFailed}`);
 
-    const updates = this.getFailedUpdates();
-    const idx = updates.findIndex(u =>
-      u.expertId === expertId && u.type === type && u.name === name && u.action === action
+    const updates = this.getFailedUpdates().filter(u =>
+      !(u.expertId === expertId && u.type === type && u.name === name)
     );
     const entry = { expertId, type, name, action, cdlFailed, esFailed, timestamp: Date.now() };
-    if( idx >= 0 ) {
-      updates[idx] = entry;
-    } else {
-      updates.push(entry);
-    }
+    updates.push(entry);
     try {
       localStorage.setItem(this.FAILED_UPDATE_STORAGE_KEY, JSON.stringify(updates));
     } catch(e) {}
