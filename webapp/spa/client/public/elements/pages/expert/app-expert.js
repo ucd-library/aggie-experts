@@ -981,9 +981,15 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   async _checkDagsterHealth() {
-    if( APP_CONFIG.cdlServiceDown ) {
+    if( APP_CONFIG.dagsterServiceDown || APP_CONFIG.cdlServiceDown ) {
       this.dagsterHealthy = false;
-      this.dispatchEvent(new CustomEvent('dagster-health-issue', { detail: { healthIssue: true } }));
+      this.dispatchEvent(new CustomEvent('dagster-health-issue', {
+        detail: {
+          healthIssue: true,
+          dagsterDown: APP_CONFIG.dagsterServiceDown,
+          cdlDown: APP_CONFIG.cdlServiceDown
+        }
+      }));
       return;
     }
 
@@ -996,7 +1002,9 @@ export default class AppExpert extends Mixin(LitElement)
         this.dispatchEvent(
           new CustomEvent('dagster-health-issue', {
             detail : {
-              healthIssue : true
+              healthIssue : true,
+              dagsterDown: true,
+              cdlDown: APP_CONFIG.cdlServiceDown
             }
           })
         );
@@ -1007,7 +1015,9 @@ export default class AppExpert extends Mixin(LitElement)
         this.dispatchEvent(
           new CustomEvent('dagster-health-issue', {
             detail : {
-              healthIssue : false
+              healthIssue : false,
+              dagsterDown: false,
+              cdlDown: false
             }
           })
         );

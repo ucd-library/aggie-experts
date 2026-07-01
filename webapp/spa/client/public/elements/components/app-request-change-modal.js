@@ -56,6 +56,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
    */
   _onCancel() {
     this.additionalNotes = '';
+    this.changeType = '';
     this.searchQuery = '';
     this.searchLabel = '';
     this.submitted = false;
@@ -75,7 +76,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
 
   /**
    * @method _onChangeTypeInput
-   * @description update changeType and derive the search label for dagster-down mode
+   * @description update changeType and derive the search label for service-down modes
    *
    * @param {Event} e
    */

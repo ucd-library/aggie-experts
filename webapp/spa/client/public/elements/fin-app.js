@@ -43,6 +43,8 @@ export default class FinApp extends Mixin(LitElement)
       hideEsIndexPreviewing : { type : Boolean },
       hideDagsterHealth : { type : Boolean },
       showDagsterDownModal : { type : Boolean },
+      hideCdlHealth : { type : Boolean },
+      showCdlDownModal : { type : Boolean },
     }
   }
 
@@ -80,6 +82,8 @@ export default class FinApp extends Mixin(LitElement)
     this.hideEsIndexPreviewing = true;
     this.hideDagsterHealth = true;
     this.showDagsterDownModal = false;
+    this.hideCdlHealth = !(APP_CONFIG.cdlServiceDown && !APP_CONFIG.dagsterServiceDown);
+    this.showCdlDownModal = false;
 
     this.render = render.bind(this);
     this._init404();
@@ -503,8 +507,10 @@ export default class FinApp extends Mixin(LitElement)
   }
 
   _onDagsterHealthIssue(e) {
-    let healthIssue = e.detail?.healthIssue || false;
-    this.hideDagsterHealth = !healthIssue;
+    const { healthIssue, dagsterDown, cdlDown } = e.detail || {};
+    // Yellow when dagster is down (or both); blue only when CDL is down but dagster is not
+    this.hideDagsterHealth = !(healthIssue && (dagsterDown || !cdlDown));
+    this.hideCdlHealth = !(healthIssue && cdlDown && !dagsterDown);
   }
 
   /**
@@ -516,6 +522,17 @@ export default class FinApp extends Mixin(LitElement)
   _onDagsterDownContactUs(e) {
     e.preventDefault();
     this.showDagsterDownModal = true;
+  }
+
+  /**
+   * @method _onCdlDownContactUs
+   * @description open the CDL-down request-change modal when "contact us" is clicked
+   *
+   * @param {Event} e
+   */
+  _onCdlDownContactUs(e) {
+    e.preventDefault();
+    this.showCdlDownModal = true;
   }
 
 }

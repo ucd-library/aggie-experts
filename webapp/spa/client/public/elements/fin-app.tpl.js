@@ -181,7 +181,7 @@ return html`
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1rem .7rem;
+      padding: 1rem 1.5rem;
       background-color: #ffdc00;
       color: #022851;
     }
@@ -195,6 +195,30 @@ return html`
     }
 
     .dagster-health-container .preview-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+    }
+
+    .cdl-health-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      background: var(--secondary-rec-pool, #6FCFEB);
+      color: #022851;
+    }
+
+    .cdl-health-container a {
+      color: #022851;
+    }
+
+    .cdl-health-container[hidden] {
+      display: none;
+    }
+
+    .cdl-health-container .preview-info {
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -275,6 +299,21 @@ return html`
     .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
     .userEmail="${APP_CONFIG.user?.email || ''}"
     @cancel="${() => this.showDagsterDownModal = false}">
+  </app-request-change-modal>
+
+  <div ?hidden="${this.hideCdlHealth}" class="cdl-health-container">
+    <div class="preview-info">
+      <span>Profile editing is unavailable for scheduled maintenance. For urgent changes, <a href="#" @click="${this._onCdlDownContactUs}">contact us</a>.</span>
+    </div>
+  </div>
+
+  <app-request-change-modal
+    ?hidden="${!this.showCdlDownModal}"
+    .visible="${this.showCdlDownModal}"
+    .dagsterDown="${true}"
+    .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
+    .userEmail="${APP_CONFIG.user?.email || ''}"
+    @cancel="${() => this.showCdlDownModal = false}">
   </app-request-change-modal>
 
   <div class="main-content">
