@@ -214,6 +214,39 @@ export default function render() {
         font-size: 0.9rem;
       }
 
+      .applying-overlay {
+        position: absolute;
+        inset: 0;
+        border-radius: 25px;
+        background: rgba(255, 255, 255, 0.85);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        z-index: 10;
+      }
+
+      .applying-spinner {
+        width: 48px;
+        height: 48px;
+        border: 5px solid var(--color-aggie-gold-70, #FFD54F);
+        border-top-color: var(--color-aggie-gold, #FFBF00);
+        border-radius: 50%;
+        animation: modal-spin 0.75s ease infinite;
+      }
+
+      .applying-overlay span {
+        color: var(--color-aggie-blue);
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      @keyframes modal-spin {
+        from { transform: rotate(0turn); }
+        to { transform: rotate(1turn); }
+      }
+
       @media (max-width: 600px) {
         /*.autofill-row {
           flex-direction: column;
@@ -287,6 +320,12 @@ export default function render() {
     ${!this.visible ? '' : html`
     <div class="container">
       <div class="overlay">
+        ${this.applying ? html`
+          <div class="applying-overlay">
+            <div class="applying-spinner"></div>
+            <span>Applying changes, please wait...</span>
+          </div>
+        ` : ''}
         <div class="header-section">
           <div class="header-title">
             ${this.submitted ? html`<ucdlib-icon class="success-icon" icon="ucdlib-experts:fa-check-circle"></ucdlib-icon>` : ''}
@@ -404,8 +443,8 @@ export default function render() {
           </div>
 
           <div class="footer-section">
-            <button class="btn btn--invert" @click="${this._onCancel}" ?disabled="${this.submitting}">Cancel</button>
-            <button class="btn btn--primary" @click="${this._onSubmit}" ?disabled="${this.submitting}">
+            <button class="btn btn--invert" @click="${this._onCancel}" ?disabled="${this.submitting || this.applying}">Cancel</button>
+            <button class="btn btn--primary" @click="${this._onSubmit}" ?disabled="${this.submitting || this.applying}">
               ${this.submitting ? 'Submitting...' : 'Submit Request'}
             </button>
           </div>

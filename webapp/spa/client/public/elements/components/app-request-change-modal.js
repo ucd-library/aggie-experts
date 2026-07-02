@@ -35,6 +35,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
       mediaInterviews: { type: Boolean },
       additionalNotes: { type: String },
       submitting: { type: Boolean },
+      applying: { type: Boolean },
       submitted: { type: Boolean },
       submitError: { type: Boolean }
     };
@@ -68,6 +69,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.mediaInterviews = false;
     this.additionalNotes = '';
     this.submitting = false;
+    this.applying = false;
     this.submitted = false;
     this.submitError = false;
   }
@@ -96,6 +98,8 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
    * @description close the modal and reset state
    */
   _onCancel() {
+    const shouldReload = this.cdlDown && this.submitted;
+
     this.additionalNotes = '';
     this.changeType = '';
     this.searchQuery = '';
@@ -109,6 +113,10 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.submitted = false;
     this.submitError = false;
     this.dispatchEvent(new CustomEvent('cancel', {}));
+
+    if( shouldReload ) {
+      window.location.reload();
+    }
   }
 
   /**
@@ -217,35 +225,90 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
 
   /**
    * @method _onSubmit
-   * @description submit the change request; in cdlDown mode also applies the change directly
+   * @description submit the change request; in cdlDown mode applies the change directly
+   * and waits for the dagster ES job to complete before advancing to the success screen
    */
   async _onSubmit() {
     this.submitting = true;
     this.submitError = false;
 
     try {
-      if( this.cdlDown ) {
-        await this._applyChange();
-      }
-      if( this.cdlDown && this._isAvailability() ) {
-        await this._applyAvailabilityChange();
-      }
-
       const citation = this._buildCitation();
 
-      await this.ExpertModel.requestChange({
-        name: this.userName,
-        email: this.userEmail,
-        citation,
-        changeType: this.changeType,
-        notes: this.additionalNotes
-      });
+      if( this.cdlDown ) {
+        let dagsterRes;
+        if( this._isAvailability() ) {
+          dagsterRes = await this._applyAvailabilityChange();
+        } else {
+          dagsterRes = await this._applyChange();
+        }
+
+        // Send the slack notification immediately (fire and forget)
+        this.ExpertModel.requestChange({
+          name: this.userName,
+          email: this.userEmail,
+          citation,
+          changeType: this.changeType,
+          notes: this.additionalNotes
+        }).catch(() => {});
+
+        // Poll dagster until the ES step reaches a terminal state, then show success
+        this.submitting = false;
+        this.applying = true;
+        await this._pollUntilComplete(dagsterRes);
+        this.applying = false;
+      } else {
+        await this.ExpertModel.requestChange({
+          name: this.userName,
+          email: this.userEmail,
+          citation,
+          changeType: this.changeType,
+          notes: this.additionalNotes
+        });
+      }
+
       this.submitted = true;
     } catch(e) {
+      this.applying = false;
       this.submitError = true;
     } finally {
       this.submitting = false;
+      this.applying = false;
     }
+  }
+
+  /**
+   * @method _pollUntilComplete
+   * @description poll dagster run status until a terminal state is reached
+   *
+   * @param {Object} dagsterRes - response from a DagsterModel call containing a runId
+   * @returns {Promise<String>} resolves with the terminal status string
+   */
+  _pollUntilComplete(dagsterRes) {
+    return new Promise((resolve) => {
+      const runId = dagsterRes?.body?.data?.launchRun?.run?.runId;
+      if( !runId ) {
+        console.warn('[dagster:cdl-modal] no run ID in response, skipping poll', dagsterRes?.body);
+        resolve('UNKNOWN');
+        return;
+      }
+
+      const terminalStates = ['SUCCESS', 'FAILURE', 'CANCELED'];
+      const intervalId = setInterval(async () => {
+        try {
+          const statusRes = await this.DagsterModel.getLastRunForId(runId);
+          const status = statusRes?.body?.data?.runOrError?.status;
+          if( terminalStates.includes(status) ) {
+            clearInterval(intervalId);
+            // CDL is known-down so CDL step failures are expected — always resolve
+            resolve(status);
+          }
+        } catch(err) {
+          clearInterval(intervalId);
+          resolve('UNKNOWN');
+        }
+      }, 5000);
+    });
   }
 
   /**
@@ -295,31 +358,33 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
       mediaInterviews: !this.mediaInterviews
     };
     const labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
-    await this.DagsterModel.updateExpertAvailability(this.expertId, labels);
+    return this.DagsterModel.updateExpertAvailability(this.expertId, labels);
   }
 
   /**
    * @method _applyChange
    * @description in cdlDown mode, call the appropriate DagsterModel method to apply the change
+   *
+   * @returns {Promise<Object>} dagster response containing the runId
    */
   async _applyChange() {
     const v = this.changeType.toLowerCase();
     const id = this.selectedItem?.id;
 
     if( v.includes('hide a work') && id ) {
-      await this.DagsterModel.updateCitationVisibility(this.expertId, id, false);
+      return this.DagsterModel.updateCitationVisibility(this.expertId, id, false);
     } else if( v.includes('show a work') && id ) {
-      await this.DagsterModel.updateCitationVisibility(this.expertId, id, true);
+      return this.DagsterModel.updateCitationVisibility(this.expertId, id, true);
     } else if( v.includes('hide a grant') && id ) {
-      await this.DagsterModel.updateGrantVisibility(this.expertId, id, false);
+      return this.DagsterModel.updateGrantVisibility(this.expertId, id, false);
     } else if( v.includes('show a grant') && id ) {
-      await this.DagsterModel.updateGrantVisibility(this.expertId, id, true);
+      return this.DagsterModel.updateGrantVisibility(this.expertId, id, true);
     } else if( v.includes('hide my profile') ) {
-      await this.DagsterModel.updateExpertVisibility(this.expertId, false);
+      return this.DagsterModel.updateExpertVisibility(this.expertId, false);
     } else if( v.includes('show my profile') ) {
-      await this.DagsterModel.updateExpertVisibility(this.expertId, true);
+      return this.DagsterModel.updateExpertVisibility(this.expertId, true);
     } else if( v.includes('remove my profile') ) {
-      await this.DagsterModel.deleteExpert(this.expertId);
+      return this.DagsterModel.deleteExpert(this.expertId);
     }
   }
 
