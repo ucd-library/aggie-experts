@@ -45,6 +45,7 @@ export default class FinApp extends Mixin(LitElement)
       showDagsterDownModal : { type : Boolean },
       hideCdlHealth : { type : Boolean },
       showCdlDownModal : { type : Boolean },
+      pageExpertId : { type : String },
     }
   }
 
@@ -84,6 +85,7 @@ export default class FinApp extends Mixin(LitElement)
     this.showDagsterDownModal = false;
     this.hideCdlHealth = !(APP_CONFIG.cdlServiceDown && !APP_CONFIG.dagsterServiceDown);
     this.showCdlDownModal = false;
+    this.pageExpertId = '';
 
     this.render = render.bind(this);
     this._init404();
@@ -172,6 +174,15 @@ export default class FinApp extends Mixin(LitElement)
     }
 
     this._validateLoggedInUser();
+
+    if( e.location.path[0] === 'expert' ) {
+      const subpages = new Set(['works', 'works-edit', 'grants', 'grants-edit']);
+      const raw = e.location.pathname.substr(1);
+      const last = e.location.path[e.location.path.length - 1];
+      this.pageExpertId = subpages.has(last)
+        ? raw.substring(0, raw.lastIndexOf('/'))
+        : raw;
+    }
 
     let page = e.location.page;
     let route = e.location.path[0] === 'expert' ? 'expert' : (e.location.page || 'home');

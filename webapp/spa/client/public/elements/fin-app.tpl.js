@@ -285,7 +285,7 @@ return html`
     </a>
   </div>
 
-  <div ?hidden="${this.hideDagsterHealth || this.page !== 'expert'}" class="dagster-health-container">
+  <div ?hidden="${this.hideDagsterHealth || this.page !== 'expert' || (this.pageExpertId !== APP_CONFIG.user?.expertId && this.hideEdit)}" class="dagster-health-container">
     <div class="preview-info">
       <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
       <span>Profile editing is temporarily unavailable. For urgent changes, <a href="#" @click="${this._onDagsterDownContactUs}">contact us</a>.</span>
@@ -296,12 +296,13 @@ return html`
     ?hidden="${!this.showDagsterDownModal}"
     .visible="${this.showDagsterDownModal}"
     .dagsterDown="${true}"
+    .expertId="${this.pageExpertId}"
     .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
     .userEmail="${APP_CONFIG.user?.email || ''}"
     @cancel="${() => this.showDagsterDownModal = false}">
   </app-request-change-modal>
 
-  <div ?hidden="${this.hideCdlHealth}" class="cdl-health-container">
+  <div ?hidden="${this.hideCdlHealth || this.page !== 'expert' || (this.pageExpertId !== APP_CONFIG.user?.expertId && this.hideEdit)}" class="cdl-health-container">
     <div class="preview-info">
       <span>Profile editing is unavailable for scheduled maintenance. For urgent changes, <a href="#" @click="${this._onCdlDownContactUs}">contact us</a>.</span>
     </div>
@@ -311,6 +312,8 @@ return html`
     ?hidden="${!this.showCdlDownModal}"
     .visible="${this.showCdlDownModal}"
     .dagsterDown="${true}"
+    .cdlDown="${true}"
+    .expertId="${this.pageExpertId}"
     .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
     .userEmail="${APP_CONFIG.user?.email || ''}"
     @cancel="${() => this.showCdlDownModal = false}">

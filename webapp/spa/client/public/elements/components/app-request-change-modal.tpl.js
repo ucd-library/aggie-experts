@@ -3,6 +3,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { sharedStyles } from '../styles/shared-styles';
 import buttonsCss from '@ucd-lib/theme-sass/2_base_class/_buttons.css';
 import layoutCss from '@ucd-lib/theme-sass/5_layout/_index.css';
+import '@ucd-lib/theme-elements/brand/ucd-theme-slim-select/ucd-theme-slim-select.js';
 
 const CHANGE_TYPE_OPTIONS = [
   'Work visibility could not be updated.',
@@ -19,7 +20,8 @@ const DAGSTER_DOWN_CHANGE_TYPE_OPTIONS = [
   'Hide a grant from my profile',
   'Show a grant on my profile',
   'Update my availability settings',
-  'Hide or remove my profile',
+  'Hide my profile from public view',
+  'Remove my profile from Aggie Experts',
   'Other'
 ];
 
@@ -226,6 +228,59 @@ export default function render() {
           width: 100%;
         }
       }
+
+      .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        font-weight: normal;
+        color: var(--color-black-80);
+        cursor: pointer;
+        margin-bottom: 0;
+      }
+
+      .checkbox-label.availability {
+        font-weight: normal;
+      }
+
+      .checkbox-label input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        min-width: 20px;
+        border: 1px solid var(--ucd-blue-70, #73ABDD);
+        background: var(--white, #FFF);
+        flex-shrink: 0;
+        cursor: pointer;
+        position: relative;
+        margin: 0;
+        margin-right: .5rem;
+      }
+
+      .checkbox-label input[type="checkbox"]:checked {
+        background: var(--ucd-blue-70, #73ABDD);
+      }
+
+      .checkbox-label input[type="checkbox"]:checked::after {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 2px;
+        width: 6px;
+        height: 11px;
+        border: 2px solid white;
+        border-top: none;
+        border-left: none;
+        transform: rotate(45deg);
+      }
     </style>
 
     ${!this.visible ? '' : html`
@@ -241,7 +296,10 @@ export default function render() {
 
         ${this.submitted ? html`
           <div class="body-section">
-            ${this.dagsterDown ? html`
+            ${this.cdlDown ? html`
+              <p><strong>Your change is now live on your Aggie Experts profile.</strong></p>
+              <p>The team has been notified and will update the source data when the service is restored.</p>
+            ` : this.dagsterDown ? html`
               <p>The Aggie Experts team has been notified and will make this change when the service is restored.</p>
             ` : html`
               <p><strong>Your change is now live on your Aggie Experts profile.</strong></p>
@@ -288,14 +346,45 @@ export default function render() {
               </select>
             </div>
 
+            ${this.dagsterDown && this.changeType.toLowerCase().includes('availability') ? html`
+              <div class="field">
+                <label style="margin-bottom: 1rem;">I would like to be open to: <span class="required">*</span></label>
+                <div class="checkbox-group">
+                  <label class="checkbox-label availability">
+                    <input type="checkbox" .checked="${this.collabProjects}" @change="${e => this.collabProjects = e.target.checked}">
+                    Collaborative Projects
+                  </label>
+                  <label class="checkbox-label availability">
+                    <input type="checkbox" .checked="${this.commPartner}" @change="${e => this.commPartner = e.target.checked}">
+                    Community Partnerships
+                  </label>
+                  <label class="checkbox-label availability">
+                    <input type="checkbox" .checked="${this.industProjects}" @change="${e => this.industProjects = e.target.checked}">
+                    Industry Projects
+                  </label>
+                  <label class="checkbox-label availability">
+                    <input type="checkbox" .checked="${this.mediaInterviews}" @change="${e => this.mediaInterviews = e.target.checked}">
+                    Media Interviews
+                  </label>
+                </div>
+              </div>
+            ` : ''}
+
             ${this.dagsterDown && this.searchLabel ? html`
               <div class="field">
                 <label>${this.searchLabel} <span class="required">*</span></label>
-                <input
-                  type="text"
-                  placeholder="${this.searchLabel === 'Which work?' ? 'Work name' : 'Grant name'}"
-                  .value="${this.searchQuery}"
-                  @input="${this._onSearchInput}">
+                ${this.searchItemsLoading ? html`
+                  <select disabled><option>Loading...</option></select>
+                ` : html`
+                  <ucd-theme-slim-select @change="${this._onSearchChange}">
+                    <select>
+                      <option value="">Select ${this.searchLabel === 'Which work?' ? 'a work' : 'a grant'}</option>
+                      ${this.searchItems.map(item => html`
+                        <option value="${item.id}" ?selected="${this.selectedItem?.id === item.id}">${item.label}</option>
+                      `)}
+                    </select>
+                  </ucd-theme-slim-select>
+                `}
               </div>
             ` : ''}
 
