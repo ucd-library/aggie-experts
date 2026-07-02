@@ -402,7 +402,7 @@ return html`
               <input type="checkbox" data-id="${grant['@id']}" id="select-${index}" name="select-${index}" value="select-${index}" @click="${this._selectChecked}">
             </div>
           </div>
-          ${(this.failedUpdates || []).filter(u => u.name === grant.name).map(entry => {
+          ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === grant.name).map(entry => {
             const isInfoOnly = !entry.cdlFailed && entry.esFailed;
             return html`
               <div class="inline-banner-wrapper">
@@ -417,7 +417,7 @@ return html`
                 </app-status-banner>
               </div>
             `;
-          })}
+          }) : ''}
         `
         )}
 
@@ -465,7 +465,7 @@ return html`
               <input type="checkbox" data-id="${grant['@id']}" id="select-${index}" name="select-${index}" value="select-${index}" @click="${this._selectChecked}">
             </div>
           </div>
-          ${(this.failedUpdates || []).filter(u => u.name === grant.name).map(entry => {
+          ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === grant.name).map(entry => {
             const isInfoOnly = !entry.cdlFailed && entry.esFailed;
             return html`
               <div class="inline-banner-wrapper">
@@ -480,7 +480,7 @@ return html`
                 </app-status-banner>
               </div>
             `;
-          })}
+          }) : ''}
         `
         )}
 

@@ -45,6 +45,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       worksWithErrors : { type : Array },
       showingAllHighlights : { type : Boolean },
       isAdmin : { type : Boolean },
+      canEditDirectly : { type : Boolean },
       showRequestChangeModal : { type : Boolean },
       requestChangeCitation : { type : String },
       requestChangeCitationSubtext : { type : String },
@@ -85,6 +86,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.errorMode = false;
     this.downloads = [];
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.canEditDirectly = false;
     this.isVisible = true;
     this.manageWorksLabel = 'Manage My Works';
     this.worksWithErrors = [];
@@ -139,7 +141,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
-    this.isAdmin = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId) || (APP_CONFIG.user?.roles || []).includes('admin');
+    this.canEditDirectly = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
+    this.isAdmin = this.canEditDirectly || (APP_CONFIG.user?.roles || []).includes('admin');
 
     if( !expertId || !this.isAdmin ) this.dispatchEvent(new CustomEvent("show-404", {}));
 

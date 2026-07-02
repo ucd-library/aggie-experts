@@ -951,7 +951,7 @@ return html`
       const worksItems = (this.failedUpdates || []).filter(u => u.type === 'work');
       const grantsItems = (this.failedUpdates || []).filter(u => u.type === 'grant');
       const availItems = (this.failedUpdates || []).filter(u => u.type === 'availability');
-      if( !worksItems.length && !grantsItems.length && !availItems.length ) return '';
+      if( !this.canEdit || (!worksItems.length && !grantsItems.length && !availItems.length) ) return '';
       const toListItems = entries => entries.map(u => ({
         label: u.name,
         subtext: utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action

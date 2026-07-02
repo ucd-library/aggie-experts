@@ -409,7 +409,7 @@ return html`
                 @reject-work="${this._rejectWork}"
                 @select-checked="${this._selectChecked}">
               </edit-work-result-row>
-              ${(this.failedUpdates || []).filter(u => u.name === (cite.title || cite['container-title'] || '')).map(entry => {
+              ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === (cite.title || cite['container-title'] || '')).map(entry => {
                 const isInfoOnly = !entry.cdlFailed && entry.esFailed;
                 return html`
                   <div class="inline-banner-wrapper">
@@ -424,7 +424,7 @@ return html`
                     </app-status-banner>
                   </div>
                 `;
-              })}
+              }) : ''}
             </div>
           `
           )}
@@ -467,7 +467,7 @@ return html`
             @reject-work="${this._rejectWork}"
             @select-checked="${this._selectChecked}">
           </edit-work-result-row>
-          ${(this.failedUpdates || []).filter(u => u.name === (cite.title || cite['container-title'] || '')).map(entry => {
+          ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === (cite.title || cite['container-title'] || '')).map(entry => {
             const isInfoOnly = !entry.cdlFailed && entry.esFailed;
             return html`
               <div class="inline-banner-wrapper">
@@ -482,7 +482,7 @@ return html`
                 </app-status-banner>
               </div>
             `;
-          })}
+          }) : ''}
         `
         )}
 

@@ -323,7 +323,7 @@ export default function render() {
         ${this.applying ? html`
           <div class="applying-overlay">
             <div class="applying-spinner"></div>
-            <span>Applying changes, please wait...</span>
+            <span>Submitting request, please wait...</span>
           </div>
         ` : ''}
         <div class="header-section">

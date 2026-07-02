@@ -45,7 +45,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       requestChangeCitationSubtext : { type : String },
       requestChangeCitationLabel : { type : String },
       requestChangeType : { type : String },
-      failedUpdates : { type : Array }
+      failedUpdates : { type : Array },
+      canEditDirectly : { type : Boolean }
     }
   }
 
@@ -79,6 +80,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.errorMode = false;
     this.downloads = [];
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.canEditDirectly = false;
     this.isVisible = true;
     this.manageGrantsLabel = 'Manage My Grants';
     this.grantsWithErrors = [];
@@ -134,6 +136,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/grants-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
     let canEdit = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
+    this.canEditDirectly = canEdit;
 
     if( !expertId || !canEdit ) this.dispatchEvent(new CustomEvent("show-404", {}));
     if( expertId === this.expertId || !canEdit ) return;
