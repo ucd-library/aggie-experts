@@ -143,17 +143,22 @@ class DagsterAPI {
     if (!expertId) throw new Error('expertId is required');
 
     const cdlEnabled = opts.cdl !== 'no';
-    const sharedConfig = {
+    const esAndCdlConfig = {
       expert_id: expertId,
       ...(opts.visibility && { visibility: opts.visibility }),
       ...(opts.delete && { delete: opts.delete }),
     };
+    // UpdateExpertPgConfig does not have a delete field, so omit it for postgres
+    const pgConfig = {
+      expert_id: expertId,
+      ...(opts.visibility && { visibility: opts.visibility }),
+    };
 
     const runConfig = {
       ops: {
-        update_expert_es: { config: sharedConfig },
-        update_expert_cdl: { config: { ...sharedConfig, cdl_enabled: cdlEnabled } },
-        update_expert_postgres: { config: sharedConfig },
+        update_expert_es: { config: esAndCdlConfig },
+        update_expert_cdl: { config: { ...esAndCdlConfig, cdl_enabled: cdlEnabled } },
+        update_expert_postgres: { config: pgConfig },
       },
     };
 

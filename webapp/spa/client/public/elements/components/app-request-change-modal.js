@@ -28,6 +28,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
       searchItems: { type: Array },
       searchItemsLoading: { type: Boolean },
       selectedItem: { type: Object },
+      initialAvailability: { type: Object },
       collabProjects: { type: Boolean },
       commPartner: { type: Boolean },
       industProjects: { type: Boolean },
@@ -43,6 +44,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     super();
     this._injectModel('ExpertModel', 'DagsterModel');
     this.render = render.bind(this);
+    this._slimSelectColorSheet = null;
 
     this.visible = false;
     this.dagsterDown = false;
@@ -59,6 +61,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.searchItems = [];
     this.searchItemsLoading = false;
     this.selectedItem = null;
+    this.initialAvailability = null;
     this.collabProjects = false;
     this.commPartner = false;
     this.industProjects = false;
@@ -67,6 +70,25 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.submitting = false;
     this.submitted = false;
     this.submitError = false;
+  }
+
+  /**
+   * @method updated
+   * @description inject a color override into slim-select's shadow root after each render
+   * to match the plain <select> text color (slim-select hardcodes UCD blue internally)
+   */
+  updated() {
+    const slimSelect = this.shadowRoot?.querySelector('ucd-theme-slim-select');
+    if( slimSelect?.shadowRoot && !this._slimSelectColorSheet ) {
+      this._slimSelectColorSheet = new CSSStyleSheet();
+      this._slimSelectColorSheet.replaceSync('.ss-main { color: inherit !important; }');
+    }
+    if( slimSelect?.shadowRoot && this._slimSelectColorSheet ) {
+      const sheets = slimSelect.shadowRoot.adoptedStyleSheets;
+      if( !sheets.includes(this._slimSelectColorSheet) ) {
+        slimSelect.shadowRoot.adoptedStyleSheets = [...sheets, this._slimSelectColorSheet];
+      }
+    }
   }
 
   /**
@@ -120,6 +142,13 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.searchQuery = '';
     this.searchItems = [];
     this.selectedItem = null;
+
+    if( v.includes('availability') && this.initialAvailability ) {
+      this.collabProjects = this.initialAvailability.collabProjects || false;
+      this.commPartner = this.initialAvailability.commPartner || false;
+      this.industProjects = this.initialAvailability.industProjects || false;
+      this.mediaInterviews = this.initialAvailability.mediaInterviews || false;
+    }
 
     if( isWork || isGrant ) {
       await this._loadSearchItems(isWork ? 'work' : 'grant');
@@ -195,7 +224,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.submitError = false;
 
     try {
-      if( this.cdlDown && this.selectedItem ) {
+      if( this.cdlDown ) {
         await this._applyChange();
       }
       if( this.cdlDown && this._isAvailability() ) {
@@ -275,15 +304,22 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
    */
   async _applyChange() {
     const v = this.changeType.toLowerCase();
-    const id = this.selectedItem.id;
-    if( v.includes('hide a work') ) {
+    const id = this.selectedItem?.id;
+
+    if( v.includes('hide a work') && id ) {
       await this.DagsterModel.updateCitationVisibility(this.expertId, id, false);
-    } else if( v.includes('show a work') ) {
+    } else if( v.includes('show a work') && id ) {
       await this.DagsterModel.updateCitationVisibility(this.expertId, id, true);
-    } else if( v.includes('hide a grant') ) {
+    } else if( v.includes('hide a grant') && id ) {
       await this.DagsterModel.updateGrantVisibility(this.expertId, id, false);
-    } else if( v.includes('show a grant') ) {
+    } else if( v.includes('show a grant') && id ) {
       await this.DagsterModel.updateGrantVisibility(this.expertId, id, true);
+    } else if( v.includes('hide my profile') ) {
+      await this.DagsterModel.updateExpertVisibility(this.expertId, false);
+    } else if( v.includes('show my profile') ) {
+      await this.DagsterModel.updateExpertVisibility(this.expertId, true);
+    } else if( v.includes('remove my profile') ) {
+      await this.DagsterModel.deleteExpert(this.expertId);
     }
   }
 

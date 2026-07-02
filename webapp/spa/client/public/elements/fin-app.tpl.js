@@ -297,6 +297,7 @@ return html`
     .visible="${this.showDagsterDownModal}"
     .dagsterDown="${true}"
     .expertId="${this.pageExpertId}"
+    .initialAvailability="${this.expertAvailability}"
     .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
     .userEmail="${APP_CONFIG.user?.email || ''}"
     @cancel="${() => this.showDagsterDownModal = false}">
@@ -314,6 +315,7 @@ return html`
     .dagsterDown="${true}"
     .cdlDown="${true}"
     .expertId="${this.pageExpertId}"
+    .initialAvailability="${this.expertAvailability}"
     .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
     .userEmail="${APP_CONFIG.user?.email || ''}"
     @cancel="${() => this.showCdlDownModal = false}">

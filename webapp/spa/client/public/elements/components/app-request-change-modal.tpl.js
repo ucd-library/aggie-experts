@@ -21,6 +21,7 @@ const DAGSTER_DOWN_CHANGE_TYPE_OPTIONS = [
   'Show a grant on my profile',
   'Update my availability settings',
   'Hide my profile from public view',
+  'Show my profile in public view',
   'Remove my profile from Aggie Experts',
   'Other'
 ];
