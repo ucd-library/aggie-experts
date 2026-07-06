@@ -1,3 +1,9 @@
+// Browse "name" search template.
+// Powers the /browse pages (experts, grants, works): letter buckets, all-results
+// mode, affiliation/status/type/availability/date filters, and the date histogram
+// aggregations. Consumed both by the webapp (via verify_template) and by the
+// `experts es load-search-template` CLI / dagster reload_search_template job.
+
 // Sort key: 0 for A-Z items, 1 for # items — used when sortNumericLast param is set.
 // name.first stores 'other' (not '1') for non-alpha names due to the starts_with normalizer's
 // non_letter_filter which replaces any non-letter first char with the literal string 'other'.
@@ -95,7 +101,7 @@ const source = `{
   }
 }`;
 
-module.exports = {
+const template = {
   id: "name",
   script: {
     lang: "mustache",
@@ -103,3 +109,5 @@ module.exports = {
     params: { p: "A" }
   }
 };
+
+export default template;

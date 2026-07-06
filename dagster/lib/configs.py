@@ -43,7 +43,8 @@ class SetAliasConfig(Config):
 
 
 class ReloadSearchTemplateConfig(Config):
-    template: str = Field('complete', description="Search template name to load into Elasticsearch")
+    template: str = Field('all', description="Search template name to load into Elasticsearch, or 'all' for every registered template")
+    replace: bool = Field(True, description="Overwrite templates that already exist in Elasticsearch")
 
 
 class SlackNotifyConfig(Config):

@@ -192,14 +192,19 @@ program
 
 program
   .command('load-search-template')
-  .description('Load search template script into Elasticsearch')
+  .description('Load search template script(s) into Elasticsearch')
   .option('-t, --template <name>', 'Template name to load (default: complete)', 'complete')
-  .option('--replace', 'Replace existing template if it exists')
+  .option('-a, --all', 'Load all registered search templates')
+  .option('--replace', 'Replace existing template(s) if they exist')
   .action(async (opts={}) => {
     try {
-      await Elasticsearch.ensureSearchScript(opts);
+      if( opts.all ) {
+        await Elasticsearch.ensureAllSearchScripts(opts);
+      } else {
+        await Elasticsearch.ensureSearchScript(opts);
+      }
     } catch (error) {
-      logger.error(`Error loading search template ${opts.template}:`, error.message);
+      logger.error(`Error loading search template ${opts.all ? '(all)' : opts.template}:`, error.message);
       process.exit(1);
     }
   });

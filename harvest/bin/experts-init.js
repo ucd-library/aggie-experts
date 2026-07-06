@@ -27,7 +27,7 @@ program
     }
 
     try {
-      await Elasticsearch.ensureSearchScript({template: 'complete'});
+      await Elasticsearch.ensureAllSearchScripts();
     } catch (error) {
       errors.push(`Error loading ElasticSearch search template: ${error.message}`);
     }
