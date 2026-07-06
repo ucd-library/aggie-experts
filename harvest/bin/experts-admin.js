@@ -220,15 +220,41 @@ update
     const patchCdl = isWork ? patchWorkCdlVisibility : patchGrantCdlVisibility;
     const patchPg = isWork ? patchWorkPgVisibility : patchGrantPgVisibility;
 
-    if (doEs) await patchEs({ expertModel, patch, expertId, logger, config });
-    if (doCdl) await patchCdl({ expertModel, patch, expertId, logger, config });
+    const errors = [];
+
+    if (doEs) {
+      try {
+        await patchEs({ expertModel, patch, expertId, logger, config });
+      } catch (e) {
+        logger.error({ error: e.message }, `Elasticsearch update failed for ${expertId}`);
+        errors.push({ step: 'elasticsearch', message: e.message });
+      }
+    }
+
+    if (doCdl) {
+      try {
+        await patchCdl({ expertModel, patch, expertId, logger, config });
+      } catch (e) {
+        logger.error({ error: e.message }, `CDL update failed for ${expertId}`);
+        errors.push({ step: 'cdl', message: e.message });
+      }
+    }
+
     if (doPg) {
       const pgClient = new PgClient();
       try {
         await patchPg({ pgClient, patch, expertId, logger });
+      } catch (e) {
+        logger.error({ error: e.message }, `Postgres update failed for ${expertId}`);
+        errors.push({ step: 'postgres', message: e.message });
       } finally {
         await pgClient.end();
       }
+    }
+
+    if (errors.length > 0) {
+      logger.error(JSON.stringify({ status: 'error', expertId, relationshipId, type, errors }));
+      process.exit(1);
     }
 
     logger.info(JSON.stringify({ status: 'ok', expertId, relationshipId, type }));

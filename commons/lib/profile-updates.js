@@ -884,8 +884,9 @@ async function patchWorkEsVisibility({ expertModel, patch, expertId, logger, con
 			patch.objectId = nodeId;
 		}
 	} catch (e) {
-		console.error(e.message);
-		return 404;
+		e.message = `relatedBy[${rid}] not found in expert ${expertId}: ${e.message}`;
+		e.status = e.status || 500;
+		throw e;
 	}
 
 	if (!Array.isArray(node.relatedBy)) {
@@ -939,8 +940,9 @@ async function patchWorkCdlVisibility({ expertModel, patch, expertId, logger, co
 			patch.objectId = node['@id'].replace('ark:/87287/d7mh2m/publication/', '');
 		}
 	} catch (e) {
-		console.error(e.message);
-		return 404;
+		e.message = `relatedBy[${rid}] not found in expert ${expertId}: ${e.message}`;
+		e.status = e.status || 500;
+		throw e;
 	}
 
 	const cdl_user = await impersonateCdlUser(expert, config.experts.cdl.authorship);
