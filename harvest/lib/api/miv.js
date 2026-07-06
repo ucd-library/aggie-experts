@@ -465,10 +465,11 @@ class MivApi {
       );
 
       // Clear identity columns. Profile columns are managed by SitefarmApi.purge.
+      // expert_id is the primary key and the lookup key both purges (and a future
+      // re-load) match on, so it is retained — the row survives as a tombstone.
       await pgClient.query(
         `UPDATE ${this.schema}."user"
-         SET expert_id       = NULL,
-             ucd_person_uuid = NULL,
+         SET ucd_person_uuid = NULL,
              iam_id          = NULL,
              display_name    = NULL
          WHERE expert_id = $1`,
