@@ -100,9 +100,20 @@ def get_current_es_state(context) -> None:
     group_name="elasticsearch"
 )
 def reload_search_template(context, config: ReloadSearchTemplateConfig) -> None:
-    """Reload the mustache search template into Elasticsearch."""
-    exec(["experts", "es", "load-search-template", "--template", config.template])
-    context.add_output_metadata({"template": config.template})
+    """Reload the mustache search template(s) into Elasticsearch.
+
+    Defaults to reloading every registered template (browse `name` + search
+    `complete`) with replace, so template changes actually propagate.
+    """
+    cmd = ["experts", "es", "load-search-template"]
+    if config.template == "all":
+        cmd.append("--all")
+    else:
+        cmd += ["--template", config.template]
+    if config.replace:
+        cmd.append("--replace")
+    exec(cmd)
+    context.add_output_metadata({"template": config.template, "replace": config.replace})
     return None
 
 

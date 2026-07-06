@@ -369,6 +369,22 @@ class ElasticsearchWrapper {
   }
 
   /**
+   * @function ensureAllSearchScripts
+   * @description Load every registered search template into Elasticsearch.
+   * Use replace:true to overwrite existing stored scripts (e.g. after a template
+   * change) — otherwise existing templates are left untouched.
+   *
+   * @param {Object} opts
+   * @param {Boolean} opts.replace - overwrite existing templates
+   * @returns {Promise}
+   */
+  async ensureAllSearchScripts(opts={}) {
+    for( const template of Object.keys(this.searchTemplates) ) {
+      await this.ensureSearchScript({ template, replace: opts.replace });
+    }
+  }
+
+  /**
    * @function deleteSearchScript
    * @description Delete a stored script from Elasticsearch
    * 

@@ -1,11 +1,14 @@
 const keycloak = require('../../lib/keycloak');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-const template = require('../base/template/name.js');
 const {
   config,
   ExpertsKcAdminClient,
+  Elasticsearch,
 } = require('@ucd-lib/experts-commons');
+
+// browse "name" template — canonical definition lives in commons search-templates registry
+const template = Elasticsearch.searchTemplates['name'];
 
 let AdminClient, MIVJWKSClient;
 
