@@ -535,6 +535,7 @@ return html`
 
     @media (max-width: 992px) {
       .browse-container {
+        width: 90%;
         padding-right: 0;
         padding-left: 0;
         gap: 0rem 2rem;
@@ -610,6 +611,7 @@ return html`
       .refine-search-mobile {
         display: block;
         width: 100%;
+        padding-left: .25rem;
       }
     }
 
