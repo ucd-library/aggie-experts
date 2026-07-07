@@ -1050,7 +1050,7 @@ return html`
       ` : ''}
 
         ${this._renderResults()}
-        ${this.displayedResults.length === 0 ? html`<p class="no-results">0 results</p>          
+        ${!this.loading && this.displayedResults.length === 0 ? html`<p class="no-results">0 results</p>
             ` : ''}
 
         <ucd-theme-pagination

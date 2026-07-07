@@ -27,6 +27,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     return {
       browseType : { type : String, attribute : 'browse-type' },
       letter : { type : String },
+      loading : { type : Boolean },
       displayedResults : { type : Array },
       resultsPerPage  : { type : Number },
       currentPage : { type : Number },
@@ -62,6 +63,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
 
     this.browseType = '';
     this.letter = '';
+    this.loading = true;
     this.displayedResults = [];
     this.resultsPerPage = 25;
     this.currentPage = 1;
@@ -157,6 +159,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.resultsPerPage = parseInt(resultsPerPage) ? parseInt(resultsPerPage) : 25;
 
     this.displayedResults = [];
+    this.loading = true;
 
     const filters = this._buildFilters();
 
@@ -224,7 +227,9 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {Promise}
    */
   _onBrowseExpertsUpdate(e) {
+    if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
+    this.loading = false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -244,7 +249,9 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {Promise}
    */
   _onBrowseGrantsUpdate(e) {
+    if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
+    this.loading = false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -264,7 +271,9 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {Promise}
    */
   _onBrowseWorksUpdate(e) {
+    if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
+    this.loading = false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -786,7 +795,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
         </div>
       ` : ''}
 
-      ${this.displayedResults.length > 0 ? html`
+      ${this.loading || this.displayedResults.length > 0 ? html`
         <!-- Date filter -->
         <div class="range-filter-container">
           <hr class="search-seperator">
