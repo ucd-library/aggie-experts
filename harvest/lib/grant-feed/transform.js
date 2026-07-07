@@ -514,13 +514,13 @@ export function buildAllRows(json) {
 
 /**
  * Serialize a row array to a CSV string with the supplied header order.
- * csv-stringify handles quoting per RFC 4180. We force CRLF line endings
- * because Fuseki's SPARQL CSV output (which the legacy pipeline passed
- * through unchanged) uses CRLF, and downstream consumers of these files
- * have always seen CRLF-terminated rows.
+ * csv-stringify handles quoting per RFC 4180. We emit LF line endings
+ * uniformly. (These generation files are intermediate and re-parsed by the
+ * delta step, which accepts either; LF keeps them consistent with the delta
+ * output that goes to Symplectic.)
  */
 export function rowsToCsv(rows, columns) {
-  return stringify(rows, { header: true, columns, record_delimiter: '\r\n' });
+  return stringify(rows, { header: true, columns, record_delimiter: '\n' });
 }
 
 export default buildAllRows;

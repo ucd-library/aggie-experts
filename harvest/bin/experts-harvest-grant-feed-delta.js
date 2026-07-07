@@ -80,9 +80,9 @@ function readCsv(filePath) {
 }
 
 function writeCsv(filePath, rows, columns) {
-  // CRLF line endings match the legacy Fuseki/SPARQL CSV output that
-  // downstream Symplectic consumers have always seen.
-  const csv = stringify(rows, { header: true, columns, record_delimiter: '\r\n' });
+  // LF line endings, matching the legacy delta files that were delivered to
+  // Symplectic (the old delta script used csv-stringify's default '\n').
+  const csv = stringify(rows, { header: true, columns, record_delimiter: '\n' });
   fs.writeFileSync(filePath, csv);
   logger.info(`Wrote ${filePath} (${rows.length} row(s))`);
 }

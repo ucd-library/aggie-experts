@@ -1,4 +1,4 @@
-import { logger } from '@ucd-lib/experts-commons';
+import { logger } from './logger.js';
 import { XMLParser } from 'fast-xml-parser';
 
 // Configure fast-xml-parser to mimic xml2json's default object output as closely as possible.

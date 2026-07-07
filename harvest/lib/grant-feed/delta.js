@@ -41,54 +41,101 @@ function rowsDiffer(a, b) {
 }
 
 /**
- * Step 1: grants that are new or updated (matched by id).
+ * Canonical, order-independent key for a full CSV row, so sets of rows can be
+ * compared as multisets regardless of column or row ordering.
  */
-function diffGrants(newGrants, oldGrants) {
-  const oldById = new Map(oldGrants.map(g => [g.id, g]));
-  const delta = [];
-  for (const g of newGrants) {
-    const prev = oldById.get(g.id);
-    if (!prev) {
-      delta.push(g);
-      continue;
-    }
-    if (rowsDiffer(prev, g)) delta.push(g);
-  }
-  return delta;
+function rowKey(row) {
+  return Object.keys(row)
+    .sort()
+    .map(k => `${k}=${row[k]}`)
+    .join('');
 }
 
 /**
- * Step 2: links that are new (id-2 missing in old), updated (same id-1+id-2
- * but different columns), or attached to a delta grant.
+ * True if two lists of rows differ as multisets (same rows, any order = equal).
+ */
+function rowSetsDiffer(a, b) {
+  if (a.length !== b.length) return true;
+  const ka = a.map(rowKey).sort();
+  const kb = b.map(rowKey).sort();
+  for (let i = 0; i < ka.length; i++) {
+    if (ka[i] !== kb[i]) return true;
+  }
+  return false;
+}
+
+/**
+ * Group rows by grant id, preserving first-seen order of the ids.
+ */
+function groupById(rows) {
+  const byId = new Map();
+  for (const r of rows) {
+    const bucket = byId.get(r.id);
+    if (bucket) bucket.push(r);
+    else byId.set(r.id, [r]);
+  }
+  return byId;
+}
+
+/**
+ * Step 1: grants that are new or updated.
+ *
+ * A single grant can span multiple metadata rows — e.g. a grant with two
+ * funding sources produces two rows sharing the same id that differ only in
+ * the "funder name" column. The previous implementation keyed the old rows by
+ * id alone (last-write-wins), so for such grants one row always compared
+ * against the wrong twin and the grant was reported as "updated" on every
+ * run even when nothing had changed (a phantom delta that also cascaded into
+ * links via addGrantsLinked/addLinks). We instead compare the full set of
+ * rows for each id and, when it changed, emit all of that grant's new rows
+ * (in input order) so Symplectic receives the complete record.
+ */
+function diffGrants(newGrants, oldGrants) {
+  const oldById = groupById(oldGrants);
+  const newById = groupById(newGrants);
+  const changedIds = new Set();
+  for (const [id, rows] of newById) {
+    const prev = oldById.get(id);
+    if (!prev || rowSetsDiffer(prev, rows)) changedIds.add(id);
+  }
+  return newGrants.filter(g => changedIds.has(g.id));
+}
+
+/**
+ * Step 2: a link belongs in the delta if it is new, updated, or attached to a
+ * delta grant.
+ *
+ * Both the "new?" and "updated?" checks are keyed by the full link identity
+ * (id-1, id-2, link-type-id). A user can hold two roles on one grant (e.g. PI
+ * and Project Manager), producing two links that share the same (id-1, id-2)
+ * pair but differ only in link-type-id. The previous implementation keyed the
+ * "updated?" comparison by that pair alone, so the second role compared
+ * against the first and was reported as "updated" on every run even when
+ * nothing changed — a phantom delta. It also detected "new" links by grant
+ * (id-2) alone, which could not distinguish a brand-new grant from a new role
+ * added to an existing grant (that case only got picked up as a side effect
+ * of the same pair collision). Keying everything by the triple fixes both:
+ *   - new link (including a newly-added role/user on an existing grant):
+ *       triple absent from old
+ *   - updated link (e.g. visibility flipped): triple present, columns differ
+ *   - otherwise included only if its grant is itself in the delta
  */
 function diffLinks(newLinks, oldLinks, deltaGrants) {
   const deltaGrantIds = new Set(deltaGrants.map(g => g.id));
-  // Matches the legacy `oldLinks.find(...)` semantics: first match wins.
-  // With multi-role participants (e.g. the same user listed as both PI and
-  // Project Manager on one grant) there are two old links sharing the same
-  // (id-1, id-2) key; using a last-write-wins Map would flip which link-type
-  // acts as the "prev" for comparison and subtly change which new row gets
-  // marked updated.
-  const oldByPair = new Map();
+  const oldByTriple = new Map();
   for (const l of oldLinks) {
-    const k = `${l['id-1']}|${l['id-2']}`;
-    if (!oldByPair.has(k)) oldByPair.set(k, l);
-  }
-  const oldByGrant = new Map();
-  for (const l of oldLinks) {
-    // The legacy code treats id-2 alone as the "new link" signal -
-    // preserve that behavior.
-    if (!oldByGrant.has(l['id-2'])) oldByGrant.set(l['id-2'], l);
+    const k = `${l['id-1']}|${l['id-2']}|${l['link-type-id']}`;
+    if (!oldByTriple.has(k)) oldByTriple.set(k, l);
   }
 
   const delta = [];
   for (const n of newLinks) {
-    if (!oldByGrant.has(n['id-2'])) {
+    const prev = oldByTriple.get(`${n['id-1']}|${n['id-2']}|${n['link-type-id']}`);
+    if (!prev) {
       delta.push(n);
       continue;
     }
-    const prev = oldByPair.get(`${n['id-1']}|${n['id-2']}`);
-    if (prev && rowsDiffer(prev, n)) {
+    if (rowsDiffer(prev, n)) {
       delta.push(n);
       continue;
     }
@@ -101,24 +148,22 @@ function diffLinks(newLinks, oldLinks, deltaGrants) {
 
 /**
  * Step 3: pull grants that are referenced by delta links but not yet in
- * deltaGrants. Mutates deltaGrants in place.
+ * deltaGrants (e.g. a grant whose metadata is unchanged but which gained a
+ * new or updated link). Mutates deltaGrants in place.
  *
- * Reproduces an off-by-variable bug in the legacy code
- * (grants-import/bin/experts-grant-feed-delta.js :: addGrantsLinked):
- * the loop iterates `i < deltaLinks.length` times but reads
- * `newLinks[i]["id-2"]`, so it effectively looks at the first N rows of
- * newLinks (N = current deltaLinks count), not at the delta links
- * themselves. That means it pulls in grants sitting at the top of the
- * alphabetically-sorted newLinks.csv regardless of whether they actually
- * changed — which is what the reference delta output contains, so we
- * match it here.
+ * The legacy code (grants-import/bin/experts-grant-feed-delta.js ::
+ * addGrantsLinked) had an off-by-variable bug: it iterated
+ * `i < deltaLinks.length` but read `newLinks[i]["id-2"]`, so it pulled in
+ * whatever grants happened to sit at the top of the alphabetically-sorted
+ * newLinks.csv rather than the grants actually referenced by the delta
+ * links. That both included unchanged grants and missed genuinely
+ * link-changed ones. We iterate the delta links themselves, as intended.
  */
-function addGrantsLinked(deltaGrants, deltaLinks, newGrants, newLinks) {
+function addGrantsLinked(deltaGrants, deltaLinks, newGrants) {
   const haveIds = new Set(deltaGrants.map(g => g.id));
   const newById = new Map(newGrants.map(g => [g.id, g]));
-  const n = Math.min(deltaLinks.length, newLinks.length);
-  for (let i = 0; i < n; i++) {
-    const gid = newLinks[i]?.['id-2'];
+  for (const l of deltaLinks) {
+    const gid = l['id-2'];
     if (!gid || haveIds.has(gid)) continue;
     const g = newById.get(gid);
     if (g) {
@@ -132,15 +177,24 @@ function addGrantsLinked(deltaGrants, deltaLinks, newGrants, newLinks) {
  * Step 4: for each delta grant, pull in every new link that points at it
  * (so downstream gets the full link set for changed grants).
  *
- * Note: the legacy code does NOT dedupe here — if a link was already
- * emitted by diffLinks (step 2) and its grant is also in deltaGrants, it
- * appears twice in the output. We replicate that so row counts match the
- * reference CSV byte-for-byte.
+ * The legacy code had a bug here: it did NOT dedupe, so any link already
+ * emitted by diffLinks (step 2) whose grant is also in deltaGrants appeared
+ * twice in grants_links.csv. That duplication is a real defect in the old
+ * output (Symplectic would receive the same user->grant link row twice), not
+ * intended behavior, so we skip links already present. Links are keyed by
+ * (id-1, id-2, link-type-id) because one user can hold two roles on the same
+ * grant, producing two legitimately distinct link rows.
  */
 function addLinks(deltaGrants, deltaLinks, newLinks) {
   const deltaGrantIds = new Set(deltaGrants.map(g => g.id));
+  const seen = new Set(
+    deltaLinks.map(l => `${l['id-1']}|${l['id-2']}|${l['link-type-id']}`)
+  );
   for (const l of newLinks) {
     if (!deltaGrantIds.has(l['id-2'])) continue;
+    const key = `${l['id-1']}|${l['id-2']}|${l['link-type-id']}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     deltaLinks.push(l);
   }
 }
@@ -209,7 +263,7 @@ function diffPersons(newPersons, oldPersons) {
 export function computeDelta({ newGrants, oldGrants, newLinks, oldLinks, newPersons, oldPersons }) {
   const deltaGrants = diffGrants(newGrants, oldGrants);
   const deltaLinks = diffLinks(newLinks, oldLinks, deltaGrants);
-  addGrantsLinked(deltaGrants, deltaLinks, newGrants, newLinks);
+  addGrantsLinked(deltaGrants, deltaLinks, newGrants);
   addLinks(deltaGrants, deltaLinks, newLinks);
   addUserLinks(deltaGrants, deltaLinks, newLinks);
   const deleteLinks = findDeletedLinks(newLinks, oldLinks);
