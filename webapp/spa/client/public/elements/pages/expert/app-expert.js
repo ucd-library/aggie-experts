@@ -162,7 +162,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('editingExpertId') === this.expertId;
-    this.failedUpdates = utils.getFailedUpdates(this.expertId);
+    this.failedUpdates = await utils.getFailedUpdates(this.expertId);
 
     this.isVisible = this.expert['is-visible'];
 
@@ -649,8 +649,8 @@ export default class AppExpert extends Mixin(LitElement)
         let res = await this.DagsterModel.updateExpertAvailability(this.expertId, labels);
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'expert availability',
-          onComplete: (status, stepStats) => {
-            utils.trackFailedUpdate(this.expertId, { type: 'availability', name: '', action: 'update-availability', stepStats });
+          onComplete: async (status, stepStats) => {
+            await utils.trackFailedUpdate(this.expertId, { type: 'availability', name: '', action: 'update-availability', stepStats });
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
               let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
@@ -739,9 +739,9 @@ export default class AppExpert extends Mixin(LitElement)
    *
    * @param {Object} entry - the failed update entry to dismiss (must have type, name, action)
    */
-  _dismissFailedUpdate(entry) {
+  async _dismissFailedUpdate(entry) {
     utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
-    this.failedUpdates = utils.getFailedUpdates(this.expertId);
+    this.failedUpdates = await utils.getFailedUpdates(this.expertId);
   }
 
   /**

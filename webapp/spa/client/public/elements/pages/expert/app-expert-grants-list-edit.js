@@ -186,7 +186,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     let graphRoot = (this.expert['@graph'] || []).filter(item => item['@id'] === this.expertId)[0];
     this.expertName = graphRoot.hasName?.given + (graphRoot.hasName?.middle ? ' ' + graphRoot.hasName.middle : '') + ' ' + graphRoot.hasName?.family;
 
-    this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'grant');
+    this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'grant');
 
     let grants = JSON.parse(JSON.stringify((this.expert['@graph'] || []).filter(g => g['@type'].includes('Grant'))));
     // this.totalGrants = grants.length;
@@ -420,8 +420,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'grant visibility (show)',
         onComplete: async (status, stepStats) => {
-          utils.trackFailedUpdate(this.expertId, { type: 'grant', name: this._getGrantCitationData(this.grantId).text, action: 'show-grant', stepStats });
-          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'grant');
+          await utils.trackFailedUpdate(this.expertId, { type: 'grant', name: this._getGrantCitationData(this.grantId).text, action: 'show-grant', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'grant');
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
@@ -514,8 +514,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'grant visibility (hide)',
           onComplete: async (status, stepStats) => {
-            utils.trackFailedUpdate(this.expertId, { type: 'grant', name: this._getGrantCitationData(this.grantId).text, action: 'hide-grant', stepStats });
-          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'grant');
+            await utils.trackFailedUpdate(this.expertId, { type: 'grant', name: this._getGrantCitationData(this.grantId).text, action: 'hide-grant', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'grant');
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
@@ -654,9 +654,9 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    *
    * @param {Object} entry - failed update entry with type, name, action
    */
-  _dismissFailedUpdate(entry) {
+  async _dismissFailedUpdate(entry) {
     utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
-    this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'grant');
+    this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'grant');
   }
 
   /**

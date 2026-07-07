@@ -1,3 +1,5 @@
+const SchemaModel = require('../models/SchemaModel');
+
 class Utils {
   /**
    * @method asArray
@@ -588,6 +590,27 @@ class Utils {
   FAILED_UPDATE_STORAGE_KEY = 'ae-failed-updates';
 
   /**
+   * Maps a failed-update `type` to the ES index prefix that holds its data,
+   * used to look up which index is currently serving reads for that type.
+   */
+  FAILED_UPDATE_TYPE_INDEX_PREFIX = {
+    work: 'works',
+    grant: 'grants',
+    availability: 'experts'
+  };
+
+  /**
+   * In-memory cache of public-index lookups, keyed by index prefix, to avoid
+   * re-fetching on every trackFailedUpdate()/getFailedUpdates() call.
+   */
+  _publicIndexNameCache = {};
+
+  /**
+   * How long a cached public-index lookup is considered fresh, in ms.
+   */
+  PUBLIC_INDEX_NAME_CACHE_MS = 60000;
+
+  /**
    * Success labels for CDL-only failures (blue banner): action succeeded in ES but not CDL.
    * Keyed by action slug.
    */
@@ -631,10 +654,70 @@ class Utils {
   };
 
   /**
+   * @method getPublicIndexName
+   * @description return the ES index currently aliased to `public` for the given type,
+   * ie the index actually serving reads. Used to detect when a weekly reharvest (or a
+   * manual admin publish) has promoted a newer index, so partial-update banners tied
+   * to the older index can be dropped. Results are cached briefly to avoid re-fetching
+   * on every trackFailedUpdate()/getFailedUpdates() call.
+   *
+   * @param {String} indexPrefix - 'experts' | 'works' | 'grants'
+   *
+   * @returns {Promise<String|null>} current index name, or null if the lookup failed
+   */
+  async getPublicIndexName(indexPrefix) {
+    if( !indexPrefix ) return null;
+
+    const cached = this._publicIndexNameCache[indexPrefix];
+    if( cached && (Date.now() - cached.timestamp) < this.PUBLIC_INDEX_NAME_CACHE_MS ) {
+      return cached.indexName;
+    }
+
+    try {
+      const res = await SchemaModel.getPublicIndex(indexPrefix);
+      const indexName = res?.body?.indexName || null;
+      this._publicIndexNameCache[indexPrefix] = { indexName, timestamp: Date.now() };
+      return indexName;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  /**
+   * @method _readFailedUpdatesRaw
+   * @description read tracked failed-update entries from localStorage with no pruning.
+   *
+   * @returns {Array}
+   */
+  _readFailedUpdatesRaw() {
+    try {
+      const raw = localStorage.getItem(this.FAILED_UPDATE_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) {
+      return [];
+    }
+  }
+
+  /**
+   * @method _writeFailedUpdatesRaw
+   * @description persist tracked failed-update entries to localStorage.
+   *
+   * @param {Array} updates
+   */
+  _writeFailedUpdatesRaw(updates) {
+    try {
+      localStorage.setItem(this.FAILED_UPDATE_STORAGE_KEY, JSON.stringify(updates));
+    } catch(e) {}
+  }
+
+  /**
    * @method trackFailedUpdate
    * @description persist a failed dagster update step to localStorage so that a
    * dismissible banner can be shown later. Tracks CDL and ES failures separately.
-   * No-ops when neither step type failed.
+   * No-ops when neither step type failed. Info-only (blue banner) entries also record
+   * the index currently serving reads, so getFailedUpdates() can drop them once a
+   * reharvest promotes a newer index and the CDL/ES mismatch they represent no longer
+   * applies.
    *
    * @param {String} expertId
    * @param {Object} opts
@@ -643,38 +726,55 @@ class Utils {
    * @param {String} opts.action - action slug from FAILED_UPDATE_ACTIONS
    * @param {Array} opts.stepStats - stepStats array from the dagster run response
    */
-  trackFailedUpdate(expertId, opts = {}) {
+  async trackFailedUpdate(expertId, opts = {}) {
     const { type, name = '', action, stepStats = [] } = opts;
     const cdlFailed = stepStats.some(s => s.stepKey?.endsWith('_cdl') && s.status === 'FAILURE');
     const esFailed  = stepStats.some(s => s.stepKey?.endsWith('_es')  && s.status === 'FAILURE');
     if( !cdlFailed && !esFailed ) return;
     console.warn(`[failed-update] expertId=${expertId} type=${type} action=${action} name="${name}" cdlFailed=${cdlFailed} esFailed=${esFailed}`);
 
-    const updates = this.getFailedUpdates().filter(u =>
+    const indexName = (!cdlFailed && esFailed)
+      ? await this.getPublicIndexName(this.FAILED_UPDATE_TYPE_INDEX_PREFIX[type])
+      : null;
+
+    const updates = this._readFailedUpdatesRaw().filter(u =>
       !(u.expertId === expertId && u.type === type && u.name === name)
     );
-    const entry = { expertId, type, name, action, cdlFailed, esFailed, timestamp: Date.now() };
-    updates.push(entry);
-    try {
-      localStorage.setItem(this.FAILED_UPDATE_STORAGE_KEY, JSON.stringify(updates));
-    } catch(e) {}
+    updates.push({ expertId, type, name, action, cdlFailed, esFailed, indexName, timestamp: Date.now() });
+    this._writeFailedUpdatesRaw(updates);
   }
 
   /**
    * @method getFailedUpdates
-   * @description return all tracked failed updates, optionally filtered by expertId.
+   * @description return tracked failed updates, optionally filtered by expertId. Before
+   * returning, drops any info-only (blue banner) entry whose recorded index is no longer
+   * the one aliased to `public` - meaning a reharvest/publish has since happened and the
+   * update it was tracking should now be reflected in search. Error (red banner) entries
+   * are left alone, since a CDL write failure isn't resolved by a reharvest.
    *
    * @param {String} [expertId]
-   * @returns {Array}
+   *
+   * @returns {Promise<Array>}
    */
-  getFailedUpdates(expertId) {
-    try {
-      const raw = localStorage.getItem(this.FAILED_UPDATE_STORAGE_KEY);
-      const all = raw ? JSON.parse(raw) : [];
-      return expertId ? all.filter(u => u.expertId === expertId) : all;
-    } catch(e) {
-      return [];
-    }
+  async getFailedUpdates(expertId) {
+    const all = this._readFailedUpdatesRaw();
+
+    const infoEntries = all.filter(u => !u.cdlFailed && u.esFailed && u.indexName);
+    const prefixes = [...new Set(infoEntries.map(u => this.FAILED_UPDATE_TYPE_INDEX_PREFIX[u.type]))];
+    const currentIndexByPrefix = {};
+    await Promise.all(prefixes.map(async prefix => {
+      currentIndexByPrefix[prefix] = await this.getPublicIndexName(prefix);
+    }));
+
+    const stale = new Set(infoEntries.filter(u => {
+      const currentIndexName = currentIndexByPrefix[this.FAILED_UPDATE_TYPE_INDEX_PREFIX[u.type]];
+      return currentIndexName && currentIndexName !== u.indexName;
+    }));
+
+    const remaining = all.filter(u => !stale.has(u));
+    if( remaining.length !== all.length ) this._writeFailedUpdatesRaw(remaining);
+
+    return expertId ? remaining.filter(u => u.expertId === expertId) : remaining;
   }
 
   /**
@@ -688,16 +788,14 @@ class Utils {
    * @param {String} opts.action
    */
   dismissFailedUpdate(expertId, opts = {}) {
-    const updates = this.getFailedUpdates().filter(u => {
+    const updates = this._readFailedUpdatesRaw().filter(u => {
       if( u.expertId !== expertId ) return true;
       if( opts.type   && u.type   !== opts.type   ) return true;
       if( opts.name   && u.name   !== opts.name   ) return true;
       if( opts.action && u.action !== opts.action ) return true;
       return false;
     });
-    try {
-      localStorage.setItem(this.FAILED_UPDATE_STORAGE_KEY, JSON.stringify(updates));
-    } catch(e) {}
+    this._writeFailedUpdatesRaw(updates);
   }
 
   /**

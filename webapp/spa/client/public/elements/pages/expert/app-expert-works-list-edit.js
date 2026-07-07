@@ -200,7 +200,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this._updateHeaderLabels();
 
     this.worksWithErrors = this.expert.invalidWorks || [];
-    this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+    this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
     if( this.worksWithErrors.length ) this.logger.error('works with errors', { expertId : this.expertId, worksWithErrors : this.worksWithErrors });
 
     this.worksWithErrors.forEach(work => {
@@ -584,8 +584,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work visibility (show)',
         onComplete: async (status, stepStats) => {
-          utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'show-work', stepStats });
-          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'show-work', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
@@ -683,8 +683,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work favourite (remove)',
         onComplete: async (status, stepStats) => {
-          utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'remove-highlight', stepStats });
-          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'remove-highlight', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
@@ -786,8 +786,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work favourite (add)',
         onComplete: async (status, stepStats) => {
-          utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'add-highlight', stepStats });
-          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'add-highlight', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
@@ -930,8 +930,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'work visibility (hide)',
           onComplete: async (status, stepStats) => {
-            utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
-          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+            await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
@@ -1020,8 +1020,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'work reject',
           onComplete: async (status, stepStats) => {
-            utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
-          this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+            await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
@@ -1180,9 +1180,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    *
    * @param {Object} entry - failed update entry with type, name, action
    */
-  _dismissFailedUpdate(entry) {
+  async _dismissFailedUpdate(entry) {
     utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
-    this.failedUpdates = utils.getFailedUpdates(this.expertId).filter(u => u.type === 'work');
+    this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
   }
 
   /**

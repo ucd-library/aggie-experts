@@ -39,6 +39,16 @@ class SchemaService extends BaseService {
     });
   }
 
+  async getPublicIndex(type) {
+    return this.request({
+      url : `${this.baseUrl}/es/public-index/${type}`,
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
   async deleteIndex(indexesToDelete) {
     return this.request({
       url : `${this.baseUrl}/es/indexes`,
