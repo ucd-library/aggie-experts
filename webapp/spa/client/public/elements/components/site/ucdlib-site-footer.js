@@ -50,7 +50,7 @@ export default class UcdlibSiteFooter extends Mixin(LitElement)
         </div>
         <div class="row">
           <ul>
-            <li><a href="https://www.ucdavis.edu/contact" class="pipe" target="_blank">Questions or Comments?</a></li>
+            <li><a href="mailto:experts@ucdavis.edu" class="pipe" rel="noopener">Questions or Comments?</a></li>
             <li><a href="https://www.ucdavis.edu/help/privacy-accessibility" class="pipe" target="_blank">Privacy & Accessibility</a></li>
             <li><a href="http://www.universityofcalifornia.edu/" class="${this.lastUpdate ? 'pipe' : ''}" target="_blank">University of California</a></li>
             ${this.lastUpdate ? html`

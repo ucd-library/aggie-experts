@@ -1,0 +1,51 @@
+---
+title: Aggie Experts v5 — System Overview
+---
+flowchart LR
+    subgraph Sources ["Data Sources"]
+        CDL["CDL Symplectic Elements\noapolicy.universityofcalifornia.edu"]
+        IAM["UC Davis IAM API\niet-ws.ucdavis.edu"]
+        AE_ENT["Aggie Enterprise\n(grant source)"]
+    end
+
+    subgraph Anduin ["project-anduin — ETL Platform\nexperts-anduin.library.ucdavis.edu:4000"]
+        GW["Auth Gateway\nKeycloak OIDC SSO"]
+        DAG["Dagster\nworkflow orchestration"]
+        WORKERS["Celery Workers\ntask execution"]
+        MQ["RabbitMQ\ntask queue"]
+        CASK["CaskFS\nartifact store"]
+        SUP["Superset\ndashboards"]
+    end
+
+    subgraph AEApp ["Aggie Experts Application"]
+        ES[("Elasticsearch\nexperts · works · grants")]
+        WEBAPP["Webapp\nSPA + API"]
+        KB["Kibana\nES admin"]
+        PG[("PostgreSQL\nreporting + Dagster")]
+    end
+
+    subgraph Campus ["Campus Integrations"]
+        SF["SiteFarm\ndept websites"]
+        MIV["MyInfoVault"]
+    end
+
+    AE_ENT -->|"weekly grant XML\ngrant-feed process"| CDL
+    CDL -->|"Symplectic API\nusers · works · grants"| WORKERS
+    IAM -->|"IAM API\nprofile data"| WORKERS
+
+    DAG -->|"schedules + assets"| WORKERS
+    MQ -->|"task queue"| WORKERS
+    WORKERS <-->|"read / write\nharvest artifacts"| CASK
+    WORKERS -->|"load JSON-LD"| ES
+    WORKERS -->|"ETL reporting"| PG
+
+    GW -->|"/dagster"| DAG
+    GW -->|"/cask"| CASK
+    GW -->|"/superset"| SUP
+    GW -->|"/kibana"| KB
+    GW -->|"public app"| WEBAPP
+
+    SUP -->|"reporting queries"| PG
+    WEBAPP -->|"search + profile"| ES
+    WEBAPP -->|"APIs"| SF
+    WEBAPP -->|"APIs"| MIV

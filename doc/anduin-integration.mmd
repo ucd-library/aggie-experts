@@ -1,0 +1,53 @@
+---
+title: Aggie Experts — Anduin Platform Integration
+---
+flowchart TD
+    Browser["Browser / API Client"]
+    KC["Keycloak\nauth.library.ucdavis.edu\naggie-experts realm"]
+
+    subgraph GW ["anduin-gateway (port 4000) — Custom AE image"]
+        AUTH["OIDC session auth\n+ x-anduin-user header injection"]
+        LINKS["Additional service links\n(webapp, Kibana)"]
+    end
+
+    subgraph Anduin ["project-anduin services"]
+        DAG_UI["Dagster UI\nport 3000 · /dagster\nrole: execute"]
+        DAG_D["Dagster Daemon\nscheduler + sensors"]
+        CELERY["Celery Workers\n× 2 dev / × 3 prod\nrole: executes harvest CLI"]
+        MQ["RabbitMQ\ntask broker"]
+        CASK_UI["CaskFS\nport 3001 · /cask\nrole: caskfs-*"]
+        SUP["Superset\nport 8088 · /superset\nrole: dashboard / dashboard-admin"]
+    end
+
+    subgraph Shared ["Shared Infrastructure"]
+        PG[("PostgreSQL\nDagster metadata\nETL reporting schema")]
+        VOL[("CaskFS Volume\n/opt/cache\n(persistent disk / NFS)")]
+        SA["GCP Service Account\n/etc/aggie-experts/service-account.json"]
+    end
+
+    subgraph AEApp ["Aggie Experts App"]
+        WEBAPP["Webapp\npublic app"]
+        KB["Kibana\nport 5601 · /kibana\nrole: kibana"]
+        ES[("Elasticsearch")]
+    end
+
+    Browser -->|"HTTPS"| GW
+    GW <-->|"OIDC"| KC
+    AUTH -->|"/dagster"| DAG_UI
+    AUTH -->|"/cask"| CASK_UI
+    AUTH -->|"/superset"| SUP
+    AUTH -->|"/kibana"| KB
+    AUTH -->|"public"| WEBAPP
+
+    DAG_UI --> DAG_D
+    DAG_D -->|"enqueue tasks"| MQ
+    MQ -->|"dispatch"| CELERY
+    CELERY <-->|"read/write\nharvest artifacts"| VOL
+    CELERY -->|"load data"| ES
+    CELERY -->|"reporting"| PG
+    CELERY --> SA
+    CASK_UI <-->|"file I/O"| VOL
+    CASK_UI -->|"metadata"| PG
+    DAG_UI -->|"run history"| PG
+    SUP -->|"queries"| PG
+    WEBAPP --> ES

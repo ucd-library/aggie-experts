@@ -95,14 +95,22 @@ class ExpertModel extends BaseModel {
           node['@type'] = [node['@type']];
         }
         if (node['@type'].includes('Person')) {
-          seo["@graph"].push(this.to_seo(node));
+          let personSeo = this.to_seo(node) || {};
+          personSeo['@type'] = personSeo['@type'] || 'Person';
+          if (!personSeo['@id'] && (node['@id'] || node.identifier)) {
+            personSeo['@id'] = node['@id'] || node.identifier;
+          }
+          if (!personSeo.url && (node.url || node.hasURL || node['@id'])) {
+            personSeo.url = node.url || node.hasURL || node['@id'];
+          }
+          seo["@graph"].push(personSeo);
         }
-        // if (node['@type'].includes('Work')) {
-        //   seo["@graph"].push(workModel.to_seo(node));
-        // }
-        // if (node['@type'].includes('Grant')) {
-        //   seo["@graph"].push(grantModel.to_seo(node));
-        // }
+        if (node['@type'].includes('Work')) {
+          seo["@graph"].push(workModel.to_seo(node));
+        }
+        if (node['@type'].includes('Grant')) {
+          seo["@graph"].push(grantModel.to_seo(node));
+        }
       }
     });
     return JSON.stringify(seo);
@@ -117,6 +125,7 @@ class ExpertModel extends BaseModel {
     }
     let seo={}
 
+    seo['@type'] = 'Person';
     seo.name = node?.label;
     seo.identifier = node?.identifier;
 
@@ -132,7 +141,7 @@ class ExpertModel extends BaseModel {
         return {
           '@id' : r['@id'],
           'name' : r['prefLabel'],
-          '@type' : r['@type']
+          '@type' : 'DefinedTerm'
         }
       });
     }
@@ -151,8 +160,18 @@ class ExpertModel extends BaseModel {
             seo.affiliation.push(c.hasOrganizationalUnit);
           }
           if (c.hasTitle) {
-          if (! seo.jobTitle ) { seo.jobTitle=[] }
-            seo.jobTitle.push(c.hasTitle);
+            const titles = Array.isArray(c.hasTitle) ? c.hasTitle : [c.hasTitle];
+            const titleValues = titles
+              .map(t => {
+                if (typeof t === 'string') return t;
+                return t?.name || t?.label || t?.['@value'] || null;
+              })
+              .filter(Boolean);
+
+            if (titleValues.length) {
+              if (!seo.jobTitle) seo.jobTitle = [];
+              seo.jobTitle.push(...titleValues);
+            }
           }
         }
       });

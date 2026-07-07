@@ -335,7 +335,7 @@ return html`
                   <h5 data-id=${work['@id']}>${work.issued?.split('-')?.[0]}
                     <span style="padding: 0 0.25rem;"
                     class="dot">•</span> ${work.title}</h5>
-                  <p style="margin-bottom: 0;">Error: Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a></p>
+                  <p style="margin-bottom: 0;">Error: Cannot format citation. Contact your <a href="mailto:experts@ucdavis.edu">Aggie Experts administrator.</a></p>
                 </div>
               </div>
               <hr style="border-color: #CCE0F3;" ?hidden=${index+1 === this.worksWithErrors.length}>

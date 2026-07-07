@@ -11,7 +11,12 @@ class BrowseByStore extends BaseStore {
       byWorksAZ : new LruStore({name: 'browse.works.az'}),
       byExpertsLastInitial : new LruStore({name: 'browse.experts'}),
       byGrantsLastInitial : new LruStore({name: 'browse.grants'}),
-      byWorksLastInitial : new LruStore({name: 'browse.works'})
+      byWorksLastInitial : new LruStore({name: 'browse.works'}),
+      byGrantsCounts : new LruStore({name: 'browse.grants.counts'}),
+      byWorksCounts : new LruStore({name: 'browse.works.counts'}),
+      byExpertsHistogram : new LruStore({name: 'browse.experts.histogram'}),
+      byGrantsHistogram : new LruStore({name: 'browse.grants.histogram'}),
+      byWorksHistogram : new LruStore({name: 'browse.works.histogram'}),
     }
 
     this.events = {};

@@ -206,6 +206,7 @@ function promoteAttributesToRoot(expertNode, graph) {
   let contact = null;
   let hasEmail = [];
   let hasURL = [];
+  const orgUnitMap = new Map();
   if (expertNode["contactInfo"]) {
     let contactInfos = asArray(expertNode["contactInfo"]);
     contactInfos.sort((a, b) => (a["rank"] || 100) - (b["rank"] || 100));
@@ -213,6 +214,14 @@ function promoteAttributesToRoot(expertNode, graph) {
     contactInfos.forEach((info) => {
       if (info.hasEmail) hasEmail = hasEmail.concat(info.hasEmail);
       if (info?.hasURL) hasURL = hasURL.concat(info.hasURL);
+      const units = info.hasOrganizationalUnit
+        ? (Array.isArray(info.hasOrganizationalUnit) ? info.hasOrganizationalUnit : [info.hasOrganizationalUnit])
+        : [];
+      units.forEach(unit => {
+        if (unit && unit['@id'] && !orgUnitMap.has(unit['@id'])) {
+          orgUnitMap.set(unit['@id'], unit);
+        }
+      });
     });
   }
 
@@ -225,6 +234,10 @@ function promoteAttributesToRoot(expertNode, graph) {
       doc.contactInfo[key] = contact[key];
     }
   });
+
+  if (orgUnitMap.size > 0) {
+    doc["hasOrganizationalUnit"] = Array.from(orgUnitMap.values());
+  }
   if (doc.contactInfo.name) {
     doc.name = doc.contactInfo.name;
   }

@@ -357,7 +357,7 @@ function run(expertId, profile, cdl, ucopVocab) {
     if (ppsEmailVisible && !isHSEmployee && email) {
       ppsContact["http://www.w3.org/2006/vcard/ns#hasEmail"] = [{ "@id": `mailto:${email}` }];
     }
-    if (ppsDeptVisible && pps.deptCode && pps.deptDisplayName) {
+    if (pps.deptCode && pps.deptDisplayName) {
       ppsContact["http://www.w3.org/2006/vcard/ns#hasOrganizationalUnit"] = [
         { "@id": `ark:/87287/d7c08j/dept/${pps.deptCode}` }
       ];

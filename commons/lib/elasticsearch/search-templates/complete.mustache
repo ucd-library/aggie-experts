@@ -80,6 +80,16 @@
                 "minimum_should_match": 1
               }
             }
+            {{#dept}}
+            ,{
+              "bool": {
+                "must": [
+                  { "exists": { "field": "hasOrganizationalUnit.name.kw" } },
+                  { "terms": { "hasOrganizationalUnit.name.kw": {{#toJson}}dept{{/toJson}} } }
+                ]
+              }
+            }
+            {{/dept}}
           ]
         }
       }
@@ -510,10 +520,11 @@
     "@type": { "terms": { "field": "@type", "size": 20 } },
     "availability": { "terms": { "field": "hasAvailability.prefLabel", "size": 10 } },
     "status": { "terms": { "field": "status", "size": 10 } },
-    "type": { "terms": { "field": "type", "size": 10 } }
+    "type": { "terms": { "field": "type", "size": 10 } },
+    "dept": { "terms": { "field": "hasOrganizationalUnit.name.kw", "size": 200 } }
   },
   "_source": [
-    "@id","@type","name","contactInfo","title","issued","container-title","type","DOI",
+    "@id","@type","name","contactInfo","hasOrganizationalUnit","title","issued","container-title","type","DOI",
     "modified-date","status","author","volume","issue","page","abstract","sponsorAwardId",
     "assignedBy","dateTimeInterval","relatedBy","_score"
   ],

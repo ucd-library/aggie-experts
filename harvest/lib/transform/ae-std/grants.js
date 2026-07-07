@@ -824,7 +824,28 @@ function processAllGrantPeople(fields, grantUri, expertData, piTextValue, format
   const lastNamesEquivalent = (a,b) => {
     if (!a || !b) return false;
     const norm = s => s.toLowerCase().replace(/[^a-z]/g,'');
-    return norm(a) === norm(b);
+    if (norm(a) === norm(b)) return true;
+    // Compound-name fallback: different sources frequently disagree on where
+    // the boundary between given and family falls for people with compound
+    // surnames or multiple given names. For example, the directory record
+    // might have last="Leite Nobrega De Moura Bell" / first="Juliana" while
+    // the grant c-pi/c-co-pis person has last="Bell" / first="Juliana Leite
+    // Nobrega De Moura". When either side has multiple whitespace-separated
+    // tokens, also consider the last token of each as the "core" surname and
+    // match on that. (normalizeFirstCore already does the analogous thing
+    // for given names by taking the first whitespace token.)
+    const lastTok = s => {
+      const tokens = String(s || '').trim().split(/\s+/).filter(Boolean);
+      return tokens.length ? norm(tokens[tokens.length - 1]) : '';
+    };
+    const aTokens = String(a || '').trim().split(/\s+/).filter(Boolean);
+    const bTokens = String(b || '').trim().split(/\s+/).filter(Boolean);
+    if (aTokens.length > 1 || bTokens.length > 1) {
+      const aLast = lastTok(a);
+      const bLast = lastTok(b);
+      return Boolean(aLast) && aLast === bLast;
+    }
+    return false;
   };
 
   const expertLast = expertData['last-name'] || '';

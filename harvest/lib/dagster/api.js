@@ -52,6 +52,43 @@ class DagsterAPI {
     return obj;
   }
 
+  async getDynamicPartitionsForAsset(assetName) {
+    if( !assetName ) throw new Error('assetName is required');
+
+    // We query the partition keys via assetNodeOrError because this Dagster
+    // version's GraphQL schema doesn't expose a top-level dynamicPartitionsOrError
+    // field. Any asset that uses the target DynamicPartitionsDefinition will
+    // return the same list of partition keys (e.g. extract_user / transform_user_*
+    // / load_user all share the 'users' partitions def).
+    // AssetNodeOrError's union members vary across Dagster versions and don't
+    // include PythonError here, so we just rely on __typename to detect a
+    // non-AssetNode response rather than spreading another fragment.
+    const query = `query GetAssetPartitionKeys($assetKey: AssetKeyInput!) {
+      assetNodeOrError(assetKey: $assetKey) {
+        __typename
+        ... on AssetNode {
+          partitionKeys
+        }
+      }
+    }`;
+
+    const resp = await this.graphqlQuery(query, {
+      assetKey: { path: [assetName] }
+    });
+
+    const result = resp?.data?.assetNodeOrError;
+    if( !result ) {
+      throw new Error('No assetNodeOrError in response: '+JSON.stringify(resp));
+    }
+    if( result.__typename !== 'AssetNode' ) {
+      throw new Error(
+        `Dagster could not resolve asset '${assetName}' (got ${result.__typename}). `+
+        `Update the refAsset in remove-stale-user-partitions if this asset was renamed.`
+      );
+    }
+    return result.partitionKeys || [];
+  }
+
   async deleteDynamicPartitions(partitionsDefName, partitionKeys) {
     if( !partitionsDefName ) throw new Error('partitionsDefName is required');
     if( !partitionKeys || !Array.isArray(partitionKeys) || partitionKeys.length === 0 ) {
@@ -125,6 +162,39 @@ class DagsterAPI {
       partitionsDefName,
       partitionKey
     }, true));
+  }
+
+  launchRun(jobName, tags={}) {
+    let t = [];
+    for (let key in tags) {
+      t.push({ key, value: tags[key] });
+    }
+
+    const mutation = `mutation LaunchRun($executionParams: ExecutionParams!) {
+      launchRun(executionParams: $executionParams) {
+        __typename
+        ... on LaunchRunSuccess {
+          run { runId }
+        }
+        ... on InvalidSubsetError { message }
+        ... on RunConflict { message }
+        ... on PythonError { message stack }
+      }
+    }`;
+
+    const variables = {
+      executionParams: {
+        selector: {
+          repositoryLocationName: config.dagster.repositoryLocationName,
+          repositoryName: config.dagster.repositoryName,
+          jobName
+        },
+        runConfigData: {},
+        tags: t
+      }
+    };
+
+    return this.graphqlQuery(mutation, variables);
   }
 
   startBackfill(jobName, steps, partitionKeys, tags={}) {

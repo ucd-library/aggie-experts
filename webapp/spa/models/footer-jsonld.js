@@ -20,7 +20,7 @@ function getFooterJsonLd() {
       {
         '@type': 'SiteNavigationElement',
         name: 'Questions or Comments?',
-        url: 'https://www.ucdavis.edu/contact'
+        url: 'mailto:experts@ucdavis.edu'
       },
       {
         '@type': 'SiteNavigationElement',

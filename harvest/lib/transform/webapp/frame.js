@@ -495,10 +495,11 @@ function simplifiedExpert(expertNode) {
 
   // Prefer explicit contactInfo entries if present
   let contact = null;
+  let allContactInfos = [];
   if (expertNode.contactInfo) {
-    const infos = Array.isArray(expertNode.contactInfo) ? expertNode.contactInfo.slice() : [expertNode.contactInfo];
-    infos.sort((a, b) => ( (a.rank || 100) - (b.rank || 100) ));
-    contact = infos[0];
+    allContactInfos = Array.isArray(expertNode.contactInfo) ? expertNode.contactInfo.slice() : [expertNode.contactInfo];
+    allContactInfos.sort((a, b) => ( (a.rank || 100) - (b.rank || 100) ));
+    contact = allContactInfos[0];
   }
 
   // Fallback to top-level name if no contact info
@@ -513,10 +514,25 @@ function simplifiedExpert(expertNode) {
     if (contact.name) contactInfoEntry.name = contact.name;
   }
 
+  // Collect all org units across all contactInfo entries, deduplicated by @id
+  const orgUnitMap = new Map();
+  for (const info of allContactInfos) {
+    const units = info.hasOrganizationalUnit
+      ? (Array.isArray(info.hasOrganizationalUnit) ? info.hasOrganizationalUnit : [info.hasOrganizationalUnit])
+      : [];
+    for (const unit of units) {
+      if (unit && unit['@id'] && !orgUnitMap.has(unit['@id'])) {
+        orgUnitMap.set(unit['@id'], unit);
+      }
+    }
+  }
+  const hasOrganizationalUnit = orgUnitMap.size > 0 ? Array.from(orgUnitMap.values()) : undefined;
+
   return {
     "@id": expertNode["@id"],
     "@type": expertNode["@type"],
     "contactInfo": contactInfoEntry ? [contactInfoEntry] : [],
+    "hasOrganizationalUnit": hasOrganizationalUnit,
     "is-visible": expertNode["is-visible"],
     "identifier": expertNode.identifier,
     "orcidId": expertNode.orcidId,

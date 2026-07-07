@@ -38,8 +38,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// require('./models/robots').middleware(app);
-// require('./models/sitemap').middleware(app);
+require('./models/robots').middleware(app);
+require('./models/sitemap').middleware(app);
 
 // setup static routes
 require('./controllers/static')(app);
