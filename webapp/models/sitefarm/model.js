@@ -88,8 +88,13 @@ async function fetchSitefarmPostgresExperts(expertIds, modifiedSince) {
     expertsById.set(row.expert_id, { expert: row, works: [], rolesByWork: new Map() });
   }
 
-  // Top-5 works per expert, ordered by issued_date desc then title asc.
-  // We use a windowed CTE so the LIMIT applies per expert rather than across all.
+  // Top-5 works per expert: favourites first, then issued YEAR desc, then title asc.
+  // Sorting by year (not full issued_date) mirrors the ES subselect path, which
+  // sorts issued with type:'year' — many works only have year-level precision, so
+  // finer date ordering would just reflect first-of-period padding. We use a
+  // windowed CTE so the LIMIT applies per expert rather than across all. Both
+  // visible and non-visible works are included — this is a private API that serves
+  // complete data — but the per-expert result is still capped at 5.
   const presentIds = Array.from(expertsById.keys());
 
   const worksResp = await pool.query(
@@ -110,12 +115,11 @@ async function fetchSitefarmPostgresExperts(expertIds, modifiedSince) {
          ARRAY(SELECT wt.uri FROM ${schema}.work_type wt WHERE wt.work_type_id = ANY(w.work_type_ids)) AS work_types,
          ROW_NUMBER() OVER (
            PARTITION BY wr.expert_id
-           ORDER BY w.issued_date DESC NULLS LAST, w.title ASC NULLS LAST
+           ORDER BY wr.is_favourite DESC, date_part('year', w.issued_date) DESC NULLS LAST, w.title ASC NULLS LAST
          ) AS rn
        FROM ${schema}.expert_work_role wr
        JOIN ${schema}."work" w ON w.work_id = wr.work_id
        WHERE wr.expert_id = ANY($1::text[])
-         AND wr.is_visible = true
      )
      SELECT * FROM ranked WHERE rn <= 5
      ORDER BY expert_id, rn`,
