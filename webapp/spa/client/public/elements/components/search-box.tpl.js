@@ -98,7 +98,7 @@ export default function render() {
           .value="${this.searchTerm}"
         />
       </div>
-      <button @click="${this._fireSearch}" class="search-button ${this.searchRounded ? 'rounded' : ''}">
+      <button @click="${this._fireSearch}" class="search-button ${this.searchRounded ? 'rounded' : ''}" aria-label="Search">
         <ucdlib-icon icon="ucdlib-experts:fa-search"></ucdlib-icon>
       </button>
     </div>
