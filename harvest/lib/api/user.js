@@ -59,15 +59,19 @@ class ApiUser {
    * Upsert the identity columns for a user. yearWeek is the current ETL batch
    * identifier (e.g. "2026-22"); it's written to the year_week column so we
    * can tell which weekly run last touched this row.
+   *
+   * Conflicts on expert_id (the primary key / stable identity) so a changed
+   * email updates the existing row rather than colliding with the PK. This
+   * mirrors the api.user upsert in pg-client.js.
    */
   async upsertUser(client, row, yearWeek) {
     await client.query(
       `INSERT INTO ${this.schema}."user"
         (email, expert_id, ucd_person_uuid, iam_id, display_name, year_week)
        VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (email)
+       ON CONFLICT (expert_id)
        DO UPDATE SET
-        expert_id       = EXCLUDED.expert_id,
+        email           = EXCLUDED.email,
         ucd_person_uuid = EXCLUDED.ucd_person_uuid,
         iam_id          = EXCLUDED.iam_id,
         display_name    = EXCLUDED.display_name,
