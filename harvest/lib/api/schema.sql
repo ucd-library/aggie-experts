@@ -36,7 +36,10 @@ CREATE TABLE IF NOT EXISTS api."user" (
   contact_info       JSONB,
   expert_raw_payload JSONB,
   -- ETL batch traceability — which weekly run last upserted this row
-  year_week          VARCHAR(10)
+  year_week          VARCHAR(10),
+  -- last time this expert was seen/loaded from CDL; drives the sitefarm
+  -- modified_since filter and the response's modified-date field
+  last_seen_cdl      TIMESTAMP
 );
 
 -- ============================================================================

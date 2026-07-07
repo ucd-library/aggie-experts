@@ -29,13 +29,16 @@ async function run(user, alias) {
   }
 
   if( metadata.isPublic === false ) {
-    logger.warn(`User ${user} is marked as not public, skipping load.`);
+    logger.warn(`User ${user} is marked as not public; loading private api db projections only and purging from Elasticsearch.`);
 
+    // MIV and Sitefarm are private APIs that serve complete data regardless of
+    // an expert's public visibility, so still load their postgres projections.
+    await loadApiProjections(user, metadata);
+
+    // Elasticsearch is the public-facing index, so remove non-public experts.
     await purgeUser(metadata.expertId, alias);
-    await mivApi.purge('expert/'+metadata.expertId);
-    await sitefarmApi.purge('expert/'+metadata.expertId);
 
-    if (config.reporting.enabled && config.postgres.client && 
+    if (config.reporting.enabled && config.postgres.client &&
         alias.includes(config.elasticsearch.aliases.stage) ) {
       await config.postgres.client.setEsStageInsertedAt(user, null);
     }
@@ -76,22 +79,8 @@ async function run(user, alias) {
     }
   }
 
-  // load MIV projection into postgres from transformed public expert/grant files
-  const mivFiles = getMivPostgresFiles(user, files);
-  await mivApi.load({
-    user,
-    metadata,
-    files: mivFiles
-  });
-
-  // load Sitefarm projection (expert profile + works) into postgres from ae-std docs.
-  // Runs after mivApi.load so the "user" row exists for the profile overlay.
-  const sitefarmFiles = getSitefarmPostgresFiles(user, files);
-  await sitefarmApi.load({
-    user,
-    metadata,
-    files: sitefarmFiles
-  });
+  // load the MIV + Sitefarm postgres projections (private APIs)
+  await loadApiProjections(user, metadata);
 
   // load files into elastic search
   let indexes = await loadEs(files, alias);
@@ -104,6 +93,36 @@ async function run(user, alias) {
   logger.info(`Loaded data into elastic search for user: ${user}`);
 
   return indexes;
+}
+
+/**
+ * Load the MIV and Sitefarm postgres projections (the private APIs) for a user.
+ * Runs for both public and non-public experts — these APIs serve complete data
+ * regardless of public visibility, and include both public and private
+ * works/grants. Everything is sourced from ae-std, so file lists are derived
+ * from metadata rather than the (public-only) elasticsearch file list.
+ * Sitefarm runs after MIV so the "user" row exists for the profile overlay.
+ *
+ * @param {String} user user email
+ * @param {Object} metadata parsed metadata.json for the user
+ * @returns {Promise}
+ */
+async function loadApiProjections(user, metadata) {
+  // MIV projection: identity + grants (from ae-std)
+  const mivFiles = getMivPostgresFiles(user, metadata);
+  await mivApi.load({
+    user,
+    metadata,
+    files: mivFiles
+  });
+
+  // Sitefarm projection: expert profile + works (from ae-std)
+  const sitefarmFiles = getSitefarmPostgresFiles(user, metadata);
+  await sitefarmApi.load({
+    user,
+    metadata,
+    files: sitefarmFiles
+  });
 }
 
 async function reportScholarlyOutputLoadStats(user, metadata) {
@@ -327,8 +346,6 @@ async function getPublicScholarlyWorkFiles(user) {
       return {
         type: 'work',
         uri: work.uri,
-        // relationshipUri is needed by getSitefarmPostgresFiles to resolve the
-        // corresponding ae-std/rel/{relationshipUri}.jsonld file.
         relationshipUri: work.relationshipUri,
         path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.json`)
       }
@@ -346,24 +363,32 @@ async function getPublicScholarlyWorkFiles(user) {
   return results;
 }
 
-function getMivPostgresFiles(user, files=[]) {
-  return files
-    .filter(file => file.type === 'expert' || file.type === 'grant')
-    .map(file => {
-      if (file.type !== 'grant') {
-        return file;
-      }
+/**
+ * Build the file list consumed by mivApi.load():
+ *   - one personAeStd entry pointing at ae-std/person.jsonld (identity)
+ *   - zero or more grant entries pointing at ae-std/rel/{relationshipUri}.jsonld
+ *
+ * Sourced entirely from ae-std (not the ae-webapp expert.jsonld) so the MIV
+ * postgres API path is decoupled from the elasticsearch projection. All grants
+ * are included (public and private) — the private APIs serve complete data.
+ */
+function getMivPostgresFiles(user, metadata={}) {
+  const result = [{
+    type: 'personAeStd',
+    path: cache.getUserPath(user, ['ae-std', 'person.jsonld'])
+  }];
 
-      // get grant relationship file
-      if (file.relationshipUri) {
-        return {
-          ...file,
-          path: cache.getUserPath(user, ['ae-std', 'rel', file.relationshipUri+'.jsonld'])
-        };
-      }
-
-      return file;
+  for (const grant of (metadata.grants || [])) {
+    if (!grant.relationshipUri) continue;
+    result.push({
+      type: 'grant',
+      uri: grant.uri,
+      relationshipUri: grant.relationshipUri,
+      path: cache.getUserPath(user, ['ae-std', 'rel', grant.relationshipUri+'.jsonld'])
     });
+  }
+
+  return result;
 }
 
 /**
@@ -373,23 +398,22 @@ function getMivPostgresFiles(user, files=[]) {
  *
  * The expert profile is sourced from ae-std (not the ae-webapp expert.jsonld)
  * so the sitefarm postgres API path is decoupled from the elasticsearch
- * projection.
+ * projection. All works are included (public and private) — the private APIs
+ * serve complete data.
  */
-function getSitefarmPostgresFiles(user, files=[]) {
+function getSitefarmPostgresFiles(user, metadata={}) {
   const result = [{
     type: 'personAeStd',
     path: cache.getUserPath(user, ['ae-std', 'person.jsonld'])
   }];
 
-  for (const file of files) {
-    if (file.type !== 'work') continue;
-    if (!file.relationshipUri) continue;
-
+  for (const work of (metadata.works || [])) {
+    if (!work.relationshipUri) continue;
     result.push({
       type: 'work',
-      uri: file.uri,
-      relationshipUri: file.relationshipUri,
-      path: cache.getUserPath(user, ['ae-std', 'rel', file.relationshipUri+'.jsonld'])
+      uri: work.uri,
+      relationshipUri: work.relationshipUri,
+      path: cache.getUserPath(user, ['ae-std', 'rel', work.relationshipUri+'.jsonld'])
     });
   }
 
