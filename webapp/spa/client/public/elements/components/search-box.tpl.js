@@ -116,7 +116,8 @@ export default function render() {
         />
         <button @click="${this._fireSearch}"
           class="search-button ${this.searchRounded ? 'rounded' : ''}"
-          style="position: absolute; top: 5.5px; right: 0.5rem;">
+          style="position: absolute; top: 5.5px; right: 0.5rem;"
+          aria-label="Search">
           <ucdlib-icon icon="ucdlib-experts:fa-search"></ucdlib-icon>
         </button>
       </div>
