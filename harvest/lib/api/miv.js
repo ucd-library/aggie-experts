@@ -2,7 +2,7 @@
  * MIV postgres projection: grants + roles.
  *
  * Source: ae-std/rel/{relationshipUri}.jsonld for each grant the user has a
- * role on, plus webapp/expert.jsonld for the user identity.
+ * role on, plus ae-std/person.jsonld for the user identity.
  *
  * Target tables (all in the `api` schema):
  *   - "user"             (identity columns only — managed via ApiUser)
@@ -387,11 +387,11 @@ class MivApi {
    */
   async load({ user, metadata={}, files=[] }) {
     const pgClient = new PgClient();
-    const expertFile = files.find(file => file.type === 'expert');
+    const personFile = files.find(file => file.type === 'personAeStd');
     const grantFiles = files.filter(file => file.type === 'grant');
 
-    const expertDoc = await PgJsonld.readJson(expertFile?.path);
-    const userRecord = this.user.buildUserRecord({ user, metadata, expertDoc });
+    const personDoc = await PgJsonld.readJson(personFile?.path);
+    const userRecord = this.user.buildUserRecord({ user, metadata, aeStdPersonDoc: personDoc });
 
     if (!userRecord?.expert_id || !userRecord?.email) {
       logger.warn({ user }, 'MIV postgres load skipped - missing user/expert identity');
