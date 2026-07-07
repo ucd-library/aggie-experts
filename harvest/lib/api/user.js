@@ -67,15 +67,16 @@ class ApiUser {
   async upsertUser(client, row, yearWeek) {
     await client.query(
       `INSERT INTO ${this.schema}."user"
-        (email, expert_id, ucd_person_uuid, iam_id, display_name, year_week)
-       VALUES ($1, $2, $3, $4, $5, $6)
+        (email, expert_id, ucd_person_uuid, iam_id, display_name, year_week, last_seen_cdl)
+       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
        ON CONFLICT (expert_id)
        DO UPDATE SET
         email           = EXCLUDED.email,
         ucd_person_uuid = EXCLUDED.ucd_person_uuid,
         iam_id          = EXCLUDED.iam_id,
         display_name    = EXCLUDED.display_name,
-        year_week       = EXCLUDED.year_week`,
+        year_week       = EXCLUDED.year_week,
+        last_seen_cdl   = CURRENT_TIMESTAMP`,
       [row.email, row.expert_id, row.ucd_person_uuid, row.iam_id, row.display_name, yearWeek]
     );
   }
