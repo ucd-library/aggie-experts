@@ -31,9 +31,10 @@ async function run(user, alias) {
   if( metadata.isPublic === false ) {
     logger.warn(`User ${user} is marked as not public, skipping load.`);
 
+    // Only purge from Elasticsearch (the public-facing index). The MIV and
+    // Sitefarm postgres projections are private APIs that intentionally retain
+    // complete data for non-public experts, so they are not purged here.
     await purgeUser(metadata.expertId, alias);
-    await mivApi.purge('expert/'+metadata.expertId);
-    await sitefarmApi.purge('expert/'+metadata.expertId);
 
     if (config.reporting.enabled && config.postgres.client && 
         alias.includes(config.elasticsearch.aliases.stage) ) {

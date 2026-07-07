@@ -23,7 +23,6 @@
  * Usage:
  *   const sitefarm = new SitefarmApi();
  *   await sitefarm.load({ user, metadata, files });
- *   await sitefarm.purge(expertId);
  */
 
 import { logger, getYearWeek } from '@ucd-lib/experts-commons';
@@ -404,53 +403,6 @@ class SitefarmApi {
 
       await pgClient.query('COMMIT');
       logger.info({ user, workCount: workFiles.length }, 'Sitefarm postgres load completed');
-    } catch (error) {
-      await pgClient.query('ROLLBACK');
-      throw error;
-    } finally {
-      await pgClient.end();
-    }
-  }
-
-  async purge(expertId) {
-    if (!expertId) return;
-
-    const pgClient = new PgClient();
-    const normalizedExpertId = PgJsonld.normalizeExpertId(expertId);
-    if (!normalizedExpertId) return;
-
-    try {
-      await pgClient.query('BEGIN');
-
-      // Remove this expert's roles, then orphaned works.
-      await pgClient.query(
-        `DELETE FROM ${this.schema}.expert_work_role WHERE expert_id = $1`,
-        [normalizedExpertId]
-      );
-      await pgClient.query(
-        `DELETE FROM ${this.schema}."work" w
-         WHERE NOT EXISTS (
-           SELECT 1 FROM ${this.schema}.expert_work_role wr WHERE wr.work_id = w.work_id
-         )`
-      );
-
-      // Clear sitefarm-specific profile columns. Identity columns are
-      // managed by MivApi.purge.
-      await pgClient.query(
-        `UPDATE ${this.schema}."user"
-           SET orcid_id           = NULL,
-               researcher_id      = NULL,
-               scopus_ids         = NULL,
-               overview           = NULL,
-               research_interests = NULL,
-               contact_info       = NULL,
-               expert_raw_payload = NULL
-         WHERE expert_id = $1`,
-        [normalizedExpertId]
-      );
-
-      await pgClient.query('COMMIT');
-      logger.info({ expertId }, 'Sitefarm postgres expert purge completed');
     } catch (error) {
       await pgClient.query('ROLLBACK');
       throw error;

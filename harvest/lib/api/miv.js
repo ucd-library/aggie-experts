@@ -14,7 +14,6 @@
  * Usage:
  *   const miv = new MivApi();
  *   await miv.load({ user, metadata, files });
- *   await miv.purge(expertId);
  */
 
 import { logger, getYearWeek } from '@ucd-lib/experts-commons';
@@ -441,50 +440,6 @@ class MivApi {
     }
   }
 
-  async purge(expertId) {
-    if (!expertId) return;
-
-    const pgClient = new PgClient();
-    const normalizedExpertId = PgJsonld.normalizeExpertId(expertId);
-    if (!normalizedExpertId) return;
-
-    try {
-      await pgClient.query('BEGIN');
-
-      await pgClient.query(
-        `DELETE FROM ${this.schema}.expert_grant_role WHERE expert_id = $1`,
-        [normalizedExpertId]
-      );
-
-      // Remove orphaned grants (no more roles point at them)
-      await pgClient.query(
-        `DELETE FROM ${this.schema}."grant" g
-         WHERE NOT EXISTS (
-           SELECT 1 FROM ${this.schema}.expert_grant_role gr WHERE gr.grant_id = g.grant_id
-         )`
-      );
-
-      // Clear identity columns. Profile columns are managed by SitefarmApi.purge.
-      // expert_id is the primary key and the lookup key both purges (and a future
-      // re-load) match on, so it is retained — the row survives as a tombstone.
-      await pgClient.query(
-        `UPDATE ${this.schema}."user"
-         SET ucd_person_uuid = NULL,
-             iam_id          = NULL,
-             display_name    = NULL
-         WHERE expert_id = $1`,
-        [normalizedExpertId]
-      );
-
-      await pgClient.query('COMMIT');
-      logger.info({ expertId }, 'MIV postgres expert purge completed');
-    } catch (error) {
-      await pgClient.query('ROLLBACK');
-      throw error;
-    } finally {
-      await pgClient.end();
-    }
-  }
 }
 
 export default MivApi;
