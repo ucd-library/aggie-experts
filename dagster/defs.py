@@ -41,6 +41,8 @@ from lib.assets import (
     purge_reporting_db,
     send_slack_notification,
     purge_stale_user_partitions,
+    check_grant_feed_email,
+    grant_feed_ingest,
 )
 from lib.jobs import (
     etl_users_job,
@@ -49,6 +51,8 @@ from lib.jobs import (
     start_weekly_etl_job,
     post_etl_job,
     cleanup_job,
+    grant_feed_email_job,
+    grant_feed_job,
 )
 from lib.sensors import etl_notify_and_continue
 from lib.schedules import (
@@ -56,10 +60,13 @@ from lib.schedules import (
     weekly_elt_schedule_dev,
     cleanup_schedule_prod,
     cleanup_schedule_dev,
+    grant_feed_email_schedule_prod,
+    grant_feed_email_schedule_dev,
 )
 
 defs = dg.Definitions(
-    jobs=[etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, post_etl_job, cleanup_job],
+    jobs=[etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, post_etl_job, cleanup_job,
+          grant_feed_email_job, grant_feed_job],
     assets=[
         extract_user, transform_user_webapp, transform_user_standard,
         load_user, init_databases, fetch_user_list_from_cdl,
@@ -68,12 +75,14 @@ defs = dg.Definitions(
         check_iam_lapsed_users,
         purge_user_cask_files, purge_year_week_cask_files, purge_dagster_runs, purge_reporting_db,
         send_slack_notification, purge_stale_user_partitions,
+        check_grant_feed_email, grant_feed_ingest,
     ],
     sensors=[etl_notify_and_continue],
     resources={},
     schedules=[
         weekly_elt_schedule_prod, weekly_elt_schedule_dev,
         cleanup_schedule_prod, cleanup_schedule_dev,
+        grant_feed_email_schedule_prod, grant_feed_email_schedule_dev,
     ],
     executor=celery_executor.configured({
         "broker": "pyamqp://guest:guest@rabbitmq:5672//",

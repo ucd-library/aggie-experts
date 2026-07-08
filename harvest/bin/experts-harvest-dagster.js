@@ -287,4 +287,22 @@ program
     process.exit();
   });
 
+program
+  .command('run-grant-feed-job')
+  .description('Launch the non-partitioned grant_feed_job (transform + delta + Symplectic upload)')
+  .action(async () => {
+    const dagster = new DagsterAPI();
+    const resp = await dagster.launchRun('grant_feed_job');
+
+    if (resp?.data?.launchRun?.__typename !== 'LaunchRunSuccess') {
+      console.error('Failed to launch grant_feed_job', JSON.stringify(resp, null, 2));
+      throw new Error('Failed to launch grant_feed_job');
+    }
+
+    console.log(JSON.stringify({ runId: resp.data.launchRun.run.runId }));
+
+    // things seem to hang after this point... so force exit
+    process.exit();
+  });
+
 program.parse(process.argv);

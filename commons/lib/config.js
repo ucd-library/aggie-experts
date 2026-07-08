@@ -174,6 +174,35 @@ const config = {
     }
   },
 
+  // Aggie Enterprise -> Symplectic grant-feed ETL.
+  grantFeed : {
+    // Inbox the weekly AE extract is emailed to. The receiving mailbox has NOT
+    // been provisioned yet, so these are PLACEHOLDERS. The check-email step
+    // uses a pluggable client (harvest/lib/grant-feed/email.js); the concrete
+    // backend (IMAP / Microsoft Graph / Gmail) is chosen once the address
+    // exists. `enabled` stays false until then so the task no-ops safely.
+    email : {
+      enabled : env.EXPERTS_GRANT_FEED_EMAIL_ENABLED === 'true' || false,
+      backend : env.EXPERTS_GRANT_FEED_EMAIL_BACKEND || 'stub', // stub | imap | graph | gmail
+      host : env.EXPERTS_GRANT_FEED_EMAIL_HOST || 'imap.placeholder.ucdavis.edu',
+      port : parseInt(env.EXPERTS_GRANT_FEED_EMAIL_PORT || '993', 10),
+      user : env.EXPERTS_GRANT_FEED_EMAIL_USER || 'CHANGE-ME@ucdavis.edu',
+      // Prefer a Secret Manager secret over a raw password in the environment.
+      passwordSecret : env.EXPERTS_GRANT_FEED_EMAIL_PASSWORD_SECRET || 'grant-feed-email-password',
+      password : env.EXPERTS_GRANT_FEED_EMAIL_PASSWORD || null,
+      mailbox : env.EXPERTS_GRANT_FEED_EMAIL_MAILBOX || 'INBOX',
+      // A valid weekly input is an email from `sender` carrying an attachment
+      // named `attachmentName`.
+      sender : env.EXPERTS_GRANT_FEED_EMAIL_SENDER || 'aggieenterprise@ucdavis.edu',
+      attachmentName : env.EXPERTS_GRANT_FEED_EMAIL_ATTACHMENT || 'AEgrants.xml',
+    },
+    symplectic : {
+      host : env.EXPERTS_SYMPLECTIC_SFTP_HOST || 'ftp.use.symplectic.org',
+      username : env.EXPERTS_SYMPLECTIC_SFTP_USER || 'ucdavis',
+      passwordSecret : env.EXPERTS_SYMPLECTIC_SFTP_PASSWORD_SECRET || 'Symplectic-Elements-FTP-ucdavis-password',
+    },
+  },
+
   elasticsearch : {
     host : esHostname,
     port : esPort,

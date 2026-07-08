@@ -4,7 +4,7 @@ Dagster schedule definitions for the Aggie Experts ETL pipeline.
 import dagster as dg
 from dagster import RunRequest
 
-from .jobs import cleanup_job, start_weekly_etl_job
+from .jobs import cleanup_job, start_weekly_etl_job, grant_feed_email_job
 
 
 # ---------------------------------------------------------------------------
@@ -111,4 +111,31 @@ weekly_elt_schedule_dev = dg.ScheduleDefinition(
     tags={
         "env": "dev"
     }
+)
+
+
+# The AE weekly extract currently arrives weekly, but we poll daily so a new
+# file is picked up within ~24h regardless of which day it lands. The
+# check_grant_feed_email asset triggers grant_feed_job only when a new
+# AEgrants.xml is found, so daily runs are cheap no-ops otherwise.
+grant_feed_email_schedule_prod = dg.ScheduleDefinition(
+    name="grant_feed_email_schedule_prod",
+    description="Daily check of the AE grant-feed inbox; stages new input and triggers the grant-feed ETL.",
+    cron_schedule="0 6 * * *",  # Every day at 6:00 AM
+    job=grant_feed_email_job,
+    execution_timezone="America/Los_Angeles",
+    tags={
+        "env": "prod"
+    },
+)
+
+grant_feed_email_schedule_dev = dg.ScheduleDefinition(
+    name="grant_feed_email_schedule_dev",
+    description="Daily check of the AE grant-feed inbox; stages new input and triggers the grant-feed ETL.",
+    cron_schedule="0 7 * * *",  # Every day at 7:00 AM
+    job=grant_feed_email_job,
+    execution_timezone="America/Los_Angeles",
+    tags={
+        "env": "dev"
+    },
 )

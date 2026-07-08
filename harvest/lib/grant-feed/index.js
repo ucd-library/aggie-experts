@@ -24,3 +24,16 @@ export {
 export { computeDelta, DELETE_LINK_HEADERS } from './delta.js';
 
 export { parseGsUri, listGenerations, downloadGeneration } from './gcs.js';
+
+export {
+  GRANT_FEED_SUBDIR,
+  RAW_INPUT_NAME,
+  GENERATION_FILES,
+  DELTA_FILES,
+  grantFeedRoot,
+  rawInputPath,
+  generationPath,
+  deltaPath
+} from './paths.js';
+
+export { getEmailClient } from './email.js';
