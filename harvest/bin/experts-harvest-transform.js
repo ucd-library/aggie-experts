@@ -10,6 +10,7 @@ import {
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 import wrapUserDomain from '../lib/user-domain.js';
+import { metadataKey } from '../lib/cache-paths.js';
 
 const program = new Command();
 
@@ -38,8 +39,8 @@ program
       logger.info('ae-std sorting enabled via --std-sort');
     }
 
-    if( await cache.existsUserAsset(userId, 'metadata.json') ) {
-      let metadata = await cache.readUserAsset(userId, 'metadata.json');
+    if( await cache.existsUserAsset(userId, metadataKey()) ) {
+      let metadata = await cache.readUserAsset(userId, metadataKey());
       metadata = JSON.parse(metadata);
       if( metadata.iamExtractIssues?.notFound ) {
         logger.warn(`User ${userId} is marked as not found from IAM extraction, skipping transformation.`);
@@ -103,8 +104,8 @@ program
       await enableFromCli('experts-harvest-transform-webapp', userId, options);
     }
 
-    if( await cache.existsUserAsset(userId, 'metadata.json') ) {
-      let metadata = await cache.readUserAsset(userId, 'metadata.json');
+    if( await cache.existsUserAsset(userId, metadataKey()) ) {
+      let metadata = await cache.readUserAsset(userId, metadataKey());
       metadata = JSON.parse(metadata);
       if( metadata.iamExtractIssues ) {
         if( metadata.iamExtractIssues.notFound ) {

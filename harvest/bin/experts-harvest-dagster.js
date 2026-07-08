@@ -9,6 +9,7 @@ import {
 import PgClient from '../lib/pg-client.js';
 import cache from '../lib/cache.js';
 import path from 'path';
+import { usersListFilename } from '../lib/cache-paths.js';
 const program = new Command();
 
 const GROUP_IDS = ['dev', 'sandbox', 'experts'];
@@ -81,7 +82,7 @@ program
     // const client = new CdlClient();
     // const users = await client.getGroupList(opts.groupId);
 
-    let userListPath = path.join(cache.getPath(), `users-list-${opts.groupId}.json`);
+    let userListPath = path.join(cache.getPath(), usersListFilename(opts.groupId));
     let users = await cache.read(userListPath);
     users = JSON.parse(users).users;
 
@@ -178,7 +179,7 @@ program
     // Get current users list. Prefer the CaskFS-cached list for the current
     // year-week (written by init-user-partitions at the start of the week);
     // fall back to a live CDL fetch if it's missing.
-    const userListPath = path.join(cache.getPath(), `users-list-${groupId}.json`);
+    const userListPath = path.join(cache.getPath(), usersListFilename(groupId));
     let currentUsers;
     let source;
     try {
