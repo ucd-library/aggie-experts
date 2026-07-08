@@ -948,51 +948,40 @@ return html`
     </div>
 
     ${(() => {
-      const worksItems = (this.failedUpdates || []).filter(u => u.type === 'work');
-      const grantsItems = (this.failedUpdates || []).filter(u => u.type === 'grant');
-      const availItems = (this.failedUpdates || []).filter(u => u.type === 'availability');
-      if( !this.canEdit || (!worksItems.length && !grantsItems.length && !availItems.length) ) return '';
+      const isInfoOnly = u => !u.cdlFailed && u.esFailed;
       const toListItems = entries => entries.map(u => ({
         label: u.name,
         subtext: utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action
       }));
+
+      const groups = [
+        { type: 'work', label: 'Works', href: `/${this.expertId}/works-edit` },
+        { type: 'grant', label: 'Grants', href: `/${this.expertId}/grants-edit` },
+        { type: 'availability', label: 'Availability', href: '' }
+      ].flatMap(({ type, label, href }) => {
+        const items = (this.failedUpdates || []).filter(u => u.type === type);
+        return [
+          { items: items.filter(u => !isInfoOnly(u)), label, href, isInfo: false },
+          { items: items.filter(isInfoOnly), label, href, isInfo: true }
+        ];
+      }).filter(g => g.items.length);
+
+      if( !this.canEdit || !groups.length ) return '';
+
       return html`
         <div class="failed-update-banners">
-          ${worksItems.length ? html`
+          ${groups.map(g => html`
             <app-status-banner
-              type="error"
-              icon="ucdlib-experts:fa-exclamation-triangle"
-              title-label="Works"
-              title-href="/${this.expertId}/works-edit"
-              title-suffix="failed to save:"
-              .items="${toListItems(worksItems)}"
+              type="${g.isInfo ? 'info' : 'error'}"
+              icon="${g.isInfo ? 'ucdlib-experts:fa-check-circle' : 'ucdlib-experts:fa-exclamation-triangle'}"
+              title-label="${g.label}"
+              title-href="${g.href}"
+              title-suffix="${g.isInfo ? 'will update at the next data refresh:' : 'failed to save:'}"
+              .items="${toListItems(g.items)}"
               dismissible
-              @dismiss=${() => worksItems.forEach(e => this._dismissFailedUpdate(e))}>
+              @dismiss=${() => g.items.forEach(e => this._dismissFailedUpdate(e))}>
             </app-status-banner>
-          ` : ''}
-          ${grantsItems.length ? html`
-            <app-status-banner
-              type="error"
-              icon="ucdlib-experts:fa-exclamation-triangle"
-              title-label="Grants"
-              title-href="/${this.expertId}/grants-edit"
-              title-suffix="failed to save:"
-              .items="${toListItems(grantsItems)}"
-              dismissible
-              @dismiss=${() => grantsItems.forEach(e => this._dismissFailedUpdate(e))}>
-            </app-status-banner>
-          ` : ''}
-          ${availItems.length ? html`
-            <app-status-banner
-              type="error"
-              icon="ucdlib-experts:fa-exclamation-triangle"
-              title-label="Availability"
-              title-suffix="failed to save:"
-              .items="${toListItems(availItems)}"
-              dismissible
-              @dismiss=${() => availItems.forEach(e => this._dismissFailedUpdate(e))}>
-            </app-status-banner>
-          ` : ''}
+          `)}
         </div>
       `;
     })()}
