@@ -1,21 +1,29 @@
 /**
  * CasKFS asset-path helpers for the grant-feed ETL.
  *
- * Every artifact lives under the weekly year-week partition in the same
- * FsCache/CasKFS store the rest of the harvest ETL uses:
+ * CasKFS filenames use the project convention: lower-case and hyphens only
+ * (no capitals, no underscores). The legacy Symplectic naming (Prod_UCD_
+ * prefix + underscores + mixed case) is applied only at upload time via
+ * toSymplecticFileName(), so the files delivered to Symplectic keep the names
+ * their importer expects while the cache stays clean.
  *
- *   /weekly/<year-week>/grant-feed/AEgrants.xml                 (raw input)
- *   /weekly/<year-week>/grant-feed/{Prod_UCD_}grants_metadata.csv
- *   /weekly/<year-week>/grant-feed/{Prod_UCD_}grants_links.csv
- *   /weekly/<year-week>/grant-feed/{Prod_UCD_}grants_persons.csv
- *   /weekly/<year-week>/grant-feed/delta/{Prod_UCD_}grants_metadata.csv
- *   /weekly/<year-week>/grant-feed/delta/{Prod_UCD_}grants_links.csv
- *   /weekly/<year-week>/grant-feed/delta/{Prod_UCD_}grants_persons.csv
- *   /weekly/<year-week>/grant-feed/delta/{Prod_UCD_}delete_user_grants_links.csv
+ * Layout under the weekly year-week partition:
+ *
+ *   /weekly/<year-week>/grant-feed/ae-grants.xml                 (raw input)
+ *   /weekly/<year-week>/grant-feed/grants-metadata.csv
+ *   /weekly/<year-week>/grant-feed/grants-links.csv
+ *   /weekly/<year-week>/grant-feed/grants-persons.csv
+ *   /weekly/<year-week>/grant-feed/delta/grants-metadata.csv
+ *   /weekly/<year-week>/grant-feed/delta/grants-links.csv
+ *   /weekly/<year-week>/grant-feed/delta/grants-persons.csv
+ *   /weekly/<year-week>/grant-feed/delta/delete-user-grants-links.csv
+ *
+ * On upload these map to (PROD): Prod_UCD_grants_metadata.csv, etc.
  *
  * These functions take the weekly base path (as returned by
  * cache.getPath({root:'weekly', date})) and are otherwise pure, so they can
- * be unit-tested without the CasKFS runtime.
+ * be unit-tested without the CasKFS runtime. CasKFS names are env-agnostic —
+ * QA vs PROD only affects the Symplectic upload name/target, not storage.
  */
 import path from 'path';
 
@@ -24,18 +32,19 @@ import path from 'path';
 // Symplectic feed, a different pipeline.
 export const GRANT_FEED_SUBDIR = 'grant-feed';
 
-// Raw Aggie Enterprise input attachment name (as delivered by email).
-export const RAW_INPUT_NAME = 'AEgrants.xml';
+// Raw Aggie Enterprise input, stored under the clean cache name. (The email
+// attachment / GCS object may be named differently; see config.grantFeed.email.)
+export const RAW_INPUT_NAME = 'ae-grants.xml';
 
-// The three generation CSV base names (prefix + these + .csv).
-export const GENERATION_FILES = ['grants_metadata', 'grants_links', 'grants_persons'];
+// The three generation CSV base names (clean; + .csv).
+export const GENERATION_FILES = ['grants-metadata', 'grants-links', 'grants-persons'];
 
-// The delta output base names (prefix + these + .csv).
+// The delta output base names (clean; + .csv).
 export const DELTA_FILES = [
-  'grants_metadata',
-  'grants_links',
-  'grants_persons',
-  'delete_user_grants_links'
+  'grants-metadata',
+  'grants-links',
+  'grants-persons',
+  'delete-user-grants-links'
 ];
 
 export function grantFeedRoot(weeklyPath) {
@@ -46,12 +55,26 @@ export function rawInputPath(weeklyPath) {
   return path.join(grantFeedRoot(weeklyPath), RAW_INPUT_NAME);
 }
 
-export function generationPath(weeklyPath, name, prefix = '') {
-  return path.join(grantFeedRoot(weeklyPath), `${prefix}${name}.csv`);
+export function generationPath(weeklyPath, name) {
+  return path.join(grantFeedRoot(weeklyPath), `${name}.csv`);
 }
 
-export function deltaPath(weeklyPath, name, prefix = '') {
-  return path.join(grantFeedRoot(weeklyPath), 'delta', `${prefix}${name}.csv`);
+export function deltaPath(weeklyPath, name) {
+  return path.join(grantFeedRoot(weeklyPath), 'delta', `${name}.csv`);
+}
+
+/**
+ * Translate a clean cache CSV base name (e.g. 'grants-metadata') into the
+ * legacy Symplectic filename the Elements importer expects: hyphens become
+ * underscores and, for PROD, the 'Prod_UCD_' prefix is added.
+ *
+ *   ('grants-metadata', 'PROD') -> 'Prod_UCD_grants_metadata.csv'
+ *   ('grants-metadata', 'QA')   -> 'grants_metadata.csv'
+ *   ('delete-user-grants-links', 'PROD') -> 'Prod_UCD_delete_user_grants_links.csv'
+ */
+export function toSymplecticFileName(name, env) {
+  const prefix = env === 'PROD' ? 'Prod_UCD_' : '';
+  return `${prefix}${name.replace(/-/g, '_')}.csv`;
 }
 
 export default {
@@ -62,5 +85,6 @@ export default {
   grantFeedRoot,
   rawInputPath,
   generationPath,
-  deltaPath
+  deltaPath,
+  toSymplecticFileName
 };

@@ -5,10 +5,10 @@
  * Compute the Symplectic delta between this week's grant-feed generation and
  * last week's, both read from CasKFS, and write the delta CSVs back to CasKFS:
  *
- *   /weekly/<year-week>/grant-feed/delta/{Prod_UCD_}grants_metadata.csv          (new + updated grants)
- *   /weekly/<year-week>/grant-feed/delta/{Prod_UCD_}grants_links.csv             (new/updated + linked-to-delta-grant)
- *   /weekly/<year-week>/grant-feed/delta/{Prod_UCD_}grants_persons.csv           (new + updated persons)
- *   /weekly/<year-week>/grant-feed/delta/{Prod_UCD_}delete_user_grants_links.csv (old links that vanished)
+ *   /weekly/<year-week>/grant-feed/delta/grants-metadata.csv          (new + updated grants)
+ *   /weekly/<year-week>/grant-feed/delta/grants-links.csv             (new/updated + linked-to-delta-grant)
+ *   /weekly/<year-week>/grant-feed/delta/grants-persons.csv           (new + updated persons)
+ *   /weekly/<year-week>/grant-feed/delta/delete-user-grants-links.csv (old links that vanished)
  *
  * "Last week" is the prior year-week partition. On the first-ever run there is
  * no prior generation, so every current row is treated as new (a full initial
@@ -35,11 +35,9 @@ const program = new Command();
 program
   .name('delta')
   .description("Diff this week's grant-feed generation against last week's (both in CasKFS) and store the Symplectic delta")
-  .option('--env <env>', 'QA | PROD (controls Prod_UCD_ filename prefix)', 'QA')
   .option('-d, --date <date>', 'This week (YYYY-MM-DD); defaults to today. The previous year-week is derived from the app\'s Saturday-aligned week logic.', null)
   .action(async (opts) => {
     try {
-      const prefix = opts.env === 'PROD' ? 'Prod_UCD_' : '';
       // Use the app's timezone-aware "today" so this matches the year-week the
       // transform stage wrote to (getYearWeek defaults to getTodaysDate()).
       const thisWeekDate = opts.date ? Temporal.PlainDate.from(opts.date) : getTodaysDate();
@@ -54,14 +52,14 @@ program
       const thisWeek = cache.getPath({ root: '/weekly', date: thisWeekDate });
       const prevWeek = cache.getPath({ root: '/weekly', date: prevWeekDate });
 
-      const newGrants = await readCsv(generationPath(thisWeek, 'grants_metadata', prefix), { required: true });
-      const newLinks = await readCsv(generationPath(thisWeek, 'grants_links', prefix), { required: true });
-      const newPersons = await readCsv(generationPath(thisWeek, 'grants_persons', prefix), { required: true });
+      const newGrants = await readCsv(generationPath(thisWeek, 'grants-metadata'), { required: true });
+      const newLinks = await readCsv(generationPath(thisWeek, 'grants-links'), { required: true });
+      const newPersons = await readCsv(generationPath(thisWeek, 'grants-persons'), { required: true });
 
       // Previous week may not exist (first run) — treat as empty => full delta.
-      const oldGrants = await readCsv(generationPath(prevWeek, 'grants_metadata', prefix));
-      const oldLinks = await readCsv(generationPath(prevWeek, 'grants_links', prefix));
-      const oldPersons = await readCsv(generationPath(prevWeek, 'grants_persons', prefix));
+      const oldGrants = await readCsv(generationPath(prevWeek, 'grants-metadata'));
+      const oldLinks = await readCsv(generationPath(prevWeek, 'grants-links'));
+      const oldPersons = await readCsv(generationPath(prevWeek, 'grants-persons'));
 
       const hadPrev = oldGrants.length || oldLinks.length || oldPersons.length;
       if (!hadPrev) {
@@ -79,10 +77,10 @@ program
 
       logger.info(`delta: ${deltaGrants.length} grants / ${deltaLinks.length} links / ${deltaPersons.length} persons / ${deleteLinks.length} deletes`);
 
-      await writeCsv(deltaPath(thisWeek, 'grants_metadata', prefix), deltaGrants, METADATA_HEADERS);
-      await writeCsv(deltaPath(thisWeek, 'grants_links', prefix), deltaLinks, LINK_HEADERS);
-      await writeCsv(deltaPath(thisWeek, 'grants_persons', prefix), deltaPersons, PERSON_HEADERS);
-      await writeCsv(deltaPath(thisWeek, 'delete_user_grants_links', prefix), deleteLinks, DELETE_LINK_HEADERS);
+      await writeCsv(deltaPath(thisWeek, 'grants-metadata'), deltaGrants, METADATA_HEADERS);
+      await writeCsv(deltaPath(thisWeek, 'grants-links'), deltaLinks, LINK_HEADERS);
+      await writeCsv(deltaPath(thisWeek, 'grants-persons'), deltaPersons, PERSON_HEADERS);
+      await writeCsv(deltaPath(thisWeek, 'delete-user-grants-links'), deleteLinks, DELETE_LINK_HEADERS);
 
       console.log(JSON.stringify({
         weeklyPath: thisWeek,

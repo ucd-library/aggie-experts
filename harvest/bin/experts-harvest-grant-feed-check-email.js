@@ -5,8 +5,8 @@
  * Poll the configured inbox for the weekly Aggie Enterprise extract: an email
  * from config.grantFeed.email.sender carrying an attachment named
  * config.grantFeed.email.attachmentName (AEgrants.xml). If a new one is found,
- * stage it in CasKFS as this week's raw input:
- *   /weekly/<year-week>/grant-feed/AEgrants.xml
+ * stage it in CasKFS as this week's raw input (under the clean cache name):
+ *   /weekly/<year-week>/grant-feed/ae-grants.xml
  *
  * Prints a JSON result on the last stdout line so the Dagster asset can decide
  * whether to trigger the grant-feed ETL:

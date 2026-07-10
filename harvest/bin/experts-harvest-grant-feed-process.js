@@ -20,7 +20,7 @@ import Client from 'ssh2-sftp-client';
 import { Temporal } from '@js-temporal/polyfill';
 import { logger, GoogleSecret, config, getTodaysDate } from '@ucd-lib/experts-commons';
 import cache from '../lib/cache.js';
-import { deltaPath, DELTA_FILES } from '../lib/grant-feed/index.js';
+import { deltaPath, DELTA_FILES, toSymplecticFileName } from '../lib/grant-feed/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,32 +30,33 @@ const program = new Command();
 program
   .name('process')
   .description('Run the full weekly AE grant-feed ETL: transform, diff vs last week, and upload the delta to Symplectic')
-  .option('--env <env>', 'QA | PROD (controls Prod_UCD_ filename prefix)', 'PROD')
+  .option('--env <env>', 'QA | PROD (controls the Symplectic upload filename prefix and remote directory)', 'PROD')
   .option('-d, --date <date>', 'Week to process (YYYY-MM-DD); defaults to today', null)
-  .option('--xml <xml>', 'Optional input override (local path or gs://...); defaults to the raw AEgrants.xml in CasKFS for the week')
+  .option('--xml <xml>', 'Optional input override (local path or gs://...); defaults to the raw ae-grants.xml in CasKFS for the week')
   .option('--no-upload', 'Skip the SFTP upload to Symplectic (transform + delta only)')
   .option('-h, --host <host>', 'SFTP host', config.grantFeed?.symplectic?.host || 'ftp.use.symplectic.org')
   .option('-u, --username <username>', 'SFTP username', config.grantFeed?.symplectic?.username || 'ucdavis')
   .option('--secret-name <secret>', 'Secret Manager key holding the SFTP password', config.grantFeed?.symplectic?.passwordSecret || 'Symplectic-Elements-FTP-ucdavis-password')
   .action(async (opts) => {
-    const prefix = opts.env === 'PROD' ? 'Prod_UCD_' : '';
     // Timezone-aware "today" (America/Los_Angeles), then pass an explicit
     // --date to the transform/delta children so all steps agree on the week.
+    // env is NOT passed to transform/delta — cache filenames are env-agnostic;
+    // env only controls the Symplectic upload name/target below.
     const date = opts.date ? Temporal.PlainDate.from(opts.date) : getTodaysDate();
 
     const weeklyPath = cache.getPath({ root: '/weekly', date });
 
-    const transformArgs = ['transform', '--env', opts.env, '--date', date.toString()];
+    const transformArgs = ['transform', '--date', date.toString()];
     if (opts.xml) transformArgs.push('--xml', opts.xml);
     runChild(transformArgs);
 
-    runChild(['delta', '--env', opts.env, '--date', date.toString()]);
+    runChild(['delta', '--date', date.toString()]);
 
-    const counts = await countDelta(weeklyPath, prefix);
+    const counts = await countDelta(weeklyPath);
 
     let uploaded = false;
     if (opts.upload) {
-      await uploadDeltaToSymplectic(opts, prefix, weeklyPath);
+      await uploadDeltaToSymplectic(opts, weeklyPath);
       uploaded = true;
     } else {
       logger.info('Skipping Symplectic upload (--no-upload).');
@@ -85,16 +86,16 @@ function runChild(args) {
 /**
  * Count the data rows in each delta CSV (for the run summary / notification).
  */
-async function countDelta(weeklyPath, prefix) {
+async function countDelta(weeklyPath) {
   const keys = {
-    grants_metadata: 'grants',
-    grants_links: 'links',
-    grants_persons: 'persons',
-    delete_user_grants_links: 'deletes'
+    'grants-metadata': 'grants',
+    'grants-links': 'links',
+    'grants-persons': 'persons',
+    'delete-user-grants-links': 'deletes'
   };
   const counts = {};
   for (const [name, key] of Object.entries(keys)) {
-    const assetPath = deltaPath(weeklyPath, name, prefix);
+    const assetPath = deltaPath(weeklyPath, name);
     counts[key] = (await cache.exists(assetPath)) ? countRows(await cache.read(assetPath)) : 0;
   }
   return counts;
@@ -110,18 +111,20 @@ function countRows(csv) {
 /**
  * Read the delta CSVs from CasKFS and SFTP them to Symplectic.
  */
-async function uploadDeltaToSymplectic(opts, prefix, weeklyPath) {
+async function uploadDeltaToSymplectic(opts, weeklyPath) {
   const password = await GoogleSecret.getSecret(opts.secretName);
   const sftp = new Client();
   try {
     await sftp.connect({ host: opts.host, port: 22, username: opts.username, password });
     for (const name of DELTA_FILES) {
-      const assetPath = deltaPath(weeklyPath, name, prefix);
+      const assetPath = deltaPath(weeklyPath, name);
       if (!(await cache.exists(assetPath))) {
         throw new Error(`Delta file missing in CasKFS, cannot upload: ${assetPath}`);
       }
       const body = await cache.read(assetPath);
-      const remote = `/${opts.env}/${prefix}${name}.csv`;
+      // Rename to the legacy Symplectic filename (Prod_UCD_ + underscores) on
+      // the way out; the cache keeps clean lower-case/hyphen names.
+      const remote = `/${opts.env}/${toSymplecticFileName(name, opts.env)}`;
       logger.info(`SFTP put ${assetPath} -> ${remote}`);
       await sftp.put(Buffer.from(body, 'utf8'), remote);
     }

@@ -33,7 +33,8 @@ export {
   grantFeedRoot,
   rawInputPath,
   generationPath,
-  deltaPath
+  deltaPath,
+  toSymplecticFileName
 } from './paths.js';
 
 export { getEmailClient } from './email.js';

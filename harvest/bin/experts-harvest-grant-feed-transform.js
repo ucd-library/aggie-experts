@@ -4,12 +4,15 @@
  *
  * Transform one week's Aggie Enterprise award XML into the three Symplectic
  * Elements import CSVs and store them in CasKFS under the weekly partition:
- *   /weekly/<year-week>/grant-feed/{Prod_UCD_}grants_{metadata,links,persons}.csv
+ *   /weekly/<year-week>/grant-feed/grants-{metadata,links,persons}.csv
+ *
+ * Cache filenames are clean (lower-case, hyphens); the legacy Prod_UCD_ names
+ * are applied only on upload to Symplectic.
  *
  * Input resolution (first match wins):
  *   1. --xml <local path | gs://...>  explicit override (also archived into
- *      CasKFS as the week's raw AEgrants.xml)
- *   2. otherwise the raw AEgrants.xml already stored in CasKFS for the week
+ *      CasKFS as the week's raw ae-grants.xml)
+ *   2. otherwise the raw ae-grants.xml already stored in CasKFS for the week
  *      (written by the email-check task)
  *
  * The parse + row-building lives in ../lib/grant-feed/transform.js; this CLI
@@ -40,13 +43,11 @@ const program = new Command();
 program
   .name('transform')
   .description('Transform an AE grant XML feed into Symplectic CSVs, stored in CasKFS under the weekly partition')
-  .option('--env <env>', 'QA | PROD (controls Prod_UCD_ filename prefix)', 'QA')
   .option('-d, --date <date>', 'Week to store under (YYYY-MM-DD); defaults to today', null)
-  .option('--xml <xml>', 'Optional input override: local path or gs://bucket/path/file.xml. If omitted, uses the raw AEgrants.xml already in CasKFS for the week.')
+  .option('--xml <xml>', 'Optional input override: local path or gs://bucket/path/file.xml. If omitted, uses the raw ae-grants.xml already in CasKFS for the week.')
   .option('-g, --generation <generation>', 'When --xml is a gs:// URI, which GCS generation to pull (0 = most recent)', '0')
   .action(async (opts) => {
     try {
-      const prefix = opts.env === 'PROD' ? 'Prod_UCD_' : '';
       const date = opts.date ? Temporal.PlainDate.from(opts.date) : getTodaysDate();
       const weeklyPath = cache.getPath({ root: '/weekly', date });
       const rawPath = rawInputPath(weeklyPath);
@@ -60,9 +61,11 @@ program
       const { metadataRows, linkRows, personRows } = buildAllRows(json);
       logger.info(`Rows — metadata: ${metadataRows.length}, links: ${linkRows.length}, persons: ${personRows.length}`);
 
-      await cache.write(generationPath(weeklyPath, 'grants_metadata', prefix), rowsToCsv(metadataRows, METADATA_HEADERS));
-      await cache.write(generationPath(weeklyPath, 'grants_links', prefix), rowsToCsv(linkRows, LINK_HEADERS));
-      await cache.write(generationPath(weeklyPath, 'grants_persons', prefix), rowsToCsv(personRows, PERSON_HEADERS));
+      // Clean, env-agnostic cache names. The Prod_UCD_ prefix is a Symplectic
+      // upload concern, applied later via toSymplecticFileName().
+      await cache.write(generationPath(weeklyPath, 'grants-metadata'), rowsToCsv(metadataRows, METADATA_HEADERS));
+      await cache.write(generationPath(weeklyPath, 'grants-links'), rowsToCsv(linkRows, LINK_HEADERS));
+      await cache.write(generationPath(weeklyPath, 'grants-persons'), rowsToCsv(personRows, PERSON_HEADERS));
 
       logger.info(`Wrote generation CSVs to ${weeklyPath}/grant-feed/`);
       console.log(JSON.stringify({

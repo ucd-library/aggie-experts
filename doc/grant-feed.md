@@ -31,7 +31,7 @@ graph TD;
    defined and scheduled in the Aggie Enterprise report interface. A **daily**
    Dagster schedule (`grant_feed_email_schedule_*`) checks the inbox; when a new
    file arrives it is staged in CasKFS at
-   `/weekly/<year-week>/grant-feed/AEgrants.xml` and the ETL is triggered.
+   `/weekly/<year-week>/grant-feed/ae-grants.xml` and the ETL is triggered.
    *(Historically the file was uploaded by hand to the `gs://aggie-enterprise/grants`
    bucket; that still works as a manual `--xml` override — see below.)*
 2. **transform** — [transform.js](../harvest/lib/grant-feed/transform.js) parses
@@ -56,16 +56,22 @@ All artifacts live in CasKFS under the weekly partition:
 
 ```
 /weekly/<year-week>/grant-feed/
-    AEgrants.xml                         # raw input
-    Prod_UCD_grants_metadata.csv         # this week's full generation
-    Prod_UCD_grants_links.csv
-    Prod_UCD_grants_persons.csv
+    ae-grants.xml                # raw input
+    grants-metadata.csv          # this week's full generation
+    grants-links.csv
+    grants-persons.csv
     delta/
-        Prod_UCD_grants_metadata.csv     # what gets sent to Symplectic
-        Prod_UCD_grants_links.csv
-        Prod_UCD_grants_persons.csv
-        Prod_UCD_delete_user_grants_links.csv
+        grants-metadata.csv      # what gets sent to Symplectic
+        grants-links.csv
+        grants-persons.csv
+        delete-user-grants-links.csv
 ```
+
+CasKFS filenames follow the project convention — lower-case and hyphens only.
+The legacy Symplectic names (`Prod_UCD_grants_metadata.csv`, underscores, mixed
+case) are applied only on upload, so the cache stays clean while Symplectic
+still receives the names its importer expects. (QA drops the `Prod_UCD_` prefix,
+e.g. `grants_metadata.csv`.)
 
 Weekly cleanup (`purge_year_week_cask_files`) removes old `/weekly/<year-week>`
 trees, including the grant feed, automatically. On completion the ingest posts a
@@ -97,10 +103,10 @@ $ experts harvest grant-feed check-email                   # poll inbox, stage i
 1. `--xml <path|gs://…>` — an explicit override: a local path or a
    `gs://bucket/path/file.xml` URI (e.g.
    `gs://aggie-enterprise/grants/ae-grants.xml`). The file is also archived into
-   CasKFS as the week's `AEgrants.xml`. GCS access uses Application Default
+   CasKFS as the week's `ae-grants.xml`. GCS access uses Application Default
    Credentials (`GOOGLE_APPLICATION_CREDENTIALS` or `gcloud auth
    application-default login`).
-2. Otherwise, the `AEgrants.xml` already staged in CasKFS for the week (written
+2. Otherwise, the `ae-grants.xml` already staged in CasKFS for the week (written
    by `check-email`).
 
 To run a week manually from a file you have on hand:

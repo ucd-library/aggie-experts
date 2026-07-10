@@ -29,9 +29,9 @@
  *   attachment as utf8, and expose markProcessed() to avoid reprocessing.
  *
  * NEWNESS / IDEMPOTENCY — important contract detail:
- *   The check-email CLI has a coarse, week-level guard: it skips fetching if an
- *   AEgrants.xml is already staged in CasKFS for the current year-week
- *   (/weekly/<year-week>/grant-feed/AEgrants.xml), unless --force is passed. So
+ *   The check-email CLI has a coarse, week-level guard: it skips fetching if the
+ *   input is already staged in CasKFS for the current year-week
+ *   (/weekly/<year-week>/grant-feed/ae-grants.xml), unless --force is passed. So
  *   the CLI's notion of "new" is only "this week has no file yet."
  *
  *   That guard alone is NOT sufficient to decide message-level newness. If a
