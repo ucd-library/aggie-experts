@@ -259,6 +259,12 @@ function diffPersons(newPersons, oldPersons) {
 
 /**
  * Compute all four delta sets in one pass.
+ *
+ * Also returns newGrantIds: the delta grants whose id is absent from
+ * oldGrants (last week's full generation) — i.e. genuinely new grants, as
+ * opposed to updated ones. This is computed here (where both generations are
+ * already in hand) so downstream reporting doesn't have to re-read and
+ * re-diff last week's generation to classify new vs updated.
  */
 export function computeDelta({ newGrants, oldGrants, newLinks, oldLinks, newPersons, oldPersons }) {
   const deltaGrants = diffGrants(newGrants, oldGrants);
@@ -268,7 +274,11 @@ export function computeDelta({ newGrants, oldGrants, newLinks, oldLinks, newPers
   addUserLinks(deltaGrants, deltaLinks, newLinks);
   const deleteLinks = findDeletedLinks(newLinks, oldLinks);
   const deltaPersons = diffPersons(newPersons, oldPersons);
-  return { deltaGrants, deltaLinks, deltaPersons, deleteLinks };
+
+  const oldGrantIds = new Set(oldGrants.map(g => g.id));
+  const newGrantIds = [...new Set(deltaGrants.map(g => g.id))].filter(id => !oldGrantIds.has(id));
+
+  return { deltaGrants, deltaLinks, deltaPersons, deleteLinks, newGrantIds };
 }
 
 // Column order for the delete_user_grants_links.csv output (see legacy

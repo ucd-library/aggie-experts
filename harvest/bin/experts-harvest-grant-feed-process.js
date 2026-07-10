@@ -7,6 +7,7 @@
  *   2. diff against last week's cached generation into delta CSVs in CasKFS
  *   3. SFTP the delta CSVs to the Symplectic Elements server (on by default;
  *      disable with --no-upload)
+ *   4. load the week's delta into the grant_feed reporting schema (best-effort)
  *
  * Steps 1-2 are spawned as the sibling `transform` / `delta` CLIs so they can
  * also be run independently or wired into Dagster one asset at a time. The
@@ -16,11 +17,13 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { Command } from 'commander';
+import { parse } from 'csv-parse/sync';
 import Client from 'ssh2-sftp-client';
 import { Temporal } from '@js-temporal/polyfill';
 import { logger, GoogleSecret, config, getTodaysDate } from '@ucd-lib/experts-commons';
 import cache from '../lib/cache.js';
-import { deltaPath, DELTA_FILES, toSymplecticFileName } from '../lib/grant-feed/index.js';
+import PgClient from '../lib/pg-client.js';
+import { deltaPath, DELTA_FILES, toSymplecticFileName, loadGrantFeedReporting } from '../lib/grant-feed/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,9 +53,22 @@ program
     if (opts.xml) transformArgs.push('--xml', opts.xml);
     runChild(transformArgs);
 
-    runChild(['delta', '--date', date.toString()]);
+    // Capture the delta summary — it carries newGrantIds (computed from both
+    // generations it already has), so we classify new vs updated without
+    // re-reading last week's generation here.
+    const deltaSummary = runChild(['delta', '--date', date.toString()], { capture: true }) || {};
+    const newGrantIds = new Set(deltaSummary.newGrantIds || []);
 
-    const counts = await countDelta(weeklyPath);
+    // Read + parse the delta CSVs once (for the summary counts and the
+    // reporting-DB load). Upload re-reads the raw bytes separately so it sends
+    // exactly what delta wrote.
+    const rows = await readDeltaRows(weeklyPath);
+    const counts = {
+      grants: rows.metadata.length,
+      links: rows.links.length,
+      persons: rows.persons.length,
+      deletes: rows.deleteLinks.length
+    };
 
     let uploaded = false;
     if (opts.upload) {
@@ -64,48 +80,89 @@ program
 
     await cache.close();
 
+    // Load the weekly delta into the grant_feed reporting schema. Best-effort:
+    // a reporting failure must not fail an otherwise-successful grant delivery.
+    const yearWeek = path.basename(weeklyPath);
+    const reportingLoaded = await loadReporting(yearWeek, uploaded, rows, newGrantIds);
+
     // Final line is a JSON summary the Dagster asset parses to build the
     // Slack notification (success + grant count).
-    console.log(JSON.stringify({ success: true, uploaded, weeklyPath, ...counts }));
+    console.log(JSON.stringify({ success: true, uploaded, reportingLoaded, weeklyPath, ...counts }));
     process.exit();
   });
 
 /**
  * Spawn a sibling grant-feed subcommand CLI (transform / delta). We invoke the
  * dispatcher so the child resolves through the same code path as the CLI.
+ *
+ * With { capture: true }, the child's stdout is captured (and echoed so nothing
+ * is lost from the log), and this returns the parsed JSON of its last stdout
+ * line (the child's summary) — used to read the delta stage's newGrantIds.
  */
-function runChild(args) {
+function runChild(args, { capture = false } = {}) {
   const dispatcher = path.join(__dirname, 'experts-harvest-grant-feed.js');
   logger.info(`spawn: experts-harvest-grant-feed ${args.join(' ')}`);
-  const result = spawnSync('node', [dispatcher, ...args], { stdio: 'inherit', encoding: 'utf8' });
+  const result = spawnSync('node', [dispatcher, ...args], {
+    stdio: capture ? ['inherit', 'pipe', 'inherit'] : 'inherit',
+    encoding: 'utf8',
+    maxBuffer: 256 * 1024 * 1024
+  });
   if (result.status !== 0) {
     throw new Error(`grant-feed ${args[0]} exited with status ${result.status}`);
   }
+  if (!capture) return undefined;
+  if (result.stdout) process.stdout.write(result.stdout);
+  return parseLastJsonLine(result.stdout);
+}
+
+/** Parse the last non-empty line of a string as JSON, or return {} on failure. */
+function parseLastJsonLine(text) {
+  if (!text) return {};
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try { return JSON.parse(lines[i]); } catch (_) { /* keep scanning up */ }
+  }
+  return {};
 }
 
 /**
- * Count the data rows in each delta CSV (for the run summary / notification).
+ * Read and parse each delta CSV from CasKFS into row arrays keyed by the
+ * reporting-loader's expected names.
  */
-async function countDelta(weeklyPath) {
-  const keys = {
-    'grants-metadata': 'grants',
-    'grants-links': 'links',
-    'grants-persons': 'persons',
-    'delete-user-grants-links': 'deletes'
-  };
-  const counts = {};
-  for (const [name, key] of Object.entries(keys)) {
+async function readDeltaRows(weeklyPath) {
+  const readParse = async (name) => {
     const assetPath = deltaPath(weeklyPath, name);
-    counts[key] = (await cache.exists(assetPath)) ? countRows(await cache.read(assetPath)) : 0;
-  }
-  return counts;
+    if (!(await cache.exists(assetPath))) return [];
+    const data = await cache.read(assetPath);
+    if (!data || !data.trim()) return [];
+    return parse(data, { columns: true, skip_empty_lines: true });
+  };
+  return {
+    metadata: await readParse('grants-metadata'),
+    links: await readParse('grants-links'),
+    persons: await readParse('grants-persons'),
+    deleteLinks: await readParse('delete-user-grants-links')
+  };
 }
 
-/** Data-row count of a CSV string (total non-empty lines minus the header). */
-function countRows(csv) {
-  if (!csv) return 0;
-  const lines = csv.split('\n').filter(l => l.trim().length > 0);
-  return Math.max(0, lines.length - 1);
+/**
+ * Upsert the week's delta into the grant_feed reporting schema. Best-effort:
+ * logs and returns false on failure rather than throwing, so a reporting-DB
+ * problem never fails a grant delivery that already succeeded.
+ */
+async function loadReporting(yearWeek, uploaded, rows, newGrantIds) {
+  const pg = new PgClient(null, 'grant_feed');
+  try {
+    await pg.connect();
+    const res = await loadGrantFeedReporting(pg, { yearWeek, uploaded, ...rows, newGrantIds });
+    logger.info('grant_feed reporting loaded', res);
+    return true;
+  } catch (err) {
+    logger.error(`grant_feed reporting load failed (continuing): ${err.message}`);
+    return false;
+  } finally {
+    try { await pg.end(); } catch (_) { /* ignore */ }
+  }
 }
 
 /**

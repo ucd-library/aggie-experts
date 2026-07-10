@@ -239,7 +239,8 @@ const config = {
     // reference them via etl_reporting.get_api_users().
     schemaFiles : !isBrowser ? [
       path.resolve(scriptDir, '../../harvest/lib/api/schema.sql'),
-      path.resolve(scriptDir, '../../harvest/lib/reporting/schema.sql')
+      path.resolve(scriptDir, '../../harvest/lib/reporting/schema.sql'),
+      path.resolve(scriptDir, '../../harvest/lib/grant-feed/schema.sql')
     ] : null,
   },
 

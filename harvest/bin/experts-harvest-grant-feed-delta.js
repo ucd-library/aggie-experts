@@ -69,13 +69,13 @@ program
       logger.info(`new (${thisWeek}): ${newGrants.length} grants / ${newLinks.length} links / ${newPersons.length} persons`);
       logger.info(`prev (${prevWeek}): ${oldGrants.length} grants / ${oldLinks.length} links / ${oldPersons.length} persons`);
 
-      const { deltaGrants, deltaLinks, deltaPersons, deleteLinks } = computeDelta({
+      const { deltaGrants, deltaLinks, deltaPersons, deleteLinks, newGrantIds } = computeDelta({
         newGrants, oldGrants,
         newLinks, oldLinks,
         newPersons, oldPersons
       });
 
-      logger.info(`delta: ${deltaGrants.length} grants / ${deltaLinks.length} links / ${deltaPersons.length} persons / ${deleteLinks.length} deletes`);
+      logger.info(`delta: ${deltaGrants.length} grants (${newGrantIds.length} new) / ${deltaLinks.length} links / ${deltaPersons.length} persons / ${deleteLinks.length} deletes`);
 
       await writeCsv(deltaPath(thisWeek, 'grants-metadata'), deltaGrants, METADATA_HEADERS);
       await writeCsv(deltaPath(thisWeek, 'grants-links'), deltaLinks, LINK_HEADERS);
@@ -88,7 +88,10 @@ program
         grants: deltaGrants.length,
         links: deltaLinks.length,
         persons: deltaPersons.length,
-        deletes: deleteLinks.length
+        deletes: deleteLinks.length,
+        // grant_ids new this week (absent from last week's generation), so the
+        // reporting load can classify new vs updated without re-reading it.
+        newGrantIds
       }));
     } finally {
       await cache.close();

@@ -38,3 +38,5 @@ export {
 } from './paths.js';
 
 export { getEmailClient } from './email.js';
+
+export { loadGrantFeedReporting } from './reporting.js';
