@@ -154,7 +154,15 @@ async function loadReporting(yearWeek, uploaded, rows, newGrantIds) {
   const pg = new PgClient(null, 'grant_feed');
   try {
     await pg.connect();
-    const res = await loadGrantFeedReporting(pg, { yearWeek, uploaded, ...rows, newGrantIds });
+    // persons is delivered to Symplectic but intentionally not stored in the
+    // reporting DB, so it is not passed to the loader.
+    const res = await loadGrantFeedReporting(pg, {
+      yearWeek, uploaded,
+      metadata: rows.metadata,
+      links: rows.links,
+      deleteLinks: rows.deleteLinks,
+      newGrantIds
+    });
     logger.info('grant_feed reporting loaded', res);
     return true;
   } catch (err) {

@@ -2,8 +2,10 @@
 -- grant_feed schema
 -- ----------------------------------------------------------------------------
 -- Reporting projection of the weekly Aggie Enterprise -> Symplectic grant feed.
--- One table per delivered CSV (metadata / links / persons / delete_user_grants_links)
--- plus a role lookup, and a per-user weekly stats view.
+-- Tables for the metadata / links / delete_user_grants_links CSVs plus a role
+-- lookup, and a per-user weekly stats view. (The grants_persons CSV is still
+-- delivered to Symplectic but is not needed for reporting, so it is not stored
+-- here.)
 --
 -- Notes on the data model:
 --   - A user can hold >1 role on a grant (e.g. PI + Project Manager), so link
@@ -17,8 +19,6 @@
 --     with multiple funding sources produces one CSV row per funder ("funder
 --     name"), and each is kept as its own row here (funding_source is promoted
 --     to a column + PK member so they do not collapse).
---   - persons is latest-state (no year_week): keyed by (grant_id, surname,
---     first_name) because a grant can list multiple non-user Co-PIs.
 -- ============================================================================
 CREATE SCHEMA IF NOT EXISTS grant_feed;
 
@@ -82,18 +82,6 @@ CREATE INDEX IF NOT EXISTS idx_grant_feed_links_week_user
   ON grant_feed.links (year_week, user_id);
 CREATE INDEX IF NOT EXISTS idx_grant_feed_links_grant
   ON grant_feed.links (grant_id);
-
--- ============================================================================
--- persons — non-Elements-user people named on a grant (Co-PIs/PIs) so they
--- still display (from grants_persons.csv). Latest-state (no year_week).
--- ============================================================================
-CREATE TABLE IF NOT EXISTS grant_feed.persons (
-  grant_id   TEXT NOT NULL,
-  field_name TEXT,
-  surname    TEXT NOT NULL,
-  first_name TEXT NOT NULL,
-  PRIMARY KEY (grant_id, surname, first_name)
-);
 
 -- ============================================================================
 -- delete_links — user<->grant links removed in a weekly delta

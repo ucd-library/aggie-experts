@@ -19,14 +19,15 @@
  * @param {boolean}  opts.uploaded       true if the delta was SFTP'd to Symplectic
  * @param {Object[]} opts.metadata       rows from grants-metadata.csv
  * @param {Object[]} opts.links          rows from grants-links.csv
- * @param {Object[]} opts.persons        rows from grants-persons.csv
  * @param {Object[]} opts.deleteLinks    rows from delete-user-grants-links.csv
  * @param {Set<string>} [opts.newGrantIds]  grant_ids that are new this week
  *        (absent from last week's generation), as computed by the delta stage;
  *        a metadata grant in this set is classified 'new', else 'updated'.
  *        Empty/omitted => everything 'updated'.
+ *
+ * (grants_persons is intentionally not stored — it isn't needed for reporting.)
  */
-export async function loadGrantFeedReporting(pg, { yearWeek, uploaded, metadata = [], links = [], persons = [], deleteLinks = [], newGrantIds = new Set() }) {
+export async function loadGrantFeedReporting(pg, { yearWeek, uploaded, metadata = [], links = [], deleteLinks = [], newGrantIds = new Set() }) {
   // date_uploaded is set only when the delta actually went to Symplectic;
   // a produce-only run (--no-upload) records NULL.
   const dateUploaded = uploaded ? new Date() : null;
@@ -57,16 +58,6 @@ export async function loadGrantFeedReporting(pg, { yearWeek, uploaded, metadata 
       );
     }
 
-    for (const row of persons) {
-      await pg.query(
-        `INSERT INTO grant_feed.persons (grant_id, field_name, surname, first_name)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (grant_id, surname, first_name)
-         DO UPDATE SET field_name = EXCLUDED.field_name`,
-        [row['id'], row['field-name'], row['surname'], row['first-name']]
-      );
-    }
-
     for (const row of deleteLinks) {
       // date_delete_requested defaults to NOW() on first insert; keep the
       // original request time if the same delete recurs in-week.
@@ -87,7 +78,6 @@ export async function loadGrantFeedReporting(pg, { yearWeek, uploaded, metadata 
   return {
     metadata: metadata.length,
     links: links.length,
-    persons: persons.length,
     deleteLinks: deleteLinks.length,
     uploaded: !!uploaded
   };
