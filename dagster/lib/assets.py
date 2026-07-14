@@ -378,20 +378,34 @@ def send_slack_notification(context: AssetExecutionContext, config: SlackNotifyC
     group_name="grant-feed",
 )
 def check_grant_feed_email(context: AssetExecutionContext) -> None:
-    """Daily: check the configured inbox for a new AEgrants.xml.
+    """Every 6 hours: check the configured inbox for a new AEgrants.xml.
 
     On finding one, the CLI stages it in CasKFS under the current week
-    (/weekly/<year-week>/grant-feed/AEgrants.xml) and this asset launches
+    (/weekly/<year-week>/grant-feed/ae-grants.xml) and this asset launches
     grant_feed_job to run the ETL. If nothing new is found (or the email
-    backend is still the stub), it no-ops.
+    backend is still the stub), it no-ops. If the inbox cannot be
+    reached/checked, a Slack alert is sent and the run fails.
     """
-    result = exec(["experts", "harvest", "grant-feed", "check-email"])
+    try:
+        result = exec(["experts", "harvest", "grant-feed", "check-email"])
+    except Exception as e:
+        _slack_notify(
+            context,
+            "Grant feed email check FAILED",
+            f"Could not reach/check the grant-feed inbox: {e}",
+            "error",
+        )
+        raise
+
     found = bool(result and result.get("found"))
     context.add_output_metadata(metadata={"found": found, **(result or {})})
 
     if found:
-        context.log.info("New AE grant input found; launching grant_feed_job.")
-        exec(["experts", "harvest", "dagster", "run-grant-feed-job"], no_json_parse=True)
+        # The dev deployment uploads to Symplectic QA; prod uploads to PROD.
+        # The schedule tags the run env=dev|prod (default prod for manual runs).
+        symplectic_env = "QA" if context.dagster_run.tags.get("env") == "dev" else "PROD"
+        context.log.info(f"New AE grant input found; launching grant_feed_job (Symplectic {symplectic_env}).")
+        exec(["experts", "harvest", "dagster", "run-grant-feed-job", "--env", symplectic_env], no_json_parse=True)
     else:
         context.log.info(f"No new AE grant input to process: {result}")
     return None
@@ -411,38 +425,60 @@ def grant_feed_ingest(context: AssetExecutionContext) -> None:
     against last week's cached generation, and uploads the resulting delta to
     Symplectic — all stored under /weekly/<year-week>/grant-feed/ in CasKFS.
 
+    Uploads to Symplectic PROD by default; a run tagged symplectic_env=QA
+    (set by the dev deployment's check) uploads to QA instead.
+
     On completion (success or failure) a Slack notification is sent to the
     harvest-messages channel via `admin notify`.
     """
+    env = context.dagster_run.tags.get("symplectic_env") or "PROD"
     try:
-        result = exec(["experts", "harvest", "grant-feed", "process", "--env", "PROD"])
+        result = exec(["experts", "harvest", "grant-feed", "process", "--env", env])
     except Exception as e:
-        _notify_grant_feed(context, success=False, detail=str(e))
+        _notify_grant_feed(context, success=False, detail=str(e), env=env)
         raise
 
     result = result or {}
     grants = result.get("grants")
     uploaded = result.get("uploaded")
-    context.add_output_metadata(metadata={k: v for k, v in result.items() if v is not None})
-    _notify_grant_feed(context, success=True, grants=grants, uploaded=uploaded)
+    context.add_output_metadata(metadata={"symplectic_env": env, **{k: v for k, v in result.items() if v is not None}})
+    _notify_grant_feed(context, success=True, grants=grants, uploaded=uploaded, env=env)
+
+    # Reporting is best-effort and never fails the ETL, but surface a failed
+    # load to Slack so the reporting-DB gap doesn't go unnoticed.
+    if result.get("reportingLoaded") is False:
+        _slack_notify(
+            context,
+            "Grant feed reporting load failed",
+            "The grant feed ETL succeeded, but loading the delta into the grant_feed "
+            "reporting DB failed. Grants were still delivered to Symplectic; see run logs.",
+            "warning",
+        )
     return None
 
 
-def _notify_grant_feed(context, success: bool, grants=None, uploaded=None, detail=None) -> None:
+def _notify_grant_feed(context, success: bool, grants=None, uploaded=None, detail=None, env=None) -> None:
     """Send the grant-feed completion notification to Slack via `admin notify`."""
+    target = f"Symplectic {env}" if env else "Symplectic"
     if success:
         count = grants if grants is not None else "an unknown number of"
         title = "Grant feed ingest complete"
         if uploaded:
-            message = f"Succeeded — {count} grants sent to Symplectic."
+            message = f"Succeeded — {count} grants sent to {target}."
         else:
             message = f"Succeeded (upload skipped) — {count} grants in the delta."
         severity = "info"
     else:
         title = "Grant feed ingest FAILED"
-        message = f"Grant feed ingest failed: {detail}"
+        message = f"Grant feed ingest failed ({target}): {detail}"
         severity = "error"
 
+    _slack_notify(context, title, message, severity)
+
+
+def _slack_notify(context, title: str, message: str, severity: str) -> None:
+    """Send a Slack notification via `admin notify`. Best-effort — never raises,
+    so a notification problem can't mask the real ETL outcome."""
     try:
         exec(
             ["experts", "admin", "notify",
@@ -453,5 +489,4 @@ def _notify_grant_feed(context, success: bool, grants=None, uploaded=None, detai
             no_json_parse=True
         )
     except Exception as notify_err:
-        # Don't let a notification failure mask the real ETL outcome.
         context.log.warning(f"Failed to send grant-feed Slack notification: {notify_err}")

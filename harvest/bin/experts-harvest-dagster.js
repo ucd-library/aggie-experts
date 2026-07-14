@@ -290,16 +290,18 @@ program
 program
   .command('run-grant-feed-job')
   .description('Launch the non-partitioned grant_feed_job (transform + delta + Symplectic upload)')
-  .action(async () => {
+  .option('--env <env>', 'Symplectic target env for the upload: QA | PROD', 'PROD')
+  .action(async (opts) => {
     const dagster = new DagsterAPI();
-    const resp = await dagster.launchRun('grant_feed_job');
+    // Pass the target Symplectic env as a run tag; grant_feed_ingest reads it.
+    const resp = await dagster.launchRun('grant_feed_job', { symplectic_env: opts.env });
 
     if (resp?.data?.launchRun?.__typename !== 'LaunchRunSuccess') {
       console.error('Failed to launch grant_feed_job', JSON.stringify(resp, null, 2));
       throw new Error('Failed to launch grant_feed_job');
     }
 
-    console.log(JSON.stringify({ runId: resp.data.launchRun.run.runId }));
+    console.log(JSON.stringify({ runId: resp.data.launchRun.run.runId, symplecticEnv: opts.env }));
 
     // things seem to hang after this point... so force exit
     process.exit();

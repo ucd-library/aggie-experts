@@ -114,14 +114,14 @@ weekly_elt_schedule_dev = dg.ScheduleDefinition(
 )
 
 
-# The AE weekly extract currently arrives weekly, but we poll daily so a new
-# file is picked up within ~24h regardless of which day it lands. The
+# The AE weekly extract currently arrives weekly, but we poll every 6 hours so a
+# new file is picked up promptly regardless of which day/time it lands. The
 # check_grant_feed_email asset triggers grant_feed_job only when a new
-# AEgrants.xml is found, so daily runs are cheap no-ops otherwise.
+# AEgrants.xml is found, so most runs are cheap no-ops.
 grant_feed_email_schedule_prod = dg.ScheduleDefinition(
     name="grant_feed_email_schedule_prod",
-    description="Daily check of the AE grant-feed inbox; stages new input and triggers the grant-feed ETL.",
-    cron_schedule="0 6 * * *",  # Every day at 6:00 AM
+    description="Six-hourly check of the AE grant-feed inbox; stages new input and triggers the grant-feed ETL.",
+    cron_schedule="0 */6 * * *",  # Every 6 hours (00:00, 06:00, 12:00, 18:00)
     job=grant_feed_email_job,
     execution_timezone="America/Los_Angeles",
     tags={
@@ -131,8 +131,8 @@ grant_feed_email_schedule_prod = dg.ScheduleDefinition(
 
 grant_feed_email_schedule_dev = dg.ScheduleDefinition(
     name="grant_feed_email_schedule_dev",
-    description="Daily check of the AE grant-feed inbox; stages new input and triggers the grant-feed ETL.",
-    cron_schedule="0 7 * * *",  # Every day at 7:00 AM
+    description="Six-hourly check of the AE grant-feed inbox; stages new input and triggers the grant-feed ETL.",
+    cron_schedule="30 */6 * * *",  # Every 6 hours, offset 30 min from prod
     job=grant_feed_email_job,
     execution_timezone="America/Los_Angeles",
     tags={

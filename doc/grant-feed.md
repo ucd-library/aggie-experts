@@ -70,8 +70,8 @@ All artifacts live in CasKFS under the weekly partition:
 CasKFS filenames follow the project convention — lower-case and hyphens only.
 The legacy Symplectic names (`Prod_UCD_grants_metadata.csv`, underscores, mixed
 case) are applied only on upload, so the cache stays clean while Symplectic
-still receives the names its importer expects. (QA drops the `Prod_UCD_` prefix,
-e.g. `grants_metadata.csv`.)
+still receives the names its importer expects. (QA uses the `QA_UCD_` prefix,
+e.g. `QA_UCD_grants_metadata.csv`, delivered to the `/QA/` directory.)
 
 Weekly cleanup (`purge_year_week_cask_files`) removes old `/weekly/<year-week>`
 trees, including the grant feed, automatically. On completion the ingest posts a

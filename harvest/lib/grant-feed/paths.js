@@ -66,14 +66,15 @@ export function deltaPath(weeklyPath, name) {
 /**
  * Translate a clean cache CSV base name (e.g. 'grants-metadata') into the
  * legacy Symplectic filename the Elements importer expects: hyphens become
- * underscores and, for PROD, the 'Prod_UCD_' prefix is added.
+ * underscores and an env-specific prefix is added ('Prod_UCD_' for PROD,
+ * 'QA_UCD_' for QA).
  *
  *   ('grants-metadata', 'PROD') -> 'Prod_UCD_grants_metadata.csv'
- *   ('grants-metadata', 'QA')   -> 'grants_metadata.csv'
+ *   ('grants-metadata', 'QA')   -> 'QA_UCD_grants_metadata.csv'
  *   ('delete-user-grants-links', 'PROD') -> 'Prod_UCD_delete_user_grants_links.csv'
  */
 export function toSymplecticFileName(name, env) {
-  const prefix = env === 'PROD' ? 'Prod_UCD_' : '';
+  const prefix = env === 'PROD' ? 'Prod_UCD_' : env === 'QA' ? 'QA_UCD_' : '';
   return `${prefix}${name.replace(/-/g, '_')}.csv`;
 }
 
