@@ -77,10 +77,10 @@ return html`
 
     .search-container .refine-search h3 {
       color: var(--ucd-blue-100, #022851);
-      font-size: 2.06938rem;
+      font-size: 1.7425rem;
       font-style: italic;
       font-weight: 700;
-      line-height: 2.48313rem;
+      line-height: 1.2;
       margin-top: 0;
       margin-bottom: 1.78rem;
     }
@@ -194,6 +194,8 @@ return html`
 
     .collapsible-filter-heading h4 {
       margin: 0;
+      font-size: 1.207rem;
+      line-height: 1.2;
       font-weight: 700;
       color: var(--ucd-blue-100, #022851);
     }
@@ -298,6 +300,10 @@ return html`
       gap: 0.5rem;
       line-height: 1.2;
       padding: 0.5rem 0;
+    }
+
+    .affiliation-sub-row--single {
+      cursor: pointer;
     }
 
     .affiliation-sub-checkbox {
@@ -437,7 +443,7 @@ return html`
       -webkit-appearance: none;
       width: 20px;
       height: 20px;
-      border: 1px solid var(--ucd-blue-70, #73ABDD);
+      border: 1px solid var(--color-aggie-blue-80, #13639E);
       background: var(--white, #FFF);
       flex-shrink: 0;
       cursor: pointer;
@@ -445,7 +451,7 @@ return html`
     }
 
     input[type="checkbox"]:checked {
-      background: var(--ucd-blue-70, #73ABDD);
+      background: var(--color-aggie-blue-80, #13639E);
     }
 
     input[type="checkbox"]:checked::after {
@@ -462,7 +468,7 @@ return html`
     }
 
     input[type="checkbox"]:indeterminate {
-      background: var(--ucd-blue-70, #73ABDD);
+      background: var(--color-aggie-blue-80, #13639E);
     }
 
     input[type="checkbox"]:indeterminate::after {
@@ -884,58 +890,7 @@ return html`
           </svg>
         </div>
         <div class="affiliation-checkboxes">
-          ${(this.orgLookup || []).map(cat => {
-            const matchingSubs = cat.subCategories.map(sub => ({
-              ...sub,
-              depts: sub.depts.filter(d =>
-                !this.affiliationSearch ||
-                d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
-                sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
-              )
-            })).filter(sub => sub.depts.length);
-            if( !matchingSubs.length ) return '';
-            return html`
-              <div class="affiliation-group-label">${cat.label}</div>
-              ${matchingSubs.map(sub => {
-                const subCodes = sub.depts.map(d => d.deptCode);
-                const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
-                const allChecked = checkedCount === subCodes.length;
-                const someChecked = checkedCount > 0 && !allChecked;
-                const expanded = this.expandedSubCategories.includes(sub.label);
-                return html`
-                  <div class="affiliation-sub-row">
-                    <input type="checkbox"
-                      class="affiliation-sub-checkbox"
-                      .indeterminate="${someChecked}"
-                      .checked="${allChecked}"
-                      @change="${() => this._onSubCategoryCheck(sub.depts)}">
-                    <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
-                      <span class="affiliation-sub-label">${sub.label}</span>
-                      <span class="affiliation-sub-caret">
-                        ${expanded
-                          ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                          : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                        }
-                      </span>
-                    </span>
-                  </div>
-                  ${expanded ? html`
-                    <div class="affiliation-dept-list">
-                      ${sub.depts.map(d => html`
-                        <label class="affiliation-dept-row">
-                          <input type="checkbox"
-                            .value="${d.deptCode}"
-                            .checked="${this.dept.includes(d.deptCode)}"
-                            @change="${this._onDeptChange}">
-                          ${d.name}
-                        </label>
-                      `)}
-                    </div>
-                  ` : ''}
-                `;
-              })}
-            `;
-          })}
+          ${this._renderAffiliationCheckboxes(this._deptMatchCodes)}
         </div>
       </div>
 
@@ -1101,58 +1056,7 @@ return html`
                 </svg>
               </div>
               <div class="affiliation-checkboxes">
-                ${(this.orgLookup || []).map(cat => {
-                  const matchingSubs = cat.subCategories.map(sub => ({
-                    ...sub,
-                    depts: sub.depts.filter(d =>
-                      !this.affiliationSearch ||
-                      d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
-                      sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
-                    )
-                  })).filter(sub => sub.depts.length);
-                  if( !matchingSubs.length ) return '';
-                  return html`
-                    <div class="affiliation-group-label">${cat.label}</div>
-                    ${matchingSubs.map(sub => {
-                      const subCodes = sub.depts.map(d => d.deptCode);
-                      const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
-                      const allChecked = checkedCount === subCodes.length;
-                      const someChecked = checkedCount > 0 && !allChecked;
-                      const expanded = this.expandedSubCategories.includes(sub.label);
-                      return html`
-                        <div class="affiliation-sub-row">
-                          <input type="checkbox"
-                            class="affiliation-sub-checkbox"
-                            .indeterminate="${someChecked}"
-                            .checked="${allChecked}"
-                            @change="${() => this._onSubCategoryCheck(sub.depts)}">
-                          <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
-                            <span class="affiliation-sub-label">${sub.label}</span>
-                            <span class="affiliation-sub-caret">
-                              ${expanded
-                                ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                                : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                              }
-                            </span>
-                          </span>
-                        </div>
-                        ${expanded ? html`
-                          <div class="affiliation-dept-list">
-                            ${sub.depts.map(d => html`
-                              <label class="affiliation-dept-row">
-                                <input type="checkbox"
-                                  .value="${d.deptCode}"
-                                  .checked="${this.dept.includes(d.deptCode)}"
-                                  @change="${this._onDeptChange}">
-                                ${d.name}
-                              </label>
-                            `)}
-                          </div>
-                        ` : ''}
-                      `;
-                    })}
-                  `;
-                })}
+                ${this._renderAffiliationCheckboxes(this._deptMatchCodes)}
               </div>
             </div>
 
