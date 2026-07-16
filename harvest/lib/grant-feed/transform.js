@@ -56,19 +56,17 @@ export const PERSON_ROLES = new Set([
   'Co-Principal Investigator'
 ]);
 
-// Exact CSV headers from the legacy output. These are not mechanically
-// derived from variable names: the old pipeline passed SPARQL CSV output
-// through replaceHeaderHyphens() (underscore -> dash) but Fuseki itself
-// rendered `?funder_name` as a literal "funder name" header (with a space).
-// We reproduce that byte-for-byte for downstream consumers that match on
-// these exact strings.
+// Exact CSV headers Symplectic expects. Historically the funder column was
+// "funder name" (a literal space, from Fuseki rendering ?funder_name);
+// Symplectic has since simplified that underlying field to "funder", so we 
+// emit "funder".
 export const METADATA_HEADERS = [
   'id',
   'category',
   'type',
   'title',
   'c-pi',
-  'funder name',
+  'funder',
   'funder-reference',
   'start-date',
   'end-date',
@@ -318,7 +316,7 @@ export function buildMetadataRows(awards) {
         type: 'c-ucd-enterprise',
         title,
         'c-pi': cPi,
-        'funder name': '',
+        'funder': '',
         'funder-reference': '',
         'start-date': startDate,
         'end-date': endDate,
@@ -354,7 +352,7 @@ export function buildMetadataRows(awards) {
           type: 'c-ucd-enterprise',
           title,
           'c-pi': cPi,
-          'funder name': label,
+          'funder': label,
           'funder-reference': funderRef,
           'start-date': startDate,
           'end-date': endDate,

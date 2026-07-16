@@ -36,10 +36,10 @@ export async function loadGrantFeedReporting(pg, { yearWeek, uploaded, metadata 
   try {
     for (const row of metadata) {
       const grantId = row['id'];
-      const fundingSource = row['funder name'] || '';
+      const fundingSource = row['funder'] || '';
       const changeType = newGrantIds.has(grantId) ? 'new' : 'updated';
-      // id -> grant_id (PK), "funder name" -> funding_source (PK); the rest is data.
-      const { id, ['funder name']: _funder, ...rest } = row;
+      // id -> grant_id (PK), "funder" -> funding_source (PK); the rest is data.
+      const { id, ['funder']: _funder, ...rest } = row;
       await pg.query(
         `INSERT INTO grant_feed.metadata (grant_id, funding_source, change_type, data, year_week, date_uploaded)
          VALUES ($1, $2, $3, $4, $5, $6)

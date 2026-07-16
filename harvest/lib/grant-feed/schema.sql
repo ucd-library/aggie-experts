@@ -40,7 +40,7 @@ ON CONFLICT (role_id) DO NOTHING;
 -- ============================================================================
 -- metadata — one row per (grant, funding source) per weekly delta
 -- (from grants_metadata.csv).
---   funding_source : the "funder name" value; its own column + PK member so a
+--   funding_source : the "funder" value; its own column + PK member so a
 --                    grant with multiple funders keeps a row per funder rather
 --                    than collapsing. '' when the grant has no funder row.
 --   change_type    : 'new' if the grant was absent from last week's full
@@ -48,7 +48,7 @@ ON CONFLICT (role_id) DO NOTHING;
 --                    grant's funding_source rows share it.
 --   data           : the remaining non-id CSV columns (category, type, title,
 --                    c-pi, funder-reference, dates, amount, funding-type,
---                    sponsor, flow-thru, visible) as JSONB. "funder name" is
+--                    sponsor, flow-thru, visible) as JSONB. "funder" is
 --                    promoted to funding_source and not duplicated here.
 --   date_uploaded  : timestamp the delta was uploaded to Symplectic, or NULL if
 --                    the ETL produced the delta but did not upload (--no-upload).

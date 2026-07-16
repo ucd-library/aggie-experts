@@ -8,7 +8,7 @@
  *
  * Inputs (per generation): arrays of row objects keyed by the header names
  * emitted by ../transform.js:
- *   grants  -> id, category, type, title, c-pi, funder name, ...
+ *   grants  -> id, category, type, title, c-pi, funder, ...
  *   links   -> category-1, id-1, category-2, id-2, link-type-id, visible
  *   persons -> category, id, field-name, surname, first-name, full-name
  *
