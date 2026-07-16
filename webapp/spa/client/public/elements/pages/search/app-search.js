@@ -817,17 +817,23 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     const deptAgg = data?.global_aggregations?.dept;
     if( !deptAgg || typeof deptAgg !== 'object' ) return null;
 
+    // the hasOrganizationalUnit.name.kw field is normalised (lowercased) in ES, so the
+    // aggregation keys are lowercase variants of the org-unit names. Match them against the
+    // org lookup case-insensitively, on either the official name or the display name.
     const matchedNames = new Set(
       Object.entries(deptAgg)
         .filter(([, count]) => count > 0)
-        .map(([name]) => name)
+        .map(([name]) => name.toLowerCase())
     );
 
     const codes = new Set();
     for( const cat of (this.orgLookup || []) ) {
       for( const sub of cat.subCategories ) {
         for( const d of sub.depts ) {
-          if( matchedNames.has(d.officialName) ) codes.add(d.deptCode);
+          if( matchedNames.has((d.officialName || '').toLowerCase()) ||
+              matchedNames.has((d.name || '').toLowerCase()) ) {
+            codes.add(d.deptCode);
+          }
         }
       }
     }
