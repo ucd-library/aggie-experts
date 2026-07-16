@@ -114,10 +114,13 @@ weekly_elt_schedule_dev = dg.ScheduleDefinition(
 )
 
 
-# The AE weekly extract currently arrives weekly, but we poll every 6 hours so a
-# new file is picked up promptly regardless of which day/time it lands. The
-# check_grant_feed_email asset triggers grant_feed_job only when a new
-# AEgrants.xml is found, so most runs are cheap no-ops.
+# ON HOLD (security review): these grant-feed email-check schedules are defined
+# but NOT registered in defs.py, so no automatic inbox polling happens. Input is
+# placed in GCS manually and grant_feed_job is run by hand. Kept here so they
+# can be re-enabled by re-registering them in defs.py.
+#
+# When active: poll every 6 hours; check_grant_feed_email triggers
+# grant_feed_job only when a new AEgrants.xml is found, so most runs no-op.
 grant_feed_email_schedule_prod = dg.ScheduleDefinition(
     name="grant_feed_email_schedule_prod",
     description="Six-hourly check of the AE grant-feed inbox; stages new input and triggers the grant-feed ETL.",

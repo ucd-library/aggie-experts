@@ -176,6 +176,10 @@ const config = {
 
   // Aggie Enterprise -> Symplectic grant-feed ETL.
   grantFeed : {
+    // GCS location of the weekly AE extract. The file is placed here manually
+    // (as the legacy system did); the transform pulls from here by default.
+    inputXml : env.EXPERTS_GRANT_FEED_INPUT_XML || 'gs://aggie-enterprise/grants/ae-grants.xml',
+
     // Inbox the weekly AE extract is emailed to. The receiving mailbox has NOT
     // been provisioned yet, so these are PLACEHOLDERS. The check-email step
     // uses a pluggable client (harvest/lib/grant-feed/email.js); the concrete

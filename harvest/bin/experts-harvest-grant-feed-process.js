@@ -3,11 +3,16 @@
  * experts harvest grant-feed process
  *
  * Orchestrates the full weekly grant-feed ETL:
- *   1. transform this week's AE XML into generation CSVs in CasKFS
+ *   1. transform this week's AE XML (from the configured GCS bucket by default)
+ *      into generation CSVs in CasKFS
  *   2. diff against last week's cached generation into delta CSVs in CasKFS
  *   3. SFTP the delta CSVs to the Symplectic Elements server (on by default;
  *      disable with --no-upload)
  *   4. load the week's delta into the grant_feed reporting schema (best-effort)
+ *
+ * The input XML is placed in GCS manually (config.grantFeed.inputXml). This is
+ * run manually — via this CLI or by launching the Dagster grant_feed_job. (The
+ * automated email-check trigger is on hold; see lib/grant-feed/email.js.)
  *
  * Steps 1-2 are spawned as the sibling `transform` / `delta` CLIs so they can
  * also be run independently or wired into Dagster one asset at a time. The
@@ -35,7 +40,7 @@ program
   .description('Run the full weekly AE grant-feed ETL: transform, diff vs last week, and upload the delta to Symplectic')
   .option('--env <env>', 'QA | PROD (controls the Symplectic upload filename prefix and remote directory)', 'PROD')
   .option('-d, --date <date>', 'Week to process (YYYY-MM-DD); defaults to today', null)
-  .option('--xml <xml>', 'Optional input override (local path or gs://...); defaults to the raw ae-grants.xml in CasKFS for the week')
+  .option('--xml <xml>', 'Input XML: local path or gs://...; defaults to the configured GCS bucket location', config.grantFeed?.inputXml || 'gs://aggie-enterprise/grants/ae-grants.xml')
   .option('--no-upload', 'Skip the SFTP upload to Symplectic (transform + delta only)')
   .option('-h, --host <host>', 'SFTP host', config.grantFeed?.symplectic?.host || 'ftp.use.symplectic.org')
   .option('-u, --username <username>', 'SFTP username', config.grantFeed?.symplectic?.username || 'ucdavis')

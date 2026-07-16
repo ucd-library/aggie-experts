@@ -378,7 +378,12 @@ def send_slack_notification(context: AssetExecutionContext, config: SlackNotifyC
     group_name="grant-feed",
 )
 def check_grant_feed_email(context: AssetExecutionContext) -> None:
-    """Every 6 hours: check the configured inbox for a new AEgrants.xml.
+    """Check the configured inbox for a new AEgrants.xml.
+
+    ON HOLD (security review): this asset and its schedules are NOT registered
+    in defs.py, so it does not run automatically. Input is placed in GCS
+    manually and grant_feed_job is triggered by hand. Kept here (with its job
+    and schedules) so it can be re-enabled by re-registering in defs.py.
 
     On finding one, the CLI stages it in CasKFS under the current week
     (/weekly/<year-week>/grant-feed/ae-grants.xml) and this asset launches
@@ -421,12 +426,15 @@ def check_grant_feed_email(context: AssetExecutionContext) -> None:
 def grant_feed_ingest(context: AssetExecutionContext) -> None:
     """Run the weekly AE grant-feed ETL for the current week.
 
-    Transforms this week's staged AEgrants.xml into generation CSVs, diffs
-    against last week's cached generation, and uploads the resulting delta to
-    Symplectic — all stored under /weekly/<year-week>/grant-feed/ in CasKFS.
+    Manually triggered (the automated email-check is on hold). Transforms the AE
+    XML — pulled from the configured GCS bucket, where it is placed manually —
+    into generation CSVs, diffs against last week's cached generation, and
+    uploads the resulting delta to Symplectic. All artifacts are stored under
+    /weekly/<year-week>/grant-feed/ in CasKFS.
 
-    Uploads to Symplectic PROD by default; a run tagged symplectic_env=QA
-    (set by the dev deployment's check) uploads to QA instead.
+    Uploads to Symplectic PROD by default; launch with a run tag
+    symplectic_env=QA (e.g. `experts harvest dagster run-grant-feed-job
+    --env QA`) to upload to QA instead.
 
     On completion (success or failure) a Slack notification is sent to the
     harvest-messages channel via `admin notify`.
