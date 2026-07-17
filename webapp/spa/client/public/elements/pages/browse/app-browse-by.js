@@ -110,10 +110,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.openToCollapsed = true;
     this.affiliationSearch = '';
     this.expandedSubCategories = [];
-    requestAnimationFrame(() => {
-      const list = this.shadowRoot?.querySelector('.affiliation-checkboxes');
-      if( list ) list.scrollTop = 0;
-    });
+    this._requestAffiliationScrollReset();
   }
 
   async firstUpdated() {

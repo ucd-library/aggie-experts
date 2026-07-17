@@ -125,9 +125,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     this.refineSearchCollapsed = true;
     this.affiliationSearch = '';
     this.expandedSubCategories = [];
-    requestAnimationFrame(() => {
-      this.shadowRoot?.querySelectorAll('.affiliation-checkboxes').forEach(list => { list.scrollTop = 0; });
-    });
+    this._requestAffiliationScrollReset();
   }
 
   connectedCallback() {

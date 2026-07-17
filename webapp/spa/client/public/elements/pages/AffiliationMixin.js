@@ -28,6 +28,35 @@ export const AffiliationMixin = (superClass) => class extends superClass {
             depts: sub.depts.slice().sort((a, b) => a.name.localeCompare(b.name))
           }))
       }));
+
+    // when true, scroll the affiliation list back to the top the next time it becomes visible
+    this._pendingAffiliationScrollReset = false;
+  }
+
+  /**
+   * @method updated
+   * @description apply a pending affiliation-list scroll reset once the list is visible.
+   * The list lives inside a collapsible (display:none) container, and browsers preserve
+   * scrollTop across hide/show, so the reset must be applied when the section is expanded.
+   */
+  updated(changed) {
+    super.updated?.(changed);
+    if( this._pendingAffiliationScrollReset && !this.affiliationCollapsed ) {
+      this.shadowRoot?.querySelectorAll('.affiliation-checkboxes')
+        .forEach(list => { list.scrollTop = 0; });
+      this._pendingAffiliationScrollReset = false;
+    }
+  }
+
+  /**
+   * @method _requestAffiliationScrollReset
+   * @description mark the affiliation list to be scrolled back to the top; applied immediately
+   * if the list is currently visible, otherwise deferred until it is next expanded.
+   */
+  _requestAffiliationScrollReset() {
+    this._pendingAffiliationScrollReset = true;
+    this.shadowRoot?.querySelectorAll('.affiliation-checkboxes')
+      .forEach(list => { list.scrollTop = 0; });
   }
 
   /**
