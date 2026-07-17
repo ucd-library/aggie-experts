@@ -105,9 +105,29 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     this.openToCollapsed = true;
     this.affiliationSearch = '';
     this.expandedSubCategories = [];
+    // dept codes with content matching the current keyword; null = show all (no filtering yet)
+    this._deptMatchCodes = null;
     // this.orgLookup is initialised by AffiliationMixin
 
     this.render = render.bind(this);
+  }
+
+  /**
+   * @method _resetSidebarState
+   * @description reset the sidebar filter UI to its default collapsed state and scroll the
+   * affiliation list back to the top. Used on a fresh search so the sidebar does not retain
+   * accordion/scroll state from the previous search.
+   */
+  _resetSidebarState() {
+    this.affiliationCollapsed = true;
+    this.dateCollapsed = true;
+    this.openToCollapsed = true;
+    this.refineSearchCollapsed = true;
+    this.affiliationSearch = '';
+    this.expandedSubCategories = [];
+    requestAnimationFrame(() => {
+      this.shadowRoot?.querySelectorAll('.affiliation-checkboxes').forEach(list => { list.scrollTop = 0; });
+    });
   }
 
   connectedCallback() {
@@ -161,6 +181,9 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     if( e.resetSearch ) {
       resetSearch = true;
       this.resettingSearch = true;
+      // a fresh search (from the homepage or the header magnifying glass) is a "new" page,
+      // so clear any accordion/scroll state carried over from the previous search
+      this._resetSidebarState();
       this.AppStateModel.set({ resetSearch: false });
     }
 
@@ -780,6 +803,43 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     return combined;
   }
 
+  /**
+   * @method _computeDeptMatchCodes
+   * @description build the set of department codes whose content matches the current keyword,
+   * using the keyword-scoped (filter-free) dept aggregation returned by the search API. The
+   * aggregation is keyed by official department name (hasOrganizationalUnit.name.kw), which is
+   * mapped back to dept codes via the org lookup. Returns null when no dept aggregation is
+   * available so the affiliation list falls back to showing all units.
+   * @param {Object} data raw search payload
+   * @returns {Set<string>|null} matching dept codes, or null to show all
+   */
+  _computeDeptMatchCodes(data) {
+    const deptAgg = data?.global_aggregations?.dept;
+    if( !deptAgg || typeof deptAgg !== 'object' ) return null;
+
+    // the hasOrganizationalUnit.name.kw field is normalised (lowercased) in ES, so the
+    // aggregation keys are lowercase variants of the org-unit names. Match them against the
+    // org lookup case-insensitively, on either the official name or the display name.
+    const matchedNames = new Set(
+      Object.entries(deptAgg)
+        .filter(([, count]) => count > 0)
+        .map(([name]) => name.toLowerCase())
+    );
+
+    const codes = new Set();
+    for( const cat of (this.orgLookup || []) ) {
+      for( const sub of cat.subCategories ) {
+        for( const d of sub.depts ) {
+          if( matchedNames.has((d.officialName || '').toLowerCase()) ||
+              matchedNames.has((d.name || '').toLowerCase()) ) {
+            codes.add(d.deptCode);
+          }
+        }
+      }
+    }
+    return codes;
+  }
+
   async _onSearchUpdate(e, fromSearchPage=false) {
     if (e?.state !== 'loaded' || !fromSearchPage) return;
 
@@ -789,6 +849,8 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
     this.globalAggregations = this.convertSearchAggregations(this.rawSearchData);
+    // limit the affiliation list to departments that have content matching the keyword
+    this._deptMatchCodes = this._computeDeptMatchCodes(this.rawSearchData);
     // ---- Date histogram/range slider ----
     // Canonical payload shape:
     //   payload.global_aggregations.years + payload.years_works/years_grants
