@@ -1,5 +1,10 @@
+import { html } from 'lit';
 import { ORG_LOOKUP } from '@ucd-lib/experts-commons/lib/org-lookup.js';
 import { serializeDeptParam, deserializeDeptParam } from '@ucd-lib/experts-commons/lib/dept-utils.js';
+
+// caret icons for expandable sub-categories in the affiliation picker
+const AFFILIATION_CARET_EXPANDED = html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`;
+const AFFILIATION_CARET_COLLAPSED = html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`;
 
 /**
  * @mixin AffiliationMixin
@@ -23,6 +28,35 @@ export const AffiliationMixin = (superClass) => class extends superClass {
             depts: sub.depts.slice().sort((a, b) => a.name.localeCompare(b.name))
           }))
       }));
+
+    // when true, scroll the affiliation list back to the top the next time it becomes visible
+    this._pendingAffiliationScrollReset = false;
+  }
+
+  /**
+   * @method updated
+   * @description apply a pending affiliation-list scroll reset once the list is visible.
+   * The list lives inside a collapsible (display:none) container, and browsers preserve
+   * scrollTop across hide/show, so the reset must be applied when the section is expanded.
+   */
+  updated(changed) {
+    super.updated?.(changed);
+    if( this._pendingAffiliationScrollReset && !this.affiliationCollapsed ) {
+      this.shadowRoot?.querySelectorAll('.affiliation-checkboxes')
+        .forEach(list => { list.scrollTop = 0; });
+      this._pendingAffiliationScrollReset = false;
+    }
+  }
+
+  /**
+   * @method _requestAffiliationScrollReset
+   * @description mark the affiliation list to be scrolled back to the top; applied immediately
+   * if the list is currently visible, otherwise deferred until it is next expanded.
+   */
+  _requestAffiliationScrollReset() {
+    this._pendingAffiliationScrollReset = true;
+    this.shadowRoot?.querySelectorAll('.affiliation-checkboxes')
+      .forEach(list => { list.scrollTop = 0; });
   }
 
   /**
@@ -135,7 +169,9 @@ export const AffiliationMixin = (superClass) => class extends superClass {
   /**
    * @method _getDeptPillGroups
    * @description returns one entry per sub-category that has at least one selected dept,
-   * with a label suffix of "(all)" or "(#)" for display as filter pills
+   * with a label suffix of "(all)" or "(#)" for display as filter pills. Sub-categories
+   * that contain only a single department are shown with no suffix (there is nothing to
+   * count or qualify with "all").
    * @param {Array} selectedCodes currently selected dept codes
    * @returns {Array<{label: string, codes: string[]}>} pill groups
    */
@@ -146,11 +182,114 @@ export const AffiliationMixin = (superClass) => class extends superClass {
         const allCodes = sub.depts.map(d => d.deptCode);
         const selected = allCodes.filter(c => selectedCodes.includes(c));
         if( !selected.length ) continue;
-        const suffix = selected.length === allCodes.length ? '(all)' : `(${selected.length})`;
-        groups.push({ label: `${sub.label} ${suffix}`, codes: selected });
+        // base singleton sub-categories are shown by their department (affiliation) name with
+        // no suffix, matching how they are presented in the picker
+        if( allCodes.length === 1 ) {
+          groups.push({ label: sub.depts[0].name, codes: selected });
+          continue;
+        }
+        const suffix = selected.length === allCodes.length ? ' (all)' : ` (${selected.length})`;
+        groups.push({ label: `${sub.label}${suffix}`, codes: selected });
       }
     }
     return groups;
+  }
+
+  /**
+   * @method _renderAffiliationCheckboxes
+   * @description shared renderer for the affiliation department checkbox tree used by both
+   * the browse and search sidebars (desktop and mobile). Sub-categories with a single
+   * department are rendered as a flat selectable row rather than an accordion.
+   * @param {Set<string>|null} [deptFilterSet=null] when provided, only departments whose
+   *   dept code is in the set are shown (used by search to hide units with no keyword matches)
+   * @returns {TemplateResult}
+   */
+  _renderAffiliationCheckboxes(deptFilterSet=null) {
+    const search = (this.affiliationSearch || '').toLowerCase();
+    return html`
+      ${(this.orgLookup || []).map(cat => {
+        const matchingSubs = cat.subCategories.map(sub => ({
+          ...sub,
+          // whether the sub-category is a singleton in the *base* (unfiltered) list — this
+          // governs the flat-vs-accordion presentation so keyword filtering never turns a
+          // multi-department sub-category into a flat row
+          _baseSingleton: sub.depts.length === 1,
+          depts: sub.depts.filter(d =>
+            (!search ||
+              d.name.toLowerCase().includes(search) ||
+              sub.label.toLowerCase().includes(search)) &&
+            (!deptFilterSet || deptFilterSet.has(d.deptCode))
+          )
+        })).filter(sub => sub.depts.length);
+        if( !matchingSubs.length ) return '';
+        return html`
+          <div class="affiliation-group-label">${cat.label}</div>
+          ${matchingSubs.map(sub => this._renderAffiliationSubRow(sub))}
+        `;
+      })}
+    `;
+  }
+
+  /**
+   * @method _renderAffiliationSubRow
+   * @description render a single sub-category row for the affiliation picker
+   * @param {Object} sub sub-category (already filtered to matching depts; `_baseSingleton`
+   *   flags whether it is a singleton in the base list)
+   * @returns {TemplateResult}
+   */
+  _renderAffiliationSubRow(sub) {
+    // sub-categories that hold a single department in the *base* list are shown as a plain
+    // selectable option (no accordion). We show the department (affiliation) name rather than
+    // the sub-category label, since the two can differ (e.g. "Business" -> "Graduate School of
+    // Management"). Keyword filtering that merely narrows a multi-department sub-category down
+    // to one visible department is NOT a base singleton and keeps its accordion.
+    if( sub._baseSingleton ) {
+      const dept = sub.depts[0];
+      return html`
+        <label class="affiliation-sub-row affiliation-sub-row--single">
+          <input type="checkbox"
+            class="affiliation-sub-checkbox"
+            .value="${dept.deptCode}"
+            .checked="${this.dept.includes(dept.deptCode)}"
+            @change="${this._onDeptChange}">
+          <span class="affiliation-sub-label">${dept.name}</span>
+        </label>
+      `;
+    }
+
+    const subCodes = sub.depts.map(d => d.deptCode);
+    const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
+    const allChecked = checkedCount === subCodes.length;
+    const someChecked = checkedCount > 0 && !allChecked;
+    const expanded = this.expandedSubCategories.includes(sub.label);
+    return html`
+      <div class="affiliation-sub-row">
+        <input type="checkbox"
+          class="affiliation-sub-checkbox"
+          .indeterminate="${someChecked}"
+          .checked="${allChecked}"
+          @change="${() => this._onSubCategoryCheck(sub.depts)}">
+        <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
+          <span class="affiliation-sub-label">${sub.label}</span>
+          <span class="affiliation-sub-caret">
+            ${expanded ? AFFILIATION_CARET_EXPANDED : AFFILIATION_CARET_COLLAPSED}
+          </span>
+        </span>
+      </div>
+      ${expanded ? html`
+        <div class="affiliation-dept-list">
+          ${sub.depts.map(d => html`
+            <label class="affiliation-dept-row">
+              <input type="checkbox"
+                .value="${d.deptCode}"
+                .checked="${this.dept.includes(d.deptCode)}"
+                @change="${this._onDeptChange}">
+              ${d.name}
+            </label>
+          `)}
+        </div>
+      ` : ''}
+    `;
   }
 
   /**

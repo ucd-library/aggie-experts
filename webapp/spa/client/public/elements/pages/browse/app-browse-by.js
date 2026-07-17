@@ -92,7 +92,25 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.expandedSubCategories = [];
     this.categoryAggregations = {};
 
+    this._wasOnBrowse = false;
+    this._lastBrowseType = '';
+
     this._injectModel('AppStateModel', 'BrowseByModel');
+  }
+
+  /**
+   * @method _resetSidebarState
+   * @description reset the sidebar filter UI to its default collapsed state and scroll the
+   * affiliation list back to the top. Used when entering a browse page fresh so the sidebar
+   * does not retain accordion/scroll state from a previously viewed page.
+   */
+  _resetSidebarState() {
+    this.affiliationCollapsed = true;
+    this.dateCollapsed = true;
+    this.openToCollapsed = true;
+    this.affiliationSearch = '';
+    this.expandedSubCategories = [];
+    this._requestAffiliationScrollReset();
   }
 
   async firstUpdated() {
@@ -118,9 +136,23 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {Promise}
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'browse' ) return;
+    if( e.location.page !== 'browse' ) {
+      this._wasOnBrowse = false;
+      return;
+    }
 
-    this.browseType = e.location.path[1];
+    const newBrowseType = e.location.path[1];
+    // Reset the sidebar UI state when the user enters a browse page "fresh" — either
+    // arriving from another page (primary nav / fresh search) or switching between browse
+    // sections (e.g. Grants -> Experts). Staying within the same section (selecting a
+    // different letter, paging, applying filters) preserves the sidebar state.
+    if( !this._wasOnBrowse || this._lastBrowseType !== newBrowseType ) {
+      this._resetSidebarState();
+    }
+    this._wasOnBrowse = true;
+    this._lastBrowseType = newBrowseType;
+
+    this.browseType = newBrowseType;
     this.letter = e.location.path[2] || '';
 
     let query = e.location.query || {};
@@ -646,21 +678,18 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
         <div class="browse-categories">
           <h3>Categories</h3>
           <category-filter-row
-            icon="fa-file-invoice-dollar"
             label="All Grants"
             .count="${this._getCategoryTotal()}"
             ?active="${!this.status}"
             @click="${() => this._onStatusChange('')}">
           </category-filter-row>
           <category-filter-row
-            icon="fa-hourglass-half"
             label="Active"
             .count="${this._getCategoryCount('status', 'active')}"
             ?active="${this.status === 'active'}"
             @click="${() => this._onStatusChange('active')}">
           </category-filter-row>
           <category-filter-row
-            icon="fa-check-circle"
             label="Completed"
             .count="${this._getCategoryCount('status', 'completed')}"
             ?active="${this.status === 'completed'}"
@@ -673,7 +702,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
         <div class="browse-categories">
           <h3>Categories</h3>
           <category-filter-row
-            icon="fa-book-open"
             label="All Works"
             .count="${this._getCategoryTotal()}"
             ?active="${!this.workType}"
@@ -713,55 +741,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
           </svg>
         </div>
         <div class="affiliation-checkboxes">
-          ${(this.orgLookup || []).map(cat => {
-            const matchingSubs = cat.subCategories.map(sub => ({
-              ...sub,
-              depts: sub.depts.filter(d =>
-                !this.affiliationSearch ||
-                d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
-                sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
-              )
-            })).filter(sub => sub.depts.length);
-            if( !matchingSubs.length ) return '';
-            return html`
-              <div class="affiliation-group-label">${cat.label}</div>
-              ${matchingSubs.map(sub => {
-                const subCodes = sub.depts.map(d => d.deptCode);
-                const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
-                const allChecked = checkedCount === subCodes.length;
-                const someChecked = checkedCount > 0 && !allChecked;
-                const expanded = this.expandedSubCategories.includes(sub.label);
-                return html`
-                  <div class="affiliation-sub-row">
-                    <input type="checkbox" class="affiliation-sub-checkbox"
-                      .indeterminate="${someChecked}" .checked="${allChecked}"
-                      @change="${() => this._onSubCategoryCheck(sub.depts)}">
-                    <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
-                      <span class="affiliation-sub-label">${sub.label}</span>
-                      <span class="affiliation-sub-caret">
-                        ${expanded
-                          ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                          : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                        }
-                      </span>
-                    </span>
-                  </div>
-                  ${expanded ? html`
-                    <div class="affiliation-dept-list">
-                      ${sub.depts.map(d => html`
-                        <label class="affiliation-dept-row">
-                          <input type="checkbox" .value="${d.deptCode}"
-                            .checked="${this.dept.includes(d.deptCode)}"
-                            @change="${this._onDeptChange}">
-                          ${d.name}
-                        </label>
-                      `)}
-                    </div>
-                  ` : ''}
-                `;
-              })}
-            `;
-          })}
+          ${this._renderAffiliationCheckboxes()}
         </div>
       </div>
 
@@ -1026,7 +1006,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( !typeAgg || typeof typeAgg !== 'object' || !Object.keys(typeAgg).length ) {
       return DEFAULT_WORK_TYPES.map(t => html`
         <category-filter-row
-          icon="fa-book-open"
           label="${t.label}"
           .count="${0}"
           ?active="${this.workType === t.key}"
@@ -1039,7 +1018,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       .sort((a, b) => utils.getCitationType(a.key).localeCompare(utils.getCitationType(b.key)))
       .map(({ key, count }) => html`
         <category-filter-row
-          icon="fa-book-open"
           label="${utils.getCitationType(key)}"
           .count="${count}"
           ?active="${this.workType === key}"

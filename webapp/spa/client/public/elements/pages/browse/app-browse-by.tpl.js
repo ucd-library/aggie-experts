@@ -138,7 +138,8 @@ return html`
 
     .browse-categories h3 {
       color: var(--ucd-blue-100, #022851);
-      font-size: 1.3rem;
+      font-size: 1.7425rem;
+      line-height: 1.2;
       font-style: italic;
       font-weight: 700;
       margin: 0 0 0.75rem;
@@ -164,6 +165,8 @@ return html`
 
     .collapsible-filter-heading h4 {
       margin: 0;
+      font-size: 1.207rem;
+      line-height: 1.2;
       font-weight: 700;
       color: var(--ucd-blue-100, #022851);
     }
@@ -274,6 +277,10 @@ return html`
       padding: 0.5rem 0;
     }
 
+    .affiliation-sub-row--single {
+      cursor: pointer;
+    }
+
     .affiliation-sub-checkbox {
       flex-shrink: 0;
       margin-top: 0.15rem;
@@ -354,7 +361,7 @@ return html`
       -webkit-appearance: none;
       width: 20px;
       height: 20px;
-      border: 1px solid var(--ucd-blue-70, #73ABDD);
+      border: 1px solid var(--color-aggie-blue-80, #13639E);
       background: var(--white, #FFF);
       flex-shrink: 0;
       cursor: pointer;
@@ -362,7 +369,7 @@ return html`
     }
 
     input[type="checkbox"]:checked {
-      background: var(--ucd-blue-70, #73ABDD);
+      background: var(--color-aggie-blue-80, #13639E);
     }
 
     input[type="checkbox"]:checked::after {
@@ -379,7 +386,7 @@ return html`
     }
 
     input[type="checkbox"]:indeterminate {
-      background: var(--ucd-blue-70, #73ABDD);
+      background: var(--color-aggie-blue-80, #13639E);
     }
 
     input[type="checkbox"]:indeterminate::after {
