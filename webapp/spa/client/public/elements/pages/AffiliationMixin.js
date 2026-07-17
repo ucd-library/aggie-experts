@@ -153,10 +153,13 @@ export const AffiliationMixin = (superClass) => class extends superClass {
         const allCodes = sub.depts.map(d => d.deptCode);
         const selected = allCodes.filter(c => selectedCodes.includes(c));
         if( !selected.length ) continue;
-        let suffix = '';
-        if( allCodes.length > 1 ) {
-          suffix = selected.length === allCodes.length ? ' (all)' : ` (${selected.length})`;
+        // base singleton sub-categories are shown by their department (affiliation) name with
+        // no suffix, matching how they are presented in the picker
+        if( allCodes.length === 1 ) {
+          groups.push({ label: sub.depts[0].name, codes: selected });
+          continue;
         }
+        const suffix = selected.length === allCodes.length ? ' (all)' : ` (${selected.length})`;
         groups.push({ label: `${sub.label}${suffix}`, codes: selected });
       }
     }
@@ -178,6 +181,10 @@ export const AffiliationMixin = (superClass) => class extends superClass {
       ${(this.orgLookup || []).map(cat => {
         const matchingSubs = cat.subCategories.map(sub => ({
           ...sub,
+          // whether the sub-category is a singleton in the *base* (unfiltered) list — this
+          // governs the flat-vs-accordion presentation so keyword filtering never turns a
+          // multi-department sub-category into a flat row
+          _baseSingleton: sub.depts.length === 1,
           depts: sub.depts.filter(d =>
             (!search ||
               d.name.toLowerCase().includes(search) ||
@@ -197,12 +204,17 @@ export const AffiliationMixin = (superClass) => class extends superClass {
   /**
    * @method _renderAffiliationSubRow
    * @description render a single sub-category row for the affiliation picker
-   * @param {Object} sub sub-category (already filtered to matching depts)
+   * @param {Object} sub sub-category (already filtered to matching depts; `_baseSingleton`
+   *   flags whether it is a singleton in the base list)
    * @returns {TemplateResult}
    */
   _renderAffiliationSubRow(sub) {
-    // single-department sub-categories are a plain selectable option (no accordion)
-    if( sub.depts.length === 1 ) {
+    // sub-categories that hold a single department in the *base* list are shown as a plain
+    // selectable option (no accordion). We show the department (affiliation) name rather than
+    // the sub-category label, since the two can differ (e.g. "Business" -> "Graduate School of
+    // Management"). Keyword filtering that merely narrows a multi-department sub-category down
+    // to one visible department is NOT a base singleton and keeps its accordion.
+    if( sub._baseSingleton ) {
       const dept = sub.depts[0];
       return html`
         <label class="affiliation-sub-row affiliation-sub-row--single">
@@ -211,7 +223,7 @@ export const AffiliationMixin = (superClass) => class extends superClass {
             .value="${dept.deptCode}"
             .checked="${this.dept.includes(dept.deptCode)}"
             @change="${this._onDeptChange}">
-          <span class="affiliation-sub-label">${sub.label}</span>
+          <span class="affiliation-sub-label">${dept.name}</span>
         </label>
       `;
     }
