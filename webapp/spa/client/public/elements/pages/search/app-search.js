@@ -803,16 +803,17 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
 
   /**
    * @method _computeDeptMatchCodes
-   * @description build the set of department codes whose content matches the current keyword,
-   * using the keyword-scoped (filter-free) dept aggregation returned by the search API. The
-   * aggregation is keyed by official department name (hasOrganizationalUnit.name.kw), which is
-   * mapped back to dept codes via the org lookup. Returns null when no dept aggregation is
-   * available so the affiliation list falls back to showing all units.
+   * @description build the set of department codes that have results in the current view. Uses
+   * the `dept_facet` aggregation from the search API, which reflects the active view filters
+   * (@type / status / type / date) but not the dept filter itself, falling back to the
+   * keyword-scoped global dept aggregation. The aggregation is keyed by official department name
+   * (hasOrganizationalUnit.name.kw), mapped back to dept codes via the org lookup. Returns null
+   * when no dept aggregation is available so the affiliation list falls back to showing all units.
    * @param {Object} data raw search payload
    * @returns {Set<string>|null} matching dept codes, or null to show all
    */
   _computeDeptMatchCodes(data) {
-    const deptAgg = data?.global_aggregations?.dept;
+    const deptAgg = data?.dept_facet || data?.global_aggregations?.dept;
     if( !deptAgg || typeof deptAgg !== 'object' ) return null;
 
     // the hasOrganizationalUnit.name.kw field is normalised (lowercased) in ES, so the
