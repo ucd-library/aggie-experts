@@ -1179,7 +1179,7 @@ return html`
         })()}
       </div>
       <div class="search-results-heading">
-        <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>
+        <div class="results-count">${this._formattedTotal()} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>
         <div class="download">
           <button class="btn btn--invert" style="width: fit-content;" ?disabled="${!this.resultsSelected}" @click="${this._downloadClicked}">Download</button>
         </div>

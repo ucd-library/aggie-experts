@@ -28,6 +28,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       totalResultsCount : { type : Number },
+      totalResultsCountCapped : { type : Boolean },
       rawSearchData : { type : Object },
       resultsLoading : { type : String },
       // filters : { type : Array },
@@ -73,6 +74,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     this.currentPage = 1;
     this.resultsPerPage = 25;
     this.totalResultsCount = 0;
+    this.totalResultsCountCapped = false;
     this.rawSearchData = {};
     this.resultsLoading = '...';
     this.refineSearchCollapsed = true;
@@ -530,18 +532,31 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     return count;
   }
 
+  /**
+   * @method _formattedTotal
+   * @description the total result count formatted for display (commas on 5+ digit numbers,
+   * trailing "+" when the count is a capped lower bound), or the loading placeholder.
+   * @returns {String}
+   */
+  _formattedTotal() {
+    if( this.totalResultsCount == null ) return this.resultsLoading;
+    return utils.formatCount(this.totalResultsCount, this.totalResultsCountCapped);
+  }
+
   _getMobileViewLabel() {
-    const n = this.totalResultsCount != null ? this.totalResultsCount : '';
+    const raw = this.totalResultsCount;
+    const n = raw != null ? utils.formatCount(raw, this.totalResultsCountCapped) : '';
+    const plural = raw !== 1; // a capped total is always > 1
     if( !this.atType ) return `View ${n} results`;
     let typeLabel = '';
-    if( this.atType === 'expert' ) typeLabel = n === 1 ? 'expert' : 'experts';
-    else if( this.atType === 'grant' ) typeLabel = n === 1 ? 'grant' : 'grants';
+    if( this.atType === 'expert' ) typeLabel = plural ? 'experts' : 'expert';
+    else if( this.atType === 'grant' ) typeLabel = plural ? 'grants' : 'grant';
     else if( this.atType === 'work' ) {
       if( this.type ) {
         typeLabel = utils.getCitationType(this.type).toLowerCase();
-        if( n !== 1 && typeLabel && !typeLabel.endsWith('s') ) typeLabel += 's';
+        if( plural && typeLabel && !typeLabel.endsWith('s') ) typeLabel += 's';
       }
-      else typeLabel = n === 1 ? 'work' : 'works';
+      else typeLabel = plural ? 'works' : 'work';
     } else typeLabel = this.atType;
     if( this.status ) typeLabel = this.status.toLowerCase() + ' ' + typeLabel;
     return `View ${n} ${typeLabel}`;
@@ -560,6 +575,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     // update url
     this.searchTerm = e.detail.trim();
     this.totalResultsCount = null;
+    this.totalResultsCountCapped = false;
 
     let searchWords = utils.filterOutStopWords(this.searchTerm);
     if( !searchWords.length ) {
@@ -803,16 +819,17 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
 
   /**
    * @method _computeDeptMatchCodes
-   * @description build the set of department codes whose content matches the current keyword,
-   * using the keyword-scoped (filter-free) dept aggregation returned by the search API. The
-   * aggregation is keyed by official department name (hasOrganizationalUnit.name.kw), which is
-   * mapped back to dept codes via the org lookup. Returns null when no dept aggregation is
-   * available so the affiliation list falls back to showing all units.
+   * @description build the set of department codes that have results in the current view. Uses
+   * the `dept_facet` aggregation from the search API, which reflects the active view filters
+   * (@type / status / type / date) but not the dept filter itself, falling back to the
+   * keyword-scoped global dept aggregation. The aggregation is keyed by official department name
+   * (hasOrganizationalUnit.name.kw), mapped back to dept codes via the org lookup. Returns null
+   * when no dept aggregation is available so the affiliation list falls back to showing all units.
    * @param {Object} data raw search payload
    * @returns {Set<string>|null} matching dept codes, or null to show all
    */
   _computeDeptMatchCodes(data) {
-    const deptAgg = data?.global_aggregations?.dept;
+    const deptAgg = data?.dept_facet || data?.global_aggregations?.dept;
     if( !deptAgg || typeof deptAgg !== 'object' ) return null;
 
     // the hasOrganizationalUnit.name.kw field is normalised (lowercased) in ES, so the
@@ -980,6 +997,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     });
 
     this.totalResultsCount = e.payload.total;
+    this.totalResultsCountCapped = e.payload.totalCapped || false;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
 
     // if results dropped to 0, reset the sig so the histogram re-initializes

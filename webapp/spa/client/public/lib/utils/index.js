@@ -16,6 +16,23 @@ class Utils {
     return Array.isArray(value) ? value : [value];
   }
 
+  /**
+   * @method formatCount
+   * @description format a numeric result count for display. Numbers with 5 or more digits
+   * are grouped with commas for readability (e.g. 10000 -> "10,000"); shorter numbers are
+   * left as-is. When `capped` is true the value is a lower bound (the true total exceeds what
+   * we retrieve) and a trailing "+" is appended (e.g. "10,000+").
+   * @param {Number} n the count
+   * @param {Boolean} [capped=false] whether the count is a capped lower bound
+   * @return {String} formatted count
+   */
+  formatCount(n, capped = false) {
+    if (n == null || isNaN(n)) return '';
+    const num = Number(n);
+    const formatted = Math.abs(num) >= 10000 ? num.toLocaleString('en-US') : String(num);
+    return capped ? `${formatted}+` : formatted;
+  }
+
   /*
   * @method formatDate
   * @description given a date object, return a formatted date string
