@@ -32,6 +32,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       resultsPerPage  : { type : Number },
       currentPage : { type : Number },
       totalResultsCount : { type : Number },
+      totalResultsCountCapped : { type : Boolean },
       paginationTotal : { type : Number },
       // filters
       dept : { type : Array },
@@ -68,6 +69,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.resultsPerPage = 25;
     this.currentPage = 1;
     this.totalResultsCount = 0;
+    this.totalResultsCountCapped = false;
     this.paginationTotal = 0;
 
     this.dept = [];
@@ -262,6 +264,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
     this.loading = false;
+    this.totalResultsCountCapped = e.payload?.totalCapped || false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -284,6 +287,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
     this.loading = false;
+    this.totalResultsCountCapped = e.payload?.totalCapped || false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -306,6 +310,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
     this.loading = false;
+    this.totalResultsCountCapped = e.payload?.totalCapped || false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -975,11 +980,22 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {String} formatted count or empty string
    */
   _getCategoryCount(key, value) {
-    if( !this.categoryAggregations ) return '';
-    const agg = this.categoryAggregations[key];
-    if( !agg || typeof agg !== 'object' ) return '';
+    const count = this._getCategoryCountRaw(key, value);
+    return count == null ? '0' : utils.formatCount(count);
+  }
+
+  /**
+   * @method _getCategoryCountRaw
+   * @description raw numeric count for a category aggregation bucket
+   * @param {String} key aggregation field name
+   * @param {String} value bucket value
+   * @returns {Number|null} count, or null when aggregations aren't available
+   */
+  _getCategoryCountRaw(key, value) {
+    const agg = this.categoryAggregations?.[key];
+    if( !agg || typeof agg !== 'object' ) return null;
     const count = agg[value];
-    return typeof count === 'number' ? count.toLocaleString() : '0';
+    return typeof count === 'number' ? count : 0;
   }
 
   /**
@@ -988,12 +1004,21 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {String} formatted total or empty string
    */
   _getCategoryTotal() {
+    const total = this._getCategoryTotalRaw();
+    return total == null ? '' : utils.formatCount(total);
+  }
+
+  /**
+   * @method _getCategoryTotalRaw
+   * @description raw numeric total across all category buckets
+   * @returns {Number|null} total, or null when aggregations aren't available
+   */
+  _getCategoryTotalRaw() {
     const agg = this.browseType === 'grant'
       ? this.categoryAggregations?.status
       : this.categoryAggregations?.type;
-    if( !agg || typeof agg !== 'object' ) return '';
-    const total = Object.values(agg).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0);
-    return total.toLocaleString();
+    if( !agg || typeof agg !== 'object' ) return null;
+    return Object.values(agg).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0);
   }
 
   /**
@@ -1073,22 +1098,48 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @description return the label for the mobile "View N results" button
    * @returns {String}
    */
-  _getMobileViewLabel() {
-    const n = this.totalResultsCount != null ? this.totalResultsCount : '';
-    if( this.browseType === 'expert' ) return `View ${n} expert${n === 1 ? '' : 's'}`;
+  /**
+   * @method _getResultsCountLabel
+   * @description "<count> <label>" for the current results, where the label matches the
+   * selected category (e.g. "27 books", "150 chapters", "1,000 experts", "12 active grants").
+   * The count is comma-formatted (5+ digits) with a trailing "+" when capped.
+   * @returns {String}
+   */
+  _getResultsCountLabel() {
+    // Prefer the category aggregation count (accurate, matches the sidebar) for grants/works;
+    // fall back to the browse result total (used for experts, and until aggs load). Only the
+    // result total can be a capped lower bound, so "+" applies to the fallback path only.
+    let count = null, capped = false;
+    if( this.browseType === 'grant' ) {
+      count = this.status ? this._getCategoryCountRaw('status', this.status) : this._getCategoryTotalRaw();
+    } else if( this.browseType === 'work' ) {
+      count = this.workType ? this._getCategoryCountRaw('type', this.workType) : this._getCategoryTotalRaw();
+    }
+    if( count == null ) {
+      count = this.totalResultsCount;
+      capped = this.totalResultsCountCapped;
+    }
+
+    const n = count != null ? utils.formatCount(count, capped) : '';
+    const plural = count !== 1; // a capped total is always > 1
+    if( this.browseType === 'expert' ) return `${n} expert${plural ? 's' : ''}`;
     if( this.browseType === 'grant' ) {
       let label = this.status ? this.status.toLowerCase() + ' grant' : 'grant';
-      if( n !== 1 ) label += 's';
-      return `View ${n} ${label}`;
+      if( plural ) label += 's';
+      return `${n} ${label}`;
     }
     if( this.browseType === 'work' ) {
       if( this.workType ) {
         const label = utils.getCitationType(this.workType).toLowerCase();
-        return `View ${n} ${label}${n === 1 ? '' : 's'}`;
+        return `${n} ${label}${plural ? 's' : ''}`;
       }
-      return `View ${n} work${n === 1 ? '' : 's'}`;
+      return `${n} work${plural ? 's' : ''}`;
     }
-    return `View ${n} results`;
+    return `${n} results`;
+  }
+
+  _getMobileViewLabel() {
+    return `View ${this._getResultsCountLabel()}`;
   }
 
   /**

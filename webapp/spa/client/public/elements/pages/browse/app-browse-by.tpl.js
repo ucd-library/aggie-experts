@@ -87,6 +87,15 @@ return html`
       width: 100%;
     }
 
+    .browse-results-count {
+      color: var(--ucd-blue-100, #022851);
+      font-size: 1.3rem;
+      font-style: italic;
+      font-weight: 700;
+      line-height: 1.74625rem;
+      margin-bottom: 1.19rem;
+    }
+
     .browse-seperator {
       display: block;
       height: 1px;
@@ -1055,6 +1064,10 @@ return html`
           ${this._getActiveFilterCount() >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : ''}
         </div>
       ` : ''}
+
+        ${!this.loading && this.totalResultsCount > 0 ? html`
+          <div class="browse-results-count">${this._getResultsCountLabel()}</div>
+        ` : ''}
 
         ${this._renderResults()}
         ${!this.loading && this.displayedResults.length === 0 ? html`<p class="no-results">0 results</p>
