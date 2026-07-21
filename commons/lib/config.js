@@ -204,6 +204,22 @@ const config = {
       host : env.EXPERTS_SYMPLECTIC_SFTP_HOST || 'ftp.use.symplectic.org',
       username : env.EXPERTS_SYMPLECTIC_SFTP_USER || 'ucdavis',
       passwordSecret : env.EXPERTS_SYMPLECTIC_SFTP_PASSWORD_SECRET || 'Symplectic-Elements-FTP-ucdavis-password',
+      // SFTP log locations. The folder names differ per env (note QA's
+      // delete-user-links has no `_Logs` suffix, and casing differs).
+      logs : {
+        PROD : {
+          root            : 'PROD/Logs',
+          deleteGrants    : 'UCDavis_Delete_Grants_Records_Logs',
+          deleteUserLinks : 'UCDavis_Delete_User_Links_Logs',
+          grantsFeed      : 'UCDavis_Grants_Feed_logs',
+        },
+        QA : {
+          root            : 'QA/Logs',
+          deleteGrants    : 'UC_Davis_Delete_Grants_Records_Logs',
+          deleteUserLinks : 'UC_Davis_Delete_User_Links',
+          grantsFeed      : 'UC_Davis_Grants_Feed_Logs',
+        },
+      },
     },
   },
 

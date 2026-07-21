@@ -39,4 +39,18 @@ export {
 
 export { getEmailClient } from './email.js';
 
-export { loadGrantFeedReporting } from './reporting.js';
+export { loadGrantFeedReporting, loadImportConfirmation } from './reporting.js';
+
+export {
+  parseGrantsFeedSummary,
+  parseImportSuccesses,
+  parseImportErrors,
+  grantImportResults,
+  parseDeleteUserLinksNotes,
+  parseDeleteGrantRecordsNotes,
+  grantsFeedIsMeaningful,
+  deleteUserLinksIsMeaningful,
+  deleteGrantRecordsIsMeaningful
+} from './symplectic-logs.js';
+
+export { SYMPLECTIC_LOG_SUBDIR, LOG_CLEAN_NAMES, symplecticLogDir, symplecticLogPath } from './log-paths.js';

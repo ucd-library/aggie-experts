@@ -465,6 +465,24 @@ def grant_feed_ingest(context: AssetExecutionContext) -> None:
     return None
 
 
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="grant-feed",
+)
+def fetch_grant_feed_logs(context: AssetExecutionContext) -> None:
+    """Daily: pull Symplectic import/delete logs and load the confirmation.
+
+    Symplectic processes our upload ~1 day later, so this runs daily and keeps
+    only the meaningful logs (see the fetch-logs CLI). Env follows the 
+    deployment (dev -> QA, prod -> PROD).
+    """
+    symplectic_env = "QA" if context.dagster_run.tags.get("env") == "dev" else "PROD"
+    result = exec(["experts", "harvest", "grant-feed", "fetch-logs", "--env", symplectic_env])
+    if result:
+        context.add_output_metadata(metadata={k: v for k, v in result.items() if v is not None})
+    return None
+
+
 def _notify_grant_feed(context, success: bool, grants=None, uploaded=None, detail=None, env=None) -> None:
     """Send the grant-feed completion notification to Slack via `admin notify`."""
     target = f"Symplectic {env}" if env else "Symplectic"

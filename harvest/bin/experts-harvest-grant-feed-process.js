@@ -88,7 +88,7 @@ program
     // Load the weekly delta into the grant_feed reporting schema. Best-effort:
     // a reporting failure must not fail an otherwise-successful grant delivery.
     const yearWeek = path.basename(weeklyPath);
-    const reportingLoaded = await loadReporting(yearWeek, uploaded, rows, newGrantIds);
+    const reportingLoaded = await loadReporting(yearWeek, opts.env, uploaded, rows, newGrantIds);
 
     // Final line is a JSON summary the Dagster asset parses to build the
     // Slack notification (success + grant count).
@@ -155,14 +155,14 @@ async function readDeltaRows(weeklyPath) {
  * logs and returns false on failure rather than throwing, so a reporting-DB
  * problem never fails a grant delivery that already succeeded.
  */
-async function loadReporting(yearWeek, uploaded, rows, newGrantIds) {
+async function loadReporting(yearWeek, env, uploaded, rows, newGrantIds) {
   const pg = new PgClient(null, 'grant_feed');
   try {
     await pg.connect();
     // persons is delivered to Symplectic but intentionally not stored in the
     // reporting DB, so it is not passed to the loader.
     const res = await loadGrantFeedReporting(pg, {
-      yearWeek, uploaded,
+      yearWeek, env, uploaded,
       metadata: rows.metadata,
       links: rows.links,
       deleteLinks: rows.deleteLinks,

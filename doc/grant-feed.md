@@ -131,6 +131,36 @@ Re-enable by uncommenting the imports and registrations in `dagster/defs.py`
 `email.js` and setting the `EXPERTS_GRANT_FEED_EMAIL_*` env vars in
 [config.js](../commons/lib/config.js)).
 
+## Import confirmation (Symplectic logs)
+
+Symplectic processes our upload on a schedule (~1 day later) and writes logs to
+the SFTP server under `PROD/Logs/` and `QA/Logs/`. A daily Dagster job
+(`grant_feed_logs_schedule_*` → `grant_feed_logs_job` → `fetch_grant_feed_logs`),
+or the CLI, pulls these and confirms whether what we sent was imported/deleted:
+
+```
+$ experts harvest grant-feed fetch-logs --env PROD [--date YYYY-MM-DD]
+```
+
+It fetches three feeds (env-specific folder names — see
+`config.grantFeed.symplectic.logs`), keeps only the **meaningful** ones in
+CasKFS under `/weekly/<year-week>/grant-feed/symplectic-logs/<env>/`, and loads
+the confirmation into the reporting schema:
+
+| log | meaningful when | reporting |
+|---|---|---|
+| grants-feed (Summary/Import_Successes/Import_Errors) | ≥1 item processed | `import_result` (per-grant created/updated/failed + reason), `import_summary` (run totals) |
+| delete-user-links (notes) | ≥1 per-link outcome | sets `delete_links.delete_status` (`deleted`/`not-found`) + `date_confirmed`; counts in `import_summary` |
+| delete-grant-records (notes) | ≥1 record deleted | **archived to CasKFS only** — this is the KFS legacy archive (`ark:/…/d7gt0q/…`), not our AE feed |
+
+Logs with nothing meaningful (e.g. "0 items processed" on a day Symplectic
+hasn't processed our file) are not written. Correlation is by grant ARK →
+`grant_id` (+ env); the confirmation's `year_week` is the log date's — usually,
+but not always, the same week as the upload. The reporting load is best-effort
+(a DB failure is logged, not fatal). The Dagster log-fetch is **not** under the
+email-check security hold (the logs are our own output, not the sensitive
+input).
+
 ## Import file formats
 
 Three CSV files (plus a delete file) are uploaded to the Symplectic server:

@@ -19,6 +19,7 @@ from .assets import (
     purge_year_week_cask_files,
     check_grant_feed_email,
     grant_feed_ingest,
+    fetch_grant_feed_logs,
 )
 
 
@@ -97,4 +98,11 @@ grant_feed_job = dg.define_asset_job(
         "dagster/priority": "1",
         "dagster/max_runtime": str(60 * 30)  # 30 minute max runtime
     }
+)
+
+grant_feed_logs_job = dg.define_asset_job(
+    name="grant_feed_logs_job",
+    description="Daily fetch of Symplectic import/delete logs; keeps meaningful ones in CasKFS and loads the confirmation into the grant_feed reporting schema.",
+    selection=dg.AssetSelection.assets(fetch_grant_feed_logs),
+    tags={"dagster/priority": "1"}
 )
