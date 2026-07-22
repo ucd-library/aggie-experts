@@ -396,7 +396,7 @@ return html`
     .refine-search .search-seperator {
       width: 100%;
       margin: 0.75rem 0;
-      border-top: 1px dotted #b0c4d8;
+      border-top: 1px solid var(--color-aggie-blue-40, #b0c4d8);
     }
 
     .refine-search .search-seperator--large-dots,
@@ -858,6 +858,7 @@ return html`
 
       <hr class="search-seperator search-seperator--large-dots">
 
+      ${this.displayedResults.length > 0 ? html`
       <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
         <h4>Affiliation</h4>
         <span class="filter-collapse-arrow">
@@ -893,6 +894,7 @@ return html`
           ${this._renderAffiliationCheckboxes(this._deptMatchCodes)}
         </div>
       </div>
+      ` : ''}
 
       <div class="open-to-container" ?hidden="${!this.showOpenTo}">
         <hr class="search-seperator">
@@ -970,7 +972,7 @@ return html`
         </div>
       ` : ''}
 
-      <hr class="search-seperator">
+      ${this.displayedResults.length > 0 ? html`<hr class="search-seperator">` : ''}
       <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
 
     </div>
@@ -1024,6 +1026,7 @@ return html`
 
             <hr class="search-seperator search-seperator--large-dots">
 
+            ${this.displayedResults.length > 0 ? html`
             <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
               <h4>Affiliation</h4>
               <span class="filter-collapse-arrow">
@@ -1059,6 +1062,7 @@ return html`
                 ${this._renderAffiliationCheckboxes(this._deptMatchCodes)}
               </div>
             </div>
+            ` : ''}
 
             <div class="open-to-container" ?hidden="${!this.showOpenTo}">
               <hr class="search-seperator">
@@ -1133,7 +1137,7 @@ return html`
               </div>
             </div>
 
-            <hr class="search-seperator">
+            ${this.displayedResults.length > 0 ? html`<hr class="search-seperator">` : ''}
             <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
         </div>
           <div class="mobile-view-btn-wrap">
