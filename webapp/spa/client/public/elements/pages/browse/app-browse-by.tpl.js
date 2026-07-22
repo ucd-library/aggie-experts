@@ -126,7 +126,7 @@ return html`
 
     .browse-filters .search-seperator {
       margin: 0.75rem 0;
-      border-top: 1px dotted #b0c4d8;
+      border-top: 1px solid var(--color-aggie-blue-40, #b0c4d8);
     }
 
     .browse-filters .search-seperator--large-dots {
