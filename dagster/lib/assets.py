@@ -375,7 +375,7 @@ def send_slack_notification(context: AssetExecutionContext, config: SlackNotifyC
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="grant-feed",
+    group_name="grant_feed",
 )
 def check_grant_feed_email(context: AssetExecutionContext) -> None:
     """Check the configured inbox for a new AEgrants.xml.
@@ -418,7 +418,7 @@ def check_grant_feed_email(context: AssetExecutionContext) -> None:
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="grant-feed",
+    group_name="grant_feed",
     tags={
         "dagster/max_runtime": str(60 * 30)  # 30 minute max runtime
     }
@@ -467,7 +467,7 @@ def grant_feed_ingest(context: AssetExecutionContext) -> None:
 
 @dg.asset(
     code_version=CODE_VERSION,
-    group_name="grant-feed",
+    group_name="grant_feed",
 )
 def fetch_grant_feed_logs(context: AssetExecutionContext) -> None:
     """Daily: pull Symplectic import/delete logs and load the confirmation.
