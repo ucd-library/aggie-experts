@@ -35,22 +35,24 @@ const program = new Command();
 program
   .name('delta')
   .description("Diff this week's grant-feed generation against last week's (both in CasKFS) and store the Symplectic delta")
-  .option('-d, --date <date>', 'This week (YYYY-MM-DD); defaults to today. The previous year-week is derived from the app\'s Saturday-aligned week logic.', null)
+  .option('-d, --date <date>', 'This week (YYYY-MM-DD); defaults to today.', null)
+  .option('--prev-date <date>', 'Force the comparison week to the one containing this date (YYYY-MM-DD). Default: the most-recent prior week that has a generation in CasKFS.', null)
   .action(async (opts) => {
     try {
       // Use the app's timezone-aware "today" so this matches the year-week the
       // transform stage wrote to (getYearWeek defaults to getTodaysDate()).
       const thisWeekDate = opts.date ? Temporal.PlainDate.from(opts.date) : getTodaysDate();
-
-      // Previous year-week: subtract one week (7 days) then map through the
-      // year-week logic. This mirrors how the reporting DB finds last week
-      // (get_year_week(NOW() - INTERVAL '7 days')) and the `year-week
-      // --weeks-ago` CLI; cache.getPath -> getYearWeek handles the
-      // Saturday-aligned boundaries and year rollovers.
-      const prevWeekDate = thisWeekDate.subtract({ weeks: 1 });
-
       const thisWeek = cache.getPath({ root: '/weekly', date: thisWeekDate });
-      const prevWeek = cache.getPath({ root: '/weekly', date: prevWeekDate });
+
+      // Determine the "previous" week to diff against:
+      //   --prev-date  -> the week containing that date (explicit override), OR
+      //   default      -> the most-recent week BEFORE this one that actually has
+      //                   a generation in CasKFS (so a skipped/removed week is
+      //                   stepped over, and a bad most-recent prior can be
+      //                   skipped by removing it or pointing --prev-date past it).
+      const prevWeek = opts.prevDate
+        ? cache.getPath({ root: '/weekly', date: Temporal.PlainDate.from(opts.prevDate) })
+        : await findPrevWeekWithGeneration(thisWeekDate);
 
       const newGrants = await readCsv(generationPath(thisWeek, 'grants-metadata'), { required: true });
       const newLinks = await readCsv(generationPath(thisWeek, 'grants-links'), { required: true });
@@ -84,6 +86,7 @@ program
 
       console.log(JSON.stringify({
         weeklyPath: thisWeek,
+        prevWeek,
         firstLoad: !hadPrev,
         grants: deltaGrants.length,
         links: deltaLinks.length,
@@ -98,6 +101,24 @@ program
     }
     process.exit();
   });
+
+// How many weeks back to scan for a prior generation. Weekly cleanup keeps only
+// the last ~5 weeks, so 8 is a safe margin; if none is found the delta is a full
+// initial load.
+const MAX_PREV_LOOKBACK = 8;
+
+/**
+ * Find the most-recent week BEFORE thisWeekDate whose grants-metadata generation
+ * exists in CasKFS. Falls back to the immediately-prior week (empty -> full
+ * load) if none is found within the lookback.
+ */
+async function findPrevWeekWithGeneration(thisWeekDate) {
+  for (let w = 1; w <= MAX_PREV_LOOKBACK; w++) {
+    const wk = cache.getPath({ root: '/weekly', date: thisWeekDate.subtract({ weeks: w }) });
+    if (await cache.exists(generationPath(wk, 'grants-metadata'))) return wk;
+  }
+  return cache.getPath({ root: '/weekly', date: thisWeekDate.subtract({ weeks: 1 }) });
+}
 
 async function readCsv(assetPath, { required = false } = {}) {
   if (!(await cache.exists(assetPath))) {

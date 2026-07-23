@@ -41,10 +41,12 @@ graph TD;
 2. **transform** — [transform.js](../harvest/lib/grant-feed/transform.js) parses
    the XML and builds the three Symplectic CSVs (metadata, links, persons) for
    the week, stored under `/weekly/<year-week>/grant-feed/`.
-3. **delta** — this week's generation is compared to **last week's** cached
-   generation to derive the delta set: grant additions/updates, link changes,
-   and links to delete. On the first-ever run everything is treated as new (a
-   full initial load).
+3. **delta** — this week's generation is compared to the **most-recent prior**
+   cached generation (usually last week; a week with no run is stepped over) to
+   derive the delta set: grant additions/updates, link changes, and links to
+   delete. `--prev-date <YYYY-MM-DD>` forces a specific comparison week. On the
+   first-ever run (no prior generation) everything is treated as new (a full
+   initial load).
 4. **upload** — the delta CSVs are read from CasKFS and SFTP-uploaded to
    Symplectic for import via the nightly process.
 5. Symplectic FTP: `ftp.use.symplectic.org`, username `ucdavis`, password is retrieved from GCS Secret Manager
@@ -104,10 +106,12 @@ $ experts harvest dagster run-grant-feed-job --env QA
 Uploads to PROD unless the run is tagged `symplectic_env=QA` (which
 `--env QA` sets).
 
-Both paths diff this week's generation against **last week's cached generation**
-in CasKFS, and both post a Slack notification (success/failure + grant count) to
-the harvest-messages channel. Weekly cleanup (`purge_year_week_cask_files`)
-removes old `/weekly/<year-week>` trees automatically.
+Both paths diff this week's generation against the **most-recent prior cached
+generation** in CasKFS (usually last week; a week with no run is stepped over,
+and `--prev-date <YYYY-MM-DD>` forces a specific comparison week). Both post a
+Slack notification (success/failure + grant count) to the harvest-messages
+channel. Weekly cleanup (`purge_year_week_cask_files`) removes old
+`/weekly/<year-week>` trees automatically.
 
 ### Individual steps
 

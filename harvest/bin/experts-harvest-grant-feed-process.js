@@ -41,6 +41,7 @@ program
   .option('--env <env>', 'QA | PROD (controls the Symplectic upload filename prefix and remote directory)', 'PROD')
   .option('-d, --date <date>', 'Week to process (YYYY-MM-DD); defaults to today', null)
   .option('--xml <xml>', 'Input XML: local path or gs://...; defaults to the configured GCS bucket location', config.grantFeed?.inputXml || 'gs://aggie-enterprise/grants/ae-grants.xml')
+  .option('--prev-date <date>', 'Force the delta comparison week to the one containing this date (YYYY-MM-DD). Default: the most-recent prior week with a generation in CasKFS.', null)
   .option('--no-upload', 'Skip the SFTP upload to Symplectic (transform + delta only)')
   .option('-h, --host <host>', 'SFTP host', config.grantFeed?.symplectic?.host || 'ftp.use.symplectic.org')
   .option('-u, --username <username>', 'SFTP username', config.grantFeed?.symplectic?.username || 'ucdavis')
@@ -61,7 +62,9 @@ program
     // Capture the delta summary — it carries newGrantIds (computed from both
     // generations it already has), so we classify new vs updated without
     // re-reading last week's generation here.
-    const deltaSummary = runChild(['delta', '--date', date.toString()], { capture: true }) || {};
+    const deltaArgs = ['delta', '--date', date.toString()];
+    if (opts.prevDate) deltaArgs.push('--prev-date', opts.prevDate);
+    const deltaSummary = runChild(deltaArgs, { capture: true }) || {};
     const newGrantIds = new Set(deltaSummary.newGrantIds || []);
 
     // Read + parse the delta CSVs once (for the summary counts and the

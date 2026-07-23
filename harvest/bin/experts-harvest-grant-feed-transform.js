@@ -9,11 +9,12 @@
  * Cache filenames are clean (lower-case, hyphens); the legacy Prod_UCD_ names
  * are applied only on upload to Symplectic.
  *
- * Input resolution (first match wins):
- *   1. --xml <local path | gs://...>  explicit override (also archived into
- *      CasKFS as the week's raw ae-grants.xml)
- *   2. otherwise the raw ae-grants.xml already stored in CasKFS for the week
- *      (written by the email-check task)
+ * Input resolution:
+ *   - --xml <local path | gs://...>  defaults to config.grantFeed.inputXml
+ *     (the GCS bucket), matching `process`. The input is also archived into
+ *     CasKFS as the week's raw ae-grants.xml.
+ *   - If --xml is explicitly emptied, falls back to the raw ae-grants.xml
+ *     already staged in CasKFS for the week (the email-check path).
  *
  * The parse + row-building lives in ../lib/grant-feed/transform.js; this CLI
  * only owns IO (CasKFS + optional GCS download).
@@ -23,7 +24,7 @@ import os from 'os';
 import path from 'path';
 import { Command } from 'commander';
 import { Temporal } from '@js-temporal/polyfill';
-import { logger, xmlToJson, getTodaysDate } from '@ucd-lib/experts-commons';
+import { logger, xmlToJson, getTodaysDate, config } from '@ucd-lib/experts-commons';
 import cache from '../lib/cache.js';
 import {
   buildAllRows,
@@ -44,7 +45,7 @@ program
   .name('transform')
   .description('Transform an AE grant XML feed into Symplectic CSVs, stored in CasKFS under the weekly partition')
   .option('-d, --date <date>', 'Week to store under (YYYY-MM-DD); defaults to today', null)
-  .option('--xml <xml>', 'Optional input override: local path or gs://bucket/path/file.xml. If omitted, uses the raw ae-grants.xml already in CasKFS for the week.')
+  .option('--xml <xml>', 'Input XML: local path or gs://...; defaults to the configured GCS bucket location', config.grantFeed?.inputXml || 'gs://aggie-enterprise/grants/ae-grants.xml')
   .option('-g, --generation <generation>', 'When --xml is a gs:// URI, which GCS generation to pull (0 = most recent)', '0')
   .action(async (opts) => {
     try {
