@@ -201,6 +201,16 @@ export default class FinApp extends Mixin(LitElement)
   }
 
   _getRouteKey(location={}) {
+    // Key the search page by its search term only. Applying/adjusting filters flips the URL
+    // between /search/<term> (no filters) and /search?q=<term>&... (with filters), which changes
+    // the pathname — without this, that first filter would read as a route change and scroll the
+    // page back to the top. A genuinely new search term still yields a new key (and resets scroll).
+    const isSearch = location.page === 'search' || (location.pathname || '').startsWith('/search');
+    if( isSearch ) {
+      const decode = (s) => { try { return decodeURIComponent(s); } catch(e) { return s; } };
+      const term = location.query?.q || location.path?.[1] || '';
+      return 'search:' + decode(term);
+    }
     return location.pathname || '/';
   }
 
