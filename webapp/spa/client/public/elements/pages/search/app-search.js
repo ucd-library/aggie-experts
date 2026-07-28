@@ -148,6 +148,16 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
   firstUpdated() {
     if( this.AppStateModel.location.page !== 'search' ) return;
 
+    // A fresh search from the homepage sets resetSearch BEFORE navigating — i.e. before this
+    // component exists to hear it — so the flag can still be set when we first load. This
+    // component already starts in its default (collapsed) sidebar state, so just consume the
+    // flag here; otherwise it lingers and the first subsequent filter change (e.g. a date
+    // slider move) is misread as a fresh search and collapses the sidebar.
+    if( this.AppStateModel.store?.data?.resetSearch ) {
+      this.resettingSearch = true; // swallow the resulting echo update (mirrors _onAppStateUpdate)
+      this.AppStateModel.set({ resetSearch: false });
+    }
+
     this._updateFilters();
     this._onSearch({ detail: this.searchTerm });
   }
@@ -563,6 +573,26 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
   }
 
   /**
+   * @method _onSearchBoxSubmit
+   * @description handle submits from the results-page search box. A different search term is a
+   * fresh search, so reset all refinement filters (date, @type, status, dept, availability) —
+   * matching the homepage/header search — instead of carrying the current filters onto the new
+   * term (which would, e.g., apply a leftover date range and return 0 results). Re-submitting the
+   * same term just re-runs with the current filters.
+   * @param {Object} e
+   */
+  _onSearchBoxSubmit(e) {
+    const term = e.detail?.trim();
+    if( !term ) return;
+    if( term !== this.searchTerm ) {
+      this.AppStateModel.setLocation('/search/' + encodeURIComponent(term));
+      this.AppStateModel.set({ resetSearch: true });
+    } else {
+      this._onSearch(e, true);
+    }
+  }
+
+  /**
    * @method _onSearch
    * @description called from the search box button is clicked or
    * the enter key is hit. search
@@ -855,6 +885,49 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     return codes;
   }
 
+  /**
+   * @method _innerHitInDateRange
+   * @description whether a matched @graph child (a work or grant inner hit) falls within the
+   * active date filter, so the expert "Search matches" counts reflect the selected range.
+   * Mirrors the ES date logic — works by issued year, grants by active-interval overlap — and
+   * returns true when no date filter is active.
+   * @param {Object} h inner hit source (has @type, issued, dateTimeInterval)
+   * @returns {Boolean}
+   */
+  _innerHitInDateRange(h) {
+    if( !this.filterByDate ) return true;
+
+    const fromY = this.dateFrom ? parseInt(String(this.dateFrom).slice(0, 4)) : null;
+    const toY = this.dateTo ? parseInt(String(this.dateTo).slice(0, 4)) : null;
+    const yearOf = (v) => {
+      if( v == null ) return null;
+      const s = Array.isArray(v) ? v[0] : v;
+      const m = String(s).match(/\d{4}/);
+      return m ? parseInt(m[0]) : null;
+    };
+
+    const type = h['@type'] || [];
+    const isGrant = Array.isArray(type) ? type.includes('Grant') : /Grant/.test(String(type));
+    if( isGrant ) {
+      const startY = yearOf(h.dateTimeInterval?.start?.dateTime);
+      const endY = yearOf(h.dateTimeInterval?.end?.dateTime);
+      // both endpoints: active interval must overlap the selected range
+      if( startY != null && endY != null ) {
+        return (toY == null || startY <= toY) && (fromY == null || endY >= fromY);
+      }
+      // end only (open start): matches if it ends on/after the range start
+      if( endY != null ) {
+        return (fromY == null || endY >= fromY);
+      }
+      return false;
+    }
+
+    // works (and anything else): match on issued year
+    const iy = yearOf(h.issued);
+    if( iy == null ) return false;
+    return (fromY == null || iy >= fromY) && (toY == null || iy <= toY);
+  }
+
   async _onSearchUpdate(e, fromSearchPage=false) {
     if (e?.state !== 'loaded' || !fromSearchPage) return;
 
@@ -921,14 +994,16 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
           const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
           const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
 
-          await this._refreshRange(true);
-
+          // set data/bounds first, then force a re-merge so the histogram redraws with the
+          // new search's data (refreshing before assigning data would re-merge the stale shape)
+          range.data = this.dateRangeData;
           range.initialMin = clampedMin;
           range.initialMax = clampedMax;
           range.min = clampedMin;
           range.max = clampedMax;
-          range.data = this.dateRangeData;
           range.hideHistogram = false;
+
+          await this._refreshRange(true);
 
           if (this.filterByDate && (this.dateFrom || this.dateTo)) {
             this.filterByDateLabel = `${clampedMin} - ${clampedMax}`;
@@ -955,8 +1030,8 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       if (resultType === 'expert') {
         subtitle = r.name?.split('§')?.pop()?.trim();
         if (name === subtitle) subtitle = '';
-        numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
-        numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+        numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work') && this._innerHitInDateRange(h)) || []).length;
+        numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant') && this._innerHitInDateRange(h)) || []).length;
 
       } else if (resultType === 'grant') {
         subtitle = ((r.name?.split('§') || [])[1] || '').trim();
@@ -1240,8 +1315,8 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
         // Name | Aggie Experts Webpage | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
         let name = match.name?.split('§')?.[0]?.trim();
         let landingPage = 'https://experts.ucdavis.edu/' + match['@id'];
-        let numberOfWorks = (match['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
-        let numberOfGrants = (match['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+        let numberOfWorks = (match['_inner_hits']?.filter(h => h['@type']?.includes('Work') && this._innerHitInDateRange(h)) || []).length;
+        let numberOfGrants = (match['_inner_hits']?.filter(h => h['@type']?.includes('Grant') && this._innerHitInDateRange(h)) || []).length;
         let urls = (match.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
 
         experts.push(csvRow([

@@ -935,11 +935,11 @@ return html`
         ` : ''}
       </div>
 
-      ${this.displayedResults.length > 0 ? html`
+      ${this.displayedResults.length > 0 || this.filterByDate ? html`
         <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
           <hr class="search-seperator">
 
-          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
+          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange(true)); }}">
             <h4>Date</h4>
             <span class="filter-collapse-arrow">
               ${this.dateCollapsed
@@ -972,7 +972,7 @@ return html`
         </div>
       ` : ''}
 
-      ${this.displayedResults.length > 0 ? html`<hr class="search-seperator">` : ''}
+      ${this.displayedResults.length > 0 || this.filterByDate ? html`<hr class="search-seperator">` : ''}
       <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
 
     </div>
@@ -982,7 +982,7 @@ return html`
         id="searchBox"
         is-gold
         search-rounded
-        @search="${(e) => this._onSearch(e, true)}"
+        @search="${(e) => this._onSearchBoxSubmit(e)}"
         placeholder="search"
         search-term="${decodeURIComponent(this.searchTerm)}">
       </app-search-box>
@@ -1105,7 +1105,7 @@ return html`
 
             <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
               <hr class="search-seperator">
-              <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
+              <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange(true)); }}">
                 <h4>Date</h4>
                 <span class="filter-collapse-arrow">
                   ${this.dateCollapsed
