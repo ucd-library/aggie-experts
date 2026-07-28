@@ -158,6 +158,120 @@
                 }
               }
             }
+            {{#q}}
+            ,{
+              "bool": {
+                "should": [
+                  { "bool": { "must_not": [ { "term": { "@type": "Expert" } } ] } },
+                  {
+                    "bool": {
+                      "must": [
+                        { "term": { "@type": "Expert" } },
+                        {
+                          "nested": {
+                            "path": "@graph",
+                            "query": {
+                              "function_score": {
+                                "query": {
+                                  "bool": {
+                                    "must": [
+                                      {
+                                        "simple_query_string": {
+                                          "query": "{{q}}",
+                                          "fields": [
+                                            "@graph.@id^10","@graph.relates^2","@graph.DOI^10","@graph.abstract^5",
+                                            "@graph.contactInfo.hasEmail^10","@graph.contactInfo.hasName.family^20",
+                                            "@graph.contactInfo.hasName.given^5","@graph.contactInfo.hasName.middle^5",
+                                            "@graph.contactInfo.hasTitle.name^5","@graph.contactInfo.hasURL.name^5",
+                                            "@graph.contactInfo.hasOrganizationalUnit.name^5","@graph.name^10",
+                                            "@graph.orcidId^10","@graph.overview^5","@graph.identifier^10","@graph.container-title^5",
+                                            "@graph.publisher^5","@graph.title^10","@graph.author.family^10","@graph.author.given^5",
+                                            "@graph.relatedBy.relates.name^5"
+                                          ],
+                                          "default_operator": "and"
+                                        }
+                                      }
+                                    ],
+                                    "filter": [
+                                      {
+                                        "bool": {
+                                          "should": [
+                                            {
+                                              "bool": {
+                                                "must": [
+                                                  { "term": { "@graph.@type": "Work" } },
+                                                  { "exists": { "field": "@graph.issued" } }
+                                                  ,{ "bool": { "must_not": [ { "term": { "@graph.invalid-title": true } }, { "term": { "@graph.invalid-issued": true } } ] } }
+                                                  {{#dateFrom}}{{#dateTo}}
+                                                  ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}", "lte": "{{dateTo}}" } } }
+                                                  {{/dateTo}}{{/dateFrom}}
+                                                  {{#dateFrom}}{{^dateTo}}
+                                                  ,{ "range": { "@graph.issued": { "gte": "{{dateFrom}}" } } }
+                                                  {{/dateTo}}{{/dateFrom}}
+                                                  {{^dateFrom}}{{#dateTo}}
+                                                  ,{ "range": { "@graph.issued": { "lte": "{{dateTo}}" } } }
+                                                  {{/dateTo}}{{/dateFrom}}
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "bool": {
+                                                "must": [ { "term": { "@graph.@type": "Grant" } } ],
+                                                "should": [
+                                                  {
+                                                    "bool": {
+                                                      "must": [
+                                                        { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } },
+                                                        { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } }
+                                                        {{#dateFrom}}{{#dateTo}}
+                                                        ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                                                        ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                                        {{/dateTo}}{{/dateFrom}}
+                                                        {{#dateFrom}}{{^dateTo}}
+                                                        ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                                        {{/dateTo}}{{/dateFrom}}
+                                                        {{^dateFrom}}{{#dateTo}}
+                                                        ,{ "range": { "@graph.dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }
+                                                        {{/dateTo}}{{/dateFrom}}
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "bool": {
+                                                      "must": [
+                                                        { "exists": { "field": "@graph.dateTimeInterval.end.dateTime" } },
+                                                        { "bool": { "must_not": [ { "exists": { "field": "@graph.dateTimeInterval.start.dateTime" } } ] } }
+                                                        {{#dateFrom}}
+                                                        ,{ "range": { "@graph.dateTimeInterval.end.dateTime":   { "gte": "{{dateFrom}}" } } }
+                                                        {{/dateFrom}}
+                                                      ]
+                                                    }
+                                                  }
+                                                ],
+                                                "minimum_should_match": 1
+                                              }
+                                            }
+                                          ],
+                                          "minimum_should_match": 1
+                                        }
+                                      }
+                                    ]
+                                  }
+                                },
+                                "min_score": {{min_nested_score}}{{^min_nested_score}}10.0{{/min_nested_score}},
+                                "boost_mode": "replace"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "minimum_should_match": 1
+              }
+            }
+            {{/q}}
             {{/hasDate}}
           ]
         }
@@ -258,6 +372,8 @@
               "@graph.name",
               "@graph.volume",
               "@graph.issue",
+              "@graph.issued",
+              "@graph.dateTimeInterval",
               "@graph.relatedBy",
               "_score"
             ]
