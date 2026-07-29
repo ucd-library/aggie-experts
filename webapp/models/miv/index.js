@@ -1,3 +1,4 @@
 module.exports = {
-  api : require('./api.js')
+  api : require('./api.js'),
+  swagger : require('./swagger.json'),
 }

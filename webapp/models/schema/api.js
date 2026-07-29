@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { /*openapi,*/ user_can_edit } = require('../middleware/index.js')
+const { user_can_edit } = require('../middleware/index.js')
 const BaseModel = require('../base/model.js');
 
 router.route(

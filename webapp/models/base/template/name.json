@@ -6,17 +6,50 @@
       "query": {
         "bool": {
           "must": [
-            {
-              "term": {
-                "name.first": "{{p}}"
-              }
-            }
+            {{#p}}
+            { "term": { "name.first": "{{p}}" } }
+            {{/p}}
+            {{^p}}
+            { "match_all": {} }
+            {{/p}}
           ],
           "filter": {
             "bool":{
               "must": [
                 { "exists": { "field": "is-visible" }},
                 { "term" : {"is-visible": true } }
+                {{#dept}}
+                ,{ "exists": { "field": "hasOrganizationalUnit.name.kw" } }
+                ,{ "terms": { "hasOrganizationalUnit.name.kw": {{#toJson}}dept{{/toJson}} } }
+                {{/dept}}
+                {{#status}}
+                ,{ "terms": { "status": {{#toJson}}status{{/toJson}} } }
+                {{/status}}
+                {{#type}}
+                ,{ "terms": { "type": {{#toJson}}type{{/toJson}} } }
+                {{/type}}
+                {{#availability}}
+                ,{ "exists": { "field": "hasAvailability.prefLabel" } }
+                ,{ "terms": { "hasAvailability.prefLabel": {{#toJson}}availability{{/toJson}} } }
+                {{/availability}}
+                {{#dateFrom}}
+                ,{ "bool": {
+                    "should": [
+                      { "bool": { "must": [ { "exists": { "field": "issued" } }, { "range": { "issued": { "gte": "{{dateFrom}}"{{#dateTo}}, "lte": "{{dateTo}}"{{/dateTo}} } } } ] } },
+                      { "bool": { "must": [ { "exists": { "field": "dateTimeInterval.end.dateTime" } }, { "range": { "dateTimeInterval.end.dateTime": { "gte": "{{dateFrom}}" } } }{{#dateTo}}, { "range": { "dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } }{{/dateTo}} ] } }
+                    ], "minimum_should_match": 1
+                  }
+                }
+                {{/dateFrom}}
+                {{^dateFrom}}{{#dateTo}}
+                ,{ "bool": {
+                    "should": [
+                      { "bool": { "must": [ { "exists": { "field": "issued" } }, { "range": { "issued": { "lte": "{{dateTo}}" } } } ] } },
+                      { "bool": { "must": [ { "exists": { "field": "dateTimeInterval.start.dateTime" } }, { "range": { "dateTimeInterval.start.dateTime": { "lte": "{{dateTo}}" } } } ] } }
+                    ], "minimum_should_match": 1
+                  }
+                }
+                {{/dateTo}}{{/dateFrom}}
               ]
             }
           }
@@ -35,7 +68,35 @@
         }
       },
       "from": "{{from}}{{^from}}0{{/from}}",
-      "size": "{{size}}{{^size}}25{{/size}}"
+      "size": "{{size}}{{^size}}25{{/size}}",
+      "aggs": {
+        "status": { "terms": { "field": "status", "size": 10 } },
+        "type": { "terms": { "field": "type", "size": 10 } },
+        "work_years": {
+          "date_histogram": {
+            "field": "issued",
+            "calendar_interval": "year",
+            "min_doc_count": 1,
+            "time_zone": "UTC"
+          }
+        },
+        "grant_start": {
+          "date_histogram": {
+            "field": "dateTimeInterval.start.dateTime",
+            "calendar_interval": "year",
+            "min_doc_count": 1,
+            "time_zone": "UTC"
+          }
+        },
+        "grant_end": {
+          "date_histogram": {
+            "field": "dateTimeInterval.end.dateTime",
+            "calendar_interval": "year",
+            "min_doc_count": 1,
+            "time_zone": "UTC"
+          }
+        }
+      }
     },
     "params": {
       "p": "A"

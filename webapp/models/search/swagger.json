@@ -1,0 +1,26 @@
+{
+  "paths": {
+    "/api/search/": {
+      "get": {
+        "description": "Returns matching search results, including the number of matching works and grants",
+        "parameters": [
+          { "$ref": "#/components/parameters/q" },
+          { "$ref": "#/components/parameters/p" },
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/atType" },
+          { "$ref": "#/components/parameters/type" },
+          { "$ref": "#/components/parameters/status" },
+          { "$ref": "#/components/parameters/availability" },
+          { "$ref": "#/components/parameters/expert" },
+          { "$ref": "#/components/parameters/dateFrom" },
+          { "$ref": "#/components/parameters/dateTo" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Search" },
+          "400": { "$ref": "#/components/responses/Invalid_request" }
+        }
+      }
+    }
+  }
+}

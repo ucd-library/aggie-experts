@@ -46,6 +46,21 @@ class ReloadSearchTemplateConfig(Config):
     template: str = Field('complete', description="Search template name to load into Elasticsearch")
 
 
+class SlackNotifyConfig(Config):
+    title: str = Field(..., description="Message title")
+    message: str = Field('', description="Message body")
+    severity: str = Field('info', description="Severity level: info, warning, or error")
+    source: str = Field('dagster', description="Source label shown in the notification")
+
+
+class PurgeStaleUserPartitionsConfig(Config):
+    group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # CDL group to diff against
+    force: bool = Field(
+        default=False,
+        description="If False (default), runs a dry-run that only logs which partitions would be deleted. Set True to actually delete them."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Partition definitions
 # ---------------------------------------------------------------------------

@@ -4,8 +4,18 @@ The Aggie Experts harvest dashboard in Superset is the primary tool for understa
 what happened during a weekly ETL run and how it compares to prior weeks. It is available
 through the Anduin auth gateway at `/superset`.
 
-The underlying data lives in the `etl_reporting` PostgreSQL schema
-(source: [`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql)).
+The underlying data lives in two PostgreSQL schemas, each defined by its own
+schema file:
+
+- `api` — API-shaped projection consumed by the webapp MIV and SiteFarm endpoints
+  (user identity, grants, works, and their role join tables).
+  Source: [`harvest/lib/api/schema.sql`](../harvest/lib/api/schema.sql).
+- `etl_reporting` — ETL run observability (commands, errors, weekly state views).
+  Source: [`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql).
+
+Both files are applied in order (api first, then reporting) by
+`experts init` — see `commons/lib/config.js` `postgres.schemaFiles`.
+
 The schema ERD is shown below.
 
 ![Reporting Database ERD](./reporting-schema-erd.png)
@@ -115,12 +125,21 @@ were harvested successfully but may not render correctly in the webapp.
 
 ### Tables
 
+**`etl_reporting` (run observability)**
+
 - `etl_reporting.command` — one row per command execution (user, command name, year-week, Dagster run ID, state, note)
 - `etl_reporting.error` — error detail rows linked to a command via `command_id`
-- `etl_reporting.user` — user registry with `first_seen_cdl`, `last_seen_cdl`, `first_seen_iam`, `last_seen_iam`, and public/visibility flags
 - `etl_reporting.user_scholarly_output_load_stats` — per-user, per-type, per-visibility document counts written to Elasticsearch each week
+- `etl_reporting.validation_issue` — field-level validation problems detected during harvest
 - `etl_reporting.elastic_search_index` — index/alias state snapshots
 - `etl_reporting.year_week` — week dimension table used for joining across snapshots
+
+**`api` (API projection)**
+
+- `api.user` — user registry with `first_seen_cdl`, `last_seen_cdl`, `last_seen_iam`, public/visibility flags, plus expert profile fields (`orcid_id`, `researcher_id`, `scopus_ids`, `overview`, `research_interests`, `contact_info`, `expert_raw_payload`)
+- `api.role_type` — shared role lookup table (PI/CoPI/Researcher/Authorship/Editorship/etc.)
+- `api.grant`, `api.grant_type`, `api.expert_grant_role` — MIV projection
+- `api.work`, `api.work_type`, `api.expert_work_role` — SiteFarm projection
 
 Key function: `etl_reporting.get_year_week(date)` — returns the ISO year-week string
 (e.g. `2026-16`) for any date.

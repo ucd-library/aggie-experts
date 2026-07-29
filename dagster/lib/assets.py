@@ -12,9 +12,11 @@ from .configs import (
     LoadUserConfig,
     YearWeekConfig,
     PurgeYearWeekConfig,
+    PurgeStaleUserPartitionsConfig,
     NotifyConfig,
     SetAliasConfig,
     ReloadSearchTemplateConfig,
+    SlackNotifyConfig,
 )
 from .utils import CODE_VERSION, exec
 
@@ -231,6 +233,22 @@ def exec_weekly_etl(context: AssetExecutionContext, config: NotifyConfig) -> Non
 
 
 # ---------------------------------------------------------------------------
+# Post-ETL assets
+# ---------------------------------------------------------------------------
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="etl"
+)
+def check_iam_lapsed_users(context: AssetExecutionContext) -> None:
+    """Post-ETL: for users who dropped off CDL last week, check IAM and update last_seen_iam if still found."""
+    result = exec(["experts", "harvest", "reporting", "check-iam-lapsed"])
+    if result:
+        context.add_output_metadata(metadata=result)
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Cleanup assets
 # ---------------------------------------------------------------------------
 
@@ -249,6 +267,36 @@ def purge_user_cask_files(context: AssetExecutionContext, config: YearWeekConfig
 
     exec(["cask", "rm", "-d", f"/weekly/{year_week}/{user_id}"])
     return None
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="cleanup",
+)
+def purge_stale_user_partitions(context: AssetExecutionContext, config: PurgeStaleUserPartitionsConfig) -> None:
+    """Remove Dagster user partitions for users no longer in the CDL group.
+
+    Reads the current users-list-<group_id>.json from CaskFS (falling back to
+    a live CDL fetch), diffs against Dagster's 'users' dynamic partitions, and
+    deletes any partition not in the current list. Defaults to a dry-run; set
+    config.force=True to actually delete. When force=True, records one
+    'experts-harvest-remove-partition' row per removed partition in
+    etl_reporting.command.
+    """
+    run = context.dagster_run
+
+    cmd = ["experts", "harvest", "dagster", "remove-stale-user-partitions", config.group_id]
+    if config.force:
+        cmd += ["--yes", "--reporting-job-id", run.run_id]
+
+    exec(cmd, no_json_parse=True)
+
+    context.add_output_metadata(metadata={
+        "group_id": config.group_id,
+        "force": config.force,
+        "dry_run": not config.force,
+    })
+    return None
+
 
 @dg.asset(
     code_version=CODE_VERSION,
@@ -295,6 +343,27 @@ def purge_reporting_db(context: AssetExecutionContext) -> None:
     """Purge commands more than 8 weeks old.  Purge users not seen for 6 months."""
     exec(
         ["experts", "harvest", "reporting", "clean", "--commands", "8", "--users", "26", "--yes"],
+        no_json_parse=True
+    )
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Admin assets
+# ---------------------------------------------------------------------------
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin",
+)
+def send_slack_notification(context: AssetExecutionContext, config: SlackNotifyConfig) -> None:
+    """Send a Slack notification via the admin CLI."""
+    exec(
+        ["experts", "admin", "notify",
+         "--title", config.title,
+         "--message", config.message,
+         "--severity", config.severity,
+         "--source", config.source],
         no_json_parse=True
     )
     return None

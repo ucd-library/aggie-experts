@@ -152,7 +152,12 @@ export default class AppGrant extends Mixin(LitElement)
     let contributors = (grantGraph.relatedBy || []);
     if( !Array.isArray(contributors) ) contributors = [contributors];
 
-    otherContributors = contributors.filter(c => !c['inheres_in'] && !c['ae-roleof-suppress']);
+    // Filter to non-AE-expert role nodes only. The `@type` check drops dangling
+    // {@id: "..."} stubs left over from #roleof_ nodes that the harvest pipeline
+    // dropped from the merged graph but whose @id refs remained in this grant's
+    // relatedBy array — without it those stubs render as empty "Researcher"
+    // entries that fall back to the "Lastname, Firstname" UI placeholder.
+    otherContributors = contributors.filter(c => !c['inheres_in'] && c['@type']);
 
     // helper to find the relatedBy entry for a contributor, tolerant to shapes
     const _findMatchingRelated = (contributor) => {

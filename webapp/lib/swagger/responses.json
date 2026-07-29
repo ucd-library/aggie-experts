@@ -1,0 +1,92 @@
+{
+	"Not_found": {
+		"description": "Resource not found"
+	},
+	"Missing_id": {
+		"description": "Request needs id"
+	},
+	"Forbidden": {
+		"description": "Request is forbidden"
+	},
+	"Relationship": {
+		"description": "The relationship",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Relationship"
+				}
+			}
+		}
+	},
+	"Relationship_not_found": {
+		"description": "Relationship not found"
+	},
+	"Browse": {
+		"description": "The list of experts",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Browse"
+				}
+			}
+		}
+	},
+	"Search": {
+		"description": "The list of search results",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Search"
+				}
+			}
+		}
+	},
+	"Work": {
+		"description": "work",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Work"
+				}
+			}
+		}
+	},
+	"Grant": {
+		"description": "grant",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Grant"
+				}
+			}
+		}
+	},
+	"Expert": {
+		"description": "The expert",
+		"content": {
+			"application/json": {
+				"schema": {
+					"$ref": "#/components/schemas/Expert"
+				}
+			}
+		}
+	},
+	"Expert_not_found": {
+		"description": "Expert not found"
+	},
+	"Expert_deleted": {
+		"description": "Expert deleted"
+	},
+	"No_content": {
+		"description": "No Content"
+	},
+	"Invalid_request": {
+		"description": "Invalid request"
+	},
+	"Successful_operation": {
+		"description": "Successful operation"
+	},
+	"Invalid_ID_supplied": {
+		"description": "Invalid ID supplied"
+	}
+}

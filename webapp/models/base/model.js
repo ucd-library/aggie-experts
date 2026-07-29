@@ -273,6 +273,7 @@ class BaseModel extends EsDataModel {
     return true;
   }
 
+
   /**
    * @method compact_search_results
    * @description Compact ES search results into simpler format
@@ -798,7 +799,7 @@ class BaseModel extends EsDataModel {
     } else {
       esModel = require('../expert/model.js');
     }
-    return esModel;
+    return new esModel();
     // return esModel;
 //     const method=model+'Model';
 //     if (!(method in this)) {

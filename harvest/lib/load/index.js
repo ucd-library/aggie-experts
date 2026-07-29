@@ -2,6 +2,13 @@ import cache from '../cache.js';
 import { logger, config, Elasticsearch } from '@ucd-lib/experts-commons';
 import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
+import { MivApi, SitefarmApi } from '../api/index.js';
+
+// Module-level singletons. Both classes are stateless aside from the schema
+// name passed in the constructor, so a single instance is sufficient for the
+// life of the process.
+const mivApi = new MivApi();
+const sitefarmApi = new SitefarmApi();
 
 async function run(user, alias) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;
@@ -25,6 +32,8 @@ async function run(user, alias) {
     logger.warn(`User ${user} is marked as not public, skipping load.`);
 
     await purgeUser(metadata.expertId, alias);
+    await mivApi.purge('expert/'+metadata.expertId);
+    await sitefarmApi.purge('expert/'+metadata.expertId);
 
     if (config.reporting.enabled && config.postgres.client && 
         alias.includes(config.elasticsearch.aliases.stage) ) {
@@ -66,6 +75,23 @@ async function run(user, alias) {
       }
     }
   }
+
+  // load MIV projection into postgres from transformed public expert/grant files
+  const mivFiles = getMivPostgresFiles(user, files);
+  await mivApi.load({
+    user,
+    metadata,
+    files: mivFiles
+  });
+
+  // load Sitefarm projection (expert profile + works) into postgres from ae-std docs.
+  // Runs after mivApi.load so the "user" row exists for the profile overlay.
+  const sitefarmFiles = getSitefarmPostgresFiles(user, files);
+  await sitefarmApi.load({
+    user,
+    metadata,
+    files: sitefarmFiles
+  });
 
   // load files into elastic search
   let indexes = await loadEs(files, alias);
@@ -301,6 +327,9 @@ async function getPublicScholarlyWorkFiles(user) {
       return {
         type: 'work',
         uri: work.uri,
+        // relationshipUri is needed by getSitefarmPostgresFiles to resolve the
+        // corresponding ae-std/rel/{relationshipUri}.jsonld file.
+        relationshipUri: work.relationshipUri,
         path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.json`)
       }
     }),
@@ -308,12 +337,63 @@ async function getPublicScholarlyWorkFiles(user) {
       return {
         type: 'grant',
         uri: grant.uri,
+        relationshipUri: grant.relationshipUri,
         path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grant.uri}.json`)
       }
     })
   ]
 
   return results;
+}
+
+function getMivPostgresFiles(user, files=[]) {
+  return files
+    .filter(file => file.type === 'expert' || file.type === 'grant')
+    .map(file => {
+      if (file.type !== 'grant') {
+        return file;
+      }
+
+      // get grant relationship file
+      if (file.relationshipUri) {
+        return {
+          ...file,
+          path: cache.getUserPath(user, ['ae-std', 'rel', file.relationshipUri+'.jsonld'])
+        };
+      }
+
+      return file;
+    });
+}
+
+/**
+ * Build the file list consumed by sitefarmApi.load():
+ *   - one personAeStd entry pointing at ae-std/person.jsonld
+ *   - zero or more work entries pointing at ae-std/rel/{relationshipUri}.jsonld
+ *
+ * The expert profile is sourced from ae-std (not the ae-webapp expert.jsonld)
+ * so the sitefarm postgres API path is decoupled from the elasticsearch
+ * projection.
+ */
+function getSitefarmPostgresFiles(user, files=[]) {
+  const result = [{
+    type: 'personAeStd',
+    path: cache.getUserPath(user, ['ae-std', 'person.jsonld'])
+  }];
+
+  for (const file of files) {
+    if (file.type !== 'work') continue;
+    if (!file.relationshipUri) continue;
+
+    result.push({
+      type: 'work',
+      uri: file.uri,
+      relationshipUri: file.relationshipUri,
+      path: cache.getUserPath(user, ['ae-std', 'rel', file.relationshipUri+'.jsonld'])
+    });
+  }
+
+  return result;
 }
 
 export default run;

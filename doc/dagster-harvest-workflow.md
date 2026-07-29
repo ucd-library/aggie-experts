@@ -278,21 +278,37 @@ on-demand harvest of their own profile from the webapp UI:
 
 ## Reporting: schema and views
 
-Schema initialized from [`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql)
-(`etl_reporting` schema). Visualized in Superset via the Anduin platform.
+Two PostgreSQL schemas, each defined by its own file under `harvest/lib/`:
+
+- `api` — API-shaped projection consumed by the webapp's MIV and SiteFarm
+  endpoints (user identity, grants, works, and their role join tables).
+  Source: [`harvest/lib/api/schema.sql`](../harvest/lib/api/schema.sql).
+- `etl_reporting` — ETL run observability (commands, errors, weekly state views).
+  Source: [`harvest/lib/reporting/schema.sql`](../harvest/lib/reporting/schema.sql).
+
+`experts init` applies both files in order (api first, then reporting).
+
+Both are visualized in Superset via the Anduin platform.
 
 Entity-relationship diagram: [Reporting Database ERD](reporting-schema-erd.md).
 
-Core tables:
+Core tables — `etl_reporting`:
 
 - `etl_reporting.command`
 - `etl_reporting.error`
-- `etl_reporting.user`
 - `etl_reporting.user_scholarly_output_load_stats`
+- `etl_reporting.validation_issue`
 - `etl_reporting.elastic_search_index`
 - `etl_reporting.year_week`
 
-Key views:
+Core tables — `api`:
+
+- `api.user` — expert identity and per-user privacy/profile fields
+- `api.role_type` — shared role lookup (PI, CoPI, Authorship, Editorship, …)
+- `api.grant`, `api.grant_type`, `api.expert_grant_role` — MIV projection
+- `api.work`, `api.work_type`, `api.expert_work_role` — SiteFarm projection
+
+Key views (all in `etl_reporting`, joining `api."user"` where needed):
 
 - `etl_reporting.command_error`
 - `etl_reporting.user_command_weekly_stats`

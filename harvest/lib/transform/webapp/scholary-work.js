@@ -239,13 +239,32 @@ function promoteAttributesToRoot(workNode, graph, type) {
   workNode['invalid-title'] = invalidTitle;
   workNode['invalid-issued'] = invalidIssued;
 
+  const graphItems = getGraphAsItems(graph);
+
+  // Collect all org units from expert nodes in the graph, deduplicated by @id
+  const orgUnitMap = new Map();
+  for (const node of graphItems) {
+    const units = node.hasOrganizationalUnit
+      ? (Array.isArray(node.hasOrganizationalUnit) ? node.hasOrganizationalUnit : [node.hasOrganizationalUnit])
+      : [];
+    for (const unit of units) {
+      if (unit && unit['@id'] && !orgUnitMap.has(unit['@id'])) {
+        orgUnitMap.set(unit['@id'], unit);
+      }
+    }
+  }
+
   let root = {
     "@context": workNode["@context"],
-    "@graph": getGraphAsItems(graph),
+    "@graph": graphItems,
     "is-visible": !(invalidTitle || invalidIssued),
     "roles": ["public"],
     "name": name,
   };
+
+  if (orgUnitMap.size > 0) {
+    root.hasOrganizationalUnit = Array.from(orgUnitMap.values());
+  }
 
   // promote select properties to the root (skip is-visible; we set it above based on title validity)
   PROMPT_ROOT_PROPS.forEach(prop => {

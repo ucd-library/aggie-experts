@@ -78,11 +78,11 @@ async function getRelates(subject, opts={}) {
     workNode[RELATED_BY] = Array.from(workRelatedBy.nodes.values());
   }
 
-  // For grant graphs: suppress #roleof_ nodes (non-AE person roles) when a proper
+  // For grant graphs: drop #roleof_ nodes (non-AE person roles) when a proper
   // inheres_in-linked role of the same type already exists in the assembled graph.
   // This prevents duplicate contributors when an AE expert is also listed in the
   // grant's raw c-pi / c-co-pis fields under a slightly different name form.
-  _suppressRedundantRoleofNodes(graph);
+  _dropRedundantRoleofNodes(graph);
 
   return graph;
 }
@@ -127,86 +127,139 @@ function _parseRelatesNode(subject, node) {
 }
 
 /**
- * @method _suppressRedundantRoleofNodes
- * @description After assembling the merged grant graph, flag any #roleof_ node
- * (marked with ae-roleof) whose role type is already covered by a proper
- * inheres_in-linked role node in the graph. The flag allows the webapp to skip
- * rendering the duplicate without removing the node from the graph (which may
- * be needed for other purposes, e.g. works author linking).
+ * @method _dropRedundantRoleofNodes
+ * @description After assembling the merged grant graph, delete any #roleof_
+ * node (marked with ae-roleof) whose role type is already covered by a proper
+ * inheres_in-linked AE expert role node in the graph. Downstream framing
+ * (jsonld.frame in webapp/frame.js) silently drops dangling @id references in
+ * the grant's relatedBy array, so removing the node is sufficient to keep the
+ * duplicate out of the indexed document — no flag is needed and no consumer
+ * has to filter on one.
  *
  * @param {Graph} graph the assembled graph to mutate
  */
-function _suppressRedundantRoleofNodes(graph) {
+function _dropRedundantRoleofNodes(graph) {
   const AE_ROLEOF_FLAG = 'http://schema.library.ucdavis.edu/schema#ae-roleof';
-  const AE_ROLEOF_SUPPRESS = 'http://schema.library.ucdavis.edu/schema#ae-roleof-suppress';
   const INHERES_IN = 'http://purl.obolibrary.org/obo/RO_0000052';
   const NAME_PROP = 'http://schema.org/name';
 
-  // Normalize a name for comparison: lowercase, remove middle initials/names,
-  // remove punctuation, collapse whitespace.  This lets "Bishop, Matthew A"
-  // match "Bishop, Matthew" and vice-versa.
-  function normalizeName(raw) {
-    if (!raw) return '';
+  // Normalize a name into one or more comparable forms for matching. The
+  // base form is "lastNormalized,firstWord" (lowercase, alpha-only), which
+  // lets "Bishop, Matthew A" match "Bishop, Matthew". When the family
+  // portion has multiple whitespace-separated tokens — e.g. one source
+  // says "Leite Nobrega De Moura Bell, Juliana" while another says
+  // "Bell, Juliana Leite Nobrega De Moura" — we ALSO emit a compound-name
+  // variant that uses the last non-suffix family token as the "core"
+  // surname. Common Anglophone name suffixes (jr/sr/ii/iii/iv) are
+  // skipped when picking that core token so they don't become weak match
+  // keys like "jr,john".
+  const NAME_SUFFIX_RE = /^(jr|sr|ii|iii|iv)$/;
+  function normalizeNameVariants(raw) {
+    if (!raw) return [];
     // Strip a role prefix like "PI: " or "COPI: "
     let n = String(raw).replace(/^[^:]+:\s*/, '');
     // Remove anything in parentheses
     n = n.replace(/\(.*?\)/g, '');
-    // Split on comma: "Last, First Middle" → keep Last + First word only
     const parts = n.split(',');
     if (parts.length >= 2) {
-      const last = parts[0].trim().toLowerCase().replace(/[^a-z]/g, '');
+      const lastRaw = parts[0].trim();
+      const givenRaw = parts[1].trim();
+      const last = lastRaw.toLowerCase().replace(/[^a-z]/g, '');
       // Take only the first word of the given-name portion to drop middle names/initials
-      const given = (parts[1].trim().split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z]/g, '');
-      return `${last},${given}`;
+      const given = (givenRaw.split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z]/g, '');
+      if (!last && !given) return [];
+      const variants = [`${last},${given}`];
+
+      const lastTokens = lastRaw.split(/\s+/).filter(Boolean);
+      if (lastTokens.length > 1) {
+        // Walk backward to find the last non-suffix family token
+        let coreLast = '';
+        for (let i = lastTokens.length - 1; i >= 0; i--) {
+          const t = lastTokens[i].toLowerCase().replace(/[^a-z]/g, '');
+          if (!t || NAME_SUFFIX_RE.test(t)) continue;
+          coreLast = t;
+          break;
+        }
+        if (coreLast && coreLast !== last) {
+          variants.push(`${coreLast},${given}`);
+        }
+      }
+      return variants;
     }
-    return n.toLowerCase().replace(/[^a-z,]/g, '');
+    const fallback = n.toLowerCase().replace(/[^a-z,]/g, '');
+    return fallback ? [fallback] : [];
   }
 
-  function getNodeName(node) {
-    const nameProp = node[NAME_PROP];
-    if (!nameProp) return '';
-    const first = Array.isArray(nameProp) ? nameProp[0] : nameProp;
-    const raw = (typeof first === 'object' && first !== null) ? (first['@value'] || '') : String(first || '');
-    return normalizeName(raw);
-  }
-
-  // Returns all normalized names from a node (for #roleof_ nodes that may have multiple)
-  function getNodeNames(node) {
+  function getNodeNameVariants(node) {
     const nameProp = node[NAME_PROP];
     if (!nameProp) return [];
     const items = Array.isArray(nameProp) ? nameProp : [nameProp];
-    return items
-      .map(v => (typeof v === 'object' && v !== null) ? (v['@value'] || '') : String(v || ''))
-      .map(normalizeName)
-      .filter(Boolean);
+    const out = [];
+    items.forEach(v => {
+      const raw = (typeof v === 'object' && v !== null) ? (v['@value'] || '') : String(v || '');
+      normalizeNameVariants(raw).forEach(x => { if (x) out.push(x); });
+    });
+    return out;
   }
 
   // Build a set of (normalizedRoleType, normalizedName) pairs already covered
-  // by proper inheres_in-linked AE expert role nodes.
+  // by proper inheres_in-linked AE expert role nodes. We add every variant
+  // form a name produces so compound-name mismatches between the AE expert
+  // record and the grant's raw c-pi/c-co-pis text still overlap.
   const coveredPairs = new Set();
   for (const node of graph.nodes.values()) {
     if (!node[INHERES_IN] || node[AE_ROLEOF_FLAG]) continue;
     const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
-    const name = getNodeName(node);
-    if (!name) continue;
-    types.forEach(t => t && coveredPairs.add(`${t}|${name}`));
+    const names = getNodeNameVariants(node);
+    if (!names.length) continue;
+    types.forEach(t => {
+      if (!t) return;
+      names.forEach(n => coveredPairs.add(`${t}|${n}`));
+    });
   }
 
   if (coveredPairs.size === 0) return;
 
-  // Flag a #roleof_ node only when AT LEAST ONE of its role types is matched
-  // by an AE expert with the same (type, normalized-name) pair. If Bishop is an
-  // AE PI, suppress his #roleof_ node even if that node also carries a CoPI type.
-  // A #roleof_ node can have multiple names (one per role prefix); check all of them.
+  // Drop a #roleof_ node when AT LEAST ONE of its role types is matched by an
+  // AE expert with the same (type, normalized-name) pair. If Bishop is an AE
+  // PI, drop his #roleof_ node even if that node also carries a CoPI type. A
+  // #roleof_ node can have multiple names (one per role prefix); check all of
+  // them, and check every compound-name variant of each.
+  // We collect the redundant ids first and delete after the loop to avoid
+  // mutating the Map while iterating it.
+  const toDelete = [];
   for (const node of graph.nodes.values()) {
     if (!node[AE_ROLEOF_FLAG]) continue;
     const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
-    const names = getNodeNames(node);
+    const names = getNodeNameVariants(node);
     if (!names.length) continue;
-    // Suppress when any (type, name) combination is already covered by an AE expert
     const anyCovered = types.some(t => t && names.some(n => coveredPairs.has(`${t}|${n}`)));
     if (anyCovered) {
-      node[AE_ROLEOF_SUPPRESS] = true;
+      toDelete.push(node['@id']);
+    }
+  }
+  if (toDelete.length === 0) return;
+
+  // Remove the redundant role nodes from the graph itself.
+  toDelete.forEach(id => graph.nodes.delete(id));
+
+  // Then strip their @id references from every remaining node's relatedBy
+  // array. Without this step, jsonld.frame in webapp/frame.js leaves dangling
+  // `{@id: "..."}` stubs in place of each deleted role — those stubs are
+  // indistinguishable from real role objects to the SPA's filter logic, which
+  // ends up rendering them as nameless contributors that the UI fallback fills
+  // in as "Lastname, Firstname".
+  const RELATED_BY = 'http://vivoweb.org/ontology/core#relatedBy';
+  const toDeleteSet = new Set(toDelete);
+  for (const node of graph.nodes.values()) {
+    if (!node[RELATED_BY]) continue;
+    const refs = Array.isArray(node[RELATED_BY]) ? node[RELATED_BY] : [node[RELATED_BY]];
+    const filtered = refs.filter(ref => {
+      const refId = (typeof ref === 'string') ? ref : (ref && ref['@id']);
+      return !toDeleteSet.has(refId);
+    });
+    if (filtered.length !== refs.length) {
+      node[RELATED_BY] = filtered;
     }
   }
 }

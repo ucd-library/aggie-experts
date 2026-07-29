@@ -1,0 +1,108 @@
+{
+  "paths": {
+    "/api/expert/browse": {
+      "get": {
+        "description": "Returns for undefined for  A - Z, or if sending query param p={letter}, will return results for undefined with last names of that letter",
+        "parameters": [
+          { "$ref": "#/components/parameters/p" },
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Browse" },
+          "400": { "$ref": "#/components/responses/Invalid_request" }
+        }
+      }
+    },
+    "/api/expert/{expertId}/{relationshipId}": {
+      "patch": {
+        "x-private": true,
+        "description": "Update an expert relationship by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" },
+          { "$ref": "#/components/parameters/relationshipId" }
+        ],
+        "requestBody": { "$ref": "#/components/requestBodies/Relationship_patch" },
+        "responses": {
+          "204": { "$ref": "#/components/responses/No_content" },
+          "404": { "$ref": "#/components/responses/Relationship_not_found" }
+        }
+      },
+      "delete": {
+        "x-private": true,
+        "description": "Delete an expert relationship by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" },
+          { "$ref": "#/components/parameters/relationshipId" }
+        ],
+        "responses": {
+          "204": { "$ref": "#/components/responses/No_content" },
+          "404": { "$ref": "#/components/responses/Relationship_not_found" }
+        }
+      }
+    },
+    "/api/expert/{expertId}/availability": {
+      "patch": {
+        "x-private": true,
+        "description": "Update an expert's availability by expert id",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" }
+        ],
+        "requestBody": { "$ref": "#/components/requestBodies/Expert_availability_patch" },
+        "responses": {
+          "204": { "$ref": "#/components/responses/No_content" },
+          "404": { "$ref": "#/components/responses/Expert_not_found" }
+        }
+      }
+    },
+    "/api/expert/{expertId}": {
+      "get": {
+        "description": "Get an expert by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" },
+          { "$ref": "#/components/parameters/include" },
+          { "$ref": "#/components/parameters/all" },
+          { "$ref": "#/components/parameters/previewEsIndex" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Expert" },
+          "400": { "$ref": "#/components/responses/Missing_id" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Expert_not_found" }
+        }
+      },
+      "post": {
+        "description": "Get an expert by id with subselect options",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" }
+        ],
+        "requestBody": { "$ref": "#/components/requestBodies/Expert_post" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Expert" },
+          "404": { "$ref": "#/components/responses/Expert_not_found" }
+        }
+      },
+      "patch": {
+        "x-private": true,
+        "description": "Update an expert's visibility by expert id",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" }
+        ],
+        "requestBody": { "$ref": "#/components/requestBodies/Expert_patch" },
+        "responses": {
+          "204": { "$ref": "#/components/responses/No_content" }
+        }
+      },
+      "delete": {
+        "x-private": true,
+        "description": "Delete an expert by id",
+        "parameters": [
+          { "$ref": "#/components/parameters/expertId" }
+        ],
+        "responses": {
+          "204": { "$ref": "#/components/responses/Expert_deleted" }
+        }
+      }
+    }
+  }
+}

@@ -18,6 +18,8 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
         sort : { state : true },
         urlParams : { state : true },
         alpha : { type : Array },
+        azFilters : { type : Object },
+        azQueryString : { type : String },
     }
   }
 
@@ -63,6 +65,8 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     this.selectedLetter = '';
     this.selectedPage = '';
     this.browseType = '';
+    this.azFilters = {};
+    this.azQueryString = '';
     this.sort = this.defaultSort;
     this.hasExplicitLetter = false;
 
@@ -90,15 +94,36 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
     }
 
     this.browseType = e.location.path[1];
-    if( this.browseType === 'expert' ) {
-      this._onBrowseExpertsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
-    } else if( this.browseType === 'grant' ) {
-      this._onBrowseGrantsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
-    } else if( this.browseType === 'work' ) {
-      this._onBrowseWorksAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType));
-    }
-
+    await this._fetchAZ();
     this.requestUpdate();
+  }
+
+  /**
+   * @method updated
+   * @description re-fetch AZ counts when azFilters property changes
+   * @param {Map} changedProps
+   */
+  async updated(changedProps) {
+    if( changedProps.has('azFilters') && changedProps.get('azFilters') !== undefined ) {
+      await this._fetchAZ();
+    }
+  }
+
+  /**
+   * @method _fetchAZ
+   * @description fetch per-letter counts using current browseType and azFilters
+   * @returns {Promise}
+   */
+  async _fetchAZ() {
+    if( !this.browseType ) return;
+    const filters = this.azFilters || {};
+    if( this.browseType === 'expert' ) {
+      this._onBrowseExpertsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType, filters));
+    } else if( this.browseType === 'grant' ) {
+      this._onBrowseGrantsAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType, filters));
+    } else if( this.browseType === 'work' ) {
+      this._onBrowseWorksAzUpdate(await this.BrowseByModel.browseAZBy(this.browseType, filters));
+    }
   }
 
   _onBrowseExpertsAzUpdate(e) {
@@ -128,24 +153,6 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
       let matchedLetter = this.alpha.find(l => l.value.toUpperCase() === item.params?.p.toUpperCase());
       if( matchedLetter ) matchedLetter.exists = item.total > 0;
     });
-
-    // set letter to first letter with results
-    if( this.alpha.find(l => l.exists) && !this.selectedLetter ) {
-      this.selectedLetter = this.alpha.find(l => l.exists).value;
-    } else if( !this.selectedLetter ) {
-      this.selectedLetter = this.alpha[0]?.value;
-    }
-
-    const targetPath = `/browse/${this.browseType}/${this.selectedLetter}${this.selectedPage ? '/' + this.selectedPage : ''}`;
-    if( this.AppStateModel.location.pathname !== targetPath ) {
-      // if route didn't specify a letter, normalize URL without adding a history entry (so back button works)
-      if( !this.hasExplicitLetter ) {
-        this.AppStateModel._replaceHistoryState(targetPath);
-        this.AppStateModel._onLocationChange();
-      } else {
-        this.AppStateModel.setLocation(targetPath);
-      }
-    }
     this.requestUpdate();
   }
 
@@ -157,10 +164,18 @@ export default class UcdlibBrowseAZ extends Mixin(LitElement)
   // }
 
   onAlphaInput(v) {
-    if( !v || v.value === this.selectedLetter || !v.exists ) return;
+    if( !v || !v.exists ) return;
+
+    const qs = this.azQueryString ? '?' + this.azQueryString : '';
+
+    if( v.value === this.selectedLetter ) {
+      this.selectedLetter = '';
+      this.AppStateModel.setLocation(`/browse/${this.browseType}${qs}`);
+      return;
+    }
 
     this.selectedLetter = v.value;
-    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}`);
+    this.AppStateModel.setLocation(`/browse/${this.browseType}/${this.selectedLetter}${qs}`);
   }
 
 }

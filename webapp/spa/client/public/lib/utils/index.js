@@ -88,7 +88,7 @@ class Utils {
 
   formatCitation(cite) {
     // remove '(n.d.).' and '(N.d.).', including with trailing spaces
-    return cite.apa?.replace(/\([nN]\.d\.\)\.\s*/g, '') || 'Cannot format citation. Contact your <a href="mailto:experts@library.ucdavis.edu">Aggie Experts administrator.</a>';
+    return cite.apa?.replace(/\([nN]\.d\.\)\.\s*/g, '') || 'Cannot format citation. Contact your <a href="mailto:experts@ucdavis.edu">Aggie Experts administrator.</a>';
   }
 
   /**
@@ -182,7 +182,9 @@ class Utils {
             isExpert = true;
           }
         });
-        if( !isExpert && !r['ae-roleof-suppress'] ) otherRelationships.push(r);
+        // Skip dangling {@id} stubs left over from harvest-time #roleof_ drops
+        // — they have no @type and shouldn't render as contributors.
+        if( !isExpert && r['@type'] ) otherRelationships.push(r);
       });
 
       if( filterHidden && !expertsRelationships.some(r => r['is-visible']) ) {
@@ -512,8 +514,9 @@ class Utils {
    * @param {String} expertId expertId to filter grants/works to
    * @param {String} dateFrom start for date filtering
    * @param {String} dateTo end for date filtering
+   * @param {{ dept: string, deptCodesIncluded: string, deptCodesExcluded: string }} [deptParams] serialized dept filter params
    */
-  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, dateFrom, dateTo) {
+  buildSearchQuery(searchTerm, page=1, size=25, availability=[], atType, status, type, expertId, dateFrom, dateTo, deptParams={}) {
     let searchQuery = `q=${searchTerm}&page=${page}&size=${size}`;
 
     if( availability.length ) searchQuery += `&availability=${encodeURIComponent(availability.join(','))}`;
@@ -532,6 +535,9 @@ class Utils {
     if( expertId ) searchQuery += `&expert=${encodeURIComponent(expertId)}`;
     if( dateFrom ) searchQuery += `&dateFrom=${dateFrom}`;
     if( dateTo ) searchQuery += `&dateTo=${dateTo}`;
+    if( deptParams?.dept ) searchQuery += `&dept=${encodeURIComponent(deptParams.dept)}`;
+    if( deptParams?.deptCodesIncluded ) searchQuery += `&deptCodesIncluded=${encodeURIComponent(deptParams.deptCodesIncluded)}`;
+    if( deptParams?.deptCodesExcluded ) searchQuery += `&deptCodesExcluded=${encodeURIComponent(deptParams.deptCodesExcluded)}`;
 
     return searchQuery;
   }
