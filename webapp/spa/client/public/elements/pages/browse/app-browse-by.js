@@ -143,6 +143,10 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       return;
     }
 
+    // ORG_LOOKUP is fetched at runtime; ensure it is loaded before we deserialize the
+    // dept URL param below (otherwise dept filters on a direct link are lost).
+    await this._ensureOrgLookup();
+
     const newBrowseType = e.location.path[1];
     // Reset the sidebar UI state when the user enters a browse page "fresh" — either
     // arriving from another page (primary nav / fresh search) or switching between browse

@@ -4,7 +4,7 @@ const express = require('express');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('../../lib/es-client.js');
-const { config : commonsConfig, logger } = require('@ucd-lib/experts-commons');
+const { config : commonsConfig, logger, ORG_LOOKUP } = require('@ucd-lib/experts-commons');
 const crypto = require('crypto');
 
 // for seo
@@ -23,6 +23,15 @@ module.exports = async (app) => {
   let staticAssetsDir = path.join(__dirname, '..', 'client', 'static-assets');
   logger.info('SPA assets directory', assetsDir);
   logger.info('SPA static assets directory', staticAssetsDir);
+
+  // The affiliation/department filter table lives in @ucd-lib/experts-commons and is the
+  // single source of truth (server-side dept-utils imports it too). Serve it as JSON straight
+  // from memory so the client can fetch it at runtime without bundling the blob — no
+  // generated file to keep in sync. Registered before express.static so it owns this path.
+  app.get('/static-assets/org-lookup.json', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.json(ORG_LOOKUP);
+  });
 
   app.use('/static-assets', express.static(staticAssetsDir));
 

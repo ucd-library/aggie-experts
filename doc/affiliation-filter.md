@@ -19,7 +19,7 @@ The filter is available on both the Search page (filtering across all result typ
 
 ## Data source
 
-The organization hierarchy is maintained in a Google Sheet and compiled into a static JavaScript module consumed by the front-end bundle.
+The organization hierarchy is maintained in a Google Sheet and compiled into `commons/lib/org-lookup.js` (the single source of truth). The server imports it directly; the webapp serves it to the client as JSON from memory via a small Express route (`GET /static-assets/org-lookup.json` in `webapp/spa/controllers/static.js`).
 
 **Google Sheet URL** is stored in `config.google.orgLookupSheetUrl` (commons config), set via the `ORG_LOOKUP_SHEET_URL` environment variable (required — no default is baked in).
 
@@ -29,9 +29,12 @@ The organization hierarchy is maintained in a Google Sheet and compiled into a s
 |---|---|---|
 | `AE Filter Category` | Top-level category `label` | Rows with no value are skipped |
 | `AE Filter Sub Category` | Sub-category `label` | Rows with no value are skipped |
+| `AE Filter Sub Category Key` | Sub-category `key` | Stable short code used as the `dept` URL param value. If the column is absent, the CLI preserves the existing key by matching category + sub-category label. Also accepts `AE Filter Key`, `Sub Category Key`, or `Key`. |
 | `Suggested Display Name` | `depts[].name` | User-facing department name |
 | `Official Name` | `depts[].officialName` | Used for matching against HR/ES data |
 | `Dept Code` | `depts[].deptCode` | ES filter value sent to the API |
+
+> **`key` is required.** URL filter serialization (`commons/lib/dept-utils.js`) keys off `sub.key`, and the value appears in shared filter links — so keys must be stable. The CLI refuses to overwrite the file if any sub-category ends up without one.
 
 > **Order in the sheet does not matter.** The front-end sorts all three levels alphabetically at runtime using `localeCompare`.
 
@@ -48,6 +51,7 @@ export const ORG_LOOKUP = [
     subCategories: [
       {
         label: "Agricultural and Environmental Sciences",
+        key: "AGR",
         depts: [
           {
             name: "Animal Science",
@@ -169,13 +173,12 @@ node bin/experts-admin.js update-org-lookup --url "https://docs.google.com/..."
 
 1. **Fetch** — Downloads the sheet as CSV via the public export URL, following Google's redirect automatically (`node-fetch`).
 2. **Parse** — Parses CSV rows using `csv-parse/sync` with column headers. Rows missing `AE Filter Category`, `AE Filter Sub Category`, `Suggested Display Name`, or `Dept Code` are skipped.
-3. **Convert** — Groups rows into the three-level hierarchy using `Map` objects keyed by category and sub-category labels.
-4. **Write** — Serializes as `export const ORG_LOOKUP = [...];` and writes to the output path.
+3. **Convert** — Groups rows into the three-level hierarchy using `Map` objects keyed by category and sub-category labels, capturing each sub-category's `key`.
+4. **Preserve keys** — For any sub-category the sheet didn't supply a `key` for, reuses the existing key from the current `commons/lib/org-lookup.js` (matched by category + sub-category label) so keys stay stable across regenerations.
+5. **Guard** — If any sub-category still has no `key`, prints the offenders and refuses to overwrite the file (a `key`-less entry would break `dept` URL serialization).
+6. **Write** — Serializes as `export const ORG_LOOKUP = [...];` and writes to `commons/lib/org-lookup.js` (override with `--output`).
 
-> **After running the command, rebuild the SPA bundle:**
-> ```bash
-> docker exec aggie-experts-spa-1 node_modules/.bin/webpack --config spa/client/webpack-watch.config.js
-> ```
+> **The change takes effect on the next server start** — the SPA serves `ORG_LOOKUP` from the freshly imported `commons/lib/org-lookup.js`, so restart the spa service to pick up the updated table. No SPA bundle rebuild is required (the table is fetched at runtime, not bundled).
 
 ---
 
@@ -183,10 +186,13 @@ node bin/experts-admin.js update-org-lookup --url "https://docs.google.com/..."
 
 | File | Purpose |
 |---|---|
-| `webapp/spa/client/public/lib/org-lookup.js` | Generated ES module — the compiled `ORG_LOOKUP` array. Do not edit by hand; regenerate with the CLI. |
+| `commons/lib/org-lookup.js` | Generated ES module — the compiled `ORG_LOOKUP` array and single source of truth. Do not edit by hand; regenerate with the CLI. |
+| `commons/lib/dept-utils.js` | Data-injected serialize/deserialize/expand helpers for the `dept` URL params (take `ORG_LOOKUP` as an argument). |
+| `webapp/spa/controllers/static.js` | Serves `GET /static-assets/org-lookup.json` from the in-memory `ORG_LOOKUP` so the client fetches it at runtime. |
 | `commons/lib/config.js` | Contains `config.google.orgLookupSheetUrl`. |
-| `harvest/bin/experts-admin.js` | CLI entry point. The `update-org-lookup` subcommand fetches and rebuilds `org-lookup.js`. |
-| `webapp/spa/client/public/elements/pages/search/app-search.js` | Search page component. Imports `ORG_LOOKUP`, sorts it in the constructor, manages drawer state and dept filter logic. |
+| `harvest/bin/experts-admin.js` | CLI entry point. The `update-org-lookup` subcommand fetches the sheet and rebuilds `commons/lib/org-lookup.js`. |
+| `webapp/spa/client/public/elements/pages/AffiliationMixin.js` | Shared mixin for search + browse: fetches `ORG_LOOKUP` at runtime, sorts it, and holds all dept filter logic. |
+| `webapp/spa/client/public/elements/pages/search/app-search.js` | Search page component. Uses `AffiliationMixin`; awaits the org-lookup load before deserializing dept params. |
 | `webapp/spa/client/public/elements/pages/search/app-search.tpl.js` | Search page template. Desktop sidebar affiliation tree and mobile sub-drawers. |
-| `webapp/spa/client/public/elements/pages/browse/app-browse-by.js` | Browse page component. Same `ORG_LOOKUP` import and drawer state, plus `mobileCategoryOpen` for the category dropdown. |
+| `webapp/spa/client/public/elements/pages/browse/app-browse-by.js` | Browse page component. Uses `AffiliationMixin`; awaits the org-lookup load, plus `mobileCategoryOpen` for the category dropdown. |
 | `webapp/spa/client/public/elements/pages/browse/app-browse-by.tpl.js` | Browse page template. Desktop sidebar, mobile category dropdown, and mobile filter drawer. |

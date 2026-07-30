@@ -1,6 +1,32 @@
 import { html } from 'lit';
-import { ORG_LOOKUP } from '@ucd-lib/experts-commons/lib/org-lookup.js';
+// dept-utils holds only the (tiny) serialize/deserialize logic and is data-injected —
+// it does NOT import the ORG_LOOKUP table. That table is fetched at runtime as a
+// static asset (see _loadOrgLookup below) so it stays out of the JS bundle.
 import { serializeDeptParam, deserializeDeptParam } from '@ucd-lib/experts-commons/lib/dept-utils.js';
+
+// URL of the ORG_LOOKUP static asset, served by express.static in
+// webapp/spa/controllers/static.js and regenerated from @ucd-lib/experts-commons at build time.
+const ORG_LOOKUP_URL = '/static-assets/org-lookup.json';
+
+// Cache the fetch so every page/instance that mixes in AffiliationMixin shares a single
+// network request for the org lookup table.
+let _orgLookupPromise = null;
+function _loadOrgLookup() {
+  if( !_orgLookupPromise ) {
+    _orgLookupPromise = fetch(ORG_LOOKUP_URL)
+      .then(resp => {
+        if( !resp.ok ) throw new Error(`Failed to fetch ${ORG_LOOKUP_URL}: ${resp.status}`);
+        return resp.json();
+      })
+      .catch(e => {
+        // allow a later retry rather than caching a failed load forever
+        _orgLookupPromise = null;
+        console.error('Failed to load org lookup', e);
+        return [];
+      });
+  }
+  return _orgLookupPromise;
+}
 
 // caret icons for expandable sub-categories in the affiliation picker
 const AFFILIATION_CARET_EXPANDED = html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`;
@@ -15,22 +41,54 @@ export const AffiliationMixin = (superClass) => class extends superClass {
 
   constructor() {
     super();
-    this.orgLookup = ORG_LOOKUP
-      .slice()
-      .sort((a, b) => a.label.localeCompare(b.label))
-      .map(cat => ({
-        ...cat,
-        subCategories: cat.subCategories
-          .slice()
-          .sort((a, b) => a.label.localeCompare(b.label))
-          .map(sub => ({
-            ...sub,
-            depts: sub.depts.slice().sort((a, b) => a.name.localeCompare(b.name))
-          }))
-      }));
+    // ORG_LOOKUP is fetched at runtime (see _ensureOrgLookup); start empty so the
+    // affiliation picker renders (empty) until the static asset loads.
+    this.orgLookup = [];
+    this._orgLookupLoaded = false;
+    this._orgLookupPromise = null;
 
     // when true, scroll the affiliation list back to the top the next time it becomes visible
     this._pendingAffiliationScrollReset = false;
+
+    // Kick off the load on construction so the picker populates independent of the
+    // app-state-update event (app-search doesn't re-fire it in firstUpdated the way
+    // app-browse-by does). _onAppStateUpdate awaits the same promise before deserializing
+    // dept params, so this stays race-free.
+    this._ensureOrgLookup();
+  }
+
+  /**
+   * @method _ensureOrgLookup
+   * @description Fetch (once per instance) the ORG_LOOKUP static asset and populate
+   * this.orgLookup, sorted for display. Idempotent — returns the same in-flight/resolved
+   * promise on repeat calls. Callers should await it before deserializing dept URL params,
+   * since the fetch is asynchronous. The underlying fetch is also cached module-wide, so
+   * repeated calls across pages/instances share one network request.
+   * @returns {Promise<Array>} resolves to the sorted orgLookup
+   */
+  _ensureOrgLookup() {
+    if( this._orgLookupPromise ) return this._orgLookupPromise;
+
+    this._orgLookupPromise = _loadOrgLookup().then(raw => {
+      this.orgLookup = raw
+        .slice()
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .map(cat => ({
+          ...cat,
+          subCategories: cat.subCategories
+            .slice()
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map(sub => ({
+              ...sub,
+              depts: sub.depts.slice().sort((a, b) => a.name.localeCompare(b.name))
+            }))
+        }));
+      this._orgLookupLoaded = true;
+      this.requestUpdate();
+      return this.orgLookup;
+    });
+
+    return this._orgLookupPromise;
   }
 
   /**
@@ -128,7 +186,7 @@ export const AffiliationMixin = (superClass) => class extends superClass {
    * @returns {{ dept: string, deptCodesIncluded: string, deptCodesExcluded: string }}
    */
   _serializeDept(codes) {
-    return serializeDeptParam(codes);
+    return serializeDeptParam(this.orgLookup, codes);
   }
 
   /**
@@ -140,7 +198,7 @@ export const AffiliationMixin = (superClass) => class extends superClass {
    * @returns {string[]} flat array of dept codes
    */
   _deserializeDept(dept, deptCodesIncluded='', deptCodesExcluded='') {
-    return deserializeDeptParam(dept, deptCodesIncluded, deptCodesExcluded);
+    return deserializeDeptParam(this.orgLookup, dept, deptCodesIncluded, deptCodesExcluded);
   }
 
   /**
