@@ -250,6 +250,7 @@ const config = {
       url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13',
       authname : 'qa-oapolicy',
       secretName : 'cdl-elements-json',
+      localLoginPath : '/non-sso-login.html',
       timeout : 30000
     },
 
@@ -258,6 +259,7 @@ const config = {
       url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13',
       authname : 'oapolicy',
       secretName : 'cdl-elements-json',
+      localLoginPath : '/non-sso-login.html',
       group_by_name : {
         'dev': 1591,
         'sandbox': 1587,
