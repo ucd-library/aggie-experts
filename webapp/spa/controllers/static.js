@@ -24,15 +24,6 @@ module.exports = async (app) => {
   logger.info('SPA assets directory', assetsDir);
   logger.info('SPA static assets directory', staticAssetsDir);
 
-  // The affiliation/department filter table lives in @ucd-lib/experts-commons and is the
-  // single source of truth (server-side dept-utils imports it too). Serve it as JSON straight
-  // from memory so the client can fetch it at runtime without bundling the blob — no
-  // generated file to keep in sync. Registered before express.static so it owns this path.
-  app.get('/static-assets/org-lookup.json', (req, res) => {
-    res.set('Cache-Control', 'public, max-age=3600');
-    res.json(ORG_LOOKUP);
-  });
-
   app.use('/static-assets', express.static(staticAssetsDir));
 
   loadJsBundleHash(assetsDir);
@@ -104,6 +95,7 @@ module.exports = async (app) => {
         logger : config.client.logger,
         esAliases : commonsConfig.elasticsearch.aliases,
         buildInfo : commonsConfig.buildInfo,
+        orgLookup : ORG_LOOKUP,
         jsBundleHash,
       });
     },

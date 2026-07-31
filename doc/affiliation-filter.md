@@ -19,7 +19,7 @@ The filter is available on both the Search page (filtering across all result typ
 
 ## Data source
 
-The organization hierarchy is maintained in a Google Sheet and compiled into `commons/lib/org-lookup.js` (the single source of truth). The server imports it directly; the webapp serves it to the client as JSON from memory via a small Express route (`GET /static-assets/org-lookup.json` in `webapp/spa/controllers/static.js`).
+The organization hierarchy is maintained in a Google Sheet and compiled into `commons/lib/org-lookup.js` (the single source of truth).
 
 **Google Sheet URL** is stored in `config.google.orgLookupSheetUrl` (commons config), set via the `ORG_LOOKUP_SHEET_URL` environment variable (required — no default is baked in).
 
@@ -187,12 +187,12 @@ node bin/experts-admin.js update-org-lookup --url "https://docs.google.com/..."
 | File | Purpose |
 |---|---|
 | `commons/lib/org-lookup.js` | Generated ES module — the compiled `ORG_LOOKUP` array and single source of truth. Do not edit by hand; regenerate with the CLI. |
-| `commons/lib/dept-utils.js` | Data-injected serialize/deserialize/expand helpers for the `dept` URL params (take `ORG_LOOKUP` as an argument). |
-| `webapp/spa/controllers/static.js` | Serves `GET /static-assets/org-lookup.json` from the in-memory `ORG_LOOKUP` so the client fetches it at runtime. |
+| `commons/lib/dept-utils.js` | Data-injected serialize/deserialize/expand helpers for the `dept` URL params (take `ORG_LOOKUP` as an argument). Used by the server (`expandDeptParam` via `commons/index.js`) and imported by the client via relative path. |
+| `webapp/spa/controllers/static.js` | Injects `ORG_LOOKUP` into the client `APP_CONFIG` (the `getConfig` handler) so the SPA reads it synchronously. |
 | `commons/lib/config.js` | Contains `config.google.orgLookupSheetUrl`. |
 | `harvest/bin/experts-admin.js` | CLI entry point. The `update-org-lookup` subcommand fetches the sheet and rebuilds `commons/lib/org-lookup.js`. |
-| `webapp/spa/client/public/elements/pages/AffiliationMixin.js` | Shared mixin for search + browse: fetches `ORG_LOOKUP` at runtime, sorts it, and holds all dept filter logic. |
-| `webapp/spa/client/public/elements/pages/search/app-search.js` | Search page component. Uses `AffiliationMixin`; awaits the org-lookup load before deserializing dept params. |
+| `webapp/spa/client/public/elements/pages/AffiliationMixin.js` | Shared mixin for search + browse: reads `APP_CONFIG.orgLookup` in the constructor, sorts it, and holds all dept filter logic. |
+| `webapp/spa/client/public/elements/pages/search/app-search.js` | Search page component. Uses `AffiliationMixin`. |
 | `webapp/spa/client/public/elements/pages/search/app-search.tpl.js` | Search page template. Desktop sidebar affiliation tree and mobile sub-drawers. |
-| `webapp/spa/client/public/elements/pages/browse/app-browse-by.js` | Browse page component. Uses `AffiliationMixin`; awaits the org-lookup load, plus `mobileCategoryOpen` for the category dropdown. |
+| `webapp/spa/client/public/elements/pages/browse/app-browse-by.js` | Browse page component. Uses `AffiliationMixin`, plus `mobileCategoryOpen` for the category dropdown. |
 | `webapp/spa/client/public/elements/pages/browse/app-browse-by.tpl.js` | Browse page template. Desktop sidebar, mobile category dropdown, and mobile filter drawer. |

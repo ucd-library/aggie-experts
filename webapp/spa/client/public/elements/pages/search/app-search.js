@@ -182,10 +182,6 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
   async _onAppStateUpdate(e) {
     if( e.location.page !== 'search' ) return;
 
-    // ORG_LOOKUP is fetched at runtime; ensure it is loaded before _updateFilters
-    // deserializes the dept URL param (otherwise dept filters on a direct link are lost).
-    await this._ensureOrgLookup();
-
     if( this.resettingSearch ) {
       this.resettingSearch = false;
       return;
