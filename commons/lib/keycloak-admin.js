@@ -214,7 +214,12 @@ export default class ExpertsKcAdminClient {
     });
 
     if (users.length === 0) {
-      throw new Error(`No keycloak user found with email: ${email}`);
+      // Flag this as a genuine "no user with this email" result so callers can
+      // distinguish it from auth/token/network errors. Only this case may lead to
+      // creating a new expert; other failures must never fall through to creation.
+      const err = new Error(`No keycloak user found with email: ${email}`);
+      err.notFound = true;
+      throw err;
     }
 
     if( users[0]?.attributes?.expertId === undefined ) {
@@ -250,17 +255,98 @@ export default class ExpertsKcAdminClient {
    * @returns {Promise} - A promise that resolves with the user expertId
    */
   async getOrCreateExpert(email, username, profile) {
-    let user;
     try {
-      user = await this.findByEmail(email, profile.attributes);
+      return await this.findByEmail(email, profile.attributes);
     } catch (error) {
-      if( error.response?.status >= 400 ) {
-        throw new Error(`Could not access Keycloak to find user with email: ${email}. Status = ${error.response.status}, Message = ${error.response.statusText}`, );
-      } else if (username && profile) {
-        user = await this.createNewExpert(email, username, profile);
-      } else {
+      // Only a genuine "no user with this email" result (error.notFound) may proceed
+      // toward creation. Any other error — auth/token failures, network errors, HTTP
+      // errors — must be surfaced, never swallowed as "not found", because falling
+      // through on a transient failure mints a duplicate expert.
+      if( !error.notFound ) {
+        if( error.response?.status >= 400 ) {
+          throw new Error(`Could not access Keycloak to find user with email: ${email}. Status = ${error.response.status}, Message = ${error.response.statusText}`, );
+        }
         throw error;
       }
+    }
+
+    // No Keycloak user matched this email. The IAM email can change over time (e.g. a
+    // corrected address), and matching on email alone would create a duplicate expert
+    // for a person who already exists. Before creating, try to find the existing expert
+    // by a stable IAM identifier (iamId, then ucdPersonUUID).
+    const existing = await this.findByStableId(profile?.attributes);
+    if( existing ) {
+      await this.syncExpertEmail(existing, email);
+      return existing;
+    }
+
+    if (username && profile) {
+      return this.createNewExpert(email, username, profile);
+    }
+    throw new Error(`No keycloak user found with email: ${email}`);
+  }
+
+  /**
+   * @method findByStableId
+   * @description Find an existing expert by a stable IAM identifier. IAM email can
+   * change over time, so these identifiers — not email — are the reliable key for
+   * deciding whether an expert already exists. Tries iamId first, then ucdPersonUUID.
+   * @param {Object} attributes - profile attributes, e.g. {iamId, ucdPersonUUID}
+   * @returns {Promise<Object|undefined>} the existing user, or undefined if none match
+   */
+  async findByStableId(attributes={}) {
+    await this.authenticate();
+    for( const key of ['iamId', 'ucdPersonUUID'] ) {
+      const value = attributes?.[key];
+      if( !value ) continue;
+      const users = await this.findByAttribute(`${key}:${value}`);
+      if( users.length === 0 ) continue;
+      if( users.length > 1 ) {
+        // Pre-existing duplicates — warn for manual clean-up, do not auto-merge.
+        logger.warn(`Multiple Keycloak users found with ${key}:${value} (ids: ${users.map(u => u.id).join(', ')}). Using the first; manual de-duplication needed.`);
+      }
+      logger.info(`Matched existing Keycloak expert by ${key}:${value} (id: ${users[0].id}) after email lookup missed.`);
+      return users[0];
+    }
+    return undefined;
+  }
+
+  /**
+   * @method syncExpertEmail
+   * @description Given an expert matched by a stable IAM id whose email has since
+   * changed in IAM, update the Keycloak email to match (email only — username is left
+   * as-is per policy). Also guarantees the account has an expertId. No-op if nothing
+   * needs updating.
+   * @param {Object} user - the existing Keycloak user representation
+   * @param {string} email - the current IAM email
+   */
+  async syncExpertEmail(user, email) {
+    await this.authenticate();
+    const attributes = user.attributes || {};
+    let needsUpdate = false;
+
+    if( user.email !== email ) {
+      logger.warn(`Keycloak expert (id: ${user.id}) email changed from ${user.email} to ${email}; updating email (username left unchanged).`);
+      needsUpdate = true;
+    }
+    if( attributes.expertId === undefined ) {
+      logger.warn(`Keycloak expert (id: ${user.id}) matched by stable id has no expertId; minting one.`);
+      attributes.expertId = [this.mintExpertId()];
+      needsUpdate = true;
+    }
+
+    if( needsUpdate ) {
+      await this.kcadmin.users.update(
+        {id: user.id},
+        {
+          email,
+          attributes,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      );
+      user.email = email;
+      user.attributes = attributes;
     }
     return user;
   }
