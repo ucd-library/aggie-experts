@@ -16,6 +16,9 @@ export const AffiliationMixin = (superClass) => class extends superClass {
     super();
     // ORG_LOOKUP is delivered to the client in APP_CONFIG (see webapp/spa/controllers/static.js),
     // so it is available synchronously here — no fetch, and the data blob stays out of the bundle.
+    if( !APP_CONFIG?.orgLookup?.length ) {
+      console.warn('AffiliationMixin: APP_CONFIG.orgLookup is missing or empty — the affiliation filter will render empty. Ensure the server injects orgLookup into APP_CONFIG (webapp/spa/controllers/static.js).');
+    }
     this.orgLookup = (APP_CONFIG?.orgLookup || [])
       .slice()
       .sort((a, b) => a.label.localeCompare(b.label))
