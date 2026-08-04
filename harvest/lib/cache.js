@@ -50,7 +50,7 @@ class FsCache {
    * @description Get the full file path for a user asset given the user ID and asset path
    *
    * @param {Object} opts options object
-   * @param {String} opts.root root directory to use, either 'weekly' or 'archive', defaults to 'archive'
+   * @param {String} opts.root root directory to use, either '/weekly' or '/archive', defaults to '/weekly'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    * 
    * @returns {String} full file path for the user asset
@@ -75,7 +75,7 @@ class FsCache {
    * @param {String} userId expert user ID
    * @param  {String} assetKey either a single string or multiple strings that form the asset path
    * @param {Object} opts options object
-   * @param {String} opts.root root directory to use, either 'weekly' or 'archive', defaults to 'archive'
+   * @param {String} opts.root root directory to use, either '/weekly' or '/archive', defaults to '/weekly'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    * 
    * @returns {String} full file path for the user asset
@@ -129,7 +129,7 @@ class FsCache {
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
    * @param {Object} opts options object
-   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {String} opts.root root directory to use, either '/weekly' or '/archive', defaults to '/weekly'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    *
    * @returns {Boolean} true if the asset exists, false otherwise
@@ -185,7 +185,7 @@ class FsCache {
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
    * @param {Object} opts options object
-   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {String} opts.root root directory to use, either '/weekly' or '/archive', defaults to '/weekly'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    * 
    * @returns {Promise<String>} the content of the user asset file
@@ -248,7 +248,7 @@ class FsCache {
    * @param {String} assetKey asset key (file path)
    * @param {Object|String} data the data to write, can be an object or a string
    * @param {Object} opts options object
-   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {String} opts.root root directory to use, either '/weekly' or '/archive', defaults to '/weekly'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    * 
    * @returns {Promise<Object>} an object containing the asset path, local cache write status, hash, and last modified date
@@ -331,7 +331,7 @@ class FsCache {
    * @param {String} userId expert user ID
    * @param {String} assetKey asset key (file path)
    * @param {Object} opts options object
-   * @param {String} opts.root root directory to use, either 'active' or 'archive', defaults to 'active'
+   * @param {String} opts.root root directory to use, either '/weekly' or '/archive', defaults to '/weekly'
    * @param {Date} opts.date date object to determine the year-week directory, defaults to current date
    * @param {Boolean} opts.isDirectory if true, will delete a directory instead of a file
    * @param {Boolean} opts.softDelete if true, will perform a soft delete by deleting entry but not hash file on disk

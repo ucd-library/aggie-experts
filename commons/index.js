@@ -11,6 +11,7 @@ import config from './lib/config.js';
 import { getYearWeek, getTodaysDate, isPlainDate, parseYearWeek } from './lib/year-week.js';
 import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
+import xmlToJson from './lib/xml-to-json.js';
 
 // dept-utils is data-injected (see commons/lib/dept-utils.js). Server-side callers
 // don't carry the ORG_LOOKUP table around, so bind it here to preserve the original
@@ -38,5 +39,6 @@ export {
   getYearWeek,
   getTodaysDate,
   isPlainDate,
-  parseYearWeek
+  parseYearWeek,
+  xmlToJson
 };
