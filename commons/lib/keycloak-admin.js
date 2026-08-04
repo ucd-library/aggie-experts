@@ -276,7 +276,7 @@ export default class ExpertsKcAdminClient {
     // by a stable IAM identifier (iamId, then ucdPersonUUID).
     const existing = await this.findByStableId(profile?.attributes);
     if( existing ) {
-      await this.syncExpertEmail(existing, email);
+      await this.reconcileExpert(existing, email, profile?.attributes);
       return existing;
     }
 
@@ -288,9 +288,12 @@ export default class ExpertsKcAdminClient {
 
   /**
    * @method findByStableId
-   * @description Find an existing expert by a stable IAM identifier. IAM email can
-   * change over time, so these identifiers — not email — are the reliable key for
-   * deciding whether an expert already exists. Tries iamId first, then ucdPersonUUID.
+   * @description Find an existing expert when the email lookup missed. Neither IAM
+   * identifier is guaranteed stable — iamId can change while ucdPersonUUID holds, and
+   * vice versa — so we try both: whichever one did NOT change is what still links the
+   * new profile to the existing account. Any identifier that did change is reconciled
+   * afterwards in reconcileExpert. Only if BOTH changed (no linkage possible) do we fall
+   * through to creating a new expert.
    * @param {Object} attributes - profile attributes, e.g. {iamId, ucdPersonUUID}
    * @returns {Promise<Object|undefined>} the existing user, or undefined if none match
    */
@@ -312,43 +315,113 @@ export default class ExpertsKcAdminClient {
   }
 
   /**
-   * @method syncExpertEmail
-   * @description Given an expert matched by a stable IAM id whose email has since
-   * changed in IAM, update the Keycloak email to match (email only — username is left
-   * as-is per policy). Also guarantees the account has an expertId. No-op if nothing
-   * needs updating.
+   * @method reconcileExpert
+   * @description Given an existing expert matched by findByStableId, bring its mutable
+   * fields into line with the current IAM profile. Because any of email, iamId, and
+   * ucdPersonUUID can change over time, whichever ones differ are updated to the new
+   * values (the one that matched simply won't differ). Username is left as-is per
+   * policy. Also guarantees the account has an expertId. No-op if nothing changed.
    * @param {Object} user - the existing Keycloak user representation
    * @param {string} email - the current IAM email
+   * @param {Object} attributes - current IAM profile attributes ({iamId, ucdPersonUUID})
    */
-  async syncExpertEmail(user, email) {
+  async reconcileExpert(user, email, attributes={}) {
     await this.authenticate();
-    const attributes = user.attributes || {};
-    let needsUpdate = false;
+    const current = user.attributes || {};
+    const changes = [];
 
     if( user.email !== email ) {
-      logger.warn(`Keycloak expert (id: ${user.id}) email changed from ${user.email} to ${email}; updating email (username left unchanged).`);
-      needsUpdate = true;
-    }
-    if( attributes.expertId === undefined ) {
-      logger.warn(`Keycloak expert (id: ${user.id}) matched by stable id has no expertId; minting one.`);
-      attributes.expertId = [this.mintExpertId()];
-      needsUpdate = true;
+      changes.push(`email ${user.email} -> ${email}`);
     }
 
-    if( needsUpdate ) {
+    // Sync any IAM identifier that drifted. Stored as arrays in Keycloak; incoming
+    // profile values are scalars.
+    for( const key of ['iamId', 'ucdPersonUUID'] ) {
+      const next = attributes?.[key];
+      if( next === undefined || next === null ) continue;
+      const cur = Array.isArray(current[key]) ? current[key][0] : current[key];
+      if( cur === next ) continue;
+
+      // Collision guard: refuse to copy an identifier onto this account if it already
+      // belongs to a DIFFERENT Keycloak account. That almost always signals a data
+      // problem at the IAM source (two people sharing an id) — so leave the value 
+      // unchanged and surface it loudly rather than creating an ambiguous duplicate 
+      // identifier.
+      const conflicts = (await this.findByAttribute(`${key}:${next}`))
+        .filter(u => u.id !== user.id);
+      if( conflicts.length ) {
+        await this._reportIdentifierCollision({ user, key, from: cur, to: next, conflicts, email });
+        continue;
+      }
+
+      changes.push(`${key} ${cur} -> ${next}`);
+      current[key] = [next];
+    }
+
+    if( current.expertId === undefined ) {
+      changes.push('minted missing expertId');
+      current.expertId = [this.mintExpertId()];
+    }
+
+    if( changes.length ) {
+      logger.warn(`Reconciling Keycloak expert (id: ${user.id}) matched by stable id: ${changes.join('; ')} (username left unchanged).`);
       await this.kcadmin.users.update(
         {id: user.id},
         {
           email,
-          attributes,
+          attributes: current,
           firstName: user.firstName,
           lastName: user.lastName
         }
       );
       user.email = email;
-      user.attributes = attributes;
+      user.attributes = current;
     }
     return user;
+  }
+
+  /**
+   * @method _reportIdentifierCollision
+   * @description Surface an attempt to move an IAM identifier onto an expert when it 
+   * already belongs to a different Keycloak account. Logs at error severity and, when 
+   * ETL reporting is enabled, records a validation_issue so it appears in the reporting 
+   * dashboards (the same channel load-step data problems use) for follow-up with IAM. 
+   * Never throws — a reporting failure must not abort the run.
+   * @param {Object} opts
+   * @param {Object} opts.user - the expert being reconciled
+   * @param {string} opts.key - the identifier field (iamId | ucdPersonUUID)
+   * @param {string} opts.from - the current stored value
+   * @param {string} opts.to - the incoming IAM value that collides
+   * @param {Array} opts.conflicts - other Keycloak accounts already holding `to`
+   * @param {string} opts.email - the current IAM email (for context)
+   */
+  async _reportIdentifierCollision({ user, key, from, to, conflicts, email }) {
+    const expertId = Array.isArray(user.attributes?.expertId)
+      ? user.attributes.expertId[0]
+      : user.attributes?.expertId;
+    const conflictIds = conflicts.map(u => u.id).join(', ');
+    const message =
+      `IAM ${key} for expert ${expertId || user.id} (${email}) changed ${from} -> ${to}, ` +
+      `but ${to} already belongs to Keycloak account(s) ${conflictIds}. Left ${key} ` +
+      `unchanged; likely an IAM source data problem needing manual review.`;
+
+    logger.error(`IDENTIFIER_COLLISION: ${message}`);
+
+    if( config.reporting.enabled && config.postgres.client ) {
+      try {
+        await config.postgres.client.insertValidationIssue({
+          command_id: config.reporting.commandId,
+          user_id: config.reporting.userId,
+          entity_type: 'expert',
+          entity_id: expertId || user.id,
+          issue_type: 'identifier_collision',
+          field: key,
+          message
+        });
+      } catch (err) {
+        logger.error('Failed to record identifier_collision validation issue', err);
+      }
+    }
   }
 
   async createNewExpert(email, username, profile) {
