@@ -30,7 +30,11 @@ export function parseGsUri(uri) {
 
 /**
  * Return every generation id for `fileName` in `bucketName`, newest first.
- * Generation IDs are opaque strings from the GCS API.
+ * GCS generation ids are int64 values (microseconds since the epoch) rendered
+ * as numeric strings, and larger == newer. We sort them numerically with
+ * BigInt rather than lexicographically: string ordering only matches numeric
+ * ordering while all ids share the same digit-length, and the ids will exceed
+ * Number.MAX_SAFE_INTEGER, so BigInt is the length- and precision-safe compare.
  */
 export async function listGenerations(bucketName, fileName, { storage } = {}) {
   const client = storage || new Storage();
@@ -39,7 +43,10 @@ export async function listGenerations(bucketName, fileName, { storage } = {}) {
   const generations = files
     .filter(f => f.name === fileName)
     .map(f => f.metadata.generation)
-    .sort((a, b) => (a > b ? -1 : a < b ? 1 : 0));
+    .sort((a, b) => {
+      const av = BigInt(a), bv = BigInt(b);
+      return av > bv ? -1 : av < bv ? 1 : 0; // newest (largest) first
+    });
   logger.info(`Found ${generations.length} generation(s) of ${fileName} in ${bucketName}`);
   return generations;
 }

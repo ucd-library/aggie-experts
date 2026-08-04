@@ -4,8 +4,9 @@
  *
  * Takes the parsed delta rows (keyed by the delivered CSV headers) plus the
  * year-week and whether the delta was uploaded to Symplectic, and upserts them
- * into grant_feed.metadata / links / persons / delete_links. Upserts are keyed
- * on the tables' PKs, so re-running the same week is idempotent (no double
+ * into grant_feed.metadata / links / delete_links (grants_persons is
+ * intentionally not stored — see the note on loadGrantFeedReporting). Upserts are 
+ * keyed on the tables' PKs, so re-running the same week is idempotent (no double
  * counting) and distinct weeks accumulate as history.
  *
  * The caller owns reading/parsing the CSVs (from CasKFS) and the PgClient

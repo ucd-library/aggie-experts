@@ -220,13 +220,23 @@ function addUserLinks(deltaGrants, deltaLinks, newLinks) {
  * Step 6: old links that are no longer in the new feed, remapped to the
  * delete_user_grants_links schema (record_proprietary_id,
  * user_proprietary_id, link_type_id).
+ *
+ * Corrected an existing bug in the legacy Fuseki/SPARQL logic:
+ * Now keyed by the full (id-1, id-2, link-type-id) triple — same as the rest of 
+ * the delta — not just the (id-1, id-2) user/grant pair. Symplectic's delete 
+ * utility removes one specific link type per row, so a user who drops one role 
+ * but keeps another on the same grant must still emit a delete for the dropped 
+ * role; pair-keying would suppress it (the pair still exists via the surviving 
+ * role) and leave the stale role link in Elements.
  */
 function findDeletedLinks(newLinks, oldLinks) {
-  const newByPair = new Set(newLinks.map(l => `${l['id-1']}|${l['id-2']}`));
+  const newByTriple = new Set(
+    newLinks.map(l => `${l['id-1']}|${l['id-2']}|${l['link-type-id']}`)
+  );
   const deletes = [];
   for (const o of oldLinks) {
-    const key = `${o['id-1']}|${o['id-2']}`;
-    if (newByPair.has(key)) continue;
+    const key = `${o['id-1']}|${o['id-2']}|${o['link-type-id']}`;
+    if (newByTriple.has(key)) continue;
     deletes.push({
       record_proprietary_id: o['id-2'],
       user_proprietary_id: o['id-1'],
