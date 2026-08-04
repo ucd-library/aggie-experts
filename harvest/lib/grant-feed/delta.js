@@ -158,16 +158,21 @@ function diffLinks(newLinks, oldLinks, deltaGrants) {
  * newLinks.csv rather than the grants actually referenced by the delta
  * links. That both included unchanged grants and missed genuinely
  * link-changed ones. We iterate the delta links themselves, as intended.
+ *
+ * A grant can span multiple metadata rows (one per funder; see diffGrants), so
+ * we group by id and push the grant's ENTIRE row set — not a single last-write-
+ * wins row — so a grant pulled in only by a link change still delivers the
+ * complete record to Symplectic, matching what diffGrants emits.
  */
 function addGrantsLinked(deltaGrants, deltaLinks, newGrants) {
   const haveIds = new Set(deltaGrants.map(g => g.id));
-  const newById = new Map(newGrants.map(g => [g.id, g]));
+  const newById = groupById(newGrants);
   for (const l of deltaLinks) {
     const gid = l['id-2'];
     if (!gid || haveIds.has(gid)) continue;
-    const g = newById.get(gid);
-    if (g) {
-      deltaGrants.push(g);
+    const rows = newById.get(gid);
+    if (rows) {
+      deltaGrants.push(...rows);
       haveIds.add(gid);
     }
   }
