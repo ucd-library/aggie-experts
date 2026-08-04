@@ -192,8 +192,8 @@ Three CSV files (plus a delete file) are uploaded to the Symplectic server:
 |amount-value|number|USD amount|
 |amount-currency-code|currency type|USD|
 |funding-type|text| Research, Service/Other, Instruction,   |
-|c-ucop-sponsor|http:/rems.ucop.edu/sponsor/[CODE]|URL with valid REMS sponsor code|
-|c-flow-thru-funding|http:/rems.ucop.edu/sponsor/[CODE]|URL with valid REMS sponsor code|
+|c-ucop-sponsor|http://rems.ucop.edu/sponsor/[CODE]|URL with valid REMS sponsor code|
+|c-flow-thru-funding|http://rems.ucop.edu/sponsor/[CODE]|URL with valid REMS sponsor code|
 |visible|true/false|Determines whether matching records ... |
 
 These column names correspond to the grant data "underlying fields" in the

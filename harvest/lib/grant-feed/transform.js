@@ -455,6 +455,16 @@ export function buildLinkRows(awards) {
 /**
  * Build the rows for grants_persons.csv — one row per (award, PI-or-Co-PI).
  *
+ * field-name is intentionally always 'c-co-pis', including for the PI. The PI
+ * therefore appears in this name-list field in addition to metadata's `c-pi`
+ * column and its link-type-120 row in grants_links.csv. This is deliberate
+ * byte-parity with the legacy SPARQL feed (query/roles.rq selected PI + Co-PI
+ * into the same c-co-pis field), and the webapp grant importer already handles
+ * the PI-in-c-co-pis overlap (see lib/transform/ae-std/grants.js). Do not narrow
+ * PERSON_ROLES to Co-PI only without confirming the intended Symplectic
+ * c-co-pis semantics — doing so changes live Symplectic data and forces a
+ * persons-row delta on nearly every grant.
+ *
  * Deduplication: same rationale as buildLinkRows. The old SPARQL collapses
  * duplicate participants on the same grant through a deterministic
  * md5(participant_number)-based IRI; we dedupe on (grant_id, number) here
