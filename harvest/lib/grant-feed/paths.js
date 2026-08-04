@@ -21,7 +21,7 @@
  * On upload these map to (PROD): Prod_UCD_grants_metadata.csv, etc.
  *
  * These functions take the weekly base path (as returned by
- * cache.getPath({root:'weekly', date})) and are otherwise pure, so they can
+ * cache.getPath({root:'/weekly', date})) and are otherwise pure, so they can
  * be unit-tested without the CasKFS runtime. CasKFS names are env-agnostic —
  * QA vs PROD only affects the Symplectic upload name/target, not storage.
  */

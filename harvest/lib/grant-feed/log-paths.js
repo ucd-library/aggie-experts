@@ -6,7 +6,7 @@
  *   /weekly/<year-week>/grant-feed/symplectic-logs/<env>/<clean-name>
  *
  * Pure (no cache/SFTP) so it can be unit-tested; the weekly base path comes
- * from cache.getPath({root:'weekly', date}).
+ * from cache.getPath({root:'/weekly', date}).
  */
 import path from 'path';
 
