@@ -48,7 +48,7 @@ function rowKey(row) {
   return Object.keys(row)
     .sort()
     .map(k => `${k}=${row[k]}`)
-    .join('');
+    .join('\u0001');
 }
 
 /**

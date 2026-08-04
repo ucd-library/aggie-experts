@@ -30,8 +30,11 @@
  * (grants_persons is intentionally not stored — it isn't needed for reporting.)
  */
 export async function loadGrantFeedReporting(pg, { yearWeek, env, uploaded, metadata = [], links = [], deleteLinks = [], newGrantIds = new Set() }) {
-  // date_uploaded is set only when the delta actually went to Symplectic;
-  // a produce-only run (--no-upload) records NULL.
+  // date_uploaded reflects the most recent run that actually shipped to
+  // Symplectic. A produce-only run (--no-upload) passes NULL; the COALESCE below
+  // prefers this run's value when it uploaded (so genuinely re-sending the CSVs
+  // advances the timestamp) and otherwise keeps the stored one (so a --no-upload
+  // reprocess can't erase a real upload's audit trail).
   const dateUploaded = uploaded ? new Date() : null;
 
   await pg.query('BEGIN');
@@ -46,7 +49,8 @@ export async function loadGrantFeedReporting(pg, { yearWeek, env, uploaded, meta
         `INSERT INTO grant_feed.metadata (grant_id, funding_source, env, change_type, data, year_week, date_uploaded)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (grant_id, funding_source, year_week, env)
-         DO UPDATE SET change_type = EXCLUDED.change_type, data = EXCLUDED.data, date_uploaded = EXCLUDED.date_uploaded`,
+         DO UPDATE SET change_type = EXCLUDED.change_type, data = EXCLUDED.data,
+           date_uploaded = COALESCE(EXCLUDED.date_uploaded, metadata.date_uploaded)`,
         [grantId, fundingSource, env, changeType, JSON.stringify(rest), yearWeek, dateUploaded]
       );
     }
