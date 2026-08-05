@@ -982,7 +982,7 @@ return html`
         id="searchBox"
         is-gold
         search-rounded
-        @search="${(e) => this._onSearchBoxSubmit(e)}"
+        @search="${(e) => this._onSearch(e, true)}"
         placeholder="search"
         search-term="${decodeURIComponent(this.searchTerm)}">
       </app-search-box>

@@ -573,26 +573,6 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
   }
 
   /**
-   * @method _onSearchBoxSubmit
-   * @description handle submits from the results-page search box. A different search term is a
-   * fresh search, so reset all refinement filters (date, @type, status, dept, availability) —
-   * matching the homepage/header search — instead of carrying the current filters onto the new
-   * term (which would, e.g., apply a leftover date range and return 0 results). Re-submitting the
-   * same term just re-runs with the current filters.
-   * @param {Object} e
-   */
-  _onSearchBoxSubmit(e) {
-    const term = e.detail?.trim();
-    if( !term ) return;
-    if( term !== this.searchTerm ) {
-      this.AppStateModel.setLocation('/search/' + encodeURIComponent(term));
-      this.AppStateModel.set({ resetSearch: true });
-    } else {
-      this._onSearch(e, true);
-    }
-  }
-
-  /**
    * @method _onSearch
    * @description called from the search box button is clicked or
    * the enter key is hit. search
