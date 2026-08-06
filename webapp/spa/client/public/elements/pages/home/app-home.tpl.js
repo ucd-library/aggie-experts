@@ -187,7 +187,9 @@ return html`
     }
   </style>
 
-  <div class="hero-main site-frame">
+  <div class="hero-main site-frame"
+    role="region"
+    aria-label="Discover Academic Excellence">
     <div class="content">
       <h1>Discover Academic Excellence</h1>
       <div class="sub-heading h4 color-light">
@@ -205,7 +207,9 @@ return html`
       </div>
     </div>
   </div>
-  <div class="site-frame">
+  <div class="site-frame"
+    role="main"
+    aria-label="Research discovery">
     <div class="content flex">
       <img class="research-trio" src="/images/ae-research-image-trio-web.jpg" alt="featured image of researchers in various roles">
       <div class="sub-heading quote h4">

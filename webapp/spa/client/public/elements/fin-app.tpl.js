@@ -294,7 +294,7 @@ return html`
       </div>
     </div>
 
-    <div class="footer site-frame">
+    <div class="footer site-frame" role="contentinfo" aria-label="Site footer">
       <ucdlib-site-footer>
         <ucdlib-site-footer-column header="Need Help?">
           <ul>

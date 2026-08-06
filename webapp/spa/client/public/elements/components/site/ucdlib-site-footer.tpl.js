@@ -225,7 +225,7 @@ export function render() {
       </div>
       <div class="section-aggie-logo">
         <div class="container-aggie-logo">
-          <a href="https://www.ucdavis.edu">${this._renderAggieLogo()}</a>
+          <a href="https://www.ucdavis.edu" aria-label="UC Davis home page">${this._renderAggieLogo()}</a>
         </div>
       </div>
       <div class="section-campus-info">${this._renderCampusInfo()}</div>
