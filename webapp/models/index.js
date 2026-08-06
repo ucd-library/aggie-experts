@@ -7,4 +7,5 @@ module.exports = {
   schema: require('./schema/index.js'),
   miv: require('./miv/index.js'),
   harvest: require('./harvest/index.js'),
+  faq: require('./faq/index.js'),
 }

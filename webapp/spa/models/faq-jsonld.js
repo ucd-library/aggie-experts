@@ -2,10 +2,10 @@ const fs = require('fs/promises');
 const path = require('path');
 const { logger } = require('@ucd-lib/experts-commons');
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const CACHE_TTL_MS = Number(process.env.CLIENT_STATIC_ASSETS_JSONLD_TTL_MS || ONE_DAY_MS);
+const FIVE_MIN_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = Number(process.env.CLIENT_STATIC_ASSETS_JSONLD_TTL_MS || FIVE_MIN_MS);
 const LOG_CACHE_HITS = String(process.env.CLIENT_STATIC_ASSETS_JSONLD_LOG_CACHE_HITS || '').toLowerCase() === 'true';
-const FAQ_MARKDOWN_URL = (process.env.CLIENT_STATIC_ASSETS_BASE_URL || 'https://storage.googleapis.com/aggie-experts-static-assets') + '/faq/faq.md';
+const FAQ_MARKDOWN_URL = (process.env.AE_API_SERVICE_NAME || 'http://api:3000') + '/faq';
 
 const cache = {
   value: '',
@@ -77,7 +77,7 @@ async function loadFaqMarkdown() {
     if( resp.ok ) {
       return {
         markdown: await resp.text(),
-        source: 'gcs'
+        source: 'caskfs-api'
       };
     }
     logger.warn('FAQ markdown fetch returned non-OK response; falling back to local file', {
