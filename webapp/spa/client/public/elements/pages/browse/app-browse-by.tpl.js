@@ -87,6 +87,15 @@ return html`
       width: 100%;
     }
 
+    .browse-results-count {
+      color: var(--ucd-blue-100, #022851);
+      font-size: 1.3rem;
+      font-style: italic;
+      font-weight: 700;
+      line-height: 1.74625rem;
+      margin-bottom: 1.19rem;
+    }
+
     .browse-seperator {
       display: block;
       height: 1px;
@@ -117,7 +126,7 @@ return html`
 
     .browse-filters .search-seperator {
       margin: 0.75rem 0;
-      border-top: 1px dotted #b0c4d8;
+      border-top: 1px solid var(--color-aggie-blue-40, #b0c4d8);
     }
 
     .browse-filters .search-seperator--large-dots {
@@ -138,7 +147,8 @@ return html`
 
     .browse-categories h3 {
       color: var(--ucd-blue-100, #022851);
-      font-size: 1.3rem;
+      font-size: 1.7425rem;
+      line-height: 1.2;
       font-style: italic;
       font-weight: 700;
       margin: 0 0 0.75rem;
@@ -164,6 +174,8 @@ return html`
 
     .collapsible-filter-heading h4 {
       margin: 0;
+      font-size: 1.207rem;
+      line-height: 1.2;
       font-weight: 700;
       color: var(--ucd-blue-100, #022851);
     }
@@ -274,6 +286,10 @@ return html`
       padding: 0.5rem 0;
     }
 
+    .affiliation-sub-row--single {
+      cursor: pointer;
+    }
+
     .affiliation-sub-checkbox {
       flex-shrink: 0;
       margin-top: 0.15rem;
@@ -354,7 +370,7 @@ return html`
       -webkit-appearance: none;
       width: 20px;
       height: 20px;
-      border: 1px solid var(--ucd-blue-70, #73ABDD);
+      border: 1px solid var(--color-aggie-blue-80, #13639E);
       background: var(--white, #FFF);
       flex-shrink: 0;
       cursor: pointer;
@@ -362,7 +378,7 @@ return html`
     }
 
     input[type="checkbox"]:checked {
-      background: var(--ucd-blue-70, #73ABDD);
+      background: var(--color-aggie-blue-80, #13639E);
     }
 
     input[type="checkbox"]:checked::after {
@@ -379,7 +395,7 @@ return html`
     }
 
     input[type="checkbox"]:indeterminate {
-      background: var(--ucd-blue-70, #73ABDD);
+      background: var(--color-aggie-blue-80, #13639E);
     }
 
     input[type="checkbox"]:indeterminate::after {
@@ -1048,6 +1064,10 @@ return html`
           ${this._getActiveFilterCount() >= 2 ? html`<button class="clear-all-filters" @click="${this._clearAllFilters}">Clear all</button>` : ''}
         </div>
       ` : ''}
+
+        ${!this.loading && this.totalResultsCount > 0 ? html`
+          <div class="browse-results-count">${this._getResultsCountLabel()}</div>
+        ` : ''}
 
         ${this._renderResults()}
         ${!this.loading && this.displayedResults.length === 0 ? html`<p class="no-results">0 results</p>
