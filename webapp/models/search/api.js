@@ -104,6 +104,16 @@ router.get(
       const filteredType = req?.query.type ? req.query.type.split(',') : null;
       const filteredStatus = req?.query.status ? req.query.status.split(',') : null;
 
+      // Department (affiliation) facet: the affiliation list should only show units that have
+      // results in the CURRENT view — i.e. reflecting the active @type / status / type / date
+      // filters, but NOT the dept filter itself (so selecting a dept doesn't hide the others).
+      // When no such filters are active, the keyword-scoped global dept aggregation is enough.
+      const hasViewFilters = !!(req?.query['@type'] || req?.query.status || req?.query.type || req?.query.dateFrom || req?.query.dateTo);
+      // capture the full filter set (incl. @type/status/type/date) BEFORE the deletions below;
+      // remove only dept so the facet is not self-filtered
+      const deptFacetParams = hasViewFilters ? { ...opts.params } : null;
+      if (deptFacetParams) delete deptFacetParams.dept;
+
       // Now remove type/dept filters and date filters for global aggregations
       delete params["@type"];
       delete params.status;
@@ -122,6 +132,21 @@ router.get(
           }
         });
       find.global_aggregations = global.aggregations;
+
+      // Resolve the department facet (see note above)
+      if (hasViewFilters) {
+        const deptFacet = await base.search(
+          { id: searchTemplate.id,
+            params: {
+              ...deptFacetParams,
+              size: 0,
+              index: Object.values(typeToIndex)
+            }
+          });
+        find.dept_facet = deptFacet.aggregations?.dept_facet || {};
+      } else {
+        find.dept_facet = find.global_aggregations?.dept || {};
+      }
 
       // If type or status filters were applied, get year-by-year breakdown for that subfilter
       if (filteredType || filteredStatus) {

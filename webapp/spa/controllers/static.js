@@ -4,7 +4,7 @@ const express = require('express');
 const spaMiddleware = require('@ucd-lib/spa-router-middleware');
 const config = require('../config');
 const esClient = require('../../lib/es-client.js');
-const { config : commonsConfig, logger } = require('@ucd-lib/experts-commons');
+const { config : commonsConfig, logger, ORG_LOOKUP } = require('@ucd-lib/experts-commons');
 const crypto = require('crypto');
 
 // for seo
@@ -97,6 +97,7 @@ module.exports = async (app) => {
         logger : config.client.logger,
         esAliases : commonsConfig.elasticsearch.aliases,
         buildInfo : commonsConfig.buildInfo,
+        orgLookup : ORG_LOOKUP,
         jsBundleHash,
       });
     },

@@ -32,6 +32,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       resultsPerPage  : { type : Number },
       currentPage : { type : Number },
       totalResultsCount : { type : Number },
+      totalResultsCountCapped : { type : Boolean },
       paginationTotal : { type : Number },
       // filters
       dept : { type : Array },
@@ -68,6 +69,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.resultsPerPage = 25;
     this.currentPage = 1;
     this.totalResultsCount = 0;
+    this.totalResultsCountCapped = false;
     this.paginationTotal = 0;
 
     this.dept = [];
@@ -92,7 +94,25 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     this.expandedSubCategories = [];
     this.categoryAggregations = {};
 
+    this._wasOnBrowse = false;
+    this._lastBrowseType = '';
+
     this._injectModel('AppStateModel', 'BrowseByModel');
+  }
+
+  /**
+   * @method _resetSidebarState
+   * @description reset the sidebar filter UI to its default collapsed state and scroll the
+   * affiliation list back to the top. Used when entering a browse page fresh so the sidebar
+   * does not retain accordion/scroll state from a previously viewed page.
+   */
+  _resetSidebarState() {
+    this.affiliationCollapsed = true;
+    this.dateCollapsed = true;
+    this.openToCollapsed = true;
+    this.affiliationSearch = '';
+    this.expandedSubCategories = [];
+    this._requestAffiliationScrollReset();
   }
 
   async firstUpdated() {
@@ -118,9 +138,23 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {Promise}
    */
   async _onAppStateUpdate(e) {
-    if( e.location.page !== 'browse' ) return;
+    if( e.location.page !== 'browse' ) {
+      this._wasOnBrowse = false;
+      return;
+    }
 
-    this.browseType = e.location.path[1];
+    const newBrowseType = e.location.path[1];
+    // Reset the sidebar UI state when the user enters a browse page "fresh" — either
+    // arriving from another page (primary nav / fresh search) or switching between browse
+    // sections (e.g. Grants -> Experts). Staying within the same section (selecting a
+    // different letter, paging, applying filters) preserves the sidebar state.
+    if( !this._wasOnBrowse || this._lastBrowseType !== newBrowseType ) {
+      this._resetSidebarState();
+    }
+    this._wasOnBrowse = true;
+    this._lastBrowseType = newBrowseType;
+
+    this.browseType = newBrowseType;
     this.letter = e.location.path[2] || '';
 
     let query = e.location.query || {};
@@ -230,6 +264,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
     this.loading = false;
+    this.totalResultsCountCapped = e.payload?.totalCapped || false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -252,6 +287,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
     this.loading = false;
+    this.totalResultsCountCapped = e.payload?.totalCapped || false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -274,6 +310,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( e.state === 'loading' ) { this.loading = true; return; }
     if( e.state !== 'loaded' ) return;
     this.loading = false;
+    this.totalResultsCountCapped = e.payload?.totalCapped || false;
     if( !e.payload?.hits?.length ) {
       this.displayedResults = [];
       this.totalResultsCount = 0;
@@ -646,21 +683,18 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
         <div class="browse-categories">
           <h3>Categories</h3>
           <category-filter-row
-            icon="fa-file-invoice-dollar"
             label="All Grants"
             .count="${this._getCategoryTotal()}"
             ?active="${!this.status}"
             @click="${() => this._onStatusChange('')}">
           </category-filter-row>
           <category-filter-row
-            icon="fa-hourglass-half"
             label="Active"
             .count="${this._getCategoryCount('status', 'active')}"
             ?active="${this.status === 'active'}"
             @click="${() => this._onStatusChange('active')}">
           </category-filter-row>
           <category-filter-row
-            icon="fa-check-circle"
             label="Completed"
             .count="${this._getCategoryCount('status', 'completed')}"
             ?active="${this.status === 'completed'}"
@@ -673,7 +707,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
         <div class="browse-categories">
           <h3>Categories</h3>
           <category-filter-row
-            icon="fa-book-open"
             label="All Works"
             .count="${this._getCategoryTotal()}"
             ?active="${!this.workType}"
@@ -713,55 +746,7 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
           </svg>
         </div>
         <div class="affiliation-checkboxes">
-          ${(this.orgLookup || []).map(cat => {
-            const matchingSubs = cat.subCategories.map(sub => ({
-              ...sub,
-              depts: sub.depts.filter(d =>
-                !this.affiliationSearch ||
-                d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
-                sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
-              )
-            })).filter(sub => sub.depts.length);
-            if( !matchingSubs.length ) return '';
-            return html`
-              <div class="affiliation-group-label">${cat.label}</div>
-              ${matchingSubs.map(sub => {
-                const subCodes = sub.depts.map(d => d.deptCode);
-                const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
-                const allChecked = checkedCount === subCodes.length;
-                const someChecked = checkedCount > 0 && !allChecked;
-                const expanded = this.expandedSubCategories.includes(sub.label);
-                return html`
-                  <div class="affiliation-sub-row">
-                    <input type="checkbox" class="affiliation-sub-checkbox"
-                      .indeterminate="${someChecked}" .checked="${allChecked}"
-                      @change="${() => this._onSubCategoryCheck(sub.depts)}">
-                    <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
-                      <span class="affiliation-sub-label">${sub.label}</span>
-                      <span class="affiliation-sub-caret">
-                        ${expanded
-                          ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                          : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                        }
-                      </span>
-                    </span>
-                  </div>
-                  ${expanded ? html`
-                    <div class="affiliation-dept-list">
-                      ${sub.depts.map(d => html`
-                        <label class="affiliation-dept-row">
-                          <input type="checkbox" .value="${d.deptCode}"
-                            .checked="${this.dept.includes(d.deptCode)}"
-                            @change="${this._onDeptChange}">
-                          ${d.name}
-                        </label>
-                      `)}
-                    </div>
-                  ` : ''}
-                `;
-              })}
-            `;
-          })}
+          ${this._renderAffiliationCheckboxes()}
         </div>
       </div>
 
@@ -995,11 +980,22 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {String} formatted count or empty string
    */
   _getCategoryCount(key, value) {
-    if( !this.categoryAggregations ) return '';
-    const agg = this.categoryAggregations[key];
-    if( !agg || typeof agg !== 'object' ) return '';
+    const count = this._getCategoryCountRaw(key, value);
+    return count == null ? '0' : utils.formatCount(count);
+  }
+
+  /**
+   * @method _getCategoryCountRaw
+   * @description raw numeric count for a category aggregation bucket
+   * @param {String} key aggregation field name
+   * @param {String} value bucket value
+   * @returns {Number|null} count, or null when aggregations aren't available
+   */
+  _getCategoryCountRaw(key, value) {
+    const agg = this.categoryAggregations?.[key];
+    if( !agg || typeof agg !== 'object' ) return null;
     const count = agg[value];
-    return typeof count === 'number' ? count.toLocaleString() : '0';
+    return typeof count === 'number' ? count : 0;
   }
 
   /**
@@ -1008,12 +1004,21 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @returns {String} formatted total or empty string
    */
   _getCategoryTotal() {
+    const total = this._getCategoryTotalRaw();
+    return total == null ? '' : utils.formatCount(total);
+  }
+
+  /**
+   * @method _getCategoryTotalRaw
+   * @description raw numeric total across all category buckets
+   * @returns {Number|null} total, or null when aggregations aren't available
+   */
+  _getCategoryTotalRaw() {
     const agg = this.browseType === 'grant'
       ? this.categoryAggregations?.status
       : this.categoryAggregations?.type;
-    if( !agg || typeof agg !== 'object' ) return '';
-    const total = Object.values(agg).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0);
-    return total.toLocaleString();
+    if( !agg || typeof agg !== 'object' ) return null;
+    return Object.values(agg).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0);
   }
 
   /**
@@ -1026,7 +1031,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
     if( !typeAgg || typeof typeAgg !== 'object' || !Object.keys(typeAgg).length ) {
       return DEFAULT_WORK_TYPES.map(t => html`
         <category-filter-row
-          icon="fa-book-open"
           label="${t.label}"
           .count="${0}"
           ?active="${this.workType === t.key}"
@@ -1039,7 +1043,6 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
       .sort((a, b) => utils.getCitationType(a.key).localeCompare(utils.getCitationType(b.key)))
       .map(({ key, count }) => html`
         <category-filter-row
-          icon="fa-book-open"
           label="${utils.getCitationType(key)}"
           .count="${count}"
           ?active="${this.workType === key}"
@@ -1095,22 +1098,48 @@ export default class AppBrowseBy extends AffiliationMixin(Mixin(LitElement)
    * @description return the label for the mobile "View N results" button
    * @returns {String}
    */
-  _getMobileViewLabel() {
-    const n = this.totalResultsCount != null ? this.totalResultsCount : '';
-    if( this.browseType === 'expert' ) return `View ${n} expert${n === 1 ? '' : 's'}`;
+  /**
+   * @method _getResultsCountLabel
+   * @description "<count> <label>" for the current results, where the label matches the
+   * selected category (e.g. "27 books", "150 chapters", "1,000 experts", "12 active grants").
+   * The count is comma-formatted (5+ digits) with a trailing "+" when capped.
+   * @returns {String}
+   */
+  _getResultsCountLabel() {
+    // Prefer the category aggregation count (accurate, matches the sidebar) for grants/works;
+    // fall back to the browse result total (used for experts, and until aggs load). Only the
+    // result total can be a capped lower bound, so "+" applies to the fallback path only.
+    let count = null, capped = false;
+    if( this.browseType === 'grant' ) {
+      count = this.status ? this._getCategoryCountRaw('status', this.status) : this._getCategoryTotalRaw();
+    } else if( this.browseType === 'work' ) {
+      count = this.workType ? this._getCategoryCountRaw('type', this.workType) : this._getCategoryTotalRaw();
+    }
+    if( count == null ) {
+      count = this.totalResultsCount;
+      capped = this.totalResultsCountCapped;
+    }
+
+    const n = count != null ? utils.formatCount(count, capped) : '';
+    const plural = count !== 1; // a capped total is always > 1
+    if( this.browseType === 'expert' ) return `${n} expert${plural ? 's' : ''}`;
     if( this.browseType === 'grant' ) {
       let label = this.status ? this.status.toLowerCase() + ' grant' : 'grant';
-      if( n !== 1 ) label += 's';
-      return `View ${n} ${label}`;
+      if( plural ) label += 's';
+      return `${n} ${label}`;
     }
     if( this.browseType === 'work' ) {
       if( this.workType ) {
         const label = utils.getCitationType(this.workType).toLowerCase();
-        return `View ${n} ${label}${n === 1 ? '' : 's'}`;
+        return `${n} ${label}${plural ? 's' : ''}`;
       }
-      return `View ${n} work${n === 1 ? '' : 's'}`;
+      return `${n} work${plural ? 's' : ''}`;
     }
-    return `View ${n} results`;
+    return `${n} results`;
+  }
+
+  _getMobileViewLabel() {
+    return `View ${this._getResultsCountLabel()}`;
   }
 
   /**
